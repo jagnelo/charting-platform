@@ -2,6 +2,16 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-03T19:00:00Z Runner operational limits and recovery
+
+- Added bounded research job/input bytes, structured-output bytes/rows/artifacts, and
+  terminal malformed/crash handling. Worker startup now recovers orphaned `.running`
+  jobs; terminal handling removes progress/cancel sentinels. Compose exposes the limits.
+- Validation: runner/deployment `27 passed`; full backend unit `859 passed` at `70.15%`;
+  Docker-backed code API integration `13 passed`; rebuilt no-network/read-only/non-root
+  image smoke passed for normal and rejected paths; Ruff/diff passed.
+- Strict V25 visual approval and the complete acceptance matrix remain open.
+
 ## 2026-08-03T18:00:00Z API validator parity
 
 - Aligned the FastAPI workstation-Python validator with the isolated runner: curated

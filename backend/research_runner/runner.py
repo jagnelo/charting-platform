@@ -27,6 +27,10 @@ JOB_DIR = Path(os.environ.get("RESEARCH_JOB_DIR", "/jobs"))
 RESULT_DIR = Path(os.environ.get("RESEARCH_RESULT_DIR", "/results"))
 MAX_SECONDS = int(os.environ.get("RESEARCH_MAX_SECONDS", "15"))
 MAX_MEMORY_BYTES = int(os.environ.get("RESEARCH_MAX_MEMORY_BYTES", str(512 * 1024 * 1024)))
+MAX_OUTPUT_BYTES = int(os.environ.get("RESEARCH_MAX_OUTPUT_BYTES", str(8 * 1024 * 1024)))
+MAX_OUTPUT_ROWS = int(os.environ.get("RESEARCH_MAX_OUTPUT_ROWS", "10000"))
+MAX_OUTPUT_ARTIFACTS = int(os.environ.get("RESEARCH_MAX_OUTPUT_ARTIFACTS", "128"))
+MAX_JOB_BYTES = int(os.environ.get("RESEARCH_MAX_JOB_BYTES", str(64 * 1024 * 1024)))
 
 
 def _materialize(value: object) -> object:
@@ -169,6 +173,15 @@ def _execute_single(
             if previous_alarm_handler is not None:
                 signal.signal(signal.SIGALRM, previous_alarm_handler)
             _restore_resources(previous_limits)
+    try:
+        serialized_artifacts = json.dumps(outputs, separators=(",", ":"), allow_nan=False)
+    except (TypeError, ValueError) as exc:
+        return {"status": "failed", "diagnostics": [{"code": "output_serialization_error", "message": str(exc)}]}
+    if len(serialized_artifacts.encode()) > MAX_OUTPUT_BYTES:
+        return {
+            "status": "failed",
+            "diagnostics": [{"code": "output_size_limit", "message": "research output exceeds the configured byte limit"}],
+        }
     return {
         "status": "completed",
         "artifacts": outputs,
@@ -258,8 +271,30 @@ class _Output:
         self.values = values
         self.dataset = dataset
 
+    @staticmethod
+    def _validate_name(name: str) -> str:
+        if not isinstance(name, str) or not name or len(name) > 128:
+            raise ValueError("output names must be non-empty strings of at most 128 characters")
+        return name
+
+    @staticmethod
+    def _row_count(value: object) -> int:
+        if isinstance(value, list | tuple):
+            return len(value)
+        if isinstance(value, dict):
+            return sum(_Output._row_count(item) for item in value.values())
+        return 0
+
+    def _store(self, name: str, artifact: dict[str, object]) -> None:
+        key = self._validate_name(name)
+        if len(self.values) >= MAX_OUTPUT_ARTIFACTS and key not in self.values:
+            raise ValueError("research output artifact limit exceeded")
+        if self._row_count(artifact.get("value")) > MAX_OUTPUT_ROWS:
+            raise ValueError("research output row limit exceeded")
+        self.values[key] = artifact
+
     def scalar(self, name: str, value: object) -> None:
-        self.values[name] = {"type": "scalar", "value": _materialize(value)}
+        self._store(name, {"type": "scalar", "value": _materialize(value)})
 
     def series(self, name: str, value: object) -> None:
         materialized = _materialize(value)
@@ -270,21 +305,21 @@ class _Output:
             and isinstance(timestamps, list)
             and len(timestamps) == len(values)
         ):
-            self.values[name] = {
+            self._store(name, {
                 "type": "series",
                 "value": {"timestamps": timestamps, "values": values},
-            }
+            })
         else:
-            self.values[name] = {"type": "series", "value": values}
+            self._store(name, {"type": "series", "value": values})
 
     def boolean(self, name: str, value: object) -> None:
         value = _materialize(value)
         if not isinstance(value, bool):
             raise ValueError("boolean output must be true or false")
-        self.values[name] = {"type": "boolean", "value": value}
+        self._store(name, {"type": "boolean", "value": value})
 
     def table(self, name: str, value: object) -> None:
-        self.values[name] = {"type": "table", "value": _materialize(value)}
+        self._store(name, {"type": "table", "value": _materialize(value)})
 
     def histogram(self, name: str, value: object, bins: int = 8, current: object = None) -> None:
         """Emit a deterministic numeric distribution for Study Lab renderers."""
@@ -297,7 +332,7 @@ class _Output:
             raise ValueError("histogram current value must be numeric")
         numeric = [float(item) for item in value if isinstance(item, int | float) and not isinstance(item, bool) and math.isfinite(float(item))]
         if not numeric:
-            self.values[name] = {"type": "histogram", "value": {"bins": [], "sample_size": 0, "current": current}}
+            self._store(name, {"type": "histogram", "value": {"bins": [], "sample_size": 0, "current": current}})
             return
         minimum = min(numeric)
         maximum = max(numeric)
@@ -317,10 +352,10 @@ class _Output:
                 }
                 for index, count in enumerate(counts)
             ]
-        self.values[name] = {
+        self._store(name, {
             "type": "histogram",
             "value": {"bins": bucket_rows, "sample_size": len(numeric), "min": minimum, "max": maximum, "current": current},
-        }
+        })
 
     def events(self, name: str, value: object) -> None:
         if not isinstance(value, list) or not all(isinstance(event, dict) for event in value):
@@ -337,7 +372,7 @@ class _Output:
                     f"event symbol {symbol or '<missing>'} is not declared in this run dataset"
                 )
             normalized.append({**event, "symbol": symbol, "timestamp": timestamp})
-        self.values[name] = {"type": "events", "value": normalized}
+        self._store(name, {"type": "events", "value": normalized})
 
 
 class _Stats:
@@ -625,10 +660,35 @@ def run_once(path: Path) -> None:
         path.replace(running_path)
     except FileNotFoundError:
         return
-    payload = json.loads(running_path.read_text())
+    result_path = RESULT_DIR / f"{path.stem}.json"
     progress_path = RESULT_DIR / f"{path.stem}.progress.json"
     cancel_path = JOB_DIR / f"{path.stem}.cancel"
     RESULT_DIR.mkdir(parents=True, exist_ok=True)
+
+    def write_result(result: dict) -> None:
+        encoded = json.dumps(result, separators=(",", ":"), allow_nan=False).encode()
+        if len(encoded) > MAX_OUTPUT_BYTES:
+            result = {
+                "status": "failed",
+                "diagnostics": [{"code": "output_size_limit", "message": "research result exceeds the configured byte limit"}],
+            }
+            encoded = json.dumps(result, separators=(",", ":")).encode()
+        temporary = result_path.with_suffix(".tmp")
+        temporary.write_bytes(encoded)
+        temporary.replace(result_path)
+
+    try:
+        if running_path.stat().st_size > MAX_JOB_BYTES:
+            raise ValueError("research job exceeds the configured input byte limit")
+        payload = json.loads(running_path.read_text())
+        if not isinstance(payload, dict) or not isinstance(payload.get("source"), str):
+            raise ValueError("research job payload must contain a source string")
+    except (OSError, ValueError, json.JSONDecodeError) as exc:
+        write_result({"status": "failed", "diagnostics": [{"code": "job_payload_invalid", "message": str(exc)}]})
+        cancel_path.unlink(missing_ok=True)
+        progress_path.unlink(missing_ok=True)
+        running_path.rename(path.with_suffix(".processed"))
+        return
 
     def write_progress(progress: dict) -> None:
         temporary = progress_path.with_suffix(".progress.tmp")
@@ -636,21 +696,34 @@ def run_once(path: Path) -> None:
         temporary.replace(progress_path)
 
     write_progress({"status": "running"})
-    result = execute_job(
-        payload,
-        progress_callback=write_progress,
-        cancellation_check=cancel_path.exists,
-    )
-    RESULT_DIR.mkdir(parents=True, exist_ok=True)
-    destination = RESULT_DIR / f"{path.stem}.json"
-    destination.write_text(json.dumps(result, separators=(",", ":")))
+    try:
+        result = execute_job(
+            payload,
+            progress_callback=write_progress,
+            cancellation_check=cancel_path.exists,
+        )
+    except Exception as exc:  # the worker must survive one malformed/crashing job
+        result = {"status": "failed", "diagnostics": [{"code": "runner_error", "message": str(exc)}]}
+    write_result(result)
     progress_path.unlink(missing_ok=True)
     cancel_path.unlink(missing_ok=True)
     running_path.rename(path.with_suffix(".processed"))
 
 
+def recover_orphaned_jobs() -> None:
+    """Return jobs left in claimed state by a terminated worker to the queue."""
+    JOB_DIR.mkdir(parents=True, exist_ok=True)
+    for path in JOB_DIR.glob("*.running"):
+        destination = path.with_suffix(".json")
+        if destination.exists():
+            path.unlink(missing_ok=True)
+        else:
+            path.rename(destination)
+
+
 def main() -> None:
     JOB_DIR.mkdir(parents=True, exist_ok=True)
+    recover_orphaned_jobs()
     while True:
         for path in JOB_DIR.glob("*.json"):
             run_once(path)

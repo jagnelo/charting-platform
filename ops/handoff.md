@@ -1,5 +1,20 @@
 # Active Handoff
 
+## Continuation update — 2026-08-03T19:00:00Z
+
+- Hardened the isolated runner file protocol. Structured outputs now enforce deployment
+  limits for bytes, rows, artifact count, and job input size; malformed payloads and
+  per-job exceptions become terminal failed results instead of killing the polling
+  process. Claimed `.running` jobs are recovered to `.json` after worker restart, and
+  progress/cancellation sentinels are cleaned on terminal handling.
+- Added compose-configured limits and focused regression coverage for output rejection,
+  malformed-job handling, and orphan recovery. Validation: focused runner/deployment
+  `27 passed`; full backend unit `859 passed` at `70.15%`; Docker-backed code API
+  integration `13 passed`; rebuilt non-root/read-only/no-network image smoke passed for
+  normal curated statistics and rejected import/row-limit paths; Ruff and diff checks
+  passed. Strict V25 visual approval remains `required_missing`, and the broader
+  security/performance/end-to-end acceptance matrix remains incomplete.
+
 ## Continuation update — 2026-08-03T18:00:00Z
 
 - Closed the API validation half of the curated Python namespace change. The FastAPI

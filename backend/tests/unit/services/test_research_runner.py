@@ -1,7 +1,8 @@
+import json
 import resource
 
 from research_runner import runner
-from research_runner.runner import execute_job
+from research_runner.runner import execute_job, recover_orphaned_jobs, run_once
 
 
 def test_runner_executes_only_validated_output_contract_in_its_own_process_module():
@@ -238,6 +239,49 @@ def test_runner_does_not_expose_pandas_wrapper_internals():
     assert result["status"] == "failed"
     assert result["diagnostics"][0]["code"] == "runtime_error"
     assert "private wrapper attributes" in result["diagnostics"][0]["message"]
+
+
+def test_runner_enforces_structured_output_row_limit(monkeypatch):
+    monkeypatch.setattr(runner, "MAX_OUTPUT_ROWS", 2)
+    result = execute_job({"source": "output.table('rows', [1, 2, 3])", "dataset": {}})
+    assert result["status"] == "failed"
+    assert result["diagnostics"][0]["code"] == "runtime_error"
+    assert "row limit" in result["diagnostics"][0]["message"]
+
+
+def test_runner_enforces_serialized_output_byte_limit(monkeypatch):
+    monkeypatch.setattr(runner, "MAX_OUTPUT_BYTES", 32)
+    result = execute_job({"source": "output.scalar('value', 'this is too large')", "dataset": {}})
+    assert result["status"] == "failed"
+    assert result["diagnostics"][0]["code"] == "output_size_limit"
+
+
+def test_runner_converts_malformed_job_to_terminal_result_and_keeps_polling(tmp_path, monkeypatch):
+    jobs = tmp_path / "jobs"
+    results = tmp_path / "results"
+    jobs.mkdir()
+    monkeypatch.setattr(runner, "JOB_DIR", jobs)
+    monkeypatch.setattr(runner, "RESULT_DIR", results)
+    (jobs / "42.json").write_text("not-json")
+
+    run_once(jobs / "42.json")
+
+    payload = json.loads((results / "42.json").read_text())
+    assert payload["status"] == "failed"
+    assert payload["diagnostics"][0]["code"] == "job_payload_invalid"
+    assert (jobs / "42.processed").exists()
+
+
+def test_runner_recovers_claimed_job_after_worker_restart(tmp_path, monkeypatch):
+    jobs = tmp_path / "jobs"
+    jobs.mkdir()
+    monkeypatch.setattr(runner, "JOB_DIR", jobs)
+    (jobs / "99.running").write_text('{"source":"output.scalar(\'ok\', 1)"}')
+
+    recover_orphaned_jobs()
+
+    assert (jobs / "99.json").exists()
+    assert not (jobs / "99.running").exists()
 
 
 def test_runner_exposes_only_declared_market_symbol_and_structured_ta_series():

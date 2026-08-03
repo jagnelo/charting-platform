@@ -16,6 +16,10 @@ def test_research_runner_compose_contract_preserves_isolated_execution_boundary(
     assert "- research_results:/results" in service
     assert "RESEARCH_JOB_DIR: /jobs" in service
     assert "RESEARCH_RESULT_DIR: /results" in service
+    assert "RESEARCH_MAX_OUTPUT_BYTES:" in service
+    assert "RESEARCH_MAX_OUTPUT_ROWS:" in service
+    assert "RESEARCH_MAX_OUTPUT_ARTIFACTS:" in service
+    assert "RESEARCH_MAX_JOB_BYTES:" in service
 
 
 def test_research_runner_image_pins_curated_numerical_dependencies_and_thread_budget():

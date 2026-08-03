@@ -156,6 +156,14 @@ the supported language is consistent across authoring, API validation, and execu
 This is functional sandbox evidence only; the complete security/resource acceptance
 matrix and Version 25 visual reference remain open.
 
+The runner file protocol now enforces bounded structured-output bytes, rows, artifact
+count, and input-job bytes through deployment-configured limits. It converts malformed
+or crashing jobs into terminal failed results, cleans progress/cancellation sentinels,
+and recovers claimed `.running` jobs when the worker restarts. Focused tests cover row
+and byte rejection, malformed-job recovery, and orphaned-claim recovery. These are
+operational sandbox safeguards; the complete adversarial security and resource matrix
+remains open.
+
 Study Lab dataset controls are now part of the serializable workstation-window
 configuration. Reopening, reloading, or floating a Study Lab preserves timeframe,
 benchmark, adjustment, session, and date bounds through the existing workspace
