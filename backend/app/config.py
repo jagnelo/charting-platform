@@ -70,6 +70,7 @@ class Settings(BaseSettings):
     OPENFIGI_API_KEY: str = ""
     OPENFIGI_TIMEOUT_SECONDS: float = 10.0
     MASSIVE_API_KEY: str = ""
+    ALPHA_VANTAGE_API_KEY: str = ""
     MARKETDATA_API_KEY: str = ""
     FMP_API_KEY: str = ""
     # Alpaca Markets — US equity + crypto OHLCV, corporate actions, universe

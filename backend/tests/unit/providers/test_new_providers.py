@@ -17,6 +17,7 @@ from app.providers.alpaca import (
     _is_crypto,
     _to_alpaca_crypto,
 )
+from app.providers.alpha_vantage import AlphaVantageProvider
 from app.providers.binance import BinanceProvider, _from_binance, _to_binance
 from app.providers.coingecko import CoinGeckoProvider
 from app.providers.edgar import EdgarProvider, _ensure_ticker_map
@@ -116,6 +117,10 @@ class TestRegistryCapabilities:
         assert caps == {"instrument_search", "universe_discovery"}
         assert get_search_provider("massive").name == "massive"
         assert get_discovery_provider("massive").name == "massive"
+
+    def test_alpha_vantage_capabilities(self):
+        caps = set(list_provider_capabilities("alpha_vantage"))
+        assert {"instrument_search", "price_history", "latest_price"} <= caps
 
 
 # ── Alpaca symbol helpers ─────────────────────────────────────────────────────
@@ -437,6 +442,32 @@ class TestMassiveReferenceProvider:
         assert get.call_count == 3
         assert get.call_args_list[1].kwargs["params"].get("cursor") is None
         assert get.call_args_list[2].kwargs["params"]["cursor"] == "abc"
+
+
+class TestAlphaVantageProvider:
+    def test_missing_key_is_empty(self):
+        with patch("app.providers.alpha_vantage.settings") as mock_settings:
+            mock_settings.ALPHA_VANTAGE_API_KEY = ""
+            assert AlphaVantageProvider().search_instruments("AAPL") == []
+
+    def test_daily_history_is_parsed_and_bounded(self):
+        response = MagicMock()
+        response.json.return_value = {
+            "Time Series (Daily)": {
+                "2024-01-03": {"1. open": "101", "2. high": "103", "3. low": "100", "4. close": "102", "5. volume": "1000"},
+                "2024-01-02": {"1. open": "99", "2. high": "100", "3. low": "98", "4. close": "99", "5. volume": "900"},
+            }
+        }
+        response.raise_for_status.return_value = None
+        with (
+            patch("app.providers.alpha_vantage.settings") as mock_settings,
+            patch("app.providers.alpha_vantage.httpx.get", return_value=response),
+        ):
+            mock_settings.ALPHA_VANTAGE_API_KEY = "key"
+            bars = AlphaVantageProvider().fetch_ohlcv(
+                "AAPL", Timeframe.D1, datetime(2024, 1, 2, tzinfo=UTC), datetime(2024, 1, 4, tzinfo=UTC)
+            )
+        assert [bar.close for bar in bars] == [99.0, 102.0]
 
 
 class TestFREDOHLCVParsing:

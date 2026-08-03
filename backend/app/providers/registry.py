@@ -10,6 +10,7 @@ from app.config import settings
 from app.models.data_source import DataSource
 from app.models.instrument import Instrument
 from app.providers.alpaca import AlpacaProvider
+from app.providers.alpha_vantage import AlphaVantageProvider
 from app.providers.base import (
     DiscoveryProvider,
     EventProvider,
@@ -45,6 +46,7 @@ _PROVIDERS: dict[str, ProviderDescriptor] = {
     "yfinance": YFinanceProvider(),  # Broad fallback — options chains, futures, forward earnings
     "openfigi": OpenFigiProvider(),  # Stable identifier enrichment (FIGI, ISIN)
     "massive": MassiveProvider(),  # Reference ticker universe corroboration
+    "alpha_vantage": AlphaVantageProvider(),  # Quota-limited daily-history corroboration
 }
 
 _DEFAULT_PROVIDER_USAGE_PROFILES: dict[str, dict] = {

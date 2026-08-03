@@ -184,6 +184,8 @@ US identity metadata and ticker-directory search, Alpaca supplies corporate acti
 US universe discovery, and OpenFIGI is the default stable-identifier reconciler. An
 optional Massive reference adapter is available for ticker search and US-universe
 corroboration when an entitlement is configured; it is not a runtime dependency. The
+optional Alpha Vantage adapter supplies quota-limited raw daily history and symbol search
+for corroboration; it is also never a required workstation path. The
 default chains no longer include yfinance. yfinance remains registered only for explicit
 legacy/options configuration and is not a required path for the new workstation; absent
 Alpaca credentials are reported as unavailable rather than silently switching providers.
