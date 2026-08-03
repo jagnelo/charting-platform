@@ -15,36 +15,43 @@ const StrategyLabView = () => import('@/views/StrategyLabView.vue')
 const BasketsView = () => import('@/views/BasketsView.vue')
 const ETFHoldingsView = () => import('@/views/ETFHoldingsView.vue')
 
+/**
+ * The route table is exported as a contract so the workstation/legacy boundary
+ * can be verified without mounting every lazy-loaded view. Keep the ordering
+ * stable: the parameterized workstation route must remain after `/chart`.
+ */
+export const applicationRoutes = [
+  { path: '/login', component: LoginView, meta: { public: true } },
+  { path: '/', component: WorkstationView },
+  { path: '/chart', component: WorkstationView },
+  { path: '/chart/:symbol(.*)', component: WorkstationView },
+  { path: '/popout/:windowKey', component: WorkstationView },
+  { path: '/study-lab', component: StudyLabView },
+  { path: '/legacy/dashboard', component: DashboardView },
+  { path: '/legacy/chart', component: ChartView },
+  { path: '/legacy/chart/:symbol(.*)', component: ChartView },
+  { path: '/legacy/alerts', component: AlertsView },
+  { path: '/legacy/radar', component: RadarView },
+  { path: '/legacy/strategy-lab', component: StrategyLabView },
+  { path: '/legacy/baskets', component: BasketsView },
+  { path: '/legacy/etf-holdings', component: ETFHoldingsView },
+  { path: '/legacy/screener', component: ScreenerView },
+  { path: '/legacy/watchlist', component: WatchlistView },
+  { path: '/legacy/settings', component: SettingsView },
+  { path: '/dashboard', redirect: '/legacy/dashboard' },
+  { path: '/alerts', redirect: '/legacy/alerts' },
+  { path: '/radar', redirect: '/legacy/radar' },
+  { path: '/strategy-lab', redirect: '/legacy/strategy-lab' },
+  { path: '/baskets', redirect: '/legacy/baskets' },
+  { path: '/etf-holdings', redirect: '/legacy/etf-holdings' },
+  { path: '/screener', redirect: '/legacy/screener' },
+  { path: '/watchlist', redirect: '/legacy/watchlist' },
+  { path: '/settings', redirect: '/legacy/settings' },
+] as const
+
 export const router = createRouter({
   history: createWebHistory(),
-  routes: [
-    { path: '/login', component: LoginView, meta: { public: true } },
-    { path: '/', component: WorkstationView },
-    { path: '/chart', component: WorkstationView },
-    { path: '/chart/:symbol(.*)', component: WorkstationView },
-    { path: '/popout/:windowKey', component: WorkstationView },
-    { path: '/study-lab', component: StudyLabView },
-    { path: '/legacy/dashboard', component: DashboardView },
-    { path: '/legacy/chart', component: ChartView },
-    { path: '/legacy/chart/:symbol(.*)', component: ChartView },
-    { path: '/legacy/alerts', component: AlertsView },
-    { path: '/legacy/radar', component: RadarView },
-    { path: '/legacy/strategy-lab', component: StrategyLabView },
-    { path: '/legacy/baskets', component: BasketsView },
-    { path: '/legacy/etf-holdings', component: ETFHoldingsView },
-    { path: '/legacy/screener', component: ScreenerView },
-    { path: '/legacy/watchlist', component: WatchlistView },
-    { path: '/legacy/settings', component: SettingsView },
-    { path: '/dashboard', redirect: '/legacy/dashboard' },
-    { path: '/alerts', redirect: '/legacy/alerts' },
-    { path: '/radar', redirect: '/legacy/radar' },
-    { path: '/strategy-lab', redirect: '/legacy/strategy-lab' },
-    { path: '/baskets', redirect: '/legacy/baskets' },
-    { path: '/etf-holdings', redirect: '/legacy/etf-holdings' },
-    { path: '/screener', redirect: '/legacy/screener' },
-    { path: '/watchlist', redirect: '/legacy/watchlist' },
-    { path: '/settings', redirect: '/legacy/settings' },
-  ],
+  routes: applicationRoutes,
 })
 
 // Navigation guard — redirect to /login if not authenticated

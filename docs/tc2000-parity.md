@@ -479,3 +479,11 @@ tools remain discoverable, while brokerage/trading, options, news, ratings, earn
 financial statements, and consolidated real-time domains are absent rather than shown
 as disabled shells. This verifies menu registration only; legacy-route and full browser
 acceptance remain separate gates.
+
+The application route contract now has focused unit evidence for the shell boundary:
+`/` and `/chart` (including `/chart/:symbol`) resolve to the authenticated workstation,
+while the retained dashboard, chart, alerts, Radar, Strategy Lab, Baskets, ETF Holdings,
+Screener, Watchlist, and Settings views are registered only beneath `/legacy/*`.
+Pre-workstation top-level paths redirect into their corresponding legacy route. This
+proves route registration and redirect intent without claiming full browser-authenticated
+legacy usability or visual parity; those remain separate acceptance gates.
