@@ -1,5 +1,15 @@
 # Active Handoff
 
+## Continuation update — 2026-08-03T23:28:00Z
+
+- Added typed `output.dashboard` composition with bounded named artifact references and
+  shared native rendering across active Study Lab and persisted Research Results. User code
+  cannot provide HTML, CSS, JavaScript, or components.
+- Validation: full backend unit suite `885 passed`; dashboard code/runner tests `36 passed`;
+  full frontend Vitest `478 passed` across 77 files; focused Study/Results tests `6 passed`;
+  TypeScript, production build, and `git diff --check` passed. Checkpoint `0351a38` is
+  pushed. Strict V25 visual approval and the complete acceptance matrix remain open.
+
 ## Continuation update — 2026-08-03T23:14:00Z
 
 - Persisted Research Results now renders typed scatter and heatmap artifacts with the same

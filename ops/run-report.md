@@ -2,6 +2,15 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-03T23:28:00Z Typed Study dashboards
+
+- Added `output.dashboard` with bounded named panels and shared rendering for active and
+  persisted Study results; arbitrary frontend code remains impossible.
+- Full backend unit suite `885 passed`; dashboard code/runner tests `36 passed`; full
+  frontend Vitest `478 passed` across 77 files; focused Study/Results tests `6 passed`;
+  TypeScript/build/diff checks passed. Pushed `0351a38`.
+- Strict V25 visual approval and the complete acceptance matrix remain open.
+
 ## 2026-08-03T23:14:00Z Persisted Study artifact rendering
 
 - Research Results now renders persisted typed scatter and heatmap artifacts instead of
