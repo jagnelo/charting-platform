@@ -2,6 +2,14 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-03T19:54:00Z Workstation analysis-tool registry
+
+- Add Tool now exposes Relative Rotation, Market Breadth, Technical Summary, Coverage,
+  and Instrument Report using stable tool types and serializable configuration.
+- Validation: full frontend Vitest `472 passed` across 77 files; TypeScript, production
+  build, and `git diff --check` passed. Pushed `e1d06c0`.
+- Strict V25 visual approval and the complete acceptance matrix remain open.
+
 ## 2026-08-03T19:50:00Z Watchlist stale-progress cleanup
 
 - Clearing a linked universe now removes old Python run IDs/progress before replacement

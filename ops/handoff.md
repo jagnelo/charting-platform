@@ -1,5 +1,15 @@
 # Active Handoff
 
+## Continuation update — 2026-08-03T19:54:00Z
+
+- Expanded the serializable Add Tool registry with Relative Rotation, Market Breadth,
+  Technical Summary, Coverage, and Instrument Report; factory-only analysis surfaces
+  are now independently openable while excluded domains remain unregistered.
+- Validation: full frontend Vitest `472 passed` across 77 files; TypeScript, production
+  build, and `git diff --check` passed. Checkpoint `e1d06c0` pushed.
+- Strict V25 visual approval remains `required_missing`; the broader workstation,
+  backend, security, performance, and end-to-end acceptance matrix remains incomplete.
+
 ## Continuation update — 2026-08-03T19:50:00Z
 
 - Cleared stale virtual-watchlist Python run IDs/progress when a linked universe changes,
