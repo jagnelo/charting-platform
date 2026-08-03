@@ -278,6 +278,12 @@ async def _collect_python_screener_result(db: AsyncSession, result: ScreenerResu
     }
     result.error = next((item.get("message") for item in run.diagnostics if isinstance(item, dict) and item.get("message")), None)
     await db.commit()
+    if run.status == "completed":
+        screener = await db.get(ScreenerDefinition, result.screener_id)
+        if screener is not None:
+            from app.services.screener_engine import process_screener_post_run
+
+            await process_screener_post_run(db, screener, result)
 
 
 @router.get("/{screener_id}", response_model=ScreenerOut)

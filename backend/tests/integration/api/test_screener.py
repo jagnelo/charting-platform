@@ -72,6 +72,12 @@ class TestScreenerCRUD:
         assert created.status_code == 201
         screener = created.json()
         assert screener["conditions"] == {"type": "python_condition", "code_version_id": version_id}
+        alert = client.post(
+            "/api/v1/alerts/screener",
+            headers=auth_headers,
+            json={"screener_id": screener["id"], "trigger_type": "entered", "repeat": True},
+        )
+        assert alert.status_code == 201
 
         queued = client.post(
             f"/api/v1/screeners/{screener['id']}/run", headers=auth_headers
@@ -120,6 +126,9 @@ class TestScreenerCRUD:
             "evaluated_count": 1,
             "excluded": [],
         }
+        alerts = client.get("/api/v1/alerts/screener", headers=auth_headers)
+        assert alerts.status_code == 200
+        assert alerts.json()[0]["last_checked_run_id"] == reconciled["id"]
 
     def test_create_screener(self, client, auth_headers):
         res = client.post(
