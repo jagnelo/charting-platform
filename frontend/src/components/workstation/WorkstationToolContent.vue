@@ -1,7 +1,12 @@
 <template>
   <ToolWindow :title="tool.title || tool.tool_type" :symbol="activeSymbol" :link-group="tool.link_group" :timeframe-link-group="timeframeLinkGroup" :timeframe="tool.tool_type === 'chart' ? activeTimeframe : ''" :active="tool.instance_key === activeWindowKey" @float="emit('float', tool.instance_key)" @maximize="emit('maximize', tool.instance_key)" @close="emit('close', tool.instance_key)" @update:link-group="emit('updateLinkGroup', tool.instance_key, $event)" @update:timeframe-link-group="setTimeframeLinkGroup" @update:timeframe="setTimeframe">
-    <VirtualWatchlistTool
-      v-if="tool.instance_key === 'benchmark-list'"
+    <div v-if="tool.instance_key === 'benchmark-list'" class="benchmark-surface">
+      <div class="benchmark-surface__identity" aria-label="S&P 500 benchmark identity">
+        <strong>S&amp;P 500</strong>
+        <span>Official series: {{ benchmarkIdentity.official_index_symbol }}</span>
+        <span>Using tradable proxy: {{ benchmarkIdentity.default_tradable_proxy }}</span>
+      </div>
+      <VirtualWatchlistTool
       label="Major US benchmarks"
       :rows="benchmarkRows"
       :selected="activeSymbol"
@@ -24,7 +29,8 @@
       @update:stacked-column-keys="emit('stackedColumnKeys', tool.instance_key, $event)"
       @update:python-columns="emit('configuration', tool.instance_key, { ...tool.configuration, python_columns: $event })"
       @update:python-condition="emit('configuration', tool.instance_key, { ...tool.configuration, python_condition: $event })"
-    />
+      />
+    </div>
     <VirtualWatchlistTool
       v-else-if="tool.instance_key === 'sector-list'"
       label="Relative to SPY"
@@ -369,6 +375,15 @@ watch(() => [chartStore.instrument?.id, activeTimeframe.value] as const, ([instr
 }, { immediate: true })
 const benchmarks = computed(() => workspaceStore.marketGroups['us-benchmarks']?.members.map(member => member.instrument.symbol) ?? [])
 const sectors = computed(() => workspaceStore.marketGroups['sp500-sectors']?.members.map(member => member.instrument.symbol) ?? [])
+const benchmarkIdentity = computed(() => {
+  const identity = workspaceStore.marketGroups['us-benchmarks']?.provenance?.benchmark_identities
+  const sp500 = identity && typeof identity === 'object' ? (identity as Record<string, unknown>).sp500 : null
+  const details = sp500 && typeof sp500 === 'object' ? sp500 as Record<string, unknown> : {}
+  return {
+    official_index_symbol: typeof details.official_index_symbol === 'string' ? details.official_index_symbol : 'SPX',
+    default_tradable_proxy: typeof details.default_tradable_proxy === 'string' ? details.default_tradable_proxy : 'SPY',
+  }
+})
 const benchmarkSnapshot = computed(() => workspaceStore.groupSnapshots['us-benchmarks'])
 const sectorPerformance = computed(() => Object.fromEntries(
   (workspaceStore.groupSnapshots['sp500-sectors']?.rows ?? []).map(row => [row.symbol, row.performance['1M']?.value ?? null]),
@@ -607,6 +622,10 @@ const proxyCoverage = computed(() => industryProxySnapshot.value
 .chart-tool__templates { position: absolute; top: 3px; right: 4px; z-index: 12; }
 .tool-state { display: grid; place-items: center; height: 100%; padding: 12px; color: #98a7b2; font: 11px "Segoe UI", Arial, sans-serif; text-align: center; }
 .tool-state--error { color: #ec8f8f; }
+.benchmark-surface { display: grid; grid-template-rows: auto minmax(0, 1fr); height: 100%; min-height: 0; }
+.benchmark-surface__identity { display: flex; align-items: baseline; gap: 9px; padding: 5px 7px; border-bottom: 1px solid #28343c; background: #121920; color: #91a2ad; font: 10px "Segoe UI", Arial, sans-serif; }
+.benchmark-surface__identity strong { color: #d7e4eb; font-size: 11px; }
+.benchmark-surface__identity span:first-of-type { color: #d2bc7a; }
 .analysis { height: 100%; min-height: 0; }
 .breadth-tool { display:grid; grid-template-rows:auto minmax(0,1fr); height:100%; min-height:0; }.metrics { display: grid; grid-template-columns: 1fr auto; gap: 5px 10px; padding: 9px; color: #99a8b1; font: 10px "Segoe UI", Arial, sans-serif; }
 .metrics b { color: #d2dce3; font-weight: 500; text-align: right; }

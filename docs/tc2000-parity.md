@@ -68,3 +68,5 @@ The benchmark watchlist now consumes the same canonical group snapshot as the se
 workflow. It displays SPY/RSP and other benchmark rows with 1D/1W/1M/3M/YTD/1Y
 performance, `/ SPY` ratio, RSI, 52-week position, and volume-ratio columns, so the
 cap-weighted versus equal-weight comparison is available before sector drill-down.
+Its identity strip separately labels the logical S&amp;P 500, official `SPX` series, and
+the currently used tradable `SPY` proxy; the UI never relabels proxy data as SPX.
