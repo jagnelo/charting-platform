@@ -21,9 +21,15 @@ class WatchlistItemRead(BaseModel):
     instrument_id: int
     position: int
     added_at: datetime
+    flagged: bool = False
     left_screener_at: datetime | None = None
     symbol: str | None = None
     name: str | None = None
+
+
+class WatchlistItemUpdate(BaseModel):
+    flagged: bool | None = None
+    notes: str | None = None
 
 
 class WatchlistRead(BaseModel):

@@ -14,6 +14,7 @@ from app.schemas.watchlist import (
     WatchlistCreate,
     WatchlistItemCreate,
     WatchlistItemRead,
+    WatchlistItemUpdate,
     WatchlistRead,
 )
 
@@ -26,6 +27,7 @@ def _item_to_read(item: WatchlistItem, instr: Instrument | None) -> WatchlistIte
         instrument_id=item.instrument_id,
         position=item.position,
         added_at=item.added_at,
+        flagged=item.flagged,
         left_screener_at=item.left_screener_at,
         symbol=instr.symbol if instr else None,
         name=instr.name if instr else None,
@@ -248,6 +250,41 @@ async def remove_item(
     return {"ok": True}
 
 
+@router.patch("/{watchlist_id}/items/{item_id}", response_model=WatchlistItemRead)
+async def update_item(
+    watchlist_id: int,
+    item_id: int,
+    body: WatchlistItemUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Update user annotations without changing list membership.
+
+    Flags and notes remain editable even on locked or managed lists; those controls do
+    not alter the source-managed membership and are therefore safe personal annotations.
+    """
+    await _get_own_watchlist(db, current_user.id, watchlist_id)
+    item = (
+        await db.execute(
+            select(WatchlistItem).where(
+                WatchlistItem.id == item_id,
+                WatchlistItem.watchlist_id == watchlist_id,
+            )
+        )
+    ).scalar_one_or_none()
+    if not item:
+        raise HTTPException(404, "Item not found")
+    if body.flagged is not None:
+        item.flagged = body.flagged
+    if body.notes is not None:
+        item.notes = body.notes
+    await db.commit()
+    instr = (
+        await db.execute(select(Instrument).where(Instrument.id == item.instrument_id))
+    ).scalar_one_or_none()
+    return _item_to_read(item, instr)
+
+
 class WatchlistRenameBody(BaseModel):
     name: str
 
@@ -377,6 +414,7 @@ async def copy_watchlist(
                 watchlist_id=new_wl.id,
                 instrument_id=src_item.instrument_id,
                 position=src_item.position,
+                flagged=src_item.flagged,
             )
         )
 

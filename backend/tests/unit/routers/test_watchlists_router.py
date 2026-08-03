@@ -38,7 +38,7 @@ class TestWatchlistsRouter:
     ):
         db.add_all(
             [
-                WatchlistItem(watchlist_id=watchlist.id, instrument_id=instrument.id, position=0),
+                WatchlistItem(watchlist_id=watchlist.id, instrument_id=instrument.id, position=0, flagged=True),
                 WatchlistItem(
                     watchlist_id=watchlist.id,
                     instrument_id=instrument_b.id,
@@ -52,3 +52,22 @@ class TestWatchlistsRouter:
         copy = client.post(f"/api/v1/watchlists/{watchlist.id}/copy", headers=auth_headers)
         assert copy.status_code == 200
         assert [item["instrument_id"] for item in copy.json()["items"]] == [instrument.id]
+        assert copy.json()["items"][0]["flagged"] is True
+
+    def test_flag_item_persists_without_unlocking_the_watchlist(
+        self, client, auth_headers, db, watchlist, instrument
+    ):
+        item = WatchlistItem(watchlist_id=watchlist.id, instrument_id=instrument.id, position=0)
+        db.add(item)
+        db.flush()
+
+        response = client.patch(
+            f"/api/v1/watchlists/{watchlist.id}/items/{item.id}",
+            headers=auth_headers,
+            json={"flagged": True},
+        )
+        assert response.status_code == 200
+        assert response.json()["flagged"] is True
+
+        db.refresh(item)
+        assert item.flagged is True

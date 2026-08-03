@@ -431,6 +431,21 @@ describe('VirtualWatchlistTool', () => {
     expect(wrapper.emitted('row-action')?.at(-1)).toEqual(['remove', expect.objectContaining({ itemId: 41 })])
   })
 
+  it('exposes a persistent flag toggle only for rows with a source item', async () => {
+    const wrapper = mount(VirtualWatchlistTool, {
+      props: { label: 'Momentum', rows: [{ ...rows[0], itemId: 41, flagged: false }] },
+    })
+    await wrapper.find('.watchlist__row').trigger('contextmenu', { clientX: 20, clientY: 24 })
+    const flag = wrapper.findAll('button[role="menuitem"]').find(button => button.text() === 'Flag')
+    expect(flag?.exists()).toBe(true)
+    await flag?.trigger('click')
+    expect(wrapper.emitted('row-action')?.at(-1)).toEqual(['flag', expect.objectContaining({ itemId: 41, flagged: false })])
+
+    await wrapper.setProps({ rows: [{ ...rows[0], itemId: 41, flagged: true }] })
+    await wrapper.find('.watchlist__row').trigger('contextmenu', { clientX: 20, clientY: 24 })
+    expect(wrapper.findAll('button[role="menuitem"]').some(button => button.text() === 'Unflag')).toBe(true)
+  })
+
   it('shows a working cancellation control while a persisted Python column batch is running', async () => {
     let resolveBatch: ((value: unknown) => void) | undefined
     apiGet.mockImplementation((path: string) => {

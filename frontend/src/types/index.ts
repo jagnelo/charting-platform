@@ -761,6 +761,7 @@ export interface WatchlistItem {
   symbol?: string
   name?: string
   position: number
+  flagged?: boolean
   left_screener_at?: string | null
 }
 

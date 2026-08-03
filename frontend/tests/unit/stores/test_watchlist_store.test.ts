@@ -69,6 +69,16 @@ describe('useWatchlistStore', () => {
     expect(store.watchlists[0].items).toHaveLength(1)
   })
 
+  it('persists an item flag and updates the local canonical row', async () => {
+    const store = useWatchlistStore()
+    store.watchlists = [makeWatchlist()] as any
+    ;(api.patch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ id: 1, instrument_id: 10, flagged: true })
+
+    await expect(store.setItemFlag(1, 1, true)).resolves.toBe(true)
+    expect(api.patch).toHaveBeenCalledWith('/watchlists/1/items/1', { flagged: true })
+    expect(store.watchlists[0].items[0].flagged).toBe(true)
+  })
+
   it('resolves symbols before adding by symbol and triggers an eager price fetch', async () => {
     const store = useWatchlistStore()
     store.watchlists = [{ ...makeWatchlist(), items: [] }] as any

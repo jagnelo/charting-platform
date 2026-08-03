@@ -122,6 +122,20 @@ export const useWatchlistStore = defineStore('watchlist', () => {
     }
   }
 
+  async function setItemFlag(watchlistId: number, itemId: number, flagged: boolean): Promise<boolean> {
+    try {
+      const item = await api.patch<WatchlistItem>(`/watchlists/${watchlistId}/items/${itemId}`, { flagged })
+      const wl = watchlists.value.find(value => value.id === watchlistId)
+      const local = wl?.items.find(value => value.id === itemId)
+      if (local) local.flagged = item.flagged ?? flagged
+      announceChanged(watchlistId)
+      return true
+    } catch (e) {
+      console.error('Failed to update watchlist item flag', e)
+      return false
+    }
+  }
+
   async function reorderItems(watchlistId: number, ids: number[]) {
     const wl = watchlists.value.find(item => item.id === watchlistId)
     if (!wl) return
@@ -301,7 +315,7 @@ export const useWatchlistStore = defineStore('watchlist', () => {
     createWatchlist,
     deleteWatchlist,
     addItem,
-    removeItem, reorderItems,
+    removeItem, setItemFlag, reorderItems,
     addBySymbol,
     renameWatchlist,
     seedWatchlist,

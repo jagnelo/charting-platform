@@ -347,6 +347,7 @@ const personalWatchlistRows = computed(() => (selectedPersonalWatchlist.value?.i
   instrumentId: item.instrument_id,
   symbol: item.symbol ?? `#${item.instrument_id}`,
   name: item.name ?? item.symbol ?? `Instrument ${item.instrument_id}`,
+  flagged: item.flagged === true,
   values: {
     last: watchlistStore.priceMap[item.symbol ?? '']?.close ?? null,
     change: watchlistStore.priceMap[item.symbol ?? '']?.pct ?? null,
@@ -480,7 +481,11 @@ async function handleMembershipAction(action: 'copy-to-watchlist' | 'move-to-wat
   }
 }
 
-function handlePersonalRowAction(action: 'chart' | 'compare' | 'note' | 'alert' | 'copy' | 'copy-to-watchlist' | 'move-to-watchlist' | 'remove', row: { symbol: string; instrumentId: number | null; itemId?: number }, targetWatchlistId?: number) {
+function handlePersonalRowAction(action: 'chart' | 'compare' | 'note' | 'alert' | 'copy' | 'copy-to-watchlist' | 'move-to-watchlist' | 'flag' | 'remove', row: { symbol: string; instrumentId: number | null; itemId?: number; flagged?: boolean }, targetWatchlistId?: number) {
+  if (action === 'flag' && selectedPersonalWatchlist.value && row.itemId != null) {
+    void watchlistStore.setItemFlag(selectedPersonalWatchlist.value.id, row.itemId, !row.flagged)
+    return
+  }
   if (action === 'copy-to-watchlist' || action === 'move-to-watchlist') {
     void handleMembershipAction(action, row, targetWatchlistId)
     return
@@ -677,7 +682,8 @@ function selectProxy(symbol: string) {
   emit('selectProxy', symbol)
 }
 
-function handleRowAction(action: 'chart' | 'compare' | 'note' | 'alert' | 'copy' | 'copy-to-watchlist' | 'move-to-watchlist' | 'remove', row: { symbol: string; instrumentId: number | null }, targetWatchlistId?: number) {
+function handleRowAction(action: 'chart' | 'compare' | 'note' | 'alert' | 'copy' | 'copy-to-watchlist' | 'move-to-watchlist' | 'flag' | 'remove', row: { symbol: string; instrumentId: number | null; flagged?: boolean }, targetWatchlistId?: number) {
+  if (action === 'flag') return
   if (action === 'copy-to-watchlist' || action === 'move-to-watchlist') {
     void handleMembershipAction(action, row, targetWatchlistId)
     return

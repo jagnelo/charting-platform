@@ -69,7 +69,7 @@
           @contextmenu.prevent.stop="openContextMenu($event, filteredRows[virtualRow.index])"
         >
           <template v-for="column in renderedColumns" :key="column.key">
-            <span v-if="column.key !== stackedColumnKey" :title="display(filteredRows[virtualRow.index], column.key)">{{ display(filteredRows[virtualRow.index], column.key) }}</span>
+            <span v-if="column.key !== stackedColumnKey" :title="display(filteredRows[virtualRow.index], column.key)"><b v-if="column.key === 'symbol' && filteredRows[virtualRow.index].flagged" class="watchlist__flag" aria-label="Flagged">⚑</b>{{ display(filteredRows[virtualRow.index], column.key) }}</span>
             <span v-else class="watchlist__stack-cell"><small v-for="stackedColumn in stackedColumns" :key="stackedColumn.key" :title="display(filteredRows[virtualRow.index], stackedColumn.key)"><em>{{ stackedColumn.label }}</em>{{ display(filteredRows[virtualRow.index], stackedColumn.key) }}</small></span>
           </template>
         </button>
@@ -82,6 +82,7 @@
       <button type="button" role="menuitem" @click="runContextAction('note')">Open note</button>
       <button type="button" role="menuitem" @click="runContextAction('alert')">Open alerts</button>
       <button type="button" role="menuitem" @click="runContextAction('copy')">Copy symbol</button>
+      <button v-if="contextMenu.row.itemId != null" type="button" role="menuitem" @click="runContextAction('flag')">{{ contextMenu.row.flagged ? 'Unflag' : 'Flag' }}</button>
       <template v-if="membershipTargets.length">
         <select v-model="membershipTargetId" class="watchlist__membership-target" aria-label="Target watchlist">
           <option value="">List actions…</option>
@@ -105,6 +106,7 @@ export interface WatchlistRow {
   instrumentId: number | null
   symbol: string
   name: string
+  flagged?: boolean
   values?: Record<string, string | number | null>
 }
 
@@ -178,7 +180,7 @@ const props = withDefaults(defineProps<{
   membershipTargets: () => [],
   columnOverrides: () => ({}),
 })
-const emit = defineEmits<{ select: [row: WatchlistRow]; compare: [symbols: string[]]; reorder: [itemIds: number[]]; 'row-action': [action: 'chart' | 'compare' | 'note' | 'alert' | 'copy' | 'copy-to-watchlist' | 'move-to-watchlist' | 'remove', row: WatchlistRow, targetWatchlistId?: number]; 'update:visibleColumnKeys': [keys: string[]]; 'update:filterText': [value: string]; 'update:conditionScreenerId': [id: number | null]; 'update:conditionFilterMode': [mode: 'active' | 'inactive' | 'off']; 'update:pinnedBooleanKeys': [keys: string[]]; 'update:columnGroups': [groups: Record<string, string>]; 'update:stackedColumnKeys': [keys: string[]]; 'update:columnOverrides': [overrides: Record<string, { label?: string; width?: string }>]; 'update:pythonColumns': [columns: Array<{ code_version_id: number; name: string }>]; 'update:pythonCondition': [condition: { code_version_id: number; name: string; mode: 'active' | 'inactive' | 'off' } | null] }>()
+const emit = defineEmits<{ select: [row: WatchlistRow]; compare: [symbols: string[]]; reorder: [itemIds: number[]]; 'row-action': [action: 'chart' | 'compare' | 'note' | 'alert' | 'copy' | 'copy-to-watchlist' | 'move-to-watchlist' | 'flag' | 'remove', row: WatchlistRow, targetWatchlistId?: number]; 'update:visibleColumnKeys': [keys: string[]]; 'update:filterText': [value: string]; 'update:conditionScreenerId': [id: number | null]; 'update:conditionFilterMode': [mode: 'active' | 'inactive' | 'off']; 'update:pinnedBooleanKeys': [keys: string[]]; 'update:columnGroups': [groups: Record<string, string>]; 'update:stackedColumnKeys': [keys: string[]]; 'update:columnOverrides': [overrides: Record<string, { label?: string; width?: string }>]; 'update:pythonColumns': [columns: Array<{ code_version_id: number; name: string }>]; 'update:pythonCondition': [condition: { code_version_id: number; name: string; mode: 'active' | 'inactive' | 'off' } | null] }>()
 const scrollElement = ref<HTMLElement | null>(null)
 const filter = ref(props.filterText)
 const conditionFilter = ref(props.conditionScreenerId == null ? '' : String(props.conditionScreenerId))
@@ -684,7 +686,7 @@ function openContextMenu(event: MouseEvent, row: WatchlistRow) {
   contextMenu.value = { row, left: Math.max(2, event.clientX - (bounds?.left ?? 0)), top: Math.max(2, event.clientY - (bounds?.top ?? 0)) }
 }
 
-function runContextAction(action: 'chart' | 'compare' | 'note' | 'alert' | 'copy' | 'copy-to-watchlist' | 'move-to-watchlist' | 'remove') {
+function runContextAction(action: 'chart' | 'compare' | 'note' | 'alert' | 'copy' | 'copy-to-watchlist' | 'move-to-watchlist' | 'flag' | 'remove') {
   if (!contextMenu.value) return
   const row = contextMenu.value.row
   const targetId = Number(membershipTargetId.value)
@@ -832,6 +834,7 @@ function onCtrlWheel(event: WheelEvent) {
 .watchlist__context-menu button { border: 0; background: transparent; color: #c3d2dc; padding: 3px 5px; text-align: left; font: inherit; cursor: pointer; }
 .watchlist__context-menu button:disabled { color: #657782; cursor: not-allowed; }
 .watchlist__membership-target { min-width: 136px; border: 1px solid #526673; background: #10171d; color: #c3d2dc; padding: 3px 4px; font: inherit; }
+.watchlist__flag { margin-right: 3px; color: #f0c674; font-weight: 700; }
 .watchlist__context-menu button:hover,.watchlist__context-menu button:focus-visible { background: #28506a; color: #fff; outline: 0; }
 .watchlist__row span { min-width: 0; overflow: hidden; padding: 0 6px; color: #8999a5; text-overflow: ellipsis; white-space: nowrap; }
 .watchlist__row span:first-child { color: #dce9f2; font-weight: 600; }

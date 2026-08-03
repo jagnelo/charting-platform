@@ -259,6 +259,11 @@ the source item only after the destination accepts it. Current/source and locked
 are disabled, and the action carries canonical instrument and destination IDs rather than
 ticker-only state. Focused virtual-list coverage proves both copy and move events.
 
+Watchlist items now also have a durable user flag. The authenticated item PATCH contract
+persists `flagged` independently of membership locks, personal rows render the marker, and
+the context menu toggles Flag/Unflag only when a canonical source item exists. Reloaded
+watchlists retain the state, and copied lists preserve flags for retained items.
+
 Virtualized watchlist condition and Python batch requests now carry both a request
 generation and a linked-universe generation. Changing the active universe invalidates
 late results, starts evaluation for the new rows, and prevents old matches, progress,
