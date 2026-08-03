@@ -139,6 +139,26 @@ def test_runner_computes_point_in_time_forward_returns_for_study_events():
     ]
 
 
+def test_runner_emits_symbol_linked_occurrences_for_study_events():
+    result = execute_job(
+        {
+            "source": "events = research.occurrences(dataset, [1], 'positive_close_streak')\noutput.events('streaks', events)",
+            "dataset": {
+                "symbol": "SPY",
+                "timestamps": ["2026-01-01", "2026-01-02"],
+                "closes": [10, 11],
+            },
+        }
+    )
+    assert result["status"] == "completed"
+    assert result["artifacts"]["streaks"]["value"] == [{
+        "symbol": "SPY",
+        "timestamp": "2026-01-02",
+        "kind": "positive_close_streak",
+        "event_index": 1,
+    }]
+
+
 def test_runner_exposes_only_declared_market_symbol_and_structured_ta_series():
     result = execute_job(
         {

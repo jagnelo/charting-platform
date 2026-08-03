@@ -22,8 +22,8 @@ is recorded in the referenced test/baseline system.
 Current implementation evidence (not completion): the isolated Study Lab runner now
 supports a typed `histogram` artifact with deterministic numeric buckets, the factory
 positive-close study exposes current/longest/average/shortest streak metrics,
-point-in-time forward-return rows, and completed-streak lengths for that distribution,
-and both
+point-in-time forward-return rows, symbol-linked streak occurrences, and completed-
+streak lengths for that distribution, and both
 primary Study Lab result surfaces render the artifact through a uPlot bar overlay. The
 focused runner, validation, Study Lab, and persisted-results tests pass; visual parity
 remains blocked until the required approved Version 25 references exist.

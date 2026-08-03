@@ -334,6 +334,18 @@ class _Research:
                 })
         return rows
 
+    def occurrences(self, dataset: dict, event_indices: object, kind: str = "occurrence") -> list[dict]:
+        timestamps = dataset.get("timestamps", [])
+        symbol = str(dataset.get("symbol") or "").upper()
+        if not symbol or not isinstance(timestamps, list) or not isinstance(event_indices, list | tuple):
+            raise ValueError("occurrences requires a declared symbol, timestamps, and event indices")
+        label = str(kind or "occurrence")
+        return [
+            {"symbol": symbol, "timestamp": timestamps[index], "kind": label, "event_index": index}
+            for index in event_indices
+            if isinstance(index, int) and not isinstance(index, bool) and 0 <= index < len(timestamps) and isinstance(timestamps[index], str) and timestamps[index]
+        ]
+
 
 class _Market:
     """Prepared-dataset market namespace; it can never retrieve undeclared data."""
