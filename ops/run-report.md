@@ -2,6 +2,15 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-03T20:36:11Z Point-in-time ETF constituent snapshots
+
+- ETF constituent analysis now supports historical-safe `as_of` snapshot selection,
+  bar truncation, and explicit requested-cutoff provenance.
+- Full backend unit suite `886 passed`; integration regression added; Ruff,
+  frontend type-check, and diff checks passed. Pushed `271100e`.
+- Docker-backed integration, strict V25 visual approval, and the complete acceptance
+  matrix remain open.
+
 ## 2026-08-03T20:33:19Z Dual constituent-relative-strength analysis
 
 - Constituent batch analysis now supports an explicit second market benchmark; the

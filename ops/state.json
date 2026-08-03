@@ -4,8 +4,8 @@
     "active_worker": "Codex",
     "worker_session_started_at": "2026-07-28T21:40:33Z",
     "worker_soft_stop_at": null,
-    "last_handoff_at": "2026-08-03T20:33:19Z",
-    "last_commit": "f5143ca26ca07488b1c1af902d48407679e0e6ca feat(analysis): expose constituent market-relative strength",
+    "last_handoff_at": "2026-08-03T20:36:11Z",
+    "last_commit": "271100e68c84fdca851bbe10509d9f285f0d79e3 feat(analysis): add point-in-time ETF constituent snapshots",
     "git_ready_to_commit": true,
     "validation": {
         "backend_lint": "passed (code validation, restricted numerical facades, isolated research runner/resource restoration, screener, visual, analysis, research, OHLCV session model, and migration modules, 2026-08-03)",
@@ -13,7 +13,7 @@
         "frontend_tests": "passed: full frontend Vitest suite 481 across 78 files after dual constituent-relative-strength integration; focused workspace-store tests 23 passed; TypeScript and production build passed; the existing workstation, watchlist, Study Lab, linking, polling, RatioUPlot As-of, and 10,000-row coverage remains green; full Chromium flows 22 and focused acceptance slices remain recorded, 2026-08-03T20:33:19Z",
         "frontend_build": "passed (TypeScript and production build after dual constituent-relative-strength integration, 2026-08-03T20:33:19Z)",
         "alembic_upgrade": "disposable PostgreSQL 16 validation passed: full chain upgrades to d3e4f5a6b7c8, downgrades to d2a3b4c5d6e7, re-upgrades, and direct SQL verifies ohlcv_bar.session default plus ix_ohlcv_instrument_tf_session_ts; container removed 2026-08-03T16:30:00Z",
-        "diff_check": "passed (2026-08-03T20:33:19Z dual constituent-relative-strength integration)",
+        "diff_check": "passed (2026-08-03T20:36:11Z point-in-time ETF constituent snapshots)",
         "playwright": "rebuilt isolated branch stack: full Chromium flows.spec.ts passed 22 tests after unified Python Boolean watchlist-condition filtering, including chart-template rendering/projection save/apply/symbol preservation/delete; visual/multi-environment acceptance remains required, 2026-07-30",
         "console_check": "passed for focused F6/F7/F8b Chromium flow diagnostics (no unexpected console/page/request failures), 2026-07-30; full acceptance still required",
         "backend_log_check": "fresh branch stack logs confirm Alembic upgrade through head, successful top-down taxonomy seed, scheduler/API startup, passing health checks, and no instrument_indicator_config UndefinedTable/500 after focused browser acceptance; rebuilt backend was healthy after prepared-universe batch API addition",
@@ -21,6 +21,7 @@
         "yaml_json_parse": "passed (state.json, visual-reference manifest YAML, .env.example provider-chain JSON, and Docker Compose YAML validated; official release notes confirm pinned build 25.0.9571 while the available official help image remains a 25.0.9172.22877 discovery candidate; strict visual validator intentionally rejects application-shell-default/default as required_missing, 2026-08-03T20:40:00Z)"
     },
     "notes": [
+        "2026-08-03T20:36:11Z: Added point-in-time ETF constituent snapshot selection. An optional as_of cutoff now requires composition_date and known_at to be historical-safe, truncates comparison bars at the cutoff, and records requested_as_of provenance instead of falling back to current holdings. Added integration regression; Ruff, full backend unit suite 886, frontend type-check, and diff passed; checkpoint 271100e pushed. Docker-backed integration, strict visual approval, and the broad acceptance matrix remain incomplete.",
         "2026-08-03T20:33:19Z: Extended ETF constituent snapshots with an explicit optional market benchmark. The primary workstation now requests both selected-ETF and SPY comparisons, and constituent rows render both ratio columns with aligned-bar warnings and echoed benchmark identities. Full backend unit suite 886 passed; focused workspace-store tests 23 passed; frontend Vitest 481 passed across 78 files; TypeScript/build/diff passed; checkpoint f5143ca pushed. Strict visual approval, Docker-backed route verification, and the broad workstation/backend acceptance matrix remain incomplete.",
         "2026-08-03T20:27:35Z: Wired the primary Coverage workstation tool to the canonical OHLCV readiness endpoint. The tool persists timeframe/date/mode/adjustment controls, validates ranges, uses UTC boundaries, cancels stale symbol responses, and renders ready/partial/missing/stale status, bounds, explanations, and missing slices. Full frontend Vitest 480 passed across 78 files; focused CoverageSummaryTool tests 2 passed; TypeScript/build/diff passed; checkpoint d05c45c pushed. Strict visual approval, Docker-backed route verification, and the broad workstation/backend acceptance matrix remain incomplete.",
         "2026-08-03T23:36:00Z: Hardened typed Study dashboards: isolated runner now rejects missing or self-referential panel targets before persisting completed results. Full backend unit suite 886 passed; focused runner tests 29 passed; Ruff/diff passed; checkpoint e698873 pushed. Strict visual approval and the broad workstation/backend acceptance matrix remain incomplete.",

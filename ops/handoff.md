@@ -1,5 +1,16 @@
 # Active Handoff
 
+## Continuation update — 2026-08-03T20:36:11Z
+
+- Added point-in-time ETF constituent snapshot selection. An optional `as_of` cutoff
+  requires composition and `known_at` timestamps to be historical-safe, truncates all
+  comparison bars at the cutoff, and records `requested_as_of` provenance without falling
+  back to current holdings.
+- Validation: full backend unit suite `886 passed`; added integration regression; Ruff,
+  frontend type-check, and `git diff --check` passed. Checkpoint `271100e` is pushed.
+  Docker-backed integration, strict V25 visual approval, and the complete acceptance
+  matrix remain open.
+
 ## Continuation update — 2026-08-03T20:33:19Z
 
 - Extended ETF constituent snapshots with an explicit optional market benchmark. The
