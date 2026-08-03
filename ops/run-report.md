@@ -2,6 +2,12 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-03T21:30:00Z Full frontend regression
+
+- Full frontend Vitest suite passed `475` tests across 77 files after the sortable
+  Relative Rotation table change. Strict visual approval and the complete acceptance
+  matrix remain open.
+
 ## 2026-08-03T21:25:00Z Sortable rotation companion table
 
 - Relative Rotation table headers now sort every displayed metric, with visible direction

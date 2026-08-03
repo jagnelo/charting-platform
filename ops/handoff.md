@@ -1,5 +1,13 @@
 # Active Handoff
 
+## Continuation update — 2026-08-03T21:30:00Z
+
+- Re-ran the complete frontend Vitest suite after the sortable rotation table change:
+  `475 passed` across 77 files. This confirms the new table interaction did not regress
+  the existing workstation, chart, watchlist, Study Lab, linking, and persistence tests.
+- Strict V25 visual approval and the broader workstation/backend/security/performance/end-
+  to-end acceptance matrix remain incomplete.
+
 ## Continuation update — 2026-08-03T21:25:00Z
 
 - Added sortable headers to the Relative Rotation companion table. Symbol, state,
