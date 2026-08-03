@@ -2,6 +2,14 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-03T19:11:00Z Linked alert mutation regression
+
+- Added regression coverage for an alert mutation completing after its tool is relinked;
+  generation guards keep the new instrument responsive.
+- Validation: full frontend Vitest `464 passed` across 77 files; TypeScript, production
+  build, and `git diff --check` passed. Pushed `5707a62`.
+- Strict V25 visual approval and the complete acceptance matrix remain open.
+
 ## 2026-08-03T19:09:00Z Linked Notes/Alerts stale-response guards
 
 - Added generation guards to symbol-scoped Note and Alerts loads/mutations, including

@@ -1,5 +1,14 @@
 # Active Handoff
 
+## Continuation update — 2026-08-03T19:11:00Z
+
+- Added the final linked-alert regression for a mutation that completes after relinking;
+  the new instrument does not inherit stale state or a permanently busy control.
+- Validation: full frontend Vitest `464 passed` across 77 files; TypeScript, production
+  build, and `git diff --check` passed. Checkpoint `5707a62` pushed.
+- Strict V25 visual approval remains `required_missing`; the broader workstation,
+  backend, security, performance, and end-to-end acceptance matrix remains incomplete.
+
 ## Continuation update — 2026-08-03T19:09:00Z
 
 - Hardened linked Notes and Alerts tools against stale symbol-scoped responses. A
