@@ -194,6 +194,13 @@ The factory relative-strength chart is now explicitly auto-ratio-enabled: select
 SPY/RSP, a sector, a constituent, or an industry proxy updates it to the relevant
 benchmark relationship while custom expressions remain untouched.
 
+The chart plot library now retains the linked-chart shortcut and adds explicit target
+mode for copying an indicator plot to any other chart window in the active workspace,
+including isolated/grey-link charts. The copy operation clones parameters, style, and
+timeframe locks without replacing the target symbol. Watchlist/condition/scan/alert
+target-mode promotion remains a separate incomplete contract; visual approval remains
+blocked by the V25 reference manifest.
+
 Floated workstation tools now forward watchlist condition modes, Boolean pinning,
 column grouping/stacking, arbitrary serializable configuration, and industry-proxy
 selection back to the source shell. Pop-out startup hydrates the existing link-group
