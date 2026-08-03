@@ -82,6 +82,36 @@ reference_policy:
       status: discovery_only
       eligible_for: [application-shell-default, workspace-docking, chart-window]
       notes: "Useful behavioral history only; explicitly not eligible as a Version 25 visual baseline without an authoritative V25 unchanged-surface confirmation."
+    - id: v23-drag-value-column-start
+      source_type: official_help_behavioral_history
+      source_page: https://help.tc2000.com/m/125751/l/1874609-how-to-drag-drop-a-value-column-to-a-chart
+      image_locator: https://media.screensteps.com/image_assets/assets/006/974/451/original/83bdc3d2-732c-4d58-bbda-89b042421a5b.png
+      source_build: "23.0.8725.17574"
+      image_sha256: 5ecb3e89f1e35a4849605434b9768702f52b46cfda1cadceac50e3edec94fcc7
+      image_resolution: { width: 355, height: 283 }
+      status: discovery_only
+      eligible_for: [watchlist-column-filter, chart-window]
+      notes: "Official drag-source image linked from the help article. The article's topic history identifies Version 23; retain as behavior discovery only until pinned-build continuity is confirmed."
+    - id: v23-drag-value-column-target
+      source_type: official_help_behavioral_history
+      source_page: https://help.tc2000.com/m/125751/l/1874609-how-to-drag-drop-a-value-column-to-a-chart
+      image_locator: https://media.screensteps.com/image_assets/assets/006/974/453/original/f887e5a5-0f0b-4c6d-a038-1d7315be26ff.png
+      source_build: "23.0.8725.17574"
+      image_sha256: 822444927d2fe8f515b389b46a81e24e40462d80513bc872cc13391ced77f989
+      image_resolution: { width: 752, height: 614 }
+      status: discovery_only
+      eligible_for: [watchlist-column-filter, chart-window]
+      notes: "Official drag-target image linked from the help article. It is not a V25 baseline and cannot satisfy strict visual acceptance without exact-build review."
+    - id: v23-drag-value-column-drop
+      source_type: official_help_behavioral_history
+      source_page: https://help.tc2000.com/m/125751/l/1874609-how-to-drag-drop-a-value-column-to-a-chart
+      image_locator: https://media.screensteps.com/image_assets/assets/006/974/455/original/45ebb3be-8803-4ca4-bd3a-b2206303e487.png
+      source_build: "23.0.8725.17574"
+      image_sha256: 62fc47c409011a6427dee3981a5ef38d9f3a8e4e2ca960a5c9eccb1953cdba36
+      image_resolution: { width: 680, height: 602 }
+      status: discovery_only
+      eligible_for: [watchlist-column-filter, chart-window]
+      notes: "Official drop-result image linked from the help article. Use to discover placement and overlay states only; pinned Version 25 approval remains required."
 environments:
   - id: desktop-1080p-100
     viewport: { width: 1920, height: 1080 }

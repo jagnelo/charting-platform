@@ -115,6 +115,8 @@ reason that it is out of scope.
   <https://help.tc2000.com/m/69401/l/793640-how-to-save-a-workspace>
 - Create layout tab:
   <https://help.tc2000.com/m/69401/l/323126-how-to-create-a-new-layout-tab>
+- Drag/drop a value column to a chart (official historical interaction reference):
+  <https://help.tc2000.com/m/125751/l/1874609-how-to-drag-drop-a-value-column-to-a-chart>
 
 The captures must establish:
 
@@ -127,6 +129,11 @@ The captures must establish:
 - timeframe-link selector and linked/unlinked states;
 - between-layout and multi-monitor propagation;
 - drag preview, drop target, tab insertion, row/column split, and invalid-drop feedback.
+
+The drag/drop article's linked images are recorded in the manifest with their direct
+online locators, SHA-256 hashes, pixel dimensions, and Version 23 discovery-only status.
+They inform interaction discovery but cannot become V25 visual baselines unless an
+authorised pinned-build review confirms the surface is unchanged.
 
 ### Watchlists, columns, filters, and market gauges
 
