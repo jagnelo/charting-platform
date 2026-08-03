@@ -1,5 +1,15 @@
 # Active Handoff
 
+## Continuation update — 2026-08-03T19:20:00Z
+
+- Added active-request generations to top-down ETF holdings, constituent snapshots,
+  sector/industry composition, constituents, curated proxies, and proxy rankings.
+  Rapid drill-down traversal cannot let a previous selection replace the active one.
+- Validation: full frontend Vitest `466 passed` across 77 files; TypeScript, production
+  build, and `git diff --check` passed. Checkpoint `44cd32a` pushed.
+- Strict V25 visual approval remains `required_missing`; the broader workstation,
+  backend, security, performance, and end-to-end acceptance matrix remains incomplete.
+
 ## Continuation update — 2026-08-03T19:17:00Z
 
 - Scoped infinite-history backfill and coverage polling to the active chart load

@@ -2,6 +2,14 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-03T19:20:00Z Top-down drill-down generation guards
+
+- Top-down ETF/industry holdings, taxonomy, proxy, and ranking requests now commit only
+  for the active traversal generation.
+- Validation: full frontend Vitest `466 passed` across 77 files; TypeScript, production
+  build, and `git diff --check` passed. Pushed `44cd32a`.
+- Strict V25 visual approval and the complete acceptance matrix remain open.
+
 ## 2026-08-03T19:17:00Z Chart history/coverage generation scope
 
 - Infinite-history backfill and coverage polling now reject stale generations during
