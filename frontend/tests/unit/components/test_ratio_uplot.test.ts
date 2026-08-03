@@ -70,6 +70,17 @@ describe('RatioUPlot', () => {
     }))
   })
 
+  it('persists the ratio cutoff from the tool control', async () => {
+    vi.mocked(api.get).mockResolvedValue({ coverage: 1, points: [], warnings: [] })
+    const wrapper = mount(RatioUPlot, { props: { symbol: 'XLK', benchmarks: ['SPY'] } })
+    const input = wrapper.get('input[aria-label="Ratio as of"]')
+    await input.setValue('2025-12-31')
+    expect(wrapper.emitted('configuration')).toContainEqual([{ as_of: '2025-12-31' }])
+    await vi.waitFor(() => expect(api.get).toHaveBeenCalledWith('/analysis/relative-strength', {
+      symbol: 'XLK', benchmark: 'SPY', timeframe: 'D1', adjusted: true, as_of: '2025-12-31T23:59:59Z',
+    }))
+  })
+
   it('publishes ratio crosshair timestamps and consumes linked timestamps without echoing them', async () => {
     vi.mocked(api.get).mockResolvedValue({
       coverage: 1,

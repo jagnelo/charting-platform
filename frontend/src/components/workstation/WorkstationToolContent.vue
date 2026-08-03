@@ -146,7 +146,7 @@
       @update:python-condition="emit('configuration', tool.instance_key, { ...tool.configuration, python_condition: $event })"
     />
     <div v-else-if="ratioExpression" class="analysis">
-      <RatioUPlot :symbol="ratioExpression.numerator" :benchmarks="[ratioExpression.denominator]" :timeframe="activeTimeframe" :linked-timestamp="workspaceStore.timestampForLinkGroup(tool.link_group)" @cursor-timestamp="workspaceStore.publishTimestamp($event, tool.link_group, tool.instance_key)" />
+      <RatioUPlot :symbol="ratioExpression.numerator" :benchmarks="[ratioExpression.denominator]" :timeframe="activeTimeframe" :as-of="typeof tool.configuration.as_of === 'string' ? tool.configuration.as_of : null" :linked-timestamp="workspaceStore.timestampForLinkGroup(tool.link_group)" @cursor-timestamp="workspaceStore.publishTimestamp($event, tool.link_group, tool.instance_key)" @configuration="emit('configuration', tool.instance_key, { ...tool.configuration, ...$event })" />
     </div>
     <div v-else-if="tool.tool_type === 'chart' && tool.instance_key !== 'ratio-chart'" class="chart-tool">
       <DrawingToolbar class="chart-tool__drawing-toolbar" />
@@ -257,7 +257,7 @@
       @update:python-condition="emit('configuration', tool.instance_key, { ...tool.configuration, python_condition: $event })"
     />
     <div v-else-if="tool.instance_key === 'ratio-chart'" class="analysis">
-      <RatioUPlot :symbol="activeSymbol" :benchmarks="ratioBenchmarks" :timeframe="activeTimeframe" :linked-timestamp="workspaceStore.timestampForLinkGroup(tool.link_group)" @cursor-timestamp="workspaceStore.publishTimestamp($event, tool.link_group, tool.instance_key)" />
+      <RatioUPlot :symbol="activeSymbol" :benchmarks="ratioBenchmarks" :timeframe="activeTimeframe" :as-of="typeof tool.configuration.as_of === 'string' ? tool.configuration.as_of : null" :linked-timestamp="workspaceStore.timestampForLinkGroup(tool.link_group)" @cursor-timestamp="workspaceStore.publishTimestamp($event, tool.link_group, tool.instance_key)" @configuration="emit('configuration', tool.instance_key, { ...tool.configuration, ...$event })" />
     </div>
     <div v-else-if="tool.instance_key === 'breadth-summary' || tool.tool_type === 'breadth'" class="breadth-tool">
       <div class="metrics"><span>Above 20 MA</span><b>{{ breadthMetric('ma20') }}</b><span>Above 50 MA</span><b>{{ breadthMetric('ma50') }}</b><span>Above 200 MA</span><b>{{ breadthMetric('ma200') }}</b><span>Coverage</span><b>{{ breadthCoverage }}</b></div>

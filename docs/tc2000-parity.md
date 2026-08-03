@@ -58,9 +58,11 @@ metadata instead of silently mixing current membership with historical observati
 The canonical relative-strength ratio endpoint now accepts the same optional point-in-time
 `as_of` cutoff and truncates both local series before intersecting timestamps. The response
 echoes the cutoff, while the uPlot ratio component accepts an optional persisted cutoff for
-historical drill-downs and leaves the current-view request shape unchanged when absent.
-The focused frontend contract and backend helper suites pass; the Docker-backed route
-regression remains recorded but unexecuted because Docker socket access is unavailable.
+historical drill-downs. Its compact `As of` control emits serializable tool configuration,
+so docked and floated ratio windows retain the cutoff through workspace snapshots; current
+views omit the parameter when the control is blank. The focused frontend contract and
+backend helper suites pass; the Docker-backed route regression remains recorded but
+unexecuted because Docker socket access is unavailable.
 
 Queued Python EasyScan runs now expose their isolated research-run cancellation
 control in the primary workstation. Cancellation remains isolated to that run and
