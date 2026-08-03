@@ -286,6 +286,10 @@ const chartBarType = computed<ChartBarType>(() => {
 
 function selectSymbol(symbol: string, instrumentId?: number | null) {
   workspaceStore.selectToolSymbol(props.tool.instance_key, symbol, instrumentId)
+  // The shell owns canonical data loading and auto-ratio orchestration. Publish
+  // row selections through it as well as the local link-group mutation so every
+  // watchlist interaction follows the same top-down path as symbol entry.
+  emit('select', symbol)
 }
 
 function setTimeframe(timeframe: string) {
