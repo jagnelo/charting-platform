@@ -2,6 +2,18 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-03T12:05:36Z Python EasyScan lifecycle proof
+
+- Added an integration test covering Boolean Python asset creation, Python EasyScan
+  creation, isolated queued research job materialization, and reconciliation of a
+  completed typed batch artifact into matches and coverage. Fixed the dense EasyScan
+  control grid to reserve all four controls.
+- Validation: screener integration `20 passed` (two existing Nautilus warnings),
+  EasyScan component `1 passed`, frontend full suite `429 passed`, TypeScript,
+  production build, Ruff, and `git diff --check` passed. The first Vitest invocation
+  used unsupported Jest flag `--runInBand`; rerunning the canonical `npm test` passed.
+- Commit: `94ced6fc4af59870068fc617ce56108c21c200b1`.
+
 ## 2026-07-30T20:20:00Z Study Lab runner progress
 
 - Generic research runs now expose runner-owned running/progress state and Study Lab

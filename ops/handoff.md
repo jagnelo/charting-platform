@@ -1,5 +1,21 @@
 # Active Handoff
 
+## Continuation update — 2026-08-03T12:05:36Z
+
+- Added end-to-end coverage for Python-condition EasyScan: create a Boolean code asset,
+  create the scan, queue the isolated prepared-universe run, and reconcile a completed
+  typed batch artifact into matched IDs and coverage. Corrected the EasyScan four-control
+  grid so the Python condition, saved condition, name, and Run controls remain on one
+  dense row.
+- Validation: screener integration `20 passed` (two existing Nautilus deprecation
+  warnings), Python EasyScan component test `1 passed`, frontend full unit suite `429
+  passed`, TypeScript, production build, Ruff, and diff check passed. The invalid
+  `--runInBand` Vitest option was discarded; the repository's actual `npm test` command
+  passed.
+- Commit: `94ced6fc4af59870068fc617ce56108c21c200b1`. Next: extend the same immutable
+  Python condition contract into alert creation and continue the remaining full-scope
+  workstation/backend acceptance work.
+
 ## Continuation update — 2026-07-30T20:20:00Z
 
 - The runner writes an initial durable `running` record for every job, not only batch
