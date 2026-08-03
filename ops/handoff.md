@@ -1,5 +1,15 @@
 # Active Handoff
 
+## Continuation update — 2026-08-03T21:50:00Z
+
+- Added typed Study Lab `heatmap` artifacts with rectangular finite-matrix and label
+  validation. Results render as a native Vue matrix with deterministic color mapping;
+  numerical axes remain uPlot-only for series, histogram, and scatter outputs.
+- Validation: focused runner histogram/scatter/heatmap tests `3 passed`; Study Lab
+  component tests `2 passed`; Ruff, TypeScript, production build, and `git diff --check`
+  passed. Checkpoint `836358c` pushed. Strict visual approval and the broad workstation,
+  backend/security/performance/end-to-end acceptance matrix remain incomplete.
+
 ## Continuation update — 2026-08-03T21:40:00Z
 
 - Added typed Study Lab `scatter` artifacts to the isolated runner. The artifact validates

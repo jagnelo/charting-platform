@@ -2,6 +2,14 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-03T21:50:00Z Study Lab heatmap artifacts
+
+- Study Lab now supports typed rectangular heatmap matrices with bounded finite values
+  and native Vue rendering alongside the uPlot numeric artifact renderers.
+- Focused runner tests `3 passed`; Study Lab component tests `2 passed`; Ruff,
+  TypeScript/build/diff checks passed. Pushed `836358c`.
+- Strict V25 visual approval and the complete acceptance matrix remain open.
+
 ## 2026-08-03T21:40:00Z Study Lab scatter artifacts
 
 - Study Lab now supports typed numeric scatter artifacts in the sandbox and a uPlot
