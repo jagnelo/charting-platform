@@ -4,7 +4,7 @@ Status: `Controlling implementation plan`
 
 Reference release: `TC2000 Version 25.0.9571`
 
-Reference date: `2026-07-29`
+Reference date: `2026-08-03`
 
 ## Authority and precedence
 
@@ -39,9 +39,10 @@ The release authority is the official TC2000 release-notes page:
 - Product download/version page:
   <https://www.tc2000.com/download/version>
 
-As observed on `2026-07-29`, the release notes identify Version `25.0.9571` as the
+As verified on `2026-08-03`, the release notes identify Version `25.0.9571` as the
 April 2026 release and state that Version 25 became current for all customers in
-October 2025. The generic download page still renders Version 24 copy. Where those
+October 2025. The generic download page still renders Version 24 copy, while the
+help index exposes an earlier Version 25 help build (`25.0.9172.22877`). Where those
 pages disagree, the dated release notes and an authorised live desktop capture take
 precedence over generic marketing-page text.
 

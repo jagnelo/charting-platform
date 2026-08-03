@@ -13,6 +13,14 @@ reference_policy:
     - confirmed_v23_v24_surface
     - v20_behavioral_history
   acceptance_requires: approved
+  authority_evidence:
+    - id: v25-pinned-build-release-notes
+      source_type: official_release_notes
+      source_page: https://www.tc2000.com/features/whatsnew
+      source_build: "25.0.9571"
+      observed_release: "April 2026"
+      status: build_confirmed_not_visual_baseline
+      notes: "Official release notes identify 25.0.9571 as the April 2026 Version 25 release. This confirms the pinned build identity but does not substitute for state captures, environment metadata, measurements, or visual review."
   discovery_candidates:
     - id: v25-pinning-columns
       source_type: official_v25_help
@@ -23,7 +31,7 @@ reference_policy:
       image_resolution: { width: 501, height: 632 }
       status: discovery_candidate
       eligible_for: [watchlist-column-filter]
-      notes: "Official Version 25 help image; requires pinned-build unchanged review, measured tokens, target-environment mapping, and reviewer approval before any state can leave required_missing."
+      notes: "Official Version 25 help image from 25.0.9172.22877; the pinned-build release notes confirm 25.0.9571 separately. Requires pinned-build unchanged review, measured tokens, target-environment mapping, and reviewer approval before any state can leave required_missing."
     - id: v23-factory-layout-history
       source_type: official_help_behavioral_history
       source_page: https://help.tc2000.com/m/69401/l/743982-factory-default-layout-workspace
