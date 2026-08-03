@@ -179,6 +179,12 @@ changes therefore cannot paint an older response into
 the active uPlot model; a focused two-symbol store regression proves the current symbol,
 instrument, bars, and loading state remain aligned.
 
+Top-down ETF holdings, constituent snapshots, sector/industry composition, industry
+constituents, curated proxies, and proxy rankings use active-request generations as
+well. Rapidly traversing SPY → XLK → XLE or switching industries cannot replace the
+current drill-down with a late response from the previous selection; the workspace
+store regression covers the active ETF boundary.
+
 The shared timeframe-link compatibility path now preserves valid `M1` one-minute
 timeframes and normalizes only the legacy `MN1` monthly token to canonical `MN`.
 This prevents intraday selections from being silently converted to monthly bars while

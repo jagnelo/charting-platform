@@ -306,9 +306,20 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   let leaderTimer: ReturnType<typeof setInterval> | null = null
   let snapshotTimer: ReturnType<typeof setTimeout> | null = null
   let marketRefreshPromise: Promise<void> | null = null
+  const analysisGenerations = new Map<string, number>()
   const windowId = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
     ? crypto.randomUUID()
     : `window-${Date.now()}-${Math.random().toString(36).slice(2)}`
+
+  function beginAnalysisRequest(key: string) {
+    const generation = (analysisGenerations.get(key) ?? 0) + 1
+    analysisGenerations.set(key, generation)
+    return generation
+  }
+
+  function isCurrentAnalysisRequest(key: string, generation: number) {
+    return analysisGenerations.get(key) === generation
+  }
 
   const activeTab = computed(() =>
     workspace.value?.tabs.find(tab => tab.stable_key === activeTabKey.value) ?? workspace.value?.tabs[0] ?? null,
@@ -712,6 +723,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   async function loadETFHoldings(symbol: string) {
     const normalized = symbol.trim().toUpperCase()
     if (!normalized) return null
+    const requestKey = 'top-down:holdings'
+    const generation = beginAnalysisRequest(requestKey)
     try {
       const page = await api.get<ETFHoldingsPageState>(`/etf-holdings/${encodeURIComponent(normalized)}/holdings`, {
         limit: 500,
@@ -719,6 +732,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
         direction: 'desc',
         point_in_time: true,
       })
+      if (!isCurrentAnalysisRequest(requestKey, generation)) return null
       etfHoldings.value = { ...etfHoldings.value, [normalized]: page }
       constituentETF.value = normalized
       selectedIndustry.value = null
@@ -726,6 +740,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       void loadETFConstituentSnapshot(normalized)
       return page
     } catch (cause: any) {
+      if (!isCurrentAnalysisRequest(requestKey, generation)) return null
       if (cause?.status === 404) {
         etfHoldings.value = { ...etfHoldings.value, [normalized]: null }
         return null
@@ -739,14 +754,18 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     const normalized = symbol.trim().toUpperCase()
     if (!normalized) return null
     const comparison = (benchmark ?? normalized).trim().toUpperCase()
+    const requestKey = 'top-down:constituent-snapshot'
+    const generation = beginAnalysisRequest(requestKey)
     try {
       const snapshot = await api.get<ETFConstituentSnapshotState>(
         `/analysis/etf/${encodeURIComponent(normalized)}/constituents/snapshot`,
         { benchmark: comparison },
       )
+      if (!isCurrentAnalysisRequest(requestKey, generation)) return null
       etfConstituentSnapshots.value = { ...etfConstituentSnapshots.value, [normalized]: snapshot }
       return snapshot
     } catch (cause: any) {
+      if (!isCurrentAnalysisRequest(requestKey, generation)) return null
       if (cause?.status === 404) {
         etfConstituentSnapshots.value = { ...etfConstituentSnapshots.value, [normalized]: null }
         return null
@@ -759,11 +778,15 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   async function loadETFIndustries(symbol: string) {
     const normalized = symbol.trim().toUpperCase()
     if (!normalized) return null
+    const requestKey = 'top-down:industries'
+    const generation = beginAnalysisRequest(requestKey)
     try {
       const composition = await api.get<ETFIndustryCompositionState>(`/market-groups/etf/${encodeURIComponent(normalized)}/industries`)
+      if (!isCurrentAnalysisRequest(requestKey, generation)) return null
       etfIndustries.value = { ...etfIndustries.value, [normalized]: composition }
       return composition
     } catch (cause: any) {
+      if (!isCurrentAnalysisRequest(requestKey, generation)) return null
       if (cause?.status === 404) {
         etfIndustries.value = { ...etfIndustries.value, [normalized]: null }
         return null
@@ -778,15 +801,19 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     selectedIndustry.value = industry
     if (!normalized || !industry) return null
     const key = `${normalized}:${industry}`
+    const requestKey = 'top-down:industry'
+    const generation = beginAnalysisRequest(requestKey)
     selectedIndustryProxy.value = null
     try {
       const constituents = await api.get<ETFIndustryConstituentsState>(
         `/market-groups/etf/${encodeURIComponent(normalized)}/industries/${encodeURIComponent(industry)}`,
       )
+      if (!isCurrentAnalysisRequest(requestKey, generation)) return null
       industryConstituents.value = { ...industryConstituents.value, [key]: constituents }
       void loadIndustryProxies(normalized, industry)
       return constituents
     } catch (cause: any) {
+      if (!isCurrentAnalysisRequest(requestKey, generation)) return null
       error.value = cause?.message ?? `Unable to load ${industry} constituents`
       return null
     }
@@ -796,14 +823,18 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     const normalized = symbol.trim().toUpperCase()
     const key = `${normalized}:${industry}`
     if (!normalized || !industry) return null
+    const requestKey = 'top-down:industry-proxies'
+    const generation = beginAnalysisRequest(requestKey)
     try {
       const proxies = await api.get<ETFIndustryProxyState>(
         `/market-groups/etf/${encodeURIComponent(normalized)}/industries/${encodeURIComponent(industry)}/proxies`,
       )
+      if (!isCurrentAnalysisRequest(requestKey, generation)) return null
       industryProxies.value = { ...industryProxies.value, [key]: proxies }
       void loadIndustryProxySnapshot(normalized, industry)
       return proxies
     } catch (cause: any) {
+      if (!isCurrentAnalysisRequest(requestKey, generation)) return null
       error.value = cause?.message ?? `Unable to load ${industry} proxies`
       return null
     }
@@ -813,11 +844,15 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     const normalized = symbol.trim().toUpperCase()
     const key = `${normalized}:${industry}`
     if (!normalized || !industry) return null
+    const requestKey = 'top-down:industry-proxy-snapshot'
+    const generation = beginAnalysisRequest(requestKey)
     try {
       const snapshot = await api.get<IndustryProxySnapshotState>(`/analysis/etf/${encodeURIComponent(normalized)}/industries/${encodeURIComponent(industry)}/proxies/snapshot`)
+      if (!isCurrentAnalysisRequest(requestKey, generation)) return null
       industryProxySnapshots.value = { ...industryProxySnapshots.value, [key]: snapshot }
       return snapshot
     } catch (cause: any) {
+      if (!isCurrentAnalysisRequest(requestKey, generation)) return null
       industryProxySnapshots.value = { ...industryProxySnapshots.value, [key]: null }
       error.value = cause?.message ?? `Unable to rank ${industry} proxies`
       return null

@@ -4,6 +4,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 const { apiGet, apiPost, apiPut } = vi.hoisted(() => ({ apiGet: vi.fn(), apiPost: vi.fn(), apiPut: vi.fn() }))
 vi.mock('@/lib/api', () => ({ api: { get: apiGet, post: apiPost, put: apiPut } }))
 
+function deferred<T>() {
+  let resolve!: (value: T) => void
+  const promise = new Promise<T>(res => { resolve = res })
+  return { promise, resolve }
+}
+
 import { useWorkspaceStore, type OpenableToolDefinition } from '@/stores/workspace'
 
 describe('workspace store layout tabs', () => {
@@ -44,6 +50,29 @@ describe('workspace store layout tabs', () => {
     expect(store.marketAnalysisRefreshing).toBe(false)
     expect(store.marketAnalysisRefreshedAt).toBeNull()
     expect(store.error).toContain('temporary analysis outage')
+  })
+
+  it('keeps the active ETF drill-down when an older holdings response arrives late', async () => {
+    const stale = deferred<unknown>()
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/etf-holdings/SPY/holdings') return stale.promise
+      if (path === '/etf-holdings/XLK/holdings') return Promise.resolve({
+        snapshot: { etf_symbol: 'XLK', composition_date: '2026-08-01', known_at: null, provenance: 'test', source_provider: 'test', completeness_status: 'complete' },
+        holdings: [],
+        total: 0,
+      })
+      return Promise.resolve({})
+    })
+    const store = useWorkspaceStore()
+    const oldRequest = store.loadETFHoldings('SPY')
+    const currentRequest = store.loadETFHoldings('XLK')
+    await currentRequest
+    stale.resolve({ snapshot: { etf_symbol: 'SPY' }, holdings: [], total: 0 })
+    await oldRequest
+
+    expect(store.constituentETF).toBe('XLK')
+    expect(store.etfHoldings.XLK?.snapshot.etf_symbol).toBe('XLK')
+    expect(store.etfHoldings.SPY).toBeUndefined()
   })
 
   it('clones the active serializable layout with remapped tool identities and saves it', async () => {
