@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import logging
 from typing import Any
+from urllib.parse import parse_qs, urlparse
 
 import httpx
 
@@ -27,6 +28,9 @@ class MassiveProvider:
     name = "massive"
     base_url = _BASE
     description = "Massive reference tickers for US security-master corroboration"
+
+    def __init__(self) -> None:
+        self._cursor_by_page: dict[int, str] = {}
 
     def _api_key(self) -> str:
         # MARKETDATA_API_KEY is retained as a deployment-compatible alias.
@@ -69,6 +73,7 @@ class MassiveProvider:
         if quote_type.strip().upper() not in {"EQUITY", "EQUITIES", "STOCK", "STOCKS"}:
             return {"total": 0, "quotes": []}
         page = max(offset, 0) // _PAGE_SIZE
+        cursor = self._cursor_by_page.get(page)
         payload = self._get(
             self._params(
                 market="stocks",
@@ -77,7 +82,7 @@ class MassiveProvider:
                 limit=_PAGE_SIZE,
                 sort="ticker",
                 order="asc",
-                cursor=str(page) if page else None,
+                cursor=cursor,
             )
         )
         rows = (payload or {}).get("results", [])
@@ -90,7 +95,12 @@ class MassiveProvider:
             }
             for result in (self._result(row) for row in rows)
         ]
-        return {"total": len(quotes), "quotes": quotes, "next_url": (payload or {}).get("next_url")}
+        next_url = (payload or {}).get("next_url")
+        if isinstance(next_url, str):
+            next_cursor = parse_qs(urlparse(next_url).query).get("cursor", [None])[0]
+            if next_cursor:
+                self._cursor_by_page[page + 1] = next_cursor
+        return {"total": len(quotes), "quotes": quotes, "next_url": next_url}
 
     def supported_discovery_types(self) -> list[str]:
         return ["EQUITY"]

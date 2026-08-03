@@ -415,7 +415,8 @@ class TestMassiveReferenceProvider:
         response = MagicMock()
         response.json.side_effect = [
             {"results": [{"ticker": "AAPL", "name": "Apple Inc.", "primary_exchange": "XNAS", "type": "CS"}]},
-            {"results": [{"ticker": "AAPL", "name": "Apple Inc.", "primary_exchange": "XNAS", "type": "CS"}], "next_url": "next"},
+            {"results": [{"ticker": "AAPL", "name": "Apple Inc.", "primary_exchange": "XNAS", "type": "CS"}], "next_url": "https://api.massive.com/v3/reference/tickers?cursor=abc"},
+            {"results": []},
         ]
         response.raise_for_status.return_value = None
         with (
@@ -427,11 +428,15 @@ class TestMassiveReferenceProvider:
             provider = MassiveProvider()
             result = provider.search_instruments("AAPL")
             page = provider.discover_universe_page("EQUITY", 0)
+            next_page = provider.discover_universe_page("EQUITY", 1000)
         assert result[0].symbol == "AAPL"
         assert result[0].exchange == "XNAS"
         assert page["quotes"][0]["instrument_type"] == "CS"
-        assert page["next_url"] == "next"
-        assert get.call_count == 2
+        assert page["next_url"] == "https://api.massive.com/v3/reference/tickers?cursor=abc"
+        assert next_page["quotes"] == []
+        assert get.call_count == 3
+        assert get.call_args_list[1].kwargs["params"].get("cursor") is None
+        assert get.call_args_list[2].kwargs["params"]["cursor"] == "abc"
 
 
 class TestFREDOHLCVParsing:
