@@ -1,5 +1,21 @@
 # Active Handoff
 
+## Continuation update — 2026-08-03T17:39:30Z
+
+- Added a first-class personal `WatchList` tool to the primary workstation tool
+  library. It loads user-owned lists through the canonical watchlist store, persists the
+  selected watchlist ID in serializable workspace configuration, renders canonical rows
+  through the existing virtualized table, and publishes row selection through the normal
+  linked-symbol path.
+- Unlocked personal lists now support HTML drag/drop ordering by source item ID; managed
+  and locked lists remain non-reorderable. Docked and floated tools route reorder events
+  through the optimistic Pinia store and existing backend reorder endpoint.
+- Validation: focused virtual-watchlist/pop-out suites `27 passed`; full frontend Vitest
+  `456 passed` across 76 files; TypeScript, production build, and `git diff --check`
+  passed. Checkpoint `f52ac751276ea7a0b6865c54a887a3ca121aeb08` pushed.
+- Strict V25 visual approval remains `required_missing`; the broader workstation,
+  backend, security, performance, and end-to-end acceptance matrix remains incomplete.
+
 ## Continuation update — 2026-08-03T19:30:00Z
 
 - Corrected a workstation timeframe corruption: shared-link normalization now preserves

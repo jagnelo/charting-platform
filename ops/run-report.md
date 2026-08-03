@@ -2,6 +2,18 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-03T17:39:30Z Personal workstation WatchList
+
+- Added the personal `WatchList` tool to the primary workstation registry and tool
+  surface. Selected user-owned list IDs persist in workspace configuration; canonical
+  rows use the shared virtualized table and linked-symbol activation.
+- Added source-item-ID drag/drop ordering for unlocked personal lists and routed docked
+  and floated reorder events through the optimistic watchlist store/backend contract.
+- Validation: focused virtual-watchlist/pop-out `27 passed`; full frontend Vitest `456
+  passed` across 76 files; TypeScript, production build, and `git diff --check` passed.
+- Pushed checkpoint `f52ac751276ea7a0b6865c54a887a3ca121aeb08`. Strict V25 visual approval
+  and the complete acceptance matrix remain open.
+
 ## 2026-08-03T19:30:00Z Timeframe-link correctness
 
 - Fixed shared workspace normalization so `M1` remains one-minute and only legacy `MN1`
