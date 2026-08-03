@@ -16531,6 +16531,16 @@ Append a short entry after each worker session.
   `git diff --check` passed. Commit `05efc10e5a7f60bcedb686dd50b3b7929beb4328`
   pushed. Overall acceptance and approved V25 visual evidence remain incomplete.
 
+## 2026-08-03T13:45:00Z External visual-candidate checkpoint
+
+- Added honest manifest `discovery_candidates` for an official Version 25 pinning-
+  columns image (source build `25.0.9172.22877`, direct locator, SHA-256, resolution,
+  eligibility, and review requirements) and a separate Version 23 factory-layout
+  discovery-only image. Manifest unit tests `3 passed` and structural validation pass;
+  strict approval remains blocked because these are not approved pinned-build baselines.
+- Commit `731f3bfa462ae5a985d4119b3870e22347b5de42` pushed. Overall acceptance and
+  approved V25 visual evidence remain incomplete.
+
 ## 2026-08-03T14:32:00Z Persisted research cancellation checkpoint
 
 - Added cancellation to the persisted Research Results browser for queued/running

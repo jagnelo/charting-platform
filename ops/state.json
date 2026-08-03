@@ -4,8 +4,8 @@
     "active_worker": "Codex",
     "worker_session_started_at": "2026-07-28T21:40:33Z",
     "worker_soft_stop_at": null,
-    "last_handoff_at": "2026-08-03T13:35:00Z",
-    "last_commit": "05efc10e5a7f60bcedb686dd50b3b7929beb4328 feat(taxonomy): label SPX and SPY benchmark identity",
+    "last_handoff_at": "2026-08-03T13:45:00Z",
+    "last_commit": "731f3bfa462ae5a985d4119b3870e22347b5de42 chore(visual): record external v25 reference candidates",
     "git_ready_to_commit": true,
     "validation": {
         "backend_lint": "passed (code validation, restricted numerical facades, isolated research runner, screener, visual, analysis, and research modules, 2026-08-03)",
@@ -18,9 +18,10 @@
         "console_check": "passed for focused F6/F7/F8b Chromium flow diagnostics (no unexpected console/page/request failures), 2026-07-30; full acceptance still required",
         "backend_log_check": "fresh branch stack logs confirm Alembic upgrade through head, successful top-down taxonomy seed, scheduler/API startup, passing health checks, and no instrument_indicator_config UndefinedTable/500 after focused browser acceptance; rebuilt backend was healthy after prepared-universe batch API addition",
         "provider_live_tests": "not_run (no provider adapter change in this foundation)",
-        "yaml_json_parse": "passed (state.json and V25 visual manifest validated structurally, 2026-08-03)"
+        "yaml_json_parse": "passed (state.json and V25 visual manifest validated structurally; visual candidate metadata retained, 2026-08-03)"
     },
     "notes": [
+        "2026-08-03T13:45:00Z: Retrieved and hashed an official Version 25 help image for pinning columns (source build 25.0.9172.22877) and recorded it as a discovery_candidate with direct locator, resolution, SHA-256, eligibility, and review requirements. Also recorded a Version 23 factory-layout image as discovery-only history. The manifest remains structurally valid and strict approval remains intentionally blocked because candidates are not approved pinned-build baselines. Commit 731f3bfa462ae5a985d4119b3870e22347b5de42 pushed. Next: continue implementation and seek authoritative pinned-build evidence.",
         "2026-08-03T13:35:00Z: The canonical top-down taxonomy now carries a versioned logical SP500 identity with official series symbol SPX, default tradable proxy SPY, explicit proxy label, and use-only-when-entitled policy. Existing benchmark group provenance is upgraded in place without fabricating an SPX instrument. Focused workspace taxonomy integration 1 passed with Docker fixtures; Ruff and diff check passed. Commit 05efc10e5a7f60bcedb686dd50b3b7929beb4328 pushed. Visual parity remains required_missing and the full acceptance matrix remains incomplete. Next: continue the broad workstation/backend audit.",
         "2026-08-03T13:25:00Z: The shared top-down refresh now also loads the canonical US benchmark snapshot. The Benchmarks watchlist displays SPY/RSP and other benchmark rows with 1D/1W/1M/3M/YTD/1Y performance, /SPY ratio, RSI, 52-week position, and volume-ratio columns, making cap-weighted versus equal-weight comparison available before sector drill-down. Focused workspace-store suite 18 passed; TypeScript, production build, and diff check passed. Commit ccd7b4eb2a676e63350ed02f6a29d16c2a8b0538 pushed. Visual parity remains required_missing and the full acceptance matrix remains incomplete. Next: continue the broad workstation/backend audit.",
         "2026-08-03T13:20:00Z: Market Gauge automatic refetch now suspends when its dock surface is not intersecting or the document is hidden, while explicit Refresh remains available. Added regression coverage for hidden-document selection; focused Market Gauge suite 2 passed, TypeScript, production build, and diff check passed. Commit ba7ebf4957dd7e1c4308f6954d50a60c8c869b05 pushed. Visual parity remains required_missing and the full acceptance matrix remains incomplete. Next: continue the broad workstation/backend audit.",

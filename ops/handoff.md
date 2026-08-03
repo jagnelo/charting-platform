@@ -14531,6 +14531,18 @@
   broad workstation/backend acceptance matrix remains incomplete. Next: continue the
   broad workstation/backend audit.
 
+## 2026-08-03T13:45:00Z External visual-candidate checkpoint
+
+- Retrieved and SHA-256 hashed an official Version 25 help image for pinning columns
+  (source build `25.0.9172.22877`) and recorded its direct image locator, source page,
+  resolution, eligibility, and review requirements in manifest `discovery_candidates`.
+  A Version 23 factory-layout image is recorded separately as discovery-only history.
+- Manifest structural validation and visual-manifest unit tests `3 passed`; strict
+  approval remains intentionally blocked because candidates are not approved pinned-
+  build baselines. Commit `731f3bfa462ae5a985d4119b3870e22347b5de42` pushed.
+- Full goal remains active. Continue implementation and seek authoritative pinned-build
+  evidence; do not promote these candidates silently.
+
 ## 2026-08-03T13:35:00Z SPX/SPY identity checkpoint
 
 - The canonical top-down taxonomy now carries a versioned logical `sp500` identity
