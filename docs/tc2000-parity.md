@@ -119,6 +119,14 @@ tools; no context-menu item is a dead visual control. Focused component and pop-
 binding tests cover the menu and shell routing. This is functional evidence only; the
 Version 25 visual reference remains unapproved.
 
+Personal watchlist item order is now persisted through
+`POST /watchlists/{watchlist_id}/items/reorder`. The endpoint requires the complete item
+set, assigns contiguous positions, rejects duplicate or incomplete IDs, and refuses
+managed or locked lists. The Pinia watchlist store applies the order optimistically and
+restores the prior order if persistence fails. Docker-backed watchlist integration and
+store regression coverage prove the contract; the primary workstation's managed market
+groups remain source-ranked and are not incorrectly presented as manually reorderable.
+
 The shared timeframe-link compatibility path now preserves valid `M1` one-minute
 timeframes and normalizes only the legacy `MN1` monthly token to canonical `MN`.
 This prevents intraday selections from being silently converted to monthly bars while
