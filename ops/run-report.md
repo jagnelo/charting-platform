@@ -2,6 +2,16 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-03T20:33:19Z Dual constituent-relative-strength analysis
+
+- Constituent batch analysis now supports an explicit second market benchmark; the
+  workstation uses it to show both `/ selected ETF` and `/ SPY` relationships.
+- Backend unit suite `886 passed`; focused workspace-store tests `23 passed`; full
+  frontend Vitest `481 passed` across 78 files; TypeScript/build/diff checks passed.
+  Pushed `f5143ca`.
+- Strict V25 visual approval, Docker-backed route verification, and the complete
+  acceptance matrix remain open.
+
 ## 2026-08-03T20:27:35Z Coverage OHLCV readiness integration
 
 - The primary Coverage workstation tool now consumes the canonical OHLCV readiness
