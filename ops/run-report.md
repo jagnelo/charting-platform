@@ -16504,6 +16504,14 @@ Append a short entry after each worker session.
   `git diff --check` passed. Commit `17982bfc213d4dd6577c38d591410d6acfbcb938`
   pushed. Overall acceptance and approved V25 visual evidence remain incomplete.
 
+## 2026-08-03T13:20:00Z Hidden-surface polling checkpoint
+
+- Market Gauge automatic refetch now suspends for non-intersecting dock surfaces and
+  hidden documents, with explicit Refresh and cached values retained. Focused Market
+  Gauge suite `2 passed`; TypeScript, production build, and `git diff --check` passed.
+- Commit `ba7ebf4957dd7e1c4308f6954d50a60c8c869b05` pushed. Overall acceptance and
+  approved V25 visual evidence remain incomplete.
+
 ## 2026-08-03T14:32:00Z Persisted research cancellation checkpoint
 
 - Added cancellation to the persisted Research Results browser for queued/running

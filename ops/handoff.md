@@ -14505,3 +14505,16 @@
 - Full goal remains active; V25 visual references remain `required_missing` and the
   broad workstation/backend acceptance matrix remains incomplete. Next: audit the
   next uncovered primary workstation contract without narrowing the goal.
+
+## 2026-08-03T13:20:00Z Hidden-surface polling checkpoint
+
+- Market Gauge automatic refetch now suspends when its dock surface is not
+  intersecting or the document is hidden. Explicit Refresh remains available, and
+  cached gauge data remains visible during refetch. This closes the hidden-tool
+  polling leak for that primary workstation surface.
+- Focused Market Gauge suite `2 passed`; TypeScript, production build, and
+  `git diff --check` passed. Commit `ba7ebf4957dd7e1c4308f6954d50a60c8c869b05`
+  pushed.
+- Full goal remains active; V25 visual references remain `required_missing` and the
+  broad workstation/backend acceptance matrix remains incomplete. Next: continue
+  the broad workstation/backend audit.
