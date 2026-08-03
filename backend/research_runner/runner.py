@@ -8,6 +8,7 @@ configuration, connects to a provider, or receives credentials.
 from __future__ import annotations
 
 import json
+import math
 import os
 import resource
 import signal
@@ -213,6 +214,39 @@ class _Output:
     def table(self, name: str, value: object) -> None:
         self.values[name] = {"type": "table", "value": value}
 
+    def histogram(self, name: str, value: object, bins: int = 8) -> None:
+        """Emit a deterministic numeric distribution for Study Lab renderers."""
+        if not isinstance(value, list | tuple):
+            raise ValueError("histogram values must be a list")
+        if not isinstance(bins, int) or isinstance(bins, bool) or not 1 <= bins <= 64:
+            raise ValueError("histogram bins must be an integer between 1 and 64")
+        numeric = [float(item) for item in value if isinstance(item, int | float) and not isinstance(item, bool) and math.isfinite(float(item))]
+        if not numeric:
+            self.values[name] = {"type": "histogram", "value": {"bins": [], "sample_size": 0}}
+            return
+        minimum = min(numeric)
+        maximum = max(numeric)
+        if minimum == maximum:
+            bucket_rows = [{"start": minimum, "end": maximum, "count": len(numeric)}]
+        else:
+            width = (maximum - minimum) / bins
+            counts = [0] * bins
+            for item in numeric:
+                index = min(bins - 1, int((item - minimum) / width))
+                counts[index] += 1
+            bucket_rows = [
+                {
+                    "start": minimum + (index * width),
+                    "end": maximum if index == bins - 1 else minimum + ((index + 1) * width),
+                    "count": count,
+                }
+                for index, count in enumerate(counts)
+            ]
+        self.values[name] = {
+            "type": "histogram",
+            "value": {"bins": bucket_rows, "sample_size": len(numeric), "min": minimum, "max": maximum},
+        }
+
     def events(self, name: str, value: object) -> None:
         if not isinstance(value, list) or not all(isinstance(event, dict) for event in value):
             raise ValueError("events output must be a list of event objects")
@@ -262,6 +296,7 @@ class _Stats:
             "shortest": min(all_lengths) if all_lengths else 0,
             "average": sum(all_lengths) / len(all_lengths) if all_lengths else 0,
             "records": records,
+            "lengths": completed,
         }
 
 

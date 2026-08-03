@@ -98,7 +98,7 @@ class _Validator(ast.NodeVisitor):
             isinstance(node.func, ast.Attribute)
             and isinstance(node.func.value, ast.Name)
             and node.func.value.id == "output"
-            and node.func.attr in {"scalar", "series", "boolean", "events", "table"}
+            and node.func.attr in {"scalar", "series", "boolean", "events", "table", "histogram"}
         ):
             self.output_contracts.add(node.func.attr)
         self.generic_visit(node)

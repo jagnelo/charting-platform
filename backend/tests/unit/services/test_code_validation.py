@@ -10,9 +10,9 @@ def test_validates_sdk_dependencies_without_execution():
 
 
 def test_collects_all_declared_output_contracts_without_executing_source():
-    result = validate_workstation_python("output.scalar('n', 1)\noutput.boolean('qualifies', 1 > 0)")
+    result = validate_workstation_python("output.scalar('n', 1)\noutput.boolean('qualifies', 1 > 0)\noutput.histogram('distribution', [1, 2])")
     assert result.valid
-    assert result.output_contracts == ("boolean", "scalar")
+    assert result.output_contracts == ("boolean", "histogram", "scalar")
 
 
 def test_rejects_imports_and_dynamic_execution_with_source_positions():

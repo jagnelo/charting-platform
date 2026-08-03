@@ -100,6 +100,28 @@ def test_runner_executes_factory_positive_close_streak_study():
     ]
 
 
+def test_runner_emits_typed_histogram_for_study_distributions():
+    result = execute_job(
+        {
+            "source": "output.histogram('distribution', [1, 2, 2, 3], 2)",
+            "dataset": {},
+        }
+    )
+    assert result["status"] == "completed"
+    assert result["artifacts"]["distribution"] == {
+        "type": "histogram",
+        "value": {
+            "bins": [
+                {"start": 1.0, "end": 2.0, "count": 1},
+                {"start": 2.0, "end": 3.0, "count": 3},
+            ],
+            "sample_size": 4,
+            "min": 1.0,
+            "max": 3.0,
+        },
+    }
+
+
 def test_runner_exposes_only_declared_market_symbol_and_structured_ta_series():
     result = execute_job(
         {
