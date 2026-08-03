@@ -487,3 +487,10 @@ Screener, Watchlist, and Settings views are registered only beneath `/legacy/*`.
 Pre-workstation top-level paths redirect into their corresponding legacy route. This
 proves route registration and redirect intent without claiming full browser-authenticated
 legacy usability or visual parity; those remain separate acceptance gates.
+
+Instrument notes now have Docker-backed integration coverage for authenticated
+round-tripping, canonical-instrument validation, unauthenticated rejection, and strict
+per-user isolation. The API already scopes both read and upsert queries by user ID; the
+tests prove one user cannot read or overwrite another user's note for the same instrument.
+Linked-tool stale-load/save protections remain covered separately in the frontend race
+suite. Full legacy browser usability and Version 25 visual acceptance remain open.
