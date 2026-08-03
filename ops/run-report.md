@@ -2,6 +2,13 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-03T21:08:00Z Rotation sampling unit evidence
+
+- Extracted and tested the sampling helper used by Relative Rotation; cadence 1 remains
+  lossless and cadence 3 retains the latest aligned observation.
+- Focused backend analysis suite `8 passed`; Ruff/diff checks passed. Pushed `1c32fb9`.
+- Strict V25 visual approval and the complete acceptance matrix remain open.
+
 ## 2026-08-03T21:00:00Z Relative Rotation sampling
 
 - Added the bounded 1–30 aligned-observation sampling cadence to Relative Rotation, with

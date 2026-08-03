@@ -1,5 +1,15 @@
 # Active Handoff
 
+## Continuation update — 2026-08-03T21:08:00Z
+
+- Extracted the Relative Rotation sampling rule into a pure backend helper and added
+  unit coverage proving cadence `1` is lossless and larger cadences retain the latest
+  aligned observation. This closes the Docker-independent evidence gap for the new
+  calculation contract.
+- Validation: focused backend analysis helper suite `8 passed`; Ruff and `git diff --check`
+  passed. Checkpoint `1c32fb9` pushed. Strict visual approval and the broad workstation,
+  backend, security, performance, and end-to-end acceptance matrix remain incomplete.
+
 ## Continuation update — 2026-08-03T21:00:00Z
 
 - Completed the missing Relative Rotation sampling contract. The backend accepts bounded
