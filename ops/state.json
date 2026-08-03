@@ -5,7 +5,7 @@
     "worker_session_started_at": "2026-07-28T21:40:33Z",
     "worker_soft_stop_at": null,
     "last_handoff_at": "2026-08-03T15:47:00Z",
-    "last_commit": "60d838095e908bec08c3458c620b45bb67f9c287 feat(workstation): add multi-selection comparison launch (next code checkpoint pending)",
+    "last_commit": "cc2a478487af0ccfe3dedf0f522ecffec1ded7c3 feat(workstation): add watchlist context actions",
     "git_ready_to_commit": true,
     "validation": {
         "backend_lint": "passed (code validation, restricted numerical facades, isolated research runner, screener, visual, analysis, and research modules, including calendar/YTD/zero-base analysis, 2026-08-03)",
@@ -21,7 +21,7 @@
         "yaml_json_parse": "passed (state.json and V25 visual manifest validated structurally; official release notes confirm pinned build 25.0.9571 while the available official help image remains a 25.0.9172.22877 discovery candidate; strict visual validator intentionally rejects application-shell-default/default as required_missing, 2026-08-03)"
     },
     "notes": [
-        "2026-08-03T15:47:00Z: Added a wired virtual-watchlist row context menu for chart, compare-with-active, note, alert, and copy-symbol actions across docked and floated tools. Focused watchlist/pop-out suites 25 and full frontend Vitest 451 across 76 files, TypeScript, production build, and diff check passed. Strict visual approval remains required_missing and the broad acceptance matrix remains incomplete; code checkpoint is pending.",
+        "2026-08-03T15:47:00Z: Added a wired virtual-watchlist row context menu for chart, compare-with-active, note, alert, and copy-symbol actions across docked and floated tools. Focused watchlist/pop-out suites 25 and full frontend Vitest 451 across 76 files, TypeScript, production build, and diff check passed. Strict visual approval remains required_missing and the broad acceptance matrix remains incomplete. Pushed as cc2a478487af0ccfe3dedf0f522ecffec1ded7c3.",
         "2026-08-03T15:41:00Z: Unified keyboard Arrow/Space traversal and Ctrl+wheel with the watchlist multi-selection model, pruned filtered-out selections/anchors, and added pop-out comparison persistence coverage. Full frontend Vitest 450 across 76 files, TypeScript, production build, and diff check passed. Strict visual approval remains required_missing and the broad acceptance matrix remains incomplete; code checkpoint is pending.",
         "2026-08-03T15:36:15Z: Virtualized watchlists now support plain, Ctrl/Meta, and Shift selection while retaining canonical row activation. A Compare action routes up to six selected symbols into the first non-ratio chart's persisted comparison list through both docked and pop-out bindings. Focused suite 22 and full frontend Vitest 449 across 76 files, TypeScript, production build, and diff check passed. Strict visual approval remains required_missing and the broad acceptance matrix remains incomplete; code checkpoint is pending.",
         "2026-08-03T16:28:37Z: Comparison bars now reload when the linked timeframe or active symbol changes, preventing stale interval data in normalized uPlot overlays. Comparison utility tests, TypeScript, production build, and diff check passed; full frontend Vitest remains 447 across 76 files; commit 9a757823af64509ba12042f19b1e369bcb72c922 pushed. Strict visual validation still rejects required_missing state captures; visual parity and the full acceptance matrix remain incomplete. Next: continue a concrete uncovered workstation acceptance slice.",
