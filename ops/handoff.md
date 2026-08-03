@@ -1,5 +1,15 @@
 # Active Handoff
 
+## Continuation update — 2026-08-03T22:27:10Z
+
+- Added explicit chart plot target mode. The plot library retains the linked-chart
+  shortcut and can copy cloned indicator configuration to any other chart window,
+  including isolated/grey-link targets, without changing the target symbol.
+- Validation: focused ChartPlotLibrary tests `3 passed`; full frontend Vitest `488
+  passed` across 79 files; TypeScript, production build, and diff checks passed.
+  Checkpoint `60c770f` is pushed. Watchlist/condition/scan/alert target promotion,
+  strict V25 visual approval, and the complete acceptance matrix remain open.
+
 ## Continuation update — 2026-08-03T22:20:40Z
 
 - Validated the current Alembic chain in disposable PostgreSQL 16: full upgrade to

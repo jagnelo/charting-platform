@@ -2,6 +2,16 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-03T22:27:10Z Explicit chart plot target mode
+
+- Chart plot library now supports explicit copy targeting for any other chart window,
+  including isolated/grey-link charts, while preserving the linked-chart shortcut and
+  target symbols.
+- Focused ChartPlotLibrary tests `3 passed`; full frontend Vitest `488 passed` across
+  79 files; TypeScript/build/diff checks passed. Pushed `60c770f`.
+- Watchlist/condition/scan/alert promotion, strict V25 visual approval, and the complete
+  acceptance matrix remain open.
+
 ## 2026-08-03T22:20:40Z Current-head Alembic acceptance
 
 - Disposable PostgreSQL 16 validation upgraded the full chain to `e9f0a1b2c3d4`,
