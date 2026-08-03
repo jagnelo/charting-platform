@@ -5,7 +5,7 @@
     "worker_session_started_at": "2026-07-28T21:40:33Z",
     "worker_soft_stop_at": null,
     "last_handoff_at": "2026-08-03T21:58:00Z",
-    "last_commit": "9e8bfe8 fix(analysis): return unknown indicator cells",
+    "last_commit": "e29600f feat(analysis): add indicator batch provenance",
     "git_ready_to_commit": true,
     "validation": {
         "backend_lint": "passed (code validation, restricted numerical facades, isolated research runner/resource restoration, screener, visual, analysis, research, OHLCV session model, and migration modules, 2026-08-03)",

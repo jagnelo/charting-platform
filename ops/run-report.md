@@ -17637,5 +17637,5 @@ uncovered slice rather than repeat a generic completion claim.
 
 - Indicator-batch responses now include explicit-symbol universe provenance and
   requested/evaluated counts alongside cell warnings and coverage.
-- Workspace integration `23` and Ruff passed. Commit/push pending; strict V25 visual
-  approval and broad acceptance remain open.
+- Workspace integration `23` and Ruff passed. Checkpoint `e29600f` is committed and
+  pushed; strict V25 visual approval and broad acceptance remain open.
