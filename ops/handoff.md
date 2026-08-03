@@ -1,5 +1,18 @@
 # Active Handoff
 
+## Continuation update — 2026-08-03T16:05:00Z
+
+- Closed a Study Lab data-contract gap: the selected benchmark is now materialized from
+  canonical bars with the same timeframe, adjustment, and date bounds as the primary
+  dataset, exposed to isolated Python as `benchmark`, and reported as ready or explicitly
+  unavailable. Corrected the monthly selector from invalid `MN1` to canonical `MN`.
+- Validation: isolated runner unit suite `18 passed`; research API integration suite
+  `13 passed` without the module-scoped repository coverage gate; focused Study Lab
+  component `1 passed`; full frontend Vitest `451 passed` across `76` files; Ruff,
+  TypeScript, production build, and `git diff --check` passed.
+- The full goal remains active. Strict V25 visual approval is still `required_missing`,
+  and the broader backend/security/performance/end-to-end acceptance matrix remains open.
+
 ## Continuation update — 2026-08-03T15:58:00Z
 
 - Study Lab now exposes timeframe, benchmark, adjustment, session, and date-range

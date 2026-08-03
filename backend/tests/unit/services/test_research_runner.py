@@ -100,6 +100,23 @@ def test_runner_executes_factory_positive_close_streak_study():
     ]
 
 
+def test_runner_exposes_declared_benchmark_dataset():
+    result = execute_job(
+        {
+            "source": "output.scalar('benchmark_last', benchmark['closes'][-1])",
+            "dataset": {
+                "symbol": "AAPL",
+                "closes": [10, 11],
+                "benchmark_dataset": {"symbol": "SPY", "closes": [100, 101]},
+            },
+            "output_contract": "scalar",
+        }
+    )
+
+    assert result["status"] == "completed"
+    assert result["artifacts"]["benchmark_last"]["value"] == 101
+
+
 def test_runner_emits_typed_histogram_for_study_distributions():
     result = execute_job(
         {

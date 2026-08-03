@@ -105,6 +105,7 @@ def _execute_single(
         "__builtins__": {},
         "output": _Output(outputs, dataset),
         "dataset": dataset,
+        "benchmark": dataset.get("benchmark_dataset"),
         "market": _Market(dataset),
         "ta": _Ta(),
         "stats": _Stats(),

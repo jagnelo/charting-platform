@@ -122,7 +122,9 @@ def _dataset_manifest_fields(manifest: dict, options: dict) -> dict:
     return fields
 
 
-async def _materialize_instrument_dataset(db: AsyncSession, instrument: Instrument, manifest: dict, options: dict) -> dict:
+async def _load_instrument_bars(
+    db: AsyncSession, instrument: Instrument, options: dict, *, limit: int
+) -> list[OHLCVBar]:
     conditions = [
         OHLCVBar.instrument_id == instrument.id,
         OHLCVBar.timeframe == options["timeframe"],
@@ -133,11 +135,22 @@ async def _materialize_instrument_dataset(db: AsyncSession, instrument: Instrume
     if options["end"]:
         conditions.append(OHLCVBar.ts <= options["end"])
     bars = (
-        (await db.execute(select(OHLCVBar).where(*conditions).order_by(OHLCVBar.ts.desc()).limit(5000)))
+        (
+            await db.execute(
+                select(OHLCVBar).where(*conditions).order_by(OHLCVBar.ts.desc()).limit(limit)
+            )
+        )
         .scalars()
         .all()
     )
     bars.reverse()
+    return bars
+
+
+async def _materialize_instrument_dataset(
+    db: AsyncSession, instrument: Instrument, manifest: dict, options: dict
+) -> dict:
+    bars = await _load_instrument_bars(db, instrument, options, limit=5000)
     return {
         **_dataset_manifest_fields(manifest, options),
         "symbol": instrument.symbol,
@@ -147,14 +160,58 @@ async def _materialize_instrument_dataset(db: AsyncSession, instrument: Instrume
     }
 
 
+async def _materialize_benchmark_dataset(
+    db: AsyncSession, options: dict
+) -> dict | None:
+    benchmark = options["benchmark"]
+    if not benchmark:
+        return None
+    instrument = (
+        await db.execute(select(Instrument).where(Instrument.symbol == benchmark))
+    ).scalar_one_or_none()
+    if instrument is None:
+        return {
+            "status": "unavailable",
+            "symbol": benchmark,
+            "reason": "benchmark_instrument_not_found",
+        }
+    bars = await _load_instrument_bars(db, instrument, options, limit=5000)
+    if not bars:
+        return {
+            "status": "unavailable",
+            "symbol": benchmark,
+            "instrument_id": instrument.id,
+            "reason": "benchmark_history_unavailable",
+        }
+    return {
+        "status": "ready",
+        "source": "canonical_database",
+        "symbol": instrument.symbol,
+        "instrument_id": instrument.id,
+        "timeframe": options["timeframe"].value,
+        "adjustment": options["adjustment"],
+        "session": options["session"],
+        "timestamps": [bar.ts.isoformat() for bar in bars],
+        "closes": [float(bar.close) for bar in bars],
+    }
+
+
 async def _materialize_declared_dataset(db: AsyncSession, manifest: dict, run_config: dict) -> dict:
     """Materialize only an explicitly declared canonical local dataset for the runner."""
     options = _dataset_options(run_config, manifest)
+    benchmark_dataset = await _materialize_benchmark_dataset(db, options)
     symbols = run_config.get("symbols")
     if isinstance(symbols, list):
         requested = list(dict.fromkeys(str(item).strip().upper() for item in symbols if str(item).strip()))
         if not requested:
-            return {**manifest, "source": "canonical_database", "datasets": [], "exclusions": []}
+            result = {
+                **_dataset_manifest_fields(manifest, options),
+                "datasets": [],
+                "exclusions": [],
+            }
+            if benchmark_dataset is not None:
+                result["benchmark_coverage"] = benchmark_dataset
+            return result
         if len(requested) > MAX_BATCH_SYMBOLS:
             raise HTTPException(
                 status_code=422,
@@ -229,15 +286,23 @@ async def _materialize_declared_dataset(db: AsyncSession, manifest: dict, run_co
                     "session": options["session"],
                     "timestamps": [bar.ts.isoformat() for bar in bars],
                     "closes": [float(bar.close) for bar in bars],
+                    **(
+                        {"benchmark_dataset": benchmark_dataset}
+                        if benchmark_dataset and benchmark_dataset.get("status") == "ready"
+                        else {}
+                    ),
                 }
             )
-        return {
+        result = {
             **_dataset_manifest_fields(manifest, options),
             "datasets": datasets,
             "requested_symbols": requested,
             "batch_history_limit": BATCH_HISTORY_LIMIT,
             "exclusions": exclusions,
         }
+        if benchmark_dataset is not None:
+            result["benchmark_coverage"] = benchmark_dataset
+        return result
     symbol = str(run_config.get("symbol") or manifest.get("symbol") or "").upper()
     if not symbol:
         return dict(manifest)
@@ -248,7 +313,12 @@ async def _materialize_declared_dataset(db: AsyncSession, manifest: dict, run_co
         raise HTTPException(
             status_code=422, detail={"code": "declared_instrument_not_found", "symbol": symbol}
         )
-    return await _materialize_instrument_dataset(db, instrument, manifest, options)
+    result = await _materialize_instrument_dataset(db, instrument, manifest, options)
+    if benchmark_dataset is not None:
+        result["benchmark_coverage"] = benchmark_dataset
+        if benchmark_dataset.get("status") == "ready":
+            result["benchmark_dataset"] = benchmark_dataset
+    return result
 
 
 @router.post("/runs", response_model=ResearchRunOut, status_code=status.HTTP_202_ACCEPTED)

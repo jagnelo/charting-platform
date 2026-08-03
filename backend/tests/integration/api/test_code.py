@@ -312,6 +312,30 @@ def test_research_run_honors_study_dataset_controls_and_records_them(
     assert len(manifest["timestamps"]) == 5
     assert manifest["timestamps"][0].startswith("2024-02-01")
     assert manifest["timestamps"][-1].startswith("2024-02-05")
+    assert manifest["benchmark_coverage"] == {
+        "status": "unavailable",
+        "symbol": "SPY",
+        "reason": "benchmark_instrument_not_found",
+    }
+
+    ready_response = client.post(
+        "/api/v1/research/runs",
+        headers=auth_headers,
+        json={
+            "code_version_id": asset["versions"][0]["id"],
+            "run_config": {
+                "symbol": instrument.symbol,
+                "benchmark": instrument.symbol,
+                "start_date": "2024-02-01",
+                "end_date": "2024-02-05",
+            },
+        },
+    )
+    assert ready_response.status_code == 202
+    ready_manifest = ready_response.json()["dataset_manifest"]
+    assert ready_manifest["benchmark_coverage"]["status"] == "ready"
+    assert ready_manifest["benchmark_dataset"]["symbol"] == instrument.symbol
+    assert len(ready_manifest["benchmark_dataset"]["timestamps"]) == 5
 
 
 def test_research_run_rejects_unsupported_study_dataset_controls(

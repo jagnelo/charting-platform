@@ -2,6 +2,17 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-03T16:05:00Z Study Lab benchmark materialization
+
+- Materialized the selected Study Lab benchmark from canonical bars with matching
+  timeframe/adjustment/date controls, exposed it to isolated Python as `benchmark`, and
+  added explicit ready/unavailable coverage in the run manifest and UI.
+- Corrected the monthly timeframe selector to canonical `MN`.
+- Validation: isolated runner `18 passed`, research API `13 passed` without the scoped
+  coverage gate, Study Lab component `1 passed`, full frontend `451 passed` across `76`
+  files, Ruff, TypeScript, production build, and diff check.
+- Strict V25 visual approval and the full acceptance matrix remain open.
+
 ## 2026-08-03T15:58:00Z Study Lab dataset controls
 
 - Added visible Study Lab timeframe, benchmark, adjustment, session, and date-range

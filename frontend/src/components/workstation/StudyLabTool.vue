@@ -25,7 +25,7 @@
     <section v-if="run" class="study-lab-tool__run">
       <div><strong>Run #{{ run.id }}</strong><span :class="`study-lab-tool__run-status--${run.status}`">{{ run.status }}</span><small v-if="progressLabel">{{ progressLabel }}</small><button v-if="canCancel" type="button" @click="cancel">Cancel</button></div>
       <p v-if="run.reproducibility_hash">Reproducibility {{ run.reproducibility_hash }}</p>
-      <p class="study-lab-tool__dataset-summary">Dataset: {{ timeframe }} · {{ adjustment === 'split_adjusted' ? 'split adjusted' : 'raw' }} · {{ session }} session · benchmark {{ benchmark || 'none' }} · {{ startDate || 'earliest available' }} → {{ endDate || 'latest available' }}</p>
+      <p class="study-lab-tool__dataset-summary">Dataset: {{ timeframe }} · {{ adjustment === 'split_adjusted' ? 'split adjusted' : 'raw' }} · {{ session }} session · benchmark {{ benchmark || 'none' }} ({{ benchmarkCoverageLabel }}) · {{ startDate || 'earliest available' }} → {{ endDate || 'latest available' }}</p>
       <pre v-if="run.diagnostics?.length">{{ run.diagnostics }}</pre>
       <div v-if="metricArtifacts.length" class="study-lab-tool__metrics"><article v-for="artifact in metricArtifacts" :key="artifact.id" :class="{ 'study-lab-tool__metric--true': artifact.artifact_type === 'boolean' && artifact.payload.value === true, 'study-lab-tool__metric--false': artifact.artifact_type === 'boolean' && artifact.payload.value === false }"><small>{{ artifact.name }}</small><strong>{{ formatMetric(artifact) }}</strong></article></div>
       <article v-for="artifact in nonScalarArtifacts" :key="artifact.id">
@@ -49,7 +49,7 @@ import StudyHistogramUPlot from './StudyHistogramUPlot.vue'
 import StudySeriesUPlot from './StudySeriesUPlot.vue'
 
 interface Validation { valid: boolean; diagnostics: unknown[]; dependencies: string[]; lookback_hint: number | null; output_contracts: string[] }
-interface Run { id: number; status: string; progress?: { status?: string; completed_cells?: number; total_cells?: number }; diagnostics?: unknown[]; reproducibility_hash?: string | null; artifacts?: Array<{ id: number; name: string; artifact_type: string; payload: Record<string, unknown> }> }
+interface Run { id: number; status: string; progress?: { status?: string; completed_cells?: number; total_cells?: number }; diagnostics?: unknown[]; reproducibility_hash?: string | null; dataset_manifest?: { benchmark_coverage?: { status?: string; reason?: string } }; artifacts?: Array<{ id: number; name: string; artifact_type: string; payload: Record<string, unknown> }> }
 type Artifact = NonNullable<Run['artifacts']>[number]
 
 const props = defineProps<{ activeSymbol: string }>()
@@ -60,7 +60,7 @@ const source = ref("streaks = stats.positive_close_streaks(dataset)\nindices = [
 const timeframeOptions = [
   { value: 'D1', label: 'Daily' },
   { value: 'W1', label: 'Weekly' },
-  { value: 'MN1', label: 'Monthly' },
+  { value: 'MN', label: 'Monthly' },
   { value: 'M15', label: '15 minute' },
 ]
 const timeframe = ref('D1')
@@ -84,6 +84,12 @@ const progressLabel = computed(() => {
 })
 const metricArtifacts = computed(() => (run.value?.artifacts ?? []).filter(artifact => ['scalar', 'boolean'].includes(artifact.artifact_type)))
 const nonScalarArtifacts = computed(() => (run.value?.artifacts ?? []).filter(artifact => !['scalar', 'boolean'].includes(artifact.artifact_type)))
+const benchmarkCoverageLabel = computed(() => {
+  const status = run.value?.dataset_manifest?.benchmark_coverage?.status
+  if (status === 'ready') return 'ready'
+  if (status === 'unavailable') return `unavailable: ${run.value?.dataset_manifest?.benchmark_coverage?.reason ?? 'unknown'}`
+  return 'pending'
+})
 watch(() => props.activeSymbol, value => { if (!symbol.value || symbol.value === 'SPY') symbol.value = value })
 
 function clearPoller() { if (poller) clearInterval(poller); poller = null }

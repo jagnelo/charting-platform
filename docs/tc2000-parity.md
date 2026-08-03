@@ -123,8 +123,11 @@ Study Lab now exposes explicit timeframe, benchmark, adjustment, session, and da
 controls in the primary workstation tool. The research-run API validates those controls,
 materializes only the requested canonical bars, records the normalized dataset manifest,
 and rejects unsupported adjustments, invalid sessions, malformed dates, and reversed ranges.
-The tool displays the selected dataset contract alongside reproducibility output. Session
-and benchmark are currently recorded as canonical dataset metadata; they do not imply
-provider-specific intraday or benchmark-bar availability. Focused backend and component
-tests cover the contract. This is functional evidence only; the Version 25 visual
-reference remains unapproved.
+The selected benchmark is now materialized as a separate aligned canonical close series
+when available, exposed to the isolated Python runtime as `benchmark`, and reported with
+explicit ready/unavailable coverage. The tool displays the selected dataset contract and
+benchmark coverage alongside reproducibility output. Session remains an explicit canonical
+metadata setting until session-qualified bars are available; it does not imply provider-
+specific intraday availability. Focused backend, runner, and component tests cover the
+contract. This is functional evidence only; the Version 25 visual reference remains
+unapproved.
