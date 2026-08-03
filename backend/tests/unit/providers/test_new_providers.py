@@ -21,6 +21,7 @@ from app.providers.binance import BinanceProvider, _from_binance, _to_binance
 from app.providers.coingecko import CoinGeckoProvider
 from app.providers.edgar import EdgarProvider, _ensure_ticker_map
 from app.providers.fred import FREDProvider, fred_series_for, is_fred_symbol
+from app.providers.massive import MassiveProvider
 from app.providers.registry import (
     get_discovery_provider,
     get_event_provider,
@@ -109,6 +110,12 @@ class TestRegistryCapabilities:
     def test_edgar_is_event_provider(self):
         provider = get_event_provider("edgar")
         assert provider.name == "edgar"
+
+    def test_massive_reference_capabilities(self):
+        caps = set(list_provider_capabilities("massive"))
+        assert caps == {"instrument_search", "universe_discovery"}
+        assert get_search_provider("massive").name == "massive"
+        assert get_discovery_provider("massive").name == "massive"
 
 
 # ── Alpaca symbol helpers ─────────────────────────────────────────────────────
@@ -393,6 +400,38 @@ class TestFREDCredentialWarning:
             )
         assert bars == []
         assert "FRED_API_KEY" not in caplog.text
+
+
+class TestMassiveReferenceProvider:
+    def test_missing_key_is_honest_and_empty(self):
+        with patch("app.providers.massive.settings") as mock_settings:
+            mock_settings.MASSIVE_API_KEY = ""
+            mock_settings.MARKETDATA_API_KEY = ""
+            provider = MassiveProvider()
+            assert provider.search_instruments("AAPL") == []
+            assert provider.discover_universe_page("CRYPTOCURRENCY", 0) == {"total": 0, "quotes": []}
+
+    def test_search_and_discovery_parse_reference_rows(self):
+        response = MagicMock()
+        response.json.side_effect = [
+            {"results": [{"ticker": "AAPL", "name": "Apple Inc.", "primary_exchange": "XNAS", "type": "CS"}]},
+            {"results": [{"ticker": "AAPL", "name": "Apple Inc.", "primary_exchange": "XNAS", "type": "CS"}], "next_url": "next"},
+        ]
+        response.raise_for_status.return_value = None
+        with (
+            patch("app.providers.massive.settings") as mock_settings,
+            patch("app.providers.massive.httpx.get", return_value=response) as get,
+        ):
+            mock_settings.MASSIVE_API_KEY = "key"
+            mock_settings.MARKETDATA_API_KEY = ""
+            provider = MassiveProvider()
+            result = provider.search_instruments("AAPL")
+            page = provider.discover_universe_page("EQUITY", 0)
+        assert result[0].symbol == "AAPL"
+        assert result[0].exchange == "XNAS"
+        assert page["quotes"][0]["instrument_type"] == "CS"
+        assert page["next_url"] == "next"
+        assert get.call_count == 2
 
 
 class TestFREDOHLCVParsing:

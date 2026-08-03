@@ -69,6 +69,7 @@ class Settings(BaseSettings):
     PROVIDER_USAGE_PROFILE_SEEDS: dict[str, dict] = {}
     OPENFIGI_API_KEY: str = ""
     OPENFIGI_TIMEOUT_SECONDS: float = 10.0
+    MASSIVE_API_KEY: str = ""
     MARKETDATA_API_KEY: str = ""
     FMP_API_KEY: str = ""
     # Alpaca Markets — US equity + crypto OHLCV, corporate actions, universe

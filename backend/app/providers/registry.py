@@ -27,6 +27,7 @@ from app.providers.coingecko import CoinGeckoProvider
 from app.providers.edgar import EdgarProvider
 from app.providers.etf_holdings_internal import ETFHoldingsInternalProvider
 from app.providers.fred import FREDProvider
+from app.providers.massive import MassiveProvider
 from app.providers.openfigi import OpenFigiProvider
 from app.providers.yfinance import YFinanceProvider
 
@@ -43,6 +44,7 @@ _PROVIDERS: dict[str, ProviderDescriptor] = {
     # Fallback / supplementary
     "yfinance": YFinanceProvider(),  # Broad fallback — options chains, futures, forward earnings
     "openfigi": OpenFigiProvider(),  # Stable identifier enrichment (FIGI, ISIN)
+    "massive": MassiveProvider(),  # Reference ticker universe corroboration
 }
 
 _DEFAULT_PROVIDER_USAGE_PROFILES: dict[str, dict] = {

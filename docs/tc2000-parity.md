@@ -181,7 +181,9 @@ evidence only; the Version 25 visual reference remains unapproved.
 The new-workstation provider defaults are free-source-first and provider-neutral:
 Alpaca (free IEX entitlement) supplies default US price/latest-price, SEC EDGAR supplies
 US identity metadata and ticker-directory search, Alpaca supplies corporate actions and
-US universe discovery, and OpenFIGI is the default stable-identifier reconciler. The
+US universe discovery, and OpenFIGI is the default stable-identifier reconciler. An
+optional Massive reference adapter is available for ticker search and US-universe
+corroboration when an entitlement is configured; it is not a runtime dependency. The
 default chains no longer include yfinance. yfinance remains registered only for explicit
 legacy/options configuration and is not a required path for the new workstation; absent
 Alpaca credentials are reported as unavailable rather than silently switching providers.
