@@ -42,7 +42,7 @@ from app.schemas.analysis import (
 
 router = APIRouter(prefix="/analysis", tags=["analysis"])
 
-_PERIODS = {"1D": 1, "1W": 5, "1M": 21, "3M": 63, "6M": 126, "YTD": 252, "1Y": 252}
+_PERIODS = {"1D": 1, "1W": 5, "1M": 21, "3M": 63, "6M": 126, "YTD": None, "1Y": 252}
 _CALENDAR_YEAR_LOOKBACK = 5
 
 
@@ -186,6 +186,49 @@ def _calendar_year_cells(
             )
             continue
         cells[key] = _cell(float(last.close / first.close - 1), last)
+    return cells
+
+
+def _performance_cells(bars: list[OHLCVBar], instrument_id: int) -> dict[str, AnalysisCell]:
+    """Calculate period returns without treating a fixed bar count as calendar YTD."""
+    if not bars:
+        warning = AnalysisWarning(
+            code="no_bars", message="No local bars are available.", instrument_id=instrument_id
+        )
+        return {period: _cell(None, None, warning) for period in _PERIODS}
+    latest = bars[-1]
+    current_year_bars = [bar for bar in bars if bar.ts.year == latest.ts.year]
+    cells: dict[str, AnalysisCell] = {}
+    for period, offset in _PERIODS.items():
+        if period == "YTD":
+            if len(current_year_bars) < 2 or current_year_bars[0].close == 0:
+                cells[period] = _cell(
+                    None,
+                    latest,
+                    AnalysisWarning(
+                        code="insufficient_ytd_history",
+                        message="YTD requires at least two non-zero bars in the current calendar year.",
+                        instrument_id=instrument_id,
+                    ),
+                )
+            else:
+                cells[period] = _cell(
+                    float(latest.close / current_year_bars[0].close - 1), latest
+                )
+            continue
+        assert offset is not None
+        if len(bars) <= offset:
+            cells[period] = _cell(
+                None,
+                latest,
+                AnalysisWarning(
+                    code="insufficient_history",
+                    message=f"{period} requires more history.",
+                    instrument_id=instrument_id,
+                ),
+            )
+        else:
+            cells[period] = _cell(float(latest.close / bars[-offset - 1].close - 1), latest)
     return cells
 
 
@@ -602,20 +645,7 @@ async def industry_proxy_snapshot(
         covered += 1
         closes = [float(bar.close) for bar in bars]
         volumes = [float(bar.volume) for bar in bars]
-        performance = {
-            period: _cell(
-                float(latest.close / bars[-offset - 1].close - 1) if len(bars) > offset else None,
-                latest,
-                None
-                if len(bars) > offset
-                else AnalysisWarning(
-                    code="insufficient_history",
-                    message=f"{period} requires more history.",
-                    instrument_id=instrument.id,
-                ),
-            )
-            for period, offset in _PERIODS.items()
-        }
+        performance = _performance_cells(bars, instrument.id)
         technical: dict[str, AnalysisCell] = {}
         for period in (20, 50, 200):
             technical[f"above_ma{period}"] = _cell(
@@ -833,20 +863,7 @@ async def etf_constituent_snapshot(
             )
             continue
         covered += 1
-        performance = {
-            period: _cell(
-                float(latest.close / bars[-offset - 1].close - 1) if len(bars) > offset else None,
-                latest,
-                None
-                if len(bars) > offset
-                else AnalysisWarning(
-                    code="insufficient_history",
-                    message=f"{period} requires more history.",
-                    instrument_id=instrument.id,
-                ),
-            )
-            for period, offset in _PERIODS.items()
-        }
+        performance = _performance_cells(bars, instrument.id)
         closes, volumes = [float(bar.close) for bar in bars], [float(bar.volume) for bar in bars]
         technical: dict[str, AnalysisCell] = {}
         for period in (20, 50, 200):
@@ -1048,22 +1065,7 @@ async def group_snapshot(
             )
             continue
         covered += 1
-        performance: dict[str, AnalysisCell] = {}
-        for period, offset in _PERIODS.items():
-            if len(bars) <= offset:
-                performance[period] = _cell(
-                    None,
-                    latest,
-                    AnalysisWarning(
-                        code="insufficient_history",
-                        message=f"{period} requires more history.",
-                        instrument_id=instrument.id,
-                    ),
-                )
-            else:
-                performance[period] = _cell(
-                    float(latest.close / bars[-offset - 1].close - 1), latest
-                )
+        performance = _performance_cells(bars, instrument.id)
         calendar_year_performance = _calendar_year_cells(bars, instrument.id, calendar_years)
         closes = [float(bar.close) for bar in bars]
         volumes = [float(bar.volume) for bar in bars]

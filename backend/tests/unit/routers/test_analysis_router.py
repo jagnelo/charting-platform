@@ -2,7 +2,7 @@ from datetime import UTC, datetime
 from decimal import Decimal
 
 from app.models.ohlcv import OHLCVBar, Timeframe
-from app.routers.analysis import _calendar_year_cells
+from app.routers.analysis import _calendar_year_cells, _performance_cells
 
 
 def _bar(instrument_id: int, year: int, month: int, close: str) -> OHLCVBar:
@@ -39,3 +39,15 @@ def test_calendar_year_cells_are_non_forward_filled_and_observed_at_year_end():
     assert cells["2025"].warning.code == "no_calendar_year_bars"
     assert cells["2026"].value == 0.1
 
+
+def test_ytd_uses_current_calendar_year_start_not_252_bar_offset():
+    bars = [
+        _bar(7, 2025, 12, "100"),
+        _bar(7, 2026, 1, "200"),
+        _bar(7, 2026, 2, "220"),
+    ]
+
+    cells = _performance_cells(bars, instrument_id=7)
+
+    assert cells["YTD"].value == 0.1
+    assert cells["YTD"].observation_time == datetime(2026, 2, 2, tzinfo=UTC)

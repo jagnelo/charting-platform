@@ -79,3 +79,6 @@ The `Sector by Year` sector window now consumes canonical calendar-year return c
 from the group snapshot (five bounded years, with explicit no-bars and insufficient-
 history warnings) and renders those years as selectable percentage columns. This is
 functional evidence only; the Version 25 visual reference remains unapproved.
+All shared ranking snapshots now calculate `YTD` from the first available bar in the
+current calendar year rather than treating 252 bars as a calendar boundary, and emit
+an explicit insufficient-YTD warning when the year has fewer than two valid bars.
