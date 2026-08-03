@@ -15819,3 +15819,13 @@
 - Focused visual-manifest suite: `3 passed`; Ruff and diff checks passed. The real manifest
   remains valid for discovery but strict `--require-approved` correctly rejects its
   `required_missing` states. Checkpoint is pending commit/push.
+## 2026-08-03T23:46:00Z Chart-plot promotion checkpoint
+
+- Chart Plot Library now promotes a selected indicator into a reusable indicator-threshold
+  condition, an EasyScan created from that condition, or an indicator alert for the active
+  canonical instrument. It carries indicator parameters, chart timeframe, operator,
+  threshold, and source metadata; missing canonical instrument state is reported instead
+  of creating a dangling alert.
+- Focused ChartPlotLibrary tests `5 passed`; full frontend Vitest `493 passed` across 80
+  files; TypeScript, production build, and diff checks passed. Watchlist-column/filter
+  promotion remains a separate incomplete contract. Checkpoint is pending commit/push.

@@ -203,9 +203,12 @@ benchmark relationship while custom expressions remain untouched.
 The chart plot library now retains the linked-chart shortcut and adds explicit target
 mode for copying an indicator plot to any other chart window in the active workspace,
 including isolated/grey-link charts. The copy operation clones parameters, style, and
-timeframe locks without replacing the target symbol. Watchlist/condition/scan/alert
-target-mode promotion remains a separate incomplete contract; visual approval remains
-blocked by the V25 reference manifest.
+timeframe locks without replacing the target symbol. A selected plot can also be copied
+into a reusable indicator-threshold condition, an EasyScan created from that condition,
+or an indicator alert for the active canonical instrument; each promotion preserves the
+indicator parameters, chart timeframe, operator, threshold, and provenance metadata.
+Watchlist-column/filter target promotion remains a separate incomplete contract; visual
+approval remains blocked by the V25 reference manifest.
 
 Floated workstation tools now forward watchlist condition modes, Boolean pinning,
 column grouping/stacking, arbitrary serializable configuration, and industry-proxy

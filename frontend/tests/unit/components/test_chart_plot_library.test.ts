@@ -5,6 +5,9 @@ import ChartPlotLibrary from '@/components/workstation/ChartPlotLibrary.vue'
 import { usePanelStore } from '@/stores/chart'
 import { useWorkspaceStore } from '@/stores/workspace'
 
+const apiMock = vi.hoisted(() => ({ put: vi.fn().mockResolvedValue({}), post: vi.fn().mockResolvedValue({}) }))
+vi.mock('@/lib/api', () => ({ api: apiMock }))
+
 describe('ChartPlotLibrary', () => {
   beforeEach(() => setActivePinia(createPinia()))
 
@@ -68,5 +71,37 @@ describe('ChartPlotLibrary', () => {
     await wrapper.get('[aria-label="Copy SMA(20) to selected chart target"]').trigger('click')
 
     expect(workspace.activeTab?.windows[1].configuration.indicators).toEqual([{ type: 'sma', params: { period: 20 }, style: { color: '#ff0000', lineWidth: 1 }, pane: 'main' }])
+  })
+
+  it('promotes a plot into a reusable condition and EasyScan', async () => {
+    const chart = usePanelStore('promotion-test')
+    chart.setIndicators([{ type: 'rsi', params: { period: 14 }, style: { color: '#ff0000', lineWidth: 1 }, pane: 'separate' }])
+    const wrapper = mount(ChartPlotLibrary, { props: { sourceWindowKey: 'source', linkGroup: 'blue' }, global: { provide: { panelId: 'promotion-test' } } })
+    await wrapper.get('button[aria-label="Chart plot library"]').trigger('click')
+    await wrapper.get('[aria-label="Promote RSI(14)"]').trigger('click')
+    await wrapper.get('[aria-label="Plot promotion target"]').setValue('scan')
+    await wrapper.get('[aria-label="Plot promotion threshold"]').setValue('70')
+    await wrapper.get('[aria-label="Plot promotion name"]').setValue('Overbought RSI')
+    await wrapper.get('.chart-plots__promotion button').trigger('click')
+    await vi.waitFor(() => expect(wrapper.find('[role="status"]').exists()).toBe(true))
+    expect(apiMock.put).toHaveBeenCalledWith('/workspaces/library/conditions/overbought-rsi', expect.objectContaining({ name: 'Overbought RSI' }))
+    expect(apiMock.post).toHaveBeenCalledWith('/screeners/from-condition/overbought-rsi', expect.objectContaining({ name: 'Overbought RSI Scan', timeframe: 'D1' }))
+    expect(wrapper.get('[role="status"]').text()).toContain('EasyScan')
+  })
+
+  it('promotes a plot into an indicator alert for the active canonical instrument', async () => {
+    const chart = usePanelStore('alert-promotion-test')
+    chart.instrument = { id: 42 } as any
+    chart.setIndicators([{ type: 'ema', params: { period: 20 }, style: { color: '#ff0000', lineWidth: 1 }, pane: 'main' }])
+    const wrapper = mount(ChartPlotLibrary, { props: { sourceWindowKey: 'source', linkGroup: 'blue' }, global: { provide: { panelId: 'alert-promotion-test' } } })
+    await wrapper.get('button[aria-label="Chart plot library"]').trigger('click')
+    await wrapper.get('[aria-label="Promote EMA(20)"]').trigger('click')
+    await wrapper.get('[aria-label="Plot promotion target"]').setValue('alert')
+    await wrapper.get('[aria-label="Plot promotion threshold"]').setValue('100')
+    await wrapper.get('[aria-label="Plot promotion name"]').setValue('EMA alert')
+    await wrapper.get('.chart-plots__promotion button').trigger('click')
+    await vi.waitFor(() => expect(wrapper.find('[role="status"]').exists()).toBe(true))
+    expect(apiMock.post).toHaveBeenCalledWith('/alerts/indicator', expect.objectContaining({ instrument_id: 42, indicator_a_type: 'ema', threshold_value: 100 }))
+    expect(wrapper.get('[role="status"]').text()).toContain('indicator alert')
   })
 })

@@ -17592,3 +17592,10 @@ uncovered slice rather than repeat a generic completion claim.
   references remain supported when those fields are present.
 - Focused manifest tests `3 passed`; Ruff and diff checks passed. Strict acceptance remains
   intentionally blocked by the real manifest's required missing states.
+## 2026-08-03T23:46:00Z Chart-plot promotion checkpoint
+
+- Added chart-indicator promotion to reusable conditions, EasyScan, and indicator alerts,
+  retaining parameters, timeframe, threshold/operator, and canonical instrument identity.
+- Validation passed: focused ChartPlotLibrary `5`, full frontend `493` tests across 80
+  files, TypeScript, production build, and diff checks. Watchlist-column/filter promotion
+  and strict V25 visual acceptance remain open. Commit/push is pending.
