@@ -1,5 +1,15 @@
 # Active Handoff
 
+## Continuation update — 2026-08-03T21:02:01Z
+
+- Added canonical membership inspection to the workstation watchlist context menu.
+  Personal-list targets expose their stored instrument IDs; the menu can show every
+  containing list and mark the current source, without ticker-only inference.
+- Validation: focused VirtualWatchlistTool tests `31 passed`; TypeScript, production build,
+  and `git diff --check` passed. Checkpoint `45b359c` is pushed. Strict V25 visual approval,
+  Docker-backed route verification, migration upgrade/downgrade execution, and the complete
+  acceptance matrix remain open.
+
 ## Continuation update — 2026-08-03T20:57:42Z
 
 - Added durable watchlist item flags end-to-end: migration `e9f0a1b2c3d4`, authenticated

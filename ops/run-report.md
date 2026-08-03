@@ -2,6 +2,15 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-03T21:02:01Z Watchlist membership inspection
+
+- Added canonical personal-list membership inspection to the watchlist context menu using
+  stored instrument IDs, including current-source labeling and no ticker-only inference.
+- Focused VirtualWatchlistTool tests `31 passed`; TypeScript/build/diff checks passed.
+  Updated parity evidence and pushed `45b359c`.
+- Strict V25 visual approval, Docker-backed route verification, migration upgrade/downgrade
+  execution, and the complete acceptance matrix remain open.
+
 ## 2026-08-03T20:57:42Z Persistent watchlist item flags
 
 - Added migration `e9f0a1b2c3d4`, authenticated item flag PATCH, store synchronization,
