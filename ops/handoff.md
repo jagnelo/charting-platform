@@ -1,5 +1,13 @@
 # Active Handoff
 
+## Continuation update — 2026-08-03T22:05:00Z
+
+- Re-ran the complete isolated research-runner unit suite after registering the new
+  output contracts: `27 passed`. This covers existing execution, cancellation, resource,
+  recovery, histogram, scatter, and heatmap behavior.
+- Strict V25 visual approval and the broad workstation/backend/security/performance/end-
+  to-end acceptance matrix remain incomplete.
+
 ## Continuation update — 2026-08-03T22:00:00Z
 
 - Registered Study Lab `scatter` and `heatmap` output methods in the shared Python AST

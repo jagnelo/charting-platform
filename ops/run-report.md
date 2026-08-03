@@ -2,6 +2,12 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-03T22:05:00Z Full research-runner regression
+
+- Full isolated research-runner unit suite passed `27` tests after scatter/heatmap
+  contract registration. Strict visual approval and the complete acceptance matrix remain
+  open.
+
 ## 2026-08-03T22:00:00Z Study output-contract registration
 
 - Unified Python validation and Study asset contracts now recognize scatter and heatmap
