@@ -68,3 +68,77 @@ class TestCoverageRouter:
         response = client.get(f"/api/v1/coverage/instruments/{instrument.symbol}")
 
         assert response.status_code == 401
+
+    def test_exposes_provider_neutral_range_readiness_and_bounded_slices(
+        self, client, auth_headers, db, instrument
+    ):
+        start = datetime(2026, 1, 1, tzinfo=UTC)
+        db.add_all(
+            [
+                OHLCVBar(
+                    instrument_id=instrument.id,
+                    timeframe=Timeframe.D1,
+                    ts=start,
+                    open=Decimal("10"),
+                    high=Decimal("11"),
+                    low=Decimal("9"),
+                    close=Decimal("10"),
+                    is_adjusted=True,
+                ),
+                OHLCVBar(
+                    instrument_id=instrument.id,
+                    timeframe=Timeframe.D1,
+                    ts=start + timedelta(days=1),
+                    open=Decimal("11"),
+                    high=Decimal("12"),
+                    low=Decimal("10"),
+                    close=Decimal("11"),
+                    is_adjusted=True,
+                ),
+                OHLCVBar(
+                    instrument_id=instrument.id,
+                    timeframe=Timeframe.D1,
+                    ts=start + timedelta(days=9),
+                    open=Decimal("12"),
+                    high=Decimal("13"),
+                    low=Decimal("11"),
+                    close=Decimal("12"),
+                    is_adjusted=True,
+                ),
+            ]
+        )
+        db.flush()
+
+        response = client.get(
+            f"/api/v1/coverage/instruments/{instrument.symbol}/ohlcv",
+            params={
+                "timeframe": "D1",
+                "start": "2026-01-01T00:00:00Z",
+                "end": "2026-01-10T00:00:00Z",
+                "mode": "historical",
+            },
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 200
+        body = response.json()
+        assert body["status"] == "partial"
+        assert body["bar_count"] == 3
+        assert body["missing_slices"] == [
+            {"start": "2026-01-03T00:00:00Z", "end": "2026-01-09T00:00:00Z"}
+        ]
+        assert body["provenance"] == "canonical_local_database"
+        assert "provider" not in body
+
+    def test_rejects_reversed_coverage_ranges(self, client, auth_headers, instrument):
+        response = client.get(
+            f"/api/v1/coverage/instruments/{instrument.symbol}/ohlcv",
+            params={
+                "start": "2026-01-10T00:00:00Z",
+                "end": "2026-01-01T00:00:00Z",
+            },
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 422
+        assert response.json()["detail"]["code"] == "invalid_coverage_range"

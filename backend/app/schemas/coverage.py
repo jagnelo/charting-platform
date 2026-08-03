@@ -31,3 +31,25 @@ class InstrumentCoverageOut(BaseModel):
     dataset_states: list[DatasetCoverageStateOut] = Field(default_factory=list)
     refreshed_at: datetime
     provenance: str = "canonical_local_database"
+
+
+class OhlcvCoverageSliceOut(BaseModel):
+    start: datetime
+    end: datetime
+
+
+class OhlcvCoverageOut(BaseModel):
+    instrument_id: int
+    symbol: str
+    timeframe: str
+    adjusted: bool
+    mode: str
+    requested_start: datetime
+    requested_end: datetime
+    status: str
+    covered_start: datetime | None = None
+    covered_end: datetime | None = None
+    bar_count: int = Field(ge=0)
+    missing_slices: list[OhlcvCoverageSliceOut] = Field(default_factory=list)
+    explanation: str
+    provenance: str = "canonical_local_database"

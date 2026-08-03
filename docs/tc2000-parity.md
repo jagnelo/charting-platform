@@ -54,6 +54,12 @@ planner while retaining provider access and persistence at its boundary; future 
 scan, alert, and research preflight callers can consume the same contract without
 reimplementing freshness logic.
 
+Authenticated `/coverage/instruments/{symbol}/ohlcv` now exposes that assessment as a
+canonical frontend contract. Callers provide timeframe, range, adjustment, and historical
+versus latest mode and receive status, local bounds, bar count, bounded missing slices,
+and an explanation with canonical-database provenance; reversed ranges and unknown
+instruments are structured errors, and provider names/fallback order are never returned.
+
 The isolated image also installs pinned NumPy/Pandas wheels at build time and exposes
 only restricted `np`/`pd` facades to user code. File/external-data methods are rejected
 by source validation; NumPy/Pandas values are normalized before artifact persistence.
