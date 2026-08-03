@@ -1,5 +1,14 @@
 # Active Handoff
 
+## Continuation update — 2026-08-03T23:45:00Z
+
+- Added component coverage for the derived `Flagged Items` watchlist source. It now
+  proves the visible flagged marker, preserved source item identity, and explicit
+  `Unflag` context action rather than relying only on pure row-builder tests.
+- Focused `VirtualWatchlistTool` suite `33 passed`; diff checks passed. Full frontend
+  rerun, strict V25 visual approval, full legacy browser usability, and the complete
+  acceptance matrix remain open.
+
 ## Continuation update — 2026-08-03T23:42:00Z
 
 - Routed `/study-lab` into the persisted workstation `study-lab` factory tab instead

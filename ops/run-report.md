@@ -2,6 +2,13 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-03T23:45:00Z Flagged Items component evidence
+
+- Added a component regression for the derived Flagged Items source, covering its
+  marker, source item identity, and explicit Unflag context action.
+- Focused `VirtualWatchlistTool` tests `33 passed`; diff checks passed. Strict V25 visual
+  approval, full legacy browser usability, and the complete acceptance matrix remain open.
+
 ## 2026-08-03T23:42:00Z Study Lab shell boundary
 
 - `/study-lab` now redirects to the persisted workstation `study-lab` factory tab,
