@@ -359,6 +359,7 @@
     <MarketGaugeTool v-else-if="tool.tool_type === 'gauge'" />
     <StudyLabTool v-else-if="tool.tool_type === 'study_lab'" :active-symbol="activeSymbol" :configuration="tool.configuration" @configuration="emit('configuration', tool.instance_key, $event)" @occurrence="emit('occurrence', $event.symbol, $event.timestamp)" />
     <ResearchResultsTool v-else-if="tool.tool_type === 'research_results'" @occurrence="emit('occurrence', $event.symbol, $event.timestamp)" />
+    <CodeLibraryTool v-else-if="tool.tool_type === 'code_library'" />
     <UnknownToolRecovery v-else :tool="tool" />
   </ToolWindow>
 </template>
@@ -390,6 +391,7 @@ import BreadthHistoryUPlot from './BreadthHistoryUPlot.vue'
 import RelativeRotationTool from './RelativeRotationTool.vue'
 import InstrumentInfoPanel from '@/components/chart/InstrumentInfoPanel.vue'
 import ResearchResultsTool from './ResearchResultsTool.vue'
+import CodeLibraryTool from './CodeLibraryTool.vue'
 import CoverageSummaryTool from './CoverageSummaryTool.vue'
 import { calendarYearKeys } from '@/lib/workstation/calendarYears'
 import { buildNormalizedComparisonSeries, type ComparisonTarget } from '@/lib/workstation/comparison'

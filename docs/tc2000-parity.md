@@ -92,6 +92,9 @@ Unified Python assets now have lifecycle contracts for complete export/import, i
 version-preserving clone, and reversible archive/unarchive operations. Each imported or
 cloned version is revalidated against its asset kind and output contract before it is
 persisted; user ownership and stable-key uniqueness remain enforced by the canonical API.
+The primary workstation now exposes those operations through a dockable Python Library
+tool with filtering, archived-state visibility, file import, JSON export, clone, and
+archive/unarchive controls; the component is covered by a focused interaction test.
 
 The relative-rotation uPlot surface now updates `setData`/`setSize` in place during
 resize and data refresh; it destroys the chart only during component teardown. A

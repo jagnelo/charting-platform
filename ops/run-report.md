@@ -2,6 +2,14 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-04T01:12:00Z Python Library workstation tool
+
+- Added the dockable Python Library surface with user-asset filtering, JSON import/export,
+  version-preserving clone, and archive/unarchive controls backed by the canonical APIs.
+- Focused component test, TypeScript, and production build passed; the full frontend suite
+  is now `513` tests across `84` files. Exact-build visual approval and the complete
+  acceptance matrix remain open.
+
 ## 2026-08-04T00:58:00Z Unified-Python asset lifecycle
 
 - Added validated complete asset import, immutable version-preserving clone, and

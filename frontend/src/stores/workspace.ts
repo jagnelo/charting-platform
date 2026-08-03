@@ -45,7 +45,7 @@ export interface WorkspaceState {
  * primary-workstation tools. It is not a substitute for a runtime component registry.
  */
 export interface OpenableToolDefinition {
-  tool_type: 'chart' | 'watchlist' | 'notes' | 'alerts' | 'scan' | 'gauge' | 'study_lab' | 'relative_rotation' | 'breadth' | 'technical_summary' | 'coverage' | 'report'
+  tool_type: 'chart' | 'watchlist' | 'notes' | 'alerts' | 'scan' | 'gauge' | 'study_lab' | 'relative_rotation' | 'breadth' | 'technical_summary' | 'coverage' | 'report' | 'code_library'
   title: string
   instance_prefix: string
   configuration?: Record<string, unknown>
@@ -64,6 +64,7 @@ export const OPENABLE_WORKSTATION_TOOLS: readonly OpenableToolDefinition[] = [
   { tool_type: 'technical_summary', title: 'Technical Summary', instance_prefix: 'technical-summary', configuration: {} },
   { tool_type: 'coverage', title: 'Coverage', instance_prefix: 'coverage', configuration: {} },
   { tool_type: 'report', title: 'Instrument Report', instance_prefix: 'report', configuration: {} },
+  { tool_type: 'code_library', title: 'Python Library', instance_prefix: 'code-library', configuration: {} },
 ]
 
 export interface LinkEvent {

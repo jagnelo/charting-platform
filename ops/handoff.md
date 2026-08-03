@@ -1,5 +1,14 @@
 # Active Handoff
 
+## Continuation update — 2026-08-04T01:12:00Z
+
+- Added the dockable Python Library tool to the workstation registry. It lists and filters
+  user-owned assets and wires JSON import/export, immutable clone, and reversible archive
+  controls to the canonical APIs.
+- Focused component coverage passed, the full frontend suite is now `513` tests across
+  `84` files, TypeScript and production build pass, and exact-build V25 visual approval
+  plus the broader security, performance, migration, and acceptance gates remain open.
+
 ## Continuation update — 2026-08-04T00:58:00Z
 
 - Added unified-Python asset lifecycle APIs for complete validated import, immutable
