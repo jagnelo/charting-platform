@@ -1,5 +1,16 @@
 # Active Handoff
 
+## Continuation update — 2026-08-03T18:00:45Z
+
+- Completed the watchlist cross-window bus with a storage-event fallback when
+  `BroadcastChannel` is unavailable. Storage writes are guarded for restricted browser
+  storage, and malformed fallback payloads are ignored safely.
+- Validation: full frontend Vitest `460 passed` across 76 files; watchlist store suite
+  `8 passed`; TypeScript, production build, and `git diff --check` passed. Checkpoint
+  `7e3879376a41fb4b706bf1003f882e3bb154afb2` pushed.
+- Strict V25 visual approval remains `required_missing`; the broader workstation,
+  backend, security, performance, and end-to-end acceptance matrix remains incomplete.
+
 ## Continuation update — 2026-08-03T17:58:20Z
 
 - Added direct regression coverage for pop-out watchlist invalidation: a simulated

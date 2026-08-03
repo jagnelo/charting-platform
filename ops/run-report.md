@@ -2,6 +2,14 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-03T18:00:45Z Watchlist storage fallback
+
+- Added the browser storage-event fallback for cross-window watchlist invalidation and a
+  direct regression alongside the BroadcastChannel test.
+- Validation: full frontend Vitest `460 passed` across 76 files; watchlist store `8
+  passed`; TypeScript, production build, and `git diff --check` passed. Strict V25 visual
+  approval and the complete acceptance matrix remain open.
+
 ## 2026-08-03T17:58:20Z Watchlist invalidation regression
 
 - Added a direct store regression proving another browser window's watchlist mutation
