@@ -28,6 +28,7 @@ tasks:
       - Indicator plot promotion now reaches watchlist columns and EasyScan-backed active filters through canonical local batch APIs; broader drag-to-condition/editor parity remains under validation.
       - Indicator batch cells preserve insufficient-history, unsupported, and unavailable warning states in the virtualized watchlist rather than rendering silent blanks.
       - Indicator-batch requests return a cell-level outcome for every requested symbol, including unknown canonical symbols.
+      - Indicator-batch responses include explicit-symbol universe provenance and requested/evaluated counts.
       - Strict Version 25 visual approval and the full backend/frontend/security/performance/acceptance matrix remain open gates.
     locked_decisions:
       - TC2000 Version 25 desktop build 25.0.9571 is the pinned visual and interaction reference.

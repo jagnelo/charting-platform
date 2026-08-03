@@ -511,6 +511,9 @@ class TestWorkspaces:
         assert response.status_code == 200
         payload = response.json()
         assert payload["data_provenance"] == "canonical_local_database"
+        assert payload["universe_provenance"] == {"type": "explicit_symbols", "symbol_count": 2}
+        assert payload["requested_count"] == 2
+        assert payload["evaluated_count"] == 1
         assert payload["coverage"] == 0.5
         assert payload["values"][instrument.symbol]["value"] is not None
         assert payload["values"][instrument.symbol]["warning"] is None

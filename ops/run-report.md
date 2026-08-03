@@ -17633,3 +17633,9 @@ uncovered slice rather than repeat a generic completion claim.
   `instrument_not_found` warning as well as the response-level exclusion.
 - Workspace integration `23` and Ruff passed. Checkpoint `9e8bfe8` is committed and
   pushed; strict V25 visual approval and broad acceptance remain open.
+## 2026-08-03T23:14:00Z Indicator batch provenance checkpoint
+
+- Indicator-batch responses now include explicit-symbol universe provenance and
+  requested/evaluated counts alongside cell warnings and coverage.
+- Workspace integration `23` and Ruff passed. Commit/push pending; strict V25 visual
+  approval and broad acceptance remain open.

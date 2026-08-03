@@ -183,7 +183,10 @@ class IndicatorBatchOut(AnalysisResponseMetadata):
     timeframe: str
     adjustment: str
     params: dict[str, object] = Field(default_factory=dict)
+    universe_provenance: dict[str, object] = Field(default_factory=dict)
     values: dict[str, IndicatorBatchValue] = Field(default_factory=dict)
+    requested_count: int = Field(ge=0)
+    evaluated_count: int = Field(ge=0)
     coverage: float = Field(ge=0, le=1)
     exclusions: list[AnalysisWarning] = Field(default_factory=list)
 

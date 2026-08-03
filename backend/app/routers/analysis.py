@@ -108,13 +108,17 @@ async def indicator_batch(
             "observation_time": bars[-1].ts,
             "warning": warning.model_dump() if warning else None,
         }
+    evaluated_count = sum(1 for cell in values.values() if cell.get("value") is not None)
     return IndicatorBatchOut(
         indicator=body.indicator,
         timeframe=timeframe.value,
         adjustment="split_adjusted" if body.adjusted else "raw",
         params=body.params,
+        universe_provenance={"type": "explicit_symbols", "symbol_count": len(symbols)},
         values=values,
-        coverage=sum(1 for cell in values.values() if cell.get("value") is not None) / max(len(symbols), 1),
+        requested_count=len(symbols),
+        evaluated_count=evaluated_count,
+        coverage=evaluated_count / max(len(symbols), 1),
         exclusions=exclusions,
     )
 

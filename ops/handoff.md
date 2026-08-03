@@ -15866,3 +15866,10 @@
   a cell-level `instrument_not_found` warning as well as the response-level exclusion.
 - Workspace integration `23` and Ruff passed. Checkpoint `9e8bfe8` is committed and
   pushed; strict V25 visual approval and broad acceptance remain open.
+## 2026-08-03T23:14:00Z Indicator batch provenance checkpoint
+
+- Added response-level explicit-symbol universe provenance plus requested/evaluated
+  counts to indicator-batch results, making the batch reproducible alongside cell
+  warnings and coverage.
+- Workspace integration `23` and Ruff passed. Commit/push pending; strict V25 visual
+  approval and broad acceptance remain open.
