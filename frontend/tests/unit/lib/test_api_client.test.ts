@@ -106,6 +106,17 @@ describe('api.post', () => {
     expect(opts.body).toBe(JSON.stringify({ name: 'test', value: 123 }))
     expect(opts.headers['Content-Type']).toBe('application/json')
   })
+
+  it('forwards abort signals to fetch for cancellable batch requests', async () => {
+    setTokens('tok', 'ref')
+    mockFetchOk({ id: 42 }, 201)
+    const controller = new AbortController()
+    const { api } = await import('@/lib/api')
+    await api.post('/items', { name: 'batch' }, { signal: controller.signal })
+
+    const [, opts] = (fetch as ReturnType<typeof vi.fn>).mock.calls[0]
+    expect(opts.signal).toBe(controller.signal)
+  })
 })
 
 describe('api.delete', () => {

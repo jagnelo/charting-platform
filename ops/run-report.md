@@ -17647,3 +17647,10 @@ uncovered slice rather than repeat a generic completion claim.
 - Full frontend Vitest `495` across `80` files, TypeScript, production build, and diff
   checks passed. Checkpoint `5d28c1f` is committed and pushed; strict V25 visual approval
   and broad acceptance remain open.
+## 2026-08-03T23:20:00Z Indicator cancellation checkpoint
+
+- Obsolete indicator-column batches are now canceled through Vue Query, with
+  `AbortSignal` forwarded by the authenticated API client across retries.
+- Full frontend Vitest `496` across `80` files, TypeScript, production build, and diff
+  checks passed. Commit/push pending; strict V25 visual approval and broad acceptance
+  remain open.

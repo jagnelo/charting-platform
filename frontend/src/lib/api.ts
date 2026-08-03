@@ -2,6 +2,7 @@
  * Authenticated API client with automatic token refresh on 401.
  */
 const BASE = '/api/v1'
+export type ApiRequestOptions = { signal?: AbortSignal }
 
 export interface TokenPair {
   access_token: string
@@ -56,6 +57,7 @@ async function request<T>(
   body?: unknown,
   params?: Record<string, any>,
   retry = true,
+  options?: ApiRequestOptions,
 ): Promise<T> {
   let url = `${BASE}${path}`
   if (params && Object.keys(params).length) {
@@ -71,7 +73,7 @@ async function request<T>(
   const headers: Record<string, string> = { 'Content-Type': 'application/json' }
   if (token) headers['Authorization'] = `Bearer ${token}`
 
-  const opts: RequestInit = { method, headers }
+  const opts: RequestInit = { method, headers, signal: options?.signal }
   if (body !== undefined) opts.body = JSON.stringify(body)
 
   const res = await fetch(url, opts)
@@ -79,7 +81,7 @@ async function request<T>(
   if (res.status === 401 && retry && !path.startsWith('/auth/')) {
     const newToken = await refreshAccessToken()
     if (newToken) {
-      return request<T>(method, path, body, params, false)
+      return request<T>(method, path, body, params, false, options)
     }
     throw new Error('Authentication required')
   }
@@ -94,9 +96,9 @@ async function request<T>(
 }
 
 export const api = {
-  get:    <T>(path: string, params?: Record<string, any>) => request<T>('GET', path, undefined, params),
-  post:   <T>(path: string, body: unknown)                => request<T>('POST', path, body),
-  patch:  <T>(path: string, body: unknown)                => request<T>('PATCH', path, body),
-  put:    <T>(path: string, body: unknown)                => request<T>('PUT', path, body),
-  delete: <T>(path: string)                               => request<T>('DELETE', path),
+  get:    <T>(path: string, params?: Record<string, any>, options?: ApiRequestOptions) => request<T>('GET', path, undefined, params, true, options),
+  post:   <T>(path: string, body: unknown, options?: ApiRequestOptions)                => request<T>('POST', path, body, undefined, true, options),
+  patch:  <T>(path: string, body: unknown, options?: ApiRequestOptions)                => request<T>('PATCH', path, body, undefined, true, options),
+  put:    <T>(path: string, body: unknown, options?: ApiRequestOptions)                => request<T>('PUT', path, body, undefined, true, options),
+  delete: <T>(path: string, options?: ApiRequestOptions)                               => request<T>('DELETE', path, undefined, undefined, true, options),
 }

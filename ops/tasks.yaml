@@ -30,6 +30,7 @@ tasks:
       - Indicator-batch requests return a cell-level outcome for every requested symbol, including unknown canonical symbols.
       - Indicator-batch responses include explicit-symbol universe provenance and requested/evaluated counts.
       - Indicator-column batch requests use the shared Vue Query cache so docked and popped-out tools deduplicate identical calculations.
+      - Obsolete indicator-column requests are canceled through Vue Query and AbortSignal-aware API retries rather than merely ignored after completion.
       - Strict Version 25 visual approval and the full backend/frontend/security/performance/acceptance matrix remain open gates.
     locked_decisions:
       - TC2000 Version 25 desktop build 25.0.9571 is the pinned visual and interaction reference.

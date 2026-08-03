@@ -1200,6 +1200,7 @@ async function loadIndicatorColumns(rows: Array<{ symbol: string }>) {
   const columns = configuredIndicatorColumns.value
   if (!columns.length) { indicatorValues.value = {}; indicatorWarnings.value = {}; return }
   const generation = ++indicatorRequestGeneration
+  await queryClient.cancelQueries({ queryKey: ['workstation', 'indicator-batch'] })
   const symbols = [...new Set(rows.map(row => row.symbol).filter(symbol => symbol && !symbol.startsWith('#')))]
   if (!symbols.length) { indicatorValues.value = {}; indicatorWarnings.value = {}; return }
   const next: Record<string, Record<string, number | null>> = {}
@@ -1210,9 +1211,9 @@ async function loadIndicatorColumns(rows: Array<{ symbol: string }>) {
       const requestSymbols = [...symbols].sort()
       const response = await queryClient.fetchQuery({
         queryKey: ['workstation', 'indicator-batch', requestSymbols, column.indicator, params, column.timeframe, true],
-        queryFn: () => api.post<{ values: Record<string, { value?: number | null; warning?: { code?: string } | null }> }>('/analysis/indicator-batch', {
+        queryFn: ({ signal }) => api.post<{ values: Record<string, { value?: number | null; warning?: { code?: string } | null }> }>('/analysis/indicator-batch', {
           symbols: requestSymbols, indicator: column.indicator, params, timeframe: column.timeframe, adjusted: true,
-        }),
+        }, { signal }),
         staleTime: 30_000,
       })
       next[column.key] = Object.fromEntries(Object.entries(response.values ?? {}).map(([symbol, cell]) => [symbol, cell?.value ?? null]))

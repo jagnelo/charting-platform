@@ -221,6 +221,10 @@ Indicator-column requests use the shared TanStack Vue Query cache keyed by the s
 canonical symbol set, indicator parameters, timeframe, adjustment, and output, so
 docked/pop-out watchlists reuse active results instead of fanning out duplicate requests;
 the 30-second cache window is separate from historical chart polling.
+When the active symbol set, timeframe, or configured indicator changes, obsolete
+indicator queries are canceled through Vue Query and an `AbortSignal`-aware API client;
+generation guards still prevent any already-returned response from replacing newer
+cells.
 
 Floated workstation tools now forward watchlist condition modes, Boolean pinning,
 column grouping/stacking, arbitrary serializable configuration, and industry-proxy

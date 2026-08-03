@@ -15882,3 +15882,11 @@
 - Full frontend Vitest `495` across `80` files, TypeScript, production build, and diff
   checks passed. Checkpoint `5d28c1f` is committed and pushed; strict V25 visual approval
   and broad acceptance remain open.
+## 2026-08-03T23:20:00Z Indicator cancellation checkpoint
+
+- Indicator-column refreshes now cancel obsolete Vue Query batches, and the API client
+  forwards `AbortSignal` through authenticated retries. This prevents stale symbol or
+  universe changes from continuing network work while retaining generation guards.
+- Full frontend Vitest `496` across `80` files, TypeScript, production build, and diff
+  checks passed. Commit/push pending; strict V25 visual approval and broad acceptance
+  remain open.
