@@ -45,3 +45,12 @@ the result polling path reconciles the terminal `canceled` state.
 The persisted Study Results browser exposes the same cancellation contract for
 queued/running research runs, preserving the run list and selected result while the
 isolated worker transitions to its terminal state.
+
+The Market Gauge tool now uses the shared TanStack Vue Query cache for retained
+EasyScan definitions and gauge snapshots. Selecting a scan fetches its canonical
+local-database gauge, active gauges refresh on the configured freshness interval or
+through an explicit Refresh control, and the dense tool chrome exposes the returned
+freshness state, provenance, calculation version, and coverage-warning count. A
+component regression covers selection, refresh, stale-data labeling, and lineage
+display. This is functional evidence only; the Version 25 visual reference remains
+unapproved.
