@@ -1,5 +1,16 @@
 # Active Handoff
 
+## Continuation update — 2026-08-03T20:03:00Z
+
+- Bounded EasyScan retained-result history to a default page of 10 and a server-enforced
+  range of 1–100, matching the workstation history selector without allowing unbounded
+  result retrieval.
+- Validation: Ruff, `git diff --check`, and direct FastAPI Query-contract assertion passed.
+  The Docker-backed screener/workspace integration path remains unavailable because this
+  environment denies Docker socket access. Checkpoint `8e9dce0` pushed.
+- Strict V25 visual approval remains `required_missing`; the broader workstation,
+  backend, security, performance, and end-to-end acceptance matrix remains incomplete.
+
 ## Continuation update — 2026-08-03T19:58:00Z
 
 - Aligned backend factory workspace payloads with the stable frontend analysis-tool

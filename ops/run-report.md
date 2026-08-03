@@ -2,6 +2,15 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-03T20:03:00Z Bounded EasyScan result history
+
+- The retained `/screeners/{id}/results` page now defaults to 10 results and rejects
+  limits outside 1–100, keeping the frontend history selector bounded.
+- Validation: Ruff, `git diff --check`, and direct FastAPI Query-contract assertion passed;
+  Docker-backed integration remains unavailable because this environment denies Docker
+  socket access. Pushed `8e9dce0`.
+- Strict V25 visual approval and the complete acceptance matrix remain open.
+
 ## 2026-08-03T19:58:00Z Factory tool-contract alignment
 
 - Backend factory workspaces now emit stable analysis tool types and the persisted
