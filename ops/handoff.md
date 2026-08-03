@@ -1,5 +1,16 @@
 # Active Handoff
 
+## Continuation update — 2026-08-03T20:31:00Z
+
+- Expanded the V25 visual-reference manifest with four additional official Version 25
+  pinning-column states (menu, result, indicator, and secondary-sort), retaining source
+  URLs, source build `25.0.9172.22877`, image hashes, and resolutions. These remain
+  discovery candidates only; exact pinned-build `25.0.9571` review, measurements,
+  permissions, and human approval are still required, so no visual surface was promoted.
+- Validation: YAML parsing, visual-manifest validation, and `git diff --check` passed.
+  Checkpoint `962c60d` pushed. The strict visual gate and full workstation, backend,
+  security, performance, and end-to-end acceptance matrix remain incomplete.
+
 ## Continuation update — 2026-08-03T20:24:00Z
 
 - Extended the point-in-time `as_of` contract from Relative Rotation to group snapshots,

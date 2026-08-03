@@ -2,6 +2,16 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-03T20:31:00Z V25 visual-reference candidate expansion
+
+- Added four official Version 25 pinning-column discovery candidates to the visual
+  manifest with source URLs, build metadata, SHA-256 hashes, and image resolutions.
+  They remain unapproved until exact-build continuity, measurement, permission, and
+  reviewer evidence exists.
+- YAML parsing, visual-manifest validation, and `git diff --check` passed. Pushed the
+  manifest checkpoint. Strict visual approval and the complete acceptance matrix remain
+  open.
+
 ## 2026-08-03T20:24:00Z Point-in-time batch analysis
 
 - Group snapshots, current breadth, and breadth history now accept `as_of` and apply the
