@@ -17645,5 +17645,5 @@ uncovered slice rather than repeat a generic completion claim.
   canonical symbols and calculation settings, reusing results across docked/pop-out
   watchlists.
 - Full frontend Vitest `495` across `80` files, TypeScript, production build, and diff
-  checks passed. Commit/push pending; strict V25 visual approval and broad acceptance
-  remain open.
+  checks passed. Checkpoint `5d28c1f` is committed and pushed; strict V25 visual approval
+  and broad acceptance remain open.
