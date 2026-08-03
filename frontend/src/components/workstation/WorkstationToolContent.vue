@@ -88,9 +88,16 @@
     </div>
     <div v-else-if="tool.tool_type === 'chart' && tool.instance_key !== 'ratio-chart'" class="chart-tool">
       <DrawingToolbar class="chart-tool__drawing-toolbar" />
-      <div class="chart-tool__surface">
+        <div class="chart-tool__surface">
         <ChartTemplateControl class="chart-tool__templates" :configuration="liveChartConfiguration" :indicator-configs="chartStore.indicators" @apply="applyChartTemplate" />
         <ChartPlotLibrary class="chart-tool__plots" :source-window-key="tool.instance_key" :link-group="tool.link_group" />
+        <div class="chart-tool__compare" aria-label="Chart comparisons">
+          <input v-model="comparisonDraft" aria-label="Comparison symbol" placeholder="Compare" @keydown.enter.prevent="addComparisonSymbol(comparisonDraft)" />
+          <button type="button" title="Add comparison" @click="addComparisonSymbol(comparisonDraft)">＋</button>
+          <button v-for="target in comparisonLegend" :key="target.symbol" type="button" class="chart-tool__compare-chip" :title="`Remove ${target.label}`" @click="removeComparisonSymbol(target.symbol)">
+            <i :style="{ background: target.color }" />{{ target.symbol }} {{ target.percentChange == null ? '—' : `${target.percentChange >= 0 ? '+' : ''}${target.percentChange.toFixed(2)}%` }} ×
+          </button>
+        </div>
         <div v-if="chartStore.isLoading" class="tool-state">Loading {{ activeSymbol }}…</div>
         <div v-else-if="chartStore.error" class="tool-state tool-state--error">{{ chartStore.error }}</div>
         <UPlotChart
@@ -99,6 +106,7 @@
           :chart-settings="liveChartConfiguration"
           :workspace-link-group="tool.link_group"
           :linked-timestamp="workspaceStore.timestampForLinkGroup(tool.link_group)"
+          :comparison-series="comparisonSeries"
           @configuration="applyChartConfiguration"
         />
         <div v-else class="tool-state">Select a canonical instrument.</div>
@@ -208,6 +216,7 @@
 
 <script setup lang="ts">
 import { computed, provide, ref, watch } from 'vue'
+import { api } from '@/lib/api'
 import UPlotChart from '@/components/chart/UPlotChart.vue'
 import DrawingToolbar from '@/components/chart/DrawingToolbar.vue'
 import ChartTemplateControl from './ChartTemplateControl.vue'
@@ -231,9 +240,10 @@ import InstrumentInfoPanel from '@/components/chart/InstrumentInfoPanel.vue'
 import ResearchResultsTool from './ResearchResultsTool.vue'
 import CoverageSummaryTool from './CoverageSummaryTool.vue'
 import { calendarYearKeys } from '@/lib/workstation/calendarYears'
+import { buildNormalizedComparisonSeries, type ComparisonTarget } from '@/lib/workstation/comparison'
 import { ensureKnownInstrumentSymbol } from '@/lib/instruments'
 import { INDICATOR_BY_TYPE } from '@/lib/indicators/catalog'
-import { CHART_BAR_TYPES, type ChartBarType, type IndicatorConfig, type Timeframe } from '@/types'
+import { CHART_BAR_TYPES, type ChartBarType, type ChartComparisonSeries, type IndicatorConfig, type OHLCVBar, type Timeframe } from '@/types'
 
 const props = defineProps<{
   tool: WorkspaceWindowState
@@ -283,6 +293,25 @@ const chartBarType = computed<ChartBarType>(() => {
     ? requested as ChartBarType
     : 'candles'
 })
+const comparisonDraft = ref('')
+const comparisonTargets = ref<ComparisonTarget[]>([])
+let comparisonRequestSequence = 0
+const comparisonColors = ['#ffb74d', '#64b5f6', '#81c784', '#ba68c8', '#f06292', '#4dd0e1']
+const configuredComparisonSymbols = computed(() => {
+  const symbols = props.tool.configuration.comparison_symbols
+  return Array.isArray(symbols)
+    ? symbols.filter((symbol): symbol is string => typeof symbol === 'string' && Boolean(symbol.trim())).map(symbol => symbol.trim().toUpperCase())
+    : []
+})
+const comparisonSeries = computed<ChartComparisonSeries[]>(() => {
+  return buildNormalizedComparisonSeries(chartStore.bars, comparisonTargets.value)
+})
+const comparisonLegend = computed(() => comparisonSeries.value.map(series => ({
+  symbol: series.symbol,
+  label: series.label,
+  color: series.color,
+  percentChange: series.percentChange,
+})))
 
 function selectSymbol(symbol: string, instrumentId?: number | null) {
   workspaceStore.selectToolSymbol(props.tool.instance_key, symbol, instrumentId)
@@ -303,7 +332,7 @@ function setTimeframeLinkGroup(group: LinkGroup) {
 function applyChartTemplate(configuration: Record<string, unknown>) {
   const indicators = templateIndicators(configuration.indicators)
   const identity = Object.fromEntries(Object.entries(props.tool.configuration)
-    .filter(([key]) => ['symbol', 'instrument_id', 'expression'].includes(key)))
+    .filter(([key]) => ['symbol', 'instrument_id', 'expression', 'comparison_symbols'].includes(key)))
   const applied = { ...configuration, ...identity }
   if (indicators) {
     chartStore.setIndicators(indicators)
@@ -313,6 +342,58 @@ function applyChartTemplate(configuration: Record<string, unknown>) {
   }
   liveChartConfiguration.value = applied
   emit('configuration', props.tool.instance_key, applied)
+}
+
+function persistComparisonSymbols() {
+  emit('configuration', props.tool.instance_key, {
+    ...liveChartConfiguration.value,
+    comparison_symbols: comparisonTargets.value.map(target => target.symbol),
+  })
+}
+
+async function loadComparisonBars() {
+  const symbols = comparisonTargets.value.map(target => target.symbol)
+  if (!symbols.length || !chartStore.symbol) return
+  const sequence = ++comparisonRequestSequence
+  const timeframe = activeTimeframe.value
+  const loaded = await Promise.all(symbols.map(async symbol => {
+    try {
+      const raw = await api.get<any[]>(`/ohlcv/${encodeURIComponent(symbol)}/${timeframe}`, { limit: Math.max(chartStore.bars.length, 500) })
+      return { symbol, bars: raw.map(bar => ({
+        ...bar,
+        ts: Number(bar.ts ?? bar.timestamp),
+        open: Number(bar.open), high: Number(bar.high), low: Number(bar.low), close: Number(bar.close),
+        volume: bar.volume == null ? undefined : Number(bar.volume),
+        vwap: bar.vwap == null ? undefined : Number(bar.vwap),
+      })) as OHLCVBar[] }
+    } catch {
+      return { symbol, bars: [] as OHLCVBar[] }
+    }
+  }))
+  if (sequence !== comparisonRequestSequence) return
+  comparisonTargets.value = comparisonTargets.value.map(target => ({ ...target, bars: loaded.find(item => item.symbol === target.symbol)?.bars ?? [] }))
+}
+
+async function addComparisonSymbol(raw: string) {
+  const symbol = raw.trim().toUpperCase()
+  if (!symbol || symbol === chartStore.symbol || comparisonTargets.value.some(target => target.symbol === symbol)) {
+    comparisonDraft.value = ''
+    return
+  }
+  try {
+    const canonical = await ensureKnownInstrumentSymbol(symbol, 'Comparison symbol')
+    comparisonTargets.value.push({ symbol: canonical, label: canonical, color: comparisonColors[comparisonTargets.value.length % comparisonColors.length], bars: [] })
+    comparisonDraft.value = ''
+    persistComparisonSymbols()
+    await loadComparisonBars()
+  } catch (cause: any) {
+    chartStore.error = cause?.message ?? 'Unable to resolve comparison symbol'
+  }
+}
+
+function removeComparisonSymbol(symbol: string) {
+  comparisonTargets.value = comparisonTargets.value.filter(target => target.symbol !== symbol)
+  persistComparisonSymbols()
 }
 
 function templateIndicators(value: unknown): IndicatorConfig[] | null {
@@ -364,6 +445,17 @@ watch([activeSymbol, activeTimeframe, syntheticExpression, chartBarType], async 
 watch(() => props.tool.configuration, configuration => {
   liveChartConfiguration.value = configuration
 }, { deep: true })
+
+watch([configuredComparisonSymbols, activeTimeframe, () => chartStore.symbol], async ([symbols]) => {
+  if (props.tool.tool_type !== 'chart') return
+  const current = new Set(comparisonTargets.value.map(target => target.symbol))
+  const requested = symbols.filter(symbol => symbol !== chartStore.symbol)
+  comparisonTargets.value = requested.map((symbol, index) => {
+    const existing = comparisonTargets.value.find(target => target.symbol === symbol)
+    return existing ?? { symbol, label: symbol, color: comparisonColors[index % comparisonColors.length], bars: [] }
+  })
+  if (requested.length && (!current.size || requested.some(symbol => !current.has(symbol)))) await loadComparisonBars()
+}, { immediate: true })
 
 watch(() => props.tool.configuration.indicators, configured => {
   const indicators = templateIndicators(configured)
@@ -655,6 +747,11 @@ const proxyCoverage = computed(() => industryProxySnapshot.value
 .chart-tool__drawing-toolbar { flex: 0 0 auto; }
 .chart-tool__surface { position: relative; min-width: 0; min-height: 0; flex: 1 1 auto; }
 .chart-tool__templates { position: absolute; top: 3px; right: 4px; z-index: 12; }
+.chart-tool__compare { position: absolute; top: 3px; left: 4px; z-index: 12; display: flex; align-items: center; gap: 3px; max-width: calc(100% - 120px); overflow: hidden; }
+.chart-tool__compare input { width: 72px; border: 1px solid #42515c; background: #11161b; color: #dce9f2; padding: 2px 4px; font: 10px "Segoe UI", Arial, sans-serif; }
+.chart-tool__compare > button { border: 1px solid #42515c; background: #1b252d; color: #b9c9d3; padding: 1px 4px; font: 10px "Segoe UI", Arial, sans-serif; cursor: pointer; white-space: nowrap; }
+.chart-tool__compare-chip { overflow: hidden; text-overflow: ellipsis; }
+.chart-tool__compare-chip i { display: inline-block; width: 7px; height: 7px; margin-right: 3px; border-radius: 50%; }
 .tool-state { display: grid; place-items: center; height: 100%; padding: 12px; color: #98a7b2; font: 11px "Segoe UI", Arial, sans-serif; text-align: center; }
 .tool-state--error { color: #ec8f8f; }
 .benchmark-surface { display: grid; grid-template-rows: auto minmax(0, 1fr); height: 100%; min-height: 0; }
