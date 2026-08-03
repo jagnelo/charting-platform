@@ -190,6 +190,18 @@ def test_runner_emits_typed_dashboard_composed_from_named_artifacts():
     }
 
 
+def test_runner_rejects_dashboard_references_to_missing_artifacts():
+    result = execute_job(
+        {"source": "output.dashboard('overview', [{'artifact': 'missing'}])", "dataset": {}}
+    )
+
+    assert result["status"] == "failed"
+    assert result["diagnostics"] == [{
+        "code": "dashboard_reference_error",
+        "message": "dashboard 'overview' references unavailable artifact 'missing'",
+    }]
+
+
 def test_runner_computes_point_in_time_forward_returns_for_study_events():
     result = execute_job(
         {

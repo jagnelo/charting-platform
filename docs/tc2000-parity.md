@@ -357,7 +357,9 @@ dashboard contains only bounded references to named scalar, table, series, histo
 scatter, heatmap, or event artifacts plus title/span metadata; user code cannot provide
 HTML, CSS, JavaScript, or components. Active Study Lab and persisted Research Results
 render those panels through the shared native dashboard surface, with focused runner,
-validator, and frontend coverage.
+validator, and frontend coverage. The isolated runner rejects missing or self-referential
+panel targets before persisting a completed result, so a dashboard cannot silently render
+an unavailable artifact.
 
 The new-workstation provider defaults are free-source-first and provider-neutral:
 Alpaca (free IEX entitlement) supplies default US price/latest-price, SEC EDGAR supplies

@@ -99,6 +99,24 @@ def _timeout(_signal, _frame) -> None:
     raise TimeoutError("research execution wall-time limit exceeded")
 
 
+def _dashboard_reference_error(outputs: dict[str, object]) -> str | None:
+    """Return a diagnostic for a dashboard that references an unavailable artifact."""
+    for dashboard_name, artifact in outputs.items():
+        if not isinstance(artifact, dict) or artifact.get("type") != "dashboard":
+            continue
+        value = artifact.get("value")
+        panels = value.get("panels") if isinstance(value, dict) else None
+        if not isinstance(panels, list):
+            return f"dashboard {dashboard_name!r} has an invalid panel list"
+        for panel in panels:
+            reference = panel.get("artifact") if isinstance(panel, dict) else None
+            if not isinstance(reference, str) or reference not in outputs:
+                return f"dashboard {dashboard_name!r} references unavailable artifact {reference!r}"
+            if reference == dashboard_name:
+                return f"dashboard {dashboard_name!r} cannot reference itself"
+    return None
+
+
 def execute_job(
     job: dict,
     *,
@@ -173,6 +191,9 @@ def _execute_single(
             if previous_alarm_handler is not None:
                 signal.signal(signal.SIGALRM, previous_alarm_handler)
             _restore_resources(previous_limits)
+    dashboard_error = _dashboard_reference_error(outputs)
+    if dashboard_error:
+        return {"status": "failed", "diagnostics": [{"code": "dashboard_reference_error", "message": dashboard_error}]}
     try:
         serialized_artifacts = json.dumps(outputs, separators=(",", ":"), allow_nan=False)
     except (TypeError, ValueError) as exc:
