@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const { apiGet } = vi.hoisted(() => ({ apiGet: vi.fn() }))
 vi.mock('@/lib/api', () => ({ api: { get: apiGet } }))
-vi.mock('@/components/workstation/StudyHistogramUPlot.vue', () => ({ default: { template: '<div class="histogram-chart" />', props: ['name', 'bins'] } }))
+vi.mock('@/components/workstation/StudyHistogramUPlot.vue', () => ({ default: { template: '<div class="histogram-chart" />', props: ['name', 'bins', 'current'] } }))
 
 import ResearchResultsTool from '@/components/workstation/ResearchResultsTool.vue'
 

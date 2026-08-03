@@ -41,7 +41,7 @@
           <strong v-if="artifact.artifact_type === 'scalar' || artifact.artifact_type === 'boolean'" :class="{ 'research-results-tool__boolean--true': artifact.artifact_type === 'boolean' && artifact.payload.value === true, 'research-results-tool__boolean--false': artifact.artifact_type === 'boolean' && artifact.payload.value === false }">{{ formatMetric(artifact) }}</strong>
           <table v-else-if="artifact.artifact_type === 'table' && tableRows(artifact).length"><thead><tr><th v-for="column in tableColumns(artifact)" :key="column">{{ column }}</th></tr></thead><tbody><tr v-for="(row, index) in tableRows(artifact)" :key="index"><td v-for="column in tableColumns(artifact)" :key="column">{{ formatCell(row[column]) }}</td></tr></tbody></table>
           <StudySeriesUPlot v-else-if="artifact.artifact_type === 'series' && seriesData(artifact)" :name="artifact.name" :timestamps="seriesData(artifact)!.timestamps" :values="seriesData(artifact)!.values" />
-          <StudyHistogramUPlot v-else-if="artifact.artifact_type === 'histogram' && histogramData(artifact)" :name="artifact.name" :bins="histogramData(artifact)!.bins" />
+          <StudyHistogramUPlot v-else-if="artifact.artifact_type === 'histogram' && histogramData(artifact)" :name="artifact.name" :bins="histogramData(artifact)!.bins" :current="histogramData(artifact)!.current" />
           <div v-else-if="artifact.artifact_type === 'events'" class="research-results-tool__events"><button v-for="(event, index) in eventRows(artifact)" :key="`${event.symbol}-${event.timestamp}-${index}`" type="button" @click="emit('occurrence', event)"><strong>{{ event.symbol }}</strong><span>{{ event.timestamp }}</span></button></div>
           <pre v-else>{{ artifactText(artifact.payload) }}</pre>
         </article>
@@ -94,13 +94,14 @@ function seriesData(artifact: ResearchRunSummary['artifacts'][number]): { timest
   const candidate = value as { timestamps?: unknown; values?: unknown }
   return Array.isArray(candidate.timestamps) && candidate.timestamps.every(item => typeof item === 'string') && Array.isArray(candidate.values) && candidate.timestamps.length === candidate.values.length && candidate.values.every(item => item == null || typeof item === 'number') ? { timestamps: candidate.timestamps, values: candidate.values } : null
 }
-function histogramData(artifact: ResearchRunSummary['artifacts'][number]): { bins: Array<{ start: number; end: number; count: number }> } | null {
+function histogramData(artifact: ResearchRunSummary['artifacts'][number]): { bins: Array<{ start: number; end: number; count: number }>; current: number | null } | null {
   const value = artifact.payload.value
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null
   const bins = (value as { bins?: unknown }).bins
   if (!Array.isArray(bins)) return null
   const normalized = bins.filter((bin): bin is { start: number; end: number; count: number } => Boolean(bin) && typeof bin === 'object' && Number.isFinite((bin as Record<string, unknown>).start) && Number.isFinite((bin as Record<string, unknown>).end) && Number.isFinite((bin as Record<string, unknown>).count))
-  return normalized.length ? { bins: normalized } : null
+  const current = (value as { current?: unknown }).current
+  return normalized.length ? { bins: normalized, current: typeof current === 'number' && Number.isFinite(current) ? current : null } : null
 }
 function eventRows(artifact: ResearchRunSummary['artifacts'][number]): Array<{ symbol: string; timestamp: string; kind?: string }> {
   const value = artifact.payload.value

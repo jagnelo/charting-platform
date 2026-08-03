@@ -21,7 +21,7 @@
         <strong>{{ artifact.name }}</strong><small>{{ artifact.artifact_type }}</small>
         <table v-if="artifact.artifact_type === 'table' && tableRows(artifact).length"><thead><tr><th v-for="column in tableColumns(artifact)" :key="column">{{ column }}</th></tr></thead><tbody><tr v-for="(row, index) in tableRows(artifact)" :key="index"><td v-for="column in tableColumns(artifact)" :key="column">{{ formatCell(row[column]) }}</td></tr></tbody></table>
         <StudySeriesUPlot v-else-if="artifact.artifact_type === 'series' && seriesData(artifact)" :name="artifact.name" :timestamps="seriesData(artifact)!.timestamps" :values="seriesData(artifact)!.values" />
-        <StudyHistogramUPlot v-else-if="artifact.artifact_type === 'histogram' && histogramData(artifact)" :name="artifact.name" :bins="histogramData(artifact)!.bins" />
+        <StudyHistogramUPlot v-else-if="artifact.artifact_type === 'histogram' && histogramData(artifact)" :name="artifact.name" :bins="histogramData(artifact)!.bins" :current="histogramData(artifact)!.current" />
         <div v-else-if="artifact.artifact_type === 'events' && eventRows(artifact).length" class="study-lab-tool__events"><button v-for="(event, index) in eventRows(artifact)" :key="`${event.timestamp}-${index}`" type="button" @click="emit('occurrence', event)"><strong>{{ event.symbol }}</strong><span>{{ event.timestamp }}</span><small>{{ event.kind ?? 'Event' }}</small></button></div>
         <pre v-else>{{ artifactText(artifact.payload) }}</pre>
       </article>
@@ -45,7 +45,7 @@ const props = defineProps<{ activeSymbol: string }>()
 const emit = defineEmits<{ occurrence: [event: { symbol: string; timestamp: string; kind?: string }] }>()
 const name = ref('Consecutive Positive Closes')
 const symbol = ref(props.activeSymbol)
-const source = ref("streaks = stats.positive_close_streaks(dataset)\nindices = [record['end_index'] for record in streaks['records']]\noutput.scalar('current_streak', streaks['current'])\noutput.scalar('longest_streak', streaks['longest'])\noutput.scalar('average_streak', streaks['average'])\noutput.scalar('shortest_streak', streaks['shortest'])\noutput.table('completed_streaks', streaks['records'])\noutput.table('forward_returns', research.forward_returns(dataset, indices, [1, 5, 20]))\noutput.events('streak_events', research.occurrences(dataset, indices, 'positive_close_streak'))\noutput.histogram('streak_distribution', streaks['lengths'])")
+const source = ref("streaks = stats.positive_close_streaks(dataset)\nindices = [record['end_index'] for record in streaks['records']]\noutput.scalar('current_streak', streaks['current'])\noutput.scalar('longest_streak', streaks['longest'])\noutput.scalar('average_streak', streaks['average'])\noutput.scalar('shortest_streak', streaks['shortest'])\noutput.table('completed_streaks', streaks['records'])\noutput.table('forward_returns', research.forward_returns(dataset, indices, [1, 5, 20]))\noutput.events('streak_events', research.occurrences(dataset, indices, 'positive_close_streak'))\noutput.histogram('streak_distribution', streaks['lengths'], 8, streaks['current'])")
 const busy = ref(false)
 const validation = ref<Validation | null>(null)
 const run = ref<Run | null>(null)
@@ -80,13 +80,14 @@ function seriesData(artifact: Artifact): { timestamps: string[]; values: Array<n
   if (!Array.isArray(candidate.timestamps) || !candidate.timestamps.every(item => typeof item === 'string') || !Array.isArray(candidate.values) || candidate.timestamps.length !== candidate.values.length || !candidate.values.every(item => item == null || typeof item === 'number')) return null
   return { timestamps: candidate.timestamps, values: candidate.values }
 }
-function histogramData(artifact: Artifact): { bins: Array<{ start: number; end: number; count: number }> } | null {
+function histogramData(artifact: Artifact): { bins: Array<{ start: number; end: number; count: number }>; current: number | null } | null {
   const value = artifact.payload.value
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null
   const bins = (value as { bins?: unknown }).bins
   if (!Array.isArray(bins)) return null
   const normalized = bins.filter((bin): bin is { start: number; end: number; count: number } => Boolean(bin) && typeof bin === 'object' && Number.isFinite((bin as Record<string, unknown>).start) && Number.isFinite((bin as Record<string, unknown>).end) && Number.isFinite((bin as Record<string, unknown>).count))
-  return normalized.length ? { bins: normalized } : null
+  const current = (value as { current?: unknown }).current
+  return normalized.length ? { bins: normalized, current: typeof current === 'number' && Number.isFinite(current) ? current : null } : null
 }
 function eventRows(artifact: Artifact): Array<{ symbol: string; timestamp: string; kind?: string }> {
   const value = artifact.payload.value

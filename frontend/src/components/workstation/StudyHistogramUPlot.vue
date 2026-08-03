@@ -12,7 +12,7 @@ import 'uplot/dist/uPlot.min.css'
 
 interface HistogramBin { start: number; end: number; count: number }
 
-const props = defineProps<{ name: string; bins: HistogramBin[] }>()
+const props = defineProps<{ name: string; bins: HistogramBin[]; current?: number | null }>()
 const root = ref<HTMLElement | null>(null)
 const host = ref<HTMLElement | null>(null)
 const valid = ref(false)
@@ -35,6 +35,20 @@ function drawBars(instance: uPlot) {
     const top = instance.valToPos(bin.count, 'y', true)
     context.fillRect(Math.floor(left) + 1, Math.min(top, baseline), Math.max(1, Math.floor(right - left) - 2), Math.max(1, Math.abs(baseline - top)))
   })
+  if (typeof props.current === 'number' && Number.isFinite(props.current) && props.bins.length) {
+    const index = props.current <= props.bins[0].start
+      ? 0
+      : props.current >= props.bins[props.bins.length - 1].end
+        ? props.bins.length - 1
+        : Math.max(0, props.bins.findIndex(bin => props.current! >= bin.start && props.current! <= bin.end))
+    const marker = instance.valToPos(index + 0.5, 'x', true)
+    context.strokeStyle = '#f0c674'
+    context.lineWidth = 2
+    context.beginPath()
+    context.moveTo(marker, instance.bbox.top)
+    context.lineTo(marker, instance.bbox.top + instance.bbox.height)
+    context.stroke()
+  }
   context.restore()
 }
 

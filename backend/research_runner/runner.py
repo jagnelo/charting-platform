@@ -215,15 +215,17 @@ class _Output:
     def table(self, name: str, value: object) -> None:
         self.values[name] = {"type": "table", "value": value}
 
-    def histogram(self, name: str, value: object, bins: int = 8) -> None:
+    def histogram(self, name: str, value: object, bins: int = 8, current: object = None) -> None:
         """Emit a deterministic numeric distribution for Study Lab renderers."""
         if not isinstance(value, list | tuple):
             raise ValueError("histogram values must be a list")
         if not isinstance(bins, int) or isinstance(bins, bool) or not 1 <= bins <= 64:
             raise ValueError("histogram bins must be an integer between 1 and 64")
+        if current is not None and (not isinstance(current, int | float) or isinstance(current, bool) or not math.isfinite(float(current))):
+            raise ValueError("histogram current value must be numeric")
         numeric = [float(item) for item in value if isinstance(item, int | float) and not isinstance(item, bool) and math.isfinite(float(item))]
         if not numeric:
-            self.values[name] = {"type": "histogram", "value": {"bins": [], "sample_size": 0}}
+            self.values[name] = {"type": "histogram", "value": {"bins": [], "sample_size": 0, "current": current}}
             return
         minimum = min(numeric)
         maximum = max(numeric)
@@ -245,7 +247,7 @@ class _Output:
             ]
         self.values[name] = {
             "type": "histogram",
-            "value": {"bins": bucket_rows, "sample_size": len(numeric), "min": minimum, "max": maximum},
+            "value": {"bins": bucket_rows, "sample_size": len(numeric), "min": minimum, "max": maximum, "current": current},
         }
 
     def events(self, name: str, value: object) -> None:

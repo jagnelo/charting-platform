@@ -103,7 +103,7 @@ def test_runner_executes_factory_positive_close_streak_study():
 def test_runner_emits_typed_histogram_for_study_distributions():
     result = execute_job(
         {
-            "source": "output.histogram('distribution', [1, 2, 2, 3], 2)",
+            "source": "output.histogram('distribution', [1, 2, 2, 3], 2, 2)",
             "dataset": {},
         }
     )
@@ -118,6 +118,7 @@ def test_runner_emits_typed_histogram_for_study_distributions():
             "sample_size": 4,
             "min": 1.0,
             "max": 3.0,
+            "current": 2,
         },
     }
 
