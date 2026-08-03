@@ -31,6 +31,10 @@ artifacts rendered by a native matrix surface. Focused runner, validation, Study
 and persisted-results tests pass; visual parity remains blocked until the required
 approved Version 25 references exist.
 
+The shared Python validator and Study asset contract now recognize `scatter` and
+`heatmap` output methods, so these structured artifacts survive validation and can be
+reused from the same unified language rather than being runner-only extensions.
+
 The isolated image also installs pinned NumPy/Pandas wheels at build time and exposes
 only restricted `np`/`pd` facades to user code. File/external-data methods are rejected
 by source validation; NumPy/Pandas values are normalized before artifact persistence.
