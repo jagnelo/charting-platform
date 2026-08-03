@@ -1,5 +1,17 @@
 # Active Handoff
 
+## Continuation update — 2026-08-03T16:30:00Z
+
+- Completed live migration evidence for the session-aware OHLCV schema using a disposable
+  PostgreSQL 16 container: full Alembic upgrade reached `d3e4f5a6b7c8`, downgrade to
+  `d2a3b4c5d6e7` succeeded, re-upgrade succeeded, and direct SQL verified the session
+  column default and `ix_ohlcv_instrument_tf_session_ts` index. The container was removed.
+- The research API remains `13 passed` without the scoped coverage gate; Ruff, migration
+  compilation, and diff checks passed. The migration requirement is now evidenced rather
+  than pending.
+- The full goal remains active. Strict V25 visual approval is still `required_missing`,
+  and the broader backend/security/performance/end-to-end acceptance matrix remains open.
+
 ## Continuation update — 2026-08-03T16:20:00Z
 
 - Canonical OHLCV bars now persist a `session` classification with a default-safe Alembic

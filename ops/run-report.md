@@ -2,6 +2,14 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-03T16:30:00Z Live session migration validation
+
+- Validated the complete Alembic chain on disposable PostgreSQL 16 through upgrade to
+  `d3e4f5a6b7c8`, downgrade to `d2a3b4c5d6e7`, and re-upgrade. Direct SQL confirmed the
+  OHLCV session default and index; the container was removed afterward.
+- Research API `13 passed`, Ruff, migration compilation, and diff check remain green.
+- Strict V25 visual approval and the full acceptance matrix remain open.
+
 ## 2026-08-03T16:20:00Z Session-aware canonical bars
 
 - Added persisted OHLCV session classification and migration/index support. Study Lab
