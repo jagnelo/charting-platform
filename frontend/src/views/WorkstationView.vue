@@ -103,6 +103,7 @@ import { useAuthStore } from '@/stores/auth'
 import { OPENABLE_WORKSTATION_TOOLS, useWorkspaceStore, type LinkGroup, type OpenableToolDefinition } from '@/stores/workspace'
 import type { LayoutConfig } from 'golden-layout'
 import { ensureKnownInstrumentSymbol } from '@/lib/instruments'
+import { autoRatioExpression } from '@/lib/workstation/ratioExpression'
 
 const route = useRoute()
 const router = useRouter()
@@ -170,6 +171,10 @@ async function selectSymbol(raw: string, timestamp?: string) {
     return
   }
   symbolDraft.value = symbol
+  // Capture the drill-down ETF before loading the newly selected symbol. A stock
+  // selection from a constituent list may itself have no holdings endpoint, but
+  // its relevant ratio denominator is still the list's active ETF.
+  const comparisonETF = workspaceStore.constituentETF
   workspaceStore.publishSymbol({ symbol, timestamp, group: 'blue', sourceWindowKey: 'workstation' })
   await Promise.all([
     chartStore.loadBars(symbol, chartStore.timeframe, chartStore.barType, true),
@@ -177,6 +182,18 @@ async function selectSymbol(raw: string, timestamp?: string) {
     workspaceStore.loadETFIndustries(symbol),
     workspaceStore.loadTechnical(symbol),
   ])
+  updateAutoRatioExpression(symbol, comparisonETF)
+}
+
+function updateAutoRatioExpression(symbol: string, comparisonETF = workspaceStore.constituentETF) {
+  const ratio = workspaceStore.activeTab?.windows.find(window => window.instance_key === 'ratio-chart')
+  if (!ratio || (ratio.configuration.auto_ratio !== true && ratio.configuration.expression !== '=SPY/RSP')) return
+  const sectorSymbols = (workspaceStore.marketGroups['sp500-sectors']?.members ?? []).map(member => member.instrument.symbol)
+  updateToolConfiguration(ratio.instance_key, {
+    ...ratio.configuration,
+    expression: autoRatioExpression(symbol, sectorSymbols, comparisonETF),
+    auto_ratio: true,
+  })
 }
 
 function selectOccurrence(symbol: string, timestamp: string) {
@@ -195,6 +212,7 @@ async function selectIndustryProxy(symbol: string) {
   workspaceStore.selectIndustryProxy(symbol)
   symbolDraft.value = symbol
   preserveDrilldownSymbol.value = symbol
+  updateAutoRatioExpression(symbol)
 }
 
 function openTool(tool: OpenableToolDefinition) {

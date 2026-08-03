@@ -84,3 +84,6 @@ current calendar year rather than treating 252 bars as a calendar boundary, and 
 an explicit insufficient-YTD warning when the year has fewer than two valid bars.
 Fixed-period returns likewise return a structured zero-base warning rather than
 dividing by zero, preserving valid cells and exact exclusion reasons in batch output.
+The factory relative-strength chart is now explicitly auto-ratio-enabled: selecting
+SPY/RSP, a sector, a constituent, or an industry proxy updates it to the relevant
+benchmark relationship while custom expressions remain untouched.

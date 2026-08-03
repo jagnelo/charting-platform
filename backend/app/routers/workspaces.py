@@ -141,7 +141,7 @@ def _factory_tabs() -> list[WorkspaceTab]:
             "ratio-chart",
             "chart",
             "Relative Strength",
-            {"expression": "=SPY/RSP", "timeframe": "D1"},
+            {"expression": "=SPY/RSP", "timeframe": "D1", "auto_ratio": True},
         ),
         ("technical-summary", "analysis", "Technicals", {"scope": "selected"}),
         ("breadth-summary", "breadth", "Breadth", {"scope": "selected-sector"}),
