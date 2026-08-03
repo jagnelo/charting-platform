@@ -43,6 +43,7 @@ from app.schemas.analysis import (
 router = APIRouter(prefix="/analysis", tags=["analysis"])
 
 _PERIODS = {"1D": 1, "1W": 5, "1M": 21, "3M": 63, "6M": 126, "YTD": 252, "1Y": 252}
+_CALENDAR_YEAR_LOOKBACK = 5
 
 
 @router.get("/gauges/{screener_id}", response_model=MarketGaugeOut)
@@ -148,6 +149,44 @@ def _cell(
 
 def _mean(values: list[float]) -> float:
     return sum(values) / len(values)
+
+
+def _calendar_year_cells(
+    bars: list[OHLCVBar], instrument_id: int, years: list[int]
+) -> dict[str, AnalysisCell]:
+    """Return non-forward-filled calendar-year returns for a bounded year window."""
+    by_year: dict[int, list[OHLCVBar]] = defaultdict(list)
+    for bar in bars:
+        by_year[bar.ts.year].append(bar)
+    cells: dict[str, AnalysisCell] = {}
+    for year in years:
+        key = str(year)
+        year_bars = by_year.get(year, [])
+        if not year_bars:
+            cells[key] = _cell(
+                None,
+                None,
+                AnalysisWarning(
+                    code="no_calendar_year_bars",
+                    message=f"No local bars are available for calendar year {year}.",
+                    instrument_id=instrument_id,
+                ),
+            )
+            continue
+        first, last = year_bars[0], year_bars[-1]
+        if len(year_bars) < 2 or first.close == 0:
+            cells[key] = _cell(
+                None,
+                last,
+                AnalysisWarning(
+                    code="insufficient_calendar_year_history",
+                    message=f"Calendar year {year} requires at least two non-zero bars.",
+                    instrument_id=instrument_id,
+                ),
+            )
+            continue
+        cells[key] = _cell(float(last.close / first.close - 1), last)
+    return cells
 
 
 async def _batch_freshness(
@@ -967,6 +1006,13 @@ async def group_snapshot(
         if benchmark_instrument
         else {}
     )
+    latest_year = max(
+        (bar.ts.year for bars in bars_by_id.values() for bar in bars),
+        default=datetime.now(UTC).year,
+    )
+    calendar_years = list(
+        range(latest_year - _CALENDAR_YEAR_LOOKBACK + 1, latest_year + 1)
+    )
     rows: list[GroupSnapshotRow] = []
     exclusions: list[AnalysisWarning] = []
     covered = 0
@@ -995,6 +1041,9 @@ async def group_snapshot(
                     name=instrument.name,
                     last=_cell(None, None, warning),
                     performance={period: _cell(None, None, warning) for period in _PERIODS},
+                    calendar_year_performance={
+                        str(year): _cell(None, None, warning) for year in calendar_years
+                    },
                 )
             )
             continue
@@ -1015,6 +1064,7 @@ async def group_snapshot(
                 performance[period] = _cell(
                     float(latest.close / bars[-offset - 1].close - 1), latest
                 )
+        calendar_year_performance = _calendar_year_cells(bars, instrument.id, calendar_years)
         closes = [float(bar.close) for bar in bars]
         volumes = [float(bar.volume) for bar in bars]
         technical: dict[str, AnalysisCell] = {}
@@ -1105,6 +1155,7 @@ async def group_snapshot(
                 name=instrument.name,
                 last=_cell(float(latest.close), latest),
                 performance=performance,
+                calendar_year_performance=calendar_year_performance,
                 relative_to_benchmark=relative,
                 technical=technical,
             )

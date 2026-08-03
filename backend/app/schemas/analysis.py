@@ -80,6 +80,7 @@ class GroupSnapshotRow(BaseModel):
     name: str
     last: AnalysisCell
     performance: dict[str, AnalysisCell]
+    calendar_year_performance: dict[str, AnalysisCell] = Field(default_factory=dict)
     relative_to_benchmark: AnalysisCell | None = None
     technical: dict[str, AnalysisCell] = Field(default_factory=dict)
 

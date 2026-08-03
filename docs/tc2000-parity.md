@@ -75,3 +75,7 @@ Factory `Drill Down` and `Sector by Year` industry windows now use the selected 
 point-in-time industry composition rather than falling through to benchmark rows.
 Industry selections publish the industry key into the linked drill-down, preserve
 resolved/total constituent coverage, and expose verified proxy counts when available.
+The `Sector by Year` sector window now consumes canonical calendar-year return cells
+from the group snapshot (five bounded years, with explicit no-bars and insufficient-
+history warnings) and renders those years as selectable percentage columns. This is
+functional evidence only; the Version 25 visual reference remains unapproved.

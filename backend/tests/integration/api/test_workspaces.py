@@ -413,6 +413,53 @@ class TestWorkspaces:
         assert payload["position_52w"] == 1
         assert payload["volume_ratio_50"] > 1
 
+    def test_group_snapshot_exposes_bounded_calendar_year_returns(
+        self, client, auth_headers, db, instrument, ohlcv_bars
+    ):
+        from datetime import UTC, datetime
+        from decimal import Decimal
+
+        from app.models.ohlcv import OHLCVBar, Timeframe
+        from app.models.workstation import MarketGroup, MarketGroupMember
+
+        for year, first_close, last_close in (
+            (2025, "100", "125"),
+            (2026, "200", "220"),
+        ):
+            for month, close in ((1, first_close), (12, last_close)):
+                price = Decimal(close)
+                db.add(
+                    OHLCVBar(
+                        instrument_id=instrument.id,
+                        timeframe=Timeframe.D1,
+                        ts=datetime(year, month, 2, tzinfo=UTC),
+                        open=price,
+                        high=price,
+                        low=price,
+                        close=price,
+                        volume=Decimal("100"),
+                        is_adjusted=True,
+                    )
+                )
+        group = MarketGroup(
+            stable_key="calendar-year-test", group_type="test", name="Calendar year test"
+        )
+        db.add(group)
+        db.flush()
+        db.add(MarketGroupMember(market_group_id=group.id, instrument_id=instrument.id, position=0))
+        db.flush()
+
+        response = client.get(
+            "/api/v1/analysis/groups/calendar-year-test/snapshot", headers=auth_headers
+        )
+        assert response.status_code == 200
+        cells = response.json()["rows"][0]["calendar_year_performance"]
+        assert list(cells) == ["2022", "2023", "2024", "2025", "2026"]
+        assert cells["2025"]["value"] == 0.25
+        assert cells["2026"]["value"] == 0.1
+        assert cells["2023"]["value"] is None
+        assert cells["2023"]["warning"]["code"] == "no_calendar_year_bars"
+
     def test_historical_breadth_uses_only_each_constituents_available_bar_dates(
         self, client, auth_headers, db, instrument, ohlcv_bars
     ):

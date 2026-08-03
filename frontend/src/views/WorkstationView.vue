@@ -63,6 +63,7 @@
         v-if="popoutTool"
         :tool="popoutTool"
         :active-window-key="popoutTool.instance_key"
+        :factory-layout="workspaceStore.activeTabKey"
         @select="selectSymbol"
         @occurrence="selectOccurrence"
         @select-industry="workspaceStore.selectIndustry(workspaceStore.constituentETF ?? '', $event)"
@@ -276,6 +277,7 @@ function renderDockTool(dockTool: { instance_key: string; title: string; tool_ty
   return h(WorkstationToolContent, {
     tool,
     activeWindowKey: workspaceStore.activeTab?.active_window_key,
+    factoryLayout: workspaceStore.activeTabKey,
     onSelect: (symbol: string) => void selectSymbol(symbol),
     onOccurrence: (symbol: string, timestamp: string) => void selectSymbol(symbol, timestamp),
     onSelectIndustry: (industry: string) => void workspaceStore.selectIndustry(workspaceStore.constituentETF ?? '', industry),

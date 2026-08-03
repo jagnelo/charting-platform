@@ -230,6 +230,7 @@ import RelativeRotationTool from './RelativeRotationTool.vue'
 import InstrumentInfoPanel from '@/components/chart/InstrumentInfoPanel.vue'
 import ResearchResultsTool from './ResearchResultsTool.vue'
 import CoverageSummaryTool from './CoverageSummaryTool.vue'
+import { calendarYearKeys } from '@/lib/workstation/calendarYears'
 import { ensureKnownInstrumentSymbol } from '@/lib/instruments'
 import { INDICATOR_BY_TYPE } from '@/lib/indicators/catalog'
 import { CHART_BAR_TYPES, type ChartBarType, type IndicatorConfig, type Timeframe } from '@/types'
@@ -237,6 +238,7 @@ import { CHART_BAR_TYPES, type ChartBarType, type IndicatorConfig, type Timefram
 const props = defineProps<{
   tool: WorkspaceWindowState
   activeWindowKey?: string | null
+  factoryLayout?: string | null
 }>()
 const emit = defineEmits<{ select: [symbol: string]; occurrence: [symbol: string, timestamp: string]; selectIndustry: [industry: string]; selectProxy: [symbol: string]; columns: [windowKey: string, keys: string[]]; filter: [windowKey: string, value: string]; conditionFilter: [windowKey: string, screenerId: number | null]; conditionFilterMode: [windowKey: string, mode: 'active' | 'inactive' | 'off']; pinnedBooleanKeys: [windowKey: string, keys: string[]]; columnGroups: [windowKey: string, groups: Record<string, string>]; stackedColumnKeys: [windowKey: string, keys: string[]]; configuration: [windowKey: string, configuration: Record<string, unknown>]; timeframe: [value: string, group: LinkGroup]; float: [windowKey: string]; maximize: [windowKey: string]; close: [windowKey: string]; updateLinkGroup: [windowKey: string, group: LinkGroup] }>()
 // uPlot already consumes a panel-scoped store through injection. Give every persisted
@@ -480,11 +482,17 @@ const sectorRows = computed(() => (workspaceStore.marketGroups['sp500-sectors']?
       above_ma200: row?.technical?.above_ma200?.value ?? null,
       position_52w: row?.technical?.position_52w?.value ?? null,
       volume_ratio_50: row?.technical?.volume_ratio_50?.value == null ? null : row.technical.volume_ratio_50.value.toFixed(2),
+      ...Object.fromEntries(Object.entries(row?.calendar_year_performance ?? {}).map(([year, cell]) => [`calendar_${year}`, cell.value])),
     }
   })(),
 })))
+const sectorByYearYears = computed(() => {
+  return calendarYearKeys(workspaceStore.groupSnapshots['sp500-sectors']?.rows ?? [])
+})
 const factoryWatchlistRows = computed(() => {
   const title = (props.tool.title ?? '').toLowerCase()
+  const factoryLayout = typeof props.tool.configuration.factory_layout === 'string' ? props.tool.configuration.factory_layout : ''
+  if (props.factoryLayout === 'sector-by-year' || factoryLayout === 'sector-by-year' || title.includes('sector by year')) return sectorRows.value
   if (title.includes('sector')) return sectorRows.value
   if (title.includes('industry')) return industryRows.value
   if (title.includes('component') || title.includes('constituent')) return constituentRows.value
@@ -492,6 +500,8 @@ const factoryWatchlistRows = computed(() => {
 })
 const factoryWatchlistColumns = computed<WatchlistColumn[]>(() => {
   const title = (props.tool.title ?? '').toLowerCase()
+  const factoryLayout = typeof props.tool.configuration.factory_layout === 'string' ? props.tool.configuration.factory_layout : ''
+  if (props.factoryLayout === 'sector-by-year' || factoryLayout === 'sector-by-year' || title.includes('sector by year')) return sectorByYearColumns.value
   if (title.includes('sector')) return sectorColumns
   if (title.includes('industry')) return industryColumns
   if (title.includes('component') || title.includes('constituent')) return constituentColumns
@@ -541,6 +551,14 @@ const sectorColumns: WatchlistColumn[] = [
   { key: 'position_52w', label: '52W Pos', width: '64px' },
   { key: 'volume_ratio_50', label: 'Vol x50', width: '62px' },
 ]
+const sectorByYearColumns = computed<WatchlistColumn[]>(() => [
+  { key: 'symbol', label: 'Symbol', width: '54px' },
+  { key: 'name', label: 'Sector', width: 'minmax(90px, 1fr)' },
+  ...sectorByYearYears.value.map(year => ({ key: `calendar_${year}`, label: String(year), width: '62px', format: 'percent' as const })),
+  { key: 'relative_ratio', label: '/ SPY', width: '64px' },
+  { key: 'rsi14', label: 'RSI', width: '54px', format: 'number' as const },
+  { key: 'position_52w', label: '52W Pos', width: '64px' },
+])
 const benchmarkColumns: WatchlistColumn[] = [
   { key: 'symbol', label: 'Symbol', width: '58px' },
   { key: 'name', label: 'Benchmark', width: 'minmax(100px, 1fr)' },
