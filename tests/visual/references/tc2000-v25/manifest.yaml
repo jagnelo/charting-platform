@@ -13,6 +13,27 @@ reference_policy:
     - confirmed_v23_v24_surface
     - v20_behavioral_history
   acceptance_requires: approved
+  discovery_candidates:
+    - id: v25-pinning-columns
+      source_type: official_v25_help
+      source_page: https://help.tc2000.com/m/125751/l/1916114-pinning-columns
+      image_locator: https://media.screensteps.com/image_assets/assets/009/100/094/original/a3ae8b7c-f3fd-4811-9c5a-88b1d8cf7d22.png
+      source_build: "25.0.9172.22877"
+      image_sha256: c0975a9edb9b566a95bf53f92619d8d3f49981a8402dc3788470df2cf0201af6
+      image_resolution: { width: 501, height: 632 }
+      status: discovery_candidate
+      eligible_for: [watchlist-column-filter]
+      notes: "Official Version 25 help image; requires pinned-build unchanged review, measured tokens, target-environment mapping, and reviewer approval before any state can leave required_missing."
+    - id: v23-factory-layout-history
+      source_type: official_help_behavioral_history
+      source_page: https://help.tc2000.com/m/69401/l/743982-factory-default-layout-workspace
+      image_locator: https://media.screensteps.com/image_assets/assets/007/128/266/original/b300f9f5-b127-4c98-8fc5-588f1a719d15.png
+      source_build: "23.0.8517.25266"
+      image_sha256: c2704cf38be98b19e11fc85c80deda62e0d8b44fbf58be7c6f756d9f07a8cdd0
+      image_resolution: { width: 1231, height: 770 }
+      status: discovery_only
+      eligible_for: [application-shell-default, workspace-docking, chart-window]
+      notes: "Useful behavioral history only; explicitly not eligible as a Version 25 visual baseline without an authoritative V25 unchanged-surface confirmation."
 environments:
   - id: desktop-1080p-100
     viewport: { width: 1920, height: 1080 }

@@ -85,6 +85,12 @@ Official Version 25 material can therefore supply a baseline without a local cap
 Third-party material remains discovery-only unless those same facts are independently
 verified and recorded; it must never be silently promoted to an acceptance baseline.
 
+The manifest may also record explicit `discovery_candidates` while evidence is being
+reconciled. Candidates carry their source page, direct image locator, source build,
+image hash, resolution, eligibility, and status. A candidate is not a baseline: it
+cannot satisfy `--require-approved`, and older-generation history is explicitly
+labelled discovery-only until a pinned-build review confirms the surface is unchanged.
+
 ## Official behavior and visual-source catalogue
 
 These links are the initial authoritative catalogue. Each entry must be represented
