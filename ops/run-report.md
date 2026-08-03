@@ -2,6 +2,15 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-03T16:45:00Z Runner resource restoration
+
+- Corrected isolated-runner resource handling so CPU/address-space limits and alarm
+  handlers are restored after every run; CPU limits are offset from current usage without
+  lowering the hard boundary.
+- Validation: backend unit suite `849 passed`, coverage `70.14%`, focused runner `19
+  passed`, Ruff, and diff check. This removes the former full-suite `SIGXCPU` termination.
+- Strict V25 visual approval and the full acceptance matrix remain open.
+
 ## 2026-08-03T16:30:00Z Live session migration validation
 
 - Validated the complete Alembic chain on disposable PostgreSQL 16 through upgrade to

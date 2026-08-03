@@ -138,6 +138,12 @@ regular runs filter to regular-session bars, while `all` runs retain pre-market 
 post-market classifications when present. Provider ingestion still reports only the
 classification it can substantiate; it never infers a session from an unqualified source.
 
+The isolated runner now restores process resource limits and alarm handlers after each
+single or batch execution. CPU limits are offset from already-consumed process time while
+preserving the hard boundary, preventing an in-process caller or test harness from
+inheriting an immediately-expired limit. The deployment container still supplies the
+independent cgroup, read-only filesystem, and no-network boundaries.
+
 Study Lab dataset controls are now part of the serializable workstation-window
 configuration. Reopening, reloading, or floating a Study Lab preserves timeframe,
 benchmark, adjustment, session, and date bounds through the existing workspace

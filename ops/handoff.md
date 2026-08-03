@@ -1,5 +1,19 @@
 # Active Handoff
 
+## Continuation update — 2026-08-03T16:45:00Z
+
+- Fixed an isolated-runner resource-boundary defect: CPU limits are now relative to
+  current process CPU usage, hard limits are preserved, and CPU/address-space limits plus
+  alarm handlers are restored after single and batch runs. This prevents a caller from
+  inheriting a stale `SIGXCPU` limit while preserving the deployment container’s hard
+  isolation boundaries.
+- Validation: full backend unit suite `849 passed`, coverage `70.14%` (threshold `55%`),
+  focused runner `19 passed`, Ruff, and diff checks passed. The complete migration chain
+  remains live-validated through `d3e4f5a6b7c8`; frontend full suite remains `452 passed`
+  from the current frontend checkpoint.
+- The full goal remains active. Strict V25 visual approval is still `required_missing`,
+  and the broader integration/security/performance/end-to-end acceptance matrix remains open.
+
 ## Continuation update — 2026-08-03T16:30:00Z
 
 - Completed live migration evidence for the session-aware OHLCV schema using a disposable

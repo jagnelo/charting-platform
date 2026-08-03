@@ -1,3 +1,5 @@
+import resource
+
 from research_runner import runner
 from research_runner.runner import execute_job
 
@@ -12,6 +14,17 @@ def test_runner_emits_typed_boolean_artifacts():
     result = execute_job({"source": "output.boolean('qualifies', 2 > 1)", "dataset": {}})
     assert result["status"] == "completed"
     assert result["artifacts"]["qualifies"] == {"type": "boolean", "value": True}
+
+
+def test_runner_restores_process_resource_limits_after_execution():
+    cpu_before = resource.getrlimit(resource.RLIMIT_CPU)
+    memory_before = resource.getrlimit(resource.RLIMIT_AS)
+
+    result = execute_job({"source": "output.scalar('sample_size', 4)", "dataset": {}})
+
+    assert result["status"] == "completed"
+    assert resource.getrlimit(resource.RLIMIT_CPU) == cpu_before
+    assert resource.getrlimit(resource.RLIMIT_AS) == memory_before
 
 
 def test_runner_executes_prepared_universe_cells_without_network_access():

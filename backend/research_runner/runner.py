@@ -50,15 +50,44 @@ def _materialize(value: object) -> object:
     return value
 
 
-def _limit_resources() -> None:
+def _limit_resources() -> dict[int, tuple[int, int]]:
     # macOS does not implement every rlimit enforced by the Linux deployment
     # container. Failure here is tolerated only for local unit execution; the
     # compose service independently supplies cgroup/read-only/no-network limits.
-    try:
-        resource.setrlimit(resource.RLIMIT_CPU, (MAX_SECONDS, MAX_SECONDS + 1))
-        resource.setrlimit(resource.RLIMIT_AS, (MAX_MEMORY_BYTES, MAX_MEMORY_BYTES))
-    except (OSError, ValueError):
-        pass
+    previous: dict[int, tuple[int, int]] = {}
+    for limit, value in (
+        (resource.RLIMIT_CPU, (MAX_SECONDS, MAX_SECONDS + 1)),
+        (resource.RLIMIT_AS, (MAX_MEMORY_BYTES, MAX_MEMORY_BYTES)),
+    ):
+        try:
+            current = resource.getrlimit(limit)
+            previous[limit] = current
+            hard_limit = current[1]
+            soft_limit = value[0]
+            if limit == resource.RLIMIT_CPU:
+                cpu_used = resource.getrusage(resource.RUSAGE_SELF).ru_utime + resource.getrusage(resource.RUSAGE_SELF).ru_stime
+                # RLIMIT_CPU is an absolute process CPU-time limit, not a
+                # duration. Offset it from already-consumed CPU time so local
+                # test callers cannot inherit an immediately-expired limit.
+                soft_limit = math.ceil(cpu_used + value[0])
+            if hard_limit != resource.RLIM_INFINITY:
+                soft_limit = min(soft_limit, hard_limit)
+            # Keep the existing hard boundary. Lowering a process hard limit would
+            # make restoration impossible for an unprivileged worker/test process.
+            resource.setrlimit(limit, (soft_limit, hard_limit))
+        except (OSError, ValueError):
+            continue
+    return previous
+
+
+def _restore_resources(previous: dict[int, tuple[int, int]]) -> None:
+    for limit, value in previous.items():
+        try:
+            resource.setrlimit(limit, value)
+        except (OSError, ValueError):
+            # The deployment container owns the hard cgroup boundary. Local test
+            # environments may refuse restoration of an unsupported limit.
+            continue
 
 
 def _timeout(_signal, _frame) -> None:
@@ -113,8 +142,11 @@ def _execute_single(
         "np": _NumpyFacade(),
         "pd": _PandasFacade(),
     }
+    previous_limits: dict[int, tuple[int, int]] = {}
+    previous_alarm_handler = None
     if manage_timeout:
-        _limit_resources()
+        previous_limits = _limit_resources()
+        previous_alarm_handler = signal.getsignal(signal.SIGALRM)
         signal.signal(signal.SIGALRM, _timeout)
         signal.alarm(MAX_SECONDS)
     started = time.monotonic()
@@ -131,6 +163,9 @@ def _execute_single(
     finally:
         if manage_timeout:
             signal.alarm(0)
+            if previous_alarm_handler is not None:
+                signal.signal(signal.SIGALRM, previous_alarm_handler)
+            _restore_resources(previous_limits)
     return {
         "status": "completed",
         "artifacts": outputs,
@@ -155,7 +190,8 @@ def _execute_batch(
     total = len(datasets)
     if progress_callback:
         progress_callback({"completed_cells": 0, "total_cells": total, "status": "running"})
-    _limit_resources()
+    previous_limits = _limit_resources()
+    previous_alarm_handler = signal.getsignal(signal.SIGALRM)
     signal.signal(signal.SIGALRM, _timeout)
     signal.alarm(MAX_SECONDS)
     try:
@@ -204,6 +240,8 @@ def _execute_batch(
         }
     finally:
         signal.alarm(0)
+        signal.signal(signal.SIGALRM, previous_alarm_handler)
+        _restore_resources(previous_limits)
     return {
         "status": "completed",
         "artifacts": {"batch_cells": {"type": "batch", "value": {"cells": cells}}},
