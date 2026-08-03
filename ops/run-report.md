@@ -2,6 +2,15 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-03T22:20:40Z Current-head Alembic acceptance
+
+- Disposable PostgreSQL 16 validation upgraded the full chain to `e9f0a1b2c3d4`,
+  downgraded to `d3e4f5a6b7c8`, re-upgraded, and verified `watchlist_item.flagged`
+  is non-null with a false server default. The container was removed.
+- The current-head migration gate is now evidenced. Strict V25 visual approval,
+  Docker-backed route verification, provider live probes, and the complete acceptance
+  matrix remain open.
+
 ## 2026-08-03T22:13:10Z Aggregate Flagged Items watchlist source
 
 - Added a canonical derived `Flagged Items` source to the primary personal WatchList

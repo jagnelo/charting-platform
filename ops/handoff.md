@@ -1,5 +1,15 @@
 # Active Handoff
 
+## Continuation update — 2026-08-03T22:20:40Z
+
+- Validated the current Alembic chain in disposable PostgreSQL 16: full upgrade to
+  `e9f0a1b2c3d4`, downgrade to `d3e4f5a6b7c8`, re-upgrade, and direct SQL verification
+  of non-null `watchlist_item.flagged` with a false server default. The container was
+  removed after verification.
+- This closes the previously open migration checkpoint. Strict V25 visual approval,
+  Docker-backed route verification, provider live probes, and the complete acceptance
+  matrix remain open.
+
 ## Continuation update — 2026-08-03T22:13:10Z
 
 - Added the derived `Flagged Items` source to the primary personal WatchList tool.
