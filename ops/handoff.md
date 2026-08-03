@@ -14769,6 +14769,18 @@
 - Strict V25 visual validation remains intentionally blocked at
   `application-shell-default/default: required_missing`; the full goal remains active.
 
+## 2026-08-03T16:54:08Z Massive reference corroboration checkpoint
+
+- Added an optional Massive (formerly Polygon) reference adapter for authenticated ticker
+  search and paged US equity-universe corroboration. It returns canonical-shaped identity
+  records only, reports an empty result when no key is configured, and is not a default or
+  required workstation data path. `MARKETDATA_API_KEY` remains a deployment alias.
+- Verification: focused provider/registry tests `81 passed`; full backend unit `864 passed,
+  34 warnings`, total coverage `70.18%`; Ruff, Python compilation, and `git diff --check`
+  passed. Commit `0e82ece` pushed.
+- Strict V25 visual validation remains intentionally blocked at
+  `application-shell-default/default: required_missing`; full goal remains active.
+
 ## 2026-08-03T16:10:29Z Floated-tool persistence checkpoint
 
 - Floated workstation tools now forward condition-filter mode, Boolean pinning, column
