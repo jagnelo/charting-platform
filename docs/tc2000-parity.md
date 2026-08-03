@@ -159,6 +159,14 @@ cap-weighted versus equal-weight comparison is available before sector drill-dow
 Its identity strip separately labels the logical S&amp;P 500, official `SPX` series, and
 the currently used tradable `SPY` proxy; the UI never relabels proxy data as SPX.
 
+ETF constituent snapshots now carry two explicit relative-strength cells when requested:
+the constituent versus the selected sector/ETF benchmark and the constituent versus an
+independently named market benchmark (the primary workstation supplies `SPY`). The
+batch endpoint accepts `market_benchmark`, aligns both ratios to the same local bar
+timestamp, returns structured missing-alignment warnings, and echoes both benchmark
+identities. Constituent watchlists render both `/ XLK`-style and `/ SPY` columns rather
+than forcing the user to leave the drill-down or manually reconfigure the ratio chart.
+
 Factory `Drill Down` and `Sector by Year` industry windows now use the selected ETF's
 point-in-time industry composition rather than falling through to benchmark rows.
 Industry selections publish the industry key into the linked drill-down, preserve

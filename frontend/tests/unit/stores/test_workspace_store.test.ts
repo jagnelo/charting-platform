@@ -75,6 +75,26 @@ describe('workspace store layout tabs', () => {
     expect(store.etfHoldings.SPY).toBeUndefined()
   })
 
+  it('requests constituent strength against both the selected ETF and SPY', async () => {
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/etf-holdings/XLK/holdings') return Promise.resolve({
+        snapshot: { etf_symbol: 'XLK', composition_date: '2026-08-01', known_at: null, provenance: 'test', source_provider: 'test', completeness_status: 'complete' },
+        holdings: [{ constituent_instrument_id: 7, constituent_symbol: 'NVDA', constituent_name: 'NVIDIA', is_resolved: true }],
+        total: 1,
+      })
+      if (path === '/analysis/etf/XLK/constituents/snapshot') return Promise.resolve({
+        benchmark: 'XLK', market_benchmark: 'SPY', coverage: 1,
+        rows: [{ instrument_id: 7, symbol: 'NVDA', relative_to_benchmark: { value: 1.2 }, relative_to_market: { value: 1.5 } }],
+      })
+      return Promise.resolve({})
+    })
+    const store = useWorkspaceStore()
+
+    await store.loadETFHoldings('XLK')
+    await vi.waitFor(() => expect(store.etfConstituentSnapshots.XLK?.rows[0]?.relative_to_market?.value).toBe(1.5))
+    expect(apiGet).toHaveBeenCalledWith('/analysis/etf/XLK/constituents/snapshot', { benchmark: 'XLK', market_benchmark: 'SPY' })
+  })
+
   it('clones the active serializable layout with remapped tool identities and saves it', async () => {
     const store = useWorkspaceStore()
     store.workspace = {

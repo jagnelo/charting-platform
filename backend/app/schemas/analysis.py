@@ -90,6 +90,7 @@ class GroupSnapshotRow(BaseModel):
     performance: dict[str, AnalysisCell]
     calendar_year_performance: dict[str, AnalysisCell] = Field(default_factory=dict)
     relative_to_benchmark: AnalysisCell | None = None
+    relative_to_market: AnalysisCell | None = None
     technical: dict[str, AnalysisCell] = Field(default_factory=dict)
 
 
@@ -109,6 +110,8 @@ class ETFConstituentSnapshotOut(GroupSnapshotOut):
     """A point-in-time ETF-proxy constituent batch, never an official index universe."""
 
     etf_symbol: str
+    benchmark: str
+    market_benchmark: str | None = None
     composition_date: date
     known_at: datetime | None = None
     provenance: str

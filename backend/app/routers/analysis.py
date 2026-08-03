@@ -874,6 +874,7 @@ async def industry_proxy_snapshot(
 async def etf_constituent_snapshot(
     symbol: str,
     benchmark: str | None = Query(default=None),
+    market_benchmark: str | None = Query(default=None),
     timeframe: Timeframe = Timeframe.D1,
     adjusted: bool = True,
     _: User = Depends(get_current_user),
@@ -922,10 +923,15 @@ async def etf_constituent_snapshot(
         ).scalars()
     }
     benchmark_instrument = await _instrument(db, benchmark) if benchmark else etf
+    market_instrument = await _instrument(db, market_benchmark) if market_benchmark else None
+    comparison_ids = [benchmark_instrument.id]
+    if market_instrument is not None and market_instrument.id not in comparison_ids:
+        comparison_ids.append(market_instrument.id)
     bars_by_id = await _bars_by_instrument(
-        db, [*instrument_ids, benchmark_instrument.id], timeframe, adjusted
+        db, [*instrument_ids, *comparison_ids], timeframe, adjusted
     )
     benchmark_bars = {bar.ts: bar for bar in bars_by_id.get(benchmark_instrument.id, [])}
+    market_bars = {bar.ts: bar for bar in bars_by_id.get(market_instrument.id, [])} if market_instrument else {}
     rows: list[GroupSnapshotRow] = []
     exclusions: list[AnalysisWarning] = []
     covered = 0
@@ -1043,6 +1049,22 @@ async def etf_constituent_snapshot(
                 ),
             )
         )
+        market_relative = None
+        if market_instrument is not None:
+            market_bar = market_bars.get(latest.ts)
+            market_relative = (
+                _cell(float(latest.close / market_bar.close), latest)
+                if market_bar is not None and market_bar.close != 0
+                else _cell(
+                    None,
+                    latest,
+                    AnalysisWarning(
+                        code="unaligned_market_benchmark",
+                        message="No aligned market benchmark bar is available.",
+                        instrument_id=instrument.id,
+                    ),
+                )
+            )
         rows.append(
             GroupSnapshotRow(
                 instrument_id=instrument.id,
@@ -1051,11 +1073,12 @@ async def etf_constituent_snapshot(
                 last=_cell(float(latest.close), latest),
                 performance=performance,
                 relative_to_benchmark=relative,
+                relative_to_market=market_relative,
                 technical=technical,
             )
         )
     freshness, freshness_detail = await _batch_freshness(
-        db, [*instrument_ids, benchmark_instrument.id], timeframe
+        db, [*instrument_ids, *comparison_ids], timeframe
     )
     return ETFConstituentSnapshotOut(
         group_key=f"etf-proxy:{etf.symbol}",
@@ -1077,6 +1100,8 @@ async def etf_constituent_snapshot(
         exclusions=exclusions,
         rows=rows,
         etf_symbol=etf.symbol,
+        benchmark=benchmark_instrument.symbol,
+        market_benchmark=market_instrument.symbol if market_instrument else None,
         composition_date=snapshot.composition_date,
         known_at=snapshot.known_at,
         provenance=snapshot.provenance,
