@@ -1,0 +1,44 @@
+import { flushPromises, mount } from '@vue/test-utils'
+import { describe, expect, it, vi } from 'vitest'
+
+const { apiGet, apiPost } = vi.hoisted(() => ({ apiGet: vi.fn(), apiPost: vi.fn() }))
+vi.mock('@/lib/api', () => ({ api: { get: apiGet, post: apiPost, put: vi.fn() } }))
+
+import EasyScanTool from '@/components/workstation/EasyScanTool.vue'
+
+describe('EasyScanTool', () => {
+  it('creates and runs a saved Python condition through the queued scan API', async () => {
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/workspaces/library/conditions') return Promise.resolve([])
+      if (path === '/code/assets') {
+        return Promise.resolve([{ kind: 'condition', name: 'Qualifies', versions: [{ id: 42, version_number: 1 }] }])
+      }
+      return Promise.resolve([])
+    })
+    apiPost.mockImplementation((path: string) => {
+      if (path === '/screeners/from-python-condition/42') return Promise.resolve({ id: 7 })
+      if (path === '/screeners/7/run') {
+        return Promise.resolve({ matched_ids: [11], result_data: { _status: 'completed', _coverage: { evaluated_count: 1, universe_count: 1, excluded: [] } }, error: null })
+      }
+      return Promise.resolve({})
+    })
+
+    const wrapper = mount(EasyScanTool)
+    await flushPromises()
+    await wrapper.get('select[aria-label="Python condition"]').setValue('42')
+    await wrapper.get('input[aria-label="Scan name"]').setValue('Qualifies scan')
+    const runButton = wrapper.findAll('button').find(button => button.text() === 'Run')
+    expect(runButton).toBeDefined()
+    await runButton!.trigger('click')
+    await flushPromises()
+
+    expect(apiPost).toHaveBeenCalledWith('/screeners/from-python-condition/42', {
+      name: 'Qualifies scan',
+      universe_type: 'all',
+      timeframe: 'D1',
+    })
+    expect(apiPost).toHaveBeenCalledWith('/screeners/7/run', {})
+    expect(wrapper.text()).toContain('1 matches')
+    expect(wrapper.text()).toContain('1/1 evaluated')
+  })
+})

@@ -135,7 +135,7 @@ onMounted(() => { void load() })
 <style scoped>
 .easy-scan { display: grid; align-content: start; gap: 6px; height: 100%; padding: 6px; background: #11161b; color: #c7d0d8; font: 10px "Segoe UI", Arial, sans-serif; }
 .easy-scan__builder { display: grid; grid-template-columns: minmax(70px, 1fr) 56px 34px 58px 38px; gap: 3px; }
-.easy-scan__controls { display: grid; grid-template-columns: minmax(90px, 1fr) minmax(80px, 1fr) 38px; gap: 3px; }
+.easy-scan__controls { display: grid; grid-template-columns: minmax(90px, 1fr) minmax(90px, 1fr) minmax(80px, 1fr) 38px; gap: 3px; }
 input, select, button { min-width: 0; border: 1px solid #34434e; background: #172027; color: #d2dce3; font: inherit; }
 input { padding: 2px 4px; } button { cursor: pointer; } button:disabled { cursor: default; opacity: .5; }
 .easy-scan__state, .easy-scan__result, .easy-scan__error { margin: 2px 0; color: #8498a6; } .easy-scan__result b { color: #78b9e4; } .easy-scan__error { color: #e99a9a; }.easy-scan__alert { display:flex; gap:3px; margin-top:4px; }.easy-scan__alert select,.easy-scan__alert button { border:1px solid #34434e; background:#172027; color:#d2dce3; font:inherit; }

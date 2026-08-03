@@ -33,6 +33,94 @@ class TestScreenerCRUD:
         assert created.status_code == 201
         assert created.json()["conditions"] == condition
 
+    def test_python_condition_screener_queues_and_reconciles_batch_result(
+        self, client, auth_headers, instrument, ohlcv_bars, tmp_path, monkeypatch
+    ):
+        """A Python EasyScan must stay isolated from FastAPI and reconcile typed cells."""
+        monkeypatch.setattr(
+            "app.services.research_jobs.settings.RESEARCH_JOB_DIR", str(tmp_path / "jobs")
+        )
+        monkeypatch.setattr(
+            "app.services.research_jobs.settings.RESEARCH_RESULT_DIR", str(tmp_path / "results")
+        )
+        asset = client.post(
+            "/api/v1/code/assets",
+            headers=auth_headers,
+            json={
+                "stable_key": "python-qualifies",
+                "name": "Python qualifies",
+                "kind": "condition",
+                "initial_version": {
+                    "source": "output.boolean('qualifies', True)",
+                    "output_contract": "boolean",
+                },
+            },
+        )
+        assert asset.status_code == 201
+        version_id = asset.json()["versions"][0]["id"]
+
+        created = client.post(
+            f"/api/v1/screeners/from-python-condition/{version_id}",
+            headers=auth_headers,
+            json={
+                "name": "Python qualifies scan",
+                "universe_type": "custom",
+                "universe_instrument_ids": [instrument.id],
+                "timeframe": "D1",
+            },
+        )
+        assert created.status_code == 201
+        screener = created.json()
+        assert screener["conditions"] == {"type": "python_condition", "code_version_id": version_id}
+
+        queued = client.post(
+            f"/api/v1/screeners/{screener['id']}/run", headers=auth_headers
+        )
+        assert queued.status_code == 200
+        queued_result = queued.json()
+        assert queued_result["result_data"]["_status"] == "queued"
+        run_id = queued_result["result_data"]["_python_research_run_id"]
+        assert (tmp_path / "jobs" / f"{run_id}.json").exists()
+
+        result_dir = tmp_path / "results"
+        result_dir.mkdir()
+        (result_dir / f"{run_id}.json").write_text(
+            json.dumps(
+                {
+                    "status": "completed",
+                    "artifacts": {
+                        "batch_cells": {
+                            "type": "batch",
+                            "value": {
+                                "cells": [
+                                    {
+                                        "instrument_id": instrument.id,
+                                        "symbol": instrument.symbol,
+                                        "status": "completed",
+                                        "value": True,
+                                    }
+                                ]
+                            },
+                        }
+                    },
+                }
+            )
+        )
+        results = client.get(
+            f"/api/v1/screeners/{screener['id']}/results",
+            headers=auth_headers,
+            params={"limit": 1},
+        )
+        assert results.status_code == 200
+        reconciled = results.json()[0]
+        assert reconciled["matched_ids"] == [instrument.id]
+        assert reconciled["result_data"]["_status"] == "completed"
+        assert reconciled["result_data"]["_coverage"] == {
+            "universe_count": 1,
+            "evaluated_count": 1,
+            "excluded": [],
+        }
+
     def test_create_screener(self, client, auth_headers):
         res = client.post(
             "/api/v1/screeners",
