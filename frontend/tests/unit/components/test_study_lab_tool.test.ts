@@ -15,6 +15,7 @@ describe('StudyLabTool', () => {
       if (path === '/code/assets') return Promise.resolve({ versions: [{ id: 42 }] })
       if (path === '/research/runs') return Promise.resolve({ id: 9, status: 'completed', reproducibility_hash: 'sha256:test', artifacts: [
         { id: 3, name: 'current_streak', artifact_type: 'scalar', payload: { value: 4 } },
+        { id: 9, name: 'shortest_streak', artifact_type: 'scalar', payload: { value: 1 } },
         { id: 7, name: 'qualifies', artifact_type: 'boolean', payload: { value: true } },
         { id: 4, name: 'completed_streaks', artifact_type: 'table', payload: { value: [{ length: 2, end_timestamp: '2026-01-03' }] } },
         { id: 5, name: 'trend', artifact_type: 'series', payload: { value: { timestamps: ['2026-01-01', '2026-01-02'], values: [null, 11] } } },
