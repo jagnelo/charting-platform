@@ -5,7 +5,7 @@
     "worker_session_started_at": "2026-07-28T21:40:33Z",
     "worker_soft_stop_at": null,
     "last_handoff_at": "2026-08-04T00:00:00Z",
-    "last_commit": "568e853 docs(visual): hash discovery images",
+    "last_commit": "f3757ba feat(workstation): add cross-tool plot drag targets",
     "git_ready_to_commit": true,
     "validation": {
         "backend_lint": "passed (code validation including deterministic XNYS coverage calendar, restricted numerical facades, isolated research runner/resource restoration, screener, visual, analysis, research, OHLCV session model, and migration modules, 2026-08-03)",
