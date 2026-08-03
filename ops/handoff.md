@@ -14598,6 +14598,29 @@
 - The strict V25 visual gate and broad acceptance matrix remain incomplete. Next worker:
   choose another concrete uncovered acceptance slice.
 
+## 2026-08-03T16:19:00Z Pinned-build authority checkpoint
+
+- Official TC2000 release notes now directly confirm Version `25.0.9571` as the April
+  2026 Version 25 release. This is recorded in the visual manifest as build authority,
+  not as a visual baseline.
+- The official help image remains a `25.0.9172.22877` discovery candidate pending
+  unchanged-surface review, environment metadata, measurements, permission/storage
+  classification, and human approval. Strict validation therefore still rejects
+  required visual states.
+- The full frontend baseline remains `445` tests across `75` files; no completion claim
+  is justified by build identity alone.
+
+## 2026-08-03T16:23:00Z Visual-manifest authority checkpoint
+
+- Corrected the visual manifest root structure and recorded official release-note
+  authority for pinned build `25.0.9571`. The official help image remains explicitly a
+  `25.0.9172.22877` discovery candidate.
+- JSON parsing and non-strict visual-manifest validation pass. Strict validation still
+  correctly rejects `application-shell-default/default` as `required_missing`; no visual
+  baseline was silently promoted.
+- Commit `e147203e1886f01ada388fde62ede6a06540a024` pushed. The next worker should seek
+  permission-cleared state references or continue another concrete implementation slice.
+
 ## 2026-08-03T15:35:00Z Large-watchlist virtualization checkpoint
 
 - Added a 10,000-row `VirtualWatchlistTool` regression. It verifies the full logical

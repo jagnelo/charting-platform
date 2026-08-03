@@ -16702,3 +16702,19 @@ uncovered slice rather than repeat a generic completion claim.
   build, and `git diff --check` passed. Commit `975e5b7` pushed.
 - Full goal remains active. Strict visual evidence is still `required_missing` and the
   broad functional/security/performance/migration/end-to-end matrix remains outstanding.
+
+## 2026-08-03T16:19:00Z Pinned-build authority checkpoint
+
+- Official release notes confirm the pinned target build `25.0.9571`; the manifest now
+  records that authority separately from visual capture evidence.
+- The available official help image remains a `25.0.9172.22877` discovery candidate,
+  so the strict visual validator correctly continues to reject `required_missing`
+  states. Build identity alone is insufficient for visual acceptance.
+
+## 2026-08-03T16:23:00Z Visual-manifest authority checkpoint
+
+- Corrected manifest nesting and recorded the official release-notes authority for
+  `25.0.9571`; non-strict manifest validation and JSON parsing pass.
+- Strict visual validation remains intentionally failing at
+  `application-shell-default/default: required_missing`; the help image is still a
+  discovery candidate rather than an approved baseline. Commit `e147203` pushed.
