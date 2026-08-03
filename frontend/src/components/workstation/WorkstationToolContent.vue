@@ -61,6 +61,49 @@
       @update:python-columns="emit('configuration', tool.instance_key, { ...tool.configuration, python_columns: $event })"
       @update:python-condition="emit('configuration', tool.instance_key, { ...tool.configuration, python_condition: $event })"
     />
+    <div v-else-if="tool.tool_type === 'watchlist' && tool.configuration.personal === true" class="personal-watchlist-tool">
+      <div class="personal-watchlist-tool__controls">
+        <label>WatchList
+          <select :value="selectedPersonalWatchlistId == null ? '' : String(selectedPersonalWatchlistId)" aria-label="Personal watchlist" @change="selectPersonalWatchlist(($event.target as HTMLSelectElement).value)">
+            <option value="">Select a personal watchlist</option>
+            <option v-for="watchlist in personalWatchlists" :key="watchlist.id" :value="String(watchlist.id)">{{ watchlist.name }}{{ watchlist.is_locked ? ' · Locked' : '' }}</option>
+          </select>
+        </label>
+        <span v-if="selectedPersonalWatchlist">{{ selectedPersonalWatchlist.items.length }} symbols · {{ selectedPersonalWatchlist.is_locked ? 'Locked' : 'Drag rows to reorder' }}</span>
+        <span v-else-if="watchlistStore.loading">Loading watchlists…</span>
+        <span v-else>No personal watchlists available.</span>
+      </div>
+      <VirtualWatchlistTool
+        v-if="selectedPersonalWatchlist"
+        :label="selectedPersonalWatchlist.name"
+        :rows="personalWatchlistRows"
+        :selected="activeSymbol"
+        :columns="personalWatchlistColumns"
+        :visible-column-keys="configuredColumnKeys"
+        :filter-text="configuredFilterText"
+        :condition-screener-id="configuredConditionScreenerId"
+        :condition-filter-mode="configuredConditionFilterMode"
+        :pinned-boolean-keys="configuredPinnedBooleanKeys"
+        :column-groups="configuredColumnGroups"
+        :stacked-column-keys="configuredStackedColumnKeys"
+        :python-columns="configuredPythonColumns"
+        :python-condition="configuredPythonCondition"
+        :reorderable="!selectedPersonalWatchlist.is_locked && !selectedPersonalWatchlist.is_managed"
+        @select="selectSymbol($event.symbol, $event.instrumentId)"
+        @reorder="emit('reorder', selectedPersonalWatchlist.id, $event)"
+        @compare="emit('compare', $event)"
+        @row-action="handleRowAction"
+        @update:visible-column-keys="emit('columns', tool.instance_key, $event)"
+        @update:filter-text="emit('filter', tool.instance_key, $event)"
+        @update:condition-screener-id="emit('conditionFilter', tool.instance_key, $event)"
+        @update:condition-filter-mode="emit('conditionFilterMode', tool.instance_key, $event)"
+        @update:pinned-boolean-keys="emit('pinnedBooleanKeys', tool.instance_key, $event)"
+        @update:column-groups="emit('columnGroups', tool.instance_key, $event)"
+        @update:stacked-column-keys="emit('stackedColumnKeys', tool.instance_key, $event)"
+        @update:python-columns="emit('configuration', tool.instance_key, { ...tool.configuration, python_columns: $event })"
+        @update:python-condition="emit('configuration', tool.instance_key, { ...tool.configuration, python_condition: $event })"
+      />
+    </div>
     <VirtualWatchlistTool
       v-else-if="tool.tool_type === 'watchlist'"
       :label="tool.title || 'WatchList'"
@@ -225,7 +268,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, provide, ref, watch } from 'vue'
+import { computed, onMounted, provide, ref, watch } from 'vue'
 import { api } from '@/lib/api'
 import UPlotChart from '@/components/chart/UPlotChart.vue'
 import DrawingToolbar from '@/components/chart/DrawingToolbar.vue'
@@ -235,6 +278,8 @@ import { usePanelStore } from '@/stores/chart'
 import { useDrawingsStore } from '@/stores/drawings'
 import { useAlertsStore } from '@/stores/alerts'
 import { useWorkspaceStore, type LinkGroup, type WorkspaceWindowState } from '@/stores/workspace'
+import { useWatchlistStore } from '@/stores/watchlist'
+import type { Watchlist } from '@/types'
 import ToolWindow from './ToolWindow.vue'
 import VirtualWatchlistTool, { type WatchlistColumn } from './VirtualWatchlistTool.vue'
 import RatioUPlot from './RatioUPlot.vue'
@@ -260,7 +305,7 @@ const props = defineProps<{
   activeWindowKey?: string | null
   factoryLayout?: string | null
 }>()
-const emit = defineEmits<{ select: [symbol: string]; compare: [symbols: string[]]; rowAction: [action: 'chart' | 'compare' | 'note' | 'alert' | 'copy', row: { symbol: string; instrumentId: number | null }]; occurrence: [symbol: string, timestamp: string]; selectIndustry: [industry: string]; selectProxy: [symbol: string]; columns: [windowKey: string, keys: string[]]; filter: [windowKey: string, value: string]; conditionFilter: [windowKey: string, screenerId: number | null]; conditionFilterMode: [windowKey: string, mode: 'active' | 'inactive' | 'off']; pinnedBooleanKeys: [windowKey: string, keys: string[]]; columnGroups: [windowKey: string, groups: Record<string, string>]; stackedColumnKeys: [windowKey: string, keys: string[]]; configuration: [windowKey: string, configuration: Record<string, unknown>]; timeframe: [value: string, group: LinkGroup]; float: [windowKey: string]; maximize: [windowKey: string]; close: [windowKey: string]; updateLinkGroup: [windowKey: string, group: LinkGroup] }>()
+const emit = defineEmits<{ select: [symbol: string]; compare: [symbols: string[]]; reorder: [watchlistId: number, itemIds: number[]]; rowAction: [action: 'chart' | 'compare' | 'note' | 'alert' | 'copy', row: { symbol: string; instrumentId: number | null }]; occurrence: [symbol: string, timestamp: string]; selectIndustry: [industry: string]; selectProxy: [symbol: string]; columns: [windowKey: string, keys: string[]]; filter: [windowKey: string, value: string]; conditionFilter: [windowKey: string, screenerId: number | null]; conditionFilterMode: [windowKey: string, mode: 'active' | 'inactive' | 'off']; pinnedBooleanKeys: [windowKey: string, keys: string[]]; columnGroups: [windowKey: string, groups: Record<string, string>]; stackedColumnKeys: [windowKey: string, keys: string[]]; configuration: [windowKey: string, configuration: Record<string, unknown>]; timeframe: [value: string, group: LinkGroup]; float: [windowKey: string]; maximize: [windowKey: string]; close: [windowKey: string]; updateLinkGroup: [windowKey: string, group: LinkGroup] }>()
 // uPlot already consumes a panel-scoped store through injection. Give every persisted
 // workstation chart its own stable store identity so red/grey/yellow charts cannot
 // accidentally render the shell's blue/default data.
@@ -270,6 +315,54 @@ const chartStore = usePanelStore(chartPanelId)
 const drawingsStore = useDrawingsStore()
 const alertsStore = useAlertsStore()
 const workspaceStore = useWorkspaceStore()
+const watchlistStore = useWatchlistStore()
+const selectedPersonalWatchlistId = ref<number | null>(typeof props.tool.configuration.watchlist_id === 'number' ? props.tool.configuration.watchlist_id : null)
+const personalWatchlists = computed(() => watchlistStore.watchlists.filter(watchlist => !watchlist.is_managed))
+const selectedPersonalWatchlist = computed<Watchlist | null>(() => personalWatchlists.value.find(watchlist => watchlist.id === selectedPersonalWatchlistId.value) ?? null)
+const personalWatchlistRows = computed(() => (selectedPersonalWatchlist.value?.items ?? []).map(item => ({
+  itemId: item.id,
+  instrumentId: item.instrument_id,
+  symbol: item.symbol ?? `#${item.instrument_id}`,
+  name: item.name ?? item.symbol ?? `Instrument ${item.instrument_id}`,
+  values: {
+    last: watchlistStore.priceMap[item.symbol ?? '']?.close ?? null,
+    change: watchlistStore.priceMap[item.symbol ?? '']?.pct ?? null,
+  },
+})))
+const personalWatchlistColumns: WatchlistColumn[] = [
+  { key: 'symbol', label: 'Symbol', width: '72px' },
+  { key: 'name', label: 'Name', width: 'minmax(130px, 1fr)' },
+  { key: 'last', label: 'Last', width: '72px', format: 'number' },
+  { key: 'change', label: 'Chg %', width: '68px', format: 'percent' },
+]
+
+function selectPersonalWatchlist(raw: string) {
+  const id = Number(raw)
+  selectedPersonalWatchlistId.value = Number.isInteger(id) && id > 0 ? id : null
+  emit('configuration', props.tool.instance_key, { ...props.tool.configuration, watchlist_id: selectedPersonalWatchlistId.value })
+}
+
+onMounted(async () => {
+  if (props.tool.tool_type !== 'watchlist' || props.tool.configuration.personal !== true) return
+  if (!watchlistStore.watchlists.length) await watchlistStore.loadWatchlists()
+  if (selectedPersonalWatchlistId.value == null) {
+    selectedPersonalWatchlistId.value = personalWatchlists.value[0]?.id ?? null
+    if (selectedPersonalWatchlistId.value != null) {
+      emit('configuration', props.tool.instance_key, { ...props.tool.configuration, watchlist_id: selectedPersonalWatchlistId.value })
+    }
+  }
+  const symbols = personalWatchlistRows.value.map(row => row.symbol).filter(symbol => !symbol.startsWith('#'))
+  if (symbols.length) await watchlistStore.fetchPrices(symbols)
+})
+
+watch(() => props.tool.configuration.watchlist_id, value => {
+  selectedPersonalWatchlistId.value = typeof value === 'number' ? value : null
+})
+
+watch(() => selectedPersonalWatchlist.value?.items.map(item => item.symbol).join(','), value => {
+  const symbols = (value ?? '').split(',').filter(Boolean)
+  if (symbols.length) void watchlistStore.fetchPrices(symbols)
+})
 // A Golden Layout virtual component is mounted independently from its host render
 // cycle. Keep the latest serializable chart configuration locally so template changes
 // update its uPlot instance immediately, while the same object is persisted by the
@@ -773,6 +866,11 @@ const proxyCoverage = computed(() => industryProxySnapshot.value
 .benchmark-surface__identity { display: flex; align-items: baseline; gap: 9px; padding: 5px 7px; border-bottom: 1px solid #28343c; background: #121920; color: #91a2ad; font: 10px "Segoe UI", Arial, sans-serif; }
 .benchmark-surface__identity strong { color: #d7e4eb; font-size: 11px; }
 .benchmark-surface__identity span:first-of-type { color: #d2bc7a; }
+.personal-watchlist-tool { display: grid; grid-template-rows: auto minmax(0, 1fr); height: 100%; min-height: 0; background: #11161b; }
+.personal-watchlist-tool__controls { display: flex; align-items: center; gap: 8px; min-height: 28px; padding: 3px 7px; border-bottom: 1px solid #28343c; background: #121920; color: #91a2ad; font: 10px "Segoe UI", Arial, sans-serif; }
+.personal-watchlist-tool__controls label { display: flex; align-items: center; gap: 5px; color: #d7e4eb; }
+.personal-watchlist-tool__controls select { max-width: 210px; border: 1px solid #42515c; background: #11161b; color: #dce9f2; font: inherit; }
+.personal-watchlist-tool__controls span { color: #8498a6; }
 .analysis { height: 100%; min-height: 0; }
 .breadth-tool { display:grid; grid-template-rows:auto minmax(0,1fr); height:100%; min-height:0; }.metrics { display: grid; grid-template-columns: 1fr auto; gap: 5px 10px; padding: 9px; color: #99a8b1; font: 10px "Segoe UI", Arial, sans-serif; }
 .metrics b { color: #d2dce3; font-weight: 500; text-align: right; }

@@ -80,6 +80,7 @@
         :factory-layout="workspaceStore.activeTabKey"
         @select="selectSymbol"
         @compare="compareSymbols"
+        @reorder="reorderWatchlistItems"
         @row-action="handleRowAction"
         @occurrence="selectOccurrence"
         @select-industry="workspaceStore.selectIndustry(workspaceStore.constituentETF ?? '', $event)"
@@ -127,12 +128,14 @@ import type { LayoutConfig } from 'golden-layout'
 import { ensureKnownInstrumentSymbol } from '@/lib/instruments'
 import { autoRatioExpression } from '@/lib/workstation/ratioExpression'
 import { api } from '@/lib/api'
+import { useWatchlistStore } from '@/stores/watchlist'
 
 const route = useRoute()
 const router = useRouter()
 const chartStore = useChartStore()
 const authStore = useAuthStore()
 const workspaceStore = useWorkspaceStore()
+const watchlistStore = useWatchlistStore()
 const symbolInput = ref<HTMLInputElement | null>(null)
 const symbolDraft = ref('')
 const toolLibraryOpen = ref(false)
@@ -370,6 +373,10 @@ function updateToolConfiguration(windowKey: string, configuration: Record<string
   workspaceStore.scheduleSnapshot()
 }
 
+function reorderWatchlistItems(watchlistId: number, itemIds: number[]) {
+  void watchlistStore.reorderItems(watchlistId, itemIds)
+}
+
 function compareSymbols(symbols: string[]) {
   const normalized = [...new Set(symbols.map(symbol => symbol.trim().toUpperCase()).filter(Boolean))]
   const active = activeSymbol.value.toUpperCase()
@@ -425,6 +432,7 @@ function renderDockTool(dockTool: { instance_key: string; title: string; tool_ty
     factoryLayout: workspaceStore.activeTabKey,
     onSelect: (symbol: string) => void selectSymbol(symbol),
     onCompare: (symbols: string[]) => compareSymbols(symbols),
+    onReorder: (watchlistId: number, itemIds: number[]) => reorderWatchlistItems(watchlistId, itemIds),
     onRowAction: (action: 'chart' | 'compare' | 'note' | 'alert' | 'copy', row: { symbol: string; instrumentId: number | null }) => void handleRowAction(action, row),
     onOccurrence: (symbol: string, timestamp: string) => void selectSymbol(symbol, timestamp),
     onSelectIndustry: (industry: string) => void workspaceStore.selectIndustry(workspaceStore.constituentETF ?? '', industry),

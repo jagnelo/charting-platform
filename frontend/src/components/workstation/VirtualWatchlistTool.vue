@@ -60,8 +60,12 @@
           type="button"
           class="watchlist__row"
           :class="{ 'watchlist__row--active': filteredRows[virtualRow.index].symbol === selected, 'watchlist__row--selected': selectedSymbols.includes(filteredRows[virtualRow.index].symbol) }"
+          :draggable="reorderable && filteredRows[virtualRow.index].itemId != null"
           :style="{ ...gridStyle, height: `${virtualRow.size}px`, transform: `translateY(${virtualRow.start}px)` }"
           @click="selectRow(filteredRows[virtualRow.index], $event)"
+          @dragstart="dragStart(filteredRows[virtualRow.index])"
+          @dragover.prevent
+          @drop.prevent="dropRow(filteredRows[virtualRow.index])"
           @contextmenu.prevent.stop="openContextMenu($event, filteredRows[virtualRow.index])"
         >
           <template v-for="column in renderedColumns" :key="column.key">
@@ -88,6 +92,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { api } from '@/lib/api'
 
 export interface WatchlistRow {
+  itemId?: number
   instrumentId: number | null
   symbol: string
   name: string
@@ -132,6 +137,7 @@ const props = withDefaults(defineProps<{
   stackedColumnKeys?: string[]
   pythonColumns?: Array<{ code_version_id: number; name: string }>
   pythonCondition?: { code_version_id: number; name: string; mode: 'active' | 'inactive' | 'off' } | null
+  reorderable?: boolean
 }>(), {
   selected: '',
   columns: () => [
@@ -147,8 +153,9 @@ const props = withDefaults(defineProps<{
   stackedColumnKeys: () => [],
   pythonColumns: () => [],
   pythonCondition: null,
+  reorderable: false,
 })
-const emit = defineEmits<{ select: [row: WatchlistRow]; compare: [symbols: string[]]; 'row-action': [action: 'chart' | 'compare' | 'note' | 'alert' | 'copy', row: WatchlistRow]; 'update:visibleColumnKeys': [keys: string[]]; 'update:filterText': [value: string]; 'update:conditionScreenerId': [id: number | null]; 'update:conditionFilterMode': [mode: 'active' | 'inactive' | 'off']; 'update:pinnedBooleanKeys': [keys: string[]]; 'update:columnGroups': [groups: Record<string, string>]; 'update:stackedColumnKeys': [keys: string[]]; 'update:pythonColumns': [columns: Array<{ code_version_id: number; name: string }>]; 'update:pythonCondition': [condition: { code_version_id: number; name: string; mode: 'active' | 'inactive' | 'off' } | null] }>()
+const emit = defineEmits<{ select: [row: WatchlistRow]; compare: [symbols: string[]]; reorder: [itemIds: number[]]; 'row-action': [action: 'chart' | 'compare' | 'note' | 'alert' | 'copy', row: WatchlistRow]; 'update:visibleColumnKeys': [keys: string[]]; 'update:filterText': [value: string]; 'update:conditionScreenerId': [id: number | null]; 'update:conditionFilterMode': [mode: 'active' | 'inactive' | 'off']; 'update:pinnedBooleanKeys': [keys: string[]]; 'update:columnGroups': [groups: Record<string, string>]; 'update:stackedColumnKeys': [keys: string[]]; 'update:pythonColumns': [columns: Array<{ code_version_id: number; name: string }>]; 'update:pythonCondition': [condition: { code_version_id: number; name: string; mode: 'active' | 'inactive' | 'off' } | null] }>()
 const scrollElement = ref<HTMLElement | null>(null)
 const filter = ref(props.filterText)
 const conditionFilter = ref(props.conditionScreenerId == null ? '' : String(props.conditionScreenerId))
@@ -165,6 +172,7 @@ const sortDirection = ref<'asc' | 'desc'>('asc')
 const selectedSymbols = ref<string[]>([])
 const selectionAnchor = ref<string | null>(null)
 const contextMenu = ref<{ row: WatchlistRow; left: number; top: number } | null>(null)
+const draggedItemId = ref<number | null>(null)
 const columnMenuOpen = ref(false)
 const columnSetMenuOpen = ref(false)
 const columnSetName = ref('')
@@ -207,6 +215,7 @@ const filteredRows = computed(() => {
   const rows = pythonConditionMatchedSymbols.value === null
     ? screenerRows
     : screenerRows.filter(row => pythonConditionMatchedSymbols.value?.has(row.symbol))
+  if (props.reorderable) return rows
   return rows.sort((left, right) => {
     for (const key of props.pinnedBooleanKeys) {
       const leftPinned = Boolean(left.values?.[key])
@@ -219,6 +228,24 @@ const filteredRows = computed(() => {
     return sortDirection.value === 'asc' ? comparison : -comparison
   })
 })
+
+function dragStart(row: WatchlistRow) {
+  if (!props.reorderable || row.itemId == null) return
+  draggedItemId.value = row.itemId
+}
+
+function dropRow(row: WatchlistRow) {
+  const source = draggedItemId.value
+  draggedItemId.value = null
+  if (!props.reorderable || source == null || row.itemId == null || source === row.itemId) return
+  const ids = props.rows.map(item => item.itemId).filter((id): id is number => id != null)
+  const from = ids.indexOf(source)
+  const to = ids.indexOf(row.itemId)
+  if (from < 0 || to < 0) return
+  ids.splice(from, 1)
+  ids.splice(to, 0, source)
+  emit('reorder', ids)
+}
 const virtualizer = useVirtualizer(computed(() => ({
   count: filteredRows.value.length,
   getScrollElement: () => scrollElement.value,
@@ -658,6 +685,8 @@ function onCtrlWheel(event: WheelEvent) {
 .watchlist__header em { display: block; overflow: hidden; color: #718c9f; font: 8px "Segoe UI", Arial, sans-serif; font-style: normal; text-transform: none; text-overflow: ellipsis; white-space: nowrap; }
 .watchlist__scroll { min-height: 0; overflow: auto; outline: none; }
 .watchlist__row { position: absolute; left: 0; width: 100%; align-items: center; border: 0; border-bottom: 1px solid #20282f; background: transparent; color: inherit; text-align: left; cursor: pointer; }
+.watchlist__row[draggable="true"] { cursor: grab; }
+.watchlist__row[draggable="true"]:active { cursor: grabbing; }
 .watchlist__row:hover { background: #202a33; }
 .watchlist__row--active { background: #1d4057; box-shadow: inset 2px 0 #66b4e8; }
 .watchlist__row--selected { outline: 1px solid #71bfe8; outline-offset: -1px; }

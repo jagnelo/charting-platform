@@ -53,6 +53,19 @@ describe('VirtualWatchlistTool', () => {
     expect(wrapper.emitted('select')?.[0]).toEqual([rows[1]])
   })
 
+  it('supports personal-list drag ordering while preserving source item ids', async () => {
+    const personalRows = rows.map((row, index) => ({ ...row, itemId: index + 10 }))
+    const wrapper = mount(VirtualWatchlistTool, {
+      props: { label: 'Momentum', rows: personalRows, reorderable: true },
+    })
+
+    const rendered = wrapper.findAll('.watchlist__row')
+    expect(rendered[0].attributes('draggable')).toBe('true')
+    await rendered[0].trigger('dragstart')
+    await rendered[1].trigger('drop')
+    expect(wrapper.emitted('reorder')).toEqual([[ [11, 10, 12] ]])
+  })
+
   it('supports plain, ctrl/meta, and shift range selection without losing row activation', async () => {
     const wrapper = mount(VirtualWatchlistTool, { props: { label: 'Sectors', rows } })
     const selectRow = (wrapper.vm as unknown as { selectRow: (row: typeof rows[number], event: MouseEvent) => void }).selectRow

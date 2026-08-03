@@ -45,7 +45,7 @@ export interface WorkspaceState {
  * primary-workstation tools. It is not a substitute for a runtime component registry.
  */
 export interface OpenableToolDefinition {
-  tool_type: 'chart' | 'notes' | 'alerts' | 'scan' | 'gauge' | 'study_lab'
+  tool_type: 'chart' | 'watchlist' | 'notes' | 'alerts' | 'scan' | 'gauge' | 'study_lab'
   title: string
   instance_prefix: string
   configuration?: Record<string, unknown>
@@ -53,6 +53,7 @@ export interface OpenableToolDefinition {
 
 export const OPENABLE_WORKSTATION_TOOLS: readonly OpenableToolDefinition[] = [
   { tool_type: 'chart', title: 'Chart', instance_prefix: 'chart', configuration: { symbol: 'SPY', timeframe: 'D1' } },
+  { tool_type: 'watchlist', title: 'WatchList', instance_prefix: 'watchlist', configuration: { personal: true, watchlist_id: null } },
   { tool_type: 'notes', title: 'Notes', instance_prefix: 'notes', configuration: { scope: 'active-instrument' } },
   { tool_type: 'alerts', title: 'Alerts', instance_prefix: 'alerts', configuration: { scope: 'active-instrument' } },
   { tool_type: 'scan', title: 'EasyScan', instance_prefix: 'easy-scan', configuration: { scope: 'saved-conditions' } },

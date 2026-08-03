@@ -77,6 +77,7 @@ vi.mock('@/stores/chart', () => ({
   useChartStore: () => ({ symbol: 'SPY', timeframe: 'D1', barType: 'candles', bars: [], isLoading: false, isFetchingHistory: false, error: null, loadBars: vi.fn().mockResolvedValue(undefined) }),
 }))
 vi.mock('@/stores/auth', () => ({ useAuthStore: () => ({ logout: vi.fn().mockResolvedValue(undefined) }) }))
+vi.mock('@/stores/watchlist', () => ({ useWatchlistStore: () => ({ reorderItems: vi.fn().mockResolvedValue(undefined) }) }))
 vi.mock('@/lib/instruments', () => ({ ensureKnownInstrumentSymbol: vi.fn((symbol: string) => Promise.resolve(symbol)) }))
 vi.mock('@/lib/api', () => ({ api: { get: apiGet } }))
 vi.mock('@/components/workstation/WorkspaceLayoutHost.vue', () => ({ default: defineComponent({ template: '<div />' }) }))

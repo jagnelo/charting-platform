@@ -127,6 +127,15 @@ restores the prior order if persistence fails. Docker-backed watchlist integrati
 store regression coverage prove the contract; the primary workstation's managed market
 groups remain source-ranked and are not incorrectly presented as manually reorderable.
 
+The primary workstation now exposes a first-class personal `WatchList` tool in its tool
+library. It loads user-owned lists through the canonical watchlist store, persists the
+selected list ID in the serializable workspace window configuration, renders symbol/name/
+last/change columns through the same 10,000-row virtualized table, and publishes row
+selection into the linked-symbol bus. Unlocked personal lists expose HTML drag ordering;
+managed and locked lists remain visibly non-reorderable. The focused virtual-list suite
+covers source-item-ID preservation during drag/drop; visual approval remains blocked by
+the V25 reference manifest.
+
 The shared timeframe-link compatibility path now preserves valid `M1` one-minute
 timeframes and normalizes only the legacy `MN1` monthly token to canonical `MN`.
 This prevents intraday selections from being silently converted to monthly bars while
