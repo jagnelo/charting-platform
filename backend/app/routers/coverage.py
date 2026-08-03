@@ -66,6 +66,7 @@ async def instrument_ohlcv_coverage(
         end,
         mode=mode,
         freshness_seconds=86_400 if timeframe == Timeframe.D1 else None,
+        calendar="XNYS" if (instrument.currency or "").upper() == "USD" else None,
     )
     return OhlcvCoverageOut(
         instrument_id=instrument.id,

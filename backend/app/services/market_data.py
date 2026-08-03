@@ -51,6 +51,11 @@ logger = logging.getLogger(__name__)
 _EPOCH = datetime(1970, 1, 1, tzinfo=UTC)
 
 
+def _coverage_calendar(instrument: Instrument) -> str | None:
+    """Use the local XNYS calendar only for explicitly USD instruments."""
+    return "XNYS" if (instrument.currency or "").upper() == "USD" else None
+
+
 async def _get_or_create_datasource(db: AsyncSession) -> DataSource:
     chain = await resolve_provider_chain(db, ProviderCapability.PRICE_HISTORY)
     if chain:
@@ -545,8 +550,9 @@ async def fetch_ohlcv(
     )
     cached = list((await db.execute(stmt)).scalars().all())
 
-    if _needs_fetch_for_range(cached, timeframe, start, end):
-        repair_slices = missing_range_slices(cached, timeframe, start, end)
+    calendar = _coverage_calendar(instrument)
+    if _needs_fetch_for_range(cached, timeframe, start, end, calendar=calendar):
+        repair_slices = missing_range_slices(cached, timeframe, start, end, calendar=calendar)
         # A current-window request may have no obvious bounded gap while still
         # needing a freshness refresh. In that case retain the existing range
         # fetch semantics; historical/internal gaps use only their slices.
@@ -630,6 +636,8 @@ def _needs_fetch_for_range(
     timeframe: Timeframe,
     start: datetime,
     end: datetime,
+    *,
+    calendar: str | None = None,
 ) -> bool:
     """
     Decide whether an explicit range query should trigger a provider fetch.
@@ -656,6 +664,7 @@ def _needs_fetch_for_range(
         end,
         mode="historical" if range_is_historical else "latest",
         freshness_seconds=int(threshold.total_seconds()),
+        calendar=calendar if calendar == "XNYS" else None,
     )
     return assessment.status.value != "ready"
 

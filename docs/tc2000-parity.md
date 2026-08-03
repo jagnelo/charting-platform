@@ -40,11 +40,13 @@ local page is short. It anchors the request at the oldest cached bar (or a minim
 bootstrap window) with a small overlap, rather than fetching from the 1970 epoch; pure
 service tests cover both warm-tail and cold-start calculations.
 
-Explicit historical range reads now also detect bounded edge gaps and only obvious
-internal gaps. Those slices are fetched independently instead of refetching the full
-requested range; daily weekend-sized gaps are deliberately left alone because the local
-bar store does not yet carry an exchange-calendar guarantee. Focused service tests cover
-internal repair and the no-fetch historical-weekend case.
+Explicit historical range reads now detect bounded edge gaps and calendar-aware internal
+gaps. USD instruments use a deterministic local XNYS daily session calendar (weekends,
+Good Friday, observed federal-market holidays, and Juneteenth) so expected closures are
+not fetched as missing bars while a missing weekday is repaired independently. Instruments
+without an explicit supported calendar retain the conservative interval-based fallback.
+Focused service tests cover internal repair, the no-fetch weekend/holiday cases, and the
+missing-weekday case.
 
 The reusable `ohlcv_coverage` service now owns the provider-neutral readiness decision
 for a requested instrument/timeframe/range. It distinguishes `ready`, `partial`,

@@ -62,6 +62,28 @@ def test_daily_weekend_gap_is_not_treated_as_missing_history():
     assert _needs_fetch_for_range(cached, Timeframe.D1, start, end) is False
 
 
+def test_xnys_calendar_flags_a_missing_weekday_but_not_weekend_or_holiday():
+    from app.services.ohlcv_coverage import missing_range_slices
+
+    weekday_gap = missing_range_slices(
+        [_bar(datetime(2026, 1, 2, tzinfo=UTC)), _bar(datetime(2026, 1, 6, tzinfo=UTC))],
+        Timeframe.D1,
+        datetime(2026, 1, 2, tzinfo=UTC),
+        datetime(2026, 1, 6, tzinfo=UTC),
+        calendar="XNYS",
+    )
+    assert weekday_gap == [(datetime(2026, 1, 5, tzinfo=UTC), datetime(2026, 1, 5, tzinfo=UTC))]
+
+    holiday_gap = missing_range_slices(
+        [_bar(datetime(2026, 1, 16, tzinfo=UTC)), _bar(datetime(2026, 1, 20, tzinfo=UTC))],
+        Timeframe.D1,
+        datetime(2026, 1, 16, tzinfo=UTC),
+        datetime(2026, 1, 20, tzinfo=UTC),
+        calendar="XNYS",
+    )
+    assert holiday_gap == []
+
+
 def test_coverage_planner_distinguishes_historical_ready_from_latest_stale():
     start = datetime(2026, 1, 2, tzinfo=UTC)
     end = datetime(2026, 1, 5, tzinfo=UTC)
