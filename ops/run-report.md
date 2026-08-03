@@ -16718,3 +16718,10 @@ uncovered slice rather than repeat a generic completion claim.
 - Strict visual validation remains intentionally failing at
   `application-shell-default/default: required_missing`; the help image is still a
   discovery candidate rather than an approved baseline. Commit `e147203` pushed.
+
+## 2026-08-03T16:26:40Z Workstation comparison checkpoint
+
+- Added persisted workstation comparison symbols and normalized timestamp-aligned uPlot
+  series with explicit gaps and return summaries.
+- Validation: full frontend suite `447 passed` across `76` files; TypeScript, production
+  build, and `git diff --check` passed. Commit `559d229` pushed.

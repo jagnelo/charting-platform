@@ -14621,6 +14621,17 @@
 - Commit `e147203e1886f01ada388fde62ede6a06540a024` pushed. The next worker should seek
   permission-cleared state references or continue another concrete implementation slice.
 
+## 2026-08-03T16:26:40Z Workstation comparison checkpoint
+
+- Workstation chart windows now expose persisted comparison symbols and feed normalized,
+  timestamp-aligned comparison series into uPlot. Missing timestamps remain gaps and
+  each comparison reports its anchored return.
+- Full frontend Vitest passed `447` tests across `76` files; TypeScript, production
+  build, and `git diff --check` passed. Parity evidence commit
+  `559d229c34feaf38b0a9f4062156b02f4bb97578` pushed.
+- The strict V25 visual gate and broad acceptance matrix remain incomplete. Next worker:
+  choose another concrete uncovered acceptance slice.
+
 ## 2026-08-03T15:35:00Z Large-watchlist virtualization checkpoint
 
 - Added a 10,000-row `VirtualWatchlistTool` regression. It verifies the full logical
