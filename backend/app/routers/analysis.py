@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from collections import defaultdict
 from datetime import UTC, datetime
 
@@ -88,6 +89,16 @@ def _sample_aligned_points(
     if sampled and sampled[-1][0] != aligned[-1][0]:
         sampled.append(aligned[-1])
     return sampled
+
+
+def _rotation_state(trend: float, momentum: float) -> str:
+    if trend >= 0 and momentum >= 0:
+        return "leading"
+    if trend >= 0:
+        return "weakening"
+    if momentum >= 0:
+        return "improving"
+    return "lagging"
 
 
 def _group_provenance(group: MarketGroup, as_of: datetime | None) -> dict[str, object]:
@@ -610,14 +621,19 @@ async def group_relative_rotation(
             )
             continue
         latest = coordinates[-1]
-        state = (
-            "leading"
-            if latest.trend >= 0 and latest.momentum >= 0
-            else "weakening"
-            if latest.trend >= 0
-            else "improving"
-            if latest.momentum >= 0
-            else "lagging"
+        state = _rotation_state(latest.trend, latest.momentum)
+        coordinate_states = [_rotation_state(point.trend, point.momentum) for point in coordinates]
+        previous_state = coordinate_states[-2] if len(coordinate_states) > 1 else None
+        time_in_state = 0
+        for coordinate_state in reversed(coordinate_states):
+            if coordinate_state != state:
+                break
+            time_in_state += 1
+        previous = coordinates[-2] if len(coordinates) > 1 else None
+        velocity = (
+            math.hypot(latest.trend - previous.trend, latest.momentum - previous.momentum)
+            if previous is not None
+            else None
         )
         rows.append(
             RelativeRotationRow(
@@ -627,6 +643,11 @@ async def group_relative_rotation(
                 trend=latest.trend,
                 momentum=latest.momentum,
                 state=state,
+                heading=math.degrees(math.atan2(latest.momentum, latest.trend)),
+                distance=math.hypot(latest.trend, latest.momentum),
+                velocity=velocity,
+                transition=f"{previous_state}->{state}" if previous_state and previous_state != state else None,
+                time_in_state=time_in_state,
                 coverage=len(aligned) / maximum,
                 tail=coordinates[-tail_length:],
                 warnings=warnings,

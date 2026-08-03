@@ -546,6 +546,9 @@ class TestWorkspaces:
         assert rotation.status_code == 200
         row = rotation.json()["rows"][0]
         assert rotation.json()["sampling"] == 2
+        assert row["heading"] is not None
+        assert row["distance"] is not None
+        assert row["time_in_state"] >= 1
         assert row["state"] == "leading"
         assert len(row["tail"]) == 3
         assert row["coverage"] == 1

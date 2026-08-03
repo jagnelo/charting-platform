@@ -52,6 +52,11 @@ class RelativeRotationRow(BaseModel):
     trend: float | None = None
     momentum: float | None = None
     state: str | None = None
+    heading: float | None = None
+    distance: float | None = None
+    velocity: float | None = None
+    transition: str | None = None
+    time_in_state: int | None = None
     coverage: float = Field(ge=0, le=1)
     tail: list[RelativeRotationTailPoint] = Field(default_factory=list)
     warnings: list[AnalysisWarning] = Field(default_factory=list)

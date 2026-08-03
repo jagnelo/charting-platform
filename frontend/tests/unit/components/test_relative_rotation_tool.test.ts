@@ -25,12 +25,14 @@ describe('RelativeRotationTool', () => {
   it('resizes the existing uPlot instance instead of recreating it', async () => {
     vi.mocked(api.get).mockResolvedValue({
       freshness: 'current',
-      rows: [{ instrument_id: 1, symbol: 'XLK', state: 'leading', trend: 0.1, momentum: 0.2, coverage: 1, tail: [{ timestamp: '2026-01-01', trend: 0.1, momentum: 0.2 }] }],
+      rows: [{ instrument_id: 1, symbol: 'XLK', state: 'leading', trend: 0.1, momentum: 0.2, heading: 63, distance: 0.224, velocity: 0.02, transition: 'improving->leading', time_in_state: 3, coverage: 1, tail: [{ timestamp: '2026-01-01', trend: 0.1, momentum: 0.2 }] }],
     })
     const wrapper = mount(RelativeRotationTool)
     await vi.waitFor(() => expect(api.get).toHaveBeenCalled())
     await vi.waitFor(async () => { await nextTick(); expect(wrapper.text()).toContain('XLK') })
     await nextTick()
+    expect(wrapper.text()).toContain('improving->leading')
+    expect(wrapper.text()).toContain('63°')
     resize?.()
     expect(vi.mocked(uPlot)).toHaveBeenCalledTimes(1)
     const chart = vi.mocked(uPlot).mock.results[0]?.value
