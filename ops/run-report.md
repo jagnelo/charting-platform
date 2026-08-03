@@ -16512,6 +16512,15 @@ Append a short entry after each worker session.
 - Commit `ba7ebf4957dd7e1c4308f6954d50a60c8c869b05` pushed. Overall acceptance and
   approved V25 visual evidence remain incomplete.
 
+## 2026-08-03T13:25:00Z Benchmark comparison checkpoint
+
+- The shared top-down refresh now loads the canonical US benchmark snapshot. The
+  Benchmarks watchlist displays SPY/RSP and other benchmark rows with multi-horizon
+  performance, `/ SPY` ratio, RSI, 52-week position, and volume-ratio columns.
+- Workspace-store suite `18 passed`; TypeScript, production build, and `git diff --check`
+  passed. Commit `ccd7b4eb2a676e63350ed02f6a29d16c2a8b0538` pushed. Overall acceptance
+  and approved V25 visual evidence remain incomplete.
+
 ## 2026-08-03T14:32:00Z Persisted research cancellation checkpoint
 
 - Added cancellation to the persisted Research Results browser for queued/running

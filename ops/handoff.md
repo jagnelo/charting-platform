@@ -14518,3 +14518,15 @@
 - Full goal remains active; V25 visual references remain `required_missing` and the
   broad workstation/backend acceptance matrix remains incomplete. Next: continue
   the broad workstation/backend audit.
+
+## 2026-08-03T13:25:00Z Benchmark comparison checkpoint
+
+- The shared top-down refresh now loads the canonical `us-benchmarks` snapshot. The
+  Benchmarks watchlist displays SPY/RSP and other benchmark rows with 1D/1W/1M/3M/YTD/1Y
+  performance, `/ SPY` ratio, RSI, 52-week position, and volume-ratio columns, making
+  cap-weighted versus equal-weight comparison available before sector drill-down.
+- Workspace-store suite `18 passed`; TypeScript, production build, and `git diff --check`
+  passed. Commit `ccd7b4eb2a676e63350ed02f6a29d16c2a8b0538` pushed.
+- Full goal remains active; V25 visual references remain `required_missing` and the
+  broad workstation/backend acceptance matrix remains incomplete. Next: continue the
+  broad workstation/backend audit.
