@@ -66,6 +66,8 @@ const harness = vi.hoisted(() => {
   }
   return { workspace, popoutWindow, chartWindow }
 })
+const routeState = vi.hoisted(() => ({ path: '/popout/benchmark-list', params: { windowKey: 'benchmark-list' }, query: {} as Record<string, string> }))
+const apiGet = vi.hoisted(() => vi.fn().mockResolvedValue([]))
 
 vi.mock('@/stores/workspace', () => ({
   OPENABLE_WORKSTATION_TOOLS: [],
@@ -75,11 +77,12 @@ vi.mock('@/stores/chart', () => ({
   useChartStore: () => ({ symbol: 'SPY', timeframe: 'D1', barType: 'candles', bars: [], isLoading: false, isFetchingHistory: false, error: null, loadBars: vi.fn().mockResolvedValue(undefined) }),
 }))
 vi.mock('@/stores/auth', () => ({ useAuthStore: () => ({ logout: vi.fn().mockResolvedValue(undefined) }) }))
-vi.mock('@/lib/instruments', () => ({ ensureKnownInstrumentSymbol: vi.fn().mockResolvedValue('SPY') }))
+vi.mock('@/lib/instruments', () => ({ ensureKnownInstrumentSymbol: vi.fn((symbol: string) => Promise.resolve(symbol)) }))
+vi.mock('@/lib/api', () => ({ api: { get: apiGet } }))
 vi.mock('@/components/workstation/WorkspaceLayoutHost.vue', () => ({ default: defineComponent({ template: '<div />' }) }))
 vi.mock('golden-layout', () => ({}))
 vi.mock('vue-router', () => ({
-  useRoute: () => ({ path: '/popout/benchmark-list', params: { windowKey: 'benchmark-list' }, query: {} }),
+  useRoute: () => routeState,
   useRouter: () => ({ resolve: vi.fn(), push: vi.fn() }),
 }))
 
@@ -104,6 +107,11 @@ describe('WorkstationView pop-out bindings', () => {
     vi.clearAllMocks()
     harness.popoutWindow.configuration = {}
     harness.chartWindow.configuration = {}
+    routeState.path = '/popout/benchmark-list'
+    routeState.params = { windowKey: 'benchmark-list' }
+    routeState.query = {}
+    apiGet.mockReset()
+    apiGet.mockResolvedValue([])
   })
 
   it('forwards watchlist persistence and proxy events from a floated tool to the shell', async () => {
@@ -138,5 +146,26 @@ describe('WorkstationView pop-out bindings', () => {
     expect(harness.workspace.scheduleSnapshot).toHaveBeenCalled()
     expect(harness.workspace.publishSymbol).not.toHaveBeenCalled()
     expect(harness.workspace.symbolForLinkGroup).toHaveBeenCalledWith('blue', null)
+  })
+
+  it('provides keyboard-navigable canonical symbol search in the workstation shell', async () => {
+    routeState.path = '/'
+    routeState.params = {}
+    apiGet.mockResolvedValue([
+      { symbol: 'XLK', name: 'Technology Select Sector SPDR Fund', exchange: 'ARCX', type: 'ETF' },
+      { symbol: 'XLE', name: 'Energy Select Sector SPDR Fund', exchange: 'ARCX', type: 'ETF' },
+    ])
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+    await vi.waitFor(() => expect(harness.workspace.publishSymbol).toHaveBeenCalledWith(expect.objectContaining({ symbol: 'SPY' })))
+    const input = wrapper.get('input[aria-label="Active symbol"]')
+    await input.setValue('xl')
+    await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith('/instruments/search', { q: 'xl' }))
+    await vi.waitFor(() => expect(wrapper.find('[role="listbox"]').exists()).toBe(true))
+    expect(wrapper.findAll('[role="option"]')[0].text()).toContain('XLK')
+    await input.trigger('keydown', { key: 'ArrowDown' })
+    await input.trigger('keydown', { key: 'Enter' })
+    expect(harness.workspace.publishSymbol).toHaveBeenCalledWith(expect.objectContaining({ symbol: 'XLE', group: 'blue' }))
   })
 })

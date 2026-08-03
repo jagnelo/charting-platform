@@ -14,9 +14,23 @@
           v-model="symbolDraft"
           aria-label="Active symbol"
           placeholder="Symbol"
-          @keydown.enter="selectSymbol(symbolDraft)"
+          autocomplete="off"
+          role="combobox"
+          :aria-expanded="searchResults.length > 0"
+          aria-controls="workstation-symbol-results"
+          @keydown.stop="handleSymbolInputKeydown"
         />
         <button type="button" @click="selectSymbol(symbolDraft)">Go</button>
+        <div v-if="searchResults.length" id="workstation-symbol-results" class="workstation__symbol-results" role="listbox" aria-label="Symbol search results">
+          <button
+            v-for="(result, index) in searchResults"
+            :key="`${result.symbol}:${result.exchange}`"
+            type="button"
+            role="option"
+            :aria-selected="index === searchIndex"
+            @mousedown.prevent="selectSearchResult(result.symbol)"
+          ><strong>{{ result.symbol }}</strong><span>{{ result.name }}</span><small>{{ result.exchange || result.type }}</small></button>
+        </div>
       </div>
       <label class="workstation__timeframe">TF
         <select :value="workspaceStore.linkedTimeframe" aria-label="Linked timeframe" @change="setLinkedTimeframe(($event.target as HTMLSelectElement).value)">
@@ -112,6 +126,7 @@ import { OPENABLE_WORKSTATION_TOOLS, useWorkspaceStore, type LinkGroup, type Ope
 import type { LayoutConfig } from 'golden-layout'
 import { ensureKnownInstrumentSymbol } from '@/lib/instruments'
 import { autoRatioExpression } from '@/lib/workstation/ratioExpression'
+import { api } from '@/lib/api'
 
 const route = useRoute()
 const router = useRouter()
@@ -121,6 +136,11 @@ const workspaceStore = useWorkspaceStore()
 const symbolInput = ref<HTMLInputElement | null>(null)
 const symbolDraft = ref('')
 const toolLibraryOpen = ref(false)
+const searchResults = ref<Array<{ symbol: string; name: string; exchange: string; type: string }>>([])
+const searchIndex = ref(-1)
+let searchTimer: ReturnType<typeof setTimeout> | null = null
+let searchRequest = 0
+let suppressNextSearch = false
 const preserveDrilldownSymbol = ref<string | null>(null)
 const openableTools = OPENABLE_WORKSTATION_TOOLS
 let marketRefreshTimer: ReturnType<typeof setInterval> | null = null
@@ -171,6 +191,9 @@ const goldenLayoutConfig = computed(() => {
 async function selectSymbol(raw: string, timestamp?: string) {
   const requested = raw.trim()
   if (!requested) return
+  suppressNextSearch = true
+  searchResults.value = []
+  searchIndex.value = -1
   let symbol: string
   try {
     symbol = await ensureKnownInstrumentSymbol(requested, 'Workstation symbol')
@@ -196,6 +219,58 @@ async function loadSymbolData(symbol: string, comparisonETF = workspaceStore.con
     workspaceStore.loadTechnical(symbol),
   ])
   if (updateRatio) updateAutoRatioExpression(symbol, comparisonETF)
+}
+
+function scheduleSymbolSearch(value: string) {
+  if (suppressNextSearch) {
+    suppressNextSearch = false
+    return
+  }
+  if (searchTimer) clearTimeout(searchTimer)
+  const query = value.trim()
+  if (!query) {
+    searchResults.value = []
+    searchIndex.value = -1
+    return
+  }
+  const requestId = ++searchRequest
+  searchTimer = setTimeout(async () => {
+    try {
+      const results = await api.get<Array<{ symbol: string; name: string; exchange: string; type: string }>>('/instruments/search', { q: query })
+      if (requestId !== searchRequest || symbolDraft.value.trim() !== query) return
+      searchResults.value = results
+      searchIndex.value = results.length ? 0 : -1
+    } catch {
+      if (requestId === searchRequest) {
+        searchResults.value = []
+        searchIndex.value = -1
+      }
+    }
+  }, 120)
+}
+
+function selectSearchResult(symbol: string) {
+  symbolDraft.value = symbol
+  searchResults.value = []
+  searchIndex.value = -1
+  void selectSymbol(symbol)
+}
+
+function handleSymbolInputKeydown(event: KeyboardEvent) {
+  if (event.key === 'ArrowDown' && searchResults.value.length) {
+    event.preventDefault()
+    searchIndex.value = (searchIndex.value + 1) % searchResults.value.length
+  } else if (event.key === 'ArrowUp' && searchResults.value.length) {
+    event.preventDefault()
+    searchIndex.value = (searchIndex.value - 1 + searchResults.value.length) % searchResults.value.length
+  } else if (event.key === 'Enter') {
+    event.preventDefault()
+    const result = searchResults.value[searchIndex.value]
+    void selectSymbol(result?.symbol ?? symbolDraft.value)
+  } else if (event.key === 'Escape') {
+    searchResults.value = []
+    searchIndex.value = -1
+  }
 }
 
 function updateAutoRatioExpression(symbol: string, comparisonETF = workspaceStore.constituentETF) {
@@ -416,6 +491,7 @@ watch(activeSymbol, symbol => {
     workspaceStore.loadTechnical(symbol),
   ])
 })
+watch(symbolDraft, scheduleSymbolSearch)
 watch(() => workspaceStore.linkedTimeframe, timeframe => {
   if (timeframe === chartStore.timeframe) return
   void chartStore.loadBars(activeSymbol.value, timeframe as typeof chartStore.timeframe, chartStore.barType, true)
@@ -448,6 +524,7 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   if (marketRefreshTimer) clearInterval(marketRefreshTimer)
+  if (searchTimer) clearTimeout(searchTimer)
   marketRefreshTimer = null
   workspaceStore.disconnect()
 })
@@ -462,9 +539,13 @@ onBeforeUnmount(() => {
 .workstation__menu nav { display: flex; align-self: stretch; }
 .workstation__menu nav button, .workstation__tab-add, .workstation__tab-reset { border: 0; background: transparent; color: #d4d9dd; padding: 0 8px; font: 11px "Segoe UI", Arial, sans-serif; cursor: pointer; }
 .workstation__menu nav button:hover, .workstation__tab-add:hover, .workstation__tab-reset:hover { background: #3a444d; color: #fff; }
-.workstation__search { display: flex; height: 21px; margin-left: 10px; }
+.workstation__search { position: relative; display: flex; height: 21px; margin-left: 10px; }
 .workstation__search input { width: 88px; padding: 0 5px; border: 1px solid #4d5a63; background: #11161a; color: #f1f5f7; font: 11px "Segoe UI", Arial, sans-serif; text-transform: uppercase; }
 .workstation__search button { border: 1px solid #4d5a63; border-left: 0; background: #26333d; color: #dce9f2; padding: 0 7px; font-size: 10px; cursor: pointer; }
+.workstation__symbol-results { position: absolute; z-index: 130; top: 23px; left: 0; display: grid; min-width: 270px; max-height: 250px; overflow: auto; border: 1px solid #4d5a63; background: #151d23; box-shadow: 0 6px 16px #000b; }
+.workstation__symbol-results button { display: grid; grid-template-columns: 55px minmax(0, 1fr) 48px; gap: 6px; align-items: center; min-height: 25px; padding: 3px 6px; border: 0; border-bottom: 1px solid #29343b; background: transparent; color: #bfcbd3; font: 10px "Segoe UI", Arial, sans-serif; text-align: left; }
+.workstation__symbol-results button:hover, .workstation__symbol-results button[aria-selected="true"] { background: #2c4554; color: #fff; }
+.workstation__symbol-results strong { color: #e4f1f7; }.workstation__symbol-results span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }.workstation__symbol-results small { color: #8799a5; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .workstation__status { margin-left: auto; display: flex; align-items: center; gap: 8px; color: #81909a; font-size: 10px; }
 .workstation__refresh,.workstation__sign-out { border: 1px solid #47545d; background: #20282e; color: #bdc9d1; padding: 2px 6px; font: inherit; cursor: pointer; }
 .workstation__refresh:disabled { cursor: wait; opacity: .65; }
