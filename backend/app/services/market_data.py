@@ -82,6 +82,18 @@ def _as_utc(value: datetime) -> datetime:
     return value if value.tzinfo is not None else value.replace(tzinfo=UTC)
 
 
+def _historical_repair_start(
+    before: datetime,
+    timeframe: Timeframe,
+    missing_count: int,
+    oldest_cached: datetime | None = None,
+) -> datetime:
+    """Return a bounded older-tail start instead of requesting the full epoch."""
+    anchor = _as_utc(oldest_cached or before)
+    overlap_bars = max(1, missing_count) * 2
+    return anchor - timedelta(seconds=TIMEFRAME_SECONDS[timeframe] * overlap_bars)
+
+
 async def _fresh_latest_price_from_cache(
     db: AsyncSession,
     instrument: Instrument,
@@ -871,12 +883,19 @@ async def fetch_ohlcv_page_before(
     rows = list((await db.execute(stmt)).scalars().all())
 
     if len(rows) < limit:
-        # DB doesn't have enough older bars — attempt a live fetch for the
-        # full historical range up to `before`. The bulk fetch may still be
-        # running, but fetching on-demand here is safe: the upsert uses
-        # on_conflict_do_nothing so there are no duplicates.
+        # DB doesn't have enough older bars — repair only the missing older tail,
+        # with a small overlap for weekends/late provider revisions. Never request
+        # the entire epoch for a bounded pagination page.
+        oldest_cached = min((row.ts for row in rows), default=None)
+        missing_count = max(limit - len(rows), 1)
+        repair_start = _historical_repair_start(
+            before, timeframe, missing_count, oldest_cached
+        )
+        repair_end = _as_utc(oldest_cached) - timedelta(seconds=1) if oldest_cached else before
         try:
-            fetched = await _fetch_provider(db, instrument, timeframe, _EPOCH, before, adjusted)
+            fetched = await _fetch_provider(
+                db, instrument, timeframe, repair_start, repair_end, adjusted
+            )
         except ProviderNoDataError:
             fetched = []
         if fetched:

@@ -35,6 +35,11 @@ The shared Python validator and Study asset contract now recognize `scatter` and
 `heatmap` output methods, so these structured artifacts survive validation and can be
 reused from the same unified language rather than being runner-only extensions.
 
+Historical chart pagination now uses a bounded, timeframe-aware repair window when the
+local page is short. It anchors the request at the oldest cached bar (or a minimum cold
+bootstrap window) with a small overlap, rather than fetching from the 1970 epoch; pure
+service tests cover both warm-tail and cold-start calculations.
+
 The isolated image also installs pinned NumPy/Pandas wheels at build time and exposes
 only restricted `np`/`pd` facades to user code. File/external-data methods are rejected
 by source validation; NumPy/Pandas values are normalized before artifact persistence.
