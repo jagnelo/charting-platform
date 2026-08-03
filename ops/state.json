@@ -4,16 +4,16 @@
     "active_worker": "Codex",
     "worker_session_started_at": "2026-07-28T21:40:33Z",
     "worker_soft_stop_at": null,
-    "last_handoff_at": "2026-08-03T12:05:36Z",
-    "last_commit": "94ced6fc4af59870068fc617ce56108c21c200b1 test(easyscan): cover queued Python condition scans",
+    "last_handoff_at": "2026-08-03T12:11:05Z",
+    "last_commit": "8414cd1d30cc7471a964c1b1c7e581b74c9d335b feat(easyscan): restrict Python sources to Boolean assets",
     "git_ready_to_commit": true,
     "validation": {
         "backend_lint": "passed (provider entitlement model/migration plus prior visual, analysis, and research modules, 2026-07-30)",
         "backend_tests": "unified code validation/isolated-runner/API suites 22 passed (two existing Nautilus deprecation warnings), including 10,000-symbol prepared-universe materialization, durable progress, running-job cancellation, and scalar/Boolean batch cells; workspace API 17 passed; workstation-analysis integration 13 passed; coverage router 2 passed; provider governance router 6 passed and runtime 8 passed (14 combined) with --no-cov; screener integration 20 passed including queued Python EasyScan creation/run/reconciliation; 2026-08-03",
         "frontend_tests": "passed: Python EasyScan component 1 passed; frontend full Vitest suite 429 passed; prior VirtualWatchlistTool 18, StudyLabTool/ResearchResultsTool 2, ChartPlotLibrary/ChartTemplateControl 4, RatioUPlot 3, workspace-store 17, full Chromium flows 22, and focused acceptance slices remain recorded, 2026-08-03",
-        "frontend_build": "passed (TypeScript and production build after EasyScan control-grid correction, 2026-08-03)",
+        "frontend_build": "passed (TypeScript and production build after Boolean Python-source filtering, 2026-08-03)",
         "alembic_upgrade": "passed: fresh branch stack upgrades to d2a3b4c5d6e7 head, seeds top-down taxonomy, starts healthy without runtime create_all, completes controlled head-to-minus-one-to-head cycle, and includes instrument_indicator_config from repaired a3a03047acc3",
-        "diff_check": "passed (2026-08-03T12:05:36Z Python EasyScan lifecycle proof and grid correction)",
+        "diff_check": "passed (2026-08-03T12:11:05Z Python alert-source boundary)",
         "playwright": "rebuilt isolated branch stack: full Chromium flows.spec.ts passed 22 tests after unified Python Boolean watchlist-condition filtering, including chart-template rendering/projection save/apply/symbol preservation/delete; visual/multi-environment acceptance remains required, 2026-07-30",
         "console_check": "passed for focused F6/F7/F8b Chromium flow diagnostics (no unexpected console/page/request failures), 2026-07-30; full acceptance still required",
         "backend_log_check": "fresh branch stack logs confirm Alembic upgrade through head, successful top-down taxonomy seed, scheduler/API startup, passing health checks, and no instrument_indicator_config UndefinedTable/500 after focused browser acceptance; rebuilt backend was healthy after prepared-universe batch API addition",
@@ -21,6 +21,7 @@
         "yaml_json_parse": "passed (state.json and V25 visual manifest validated structurally, 2026-07-30)"
     },
     "notes": [
+        "2026-08-03T12:11:05Z: EasyScan now exposes only immutable Boolean Python conditions and the component test proves a completed Python-backed scan creates a screener alert. Focused test 1 passed, TypeScript/build/diff passed. Commit 8414cd1d30cc7471a964c1b1c7e581b74c9d335b. Next: backend alert/scheduled-run integration audit.",
         "2026-08-03T12:05:36Z: Added end-to-end Python EasyScan coverage from immutable Boolean asset through queued isolated prepared-universe run and completed typed batch reconciliation; corrected the four-control dense grid. Screener integration 20 passed with two existing warnings, EasyScan component 1 passed, frontend full suite 429 passed, TypeScript/build/Ruff/diff passed. Commit 94ced6fc4af59870068fc617ce56108c21c200b1. Next: extend the same immutable condition contract into alert creation and continue remaining full-scope workstation/backend acceptance.",
         "2026-07-30T20:20:00Z: Generic research runs now expose runner-owned progress and Study Lab displays runner-active or completed/total state beside cancellation. API 11 passed with two existing warnings, StudyLabTool/TypeScript/diff passed. Next: reuse immutable Python conditions in EasyScan and alerts.",
         "2026-07-30T20:10:00Z: Shared virtual watchlists now render durable Python column/condition progress and expose working cancellation controls wired to the isolated-run cancellation endpoint. VirtualWatchlistTool 18 passed, TypeScript/build/diff passed. Next: provide equivalent progress in Study Lab and reuse immutable conditions in EasyScan and alerts.",

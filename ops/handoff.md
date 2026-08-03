@@ -1,5 +1,16 @@
 # Active Handoff
 
+## Continuation update — 2026-08-03T12:11:05Z
+
+- Tightened EasyScan's Python source selector to expose only immutable Boolean condition
+  versions, preventing scalar/study assets from becoming dead scan controls. The same
+  queued Python-backed screener now has direct component coverage for creating an
+  `entered` screener alert after its completed result is shown.
+- Validation: EasyScan component `1 passed`, TypeScript, production build, and diff
+  check passed. Commit: `8414cd1d30cc7471a964c1b1c7e581b74c9d335b`.
+- Next: continue the backend alert/scheduled-run integration audit and then the remaining
+  full-scope workstation/backend acceptance work.
+
 ## Continuation update — 2026-08-03T12:05:36Z
 
 - Added end-to-end coverage for Python-condition EasyScan: create a Boolean code asset,

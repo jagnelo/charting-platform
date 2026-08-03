@@ -2,6 +2,14 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-03T12:11:05Z Python alert-source boundary
+
+- EasyScan now filters the Python asset picker to Boolean output contracts only. Its
+  component test also proves a completed Python-backed scan can create the existing
+  screener alert contract.
+- Validation: focused EasyScan test `1 passed`, TypeScript, production build, and diff
+  check passed. Commit: `8414cd1d30cc7471a964c1b1c7e581b74c9d335b`.
+
 ## 2026-08-03T12:05:36Z Python EasyScan lifecycle proof
 
 - Added an integration test covering Boolean Python asset creation, Python EasyScan
