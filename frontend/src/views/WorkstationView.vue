@@ -27,6 +27,7 @@
         <span :class="{ 'workstation__leader': workspaceStore.isPersistenceLeader }">●</span>
         {{ workspaceStore.isPersistenceLeader ? 'Leader' : 'Shared' }}
         <span :class="`workstation__data-state--${dataState.kind}`">{{ dataState.label }}</span>
+        <button type="button" class="workstation__refresh" :disabled="workspaceStore.marketAnalysisRefreshing" title="Refresh top-down analysis" @click="refreshMarketData">{{ workspaceStore.marketAnalysisRefreshing ? 'Refreshing…' : 'Refresh' }}</button>
         <button type="button" class="workstation__sign-out logout-btn" title="Sign out" @click="signOut">Sign out</button>
       </div>
     </header>
@@ -112,6 +113,7 @@ const symbolDraft = ref('')
 const toolLibraryOpen = ref(false)
 const preserveDrilldownSymbol = ref<string | null>(null)
 const openableTools = OPENABLE_WORKSTATION_TOOLS
+let marketRefreshTimer: ReturnType<typeof setInterval> | null = null
 
 const activeSymbol = computed(() => workspaceStore.linkedSymbol || 'SPY')
 const dataState = computed(() => {
@@ -123,6 +125,10 @@ const dataState = computed(() => {
   return { kind: 'cached', label: `Cached ${new Date(latest.ts).toLocaleString()}` }
 })
 const isPopout = computed(() => route.path.startsWith('/popout/'))
+
+async function refreshMarketData() {
+  await workspaceStore.refreshMarketAnalysis()
+}
 const popoutTool = computed(() => {
   const key = String(route.params.windowKey ?? '')
   const requestedTab = typeof route.query.tab === 'string' ? route.query.tab : null
@@ -348,19 +354,22 @@ onMounted(async () => {
   if (requestedTab && workspaceStore.workspace?.tabs.some(tab => tab.stable_key === requestedTab)) {
     workspaceStore.activeTabKey = requestedTab
   }
-  await Promise.all([
-    workspaceStore.loadMarketGroup('us-benchmarks'),
-    workspaceStore.loadMarketGroup('sp500-sectors'),
-    workspaceStore.loadGroupSnapshot('sp500-sectors', 'SPY'),
-    workspaceStore.loadBreadth('sp500-sectors'),
-    workspaceStore.loadBreadthHistory('sp500-sectors'),
-  ])
+  await refreshMarketData()
   const requested = String(route.params.symbol ?? route.query.symbol ?? 'SPY')
   await selectSymbol(requested)
   await nextTick()
+  if (!isPopout.value) {
+    marketRefreshTimer = setInterval(() => {
+      if (document.visibilityState === 'visible') void refreshMarketData()
+    }, 5 * 60 * 1000)
+  }
 })
 
-onBeforeUnmount(() => workspaceStore.disconnect())
+onBeforeUnmount(() => {
+  if (marketRefreshTimer) clearInterval(marketRefreshTimer)
+  marketRefreshTimer = null
+  workspaceStore.disconnect()
+})
 </script>
 
 <style scoped>
@@ -376,7 +385,9 @@ onBeforeUnmount(() => workspaceStore.disconnect())
 .workstation__search input { width: 88px; padding: 0 5px; border: 1px solid #4d5a63; background: #11161a; color: #f1f5f7; font: 11px "Segoe UI", Arial, sans-serif; text-transform: uppercase; }
 .workstation__search button { border: 1px solid #4d5a63; border-left: 0; background: #26333d; color: #dce9f2; padding: 0 7px; font-size: 10px; cursor: pointer; }
 .workstation__status { margin-left: auto; display: flex; align-items: center; gap: 8px; color: #81909a; font-size: 10px; }
-.workstation__sign-out { border: 1px solid #47545d; background: #20282e; color: #bdc9d1; padding: 2px 6px; font: inherit; cursor: pointer; }
+.workstation__refresh,.workstation__sign-out { border: 1px solid #47545d; background: #20282e; color: #bdc9d1; padding: 2px 6px; font: inherit; cursor: pointer; }
+.workstation__refresh:disabled { cursor: wait; opacity: .65; }
+.workstation__refresh:hover:not(:disabled),
 .workstation__sign-out:hover { border-color: #6d8290; color: #fff; background: #33414a; }
 .workstation__leader { color: #63bd85; }
 .workstation__data-state--fetching { color:#80bce8; }.workstation__data-state--unavailable { color:#ed9696; }.workstation__data-state--cached { color:#aebbc4; }

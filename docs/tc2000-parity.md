@@ -54,3 +54,11 @@ freshness state, provenance, calculation version, and coverage-warning count. A
 component regression covers selection, refresh, stale-data labeling, and lineage
 display. This is functional evidence only; the Version 25 visual reference remains
 unapproved.
+
+The workstation shell now exposes a single deduplicated top-down refresh command. It
+refreshes benchmark and sector memberships, sector rankings, current breadth, and
+historical breadth together; concurrent callers join the same request set, the shell
+shows an in-progress Refresh control, and an active workstation polls every five
+minutes only while the document is visible. The store records the last successful
+refresh time, while the existing response freshness and coverage fields remain the
+source of truth for stale or partial data.

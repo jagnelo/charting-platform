@@ -16,6 +16,24 @@ describe('workspace store layout tabs', () => {
 
   afterEach(() => vi.unstubAllGlobals())
 
+  it('deduplicates shared top-down refreshes and records the refresh time', async () => {
+    apiGet.mockResolvedValue({})
+    const store = useWorkspaceStore()
+
+    const first = store.refreshMarketAnalysis()
+    const second = store.refreshMarketAnalysis()
+    await Promise.all([first, second])
+
+    expect(apiGet).toHaveBeenCalledTimes(5)
+    expect(apiGet).toHaveBeenCalledWith('/market-groups/us-benchmarks')
+    expect(apiGet).toHaveBeenCalledWith('/market-groups/sp500-sectors')
+    expect(apiGet).toHaveBeenCalledWith('/analysis/groups/sp500-sectors/snapshot', { benchmark: 'SPY' })
+    expect(apiGet).toHaveBeenCalledWith('/analysis/groups/sp500-sectors/breadth')
+    expect(apiGet).toHaveBeenCalledWith('/analysis/groups/sp500-sectors/breadth/history', { limit: 500 })
+    expect(store.marketAnalysisRefreshing).toBe(false)
+    expect(store.marketAnalysisRefreshedAt).toEqual(expect.any(String))
+  })
+
   it('clones the active serializable layout with remapped tool identities and saves it', async () => {
     const store = useWorkspaceStore()
     store.workspace = {

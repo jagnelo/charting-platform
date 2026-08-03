@@ -293,6 +293,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   const industryProxies = ref<Record<string, ETFIndustryProxyState | null>>({})
   const industryProxySnapshots = ref<Record<string, IndustryProxySnapshotState | null>>({})
   const technicals = ref<Record<string, TechnicalSnapshotState | null>>({})
+  const marketAnalysisRefreshing = ref(false)
+  const marketAnalysisRefreshedAt = ref<string | null>(null)
   const constituentETF = ref<string | null>(null)
   const selectedIndustry = ref<string | null>(null)
   const selectedIndustryProxy = ref<string | null>(null)
@@ -300,6 +302,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   let channel: BroadcastChannel | null = null
   let leaderTimer: ReturnType<typeof setInterval> | null = null
   let snapshotTimer: ReturnType<typeof setTimeout> | null = null
+  let marketRefreshPromise: Promise<void> | null = null
   const windowId = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
     ? crypto.randomUUID()
     : `window-${Date.now()}-${Math.random().toString(36).slice(2)}`
@@ -675,6 +678,30 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       error.value = cause?.message ?? `Unable to calculate historical breadth for ${stableKey}`
       return null
     }
+  }
+
+  /**
+   * Refresh the shared US top-down inputs in one deduplicated batch. The shell and
+   * pop-outs call this method instead of fanning out one request per watchlist cell.
+   * A second caller joins the existing refresh, which keeps linked windows from
+   * producing duplicate analysis requests.
+   */
+  async function refreshMarketAnalysis() {
+    if (marketRefreshPromise) return marketRefreshPromise
+    marketAnalysisRefreshing.value = true
+    marketRefreshPromise = Promise.all([
+      loadMarketGroup('us-benchmarks'),
+      loadMarketGroup('sp500-sectors'),
+      loadGroupSnapshot('sp500-sectors', 'SPY'),
+      loadBreadth('sp500-sectors'),
+      loadBreadthHistory('sp500-sectors'),
+    ]).then(() => {
+      marketAnalysisRefreshedAt.value = new Date().toISOString()
+    }).finally(() => {
+      marketAnalysisRefreshing.value = false
+      marketRefreshPromise = null
+    })
+    return marketRefreshPromise
   }
 
   async function loadETFHoldings(symbol: string) {
@@ -1057,6 +1084,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     isPersistenceLeader,
     marketGroups,
     groupSnapshots,
+    marketAnalysisRefreshing,
+    marketAnalysisRefreshedAt,
     breadth,
     breadthHistory,
     etfHoldings,
@@ -1084,6 +1113,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     loadGroupSnapshot,
     loadBreadth,
     loadBreadthHistory,
+    refreshMarketAnalysis,
     loadETFHoldings,
     loadETFConstituentSnapshot,
     loadETFIndustries,
