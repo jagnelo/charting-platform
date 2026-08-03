@@ -135,12 +135,20 @@ online locators, SHA-256 hashes, pixel dimensions, and Version 23 discovery-only
 They inform interaction discovery but cannot become V25 visual baselines unless an
 authorised pinned-build review confirms the surface is unchanged.
 
+The manifest also records official discovery candidates for the integrated column editor,
+column-group selection, and stacked-column drag/drop states. Their direct image locators
+were recovered from the help articles, but they intentionally remain non-approved because
+the pages do not prove exact build `25.0.9571`, complete capture environment, permissions,
+measurements, or human review.
+
 ### Watchlists, columns, filters, and market gauges
 
 - Column editor:
   <https://help.tc2000.com/m/125751/l/1874588-how-to-use-the-column-editor>
 - Column grouping:
   <https://help.tc2000.com/m/125751/l/1874601-how-to-group-columns>
+- Stacking columns:
+  <https://help.tc2000.com/m/125751/l/1874595-how-to-stack-columns-in-a-watchlist>
 - Add/remove columns:
   <https://help.tc2000.com/m/125751/l/1874629-how-to-add-or-remove-a-column-in-the-watchlist-window>
 - Rearrange/group/stack columns:
