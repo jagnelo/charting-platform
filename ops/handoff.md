@@ -14491,3 +14491,17 @@
 - The full goal remains active. V25 visual references remain `required_missing`,
   and the broad workstation/backend acceptance matrix is incomplete. Next: audit
   the next uncovered primary workstation contract without narrowing the goal.
+
+## 2026-08-03T13:15:00Z Coordinated top-down refresh checkpoint
+
+- Added a deduplicated `refreshMarketAnalysis` store command covering benchmark and
+  sector memberships, sector snapshot rankings, current breadth, and breadth history.
+  The authenticated workstation now exposes a dense Refresh control and polls those
+  active inputs every five minutes only while the document is visible. Concurrent
+  callers join the same request set and the store records the last successful refresh.
+- Focused workspace-store suite `18 passed`; TypeScript, production build, and
+  `git diff --check` passed. Commit `17982bfc213d4dd6577c38d591410d6acfbcb938`
+  pushed.
+- Full goal remains active; V25 visual references remain `required_missing` and the
+  broad workstation/backend acceptance matrix remains incomplete. Next: audit the
+  next uncovered primary workstation contract without narrowing the goal.

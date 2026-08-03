@@ -16493,6 +16493,17 @@ Append a short entry after each worker session.
   `03d5e55d8d8340605163c6c8b8cec1dcc19ac6cf` pushed.
 - Full workstation/backend and visual acceptance remain incomplete.
 
+## 2026-08-03T13:15:00Z Coordinated top-down refresh checkpoint
+
+- Added the deduplicated `refreshMarketAnalysis` workspace command for benchmark and
+  sector memberships, ranking snapshots, current breadth, and breadth history. The
+  workstation shell now provides an explicit Refresh control and a five-minute
+  visible-document poll; concurrent calls reuse one request set and last-success time
+  is retained in the store.
+- Focused workspace-store suite `18 passed`; TypeScript, production build, and
+  `git diff --check` passed. Commit `17982bfc213d4dd6577c38d591410d6acfbcb938`
+  pushed. Overall acceptance and approved V25 visual evidence remain incomplete.
+
 ## 2026-08-03T14:32:00Z Persisted research cancellation checkpoint
 
 - Added cancellation to the persisted Research Results browser for queued/running
