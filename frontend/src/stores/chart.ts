@@ -77,10 +77,6 @@ function createChartStore(storeId: string) {
       } catch { return [] }
     }
 
-    async function loadIndicatorsForInstrument(instrumentId: number) {
-      indicators.value = await fetchIndicatorsForInstrument(instrumentId)
-    }
-
     async function saveIndicatorsForInstrument() {
       if (!instrument.value) return
       try {
