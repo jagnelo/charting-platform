@@ -1,14 +1,14 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { apiGet } = vi.hoisted(() => ({ apiGet: vi.fn() }))
-vi.mock('@/lib/api', () => ({ api: { get: apiGet } }))
+const { apiGet, apiPost } = vi.hoisted(() => ({ apiGet: vi.fn(), apiPost: vi.fn() }))
+vi.mock('@/lib/api', () => ({ api: { get: apiGet, post: apiPost } }))
 vi.mock('@/components/workstation/StudyHistogramUPlot.vue', () => ({ default: { template: '<div class="histogram-chart" />', props: ['name', 'bins', 'current'] } }))
 
 import ResearchResultsTool from '@/components/workstation/ResearchResultsTool.vue'
 
 describe('ResearchResultsTool', () => {
-  beforeEach(() => apiGet.mockReset())
+  beforeEach(() => { apiGet.mockReset(); apiPost.mockReset() })
 
   it('loads persisted runs and exposes selected structured artifacts', async () => {
     apiGet.mockResolvedValue([{ id: 9, status: 'completed', reproducibility_hash: 'abc', diagnostics: [], artifacts: [{ id: 3, name: 'current_streak', artifact_type: 'scalar', payload: { value: 4 } }, { id: 4, name: 'distribution', artifact_type: 'histogram', payload: { value: { bins: [{ start: 1, end: 2, count: 1 }] } } }] }])
@@ -19,5 +19,19 @@ describe('ResearchResultsTool', () => {
     expect(wrapper.text()).toContain('Run #9')
     expect(wrapper.text()).toContain('current_streak')
     expect(wrapper.find('.histogram-chart').exists()).toBe(true)
+  })
+
+  it('cancels a queued persisted research run', async () => {
+    apiGet.mockResolvedValue([{ id: 12, status: 'running', code_version_id: 4, run_config: {}, dataset_manifest: {}, diagnostics: [], artifacts: [] }])
+    apiPost.mockResolvedValue({ id: 12, status: 'canceled' })
+    const wrapper = mount(ResearchResultsTool)
+    await flushPromises()
+
+    const cancel = wrapper.findAll('button').find(button => button.text() === 'Cancel')
+    expect(cancel).toBeDefined()
+    await cancel!.trigger('click')
+    await flushPromises()
+    expect(apiPost).toHaveBeenCalledWith('/research/runs/12/cancel', {})
+    expect(wrapper.text()).toContain('canceled')
   })
 })

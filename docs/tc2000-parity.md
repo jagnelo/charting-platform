@@ -41,3 +41,7 @@ uPlot instances.
 Queued Python EasyScan runs now expose their isolated research-run cancellation
 control in the primary workstation. Cancellation remains isolated to that run and
 the result polling path reconciles the terminal `canceled` state.
+
+The persisted Study Results browser exposes the same cancellation contract for
+queued/running research runs, preserving the run list and selected result while the
+isolated worker transitions to its terminal state.

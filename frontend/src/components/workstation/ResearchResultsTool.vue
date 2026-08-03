@@ -32,7 +32,7 @@
       <div><span>Reproducibility</span><b :class="comparisonClass('reproducibility_hash')">{{ comparisonRuns[0].reproducibility_hash ?? '—' }} / {{ comparisonRuns[1].reproducibility_hash ?? '—' }}</b></div>
     </section>
     <article v-if="selectedRun" class="research-results-tool__detail">
-      <div class="research-results-tool__detail-header"><strong>Run #{{ selectedRun.id }}</strong><button type="button" :disabled="rerunning" @click="rerun(selectedRun, true)">Rerun snapshot</button><button type="button" :disabled="rerunning" @click="rerun(selectedRun, false)">Rerun latest</button></div>
+      <div class="research-results-tool__detail-header"><strong>Run #{{ selectedRun.id }}</strong><button v-if="canCancel(selectedRun)" type="button" :disabled="canceling" @click="cancel(selectedRun)">Cancel</button><button type="button" :disabled="rerunning || canceling" @click="rerun(selectedRun, true)">Rerun snapshot</button><button type="button" :disabled="rerunning || canceling" @click="rerun(selectedRun, false)">Rerun latest</button></div>
       <small v-if="selectedRun.reproducibility_hash">{{ selectedRun.reproducibility_hash }}</small>
       <p v-if="selectedRun.diagnostics?.length">{{ selectedRun.diagnostics.join(' · ') }}</p>
       <div v-if="selectedRun.artifacts.length" class="research-results-tool__artifacts">
@@ -75,6 +75,7 @@ const comparisonOpen = ref(false)
 const loading = ref(false)
 const error = ref('')
 const rerunning = ref(false)
+const canceling = ref(false)
 const emit = defineEmits<{ occurrence: [event: { symbol: string; timestamp: string; kind?: string }] }>()
 const shouldPoll = computed(() => runs.value.some(run => !['completed', 'failed', 'canceled'].includes(run.status)))
 const comparisonRuns = computed(() => comparisonIds.value.map(id => runs.value.find(run => run.id === id)).filter((run): run is ResearchRunSummary => Boolean(run)))
@@ -122,6 +123,7 @@ function toggleComparison(id: number) {
 }
 function compact(value: unknown) { return JSON.stringify(value) }
 function comparisonClass(key: keyof ResearchRunSummary) { return JSON.stringify(comparisonRuns.value[0][key]) === JSON.stringify(comparisonRuns.value[1][key]) ? 'research-results-tool__same' : 'research-results-tool__changed' }
+function canCancel(run: ResearchRunSummary) { return !['completed', 'failed', 'canceled'].includes(run.status) }
 
 async function refresh() {
   loading.value = true
@@ -149,6 +151,19 @@ async function rerun(run: ResearchRunSummary, snapshot: boolean) {
     error.value = cause?.message ?? 'Unable to queue study rerun'
   } finally {
     rerunning.value = false
+  }
+}
+async function cancel(run: ResearchRunSummary) {
+  canceling.value = true
+  error.value = ''
+  try {
+    const canceled = await api.post<ResearchRunSummary>(`/research/runs/${run.id}/cancel`, {})
+    runs.value = runs.value.map(item => item.id === run.id ? { ...item, ...canceled, status: canceled.status ?? 'canceled' } : item)
+    if (selectedRun.value?.id === run.id) selectedRun.value = runs.value.find(item => item.id === run.id) ?? null
+  } catch (cause: any) {
+    error.value = cause?.message ?? 'Unable to cancel research run'
+  } finally {
+    canceling.value = false
   }
 }
 
