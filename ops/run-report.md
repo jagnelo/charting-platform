@@ -16446,3 +16446,13 @@ Append a short entry after each worker session.
   TypeScript, Ruff, and diff check passed.
 - Commit `702ae1dadc4d19bbc3132b5e1c3a5f9e98af58f0` pushed. Full acceptance remains
   incomplete, including required V25 visual evidence.
+
+## 2026-08-03T13:50:00Z Current-versus-history histogram checkpoint
+
+- Added an optional current observation to typed histogram artifacts and a gold
+  current-state marker in the shared uPlot bar renderer. Study Lab and persisted
+  results both pass through the value; empty/invalid states remain explicit.
+- Runner units `14 passed`; focused StudyLab/ResearchResults tests `2 passed`;
+  TypeScript/build, Ruff, and diff check passed.
+- Commit `002c06dbe2feb6df189821b6384124003065225b` pushed. The complete V25
+  workstation and acceptance matrix remain unfinished.

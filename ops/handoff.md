@@ -14407,3 +14407,16 @@
   StudyLabTool test and TypeScript passed; Ruff and diff check passed.
 - Commit `702ae1dadc4d19bbc3132b5e1c3a5f9e98af58f0` is pushed. V25 references and
   the broader full-goal acceptance matrix remain incomplete.
+
+## 2026-08-03T13:50:00Z Current-versus-history histogram checkpoint
+
+- Histogram artifacts now carry an optional current observation. The shared uPlot
+  renderer draws a gold marker against the historical buckets, clamping visibly when
+  the current state is outside the completed-observation range.
+- Empty distributions and non-finite current values remain structured and do not
+  produce misleading markers. Both live and persisted Study Lab surfaces pass the
+  current value through to the renderer.
+- Validation: runner units `14 passed`; focused StudyLab/ResearchResults tests `2
+  passed`; frontend TypeScript/build, Ruff, and diff check passed.
+- Commit `002c06dbe2feb6df189821b6384124003065225b` is pushed. V25 visual evidence
+  remains `required_missing`; overall acceptance remains open.
