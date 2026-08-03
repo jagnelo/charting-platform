@@ -2,6 +2,14 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-03T19:50:00Z Watchlist stale-progress cleanup
+
+- Clearing a linked universe now removes old Python run IDs/progress before replacement
+  evaluation, preventing stale cancellation controls.
+- Validation: focused watchlist suite `28 passed`; TypeScript, production build, and
+  `git diff --check` passed. Pushed `3b0f56f`; full suite remains `471`.
+- Strict V25 visual approval and the complete acceptance matrix remain open.
+
 ## 2026-08-03T19:48:00Z Relative Rotation controls
 
 - Relative Rotation now persists and sends universe, benchmark, timeframe, adjustment,

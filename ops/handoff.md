@@ -1,5 +1,15 @@
 # Active Handoff
 
+## Continuation update — 2026-08-03T19:50:00Z
+
+- Cleared stale virtual-watchlist Python run IDs/progress when a linked universe changes,
+  so cancellation controls cannot refer to the previous universe while its replacement
+  is evaluating.
+- Validation: focused watchlist suite `28 passed`; TypeScript, production build, and
+  `git diff --check` passed. Checkpoint `3b0f56f` pushed; full-suite count remains `471`.
+- Strict V25 visual approval remains `required_missing`; the broader workstation,
+  backend, security, performance, and end-to-end acceptance matrix remains incomplete.
+
 ## Continuation update — 2026-08-03T19:48:00Z
 
 - Parameterized Relative Rotation with persisted universe, benchmark, timeframe,
