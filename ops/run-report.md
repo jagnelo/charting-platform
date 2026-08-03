@@ -16693,3 +16693,12 @@ uncovered slice rather than repeat a generic completion claim.
   Commit `6a81557` pushed.
 - Full goal remains active. Strict visual evidence is still `required_missing` and the
   broad functional/security/performance/migration/end-to-end matrix remains outstanding.
+
+## 2026-08-03T16:17:42Z Editor-target and parity-evidence checkpoint
+
+- Added the shared editor-target guard and recorded the latest pop-out/keyboard behavior
+  in the parity matrix.
+- Validation: full frontend suite `445 passed` across `75` files; TypeScript, production
+  build, and `git diff --check` passed. Commit `975e5b7` pushed.
+- Full goal remains active. Strict visual evidence is still `required_missing` and the
+  broad functional/security/performance/migration/end-to-end matrix remains outstanding.

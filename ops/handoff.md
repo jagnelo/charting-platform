@@ -14587,6 +14587,17 @@
 - The strict V25 visual gate and broad acceptance matrix remain incomplete. Next worker:
   choose another concrete uncovered acceptance slice.
 
+## 2026-08-03T16:17:42Z Editor-target and parity-evidence checkpoint
+
+- Shell and uPlot keyboard shortcuts now share an editor-target guard covering native
+  controls, contenteditable/code editors, and role-textbox search surfaces.
+- The parity matrix records the pop-out persistence, symbol hydration, focused-list
+  routing, and editor-guard evidence. Full frontend Vitest passed `445` tests across
+  `75` files; TypeScript, production build, and `git diff --check` passed. Commit
+  `975e5b718ebd8dd098e6f217394d9c9ead225b33` pushed.
+- The strict V25 visual gate and broad acceptance matrix remain incomplete. Next worker:
+  choose another concrete uncovered acceptance slice.
+
 ## 2026-08-03T15:35:00Z Large-watchlist virtualization checkpoint
 
 - Added a 10,000-row `VirtualWatchlistTool` regression. It verifies the full logical
