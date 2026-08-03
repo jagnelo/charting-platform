@@ -48,7 +48,7 @@ describe('useWatchlistStore', () => {
     await store.renameWatchlist(1, 'Renamed')
     expect(store.watchlists.find(w => w.id === 1)?.name).toBe('Renamed')
 
-    await store.deleteWatchlist(2)
+    await expect(store.deleteWatchlist(2)).resolves.toBe(true)
     expect(store.watchlists.some(w => w.id === 2)).toBe(false)
   })
 
@@ -182,6 +182,14 @@ describe('useWatchlistStore', () => {
     } finally {
       if (originalChannel !== undefined) Object.defineProperty(globalThis, 'BroadcastChannel', { configurable: true, value: originalChannel })
     }
+  })
+
+  it('reports destructive delete failures without changing local list state', async () => {
+    const store = useWatchlistStore()
+    store.watchlists = [makeWatchlist()] as any
+    ;(api.delete as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('conflict'))
+    await expect(store.deleteWatchlist(1)).resolves.toBe(false)
+    expect(store.watchlists).toHaveLength(1)
   })
 
   it('computes quotes, price flashes, and single-bar fallbacks', async () => {

@@ -83,13 +83,15 @@ export const useWatchlistStore = defineStore('watchlist', () => {
     }
   }
 
-  async function deleteWatchlist(id: number) {
+  async function deleteWatchlist(id: number): Promise<boolean> {
     try {
       await api.delete(`/watchlists/${id}`)
       watchlists.value = watchlists.value.filter(w => w.id !== id)
       announceChanged(id)
+      return true
     } catch (e) {
       console.error('Failed to delete watchlist', e)
+      return false
     }
   }
 

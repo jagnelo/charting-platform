@@ -423,7 +423,8 @@ async function deletePersonalWatchlist() {
   personalListBusy.value = true
   personalWatchlistError.value = ''
   try {
-    await watchlistStore.deleteWatchlist(watchlist.id)
+    const deleted = await watchlistStore.deleteWatchlist(watchlist.id)
+    if (!deleted) throw new Error('Unable to delete personal watchlist')
     const next = personalWatchlists.value[0] ?? null
     selectedPersonalWatchlistId.value = next?.id ?? null
     personalListNameDraft.value = next?.name ?? ''

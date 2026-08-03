@@ -154,9 +154,10 @@ coverage remain functional evidence only; visual approval is still blocked by th
 reference manifest.
 
 Personal list management also exposes copy and confirmed deletion for editable lists.
-Deletion selects the next remaining user-owned list and persists that selection; locked
-and managed lists cannot be deleted, and the existing store/API error path remains
-visible rather than fabricating success.
+Deletion selects the next remaining user-owned list only after the canonical delete
+request succeeds; locked and managed lists cannot be deleted. A failed or conflicting
+delete returns an explicit failure, leaves the local list and selection unchanged, and
+surfaces recovery text rather than fabricating success.
 
 Watchlist mutations now publish a `BroadcastChannel` invalidation event. A floated tool
 that adds, removes, reorders, creates, renames, copies, locks, unlocks, seeds, deletes, or
