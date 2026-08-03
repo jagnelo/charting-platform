@@ -107,5 +107,7 @@ Virtualized watchlists now support desktop-style plain, Ctrl/Meta, and Shift sel
 while retaining canonical row activation. A multi-selection exposes a Compare action;
 the workstation routes it to the first non-ratio chart and persists up to six comparison
 symbols without changing the active symbol. Component coverage proves selection semantics
-and the full frontend suite remains green. This is functional evidence only; the Version
-25 visual reference remains unapproved.
+and the full frontend suite remains green. Arrow/Space traversal and Ctrl+wheel now also
+update the selection model, while filtering prunes symbols that are no longer visible;
+the pop-out binding test proves the comparison event reaches the persisted chart config.
+This is functional evidence only; the Version 25 visual reference remains unapproved.

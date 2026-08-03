@@ -2,6 +2,15 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-03T15:41:00Z Keyboard selection-state alignment
+
+- Unified keyboard traversal and Ctrl+wheel with the watchlist multi-selection model;
+  filtered-out symbols and anchors are pruned. Added pop-out comparison persistence
+  coverage.
+- Validation: full frontend Vitest `450 passed` across `76` files, TypeScript, production
+  build, and `git diff --check`.
+- Strict V25 visual approval and the full acceptance matrix remain open.
+
 ## 2026-08-03T15:36:15Z Watchlist multi-selection and comparison launch
 
 - Added desktop-style plain, Ctrl/Meta, and Shift selection to virtualized watchlists;

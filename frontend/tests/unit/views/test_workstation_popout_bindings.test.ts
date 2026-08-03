@@ -17,10 +17,17 @@ const harness = vi.hoisted(() => {
     link_group: 'blue',
     configuration: {} as Record<string, unknown>,
   }
+  const chartWindow = {
+    instance_key: 'chart-main',
+    tool_type: 'chart',
+    title: 'Chart',
+    link_group: 'blue',
+    configuration: {} as Record<string, unknown>,
+  }
   const tab = {
     stable_key: 'us-top-down',
     name: 'US Top Down',
-    windows: [popoutWindow, ratioWindow],
+    windows: [popoutWindow, chartWindow, ratioWindow],
     active_window_key: 'benchmark-list',
     layout_config: null,
   }
@@ -57,7 +64,7 @@ const harness = vi.hoisted(() => {
     openTool: vi.fn(),
     isEditorTarget: vi.fn(() => false),
   }
-  return { workspace, popoutWindow }
+  return { workspace, popoutWindow, chartWindow }
 })
 
 vi.mock('@/stores/workspace', () => ({
@@ -79,7 +86,7 @@ vi.mock('vue-router', () => ({
 import WorkstationView from '@/views/WorkstationView.vue'
 
 const ToolStub = defineComponent({
-  emits: ['conditionFilterMode', 'pinnedBooleanKeys', 'columnGroups', 'stackedColumnKeys', 'configuration', 'selectProxy'],
+  emits: ['conditionFilterMode', 'pinnedBooleanKeys', 'columnGroups', 'stackedColumnKeys', 'configuration', 'selectProxy', 'compare'],
   template: `<div class="tool-stub">
     <button class="mode" @click="$emit('conditionFilterMode', 'benchmark-list', 'active')">mode</button>
     <button class="pin" @click="$emit('pinnedBooleanKeys', 'benchmark-list', ['above_ma50'])">pin</button>
@@ -87,6 +94,7 @@ const ToolStub = defineComponent({
     <button class="stack" @click="$emit('stackedColumnKeys', 'benchmark-list', ['rsi14'])">stack</button>
     <button class="configuration" @click="$emit('configuration', 'benchmark-list', { column_keys: ['symbol'] })">configuration</button>
     <button class="proxy" @click="$emit('selectProxy', 'XLK')">proxy</button>
+    <button class="compare" @click="$emit('compare', ['SPY', 'XLK', 'XLE'])">compare</button>
   </div>`,
 })
 
@@ -94,6 +102,7 @@ describe('WorkstationView pop-out bindings', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     harness.popoutWindow.configuration = {}
+    harness.chartWindow.configuration = {}
   })
 
   it('forwards watchlist persistence and proxy events from a floated tool to the shell', async () => {
@@ -112,6 +121,7 @@ describe('WorkstationView pop-out bindings', () => {
     await wrapper.find('.groups').trigger('click')
     await wrapper.find('.stack').trigger('click')
     await wrapper.find('.proxy').trigger('click')
+    await wrapper.find('.compare').trigger('click')
 
     expect(harness.popoutWindow.configuration).toMatchObject({
       condition_filter_mode: 'active',
@@ -120,6 +130,7 @@ describe('WorkstationView pop-out bindings', () => {
       stacked_column_keys: ['rsi14'],
       column_keys: ['symbol'],
     })
+    expect(harness.chartWindow.configuration).toMatchObject({ comparison_symbols: ['XLK', 'XLE'] })
     expect(harness.workspace.selectIndustryProxy).toHaveBeenCalledWith('XLK')
     expect(harness.workspace.scheduleSnapshot).toHaveBeenCalled()
     expect(harness.workspace.publishSymbol).not.toHaveBeenCalled()

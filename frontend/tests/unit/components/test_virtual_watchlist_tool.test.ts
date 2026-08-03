@@ -352,6 +352,15 @@ describe('VirtualWatchlistTool', () => {
     expect(wrapper.emitted('select')?.at(-1)?.[0]).toMatchObject({ symbol: 'XLE', instrumentId: 2 })
   })
 
+  it('keeps keyboard traversal selection state aligned with the active row', async () => {
+    const wrapper = mount(VirtualWatchlistTool, { props: { label: 'Sectors', rows, selected: 'XLK' } })
+    await wrapper.find('.watchlist__scroll').trigger('keydown', { key: ' ' })
+    expect((wrapper.vm as unknown as { selectedSymbols: string[] }).selectedSymbols).toEqual(['XLV'])
+
+    await wrapper.setProps({ filterText: 'energy' })
+    expect((wrapper.vm as unknown as { selectedSymbols: string[] }).selectedSymbols).toEqual([])
+  })
+
   it('stops focused-list traversal at the watchlist boundary so the shell does not advance twice', async () => {
     let parentKeydownCount = 0
     const wrapper = mount({

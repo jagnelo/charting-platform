@@ -1,5 +1,15 @@
 # Active Handoff
 
+## Continuation update — 2026-08-03T15:41:00Z
+
+- Keyboard Arrow/Space traversal and Ctrl+wheel now update the same watchlist selection
+  model used by mouse multi-selection; filtering prunes unavailable selections and
+  anchors. Pop-out coverage now proves Compare reaches the persisted non-ratio chart.
+- Validation: full frontend Vitest `450 passed` across `76` files; TypeScript,
+  production build, and `git diff --check` passed.
+- The full goal remains active. Strict V25 visual approval is still `required_missing`,
+  and the broad backend/security/performance/end-to-end acceptance matrix remains open.
+
 ## Continuation update — 2026-08-03T15:36:15Z
 
 - Virtualized watchlists now support plain, Ctrl/Meta, and Shift selection while

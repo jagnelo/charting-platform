@@ -223,9 +223,12 @@ const virtualItems = computed(() => {
   // Golden Layout makes it measurable; never expand a hidden 10,000-row list.
   return [{ index: 0, key: 'unmeasured-first-row', size: 28, start: 0 }]
 })
-watch(filteredRows, () => {
+watch(filteredRows, rows => {
   renderEpoch.value += 1
   virtualizer.value.measure()
+  const availableSymbols = new Set(rows.map(row => row.symbol))
+  selectedSymbols.value = selectedSymbols.value.filter(symbol => availableSymbols.has(symbol))
+  if (selectionAnchor.value && !availableSymbols.has(selectionAnchor.value)) selectionAnchor.value = null
 })
 watch(filter, value => emit('update:filterText', value))
 watch(() => props.filterText, value => { if (value !== filter.value) filter.value = value })
@@ -591,14 +594,14 @@ function onKeydown(event: KeyboardEvent) {
   }
   const forward = event.key === 'ArrowDown' || (event.key === ' ' && !event.shiftKey)
   const next = Math.max(0, Math.min(filteredRows.value.length - 1, current + (forward ? 1 : -1)))
-  if (filteredRows.value[next]) emit('select', filteredRows.value[next])
+  if (filteredRows.value[next]) selectRow(filteredRows.value[next], { shiftKey: event.shiftKey, ctrlKey: event.ctrlKey, metaKey: event.metaKey } as MouseEvent)
 }
 
 function onCtrlWheel(event: WheelEvent) {
   const current = filteredRows.value.findIndex(row => row.symbol === props.selected)
   const direction = event.deltaY > 0 ? 1 : -1
   const next = Math.max(0, Math.min(filteredRows.value.length - 1, current + direction))
-  if (filteredRows.value[next]) emit('select', filteredRows.value[next])
+  if (filteredRows.value[next]) selectRow(filteredRows.value[next], { shiftKey: false, ctrlKey: false, metaKey: false } as MouseEvent)
 }
 </script>
 
