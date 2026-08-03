@@ -1,8 +1,18 @@
 from datetime import UTC, datetime
 from decimal import Decimal
 
+import pytest
+
 from app.models.ohlcv import OHLCVBar, Timeframe
-from app.routers.analysis import _calendar_year_cells, _is_known_at, _performance_cells
+from app.models.workstation import MarketGroup, MarketGroupMember
+from app.routers.analysis import (
+    _calendar_year_cells,
+    _group_members_at,
+    _group_provenance,
+    _is_known_at,
+    _performance_cells,
+    _truncate_bars_at,
+)
 
 
 def _bar(instrument_id: int, year: int, month: int, close: str) -> OHLCVBar:
@@ -74,3 +84,35 @@ def test_point_in_time_membership_normalises_legacy_naive_timestamps():
     as_of = datetime(2024, 3, 10, tzinfo=UTC)
     assert _is_known_at(datetime(2024, 3, 9), as_of)
     assert not _is_known_at(datetime(2024, 3, 11), as_of)
+
+
+def test_group_members_and_bars_are_cut_at_the_requested_time():
+    as_of = datetime(2024, 3, 10, tzinfo=UTC)
+    group = MarketGroup(stable_key="test", group_type="test", name="Test")
+    group.members = [
+        MarketGroupMember(
+            instrument_id=7,
+            effective_at=datetime(2024, 3, 1, tzinfo=UTC),
+            known_at=datetime(2024, 3, 2, tzinfo=UTC),
+        ),
+        MarketGroupMember(
+            instrument_id=8,
+            effective_at=datetime(2024, 3, 11, tzinfo=UTC),
+            known_at=datetime(2024, 3, 11, tzinfo=UTC),
+        ),
+    ]
+    assert [member.instrument_id for member in _group_members_at(group, as_of)] == [7]
+    bars = {7: [_bar(7, 2024, 1, "100"), _bar(7, 2024, 12, "120")]}
+    assert [bar.close for bar in _truncate_bars_at(bars, as_of)[7]] == [Decimal("100")]
+    assert _group_provenance(group, as_of)["membership_as_of"] == as_of.isoformat()
+
+
+def test_group_members_reject_a_group_unknown_at_the_requested_time():
+    group = MarketGroup(
+        stable_key="future",
+        group_type="test",
+        name="Future",
+        effective_at=datetime(2024, 4, 1, tzinfo=UTC),
+    )
+    with pytest.raises(Exception, match="market_group_not_known_at"):
+        _group_members_at(group, datetime(2024, 3, 10, tzinfo=UTC))

@@ -18,7 +18,7 @@ from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.provider_observation import DatasetStatus, InstrumentDatasetState
 from app.models.screener import ScreenerDefinition, ScreenerResult
 from app.models.user import User
-from app.models.workstation import MarketGroup
+from app.models.workstation import MarketGroup, MarketGroupMember
 from app.routers.market_groups import etf_industry_proxies
 from app.schemas.analysis import (
     AnalysisCell,
@@ -53,6 +53,39 @@ def _is_known_at(value: datetime | None, as_of: datetime | None) -> bool:
     if value.tzinfo is None and as_of.tzinfo is not None:
         value = value.replace(tzinfo=as_of.tzinfo)
     return value <= as_of
+
+
+def _group_members_at(group: MarketGroup, as_of: datetime | None) -> list[MarketGroupMember]:
+    """Select a group's versioned members without admitting future membership."""
+    if not _is_known_at(group.effective_at, as_of) or not _is_known_at(group.known_at, as_of):
+        raise HTTPException(
+            404,
+            detail={"code": "market_group_not_known_at", "group_key": group.stable_key},
+        )
+    return [
+        member
+        for member in group.members
+        if _is_known_at(member.effective_at, as_of) and _is_known_at(member.known_at, as_of)
+    ]
+
+
+def _truncate_bars_at(
+    bars_by_id: dict[int, list[OHLCVBar]], as_of: datetime | None
+) -> dict[int, list[OHLCVBar]]:
+    if as_of is None:
+        return bars_by_id
+    return {
+        instrument_id: [bar for bar in bars if bar.ts <= as_of]
+        for instrument_id, bars in bars_by_id.items()
+    }
+
+
+def _group_provenance(group: MarketGroup, as_of: datetime | None) -> dict[str, object]:
+    return {
+        **(group.provenance or {}),
+        "membership_as_of": as_of.isoformat() if as_of else None,
+        "membership_selection": "effective_at_and_known_at",
+    }
 
 
 @router.get("/gauges/{screener_id}", response_model=MarketGaugeOut)
@@ -486,17 +519,8 @@ async def group_relative_rotation(
     ).scalar_one_or_none()
     if group is None:
         raise HTTPException(404, detail={"code": "market_group_not_found", "group_key": group_key})
-    if not _is_known_at(group.effective_at, as_of) or not _is_known_at(group.known_at, as_of):
-        raise HTTPException(
-            404,
-            detail={"code": "market_group_not_known_at", "group_key": group_key},
-        )
     benchmark_instrument = await _instrument(db, benchmark)
-    members = [
-        member
-        for member in group.members
-        if _is_known_at(member.effective_at, as_of) and _is_known_at(member.known_at, as_of)
-    ]
+    members = _group_members_at(group, as_of)
     instrument_ids = [member.instrument_id for member in members]
     instruments = {
         instrument.id: instrument
@@ -507,11 +531,7 @@ async def group_relative_rotation(
     bars_by_id = await _bars_by_instrument(
         db, [*instrument_ids, benchmark_instrument.id], timeframe, adjusted
     )
-    if as_of is not None:
-        bars_by_id = {
-            instrument_id: [bar for bar in bars if bar.ts <= as_of]
-            for instrument_id, bars in bars_by_id.items()
-        }
+    bars_by_id = _truncate_bars_at(bars_by_id, as_of)
     benchmark_bars = {bar.ts: bar for bar in bars_by_id.get(benchmark_instrument.id, [])}
     rows: list[RelativeRotationRow] = []
     for member in sorted(members, key=lambda item: item.position):
@@ -608,11 +628,7 @@ async def group_relative_rotation(
         lookback=lookback,
         tail_length=tail_length,
         membership_version=group.id,
-        universe_provenance={
-            **(group.provenance or {}),
-            "membership_as_of": as_of.isoformat() if as_of else None,
-            "membership_selection": "effective_at_and_known_at",
-        },
+        universe_provenance=_group_provenance(group, as_of),
         as_of=as_of,
         freshness=freshness,
         freshness_detail=freshness_detail,
@@ -1038,6 +1054,7 @@ async def group_snapshot(
     benchmark: str | None = Query(default=None),
     timeframe: Timeframe = Timeframe.D1,
     adjusted: bool = True,
+    as_of: datetime | None = Query(default=None),
     _: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -1050,7 +1067,8 @@ async def group_snapshot(
     ).scalar_one_or_none()
     if group is None:
         raise HTTPException(404, detail={"code": "market_group_not_found", "group_key": group_key})
-    instrument_ids = [member.instrument_id for member in group.members]
+    members = _group_members_at(group, as_of)
+    instrument_ids = [member.instrument_id for member in members]
     instruments = {
         item.id: item
         for item in (
@@ -1059,7 +1077,9 @@ async def group_snapshot(
     }
     benchmark_instrument = await _instrument(db, benchmark) if benchmark else None
     all_ids = instrument_ids + ([benchmark_instrument.id] if benchmark_instrument else [])
-    bars_by_id = await _bars_by_instrument(db, all_ids, timeframe, adjusted)
+    bars_by_id = _truncate_bars_at(
+        await _bars_by_instrument(db, all_ids, timeframe, adjusted), as_of
+    )
     benchmark_bars = (
         {bar.ts: bar for bar in bars_by_id.get(benchmark_instrument.id, [])}
         if benchmark_instrument
@@ -1075,7 +1095,7 @@ async def group_snapshot(
     rows: list[GroupSnapshotRow] = []
     exclusions: list[AnalysisWarning] = []
     covered = 0
-    for member in sorted(group.members, key=lambda item: item.position):
+    for member in sorted(members, key=lambda item: item.position):
         instrument = instruments.get(member.instrument_id)
         if instrument is None:
             exclusions.append(
@@ -1213,10 +1233,10 @@ async def group_snapshot(
         ),
         adjustment="split_adjusted" if adjusted else "raw",
         membership_version=group.id,
-        universe_provenance=group.provenance or {},
+        universe_provenance=_group_provenance(group, as_of),
         freshness=freshness,
         freshness_detail=freshness_detail,
-        coverage=covered / max(len(group.members), 1),
+        coverage=covered / max(len(members), 1),
         exclusions=exclusions,
         rows=rows,
     )
@@ -1227,6 +1247,7 @@ async def group_breadth(
     group_key: str,
     timeframe: Timeframe = Timeframe.D1,
     adjusted: bool = True,
+    as_of: datetime | None = Query(default=None),
     _: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -1239,14 +1260,16 @@ async def group_breadth(
     ).scalar_one_or_none()
     if group is None:
         raise HTTPException(404, detail={"code": "market_group_not_found", "group_key": group_key})
-    bars_by_id = await _bars_by_instrument(
-        db, [member.instrument_id for member in group.members], timeframe, adjusted
+    members = _group_members_at(group, as_of)
+    bars_by_id = _truncate_bars_at(
+        await _bars_by_instrument(db, [member.instrument_id for member in members], timeframe, adjusted),
+        as_of,
     )
     counts = {20: 0, 50: 0, 200: 0}
     eligible = {20: 0, 50: 0, 200: 0}
     exclusions: list[AnalysisWarning] = []
     as_of = None
-    for member in group.members:
+    for member in members:
         bars = bars_by_id.get(member.instrument_id, [])
         if bars:
             as_of = max(as_of, bars[-1].ts) if as_of else bars[-1].ts
@@ -1265,7 +1288,7 @@ async def group_breadth(
                 )
             )
     freshness, freshness_detail = await _batch_freshness(
-        db, [member.instrument_id for member in group.members], timeframe
+        db, [member.instrument_id for member in members], timeframe
     )
     return BreadthOut(
         group_key=group_key,
@@ -1273,11 +1296,11 @@ async def group_breadth(
         adjustment="split_adjusted" if adjusted else "raw",
         as_of=as_of,
         membership_version=group.id,
-        universe_provenance=group.provenance or {},
+        universe_provenance=_group_provenance(group, as_of),
         freshness=freshness,
         freshness_detail=freshness_detail,
-        evaluated_count=len(group.members),
-        coverage=sum(1 for bars in bars_by_id.values() if bars) / max(len(group.members), 1),
+        evaluated_count=len(members),
+        coverage=sum(1 for bars in bars_by_id.values() if bars) / max(len(members), 1),
         above_ma={
             f"ma{period}": counts[period] / eligible[period] if eligible[period] else None
             for period in counts
@@ -1292,6 +1315,7 @@ async def group_breadth_history(
     timeframe: Timeframe = Timeframe.D1,
     adjusted: bool = True,
     limit: int = Query(default=500, ge=1, le=5_000),
+    as_of: datetime | None = Query(default=None),
     _: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -1305,13 +1329,15 @@ async def group_breadth_history(
     ).scalar_one_or_none()
     if group is None:
         raise HTTPException(404, detail={"code": "market_group_not_found", "group_key": group_key})
+    members = _group_members_at(group, as_of)
     periods = (20, 50, 200)
     buckets: dict = {}
     exclusions: list[AnalysisWarning] = []
-    bars_by_id = await _bars_by_instrument(
-        db, [member.instrument_id for member in group.members], timeframe, adjusted
+    bars_by_id = _truncate_bars_at(
+        await _bars_by_instrument(db, [member.instrument_id for member in members], timeframe, adjusted),
+        as_of,
     )
-    for member in group.members:
+    for member in members:
         bars = bars_by_id.get(member.instrument_id, [])
         if not bars:
             exclusions.append(
@@ -1340,20 +1366,20 @@ async def group_breadth_history(
                 for period in periods
             },
             coverage={
-                f"ma{period}": values[period][1] / max(len(group.members), 1) for period in periods
+                f"ma{period}": values[period][1] / max(len(members), 1) for period in periods
             },
         )
         for timestamp, values in sorted(buckets.items())
     ][-limit:]
     freshness, freshness_detail = await _batch_freshness(
-        db, [member.instrument_id for member in group.members], timeframe
+        db, [member.instrument_id for member in members], timeframe
     )
     return BreadthHistoryOut(
         group_key=group.stable_key,
         timeframe=timeframe.value,
         adjustment="split_adjusted" if adjusted else "raw",
         membership_version=group.id,
-        universe_provenance=group.provenance or {},
+        universe_provenance=_group_provenance(group, as_of),
         freshness=freshness,
         freshness_detail=freshness_detail,
         points=points,

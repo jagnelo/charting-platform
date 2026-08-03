@@ -566,6 +566,68 @@ class TestWorkspaces:
             for point in payload["rows"][0]["tail"]
         )
 
+    def test_group_snapshot_and_breadth_apply_the_same_point_in_time_cutoff(
+        self, client, auth_headers, db, instrument, ohlcv_bars
+    ):
+        from datetime import UTC, datetime
+
+        from app.models.workstation import MarketGroup, MarketGroupMember
+
+        group = MarketGroup(
+            stable_key="point-in-time-batch-test", group_type="test", name="Point-in-time batch"
+        )
+        db.add(group)
+        db.flush()
+        db.add(
+            MarketGroupMember(
+                market_group_id=group.id,
+                instrument_id=instrument.id,
+                position=0,
+                effective_at=datetime(2024, 3, 15, tzinfo=UTC),
+                known_at=datetime(2024, 3, 20, tzinfo=UTC),
+            )
+        )
+        db.flush()
+
+        before = client.get(
+            "/api/v1/analysis/groups/point-in-time-batch-test/snapshot",
+            headers=auth_headers,
+            params={"as_of": "2024-03-10T23:59:59Z"},
+        )
+        assert before.status_code == 200
+        assert before.json()["rows"] == []
+
+        params = {"as_of": "2024-03-31T23:59:59Z"}
+        snapshot = client.get(
+            "/api/v1/analysis/groups/point-in-time-batch-test/snapshot",
+            headers=auth_headers,
+            params=params,
+        )
+        assert snapshot.status_code == 200
+        snapshot_payload = snapshot.json()
+        assert snapshot_payload["rows"]
+        assert snapshot_payload["coverage"] == 1
+        assert snapshot_payload["universe_provenance"]["membership_as_of"] == params["as_of"]
+        assert snapshot_payload["rows"][0]["last"]["observation_time"] <= params["as_of"]
+
+        breadth = client.get(
+            "/api/v1/analysis/groups/point-in-time-batch-test/breadth",
+            headers=auth_headers,
+            params=params,
+        )
+        assert breadth.status_code == 200
+        breadth_payload = breadth.json()
+        assert breadth_payload["evaluated_count"] == 1
+        assert breadth_payload["universe_provenance"]["membership_as_of"] == params["as_of"]
+
+        history = client.get(
+            "/api/v1/analysis/groups/point-in-time-batch-test/breadth/history",
+            headers=auth_headers,
+            params={**params, "limit": 50},
+        )
+        assert history.status_code == 200
+        assert all(point["timestamp"] <= params["as_of"] for point in history.json()["points"])
+
     def test_etf_constituent_snapshot_is_point_in_time_and_source_labelled(
         self, client, auth_headers, db, instrument, instrument_type, ohlcv_bars
     ):

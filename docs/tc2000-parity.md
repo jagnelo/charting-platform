@@ -50,6 +50,11 @@ requested time, and never uses future members or future observations in the rati
 The Docker-backed regression is recorded but remains unexecuted in the current environment
 because its Docker socket is unavailable; unit coverage proves the timestamp-selection helper.
 
+The same cutoff contract is now available on group snapshots, current breadth, and breadth
+history. Sector ranking, equal-weight comparison, and breadth history can therefore be
+replayed against a declared membership/bar cutoff, with shared provenance and coverage
+metadata instead of silently mixing current membership with historical observations.
+
 Queued Python EasyScan runs now expose their isolated research-run cancellation
 control in the primary workstation. Cancellation remains isolated to that run and
 the result polling path reconciles the terminal `canceled` state.
