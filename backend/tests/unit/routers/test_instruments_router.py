@@ -3,13 +3,16 @@ from decimal import Decimal
 
 import pytest
 
+from app.models.exchange import Exchange
 from app.models.instrument import Instrument
 from app.models.instrument_stats import InstrumentStats
+from app.models.listing import InstrumentListing
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.providers.base import InstrumentProfile, ListingRecord
 from app.routers.instruments import (
     _create_from_provider,
     _ensure_52w_stats,
+    _instrument_search_exchange,
     _needs_52w_stats_refresh,
 )
 from tests.unit.conftest import AsyncSessionAdapter
@@ -107,6 +110,30 @@ class TestInstrumentAutoCreate:
         assert created is not None
         assert created.symbol == "CSCO"
         assert seen_provider_name == "yfinance"
+
+
+def test_search_exchange_prefers_active_primary_listing_mic(instrument_type):
+    instrument = Instrument(
+        symbol="SPY",
+        name="SPDR S&P 500 ETF Trust",
+        instrument_type_id=instrument_type.id,
+    )
+    instrument.listings = [
+        InstrumentListing(
+            ticker="SPY",
+            is_active=True,
+            is_primary=True,
+            exchange=Exchange(mic="ARCX", name="NYSE Arca"),
+        ),
+        InstrumentListing(
+            ticker="SPY",
+            is_active=False,
+            is_primary=False,
+            exchange=Exchange(mic="XNAS", name="Nasdaq"),
+        ),
+    ]
+
+    assert _instrument_search_exchange(instrument) == "ARCX"
 
 
 class TestInstrument52WStats:
