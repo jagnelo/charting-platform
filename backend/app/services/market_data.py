@@ -545,12 +545,25 @@ async def fetch_ohlcv(
     cached = list((await db.execute(stmt)).scalars().all())
 
     if _needs_fetch_for_range(cached, timeframe, start, end):
-        try:
-            new_bars = await _fetch_provider(db, instrument, timeframe, start, end, adjusted)
-        except ProviderNoDataError:
-            if not cached:
-                raise
-            new_bars = []
+        repair_slices = _missing_range_slices(cached, timeframe, start, end)
+        # A current-window request may have no obvious bounded gap while still
+        # needing a freshness refresh. In that case retain the existing range
+        # fetch semantics; historical/internal gaps use only their slices.
+        if not repair_slices:
+            repair_slices = [(start, end)]
+        new_bars: list[OHLCVBar] = []
+        for repair_start, repair_end in repair_slices:
+            if repair_end < repair_start:
+                continue
+            try:
+                new_bars.extend(
+                    await _fetch_provider(
+                        db, instrument, timeframe, repair_start, repair_end, adjusted
+                    )
+                )
+            except ProviderNoDataError:
+                if not cached:
+                    raise
         if new_bars:
             try:
                 await db.execute(
@@ -643,8 +656,57 @@ def _needs_fetch_for_range(
     threshold = _TF_STALENESS.get(timeframe, timedelta(minutes=20))
     range_is_historical = end <= (datetime.now(UTC) - threshold)
     if fully_covered and range_is_historical:
-        return False
+        return bool(_missing_range_slices(cached, timeframe, start, end))
     return _needs_fetch(cached, timeframe)
+
+
+def _missing_range_slices(
+    cached: list[OHLCVBar],
+    timeframe: Timeframe,
+    start: datetime,
+    end: datetime,
+) -> list[tuple[datetime, datetime]]:
+    """Return bounded edge/obvious internal gaps for an explicit range.
+
+    The database stores bars, not exchange calendars.  Exact calendar-aware
+    inference is therefore unsafe for daily sessions (weekends and holidays
+    are legitimate gaps).  Edge gaps are exact; internal gaps are repaired
+    only when their distance is materially larger than the timeframe interval,
+    which avoids treating ordinary non-trading days as missing bars.
+    """
+    if not cached:
+        return [(start, end)]
+
+    step = timedelta(seconds=TIMEFRAME_SECONDS[timeframe])
+    start = _as_utc(start)
+    end = _as_utc(end)
+    ordered = sorted(_as_utc(bar.ts) for bar in cached if start <= _as_utc(bar.ts) <= end)
+    if not ordered:
+        return [(start, end)]
+
+    # Daily sessions can legitimately be separated by a weekend; intraday
+    # and higher timeframes use a tighter threshold for obvious holes.
+    tolerance = 4 if timeframe == Timeframe.D1 else 2
+    slices: list[tuple[datetime, datetime]] = []
+
+    if ordered[0] > start + step:
+        slices.append((start, ordered[0] - step))
+    elif ordered[0] > start:
+        slices.append((start, ordered[0]))
+
+    for previous, current in zip(ordered, ordered[1:]):
+        if current - previous > step * tolerance:
+            gap_start = previous + step
+            gap_end = current - step
+            if gap_start <= gap_end:
+                slices.append((gap_start, gap_end))
+
+    if ordered[-1] < end - step:
+        slices.append((ordered[-1] + step, end))
+    elif ordered[-1] < end:
+        slices.append((ordered[-1], end))
+
+    return slices
 
 
 async def _fetch_provider(

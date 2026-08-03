@@ -40,6 +40,12 @@ local page is short. It anchors the request at the oldest cached bar (or a minim
 bootstrap window) with a small overlap, rather than fetching from the 1970 epoch; pure
 service tests cover both warm-tail and cold-start calculations.
 
+Explicit historical range reads now also detect bounded edge gaps and only obvious
+internal gaps. Those slices are fetched independently instead of refetching the full
+requested range; daily weekend-sized gaps are deliberately left alone because the local
+bar store does not yet carry an exchange-calendar guarantee. Focused service tests cover
+internal repair and the no-fetch historical-weekend case.
+
 The isolated image also installs pinned NumPy/Pandas wheels at build time and exposes
 only restricted `np`/`pd` facades to user code. File/external-data methods are rejected
 by source validation; NumPy/Pandas values are normalized before artifact persistence.
