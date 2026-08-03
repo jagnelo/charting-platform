@@ -1,5 +1,14 @@
 # Active Handoff
 
+## Continuation update — 2026-08-03T23:55:00Z
+
+- Added a deterministic local XNYS daily session calendar to OHLCV coverage and repair.
+  USD instruments now ignore expected weekends, Good Friday, observed market holidays,
+  and Juneteenth while still reporting missing weekdays; instruments without a supported
+  calendar retain conservative interval-based behavior.
+- Focused market-data/coverage suite `7 passed`; Ruff and diff checks passed. Strict V25
+  visual approval and the complete acceptance matrix remain open.
+
 ## Continuation update — 2026-08-03T23:50:00Z
 
 - Added official help discovery candidates for the integrated column editor, grouped

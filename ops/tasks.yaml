@@ -36,6 +36,7 @@ tasks:
       - Docker-backed notes integration proves per-user read/upsert isolation; linked note/alert race coverage remains green.
       - Flagged Items now has component evidence for its marker, source-item identity, and Unflag action.
       - Official column-editor, grouped-column, and stacked-column help states are catalogued as direct-locator discovery candidates without being misrepresented as exact-build visual baselines.
+      - USD OHLCV coverage and repair now use a deterministic local XNYS daily session calendar; unknown-calendar instruments retain conservative gap handling.
       - Strict Version 25 visual approval and the full backend/frontend/security/performance/acceptance matrix remain open gates.
     locked_decisions:
       - TC2000 Version 25 desktop build 25.0.9571 is the pinned visual and interaction reference.

@@ -2,6 +2,14 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-03T23:55:00Z XNYS daily coverage calendar
+
+- Coverage and historical repair now accept an explicit local XNYS calendar for USD
+  instruments, distinguishing expected closures from missing weekdays without a paid
+  calendar API or provider fan-out.
+- Focused market-data/coverage tests `7 passed`; Ruff and diff checks passed. Strict V25
+  visual approval and the complete acceptance matrix remain open.
+
 ## 2026-08-03T23:50:00Z Official column-state discovery references
 
 - Added official help discovery candidates for integrated column-editor, grouped-column,
