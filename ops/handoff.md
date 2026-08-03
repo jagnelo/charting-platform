@@ -14531,6 +14531,16 @@
   broad workstation/backend acceptance matrix remains incomplete. Next: continue the
   broad workstation/backend audit.
 
+## 2026-08-03T15:35:00Z Large-watchlist virtualization checkpoint
+
+- Added a 10,000-row `VirtualWatchlistTool` regression. It verifies the full logical
+  row count and virtual scroll height while rendered row DOM remains below 100 nodes,
+  preserving the large-universe performance invariant.
+- Focused watchlist component suite `19 passed`; commit `879166b` pushed. Full goal
+  remains active; approved V25 visual references remain `required_missing` and the
+  broad workstation/backend acceptance matrix remains incomplete. Next: continue
+  the requirement audit.
+
 ## 2026-08-03T14:50:00Z Sector by Year calendar-analysis checkpoint
 
 - Group snapshots now return five bounded calendar-year performance cells per row,

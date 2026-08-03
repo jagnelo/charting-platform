@@ -16632,3 +16632,11 @@ Append a short entry after each worker session.
 - Validation: focused ratio-expression tests `2 passed`, TypeScript, and
   `git diff --check` passed. Commit `e613d49` pushed.
 - Full completion and approved V25 visual evidence remain outstanding.
+
+## 2026-08-03T15:35:00Z Large-watchlist virtualization checkpoint
+
+- Added explicit 10,000-row watchlist acceptance coverage. The test proves the
+  rendered DOM stays bounded while the logical count and scroll height represent the
+  entire universe.
+- Focused `VirtualWatchlistTool` suite `19 passed`; commit `879166b` pushed. Full
+  completion and approved V25 visual evidence remain outstanding.
