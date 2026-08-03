@@ -16930,3 +16930,12 @@ uncovered slice rather than repeat a generic completion claim.
 - Full backend unit `867 passed`, total coverage `70.20%`; provider-focused suite `77
   passed`; Ruff, compile, and diff checks passed. Code commit `ab2e499` pushed. Strict V25
   visual approval and the broad acceptance matrix remain incomplete.
+
+## 2026-08-03T17:12:00Z Alpha listing-status checkpoint
+
+- Extended Alpha Vantage with `LISTING_STATUS` active-equity discovery evidence containing
+  symbol, exchange, asset type, status, IPO date, and delisting date, while preserving
+  explicit empty results for unsupported types or missing credentials.
+- Full backend unit `868 passed`, total coverage `70.19%`; provider suite `78 passed`;
+  Ruff and diff checks passed. Code commit `b8cd33f` pushed. Strict V25 visual approval
+  and the broad acceptance matrix remain incomplete.

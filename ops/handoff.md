@@ -14803,6 +14803,17 @@
 - Strict V25 visual validation remains intentionally blocked at
   `application-shell-default/default: required_missing`; full goal remains active.
 
+## 2026-08-03T17:12:00Z Alpha listing-status checkpoint
+
+- Alpha Vantage now also exposes `LISTING_STATUS` active-equity pages as source-labelled
+  universe evidence, retaining symbol, exchange, asset type, status, IPO date, and
+  delisting date fields. Unsupported quote types and missing credentials remain explicit
+  empty results.
+- Verification: full backend unit `868 passed, 34 warnings`, total coverage `70.19%`;
+  provider suite `78 passed`; Ruff and `git diff --check` passed. Commit `b8cd33f` pushed.
+- Strict V25 visual validation remains intentionally blocked at
+  `application-shell-default/default: required_missing`; full goal remains active.
+
 ## 2026-08-03T16:10:29Z Floated-tool persistence checkpoint
 
 - Floated workstation tools now forward condition-filter mode, Boolean pinning, column
