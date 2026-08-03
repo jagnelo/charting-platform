@@ -63,7 +63,14 @@ class Settings(BaseSettings):
     DEFAULT_OPTIONS_PROVIDER: str = "yfinance"
     IDENTIFIER_PROVIDER_PRIORITY: list[str] = ["openfigi"]
     OPTION_QUOTE_HISTORY_PROVIDER_PRIORITY: list[str] = []
-    PROVIDER_CHAIN_SEEDS: dict[str, list[str]] = {}
+    PROVIDER_CHAIN_SEEDS: dict[str, list[str]] = {
+        "instrument_search": ["edgar", "alpaca", "massive", "alpha_vantage"],
+        "instrument_metadata": ["edgar"],
+        "price_history": ["alpaca", "alpha_vantage"],
+        "latest_price": ["alpaca", "alpha_vantage"],
+        "instrument_events": ["alpaca", "edgar"],
+        "universe_discovery": ["alpaca", "massive", "alpha_vantage"],
+    }
     PROVIDER_RATE_LIMIT_SEEDS: dict[str, dict[str, int]] = {}
     PROVIDER_FRESHNESS_SEEDS: dict[str, int] = {}
     PROVIDER_USAGE_PROFILE_SEEDS: dict[str, dict] = {}

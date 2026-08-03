@@ -6,6 +6,7 @@ from decimal import Decimal
 import pytest
 from sqlalchemy import select
 
+from app.config import settings
 from app.models.data_source import DataSource
 from app.models.provider_runtime import (
     ProviderCapability,
@@ -169,8 +170,13 @@ async def test_seed_provider_runtime_backfills_missing_policy_defaults(db):
 
 
 @pytest.mark.asyncio
-async def test_seed_provider_runtime_resyncs_unpinned_base_priority(db):
+async def test_seed_provider_runtime_resyncs_unpinned_base_priority(db, monkeypatch):
     async_db = AsyncSessionAdapter(db)
+    monkeypatch.setattr(
+        settings,
+        "PROVIDER_CHAIN_SEEDS",
+        {"instrument_search": ["edgar", "coingecko"]},
+    )
     data_source = DataSource(name="coingecko")
     db.add(data_source)
     db.flush()
@@ -200,7 +206,10 @@ async def test_seed_provider_runtime_resyncs_unpinned_base_priority(db):
         )
     ).scalar_one()
 
-    assert policy.base_priority == 20
+    expected_priority = (
+        settings.PROVIDER_CHAIN_SEEDS["instrument_search"].index("coingecko") + 1
+    ) * 10
+    assert policy.base_priority == expected_priority
 
 
 def test_bucket_rebuilds_when_policy_limits_change():
