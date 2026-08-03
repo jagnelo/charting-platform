@@ -1,5 +1,18 @@
 # Active Handoff
 
+## Continuation update — 2026-08-03T20:18:00Z
+
+- Relative Rotation now accepts an optional point-in-time cutoff, filters market-group
+  members by `effective_at`/`known_at`, truncates local bars at the same cutoff, and returns
+  the cutoff plus membership-selection provenance. Groups not known at the requested time
+  are rejected instead of producing historical leakage.
+- Validation: full backend unit suite `871 passed` at `70.18%` coverage; focused timestamp
+  tests `5 passed`; Ruff and `git diff --check` passed. The new Docker-backed integration
+  regression was attempted but Docker socket access is denied in this environment.
+  Checkpoint `ba5ec90` pushed.
+- Strict V25 visual approval remains `required_missing`; the broader workstation,
+  backend, security, performance, and end-to-end acceptance matrix remains incomplete.
+
 ## Continuation update — 2026-08-03T20:07:00Z
 
 - Added integration coverage for invalid retained EasyScan result-history limits (`0` and

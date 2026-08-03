@@ -2,6 +2,16 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-03T20:18:00Z Point-in-time Relative Rotation
+
+- Relative Rotation now applies optional `as_of` cutoffs to versioned group membership and
+  local bars, echoing the cutoff and provenance rule while rejecting groups unknown at that
+  time.
+- Validation: backend unit suite `871 passed` at `70.18%`; focused timestamp tests `5 passed`;
+  Ruff/diff passed. Docker-backed integration was attempted but unavailable because the
+  environment denies Docker socket access. Pushed `ba5ec90`.
+- Strict V25 visual approval and the complete acceptance matrix remain open.
+
 ## 2026-08-03T20:07:00Z Screener result-history bound regression
 
 - Added integration coverage proving `/screeners/{id}/results` rejects limits outside
