@@ -2,6 +2,14 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-03T21:00:00Z Relative Rotation sampling
+
+- Added the bounded 1–30 aligned-observation sampling cadence to Relative Rotation, with
+  latest-point retention, persisted frontend/factory configuration, and response metadata.
+- Backend focused analysis tests `7 passed`; frontend focused Rotation/workspace tests `24
+  passed`; TypeScript/Ruff/diff checks passed. Pushed `9682ac8`.
+- Strict V25 visual approval and the complete acceptance matrix remain open.
+
 ## 2026-08-03T20:50:00Z Persisted ratio point-in-time control
 
 - RatioUPlot now has a persisted `As of` date control wired through both workstation ratio

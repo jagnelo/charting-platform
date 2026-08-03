@@ -1,5 +1,16 @@
 # Active Handoff
 
+## Continuation update — 2026-08-03T21:00:00Z
+
+- Completed the missing Relative Rotation sampling contract. The backend accepts bounded
+  cadence `1..30`, samples aligned ratio observations while retaining the latest point,
+  and uses the sampled series consistently for trend, momentum, and tails. The frontend
+  persists and sends the control, and factory defaults now declare sampling `1`.
+- Validation: backend analysis helpers `7 passed`; frontend Relative Rotation/workspace
+  tests `24 passed`; TypeScript, Ruff, and `git diff --check` passed. Checkpoint `9682ac8`
+  pushed. Strict visual approval and the broad workstation/backend acceptance matrix remain
+  incomplete.
+
 ## Continuation update — 2026-08-03T20:50:00Z
 
 - Made the ratio point-in-time capability a real workstation feature: RatioUPlot now

@@ -4,8 +4,8 @@
     "active_worker": "Codex",
     "worker_session_started_at": "2026-07-28T21:40:33Z",
     "worker_soft_stop_at": null,
-    "last_handoff_at": "2026-08-03T20:50:00Z",
-    "last_commit": "383382101d488326271842669b08b55298a68a15 feat(workstation): persist ratio point-in-time controls",
+    "last_handoff_at": "2026-08-03T21:00:00Z",
+    "last_commit": "9682ac8c150ce808f649b23c026d9907fc4b928b feat(analysis): add relative rotation sampling",
     "git_ready_to_commit": true,
     "validation": {
         "backend_lint": "passed (code validation, restricted numerical facades, isolated research runner/resource restoration, screener, visual, analysis, research, OHLCV session model, and migration modules, 2026-08-03)",
@@ -13,7 +13,7 @@
         "frontend_tests": "passed: full frontend Vitest suite 474 across 77 files, including persisted RatioUPlot As-of controls and workstation configuration wiring; focused ratio/pop-out tests 7 passed; TypeScript and production build passed; the existing workstation, watchlist, Study Lab, linking, polling, and 10,000-row coverage remains green; full Chromium flows 22 and focused acceptance slices remain recorded, 2026-08-03T20:50:00Z",
         "frontend_build": "passed (TypeScript and production build after Add Tool analysis registry expansion, 2026-08-03T19:54:00Z)",
         "alembic_upgrade": "disposable PostgreSQL 16 validation passed: full chain upgrades to d3e4f5a6b7c8, downgrades to d2a3b4c5d6e7, re-upgrades, and direct SQL verifies ohlcv_bar.session default plus ix_ohlcv_instrument_tf_session_ts; container removed 2026-08-03T16:30:00Z",
-        "diff_check": "passed (2026-08-03T20:50:00Z persisted ratio point-in-time control)",
+        "diff_check": "passed (2026-08-03T21:00:00Z relative rotation sampling)",
         "playwright": "rebuilt isolated branch stack: full Chromium flows.spec.ts passed 22 tests after unified Python Boolean watchlist-condition filtering, including chart-template rendering/projection save/apply/symbol preservation/delete; visual/multi-environment acceptance remains required, 2026-07-30",
         "console_check": "passed for focused F6/F7/F8b Chromium flow diagnostics (no unexpected console/page/request failures), 2026-07-30; full acceptance still required",
         "backend_log_check": "fresh branch stack logs confirm Alembic upgrade through head, successful top-down taxonomy seed, scheduler/API startup, passing health checks, and no instrument_indicator_config UndefinedTable/500 after focused browser acceptance; rebuilt backend was healthy after prepared-universe batch API addition",
@@ -21,6 +21,7 @@
         "yaml_json_parse": "passed (state.json, visual-reference manifest YAML, .env.example provider-chain JSON, and Docker Compose YAML validated; official release notes confirm pinned build 25.0.9571 while the available official help image remains a 25.0.9172.22877 discovery candidate; strict visual validator intentionally rejects application-shell-default/default as required_missing, 2026-08-03T20:40:00Z)"
     },
     "notes": [
+        "2026-08-03T21:00:00Z: Added Relative Rotation sampling cadence 1..30 with latest-point retention and consistent sampled trend/momentum/tail calculations; persisted frontend and factory configuration. Backend focused analysis 7 passed, frontend focused Rotation/workspace 24 passed, TypeScript/Ruff/diff passed, checkpoint 9682ac8 pushed. Strict visual approval and the broad acceptance matrix remain incomplete.",
         "2026-08-03T20:50:00Z: Made ratio point-in-time analysis a real workstation feature with a persisted RatioUPlot As-of control wired through automatic and expression ratio windows. Focused ratio/pop-out tests 7 passed, full frontend suite 474 passed across 77 files, TypeScript/build/diff passed, checkpoint 3833821 pushed. Strict visual approval and the broad acceptance matrix remain incomplete.",
         "2026-08-03T20:40:00Z: Extended point-in-time correctness to relative-strength ratios; both local legs are truncated before alignment and the cutoff is echoed, with optional RatioUPlot support. Backend focused helpers 7 passed, frontend full suite 472 passed, ratio tests 4 passed, TypeScript/build/Ruff/diff passed; Docker-backed route execution was blocked by socket permission, checkpoint 27d7cf1 pushed. Strict visual approval and the broad acceptance matrix remain incomplete.",
         "2026-08-03T20:31:00Z: Expanded the V25 visual-reference manifest with four official Version 25 pinning-column discovery candidates (menu, result, indicator, secondary-sort), including source URLs, build metadata, SHA-256 hashes, and resolutions. YAML/visual-manifest/diff validation passed; checkpoint 962c60d pushed. Candidates remain unapproved until exact-build continuity, measurements, permissions, and human review are recorded; strict visual approval and the broad acceptance matrix remain incomplete.",
