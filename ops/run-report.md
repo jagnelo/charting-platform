@@ -17608,5 +17608,5 @@ uncovered slice rather than repeat a generic completion claim.
   null-safe numeric rendering and sorting.
 - Validation: backend unit `888` passed; workspace integration `23` passed under Python
   3.12; frontend Vitest `494` across `80` files passed; TypeScript, production build,
-  Ruff, and diff checks passed. Strict V25 visual approval and broad acceptance remain
-  open. Commit/push pending.
+  Ruff, and diff checks passed. Checkpoint `05b18d7` is committed and pushed. Strict
+  V25 visual approval and broad acceptance remain open.

@@ -15838,6 +15838,6 @@
   targets; the workstation batches configured columns across active list sources and
   the virtualized editor renders null-safe numeric values and sorting.
 - Validation passed: backend unit `888`, workspace integration `23`, frontend Vitest
-  `494` across `80` files, TypeScript, production build, Ruff, and diff checks. Commit
-  and push are pending. Strict V25 visual approval, provider probes, Docker-backed
-  broad acceptance, and filter/condition promotion remain open.
+  `494` across `80` files, TypeScript, production build, Ruff, and diff checks.
+  Checkpoint `05b18d7` is committed and pushed. Strict V25 visual approval, provider
+  probes, Docker-backed broad acceptance, and filter/condition promotion remain open.
