@@ -1,5 +1,16 @@
 # Active Handoff
 
+## Continuation update — 2026-08-03T21:18:00Z
+
+- Extended Relative Rotation rows with transparent `heading`, `distance`, vector
+  `velocity`, state `transition`, and consecutive `time_in_state` metrics. The backend
+  derives them from sampled aligned coordinates; the dense companion table now exposes
+  them alongside trend, momentum, coverage, and tail length.
+- Validation: backend analysis helper suite `8 passed`; full frontend Vitest `474 passed`
+  across 77 files; focused rotation tests `2 passed`; TypeScript, production build, Ruff,
+  and `git diff --check` passed. Checkpoint `2320049` pushed. Strict visual approval and
+  the broad workstation/backend acceptance matrix remain incomplete.
+
 ## Continuation update — 2026-08-03T21:08:00Z
 
 - Extracted the Relative Rotation sampling rule into a pure backend helper and added

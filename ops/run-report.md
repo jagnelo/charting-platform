@@ -2,6 +2,15 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-03T21:18:00Z Relative Rotation state metrics
+
+- Added heading, distance, velocity, transition, and time-in-state to the transparent
+  Relative Rotation response and companion table.
+- Backend analysis helpers `8 passed`; full frontend Vitest `474 passed` across 77 files;
+  focused rotation tests `2 passed`; TypeScript/build/Ruff/diff checks passed. Pushed
+  `2320049`.
+- Strict V25 visual approval and the complete acceptance matrix remain open.
+
 ## 2026-08-03T21:08:00Z Rotation sampling unit evidence
 
 - Extracted and tested the sampling helper used by Relative Rotation; cadence 1 remains
