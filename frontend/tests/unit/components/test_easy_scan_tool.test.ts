@@ -1,8 +1,8 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { describe, expect, it, vi } from 'vitest'
 
-const { apiGet, apiPost } = vi.hoisted(() => ({ apiGet: vi.fn(), apiPost: vi.fn() }))
-vi.mock('@/lib/api', () => ({ api: { get: apiGet, post: apiPost, put: vi.fn() } }))
+const { apiGet, apiPost, apiPut } = vi.hoisted(() => ({ apiGet: vi.fn(), apiPost: vi.fn(), apiPut: vi.fn() }))
+vi.mock('@/lib/api', () => ({ api: { get: apiGet, post: apiPost, put: apiPut } }))
 
 import EasyScanTool from '@/components/workstation/EasyScanTool.vue'
 
@@ -74,5 +74,23 @@ describe('EasyScanTool', () => {
     expect(cancel).toBeDefined()
     await cancel!.trigger('click')
     expect(apiPost).toHaveBeenCalledWith('/research/runs/99/cancel', {})
+  })
+
+  it('saves an advanced technical condition tree through the shared condition contract', async () => {
+    apiGet.mockResolvedValue([])
+    apiPut.mockResolvedValue({ stable_key: 'rsi-tree', name: 'RSI tree', version: 1, payload: { condition: {} } })
+    const wrapper = mount(EasyScanTool)
+    await flushPromises()
+    await wrapper.get('button.easy-scan__advanced-toggle').trigger('click')
+    await wrapper.get('input[aria-label="Condition name"]').setValue('RSI tree')
+    await wrapper.get('select[aria-label="Advanced condition operator"]').setValue('OR')
+    await wrapper.get('.easy-scan__advanced .tech-cond-card select.form-select').setValue('indicator_threshold')
+    await wrapper.findAll('button').find(button => button.text() === 'Save')!.trigger('click')
+    await flushPromises()
+
+    expect(apiPut).toHaveBeenCalledWith('/workspaces/library/conditions/rsi-tree', expect.objectContaining({
+      name: 'RSI tree',
+      condition: expect.objectContaining({ operator: 'OR', conditions: [expect.objectContaining({ type: 'indicator_threshold' })] }),
+    }))
   })
 })

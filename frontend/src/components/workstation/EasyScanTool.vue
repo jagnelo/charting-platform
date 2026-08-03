@@ -7,6 +7,25 @@
       <input v-model="value" aria-label="Condition threshold" inputmode="decimal" placeholder="Value" />
       <button type="button" :disabled="busy || !validCondition" @click="saveCondition">Save</button>
     </div>
+    <button type="button" class="easy-scan__advanced-toggle" @click="toggleAdvancedConditions">{{ advancedMode ? 'Use simple condition' : 'Build technical condition tree' }}</button>
+    <div v-if="advancedMode" class="easy-scan__advanced" aria-label="Advanced technical condition builder">
+      <header>
+        <span>Technical conditions</span>
+        <select v-model="advancedOperator" aria-label="Advanced condition operator">
+          <option value="AND">Match all (AND)</option>
+          <option value="OR">Match any (OR)</option>
+          <option value="NOT">Exclude (NOT)</option>
+        </select>
+      </header>
+      <TechnicalConditionEditor
+        v-for="(condition, index) in advancedConditions"
+        :key="index"
+        v-model="advancedConditions[index]"
+        :can-remove="advancedConditions.length > 1"
+        @remove="advancedConditions.splice(index, 1)"
+      />
+      <button type="button" @click="advancedConditions.push(createDefaultTechnicalCondition())">+ Add condition</button>
+    </div>
     <div class="easy-scan__controls">
       <select v-model="selectedKey" :disabled="busy" aria-label="Saved condition">
         <option value="">Select saved condition</option>
@@ -29,6 +48,8 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { api } from '@/lib/api'
+import TechnicalConditionEditor from '@/components/common/TechnicalConditionEditor.vue'
+import { createDefaultTechnicalCondition } from '@/lib/technicalConditions'
 
 type ConditionAsset = { stable_key: string; name: string; version: number; payload: { condition?: Record<string, unknown> } }
 type ScanResult = { matched_ids: number[]; result_data: Record<string, unknown>; error: string | null }
@@ -41,6 +62,9 @@ const conditionName = ref('')
 const field = ref('close')
 const operator = ref('gt')
 const value = ref('')
+const advancedMode = ref(false)
+const advancedOperator = ref<'AND' | 'OR' | 'NOT'>('AND')
+const advancedConditions = ref<any[]>([])
 const scanName = ref('')
 const busy = ref(false)
 const status = ref('')
@@ -54,7 +78,9 @@ const pythonResearchRunId = computed(() => {
   const value = result.value?.result_data?._python_research_run_id
   return Number.isInteger(value) ? value as number : null
 })
-const validCondition = computed(() => Boolean(conditionName.value) && Number.isFinite(Number(value.value)))
+const validCondition = computed(() => Boolean(conditionName.value) && (advancedMode.value
+  ? advancedConditions.value.length > 0
+  : Number.isFinite(Number(value.value))))
 const coverageText = computed(() => {
   const coverage = result.value?.result_data._coverage as { evaluated_count?: number; universe_count?: number; excluded?: Record<string, unknown> } | undefined
   if (!coverage) return 'coverage unavailable'
@@ -76,14 +102,21 @@ async function load() {
 function stableKey(name: string) {
   return name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 72) || 'condition'
 }
+function toggleAdvancedConditions() {
+  advancedMode.value = !advancedMode.value
+  if (advancedMode.value && !advancedConditions.value.length) advancedConditions.value.push(createDefaultTechnicalCondition())
+}
 async function saveCondition() {
   if (!validCondition.value) return
   busy.value = true; error.value = ''; status.value = 'Saving condition…'
   const key = stableKey(conditionName.value)
   try {
+    const condition = advancedMode.value
+      ? { operator: advancedOperator.value, conditions: advancedConditions.value }
+      : { operator: 'AND', conditions: [{ type: 'price_threshold', field: field.value, op: operator.value, value: Number(value.value) }] }
     const saved = await api.put<ConditionAsset>(`/workspaces/library/conditions/${encodeURIComponent(key)}`, {
       name: conditionName.value,
-      condition: { operator: 'AND', conditions: [{ type: 'price_threshold', field: field.value, op: operator.value, value: Number(value.value) }] },
+      condition,
       dependency_metadata: { source: 'workstation-easyscan-builder', version: 1 },
     })
     const index = conditions.value.findIndex(item => item.stable_key === saved.stable_key)
@@ -145,9 +178,14 @@ onMounted(() => { void load() })
 </script>
 
 <style scoped>
-.easy-scan { display: grid; align-content: start; gap: 6px; height: 100%; padding: 6px; background: #11161b; color: #c7d0d8; font: 10px "Segoe UI", Arial, sans-serif; }
+.easy-scan { display: grid; align-content: start; gap: 6px; height: 100%; overflow: auto; padding: 6px; background: #11161b; color: #c7d0d8; font: 10px "Segoe UI", Arial, sans-serif; }
 .easy-scan__builder { display: grid; grid-template-columns: minmax(70px, 1fr) 56px 34px 58px 38px; gap: 3px; }
 .easy-scan__controls { display: grid; grid-template-columns: minmax(90px, 1fr) minmax(90px, 1fr) minmax(80px, 1fr) 38px; gap: 3px; }
+.easy-scan__advanced-toggle { justify-self: start; padding: 2px 6px; }
+.easy-scan__advanced { display: grid; gap: 5px; padding: 5px; border: 1px solid #34434e; background: #151b20; }
+.easy-scan__advanced header { display: flex; align-items: center; justify-content: space-between; color: #a9bbc5; }
+.easy-scan__advanced header select { width: 130px; }
+.easy-scan__advanced > button { justify-self: start; padding: 2px 6px; }
 input, select, button { min-width: 0; border: 1px solid #34434e; background: #172027; color: #d2dce3; font: inherit; }
 input { padding: 2px 4px; } button { cursor: pointer; } button:disabled { cursor: default; opacity: .5; }
 .easy-scan__state, .easy-scan__result, .easy-scan__error { margin: 2px 0; color: #8498a6; } .easy-scan__result b { color: #78b9e4; } .easy-scan__error { color: #e99a9a; }.easy-scan__alert { display:flex; gap:3px; margin-top:4px; }.easy-scan__alert select,.easy-scan__alert button { border:1px solid #34434e; background:#172027; color:#d2dce3; font:inherit; }
