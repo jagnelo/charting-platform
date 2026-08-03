@@ -37,3 +37,7 @@ The relative-rotation uPlot surface now updates `setData`/`setSize` in place dur
 resize and data refresh; it destroys the chart only during component teardown. A
 dedicated regression test proves repeated resize callbacks do not create additional
 uPlot instances.
+
+Queued Python EasyScan runs now expose their isolated research-run cancellation
+control in the primary workstation. Cancellation remains isolated to that run and
+the result polling path reconciles the terminal `canceled` state.

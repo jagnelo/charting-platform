@@ -48,4 +48,31 @@ describe('EasyScanTool', () => {
     expect(apiPost).toHaveBeenCalledWith('/alerts/screener', { screener_id: 7, trigger_type: 'entered', repeat: true })
     expect(wrapper.text()).toContain('Alert active')
   })
+
+  it('exposes cancellation for a queued isolated Python scan', async () => {
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/workspaces/library/conditions') return Promise.resolve([])
+      if (path === '/code/assets') return Promise.resolve([{ kind: 'condition', name: 'Queued', versions: [{ id: 43, version_number: 1, output_contract: 'boolean' }] }])
+      if (path === '/screeners/8/results') return Promise.resolve([{ matched_ids: [], result_data: { _status: 'canceled', _python_research_run_id: 99 }, error: null }])
+      return Promise.resolve([])
+    })
+    apiPost.mockImplementation((path: string) => {
+      if (path === '/screeners/from-python-condition/43') return Promise.resolve({ id: 8 })
+      if (path === '/screeners/8/run') return Promise.resolve({ matched_ids: [], result_data: { _status: 'queued', _python_research_run_id: 99 }, error: null })
+      if (path === '/research/runs/99/cancel') return Promise.resolve({ status: 'canceled' })
+      return Promise.resolve({})
+    })
+
+    const wrapper = mount(EasyScanTool)
+    await flushPromises()
+    await wrapper.get('select[aria-label="Python condition"]').setValue('43')
+    await wrapper.get('input[aria-label="Scan name"]').setValue('Queued scan')
+    await wrapper.findAll('button').find(button => button.text() === 'Run')!.trigger('click')
+    await flushPromises()
+
+    const cancel = wrapper.findAll('button').find(button => button.text() === 'Cancel')
+    expect(cancel).toBeDefined()
+    await cancel!.trigger('click')
+    expect(apiPost).toHaveBeenCalledWith('/research/runs/99/cancel', {})
+  })
 })

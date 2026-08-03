@@ -20,7 +20,7 @@
       <button type="button" :disabled="busy || (!selectedKey && !selectedPythonVersion) || !scanName" @click="run">Run</button>
     </div>
     <p v-if="error" class="easy-scan__error">{{ error }}</p>
-    <p v-else-if="busy" class="easy-scan__state">{{ status }}</p>
+    <p v-else-if="busy" class="easy-scan__state"><span>{{ status }}</span><button v-if="pythonResearchRunId" type="button" @click="cancelPythonRun">Cancel</button></p>
     <div v-else-if="result" class="easy-scan__result"><b>{{ result.matched_ids.length }}</b> matches · {{ coverageText }}<span class="easy-scan__alert"><select v-model="alertTrigger" aria-label="Scan alert trigger"><option value="entered">Entry</option><option value="left">Exit</option><option value="both">Entry/exit</option></select><button type="button" :disabled="busy || !scanId" @click="createAlert">{{ alertCreated ? 'Alert active' : 'Alert' }}</button></span></div>
     <p v-else class="easy-scan__state">Save a price/volume condition, then run it against local canonical data.</p>
   </section>
@@ -49,6 +49,11 @@ const result = ref<ScanResult | null>(null)
 const scanId = ref<number | null>(null)
 const alertTrigger = ref('entered')
 const alertCreated = ref(false)
+const cancelRequested = ref(false)
+const pythonResearchRunId = computed(() => {
+  const value = result.value?.result_data?._python_research_run_id
+  return Number.isInteger(value) ? value as number : null
+})
 const validCondition = computed(() => Boolean(conditionName.value) && Number.isFinite(Number(value.value)))
 const coverageText = computed(() => {
   const coverage = result.value?.result_data._coverage as { evaluated_count?: number; universe_count?: number; excluded?: Record<string, unknown> } | undefined
@@ -91,7 +96,7 @@ async function saveCondition() {
 }
 async function run() {
   if ((!selectedKey.value && !selectedPythonVersion.value) || !scanName.value) return
-  busy.value = true; error.value = ''; result.value = null; scanId.value = null; alertCreated.value = false; status.value = 'Preparing local EasyScan…'
+  busy.value = true; error.value = ''; result.value = null; scanId.value = null; alertCreated.value = false; cancelRequested.value = false; status.value = 'Preparing local EasyScan…'
   try {
     let scan: { id: number }
     try {
@@ -119,6 +124,13 @@ async function run() {
     }
   } catch (cause: any) { error.value = cause?.message ?? 'Unable to run scan' }
   finally { busy.value = false }
+}
+async function cancelPythonRun() {
+  if (!pythonResearchRunId.value || cancelRequested.value) return
+  cancelRequested.value = true
+  status.value = 'Cancel requested…'
+  try { await api.post(`/research/runs/${pythonResearchRunId.value}/cancel`, {}) }
+  catch (cause: any) { cancelRequested.value = false; error.value = cause?.message ?? 'Unable to cancel Python scan' }
 }
 async function createAlert() {
   if (!scanId.value || alertCreated.value) return
