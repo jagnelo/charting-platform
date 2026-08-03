@@ -16456,3 +16456,14 @@ Append a short entry after each worker session.
   TypeScript/build, Ruff, and diff check passed.
 - Commit `002c06dbe2feb6df189821b6384124003065225b` pushed. The complete V25
   workstation and acceptance matrix remain unfinished.
+
+## 2026-08-03T14:00:00Z Restricted numerical-facade checkpoint
+
+- Added build-time pinned NumPy/Pandas dependencies to the isolated runner and
+  exposed restricted `np`/`pd` facades. Source validation rejects file/external-data
+  calls, and output materialization converts safe numerical/table values to JSON data.
+- Runner/validation units `21 passed` with `--no-cov`; focused StudyLab test,
+  TypeScript, Ruff, and diff check passed. Docker build and in-image imports reported
+  NumPy `2.1.3` and Pandas `2.2.3`.
+- Commit `097b52dd3292b4fca1feb649c13f73669a32f0b6` pushed. Full acceptance remains
+  incomplete, including required V25 visual evidence.

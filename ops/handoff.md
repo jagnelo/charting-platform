@@ -14420,3 +14420,17 @@
   passed`; frontend TypeScript/build, Ruff, and diff check passed.
 - Commit `002c06dbe2feb6df189821b6384124003065225b` is pushed. V25 visual evidence
   remains `required_missing`; overall acceptance remains open.
+
+## 2026-08-03T14:00:00Z Restricted numerical-facade checkpoint
+
+- The research-runner image now installs pinned NumPy `2.1.3` and Pandas `2.2.3`
+  at build time. User code receives restricted `np`/`pd` facades for numerical
+  summaries, arrays, rolling operations, and bounded table conversion—not full
+  modules with file/network APIs.
+- Source validation rejects NumPy/Pandas file and external-data methods. Scalar,
+  series, and table outputs normalize NumPy/Pandas values before persistence.
+- Validation: runner/validation units `21 passed` with `--no-cov`; focused StudyLab
+  test and TypeScript passed; Ruff/diff passed; research-runner Docker build and
+  in-image NumPy/Pandas import check passed.
+- Commit `097b52dd3292b4fca1feb649c13f73669a32f0b6` is pushed. Full V25 visual and
+  broader workstation/backend acceptance remain open.
