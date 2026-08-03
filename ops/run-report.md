@@ -2,6 +2,14 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-03T19:14:00Z Chart symbol-load race protection
+
+- Chart-store instrument, indicator, OHLCV, transformed-bar, loading/error, and coverage
+  state now commit only for the current symbol/timeframe/bar-type generation.
+- Validation: full frontend Vitest `465 passed` across 77 files; TypeScript, production
+  build, and `git diff --check` passed. Pushed `3b8e6c3`.
+- Strict V25 visual approval and the complete acceptance matrix remain open.
+
 ## 2026-08-03T19:11:00Z Linked alert mutation regression
 
 - Added regression coverage for an alert mutation completing after its tool is relinked;

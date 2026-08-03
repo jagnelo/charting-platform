@@ -1,5 +1,15 @@
 # Active Handoff
 
+## Continuation update — 2026-08-03T19:14:00Z
+
+- Added a generation boundary to chart loading so rapid symbol changes cannot let stale
+  instrument metadata, indicators, OHLCV, transformed bars, loading/error state, or
+  coverage updates overwrite the current uPlot model.
+- Validation: full frontend Vitest `465 passed` across 77 files; TypeScript, production
+  build, and `git diff --check` passed. Checkpoint `3b8e6c3` pushed.
+- Strict V25 visual approval remains `required_missing`; the broader workstation,
+  backend, security, performance, and end-to-end acceptance matrix remains incomplete.
+
 ## Continuation update — 2026-08-03T19:11:00Z
 
 - Added the final linked-alert regression for a mutation that completes after relinking;
