@@ -15873,3 +15873,12 @@
   warnings and coverage.
 - Workspace integration `23` and Ruff passed. Checkpoint `e29600f` is committed and
   pushed; strict V25 visual approval and broad acceptance remain open.
+## 2026-08-03T23:18:00Z Indicator query-deduplication checkpoint
+
+- Routed indicator-column batches through the shared TanStack Vue Query cache keyed by
+  sorted canonical symbols, indicator parameters, timeframe, adjustment, and output.
+  Docked/pop-out watchlists now reuse active results instead of duplicate per-window
+  requests.
+- Full frontend Vitest `495` across `80` files, TypeScript, production build, and diff
+  checks passed. Commit/push pending; strict V25 visual approval and broad acceptance
+  remain open.

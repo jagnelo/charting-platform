@@ -335,6 +335,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, provide, ref, watch } from 'vue'
+import { useQueryClient } from '@tanstack/vue-query'
 import { api } from '@/lib/api'
 import UPlotChart from '@/components/chart/UPlotChart.vue'
 import DrawingToolbar from '@/components/chart/DrawingToolbar.vue'
@@ -384,6 +385,7 @@ const drawingsStore = useDrawingsStore()
 const alertsStore = useAlertsStore()
 const workspaceStore = useWorkspaceStore()
 const watchlistStore = useWatchlistStore()
+const queryClient = useQueryClient()
 const configuredWatchlistId = props.tool.configuration.watchlist_id
 const flaggedItemsSelected = ref(configuredWatchlistId === 'flagged')
 const configuredComboKey = typeof configuredWatchlistId === 'string' && configuredWatchlistId.startsWith('combo:') ? configuredWatchlistId.slice(6) : null
@@ -1204,8 +1206,14 @@ async function loadIndicatorColumns(rows: Array<{ symbol: string }>) {
   const nextWarnings: Record<string, Record<string, string | null>> = {}
   await Promise.all(columns.map(async column => {
     try {
-      const response = await api.post<{ values: Record<string, { value?: number | null; warning?: { code?: string } | null }> }>('/analysis/indicator-batch', {
-        symbols, indicator: column.indicator, params: { ...column.params, ...(column.output ? { output: column.output } : {}) }, timeframe: column.timeframe, adjusted: true,
+      const params = { ...column.params, ...(column.output ? { output: column.output } : {}) }
+      const requestSymbols = [...symbols].sort()
+      const response = await queryClient.fetchQuery({
+        queryKey: ['workstation', 'indicator-batch', requestSymbols, column.indicator, params, column.timeframe, true],
+        queryFn: () => api.post<{ values: Record<string, { value?: number | null; warning?: { code?: string } | null }> }>('/analysis/indicator-batch', {
+          symbols: requestSymbols, indicator: column.indicator, params, timeframe: column.timeframe, adjusted: true,
+        }),
+        staleTime: 30_000,
       })
       next[column.key] = Object.fromEntries(Object.entries(response.values ?? {}).map(([symbol, cell]) => [symbol, cell?.value ?? null]))
       nextWarnings[column.key] = Object.fromEntries(Object.entries(response.values ?? {}).map(([symbol, cell]) => [symbol, cell?.warning?.code ?? null]))

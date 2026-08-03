@@ -217,6 +217,10 @@ than triggering provider fan-out. The same promotion flow can create an EasyScan
 from the saved condition and bind it to a selected watchlist window as an active persisted
 filter; later filter edits still use the shared integrated column/filter controls. Visual
 approval remains blocked by the V25 reference manifest.
+Indicator-column requests use the shared TanStack Vue Query cache keyed by the sorted
+canonical symbol set, indicator parameters, timeframe, adjustment, and output, so
+docked/pop-out watchlists reuse active results instead of fanning out duplicate requests;
+the 30-second cache window is separate from historical chart polling.
 
 Floated workstation tools now forward watchlist condition modes, Boolean pinning,
 column grouping/stacking, arbitrary serializable configuration, and industry-proxy
