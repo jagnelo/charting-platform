@@ -184,6 +184,28 @@ describe('VirtualWatchlistTool', () => {
     expect(wrapper.findAll('.watchlist__row')).toHaveLength(0)
   })
 
+  it('ignores a late saved-condition result after the linked universe changes', async () => {
+    const resultResolvers: Array<(value: unknown) => void> = []
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/screeners') return Promise.resolve([{ id: 93, name: 'Late condition' }])
+      if (path === '/screeners/93/results') return new Promise(resolve => { resultResolvers.push(resolve) })
+      return Promise.resolve([])
+    })
+    const wrapper = mount(VirtualWatchlistTool, { props: { label: 'Sectors', rows } })
+    await vi.waitFor(() => expect(wrapper.findAll('option')).toHaveLength(2))
+    await wrapper.find('select').setValue('93')
+    await vi.waitFor(() => expect(resultResolvers.length).toBeGreaterThan(0))
+    await wrapper.setProps({ rows: [{ instrumentId: 4, symbol: 'NEW', name: 'New universe' }] })
+    await vi.waitFor(() => expect(resultResolvers.length).toBeGreaterThan(1))
+
+    const latest = resultResolvers.pop()!
+    latest([{ matched_ids: [], run_at: '2026-08-03T00:00:00Z' }])
+    await vi.waitFor(() => expect(wrapper.find('.watchlist__controls b').text()).toBe('0'))
+    for (const resolve of resultResolvers) resolve([{ matched_ids: [4], run_at: '2026-08-02T00:00:00Z' }])
+    await new Promise(resolve => setTimeout(resolve, 0))
+    expect(wrapper.find('.watchlist__controls b').text()).toBe('0')
+  })
+
   it('sorts a selected column without losing row identity', async () => {
     const wrapper = mount(VirtualWatchlistTool, {
       props: { label: 'Sectors', rows },

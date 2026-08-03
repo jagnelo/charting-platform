@@ -146,6 +146,13 @@ not expose either mutation. The focused virtual-list suite covers source-item-ID
 preservation during drag/drop and the explicit removal boundary; visual approval remains
 blocked by the V25 reference manifest.
 
+Virtualized watchlist condition and Python batch requests now carry both a request
+generation and a linked-universe generation. Changing the active universe invalidates
+late results, starts evaluation for the new rows, and prevents old matches, progress,
+errors, or cancellation state from filtering or annotating the replacement list. A
+focused regression resolves the old saved-condition request after the new universe and
+proves that the new rows remain unfiltered by stale matches.
+
 The same tool now supports creating and renaming user-owned lists in place. The selected
 list name and ID remain serializable workspace state, while managed/locked rename paths
 are disabled and backend `409` conflicts are surfaced as explicit recovery text rather

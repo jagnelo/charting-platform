@@ -193,6 +193,10 @@ const pythonRunIds = ref<Record<string, number>>({})
 const pythonProgress = ref<Record<string, string>>({})
 const runningPythonColumns = new Set<number>()
 const runningPythonConditions = new Set<number>()
+const rowsGeneration = ref(0)
+const conditionRequestGeneration = ref(0)
+const pythonConditionRequestGeneration = ref(0)
+const pythonColumnRequestGenerations = new Map<number, number>()
 const renderEpoch = ref(0)
 const pythonColumns = computed(() => props.pythonColumns.filter(column => Number.isInteger(column.code_version_id) && column.code_version_id > 0 && typeof column.name === 'string'))
 const pythonCondition = computed(() => props.pythonCondition && Number.isInteger(props.pythonCondition.code_version_id) && props.pythonCondition.code_version_id > 0 && typeof props.pythonCondition.name === 'string' ? props.pythonCondition : null)
@@ -357,13 +361,19 @@ async function runPythonColumn(column: { code_version_id: number; name: string }
   if (!symbols.length) return
   runningPythonColumns.add(column.code_version_id)
   const key = pythonKey(column.code_version_id)
+  const requestGeneration = (pythonColumnRequestGenerations.get(column.code_version_id) ?? 0) + 1
+  pythonColumnRequestGenerations.set(column.code_version_id, requestGeneration)
+  const universeGeneration = rowsGeneration.value
+  const isCurrent = () => pythonColumnRequestGenerations.get(column.code_version_id) === requestGeneration && rowsGeneration.value === universeGeneration
   pythonCells.value = { ...pythonCells.value, [key]: Object.fromEntries(symbols.map(symbol => [symbol, { error: 'Queued' }])) }
   pythonProgress.value = { ...pythonProgress.value, [key]: 'Queued' }
   try {
     const run = await api.post<{ id: number }>('/research/runs', { code_version_id: column.code_version_id, run_config: { symbols }, dataset_manifest: { source: 'canonical_database' } })
+    if (!isCurrent()) return
     pythonRunIds.value = { ...pythonRunIds.value, [key]: run.id }
     for (let attempt = 0; attempt < 30; attempt += 1) {
       const result = await api.get<{ status: string; progress?: { completed_cells?: number; total_cells?: number; status?: string }; cells: Array<{ symbol: string; status: string; value?: number | boolean; error?: string }> }>(`/research/runs/${run.id}/batch-results`)
+      if (!isCurrent()) return
       pythonProgress.value = { ...pythonProgress.value, [key]: progressLabel(result.progress) }
       if (result.status === 'completed' || result.status === 'failed' || result.status === 'canceled') {
         pythonCells.value = { ...pythonCells.value, [key]: Object.fromEntries(result.cells.map(cell => [cell.symbol, cell.status === 'completed' ? { value: cell.value } : { error: cell.error ?? cell.status }])) }
@@ -371,8 +381,19 @@ async function runPythonColumn(column: { code_version_id: number; name: string }
       }
       await sleep(250)
     }
-  } catch (cause: any) { pythonCells.value = { ...pythonCells.value, [key]: Object.fromEntries(symbols.map(symbol => [symbol, { error: cause?.message ?? 'Unavailable' }])) }; pythonProgress.value = { ...pythonProgress.value, [key]: cause?.message ?? 'Unavailable' } }
-  finally { runningPythonColumns.delete(column.code_version_id); const { [key]: _, ...rest } = pythonRunIds.value; pythonRunIds.value = rest }
+  } catch (cause: any) {
+    if (isCurrent()) {
+      pythonCells.value = { ...pythonCells.value, [key]: Object.fromEntries(symbols.map(symbol => [symbol, { error: cause?.message ?? 'Unavailable' }])) }
+      pythonProgress.value = { ...pythonProgress.value, [key]: cause?.message ?? 'Unavailable' }
+    }
+  }
+  finally {
+    if (pythonColumnRequestGenerations.get(column.code_version_id) === requestGeneration) {
+      runningPythonColumns.delete(column.code_version_id)
+      const { [key]: _, ...rest } = pythonRunIds.value
+      pythonRunIds.value = rest
+    }
+  }
 }
 function addPythonColumn() {
   const versionId = Number(selectedPythonVersion.value)
@@ -406,14 +427,19 @@ async function runPythonCondition(condition: { code_version_id: number; name: st
   const symbols = [...new Set(props.rows.map(row => row.symbol).filter(Boolean))]
   if (!symbols.length) return
   runningPythonConditions.add(condition.code_version_id)
+  const requestGeneration = ++pythonConditionRequestGeneration.value
+  const universeGeneration = rowsGeneration.value
+  const isCurrent = () => pythonConditionRequestGeneration.value === requestGeneration && rowsGeneration.value === universeGeneration
   pythonConditionMatchedSymbols.value = null
   pythonConditionState.value = 'Running Python condition…'
   pythonProgress.value = { ...pythonProgress.value, python_condition: 'Queued' }
   try {
     const run = await api.post<{ id: number }>('/research/runs', { code_version_id: condition.code_version_id, run_config: { symbols }, dataset_manifest: { source: 'canonical_database' } })
+    if (!isCurrent()) return
     pythonRunIds.value = { ...pythonRunIds.value, python_condition: run.id }
     for (let attempt = 0; attempt < 30; attempt += 1) {
       const result = await api.get<{ status: string; progress?: { completed_cells?: number; total_cells?: number; status?: string }; cells: Array<{ symbol: string; status: string; value?: number | boolean; error?: string }> }>(`/research/runs/${run.id}/batch-results`)
+      if (!isCurrent()) return
       pythonProgress.value = { ...pythonProgress.value, python_condition: progressLabel(result.progress) }
       if (result.status !== 'completed' && result.status !== 'failed' && result.status !== 'canceled') pythonConditionState.value = `Python condition ${progressLabel(result.progress).toLowerCase()}…`
       if (result.status === 'completed' || result.status === 'failed' || result.status === 'canceled') {
@@ -428,9 +454,17 @@ async function runPythonCondition(condition: { code_version_id: number; name: st
     pythonConditionMatchedSymbols.value = new Set()
     pythonConditionState.value = 'Python condition timed out; no rows are shown.'
   } catch (cause: any) {
-    pythonConditionMatchedSymbols.value = new Set()
-    pythonConditionState.value = `Python condition unavailable: ${cause?.message ?? 'Unknown error'}`
-  } finally { runningPythonConditions.delete(condition.code_version_id); const { python_condition: _, ...rest } = pythonRunIds.value; pythonRunIds.value = rest }
+    if (isCurrent()) {
+      pythonConditionMatchedSymbols.value = new Set()
+      pythonConditionState.value = `Python condition unavailable: ${cause?.message ?? 'Unknown error'}`
+    }
+  } finally {
+    if (pythonConditionRequestGeneration.value === requestGeneration) {
+      runningPythonConditions.delete(condition.code_version_id)
+      const { python_condition: _, ...rest } = pythonRunIds.value
+      pythonRunIds.value = rest
+    }
+  }
 }
 
 function columnSetKey(name: string) {
@@ -505,6 +539,9 @@ async function deleteColumnSet(item: ColumnSetItem) {
 }
 
 async function applyConditionFilter(value: string) {
+  const requestGeneration = ++conditionRequestGeneration.value
+  const universeGeneration = rowsGeneration.value
+  const isCurrent = () => conditionRequestGeneration.value === requestGeneration && rowsGeneration.value === universeGeneration
   const screenerId = Number(value)
   conditionMatchedIds.value = null
   conditionFilterState.value = ''
@@ -521,6 +558,7 @@ async function applyConditionFilter(value: string) {
   conditionFilterState.value = 'Loading saved condition result…'
   try {
     const results = await api.get<ScreenerResult[]>(`/screeners/${screenerId}/results`, { limit: 1 })
+    if (!isCurrent()) return
     const result = results[0]
     if (!result) {
       conditionMatchedIds.value = new Set()
@@ -530,10 +568,24 @@ async function applyConditionFilter(value: string) {
     conditionMatchedIds.value = new Set(result.matched_ids)
     conditionFilterState.value = `Saved condition active · latest result ${new Date(result.run_at).toLocaleString()}`
   } catch {
-    conditionMatchedIds.value = new Set()
-    conditionFilterState.value = 'Saved condition result is unavailable; no rows are shown.'
+    if (isCurrent()) {
+      conditionMatchedIds.value = new Set()
+      conditionFilterState.value = 'Saved condition result is unavailable; no rows are shown.'
+    }
   }
 }
+
+const rowUniverseKey = computed(() => props.rows.map(row => `${row.instrumentId ?? ''}:${row.symbol}`).join('|'))
+watch(rowUniverseKey, () => {
+  rowsGeneration.value += 1
+  conditionMatchedIds.value = null
+  pythonConditionMatchedSymbols.value = null
+  for (const column of pythonColumns.value) runningPythonColumns.delete(column.code_version_id)
+  if (pythonCondition.value) runningPythonConditions.delete(pythonCondition.value.code_version_id)
+  if (conditionFilter.value) void applyConditionFilter(conditionFilter.value)
+  if (pythonCondition.value) void runPythonCondition(pythonCondition.value)
+  for (const column of pythonColumns.value) void runPythonColumn(column)
+})
 
 onMounted(() => {
   void loadScreeners()
