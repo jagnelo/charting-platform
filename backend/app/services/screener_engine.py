@@ -31,7 +31,7 @@ from app.models.screener import ScreenerDefinition, ScreenerResult
 from app.models.screener_alert import ScreenerAlert
 from app.models.watchlist import Watchlist, WatchlistItem
 from app.services.indicators import OHLCVSeries, compute_indicator, normalize_indicator_params
-from app.services.research_jobs import enqueue_research_run
+from app.services.research_jobs import collect_research_result, enqueue_research_run
 
 GRACE_PERIOD_DAYS = 7
 
@@ -677,6 +677,66 @@ async def queue_python_screener_run(
     await db.commit()
     await db.refresh(result)
     return result
+
+
+async def collect_python_screener_result(
+    db: AsyncSession,
+    result: ScreenerResult,
+) -> bool:
+    """Reconcile one queued Python scan and fire post-run hooks once complete."""
+    result_data = result.result_data if isinstance(result.result_data, dict) else {}
+    run_id = result_data.get("_python_research_run_id")
+    if not isinstance(run_id, int) or result_data.get("_status") in {"completed", "failed", "canceled"}:
+        return False
+
+    run = (await db.execute(select(ResearchRun).where(ResearchRun.id == run_id))).scalar_one_or_none()
+    if run is None:
+        result.result_data = {**result_data, "_status": "failed"}
+        result.error = "Isolated Python scan run is unavailable"
+        await db.commit()
+        return True
+
+    if not collect_research_result(run):
+        if run.status not in {"completed", "failed", "canceled"}:
+            return False
+    if run.status not in {"completed", "failed", "canceled"}:
+        result.result_data = {**result_data, "_status": run.status}
+        await db.commit()
+        return True
+
+    artifact = next(
+        (item for item in run.artifacts if item.artifact_type == "batch" and item.name == "batch_cells"),
+        None,
+    )
+    cells = artifact.payload.get("value", {}).get("cells", []) if artifact else []
+    matches = [
+        cell.get("instrument_id")
+        for cell in cells
+        if isinstance(cell, dict)
+        and cell.get("status") == "completed"
+        and cell.get("value") is True
+        and isinstance(cell.get("instrument_id"), int)
+    ]
+    result.matched_ids = matches
+    result.result_data = {
+        **result_data,
+        "_status": run.status,
+        "_coverage": {
+            "universe_count": len(run.run_config.get("symbols", [])),
+            "evaluated_count": len(cells),
+            "excluded": run.dataset_manifest.get("exclusions", []),
+        },
+    }
+    result.error = next(
+        (item.get("message") for item in run.diagnostics if isinstance(item, dict) and item.get("message")),
+        None,
+    )
+    await db.commit()
+    if run.status == "completed":
+        screener = await db.get(ScreenerDefinition, result.screener_id)
+        if screener is not None:
+            await process_screener_post_run(db, screener, result)
+    return True
 
 
 async def run_screener(

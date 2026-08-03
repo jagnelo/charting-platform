@@ -7,13 +7,32 @@ from sqlalchemy import func, select
 
 from app.database import AsyncSessionLocal
 from app.models.screener import ScreenerDefinition, ScreenerResult
-from app.services.screener_engine import queue_python_screener_run, run_screener
+from app.services.screener_engine import (
+    collect_python_screener_result,
+    queue_python_screener_run,
+    run_screener,
+)
 
 
 async def _run_screener_or_queue(db, screener):
     if isinstance(screener.conditions, dict) and screener.conditions.get("type") == "python_condition":
         return await queue_python_screener_run(db, screener)
     return await run_screener(db, screener)
+
+
+async def _collect_pending_python_results(db, screener):
+    if not isinstance(screener.conditions, dict) or screener.conditions.get("type") != "python_condition":
+        return
+    results = (
+        await db.execute(
+            select(ScreenerResult)
+            .where(ScreenerResult.screener_id == screener.id)
+            .order_by(ScreenerResult.run_at.desc())
+            .limit(10)
+        )
+    ).scalars().all()
+    for result in results:
+        await collect_python_screener_result(db, result)
 
 logger = logging.getLogger(__name__)
 
@@ -70,6 +89,7 @@ async def run_all_scheduled_screeners(ctx: dict) -> dict:
             ran = 0
             for screener in screeners:
                 try:
+                    await _collect_pending_python_results(db, screener)
                     latest_run = (
                         await db.execute(
                             select(func.max(ScreenerResult.run_at)).where(

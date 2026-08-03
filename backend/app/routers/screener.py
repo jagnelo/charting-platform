@@ -10,11 +10,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth.dependencies import get_current_user
 from app.database import get_db
 from app.models.ohlcv import Timeframe
-from app.models.research import CodeAsset, CodeVersion, ResearchRun
+from app.models.research import CodeAsset, CodeVersion
 from app.models.screener import ScreenerDefinition, ScreenerResult
 from app.models.user import User
 from app.models.workstation import WorkspaceLibraryItem
-from app.services.research_jobs import collect_research_result
 
 router = APIRouter(prefix="/screeners", tags=["screeners"])
 
@@ -253,37 +252,9 @@ async def _queue_python_screener_run(db: AsyncSession, screener: ScreenerDefinit
 
 
 async def _collect_python_screener_result(db: AsyncSession, result: ScreenerResult) -> None:
-    run_id = result.result_data.get("_python_research_run_id")
-    if not isinstance(run_id, int) or result.result_data.get("_status") in {"completed", "failed", "canceled"}:
-        return
-    run = (await db.execute(select(ResearchRun).where(ResearchRun.id == run_id))).scalar_one_or_none()
-    if run is None:
-        result.result_data = {**result.result_data, "_status": "failed"}
-        result.error = "Isolated Python scan run is unavailable"
-        await db.commit()
-        return
-    collect_research_result(run)
-    if run.status not in {"completed", "failed", "canceled"}:
-        result.result_data = {**result.result_data, "_status": run.status}
-        await db.commit()
-        return
-    artifact = next((item for item in run.artifacts if item.artifact_type == "batch" and item.name == "batch_cells"), None)
-    cells = artifact.payload.get("value", {}).get("cells", []) if artifact else []
-    matches = [cell.get("instrument_id") for cell in cells if isinstance(cell, dict) and cell.get("status") == "completed" and cell.get("value") is True and isinstance(cell.get("instrument_id"), int)]
-    result.matched_ids = matches
-    result.result_data = {
-        **result.result_data,
-        "_status": run.status,
-        "_coverage": {"universe_count": len(run.run_config.get("symbols", [])), "evaluated_count": len(cells), "excluded": run.dataset_manifest.get("exclusions", [])},
-    }
-    result.error = next((item.get("message") for item in run.diagnostics if isinstance(item, dict) and item.get("message")), None)
-    await db.commit()
-    if run.status == "completed":
-        screener = await db.get(ScreenerDefinition, result.screener_id)
-        if screener is not None:
-            from app.services.screener_engine import process_screener_post_run
+    from app.services.screener_engine import collect_python_screener_result
 
-            await process_screener_post_run(db, screener, result)
+    await collect_python_screener_result(db, result)
 
 
 @router.get("/{screener_id}", response_model=ScreenerOut)

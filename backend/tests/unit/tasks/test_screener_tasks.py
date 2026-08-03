@@ -109,10 +109,12 @@ async def test_scheduler_uses_persisted_result_time_not_removed_last_run_field(m
         user_id=3,
         schedule="* * * * *",
         is_active=True,
+        conditions={},
     )
     session = _ScheduledSession(screener, datetime.now(UTC) - timedelta(minutes=2))
     queued = AsyncMock()
     monkeypatch.setattr(screener_tasks, "_run_screener_or_queue", queued)
+    monkeypatch.setattr(screener_tasks, "_collect_pending_python_results", AsyncMock())
     monkeypatch.setattr(screener_tasks, "AsyncSessionLocal", lambda: _SessionFactory(session))
 
     summary = await screener_tasks.run_all_scheduled_screeners({})
