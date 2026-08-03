@@ -16647,3 +16647,11 @@ Append a short entry after each worker session.
   10,000-row watchlist virtualization invariant. TypeScript, production build, and
   diff check remain green.
 - Full completion and approved V25 visual evidence remain outstanding.
+
+## 2026-08-03T15:05:00Z Visual-reference gate audit
+
+- Strict manifest validation intentionally fails at
+  `application-shell-default/default: required_missing`.
+- Official TC2000 help search currently exposes Version 25 build `25.0.9172.22877`,
+  not the pinned target `25.0.9571`; the existing image remains a discovery candidate
+  and is not treated as an approved baseline.

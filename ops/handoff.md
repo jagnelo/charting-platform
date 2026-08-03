@@ -14519,6 +14519,16 @@
   broad workstation/backend acceptance matrix remains incomplete. Next: continue
   the broad workstation/backend audit.
 
+## 2026-08-03T15:05:00Z Visual-reference gate audit
+
+- Ran the strict visual manifest validator. It correctly rejects
+  `application-shell-default/default` as `required_missing`.
+- The authoritative online TC2000 help index currently exposes Version 25 build
+  `25.0.9172.22877`; the repository's pinned target is `25.0.9571`. The available
+  image remains a discovery candidate only and was not promoted to an approval.
+- This is an evidence gate, not a goal-blocking implementation failure; continue
+  the broad implementation audit while preserving the strict requirement.
+
 ## 2026-08-03T13:25:00Z Benchmark comparison checkpoint
 
 - The shared top-down refresh now loads the canonical `us-benchmarks` snapshot. The
