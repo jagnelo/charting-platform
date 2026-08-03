@@ -9,6 +9,20 @@ vi.mock('@/components/workstation/StudyHistogramUPlot.vue', () => ({ default: { 
 import StudyLabTool from '@/components/workstation/StudyLabTool.vue'
 
 describe('StudyLabTool', () => {
+  it('hydrates serializable dataset controls and normalizes legacy timeframe values', () => {
+    const wrapper = mount(StudyLabTool, {
+      props: {
+        activeSymbol: 'AAPL',
+        configuration: { timeframe: 'MN1', benchmark: 'XLK', adjustment: 'raw', session: 'all', start_date: '2024-01-01', end_date: '2024-02-01' },
+      },
+    })
+
+    expect(wrapper.find('[aria-label="Study timeframe"]').element).toHaveProperty('value', 'D1')
+    expect(wrapper.find('[aria-label="Study benchmark"]').element).toHaveProperty('value', 'XLK')
+    expect(wrapper.find('[aria-label="Study adjustment"]').element).toHaveProperty('value', 'raw')
+    expect(wrapper.find('[aria-label="Study session"]').element).toHaveProperty('value', 'all')
+  })
+
   it('validates, starts an immutable isolated study run, and renders artifacts', async () => {
     apiPost.mockImplementation((path: string) => {
       if (path === '/code/validate') return Promise.resolve({ valid: true, diagnostics: [], dependencies: ['stats', 'output'], lookback_hint: 1, output_contracts: ['histogram', 'scalar', 'table'] })
@@ -34,6 +48,7 @@ describe('StudyLabTool', () => {
     await wrapper.find('[aria-label="Study session"]').setValue('all')
     await wrapper.find('[aria-label="Study start date"]').setValue('2024-01-01')
     await wrapper.find('[aria-label="Study end date"]').setValue('2024-02-01')
+    expect(wrapper.emitted('configuration')?.at(-1)?.[0]).toEqual(expect.objectContaining({ timeframe: 'W1', benchmark: 'QQQ', adjustment: 'raw', session: 'all', start_date: '2024-01-01', end_date: '2024-02-01' }))
     await wrapper.findAll('button')[1].trigger('click')
     await vi.waitFor(() => expect(wrapper.text()).toContain('Run #9'))
 

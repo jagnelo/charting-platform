@@ -1,5 +1,17 @@
 # Active Handoff
 
+## Continuation update — 2026-08-03T16:10:00Z
+
+- Study Lab dataset controls now persist through the serializable workspace-window
+  configuration event path, including docked/floated/reloaded tool state. Legacy invalid
+  `MN1` timeframe values normalize to canonical `MN`; empty optional benchmark/date
+  controls are removed rather than sent as invalid empty values.
+- Validation: focused Study Lab component `2 passed`; full frontend suite remains `451
+  passed` across `76` files from the preceding checkpoint; TypeScript and diff checks
+  passed. The persistence change is awaiting its next full-suite/build checkpoint.
+- The full goal remains active. Strict V25 visual approval is still `required_missing`,
+  and the broader backend/security/performance/end-to-end acceptance matrix remains open.
+
 ## Continuation update — 2026-08-03T16:05:00Z
 
 - Closed a Study Lab data-contract gap: the selected benchmark is now materialized from

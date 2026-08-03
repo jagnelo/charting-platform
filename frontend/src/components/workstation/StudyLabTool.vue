@@ -52,8 +52,8 @@ interface Validation { valid: boolean; diagnostics: unknown[]; dependencies: str
 interface Run { id: number; status: string; progress?: { status?: string; completed_cells?: number; total_cells?: number }; diagnostics?: unknown[]; reproducibility_hash?: string | null; dataset_manifest?: { benchmark_coverage?: { status?: string; reason?: string } }; artifacts?: Array<{ id: number; name: string; artifact_type: string; payload: Record<string, unknown> }> }
 type Artifact = NonNullable<Run['artifacts']>[number]
 
-const props = defineProps<{ activeSymbol: string }>()
-const emit = defineEmits<{ occurrence: [event: { symbol: string; timestamp: string; kind?: string }] }>()
+const props = defineProps<{ activeSymbol: string; configuration?: Record<string, unknown> }>()
+const emit = defineEmits<{ occurrence: [event: { symbol: string; timestamp: string; kind?: string }]; configuration: [configuration: Record<string, unknown>] }>()
 const name = ref('Consecutive Positive Closes')
 const symbol = ref(props.activeSymbol)
 const source = ref("streaks = stats.positive_close_streaks(dataset)\nindices = [record['end_index'] for record in streaks['records']]\noutput.scalar('current_streak', streaks['current'])\noutput.scalar('longest_streak', streaks['longest'])\noutput.scalar('average_streak', streaks['average'])\noutput.scalar('shortest_streak', streaks['shortest'])\noutput.table('completed_streaks', streaks['records'])\noutput.table('forward_returns', research.forward_returns(dataset, indices, [1, 5, 20]))\noutput.events('streak_events', research.occurrences(dataset, indices, 'positive_close_streak'))\noutput.histogram('streak_distribution', streaks['lengths'], 8, streaks['current'])")
@@ -63,12 +63,14 @@ const timeframeOptions = [
   { value: 'MN', label: 'Monthly' },
   { value: 'M15', label: '15 minute' },
 ]
-const timeframe = ref('D1')
-const benchmark = ref('SPY')
-const adjustment = ref<'split_adjusted' | 'raw'>('split_adjusted')
-const session = ref<'regular' | 'all'>('regular')
-const startDate = ref('')
-const endDate = ref('')
+const configString = (key: string, fallback: string) => typeof props.configuration?.[key] === 'string' ? String(props.configuration[key]) : fallback
+const normaliseTimeframe = (value: string) => timeframeOptions.some(option => option.value === value) ? value : 'D1'
+const timeframe = ref(normaliseTimeframe(configString('timeframe', 'D1')))
+const benchmark = ref(configString('benchmark', 'SPY'))
+const adjustment = ref<'split_adjusted' | 'raw'>(configString('adjustment', 'split_adjusted') === 'raw' ? 'raw' : 'split_adjusted')
+const session = ref<'regular' | 'all'>(configString('session', 'regular') === 'all' ? 'all' : 'regular')
+const startDate = ref(configString('start_date', ''))
+const endDate = ref(configString('end_date', ''))
 const busy = ref(false)
 const validation = ref<Validation | null>(null)
 const run = ref<Run | null>(null)
@@ -91,6 +93,27 @@ const benchmarkCoverageLabel = computed(() => {
   return 'pending'
 })
 watch(() => props.activeSymbol, value => { if (!symbol.value || symbol.value === 'SPY') symbol.value = value })
+watch(() => props.configuration, configuration => {
+  if (typeof configuration?.timeframe === 'string') timeframe.value = normaliseTimeframe(configuration.timeframe)
+  if (configuration && !('benchmark' in configuration)) benchmark.value = ''
+  else if (typeof configuration?.benchmark === 'string') benchmark.value = configuration.benchmark
+  if (configuration?.adjustment === 'raw' || configuration?.adjustment === 'split_adjusted') adjustment.value = configuration.adjustment
+  if (configuration?.session === 'all' || configuration?.session === 'regular') session.value = configuration.session
+  if (configuration && !('start_date' in configuration)) startDate.value = ''
+  else if (typeof configuration?.start_date === 'string') startDate.value = configuration.start_date
+  if (configuration && !('end_date' in configuration)) endDate.value = ''
+  else if (typeof configuration?.end_date === 'string') endDate.value = configuration.end_date
+}, { deep: true })
+watch([timeframe, benchmark, adjustment, session, startDate, endDate], () => {
+  const configuration: Record<string, unknown> = { ...(props.configuration ?? {}), timeframe: timeframe.value, adjustment: adjustment.value, session: session.value }
+  if (benchmark.value) configuration.benchmark = benchmark.value.toUpperCase()
+  else delete configuration.benchmark
+  if (startDate.value) configuration.start_date = startDate.value
+  else delete configuration.start_date
+  if (endDate.value) configuration.end_date = endDate.value
+  else delete configuration.end_date
+  emit('configuration', configuration)
+})
 
 function clearPoller() { if (poller) clearInterval(poller); poller = null }
 function stableKey(value: string) { return value.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 56) || 'study' }
@@ -149,10 +172,10 @@ async function saveAndRun() {
     })
     const datasetControls: Record<string, string> = {
       timeframe: timeframe.value,
-      benchmark: benchmark.value.toUpperCase(),
       adjustment: adjustment.value,
       session: session.value,
     }
+    if (benchmark.value) datasetControls.benchmark = benchmark.value.toUpperCase()
     if (startDate.value) datasetControls.start_date = startDate.value
     if (endDate.value) datasetControls.end_date = endDate.value
     run.value = await api.post<Run>('/research/runs', {

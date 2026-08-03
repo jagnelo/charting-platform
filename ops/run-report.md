@@ -2,6 +2,16 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-03T16:10:00Z Study Lab workspace persistence
+
+- Routed Study Lab timeframe, benchmark, adjustment, session, and date-range controls
+  through the serializable workspace configuration event path so dock/pop-out/reload
+  preserves them; normalized legacy `MN1` to `MN` and omitted empty optional fields.
+- Validation: focused Study Lab component `2 passed`, TypeScript, and diff check passed;
+  the preceding full frontend suite was `451 passed` across `76` files. The next full
+  suite/build checkpoint is still pending.
+- Strict V25 visual approval and the full acceptance matrix remain open.
+
 ## 2026-08-03T16:05:00Z Study Lab benchmark materialization
 
 - Materialized the selected Study Lab benchmark from canonical bars with matching

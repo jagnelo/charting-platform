@@ -131,3 +131,10 @@ metadata setting until session-qualified bars are available; it does not imply p
 specific intraday availability. Focused backend, runner, and component tests cover the
 contract. This is functional evidence only; the Version 25 visual reference remains
 unapproved.
+
+Study Lab dataset controls are now part of the serializable workstation-window
+configuration. Reopening, reloading, or floating a Study Lab preserves timeframe,
+benchmark, adjustment, session, and date bounds through the existing workspace
+configuration event path; legacy invalid monthly `MN1` state is normalized to `MN`.
+Focused component coverage proves hydration and normalization. This is functional
+evidence only; the Version 25 visual reference remains unapproved.
