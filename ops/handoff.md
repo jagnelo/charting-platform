@@ -14541,6 +14541,15 @@
   broad workstation/backend acceptance matrix remains incomplete. Next: continue
   the requirement audit.
 
+## 2026-08-03T15:01:00Z Full frontend regression checkpoint
+
+- The complete frontend Vitest suite now passes `441` tests across `73` files after
+  the 10,000-row watchlist virtualization coverage. TypeScript, production build,
+  and `git diff --check` remain green.
+- The full goal remains active; approved V25 visual references remain
+  `required_missing`, and full browser, backend, sandbox, performance, and visual
+  acceptance remain incomplete. Next: continue the broad audit.
+
 ## 2026-08-03T14:50:00Z Sector by Year calendar-analysis checkpoint
 
 - Group snapshots now return five bounded calendar-year performance cells per row,

@@ -16640,3 +16640,10 @@ Append a short entry after each worker session.
   entire universe.
 - Focused `VirtualWatchlistTool` suite `19 passed`; commit `879166b` pushed. Full
   completion and approved V25 visual evidence remain outstanding.
+
+## 2026-08-03T15:01:00Z Full frontend regression checkpoint
+
+- Full frontend Vitest now passes `441` tests across `73` files after adding the
+  10,000-row watchlist virtualization invariant. TypeScript, production build, and
+  diff check remain green.
+- Full completion and approved V25 visual evidence remain outstanding.
