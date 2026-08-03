@@ -97,3 +97,8 @@ target guard suppresses workstation and uPlot shortcuts inside native inputs,
 contenteditable/code editors, and role-textbox search surfaces. Dedicated pop-out,
 keyboard-boundary, symbol-preservation, and editor-target tests plus the full frontend
 suite provide functional evidence; visual approval remains blocked by the manifest.
+
+Workstation chart windows now expose persisted comparison symbols and feed normalized,
+timestamp-aligned comparison series into the existing uPlot renderer. Comparison anchors
+are explicit, missing timestamps remain gaps, and each target exposes a return summary;
+the comparison utility has deterministic alignment and no-valid-anchor coverage tests.
