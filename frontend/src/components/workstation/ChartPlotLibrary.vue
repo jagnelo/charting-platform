@@ -20,11 +20,12 @@
         </select>
       </label>
       <div v-if="selectedPromotionIndex !== ''" class="chart-plots__promotion">
-        <select v-model="promotionTarget" aria-label="Plot promotion target"><option value="condition">Condition</option><option value="scan">EasyScan</option><option value="alert">Indicator alert</option></select>
+        <select v-model="promotionTarget" aria-label="Plot promotion target"><option value="condition">Condition</option><option value="scan">EasyScan</option><option value="filter">Watchlist filter</option><option value="alert">Indicator alert</option></select>
+        <select v-if="promotionTarget === 'filter'" v-model="selectedFilterTarget" aria-label="Plot promotion watchlist"><option value="" disabled>Select watchlist…</option><option v-for="target in watchlistTargets" :key="target.instance_key" :value="target.instance_key">{{ target.title || target.instance_key }}</option></select>
         <select v-model="promotionOperator" aria-label="Plot promotion operator"><option value="gt">&gt;</option><option value="gte">≥</option><option value="lt">&lt;</option><option value="lte">≤</option></select>
         <input v-model.number="promotionThreshold" aria-label="Plot promotion threshold" type="number" step="any" />
         <input v-model.trim="promotionName" aria-label="Plot promotion name" placeholder="Name" />
-        <button type="button" :disabled="promotionBusy || !promotionName || !Number.isFinite(promotionThreshold)" @click="promoteSelected">{{ promotionBusy ? 'Saving…' : 'Copy' }}</button>
+        <button type="button" :disabled="promotionBusy || !promotionName || !Number.isFinite(promotionThreshold) || (promotionTarget === 'filter' && !selectedFilterTarget)" @click="promoteSelected">{{ promotionBusy ? 'Saving…' : 'Copy' }}</button>
       </div>
       <p v-if="promotionStatus" class="chart-plots__promotion-status" role="status">{{ promotionStatus }}</p>
       <p>Price history <small>active</small></p>
@@ -48,11 +49,13 @@ const props = defineProps<{ sourceWindowKey: string; linkGroup: string }>()
 const chartStore = usePanelStore(inject<string>('panelId', 'chart')); const open = ref(false); const catalog = INDICATOR_CATALOG; const workspaceStore = useWorkspaceStore()
 const selectedCopyTarget = ref('linked')
 const chartTargets = computed(() => (workspaceStore.activeTab?.windows ?? []).filter(window => ['chart', 'watchlist'].includes(window.tool_type) && window.instance_key !== props.sourceWindowKey))
+const watchlistTargets = computed(() => chartTargets.value.filter(window => window.tool_type === 'watchlist'))
 const linkedChartCount = computed(() => chartTargets.value.filter(window => window.tool_type === 'chart' && window.link_group === props.linkGroup).length)
 const linkedTargets = computed(() => linkedChartCount.value > 0)
 const copyTargetAvailable = computed(() => selectedCopyTarget.value === 'linked' ? linkedTargets.value : chartTargets.value.some(window => window.instance_key === selectedCopyTarget.value))
 const selectedPromotionIndex = ref('')
-const promotionTarget = ref<'condition' | 'scan' | 'alert'>('condition')
+const promotionTarget = ref<'condition' | 'scan' | 'filter' | 'alert'>('condition')
+const selectedFilterTarget = ref('')
 const promotionOperator = ref('gt')
 const promotionThreshold = ref(0)
 const promotionName = ref('')
@@ -84,6 +87,7 @@ function copy(index: number, target: string) {
 function selectPromotion(index: number) {
   selectedPromotionIndex.value = String(index)
   promotionName.value = `${label(chartStore.indicators[index])} condition`
+  selectedFilterTarget.value = watchlistTargets.value[0]?.instance_key ?? ''
   promotionStatus.value = ''
 }
 function promotionCondition(item: IndicatorConfig) {
@@ -102,8 +106,16 @@ async function promoteSelected() {
       name: promotionName.value, condition: promotionCondition(item),
       dependency_metadata: { source: 'chart-plot-library', indicator_type: item.type, timeframe: chartStore.timeframe },
     })
-    if (promotionTarget.value === 'scan') {
-      await api.post(`/screeners/from-condition/${encodeURIComponent(key)}`, { name: `${promotionName.value} Scan`, universe_type: 'all', timeframe: chartStore.timeframe })
+    if (promotionTarget.value === 'scan' || promotionTarget.value === 'filter') {
+      const scan = await api.post<{ id: number }>(`/screeners/from-condition/${encodeURIComponent(key)}`, { name: `${promotionName.value} Scan`, universe_type: 'all', timeframe: chartStore.timeframe })
+      if (promotionTarget.value === 'filter') {
+        const target = watchlistTargets.value.find(window => window.instance_key === selectedFilterTarget.value)
+        if (!target) throw new Error('Select a watchlist window before applying a filter')
+        target.configuration = { ...target.configuration, condition_screener_id: scan.id, condition_filter_mode: 'active' }
+        workspaceStore.scheduleSnapshot()
+        promotionStatus.value = `Copied ${label(item)} to ${target.title || target.instance_key} filter`
+        return
+      }
       promotionStatus.value = `Copied ${label(item)} to condition and EasyScan`
     } else if (promotionTarget.value === 'alert') {
       const instrumentId = chartStore.instrument?.id

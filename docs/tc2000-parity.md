@@ -213,8 +213,10 @@ configuration. The workstation loads each configured indicator in one canonical
 returns cell-level warnings plus coverage, and renders numeric values in the same
 virtualized column/filter editor with null-safe numeric sorting. Unknown instruments,
 missing bars, unsupported indicators, and insufficient history remain explicit rather
-than triggering provider fan-out. Condition/filter promotion remains a separate
-incomplete contract; visual approval remains blocked by the V25 reference manifest.
+than triggering provider fan-out. The same promotion flow can create an EasyScan
+from the saved condition and bind it to a selected watchlist window as an active persisted
+filter; later filter edits still use the shared integrated column/filter controls. Visual
+approval remains blocked by the V25 reference manifest.
 
 Floated workstation tools now forward watchlist condition modes, Boolean pinning,
 column grouping/stacking, arbitrary serializable configuration, and industry-proxy

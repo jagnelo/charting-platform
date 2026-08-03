@@ -9,7 +9,11 @@ const apiMock = vi.hoisted(() => ({ put: vi.fn().mockResolvedValue({}), post: vi
 vi.mock('@/lib/api', () => ({ api: apiMock }))
 
 describe('ChartPlotLibrary', () => {
-  beforeEach(() => setActivePinia(createPinia()))
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    apiMock.put.mockReset().mockResolvedValue({})
+    apiMock.post.mockReset().mockResolvedValue({})
+  })
 
   it('manages indicator plots without losing their serializable configuration', async () => {
     const chart = usePanelStore('plot-library-test')
@@ -103,5 +107,34 @@ describe('ChartPlotLibrary', () => {
     await vi.waitFor(() => expect(wrapper.find('[role="status"]').exists()).toBe(true))
     expect(apiMock.post).toHaveBeenCalledWith('/alerts/indicator', expect.objectContaining({ instrument_id: 42, indicator_a_type: 'ema', threshold_value: 100 }))
     expect(wrapper.get('[role="status"]').text()).toContain('indicator alert')
+  })
+
+  it('promotes a plot into a selected watchlist filter and persists its active condition', async () => {
+    const workspace = useWorkspaceStore()
+    workspace.workspace = {
+      id: 1, user_id: 1, name: 'Test', is_default: true, position: 0, revision: 1, schema_version: 1, settings: {},
+      tabs: [{ id: 1, stable_key: 'test', name: 'Test', position: 0, active_window_key: 'source', layout_config: {}, windows: [
+        { id: 1, instance_key: 'source', tool_type: 'chart', title: 'Source', link_group: 'blue', configuration: {}, style: {}, state_schema_version: 1, position: 0 },
+        { id: 2, instance_key: 'target-list', tool_type: 'watchlist', title: 'Momentum', link_group: 'grey', configuration: {}, style: {}, state_schema_version: 1, position: 1 },
+      ] }],
+    }
+    workspace.activeTabKey = 'test'
+    const scheduleSnapshot = vi.spyOn(workspace, 'scheduleSnapshot').mockImplementation(() => {})
+    apiMock.post.mockImplementation((path: string) => path.startsWith('/screeners/from-condition/') ? Promise.resolve({ id: 77 }) : Promise.resolve({}))
+    const chart = usePanelStore('filter-promotion-test')
+    chart.setIndicators([{ type: 'sma', params: { period: 20 }, style: { color: '#ff0000', lineWidth: 1 }, pane: 'main' }])
+    const wrapper = mount(ChartPlotLibrary, { props: { sourceWindowKey: 'source', linkGroup: 'blue' }, global: { provide: { panelId: 'filter-promotion-test' } } })
+
+    await wrapper.get('button[aria-label="Chart plot library"]').trigger('click')
+    await wrapper.get('[aria-label="Promote SMA(20)"]').trigger('click')
+    await wrapper.get('[aria-label="Plot promotion target"]').setValue('filter')
+    await wrapper.get('[aria-label="Plot promotion threshold"]').setValue('50')
+    await wrapper.get('[aria-label="Plot promotion name"]').setValue('SMA filter')
+    await wrapper.get('.chart-plots__promotion button').trigger('click')
+    await vi.waitFor(() => expect(wrapper.find('[role="status"]').exists()).toBe(true))
+
+    expect(workspace.activeTab?.windows[1].configuration).toMatchObject({ condition_screener_id: 77, condition_filter_mode: 'active' })
+    expect(scheduleSnapshot).toHaveBeenCalled()
+    expect(wrapper.get('[role="status"]').text()).toContain('Momentum filter')
   })
 })

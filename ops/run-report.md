@@ -17610,3 +17610,11 @@ uncovered slice rather than repeat a generic completion claim.
   3.12; frontend Vitest `494` across `80` files passed; TypeScript, production build,
   Ruff, and diff checks passed. Checkpoint `05b18d7` is committed and pushed. Strict
   V25 visual approval and broad acceptance remain open.
+## 2026-08-03T23:03:00Z Watchlist-filter promotion checkpoint
+
+- Chart Plot Library now promotes an indicator condition into an EasyScan-backed active
+  filter on a selected watchlist window, persisting `condition_screener_id` and filter
+  mode in the workspace snapshot.
+- Validation: focused ChartPlotLibrary `6`, full frontend Vitest `495` across `80` files,
+  TypeScript, production build, and diff checks passed. Strict V25 visual approval and
+  broad acceptance remain open. Commit/push pending.

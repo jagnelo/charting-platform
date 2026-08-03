@@ -15841,3 +15841,12 @@
   `494` across `80` files, TypeScript, production build, Ruff, and diff checks.
   Checkpoint `05b18d7` is committed and pushed. Strict V25 visual approval, provider
   probes, Docker-backed broad acceptance, and filter/condition promotion remain open.
+## 2026-08-03T23:03:00Z Watchlist-filter promotion checkpoint
+
+- Extended chart-plot promotion with a Watchlist filter target. The flow creates the
+  canonical EasyScan from the saved indicator condition, binds its ID and active mode
+  to the selected watchlist window, and persists the workspace snapshot.
+- Validation passed: focused ChartPlotLibrary `6`, full frontend Vitest `495` across
+  `80` files, TypeScript, production build, and diff checks. Checkpoint commit/push is
+  pending; strict V25 visual approval, provider probes, Docker-backed broad acceptance,
+  and remaining research/backend gaps remain open.
