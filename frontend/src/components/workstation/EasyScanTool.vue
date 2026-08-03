@@ -8,24 +8,7 @@
       <button type="button" :disabled="busy || !validCondition" @click="saveCondition">Save</button>
     </div>
     <button type="button" class="easy-scan__advanced-toggle" @click="toggleAdvancedConditions">{{ advancedMode ? 'Use simple condition' : 'Build technical condition tree' }}</button>
-    <div v-if="advancedMode" class="easy-scan__advanced" aria-label="Advanced technical condition builder">
-      <header>
-        <span>Technical conditions</span>
-        <select v-model="advancedOperator" aria-label="Advanced condition operator">
-          <option value="AND">Match all (AND)</option>
-          <option value="OR">Match any (OR)</option>
-          <option value="NOT">Exclude (NOT)</option>
-        </select>
-      </header>
-      <TechnicalConditionEditor
-        v-for="(condition, index) in advancedConditions"
-        :key="index"
-        v-model="advancedConditions[index]"
-        :can-remove="advancedConditions.length > 1"
-        @remove="advancedConditions.splice(index, 1)"
-      />
-      <button type="button" @click="advancedConditions.push(createDefaultTechnicalCondition())">+ Add condition</button>
-    </div>
+    <ConditionGroupEditor v-if="advancedMode" v-model="advancedGroup" class="easy-scan__advanced" aria-label="Advanced technical condition builder" />
     <div class="easy-scan__controls">
       <select v-model="selectedKey" :disabled="busy" aria-label="Saved condition">
         <option value="">Select saved condition</option>
@@ -48,7 +31,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { api } from '@/lib/api'
-import TechnicalConditionEditor from '@/components/common/TechnicalConditionEditor.vue'
+import ConditionGroupEditor from '@/components/workstation/ConditionGroupEditor.vue'
 import { createDefaultTechnicalCondition } from '@/lib/technicalConditions'
 
 type ConditionAsset = { stable_key: string; name: string; version: number; payload: { condition?: Record<string, unknown> } }
@@ -63,8 +46,7 @@ const field = ref('close')
 const operator = ref('gt')
 const value = ref('')
 const advancedMode = ref(false)
-const advancedOperator = ref<'AND' | 'OR' | 'NOT'>('AND')
-const advancedConditions = ref<any[]>([])
+const advancedGroup = ref({ operator: 'AND' as const, conditions: [createDefaultTechnicalCondition()] })
 const scanName = ref('')
 const busy = ref(false)
 const status = ref('')
@@ -79,7 +61,7 @@ const pythonResearchRunId = computed(() => {
   return Number.isInteger(value) ? value as number : null
 })
 const validCondition = computed(() => Boolean(conditionName.value) && (advancedMode.value
-  ? advancedConditions.value.length > 0
+  ? advancedGroup.value.conditions.length > 0
   : Number.isFinite(Number(value.value))))
 const coverageText = computed(() => {
   const coverage = result.value?.result_data._coverage as { evaluated_count?: number; universe_count?: number; excluded?: Record<string, unknown> } | undefined
@@ -104,7 +86,6 @@ function stableKey(name: string) {
 }
 function toggleAdvancedConditions() {
   advancedMode.value = !advancedMode.value
-  if (advancedMode.value && !advancedConditions.value.length) advancedConditions.value.push(createDefaultTechnicalCondition())
 }
 async function saveCondition() {
   if (!validCondition.value) return
@@ -112,7 +93,7 @@ async function saveCondition() {
   const key = stableKey(conditionName.value)
   try {
     const condition = advancedMode.value
-      ? { operator: advancedOperator.value, conditions: advancedConditions.value }
+      ? advancedGroup.value
       : { operator: 'AND', conditions: [{ type: 'price_threshold', field: field.value, op: operator.value, value: Number(value.value) }] }
     const saved = await api.put<ConditionAsset>(`/workspaces/library/conditions/${encodeURIComponent(key)}`, {
       name: conditionName.value,

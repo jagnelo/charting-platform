@@ -83,7 +83,7 @@ describe('EasyScanTool', () => {
     await flushPromises()
     await wrapper.get('button.easy-scan__advanced-toggle').trigger('click')
     await wrapper.get('input[aria-label="Condition name"]').setValue('RSI tree')
-    await wrapper.get('select[aria-label="Advanced condition operator"]').setValue('OR')
+    await wrapper.get('.easy-scan__advanced header select[aria-label="Condition group operator"]').setValue('OR')
     await wrapper.get('.easy-scan__advanced .tech-cond-card select.form-select').setValue('indicator_threshold')
     await wrapper.findAll('button').find(button => button.text() === 'Save')!.trigger('click')
     await flushPromises()

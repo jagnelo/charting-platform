@@ -192,8 +192,9 @@ overwrite a newer linked chart selection.
 The primary EasyScan tool now exposes the shared technical-condition editor in addition
 to its quick price/volume builder. Saved conditions can use indicator, price, period,
 performance, 52-week, and statistics condition types under AND, OR, or NOT composition,
-while the existing unified-Python condition path remains available. The focused scan
-suite proves the advanced tree is persisted through the canonical condition contract.
+including recursively nested groups, while the existing unified-Python condition path
+remains available. The focused scan suite proves the advanced tree is persisted through
+the canonical condition contract.
 
 The shared timeframe-link compatibility path now preserves valid `M1` one-minute
 timeframes and normalizes only the legacy `MN1` monthly token to canonical `MN`.
