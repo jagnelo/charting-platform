@@ -1,5 +1,15 @@
 # Active Handoff
 
+## Continuation update — 2026-08-03T23:14:00Z
+
+- Persisted Research Results now renders typed scatter and heatmap artifacts with the same
+  uPlot point-cloud/native matrix surfaces as active Study Lab, preserving structured
+  visuals after reload, comparison, and rerun.
+- Validation: full frontend Vitest `477 passed` across 77 files; focused Research Results
+  tests `3 passed`; TypeScript, production build, and `git diff --check` passed. Checkpoint
+  `015c08d` is pushed. Strict V25 visual approval and the complete acceptance matrix remain
+  open.
+
 ## Continuation update — 2026-08-03T23:02:00Z
 
 - Exposed authenticated `/coverage/instruments/{symbol}/ohlcv` using the shared readiness

@@ -2,6 +2,14 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-03T23:14:00Z Persisted Study artifact rendering
+
+- Research Results now renders persisted typed scatter and heatmap artifacts instead of
+  falling back to raw JSON, reusing the dedicated uPlot/native matrix surfaces.
+- Full frontend Vitest `477 passed` across 77 files; focused Research Results tests `3
+  passed`; TypeScript/build/diff checks passed. Pushed `015c08d`.
+- Strict V25 visual approval and the complete acceptance matrix remain open.
+
 ## 2026-08-03T23:02:00Z Canonical OHLCV readiness endpoint
 
 - Added authenticated `/coverage/instruments/{symbol}/ohlcv` backed by the shared
