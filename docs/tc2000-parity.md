@@ -272,6 +272,16 @@ persists `flagged` independently of membership locks, personal rows render the m
 the context menu toggles Flag/Unflag only when a canonical source item exists. Reloaded
 watchlists retain the state, and copied lists preserve flags for retained items.
 
+The personal WatchList tool now exposes a derived `Flagged Items` source alongside named
+personal lists. It deduplicates flagged canonical instruments across the user's personal
+lists, retains the originating watchlist and item IDs for linked context-menu actions,
+disables membership-mutating controls that have no valid source list, and allows a flag to
+be removed through the same authenticated PATCH contract. The derived view is persisted as
+the serializable `watchlist_id: "flagged"` selection and refreshes from the canonical
+watchlist store, so it remains consistent across reloads and pop-outs. Focused component
+coverage for this aggregate source remains to be added; visual approval is still blocked
+by the V25 reference manifest.
+
 Virtualized watchlist condition and Python batch requests now carry both a request
 generation and a linked-universe generation. Changing the active universe invalidates
 late results, starts evaluation for the new rows, and prevents old matches, progress,

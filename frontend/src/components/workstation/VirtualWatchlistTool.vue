@@ -107,6 +107,7 @@ import { api } from '@/lib/api'
 
 export interface WatchlistRow {
   itemId?: number
+  sourceWatchlistId?: number
   instrumentId: number | null
   symbol: string
   name: string

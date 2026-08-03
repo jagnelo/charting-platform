@@ -68,27 +68,29 @@
     <div v-else-if="tool.tool_type === 'watchlist' && tool.configuration.personal === true" class="personal-watchlist-tool">
       <div class="personal-watchlist-tool__controls">
         <label>WatchList
-          <select :value="selectedPersonalWatchlistId == null ? '' : String(selectedPersonalWatchlistId)" aria-label="Personal watchlist" @change="selectPersonalWatchlist(($event.target as HTMLSelectElement).value)">
+          <select :value="flaggedItemsSelected ? 'flagged' : selectedPersonalWatchlistId == null ? '' : String(selectedPersonalWatchlistId)" aria-label="Personal watchlist" @change="selectPersonalWatchlist(($event.target as HTMLSelectElement).value)">
+            <option value="flagged">Flagged Items</option>
             <option value="">Select a personal watchlist</option>
             <option v-for="watchlist in personalWatchlists" :key="watchlist.id" :value="String(watchlist.id)">{{ watchlist.name }}{{ watchlist.is_locked ? ' · Locked' : '' }}</option>
           </select>
         </label>
-        <input v-model="personalListNameDraft" aria-label="Personal watchlist name" placeholder="List name" @keydown.enter.prevent="selectedPersonalWatchlist ? renamePersonalWatchlist() : createPersonalWatchlist()" />
-        <button type="button" :disabled="!personalListNameDraft.trim() || personalListBusy" @click="createPersonalWatchlist">New</button>
-        <button type="button" :disabled="!selectedPersonalWatchlist || selectedPersonalWatchlist.is_locked || selectedPersonalWatchlist.is_managed || !personalListNameDraft.trim() || personalListBusy" @click="renamePersonalWatchlist">Rename</button>
-        <button type="button" :disabled="!selectedPersonalWatchlist || personalListBusy" @click="copyPersonalWatchlist">Copy</button>
-        <button type="button" :disabled="!selectedPersonalWatchlist || selectedPersonalWatchlist.is_locked || selectedPersonalWatchlist.is_managed || personalListBusy" @click="deletePersonalWatchlist">Delete</button>
-        <input v-model="personalSymbolDraft" aria-label="Add symbol to personal watchlist" placeholder="Add symbol" :disabled="!selectedPersonalWatchlist || selectedPersonalWatchlist.is_locked" @keydown.enter.prevent="addPersonalSymbol" />
-        <button type="button" :disabled="!personalSymbolDraft.trim() || !selectedPersonalWatchlist || selectedPersonalWatchlist.is_locked || personalWatchlistBusy" @click="addPersonalSymbol">{{ personalWatchlistBusy ? 'Adding…' : 'Add' }}</button>
-        <span v-if="selectedPersonalWatchlist">{{ selectedPersonalWatchlist.items.length }} symbols · {{ selectedPersonalWatchlist.is_locked ? 'Locked' : 'Drag rows to reorder' }}</span>
+        <input v-model="personalListNameDraft" aria-label="Personal watchlist name" placeholder="List name" :disabled="flaggedItemsSelected" @keydown.enter.prevent="selectedPersonalWatchlist ? renamePersonalWatchlist() : createPersonalWatchlist()" />
+        <button type="button" :disabled="flaggedItemsSelected || !personalListNameDraft.trim() || personalListBusy" @click="createPersonalWatchlist">New</button>
+        <button type="button" :disabled="flaggedItemsSelected || !selectedPersonalWatchlist || selectedPersonalWatchlist.is_locked || selectedPersonalWatchlist.is_managed || !personalListNameDraft.trim() || personalListBusy" @click="renamePersonalWatchlist">Rename</button>
+        <button type="button" :disabled="flaggedItemsSelected || !selectedPersonalWatchlist || personalListBusy" @click="copyPersonalWatchlist">Copy</button>
+        <button type="button" :disabled="flaggedItemsSelected || !selectedPersonalWatchlist || selectedPersonalWatchlist.is_locked || selectedPersonalWatchlist.is_managed || personalListBusy" @click="deletePersonalWatchlist">Delete</button>
+        <input v-model="personalSymbolDraft" aria-label="Add symbol to personal watchlist" placeholder="Add symbol" :disabled="flaggedItemsSelected || !selectedPersonalWatchlist || selectedPersonalWatchlist.is_locked" @keydown.enter.prevent="addPersonalSymbol" />
+        <button type="button" :disabled="flaggedItemsSelected || !personalSymbolDraft.trim() || !selectedPersonalWatchlist || selectedPersonalWatchlist.is_locked || personalWatchlistBusy" @click="addPersonalSymbol">{{ personalWatchlistBusy ? 'Adding…' : 'Add' }}</button>
+        <span v-if="flaggedItemsSelected">{{ flaggedWatchlistRows.length }} flagged symbols · select a row to inspect its source list</span>
+        <span v-else-if="selectedPersonalWatchlist">{{ selectedPersonalWatchlist.items.length }} symbols · {{ selectedPersonalWatchlist.is_locked ? 'Locked' : 'Drag rows to reorder' }}</span>
         <span v-else-if="watchlistStore.loading">Loading watchlists…</span>
         <span v-else>No personal watchlists available.</span>
         <span v-if="personalWatchlistError" class="personal-watchlist-tool__error">{{ personalWatchlistError }}</span>
       </div>
       <VirtualWatchlistTool
-        v-if="selectedPersonalWatchlist"
-        :label="selectedPersonalWatchlist.name"
-        :rows="personalWatchlistRows"
+        v-if="selectedPersonalWatchlist || flaggedItemsSelected"
+        :label="flaggedItemsSelected ? 'Flagged Items' : selectedPersonalWatchlist?.name ?? 'WatchList'"
+        :rows="flaggedItemsSelected ? flaggedWatchlistRows : personalWatchlistRows"
         :selected="activeSymbol"
         :columns="personalWatchlistColumns"
         :visible-column-keys="configuredColumnKeys"
@@ -101,11 +103,11 @@
         :python-columns="configuredPythonColumns"
         :python-condition="configuredPythonCondition"
         :membership-targets="personalWatchlistTargets"
-        :source-watchlist-id="selectedPersonalWatchlist.id"
-        :reorderable="!selectedPersonalWatchlist.is_locked && !selectedPersonalWatchlist.is_managed"
-        :allow-remove="!selectedPersonalWatchlist.is_locked && !selectedPersonalWatchlist.is_managed"
+        :source-watchlist-id="selectedPersonalWatchlist?.id"
+        :reorderable="Boolean(selectedPersonalWatchlist && !selectedPersonalWatchlist.is_locked && !selectedPersonalWatchlist.is_managed)"
+        :allow-remove="Boolean(selectedPersonalWatchlist && !selectedPersonalWatchlist.is_locked && !selectedPersonalWatchlist.is_managed)"
         @select="selectSymbol($event.symbol, $event.instrumentId)"
-        @reorder="emit('reorder', selectedPersonalWatchlist.id, $event)"
+        @reorder="selectedPersonalWatchlist && emit('reorder', selectedPersonalWatchlist.id, $event)"
         @compare="emit('compare', $event)"
         @row-action="handlePersonalRowAction"
         @update:visible-column-keys="emit('columns', tool.instance_key, $event)"
@@ -320,6 +322,7 @@ import { calendarYearKeys } from '@/lib/workstation/calendarYears'
 import { buildNormalizedComparisonSeries, type ComparisonTarget } from '@/lib/workstation/comparison'
 import { ensureKnownInstrumentSymbol } from '@/lib/instruments'
 import { INDICATOR_BY_TYPE } from '@/lib/indicators/catalog'
+import { buildFlaggedWatchlistRows } from '@/lib/workstation/flagged-watchlist'
 import { CHART_BAR_TYPES, type ChartBarType, type ChartComparisonSeries, type IndicatorConfig, type OHLCVBar, type Timeframe } from '@/types'
 
 const props = defineProps<{
@@ -338,7 +341,9 @@ const drawingsStore = useDrawingsStore()
 const alertsStore = useAlertsStore()
 const workspaceStore = useWorkspaceStore()
 const watchlistStore = useWatchlistStore()
-const selectedPersonalWatchlistId = ref<number | null>(typeof props.tool.configuration.watchlist_id === 'number' ? props.tool.configuration.watchlist_id : null)
+const configuredWatchlistId = props.tool.configuration.watchlist_id
+const flaggedItemsSelected = ref(configuredWatchlistId === 'flagged')
+const selectedPersonalWatchlistId = ref<number | null>(typeof configuredWatchlistId === 'number' ? configuredWatchlistId : null)
 const personalWatchlists = computed(() => watchlistStore.watchlists.filter(watchlist => !watchlist.is_managed))
 const personalWatchlistTargets = computed(() => personalWatchlists.value.map(watchlist => ({
   id: watchlist.id,
@@ -349,6 +354,7 @@ const personalWatchlistTargets = computed(() => personalWatchlists.value.map(wat
 const selectedPersonalWatchlist = computed<Watchlist | null>(() => personalWatchlists.value.find(watchlist => watchlist.id === selectedPersonalWatchlistId.value) ?? null)
 const personalWatchlistRows = computed(() => (selectedPersonalWatchlist.value?.items ?? []).map(item => ({
   itemId: item.id,
+  sourceWatchlistId: selectedPersonalWatchlist.value?.id,
   instrumentId: item.instrument_id,
   symbol: item.symbol ?? `#${item.instrument_id}`,
   name: item.name ?? item.symbol ?? `Instrument ${item.instrument_id}`,
@@ -358,6 +364,7 @@ const personalWatchlistRows = computed(() => (selectedPersonalWatchlist.value?.i
     change: watchlistStore.priceMap[item.symbol ?? '']?.pct ?? null,
   },
 })))
+const flaggedWatchlistRows = computed(() => buildFlaggedWatchlistRows(personalWatchlists.value, watchlistStore.priceMap))
 const personalWatchlistColumns: WatchlistColumn[] = [
   { key: 'symbol', label: 'Symbol', width: '72px' },
   { key: 'name', label: 'Name', width: 'minmax(130px, 1fr)' },
@@ -371,10 +378,11 @@ const personalWatchlistBusy = ref(false)
 const personalWatchlistError = ref('')
 
 function selectPersonalWatchlist(raw: string) {
+  flaggedItemsSelected.value = raw === 'flagged'
   const id = Number(raw)
   selectedPersonalWatchlistId.value = Number.isInteger(id) && id > 0 ? id : null
   personalListNameDraft.value = selectedPersonalWatchlist.value?.name ?? ''
-  emit('configuration', props.tool.instance_key, { ...props.tool.configuration, watchlist_id: selectedPersonalWatchlistId.value })
+  emit('configuration', props.tool.instance_key, { ...props.tool.configuration, watchlist_id: flaggedItemsSelected.value ? 'flagged' : selectedPersonalWatchlistId.value })
 }
 
 async function createPersonalWatchlist() {
@@ -440,6 +448,7 @@ async function deletePersonalWatchlist() {
     const deleted = await watchlistStore.deleteWatchlist(watchlist.id)
     if (!deleted) throw new Error('Unable to delete personal watchlist')
     const next = personalWatchlists.value[0] ?? null
+    flaggedItemsSelected.value = false
     selectedPersonalWatchlistId.value = next?.id ?? null
     personalListNameDraft.value = next?.name ?? ''
     emit('configuration', props.tool.instance_key, { ...props.tool.configuration, watchlist_id: selectedPersonalWatchlistId.value })
@@ -486,9 +495,11 @@ async function handleMembershipAction(action: 'copy-to-watchlist' | 'move-to-wat
   }
 }
 
-function handlePersonalRowAction(action: 'chart' | 'compare' | 'note' | 'alert' | 'copy' | 'copy-to-watchlist' | 'move-to-watchlist' | 'flag' | 'remove', row: { symbol: string; instrumentId: number | null; itemId?: number; flagged?: boolean }, targetWatchlistId?: number) {
-  if (action === 'flag' && selectedPersonalWatchlist.value && row.itemId != null) {
-    void watchlistStore.setItemFlag(selectedPersonalWatchlist.value.id, row.itemId, !row.flagged)
+function handlePersonalRowAction(action: 'chart' | 'compare' | 'note' | 'alert' | 'copy' | 'copy-to-watchlist' | 'move-to-watchlist' | 'flag' | 'remove', row: { symbol: string; instrumentId: number | null; itemId?: number; sourceWatchlistId?: number; flagged?: boolean }, targetWatchlistId?: number) {
+  if (action === 'flag' && row.itemId != null) {
+    const sourceWatchlistId = row.sourceWatchlistId ?? selectedPersonalWatchlist.value?.id
+    if (sourceWatchlistId == null) return
+    void watchlistStore.setItemFlag(sourceWatchlistId, row.itemId, !row.flagged)
     return
   }
   if (action === 'copy-to-watchlist' || action === 'move-to-watchlist') {
@@ -505,7 +516,7 @@ function handlePersonalRowAction(action: 'chart' | 'compare' | 'note' | 'alert' 
 onMounted(async () => {
   if (!watchlistStore.watchlists.length && !watchlistStore.loading) await watchlistStore.loadWatchlists()
   if (props.tool.tool_type !== 'watchlist' || props.tool.configuration.personal !== true) return
-  if (selectedPersonalWatchlistId.value == null) {
+  if (selectedPersonalWatchlistId.value == null && !flaggedItemsSelected.value) {
     selectedPersonalWatchlistId.value = personalWatchlists.value[0]?.id ?? null
     personalListNameDraft.value = personalWatchlists.value[0]?.name ?? ''
     if (selectedPersonalWatchlistId.value != null) {
@@ -517,10 +528,15 @@ onMounted(async () => {
 })
 
 watch(() => props.tool.configuration.watchlist_id, value => {
+  flaggedItemsSelected.value = value === 'flagged'
   selectedPersonalWatchlistId.value = typeof value === 'number' ? value : null
 })
 
 watch(() => selectedPersonalWatchlist.value?.items.map(item => item.symbol).join(','), value => {
+  const symbols = (value ?? '').split(',').filter(Boolean)
+  if (symbols.length) void watchlistStore.fetchPrices(symbols)
+})
+watch(() => flaggedWatchlistRows.value.map(row => row.symbol).join(','), value => {
   const symbols = (value ?? '').split(',').filter(Boolean)
   if (symbols.length) void watchlistStore.fetchPrices(symbols)
 })
