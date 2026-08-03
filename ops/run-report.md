@@ -17631,5 +17631,5 @@ uncovered slice rather than repeat a generic completion claim.
 
 - Every requested indicator-batch symbol now receives a cell-level
   `instrument_not_found` warning as well as the response-level exclusion.
-- Workspace integration `23` and Ruff passed. Commit/push pending; strict V25 visual
-  approval and broad acceptance remain open.
+- Workspace integration `23` and Ruff passed. Checkpoint `9e8bfe8` is committed and
+  pushed; strict V25 visual approval and broad acceptance remain open.
