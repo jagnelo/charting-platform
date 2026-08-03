@@ -310,9 +310,9 @@ lists, retains the originating watchlist and item IDs for linked context-menu ac
 disables membership-mutating controls that have no valid source list, and allows a flag to
 be removed through the same authenticated PATCH contract. The derived view is persisted as
 the serializable `watchlist_id: "flagged"` selection and refreshes from the canonical
-watchlist store, so it remains consistent across reloads and pop-outs. Focused component
-coverage for this aggregate source remains to be added; visual approval is still blocked
-by the V25 reference manifest.
+watchlist store, so it remains consistent across reloads and pop-outs. Component coverage
+now proves the flagged marker, preserved source item identity, and explicit Unflag action;
+visual approval is still blocked by the V25 reference manifest.
 
 The same WatchList source selector now supports user-owned combo lists. A combo is stored
 as a versioned `combo_list` library item with canonical source watchlist IDs and explicit

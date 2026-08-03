@@ -183,6 +183,20 @@ describe('VirtualWatchlistTool', () => {
     expect(wrapper.emitted('row-action')?.at(-1)).toEqual(['move-to-watchlist', expect.objectContaining({ itemId: 22 }), 7])
   })
 
+  it('renders flagged aggregate rows and emits an explicit unflag action for their source item', async () => {
+    const flaggedRow = { ...rows[0], itemId: 41, sourceWatchlistId: 12, flagged: true }
+    const wrapper = mount(VirtualWatchlistTool, {
+      props: { label: 'Flagged Items', rows: [flaggedRow], sourceWatchlistId: null },
+    })
+
+    expect(wrapper.get('.watchlist__flag').attributes('aria-label')).toBe('Flagged')
+    await wrapper.find('.watchlist__row').trigger('contextmenu', { clientX: 20, clientY: 24 })
+    const unflag = wrapper.findAll('button[role="menuitem"]').find(button => button.text() === 'Unflag')
+    expect(unflag?.exists()).toBe(true)
+    await unflag?.trigger('click')
+    expect(wrapper.emitted('row-action')?.at(-1)).toEqual(['flag', flaggedRow])
+  })
+
   it('restores a persisted filter and follows a workspace-state update', async () => {
     const wrapper = mount(VirtualWatchlistTool, {
       props: { label: 'Sectors', rows, filterText: 'technology' },
