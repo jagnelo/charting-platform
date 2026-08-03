@@ -2,6 +2,14 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-03T23:36:00Z Study dashboard reference validation
+
+- Dashboard execution now rejects missing and self-referential panel targets with a
+  structured diagnostic instead of persisting empty panels.
+- Full backend unit suite `886 passed`; focused runner tests `29 passed`; Ruff/diff checks
+  passed. Pushed `e698873`.
+- Strict V25 visual approval and the complete acceptance matrix remain open.
+
 ## 2026-08-03T23:28:00Z Typed Study dashboards
 
 - Added `output.dashboard` with bounded named panels and shared rendering for active and

@@ -1,5 +1,13 @@
 # Active Handoff
 
+## Continuation update — 2026-08-03T23:36:00Z
+
+- Hardened typed Study dashboards: the isolated runner now rejects missing or
+  self-referential panel targets before persisting a completed result.
+- Validation: full backend unit suite `886 passed`; focused runner/reference tests `29
+  passed`; Ruff and `git diff --check` passed. Checkpoint `e698873` is pushed. Strict V25
+  visual approval and the complete acceptance matrix remain open.
+
 ## Continuation update — 2026-08-03T23:28:00Z
 
 - Added typed `output.dashboard` composition with bounded named artifact references and
