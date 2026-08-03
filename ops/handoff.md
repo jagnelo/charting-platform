@@ -1,5 +1,14 @@
 # Active Handoff
 
+## Continuation update — 2026-08-03T23:50:00Z
+
+- Added official help discovery candidates for the integrated column editor, grouped
+  columns, and stacked-column drag/drop states, with direct online image locators and
+  explicit non-approval provenance. Updated the controlling visual catalogue.
+- Manifest validation and diff checks passed. These references remain discovery-only:
+  no exact-build `25.0.9571` approved visual baselines exist yet, so strict visual
+  acceptance remains blocked honestly.
+
 ## Continuation update — 2026-08-03T23:45:00Z
 
 - Added component coverage for the derived `Flagged Items` watchlist source. It now

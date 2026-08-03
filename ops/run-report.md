@@ -2,6 +2,14 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-03T23:50:00Z Official column-state discovery references
+
+- Added official help discovery candidates for integrated column-editor, grouped-column,
+  and stacked-column states with direct image locators; recorded their non-pinned-build
+  status in the visual manifest and catalogue.
+- Manifest validation and diff checks passed. Strict V25 visual approval remains blocked
+  because exact-build approved baselines are still absent.
+
 ## 2026-08-03T23:45:00Z Flagged Items component evidence
 
 - Added a component regression for the derived Flagged Items source, covering its
