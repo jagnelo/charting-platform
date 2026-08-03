@@ -17624,5 +17624,6 @@ uncovered slice rather than repeat a generic completion claim.
   history is explicit and excluded from valid-value coverage; unavailable request paths
   render a labelled warning rather than a silent blank.
 - Validation: backend unit `888`, workspace integration `23`, frontend Vitest `495` across
-  `80` files, TypeScript, production build, Ruff, and diff checks passed. Commit/push
-  pending; strict V25 visual approval and broad acceptance remain open.
+  `80` files, TypeScript, production build, Ruff, and diff checks passed. Checkpoint
+  `b0a29ef` is committed and pushed; strict V25 visual approval and broad acceptance
+  remain open.

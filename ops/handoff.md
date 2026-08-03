@@ -15857,6 +15857,6 @@
   coverage for that cell; frontend renders warning text instead of a silent dash, and
   provider/request failures are labelled unavailable.
 - Validation passed: backend unit `888`, workspace integration `23`, frontend Vitest
-  `495` across `80` files, TypeScript, production build, Ruff, and diff checks. Commit
-  and push are pending; strict V25 visual approval, provider probes, Docker-backed broad
-  acceptance, and remaining backend/research gaps remain open.
+  `495` across `80` files, TypeScript, production build, Ruff, and diff checks.
+  Checkpoint `b0a29ef` is committed and pushed; strict V25 visual approval, provider
+  probes, Docker-backed broad acceptance, and remaining backend/research gaps remain open.
