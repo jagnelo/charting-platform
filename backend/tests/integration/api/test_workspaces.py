@@ -508,6 +508,64 @@ class TestWorkspaces:
         assert len(row["tail"]) == 3
         assert row["coverage"] == 1
 
+    def test_relative_rotation_respects_point_in_time_membership_and_bars(
+        self, client, auth_headers, db, instrument, ohlcv_bars
+    ):
+        from datetime import UTC, datetime
+
+        from app.models.workstation import MarketGroup, MarketGroupMember
+
+        group = MarketGroup(
+            stable_key="point-in-time-rotation-test", group_type="test", name="Point-in-time rotation"
+        )
+        db.add(group)
+        db.flush()
+        db.add(
+            MarketGroupMember(
+                market_group_id=group.id,
+                instrument_id=instrument.id,
+                position=0,
+                effective_at=datetime(2024, 3, 15, tzinfo=UTC),
+                known_at=datetime(2024, 3, 20, tzinfo=UTC),
+            )
+        )
+        db.flush()
+
+        before_membership = client.get(
+            "/api/v1/analysis/groups/point-in-time-rotation-test/relative-rotation",
+            headers=auth_headers,
+            params={
+                "benchmark": instrument.symbol,
+                "as_of": "2024-03-10T23:59:59Z",
+                "lookback": 20,
+                "tail_length": 3,
+            },
+        )
+        assert before_membership.status_code == 200
+        assert before_membership.json()["rows"] == []
+
+        after_membership = client.get(
+            "/api/v1/analysis/groups/point-in-time-rotation-test/relative-rotation",
+            headers=auth_headers,
+            params={
+                "benchmark": instrument.symbol,
+                "as_of": "2024-04-30T23:59:59Z",
+                "lookback": 20,
+                "tail_length": 3,
+            },
+        )
+        assert after_membership.status_code == 200
+        payload = after_membership.json()
+        assert payload["as_of"] == "2024-04-30T23:59:59Z"
+        assert payload["universe_provenance"]["membership_selection"] == (
+            "effective_at_and_known_at"
+        )
+        assert payload["rows"]
+        assert all(
+            point["timestamp"] <= "2024-04-30T23:59:59Z"
+            for point in payload["rows"][0]["tail"]
+        )
+
     def test_etf_constituent_snapshot_is_point_in_time_and_source_labelled(
         self, client, auth_headers, db, instrument, instrument_type, ohlcv_bars
     ):

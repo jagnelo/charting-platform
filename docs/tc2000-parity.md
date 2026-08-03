@@ -43,6 +43,13 @@ benchmark, timeframe, split-adjustment mode, lookback, and tail length. Those va
 sent to the canonical analysis endpoint rather than being hidden SPY/D1/20/10 constants;
 load generations prevent a late rotation response from replacing a newer selection.
 
+The Relative Rotation backend now accepts an optional point-in-time `as_of` and applies it
+to both versioned market-group membership (`effective_at`/`known_at`) and local bars. The
+response echoes the cutoff and provenance selection rule, rejects groups not known at the
+requested time, and never uses future members or future observations in the ratio tail.
+The Docker-backed regression is recorded but remains unexecuted in the current environment
+because its Docker socket is unavailable; unit coverage proves the timestamp-selection helper.
+
 Queued Python EasyScan runs now expose their isolated research-run cancellation
 control in the primary workstation. Cancellation remains isolated to that run and
 the result polling path reconciles the terminal `canceled` state.

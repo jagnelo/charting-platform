@@ -2,7 +2,7 @@ from datetime import UTC, datetime
 from decimal import Decimal
 
 from app.models.ohlcv import OHLCVBar, Timeframe
-from app.routers.analysis import _calendar_year_cells, _performance_cells
+from app.routers.analysis import _calendar_year_cells, _is_known_at, _performance_cells
 
 
 def _bar(instrument_id: int, year: int, month: int, close: str) -> OHLCVBar:
@@ -61,3 +61,16 @@ def test_period_return_reports_zero_base_price_instead_of_dividing():
     assert cells["1D"].value is None
     assert cells["1D"].warning is not None
     assert cells["1D"].warning.code == "zero_base_price"
+
+
+def test_point_in_time_membership_accepts_unknown_or_prior_versions_only():
+    as_of = datetime(2024, 3, 10, tzinfo=UTC)
+    assert _is_known_at(None, as_of)
+    assert _is_known_at(datetime(2024, 3, 10, tzinfo=UTC), as_of)
+    assert not _is_known_at(datetime(2024, 3, 11, tzinfo=UTC), as_of)
+
+
+def test_point_in_time_membership_normalises_legacy_naive_timestamps():
+    as_of = datetime(2024, 3, 10, tzinfo=UTC)
+    assert _is_known_at(datetime(2024, 3, 9), as_of)
+    assert not _is_known_at(datetime(2024, 3, 11), as_of)

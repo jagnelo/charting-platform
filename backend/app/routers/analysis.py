@@ -46,6 +46,15 @@ _PERIODS = {"1D": 1, "1W": 5, "1M": 21, "3M": 63, "6M": 126, "YTD": None, "1Y": 
 _CALENDAR_YEAR_LOOKBACK = 5
 
 
+def _is_known_at(value: datetime | None, as_of: datetime | None) -> bool:
+    """Return whether a versioned membership timestamp is usable at ``as_of``."""
+    if value is None or as_of is None:
+        return True
+    if value.tzinfo is None and as_of.tzinfo is not None:
+        value = value.replace(tzinfo=as_of.tzinfo)
+    return value <= as_of
+
+
 @router.get("/gauges/{screener_id}", response_model=MarketGaugeOut)
 async def market_gauge(
     screener_id: int,
@@ -457,6 +466,7 @@ async def group_relative_rotation(
     benchmark: str,
     timeframe: Timeframe = Timeframe.D1,
     adjusted: bool = True,
+    as_of: datetime | None = Query(default=None),
     lookback: int = Query(default=20, ge=2, le=252),
     tail_length: int = Query(default=10, ge=1, le=100),
     _: User = Depends(get_current_user),
@@ -476,8 +486,18 @@ async def group_relative_rotation(
     ).scalar_one_or_none()
     if group is None:
         raise HTTPException(404, detail={"code": "market_group_not_found", "group_key": group_key})
+    if not _is_known_at(group.effective_at, as_of) or not _is_known_at(group.known_at, as_of):
+        raise HTTPException(
+            404,
+            detail={"code": "market_group_not_known_at", "group_key": group_key},
+        )
     benchmark_instrument = await _instrument(db, benchmark)
-    instrument_ids = [member.instrument_id for member in group.members]
+    members = [
+        member
+        for member in group.members
+        if _is_known_at(member.effective_at, as_of) and _is_known_at(member.known_at, as_of)
+    ]
+    instrument_ids = [member.instrument_id for member in members]
     instruments = {
         instrument.id: instrument
         for instrument in (
@@ -487,9 +507,14 @@ async def group_relative_rotation(
     bars_by_id = await _bars_by_instrument(
         db, [*instrument_ids, benchmark_instrument.id], timeframe, adjusted
     )
+    if as_of is not None:
+        bars_by_id = {
+            instrument_id: [bar for bar in bars if bar.ts <= as_of]
+            for instrument_id, bars in bars_by_id.items()
+        }
     benchmark_bars = {bar.ts: bar for bar in bars_by_id.get(benchmark_instrument.id, [])}
     rows: list[RelativeRotationRow] = []
-    for member in sorted(group.members, key=lambda item: item.position):
+    for member in sorted(members, key=lambda item: item.position):
         instrument = instruments.get(member.instrument_id)
         if instrument is None:
             continue
@@ -583,7 +608,12 @@ async def group_relative_rotation(
         lookback=lookback,
         tail_length=tail_length,
         membership_version=group.id,
-        universe_provenance=group.provenance or {},
+        universe_provenance={
+            **(group.provenance or {}),
+            "membership_as_of": as_of.isoformat() if as_of else None,
+            "membership_selection": "effective_at_and_known_at",
+        },
+        as_of=as_of,
         freshness=freshness,
         freshness_detail=freshness_detail,
         rows=rows,
