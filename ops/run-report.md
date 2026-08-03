@@ -16920,3 +16920,13 @@ uncovered slice rather than repeat a generic completion claim.
 - Massive provider suite `74 passed`; Ruff and `git diff --check` passed. Code commit
   `63c6d04` pushed. Strict V25 visual approval and the broad acceptance matrix remain
   incomplete.
+
+## 2026-08-03T17:05:00Z Alpha Vantage daily-history checkpoint
+
+- Added optional Alpha Vantage symbol search and free-quota raw daily-history adapter with
+  explicit credential gating and no default-chain dependency. Daily bars are bounded,
+  chronologically ordered, and marked unadjusted so local adjustment logic remains the
+  source of truth.
+- Full backend unit `867 passed`, total coverage `70.20%`; provider-focused suite `77
+  passed`; Ruff, compile, and diff checks passed. Code commit `ab2e499` pushed. Strict V25
+  visual approval and the broad acceptance matrix remain incomplete.

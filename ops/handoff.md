@@ -14791,6 +14791,18 @@
 - Strict V25 visual validation remains intentionally blocked at
   `application-shell-default/default: required_missing`; full goal remains active.
 
+## 2026-08-03T17:05:00Z Alpha Vantage daily-history checkpoint
+
+- Added optional Alpha Vantage search and free-quota daily-history adapter. It supports
+  canonical D1 OHLCV parsing with explicit raw/unadjusted semantics, bounded latest
+  windows, and honest empty results when credentials are absent; it is never a default
+  workstation dependency.
+- Verification: full backend unit `867 passed, 34 warnings`, total coverage `70.20%`;
+  Alpha/provider focused suite `77 passed`; Ruff, compilation, and `git diff --check`
+  passed. Commit `ab2e499` pushed.
+- Strict V25 visual validation remains intentionally blocked at
+  `application-shell-default/default: required_missing`; full goal remains active.
+
 ## 2026-08-03T16:10:29Z Floated-tool persistence checkpoint
 
 - Floated workstation tools now forward condition-filter mode, Boolean pinning, column
