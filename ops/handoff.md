@@ -1,5 +1,19 @@
 # Active Handoff
 
+## Continuation update — 2026-08-03T15:58:00Z
+
+- Study Lab now exposes timeframe, benchmark, adjustment, session, and date-range
+  controls in the primary workstation. Research-run materialization validates these
+  controls, applies timeframe/adjustment/date bounds to canonical bars, and records the
+  normalized dataset manifest; session and benchmark are explicit metadata until their
+  corresponding canonical data joins are available.
+- Validation: focused backend API suite `13 passed` (the module-scoped command reports
+  the repository coverage threshold separately), focused Study Lab component `1 passed`,
+  full frontend Vitest `451 passed` across `76` files, Ruff, TypeScript, production build,
+  and `git diff --check` passed.
+- The full goal remains active. Strict V25 visual approval is still `required_missing`,
+  and the broader backend/security/performance/end-to-end acceptance matrix remains open.
+
 ## Continuation update — 2026-08-03T15:47:00Z
 
 - Added a wired virtual-watchlist row context menu for chart, compare-with-active, note,

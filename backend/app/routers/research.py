@@ -1,5 +1,7 @@
 """Study Lab run lifecycle; only the isolated runner executes source."""
 
+from datetime import UTC, date, datetime, time
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -28,33 +30,118 @@ router = APIRouter(prefix="/research", tags=["research"])
 MAX_BATCH_SYMBOLS = 10_000
 BATCH_HISTORY_LIMIT = 500
 BATCH_QUERY_SIZE = 500
+RESEARCH_ADJUSTMENTS = {"split_adjusted": True, "raw": False}
 
 
-async def _materialize_instrument_dataset(db: AsyncSession, instrument: Instrument, manifest: dict) -> dict:
-    bars = (
-        (
-            await db.execute(
-                select(OHLCVBar)
-                .where(
-                    OHLCVBar.instrument_id == instrument.id,
-                    OHLCVBar.timeframe == Timeframe.D1,
-                    OHLCVBar.is_adjusted.is_(True),
-                )
-                .order_by(OHLCVBar.ts.desc())
-                .limit(5000)
-            )
+def _parse_dataset_bound(value: object, *, end: bool) -> datetime | None:
+    if value in (None, ""):
+        return None
+    text = str(value).strip()
+    try:
+        parsed = datetime.fromisoformat(text.replace("Z", "+00:00"))
+    except ValueError:
+        try:
+            parsed_date = date.fromisoformat(text)
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=422,
+                detail={"code": "invalid_dataset_date", "value": text},
+            ) from exc
+        parsed = datetime.combine(parsed_date, time.max if end else time.min)
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=UTC)
+    return parsed.astimezone(UTC)
+
+
+def _dataset_options(run_config: dict, manifest: dict) -> dict:
+    timeframe_value = str(
+        run_config.get("timeframe") or manifest.get("timeframe") or Timeframe.D1.value
+    ).upper()
+    try:
+        timeframe = Timeframe(timeframe_value)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=422,
+            detail={"code": "invalid_dataset_timeframe", "value": timeframe_value},
+        ) from exc
+
+    adjustment = str(
+        run_config.get("adjustment") or manifest.get("adjustment") or "split_adjusted"
+    ).lower()
+    if adjustment not in RESEARCH_ADJUSTMENTS:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "unsupported_dataset_adjustment",
+                "value": adjustment,
+                "supported": sorted(RESEARCH_ADJUSTMENTS),
+            },
         )
+
+    session = str(run_config.get("session") or manifest.get("session") or "regular").lower()
+    if session not in {"regular", "all"}:
+        raise HTTPException(
+            status_code=422,
+            detail={"code": "unsupported_dataset_session", "value": session},
+        )
+    start = _parse_dataset_bound(run_config.get("start_date") or manifest.get("start_date"), end=False)
+    end = _parse_dataset_bound(run_config.get("end_date") or manifest.get("end_date"), end=True)
+    if start and end and start > end:
+        raise HTTPException(
+            status_code=422,
+            detail={"code": "dataset_date_range_reversed", "start_date": start.date().isoformat(), "end_date": end.date().isoformat()},
+        )
+    benchmark = run_config.get("benchmark") or manifest.get("benchmark")
+    if benchmark is not None and (not isinstance(benchmark, str) or not benchmark.strip()):
+        raise HTTPException(status_code=422, detail={"code": "invalid_dataset_benchmark"})
+    return {
+        "timeframe": timeframe,
+        "adjustment": adjustment,
+        "is_adjusted": RESEARCH_ADJUSTMENTS[adjustment],
+        "session": session,
+        "start": start,
+        "end": end,
+        "benchmark": benchmark.strip().upper() if isinstance(benchmark, str) else None,
+    }
+
+
+def _dataset_manifest_fields(manifest: dict, options: dict) -> dict:
+    fields = {
+        **manifest,
+        "source": "canonical_database",
+        "timeframe": options["timeframe"].value,
+        "adjustment": options["adjustment"],
+        "session": options["session"],
+    }
+    if options["benchmark"]:
+        fields["benchmark"] = options["benchmark"]
+    if options["start"]:
+        fields["start_date"] = options["start"].date().isoformat()
+    if options["end"]:
+        fields["end_date"] = options["end"].date().isoformat()
+    return fields
+
+
+async def _materialize_instrument_dataset(db: AsyncSession, instrument: Instrument, manifest: dict, options: dict) -> dict:
+    conditions = [
+        OHLCVBar.instrument_id == instrument.id,
+        OHLCVBar.timeframe == options["timeframe"],
+        OHLCVBar.is_adjusted.is_(options["is_adjusted"]),
+    ]
+    if options["start"]:
+        conditions.append(OHLCVBar.ts >= options["start"])
+    if options["end"]:
+        conditions.append(OHLCVBar.ts <= options["end"])
+    bars = (
+        (await db.execute(select(OHLCVBar).where(*conditions).order_by(OHLCVBar.ts.desc()).limit(5000)))
         .scalars()
         .all()
     )
     bars.reverse()
     return {
-        **manifest,
-        "source": "canonical_database",
+        **_dataset_manifest_fields(manifest, options),
         "symbol": instrument.symbol,
         "instrument_id": instrument.id,
-        "timeframe": Timeframe.D1.value,
-        "adjustment": "split_adjusted",
         "timestamps": [bar.ts.isoformat() for bar in bars],
         "closes": [float(bar.close) for bar in bars],
     }
@@ -62,6 +149,7 @@ async def _materialize_instrument_dataset(db: AsyncSession, instrument: Instrume
 
 async def _materialize_declared_dataset(db: AsyncSession, manifest: dict, run_config: dict) -> dict:
     """Materialize only an explicitly declared canonical local dataset for the runner."""
+    options = _dataset_options(run_config, manifest)
     symbols = run_config.get("symbols")
     if isinstance(symbols, list):
         requested = list(dict.fromkeys(str(item).strip().upper() for item in symbols if str(item).strip()))
@@ -88,6 +176,15 @@ async def _materialize_declared_dataset(db: AsyncSession, manifest: dict, run_co
         instrument_ids = [instrument.id for instrument in instruments]
         for offset in range(0, len(instrument_ids), BATCH_QUERY_SIZE):
             ids = instrument_ids[offset : offset + BATCH_QUERY_SIZE]
+            bar_conditions = [
+                OHLCVBar.instrument_id.in_(ids),
+                OHLCVBar.timeframe == options["timeframe"],
+                OHLCVBar.is_adjusted.is_(options["is_adjusted"]),
+            ]
+            if options["start"]:
+                bar_conditions.append(OHLCVBar.ts >= options["start"])
+            if options["end"]:
+                bar_conditions.append(OHLCVBar.ts <= options["end"])
             ranked_bars = (
                 select(
                     OHLCVBar.id.label("bar_id"),
@@ -98,11 +195,7 @@ async def _materialize_declared_dataset(db: AsyncSession, manifest: dict, run_co
                     )
                     .label("bar_rank"),
                 )
-                .where(
-                    OHLCVBar.instrument_id.in_(ids),
-                    OHLCVBar.timeframe == Timeframe.D1,
-                    OHLCVBar.is_adjusted.is_(True),
-                )
+                .where(*bar_conditions)
                 .subquery()
             )
             bars = (
@@ -131,15 +224,15 @@ async def _materialize_declared_dataset(db: AsyncSession, manifest: dict, run_co
                     "source": "canonical_database",
                     "symbol": instrument.symbol,
                     "instrument_id": instrument.id,
-                    "timeframe": Timeframe.D1.value,
-                    "adjustment": "split_adjusted",
+                    "timeframe": options["timeframe"].value,
+                    "adjustment": options["adjustment"],
+                    "session": options["session"],
                     "timestamps": [bar.ts.isoformat() for bar in bars],
                     "closes": [float(bar.close) for bar in bars],
                 }
             )
         return {
-            **manifest,
-            "source": "canonical_database",
+            **_dataset_manifest_fields(manifest, options),
             "datasets": datasets,
             "requested_symbols": requested,
             "batch_history_limit": BATCH_HISTORY_LIMIT,
@@ -155,7 +248,7 @@ async def _materialize_declared_dataset(db: AsyncSession, manifest: dict, run_co
         raise HTTPException(
             status_code=422, detail={"code": "declared_instrument_not_found", "symbol": symbol}
         )
-    return await _materialize_instrument_dataset(db, instrument, manifest)
+    return await _materialize_instrument_dataset(db, instrument, manifest, options)
 
 
 @router.post("/runs", response_model=ResearchRunOut, status_code=status.HTTP_202_ACCEPTED)

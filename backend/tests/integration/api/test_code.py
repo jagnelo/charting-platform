@@ -263,6 +263,85 @@ def test_research_run_materializes_only_declared_local_symbol_data(
     assert payload["dataset_manifest"]["adjustment"] == "split_adjusted"
 
 
+def test_research_run_honors_study_dataset_controls_and_records_them(
+    client, auth_headers, tmp_path, monkeypatch, instrument, ohlcv_bars
+):
+    monkeypatch.setattr(
+        "app.services.research_jobs.settings.RESEARCH_JOB_DIR", str(tmp_path / "jobs")
+    )
+    monkeypatch.setattr(
+        "app.services.research_jobs.settings.RESEARCH_RESULT_DIR", str(tmp_path / "results")
+    )
+    asset = client.post(
+        "/api/v1/code/assets",
+        headers=auth_headers,
+        json={
+            "stable_key": "controlled-study",
+            "name": "Controlled study",
+            "kind": "study",
+            "initial_version": {
+                "source": "output.scalar('current', 1)",
+                "output_contract": "study",
+            },
+        },
+    ).json()
+    response = client.post(
+        "/api/v1/research/runs",
+        headers=auth_headers,
+        json={
+            "code_version_id": asset["versions"][0]["id"],
+            "run_config": {
+                "symbol": instrument.symbol,
+                "timeframe": "D1",
+                "adjustment": "split_adjusted",
+                "session": "regular",
+                "benchmark": "SPY",
+                "start_date": "2024-02-01",
+                "end_date": "2024-02-05",
+            },
+        },
+    )
+    assert response.status_code == 202
+    manifest = response.json()["dataset_manifest"]
+    assert manifest["timeframe"] == "D1"
+    assert manifest["adjustment"] == "split_adjusted"
+    assert manifest["session"] == "regular"
+    assert manifest["benchmark"] == "SPY"
+    assert manifest["start_date"] == "2024-02-01"
+    assert manifest["end_date"] == "2024-02-05"
+    assert len(manifest["timestamps"]) == 5
+    assert manifest["timestamps"][0].startswith("2024-02-01")
+    assert manifest["timestamps"][-1].startswith("2024-02-05")
+
+
+def test_research_run_rejects_unsupported_study_dataset_controls(
+    client, auth_headers, instrument
+):
+    asset = client.post(
+        "/api/v1/code/assets",
+        headers=auth_headers,
+        json={
+            "stable_key": "invalid-study-controls",
+            "name": "Invalid study controls",
+            "kind": "study",
+            "initial_version": {
+                "source": "output.scalar('current', 1)",
+                "output_contract": "study",
+            },
+        },
+    ).json()
+    response = client.post(
+        "/api/v1/research/runs",
+        headers=auth_headers,
+        json={
+            "code_version_id": asset["versions"][0]["id"],
+            "run_config": {"symbol": instrument.symbol, "timeframe": "D1", "adjustment": "total_return"},
+        },
+    )
+    assert response.status_code == 422
+    assert response.json()["detail"]["code"] == "unsupported_dataset_adjustment"
+
+
 def test_column_batch_run_materializes_declared_universe_and_returns_typed_cells(
     client, auth_headers, tmp_path, monkeypatch, instrument, ohlcv_bars
 ):

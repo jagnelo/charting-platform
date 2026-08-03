@@ -28,10 +28,21 @@ describe('StudyLabTool', () => {
 
     await wrapper.find('button').trigger('click')
     await vi.waitFor(() => expect(wrapper.text()).toContain('Validated for isolated execution'))
+    await wrapper.find('[aria-label="Study timeframe"]').setValue('W1')
+    await wrapper.find('[aria-label="Study benchmark"]').setValue('QQQ')
+    await wrapper.find('[aria-label="Study adjustment"]').setValue('raw')
+    await wrapper.find('[aria-label="Study session"]').setValue('all')
+    await wrapper.find('[aria-label="Study start date"]').setValue('2024-01-01')
+    await wrapper.find('[aria-label="Study end date"]').setValue('2024-02-01')
     await wrapper.findAll('button')[1].trigger('click')
     await vi.waitFor(() => expect(wrapper.text()).toContain('Run #9'))
 
-    expect(apiPost).toHaveBeenCalledWith('/research/runs', expect.objectContaining({ code_version_id: 42, run_config: { symbol: 'SPY' } }))
+    expect(apiPost).toHaveBeenCalledWith('/research/runs', expect.objectContaining({
+      code_version_id: 42,
+      run_config: { symbol: 'SPY', timeframe: 'W1', benchmark: 'QQQ', adjustment: 'raw', session: 'all', start_date: '2024-01-01', end_date: '2024-02-01' },
+      dataset_manifest: expect.objectContaining({ timeframe: 'W1', benchmark: 'QQQ', adjustment: 'raw', session: 'all', start_date: '2024-01-01', end_date: '2024-02-01' }),
+    }))
+    expect(wrapper.text()).toContain('Dataset: W1 · raw · all session · benchmark QQQ')
     expect(wrapper.text()).toContain('current_streak')
     expect(wrapper.text()).toContain('4')
     expect(wrapper.text()).toContain('qualifies')

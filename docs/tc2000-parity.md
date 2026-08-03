@@ -118,3 +118,13 @@ the canonical ticker. Actions are routed through `WorkstationView` for docked an
 tools; no context-menu item is a dead visual control. Focused component and pop-out
 binding tests cover the menu and shell routing. This is functional evidence only; the
 Version 25 visual reference remains unapproved.
+
+Study Lab now exposes explicit timeframe, benchmark, adjustment, session, and date-range
+controls in the primary workstation tool. The research-run API validates those controls,
+materializes only the requested canonical bars, records the normalized dataset manifest,
+and rejects unsupported adjustments, invalid sessions, malformed dates, and reversed ranges.
+The tool displays the selected dataset contract alongside reproducibility output. Session
+and benchmark are currently recorded as canonical dataset metadata; they do not imply
+provider-specific intraday or benchmark-bar availability. Focused backend and component
+tests cover the contract. This is functional evidence only; the Version 25 visual
+reference remains unapproved.

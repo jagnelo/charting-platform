@@ -2,6 +2,17 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-03T15:58:00Z Study Lab dataset controls
+
+- Added visible Study Lab timeframe, benchmark, adjustment, session, and date-range
+  controls and passed them through both run configuration and dataset manifest.
+- Canonical research materialization now validates and applies timeframe, raw/split
+  adjustment, and date bounds, while recording normalized metadata and structured errors.
+- Validation: backend API `13 passed` (module coverage threshold is broader than this
+  focused command), Study Lab component `1 passed`, full frontend Vitest `451 passed`
+  across `76` files, Ruff, TypeScript, production build, and diff check.
+- Strict V25 visual approval and the full acceptance matrix remain open.
+
 ## 2026-08-03T15:47:00Z Watchlist context actions
 
 - Added and wired row context actions for chart, comparison, notes, alerts, and copying
