@@ -4,8 +4,8 @@
     "active_worker": "Codex",
     "worker_session_started_at": "2026-07-28T21:40:33Z",
     "worker_soft_stop_at": null,
-    "last_handoff_at": "2026-08-03T16:54:08Z",
-    "last_commit": "0e82ece feat(providers): add optional Massive reference corroboration",
+    "last_handoff_at": "2026-08-03T16:58:00Z",
+    "last_commit": "63c6d04 fix(providers): preserve Massive reference cursors",
     "git_ready_to_commit": true,
     "validation": {
         "backend_lint": "passed (code validation, restricted numerical facades, isolated research runner/resource restoration, screener, visual, analysis, research, OHLCV session model, and migration modules, 2026-08-03)",
@@ -21,6 +21,7 @@
         "yaml_json_parse": "passed (state.json, .env.example provider-chain JSON, and Docker Compose YAML validated; official release notes confirm pinned build 25.0.9571 while the available official help image remains a 25.0.9172.22877 discovery candidate; strict visual validator intentionally rejects application-shell-default/default as required_missing, 2026-08-03)"
     },
     "notes": [
+        "2026-08-03T16:58:00Z: Corrected Massive reference pagination to retain and reuse returned cursors for subsequent pages rather than fabricate numeric tokens. Massive provider suite 74 passed, Ruff/diff passed. Code checkpoint 63c6d04. Strict visual approval remains required_missing and the broad acceptance matrix remains incomplete.",
         "2026-08-03T16:54:08Z: Added optional Massive reference search and paged US ticker-universe corroboration with explicit credential gating; it supplements Alpaca/EDGAR and is not a core or real-time dependency. Full unit 864 passed at 70.18%, focused provider tests 81 passed, Ruff/compile/diff passed. Code checkpoint 0e82ece. Strict visual approval remains required_missing and the broad acceptance matrix remains incomplete.",
         "2026-08-03T16:49:05Z: Made normal workstation provider defaults free-source-first: Alpaca for US market/latest price, events, and discovery; SEC EDGAR for metadata and issuer search; OpenFIGI for stable identifiers; yfinance is explicit legacy/options fallback only. Added cached SEC-directory search coverage. Full unit 861 passed at 70.16%, focused provider tests 78 passed, full Docker-backed integration 260 passed with 54 warnings, Ruff/diff/manifest parsing passed. Code checkpoint cbecf2b. Strict visual approval remains required_missing and the broad acceptance matrix remains incomplete.",
         "2026-08-03T20:30:00Z: Re-ran the full backend unit suite after ETF route reconciliation: 859 passed, 70.13% coverage, 34 existing dependency warnings. Full backend integration remains 260 passed; strict visual approval remains required_missing and the broad acceptance matrix remains incomplete.",
