@@ -16887,3 +16887,18 @@ uncovered slice rather than repeat a generic completion claim.
 - This re-run follows the ETF route reconciliation; no unit regressions were introduced.
 - Strict V25 visual validation remains intentionally blocked at
   `application-shell-default/default: required_missing`; full goal remains active.
+
+## 2026-08-03T16:49:05Z Free-source-first provider checkpoint
+
+- Changed runtime, Docker Compose, and example-environment defaults so normal workstation
+  market data, latest prices, events, discovery, metadata, and search do not silently
+  depend on yfinance. Alpaca is the default US market/discovery/event provider; EDGAR is
+  the default metadata/search provider; OpenFIGI is the default identifier reconciler.
+- Added deterministic EDGAR cached SEC issuer-directory search coverage and documented
+  that missing Alpaca credentials produce explicit unavailable coverage rather than an
+  implicit yfinance fallback.
+- Focused providers/registry tests `78 passed`; full backend unit `861 passed`, total
+  coverage `70.16%`; Docker-backed full integration `260 passed, 54 warnings`; Ruff,
+  environment JSON/compose YAML parsing, and `git diff --check` passed. Code commit
+  `cbecf2b` pushed. Strict V25 visual approval and the broad functional/performance/
+  security/migration acceptance matrix remain incomplete.

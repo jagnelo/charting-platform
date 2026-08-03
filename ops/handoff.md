@@ -14755,6 +14755,20 @@
 - The next continuation must execute a concrete uncovered acceptance slice and must not
   claim completion from the current frontend baseline alone.
 
+## 2026-08-03T16:49:05Z Free-source-first provider checkpoint
+
+- The new workstation defaults now use Alpaca for US market/latest price, events, and
+  discovery; SEC EDGAR for US metadata and issuer ticker-directory search; and OpenFIGI
+  as the sole default stable-identifier reconciler. Docker Compose and `.env.example`
+  match these defaults. yfinance remains only as an explicit legacy/options fallback.
+- EDGAR search returns identity-only results from its cached SEC company ticker directory;
+  prices and tradability remain resolved through the canonical market-data path.
+- Verification: full backend unit `861 passed, 34 warnings`, total coverage `70.16%`;
+  Docker-backed full backend integration `260 passed, 54 warnings`; focused provider
+  tests `78 passed`; Ruff and `git diff --check` passed. Commit `cbecf2b` pushed.
+- Strict V25 visual validation remains intentionally blocked at
+  `application-shell-default/default: required_missing`; the full goal remains active.
+
 ## 2026-08-03T16:10:29Z Floated-tool persistence checkpoint
 
 - Floated workstation tools now forward condition-filter mode, Boolean pinning, column
