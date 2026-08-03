@@ -2,6 +2,14 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-03T19:29:00Z Recursive EasyScan groups
+
+- Primary EasyScan now supports nested AND/OR/NOT condition groups using the shared
+  technical-condition leaves and canonical condition payload.
+- Validation: full frontend Vitest `467 passed` across 77 files; TypeScript, production
+  build, and `git diff --check` passed. Pushed `8afd90c`.
+- Strict V25 visual approval and the complete acceptance matrix remain open.
+
 ## 2026-08-03T19:27:00Z Advanced EasyScan technical conditions
 
 - Primary EasyScan now persists the shared technical-condition tree with AND/OR/NOT
