@@ -14562,6 +14562,18 @@
   and the broad workstation/backend acceptance matrix remains incomplete. Next:
   continue the requirement audit.
 
+## 2026-08-03T15:20:00Z Auto-ratio relative-strength checkpoint
+
+- The factory relative-strength chart now carries an explicit auto-ratio policy.
+  Selecting SPY/RSP, a sector, a constituent from its active ETF list, or an
+  industry proxy updates the expression to `SPY/RSP`, `XLK/SPY`, `NVDA/XLK`, or
+  the corresponding relationship. Custom expressions are not overwritten.
+- Added a pure ratio-expression helper and focused tests `2 passed`; TypeScript and
+  `git diff --check` passed. Commit `e613d49` pushed.
+- Full goal remains active; approved V25 visual references remain `required_missing`
+  and the broad workstation/backend acceptance matrix remains incomplete. Next:
+  continue the requirement audit.
+
 ## 2026-08-03T15:10:00Z Invalid return-base checkpoint
 
 - Shared period cells now detect zero base closes and return a structured

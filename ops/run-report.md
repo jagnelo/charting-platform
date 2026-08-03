@@ -16623,3 +16623,12 @@ Append a short entry after each worker session.
   `1 passed` with two existing Nautilus warnings; Ruff and `git diff --check` passed.
 - Commit `5b95092` pushed. Full completion and approved V25 visual evidence remain
   outstanding.
+
+## 2026-08-03T15:20:00Z Auto-ratio relative-strength checkpoint
+
+- Added an explicit auto-ratio policy to the factory ratio window. Active selections
+  now drive benchmark, sector, constituent, and industry-proxy ratio expressions;
+  persisted custom expressions remain protected.
+- Validation: focused ratio-expression tests `2 passed`, TypeScript, and
+  `git diff --check` passed. Commit `e613d49` pushed.
+- Full completion and approved V25 visual evidence remain outstanding.
