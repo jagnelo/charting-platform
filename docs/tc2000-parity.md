@@ -258,6 +258,9 @@ editable personal list can move its row by adding it to the destination first an
 the source item only after the destination accepts it. Current/source and locked targets
 are disabled, and the action carries canonical instrument and destination IDs rather than
 ticker-only state. Focused virtual-list coverage proves both copy and move events.
+The same menu can expand canonical membership inspection, showing every personal list
+whose stored instrument IDs contain the selected row and identifying the current source;
+it does not infer membership from ticker text.
 
 Watchlist items now also have a durable user flag. The authenticated item PATCH contract
 persists `flagged` independently of membership locks, personal rows render the marker, and

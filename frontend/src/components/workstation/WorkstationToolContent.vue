@@ -340,7 +340,12 @@ const workspaceStore = useWorkspaceStore()
 const watchlistStore = useWatchlistStore()
 const selectedPersonalWatchlistId = ref<number | null>(typeof props.tool.configuration.watchlist_id === 'number' ? props.tool.configuration.watchlist_id : null)
 const personalWatchlists = computed(() => watchlistStore.watchlists.filter(watchlist => !watchlist.is_managed))
-const personalWatchlistTargets = computed(() => personalWatchlists.value.map(watchlist => ({ id: watchlist.id, name: watchlist.name, locked: watchlist.is_locked })))
+const personalWatchlistTargets = computed(() => personalWatchlists.value.map(watchlist => ({
+  id: watchlist.id,
+  name: watchlist.name,
+  locked: watchlist.is_locked,
+  instrumentIds: watchlist.items.map(item => item.instrument_id),
+})))
 const selectedPersonalWatchlist = computed<Watchlist | null>(() => personalWatchlists.value.find(watchlist => watchlist.id === selectedPersonalWatchlistId.value) ?? null)
 const personalWatchlistRows = computed(() => (selectedPersonalWatchlist.value?.items ?? []).map(item => ({
   itemId: item.id,

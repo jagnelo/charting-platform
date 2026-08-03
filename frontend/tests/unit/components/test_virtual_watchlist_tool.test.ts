@@ -139,12 +139,14 @@ describe('VirtualWatchlistTool', () => {
       props: {
         label: 'Sectors',
         rows: [{ ...rows[1], itemId: 22 }],
-        membershipTargets: [{ id: 7, name: 'Morning review' }, { id: 8, name: 'Locked', locked: true }],
+        membershipTargets: [{ id: 7, name: 'Morning review', instrumentIds: [2] }, { id: 8, name: 'Locked', locked: true }],
         sourceWatchlistId: 3,
         allowRemove: true,
       },
     })
     await wrapper.find('.watchlist__row').trigger('contextmenu', { clientX: 20, clientY: 24 })
+    await wrapper.findAll('button[role="menuitem"]').find(button => button.text() === 'Show list membership')?.trigger('click')
+    expect(wrapper.get('.watchlist__membership-inspection').text()).toContain('Morning review')
     const target = wrapper.get('select[aria-label="Target watchlist"]')
     await target.setValue('7')
     expect(wrapper.get('button[role="menuitem"]:not(:disabled)').text()).toContain('Open chart')

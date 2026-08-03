@@ -83,6 +83,10 @@
       <button type="button" role="menuitem" @click="runContextAction('alert')">Open alerts</button>
       <button type="button" role="menuitem" @click="runContextAction('copy')">Copy symbol</button>
       <button v-if="contextMenu.row.itemId != null" type="button" role="menuitem" @click="runContextAction('flag')">{{ contextMenu.row.flagged ? 'Unflag' : 'Flag' }}</button>
+      <button v-if="relatedLists.length" type="button" role="menuitem" @click="membershipInspectionOpen = !membershipInspectionOpen">{{ membershipInspectionOpen ? 'Hide list membership' : 'Show list membership' }}</button>
+      <div v-if="membershipInspectionOpen" class="watchlist__membership-inspection" aria-label="List membership">
+        <small v-for="target in relatedLists" :key="target.id">{{ target.name }}{{ target.id === sourceWatchlistId ? ' · current' : '' }}</small>
+      </div>
       <template v-if="membershipTargets.length">
         <select v-model="membershipTargetId" class="watchlist__membership-target" aria-label="Target watchlist">
           <option value="">List actions…</option>
@@ -122,6 +126,7 @@ export interface WatchlistMembershipTarget {
   id: number
   name: string
   locked?: boolean
+  instrumentIds?: number[]
 }
 
 interface SavedScreener {
@@ -198,6 +203,7 @@ const selectedSymbols = ref<string[]>([])
 const selectionAnchor = ref<string | null>(null)
 const contextMenu = ref<{ row: WatchlistRow; left: number; top: number } | null>(null)
 const membershipTargetId = ref('')
+const membershipInspectionOpen = ref(false)
 const draggedItemId = ref<number | null>(null)
 const draggedColumnKey = ref<string | null>(null)
 const columnMenuOpen = ref(false)
@@ -223,6 +229,11 @@ const renderEpoch = ref(0)
 const pythonColumns = computed(() => props.pythonColumns.filter(column => Number.isInteger(column.code_version_id) && column.code_version_id > 0 && typeof column.name === 'string'))
 const membershipTargets = computed(() => props.membershipTargets.filter(target => Number.isInteger(target.id) && target.id > 0 && typeof target.name === 'string'))
 const selectedMembershipTarget = computed(() => membershipTargets.value.find(target => target.id === Number(membershipTargetId.value)) ?? null)
+const relatedLists = computed(() => {
+  const instrumentId = contextMenu.value?.row.instrumentId
+  if (instrumentId == null) return []
+  return membershipTargets.value.filter(target => target.instrumentIds?.includes(instrumentId))
+})
 const canCopyToTarget = computed(() => Boolean(contextMenu.value?.row.instrumentId && selectedMembershipTarget.value && !selectedMembershipTarget.value.locked && selectedMembershipTarget.value.id !== props.sourceWatchlistId))
 const canMoveToTarget = computed(() => Boolean(canCopyToTarget.value && props.sourceWatchlistId != null && props.allowRemove))
 const pythonCondition = computed(() => props.pythonCondition && Number.isInteger(props.pythonCondition.code_version_id) && props.pythonCondition.code_version_id > 0 && typeof props.pythonCondition.name === 'string' ? props.pythonCondition : null)
@@ -683,6 +694,7 @@ function selectRow(row: WatchlistRow, event: MouseEvent) {
 function openContextMenu(event: MouseEvent, row: WatchlistRow) {
   const bounds = (event.currentTarget as HTMLElement).closest('.watchlist')?.getBoundingClientRect()
   membershipTargetId.value = ''
+  membershipInspectionOpen.value = false
   contextMenu.value = { row, left: Math.max(2, event.clientX - (bounds?.left ?? 0)), top: Math.max(2, event.clientY - (bounds?.top ?? 0)) }
 }
 
@@ -835,6 +847,7 @@ function onCtrlWheel(event: WheelEvent) {
 .watchlist__context-menu button:disabled { color: #657782; cursor: not-allowed; }
 .watchlist__membership-target { min-width: 136px; border: 1px solid #526673; background: #10171d; color: #c3d2dc; padding: 3px 4px; font: inherit; }
 .watchlist__flag { margin-right: 3px; color: #f0c674; font-weight: 700; }
+.watchlist__membership-inspection { display: grid; gap: 1px; padding: 2px 5px 3px; border-top: 1px solid #32424d; color: #8fb2c3; font-size: 10px; }
 .watchlist__context-menu button:hover,.watchlist__context-menu button:focus-visible { background: #28506a; color: #fff; outline: 0; }
 .watchlist__row span { min-width: 0; overflow: hidden; padding: 0 6px; color: #8999a5; text-overflow: ellipsis; white-space: nowrap; }
 .watchlist__row span:first-child { color: #dce9f2; font-weight: 600; }
