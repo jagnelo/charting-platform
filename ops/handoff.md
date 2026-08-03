@@ -1,5 +1,14 @@
 # Active Handoff
 
+## Continuation update — 2026-08-03T22:20:00Z
+
+- Replaced historical chart pagination’s epoch-wide provider fallback with a bounded,
+  timeframe-aware repair window anchored at the oldest cached bar, plus a minimum cold
+  bootstrap window and overlap for late revisions.
+- Validation: market-data repair tests `2 passed`; Ruff and `git diff --check` passed.
+  Checkpoint `1985f60` pushed. Docker-backed route verification remains unavailable in
+  this environment; strict visual approval and the broad acceptance matrix remain open.
+
 ## Continuation update — 2026-08-03T22:05:00Z
 
 - Re-ran the complete isolated research-runner unit suite after registering the new

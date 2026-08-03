@@ -4,8 +4,8 @@
     "active_worker": "Codex",
     "worker_session_started_at": "2026-07-28T21:40:33Z",
     "worker_soft_stop_at": null,
-    "last_handoff_at": "2026-08-03T22:00:00Z",
-    "last_commit": "d158839c31bda3859cde4dbf56dac3d7cf18b846 fix(code): register study matrix output contracts",
+    "last_handoff_at": "2026-08-03T22:20:00Z",
+    "last_commit": "1985f608b5129a358ab5b6561ef0d76e5d7a3881 fix(market-data): bound historical page repairs",
     "git_ready_to_commit": true,
     "validation": {
         "backend_lint": "passed (code validation, restricted numerical facades, isolated research runner/resource restoration, screener, visual, analysis, research, OHLCV session model, and migration modules, 2026-08-03)",
@@ -13,7 +13,7 @@
         "frontend_tests": "passed: full frontend Vitest suite 475 across 77 files after sortable Relative Rotation companion-table headers; focused rotation tests 3 passed; TypeScript and production build passed; the existing workstation, watchlist, Study Lab, linking, polling, RatioUPlot As-of, and 10,000-row coverage remains green; full Chromium flows 22 and focused acceptance slices remain recorded, 2026-08-03T21:30:00Z",
         "frontend_build": "passed (TypeScript and production build after Add Tool analysis registry expansion, 2026-08-03T19:54:00Z)",
         "alembic_upgrade": "disposable PostgreSQL 16 validation passed: full chain upgrades to d3e4f5a6b7c8, downgrades to d2a3b4c5d6e7, re-upgrades, and direct SQL verifies ohlcv_bar.session default plus ix_ohlcv_instrument_tf_session_ts; container removed 2026-08-03T16:30:00Z",
-        "diff_check": "passed (2026-08-03T22:05:00Z full research-runner regression)",
+        "diff_check": "passed (2026-08-03T22:20:00Z bounded historical OHLCV repair)",
         "playwright": "rebuilt isolated branch stack: full Chromium flows.spec.ts passed 22 tests after unified Python Boolean watchlist-condition filtering, including chart-template rendering/projection save/apply/symbol preservation/delete; visual/multi-environment acceptance remains required, 2026-07-30",
         "console_check": "passed for focused F6/F7/F8b Chromium flow diagnostics (no unexpected console/page/request failures), 2026-07-30; full acceptance still required",
         "backend_log_check": "fresh branch stack logs confirm Alembic upgrade through head, successful top-down taxonomy seed, scheduler/API startup, passing health checks, and no instrument_indicator_config UndefinedTable/500 after focused browser acceptance; rebuilt backend was healthy after prepared-universe batch API addition",
@@ -21,6 +21,7 @@
         "yaml_json_parse": "passed (state.json, visual-reference manifest YAML, .env.example provider-chain JSON, and Docker Compose YAML validated; official release notes confirm pinned build 25.0.9571 while the available official help image remains a 25.0.9172.22877 discovery candidate; strict visual validator intentionally rejects application-shell-default/default as required_missing, 2026-08-03T20:40:00Z)"
     },
     "notes": [
+        "2026-08-03T22:20:00Z: Replaced epoch-wide historical page repair with bounded timeframe-aware warm-tail/cold-bootstrap windows and overlap. Market-data tests 2 passed, Ruff/diff passed, checkpoint 1985f60 pushed; Docker-backed route verification and strict visual/complete acceptance remain open.",
         "2026-08-03T22:05:00Z: Full isolated research-runner unit suite passed 27 tests after scatter/heatmap registration. Strict visual approval and the broad acceptance matrix remain incomplete.",
         "2026-08-03T22:00:00Z: Registered scatter and heatmap output methods in the shared Python validator and Study asset contract. Code-validation plus research-runner focused suite 35 passed, Ruff/diff passed, checkpoint d158839 pushed. Strict visual approval and the broad acceptance matrix remain incomplete.",
         "2026-08-03T21:50:00Z: Added typed Study Lab heatmap artifacts with rectangular finite-matrix/label validation and a native Vue matrix renderer; uPlot remains the numerical renderer for series/histogram/scatter. Focused runner tests 3 passed, Study Lab component tests 2 passed, Ruff/TypeScript/build/diff passed, checkpoint 836358c pushed. Strict visual approval and the broad acceptance matrix remain incomplete.",

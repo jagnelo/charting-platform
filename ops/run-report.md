@@ -2,6 +2,15 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-03T22:20:00Z Bounded historical OHLCV repair
+
+- Historical page-before requests now calculate a bounded missing-tail window instead of
+  requesting the entire epoch. Warm caches anchor at the oldest cached bar; cold caches
+  use a minimum timeframe-aware bootstrap window.
+- Market-data repair tests `2 passed`; Ruff/diff checks passed. Pushed `1985f60`.
+- Docker-backed route verification, strict V25 visual approval, and the complete acceptance
+  matrix remain open.
+
 ## 2026-08-03T22:05:00Z Full research-runner regression
 
 - Full isolated research-runner unit suite passed `27` tests after scatter/heatmap
