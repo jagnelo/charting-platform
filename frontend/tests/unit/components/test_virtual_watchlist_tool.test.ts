@@ -96,6 +96,24 @@ describe('VirtualWatchlistTool', () => {
     expect(wrapper.emitted('update:visibleColumnKeys')).toContainEqual([['name', 'relative_1m', 'symbol']])
   })
 
+  it('renders promoted indicator columns from canonical batch values and sorts them', async () => {
+    const wrapper = mount(VirtualWatchlistTool, {
+      props: {
+        label: 'Indicators',
+        rows,
+        indicatorColumns: [{
+          key: 'indicator:rsi:{}', name: 'RSI', indicator: 'rsi', params: {}, timeframe: 'D1',
+        }],
+        indicatorValues: { 'indicator:rsi:{}': { XLK: 72.25, XLE: 31.5, XLV: null } },
+      },
+    })
+
+    expect(wrapper.find('.watchlist__header').text()).toContain('RSI')
+    expect(wrapper.text()).toContain('72.25')
+    await wrapper.findAll('.watchlist__header button').find(button => button.text().includes('RSI'))?.trigger('click')
+    expect(wrapper.findAll('.watchlist__row')[0].text()).toContain('31.50')
+  })
+
   it('supports plain, ctrl/meta, and shift range selection without losing row activation', async () => {
     const wrapper = mount(VirtualWatchlistTool, { props: { label: 'Sectors', rows } })
     const selectRow = (wrapper.vm as unknown as { selectRow: (row: typeof rows[number], event: MouseEvent) => void }).selectRow

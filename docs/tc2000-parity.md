@@ -201,14 +201,20 @@ SPY/RSP, a sector, a constituent, or an industry proxy updates it to the relevan
 benchmark relationship while custom expressions remain untouched.
 
 The chart plot library now retains the linked-chart shortcut and adds explicit target
-mode for copying an indicator plot to any other chart window in the active workspace,
+mode for copying an indicator plot to any other chart or watchlist window in the active workspace,
 including isolated/grey-link charts. The copy operation clones parameters, style, and
 timeframe locks without replacing the target symbol. A selected plot can also be copied
 into a reusable indicator-threshold condition, an EasyScan created from that condition,
 or an indicator alert for the active canonical instrument; each promotion preserves the
 indicator parameters, chart timeframe, operator, threshold, and provenance metadata.
-Watchlist-column/filter target promotion remains a separate incomplete contract; visual
-approval remains blocked by the V25 reference manifest.
+Watchlist targets persist indicator-column definitions in serializable workspace
+configuration. The workstation loads each configured indicator in one canonical
+`/analysis/indicator-batch` request per column over the local security master and bars,
+returns cell-level warnings plus coverage, and renders numeric values in the same
+virtualized column/filter editor with null-safe numeric sorting. Unknown instruments,
+missing bars, unsupported indicators, and insufficient history remain explicit rather
+than triggering provider fan-out. Condition/filter promotion remains a separate
+incomplete contract; visual approval remains blocked by the V25 reference manifest.
 
 Floated workstation tools now forward watchlist condition modes, Boolean pinning,
 column grouping/stacking, arbitrary serializable configuration, and industry-proxy

@@ -17599,3 +17599,14 @@ uncovered slice rather than repeat a generic completion claim.
 - Validation passed: focused ChartPlotLibrary `5`, full frontend `493` tests across 80
   files, TypeScript, production build, and diff checks. Watchlist-column/filter promotion
   and strict V25 visual acceptance remain open. Commit/push is pending.
+## 2026-08-03T21:58:00Z Indicator-column batch checkpoint
+
+- Added canonical `/analysis/indicator-batch` evaluation over local instruments and bars,
+  with observation times, coverage, cell warnings, exclusions, and provenance.
+- Chart Plot Library can promote an indicator to a watchlist column. Workstation list
+  tools batch configured columns across active list sources; virtualized cells use
+  null-safe numeric rendering and sorting.
+- Validation: backend unit `888` passed; workspace integration `23` passed under Python
+  3.12; frontend Vitest `494` across `80` files passed; TypeScript, production build,
+  Ruff, and diff checks passed. Strict V25 visual approval and broad acceptance remain
+  open. Commit/push pending.

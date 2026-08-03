@@ -159,6 +159,8 @@ const props = withDefaults(defineProps<{
   columnGroups?: Record<string, string>
   stackedColumnKeys?: string[]
   pythonColumns?: Array<{ code_version_id: number; name: string }>
+  indicatorColumns?: Array<{ key: string; name: string; indicator: string; params: Record<string, unknown>; timeframe: string; output?: string }>
+  indicatorValues?: Record<string, Record<string, number | null>>
   pythonCondition?: { code_version_id: number; name: string; mode: 'active' | 'inactive' | 'off' } | null
   reorderable?: boolean
   allowRemove?: boolean
@@ -179,6 +181,8 @@ const props = withDefaults(defineProps<{
   columnGroups: () => ({}),
   stackedColumnKeys: () => [],
   pythonColumns: () => [],
+  indicatorColumns: () => [],
+  indicatorValues: () => ({}),
   pythonCondition: null,
   reorderable: false,
   allowRemove: false,
@@ -228,6 +232,7 @@ const pythonConditionRequestGeneration = ref(0)
 const pythonColumnRequestGenerations = new Map<number, number>()
 const renderEpoch = ref(0)
 const pythonColumns = computed(() => props.pythonColumns.filter(column => Number.isInteger(column.code_version_id) && column.code_version_id > 0 && typeof column.name === 'string'))
+const indicatorColumns = computed(() => props.indicatorColumns.filter(column => typeof column.key === 'string' && column.key.startsWith('indicator:') && typeof column.name === 'string' && typeof column.indicator === 'string'))
 const membershipTargets = computed(() => props.membershipTargets.filter(target => Number.isInteger(target.id) && target.id > 0 && typeof target.name === 'string'))
 const selectedMembershipTarget = computed(() => membershipTargets.value.find(target => target.id === Number(membershipTargetId.value)) ?? null)
 const relatedLists = computed(() => {
@@ -238,7 +243,7 @@ const relatedLists = computed(() => {
 const canCopyToTarget = computed(() => Boolean(contextMenu.value?.row.instrumentId && selectedMembershipTarget.value && !selectedMembershipTarget.value.locked && selectedMembershipTarget.value.id !== props.sourceWatchlistId))
 const canMoveToTarget = computed(() => Boolean(canCopyToTarget.value && props.sourceWatchlistId != null && props.allowRemove))
 const pythonCondition = computed(() => props.pythonCondition && Number.isInteger(props.pythonCondition.code_version_id) && props.pythonCondition.code_version_id > 0 && typeof props.pythonCondition.name === 'string' ? props.pythonCondition : null)
-const effectiveColumns = computed<WatchlistColumn[]>(() => [...props.columns, ...pythonColumns.value.map(column => ({ key: pythonKey(column.code_version_id), label: column.name, width: '78px', format: 'number' as const }))].map(column => ({
+const effectiveColumns = computed<WatchlistColumn[]>(() => [...props.columns, ...indicatorColumns.value.map(column => ({ key: column.key, label: column.name, width: '78px', format: 'number' as const })), ...pythonColumns.value.map(column => ({ key: pythonKey(column.code_version_id), label: column.name, width: '78px', format: 'number' as const }))].map(column => ({
   ...column,
   label: props.columnOverrides[column.key]?.label?.trim() || column.label,
   width: props.columnOverrides[column.key]?.width?.trim() || column.width,
@@ -273,9 +278,15 @@ const filteredRows = computed(() => {
       const rightPinned = Boolean(right.values?.[key])
       if (leftPinned !== rightPinned) return leftPinned ? -1 : 1
     }
-    const leftValue = display(left, sortKey.value)
-    const rightValue = display(right, sortKey.value)
-    const comparison = leftValue.localeCompare(rightValue, undefined, { numeric: true })
+    const leftValue = sortValue(left, sortKey.value)
+    const rightValue = sortValue(right, sortKey.value)
+    if (leftValue == null || rightValue == null) {
+      if (leftValue == null && rightValue == null) return 0
+      return leftValue == null ? 1 : -1
+    }
+    const comparison = typeof leftValue === 'number' && typeof rightValue === 'number'
+      ? leftValue - rightValue
+      : String(leftValue).localeCompare(String(rightValue), undefined, { numeric: true })
     return sortDirection.value === 'asc' ? comparison : -comparison
   })
 })
@@ -654,6 +665,10 @@ watch(pythonColumns, columns => {
 watch(pythonCondition, condition => { if (condition) void runPythonCondition(condition) }, { deep: true })
 
 function display(row: WatchlistRow, key: string) {
+  if (key.startsWith('indicator:')) {
+    const value = props.indicatorValues[key]?.[row.symbol]
+    return value == null ? '—' : value.toFixed(2)
+  }
   if (key.startsWith('python:')) {
     const cell = pythonCells.value[key]?.[row.symbol]
     return cell?.error ? cell.error : cell?.value == null ? '—' : typeof cell.value === 'boolean' ? cell.value ? 'True' : 'False' : cell.value.toFixed(4)
@@ -663,6 +678,16 @@ function display(row: WatchlistRow, key: string) {
   if (typeof value !== 'number') return String(value)
   const format = effectiveColumns.value.find(column => column.key === key)?.format ?? 'percent'
   return format === 'number' ? value.toFixed(2) : `${(value * 100).toFixed(2)}%`
+}
+
+function sortValue(row: WatchlistRow, key: string): number | string | null {
+  if (key.startsWith('indicator:')) return props.indicatorValues[key]?.[row.symbol] ?? null
+  if (key.startsWith('python:')) {
+    const value = pythonCells.value[key]?.[row.symbol]?.value
+    return value == null || typeof value === 'boolean' ? value == null ? null : String(value) : value
+  }
+  const value = key === 'symbol' ? row.symbol : key === 'name' ? row.name : row.values?.[key]
+  return value == null || value === '' ? null : typeof value === 'number' ? value : String(value)
 }
 
 function toggleSort(key: string) {

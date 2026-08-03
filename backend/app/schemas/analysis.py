@@ -164,6 +164,30 @@ class BreadthHistoryOut(AnalysisResponseMetadata):
     exclusions: list[AnalysisWarning] = Field(default_factory=list)
 
 
+class IndicatorBatchRequest(BaseModel):
+    symbols: list[str] = Field(min_length=1, max_length=10_000)
+    indicator: str = Field(min_length=1, max_length=64)
+    params: dict[str, object] = Field(default_factory=dict)
+    timeframe: str = "D1"
+    adjusted: bool = True
+
+
+class IndicatorBatchValue(BaseModel):
+    value: float | None = None
+    observation_time: datetime | None = None
+    warning: AnalysisWarning | None = None
+
+
+class IndicatorBatchOut(AnalysisResponseMetadata):
+    indicator: str
+    timeframe: str
+    adjustment: str
+    params: dict[str, object] = Field(default_factory=dict)
+    values: dict[str, IndicatorBatchValue] = Field(default_factory=dict)
+    coverage: float = Field(ge=0, le=1)
+    exclusions: list[AnalysisWarning] = Field(default_factory=list)
+
+
 class TechnicalSnapshotOut(AnalysisResponseMetadata):
     symbol: str
     timeframe: str

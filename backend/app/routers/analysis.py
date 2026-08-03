@@ -31,6 +31,8 @@ from app.schemas.analysis import (
     ETFConstituentSnapshotOut,
     GroupSnapshotOut,
     GroupSnapshotRow,
+    IndicatorBatchOut,
+    IndicatorBatchRequest,
     IndustryProxySnapshotOut,
     IndustryProxySnapshotRow,
     MarketGaugeOut,
@@ -40,11 +42,67 @@ from app.schemas.analysis import (
     RelativeStrengthOut,
     TechnicalSnapshotOut,
 )
+from app.services.indicators import OHLCVSeries, get_latest_value
 
 router = APIRouter(prefix="/analysis", tags=["analysis"])
 
 _PERIODS = {"1D": 1, "1W": 5, "1M": 21, "3M": 63, "6M": 126, "YTD": None, "1Y": 252}
 _CALENDAR_YEAR_LOOKBACK = 5
+
+
+@router.post("/indicator-batch", response_model=IndicatorBatchOut)
+async def indicator_batch(
+    body: IndicatorBatchRequest,
+    _: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Evaluate one canonical indicator column across a bounded symbol universe."""
+    try:
+        timeframe = Timeframe(body.timeframe)
+    except ValueError as exc:
+        raise HTTPException(422, detail={"code": "invalid_timeframe", "timeframe": body.timeframe}) from exc
+    symbols = list(dict.fromkeys(symbol.upper().strip() for symbol in body.symbols if symbol.strip()))
+    if not symbols:
+        raise HTTPException(422, detail={"code": "empty_symbols"})
+    instruments = {
+        instrument.symbol: instrument
+        for instrument in (
+            await db.execute(select(Instrument).where(Instrument.symbol.in_(symbols)))
+        ).scalars()
+    }
+    bars_by_id = await _bars_by_instrument(
+        db, [instrument.id for instrument in instruments.values()], timeframe, body.adjusted
+    )
+    values: dict[str, dict[str, object]] = {}
+    exclusions: list[AnalysisWarning] = []
+    for symbol in symbols:
+        instrument = instruments.get(symbol)
+        if instrument is None:
+            exclusions.append(AnalysisWarning(code="instrument_not_found", message="No canonical instrument exists.", instrument_id=None))
+            continue
+        bars = bars_by_id.get(instrument.id, [])[-500:]
+        if not bars:
+            warning = AnalysisWarning(code="no_bars", message="No canonical bars are available.", instrument_id=instrument.id)
+            values[symbol] = {"value": None, "observation_time": None, "warning": warning.model_dump()}
+            exclusions.append(warning)
+            continue
+        try:
+            value = get_latest_value(body.indicator, OHLCVSeries.from_orm_bars(bars), body.params, str(body.params.get("output")) if body.params.get("output") else None)
+        except (KeyError, IndexError) as exc:
+            warning = AnalysisWarning(code="unknown_indicator", message=str(exc), instrument_id=instrument.id)
+            values[symbol] = {"value": None, "observation_time": bars[-1].ts, "warning": warning.model_dump()}
+            exclusions.append(warning)
+            continue
+        values[symbol] = {"value": value, "observation_time": bars[-1].ts, "warning": None}
+    return IndicatorBatchOut(
+        indicator=body.indicator,
+        timeframe=timeframe.value,
+        adjustment="split_adjusted" if body.adjusted else "raw",
+        params=body.params,
+        values=values,
+        coverage=sum(1 for cell in values.values() if cell.get("value") is not None) / max(len(symbols), 1),
+        exclusions=exclusions,
+    )
 
 
 def _is_known_at(value: datetime | None, as_of: datetime | None) -> bool:

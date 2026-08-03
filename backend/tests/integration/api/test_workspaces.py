@@ -494,6 +494,28 @@ class TestWorkspaces:
         assert payload["position_52w"] == 1
         assert payload["volume_ratio_50"] > 1
 
+    def test_indicator_batch_returns_local_latest_values_and_exclusions(
+        self, client, auth_headers, instrument, ohlcv_bars
+    ):
+        response = client.post(
+            "/api/v1/analysis/indicator-batch",
+            headers=auth_headers,
+            json={
+                "symbols": [instrument.symbol, "UNKNOWN"],
+                "indicator": "sma",
+                "params": {"period": 2},
+                "timeframe": "D1",
+                "adjusted": True,
+            },
+        )
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["data_provenance"] == "canonical_local_database"
+        assert payload["coverage"] == 0.5
+        assert payload["values"][instrument.symbol]["value"] is not None
+        assert payload["values"][instrument.symbol]["warning"] is None
+        assert any(item["code"] == "instrument_not_found" for item in payload["exclusions"])
+
     def test_group_snapshot_exposes_bounded_calendar_year_returns(
         self, client, auth_headers, db, instrument, ohlcv_bars
     ):

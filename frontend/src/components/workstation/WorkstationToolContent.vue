@@ -17,6 +17,8 @@
       :pinned-boolean-keys="configuredPinnedBooleanKeys"
       :column-groups="configuredColumnGroups"
       :stacked-column-keys="configuredStackedColumnKeys"
+      :indicator-columns="configuredIndicatorColumns"
+      :indicator-values="indicatorValues"
       :python-columns="configuredPythonColumns"
       :python-condition="configuredPythonCondition"
       :membership-targets="personalWatchlistTargets"
@@ -48,6 +50,8 @@
       :pinned-boolean-keys="configuredPinnedBooleanKeys"
       :column-groups="configuredColumnGroups"
       :stacked-column-keys="configuredStackedColumnKeys"
+      :indicator-columns="configuredIndicatorColumns"
+      :indicator-values="indicatorValues"
       :python-columns="configuredPythonColumns"
       :python-condition="configuredPythonCondition"
       :membership-targets="personalWatchlistTargets"
@@ -124,6 +128,8 @@
         :pinned-boolean-keys="configuredPinnedBooleanKeys"
         :column-groups="configuredColumnGroups"
         :stacked-column-keys="configuredStackedColumnKeys"
+        :indicator-columns="configuredIndicatorColumns"
+        :indicator-values="indicatorValues"
         :python-columns="configuredPythonColumns"
         :python-condition="configuredPythonCondition"
         :membership-targets="personalWatchlistTargets"
@@ -159,6 +165,8 @@
       :pinned-boolean-keys="configuredPinnedBooleanKeys"
       :column-groups="configuredColumnGroups"
       :stacked-column-keys="configuredStackedColumnKeys"
+      :indicator-columns="configuredIndicatorColumns"
+      :indicator-values="indicatorValues"
       :python-columns="configuredPythonColumns"
       :python-condition="configuredPythonCondition"
       :membership-targets="personalWatchlistTargets"
@@ -234,6 +242,8 @@
             :pinned-boolean-keys="configuredPinnedBooleanKeys"
             :column-groups="configuredColumnGroups"
             :stacked-column-keys="configuredStackedColumnKeys"
+            :indicator-columns="configuredIndicatorColumns"
+            :indicator-values="indicatorValues"
             :python-columns="configuredPythonColumns"
             :python-condition="configuredPythonCondition"
             :membership-targets="personalWatchlistTargets"
@@ -272,6 +282,8 @@
       :pinned-boolean-keys="configuredPinnedBooleanKeys"
       :column-groups="configuredColumnGroups"
       :stacked-column-keys="configuredStackedColumnKeys"
+      :indicator-columns="configuredIndicatorColumns"
+      :indicator-values="indicatorValues"
       :python-columns="configuredPythonColumns"
       :python-condition="configuredPythonCondition"
       :membership-targets="personalWatchlistTargets"
@@ -635,6 +647,16 @@ onMounted(async () => {
   }
   const symbols = personalWatchlistRows.value.map(row => row.symbol).filter(symbol => !symbol.startsWith('#'))
   if (symbols.length) await watchlistStore.fetchPrices(symbols)
+  void loadIndicatorColumns([
+    ...personalWatchlistRows.value,
+    ...flaggedWatchlistRows.value,
+    ...comboWatchlistRows.value,
+    ...benchmarkRows.value,
+    ...sectorRows.value,
+    ...factoryWatchlistRows.value,
+    ...proxyRows.value,
+    ...constituentRows.value,
+  ])
 })
 
 watch(() => props.tool.configuration.watchlist_id, value => {
@@ -656,6 +678,30 @@ watch(() => comboWatchlistRows.value.map(row => row.symbol).join(','), value => 
   const symbols = (value ?? '').split(',').filter(Boolean)
   if (symbols.length) void watchlistStore.fetchPrices(symbols)
 })
+watch(
+  () => [
+    ...personalWatchlistRows.value,
+    ...flaggedWatchlistRows.value,
+    ...comboWatchlistRows.value,
+    ...benchmarkRows.value,
+    ...sectorRows.value,
+    ...factoryWatchlistRows.value,
+    ...proxyRows.value,
+    ...constituentRows.value,
+  ].map(row => row.symbol).join(',') + JSON.stringify(configuredIndicatorColumns.value),
+  () => {
+    void loadIndicatorColumns([
+      ...personalWatchlistRows.value,
+      ...flaggedWatchlistRows.value,
+      ...comboWatchlistRows.value,
+      ...benchmarkRows.value,
+      ...sectorRows.value,
+      ...factoryWatchlistRows.value,
+      ...proxyRows.value,
+      ...constituentRows.value,
+    ])
+  },
+)
 // A Golden Layout virtual component is mounted independently from its host render
 // cycle. Keep the latest serializable chart configuration locally so template changes
 // update its uPlot instance immediately, while the same object is persisted by the
@@ -1136,6 +1182,30 @@ const configuredColumnOverrides = computed(() => {
 const configuredPythonColumns = computed(() => Array.isArray(props.tool.configuration.python_columns)
   ? props.tool.configuration.python_columns.filter((column): column is { code_version_id: number; name: string } => Boolean(column) && typeof column === 'object' && Number.isInteger((column as Record<string, unknown>).code_version_id) && typeof (column as Record<string, unknown>).name === 'string')
   : [])
+const configuredIndicatorColumns = computed(() => Array.isArray(props.tool.configuration.indicator_columns)
+  ? props.tool.configuration.indicator_columns.filter((column): column is { key: string; name: string; indicator: string; params: Record<string, unknown>; timeframe: string; output?: string } => Boolean(column) && typeof column === 'object' && typeof (column as Record<string, unknown>).key === 'string' && typeof (column as Record<string, unknown>).name === 'string' && typeof (column as Record<string, unknown>).indicator === 'string' && typeof (column as Record<string, unknown>).params === 'object' && typeof (column as Record<string, unknown>).timeframe === 'string')
+  : [])
+const indicatorValues = ref<Record<string, Record<string, number | null>>>({})
+let indicatorRequestGeneration = 0
+async function loadIndicatorColumns(rows: Array<{ symbol: string }>) {
+  const columns = configuredIndicatorColumns.value
+  if (!columns.length) { indicatorValues.value = {}; return }
+  const generation = ++indicatorRequestGeneration
+  const symbols = [...new Set(rows.map(row => row.symbol).filter(symbol => symbol && !symbol.startsWith('#')))]
+  if (!symbols.length) { indicatorValues.value = {}; return }
+  const next: Record<string, Record<string, number | null>> = {}
+  await Promise.all(columns.map(async column => {
+    try {
+      const response = await api.post<{ values: Record<string, { value?: number | null }> }>('/analysis/indicator-batch', {
+        symbols, indicator: column.indicator, params: { ...column.params, ...(column.output ? { output: column.output } : {}) }, timeframe: column.timeframe, adjusted: true,
+      })
+      next[column.key] = Object.fromEntries(Object.entries(response.values ?? {}).map(([symbol, cell]) => [symbol, cell?.value ?? null]))
+    } catch {
+      next[column.key] = Object.fromEntries(symbols.map(symbol => [symbol, null]))
+    }
+  }))
+  if (generation === indicatorRequestGeneration) indicatorValues.value = next
+}
 const configuredPythonCondition = computed(() => {
   const condition = props.tool.configuration.python_condition
   if (!condition || typeof condition !== 'object' || Array.isArray(condition)) return null

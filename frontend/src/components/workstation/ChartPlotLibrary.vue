@@ -10,7 +10,7 @@
       <label class="chart-plots__target">Copy target
         <select v-model="selectedCopyTarget" aria-label="Copy plot target">
           <option value="linked">Linked charts ({{ linkedChartCount }})</option>
-          <option v-for="target in chartTargets" :key="target.instance_key" :value="target.instance_key">{{ target.title || target.instance_key }}{{ target.link_group === linkGroup ? ' · linked' : '' }}</option>
+          <option v-for="target in chartTargets" :key="target.instance_key" :value="target.instance_key">{{ target.title || target.instance_key }} · {{ target.tool_type }}{{ target.link_group === linkGroup ? ' · linked' : '' }}</option>
         </select>
       </label>
       <label class="chart-plots__target">Promote plot
@@ -47,8 +47,8 @@ import type { IndicatorConfig, IndicatorType } from '@/types'
 const props = defineProps<{ sourceWindowKey: string; linkGroup: string }>()
 const chartStore = usePanelStore(inject<string>('panelId', 'chart')); const open = ref(false); const catalog = INDICATOR_CATALOG; const workspaceStore = useWorkspaceStore()
 const selectedCopyTarget = ref('linked')
-const chartTargets = computed(() => (workspaceStore.activeTab?.windows ?? []).filter(window => window.tool_type === 'chart' && window.instance_key !== props.sourceWindowKey))
-const linkedChartCount = computed(() => chartTargets.value.filter(window => window.link_group === props.linkGroup).length)
+const chartTargets = computed(() => (workspaceStore.activeTab?.windows ?? []).filter(window => ['chart', 'watchlist'].includes(window.tool_type) && window.instance_key !== props.sourceWindowKey))
+const linkedChartCount = computed(() => chartTargets.value.filter(window => window.tool_type === 'chart' && window.link_group === props.linkGroup).length)
 const linkedTargets = computed(() => linkedChartCount.value > 0)
 const copyTargetAvailable = computed(() => selectedCopyTarget.value === 'linked' ? linkedTargets.value : chartTargets.value.some(window => window.instance_key === selectedCopyTarget.value))
 const selectedPromotionIndex = ref('')
@@ -64,7 +64,23 @@ function style(index: number, key: 'color' | 'lineWidth', value: string | number
 function toggle(index: number) { const item = chartStore.indicators[index]; if (item) chartStore.updateIndicator(index, { ...item, hidden: !item.hidden }) }
 function duplicate(index: number) { const item = chartStore.indicators[index]; if (item) chartStore.indicators.splice(index + 1, 0, { ...item, params: { ...item.params }, style: { ...item.style }, lockedTimeframes: item.lockedTimeframes ? [...item.lockedTimeframes] : item.lockedTimeframes }) }
 function move(index: number, delta: number) { const target = index + delta; if (target < 0 || target >= chartStore.indicators.length) return; const next = [...chartStore.indicators]; const [item] = next.splice(index, 1); next.splice(target, 0, item); chartStore.reorderIndicators(next) }
-function copy(index: number, target: string) { const item = chartStore.indicators[index]; if (!item) return; for (const window of workspaceStore.activeTab?.windows ?? []) { if (window.tool_type !== 'chart' || window.instance_key === props.sourceWindowKey) continue; if (target === 'linked' ? window.link_group !== props.linkGroup : window.instance_key !== target) continue; const plots = Array.isArray(window.configuration.indicators) ? window.configuration.indicators : []; window.configuration.indicators = [...plots, { ...item, params: { ...item.params }, style: { ...item.style }, lockedTimeframes: item.lockedTimeframes ? [...item.lockedTimeframes] : item.lockedTimeframes }] }; workspaceStore.scheduleSnapshot() }
+function copy(index: number, target: string) {
+  const item = chartStore.indicators[index]
+  if (!item) return
+  for (const window of workspaceStore.activeTab?.windows ?? []) {
+    if (window.instance_key === props.sourceWindowKey) continue
+    if (target === 'linked' ? window.tool_type !== 'chart' || window.link_group !== props.linkGroup : window.instance_key !== target) continue
+    if (window.tool_type === 'watchlist') {
+      const columns = Array.isArray(window.configuration.indicator_columns) ? window.configuration.indicator_columns : []
+      const key = `indicator:${item.type}:${JSON.stringify(item.params)}`
+      if (!columns.some((column: any) => column?.key === key)) window.configuration.indicator_columns = [...columns, { key, name: label(item), indicator: item.type, params: { ...item.params }, timeframe: chartStore.timeframe, output: 'value' }]
+    } else {
+      const plots = Array.isArray(window.configuration.indicators) ? window.configuration.indicators : []
+      window.configuration.indicators = [...plots, { ...item, params: { ...item.params }, style: { ...item.style }, lockedTimeframes: item.lockedTimeframes ? [...item.lockedTimeframes] : item.lockedTimeframes }]
+    }
+  }
+  workspaceStore.scheduleSnapshot()
+}
 function selectPromotion(index: number) {
   selectedPromotionIndex.value = String(index)
   promotionName.value = `${label(chartStore.indicators[index])} condition`
