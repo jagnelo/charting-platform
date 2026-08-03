@@ -110,11 +110,12 @@ describe('EasyScanTool', () => {
     await wrapper.get('select[aria-label="Scan universe"]').setValue('basket')
     await wrapper.get('input[aria-label="Scan universe value"]').setValue('44')
     await wrapper.get('select[aria-label="Scan timeframe"]').setValue('W1')
+    await wrapper.get('select[aria-label="Scan schedule"]').setValue('daily_close')
     await wrapper.findAll('button').find(button => button.text() === 'Run')!.trigger('click')
     await flushPromises()
 
     expect(apiPost).toHaveBeenCalledWith('/screeners/from-condition/close-test', {
-      name: 'Basket scan', universe_type: 'basket', universe_basket_id: 44, timeframe: 'W1',
+      name: 'Basket scan', universe_type: 'basket', universe_basket_id: 44, timeframe: 'W1', schedule: '0 16 * * 1-5',
     })
   })
 })

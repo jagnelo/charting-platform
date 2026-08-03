@@ -28,6 +28,11 @@
       <select v-model="scanTimeframe" :disabled="busy" aria-label="Scan timeframe">
         <option v-for="timeframe in scanTimeframes" :key="timeframe" :value="timeframe">{{ timeframe }}</option>
       </select>
+      <select v-model="scanSchedule" :disabled="busy" aria-label="Scan schedule">
+        <option value="manual">Manual</option>
+        <option value="daily_close">Daily close</option>
+        <option value="weekly_close">Weekly close</option>
+      </select>
       <input v-model.trim="scanName" :disabled="busy || (!selectedKey && !selectedPythonVersion)" aria-label="Scan name" placeholder="EasyScan name" />
       <button type="button" :disabled="busy || (!selectedKey && !selectedPythonVersion) || !scanName" @click="run">Run</button>
     </div>
@@ -62,6 +67,7 @@ const universeType = ref<'all' | 'watchlist' | 'basket' | 'custom'>('all')
 const universeValue = ref('')
 const scanTimeframe = ref('D1')
 const scanTimeframes = ['M1', 'M5', 'M15', 'M30', 'H1', 'H2', 'H4', 'H12', 'D1', 'W1', 'MN']
+const scanSchedule = ref<'manual' | 'daily_close' | 'weekly_close'>('manual')
 const busy = ref(false)
 const status = ref('')
 const error = ref('')
@@ -128,6 +134,7 @@ async function run() {
   try {
     let scan: { id: number }
     const universe: Record<string, unknown> = { universe_type: universeType.value, timeframe: scanTimeframe.value }
+    if (scanSchedule.value !== 'manual') universe.schedule = scanSchedule.value === 'daily_close' ? '0 16 * * 1-5' : '0 16 * * 5'
     if (universeType.value === 'watchlist' || universeType.value === 'basket') {
       const id = Number(universeValue.value)
       if (!Number.isInteger(id) || id <= 0) throw new Error('Enter a valid universe ID')
