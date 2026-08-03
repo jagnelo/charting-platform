@@ -183,7 +183,7 @@ function createChartStore(storeId: string) {
       } finally {
         if (isCurrent()) isLoading.value = false
       }
-      if (isCurrent() && !loadedInstrument.is_synthetic) _pollCoverage(sym)
+      if (isCurrent() && !loadedInstrument.is_synthetic) _pollCoverage(sym, generation)
     }
 
     async function loadMoreBars() {
@@ -198,13 +198,15 @@ function createChartStore(storeId: string) {
       const oldestTs = bars.value[0].ts
       const sym = symbol.value
       const tf  = timeframe.value
+      const type = barType.value
+      const generation = _loadGeneration
       try {
         const mapped = await fetchBarsPage(sym, tf, { before: oldestTs })
         if (!mapped.length) {
           if (!isFetchingHistory.value) hasReachedStart.value = true
           return
         }
-        if (symbol.value !== sym || timeframe.value !== tf) return
+        if (_loadGeneration !== generation || symbol.value !== sym || timeframe.value !== tf || barType.value !== type) return
         bars.value = [...mapped, ...bars.value]
         if (mapped.length < PAGE_SIZE) {
           if (!isFetchingHistory.value) hasReachedStart.value = true
@@ -239,10 +241,10 @@ function createChartStore(storeId: string) {
     function selectIndicator(i: number | null) { selectedIndicatorIndex.value = i }
     function requestEditIndicator(i: number | null) { editRequestIndicatorIndex.value = i }
 
-    async function _pollCoverage(sym: string) {
+    async function _pollCoverage(sym: string, generation: number) {
       _stopCoveragePoller()
       const check = async () => {
-        if (symbol.value !== sym) { _stopCoveragePoller(); return }
+        if (_loadGeneration !== generation || symbol.value !== sym) { _stopCoveragePoller(); return }
         try {
           const res = await api.get<{ is_fetching: boolean }>(`/instruments/${encodeURIComponent(sym)}/data-coverage`)
           const wasFetching = isFetchingHistory.value

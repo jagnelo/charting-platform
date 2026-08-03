@@ -173,8 +173,9 @@ alert mutation to the new symbol. Focused race regressions cover both tools; vis
 approval remains blocked by the V25 reference manifest.
 
 The shared chart store applies the same generation boundary to instrument metadata,
-indicator configuration, OHLCV pages, transformed/synthetic bars, loading/error state,
-and coverage polling. Rapid symbol changes therefore cannot paint an older response into
+indicator configuration, OHLCV pages (including infinite-history backfill),
+transformed/synthetic bars, loading/error state, and coverage polling. Rapid symbol
+changes therefore cannot paint an older response into
 the active uPlot model; a focused two-symbol store regression proves the current symbol,
 instrument, bars, and loading state remain aligned.
 
