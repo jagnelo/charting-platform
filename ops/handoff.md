@@ -14395,3 +14395,15 @@
   StudyLabTool test and TypeScript passed; Ruff and diff check passed.
 - Commit `bfb1d93cb7bf55197dc1cf872b346feb00ca1338` is pushed. V25 visual evidence
   remains `required_missing`; overall acceptance remains open.
+
+## 2026-08-03T13:46:00Z Study Lab occurrence-linking checkpoint
+
+- Added isolated `research.occurrences`, which validates a declared canonical symbol
+  and timestamps before producing typed symbol-linked event records.
+- The factory positive-close study now emits `streak_events`; the existing Study Lab
+  event controls can publish each occurrence to linked charts while preserving the
+  forward-return, metric, table, and histogram artifacts.
+- Validation: runner/code-validation units `18 passed` with `--no-cov`; focused
+  StudyLabTool test and TypeScript passed; Ruff and diff check passed.
+- Commit `702ae1dadc4d19bbc3132b5e1c3a5f9e98af58f0` is pushed. V25 references and
+  the broader full-goal acceptance matrix remain incomplete.

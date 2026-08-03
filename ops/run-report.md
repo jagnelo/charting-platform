@@ -16436,3 +16436,13 @@ Append a short entry after each worker session.
   TypeScript, Ruff, and diff check passed.
 - Commit `bfb1d93cb7bf55197dc1cf872b346feb00ca1338` pushed. The complete workstation,
   visual, performance, and broader backend acceptance matrix remains unfinished.
+
+## 2026-08-03T13:46:00Z Study Lab occurrence-linking checkpoint
+
+- Added a no-network `research.occurrences` helper that produces canonical
+  symbol/timestamp event records from declared event indices. The factory streak
+  study now emits those records for linked-chart occurrence inspection.
+- Runner/validation units `18 passed` with `--no-cov`; focused StudyLabTool test,
+  TypeScript, Ruff, and diff check passed.
+- Commit `702ae1dadc4d19bbc3132b5e1c3a5f9e98af58f0` pushed. Full acceptance remains
+  incomplete, including required V25 visual evidence.
