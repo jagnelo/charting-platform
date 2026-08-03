@@ -14857,6 +14857,19 @@
 - Strict V25 visual validation remains intentionally blocked at
   `application-shell-default/default: required_missing`; full goal remains active.
 
+## 2026-08-03T17:31:15Z Personal watchlist ordering checkpoint
+
+- Added `POST /watchlists/{watchlist_id}/items/reorder` for complete, contiguous
+  ordering of unlocked personal watchlist items. Managed and locked lists reject manual
+  reordering; duplicate or incomplete item IDs return structured client errors.
+- Added optimistic Pinia persistence with rollback on failure. Docker-backed watchlist
+  integration `17 passed` (including personal reorder and managed rejection); frontend
+  store suite `6 passed`; full frontend Vitest `455 passed`; backend unit `869 passed`
+  at `70.19%`; TypeScript/build/Ruff/diff checks passed. Commit `b08ccdc` pushed.
+- The focused integration command's coverage threshold is not treated as a failure of
+  the tests: its 17 tests passed, while the full unit run satisfies the 55% gate. Strict
+  V25 visual validation remains `required_missing`; full goal remains active.
+
 ## 2026-08-03T16:10:29Z Floated-tool persistence checkpoint
 
 - Floated workstation tools now forward condition-filter mode, Boolean pinning, column

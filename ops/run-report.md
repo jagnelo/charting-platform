@@ -16977,3 +16977,15 @@ uncovered slice rather than repeat a generic completion claim.
   `git diff --check` passed. Test commit `1ddcd26` pushed.
 - Strict V25 visual approval remains `required_missing` and the broad acceptance matrix
   remains incomplete.
+
+## 2026-08-03T17:31:15Z Personal watchlist ordering checkpoint
+
+- Added `POST /watchlists/{watchlist_id}/items/reorder` for complete ordering of unlocked
+  personal watchlists, rejecting managed/locked lists and duplicate or incomplete IDs.
+  Pinia now applies the reorder optimistically and restores the prior order on failure.
+- Docker-backed watchlist integration `17 passed`; frontend store `6 passed`; full
+  frontend Vitest `455 passed`; backend unit `869 passed` at `70.19%`; TypeScript/build/
+  Ruff/diff checks passed. Commit `b08ccdc` pushed. The focused integration coverage
+  threshold is intentionally not used as a test result; all 17 tests passed. Strict V25
+  visual approval remains `required_missing` and the broad acceptance matrix remains
+  incomplete.
