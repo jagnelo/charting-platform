@@ -10,7 +10,7 @@ function deferred<T>() {
   return { promise, resolve }
 }
 
-import { useWorkspaceStore, type OpenableToolDefinition } from '@/stores/workspace'
+import { OPENABLE_WORKSTATION_TOOLS, useWorkspaceStore, type OpenableToolDefinition } from '@/stores/workspace'
 
 describe('workspace store layout tabs', () => {
   beforeEach(() => {
@@ -310,6 +310,12 @@ describe('workspace store layout tabs', () => {
     expect(store.activeTab?.windows).toHaveLength(1)
     expect((store.activeTab?.layout_config.root as { content: unknown[] }).content).toHaveLength(1)
     expect(store.activeTab?.active_window_key).toBe(opened?.instance_key)
+  })
+
+  it('exposes implemented analysis surfaces through the workstation tool registry', () => {
+    expect(OPENABLE_WORKSTATION_TOOLS.map(tool => tool.tool_type)).toEqual(expect.arrayContaining([
+      'relative_rotation', 'breadth', 'technical_summary', 'coverage', 'report',
+    ]))
   })
 
   it('preserves a local recovery workspace when snapshot revision is stale', async () => {

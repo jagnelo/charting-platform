@@ -69,6 +69,11 @@ minutes only while the document is visible. The store records the last successfu
 refresh time only when every shared input succeeds, while the existing response
 freshness and coverage fields remain the source of truth for stale or partial data.
 
+The Add Tool registry now includes every implemented primary analysis surface that was
+previously factory-only: Relative Rotation, Market Breadth, Technical Summary, Coverage,
+and Instrument Report. Each uses a stable tool type and serializable configuration, while
+excluded domains remain absent from the registry.
+
 The benchmark watchlist now consumes the same canonical group snapshot as the sector
 workflow. It displays SPY/RSP and other benchmark rows with 1D/1W/1M/3M/YTD/1Y
 performance, `/ SPY` ratio, RSI, 52-week position, and volume-ratio columns, so the
