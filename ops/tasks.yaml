@@ -32,6 +32,10 @@ tasks:
       - Indicator-column batch requests use the shared Vue Query cache so docked and popped-out tools deduplicate identical calculations.
       - Obsolete indicator-column requests are canceled through Vue Query and AbortSignal-aware API retries rather than merely ignored after completion.
       - Primary-workstation capability-boundary tests prove excluded domains remain absent from the tool registry and menu.
+      - The authenticated route contract now keeps / and /chart/:symbol on the workstation, moves retained views under /legacy/*, and routes /study-lab into the persisted workstation Study Lab tab.
+      - Docker-backed notes integration proves per-user read/upsert isolation; linked note/alert race coverage remains green.
+      - Flagged Items now has component evidence for its marker, source-item identity, and Unflag action.
+      - Official column-editor, grouped-column, and stacked-column help states are catalogued as direct-locator discovery candidates without being misrepresented as exact-build visual baselines.
       - Strict Version 25 visual approval and the full backend/frontend/security/performance/acceptance matrix remain open gates.
     locked_decisions:
       - TC2000 Version 25 desktop build 25.0.9571 is the pinned visual and interaction reference.
