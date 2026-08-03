@@ -2,6 +2,14 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-03T23:40:00Z Instrument-note isolation
+
+- Added integration coverage for authenticated note round trips, unknown instruments,
+  unauthenticated access, and strict per-user isolation of reads and upserts.
+- Docker-backed `test_notes.py` passed `4` tests under Python 3.12; Ruff and diff checks
+  passed. Full legacy browser usability, strict V25 visual approval, and the complete
+  acceptance matrix remain open.
+
 ## 2026-08-03T23:27:00Z Workstation/legacy route contract
 
 - Exported the route table as a testable contract and added focused coverage proving the

@@ -1,5 +1,15 @@
 # Active Handoff
 
+## Continuation update — 2026-08-03T23:40:00Z
+
+- Added Docker-backed instrument-note integration coverage for authentication,
+  canonical-instrument validation, round-trip persistence, and per-user read/upsert
+  isolation. This confirms the existing `/notes/instruments/{id}` contract used by the
+  workstation Notes tool does not leak notes across users.
+- `test_notes.py` passed `4` tests with Python 3.12 and two existing dependency warnings;
+  Ruff and diff checks passed. Full legacy browser usability, strict V25 visual approval,
+  and the complete acceptance matrix remain open.
+
 ## Continuation update — 2026-08-03T23:27:00Z
 
 - Exported the application route table as a stable contract and added focused tests
