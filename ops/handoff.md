@@ -14632,6 +14632,16 @@
 - The strict V25 visual gate and broad acceptance matrix remain incomplete. Next worker:
   choose another concrete uncovered acceptance slice.
 
+## 2026-08-03T16:28:37Z Comparison lifecycle checkpoint
+
+- Comparison bars now reload when the linked timeframe or active symbol changes, avoiding
+  stale-interval normalized overlays.
+- Comparison utility tests, TypeScript, production build, and `git diff --check` passed;
+  full frontend Vitest remains `447` tests across `76` files. Commit
+  `9a757823af64509ba12042f19b1e369bcb72c922` pushed.
+- The strict V25 visual gate and broad acceptance matrix remain incomplete. Next worker:
+  choose another concrete uncovered acceptance slice.
+
 ## 2026-08-03T15:35:00Z Large-watchlist virtualization checkpoint
 
 - Added a 10,000-row `VirtualWatchlistTool` regression. It verifies the full logical

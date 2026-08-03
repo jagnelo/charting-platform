@@ -16725,3 +16725,10 @@ uncovered slice rather than repeat a generic completion claim.
   series with explicit gaps and return summaries.
 - Validation: full frontend suite `447 passed` across `76` files; TypeScript, production
   build, and `git diff --check` passed. Commit `559d229` pushed.
+
+## 2026-08-03T16:28:37Z Comparison lifecycle checkpoint
+
+- Comparison overlays now reload for linked timeframe and active-symbol changes, avoiding
+  stale interval data.
+- Validation: comparison tests, TypeScript, production build, and diff check passed;
+  full frontend suite remains `447 passed` across `76` files. Commit `9a75782` pushed.
