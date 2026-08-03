@@ -31,6 +31,7 @@ class RelativeStrengthOut(AnalysisResponseMetadata):
     benchmark: str
     timeframe: str
     adjustment: str
+    as_of: datetime | None = None
     points: list[AnalysisPoint]
     overlap_start: datetime | None
     overlap_end: datetime | None

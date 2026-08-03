@@ -61,6 +61,15 @@ describe('RatioUPlot', () => {
     }))
   })
 
+  it('passes a persisted point-in-time cutoff without changing the current-view request shape', async () => {
+    vi.mocked(api.get).mockResolvedValue({ coverage: 1, points: [], warnings: [] })
+    mount(RatioUPlot, { props: { symbol: 'XLK', benchmarks: ['SPY'], asOf: '2025-12-31T23:59:59Z' } })
+
+    await vi.waitFor(() => expect(api.get).toHaveBeenCalledWith('/analysis/relative-strength', {
+      symbol: 'XLK', benchmark: 'SPY', timeframe: 'D1', adjusted: true, as_of: '2025-12-31T23:59:59Z',
+    }))
+  })
+
   it('publishes ratio crosshair timestamps and consumes linked timestamps without echoing them', async () => {
     vi.mocked(api.get).mockResolvedValue({
       coverage: 1,

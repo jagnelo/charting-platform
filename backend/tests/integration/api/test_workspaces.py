@@ -378,6 +378,46 @@ class TestWorkspaces:
         assert payload["coverage"] < 1
         assert payload["warnings"][0]["code"] == "partial_overlap"
 
+    def test_relative_strength_applies_point_in_time_cutoff(
+        self, client, auth_headers, db, instrument, instrument_b, ohlcv_bars
+    ):
+        from datetime import UTC, datetime, timedelta
+        from decimal import Decimal
+
+        from app.models.ohlcv import OHLCVBar, Timeframe
+
+        base = datetime(2025, 1, 1, tzinfo=UTC)
+        for index in range(4):
+            value = Decimal(str(100 + index))
+            for current in (instrument.id, instrument_b.id):
+                db.add(
+                    OHLCVBar(
+                        instrument_id=current,
+                        timeframe=Timeframe.D1,
+                        ts=base + timedelta(days=index),
+                        open=value,
+                        high=value,
+                        low=value,
+                        close=value,
+                        volume=Decimal("1"),
+                        is_adjusted=True,
+                    )
+                )
+        db.flush()
+        response = client.get(
+            "/api/v1/analysis/relative-strength",
+            headers=auth_headers,
+            params={
+                "symbol": instrument.symbol,
+                "benchmark": instrument_b.symbol,
+                "as_of": "2025-01-02T23:59:59Z",
+            },
+        )
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["as_of"] == "2025-01-02T23:59:59Z"
+        assert len(payload["points"]) == 2
+
     def test_local_chart_route_never_needs_provider_fetch(
         self, client, auth_headers, instrument, ohlcv_bars
     ):

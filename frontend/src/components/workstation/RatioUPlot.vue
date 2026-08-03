@@ -18,9 +18,11 @@ const props = withDefaults(defineProps<{
   symbol: string
   benchmarks: string[]
   timeframe?: string
+  asOf?: string | null
   linkedTimestamp?: string | null
 }>(), {
   timeframe: 'D1',
+  asOf: null,
   linkedTimestamp: null,
 })
 const emit = defineEmits<{ cursorTimestamp: [timestamp: string] }>()
@@ -54,11 +56,12 @@ async function load() {
         benchmark,
         timeframe: props.timeframe,
         adjusted: true,
+        ...(props.asOf ? { as_of: props.asOf } : {}),
       }),
     })))
     series.value = payloads.map(item => ({ benchmark: item.benchmark, points: item.payload.points, coverage: item.payload.coverage }))
     warning.value = payloads.flatMap(item => item.payload.warnings.map(warning => `${item.benchmark}: ${warning.message}`)).join(' ')
-    status.value = `${payloads.map(item => `${item.benchmark} ${(item.payload.coverage * 100).toFixed(0)}%`).join(' · ')} overlap · local adjusted`
+    status.value = `${payloads.map(item => `${item.benchmark} ${(item.payload.coverage * 100).toFixed(0)}%`).join(' · ')} overlap · local adjusted${props.asOf ? ` · as of ${props.asOf.slice(0, 10)}` : ''}`
     await nextTick()
     draw()
   } catch (cause: any) {
@@ -131,7 +134,7 @@ function applyLinkedTimestamp(timestamp: string | null) {
   applyingLinkedCursor = false
 }
 
-watch(() => `${props.symbol}/${props.benchmarks.join('/')}/${props.timeframe}`, () => { void load() })
+watch(() => `${props.symbol}/${props.benchmarks.join('/')}/${props.timeframe}/${props.asOf ?? ''}`, () => { void load() })
 watch(() => props.linkedTimestamp, applyLinkedTimestamp)
 onMounted(() => {
   resizeObserver = new ResizeObserver(() => draw())

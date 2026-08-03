@@ -446,11 +446,13 @@ async def relative_strength(
     benchmark: str,
     timeframe: Timeframe = Timeframe.D1,
     adjusted: bool = True,
+    as_of: datetime | None = Query(default=None),
     _: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     primary, comparator = await _instrument(db, symbol), await _instrument(db, benchmark)
     grouped = await _bars_by_instrument(db, [primary.id, comparator.id], timeframe, adjusted)
+    grouped = _truncate_bars_at(grouped, as_of)
     primary_by_time = {bar.ts: bar for bar in grouped.get(primary.id, [])}
     comparator_by_time = {bar.ts: bar for bar in grouped.get(comparator.id, [])}
     timestamps = sorted(primary_by_time.keys() & comparator_by_time.keys())
@@ -483,6 +485,7 @@ async def relative_strength(
         benchmark=comparator.symbol,
         timeframe=timeframe.value,
         adjustment="split_adjusted" if adjusted else "raw",
+        as_of=as_of,
         freshness=freshness,
         freshness_detail=freshness_detail,
         points=points,
