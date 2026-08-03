@@ -178,6 +178,16 @@ def test_runner_rejects_numpy_and_pandas_file_access():
     assert result["diagnostics"][0]["code"] == "forbidden_data_access"
 
 
+def test_runner_does_not_expose_pandas_wrapper_internals():
+    result = execute_job({
+        "source": "series = pd.Series([1, 2])\noutput.table('raw', series._value)",
+        "dataset": {},
+    })
+    assert result["status"] == "failed"
+    assert result["diagnostics"][0]["code"] == "runtime_error"
+    assert "private wrapper attributes" in result["diagnostics"][0]["message"]
+
+
 def test_runner_exposes_only_declared_market_symbol_and_structured_ta_series():
     result = execute_job(
         {

@@ -385,53 +385,68 @@ class _Rolling:
     def __init__(self, value: object, period: int) -> None:
         self._value = value.rolling(period)
 
+    def __getattribute__(self, name: str) -> object:
+        if name.startswith("_"):
+            raise AttributeError("private wrapper attributes are unavailable")
+        return object.__getattribute__(self, name)
+
     def mean(self) -> _Series:
-        return _Series(self._value.mean())
+        return _Series(object.__getattribute__(self, "_value").mean())
 
     def sum(self) -> _Series:
-        return _Series(self._value.sum())
+        return _Series(object.__getattribute__(self, "_value").sum())
 
     def std(self) -> _Series:
-        return _Series(self._value.std())
+        return _Series(object.__getattribute__(self, "_value").std())
 
 
 class _Series:
     def __init__(self, value: object) -> None:
         self._value = _pandas.Series(value)
 
+    def __getattribute__(self, name: str) -> object:
+        if name.startswith("_"):
+            raise AttributeError("private wrapper attributes are unavailable")
+        return object.__getattribute__(self, name)
+
     def mean(self) -> float:
-        return float(self._value.mean())
+        return float(object.__getattribute__(self, "_value").mean())
 
     def median(self) -> float:
-        return float(self._value.median())
+        return float(object.__getattribute__(self, "_value").median())
 
     def std(self) -> float:
-        return float(self._value.std())
+        return float(object.__getattribute__(self, "_value").std())
 
     def quantile(self, percentile: float) -> float:
-        return float(self._value.quantile(percentile))
+        return float(object.__getattribute__(self, "_value").quantile(percentile))
 
     def rolling(self, period: int) -> _Rolling:
         if not isinstance(period, int) or period <= 0:
             raise ValueError("rolling period must be a positive integer")
-        return _Rolling(self._value, period)
+        return _Rolling(object.__getattribute__(self, "_value"), period)
 
     def tolist(self) -> list[object]:
-        return self._value.tolist()
+        return object.__getattribute__(self, "_value").tolist()
 
 
 class _DataFrame:
     def __init__(self, value: object) -> None:
         self._value = _pandas.DataFrame(value)
 
+    def __getattribute__(self, name: str) -> object:
+        if name.startswith("_"):
+            raise AttributeError("private wrapper attributes are unavailable")
+        return object.__getattribute__(self, name)
+
     def mean(self) -> _Series:
-        return _Series(self._value.mean(numeric_only=True))
+        return _Series(object.__getattribute__(self, "_value").mean(numeric_only=True))
 
     def median(self) -> _Series:
-        return _Series(self._value.median(numeric_only=True))
+        return _Series(object.__getattribute__(self, "_value").median(numeric_only=True))
 
     def to_dict(self) -> list[dict]:
-        return self._value.to_dict(orient="records")
+        return object.__getattribute__(self, "_value").to_dict(orient="records")
 
 
 class _PandasFacade:
