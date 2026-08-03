@@ -2,6 +2,12 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-04T01:42:00Z Full frontend verification
+
+- Re-ran the complete frontend Vitest suite after the Python Library addition: `513`
+  tests across `84` files passed. TypeScript and production build remain green; expected
+  conflict-path test logging is the only stderr output.
+
 ## 2026-08-04T01:24:00Z Benchmark SDK access
 
 - Added explicit isolated-SDK benchmark accessors for OHLCV, timestamps, sessions, and
