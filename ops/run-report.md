@@ -2,6 +2,17 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-03T22:13:10Z Aggregate Flagged Items watchlist source
+
+- Added a canonical derived `Flagged Items` source to the primary personal WatchList
+  tool. It deduplicates flagged instruments across personal lists, preserves source
+  watchlist/item IDs, persists the serializable selection, and disables invalid source
+  mutations.
+- Pure helper tests `2 passed`; full frontend Vitest `487 passed` across 79 files;
+  TypeScript, production build, and diff checks passed. Pushed `595189e`.
+- Strict V25 visual approval, Docker-backed route verification, current-head migration
+  upgrade/downgrade execution, and the complete acceptance matrix remain open.
+
 ## 2026-08-03T21:04:35Z Point-in-time industry snapshot provenance
 
 - ETF industry composition, curated-proxy, and industry-constituent routes now require

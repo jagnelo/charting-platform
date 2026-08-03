@@ -1,5 +1,18 @@
 # Active Handoff
 
+## Continuation update — 2026-08-03T22:13:10Z
+
+- Added the derived `Flagged Items` source to the primary personal WatchList tool.
+  It deduplicates flagged canonical instruments across personal lists, retains the
+  originating watchlist/item IDs for valid unflag actions and membership inspection,
+  persists `watchlist_id: "flagged"`, and disables create/rename/copy/delete/add/reorder
+  controls that have no valid mutable source.
+- Validation: pure flagged-list tests `2 passed`, full frontend Vitest `487 passed`
+  across 79 files, TypeScript, production build, and diff checks passed. Checkpoint
+  `595189e` is pushed. Strict V25 visual approval, Docker-backed route verification,
+  current-head migration upgrade/downgrade execution, and the complete acceptance matrix
+  remain open.
+
 ## Continuation update — 2026-08-03T21:04:35Z
 
 - Corrected point-in-time ETF industry composition, curated-proxy, and industry-
