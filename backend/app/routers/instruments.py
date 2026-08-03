@@ -15,6 +15,7 @@ from app.models.asset_class import AssetClass, InstrumentType
 from app.models.instrument import EquityDetail, Instrument
 from app.models.instrument_identity import InstrumentProviderSymbol
 from app.models.instrument_stats import InstrumentStats
+from app.models.listing import InstrumentListing
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.provider_observation import (
     InstrumentDatasetState,
@@ -104,6 +105,16 @@ def _matches_search_type_filter(type_name: str, allowed_types: set[str]) -> bool
     return any(allowed in normalized for allowed in allowed_types)
 
 
+def _instrument_search_exchange(instrument: Instrument) -> str:
+    """Return the canonical primary MIC for provider-neutral search results."""
+    listings = [listing for listing in (instrument.listings or []) if listing.is_active]
+    listings.sort(key=lambda listing: (not listing.is_primary, listing.id))
+    for listing in listings:
+        if listing.exchange and listing.exchange.mic:
+            return listing.exchange.mic
+    return instrument.equity_detail.exchange_mic if instrument.equity_detail else ""
+
+
 @router.get("/search", response_model=list[InstrumentSearchResult])
 async def search_instruments(
     q: str = Query(..., min_length=1),
@@ -120,6 +131,7 @@ async def search_instruments(
         .options(
             selectinload(Instrument.equity_detail),
             selectinload(Instrument.instrument_type),
+            selectinload(Instrument.listings).selectinload(InstrumentListing.exchange),
         )
         .where(
             Instrument.is_synthetic.is_(False),
@@ -133,7 +145,7 @@ async def search_instruments(
         InstrumentSearchResult(
             symbol=i.symbol,
             name=i.name,
-            exchange="",
+            exchange=_instrument_search_exchange(i),
             type=i.instrument_type.name if i.instrument_type else "",
         )
         for i in local
