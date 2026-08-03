@@ -2,6 +2,16 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-03T21:04:35Z Point-in-time industry snapshot provenance
+
+- ETF industry composition, curated-proxy, and industry-constituent routes now require
+  non-null `known_at` at or before an explicit `as_of`; undated snapshots remain latest-view
+  only.
+- Focused market-group point-in-time tests `9 passed`; Ruff/diff checks passed. Updated
+  parity evidence and pushed `3e74c29`.
+- Strict V25 visual approval, Docker-backed route verification, migration upgrade/downgrade
+  execution, and the complete acceptance matrix remain open.
+
 ## 2026-08-03T21:02:01Z Watchlist membership inspection
 
 - Added canonical personal-list membership inspection to the watchlist context menu using

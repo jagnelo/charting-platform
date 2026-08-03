@@ -1,5 +1,15 @@
 # Active Handoff
 
+## Continuation update — 2026-08-03T21:04:35Z
+
+- Corrected point-in-time ETF industry composition, curated-proxy, and industry-
+  constituent routes. Explicit `as_of` requests now require non-null `known_at` at or
+  before the cutoff; undated disclosures remain eligible only for current/latest views.
+- Validation: focused market-group point-in-time tests `9 passed`; Ruff and diff checks
+  passed. Checkpoint `3e74c29` is pushed. Strict V25 visual approval, Docker-backed route
+  verification, migration upgrade/downgrade execution, and the complete acceptance matrix
+  remain open.
+
 ## Continuation update — 2026-08-03T21:02:01Z
 
 - Added canonical membership inspection to the workstation watchlist context menu.
