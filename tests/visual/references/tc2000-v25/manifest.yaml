@@ -36,6 +36,11 @@ surfaces:
     measurements: { tokens: {}, approved_by: null }
     review: { status: required_missing, reviewer: null, supersedes: null }
     required_states: [default, menu_open, search_focused, stale_data]
+    state_entries:
+      - { id: default, state: required_missing, review: { status: required_missing } }
+      - { id: menu_open, state: required_missing, review: { status: required_missing } }
+      - { id: search_focused, state: required_missing, review: { status: required_missing } }
+      - { id: stale_data, state: required_missing, review: { status: required_missing } }
     reproduction: "Open the factory US Top Down layout with SPY active."
     masks: []
   - id: workspace-docking
@@ -47,6 +52,13 @@ surfaces:
     measurements: { tokens: {}, approved_by: null }
     review: { status: required_missing, reviewer: null, supersedes: null }
     required_states: [tabbed, maximized, floating, restored, drag_target, blocked_popout]
+    state_entries:
+      - { id: tabbed, state: required_missing, review: { status: required_missing } }
+      - { id: maximized, state: required_missing, review: { status: required_missing } }
+      - { id: floating, state: required_missing, review: { status: required_missing } }
+      - { id: restored, state: required_missing, review: { status: required_missing } }
+      - { id: drag_target, state: required_missing, review: { status: required_missing } }
+      - { id: blocked_popout, state: required_missing, review: { status: required_missing } }
     reproduction: "Move Chart into a watchlist stack; float then restore it."
     masks: []
   - id: chart-window
@@ -58,6 +70,13 @@ surfaces:
     measurements: { tokens: {}, approved_by: null }
     review: { status: required_missing, reviewer: null, supersedes: null }
     required_states: [daily_candles, linked_crosshair, drawing, alert_marker, loading, error]
+    state_entries:
+      - { id: daily_candles, state: required_missing, review: { status: required_missing } }
+      - { id: linked_crosshair, state: required_missing, review: { status: required_missing } }
+      - { id: drawing, state: required_missing, review: { status: required_missing } }
+      - { id: alert_marker, state: required_missing, review: { status: required_missing } }
+      - { id: loading, state: required_missing, review: { status: required_missing } }
+      - { id: error, state: required_missing, review: { status: required_missing } }
     reproduction: "Open SPY D1 chart in the default workspace."
     masks: []
   - id: watchlist-column-filter
@@ -69,6 +88,13 @@ surfaces:
     measurements: { tokens: {}, approved_by: null }
     review: { status: required_missing, reviewer: null, supersedes: null }
     required_states: [sorted, grouped, stacked, filtered, selected, partial_coverage]
+    state_entries:
+      - { id: sorted, state: required_missing, review: { status: required_missing } }
+      - { id: grouped, state: required_missing, review: { status: required_missing } }
+      - { id: stacked, state: required_missing, review: { status: required_missing } }
+      - { id: filtered, state: required_missing, review: { status: required_missing } }
+      - { id: selected, state: required_missing, review: { status: required_missing } }
+      - { id: partial_coverage, state: required_missing, review: { status: required_missing } }
     reproduction: "Open S&P 500 Sector ranking with SPY comparison."
     masks: []
   - id: study-lab
@@ -80,5 +106,12 @@ surfaces:
     measurements: { tokens: {}, approved_by: null }
     review: { status: required_missing, reviewer: null, supersedes: null }
     required_states: [editor, validation_error, running, histogram, occurrence_table, sandbox_error]
+    state_entries:
+      - { id: editor, state: required_missing, review: { status: required_missing } }
+      - { id: validation_error, state: required_missing, review: { status: required_missing } }
+      - { id: running, state: required_missing, review: { status: required_missing } }
+      - { id: histogram, state: required_missing, review: { status: required_missing } }
+      - { id: occurrence_table, state: required_missing, review: { status: required_missing } }
+      - { id: sandbox_error, state: required_missing, review: { status: required_missing } }
     reproduction: "Run the consecutive positive closes factory study."
     masks: []

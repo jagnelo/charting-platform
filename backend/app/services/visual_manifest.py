@@ -82,6 +82,27 @@ def validate_visual_manifest(manifest: dict[str, Any], *, require_approved: bool
             raise VisualManifestError(
                 f"{surface_id}: required states and reproduction recipe are required"
             )
+        state_entries = surface.get("state_entries")
+        if state_entries is not None:
+            if not isinstance(state_entries, list):
+                raise VisualManifestError(f"{surface_id}: state_entries must be a list")
+            required_states = set(surface["required_states"])
+            entry_ids = {entry.get("id") for entry in state_entries if isinstance(entry, dict)}
+            if entry_ids != required_states or len(entry_ids) != len(state_entries):
+                raise VisualManifestError(
+                    f"{surface_id}: state_entries must cover each required state exactly once"
+                )
+            for entry in state_entries:
+                if not isinstance(entry, dict) or entry.get("state") not in ALLOWED_STATES:
+                    raise VisualManifestError(f"{surface_id}: invalid state entry")
+                if entry.get("review", {}).get("status") != entry.get("state"):
+                    raise VisualManifestError(
+                        f"{surface_id}/{entry.get('id')}: state and review status must match"
+                    )
+                if require_approved and entry.get("state") not in {"approved", "out_of_scope", "superseded"}:
+                    raise VisualManifestError(
+                        f"{surface_id}/{entry.get('id')}: visual acceptance is blocked by {entry.get('state')}"
+                    )
         if state == "approved":
             source = surface.get("source", {})
             environment = surface.get("environment", {})

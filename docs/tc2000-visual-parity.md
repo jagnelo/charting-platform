@@ -233,6 +233,10 @@ Each manifest entry must record:
 - review status, reviewer, notes, and superseded reference ID where applicable;
 - permission/storage classification so protected material cannot enter a product bundle.
 
+The repository manifest also records a `state_entries` list for every item in
+`required_states`. Each state entry has its own stable ID, lifecycle status, and review
+status; a surface-level `approved` flag cannot conceal an unmeasured or missing state.
+
 Manifest status is one of:
 
 - `required_missing`;

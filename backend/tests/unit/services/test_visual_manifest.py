@@ -52,3 +52,13 @@ def test_approved_reference_requires_full_capture_evidence():
         ],
     }
     validate_visual_manifest(manifest, require_approved=True)
+
+
+def test_state_entries_must_cover_each_required_surface_state():
+    manifest = load_visual_manifest(MANIFEST)
+    for surface in manifest["surfaces"]:
+        assert {entry["id"] for entry in surface["state_entries"]} == set(surface["required_states"])
+    with pytest.raises(VisualManifestError, match="state_entries"):
+        broken = load_visual_manifest(MANIFEST)
+        broken["surfaces"][0]["state_entries"] = broken["surfaces"][0]["state_entries"][:-1]
+        validate_visual_manifest(broken)
