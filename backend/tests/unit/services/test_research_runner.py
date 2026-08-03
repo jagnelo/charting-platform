@@ -202,6 +202,28 @@ def test_runner_exposes_restricted_numpy_and_pandas_facades():
     assert result["artifacts"]["rows"]["value"] == [{"value": 1}, {"value": 3}]
 
 
+def test_runner_exposes_curated_scipy_statistics_without_imports():
+    result = execute_job(
+        {
+            "source": "score = scipy.stats.percentileofscore([1, 2, 3, 4], 3)\noutput.scalar('percentile', score)",
+            "dataset": {},
+        }
+    )
+    assert result["status"] == "completed"
+    assert result["artifacts"]["percentile"]["value"] == 75.0
+
+
+def test_runner_exposes_curated_statsmodels_ols_without_module_internals():
+    result = execute_job(
+        {
+            "source": "model = statsmodels.api.OLS([1, 2, 3], [[1, 1], [1, 2], [1, 3]])\nfit = model.fit()\noutput.scalar('r_squared', fit.rsquared)",
+            "dataset": {},
+        }
+    )
+    assert result["status"] == "completed"
+    assert result["artifacts"]["r_squared"]["value"] == 1.0
+
+
 def test_runner_rejects_numpy_and_pandas_file_access():
     result = execute_job({"source": "pd.read_csv('/tmp/secret.csv')", "dataset": {}})
     assert result["status"] == "failed"

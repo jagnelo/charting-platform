@@ -144,6 +144,16 @@ preserving the hard boundary, preventing an in-process caller or test harness fr
 inheriting an immediately-expired limit. The deployment container still supplies the
 independent cgroup, read-only filesystem, and no-network boundaries.
 
+The isolated Python SDK now exposes bounded `scipy.stats` and `statsmodels.api.OLS`
+facades alongside the existing NumPy/Pandas, market, technical-analysis, statistics,
+research, and output namespaces. User code still cannot import modules or reach package
+internals: only the curated statistical functions and regression result fields are
+available. The runner image pins NumPy 2.1.3, Pandas 2.2.3, SciPy 1.14.1, and
+statsmodels 0.14.4, constrains BLAS/OpenMP thread fan-out, and was smoke-tested in a
+read-only, no-network, non-root container. This is functional sandbox evidence only;
+the complete security/resource acceptance matrix and Version 25 visual reference remain
+open.
+
 Study Lab dataset controls are now part of the serializable workstation-window
 configuration. Reopening, reloading, or floating a Study Lab preserves timeframe,
 benchmark, adjustment, session, and date bounds through the existing workspace

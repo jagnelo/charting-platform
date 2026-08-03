@@ -20,6 +20,7 @@ from pathlib import Path
 import numpy as _numpy
 import pandas as _pandas
 
+from research_runner.curated import SCIPY, STATSMODELS
 from research_runner.validation import validate_workstation_python
 
 JOB_DIR = Path(os.environ.get("RESEARCH_JOB_DIR", "/jobs"))
@@ -141,6 +142,8 @@ def _execute_single(
         "research": _Research(),
         "np": _NumpyFacade(),
         "pd": _PandasFacade(),
+        "scipy": SCIPY,
+        "statsmodels": STATSMODELS,
     }
     previous_limits: dict[int, tuple[int, int]] = {}
     previous_alarm_handler = None
