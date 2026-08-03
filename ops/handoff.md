@@ -14553,6 +14553,18 @@
 - The next continuation must execute a concrete uncovered acceptance slice and must not
   claim completion from the current frontend baseline alone.
 
+## 2026-08-03T16:10:29Z Floated-tool persistence checkpoint
+
+- Floated workstation tools now forward condition-filter mode, Boolean pinning, column
+  groups, stacked columns, arbitrary configuration, and industry-proxy selection to the
+  source shell. This preserves persisted watchlist customization and ratio orchestration
+  in the pop-out path instead of only in docked tools.
+- Dedicated pop-out binding test passed; full frontend Vitest passed `442` tests across
+  `74` files; TypeScript, production build, and `git diff --check` passed. Commit
+  `1bcb48820636cae7df835b59e354768e8af388f5` pushed.
+- The strict V25 visual gate and broad acceptance matrix remain incomplete. Next worker:
+  choose another concrete uncovered acceptance slice.
+
 ## 2026-08-03T15:35:00Z Large-watchlist virtualization checkpoint
 
 - Added a 10,000-row `VirtualWatchlistTool` regression. It verifies the full logical

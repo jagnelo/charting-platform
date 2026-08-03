@@ -16663,3 +16663,13 @@ goal transition: the user-defined completion bar is all-or-nothing, while the br
 has only passed incremental slices. The strict visual gate and broad acceptance matrix
 are still outstanding. The next continuation should name and execute one concrete
 uncovered slice rather than repeat a generic completion claim.
+
+## 2026-08-03T16:10:29Z Floated-tool persistence checkpoint
+
+- Closed the pop-out event-forwarding gap for condition modes, Boolean pins, column
+  groups, stacked columns, configuration persistence, and industry-proxy selection.
+- Validation: dedicated binding test passed; full frontend suite `442 passed` across `74`
+  files; TypeScript, production build, and `git diff --check` passed. Commit `1bcb488`
+  pushed.
+- Full goal remains active. Strict visual evidence is still `required_missing` and the
+  broad functional/security/performance/migration/end-to-end matrix remains outstanding.
