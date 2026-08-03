@@ -4,8 +4,8 @@
     "active_worker": "Codex",
     "worker_session_started_at": "2026-07-28T21:40:33Z",
     "worker_soft_stop_at": null,
-    "last_handoff_at": "2026-08-03T20:03:00Z",
-    "last_commit": "8e9dce0fb33cf8fffeeb656de22229d3df5b4cba fix(screener): bound retained result history",
+    "last_handoff_at": "2026-08-03T20:07:00Z",
+    "last_commit": "2326e0f35cfd999e5ef1b8f071ec2cd6b6065c16 test(screener): cover result history bounds",
     "git_ready_to_commit": true,
     "validation": {
         "backend_lint": "passed (code validation, restricted numerical facades, isolated research runner/resource restoration, screener, visual, analysis, research, OHLCV session model, and migration modules, 2026-08-03)",
@@ -21,6 +21,7 @@
         "yaml_json_parse": "passed (state.json, .env.example provider-chain JSON, and Docker Compose YAML validated; official release notes confirm pinned build 25.0.9571 while the available official help image remains a 25.0.9172.22877 discovery candidate; strict visual validator intentionally rejects application-shell-default/default as required_missing, 2026-08-03)"
     },
     "notes": [
+        "2026-08-03T20:07:00Z: Added integration coverage for retained EasyScan result-history limits 0 and 101; Ruff/diff passed, Docker-backed execution was blocked by socket permission, checkpoint 2326e0f pushed. Strict visual approval remains required_missing and the broad workstation/backend acceptance matrix remains incomplete.",
         "2026-08-03T20:03:00Z: Bounded retained EasyScan result history to a default of 10 and a server-enforced range of 1–100; Ruff/diff/direct Query-contract assertion passed, Docker-backed integration was blocked by socket permission, checkpoint 8e9dce0 pushed. Strict visual approval remains required_missing and the broad workstation/backend acceptance matrix remains incomplete.",
         "2026-08-03T19:58:00Z: Aligned backend factory analysis tool types/configuration with the frontend registry; Ruff/direct factory assertion passed, Docker-backed workspace integration was blocked by socket permission, full frontend remains 472, checkpoint 0bab401 pushed. Strict visual approval remains required_missing and the broad workstation/backend acceptance matrix remains incomplete.",
         "2026-08-03T19:54:00Z: Expanded the serializable Add Tool registry with Relative Rotation, Market Breadth, Technical Summary, Coverage, and Instrument Report; full frontend 472 passed across 77 files, TypeScript/build/diff passed, checkpoint e1d06c0 pushed. Strict visual approval remains required_missing and the broad workstation/backend acceptance matrix remains incomplete.",

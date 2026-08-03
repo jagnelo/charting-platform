@@ -2,6 +2,14 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-03T20:07:00Z Screener result-history bound regression
+
+- Added integration coverage proving `/screeners/{id}/results` rejects limits outside
+  1–100, complementing the bounded backend contract used by EasyScan history.
+- Validation: Ruff and `git diff --check` passed; Docker-backed execution was unavailable
+  because this environment denies Docker socket access. Pushed `2326e0f`.
+- Strict V25 visual approval and the complete acceptance matrix remain open.
+
 ## 2026-08-03T20:03:00Z Bounded EasyScan result history
 
 - The retained `/screeners/{id}/results` page now defaults to 10 results and rejects

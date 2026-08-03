@@ -1,5 +1,16 @@
 # Active Handoff
 
+## Continuation update — 2026-08-03T20:07:00Z
+
+- Added integration coverage for invalid retained EasyScan result-history limits (`0` and
+  `101`), preserving the server-side 1–100 contract introduced for the workstation history
+  selector.
+- Validation: Ruff and `git diff --check` passed. The integration assertion is recorded but
+  could not execute because this environment denies Docker socket access. Checkpoint
+  `2326e0f` pushed.
+- Strict V25 visual approval remains `required_missing`; the broader workstation,
+  backend, security, performance, and end-to-end acceptance matrix remains incomplete.
+
 ## Continuation update — 2026-08-03T20:03:00Z
 
 - Bounded EasyScan retained-result history to a default page of 10 and a server-enforced
