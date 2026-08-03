@@ -2,6 +2,14 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-03T22:38:00Z Interactive Relative Rotation plot parity
+
+- Added zero-axis quadrant guides, nearest-tail hover tooltip, and click-through selection
+  to the uPlot Relative Rotation plane; chart lifecycle remains non-recreating.
+- Full frontend Vitest `476 passed` across 77 files; focused rotation tests `4 passed`;
+  TypeScript/build/diff checks passed. Pushed `84908f3`.
+- Strict V25 visual approval and the complete acceptance matrix remain open.
+
 ## 2026-08-03T22:32:00Z Bounded historical OHLCV gap repair
 
 - Explicit range reads now detect bounded edge and obvious internal gaps and fetch only

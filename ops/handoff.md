@@ -1,5 +1,15 @@
 # Active Handoff
 
+## Continuation update — 2026-08-03T22:38:00Z
+
+- Added interactive Relative Rotation plot parity: zero-axis quadrant guides, nearest-tail
+  hover tooltip, and click-through symbol selection, while preserving uPlot instance reuse.
+  Fixed a latent Study Lab heatmap type-narrowing error exposed by the full type-check.
+- Validation: full frontend Vitest `476 passed` across 77 files; focused rotation tests
+  `4 passed`; TypeScript, production build, and `git diff --check` passed. Checkpoint
+  `84908f3` is pushed. Strict V25 visual approval and the complete acceptance matrix remain
+  open.
+
 ## Continuation update — 2026-08-03T22:32:00Z
 
 - Added bounded edge and obvious-internal historical OHLCV gap detection. Explicit
