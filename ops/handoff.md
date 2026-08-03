@@ -1,5 +1,20 @@
 # Active Handoff
 
+## Continuation update — 2026-08-03T12:18:45Z
+
+- Centralized Python-condition screener queue creation in the screener service and routed
+  the HTTP, APScheduler, and ARQ paths through it. Background jobs therefore never send
+  user Python into the legacy synchronous evaluator. Corrected scheduler field drift by
+  using the actual `schedule` column and latest persisted `ScreenerResult.run_at`; fixed
+  stale task summary attributes and missing-screener handling.
+- Validation: scheduler-task unit tests `2 passed`; related screener-engine unit tests
+  `30 passed`; screener integration `20 passed` with Docker-backed Postgres/Redis; Ruff
+  and diff check passed. The initial sandboxed integration attempt was Docker-socket
+  permission blocked and was rerun with approved access.
+- Commit: `95f58f01f59e021a2d3f43dd8e6c9652dca395e0`. Next: make terminal Python scan
+  results invoke the existing screener alert/managed-watchlist post-run contract, then
+  continue the remaining workstation/backend acceptance work.
+
 ## Continuation update — 2026-08-03T12:11:05Z
 
 - Tightened EasyScan's Python source selector to expose only immutable Boolean condition

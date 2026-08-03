@@ -2,6 +2,15 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-03T12:18:45Z Isolated scheduled Python screeners
+
+- Moved Python-condition screener queue creation into the service used by HTTP, ARQ,
+  and APScheduler paths. Scheduled execution now derives its due time from the real
+  `schedule` field and persisted result history instead of nonexistent model fields.
+- Validation: scheduler-task unit `2 passed`, related screener-engine unit `30 passed`,
+  screener integration `20 passed` with Docker-backed fixtures, Ruff, and diff check.
+- Commit: `95f58f01f59e021a2d3f43dd8e6c9652dca395e0`.
+
 ## 2026-08-03T12:11:05Z Python alert-source boundary
 
 - EasyScan now filters the Python asset picker to Boolean output contracts only. Its
