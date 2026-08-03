@@ -2,6 +2,16 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-03T20:40:00Z Relative-strength point-in-time cutoff
+
+- Relative-strength ratios now apply an optional `as_of` cutoff to both local series
+  before alignment and return the cutoff in the response. RatioUPlot accepts the same
+  optional cutoff for historical drill-downs without adding a parameter to current views.
+- Focused backend helpers `7 passed`; full frontend Vitest `472 passed`; ratio tests `4
+  passed`; TypeScript/build/Ruff/diff checks passed. Docker-backed route execution was
+  unavailable because the Docker socket is denied. Pushed `27d7cf1`.
+- Strict V25 visual approval and the complete acceptance matrix remain open.
+
 ## 2026-08-03T20:31:00Z V25 visual-reference candidate expansion
 
 - Added four official Version 25 pinning-column discovery candidates to the visual

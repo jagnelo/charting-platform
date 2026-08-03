@@ -1,5 +1,17 @@
 # Active Handoff
 
+## Continuation update — 2026-08-03T20:40:00Z
+
+- Extended point-in-time correctness to canonical relative-strength ratios. The backend
+  now truncates both local legs before timestamp intersection and echoes `as_of`; the
+  uPlot ratio surface accepts an optional persisted cutoff while preserving the current
+  request shape when unset.
+- Validation: focused backend analysis helpers `7 passed`; full frontend Vitest `472
+  passed`; focused ratio tests `4 passed`; TypeScript, production build, Ruff, and
+  `git diff --check` passed. The Docker-backed route regression was attempted but the
+  current environment denied Docker socket access. Checkpoint `27d7cf1` pushed. Strict
+  visual approval and the broad workstation/backend acceptance matrix remain incomplete.
+
 ## Continuation update — 2026-08-03T20:31:00Z
 
 - Expanded the V25 visual-reference manifest with four additional official Version 25
