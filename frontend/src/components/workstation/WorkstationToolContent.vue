@@ -36,6 +36,7 @@
       @update:column-overrides="emit('configuration', tool.instance_key, { ...tool.configuration, column_overrides: $event })"
       @update:python-columns="emit('configuration', tool.instance_key, { ...tool.configuration, python_columns: $event })"
       @update:python-condition="emit('configuration', tool.instance_key, { ...tool.configuration, python_condition: $event })"
+      @plot-drop="addPlotColumn"
       />
     </div>
     <VirtualWatchlistTool
@@ -70,6 +71,7 @@
       @update:column-overrides="emit('configuration', tool.instance_key, { ...tool.configuration, column_overrides: $event })"
       @update:python-columns="emit('configuration', tool.instance_key, { ...tool.configuration, python_columns: $event })"
       @update:python-condition="emit('configuration', tool.instance_key, { ...tool.configuration, python_condition: $event })"
+      @plot-drop="addPlotColumn"
     />
     <div v-else-if="tool.tool_type === 'watchlist' && tool.configuration.personal === true" class="personal-watchlist-tool">
       <div class="personal-watchlist-tool__controls">
@@ -153,6 +155,7 @@
         @update:column-overrides="emit('configuration', tool.instance_key, { ...tool.configuration, column_overrides: $event })"
         @update:python-columns="emit('configuration', tool.instance_key, { ...tool.configuration, python_columns: $event })"
         @update:python-condition="emit('configuration', tool.instance_key, { ...tool.configuration, python_condition: $event })"
+        @plot-drop="addPlotColumn"
       />
     </div>
     <VirtualWatchlistTool
@@ -186,7 +189,8 @@
       @update:stacked-column-keys="emit('stackedColumnKeys', tool.instance_key, $event)"
       @update:column-overrides="emit('configuration', tool.instance_key, { ...tool.configuration, column_overrides: $event })"
       @update:python-columns="emit('configuration', tool.instance_key, { ...tool.configuration, python_columns: $event })"
-      @update:python-condition="emit('configuration', tool.instance_key, { ...tool.configuration, python_condition: $event })"
+        @update:python-condition="emit('configuration', tool.instance_key, { ...tool.configuration, python_condition: $event })"
+        @plot-drop="addPlotColumn"
     />
     <div v-else-if="ratioExpression" class="analysis">
       <RatioUPlot :symbol="ratioExpression.numerator" :benchmarks="[ratioExpression.denominator]" :timeframe="activeTimeframe" :as-of="typeof tool.configuration.as_of === 'string' ? tool.configuration.as_of : null" :linked-timestamp="workspaceStore.timestampForLinkGroup(tool.link_group)" @cursor-timestamp="workspaceStore.publishTimestamp($event, tool.link_group, tool.instance_key)" @configuration="emit('configuration', tool.instance_key, { ...tool.configuration, ...$event })" />
@@ -265,6 +269,7 @@
             @update:column-overrides="emit('configuration', tool.instance_key, { ...tool.configuration, column_overrides: $event })"
             @update:python-columns="emit('configuration', tool.instance_key, { ...tool.configuration, python_columns: $event })"
             @update:python-condition="emit('configuration', tool.instance_key, { ...tool.configuration, python_condition: $event })"
+            @plot-drop="addPlotColumn"
           />
           <small v-if="industryProxySnapshot?.exclusions.length" class="industry-list__proxy-warning">{{ industryProxySnapshot.exclusions.map(item => item.code).join(' · ') }}</small>
         </template>
@@ -306,6 +311,7 @@
       @update:column-overrides="emit('configuration', tool.instance_key, { ...tool.configuration, column_overrides: $event })"
       @update:python-columns="emit('configuration', tool.instance_key, { ...tool.configuration, python_columns: $event })"
       @update:python-condition="emit('configuration', tool.instance_key, { ...tool.configuration, python_condition: $event })"
+      @plot-drop="addPlotColumn"
     />
     <div v-else-if="tool.instance_key === 'ratio-chart'" class="analysis">
       <RatioUPlot :symbol="activeSymbol" :benchmarks="ratioBenchmarks" :timeframe="activeTimeframe" :as-of="typeof tool.configuration.as_of === 'string' ? tool.configuration.as_of : null" :linked-timestamp="workspaceStore.timestampForLinkGroup(tool.link_group)" @cursor-timestamp="workspaceStore.publishTimestamp($event, tool.link_group, tool.instance_key)" @configuration="emit('configuration', tool.instance_key, { ...tool.configuration, ...$event })" />
@@ -367,6 +373,7 @@ import { ensureKnownInstrumentSymbol } from '@/lib/instruments'
 import { INDICATOR_BY_TYPE } from '@/lib/indicators/catalog'
 import { buildFlaggedWatchlistRows } from '@/lib/workstation/flagged-watchlist'
 import { buildComboWatchlistRows, type ComboListDefinition } from '@/lib/workstation/combo-lists'
+import { indicatorColumnFromPlot, type ChartPlotDragPayload } from '@/lib/workstation/plotDrag'
 import { CHART_BAR_TYPES, type ChartBarType, type ChartComparisonSeries, type IndicatorConfig, type OHLCVBar, type Timeframe } from '@/types'
 
 const props = defineProps<{
@@ -1193,6 +1200,12 @@ const configuredPythonColumns = computed(() => Array.isArray(props.tool.configur
 const configuredIndicatorColumns = computed(() => Array.isArray(props.tool.configuration.indicator_columns)
   ? props.tool.configuration.indicator_columns.filter((column): column is { key: string; name: string; indicator: string; params: Record<string, unknown>; timeframe: string; output?: string } => Boolean(column) && typeof column === 'object' && typeof (column as Record<string, unknown>).key === 'string' && typeof (column as Record<string, unknown>).name === 'string' && typeof (column as Record<string, unknown>).indicator === 'string' && typeof (column as Record<string, unknown>).params === 'object' && typeof (column as Record<string, unknown>).timeframe === 'string')
   : [])
+function addPlotColumn(payload: ChartPlotDragPayload) {
+  const column = indicatorColumnFromPlot(payload)
+  const columns = Array.isArray(props.tool.configuration.indicator_columns) ? props.tool.configuration.indicator_columns : []
+  if (columns.some(candidate => Boolean(candidate) && typeof candidate === 'object' && (candidate as Record<string, unknown>).key === column.key)) return
+  emit('configuration', props.tool.instance_key, { ...props.tool.configuration, indicator_columns: [...columns, column] })
+}
 const indicatorValues = ref<Record<string, Record<string, number | null>>>({})
 const indicatorWarnings = ref<Record<string, Record<string, string | null>>>({})
 let indicatorRequestGeneration = 0

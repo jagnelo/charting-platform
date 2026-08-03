@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import ChartPlotLibrary from '@/components/workstation/ChartPlotLibrary.vue'
 import { usePanelStore } from '@/stores/chart'
 import { useWorkspaceStore } from '@/stores/workspace'
+import { CHART_PLOT_DRAG_MIME } from '@/lib/workstation/plotDrag'
 
 const apiMock = vi.hoisted(() => ({ put: vi.fn().mockResolvedValue({}), post: vi.fn().mockResolvedValue({}) }))
 vi.mock('@/lib/api', () => ({ api: apiMock }))
@@ -31,6 +32,29 @@ describe('ChartPlotLibrary', () => {
     expect(chart.indicators[0].type).toBe('ema')
     await wrapper.findAll('[aria-label="Delete EMA(50)"]')[0].trigger('click')
     expect(chart.indicators).toHaveLength(2)
+  })
+
+  it('writes a versioned serializable payload when a plot is dragged', async () => {
+    const chart = usePanelStore('plot-drag-test')
+    chart.setIndicators([{ type: 'rsi', params: { period: 14 }, style: { color: '#ff0000', lineWidth: 1 }, pane: 'separate' }])
+    const values = new Map<string, string>()
+    const dataTransfer = {
+      effectAllowed: '',
+      setData: (type: string, value: string) => values.set(type, value),
+      getData: (type: string) => values.get(type) ?? '',
+    } as unknown as DataTransfer
+    const wrapper = mount(ChartPlotLibrary, { props: { sourceWindowKey: 'source', linkGroup: 'blue' }, global: { provide: { panelId: 'plot-drag-test' } } })
+
+    await wrapper.get('button[aria-label="Chart plot library"]').trigger('click')
+    await wrapper.get('li').trigger('dragstart', { dataTransfer })
+
+    expect(values.has(CHART_PLOT_DRAG_MIME)).toBe(true)
+    expect(JSON.parse(values.get(CHART_PLOT_DRAG_MIME) ?? '')).toMatchObject({
+      version: 1,
+      kind: 'chart-plot',
+      indicator: { type: 'rsi', params: { period: 14 }, timeframe: 'D1', sourceWindowKey: 'source' },
+    })
+    expect(dataTransfer.effectAllowed).toBe('copy')
   })
 
   it('copies a plot only to chart windows in its linked symbol group', async () => {

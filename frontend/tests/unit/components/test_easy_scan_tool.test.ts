@@ -5,6 +5,7 @@ const { apiGet, apiPost, apiPut } = vi.hoisted(() => ({ apiGet: vi.fn(), apiPost
 vi.mock('@/lib/api', () => ({ api: { get: apiGet, post: apiPost, put: apiPut } }))
 
 import EasyScanTool from '@/components/workstation/EasyScanTool.vue'
+import { createChartPlotDragPayload, writeChartPlotDrag } from '@/lib/workstation/plotDrag'
 
 describe('EasyScanTool', () => {
   it('creates and runs a saved Python condition through the queued scan API', async () => {
@@ -92,6 +93,27 @@ describe('EasyScanTool', () => {
       name: 'RSI tree',
       condition: expect.objectContaining({ operator: 'OR', conditions: [expect.objectContaining({ type: 'indicator_threshold' })] }),
     }))
+  })
+
+  it('accepts a chart plot drop into the technical condition editor', async () => {
+    apiGet.mockResolvedValue([])
+    const wrapper = mount(EasyScanTool)
+    await flushPromises()
+    const values = new Map<string, string>()
+    const dataTransfer = {
+      types: ['application/x-charting-platform-plot'],
+      setData: (type: string, value: string) => values.set(type, value),
+      getData: (type: string) => values.get(type) ?? '',
+      effectAllowed: '',
+    } as unknown as DataTransfer
+    writeChartPlotDrag(dataTransfer, createChartPlotDragPayload({ type: 'rsi', params: { period: 14 }, style: { color: '#fff', lineWidth: 1 }, pane: 'separate' }, 'D1', 'chart-source'))
+
+    await wrapper.get('.easy-scan').trigger('drop', { dataTransfer })
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('Added RSI(14) to technical conditions')
+    expect(wrapper.find('.easy-scan__advanced').exists()).toBe(true)
+    expect(wrapper.findAll('.tech-cond-card')).toHaveLength(2)
   })
 
   it('passes the selected universe and timeframe to the canonical scan definition', async () => {

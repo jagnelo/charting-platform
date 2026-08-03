@@ -228,6 +228,17 @@ indicator queries are canceled through Vue Query and an `AbortSignal`-aware API 
 generation guards still prevent any already-returned response from replacing newer
 cells.
 
+Chart plots now expose a bounded versioned drag payload (`application/x-charting-platform-plot`)
+containing only canonical indicator type, primitive parameters, timeframe, label, and source
+window identity. The payload is validated before use and cannot carry executable frontend
+content or uPlot state. Virtualized watchlists accept the payload as a drop target and persist
+the resulting numeric indicator column through the owning workstation window; EasyScan accepts
+the same payload as an editable technical-condition node in its shared condition tree. Focused
+ChartPlotLibrary, VirtualWatchlistTool, EasyScanTool, and payload-validation tests cover the
+source, both targets, malformed versions, unknown indicators, invalid timeframes, and bounded
+payloads. This is functional drag/drop evidence; exact-build visual approval and full browser
+acceptance remain separate gates.
+
 Floated workstation tools now forward watchlist condition modes, Boolean pinning,
 column grouping/stacking, arbitrary serializable configuration, and industry-proxy
 selection back to the source shell. Pop-out startup hydrates the existing link-group

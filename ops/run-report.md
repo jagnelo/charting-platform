@@ -2,6 +2,15 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-04T00:00:00Z Cross-tool plot drag contract
+
+- Added a bounded, versioned serializable chart-plot drag payload and wired it from the
+  chart plot library into virtualized watchlist numeric columns and the EasyScan technical
+  condition editor. No uPlot instance or executable frontend content crosses the boundary.
+- Focused source/target/payload tests and the full frontend suite passed: `508` tests across
+  `83` files; TypeScript, production build, and diff checks passed. Exact-build visual
+  approval and the complete browser/security/performance acceptance matrix remain open.
+
 ## 2026-08-03T23:59:00Z Discovery-image provenance
 
 - Fetched the four official column/group/stack discovery images temporarily and recorded

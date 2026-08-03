@@ -5,6 +5,7 @@ const { apiDelete, apiGet, apiPost, apiPut } = vi.hoisted(() => ({ apiDelete: vi
 vi.mock('@/lib/api', () => ({ api: { delete: apiDelete, get: apiGet, post: apiPost, put: apiPut } }))
 
 import VirtualWatchlistTool from '@/components/workstation/VirtualWatchlistTool.vue'
+import { createChartPlotDragPayload, writeChartPlotDrag } from '@/lib/workstation/plotDrag'
 
 const rows = [
   { instrumentId: 1, symbol: 'XLK', name: 'Technology', values: { relative_1m: 0.12 } },
@@ -64,6 +65,23 @@ describe('VirtualWatchlistTool', () => {
     await rendered[0].trigger('dragstart')
     await rendered[1].trigger('drop')
     expect(wrapper.emitted('reorder')).toEqual([[ [11, 10, 12] ]])
+  })
+
+  it('accepts a serialized chart plot drop as a cross-tool event', async () => {
+    const wrapper = mount(VirtualWatchlistTool, { props: { label: 'Sectors', rows } })
+    const values = new Map<string, string>()
+    const dataTransfer = {
+      types: ['application/x-charting-platform-plot'],
+      setData: (type: string, value: string) => values.set(type, value),
+      getData: (type: string) => values.get(type) ?? '',
+      effectAllowed: '',
+    } as unknown as DataTransfer
+    writeChartPlotDrag(dataTransfer, createChartPlotDragPayload({ type: 'rsi', params: { period: 14 }, style: { color: '#fff', lineWidth: 1 }, pane: 'separate' }, 'D1', 'chart-source'))
+
+    await wrapper.get('.watchlist').trigger('drop', { dataTransfer })
+
+    expect(wrapper.emitted('plot-drop')).toHaveLength(1)
+    expect(wrapper.emitted('plot-drop')?.[0]?.[0]).toMatchObject({ kind: 'chart-plot', indicator: { type: 'rsi', timeframe: 'D1', sourceWindowKey: 'chart-source' } })
   })
 
   it('persists column label and width overrides through the editor', async () => {

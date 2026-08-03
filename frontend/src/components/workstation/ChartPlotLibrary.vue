@@ -30,7 +30,7 @@
       <p v-if="promotionStatus" class="chart-plots__promotion-status" role="status">{{ promotionStatus }}</p>
       <p>Price history <small>active</small></p>
       <p v-if="!chartStore.indicators.length">No indicator plots.</p>
-      <ol v-else><li v-for="(indicator, index) in chartStore.indicators" :key="`${indicator.type}:${index}`" :class="{ muted: indicator.hidden }">
+      <ol v-else><li v-for="(indicator, index) in chartStore.indicators" :key="`${indicator.type}:${index}`" :class="{ muted: indicator.hidden }" draggable="true" @dragstart="startDrag(index, $event)" @dragend="draggingIndex = null">
         <input :value="indicator.style.color" :aria-label="`${label(indicator)} color`" type="color" @input="style(index, 'color', ($event.target as HTMLInputElement).value)" /><span>{{ label(indicator) }}</span>
         <input :value="indicator.style.lineWidth" :aria-label="`${label(indicator)} line width`" type="number" min="0.25" max="5" step="0.25" @change="style(index, 'lineWidth', Number(($event.target as HTMLInputElement).value))" />
         <button type="button" :aria-label="`${indicator.hidden ? 'Show' : 'Hide'} ${label(indicator)}`" @click="toggle(index)">{{ indicator.hidden ? '○' : '●' }}</button><button type="button" :aria-label="`Move ${label(indicator)} up`" :disabled="index === 0" @click="move(index, -1)">↑</button><button type="button" :aria-label="`Move ${label(indicator)} down`" :disabled="index === chartStore.indicators.length - 1" @click="move(index, 1)">↓</button><button type="button" :aria-label="`Duplicate ${label(indicator)}`" @click="duplicate(index)">⧉</button><button type="button" :aria-label="`Copy ${label(indicator)} to linked charts`" :disabled="!linkedTargets" @click="copy(index, 'linked')">⇉</button><button type="button" :aria-label="`Copy ${label(indicator)} to selected chart target`" :disabled="!copyTargetAvailable" @click="copy(index, selectedCopyTarget)">→</button><button type="button" :aria-label="`Promote ${label(indicator)}`" @click="selectPromotion(index)">⇧</button><button type="button" :aria-label="`Delete ${label(indicator)}`" @click="chartStore.removeIndicator(index)">×</button>
@@ -45,6 +45,7 @@ import { useWorkspaceStore } from '@/stores/workspace'
 import { cloneDefaultIndicator, INDICATOR_CATALOG, indicatorDisplayName } from '@/lib/indicators/catalog'
 import { api } from '@/lib/api'
 import type { IndicatorConfig, IndicatorType } from '@/types'
+import { createChartPlotDragPayload, writeChartPlotDrag } from '@/lib/workstation/plotDrag'
 const props = defineProps<{ sourceWindowKey: string; linkGroup: string }>()
 const chartStore = usePanelStore(inject<string>('panelId', 'chart')); const open = ref(false); const catalog = INDICATOR_CATALOG; const workspaceStore = useWorkspaceStore()
 const selectedCopyTarget = ref('linked')
@@ -61,7 +62,14 @@ const promotionThreshold = ref(0)
 const promotionName = ref('')
 const promotionBusy = ref(false)
 const promotionStatus = ref('')
+const draggingIndex = ref<number | null>(null)
 function label(indicator: IndicatorConfig) { return indicatorDisplayName(indicator) }
+function startDrag(index: number, event: DragEvent) {
+  const item = chartStore.indicators[index]
+  if (!item || !event.dataTransfer) return
+  const payload = createChartPlotDragPayload(item, chartStore.timeframe, props.sourceWindowKey)
+  if (writeChartPlotDrag(event.dataTransfer, payload)) draggingIndex.value = index
+}
 function add(value: string) { if (INDICATOR_CATALOG.some(item => item.type === value)) chartStore.addIndicator(cloneDefaultIndicator(value as IndicatorType)) }
 function style(index: number, key: 'color' | 'lineWidth', value: string | number) { const item = chartStore.indicators[index]; if (item && (key !== 'lineWidth' || (Number.isFinite(value) && Number(value) > 0))) chartStore.updateIndicator(index, { ...item, style: { ...item.style, [key]: value } }) }
 function toggle(index: number) { const item = chartStore.indicators[index]; if (item) chartStore.updateIndicator(index, { ...item, hidden: !item.hidden }) }

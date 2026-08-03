@@ -1,5 +1,18 @@
 # Active Handoff
 
+## Continuation update — 2026-08-04T00:00:00Z
+
+- Implemented the missing cross-tool chart-plot drag contract. Chart Plot Library rows
+  now write a bounded versioned `application/x-charting-platform-plot` payload containing
+  only serializable indicator metadata; VirtualWatchlistTool validates the payload and
+  emits a persisted numeric-column request; EasyScan accepts it as an editable technical
+  condition in the shared tree.
+- Added focused payload, ChartPlotLibrary, VirtualWatchlistTool, and EasyScanTool tests;
+  the full frontend suite now passes `508` tests across `83` files, TypeScript and
+  production build pass, and `git diff --check` passes. Exact-build V25 visual approval,
+  full browser/security/performance acceptance, and the broader all-or-nothing goal remain
+  open.
+
 ## Continuation update — 2026-08-03T23:59:00Z
 
 - Temporarily fetched the four newly catalogued official help images to record their

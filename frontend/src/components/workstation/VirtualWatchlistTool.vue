@@ -1,5 +1,6 @@
 <template>
-  <section class="watchlist" :class="{ 'watchlist--columns-open': columnMenuOpen, 'watchlist--sets-open': columnSetMenuOpen, 'watchlist--grouped': hasColumnGroups }" :aria-label="label" @click="contextMenu = null" @keydown.esc="contextMenu = null">
+  <section class="watchlist" :class="{ 'watchlist--columns-open': columnMenuOpen, 'watchlist--sets-open': columnSetMenuOpen, 'watchlist--grouped': hasColumnGroups, 'watchlist--plot-drop-active': plotDropActive }" :aria-label="label" @click="contextMenu = null" @keydown.esc="contextMenu = null" @dragover.prevent="dragOverPlot" @dragleave="dragLeavePlot" @drop.prevent="dropPlot">
+    <p v-if="plotDropActive" class="watchlist__plot-drop-hint" role="status">Drop to add the chart plot as a numeric column</p>
     <header class="watchlist__controls">
       <span>{{ label }}</span>
       <input v-model="filter" :aria-label="`${label} filter`" placeholder="Filter" />
@@ -65,7 +66,7 @@
           @click="selectRow(filteredRows[virtualRow.index], $event)"
           @dragstart="dragStart(filteredRows[virtualRow.index])"
           @dragover.prevent
-          @drop.prevent="dropRow(filteredRows[virtualRow.index])"
+          @drop.prevent.stop="dropRow(filteredRows[virtualRow.index])"
           @contextmenu.prevent.stop="openContextMenu($event, filteredRows[virtualRow.index])"
         >
           <template v-for="column in renderedColumns" :key="column.key">
@@ -104,6 +105,7 @@
 import { useVirtualizer } from '@tanstack/vue-virtual'
 import { computed, onMounted, ref, watch } from 'vue'
 import { api } from '@/lib/api'
+import { CHART_PLOT_DRAG_MIME, readChartPlotDrag, type ChartPlotDragPayload } from '@/lib/workstation/plotDrag'
 
 export interface WatchlistRow {
   itemId?: number
@@ -192,7 +194,7 @@ const props = withDefaults(defineProps<{
   membershipTargets: () => [],
   columnOverrides: () => ({}),
 })
-const emit = defineEmits<{ select: [row: WatchlistRow]; compare: [symbols: string[]]; reorder: [itemIds: number[]]; 'row-action': [action: 'chart' | 'compare' | 'note' | 'alert' | 'copy' | 'copy-to-watchlist' | 'move-to-watchlist' | 'flag' | 'remove', row: WatchlistRow, targetWatchlistId?: number]; 'update:visibleColumnKeys': [keys: string[]]; 'update:filterText': [value: string]; 'update:conditionScreenerId': [id: number | null]; 'update:conditionFilterMode': [mode: 'active' | 'inactive' | 'off']; 'update:pinnedBooleanKeys': [keys: string[]]; 'update:columnGroups': [groups: Record<string, string>]; 'update:stackedColumnKeys': [keys: string[]]; 'update:columnOverrides': [overrides: Record<string, { label?: string; width?: string }>]; 'update:pythonColumns': [columns: Array<{ code_version_id: number; name: string }>]; 'update:pythonCondition': [condition: { code_version_id: number; name: string; mode: 'active' | 'inactive' | 'off' } | null] }>()
+const emit = defineEmits<{ select: [row: WatchlistRow]; compare: [symbols: string[]]; reorder: [itemIds: number[]]; 'plot-drop': [payload: ChartPlotDragPayload]; 'row-action': [action: 'chart' | 'compare' | 'note' | 'alert' | 'copy' | 'copy-to-watchlist' | 'move-to-watchlist' | 'flag' | 'remove', row: WatchlistRow, targetWatchlistId?: number]; 'update:visibleColumnKeys': [keys: string[]]; 'update:filterText': [value: string]; 'update:conditionScreenerId': [id: number | null]; 'update:conditionFilterMode': [mode: 'active' | 'inactive' | 'off']; 'update:pinnedBooleanKeys': [keys: string[]]; 'update:columnGroups': [groups: Record<string, string>]; 'update:stackedColumnKeys': [keys: string[]]; 'update:columnOverrides': [overrides: Record<string, { label?: string; width?: string }>]; 'update:pythonColumns': [columns: Array<{ code_version_id: number; name: string }>]; 'update:pythonCondition': [condition: { code_version_id: number; name: string; mode: 'active' | 'inactive' | 'off' } | null] }>()
 const scrollElement = ref<HTMLElement | null>(null)
 const filter = ref(props.filterText)
 const conditionFilter = ref(props.conditionScreenerId == null ? '' : String(props.conditionScreenerId))
@@ -213,6 +215,7 @@ const membershipTargetId = ref('')
 const membershipInspectionOpen = ref(false)
 const draggedItemId = ref<number | null>(null)
 const draggedColumnKey = ref<string | null>(null)
+const plotDropActive = ref(false)
 const columnMenuOpen = ref(false)
 const columnSetMenuOpen = ref(false)
 const columnSetName = ref('')
@@ -296,6 +299,23 @@ const filteredRows = computed(() => {
 function dragStart(row: WatchlistRow) {
   if (!props.reorderable || row.itemId == null) return
   draggedItemId.value = row.itemId
+}
+
+function dragOverPlot(event: DragEvent) {
+  const types = event.dataTransfer ? Array.from(event.dataTransfer.types) : []
+  if (types.includes(CHART_PLOT_DRAG_MIME)) plotDropActive.value = true
+}
+
+function dragLeavePlot(event: DragEvent) {
+  const current = event.currentTarget as HTMLElement | null
+  const related = event.relatedTarget as Node | null
+  if (!current || !related || !current.contains(related)) plotDropActive.value = false
+}
+
+function dropPlot(event: DragEvent) {
+  plotDropActive.value = false
+  const payload = readChartPlotDrag(event.dataTransfer)
+  if (payload) emit('plot-drop', payload)
 }
 
 function dropRow(row: WatchlistRow) {
@@ -834,6 +854,8 @@ function onCtrlWheel(event: WheelEvent) {
 
 <style scoped>
 .watchlist { position: relative; display: grid; height: 100%; min-height: 0; grid-template-rows: 23px auto 22px minmax(0, 1fr); color: #c7d0d8; background: #11161b; font: 11px/1.2 "Segoe UI", Arial, sans-serif; }
+.watchlist--plot-drop-active { outline: 1px solid #69a9d2; outline-offset: -1px; }
+.watchlist__plot-drop-hint { position: absolute; z-index: 4; inset: 3px 3px auto; margin: 0; padding: 4px 6px; border: 1px solid #69a9d2; background: #193040eF; color: #dcecf6; text-align: center; pointer-events: none; }
 .watchlist--columns-open { grid-template-rows: 23px auto auto 22px minmax(0, 1fr); }
 .watchlist--sets-open { grid-template-rows: 23px auto auto 22px minmax(0, 1fr); }
 .watchlist--grouped { grid-template-rows: 23px auto 32px minmax(0, 1fr); }

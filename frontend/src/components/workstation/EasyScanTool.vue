@@ -1,5 +1,6 @@
 <template>
-  <section class="easy-scan">
+  <section class="easy-scan" :class="{ 'easy-scan--plot-drop-active': plotDropActive }" @dragover.prevent="dragOverPlot" @dragleave="dragLeavePlot" @drop.prevent="dropPlot">
+    <p v-if="plotDropActive" class="easy-scan__plot-drop-hint" role="status">Drop to add the chart plot as a technical condition</p>
     <div class="easy-scan__builder">
       <input v-model.trim="conditionName" aria-label="Condition name" placeholder="Condition name" />
       <select v-model="field" aria-label="Price field"><option value="close">Close</option><option value="volume">Volume</option></select>
@@ -37,6 +38,7 @@
       <button type="button" :disabled="busy || (!selectedKey && !selectedPythonVersion) || !scanName" @click="run">Run</button>
     </div>
     <p v-if="error" class="easy-scan__error">{{ error }}</p>
+    <p v-if="plotDropStatus" class="easy-scan__drop-status" role="status">{{ plotDropStatus }}</p>
     <p v-else-if="busy" class="easy-scan__state"><span>{{ status }}</span><button v-if="pythonResearchRunId" type="button" @click="cancelPythonRun">Cancel</button></p>
     <div v-else-if="result" class="easy-scan__result">
       <label v-if="resultHistory.length" class="easy-scan__history">Result <select v-model="selectedResultId" aria-label="Scan result history"><option value="">Latest</option><option v-for="item in resultHistory" :key="item.id" :value="String(item.id)">{{ item.run_at ? new Date(item.run_at).toLocaleString() : `Run ${item.id}` }}</option></select></label>
@@ -52,6 +54,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { api } from '@/lib/api'
 import ConditionGroupEditor from '@/components/workstation/ConditionGroupEditor.vue'
 import { createDefaultTechnicalCondition } from '@/lib/technicalConditions'
+import { CHART_PLOT_DRAG_MIME, readChartPlotDrag, technicalConditionFromPlot } from '@/lib/workstation/plotDrag'
 
 type ConditionAsset = { stable_key: string; name: string; version: number; payload: { condition?: Record<string, unknown> } }
 type ScanResult = { id?: number; run_at?: string; matched_ids: number[]; result_data: Record<string, unknown>; error: string | null }
@@ -82,6 +85,8 @@ const scanId = ref<number | null>(null)
 const alertTrigger = ref('entered')
 const alertCreated = ref(false)
 const cancelRequested = ref(false)
+const plotDropActive = ref(false)
+const plotDropStatus = ref('')
 const pythonResearchRunId = computed(() => {
   const value = result.value?.result_data?._python_research_run_id
   return Number.isInteger(value) ? value as number : null
@@ -112,6 +117,25 @@ function stableKey(name: string) {
 }
 function toggleAdvancedConditions() {
   advancedMode.value = !advancedMode.value
+}
+function dragOverPlot(event: DragEvent) {
+  const types = event.dataTransfer ? Array.from(event.dataTransfer.types) : []
+  if (types.includes(CHART_PLOT_DRAG_MIME)) plotDropActive.value = true
+}
+function dragLeavePlot(event: DragEvent) {
+  const current = event.currentTarget as HTMLElement | null
+  const related = event.relatedTarget as Node | null
+  if (!current || !related || !current.contains(related)) plotDropActive.value = false
+}
+function dropPlot(event: DragEvent) {
+  plotDropActive.value = false
+  const payload = readChartPlotDrag(event.dataTransfer)
+  if (!payload) return
+  advancedMode.value = true
+  advancedGroup.value = { ...advancedGroup.value, conditions: [...advancedGroup.value.conditions, technicalConditionFromPlot(payload)] }
+  if (!conditionName.value) conditionName.value = `${payload.indicator.label} condition`
+  plotDropStatus.value = `Added ${payload.indicator.label} to technical conditions`
+  error.value = ''
 }
 async function saveCondition() {
   if (!validCondition.value) return
@@ -215,7 +239,9 @@ onMounted(() => { void load() })
 </script>
 
 <style scoped>
-.easy-scan { display: grid; align-content: start; gap: 6px; height: 100%; overflow: auto; padding: 6px; background: #11161b; color: #c7d0d8; font: 10px "Segoe UI", Arial, sans-serif; }
+.easy-scan { position: relative; display: grid; align-content: start; gap: 6px; height: 100%; overflow: auto; padding: 6px; background: #11161b; color: #c7d0d8; font: 10px "Segoe UI", Arial, sans-serif; }
+.easy-scan--plot-drop-active { outline: 1px solid #69a9d2; outline-offset: -1px; }
+.easy-scan__plot-drop-hint { position: absolute; z-index: 4; inset: 3px 3px auto; margin: 0; padding: 4px 6px; border: 1px solid #69a9d2; background: #193040eF; color: #dcecf6; text-align: center; pointer-events: none; }
 .easy-scan__builder { display: grid; grid-template-columns: minmax(70px, 1fr) 56px 34px 58px 38px; gap: 3px; }
 .easy-scan__controls { display: grid; grid-template-columns: repeat(3, minmax(80px, 1fr)) minmax(70px, 1fr) minmax(90px, 1fr) 38px; gap: 3px; }
 .easy-scan__advanced-toggle { justify-self: start; padding: 2px 6px; }
@@ -225,5 +251,5 @@ onMounted(() => { void load() })
 .easy-scan__advanced > button { justify-self: start; padding: 2px 6px; }
 input, select, button { min-width: 0; border: 1px solid #34434e; background: #172027; color: #d2dce3; font: inherit; }
 input { padding: 2px 4px; } button { cursor: pointer; } button:disabled { cursor: default; opacity: .5; }
-.easy-scan__state, .easy-scan__result, .easy-scan__error { margin: 2px 0; color: #8498a6; } .easy-scan__result { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }.easy-scan__result b { color: #78b9e4; } .easy-scan__error { color: #e99a9a; }.easy-scan__history { display:flex; align-items:center; gap:3px; }.easy-scan__alert { display:flex; gap:3px; margin-top:4px; }.easy-scan__alert select,.easy-scan__alert button,.easy-scan__history select { border:1px solid #34434e; background:#172027; color:#d2dce3; font:inherit; }
+.easy-scan__state, .easy-scan__result, .easy-scan__error, .easy-scan__drop-status { margin: 2px 0; color: #8498a6; } .easy-scan__result { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }.easy-scan__result b { color: #78b9e4; } .easy-scan__error { color: #e99a9a; }.easy-scan__drop-status { color: #9ec6a0; }.easy-scan__history { display:flex; align-items:center; gap:3px; }.easy-scan__alert { display:flex; gap:3px; margin-top:4px; }.easy-scan__alert select,.easy-scan__alert button,.easy-scan__history select { border:1px solid #34434e; background:#172027; color:#d2dce3; font:inherit; }
 </style>
