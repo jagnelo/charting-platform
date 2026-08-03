@@ -343,6 +343,15 @@ describe('VirtualWatchlistTool', () => {
     expect(apiPost).toHaveBeenCalledWith('/research/runs', expect.objectContaining({ code_version_id: 88, run_config: { symbols: ['XLK', 'XLE', 'XLV'] } }))
   })
 
+  it('exposes removal only for explicitly editable personal lists', async () => {
+    const wrapper = mount(VirtualWatchlistTool, { props: { label: 'Momentum', rows: [{ ...rows[0], itemId: 41 }], allowRemove: true } })
+    await wrapper.find('.watchlist__row').trigger('contextmenu', { clientX: 20, clientY: 24 })
+    const remove = wrapper.get('button[role="menuitem"]:last-child')
+    expect(remove.text()).toContain('Remove from list')
+    await remove.trigger('click')
+    expect(wrapper.emitted('row-action')?.at(-1)).toEqual(['remove', expect.objectContaining({ itemId: 41 })])
+  })
+
   it('shows a working cancellation control while a persisted Python column batch is running', async () => {
     let resolveBatch: ((value: unknown) => void) | undefined
     apiGet.mockImplementation((path: string) => {

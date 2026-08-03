@@ -69,9 +69,12 @@
             <option v-for="watchlist in personalWatchlists" :key="watchlist.id" :value="String(watchlist.id)">{{ watchlist.name }}{{ watchlist.is_locked ? ' · Locked' : '' }}</option>
           </select>
         </label>
+        <input v-model="personalSymbolDraft" aria-label="Add symbol to personal watchlist" placeholder="Add symbol" :disabled="!selectedPersonalWatchlist || selectedPersonalWatchlist.is_locked" @keydown.enter.prevent="addPersonalSymbol" />
+        <button type="button" :disabled="!personalSymbolDraft.trim() || !selectedPersonalWatchlist || selectedPersonalWatchlist.is_locked || personalWatchlistBusy" @click="addPersonalSymbol">{{ personalWatchlistBusy ? 'Adding…' : 'Add' }}</button>
         <span v-if="selectedPersonalWatchlist">{{ selectedPersonalWatchlist.items.length }} symbols · {{ selectedPersonalWatchlist.is_locked ? 'Locked' : 'Drag rows to reorder' }}</span>
         <span v-else-if="watchlistStore.loading">Loading watchlists…</span>
         <span v-else>No personal watchlists available.</span>
+        <span v-if="personalWatchlistError" class="personal-watchlist-tool__error">{{ personalWatchlistError }}</span>
       </div>
       <VirtualWatchlistTool
         v-if="selectedPersonalWatchlist"
@@ -89,10 +92,11 @@
         :python-columns="configuredPythonColumns"
         :python-condition="configuredPythonCondition"
         :reorderable="!selectedPersonalWatchlist.is_locked && !selectedPersonalWatchlist.is_managed"
+        :allow-remove="!selectedPersonalWatchlist.is_locked && !selectedPersonalWatchlist.is_managed"
         @select="selectSymbol($event.symbol, $event.instrumentId)"
         @reorder="emit('reorder', selectedPersonalWatchlist.id, $event)"
         @compare="emit('compare', $event)"
-        @row-action="handleRowAction"
+        @row-action="handlePersonalRowAction"
         @update:visible-column-keys="emit('columns', tool.instance_key, $event)"
         @update:filter-text="emit('filter', tool.instance_key, $event)"
         @update:condition-screener-id="emit('conditionFilter', tool.instance_key, $event)"
@@ -335,11 +339,39 @@ const personalWatchlistColumns: WatchlistColumn[] = [
   { key: 'last', label: 'Last', width: '72px', format: 'number' },
   { key: 'change', label: 'Chg %', width: '68px', format: 'percent' },
 ]
+const personalSymbolDraft = ref('')
+const personalWatchlistBusy = ref(false)
+const personalWatchlistError = ref('')
 
 function selectPersonalWatchlist(raw: string) {
   const id = Number(raw)
   selectedPersonalWatchlistId.value = Number.isInteger(id) && id > 0 ? id : null
   emit('configuration', props.tool.instance_key, { ...props.tool.configuration, watchlist_id: selectedPersonalWatchlistId.value })
+}
+
+async function addPersonalSymbol() {
+  const watchlist = selectedPersonalWatchlist.value
+  const raw = personalSymbolDraft.value.trim()
+  if (!watchlist || watchlist.is_locked || watchlist.is_managed || !raw || personalWatchlistBusy.value) return
+  personalWatchlistBusy.value = true
+  personalWatchlistError.value = ''
+  try {
+    const item = await watchlistStore.addBySymbol(watchlist.id, raw)
+    if (!item) throw new Error(`${raw.toUpperCase()} could not be added (it may already be in the list).`)
+    personalSymbolDraft.value = ''
+  } catch (cause: any) {
+    personalWatchlistError.value = cause?.message ?? 'Unable to add symbol'
+  } finally {
+    personalWatchlistBusy.value = false
+  }
+}
+
+function handlePersonalRowAction(action: 'chart' | 'compare' | 'note' | 'alert' | 'copy' | 'remove', row: { symbol: string; instrumentId: number | null; itemId?: number }) {
+  if (action === 'remove' && selectedPersonalWatchlist.value && row.itemId != null) {
+    void watchlistStore.removeItem(selectedPersonalWatchlist.value.id, row.itemId)
+    return
+  }
+  if (action !== 'remove') handleRowAction(action, row)
 }
 
 onMounted(async () => {
@@ -525,7 +557,8 @@ function selectProxy(symbol: string) {
   emit('selectProxy', symbol)
 }
 
-function handleRowAction(action: 'chart' | 'compare' | 'note' | 'alert' | 'copy', row: { symbol: string; instrumentId: number | null }) {
+function handleRowAction(action: 'chart' | 'compare' | 'note' | 'alert' | 'copy' | 'remove', row: { symbol: string; instrumentId: number | null }) {
+  if (action === 'remove') return
   emit('rowAction', action, row)
 }
 
@@ -870,7 +903,12 @@ const proxyCoverage = computed(() => industryProxySnapshot.value
 .personal-watchlist-tool__controls { display: flex; align-items: center; gap: 8px; min-height: 28px; padding: 3px 7px; border-bottom: 1px solid #28343c; background: #121920; color: #91a2ad; font: 10px "Segoe UI", Arial, sans-serif; }
 .personal-watchlist-tool__controls label { display: flex; align-items: center; gap: 5px; color: #d7e4eb; }
 .personal-watchlist-tool__controls select { max-width: 210px; border: 1px solid #42515c; background: #11161b; color: #dce9f2; font: inherit; }
+.personal-watchlist-tool__controls input, .personal-watchlist-tool__controls button { border: 1px solid #42515c; background: #11161b; color: #dce9f2; font: inherit; padding: 2px 5px; }
+.personal-watchlist-tool__controls input { width: 84px; }
+.personal-watchlist-tool__controls button { background: #1b303d; cursor: pointer; }
+.personal-watchlist-tool__controls button:disabled { cursor: default; opacity: .5; }
 .personal-watchlist-tool__controls span { color: #8498a6; }
+.personal-watchlist-tool__controls .personal-watchlist-tool__error { color: #e49a9a; }
 .analysis { height: 100%; min-height: 0; }
 .breadth-tool { display:grid; grid-template-rows:auto minmax(0,1fr); height:100%; min-height:0; }.metrics { display: grid; grid-template-columns: 1fr auto; gap: 5px 10px; padding: 9px; color: #99a8b1; font: 10px "Segoe UI", Arial, sans-serif; }
 .metrics b { color: #d2dce3; font-weight: 500; text-align: right; }

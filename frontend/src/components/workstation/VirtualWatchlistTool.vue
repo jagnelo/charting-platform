@@ -82,6 +82,7 @@
       <button type="button" role="menuitem" @click="runContextAction('note')">Open note</button>
       <button type="button" role="menuitem" @click="runContextAction('alert')">Open alerts</button>
       <button type="button" role="menuitem" @click="runContextAction('copy')">Copy symbol</button>
+      <button v-if="allowRemove" type="button" role="menuitem" @click="runContextAction('remove')">Remove from list</button>
     </div>
   </section>
 </template>
@@ -138,6 +139,7 @@ const props = withDefaults(defineProps<{
   pythonColumns?: Array<{ code_version_id: number; name: string }>
   pythonCondition?: { code_version_id: number; name: string; mode: 'active' | 'inactive' | 'off' } | null
   reorderable?: boolean
+  allowRemove?: boolean
 }>(), {
   selected: '',
   columns: () => [
@@ -154,8 +156,9 @@ const props = withDefaults(defineProps<{
   pythonColumns: () => [],
   pythonCondition: null,
   reorderable: false,
+  allowRemove: false,
 })
-const emit = defineEmits<{ select: [row: WatchlistRow]; compare: [symbols: string[]]; reorder: [itemIds: number[]]; 'row-action': [action: 'chart' | 'compare' | 'note' | 'alert' | 'copy', row: WatchlistRow]; 'update:visibleColumnKeys': [keys: string[]]; 'update:filterText': [value: string]; 'update:conditionScreenerId': [id: number | null]; 'update:conditionFilterMode': [mode: 'active' | 'inactive' | 'off']; 'update:pinnedBooleanKeys': [keys: string[]]; 'update:columnGroups': [groups: Record<string, string>]; 'update:stackedColumnKeys': [keys: string[]]; 'update:pythonColumns': [columns: Array<{ code_version_id: number; name: string }>]; 'update:pythonCondition': [condition: { code_version_id: number; name: string; mode: 'active' | 'inactive' | 'off' } | null] }>()
+const emit = defineEmits<{ select: [row: WatchlistRow]; compare: [symbols: string[]]; reorder: [itemIds: number[]]; 'row-action': [action: 'chart' | 'compare' | 'note' | 'alert' | 'copy' | 'remove', row: WatchlistRow]; 'update:visibleColumnKeys': [keys: string[]]; 'update:filterText': [value: string]; 'update:conditionScreenerId': [id: number | null]; 'update:conditionFilterMode': [mode: 'active' | 'inactive' | 'off']; 'update:pinnedBooleanKeys': [keys: string[]]; 'update:columnGroups': [groups: Record<string, string>]; 'update:stackedColumnKeys': [keys: string[]]; 'update:pythonColumns': [columns: Array<{ code_version_id: number; name: string }>]; 'update:pythonCondition': [condition: { code_version_id: number; name: string; mode: 'active' | 'inactive' | 'off' } | null] }>()
 const scrollElement = ref<HTMLElement | null>(null)
 const filter = ref(props.filterText)
 const conditionFilter = ref(props.conditionScreenerId == null ? '' : String(props.conditionScreenerId))
@@ -585,7 +588,7 @@ function openContextMenu(event: MouseEvent, row: WatchlistRow) {
   contextMenu.value = { row, left: Math.max(2, event.clientX - (bounds?.left ?? 0)), top: Math.max(2, event.clientY - (bounds?.top ?? 0)) }
 }
 
-function runContextAction(action: 'chart' | 'compare' | 'note' | 'alert' | 'copy') {
+function runContextAction(action: 'chart' | 'compare' | 'note' | 'alert' | 'copy' | 'remove') {
   if (!contextMenu.value) return
   const row = contextMenu.value.row
   contextMenu.value = null
