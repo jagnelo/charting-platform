@@ -2,6 +2,15 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-03T16:20:00Z Session-aware canonical bars
+
+- Added persisted OHLCV session classification and migration/index support. Study Lab
+  regular mode now filters to regular bars; all mode includes classified pre/post bars.
+- Validation: research API `13 passed` without scoped coverage gate, Ruff, Alembic head
+  discovery, migration compilation, and diff check. Live migration application was not
+  run because local PostgreSQL is not listening.
+- Strict V25 visual approval and the full acceptance matrix remain open.
+
 ## 2026-08-03T16:10:00Z Study Lab workspace persistence
 
 - Routed Study Lab timeframe, benchmark, adjustment, session, and date-range controls

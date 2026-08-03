@@ -264,7 +264,7 @@ def test_research_run_materializes_only_declared_local_symbol_data(
 
 
 def test_research_run_honors_study_dataset_controls_and_records_them(
-    client, auth_headers, tmp_path, monkeypatch, instrument, ohlcv_bars
+    client, auth_headers, db, tmp_path, monkeypatch, instrument, ohlcv_bars
 ):
     monkeypatch.setattr(
         "app.services.research_jobs.settings.RESEARCH_JOB_DIR", str(tmp_path / "jobs")
@@ -336,6 +336,44 @@ def test_research_run_honors_study_dataset_controls_and_records_them(
     assert ready_manifest["benchmark_coverage"]["status"] == "ready"
     assert ready_manifest["benchmark_dataset"]["symbol"] == instrument.symbol
     assert len(ready_manifest["benchmark_dataset"]["timestamps"]) == 5
+
+    from datetime import timedelta
+
+    from app.models.ohlcv import OHLCVBar
+
+    pre_market = OHLCVBar(
+        instrument_id=instrument.id,
+        timeframe=ohlcv_bars[-1].timeframe,
+        ts=ohlcv_bars[-1].ts + timedelta(days=1),
+        open=ohlcv_bars[-1].open,
+        high=ohlcv_bars[-1].high,
+        low=ohlcv_bars[-1].low,
+        close=ohlcv_bars[-1].close,
+        volume=ohlcv_bars[-1].volume,
+        is_adjusted=True,
+        session="pre_market",
+    )
+    db.add(pre_market)
+    db.flush()
+    session_range = {
+        "symbol": instrument.symbol,
+        "start_date": ohlcv_bars[-1].ts.date().isoformat(),
+        "end_date": pre_market.ts.date().isoformat(),
+    }
+    regular_response = client.post(
+        "/api/v1/research/runs",
+        headers=auth_headers,
+        json={"code_version_id": asset["versions"][0]["id"], "run_config": {**session_range, "session": "regular"}},
+    )
+    all_response = client.post(
+        "/api/v1/research/runs",
+        headers=auth_headers,
+        json={"code_version_id": asset["versions"][0]["id"], "run_config": {**session_range, "session": "all"}},
+    )
+    assert regular_response.status_code == 202
+    assert all_response.status_code == 202
+    assert len(regular_response.json()["dataset_manifest"]["timestamps"]) == 1
+    assert len(all_response.json()["dataset_manifest"]["timestamps"]) == 2
 
 
 def test_research_run_rejects_unsupported_study_dataset_controls(

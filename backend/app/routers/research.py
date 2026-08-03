@@ -130,6 +130,8 @@ async def _load_instrument_bars(
         OHLCVBar.timeframe == options["timeframe"],
         OHLCVBar.is_adjusted.is_(options["is_adjusted"]),
     ]
+    if options["session"] == "regular":
+        conditions.append(OHLCVBar.session == "regular")
     if options["start"]:
         conditions.append(OHLCVBar.ts >= options["start"])
     if options["end"]:
@@ -238,6 +240,8 @@ async def _materialize_declared_dataset(db: AsyncSession, manifest: dict, run_co
                 OHLCVBar.timeframe == options["timeframe"],
                 OHLCVBar.is_adjusted.is_(options["is_adjusted"]),
             ]
+            if options["session"] == "regular":
+                bar_conditions.append(OHLCVBar.session == "regular")
             if options["start"]:
                 bar_conditions.append(OHLCVBar.ts >= options["start"])
             if options["end"]:

@@ -1,5 +1,18 @@
 # Active Handoff
 
+## Continuation update — 2026-08-03T16:20:00Z
+
+- Canonical OHLCV bars now persist a `session` classification with a default-safe Alembic
+  migration and indexed instrument/timeframe/session access path. Study Lab regular runs
+  filter to `regular`; `all` preserves pre/post-market bars when the source classifies
+  them. Provider adapters do not fabricate classifications.
+- Validation: research API integration `13 passed` without the scoped coverage gate,
+  including regular-versus-all filtering; Ruff, Alembic head discovery, migration
+  bytecode compilation, and diff checks passed. Live database migration application was
+  not available because the local PostgreSQL socket is not running.
+- The full goal remains active. Strict V25 visual approval is still `required_missing`,
+  and the broader backend/security/performance/end-to-end acceptance matrix remains open.
+
 ## Continuation update — 2026-08-03T16:10:00Z
 
 - Study Lab dataset controls now persist through the serializable workspace-window

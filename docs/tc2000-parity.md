@@ -132,6 +132,12 @@ specific intraday availability. Focused backend, runner, and component tests cov
 contract. This is functional evidence only; the Version 25 visual reference remains
 unapproved.
 
+Canonical OHLCV bars now carry a persisted session classification (defaulting existing
+history to `regular`) with an indexed instrument/timeframe/session access path. Study Lab
+regular runs filter to regular-session bars, while `all` runs retain pre-market and
+post-market classifications when present. Provider ingestion still reports only the
+classification it can substantiate; it never infers a session from an unqualified source.
+
 Study Lab dataset controls are now part of the serializable workstation-window
 configuration. Reopening, reloading, or floating a Study Lab preserves timeframe,
 benchmark, adjustment, session, and date bounds through the existing workspace

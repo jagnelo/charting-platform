@@ -2,7 +2,7 @@ import enum
 from datetime import datetime
 from decimal import Decimal
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Index, Integer, Numeric
+from sqlalchemy import Boolean, DateTime, ForeignKey, Index, Integer, Numeric, String
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -73,6 +73,9 @@ class OHLCVBar(Base):
     ts: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False
     )  # bar open timestamp (UTC)
+    session: Mapped[str] = mapped_column(
+        String(16), default="regular", server_default="regular", nullable=False
+    )
 
     open: Mapped[Decimal] = mapped_column(Numeric(20, 8), nullable=False)
     high: Mapped[Decimal] = mapped_column(Numeric(20, 8), nullable=False)
@@ -89,6 +92,13 @@ class OHLCVBar(Base):
     __table_args__ = (
         # Primary query pattern: get all bars for an instrument at a timeframe in a date range
         Index("ix_ohlcv_instrument_tf_ts", "instrument_id", "timeframe", "ts"),
+        Index(
+            "ix_ohlcv_instrument_tf_session_ts",
+            "instrument_id",
+            "timeframe",
+            "session",
+            "ts",
+        ),
         # Uniqueness: one bar per instrument/timeframe/ts/adjustment combination
         Index(
             "uq_ohlcv_bar",
