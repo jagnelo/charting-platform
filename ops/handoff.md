@@ -1,5 +1,16 @@
 # Active Handoff
 
+## Continuation update — 2026-08-03T20:43:53Z
+
+- Corrected point-in-time ETF constituent snapshots so the constituent bars, selected
+  ETF benchmark bars, and optional market benchmark bars are all truncated at the
+  requested `as_of` before latest values, technicals, performance, or relative-strength
+  ratios are calculated. This closes future-bar leakage in the historical drill-down
+  contract.
+- Validation: Ruff, full backend unit suite `886 passed`, and `git diff --check` passed.
+  Checkpoint `f842d09` is pushed. Strict V25 visual approval, Docker-backed route
+  verification, and the complete acceptance matrix remain open.
+
 ## Continuation update — 2026-08-03T20:39:42Z
 
 - Added direct drag-and-drop column ordering to the integrated virtual watchlist editor.

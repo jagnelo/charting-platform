@@ -2,6 +2,15 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-03T20:43:53Z Point-in-time constituent bar truncation
+
+- Corrected the ETF constituent snapshot route so historical `as_of` requests truncate
+  constituent, ETF benchmark, and optional market benchmark bars before all calculations,
+  preventing future-bar leakage in technicals, performance, and ratios.
+- Ruff, full backend unit suite `886 passed`, and diff checks passed. Pushed `f842d09`.
+- Strict V25 visual approval, Docker-backed route verification, and the complete acceptance
+  matrix remain open.
+
 ## 2026-08-03T20:39:42Z Watchlist column drag ordering
 
 - The integrated virtual watchlist column editor now supports direct drag-and-drop
