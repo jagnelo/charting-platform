@@ -53,6 +53,35 @@ describe('VirtualWatchlistTool', () => {
     expect(wrapper.emitted('select')?.[0]).toEqual([rows[1]])
   })
 
+  it('supports plain, ctrl/meta, and shift range selection without losing row activation', async () => {
+    const wrapper = mount(VirtualWatchlistTool, { props: { label: 'Sectors', rows } })
+    const selectRow = (wrapper.vm as unknown as { selectRow: (row: typeof rows[number], event: MouseEvent) => void }).selectRow
+    selectRow(rows[1], new MouseEvent('click'))
+    selectRow(rows[0], new MouseEvent('click', { ctrlKey: true }))
+    await wrapper.vm.$nextTick()
+    expect((wrapper.vm as unknown as { selectedSymbols: string[] }).selectedSymbols).toEqual(['XLE', 'XLK'])
+    expect(wrapper.emitted('select')).toHaveLength(2)
+
+    selectRow(rows[2], new MouseEvent('click', { shiftKey: true }))
+    await wrapper.vm.$nextTick()
+    expect((wrapper.vm as unknown as { selectedSymbols: string[] }).selectedSymbols).toEqual(['XLK', 'XLV'])
+    expect(wrapper.emitted('select')).toHaveLength(3)
+  })
+
+  it('offers a comparison launch for multiple selected symbols', async () => {
+    const wrapper = mount(VirtualWatchlistTool, { props: { label: 'Sectors', rows } })
+    const selectRow = (wrapper.vm as unknown as { selectRow: (row: typeof rows[number], event: MouseEvent) => void }).selectRow
+    selectRow(rows[1], new MouseEvent('click'))
+    selectRow(rows[0], new MouseEvent('click', { ctrlKey: true }))
+    await wrapper.vm.$nextTick()
+
+    const compare = wrapper.get('.watchlist__compare-button')
+    expect(compare.text()).toBe('Compare')
+    await compare.trigger('click')
+    expect(wrapper.emitted('compare')).toEqual([[[expect.any(String), expect.any(String)]]])
+    expect(wrapper.emitted('compare')?.[0]?.[0]).toEqual(['XLE', 'XLK'])
+  })
+
   it('restores a persisted filter and follows a workspace-state update', async () => {
     const wrapper = mount(VirtualWatchlistTool, {
       props: { label: 'Sectors', rows, filterText: 'technology' },

@@ -65,6 +65,7 @@
         :active-window-key="popoutTool.instance_key"
         :factory-layout="workspaceStore.activeTabKey"
         @select="selectSymbol"
+        @compare="compareSymbols"
         @occurrence="selectOccurrence"
         @select-industry="workspaceStore.selectIndustry(workspaceStore.constituentETF ?? '', $event)"
         @select-proxy="selectIndustryProxy"
@@ -293,6 +294,20 @@ function updateToolConfiguration(windowKey: string, configuration: Record<string
   workspaceStore.scheduleSnapshot()
 }
 
+function compareSymbols(symbols: string[]) {
+  const normalized = [...new Set(symbols.map(symbol => symbol.trim().toUpperCase()).filter(Boolean))]
+  const active = activeSymbol.value.toUpperCase()
+  const chart = workspaceStore.activeTab?.windows.find(window => window.tool_type === 'chart' && window.instance_key !== 'ratio-chart')
+  if (!chart) {
+    workspaceStore.error = 'Open a chart tool to compare selected symbols.'
+    return
+  }
+  updateToolConfiguration(chart.instance_key, {
+    ...chart.configuration,
+    comparison_symbols: normalized.filter(symbol => symbol !== active).slice(0, 6),
+  })
+}
+
 function floatTool(windowKey: string) {
   const tab = workspaceStore.activeTabKey
   const href = router.resolve({ path: `/popout/${encodeURIComponent(windowKey)}`, query: { tab } }).href
@@ -308,6 +323,7 @@ function renderDockTool(dockTool: { instance_key: string; title: string; tool_ty
     activeWindowKey: workspaceStore.activeTab?.active_window_key,
     factoryLayout: workspaceStore.activeTabKey,
     onSelect: (symbol: string) => void selectSymbol(symbol),
+    onCompare: (symbols: string[]) => compareSymbols(symbols),
     onOccurrence: (symbol: string, timestamp: string) => void selectSymbol(symbol, timestamp),
     onSelectIndustry: (industry: string) => void workspaceStore.selectIndustry(workspaceStore.constituentETF ?? '', industry),
     onSelectProxy: (symbol: string) => void selectIndustryProxy(symbol),

@@ -20,6 +20,7 @@
       :python-columns="configuredPythonColumns"
       :python-condition="configuredPythonCondition"
       @select="selectSymbol($event.symbol, $event.instrumentId)"
+      @compare="emit('compare', $event)"
       @update:visible-column-keys="emit('columns', tool.instance_key, $event)"
       @update:filter-text="emit('filter', tool.instance_key, $event)"
       @update:condition-screener-id="emit('conditionFilter', tool.instance_key, $event)"
@@ -47,6 +48,7 @@
       :python-columns="configuredPythonColumns"
       :python-condition="configuredPythonCondition"
       @select="selectSymbol($event.symbol, $event.instrumentId)"
+      @compare="emit('compare', $event)"
       @update:visible-column-keys="emit('columns', tool.instance_key, $event)"
       @update:filter-text="emit('filter', tool.instance_key, $event)"
       @update:condition-screener-id="emit('conditionFilter', tool.instance_key, $event)"
@@ -73,6 +75,7 @@
       :python-columns="configuredPythonColumns"
       :python-condition="configuredPythonCondition"
       @select="tool.instance_key === 'industries' ? emit('selectIndustry', $event.symbol) : selectSymbol($event.symbol, $event.instrumentId)"
+      @compare="emit('compare', $event)"
       @update:visible-column-keys="emit('columns', tool.instance_key, $event)"
       @update:filter-text="emit('filter', tool.instance_key, $event)"
       @update:condition-screener-id="emit('conditionFilter', tool.instance_key, $event)"
@@ -144,6 +147,7 @@
             :python-columns="configuredPythonColumns"
             :python-condition="configuredPythonCondition"
             @select="selectProxy($event.symbol)"
+            @compare="emit('compare', $event)"
             @update:visible-column-keys="emit('columns', tool.instance_key, $event)"
             @update:filter-text="emit('filter', tool.instance_key, $event)"
             @update:condition-screener-id="emit('conditionFilter', tool.instance_key, $event)"
@@ -178,6 +182,7 @@
       :python-columns="configuredPythonColumns"
       :python-condition="configuredPythonCondition"
       @select="selectSymbol($event.symbol, $event.instrumentId)"
+      @compare="emit('compare', $event)"
       @update:visible-column-keys="emit('columns', tool.instance_key, $event)"
       @update:filter-text="emit('filter', tool.instance_key, $event)"
       @update:condition-screener-id="emit('conditionFilter', tool.instance_key, $event)"
@@ -250,7 +255,7 @@ const props = defineProps<{
   activeWindowKey?: string | null
   factoryLayout?: string | null
 }>()
-const emit = defineEmits<{ select: [symbol: string]; occurrence: [symbol: string, timestamp: string]; selectIndustry: [industry: string]; selectProxy: [symbol: string]; columns: [windowKey: string, keys: string[]]; filter: [windowKey: string, value: string]; conditionFilter: [windowKey: string, screenerId: number | null]; conditionFilterMode: [windowKey: string, mode: 'active' | 'inactive' | 'off']; pinnedBooleanKeys: [windowKey: string, keys: string[]]; columnGroups: [windowKey: string, groups: Record<string, string>]; stackedColumnKeys: [windowKey: string, keys: string[]]; configuration: [windowKey: string, configuration: Record<string, unknown>]; timeframe: [value: string, group: LinkGroup]; float: [windowKey: string]; maximize: [windowKey: string]; close: [windowKey: string]; updateLinkGroup: [windowKey: string, group: LinkGroup] }>()
+const emit = defineEmits<{ select: [symbol: string]; compare: [symbols: string[]]; occurrence: [symbol: string, timestamp: string]; selectIndustry: [industry: string]; selectProxy: [symbol: string]; columns: [windowKey: string, keys: string[]]; filter: [windowKey: string, value: string]; conditionFilter: [windowKey: string, screenerId: number | null]; conditionFilterMode: [windowKey: string, mode: 'active' | 'inactive' | 'off']; pinnedBooleanKeys: [windowKey: string, keys: string[]]; columnGroups: [windowKey: string, groups: Record<string, string>]; stackedColumnKeys: [windowKey: string, keys: string[]]; configuration: [windowKey: string, configuration: Record<string, unknown>]; timeframe: [value: string, group: LinkGroup]; float: [windowKey: string]; maximize: [windowKey: string]; close: [windowKey: string]; updateLinkGroup: [windowKey: string, group: LinkGroup] }>()
 // uPlot already consumes a panel-scoped store through injection. Give every persisted
 // workstation chart its own stable store identity so red/grey/yellow charts cannot
 // accidentally render the shell's blue/default data.

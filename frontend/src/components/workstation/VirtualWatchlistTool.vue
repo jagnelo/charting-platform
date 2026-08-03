@@ -23,7 +23,8 @@
       </select>
       <button class="watchlist__columns-button" type="button" @click="columnMenuOpen = !columnMenuOpen">Columns</button>
       <button class="watchlist__columns-button" type="button" aria-label="Column sets" @click="columnSetMenuOpen = !columnSetMenuOpen">Sets</button>
-      <b>{{ filteredRows.length }}</b>
+      <b>{{ selectedSymbols.length ? `${selectedSymbols.length} selected · ` : '' }}{{ filteredRows.length }}</b>
+      <button v-if="selectedSymbols.length > 1" type="button" class="watchlist__compare-button" @click="emit('compare', selectedSymbols)">Compare</button>
     </header>
     <p v-if="conditionFilterState" class="watchlist__condition-state">{{ conditionFilterState }}</p>
     <p v-if="pythonConditionState" class="watchlist__condition-state">{{ pythonConditionState }}<button v-if="pythonRunIds.python_condition" type="button" aria-label="Cancel Python condition" @click="cancelPythonRun('python_condition')">Cancel</button></p>
@@ -58,9 +59,9 @@
           :key="filteredRows[virtualRow.index].instrumentId ?? filteredRows[virtualRow.index].symbol"
           type="button"
           class="watchlist__row"
-          :class="{ 'watchlist__row--active': filteredRows[virtualRow.index].symbol === selected }"
+          :class="{ 'watchlist__row--active': filteredRows[virtualRow.index].symbol === selected, 'watchlist__row--selected': selectedSymbols.includes(filteredRows[virtualRow.index].symbol) }"
           :style="{ ...gridStyle, height: `${virtualRow.size}px`, transform: `translateY(${virtualRow.start}px)` }"
-          @click="emit('select', filteredRows[virtualRow.index])"
+          @click="selectRow(filteredRows[virtualRow.index], $event)"
         >
           <template v-for="column in renderedColumns" :key="column.key">
             <span v-if="column.key !== stackedColumnKey" :title="display(filteredRows[virtualRow.index], column.key)">{{ display(filteredRows[virtualRow.index], column.key) }}</span>
@@ -138,7 +139,7 @@ const props = withDefaults(defineProps<{
   pythonColumns: () => [],
   pythonCondition: null,
 })
-const emit = defineEmits<{ select: [row: WatchlistRow]; 'update:visibleColumnKeys': [keys: string[]]; 'update:filterText': [value: string]; 'update:conditionScreenerId': [id: number | null]; 'update:conditionFilterMode': [mode: 'active' | 'inactive' | 'off']; 'update:pinnedBooleanKeys': [keys: string[]]; 'update:columnGroups': [groups: Record<string, string>]; 'update:stackedColumnKeys': [keys: string[]]; 'update:pythonColumns': [columns: Array<{ code_version_id: number; name: string }>]; 'update:pythonCondition': [condition: { code_version_id: number; name: string; mode: 'active' | 'inactive' | 'off' } | null] }>()
+const emit = defineEmits<{ select: [row: WatchlistRow]; compare: [symbols: string[]]; 'update:visibleColumnKeys': [keys: string[]]; 'update:filterText': [value: string]; 'update:conditionScreenerId': [id: number | null]; 'update:conditionFilterMode': [mode: 'active' | 'inactive' | 'off']; 'update:pinnedBooleanKeys': [keys: string[]]; 'update:columnGroups': [groups: Record<string, string>]; 'update:stackedColumnKeys': [keys: string[]]; 'update:pythonColumns': [columns: Array<{ code_version_id: number; name: string }>]; 'update:pythonCondition': [condition: { code_version_id: number; name: string; mode: 'active' | 'inactive' | 'off' } | null] }>()
 const scrollElement = ref<HTMLElement | null>(null)
 const filter = ref(props.filterText)
 const conditionFilter = ref(props.conditionScreenerId == null ? '' : String(props.conditionScreenerId))
@@ -152,6 +153,8 @@ const pythonConditionMatchedSymbols = ref<Set<string> | null>(null)
 const pythonConditionState = ref('')
 const sortKey = ref('symbol')
 const sortDirection = ref<'asc' | 'desc'>('asc')
+const selectedSymbols = ref<string[]>([])
+const selectionAnchor = ref<string | null>(null)
 const columnMenuOpen = ref(false)
 const columnSetMenuOpen = ref(false)
 const columnSetName = ref('')
@@ -518,6 +521,24 @@ function toggleSort(key: string) {
   }
 }
 
+function selectRow(row: WatchlistRow, event: MouseEvent) {
+  const symbols = filteredRows.value.map(item => item.symbol)
+  if (event.shiftKey && selectionAnchor.value) {
+    const start = symbols.indexOf(selectionAnchor.value)
+    const end = symbols.indexOf(row.symbol)
+    if (start >= 0 && end >= 0) selectedSymbols.value = symbols.slice(Math.min(start, end), Math.max(start, end) + 1)
+  } else if (event.ctrlKey || event.metaKey) {
+    selectedSymbols.value = selectedSymbols.value.includes(row.symbol)
+      ? selectedSymbols.value.filter(symbol => symbol !== row.symbol)
+      : [...selectedSymbols.value, row.symbol]
+    selectionAnchor.value = row.symbol
+  } else {
+    selectedSymbols.value = [row.symbol]
+    selectionAnchor.value = row.symbol
+  }
+  emit('select', row)
+}
+
 function toggleColumn(key: string) {
   const current = activeColumnKeys.value
   if (current.includes(key)) {
@@ -591,7 +612,7 @@ function onCtrlWheel(event: WheelEvent) {
 .watchlist__controls input { min-width: 0; width: 80px; margin-left: auto; padding: 1px 4px; border: 1px solid #3d4a54; background: #11161b; color: #dce9f2; font: inherit; text-transform: none; }
 .watchlist__controls select { min-width: 0; max-width: 120px; padding: 1px 2px; border: 1px solid #3d4a54; background: #11161b; color: #a9c0d0; font: inherit; text-transform: none; }
 .watchlist__columns-button { border: 1px solid #3d4a54; background: #1b252d; color: #a9c0d0; font: inherit; cursor: pointer; }
-.watchlist__controls b { color: #78aac8; font-weight: 600; }
+.watchlist__controls b { color: #78aac8; font-weight: 600; }.watchlist__compare-button { border: 1px solid #4b697b; background: #1e3b4c; color: #d9edf7; padding: 1px 5px; font: inherit; cursor: pointer; }.watchlist__compare-button:hover { background: #2a5268; }
 .watchlist__column-menu { display: flex; flex-wrap: wrap; gap: 4px 8px; padding: 4px 7px; background: #253039; border-bottom: 1px solid #384550; color: #b7c6d0; font-size: 10px; text-transform: none; letter-spacing: normal; }
 .watchlist__column-set-menu { display:flex; flex-wrap:wrap; align-items:center; gap:4px; padding:4px 7px; background:#202b33; border-bottom:1px solid #384550; color:#b7c6d0; font-size:10px; }.watchlist__column-set-menu input,.watchlist__column-set-menu button{min-width:0;border:1px solid #42515c;background:#182128;color:#d7e3eb;font:inherit;padding:1px 4px}.watchlist__column-set-menu input{width:108px}.watchlist__column-set-menu span{display:flex;gap:2px}.watchlist__column-set-menu small{color:#8498a6}.watchlist__column-set-error{color:#e49a9a!important}
 .watchlist__condition-state { overflow: hidden; margin: 0; padding: 2px 7px; border-bottom: 1px solid #2b343c; color: #8498a6; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
@@ -613,6 +634,7 @@ function onCtrlWheel(event: WheelEvent) {
 .watchlist__row { position: absolute; left: 0; width: 100%; align-items: center; border: 0; border-bottom: 1px solid #20282f; background: transparent; color: inherit; text-align: left; cursor: pointer; }
 .watchlist__row:hover { background: #202a33; }
 .watchlist__row--active { background: #1d4057; box-shadow: inset 2px 0 #66b4e8; }
+.watchlist__row--selected { outline: 1px solid #71bfe8; outline-offset: -1px; }
 .watchlist__row span { min-width: 0; overflow: hidden; padding: 0 6px; color: #8999a5; text-overflow: ellipsis; white-space: nowrap; }
 .watchlist__row span:first-child { color: #dce9f2; font-weight: 600; }
 .watchlist__stack-cell { display: grid; min-width: 0; align-self: stretch; padding: 1px 6px; }

@@ -1,5 +1,17 @@
 # Active Handoff
 
+## Continuation update — 2026-08-03T15:36:15Z
+
+- Virtualized watchlists now support plain, Ctrl/Meta, and Shift selection while
+  retaining canonical row activation. Multi-selection exposes Compare and routes up to
+  six selected symbols into the first non-ratio chart's persisted comparison list for
+  both docked and pop-out tools.
+- Validation: focused VirtualWatchlistTool `22 passed`; full frontend Vitest `449 passed`
+  across `76` files; TypeScript, production build, and `git diff --check` passed.
+- Commit is pending after this handoff update. The full goal remains active: strict V25
+  visual approval is still `required_missing`, and the broader backend/security/
+  performance/end-to-end acceptance matrix is not complete.
+
 ## Continuation update — 2026-08-03T12:28:21Z
 
 - The V25 visual manifest now records every required surface state as an explicit

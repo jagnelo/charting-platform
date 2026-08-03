@@ -102,3 +102,10 @@ Workstation chart windows now expose persisted comparison symbols and feed norma
 timestamp-aligned comparison series into the existing uPlot renderer. Comparison anchors
 are explicit, missing timestamps remain gaps, and each target exposes a return summary;
 the comparison utility has deterministic alignment and no-valid-anchor coverage tests.
+
+Virtualized watchlists now support desktop-style plain, Ctrl/Meta, and Shift selection
+while retaining canonical row activation. A multi-selection exposes a Compare action;
+the workstation routes it to the first non-ratio chart and persists up to six comparison
+symbols without changing the active symbol. Component coverage proves selection semantics
+and the full frontend suite remains green. This is functional evidence only; the Version
+25 visual reference remains unapproved.

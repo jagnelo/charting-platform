@@ -2,6 +2,15 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-03T15:36:15Z Watchlist multi-selection and comparison launch
+
+- Added desktop-style plain, Ctrl/Meta, and Shift selection to virtualized watchlists;
+  Compare persists up to six selected symbols on the first non-ratio chart and is wired
+  through docked and pop-out tool events.
+- Validation: focused suite `22 passed`, full frontend Vitest `449 passed` across `76`
+  files, TypeScript, production build, and `git diff --check`.
+- The strict V25 visual gate and full acceptance matrix remain intentionally open.
+
 ## 2026-08-03T12:28:21Z V25 state-level visual evidence
 
 - Added explicit manifest records for all required surface states and validator checks
