@@ -17,12 +17,37 @@ from collections.abc import Callable
 from hashlib import sha256
 from pathlib import Path
 
+import numpy as _numpy
+import pandas as _pandas
+
 from research_runner.validation import validate_workstation_python
 
 JOB_DIR = Path(os.environ.get("RESEARCH_JOB_DIR", "/jobs"))
 RESULT_DIR = Path(os.environ.get("RESEARCH_RESULT_DIR", "/results"))
 MAX_SECONDS = int(os.environ.get("RESEARCH_MAX_SECONDS", "15"))
 MAX_MEMORY_BYTES = int(os.environ.get("RESEARCH_MAX_MEMORY_BYTES", str(512 * 1024 * 1024)))
+
+
+def _materialize(value: object) -> object:
+    if isinstance(value, dict):
+        return {str(key): _materialize(item) for key, item in value.items()}
+    if isinstance(value, list | tuple):
+        return [_materialize(item) for item in value]
+    if isinstance(value, _DataFrame):
+        return _materialize(value.to_dict())
+    if isinstance(value, _Series):
+        return _materialize(value.tolist())
+    if hasattr(value, "item") and callable(value.item):
+        try:
+            return value.item()
+        except (TypeError, ValueError):
+            pass
+    if hasattr(value, "tolist") and callable(value.tolist):
+        try:
+            return _materialize(value.tolist())
+        except (TypeError, ValueError):
+            pass
+    return value
 
 
 def _limit_resources() -> None:
@@ -84,6 +109,8 @@ def _execute_single(
         "ta": _Ta(),
         "stats": _Stats(),
         "research": _Research(),
+        "np": _NumpyFacade(),
+        "pd": _PandasFacade(),
     }
     if manage_timeout:
         _limit_resources()
@@ -190,10 +217,11 @@ class _Output:
         self.dataset = dataset
 
     def scalar(self, name: str, value: object) -> None:
-        self.values[name] = {"type": "scalar", "value": value}
+        self.values[name] = {"type": "scalar", "value": _materialize(value)}
 
     def series(self, name: str, value: object) -> None:
-        values = list(value) if isinstance(value, list | tuple) else value
+        materialized = _materialize(value)
+        values = list(materialized) if isinstance(materialized, list | tuple) else materialized
         timestamps = self.dataset.get("timestamps", [])
         if (
             isinstance(values, list)
@@ -208,15 +236,17 @@ class _Output:
             self.values[name] = {"type": "series", "value": values}
 
     def boolean(self, name: str, value: object) -> None:
+        value = _materialize(value)
         if not isinstance(value, bool):
             raise ValueError("boolean output must be true or false")
         self.values[name] = {"type": "boolean", "value": value}
 
     def table(self, name: str, value: object) -> None:
-        self.values[name] = {"type": "table", "value": value}
+        self.values[name] = {"type": "table", "value": _materialize(value)}
 
     def histogram(self, name: str, value: object, bins: int = 8, current: object = None) -> None:
         """Emit a deterministic numeric distribution for Study Lab renderers."""
+        value = _materialize(value)
         if not isinstance(value, list | tuple):
             raise ValueError("histogram values must be a list")
         if not isinstance(bins, int) or isinstance(bins, bool) or not 1 <= bins <= 64:
@@ -301,6 +331,112 @@ class _Stats:
             "records": records,
             "lengths": completed,
         }
+
+
+class _NumpyFacade:
+    """Numerical helpers with no filesystem, process, or network surface."""
+
+    @staticmethod
+    def array(value: object) -> object:
+        return _numpy.asarray(value)
+
+    @staticmethod
+    def mean(value: object) -> float:
+        return float(_numpy.mean(value))
+
+    @staticmethod
+    def median(value: object) -> float:
+        return float(_numpy.median(value))
+
+    @staticmethod
+    def std(value: object) -> float:
+        return float(_numpy.std(value))
+
+    @staticmethod
+    def percentile(value: object, percentile: float) -> float:
+        return float(_numpy.percentile(value, percentile))
+
+    @staticmethod
+    def isfinite(value: object) -> object:
+        return _numpy.isfinite(value)
+
+    @staticmethod
+    def isnan(value: object) -> object:
+        return _numpy.isnan(value)
+
+    @staticmethod
+    def where(condition: object, left: object, right: object) -> object:
+        return _numpy.where(condition, left, right)
+
+    @staticmethod
+    def clip(value: object, minimum: float, maximum: float) -> object:
+        return _numpy.clip(value, minimum, maximum)
+
+    @staticmethod
+    def diff(value: object) -> object:
+        return _numpy.diff(value)
+
+    @staticmethod
+    def cumsum(value: object) -> object:
+        return _numpy.cumsum(value)
+
+
+class _Rolling:
+    def __init__(self, value: object, period: int) -> None:
+        self._value = value.rolling(period)
+
+    def mean(self) -> _Series:
+        return _Series(self._value.mean())
+
+    def sum(self) -> _Series:
+        return _Series(self._value.sum())
+
+    def std(self) -> _Series:
+        return _Series(self._value.std())
+
+
+class _Series:
+    def __init__(self, value: object) -> None:
+        self._value = _pandas.Series(value)
+
+    def mean(self) -> float:
+        return float(self._value.mean())
+
+    def median(self) -> float:
+        return float(self._value.median())
+
+    def std(self) -> float:
+        return float(self._value.std())
+
+    def quantile(self, percentile: float) -> float:
+        return float(self._value.quantile(percentile))
+
+    def rolling(self, period: int) -> _Rolling:
+        if not isinstance(period, int) or period <= 0:
+            raise ValueError("rolling period must be a positive integer")
+        return _Rolling(self._value, period)
+
+    def tolist(self) -> list[object]:
+        return self._value.tolist()
+
+
+class _DataFrame:
+    def __init__(self, value: object) -> None:
+        self._value = _pandas.DataFrame(value)
+
+    def mean(self) -> _Series:
+        return _Series(self._value.mean(numeric_only=True))
+
+    def median(self) -> _Series:
+        return _Series(self._value.median(numeric_only=True))
+
+    def to_dict(self) -> list[dict]:
+        return self._value.to_dict(orient="records")
+
+
+class _PandasFacade:
+    Series = _Series
+    DataFrame = _DataFrame
 
 
 class _Research:

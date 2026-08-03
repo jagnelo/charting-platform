@@ -27,6 +27,10 @@ _BANNED_CALLS = {
     "eval", "exec", "compile", "open", "input", "__import__", "globals", "locals",
     "vars", "getattr", "setattr", "delattr", "help", "breakpoint",
 }
+_BANNED_DATA_CALLS = {
+    "read_csv", "read_excel", "read_json", "read_parquet", "read_pickle", "read_sql", "read_sql_query",
+    "to_csv", "to_excel", "to_json", "to_parquet", "to_pickle", "to_sql", "load", "save", "savetxt", "fromfile",
+}
 
 
 @dataclass(frozen=True)
@@ -85,6 +89,8 @@ class _Validator(ast.NodeVisitor):
         if banned_builtin:
             self.add(node, "forbidden_call", f"{node.func.id}() is not available.")
         root = _attribute_root(node.func)
+        if isinstance(node.func, ast.Attribute) and root in {"np", "pd"} and node.func.attr in _BANNED_DATA_CALLS:
+            self.add(node, "forbidden_data_access", f"{root}.{node.func.attr}() cannot access files or external data.")
         if root and not banned_builtin:
             if root not in _APPROVED_ROOTS:
                 self.add(node, "unapproved_namespace", f"{root} is not an approved SDK namespace.")

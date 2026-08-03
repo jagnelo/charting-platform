@@ -10,6 +10,7 @@ from dataclasses import dataclass
 _ROOTS = {"market", "ta", "stats", "research", "output", "np", "pd"}
 _BANNED = (ast.Import, ast.ImportFrom, ast.Global, ast.Nonlocal, ast.Lambda, ast.ClassDef, ast.With, ast.AsyncWith, ast.Try, ast.Raise)
 _CALLS = {"eval", "exec", "compile", "open", "input", "__import__", "globals", "locals", "vars", "getattr", "setattr", "delattr", "help", "breakpoint"}
+_BANNED_DATA_CALLS = {"read_csv", "read_excel", "read_json", "read_parquet", "read_pickle", "read_sql", "read_sql_query", "to_csv", "to_excel", "to_json", "to_parquet", "to_pickle", "to_sql", "load", "save", "savetxt", "fromfile"}
 
 
 @dataclass(frozen=True)
@@ -44,6 +45,8 @@ def validate_workstation_python(source: str) -> ValidationResult:
             root = node.func
             while isinstance(root, ast.Attribute):
                 root = root.value
+            if isinstance(node.func, ast.Attribute) and isinstance(root, ast.Name) and root.id in {"np", "pd"} and node.func.attr in _BANNED_DATA_CALLS:
+                diagnostics.append(CodeDiagnostic("forbidden_data_access", f"{root.id}.{node.func.attr}() cannot access files or external data.", node.lineno, node.col_offset))
             if isinstance(root, ast.Name) and root.id in _CALLS:
                 diagnostics.append(CodeDiagnostic("forbidden_call", f"{root.id}() is not available.", node.lineno, node.col_offset))
             elif isinstance(root, ast.Name) and root.id not in _ROOTS:

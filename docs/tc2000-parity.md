@@ -27,3 +27,8 @@ streak lengths for that distribution, and both
 primary Study Lab result surfaces render the artifact through a uPlot bar overlay. The
 focused runner, validation, Study Lab, and persisted-results tests pass; visual parity
 remains blocked until the required approved Version 25 references exist.
+
+The isolated image also installs pinned NumPy/Pandas wheels at build time and exposes
+only restricted `np`/`pd` facades to user code. File/external-data methods are rejected
+by source validation; NumPy/Pandas values are normalized before artifact persistence.
+The rebuilt image import check reports NumPy `2.1.3` and Pandas `2.2.3`.

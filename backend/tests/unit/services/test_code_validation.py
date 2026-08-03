@@ -28,3 +28,9 @@ def test_rejects_dunder_escape_attempts():
     result = validate_workstation_python("market.__class__")
     assert not result.valid
     assert result.diagnostics[0].code == "forbidden_attribute"
+
+
+def test_rejects_numpy_and_pandas_file_access():
+    result = validate_workstation_python("pd.read_csv('/tmp/secret.csv')")
+    assert not result.valid
+    assert result.diagnostics[0].code == "forbidden_data_access"

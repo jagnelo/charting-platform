@@ -160,6 +160,24 @@ def test_runner_emits_symbol_linked_occurrences_for_study_events():
     }]
 
 
+def test_runner_exposes_restricted_numpy_and_pandas_facades():
+    result = execute_job(
+        {
+            "source": "values = np.array([1, 2, 3])\nframe = pd.DataFrame([{'value': 1}, {'value': 3}])\noutput.scalar('mean', np.mean(values))\noutput.table('rows', frame)",
+            "dataset": {},
+        }
+    )
+    assert result["status"] == "completed"
+    assert result["artifacts"]["mean"]["value"] == 2.0
+    assert result["artifacts"]["rows"]["value"] == [{"value": 1}, {"value": 3}]
+
+
+def test_runner_rejects_numpy_and_pandas_file_access():
+    result = execute_job({"source": "pd.read_csv('/tmp/secret.csv')", "dataset": {}})
+    assert result["status"] == "failed"
+    assert result["diagnostics"][0]["code"] == "forbidden_data_access"
+
+
 def test_runner_exposes_only_declared_market_symbol_and_structured_ta_series():
     result = execute_job(
         {
