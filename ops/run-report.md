@@ -2,6 +2,15 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-03T12:21:56Z Python scan alert reconciliation
+
+- Completed Python scan artifacts now invoke the established screener post-run alert and
+  managed-watchlist synchronization contract. Integration coverage proves an alert is
+  assigned the reconciled run ID.
+- Validation: related units `31 passed`, screener integration `20 passed` with Docker
+  fixtures, Ruff, and diff check.
+- Commit: `5de611928a44c6078da63599190126a47c496919`.
+
 ## 2026-08-03T12:18:45Z Isolated scheduled Python screeners
 
 - Moved Python-condition screener queue creation into the service used by HTTP, ARQ,

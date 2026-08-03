@@ -1,5 +1,19 @@
 # Active Handoff
 
+## Continuation update — 2026-08-03T12:21:56Z
+
+- Terminal isolated Python scan results now invoke the existing screener post-run
+  contract after reconciliation. This updates screener-alert `last_checked_run_id`,
+  entry/exit diff state, notifications, and managed-watchlist synchronization through
+  the same path used by synchronous screeners; incomplete/failed/canceled runs do not
+  trigger it.
+- Validation: scheduler-task/engine units `31 passed`; screener integration `20 passed`
+  with Docker-backed fixtures, including Python scan alert reconciliation; Ruff and diff
+  check passed.
+- Commit: `5de611928a44c6078da63599190126a47c496919`. Next: continue the remaining
+  workstation/backend acceptance work, especially durable scheduled-result collection
+  and broader visual/reference gates.
+
 ## Continuation update — 2026-08-03T12:18:45Z
 
 - Centralized Python-condition screener queue creation in the screener service and routed
