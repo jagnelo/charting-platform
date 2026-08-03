@@ -124,6 +124,23 @@ describe('useWatchlistStore', () => {
     expect(store.focusRequest).toBeNull()
   })
 
+  it('optimistically reorders personal watchlist items and restores on failure', async () => {
+    const store = useWatchlistStore()
+    store.watchlists = [{ ...makeWatchlist(), items: [
+      { id: 1, instrument_id: 10, symbol: 'NVDA', position: 0 },
+      { id: 2, instrument_id: 20, symbol: 'AAPL', position: 1 },
+    ] }] as any
+
+    ;(api.post as ReturnType<typeof vi.fn>).mockResolvedValueOnce(undefined)
+    await store.reorderItems(1, [2, 1])
+    expect(store.watchlists[0].items.map(item => item.id)).toEqual([2, 1])
+    expect(api.post).toHaveBeenCalledWith('/watchlists/1/items/reorder', { ids: [2, 1] })
+
+    ;(api.post as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('conflict'))
+    await store.reorderItems(1, [1, 2])
+    expect(store.watchlists[0].items.map(item => item.id)).toEqual([2, 1])
+  })
+
   it('computes quotes, price flashes, and single-bar fallbacks', async () => {
     const store = useWatchlistStore()
     store.priceMap.NVDA = {

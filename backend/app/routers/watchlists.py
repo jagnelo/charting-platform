@@ -188,6 +188,40 @@ async def add_item(
     return _item_to_read(item, instr)
 
 
+class ReorderItemsBody(BaseModel):
+    ids: list[int]
+
+
+@router.post("/{watchlist_id}/items/reorder")
+async def reorder_items(
+    watchlist_id: int,
+    body: ReorderItemsBody,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Persist manual ordering for a user's personal watchlist items."""
+    wl = await _get_own_watchlist(db, current_user.id, watchlist_id)
+    if wl.is_locked or wl.is_managed:
+        raise HTTPException(403, "Cannot manually reorder a locked or managed watchlist")
+    if len(body.ids) != len(set(body.ids)):
+        raise HTTPException(400, "Item IDs must be unique")
+    items = (
+        await db.execute(
+            select(WatchlistItem).where(
+                WatchlistItem.watchlist_id == watchlist_id,
+                WatchlistItem.id.in_(body.ids),
+            )
+        )
+    ).scalars().all()
+    if {item.id for item in items} != set(body.ids):
+        raise HTTPException(400, "Item IDs must contain every item in the watchlist")
+    by_id = {item.id: item for item in items}
+    for position, item_id in enumerate(body.ids):
+        by_id[item_id].position = position
+    await db.commit()
+    return {"ok": True}
+
+
 @router.delete("/{watchlist_id}/items/{item_id}")
 async def remove_item(
     watchlist_id: int,

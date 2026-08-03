@@ -91,6 +91,22 @@ export const useWatchlistStore = defineStore('watchlist', () => {
     }
   }
 
+  async function reorderItems(watchlistId: number, ids: number[]) {
+    const wl = watchlists.value.find(item => item.id === watchlistId)
+    if (!wl) return
+    const original = [...wl.items]
+    const byId = Object.fromEntries(original.map(item => [item.id, item]))
+    const reordered = ids.map(id => byId[id]).filter(Boolean)
+    wl.items = [...reordered, ...original.filter(item => !ids.includes(item.id))]
+      .map((item, position) => ({ ...item, position }))
+    try {
+      await api.post(`/watchlists/${watchlistId}/items/reorder`, { ids })
+    } catch (error) {
+      wl.items = original
+      console.error('Failed to reorder watchlist items', error)
+    }
+  }
+
   /** Add an instrument to a watchlist by symbol — auto-resolves instrument_id via API. */
   async function addBySymbol(watchlistId: number, symbol: string): Promise<WatchlistItem | null> {
     try {
@@ -247,7 +263,7 @@ export const useWatchlistStore = defineStore('watchlist', () => {
     createWatchlist,
     deleteWatchlist,
     addItem,
-    removeItem,
+    removeItem, reorderItems,
     addBySymbol,
     renameWatchlist,
     seedWatchlist,

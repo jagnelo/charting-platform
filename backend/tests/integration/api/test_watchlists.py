@@ -186,6 +186,46 @@ class TestWatchlistsCrud:
         assert wl2.position == 0
         assert wl1.position == 1
 
+    def test_reorder_personal_watchlist_items_updates_positions(
+        self, client, auth_headers, db, watchlist, instrument, instrument_b
+    ):
+        from app.models.watchlist import WatchlistItem
+
+        first = WatchlistItem(watchlist_id=watchlist.id, instrument_id=instrument.id, position=0)
+        second = WatchlistItem(watchlist_id=watchlist.id, instrument_id=instrument_b.id, position=1)
+        db.add_all([first, second])
+        db.flush()
+
+        res = client.post(
+            f"/api/v1/watchlists/{watchlist.id}/items/reorder",
+            headers=auth_headers,
+            json={"ids": [second.id, first.id]},
+        )
+        assert res.status_code == 200
+        db.refresh(first)
+        db.refresh(second)
+        assert second.position == 0
+        assert first.position == 1
+
+    def test_reorder_managed_watchlist_items_is_forbidden(
+        self, client, auth_headers, db, user, instrument
+    ):
+        from app.models.watchlist import WatchlistItem
+
+        managed = Watchlist(user_id=user.id, name="Managed order", is_managed=True, position=0)
+        db.add(managed)
+        db.flush()
+        item = WatchlistItem(watchlist_id=managed.id, instrument_id=instrument.id, position=0)
+        db.add(item)
+        db.flush()
+
+        res = client.post(
+            f"/api/v1/watchlists/{managed.id}/items/reorder",
+            headers=auth_headers,
+            json={"ids": [item.id]},
+        )
+        assert res.status_code == 403
+
     def test_delete_locked_watchlist_requires_unlock(self, client, auth_headers, watchlist):
         client.post(f"/api/v1/watchlists/{watchlist.id}/lock", headers=auth_headers)
         res = client.delete(f"/api/v1/watchlists/{watchlist.id}", headers=auth_headers)
