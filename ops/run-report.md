@@ -16500,3 +16500,15 @@ Append a short entry after each worker session.
 - Focused Research Results tests `2 passed`; TypeScript and diff check passed. Commit
   `f1cb8a65b402587ac40902523c40ee22cd83352b` pushed.
 - Full workstation/backend and visual acceptance remain incomplete.
+
+## 2026-08-03T13:10:00Z Market Gauge freshness checkpoint
+
+- `MarketGaugeTool.vue` now uses TanStack Vue Query for shared retained-scan and
+  gauge snapshot state. Selection loads the canonical local-database gauge; active
+  gauges refetch on a 60-second freshness interval or explicit Refresh and retain
+  cached values during refetch. The tool displays freshness, provenance,
+  calculation-version, and coverage-warning state.
+- Focused frontend test `tests/unit/components/test_market_gauge_tool.test.ts`: `1
+  passed`. TypeScript, production build, and `git diff --check` passed.
+- Commit `afe8e7c0fa427925b0a66b91fc435786adf9ba5f` pushed. Overall acceptance and
+  approved V25 visual evidence remain incomplete; continue the full audit.

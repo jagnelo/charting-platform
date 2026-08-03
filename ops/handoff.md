@@ -14477,3 +14477,17 @@
   passed`; TypeScript and diff check passed.
 - Commit `f1cb8a65b402587ac40902523c40ee22cd83352b` is pushed. Full V25 visual and
   broader workstation/backend acceptance remain open.
+
+## 2026-08-03T13:10:00Z Market Gauge freshness checkpoint
+
+- Reworked `MarketGaugeTool.vue` to use the shared TanStack Vue Query cache for
+  retained EasyScan definitions and selected gauge snapshots. Active gauges now
+  refetch on the configured freshness interval or explicit Refresh, retain cached
+  data during refetch, and expose freshness, canonical provenance, calculation
+  version, and coverage-warning count in the dense tool chrome.
+- Added `test_market_gauge_tool.test.ts`; focused Market Gauge suite `1 passed`.
+  TypeScript, production build, and `git diff --check` passed. Commit
+  `afe8e7c0fa427925b0a66b91fc435786adf9ba5f` pushed.
+- The full goal remains active. V25 visual references remain `required_missing`,
+  and the broad workstation/backend acceptance matrix is incomplete. Next: audit
+  the next uncovered primary workstation contract without narrowing the goal.
