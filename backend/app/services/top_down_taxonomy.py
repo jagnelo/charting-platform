@@ -38,6 +38,14 @@ _SECTORS = (
     ("XLB", "Materials"),
 )
 
+_SP500_IDENTITY = {
+    "logical_key": "sp500",
+    "official_index_symbol": "SPX",
+    "default_tradable_proxy": "SPY",
+    "proxy_label": "S&P 500 proxy (SPY)",
+    "official_series_policy": "use_only_when_entitled",
+}
+
 # A versioned candidate registry, not a name-based inference rule. Candidates become
 # visible only when their own disclosed holdings independently contain classified
 # constituents for the selected industry (see the market-groups proxy endpoint).
@@ -74,10 +82,21 @@ async def seed_top_down_taxonomy(db: AsyncSession) -> None:
     }
     observed_at = datetime.now(UTC)
     roots = {
-        "us-benchmarks": ("benchmark", "US Benchmarks"),
-        "sp500-sectors": ("sector", "S&P 500 Select Sector ETF proxies"),
+        "us-benchmarks": (
+            "benchmark",
+            "US Benchmarks",
+            {
+                "taxonomy_version": "us-top-down-v2",
+                "benchmark_identities": {"sp500": _SP500_IDENTITY},
+            },
+        ),
+        "sp500-sectors": (
+            "sector",
+            "S&P 500 Select Sector ETF proxies",
+            {"taxonomy_version": "us-top-down-v2"},
+        ),
     }
-    for stable_key, (group_type, name) in roots.items():
+    for stable_key, (group_type, name, taxonomy_provenance) in roots.items():
         if stable_key not in existing:
             existing[stable_key] = MarketGroup(
                 stable_key=stable_key,
@@ -88,10 +107,16 @@ async def seed_top_down_taxonomy(db: AsyncSession) -> None:
                     "classification": "product_taxonomy",
                     "membership_semantics": "ETF proxy where applicable",
                     "official_index_constituents": False,
+                    **taxonomy_provenance,
                 },
                 known_at=observed_at,
             )
             db.add(existing[stable_key])
+        else:
+            existing[stable_key].provenance = {
+                **(existing[stable_key].provenance or {}),
+                **taxonomy_provenance,
+            }
     await db.flush()
 
     symbols = [item[0] for item in _BENCHMARKS] + [item[0] for item in _SECTORS]

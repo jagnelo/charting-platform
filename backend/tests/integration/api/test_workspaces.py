@@ -270,6 +270,13 @@ class TestWorkspaces:
         assert response.status_code == 200
         roots = {group["stable_key"]: group for group in response.json()}
         assert roots["us-benchmarks"]["provenance"]["official_index_constituents"] is False
+        assert roots["us-benchmarks"]["provenance"]["benchmark_identities"]["sp500"] == {
+            "logical_key": "sp500",
+            "official_index_symbol": "SPX",
+            "default_tradable_proxy": "SPY",
+            "proxy_label": "S&P 500 proxy (SPY)",
+            "official_series_policy": "use_only_when_entitled",
+        }
         assert (
             roots["sp500-sectors"]["provenance"]["membership_semantics"]
             == "ETF proxy where applicable"
