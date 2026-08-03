@@ -70,3 +70,8 @@ performance, `/ SPY` ratio, RSI, 52-week position, and volume-ratio columns, so 
 cap-weighted versus equal-weight comparison is available before sector drill-down.
 Its identity strip separately labels the logical S&amp;P 500, official `SPX` series, and
 the currently used tradable `SPY` proxy; the UI never relabels proxy data as SPX.
+
+Factory `Drill Down` and `Sector by Year` industry windows now use the selected ETF's
+point-in-time industry composition rather than falling through to benchmark rows.
+Industry selections publish the industry key into the linked drill-down, preserve
+resolved/total constituent coverage, and expose verified proxy counts when available.

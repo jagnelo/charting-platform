@@ -61,7 +61,7 @@
       v-else-if="tool.tool_type === 'watchlist'"
       :label="tool.title || 'WatchList'"
       :rows="factoryWatchlistRows"
-      :selected="activeSymbol"
+      :selected="tool.instance_key === 'industries' ? (selectedIndustry ?? '') : activeSymbol"
       :columns="factoryWatchlistColumns"
       :visible-column-keys="configuredColumnKeys"
       :filter-text="configuredFilterText"
@@ -72,7 +72,7 @@
       :stacked-column-keys="configuredStackedColumnKeys"
       :python-columns="configuredPythonColumns"
       :python-condition="configuredPythonCondition"
-      @select="selectSymbol($event.symbol, $event.instrumentId)"
+      @select="tool.instance_key === 'industries' ? emit('selectIndustry', $event.symbol) : selectSymbol($event.symbol, $event.instrumentId)"
       @update:visible-column-keys="emit('columns', tool.instance_key, $event)"
       @update:filter-text="emit('filter', tool.instance_key, $event)"
       @update:condition-screener-id="emit('conditionFilter', tool.instance_key, $event)"
@@ -429,6 +429,12 @@ const constituents = computed(() => {
   }
   return holdings.value?.holdings.filter(row => row.is_resolved && Boolean(row.constituent_symbol)).map(row => row.constituent_symbol as string) ?? []
 })
+const industryRows = computed(() => industries.value.map(item => ({
+  instrumentId: null,
+  symbol: item.industry,
+  name: `${item.resolved_count}/${item.constituent_count}`,
+  values: { proxy_count: workspaceStore.industryProxies[`${selectedETF.value}:${item.industry}`]?.proxies.length ?? null },
+})))
 const constituentLabel = computed(() => {
   if (!holdings.value) return 'No point-in-time ETF holdings snapshot'
   return `${holdings.value.snapshot.etf_symbol} holdings · ${holdings.value.snapshot.composition_date}`
@@ -480,12 +486,14 @@ const sectorRows = computed(() => (workspaceStore.marketGroups['sp500-sectors']?
 const factoryWatchlistRows = computed(() => {
   const title = (props.tool.title ?? '').toLowerCase()
   if (title.includes('sector')) return sectorRows.value
+  if (title.includes('industry')) return industryRows.value
   if (title.includes('component') || title.includes('constituent')) return constituentRows.value
   return benchmarkRows.value
 })
 const factoryWatchlistColumns = computed<WatchlistColumn[]>(() => {
   const title = (props.tool.title ?? '').toLowerCase()
   if (title.includes('sector')) return sectorColumns
+  if (title.includes('industry')) return industryColumns
   if (title.includes('component') || title.includes('constituent')) return constituentColumns
   return benchmarkColumns
 })
@@ -546,6 +554,11 @@ const benchmarkColumns: WatchlistColumn[] = [
   { key: 'rsi14', label: 'RSI', width: '52px', format: 'number' },
   { key: 'position_52w', label: '52W Pos', width: '64px' },
   { key: 'volume_ratio_50', label: 'Vol x50', width: '62px' },
+]
+const industryColumns: WatchlistColumn[] = [
+  { key: 'symbol', label: 'Industry', width: 'minmax(120px, 1fr)' },
+  { key: 'name', label: 'Coverage', width: '78px' },
+  { key: 'proxy_count', label: 'Proxies', width: '58px' },
 ]
 const constituentColumns: WatchlistColumn[] = [
   { key: 'symbol', label: 'Symbol', width: '60px' },
