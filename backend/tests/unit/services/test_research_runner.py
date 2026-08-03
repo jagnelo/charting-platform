@@ -122,6 +122,23 @@ def test_runner_emits_typed_histogram_for_study_distributions():
     }
 
 
+def test_runner_computes_point_in_time_forward_returns_for_study_events():
+    result = execute_job(
+        {
+            "source": "rows = research.forward_returns(dataset, [1], [1, 2])\noutput.table('outcomes', rows)",
+            "dataset": {
+                "timestamps": ["2026-01-01", "2026-01-02", "2026-01-03", "2026-01-04"],
+                "closes": [10, 11, 12, 13],
+            },
+        }
+    )
+    assert result["status"] == "completed"
+    assert result["artifacts"]["outcomes"]["value"] == [
+        {"event_index": 1, "event_timestamp": "2026-01-02", "horizon": 1, "outcome_timestamp": "2026-01-03", "forward_return": (12 / 11) - 1},
+        {"event_index": 1, "event_timestamp": "2026-01-02", "horizon": 2, "outcome_timestamp": "2026-01-04", "forward_return": (13 / 11) - 1},
+    ]
+
+
 def test_runner_exposes_only_declared_market_symbol_and_structured_ta_series():
     result = execute_job(
         {

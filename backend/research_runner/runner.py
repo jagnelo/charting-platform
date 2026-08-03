@@ -83,6 +83,7 @@ def _execute_single(
         "market": _Market(dataset),
         "ta": _Ta(),
         "stats": _Stats(),
+        "research": _Research(),
     }
     if manage_timeout:
         _limit_resources()
@@ -298,6 +299,40 @@ class _Stats:
             "records": records,
             "lengths": completed,
         }
+
+
+class _Research:
+    """Deterministic, point-in-time study helpers over the prepared dataset."""
+
+    def forward_returns(self, dataset: dict, event_indices: object, horizons: object = (1, 5, 20)) -> list[dict]:
+        closes = dataset.get("closes", [])
+        timestamps = dataset.get("timestamps", [])
+        if not isinstance(closes, list) or not isinstance(event_indices, list | tuple) or not isinstance(horizons, list | tuple):
+            raise ValueError("forward_returns requires event indices and horizons lists")
+        parsed_horizons = []
+        for horizon in horizons:
+            if not isinstance(horizon, int) or isinstance(horizon, bool) or horizon <= 0:
+                raise ValueError("forward horizons must be positive integers")
+            parsed_horizons.append(horizon)
+        rows: list[dict] = []
+        for index in event_indices:
+            if not isinstance(index, int) or isinstance(index, bool) or index < 0 or index >= len(closes):
+                continue
+            base = float(closes[index])
+            if base == 0:
+                continue
+            for horizon in parsed_horizons:
+                target = index + horizon
+                if target >= len(closes):
+                    continue
+                rows.append({
+                    "event_index": index,
+                    "event_timestamp": timestamps[index] if index < len(timestamps) else None,
+                    "horizon": horizon,
+                    "outcome_timestamp": timestamps[target] if target < len(timestamps) else None,
+                    "forward_return": (float(closes[target]) / base) - 1,
+                })
+        return rows
 
 
 class _Market:
