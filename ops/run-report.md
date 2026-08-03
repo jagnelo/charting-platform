@@ -2,6 +2,18 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-03T16:40:00Z Study Lab compatibility and integration audit
+
+- Fixed legacy `MN1` Study Lab state normalization to canonical `MN`.
+- Validation: focused Study Lab `2 passed`; full frontend Vitest `452 passed` across
+  `76` files; TypeScript, production build, and `git diff --check` passed.
+- Broad backend integration: `253 passed`, `7 failed` in pre-existing ETF-holdings
+  adapter tests whose application/test files are unchanged from the branch base. The
+  seven failures are recorded as baseline route/fixture mismatches, not TC2000 changes.
+  Integration-only coverage is `42.49%` and cannot satisfy the repository-wide `55%`
+  threshold; full backend unit coverage remains `70.14%` (`849 passed`).
+- Strict V25 visual approval and the complete acceptance matrix remain open.
+
 ## 2026-08-03T16:45:00Z Runner resource restoration
 
 - Corrected isolated-runner resource handling so CPU/address-space limits and alarm

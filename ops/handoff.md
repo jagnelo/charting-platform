@@ -1,5 +1,24 @@
 # Active Handoff
 
+## Continuation update — 2026-08-03T16:40:00Z
+
+- Corrected the Study Lab legacy-timeframe compatibility path: persisted `MN1` now
+  normalizes to canonical `MN`, matching the documented workspace contract. Focused
+  Study Lab tests `2 passed`; full frontend Vitest `452 passed` across `76` files;
+  TypeScript, production build, and `git diff --check` passed. Code checkpoint is
+  `fix(study-lab): normalize legacy monthly timeframe`.
+- Completed the broad backend integration run: `253 passed`, `7 failed` in the existing
+  ETF-holdings adapter tests. All seven failures are in files unchanged from the branch
+  base and are unrelated to the TC2000 implementation: four mocked issuer-refresh tests
+  return `refreshed=0`, ARKX rejects a non-ark-funds route, and two Vanguard probe tests
+  disagree with current native-route precedence. The integration-only invocation reports
+  `42.49%` coverage and therefore fails the repository-wide `55%` gate; the full backend
+  unit suite remains green at `849 passed` and `70.14%`. These baseline failures remain
+  open and are not being misreported as TC2000 regressions.
+- The full goal remains active. Strict V25 visual approval is still `required_missing`,
+  and the broader integration/security/performance/end-to-end acceptance matrix remains
+  incomplete.
+
 ## Continuation update — 2026-08-03T16:45:00Z
 
 - Fixed an isolated-runner resource-boundary defect: CPU limits are now relative to
