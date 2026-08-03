@@ -93,4 +93,28 @@ describe('EasyScanTool', () => {
       condition: expect.objectContaining({ operator: 'OR', conditions: [expect.objectContaining({ type: 'indicator_threshold' })] }),
     }))
   })
+
+  it('passes the selected universe and timeframe to the canonical scan definition', async () => {
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/workspaces/library/conditions') return Promise.resolve([{ stable_key: 'close-test', name: 'Close test', version: 1 }])
+      if (path === '/code/assets') return Promise.resolve([])
+      return Promise.resolve([])
+    })
+    apiPost.mockImplementation((path: string) => path === '/screeners/from-condition/close-test'
+      ? Promise.resolve({ id: 9 })
+      : Promise.resolve({ matched_ids: [], result_data: { _status: 'completed' }, error: null }))
+    const wrapper = mount(EasyScanTool)
+    await flushPromises()
+    await wrapper.get('select[aria-label="Saved condition"]').setValue('close-test')
+    await wrapper.get('input[aria-label="Scan name"]').setValue('Basket scan')
+    await wrapper.get('select[aria-label="Scan universe"]').setValue('basket')
+    await wrapper.get('input[aria-label="Scan universe value"]').setValue('44')
+    await wrapper.get('select[aria-label="Scan timeframe"]').setValue('W1')
+    await wrapper.findAll('button').find(button => button.text() === 'Run')!.trigger('click')
+    await flushPromises()
+
+    expect(apiPost).toHaveBeenCalledWith('/screeners/from-condition/close-test', {
+      name: 'Basket scan', universe_type: 'basket', universe_basket_id: 44, timeframe: 'W1',
+    })
+  })
 })

@@ -18,6 +18,16 @@
         <option value="">Python condition: Off</option>
         <option v-for="asset in pythonConditions" :key="asset.versionId" :value="String(asset.versionId)">{{ asset.name }}</option>
       </select>
+      <select v-model="universeType" :disabled="busy" aria-label="Scan universe">
+        <option value="all">All instruments</option>
+        <option value="watchlist">Watchlist ID</option>
+        <option value="basket">Basket ID</option>
+        <option value="custom">Instrument IDs</option>
+      </select>
+      <input v-if="universeType !== 'all'" v-model.trim="universeValue" :disabled="busy" aria-label="Scan universe value" :placeholder="universeType === 'custom' ? '1,2,3' : 'ID'" />
+      <select v-model="scanTimeframe" :disabled="busy" aria-label="Scan timeframe">
+        <option v-for="timeframe in scanTimeframes" :key="timeframe" :value="timeframe">{{ timeframe }}</option>
+      </select>
       <input v-model.trim="scanName" :disabled="busy || (!selectedKey && !selectedPythonVersion)" aria-label="Scan name" placeholder="EasyScan name" />
       <button type="button" :disabled="busy || (!selectedKey && !selectedPythonVersion) || !scanName" @click="run">Run</button>
     </div>
@@ -48,6 +58,10 @@ const value = ref('')
 const advancedMode = ref(false)
 const advancedGroup = ref({ operator: 'AND' as const, conditions: [createDefaultTechnicalCondition()] })
 const scanName = ref('')
+const universeType = ref<'all' | 'watchlist' | 'basket' | 'custom'>('all')
+const universeValue = ref('')
+const scanTimeframe = ref('D1')
+const scanTimeframes = ['M1', 'M5', 'M15', 'M30', 'H1', 'H2', 'H4', 'H12', 'D1', 'W1', 'MN']
 const busy = ref(false)
 const status = ref('')
 const error = ref('')
@@ -113,10 +127,20 @@ async function run() {
   busy.value = true; error.value = ''; result.value = null; scanId.value = null; alertCreated.value = false; cancelRequested.value = false; status.value = 'Preparing local EasyScan…'
   try {
     let scan: { id: number }
+    const universe: Record<string, unknown> = { universe_type: universeType.value, timeframe: scanTimeframe.value }
+    if (universeType.value === 'watchlist' || universeType.value === 'basket') {
+      const id = Number(universeValue.value)
+      if (!Number.isInteger(id) || id <= 0) throw new Error('Enter a valid universe ID')
+      universe[universeType.value === 'watchlist' ? 'universe_watchlist_id' : 'universe_basket_id'] = id
+    } else if (universeType.value === 'custom') {
+      const ids = universeValue.value.split(',').map(item => Number(item.trim())).filter(id => Number.isInteger(id) && id > 0)
+      if (!ids.length) throw new Error('Enter one or more instrument IDs')
+      universe.universe_instrument_ids = ids
+    }
     try {
       scan = await api.post<{ id: number }>(selectedPythonVersion.value
         ? `/screeners/from-python-condition/${encodeURIComponent(selectedPythonVersion.value)}`
-        : `/screeners/from-condition/${encodeURIComponent(selectedKey.value)}`, { name: scanName.value, universe_type: 'all', timeframe: 'D1' })
+        : `/screeners/from-condition/${encodeURIComponent(selectedKey.value)}`, { name: scanName.value, ...universe })
     } catch (cause: any) {
       if (!String(cause?.message ?? '').includes('→ 409:')) throw cause
       const existing = await api.get<Array<{ id: number; name: string }>>('/screeners')
@@ -161,7 +185,7 @@ onMounted(() => { void load() })
 <style scoped>
 .easy-scan { display: grid; align-content: start; gap: 6px; height: 100%; overflow: auto; padding: 6px; background: #11161b; color: #c7d0d8; font: 10px "Segoe UI", Arial, sans-serif; }
 .easy-scan__builder { display: grid; grid-template-columns: minmax(70px, 1fr) 56px 34px 58px 38px; gap: 3px; }
-.easy-scan__controls { display: grid; grid-template-columns: minmax(90px, 1fr) minmax(90px, 1fr) minmax(80px, 1fr) 38px; gap: 3px; }
+.easy-scan__controls { display: grid; grid-template-columns: repeat(3, minmax(80px, 1fr)) minmax(70px, 1fr) minmax(90px, 1fr) 38px; gap: 3px; }
 .easy-scan__advanced-toggle { justify-self: start; padding: 2px 6px; }
 .easy-scan__advanced { display: grid; gap: 5px; padding: 5px; border: 1px solid #34434e; background: #151b20; }
 .easy-scan__advanced header { display: flex; align-items: center; justify-content: space-between; color: #a9bbc5; }
