@@ -75,6 +75,8 @@ reference_policy:
       source_page: https://help.tc2000.com/m/125751/l/1874601-how-to-group-columns
       image_locator: https://media.screensteps.com/image_assets/assets/006/993/240/original/420a895f-e808-445c-a92c-8faf1ef6e4b8.png
       source_build: "version-unspecified-current-help"
+      image_sha256: 50a5f0c55c3ceb24434eff69719d94979c04a6b23c410268ba2ccae953b015e6
+      image_resolution: { width: 476, height: 160 }
       status: discovery_candidate
       eligible_for: [watchlist-column-filter]
       notes: "Official group-editor image locator recovered from the article. The page's taxonomy links Version 25 material, but the image is not tied to pinned build 25.0.9571; retain as mechanics discovery only until exact-build continuity, hash, environment, and review are recorded."
@@ -83,6 +85,8 @@ reference_policy:
       source_page: https://help.tc2000.com/m/125751/l/1874601-how-to-group-columns
       image_locator: https://media.screensteps.com/image_assets/assets/007/042/390/original/e7e1fc1d-fae1-4e38-ae7e-501b69020223.png
       source_build: "version-unspecified-current-help"
+      image_sha256: eac424dfb188087f99649fa27ffeb7a969528c76b5305d9262ad61895bb547e2
+      image_resolution: { width: 518, height: 757 }
       status: discovery_candidate
       eligible_for: [watchlist-column-filter]
       notes: "Official multi-selection state for grouped columns. Discovery candidate only; it cannot satisfy strict V25 visual approval without pinned-build evidence and measurement review."
@@ -91,6 +95,8 @@ reference_policy:
       source_page: https://help.tc2000.com/m/125751/l/1874595-how-to-stack-columns-in-a-watchlist
       image_locator: https://media.screensteps.com/image_assets/assets/006/962/224/original/de723112-27b4-424c-94d3-6c315d5583fe.png
       source_build: "version-unspecified-current-help"
+      image_sha256: 066284c6c5e69dd63b539e722684ec16204cc79ccfe7a2255afdb35591dd7dfe
+      image_resolution: { width: 453, height: 142 }
       status: discovery_candidate
       eligible_for: [watchlist-column-filter]
       notes: "Official stack-drag state recovered from the article. The image is mechanics discovery evidence, not an approved 25.0.9571 baseline."
@@ -99,6 +105,8 @@ reference_policy:
       source_page: https://help.tc2000.com/m/125751/l/1874595-how-to-stack-columns-in-a-watchlist
       image_locator: https://media.screensteps.com/image_assets/assets/006/962/228/original/3c4eb64a-fd30-473f-a066-0e20e80eac70.png
       source_build: "version-unspecified-current-help"
+      image_sha256: c3ac83cfb919e754f582b4baca4b1e611c67b339bd96b0cea6a815f3bbc1ac7d
+      image_resolution: { width: 325, height: 125 }
       status: discovery_candidate
       eligible_for: [watchlist-column-filter]
       notes: "Official stacked-column drop/result state recovered from the article. Discovery candidate only pending exact-build continuity, source hash, environment mapping, and review."
