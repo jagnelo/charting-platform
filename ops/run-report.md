@@ -2,6 +2,14 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-03T19:22:00Z Chart expression-selection guard
+
+- Synthetic chart-expression resolution now rejects stale selection generations before
+  updating chart error state or loading a target.
+- Validation: full frontend Vitest `466 passed` across 77 files; TypeScript, production
+  build, and `git diff --check` passed. Pushed `9a56078`.
+- Strict V25 visual approval and the complete acceptance matrix remain open.
+
 ## 2026-08-03T19:20:00Z Top-down drill-down generation guards
 
 - Top-down ETF/industry holdings, taxonomy, proxy, and ranking requests now commit only

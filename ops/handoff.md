@@ -1,5 +1,14 @@
 # Active Handoff
 
+## Continuation update — 2026-08-03T19:22:00Z
+
+- Guarded chart-tool synthetic-expression resolution so late `=XLK/SPY` resolution or
+  failure cannot overwrite a newer linked selection before it reaches the chart store.
+- Validation: full frontend Vitest `466 passed` across 77 files; TypeScript, production
+  build, and `git diff --check` passed. Checkpoint `9a56078` pushed.
+- Strict V25 visual approval remains `required_missing`; the broader workstation,
+  backend, security, performance, and end-to-end acceptance matrix remains incomplete.
+
 ## Continuation update — 2026-08-03T19:20:00Z
 
 - Added active-request generations to top-down ETF holdings, constituent snapshots,
