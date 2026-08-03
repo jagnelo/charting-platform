@@ -27,6 +27,22 @@ from app.services.top_down_taxonomy import industry_proxy_candidates, seed_top_d
 router = APIRouter(prefix="/market-groups", tags=["market-groups"])
 
 
+def _holdings_snapshot_at(statement, as_of: datetime | None):
+    """Apply historical-safe holdings eligibility to a snapshot query.
+
+    A disclosure without ``known_at`` cannot prove that it was available at a
+    historical evaluation time. It remains eligible for the current/latest view,
+    but is excluded from every explicit point-in-time request.
+    """
+    if as_of is None:
+        return statement
+    return statement.where(
+        ETFHoldingsSnapshot.composition_date <= as_of.date(),
+        ETFHoldingsSnapshot.known_at.is_not(None),
+        ETFHoldingsSnapshot.known_at <= as_of,
+    )
+
+
 def _groups_query():
     return select(MarketGroup).options(
         selectinload(MarketGroup.members).selectinload(MarketGroupMember.instrument),
@@ -60,12 +76,10 @@ async def etf_industry_composition(
             404, detail={"code": "etf_profile_not_found", "symbol": instrument.symbol}
         )
 
-    statement = select(ETFHoldingsSnapshot).where(ETFHoldingsSnapshot.etf_profile_id == profile.id)
-    if as_of is not None:
-        statement = statement.where(
-            ETFHoldingsSnapshot.composition_date <= as_of.date(),
-            (ETFHoldingsSnapshot.known_at.is_(None)) | (ETFHoldingsSnapshot.known_at <= as_of),
-        )
+    statement = _holdings_snapshot_at(
+        select(ETFHoldingsSnapshot).where(ETFHoldingsSnapshot.etf_profile_id == profile.id),
+        as_of,
+    )
     snapshot = (
         await db.execute(
             statement.order_by(
@@ -158,14 +172,10 @@ async def etf_industry_proxies(
         if profile is None:
             exclusions.append(f"candidate_not_etf_profile:{candidate}")
             continue
-        statement = select(ETFHoldingsSnapshot).where(
-            ETFHoldingsSnapshot.etf_profile_id == profile.id
+        statement = _holdings_snapshot_at(
+            select(ETFHoldingsSnapshot).where(ETFHoldingsSnapshot.etf_profile_id == profile.id),
+            as_of,
         )
-        if as_of is not None:
-            statement = statement.where(
-                ETFHoldingsSnapshot.composition_date <= as_of.date(),
-                (ETFHoldingsSnapshot.known_at.is_(None)) | (ETFHoldingsSnapshot.known_at <= as_of),
-            )
         snapshot = (
             await db.execute(
                 statement.order_by(
@@ -239,14 +249,10 @@ async def etf_industry_constituents(
     profile = (
         await db.execute(select(ETFProfile).where(ETFProfile.instrument_id == instrument.id))
     ).scalar_one()
-    snapshot_query = select(ETFHoldingsSnapshot).where(
-        ETFHoldingsSnapshot.etf_profile_id == profile.id
+    snapshot_query = _holdings_snapshot_at(
+        select(ETFHoldingsSnapshot).where(ETFHoldingsSnapshot.etf_profile_id == profile.id),
+        as_of,
     )
-    if as_of is not None:
-        snapshot_query = snapshot_query.where(
-            ETFHoldingsSnapshot.composition_date <= as_of.date(),
-            (ETFHoldingsSnapshot.known_at.is_(None)) | (ETFHoldingsSnapshot.known_at <= as_of),
-        )
     snapshot = (
         await db.execute(
             snapshot_query.order_by(

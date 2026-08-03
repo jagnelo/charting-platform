@@ -2,7 +2,9 @@ from datetime import UTC, datetime
 from decimal import Decimal
 
 import pytest
+from sqlalchemy import select
 
+from app.models.etf_holdings import ETFHoldingsSnapshot
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.workstation import MarketGroup, MarketGroupMember
 from app.routers.analysis import (
@@ -14,6 +16,7 @@ from app.routers.analysis import (
     _sample_aligned_points,
     _truncate_bars_at,
 )
+from app.routers.market_groups import _holdings_snapshot_at
 
 
 def _bar(instrument_id: int, year: int, month: int, close: str) -> OHLCVBar:
@@ -117,6 +120,15 @@ def test_group_members_reject_a_group_unknown_at_the_requested_time():
     )
     with pytest.raises(Exception, match="market_group_not_known_at"):
         _group_members_at(group, datetime(2024, 3, 10, tzinfo=UTC))
+
+
+def test_industry_snapshot_cutoff_requires_known_at_provenance():
+    statement = _holdings_snapshot_at(
+        select(ETFHoldingsSnapshot), datetime(2024, 3, 10, tzinfo=UTC)
+    )
+    sql = str(statement.compile(compile_kwargs={"literal_binds": True}))
+    assert "known_at IS NOT NULL" in sql
+    assert "composition_date <= '2024-03-10'" in sql
 
 
 def test_relative_rotation_sampling_retains_latest_aligned_observation():

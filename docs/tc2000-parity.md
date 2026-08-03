@@ -172,6 +172,11 @@ safe, truncates all comparison bars at that cutoff, and records the requested cu
 provenance; it never silently falls back to a current snapshot. The integration contract
 has a dedicated regression for this selection rule.
 
+The ETF industry composition, curated-proxy, and industry-constituent routes now apply the
+same historical rule: an explicit `as_of` requires both composition date and non-null
+`known_at` at or before the cutoff. Undated disclosures remain available to latest/current
+views but cannot contaminate point-in-time research.
+
 Factory `Drill Down` and `Sector by Year` industry windows now use the selected ETF's
 point-in-time industry composition rather than falling through to benchmark rows.
 Industry selections publish the industry key into the linked drill-down, preserve
