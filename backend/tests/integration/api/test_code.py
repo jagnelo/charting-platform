@@ -260,6 +260,10 @@ def test_research_run_materializes_only_declared_local_symbol_data(
     payload = run.json()
     assert payload["dataset_manifest"]["symbol"] == instrument.symbol
     assert len(payload["dataset_manifest"]["closes"]) == len(ohlcv_bars)
+    assert len(payload["dataset_manifest"]["opens"]) == len(ohlcv_bars)
+    assert len(payload["dataset_manifest"]["highs"]) == len(ohlcv_bars)
+    assert len(payload["dataset_manifest"]["lows"]) == len(ohlcv_bars)
+    assert len(payload["dataset_manifest"]["volumes"]) == len(ohlcv_bars)
     assert payload["dataset_manifest"]["adjustment"] == "split_adjusted"
 
 

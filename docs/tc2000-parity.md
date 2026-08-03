@@ -76,6 +76,14 @@ only restricted `np`/`pd` facades to user code. File/external-data methods are r
 by source validation; NumPy/Pandas values are normalized before artifact persistence.
 The rebuilt image import check reports NumPy `2.1.3` and Pandas `2.2.3`.
 
+Study datasets now preserve the complete canonical OHLCV shape rather than reducing the
+isolated input to closes: aligned `opens`, `highs`, `lows`, `closes`, nullable
+`volumes`, `vwaps`, and timestamps are materialized for the declared instrument and
+benchmark. The unified `market` namespace exposes `open`, `high`, `low`, `close`,
+`volume`, `vwap`, and aligned `ohlcv()` access, while retaining the compatibility rule
+that close-only hand-authored fixtures remain valid. Missing fields produce structured
+runner diagnostics and never trigger provider access.
+
 The relative-rotation uPlot surface now updates `setData`/`setSize` in place during
 resize and data refresh; it destroys the chart only during component teardown. A
 dedicated regression test proves repeated resize callbacks do not create additional

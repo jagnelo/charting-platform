@@ -131,6 +131,41 @@ def test_runner_exposes_declared_benchmark_dataset():
     assert result["artifacts"]["benchmark_last"]["value"] == 101
 
 
+def test_runner_exposes_declared_ohlcv_fields_through_market_namespace():
+    result = execute_job(
+        {
+            "source": "rows = market.ohlcv()\noutput.table('rows', rows)\noutput.scalar('volume', market.volume()[-1])",
+            "dataset": {
+                "symbol": "SPY",
+                "timestamps": ["2026-01-01", "2026-01-02"],
+                "opens": [10, 11],
+                "highs": [12, 13],
+                "lows": [9, 10],
+                "closes": [11, 12],
+                "volumes": [1000, 1200],
+                "vwaps": [10.5, 11.5],
+            },
+        }
+    )
+    assert result["status"] == "completed"
+    assert result["artifacts"]["volume"]["value"] == 1200.0
+    assert result["artifacts"]["rows"]["value"] == [
+        {"timestamp": "2026-01-01", "open": 10, "high": 12, "low": 9, "close": 11, "volume": 1000, "vwap": 10.5},
+        {"timestamp": "2026-01-02", "open": 11, "high": 13, "low": 10, "close": 12, "volume": 1200, "vwap": 11.5},
+    ]
+
+
+def test_runner_rejects_ohlcv_access_when_a_declared_field_is_missing():
+    result = execute_job(
+        {
+            "source": "output.scalar('high', market.high()[-1])",
+            "dataset": {"symbol": "SPY", "closes": [10]},
+        }
+    )
+    assert result["status"] == "failed"
+    assert "no high series" in result["diagnostics"][0]["message"]
+
+
 def test_runner_emits_typed_histogram_for_study_distributions():
     result = execute_job(
         {

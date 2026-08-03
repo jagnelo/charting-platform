@@ -2,6 +2,15 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-04T00:32:00Z Study dataset OHLCV contract
+
+- Study Lab research manifests now carry aligned open/high/low/close/volume/vwap fields
+  for declared instruments and benchmarks. The isolated `market` SDK exposes these
+  fields and `ohlcv()` rows while preserving close-only fixture compatibility and
+  rejecting incomplete OHLCV access explicitly.
+- `test_research_runner.py`: 31 passed; `test_code.py`: 13 passed; targeted Ruff passed.
+  Exact-build V25 visual approval and the complete acceptance matrix remain open.
+
 ## 2026-08-04T00:15:00Z Browser runtime and flow acceptance
 
 - Propagated the Vue application context into Golden Layout's detached virtual roots,

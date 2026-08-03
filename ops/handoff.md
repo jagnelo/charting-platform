@@ -1,5 +1,17 @@
 # Active Handoff
 
+## Continuation update — 2026-08-04T00:32:00Z
+
+- Extended Study Lab's canonical dataset materialization from close-only series to
+  aligned opens, highs, lows, closes, nullable volumes/vwaps, and timestamps for both
+  the declared instrument and benchmark. The isolated unified `market` namespace now
+  exposes field accessors and aligned `ohlcv()` rows without provider access; close-only
+  hand-authored runner fixtures remain compatible.
+- Added runner and API contract coverage: 31 isolated-runner tests and 13 code/research
+  integration tests pass; targeted Ruff passes. The full frontend/browser evidence remains
+  green from the preceding checkpoint. Exact-build V25 visual approval and the broader
+  security, performance, migration, and acceptance gates remain open.
+
 ## Continuation update — 2026-08-04T00:15:00Z
 
 - Fixed the Golden Layout detached-root boundary by carrying the host Vue app context

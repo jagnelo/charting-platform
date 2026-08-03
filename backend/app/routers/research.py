@@ -122,6 +122,18 @@ def _dataset_manifest_fields(manifest: dict, options: dict) -> dict:
     return fields
 
 
+def _bar_series(bars: list[OHLCVBar]) -> dict[str, list[float | None]]:
+    """Serialize the canonical OHLCV fields needed by the isolated market SDK."""
+    return {
+        "opens": [float(bar.open) for bar in bars],
+        "highs": [float(bar.high) for bar in bars],
+        "lows": [float(bar.low) for bar in bars],
+        "closes": [float(bar.close) for bar in bars],
+        "volumes": [float(bar.volume) if bar.volume is not None else None for bar in bars],
+        "vwaps": [float(bar.vwap) if bar.vwap is not None else None for bar in bars],
+    }
+
+
 async def _load_instrument_bars(
     db: AsyncSession, instrument: Instrument, options: dict, *, limit: int
 ) -> list[OHLCVBar]:
@@ -158,7 +170,7 @@ async def _materialize_instrument_dataset(
         "symbol": instrument.symbol,
         "instrument_id": instrument.id,
         "timestamps": [bar.ts.isoformat() for bar in bars],
-        "closes": [float(bar.close) for bar in bars],
+        **_bar_series(bars),
     }
 
 
@@ -194,7 +206,7 @@ async def _materialize_benchmark_dataset(
         "adjustment": options["adjustment"],
         "session": options["session"],
         "timestamps": [bar.ts.isoformat() for bar in bars],
-        "closes": [float(bar.close) for bar in bars],
+        **_bar_series(bars),
     }
 
 
@@ -289,7 +301,7 @@ async def _materialize_declared_dataset(db: AsyncSession, manifest: dict, run_co
                     "adjustment": options["adjustment"],
                     "session": options["session"],
                     "timestamps": [bar.ts.isoformat() for bar in bars],
-                    "closes": [float(bar.close) for bar in bars],
+                    **_bar_series(bars),
                     **(
                         {"benchmark_dataset": benchmark_dataset}
                         if benchmark_dataset and benchmark_dataset.get("status") == "ready"

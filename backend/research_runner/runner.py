@@ -667,14 +667,67 @@ class _Market:
         self._dataset = dataset
 
     def close(self, symbol: str | None = None) -> list[float]:
+        return self._series("closes", symbol)
+
+    def open(self, symbol: str | None = None) -> list[float]:
+        return self._series("opens", symbol)
+
+    def high(self, symbol: str | None = None) -> list[float]:
+        return self._series("highs", symbol)
+
+    def low(self, symbol: str | None = None) -> list[float]:
+        return self._series("lows", symbol)
+
+    def volume(self, symbol: str | None = None) -> list[float | None]:
+        return self._series("volumes", symbol, allow_none=True)
+
+    def vwap(self, symbol: str | None = None) -> list[float | None]:
+        return self._series("vwaps", symbol, allow_none=True)
+
+    def ohlcv(self, symbol: str | None = None) -> list[dict[str, object]]:
+        """Return aligned, read-only OHLCV rows from the declared dataset."""
+        requested = self._series_fields(symbol)
+        timestamps = self._dataset.get("timestamps", [])
+        if not isinstance(timestamps, list):
+            raise ValueError("Declared dataset has no timestamp series")
+        lengths = {len(values) for values in requested.values()}
+        if len(lengths) != 1 or next(iter(lengths), 0) != len(timestamps):
+            raise ValueError("Declared OHLCV fields are not aligned")
+        return [
+            {"timestamp": timestamps[index], **{name: values[index] for name, values in requested.items()}}
+            for index in range(len(timestamps))
+        ]
+
+    def _series_fields(self, symbol: str | None = None) -> dict[str, list[object]]:
+        self._check_declared(symbol)
+        fields = {
+            "open": self._dataset.get("opens"),
+            "high": self._dataset.get("highs"),
+            "low": self._dataset.get("lows"),
+            "close": self._dataset.get("closes"),
+            "volume": self._dataset.get("volumes"),
+            "vwap": self._dataset.get("vwaps"),
+        }
+        if any(not isinstance(values, list) for values in fields.values()):
+            raise ValueError("Declared dataset is missing one or more OHLCV fields")
+        return fields
+
+    def _series(self, field: str, symbol: str | None = None, *, allow_none: bool = False) -> list[float | None]:
+        self._check_declared(symbol)
+        values = self._dataset.get(field)
+        if not isinstance(values, list):
+            raise ValueError(f"Declared dataset has no {field.removesuffix('s')} series")
+        if allow_none:
+            return [float(value) if value is not None else None for value in values]
+        if any(value is None for value in values):
+            raise ValueError(f"Declared dataset has missing {field} values")
+        return [float(value) for value in values]
+
+    def _check_declared(self, symbol: str | None = None) -> None:
         declared = str(self._dataset.get("symbol") or "").upper()
         requested = str(symbol or declared).upper()
         if not declared or requested != declared:
             raise ValueError(f"{requested} is not declared in this run dataset")
-        closes = self._dataset.get("closes", [])
-        if not isinstance(closes, list):
-            raise ValueError("Declared dataset has no close series")
-        return [float(value) for value in closes]
 
 
 class _Ta:
