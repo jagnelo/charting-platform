@@ -2,6 +2,14 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-03T19:15:00Z Chart loader cleanup
+
+- Removed an obsolete private wrapper after chart symbol-load generation protection was
+  introduced; chart-store tests and type-check remain clean.
+- Validation: chart-store suite `31 passed`; TypeScript and `git diff --check` passed.
+  Pushed `3a01d59`.
+- Strict V25 visual approval and the complete acceptance matrix remain open.
+
 ## 2026-08-03T19:14:00Z Chart symbol-load race protection
 
 - Chart-store instrument, indicator, OHLCV, transformed-bar, loading/error, and coverage

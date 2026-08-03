@@ -1,5 +1,14 @@
 # Active Handoff
 
+## Continuation update — 2026-08-03T19:15:00Z
+
+- Removed the obsolete private indicator-loader wrapper left by the chart generation
+  refactor; the focused chart-store regression and type-check remain clean.
+- Validation: chart-store suite `31 passed`; TypeScript and `git diff --check` passed.
+  Checkpoint `3a01d59` pushed.
+- Strict V25 visual approval remains `required_missing`; the broader workstation,
+  backend, security, performance, and end-to-end acceptance matrix remains incomplete.
+
 ## Continuation update — 2026-08-03T19:14:00Z
 
 - Added a generation boundary to chart loading so rapid symbol changes cannot let stale
