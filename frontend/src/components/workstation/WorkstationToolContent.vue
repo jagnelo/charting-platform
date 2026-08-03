@@ -760,6 +760,7 @@ watch(
       ...constituentRows.value,
     ])
   },
+  { immediate: true },
 )
 // A Golden Layout virtual component is mounted independently from its host render
 // cycle. Keep the latest serializable chart configuration locally so template changes

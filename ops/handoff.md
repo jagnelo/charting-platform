@@ -1,5 +1,13 @@
 # Active Handoff
 
+## Continuation update — 2026-08-04T00:07:00Z
+
+- Made the shared workstation indicator/condition refresh watcher immediate, ensuring
+  persisted numeric and Boolean columns hydrate in benchmark, sector, industry, proxy,
+  constituent, and personal-list tools even when their initial rows are already present.
+- TypeScript, focused drag/drop suites (`46 passed`), and diff checks pass. The full suite
+  remains green at `512` tests; strict V25 visual approval and broad acceptance remain open.
+
 ## Continuation update — 2026-08-04T00:06:00Z
 
 - Completed the reciprocal condition drag path: EasyScan's editable technical-condition

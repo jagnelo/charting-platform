@@ -2,6 +2,14 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-04T00:07:00Z Immediate workstation column hydration
+
+- Made the shared indicator/condition refresh watcher immediate so already-materialized
+  factory-list rows hydrate persisted numeric and Boolean columns on first mount, not only
+  after a later row/configuration mutation.
+- TypeScript, focused drag/drop suites (`46 passed`), and diff checks passed; the full
+  frontend suite remains `512` tests across `83` files. Broad acceptance remains open.
+
 ## 2026-08-04T00:06:00Z Condition-to-Boolean-column drag path
 
 - Added reciprocal condition drag support: EasyScan condition trees write the same bounded
