@@ -26,10 +26,12 @@ from app.models.basket import Basket, BasketMember
 from app.models.indicator_cache import IndicatorCache
 from app.models.instrument import EquityDetail, Instrument
 from app.models.ohlcv import OHLCVBar, Timeframe
+from app.models.research import CodeVersion, ResearchRun
 from app.models.screener import ScreenerDefinition, ScreenerResult
 from app.models.screener_alert import ScreenerAlert
 from app.models.watchlist import Watchlist, WatchlistItem
 from app.services.indicators import OHLCVSeries, compute_indicator, normalize_indicator_params
+from app.services.research_jobs import enqueue_research_run
 
 GRACE_PERIOD_DAYS = 7
 
@@ -628,6 +630,53 @@ def _compare(val: float, op: str, threshold: float) -> bool:
 
 
 # ── Main entry point ──────────────────────────────────────────────────────────
+
+
+async def queue_python_screener_run(
+    db: AsyncSession,
+    screener: ScreenerDefinition,
+) -> ScreenerResult:
+    """Queue a Python-condition screener without executing user code in-process."""
+    condition = screener.conditions if isinstance(screener.conditions, dict) else {}
+    code_version_id = condition.get("code_version_id")
+    if condition.get("type") != "python_condition" or not isinstance(code_version_id, int):
+        raise ValueError("Screener does not reference an immutable Python condition version")
+
+    version = (await db.execute(select(CodeVersion).where(CodeVersion.id == code_version_id))).scalar_one_or_none()
+    if version is None or version.output_contract != "boolean":
+        raise ValueError("Python screener condition version is unavailable or not Boolean")
+
+    from app.routers.research import _materialize_declared_dataset
+
+    instrument_ids = await _get_universe(db, screener)
+    instruments = (
+        await db.execute(select(Instrument).where(Instrument.id.in_(instrument_ids)))
+    ).scalars().all()
+    symbols = [instrument.symbol for instrument in instruments]
+    manifest = await _materialize_declared_dataset(db, {}, {"symbols": symbols})
+    run = ResearchRun(
+        user_id=screener.user_id,
+        code_version_id=version.id,
+        run_config={"symbols": symbols, "screener_id": screener.id},
+        dataset_manifest=manifest,
+    )
+    run.code_version = version
+    db.add(run)
+    await db.flush()
+    enqueue_research_run(run)
+
+    result = ScreenerResult(
+        screener_id=screener.id,
+        run_at=datetime.now(UTC),
+        duration_ms=None,
+        matched_ids=[],
+        result_data={"_python_research_run_id": run.id, "_status": "queued"},
+        error=None,
+    )
+    db.add(result)
+    await db.commit()
+    await db.refresh(result)
+    return result
 
 
 async def run_screener(

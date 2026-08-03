@@ -3,11 +3,17 @@
 import logging
 from datetime import UTC, datetime
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 
 from app.database import AsyncSessionLocal
-from app.models.screener import ScreenerDefinition
-from app.services.screener_engine import run_screener
+from app.models.screener import ScreenerDefinition, ScreenerResult
+from app.services.screener_engine import queue_python_screener_run, run_screener
+
+
+async def _run_screener_or_queue(db, screener):
+    if isinstance(screener.conditions, dict) and screener.conditions.get("type") == "python_condition":
+        return await queue_python_screener_run(db, screener)
+    return await run_screener(db, screener)
 
 logger = logging.getLogger(__name__)
 
@@ -26,11 +32,14 @@ async def run_screener_task(ctx: dict, screener_id: int, user_id: int) -> dict:
         if screener is None:
             return {"error": f"Screener {screener_id} not found"}
 
-        result = await run_screener(db, screener)
+        if screener is None:
+            return {"error": f"Screener {screener_id} not found"}
+        result = await _run_screener_or_queue(db, screener)
+        coverage = result.result_data.get("_coverage", {}) if isinstance(result.result_data, dict) else {}
         return {
             "screener_id": screener_id,
-            "matched": len(result.matched_instrument_ids),
-            "total_scanned": result.total_scanned,
+            "matched": len(result.matched_ids),
+            "total_scanned": coverage.get("universe_count", len(result.matched_ids)),
             "duration_ms": result.duration_ms,
             "result_id": result.id,
         }
@@ -50,7 +59,7 @@ async def run_all_scheduled_screeners(ctx: dict) -> dict:
                     await db.execute(
                         select(ScreenerDefinition).where(
                             ScreenerDefinition.is_active.is_(True),
-                            ScreenerDefinition.schedule_cron.isnot(None),
+                            ScreenerDefinition.schedule.isnot(None),
                         )
                     )
                 )
@@ -61,11 +70,18 @@ async def run_all_scheduled_screeners(ctx: dict) -> dict:
             ran = 0
             for screener in screeners:
                 try:
+                    latest_run = (
+                        await db.execute(
+                            select(func.max(ScreenerResult.run_at)).where(
+                                ScreenerResult.screener_id == screener.id
+                            )
+                        )
+                    ).scalar_one()
                     cron = croniter(
-                        screener.schedule_cron, screener.last_run_at or datetime(2000, 1, 1)
+                        screener.schedule, latest_run or datetime(2000, 1, 1)
                     )
                     if cron.get_next(datetime) <= datetime.now(UTC):
-                        await run_screener(db, screener)
+                        await _run_screener_or_queue(db, screener)
                         ran += 1
                 except Exception as e:
                     logger.error(f"Scheduled screener {screener.id} failed: {e}")

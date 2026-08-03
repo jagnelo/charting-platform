@@ -9,13 +9,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user
 from app.database import get_db
-from app.models.instrument import Instrument
 from app.models.ohlcv import Timeframe
 from app.models.research import CodeAsset, CodeVersion, ResearchRun
 from app.models.screener import ScreenerDefinition, ScreenerResult
 from app.models.user import User
 from app.models.workstation import WorkspaceLibraryItem
-from app.services.research_jobs import collect_research_result, enqueue_research_run
+from app.services.research_jobs import collect_research_result
 
 router = APIRouter(prefix="/screeners", tags=["screeners"])
 
@@ -245,41 +244,12 @@ async def create_screener_from_python_condition(
 
 async def _queue_python_screener_run(db: AsyncSession, screener: ScreenerDefinition) -> ScreenerResult:
     """Materialize a screener universe and queue it in the isolated Boolean runner."""
-    code_version_id = screener.conditions.get("code_version_id")
-    if not isinstance(code_version_id, int):
-        raise HTTPException(422, "Python screener has no immutable condition version")
-    version = (await db.execute(select(CodeVersion).where(CodeVersion.id == code_version_id))).scalar_one()
-    from app.routers.research import _materialize_declared_dataset
-    from app.services.screener_engine import _get_universe
+    from app.services.screener_engine import queue_python_screener_run
 
-    instrument_ids = await _get_universe(db, screener)
-    instruments = (
-        await db.execute(select(Instrument).where(Instrument.id.in_(instrument_ids)))
-    ).scalars().all()
-    symbols = [instrument.symbol for instrument in instruments]
-    manifest = await _materialize_declared_dataset(db, {}, {"symbols": symbols})
-    run = ResearchRun(
-        user_id=screener.user_id,
-        code_version_id=version.id,
-        run_config={"symbols": symbols, "screener_id": screener.id},
-        dataset_manifest=manifest,
-    )
-    run.code_version = version
-    db.add(run)
-    await db.flush()
-    enqueue_research_run(run)
-    result = ScreenerResult(
-        screener_id=screener.id,
-        run_at=datetime.now(),
-        duration_ms=None,
-        matched_ids=[],
-        result_data={"_python_research_run_id": run.id, "_status": "queued"},
-        error=None,
-    )
-    db.add(result)
-    await db.commit()
-    await db.refresh(result)
-    return result
+    try:
+        return await queue_python_screener_run(db, screener)
+    except ValueError as error:
+        raise HTTPException(422, str(error)) from error
 
 
 async def _collect_python_screener_result(db: AsyncSession, result: ScreenerResult) -> None:

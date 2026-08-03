@@ -49,14 +49,17 @@ async def task_run_screener(ctx: dict, screener_id: int):
     """ARQ task: run a screener by ID and persist results."""
     from app.database import AsyncSessionLocal
     from app.models.screener import ScreenerDefinition
-    from app.services.screener_engine import run_screener
+    from app.services.screener_engine import queue_python_screener_run, run_screener
 
     async with AsyncSessionLocal() as db:
         screener = await db.get(ScreenerDefinition, screener_id)
         if screener is None:
             logger.warning(f"run_screener: screener {screener_id} not found")
             return
-        result = await run_screener(db, screener)
+        if isinstance(screener.conditions, dict) and screener.conditions.get("type") == "python_condition":
+            result = await queue_python_screener_run(db, screener)
+        else:
+            result = await run_screener(db, screener)
         return {"matched": len(result.matched_ids), "duration_ms": result.duration_ms}
 
 
