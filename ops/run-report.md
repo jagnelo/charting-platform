@@ -2,6 +2,16 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-03T18:00:00Z API validator parity
+
+- Aligned the FastAPI workstation-Python validator with the isolated runner: curated
+  `scipy` and `statsmodels` roots are accepted, local method composition is allowed,
+  and dependencies still contain only platform namespaces. Added regression tests for
+  SciPy, statsmodels OLS, and unbound namespace rejection.
+- Validation: code-validation unit `8 passed`; Docker-backed code API integration `13
+  passed`; full backend unit `855 passed`, `70.15%` coverage; Ruff and diff checks passed.
+- Strict V25 visual approval and the complete acceptance matrix remain open.
+
 ## 2026-08-03T17:00:00Z Curated Python research namespaces
 
 - Added bounded `scipy.stats` and `statsmodels.api.OLS` facades to the isolated Python

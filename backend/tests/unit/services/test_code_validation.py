@@ -34,3 +34,27 @@ def test_rejects_numpy_and_pandas_file_access():
     result = validate_workstation_python("pd.read_csv('/tmp/secret.csv')")
     assert not result.valid
     assert result.diagnostics[0].code == "forbidden_data_access"
+
+
+def test_accepts_curated_scipy_namespace():
+    result = validate_workstation_python(
+        "score = scipy.stats.percentileofscore([1, 2, 3], 2)\noutput.scalar('percentile', score)"
+    )
+    assert result.valid
+    assert result.dependencies == ("output", "scipy")
+
+
+def test_accepts_curated_statsmodels_and_local_method_composition():
+    result = validate_workstation_python(
+        "model = statsmodels.api.OLS([1, 2, 3], [[1, 1], [1, 2], [1, 3]])\n"
+        "fit = model.fit()\n"
+        "output.scalar('r_squared', fit.rsquared)"
+    )
+    assert result.valid
+    assert result.dependencies == ("output", "statsmodels")
+
+
+def test_unbound_namespace_is_still_rejected():
+    result = validate_workstation_python("model.fit()")
+    assert not result.valid
+    assert result.diagnostics[0].code == "unapproved_namespace"

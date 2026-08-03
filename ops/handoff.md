@@ -1,5 +1,17 @@
 # Active Handoff
 
+## Continuation update — 2026-08-03T18:00:00Z
+
+- Closed the API validation half of the curated Python namespace change. The FastAPI
+  `/code/validate` gate now accepts the bounded `scipy`/`statsmodels` roots and ordinary
+  local-value composition (for example `fit = model.fit()`), while retaining dependency
+  extraction and all forbidden-import, dunder, I/O, and unapproved-namespace checks.
+- Validation: code-validation unit tests `8 passed`; authenticated code API integration
+  `13 passed` with Docker-backed containers; full backend unit suite `855 passed` at
+  `70.15%` coverage; Ruff and diff checks passed. Strict V25 visual approval remains
+  `required_missing`, and the broader security/performance/end-to-end acceptance matrix
+  remains incomplete.
+
 ## Continuation update — 2026-08-03T17:00:00Z
 
 - Closed a unified-Python sandbox gap: the isolated SDK now exposes bounded

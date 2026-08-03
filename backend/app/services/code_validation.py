@@ -10,7 +10,7 @@ from __future__ import annotations
 import ast
 from dataclasses import dataclass
 
-_APPROVED_ROOTS = {"market", "ta", "stats", "research", "output", "np", "pd"}
+_APPROVED_ROOTS = {"market", "ta", "stats", "research", "output", "np", "pd", "scipy", "statsmodels"}
 _BANNED_NODES = (
     ast.Import,
     ast.ImportFrom,
@@ -59,6 +59,7 @@ class _Validator(ast.NodeVisitor):
         self.dependencies: set[str] = set()
         self.lookback_hint: int | None = None
         self.output_contracts: set[str] = set()
+        self.bound_names: set[str] = set()
 
     def add(self, node: ast.AST, code: str, message: str) -> None:
         self.diagnostics.append(CodeDiagnostic(
@@ -82,6 +83,8 @@ class _Validator(ast.NodeVisitor):
     def visit_Name(self, node: ast.Name) -> None:
         if node.id.startswith("__"):
             self.add(node, "forbidden_name", "Dunder names are not available.")
+        if isinstance(node.ctx, ast.Store):
+            self.bound_names.add(node.id)
         self.generic_visit(node)
 
     def visit_Call(self, node: ast.Call) -> None:
@@ -92,9 +95,9 @@ class _Validator(ast.NodeVisitor):
         if isinstance(node.func, ast.Attribute) and root in {"np", "pd"} and node.func.attr in _BANNED_DATA_CALLS:
             self.add(node, "forbidden_data_access", f"{root}.{node.func.attr}() cannot access files or external data.")
         if root and not banned_builtin:
-            if root not in _APPROVED_ROOTS:
+            if root not in (_APPROVED_ROOTS | self.bound_names):
                 self.add(node, "unapproved_namespace", f"{root} is not an approved SDK namespace.")
-            else:
+            elif root in _APPROVED_ROOTS:
                 self.dependencies.add(root)
         if isinstance(node.func, ast.Attribute) and node.func.attr in {"rolling", "sma", "ema", "rsi"}:
             for argument in node.args:
@@ -129,6 +132,13 @@ def validate_workstation_python(source: str) -> ValidationResult:
             output_contracts=(),
         )
     validator = _Validator()
+    # Pre-compute local bindings so ordinary Python composition is valid even
+    # when a value is referenced before its assignment in source traversal.
+    validator.bound_names = {
+        node.id
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Store)
+    }
     validator.visit(tree)
     return ValidationResult(
         diagnostics=tuple(validator.diagnostics),
