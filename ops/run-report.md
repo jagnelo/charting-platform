@@ -16541,6 +16541,15 @@ Append a short entry after each worker session.
 - Commit `731f3bfa462ae5a985d4119b3870e22347b5de42` pushed. Overall acceptance and
   approved V25 visual evidence remain incomplete.
 
+## 2026-08-03T13:55:00Z Benchmark identity presentation checkpoint
+
+- Added an explicit benchmark identity strip for logical S&amp;P 500, official `SPX`,
+  and currently used tradable `SPY`; the UI keeps proxy rows SPY-labelled.
+- Full frontend Vitest `436 passed`, focused workspace-store suite `18 passed`,
+  TypeScript, production build, and `git diff --check` passed. Commit
+  `d394b821c93ba58ffc83ba1cd7d8782e6edf69df` pushed. Overall acceptance and approved
+  V25 visual evidence remain incomplete.
+
 ## 2026-08-03T14:32:00Z Persisted research cancellation checkpoint
 
 - Added cancellation to the persisted Research Results browser for queued/running

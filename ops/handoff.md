@@ -14543,6 +14543,18 @@
 - Full goal remains active. Continue implementation and seek authoritative pinned-build
   evidence; do not promote these candidates silently.
 
+## 2026-08-03T13:55:00Z Benchmark identity presentation checkpoint
+
+- The benchmark workstation surface now displays an identity strip separately labelling
+  logical S&amp;P 500, official `SPX` series, and the currently used tradable `SPY` proxy.
+  Proxy rows remain SPY-labelled and are never presented as SPX.
+- Focused workspace-store suite `18 passed`, full frontend Vitest `436 passed`,
+  TypeScript, production build, and `git diff --check` passed. Commit
+  `d394b821c93ba58ffc83ba1cd7d8782e6edf69df` pushed.
+- Full goal remains active; V25 visual references remain `required_missing` and the
+  broad workstation/backend acceptance matrix remains incomplete. Next: continue the
+  broad workstation/backend audit.
+
 ## 2026-08-03T13:35:00Z SPX/SPY identity checkpoint
 
 - The canonical top-down taxonomy now carries a versioned logical `sp500` identity
