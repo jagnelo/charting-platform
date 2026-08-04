@@ -38,6 +38,7 @@ tasks:
       - Official column-editor, grouped-column, and stacked-column help states are catalogued as direct-locator discovery candidates without being misrepresented as exact-build visual baselines.
       - USD OHLCV coverage and repair now use a deterministic local XNYS daily session calendar; unknown-calendar instruments retain conservative gap handling.
       - Strict Version 25 visual approval and the full backend/frontend/security/performance/acceptance matrix remain open gates.
+      - A real Chromium uPlot benchmark now renders 100,000 points and passes forty zoom/pan updates with chart-element preservation; authenticated workstation, pop-out, memory/leak, and four-environment performance evidence remains open.
     locked_decisions:
       - TC2000 Version 25 desktop build 25.0.9571 is the pinned visual and interaction reference.
       - docs/project-todos.md section 14 and docs/tc2000-visual-parity.md supersede all older or narrower frontend-rework plans where they conflict.
