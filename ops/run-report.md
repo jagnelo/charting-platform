@@ -18379,3 +18379,12 @@ uncovered slice rather than repeat a generic completion claim.
   Expected watchlist conflict-path stderr remained non-failing.
 - Docker-backed integration/security, provider-live probes, exact-build visual approval,
   multi-environment performance, and broad E2E acceptance remain open.
+
+## 2026-08-04T17:35:00Z Docker integration regression
+
+- Full Docker-backed backend integration suite: `279 passed` with 54 dependency warnings.
+- Fixed a real metadata omission surfaced by the suite: `AlertFiringEvent` was not imported
+  by `app.models`, so test database creation omitted the table used by screener alert
+  post-run persistence. The previously failing Python screener path is now green.
+- Provider-live probes, adversarial sandbox/container checks, exact-build visual approval,
+  multi-environment workstation performance, and broad browser acceptance remain open.

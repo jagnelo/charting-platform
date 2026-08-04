@@ -16800,3 +16800,13 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
   intentional and non-failing.
 - Docker-backed integration/security, provider-live probes, exact-build visual approval,
   multi-environment performance, and broad E2E acceptance remain open.
+
+## Continuation update — 2026-08-04T17:35:00Z Docker integration regression
+
+- Full Docker-backed backend integration suite now passes `279` tests with `54` dependency
+  warnings. The prior Python screener failure was a real metadata omission: `AlertFiringEvent`
+  was used by post-run alert persistence but not imported by `app.models`, so the test
+  fixture's `Base.metadata.create_all()` omitted its table. The model is now registered and
+  the screener alert-history path passes.
+- Remaining gates are provider-live probes, adversarial sandbox/container checks, exact-build
+  visual approval, multi-environment workstation performance, and broad browser acceptance.
