@@ -18268,3 +18268,8 @@ uncovered slice rather than repeat a generic completion claim.
   missing-universe validation for aggregate ranking/breadth starters.
 - Focused Study Lab suite `9`, full frontend `534` across `84` files, TypeScript, production
   build, and diff checks passed. Visual and broad acceptance remain open.
+## 2026-08-04T11:50:00Z Full regression checkpoint
+
+- Backend unit suite `906 passed` with 34 existing dependency warnings; frontend `534 passed`
+  across 84 files, TypeScript, and production build passed. Docker-backed integration,
+  visual/reference, provider-live, and broad acceptance gates remain open.

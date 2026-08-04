@@ -16659,3 +16659,11 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
   active symbol. Focused Study Lab coverage `9`, full frontend `534` across `84` files,
   TypeScript, and production build passed. Visual approval, point-in-time aggregate fixtures,
   live probes, Docker integration, and broad acceptance remain open.
+## Continuation update — 2026-08-04T11:50:00Z Full regression checkpoint
+
+- Re-ran the complete backend unit suite after the isolated SDK aggregate helpers: `906`
+  passed under Python 3.12 with `34` existing dependency warnings. The complete frontend
+  suite remains `534` passed across `84` files, with TypeScript and production build green.
+- This strengthens deterministic regression evidence only; Docker-backed integration,
+  opt-in provider probes, exact-build visual approval, and the broader security/performance/
+  browser acceptance matrix remain open.
