@@ -1,5 +1,14 @@
 # Run Report
 
+## 2026-08-04T11:38:00Z Study Lab factory coverage
+
+- Expanded editable factory studies to cover negative streaks, forward-return distributions,
+  20-session highs/lows, realised-volatility regimes, monthly seasonality, and relative-
+  strength regime changes alongside the existing streak, participation, and ratio starters.
+- All eight source templates passed static validation and deterministic isolated execution;
+  focused Study Lab coverage `8`, TypeScript, production build, and diff checks passed.
+  Exact-build visual approval and broad acceptance remain open.
+
 Append a short entry after each worker session.
 
 ## 2026-08-04T11:34:00Z Provider policy documentation

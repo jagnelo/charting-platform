@@ -16627,3 +16627,15 @@ the requirement-level audit.
 
 Next step: checkpoint the provider documentation correction, then continue the acceptance
 audit with live-entitlement, backend integration, and remaining runtime gates.
+# Active Handoff
+
+## Continuation update — 2026-08-04T11:38:00Z Study Lab factory coverage
+
+- Expanded the primary Study Lab factory catalogue with editable unified-Python starters
+  for negative streaks, forward-return distributions, 20-session highs/lows, realised
+  volatility regimes, monthly seasonality, and relative-strength regime changes, while
+  retaining positive streaks, moving-average participation, and relative-strength history.
+- Static validation and deterministic isolated-runner execution passed for all eight
+  source templates. Focused Study Lab component coverage is now `8` tests; TypeScript and
+  production build passed. Exact-build visual approval, aggregate cross-sectional studies,
+  live-provider probes, Docker-backed integration, and broad acceptance remain open.

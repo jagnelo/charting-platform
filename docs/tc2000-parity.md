@@ -784,3 +784,16 @@ identity and events, and Massive/Alpha Vantage only for optional corroboration. 
 is documented as an explicit legacy/options fallback only, and excluded options, analyst,
 earnings-estimate, and futures domains are capability stubs rather than new-workstation
 fallbacks. This is documentation/contract evidence, not live-provider probe evidence.
+Study Lab now ships editable factory starters for the core open-ended research patterns
+required by the workstation scope: positive and negative close streaks (including
+occurrence events, completed-length tables, histograms, and forward outcomes), moving-
+average participation, forward-return distributions, configurable-20-session high/low
+breakouts, realised-volatility regimes, monthly seasonality, relative-strength regime
+crossings, and the existing raw relative-strength history study. Every starter is ordinary
+unified Python source using only the declared `market`, `ta`, `stats`, `research`, and
+`output` SDK surfaces; editing the source returns the selector to Custom Python. All eight
+new/retained sources pass the isolated runner's static validator and deterministic sample
+execution, and the Study Lab component suite now covers the factory catalogue (`8` tests).
+This adds functional authoring coverage; exact Version 25 visual approval, aggregate
+cross-sectional breadth studies, live-provider probes, and the broader acceptance matrix
+remain open.
