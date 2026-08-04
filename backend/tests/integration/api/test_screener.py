@@ -212,6 +212,69 @@ class TestScreenerCRUD:
         )
 
 
+class TestScreenerAlertCRUD:
+    def test_alert_lifecycle_and_user_isolation(self, client, db, auth_headers, screener):
+        created = client.post(
+            "/api/v1/alerts/screener",
+            headers=auth_headers,
+            json={"screener_id": screener.id, "trigger_type": "entered", "repeat": True},
+        )
+        assert created.status_code == 201
+        alert = created.json()
+        assert alert["screener_id"] == screener.id
+        assert alert["screener_name"] == screener.name
+        assert alert["status"] == "active"
+        assert alert["repeat"] is True
+
+        listed = client.get("/api/v1/alerts/screener", headers=auth_headers)
+        assert listed.status_code == 200
+        assert [row["id"] for row in listed.json()] == [alert["id"]]
+
+        paused = client.patch(
+            f"/api/v1/alerts/screener/{alert['id']}",
+            headers=auth_headers,
+            json={"status": "paused", "repeat": False},
+        )
+        assert paused.status_code == 200
+        assert paused.json()["status"] == "paused"
+        assert paused.json()["repeat"] is False
+
+        rearmed = client.post(
+            f"/api/v1/alerts/screener/{alert['id']}/rearm", headers=auth_headers, json={}
+        )
+        assert rearmed.status_code == 200
+        assert rearmed.json()["status"] == "active"
+
+        from app.models.user import User
+        from app.services.auth import create_access_token, hash_password
+
+        other = User(
+            username="screener_alert_other",
+            email="screener_alert_other@test.com",
+            hashed_password=hash_password("x"),
+            is_active=True,
+        )
+        db.add(other)
+        db.flush()
+        other_headers = {
+            "Authorization": f"Bearer {create_access_token(other.id, 'screener_alert_other')}"
+        }
+        assert client.get("/api/v1/alerts/screener", headers=other_headers).json() == []
+        assert (
+            client.patch(
+                f"/api/v1/alerts/screener/{alert['id']}",
+                headers=other_headers,
+                json={"status": "disabled"},
+            ).status_code
+            == 404
+        )
+        assert (
+            client.delete(f"/api/v1/alerts/screener/{alert['id']}", headers=auth_headers).status_code
+            == 200
+        )
+        assert client.get("/api/v1/alerts/screener", headers=auth_headers).json() == []
+
+
 class TestScreenerRun:
     def test_run_screener_empty_conditions_returns_result(self, client, auth_headers, screener):
         res = client.post(f"/api/v1/screeners/{screener.id}/run", headers=auth_headers)

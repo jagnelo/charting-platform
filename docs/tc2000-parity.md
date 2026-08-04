@@ -539,6 +539,9 @@ approval remains blocked by the V25 reference manifest.
 The primary Alerts tool also lists saved EasyScan alerts alongside price and indicator
 alerts, with the same pause/resume, repeat, rearm, delete, and user-scoped mutation behavior;
 this makes scan-entry/exit alerts visible from the shared alert workstation surface.
+The backend screener-alert integration contract now covers create/list/pause/repeat/rearm/delete
+and cross-user read/update isolation. The test is Docker-backed and remains environment-blocked
+when the current runner cannot access the Docker socket.
 
 The shared chart store applies the same generation boundary to instrument metadata,
 indicator configuration, OHLCV pages (including infinite-history backfill),

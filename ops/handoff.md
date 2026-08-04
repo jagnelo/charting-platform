@@ -1,5 +1,13 @@
 # Active Handoff
 
+## Continuation update — 2026-08-04T11:54:00Z Screener-alert backend contract coverage
+
+- Added backend integration coverage for screener-alert create/list/pause/repeat/rearm/delete
+  and cross-user read/update isolation.
+- Ruff passed; the targeted Docker-backed integration test is written but blocked by denied
+  Docker socket access in this runner. Frontend 527-test suite, TypeScript, production build,
+  and diff checks remain green. Visual/reference and broad acceptance remain open.
+
 ## Continuation update — 2026-08-04T10:51:00Z EasyScan alerts in primary Alerts tool
 
 - The primary instrument Alerts tool now loads and manages saved EasyScan alerts alongside

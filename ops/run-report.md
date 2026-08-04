@@ -2,6 +2,12 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-04T11:54:00Z Screener-alert backend contract coverage
+
+- Added lifecycle and user-isolation integration coverage for screener alerts. Ruff passed;
+  Docker-backed execution is blocked by the current runner's denied Docker socket. Frontend
+  527-test suite, TypeScript/build, and diff checks remain green.
+
 ## 2026-08-04T10:51:00Z EasyScan alerts in primary Alerts tool
 
 - Added saved EasyScan alert visibility and management to the primary Alerts tool. Linked
