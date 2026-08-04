@@ -1,4 +1,3 @@
-import inspect
 import json
 from datetime import datetime
 
@@ -8,8 +7,8 @@ from pydantic import BaseModel, ConfigDict
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.dependencies import get_current_user
-from app.database import get_db
+from app.auth.dependencies import get_current_user, get_current_user_detached
+from app.database import AsyncSessionLocal, close_session_safely, get_db, rollback_session_safely
 from app.models.ohlcv import Timeframe
 from app.models.research import CodeAsset, CodeVersion
 from app.models.screener import ScreenerDefinition, ScreenerResult
@@ -346,8 +345,7 @@ async def delete_screener(
 @router.post("/{screener_id}/run/stream")
 async def stream_screener_run(
     screener_id: int,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user_detached),
 ):
     """
     Streaming screener run — returns newline-delimited JSON (NDJSON).
@@ -362,28 +360,33 @@ async def stream_screener_run(
     sufficient local bars are returned as explicit coverage errors; a UI scan
     never fans out to providers.
     """
-    screener = await db.get(ScreenerDefinition, screener_id)
+    lookup_db = AsyncSessionLocal()
+    try:
+        screener = await lookup_db.get(ScreenerDefinition, screener_id)
+    finally:
+        await close_session_safely(lookup_db)
     if screener is None or screener.user_id != current_user.id:
         raise HTTPException(status_code=404, detail="Screener not found")
 
     from app.services.screener_engine import stream_screener
 
     async def event_gen():
+        db = AsyncSessionLocal()
         try:
-            async for event in stream_screener(db, screener):
+            stream_screener_definition = await db.get(ScreenerDefinition, screener_id)
+            if stream_screener_definition is None:
+                return
+            async for event in stream_screener(db, stream_screener_definition):
                 yield json.dumps(event) + "\n"
         except BaseException:
-            # Roll back an interrupted scan before returning the dependency's
-            # connection to the pool.
-            await db.rollback()
+            # Roll back an interrupted scan before returning the dedicated
+            # stream connection to the pool.
+            await rollback_session_safely(db)
             raise
         finally:
-            # FastAPI keeps yielded dependencies alive until a streaming body
-            # finishes.  Return this connection as soon as the body ends (or is
-            # cancelled); the dependency finalizer may close it idempotently.
-            close_method = getattr(db, "close", None)
-            if inspect.iscoroutinefunction(close_method):
-                await close_method()
+            # Return the dedicated connection as soon as the body ends (or is
+            # cancelled); the helper also handles an already-cancelled task.
+            await close_session_safely(db)
 
     return StreamingResponse(
         event_gen(),

@@ -1,5 +1,18 @@
 # Run Report
 
+## 2026-08-04T18:45:22Z Cancellation-safe screener streaming
+
+- Isolated screener streaming from the shared FastAPI request session: detached auth and
+  ownership lookups close before the body starts, while the NDJSON generator owns its own
+  session and performs shielded rollback/close cleanup on cancellation.
+- Added a narrowly scoped pool-log filter that suppresses only expected `CancelledError`
+  disposal records, plus lifecycle and logging regressions.
+- Ruff passed; backend unit suite `925/925` passed with 34 existing dependency warnings;
+  complete rebuilt Chromium flows passed `24/24` in `38.4s`; final backend error and warning
+  audits were empty. Exact-build V25 visual approval remains `required_missing`; broader
+  provider-live, sandbox/resource, multi-monitor/performance, migration, and parity gates
+  remain open.
+
 ## 2026-08-04T18:28:00Z Link-group chrome parity
 
 - Shared tool-window headers now show readable link-group labels and color swatches for symbol

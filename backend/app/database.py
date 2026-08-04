@@ -1,7 +1,28 @@
+import asyncio
+import logging
+
+import anyio
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
 
 from app.config import settings
+
+logger = logging.getLogger(__name__)
+
+
+class _CancelledPoolTerminationFilter(logging.Filter):
+    """Keep expected client-disconnect disposal out of backend error logs."""
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        if not record.exc_info:
+            return True
+        exception = record.exc_info[1]
+        return not isinstance(exception, asyncio.CancelledError)
+
+
+_pool_logger = logging.getLogger("sqlalchemy.pool.impl.AsyncAdaptedQueuePool")
+if not any(isinstance(f, _CancelledPoolTerminationFilter) for f in _pool_logger.filters):
+    _pool_logger.addFilter(_CancelledPoolTerminationFilter())
 
 engine = create_async_engine(
     settings.DATABASE_URL,
@@ -24,6 +45,39 @@ class Base(DeclarativeBase):
     pass
 
 
+async def _finish_cleanup(operation, description: str) -> None:
+    """Run an async cleanup operation outside the cancelled request task."""
+    cleanup_task = asyncio.create_task(operation)
+    try:
+        await asyncio.shield(cleanup_task)
+    except BaseException:
+        # A request cancellation can still interrupt the await on the parent
+        # task even though ``cleanup_task`` is shielded.  Wait for that child
+        # to finish so asyncpg sees a normal task rather than a cancelled one.
+        try:
+            await asyncio.shield(cleanup_task)
+        except BaseException:
+            logger.debug("%s failed during cancellation cleanup", description, exc_info=True)
+
+
+async def rollback_session_safely(session: AsyncSession) -> None:
+    """Rollback without allowing ASGI cancellation to interrupt cleanup."""
+    with anyio.CancelScope(shield=True):
+        await _finish_cleanup(
+            session.rollback(),
+            "Database rollback",
+        )
+
+
+async def close_session_safely(session: AsyncSession) -> None:
+    """Close a session while shielding pool cleanup from cancellation."""
+    with anyio.CancelScope(shield=True):
+        await _finish_cleanup(
+            session.close(),
+            "Database session close",
+        )
+
+
 async def get_db() -> AsyncSession:
     """Yield a request-scoped session with cancellation-safe cleanup.
 
@@ -44,7 +98,7 @@ async def get_db() -> AsyncSession:
         yield session
         await session.commit()
     except BaseException:
-        await session.rollback()
+        await rollback_session_safely(session)
         raise
     finally:
-        await session.close()
+        await close_session_safely(session)

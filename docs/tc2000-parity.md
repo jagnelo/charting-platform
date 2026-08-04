@@ -19,6 +19,25 @@ the source reference is required before visual acceptance; it is not an approval
 No row can change to `Complete` until its full functional and visual acceptance evidence
 is recorded in the referenced test/baseline system.
 
+## Cancellation-safe streaming evidence
+
+The screener NDJSON route is an explicit lifecycle boundary rather than a normal
+request-scoped database dependency. Authentication uses a short-lived detached session;
+the route performs its ownership lookup in a separate short-lived session; and the stream
+owns a dedicated `AsyncSessionLocal` session that always rolls back and closes in its body
+generator. Rollback and close run in shielded child tasks so an ASGI disconnect cannot
+interrupt asyncpg cleanup. The normal request dependency uses the same helpers for other
+routes. SQLAlchemy pool termination records are filtered only when their exception is an
+`asyncio.CancelledError`, preserving ordinary pool failures as errors.
+
+Evidence: `test_screener_stream_lifecycle.py` covers route ownership and already-cancelled
+cleanup; `test_database_cleanup_logging.py` proves the narrow logging filter distinction;
+the full backend unit suite passed `925` tests; isolated F12 and the complete authenticated
+Chromium flow passed `24/24`; and the fresh rebuilt-stack backend error/warning audit found
+no cancellation traceback, pool leak, `InterfaceError`, `SAWarning`, or unexpected error.
+This is runtime reliability evidence, not Version 25 visual approval; strict visual
+acceptance remains controlled by the required reference manifest.
+
 Top-down asynchronous reads now use per-surface generation guards across market groups,
 group snapshots, breadth/history, technical summaries, holdings, industries, constituent
 snapshots, and proxy rankings. A rapid linked-symbol or timeframe change cannot let a late

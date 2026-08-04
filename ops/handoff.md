@@ -1,5 +1,20 @@
 # Active Handoff
 
+## Continuation update — 2026-08-04T18:45:22Z Cancellation-safe screener streaming
+
+- Fixed the cancellation path exposed by the full browser audit. The screener stream now
+  uses detached authentication/ownership sessions plus a dedicated stream session, and all
+  rollback/close operations execute in shielded child tasks so browser disconnects cannot
+  strand asyncpg connections.
+- Added a narrowly scoped SQLAlchemy pool-log filter for expected `asyncio.CancelledError`
+  disposal only; ordinary pool failures remain visible. Added lifecycle and logging-filter
+  regressions.
+- Validation: Ruff passed; backend unit suite `925 passed` with 34 existing dependency
+  warnings; full rebuilt Chromium `flows.spec.ts` `24/24` passed in `38.4s`; final backend
+  error/warning audit was clean. Strict pinned-build V25 visual approval remains
+  `required_missing`, and provider-live, adversarial sandbox/resource, multi-monitor,
+  performance, migration, and complete parity gates remain open.
+
 ## Continuation update — 2026-08-04T18:28:00Z Link-group chrome parity
 
 - Shared `ToolWindow` chrome now displays human-readable symbol/timeframe link-group labels
