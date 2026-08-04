@@ -20,6 +20,7 @@ from app.models.radar import (
     RadarSetupType,
     RadarState,
 )
+from app.models.research import CodeVersion, ResearchRun
 from app.models.screener import ScreenerDefinition, ScreenerResult
 from app.models.strategy import (
     StrategyDefinition,
@@ -29,6 +30,7 @@ from app.models.strategy import (
     StrategyVersion,
 )
 from app.models.watchlist import Watchlist, WatchlistItem
+from app.services.research_jobs import collect_research_result, enqueue_research_run
 from app.services.strategy_lab_nautilus import (
     NautilusOpenPosition,
     NautilusTrade,
@@ -108,6 +110,114 @@ def _resolve_engine_for_version(
     )
 
 
+async def _queue_python_signal_research(
+    db: AsyncSession,
+    *,
+    strategy: StrategyDefinition,
+    version: StrategyVersion,
+    run: StrategyRun,
+) -> None:
+    """Queue a promoted unified-Python signal in the isolated research runner.
+
+    Strategy Lab never evaluates user source in FastAPI. Promoted Study Lab signals
+    retain an immutable ``code_version_id`` in their version snapshot and reuse the
+    canonical research materializer/runner protocol.
+    """
+    snapshot = version.definition_snapshot if isinstance(version.definition_snapshot, dict) else {}
+    code_version_id = snapshot.get("code_version_id")
+    if not isinstance(code_version_id, int):
+        raise ValueError("Python Strategy Lab signals must reference an immutable code version")
+    code_version = (await db.execute(select(CodeVersion).where(CodeVersion.id == code_version_id))).scalar_one_or_none()
+    if code_version is None or code_version.output_contract not in {"boolean", "events"}:
+        raise ValueError("Python Strategy Lab signal code version is unavailable or unsupported")
+
+    # Keep dataset resolution on the same canonical path as Study Lab. The import is
+    # local to avoid making the service/router import graph eager or circular.
+    from app.routers.research import _materialize_declared_dataset
+
+    run_config: dict[str, object] = {
+        **(version.universe_config or {}),
+        **(run.universe_config or {}),
+        **(version.benchmark_config or {}),
+        **(run.benchmark_config or {}),
+        "parameters": {**(code_version.default_parameters or {}), **(version.default_parameters or {}), **(run.parameter_values or {})},
+    }
+    if run.timeframe:
+        run_config["timeframe"] = run.timeframe
+    if run.date_from:
+        run_config["start_date"] = run.date_from.isoformat()
+    if run.date_to:
+        run_config["end_date"] = run.date_to.isoformat()
+    manifest = await _materialize_declared_dataset(db, {}, run_config)
+    research_run = ResearchRun(
+        user_id=strategy.user_id,
+        code_version_id=code_version.id,
+        run_config={**run_config, "strategy_run_id": run.id},
+        dataset_manifest=manifest,
+    )
+    research_run.code_version = code_version
+    db.add(research_run)
+    await db.flush()
+    enqueue_research_run(research_run)
+
+    now = datetime.now(UTC)
+    run.status = StrategyRunStatus.QUEUED.value
+    run.started_at = now
+    run.completed_at = None
+    run.engine_run_ref = f"research:{research_run.id}"
+    run.result_summary = {
+        "result_kind": "python_signal_research",
+        "research_run_id": research_run.id,
+        "output_contract": code_version.output_contract,
+        "status": "queued",
+        "strategy_name": strategy.name,
+    }
+    run.artifact_manifest = {
+        "result_kind": "python_signal_research",
+        "research_run_id": research_run.id,
+        "output_contract": code_version.output_contract,
+        "supports_execution_stats": False,
+    }
+
+
+async def _refresh_python_signal_research(db: AsyncSession, run: StrategyRun) -> bool:
+    summary = run.result_summary if isinstance(run.result_summary, dict) else {}
+    research_run_id = summary.get("research_run_id")
+    if summary.get("result_kind") != "python_signal_research" or not isinstance(research_run_id, int):
+        return False
+    if run.status in {StrategyRunStatus.COMPLETED.value, StrategyRunStatus.FAILED.value, StrategyRunStatus.CANCELED.value}:
+        return True
+    research_run = (await db.execute(select(ResearchRun).where(ResearchRun.id == research_run_id))).scalar_one_or_none()
+    if research_run is None:
+        run.status = StrategyRunStatus.FAILED.value
+        run.completed_at = datetime.now(UTC)
+        run.error_log = "Isolated Python signal run is unavailable"
+        return True
+    collected = collect_research_result(research_run)
+    if not collected and research_run.status not in {"completed", "failed", "canceled"}:
+        return False
+    run.status = research_run.status
+    run.completed_at = datetime.now(UTC)
+    run.warning_log = list(research_run.warnings or []) + list(research_run.diagnostics or [])
+    if research_run.status == "failed":
+        run.error_log = next((item.get("message") for item in research_run.diagnostics if isinstance(item, dict) and item.get("message")), "Python signal research failed")
+    run.result_summary = {
+        **summary,
+        "status": research_run.status,
+        "diagnostics": research_run.diagnostics or [],
+        "warnings": research_run.warnings or [],
+        "reproducibility_hash": research_run.reproducibility_hash,
+        "artifact_names": [artifact.name for artifact in research_run.artifacts],
+    }
+    run.artifact_manifest = {
+        **(run.artifact_manifest or {}),
+        "status": research_run.status,
+        "artifact_names": [artifact.name for artifact in research_run.artifacts],
+        "reproducibility_hash": research_run.reproducibility_hash,
+    }
+    return True
+
+
 async def execute_strategy_run(
     db: AsyncSession,
     *,
@@ -121,6 +231,10 @@ async def execute_strategy_run(
     engine = _resolve_engine_for_version(strategy, version)
 
     try:
+        if strategy.definition_type == "python":
+            await _queue_python_signal_research(db, strategy=strategy, version=version, run=run)
+            await db.flush()
+            return run
         if strategy.source_type == "radar" or strategy.definition_type == "signal_source":
             run.result_summary = await _run_radar_signal_research(
                 db, strategy=strategy, version=version, run=run

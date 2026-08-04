@@ -22,7 +22,11 @@ from app.schemas.strategy import (
     StrategyVersionOut,
     StrategyVersionUpdate,
 )
-from app.services.strategy_lab import execute_strategy_run, preview_strategy_coverage
+from app.services.strategy_lab import (
+    _refresh_python_signal_research,
+    execute_strategy_run,
+    preview_strategy_coverage,
+)
 
 router = APIRouter(prefix="/strategy-lab", tags=["strategy-lab"])
 
@@ -321,7 +325,11 @@ async def list_runs(
     if strategy_id is not None:
         stmt = stmt.where(StrategyRun.strategy_id == strategy_id)
     result = await db.execute(stmt)
-    return result.scalars().all()
+    runs = result.scalars().all()
+    for run in runs:
+        await _refresh_python_signal_research(db, run)
+    await db.flush()
+    return runs
 
 
 @router.get("/runs/{run_id}", response_model=StrategyRunOut)
@@ -338,6 +346,8 @@ async def get_run(
     run = (await db.execute(stmt)).scalar_one_or_none()
     if run is None:
         raise HTTPException(status_code=404, detail="Strategy run not found")
+    await _refresh_python_signal_research(db, run)
+    await db.flush()
     return run
 
 
@@ -584,6 +594,11 @@ async def refresh_run(
     run = (await db.execute(run_stmt)).scalar_one_or_none()
     if run is None:
         raise HTTPException(status_code=404, detail="Strategy run not found")
+    if (run.result_summary or {}).get("result_kind") == "python_signal_research":
+        await _refresh_python_signal_research(db, run)
+        await db.commit()
+        await db.refresh(run)
+        return StrategyRunSubmitOut.model_validate(run)
     if run.test_mode != "paper_forward":
         raise HTTPException(status_code=409, detail="Only paper-forward runs can be refreshed")
 

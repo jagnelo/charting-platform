@@ -4,14 +4,86 @@ from decimal import Decimal
 import pytest
 
 from app.models.ohlcv import OHLCVBar, Timeframe
+from app.models.research import CodeVersion, ResearchRun
+from app.models.strategy import StrategyDefinition, StrategyRun, StrategyVersion
 from app.services.strategy_lab import (
     _apply_portfolio_constraints,
     _build_benchmark_summary,
     _build_dense_portfolio_history,
     _extract_risk_and_exit_config,
+    _queue_python_signal_research,
     _symbol_performance_snapshot,
 )
 from app.services.strategy_lab_nautilus import NautilusOpenPosition, NautilusTrade
+
+
+class _ScalarResult:
+    def __init__(self, value):
+        self.value = value
+
+    def scalar_one_or_none(self):
+        return self.value
+
+
+class _ResearchQueueDB:
+    def __init__(self, code_version):
+        self.code_version = code_version
+        self.added = []
+
+    async def execute(self, _statement):
+        return _ScalarResult(self.code_version)
+
+    def add(self, value):
+        if isinstance(value, ResearchRun):
+            value.id = 77
+        self.added.append(value)
+
+    async def flush(self):
+        return None
+
+
+@pytest.mark.asyncio
+async def test_python_signal_strategy_queues_immutable_isolated_research(monkeypatch):
+    code_version = CodeVersion(
+        id=10,
+        code_asset_id=20,
+        version_number=1,
+        source="output.events('signals', [])",
+        output_contract="events",
+        default_parameters={"lookback": 20},
+    )
+    db = _ResearchQueueDB(code_version)
+    async def materialize(*_args, **_kwargs):
+        return {"symbols": ["SPY"], "datasets": []}
+    monkeypatch.setattr("app.routers.research._materialize_declared_dataset", materialize)
+    queued = []
+    monkeypatch.setattr("app.services.strategy_lab.enqueue_research_run", queued.append)
+    strategy = StrategyDefinition(user_id=4, name="Event signal", definition_type="python")
+    version = StrategyVersion(
+        strategy=strategy,
+        definition_snapshot={"code_version_id": 10, "output_contract": "events"},
+        default_parameters={"lookback": 5},
+    )
+    run = StrategyRun(
+        strategy=strategy,
+        strategy_version=version,
+        requested_by_user_id=4,
+        engine_type="nautilus",
+        test_mode="backtest",
+        universe_config={"symbols": ["SPY"]},
+        parameter_values={"lookback": 30},
+    )
+
+    await _queue_python_signal_research(db, strategy=strategy, version=version, run=run)
+
+    assert len(queued) == 1
+    research_run = queued[0]
+    assert research_run.id == 77
+    assert research_run.code_version_id == 10
+    assert research_run.run_config["parameters"] == {"lookback": 30}
+    assert run.status == "queued"
+    assert run.result_summary["research_run_id"] == 77
+    assert run.result_summary["output_contract"] == "events"
 
 
 def _trade(
