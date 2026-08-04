@@ -5,7 +5,7 @@
     "worker_session_started_at": "2026-07-28T21:40:33Z",
     "worker_soft_stop_at": null,
   "last_handoff_at": "2026-08-04T23:00:00Z",
-  "last_commit": "6d5f7a7 fix(workstation): cancel research runs on teardown",
+  "last_commit": "190b18d fix(research): preserve run ownership on viewer teardown",
     "git_ready_to_commit": false,
   "validation": {
     "sandbox_numpy_method_guard": "passed: five dangerous ndarray attribute regressions; focused research runner 45 passed and full backend unit suite 913 passed",
@@ -33,7 +33,7 @@
     "provider_reference_environment": "passed: backend/.env.example ordinary chains and identifier priority now exclude yfinance and retain it only for option_chain/explicit legacy slots; instrument_search also excludes Alpaca, whose adapter has no search method; runtime filters stale policies against current registry capabilities; JSON seed validation and provider-registry/runtime focused coverage 17 passed"
     ,"docker_integration_regression": "passed: current source reran the full Docker-backed backend integration suite with 281 passed and 54 dependency warnings; this includes the local-only existing-instrument read contract, empty-database taxonomy fallback, AlertFiringEvent metadata fix, promoted Python-signal queue coverage, and provider policy hygiene startup/disablement"
     ,"research_runner_container_probe": "passed: resolved Docker Compose config, deployment contract tests 2, runner/security tests 46, and direct image probe verified uid 10001, read-only root, no network, dropped capabilities/no-new-privileges, and writable constrained tmpfs"
-    ,"browser_acceptance_checkpoint": "passed: canonical row-universe, Python timeframe, watchlist-destruction, EasyScan-destruction, and Study Lab-destruction changes cancel owned active batches; Research Results remains non-owning; rebuilt-stack browser gate is rerunning after ownership correction; approved visual parity remains required_missing"
+    ,"browser_acceptance_checkpoint": "passed: canonical row-universe, Python timeframe, watchlist-destruction, EasyScan-destruction, and Study Lab-destruction changes cancel owned active batches; Research Results remains non-owning; rebuilt-stack full Chromium flows passed 23/23 in 25.2s with no unexpected diagnostics; approved visual parity remains required_missing"
     },
   "notes": [
         "2026-08-04T12:06:00Z: Added Study Lab As-of timestamp control and canonical research cutoff enforcement; future bars are excluded and invalid cutoff-before-start requests are rejected. Focused router tests 2, Study Lab 9, TypeScript/build/Ruff/diff passed; full regression and visual/provider/Docker/broad acceptance remain open.",
@@ -882,6 +882,6 @@
         "2026-08-04T22:00:00Z: Watchlist teardown now cancels known active Python column/condition batches and invalidates late generations. Focused VirtualWatchlistTool coverage passed 45; full frontend Vitest passed 539 across 84 files; TypeScript/build/diff passed; rebuilt Chromium flows passed 23/23 in 24.5s and recent backend logs were clean. Exact-build visual approval and the remaining live/adversarial/performance/deep-parity gates remain open.",
         "2026-08-04T22:20:00Z: EasyScan teardown now cancels known queued/running Python research runs while preserving terminal results. Focused EasyScan coverage passed 8; full frontend Vitest passed 540 across 84 files; TypeScript/build/diff passed; rebuilt Chromium flows passed 23/23 in 25.9s and recent backend logs were clean. Exact-build visual approval and the remaining live/adversarial/performance/deep-parity gates remain open.",
         "2026-08-04T22:40:00Z: Study Lab cancels owned active runs on teardown, Persisted Research Results remains non-owning, and chart Python plot runs are canceled with chart/plot generations invalidated. Full frontend Vitest passed 541 across 84 files before the ownership correction was audited; TypeScript/build/diff passed; rebuilt Chromium flows passed 23/23 in 26.6s and recent backend logs were clean. Exact-build visual approval and the remaining live/adversarial/performance/deep-parity gates remain open.",
-        "2026-08-04T23:00:00Z: Corrected the Research Results lifecycle so closing the observer cannot cancel a durable run owned by Study Lab or another window. Removed its incorrect unmount regression and updated parity/state records; focused Research Results and full frontend/rebuilt-stack validation are rerunning."
+        "2026-08-04T23:00:00Z: Corrected the Research Results lifecycle so closing the observer cannot cancel a durable run owned by Study Lab or another window. Removed its incorrect unmount regression and updated parity/state records; focused Research Results coverage passed 15 tests, full frontend Vitest passed 541 tests across 84 files, and rebuilt-stack Chromium flows passed 23/23 in 25.2s with clean recent backend logs."
     ]
 }
