@@ -1943,7 +1943,7 @@ Why this was deferred:
 - It deserves a focused implementation pass instead of being quietly bolted onto the existing per-instrument event tables.
 
 ### 10. Expand provider chain seeding and scheduling for bulk universe refresh
-Status: `Planned`
+Status: `In progress — full completion contract still open`
 
 Context:
 - Five new providers (Alpaca, FRED, Binance, CoinGecko, EDGAR) are registered but the
@@ -3219,15 +3219,15 @@ Status: `Planned`
 Branch:
 - `feat/tc2000-frontend-rework`
 
-Current implementation checkpoint (2026-08-04): the workstation shell, linked
+Current implementation checkpoint (2026-08-05): the workstation shell, linked
 Golden Layout mechanics, uPlot host/plugin path, top-down analysis contracts,
 virtualized watchlists, unified Python/Study Lab execution boundary, and free-source
 provider governance are implemented and covered by deterministic/frontend/backend
-regressions. The branch has also exercised 22 authenticated Chromium flows against
+regressions. The branch has also exercised 24 authenticated Chromium flows against
 the rebuilt stack. Remaining acceptance is intentionally still hard-gated by the
 full Version 25 visual reference/measurement matrix, opt-in provider probes, the
 broader adversarial sandbox/resource matrix, 10,000-row and multi-window performance
-evidence, deep top-down browser workflows, and the complete cross-surface/E2E parity
+evidence, and the complete cross-surface/E2E parity
 matrix; no item below is considered delivered merely because this checkpoint exists.
 
 Controlling objective:
