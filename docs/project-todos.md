@@ -1966,7 +1966,7 @@ Why this was deferred:
   concern that should be done alongside end-to-end testing of the new provider stack.
 
 ### 11. Custom instrument baskets, ETF holdings navigation, and breadth analysis
-Status: `In progress — single completion bar not yet satisfied`
+Status: `Planned`
 
 Context:
 - The platform already supports individual instruments and expression-based synthetics (e.g., `=SPY-QQQ`).
@@ -3214,7 +3214,7 @@ Why this was deferred:
 - We do not want to bolt it onto one widget first and then retrofit the dashboard model later.
 
 ### 14. Replace the primary frontend with a TC2000 Version 25-style workstation and build its supporting backend/research platform
-Status: `Planned`
+Status: `In progress — single completion bar not yet satisfied`
 
 Branch:
 - `feat/tc2000-frontend-rework`
