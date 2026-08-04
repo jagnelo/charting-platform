@@ -440,6 +440,8 @@ V25 reference manifest.
 Numeric columns additionally expose persisted percent-versus-number formatting and bounded
 decimal precision, including indicator and Python-derived columns, so dense ranking tables can
 be tuned without changing their canonical values.
+Numeric cells also receive automatic positive/negative/zero color classes while Boolean and
+warning cells retain their explicit state colors.
 
 The same editor now supports direct drag-and-drop ordering in addition to its explicit
 left/right controls. Dragging emits the shared visible-column configuration, so saved

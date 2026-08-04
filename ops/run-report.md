@@ -2,6 +2,12 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-04T10:47:31Z Watchlist directional cell colors
+
+- Added automatic positive/negative/zero colors for numeric watchlist, indicator, and Python
+  cells while preserving explicit Boolean/warning states. Focused tests `39`, TypeScript/build/
+  diff passed; visual, Docker integration, and broad acceptance remain open.
+
 ## 2026-08-04T10:45:45Z Watchlist numeric formatting
 
 - Added persisted percent/number and decimal-precision overrides to the integrated column

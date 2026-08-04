@@ -408,6 +408,23 @@ describe('VirtualWatchlistTool', () => {
     expect(wrapper.text()).toContain('0.123')
   })
 
+  it('colors numeric cells by directional value while leaving text and Boolean cells neutral', () => {
+    const wrapper = mount(VirtualWatchlistTool, {
+      props: {
+        label: 'Sectors',
+        rows: [{ instrumentId: 1, symbol: 'XLK', name: 'Technology', values: { gain: 0.2, loss: -0.1, flat: 0, flag: 1 } }],
+        columns: [
+          { key: 'symbol', label: 'Symbol' }, { key: 'gain', label: 'Gain' },
+          { key: 'loss', label: 'Loss' }, { key: 'flat', label: 'Flat' },
+          { key: 'flag', label: 'Flag', kind: 'boolean' },
+        ],
+      },
+    })
+    expect(wrapper.find('.watchlist__cell--positive').text()).toContain('20.00%')
+    expect(wrapper.find('.watchlist__cell--negative').text()).toContain('-10.00%')
+    expect(wrapper.find('.watchlist__cell--zero').text()).toContain('0.00%')
+  })
+
   it('pins true Boolean rows ahead of the secondary sort and persists the pin choice', async () => {
     const wrapper = mount(VirtualWatchlistTool, {
       props: {

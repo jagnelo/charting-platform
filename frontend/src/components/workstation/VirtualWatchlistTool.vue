@@ -74,8 +74,8 @@
           @contextmenu.prevent.stop="openContextMenu($event, filteredRows[virtualRow.index])"
         >
           <template v-for="column in renderedColumns" :key="column.key">
-            <span v-if="column.key !== stackedColumnKey" :title="display(filteredRows[virtualRow.index], column.key)"><b v-if="column.key === 'symbol' && filteredRows[virtualRow.index].flagged" class="watchlist__flag" aria-label="Flagged">⚑</b>{{ display(filteredRows[virtualRow.index], column.key) }}</span>
-            <span v-else class="watchlist__stack-cell"><small v-for="stackedColumn in stackedColumns" :key="stackedColumn.key" :title="display(filteredRows[virtualRow.index], stackedColumn.key)"><em>{{ stackedColumn.label }}</em>{{ display(filteredRows[virtualRow.index], stackedColumn.key) }}</small></span>
+            <span v-if="column.key !== stackedColumnKey" :class="numericCellClass(filteredRows[virtualRow.index], column.key)" :title="display(filteredRows[virtualRow.index], column.key)"><b v-if="column.key === 'symbol' && filteredRows[virtualRow.index].flagged" class="watchlist__flag" aria-label="Flagged">⚑</b>{{ display(filteredRows[virtualRow.index], column.key) }}</span>
+            <span v-else class="watchlist__stack-cell"><small v-for="stackedColumn in stackedColumns" :key="stackedColumn.key" :class="numericCellClass(filteredRows[virtualRow.index], stackedColumn.key)" :title="display(filteredRows[virtualRow.index], stackedColumn.key)"><em>{{ stackedColumn.label }}</em>{{ display(filteredRows[virtualRow.index], stackedColumn.key) }}</small></span>
           </template>
         </button>
       </div>
@@ -738,6 +738,22 @@ function formatNumeric(key: string, value: number, fallbackDecimals = 2) {
   return format === 'number' ? value.toFixed(decimals) : `${(value * 100).toFixed(decimals)}%`
 }
 
+function numericCellValue(row: WatchlistRow, key: string): number | null {
+  if (effectiveColumns.value.find(column => column.key === key)?.kind === 'boolean') return null
+  if (key.startsWith('indicator:')) return props.indicatorValues[key]?.[row.symbol] ?? null
+  if (key.startsWith('python:')) {
+    const value = pythonCells.value[key]?.[row.symbol]?.value
+    return typeof value === 'number' ? value : null
+  }
+  const value = key === 'symbol' || key === 'name' ? null : row.values?.[key]
+  return typeof value === 'number' ? value : null
+}
+
+function numericCellClass(row: WatchlistRow, key: string) {
+  const value = numericCellValue(row, key)
+  return value == null ? '' : value > 0 ? 'watchlist__cell--positive' : value < 0 ? 'watchlist__cell--negative' : 'watchlist__cell--zero'
+}
+
 function display(row: WatchlistRow, key: string) {
   if (key.startsWith('indicator:')) {
     const value = props.indicatorValues[key]?.[row.symbol]
@@ -969,6 +985,9 @@ function onCtrlWheel(event: WheelEvent) {
 .watchlist__membership-inspection { display: grid; gap: 1px; padding: 2px 5px 3px; border-top: 1px solid #32424d; color: #8fb2c3; font-size: 10px; }
 .watchlist__context-menu button:hover,.watchlist__context-menu button:focus-visible { background: #28506a; color: #fff; outline: 0; }
 .watchlist__row span { min-width: 0; overflow: hidden; padding: 0 6px; color: #8999a5; text-overflow: ellipsis; white-space: nowrap; }
+.watchlist__row .watchlist__cell--positive { color: #72c995; }
+.watchlist__row .watchlist__cell--negative { color: #df8b8b; }
+.watchlist__row .watchlist__cell--zero { color: #a8b6bf; }
 .watchlist__row span:first-child { color: #dce9f2; font-weight: 600; }
 .watchlist__stack-cell { display: grid; min-width: 0; align-self: stretch; padding: 1px 6px; }
 .watchlist__stack-cell small { overflow: hidden; color: #8999a5; font: 9px/1.15 "Segoe UI", Arial, sans-serif; text-overflow: ellipsis; white-space: nowrap; }

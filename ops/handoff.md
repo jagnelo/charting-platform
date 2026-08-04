@@ -1,5 +1,13 @@
 # Active Handoff
 
+## Continuation update — 2026-08-04T10:47:31Z Watchlist directional cell colors
+
+- Numeric watchlist, indicator, and Python cells now receive positive/negative/zero classes;
+  Boolean and warning cells remain explicit and neutral. Focused VirtualWatchlistTool tests
+  `39`, TypeScript, production build, and diff checks passed. Visual/reference, Docker-backed
+  integration, and broad acceptance remain open. Generated `test-results/` remains intentionally
+  untracked.
+
 ## Continuation update — 2026-08-04T10:45:45Z Watchlist numeric formatting
 
 - Extended the persisted workstation column editor with percent/number format and bounded
