@@ -16763,3 +16763,17 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
   `^IRX` symbol by default. The service now documents the active entitled provider
   policy and generic provider-symbol fallback.
 - Focused risk-free-rate unit test: `1 passed`; diff check passed.
+
+## Continuation update — 2026-08-04T16:45:00Z Study Lab event-signal contract
+
+- Extended isolated prepared-universe execution to accept the unified Python `events`
+  output contract for scalar-like signal batches. Event artifacts are bounded, preserve
+  timestamps, and are qualified with the declared instrument symbol.
+- Study Lab promotion now offers event results as reusable Strategy Lab signals without
+  coercing them to Boolean. Added runner and frontend regressions; focused runner suite
+  `46 passed`, focused Study Lab suite `10 passed`, and full backend unit suite `915 passed`
+  with 34 existing dependency warnings.
+- The persistence contract is complete for Boolean/event signal assets, but Strategy Lab
+  replay/execution of those immutable Python signals remains an open integration gate.
+  Docker-backed API/security tests, provider probes, exact-build visual approval, and broad
+  acceptance remain open.

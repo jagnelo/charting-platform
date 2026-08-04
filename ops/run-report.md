@@ -18345,3 +18345,16 @@ uncovered slice rather than repeat a generic completion claim.
 
 - Corrected stale risk-free-rate documentation that implied a default yfinance fetch.
 - Focused risk-free-rate unit test: `1 passed`; diff check passed.
+
+## 2026-08-04T16:45:00Z Study Lab event-signal contract
+
+- Added isolated prepared-universe batch support for the unified Python `events`
+  output contract, including bounded symbol-qualified event artifacts and timestamp
+  preservation.
+- Study Lab now promotes Boolean or event results to user-owned Strategy Lab signal
+  definitions while retaining the immutable code-version output contract. Focused
+  research-runner `46 passed`, focused Study Lab `10 passed`, and full backend unit
+  suite `915 passed` with 34 existing dependency warnings.
+- Strategy Lab replay/execution of promoted immutable Python signals remains explicitly
+  open; no unsupported execution claim was introduced. Docker-backed API/security,
+  provider-live, exact-build visual, and broad acceptance gates remain open.
