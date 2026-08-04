@@ -2,6 +2,13 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-04T17:05:00Z Configurable breadth universe
+
+- Breadth universe is now persisted/configurable between S&P 500 sectors and US
+  benchmarks, with corresponding group/snapshot/current/history loads and linked
+  Above/Below member drill-downs. Focused boundary `40` passed; TypeScript/build/diff
+  passed. Visual and broad acceptance remain open.
+
 ## 2026-08-04T16:40:00Z Breadth member drill-down
 
 - Breadth now offers linked Above/Below 20/50/200-MA member drill-downs while retaining

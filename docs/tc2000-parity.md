@@ -150,12 +150,14 @@ so insufficient history, unavailable comparisons, and coverage exclusions remain
 visible at the cell where they occur instead of becoming silent dashes. Focused
 virtual-watchlist coverage passes; broad visual and acceptance gates remain open.
 
-Breadth drill-down correction: the breadth tool now exposes separate Above and Below
-controls for each 20/50/200-MA aggregate and renders the corresponding passing/failing
-sector members as linked rows. Selecting a row publishes its canonical symbol to the
-workstation charts without a route change; the historical uPlot breadth series remains
-visible alongside the drill-down. Focused workstation/watchlist coverage, TypeScript,
-and production build pass; full configurable-universe and visual acceptance remain open.
+Breadth drill-down correction: the breadth tool now exposes a canonical universe
+selector (`S&P 500 sectors` or `US benchmarks`), separate Above and Below controls for
+each 20/50/200-MA aggregate, and corresponding passing/failing members as linked rows.
+Changing the universe loads its group snapshot plus current/historical breadth through
+the local analysis APIs. Selecting a row publishes its canonical symbol to workstation
+charts without a route change; the historical uPlot breadth series remains visible
+alongside the drill-down. Focused workstation/watchlist coverage, TypeScript, and
+production build pass; visual and full acceptance remain open.
 Study Lab exposes a serializable comma-separated universe control; when populated it sends
 canonical symbol selectors as `run_config.symbols` and displays the selected universe in
 the run summary instead of silently using only the active symbol.

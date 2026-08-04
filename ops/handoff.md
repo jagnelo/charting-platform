@@ -1,5 +1,15 @@
 # Active Handoff
 
+## Continuation update — 2026-08-04T17:05:00Z Configurable breadth universe
+
+- Breadth now accepts a persisted canonical universe selection (`sp500-sectors` or
+  `us-benchmarks`) and loads that group's market members, snapshot, current breadth,
+  and historical breadth through the local APIs.
+- Above/Below 20/50/200-MA drill-downs now filter the selected universe and retain linked
+  canonical-symbol activation. Focused regression boundary passed `40` tests;
+  TypeScript, production build, and diff checks passed. Visual and broad acceptance
+  remain open; generated `test-results/` is intentionally untracked.
+
 ## Continuation update — 2026-08-04T16:40:00Z Breadth member drill-down
 
 - Added Above/Below controls for 20/50/200-MA breadth and a passing/failing member

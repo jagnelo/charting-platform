@@ -348,6 +348,7 @@
       <RatioUPlot :symbol="activeSymbol" :benchmarks="ratioBenchmarks" :timeframe="activeTimeframe" :as-of="typeof tool.configuration.as_of === 'string' ? tool.configuration.as_of : null" :linked-timestamp="workspaceStore.timestampForLinkGroup(tool.link_group)" @cursor-timestamp="workspaceStore.publishTimestamp($event, tool.link_group, tool.instance_key)" @configuration="emit('configuration', tool.instance_key, { ...tool.configuration, ...$event })" />
     </div>
     <div v-else-if="tool.instance_key === 'breadth-summary' || tool.tool_type === 'breadth'" class="breadth-tool">
+      <label class="breadth-tool__universe">Universe <select :value="breadthGroupKey" aria-label="Breadth universe" @change="setBreadthGroup(($event.target as HTMLSelectElement).value)"><option value="sp500-sectors">S&amp;P 500 sectors</option><option value="us-benchmarks">US benchmarks</option></select></label>
       <div class="metrics">
         <template v-for="period in ['ma20', 'ma50', 'ma200']" :key="period">
           <span>Above {{ period.slice(2) }} MA</span>
@@ -1059,8 +1060,9 @@ function snapshotWarnings(row: GroupSnapshotRow | undefined) {
 const sectorPerformance = computed(() => Object.fromEntries(
   (workspaceStore.groupSnapshots['sp500-sectors']?.rows ?? []).map(row => [row.symbol, row.performance['1M']?.value ?? null]),
 ))
-const breadth = computed(() => workspaceStore.breadth['sp500-sectors'])
-const breadthHistory = computed(() => workspaceStore.breadthHistory['sp500-sectors'])
+const breadthGroupKey = computed(() => typeof props.tool.configuration.group_key === 'string' && props.tool.configuration.group_key.trim() ? props.tool.configuration.group_key.trim() : 'sp500-sectors')
+const breadth = computed(() => workspaceStore.breadth[breadthGroupKey.value])
+const breadthHistory = computed(() => workspaceStore.breadthHistory[breadthGroupKey.value])
 const technical = computed(() => workspaceStore.technicals[activeSymbol.value])
 const selectedETF = computed(() => workspaceStore.constituentETF ?? '')
 const ratioBenchmarks = computed(() => [...new Set([
@@ -1163,6 +1165,24 @@ const sectorRows = computed(() => (workspaceStore.marketGroups['sp500-sectors']?
   })(),
   warnings: snapshotWarnings(workspaceStore.groupSnapshots['sp500-sectors']?.rows.find(item => item.instrument_id === member.instrument.id)),
 })))
+const breadthRows = computed<WatchlistRow[]>(() => {
+  if (breadthGroupKey.value === 'sp500-sectors') return sectorRows.value
+  const snapshot = workspaceStore.groupSnapshots[breadthGroupKey.value]
+  return (workspaceStore.marketGroups[breadthGroupKey.value]?.members ?? []).map(member => {
+    const row = snapshot?.rows.find(item => item.instrument_id === member.instrument.id)
+    return {
+      instrumentId: member.instrument.id,
+      symbol: member.instrument.symbol,
+      name: member.instrument.name,
+      values: {
+        above_ma20: row?.technical?.above_ma20?.value ?? null,
+        above_ma50: row?.technical?.above_ma50?.value ?? null,
+        above_ma200: row?.technical?.above_ma200?.value ?? null,
+      },
+      warnings: snapshotWarnings(row),
+    }
+  })
+})
 const sectorByYearYears = computed(() => {
   return calendarYearKeys(workspaceStore.groupSnapshots['sp500-sectors']?.rows ?? [])
 })
@@ -1465,7 +1485,7 @@ const breadthDrilldown = ref<{ key: string; state: 'above' | 'below' } | null>(n
 const breadthDrilldownRows = computed(() => {
   if (!breadthDrilldown.value) return []
   const expected = breadthDrilldown.value.state === 'above' ? 1 : 0
-  return sectorRows.value.filter(row => (row as WatchlistRow).values?.[breadthDrilldown.value!.key] === expected)
+  return breadthRows.value.filter(row => row.values?.[breadthDrilldown.value!.key] === expected)
 })
 const technicalMAs = computed(() => [technical.value?.sma20, technical.value?.sma50, technical.value?.sma200]
   .map(value => formatNumber(value)).join(' / '))
@@ -1474,13 +1494,29 @@ function breadthMetric(key: string) {
   return value == null ? 'Unavailable' : `${(value * 100).toFixed(1)}%`
 }
 function breadthBelowCount(key: string) {
-  return sectorRows.value.filter(row => (row as WatchlistRow).values?.[key] === 0).length
+  return breadthRows.value.filter(row => row.values?.[key] === 0).length
 }
 function setBreadthDrilldown(key: string, state: 'above' | 'below') {
   breadthDrilldown.value = breadthDrilldown.value?.key === key && breadthDrilldown.value.state === state
     ? null
     : { key, state }
 }
+function setBreadthGroup(groupKey: string) {
+  const normalized = groupKey === 'us-benchmarks' ? 'us-benchmarks' : 'sp500-sectors'
+  emit('configuration', props.tool.instance_key, { ...props.tool.configuration, group_key: normalized })
+  void loadBreadthUniverse(normalized)
+}
+async function loadBreadthUniverse(groupKey: string) {
+  await Promise.all([
+    workspaceStore.loadMarketGroup(groupKey),
+    workspaceStore.loadGroupSnapshot(groupKey, 'SPY'),
+    workspaceStore.loadBreadth(groupKey),
+    workspaceStore.loadBreadthHistory(groupKey),
+  ])
+}
+watch(breadthGroupKey, groupKey => {
+  if (props.tool.instance_key === 'breadth-summary' || props.tool.tool_type === 'breadth') void loadBreadthUniverse(groupKey)
+}, { immediate: true })
 function formatNumber(value: number | null | undefined) { return value == null ? 'Unavailable' : value.toFixed(2) }
 function formatPercent(value: number | null | undefined) { return value == null ? 'Unavailable' : `${(value * 100).toFixed(1)}%` }
 function formatRatio(value: number | null | undefined) { return value == null ? 'Unavailable' : `${value.toFixed(2)}×` }
@@ -1522,7 +1558,7 @@ const proxyCoverage = computed(() => industryProxySnapshot.value
 .combo-editor select[multiple] { height: 34px; }
 .combo-editor input { width: 78px; }
 .analysis { height: 100%; min-height: 0; }
-.breadth-tool { display:grid; grid-template-rows:auto auto minmax(0,1fr); height:100%; min-height:0; }.metrics { display: grid; grid-template-columns: 1fr auto; gap: 5px 10px; padding: 9px; color: #99a8b1; font: 10px "Segoe UI", Arial, sans-serif; }.breadth-tool__actions { display:flex; gap:3px; justify-content:flex-end; }.breadth-tool__actions button,.breadth-tool__drilldown header button { border:1px solid #34434e; background:#172027; color:#b9c8d1; font:inherit; padding:1px 4px; cursor:pointer; }.breadth-tool__actions button:hover,.breadth-tool__action--active { background:#1d4057; color:#e5f1f7; }.breadth-tool__drilldown { min-height:0; max-height:150px; overflow:auto; border-top:1px solid #2b3841; border-bottom:1px solid #2b3841; background:#131a20; font:10px "Segoe UI",Arial,sans-serif; }.breadth-tool__drilldown header { display:flex; justify-content:space-between; align-items:center; padding:4px 7px; color:#9aabb6; position:sticky; top:0; background:#20282f; }.breadth-tool__drilldown > button { display:flex; gap:8px; width:100%; border:0; border-bottom:1px solid #20282f; background:transparent; color:#cad4db; padding:4px 7px; text-align:left; cursor:pointer; }.breadth-tool__drilldown > button:hover { background:#1d4057; }.breadth-tool__drilldown > button span { color:#81929e; }.breadth-tool__drilldown > small { display:block; padding:7px; color:#8497a4; }
+.breadth-tool { display:grid; grid-template-rows:auto auto auto minmax(0,1fr); height:100%; min-height:0; }.breadth-tool__universe { display:flex; gap:5px; align-items:center; padding:5px 7px 0; color:#9aabb6; font:10px "Segoe UI",Arial,sans-serif; }.breadth-tool__universe select { border:1px solid #34434e; background:#172027; color:#d2dce3; font:inherit; }.metrics { display: grid; grid-template-columns: 1fr auto; gap: 5px 10px; padding: 9px; color: #99a8b1; font: 10px "Segoe UI", Arial, sans-serif; }.breadth-tool__actions { display:flex; gap:3px; justify-content:flex-end; }.breadth-tool__actions button,.breadth-tool__drilldown header button { border:1px solid #34434e; background:#172027; color:#b9c8d1; font:inherit; padding:1px 4px; cursor:pointer; }.breadth-tool__actions button:hover,.breadth-tool__action--active { background:#1d4057; color:#e5f1f7; }.breadth-tool__drilldown { min-height:0; max-height:150px; overflow:auto; border-top:1px solid #2b3841; border-bottom:1px solid #2b3841; background:#131a20; font:10px "Segoe UI",Arial,sans-serif; }.breadth-tool__drilldown header { display:flex; justify-content:space-between; align-items:center; padding:4px 7px; color:#9aabb6; position:sticky; top:0; background:#20282f; }.breadth-tool__drilldown > button { display:flex; gap:8px; width:100%; border:0; border-bottom:1px solid #20282f; background:transparent; color:#cad4db; padding:4px 7px; text-align:left; cursor:pointer; }.breadth-tool__drilldown > button:hover { background:#1d4057; }.breadth-tool__drilldown > button span { color:#81929e; }.breadth-tool__drilldown > small { display:block; padding:7px; color:#8497a4; }
 .metrics b { color: #d2dce3; font-weight: 500; text-align: right; }
 .industry-list { height: 100%; overflow: auto; background: #11161b; font: 11px "Segoe UI", Arial, sans-serif; }
 .industry-list__row { display: flex; width: 100%; justify-content: space-between; gap: 8px; padding: 7px; border: 0; border-bottom: 1px solid #20282f; background: transparent; color: #c7d0d8; text-align: left; cursor: pointer; }

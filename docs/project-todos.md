@@ -3755,11 +3755,11 @@ Breadth analytics:
 - click-through to passing/failing constituent lists;
 - comparison of multiple groups side by side.
 
-The primary breadth surface now exposes Above/Below controls for the 20/50/200-MA
-states and a linked passing/failing member drill-down. In the seeded sector universe,
-the drill-down preserves canonical symbol identity and publishes the selected member
-to the workstation link group; broader configurable-universe breadth remains governed
-by the same backend group contract.
+The primary breadth surface now exposes a canonical group selector, Above/Below controls
+for the 20/50/200-MA states, and a linked passing/failing member drill-down. It loads
+the selected group's snapshot and current/historical breadth through the existing local
+analysis APIs; the drill-down preserves canonical symbol identity and publishes the
+selected member to the workstation link group.
 
 Relative rotation:
 - accept benchmark, peer universe, timeframe, lookback, sampling, and tail length;
