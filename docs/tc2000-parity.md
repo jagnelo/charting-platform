@@ -33,7 +33,11 @@ including Study Lab validation, isolated Python execution, and structured metric
 The full backend unit suite passes (`965/965`, 69.83% coverage); the detached-auth rollback
 regression is covered directly and backend logs are clean for 500s, tracebacks, pool leaks,
 SQLAlchemy warnings, and unexpected errors. The research timestamp-default migration
-`ea0f1a2b3c4d` has passed a PostgreSQL downgrade/upgrade round trip.
+`ea0f1a2b3c4d` has passed a PostgreSQL downgrade/upgrade round trip. A fresh disposable
+PostgreSQL 16 audit against current HEAD also upgraded the complete chain to `ea0f1a2b3c4d`,
+verified `watchlist_item.flagged` as `NOT NULL DEFAULT false`, downgraded one revision,
+re-upgraded to head, and re-verified the invariant before the container was removed.
+Current-head migration round-trip acceptance is closed.
 The complete Docker-backed integration suite passes `281/281` with 54 existing dependency
 warnings; its clean acceptance invocation is `--no-cov` because the integration-only subset
 does not meet the repository-wide coverage threshold by itself.
@@ -68,7 +72,7 @@ This is functional/runtime evidence only. The strict visual gate still rejects t
 `application-shell-default/default` state because the manifest remains `required_missing`;
 discovery-only online media cannot be promoted without exact-build continuity, measurements,
 permission/storage review, and human approval. Provider-live credentials, adversarial pressure
-and cancellation, 10,000-row/multi-window performance, full migration acceptance, and the
+and cancellation, 10,000-row/multi-window performance, and the
 complete cross-surface parity matrix likewise remain open.
 
 ## Cancellation-safe streaming evidence

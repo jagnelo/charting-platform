@@ -1,5 +1,12 @@
 # Run Report
 
+## 2026-08-05T02:30:00Z Migration-chain acceptance audit
+
+- Fresh disposable PostgreSQL 16 validation against current HEAD upgraded the complete
+  Alembic chain to `ea0f1a2b3c4d`, verified `watchlist_item.flagged` is `NOT NULL DEFAULT
+  false`, downgraded one revision, re-upgraded to head, and re-verified the invariant.
+  The container was removed after the round trip.
+
 ## 2026-08-05T02:00:00Z Backend integration re-audit
 
 - Fresh Docker-backed backend integration run completed with `281/281` tests passing in

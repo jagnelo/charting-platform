@@ -3229,7 +3229,7 @@ SEC identity/profile path through `EdgarProvider`, and isolated research-runner 
 recovery. Remaining acceptance is intentionally still hard-gated by the full Version
 25 visual reference/measurement matrix, configured multi-provider probes, adversarial
 resource-pressure and orphan-job coverage, 10,000-row and multi-window performance
-evidence, migration re-audit, and the complete cross-surface/E2E parity matrix; no
+evidence, and the complete cross-surface/E2E parity matrix; no
 item below is considered delivered merely because this checkpoint exists.
 
 The streaming screener also now treats indicator-cache persistence as an optional,
@@ -3286,9 +3286,10 @@ loaded identity is expunged before the shielded rollback/close sequence, so `/au
 has ended. The focused lifecycle suite passes 3 tests, the full backend unit suite passes
 965 tests at 69.83% coverage, and the rebuilt authenticated Chromium flow passes all 27
 flows, including Study Lab. The timestamp-default Alembic repair (`ea0f1a2b3c4d`) has also
-passed a disposable PostgreSQL downgrade/upgrade round trip. These checks do not relax the
-single completion bar or the still-open exact-build visual, provider-live, pressure,
-multi-window performance, migration, and broad parity gates.
+passed a fresh current-head PostgreSQL 16 upgrade, one-step downgrade, re-upgrade, and
+direct `watchlist_item.flagged` `NOT NULL DEFAULT false` invariant audit. These checks do
+not relax the single completion bar or the still-open exact-build visual, provider-live,
+pressure, multi-window performance, and broad parity gates.
 
 VirtualWatchlist Python column and condition polling now rejects missing batch payloads with a
 bounded error before Vue Query can cache `undefined`; this keeps empty/partial research data
@@ -3296,7 +3297,7 @@ explicit at the tool boundary. The same boundary is enforced for Market Gauge, r
 EasyScan results, Research Results, condition columns, and indicator batches. Focused
 workstation coverage is 61 tests, the full frontend suite is 550 tests across 84 files, and
 rebuilt Chromium remains 28/28. This hardening does not relax the
-single completion bar or the exact-build visual/provider/pressure/performance/migration/parity
+single completion bar or the exact-build visual/provider/pressure/performance/parity
 gates.
 
 The requested periodic Docker cleanup was also run after the rebuilt-stack acceptance pass;

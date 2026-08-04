@@ -1,5 +1,13 @@
 # Active Handoff
 
+## Continuation update — 2026-08-05T02:30:00Z Migration-chain acceptance audit
+
+- A fresh disposable PostgreSQL 16 audit against current HEAD upgraded the complete
+  Alembic chain to `ea0f1a2b3c4d`, verified `watchlist_item.flagged` as `NOT NULL DEFAULT
+  false`, downgraded one revision, re-upgraded to head, and re-verified the invariant.
+  The disposable container was removed. Current-head migration round-trip acceptance is
+  closed; broader parity and provider/visual/performance gates remain open.
+
 ## Continuation update — 2026-08-05T02:00:00Z Backend integration re-audit
 
 - Fresh Docker-backed backend integration validation passed `281/281` in `181.13s` with
