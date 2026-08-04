@@ -4,7 +4,7 @@
     "active_worker": "Codex",
     "worker_session_started_at": "2026-07-28T21:40:33Z",
     "worker_soft_stop_at": null,
-  "last_handoff_at": "2026-08-04T18:50:00Z",
+  "last_handoff_at": "2026-08-04T18:55:00Z",
   "last_commit": "8c35f02 chore(provider): disable stale capability policies",
     "git_ready_to_commit": false,
   "validation": {
@@ -31,7 +31,7 @@
     ,"uplot_large_history_benchmark": "passed: host-permitted Chromium rendered 100000 points and completed 40 zoom/pan viewport updates with the same chart element; renderer-level gate only, full workstation/memory/multi-environment performance remains open",
     "study_lab_strategy_signal_promotion": "implemented: authenticated promotion creates a user-owned Strategy Lab definition/version referencing immutable signal code_version_id; Boolean and event outputs retain their contracts; Strategy Lab Python-signal runs now queue canonical datasets through the isolated runner and reconcile terminal artifacts; focused Study Lab frontend 10, focused strategy service 8, and full backend unit suite 916 passed; Docker-backed API verification remains blocked by unavailable Docker socket; brokerage/trade-fill simulation remains intentionally outside this signal-evaluation adapter",
     "provider_reference_environment": "passed: backend/.env.example ordinary chains and identifier priority now exclude yfinance and retain it only for option_chain/explicit legacy slots; instrument_search also excludes Alpaca, whose adapter has no search method; runtime filters stale policies against current registry capabilities; JSON seed validation and provider-registry/runtime focused coverage 17 passed"
-    ,"docker_integration_regression": "passed: full backend integration suite baseline 279 passed with 54 dependency warnings after registering AlertFiringEvent in app.models; promoted Python-signal queue integration test also passes, bringing the current suite to 280 tests / 56 warnings"
+    ,"docker_integration_regression": "passed: current pushed source reran the full Docker-backed backend integration suite with 280 passed and 54 dependency warnings; this includes the AlertFiringEvent metadata fix, promoted Python-signal queue coverage, and provider policy hygiene startup/disablement"
     ,"research_runner_container_probe": "passed: resolved Docker Compose config, deployment contract tests 2, runner/security tests 46, and direct image probe verified uid 10001, read-only root, no network, dropped capabilities/no-new-privileges, and writable constrained tmpfs"
     ,"browser_acceptance_checkpoint": "passed: branch-scoped stack rebuilt after provider capability-chain correction with E2E_SEED_INSTRUMENTS=true; Chromium flows 22 passed in 32.0s with no unexpected diagnostics and fresh logs contain no provider_runtime errors; approved visual parity intentionally fails in all four environments because reference snapshots are absent"
     },

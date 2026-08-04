@@ -16863,3 +16863,12 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
   focused provider/runtime coverage remains `17 passed` with Ruff clean. The full
   completion gates are unchanged: V25 visual approval, provider probes, adversarial
   sandbox/resource evidence, performance, and broad interaction/E2E acceptance remain open.
+
+## Continuation update — 2026-08-04T18:55:00Z Current integration validation
+
+- Re-ran the complete Docker-backed integration suite against the pushed provider-policy
+  hygiene source. All `280` tests passed with `54` dependency warnings.
+- This confirms the runtime seeding/disablement change does not regress API, task,
+  websocket, workspace, analysis, Study Lab, screener, holdings, or legacy contracts.
+  Exact-build visual approval, live-provider probes, adversarial sandbox/resource tests,
+  multi-window performance, and deep browser parity remain open.

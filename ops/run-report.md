@@ -18436,3 +18436,11 @@ uncovered slice rather than repeat a generic completion claim.
 - The stale-policy regression proves both exclusion and disablement; focused provider/runtime
   coverage remains `17 passed` and Ruff is clean. Visual, live-provider, adversarial sandbox,
   performance, and broad E2E acceptance remain open.
+
+## 2026-08-04T18:55:00Z Current integration validation
+
+- Full Docker-backed backend integration suite was rerun against the current pushed source:
+  `280 passed`, `54` dependency warnings.
+- API/task/websocket, workspace/analysis, holdings, screener, Study Lab, strategy, and
+  legacy-contract coverage remain green. Visual approval, live probes, adversarial sandbox,
+  performance, and deep browser parity remain open.
