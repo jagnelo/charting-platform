@@ -3252,6 +3252,11 @@ directories for UID 10001 before enqueueing, and the runner returns a structured
 This closes the previously hidden fresh-volume permission/path gap; broader orphan-job,
 multi-window, and full security/resource acceptance remain separate gates.
 
+The basic orphaned-claimed-job case is also verified live: a `.running` job survived a
+runner restart, was requeued at startup, completed from the canonical prepared payload,
+and left no residue. Pressure concurrency/cancellation and broader sandbox stress remain
+separate acceptance gates.
+
 Read-only authenticated identity/settings reads use the detached short-lived session path;
 mutating authentication/settings routes retain the request-scoped transaction. The rebuilt
 browser flow and backend/runner/worker log audit now remain clean across the repeated login,

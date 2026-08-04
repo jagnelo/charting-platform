@@ -1,5 +1,15 @@
 # Active Handoff
 
+## Continuation update — 2026-08-05T04:20:00Z Orphan-job recovery probe
+
+- Created a uniquely identified `.running` job in the private shared volume, restarted the
+  non-root research runner, and observed startup recovery rename it back to `.json` and
+  complete it as a typed scalar result. The runner stayed healthy and all probe artifacts
+  were removed.
+- This closes the basic orphaned-claimed-job recovery case. Resource-pressure concurrency,
+  cancellation during pressure, multi-process stress, and the remaining broad sandbox
+  matrix remain open; exact-build V25 visual approval and provider-live gates remain open.
+
 ## Continuation update — 2026-08-05T04:00:00Z Read-only auth lifecycle repair
 
 - A post-fix browser audit exposed one residual pooled-connection warning immediately

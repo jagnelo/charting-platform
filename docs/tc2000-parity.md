@@ -57,6 +57,10 @@ closes the fresh-volume handoff/path defect and one real memory-pressure case; o
 cleanup after process termination, cancellation under pressure, and broader namespace/
 multi-process stress remain required acceptance work.
 
+The basic orphan recovery path has now been exercised against the same volume: a
+`.running` payload was requeued by runner startup, completed as a typed scalar artifact,
+and cleaned up while the capped non-root process remained healthy.
+
 Read-only authentication lifecycle evidence: `GET /auth/me` and `GET /auth/settings` use
 the detached identity-session factory, avoiding a request transaction that outlives response
 serialization; writes remain request-scoped. Auth integration passed 15 tests, the full

@@ -4,7 +4,7 @@
     "active_worker": "Codex",
     "worker_session_started_at": "2026-07-28T21:40:33Z",
     "worker_soft_stop_at": null,
-  "last_handoff_at": "2026-08-05T04:00:00Z",
+  "last_handoff_at": "2026-08-05T04:20:00Z",
   "last_commit": "9d00e14 fix(study-lab): enforce non-null polling responses",
     "git_ready_to_commit": true,
   "validation": {
@@ -19,7 +19,7 @@
         "playwright": "clean restarted branch-scoped Docker stack: rebuilt Study Lab frontend and backend/worker images plus detached read-only auth fix; correctly configured Chromium flows.spec.ts passed 26/26 in 41.6s; post-run backend/runner/worker log window had no connection-leak/SAWarning, InterfaceError, traceback, provider-error, permission, or unexpected-error patterns; the initial default-project invocation was discarded after its port-5432 collision; strict visual command still blocks at application-shell-default/default required_missing",
         "console_check": "passed for focused F6/F7/F8b Chromium flow diagnostics (no unexpected console/page/request failures), 2026-07-30; full acceptance still required",
         "backend_log_check": "clean rebuilt-stack full browser audit after screener/cache and research-runner changes found no error-pattern or warning-pattern output: no connection leak, garbage-collector/non-checked-in connection, cancellation traceback, InterfaceError, SAWarning, provider-runtime error, traceback, or unexpected backend warning; expected structured missing-data and sandbox-limit responses remain explicit",
-        "research_runner_handoff": "passed: backend and runner use shared /jobs and /results Compose paths; enqueue prepares fresh-volume permissions for UID 10001; live 70-million-element pressure job was claimed, returned structured memory_limit, produced processed sentinel, and left runner healthy; artifacts removed; 2026-08-05",
+        "research_runner_handoff": "passed: backend and runner use shared /jobs and /results Compose paths; enqueue prepares fresh-volume permissions for UID 10001; live 70-million-element pressure job returned structured memory_limit and left runner healthy; a .running job survived runner restart, was requeued and completed as a scalar, and all artifacts were removed; pressure concurrency/cancellation and broader sandbox stress remain open, 2026-08-05",
         "screener_cache_persistence": "passed: streaming indicator-cache commit failures roll back, emit a structured warning, and remain visible in the screener UI; focused unit 31, full backend unit 957, Docker screener integration 22, frontend 547, rebuilt Chromium 26/26, 2026-08-05",
         "history_refresh_registration": "passed: active Compose ARQ worker registers canonical fetch_all_instruments_history behind disabled-by-default MARKET_DATA_REFRESH_SCHEDULE_ENABLED at 05:00 UTC; worker tests 3, full backend unit 960, rebuilt backend/worker healthy, live effective worker state false/false/true, 2026-08-05",
         "provider_live_tests": "partial: live public SEC EDGAR probe succeeded (NVDA -> CIK 1045810, Nasdaq, one listing) through the repository EdgarProvider; Alpaca/FRED/OpenFIGI/Massive/Alpha Vantage credentials are unset so their matrices remain not_run",

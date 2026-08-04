@@ -1,5 +1,14 @@
 # Run Report
 
+## 2026-08-05T04:20:00Z Orphan-job recovery probe
+
+- A uniquely identified `.running` job was injected into the private volume, the non-root
+  runner was restarted, and it was recovered to `.json` and completed as a typed scalar.
+  The runner remained up and probe artifacts were removed.
+- Basic orphaned-claimed-job recovery passes; pressure concurrency/cancellation, broader
+  sandbox stress, exact-build visual, provider-live, multi-window performance, migration,
+  and parity gates remain open.
+
 ## 2026-08-05T04:00:00Z Read-only auth lifecycle repair
 
 - Moved read-only `/auth/me` and `/auth/settings` authentication to detached short-lived
