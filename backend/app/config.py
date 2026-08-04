@@ -45,6 +45,7 @@ class Settings(BaseSettings):
 
     # Provider-backed universe maintenance
     INSTRUMENT_SYNC_SCHEDULE_ENABLED: bool = False
+    MARKET_DATA_REFRESH_SCHEDULE_ENABLED: bool = False
     ETF_HOLDINGS_REFRESH_ENABLED: bool = False
     ETF_HOLDINGS_SEC_BACKFILL_ENABLED: bool = False
     ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS: float = 20.0

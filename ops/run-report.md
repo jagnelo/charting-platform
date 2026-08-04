@@ -1,5 +1,15 @@
 # Run Report
 
+## 2026-08-05T02:30:00Z Canonical history-refresh registration
+
+- Registered `fetch_all_instruments_history` in the active ARQ worker behind the new
+  disabled-by-default `MARKET_DATA_REFRESH_SCHEDULE_ENABLED` flag and a 05:00 UTC cron.
+- Worker-focused tests: `3/3`; full backend unit suite: `960/960` with 34 existing
+  dependency warnings; Ruff/diff passed; rebuilt backend/worker containers are healthy.
+  Live worker inspection reported `False False True` (disabled, no cron, function present).
+- Visual approval, configured provider-live, resource/orphan, multi-window performance,
+  migration, and broad parity gates remain open.
+
 ## 2026-08-05T02:15:00Z Study Lab empty-response regression
 
 - Added coverage for an enabled poll returning no run payload; the component exposes a

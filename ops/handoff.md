@@ -1,5 +1,19 @@
 # Active Handoff
 
+## Continuation update — 2026-08-05T02:30:00Z Canonical history-refresh registration
+
+- Registered the existing canonical `fetch_all_instruments_history` task in the active
+  Compose ARQ worker as an explicit daily refresh at 05:00 UTC. It is gated by the new
+  `MARKET_DATA_REFRESH_SCHEDULE_ENABLED` setting, disabled by default, and never adds a
+  paid or provider-specific fallback path.
+- Validation: worker-focused tests `3 passed`, Ruff/diff checks passed, full backend unit
+  suite `960 passed` with 34 existing dependency warnings, backend/worker images rebuilt,
+  both containers healthy, and the live worker reported `False False True` for
+  disabled flag, scheduled-cron presence, and registered function respectively.
+- Exact-build V25 visual approval, configured provider-live matrix, resource-pressure and
+  orphan-job stress, multi-window performance, migration re-audit, and broad parity remain
+  open.
+
 ## Continuation update — 2026-08-05T02:15:00Z Study Lab empty-response regression
 
 - Added a direct regression for an enabled Study Lab poll that returns no payload. The

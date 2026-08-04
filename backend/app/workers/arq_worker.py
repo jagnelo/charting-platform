@@ -119,6 +119,16 @@ async def scheduled_daily_id_bootstrap(ctx: dict):
     return await bootstrap_ids_task(ctx)
 
 
+async def scheduled_daily_history_refresh(ctx: dict):
+    """Refresh recent canonical OHLCV bars when explicitly enabled."""
+    if not settings.MARKET_DATA_REFRESH_SCHEDULE_ENABLED:
+        logger.info("Market-data refresh schedule disabled; skipping history refresh")
+        return {"skipped": True, "reason": "schedule disabled"}
+    from app.tasks.data_tasks import fetch_all_instruments_history
+
+    return await fetch_all_instruments_history(ctx)
+
+
 async def scheduled_etf_holdings_refresh(ctx: dict):
     from app.tasks.etf_holdings_tasks import refresh_etf_holdings_task
 
@@ -143,6 +153,7 @@ class WorkerSettings:
         scheduled_weekly_seed,
         scheduled_daily_metadata_sync,
         scheduled_daily_id_bootstrap,
+        scheduled_daily_history_refresh,
         scheduled_etf_holdings_refresh,
         scheduled_etf_holdings_sec_backfill,
     ]
@@ -151,11 +162,13 @@ class WorkerSettings:
             cron(scheduled_weekly_seed, weekday=6, hour=2, minute=0),
             cron(scheduled_daily_metadata_sync, hour=3, minute=0),
             cron(scheduled_daily_id_bootstrap, hour=4, minute=0),
+            cron(scheduled_daily_history_refresh, hour=5, minute=0),
             cron(scheduled_etf_holdings_refresh, weekday=6, hour=5, minute=0),
             cron(scheduled_etf_holdings_sec_backfill, weekday=6, hour=6, minute=0),
         ]
         if (
             settings.INSTRUMENT_SYNC_SCHEDULE_ENABLED
+            or settings.MARKET_DATA_REFRESH_SCHEDULE_ENABLED
             or settings.ETF_HOLDINGS_REFRESH_ENABLED
             or settings.ETF_HOLDINGS_SEC_BACKFILL_ENABLED
         )

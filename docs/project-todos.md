@@ -3240,6 +3240,11 @@ Study Lab polling also enforces a non-null refresh contract: missing run payload
 bounded query errors rather than `undefined` cache entries, with active-run destruction
 and empty-response coverage covered by the component regression suite.
 
+The active Compose ARQ worker now registers the existing canonical nightly OHLCV refresh
+task at 05:00 UTC behind `MARKET_DATA_REFRESH_SCHEDULE_ENABLED`, disabled by default so
+deployments must explicitly review free-provider entitlements and quotas before enabling
+it. The task continues to write only through the canonical local database path.
+
 Controlling objective:
 - This section and `docs/tc2000-visual-parity.md` are the controlling specification for
   the branch and supersede every older or narrower frontend-rework plan where they
