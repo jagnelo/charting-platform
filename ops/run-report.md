@@ -18255,3 +18255,10 @@ uncovered slice rather than repeat a generic completion claim.
   lifecycle operations delegated to the shared Python Library asset APIs.
 - Validation: focused Study Lab `7 passed`; TypeScript, production build, and diff checks
   passed. Exact V25 visual references and full acceptance remain required.
+## 2026-08-04T11:42:00Z Declared-universe Study Lab analytics
+
+- Added `research.cross_sectional_rank` and `research.breadth_snapshot` to the isolated
+  market SDK and exposed matching editable Study Lab starters for ranked returns and
+  20-session participation/breadth thrusts.
+- Runner tests `40`, full frontend Vitest `533` across `84` files, TypeScript, production
+  build, and diff checks passed. Exact-build visual and broad acceptance remain open.

@@ -789,11 +789,14 @@ required by the workstation scope: positive and negative close streaks (includin
 occurrence events, completed-length tables, histograms, and forward outcomes), moving-
 average participation, forward-return distributions, configurable-20-session high/low
 breakouts, realised-volatility regimes, monthly seasonality, relative-strength regime
-crossings, and the existing raw relative-strength history study. Every starter is ordinary
+crossings, declared-universe cross-sectional ranking, declared-universe breadth
+participation, and the existing raw relative-strength history study. Every starter is ordinary
 unified Python source using only the declared `market`, `ta`, `stats`, `research`, and
-`output` SDK surfaces; editing the source returns the selector to Custom Python. All eight
+`output` SDK surfaces; editing the source returns the selector to Custom Python. All ten
 new/retained sources pass the isolated runner's static validator and deterministic sample
-execution, and the Study Lab component suite now covers the factory catalogue (`8` tests).
+execution, including the new declared-universe `research.cross_sectional_rank` and
+`research.breadth_snapshot` helpers; the Study Lab component suite now covers the factory
+catalogue (`8` tests) and the runner has direct aggregate-rank/breadth assertions.
 This adds functional authoring coverage; exact Version 25 visual approval, aggregate
 cross-sectional breadth studies, live-provider probes, and the broader acceptance matrix
 remain open.

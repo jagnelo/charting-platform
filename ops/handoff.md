@@ -16639,3 +16639,14 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
   source templates. Focused Study Lab component coverage is now `8` tests; TypeScript and
   production build passed. Exact-build visual approval, aggregate cross-sectional studies,
   live-provider probes, Docker-backed integration, and broad acceptance remain open.
+## Continuation update — 2026-08-04T11:42:00Z Declared-universe Study Lab analytics
+
+- Added isolated SDK helpers for declared-universe cross-sectional trailing-return ranking
+  and moving-average breadth participation. New editable Study Lab starters expose ranked
+  bars/tables, coverage, above/below counts, percentage participation, and a 90%-style
+  breadth-thrust Boolean without provider access or fabricated membership.
+- Backend research-runner tests `40` passed; all ten Study Lab source templates passed
+  static validation and deterministic sample execution; full frontend Vitest `533` across
+  `84` files, TypeScript, production build, and diff checks passed. Exact-build visual
+  approval, point-in-time aggregate membership fixtures, live probes, Docker integration,
+  and broad acceptance remain open.
