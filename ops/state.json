@@ -4,8 +4,8 @@
     "active_worker": "Codex",
     "worker_session_started_at": "2026-07-28T21:40:33Z",
     "worker_soft_stop_at": null,
-  "last_handoff_at": "2026-08-04T11:18:00Z",
-  "last_commit": "55d2f6578862043f2f2ee94519f110104c438a88 fix(sandbox): block dangerous ndarray methods",
+  "last_handoff_at": "2026-08-04T15:45:00Z",
+  "last_commit": "b054def feat(study-lab): persist promoted strategy signals",
     "git_ready_to_commit": false,
   "validation": {
     "sandbox_numpy_method_guard": "passed: five dangerous ndarray attribute regressions; focused research runner 45 passed and full backend unit suite 913 passed",
