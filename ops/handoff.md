@@ -1,5 +1,12 @@
 # Active Handoff
 
+## Continuation update — 2026-08-04T12:06:00Z Alert regression verification
+
+- Full backend unit suite `905` passed with `--no-cov` (34 existing dependency warnings), and
+  full frontend Vitest suite `528` passed across `84` files. TypeScript and production build
+  also passed after authenticated user-scoped alert delivery.
+- Docker-backed integration, strict V25 visual approval, and broad acceptance remain open.
+
 ## Continuation update — 2026-08-04T12:04:00Z User-scoped alert notifications
 
 - Repaired screener alert notification dispatch (`ws_manager.broadcast_to_user`) and added

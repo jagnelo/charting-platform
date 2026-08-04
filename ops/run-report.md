@@ -2,6 +2,11 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-04T12:06:00Z Alert regression verification
+
+- Full backend unit suite `905` and frontend Vitest suite `528` passed; TypeScript/build passed.
+  Docker-backed integration, visual/reference, and broad acceptance remain open.
+
 ## 2026-08-04T12:04:00Z User-scoped alert notifications
 
 - Added authenticated WebSocket user routing, repaired screener dispatch, and rendered scan
