@@ -142,6 +142,9 @@ owning watchlist's linked timeframe when first added). The column editor exposes
 timeframe selector, reruns the isolated prepared-universe batch after a change, and sends
 the selected timeframe in both `run_config` and the dataset manifest; restored columns
 without a timeframe remain backward-compatible through the linked-timeframe default.
+The same explicit timeframe contract now applies to persisted Python Boolean conditions:
+the filter editor exposes it, stores it with the condition binding, and includes it in
+the prepared-universe evaluation request.
 
 The relative-rotation uPlot surface now updates `setData`/`setSize` in place during
 resize and data refresh; it destroys the chart only during component teardown. A

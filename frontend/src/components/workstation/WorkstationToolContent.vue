@@ -1357,8 +1357,8 @@ const configuredPythonCondition = computed(() => {
   const condition = props.tool.configuration.python_condition
   if (!condition || typeof condition !== 'object' || Array.isArray(condition)) return null
   const value = condition as Record<string, unknown>
-  return Number.isInteger(value.code_version_id) && typeof value.name === 'string' && ['active', 'inactive', 'off'].includes(String(value.mode))
-    ? { code_version_id: value.code_version_id as number, name: value.name, mode: value.mode as 'active' | 'inactive' | 'off' }
+  return Number.isInteger(value.code_version_id) && typeof value.name === 'string' && ['active', 'inactive', 'off'].includes(String(value.mode)) && (value.timeframe === undefined || typeof value.timeframe === 'string')
+    ? { code_version_id: value.code_version_id as number, name: value.name, mode: value.mode as 'active' | 'inactive' | 'off', ...(typeof value.timeframe === 'string' ? { timeframe: value.timeframe } : {}) }
     : null
 })
 const descriptions: Record<string, string> = {

@@ -2,6 +2,13 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-04T10:48:00Z Python condition timeframe contract
+
+- Python Boolean watchlist conditions now persist and evaluate at an explicit timeframe,
+  defaulting to the owning linked timeframe and preserving the active/inactive/off modes.
+- VirtualWatchlistTool suite passed `36`; TypeScript passed. Exact-build visual approval
+  and the complete acceptance matrix remain open.
+
 ## 2026-08-04T10:32:00Z Python column timeframe contract
 
 - Added per-column timeframe controls and persistence for Python watchlist columns;

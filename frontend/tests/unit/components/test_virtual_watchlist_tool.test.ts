@@ -498,13 +498,13 @@ describe('VirtualWatchlistTool', () => {
     await vi.waitFor(() => expect(wrapper.find('select[aria-label="Sectors Python condition filter"]').exists()).toBe(true))
     const condition = wrapper.get('select[aria-label="Sectors Python condition filter"]')
     await condition.setValue('88')
-    await vi.waitFor(() => expect(wrapper.emitted('update:pythonCondition')?.at(-1)).toEqual([{ code_version_id: 88, name: 'Positive close v2', mode: 'active' }]))
+    await vi.waitFor(() => expect(wrapper.emitted('update:pythonCondition')?.at(-1)).toEqual([{ code_version_id: 88, name: 'Positive close v2', mode: 'active', timeframe: 'D1' }]))
     await vi.waitFor(() => expect(wrapper.text()).toContain('Python condition active · 2/3 match.'))
     expect(wrapper.find('.watchlist__controls b').text()).toBe('2')
     expect(wrapper.text()).toContain('XLK')
     expect(wrapper.text()).not.toContain('XLE')
     expect(wrapper.emitted('update:conditionScreenerId')).toBeUndefined()
-    expect(apiPost).toHaveBeenCalledWith('/research/runs', expect.objectContaining({ code_version_id: 88, run_config: { symbols: ['XLK', 'XLE', 'XLV'] } }))
+    expect(apiPost).toHaveBeenCalledWith('/research/runs', expect.objectContaining({ code_version_id: 88, run_config: { symbols: ['XLK', 'XLE', 'XLV'], timeframe: 'D1' } }))
   })
 
   it('exposes removal only for explicitly editable personal lists', async () => {

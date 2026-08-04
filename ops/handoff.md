@@ -1,5 +1,12 @@
 # Active Handoff
 
+## Continuation update — 2026-08-04T10:48:00Z
+
+- Extended the explicit timeframe contract to Python Boolean watchlist conditions, with a
+  linked-timeframe default, persisted selector, and isolated-run dataset controls.
+- Focused VirtualWatchlistTool coverage passed `36`; TypeScript passed. Visual approval
+  and the broader acceptance gates remain open.
+
 ## Continuation update — 2026-08-04T10:32:00Z
 
 - Python watchlist columns now persist and expose an explicit timeframe, default to the

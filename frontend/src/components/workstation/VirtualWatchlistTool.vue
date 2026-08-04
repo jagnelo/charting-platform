@@ -23,6 +23,9 @@
         <option value="inactive">Inactive</option>
         <option value="off">Off</option>
       </select>
+      <select v-if="pythonCondition" :value="pythonCondition.timeframe ?? timeframe" :aria-label="`${label} Python condition timeframe`" @change="setPythonConditionTimeframe(($event.target as HTMLSelectElement).value)">
+        <option v-for="option in timeframeOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
+      </select>
       <button class="watchlist__columns-button" type="button" @click="columnMenuOpen = !columnMenuOpen">Columns</button>
       <button class="watchlist__columns-button" type="button" aria-label="Column sets" @click="columnSetMenuOpen = !columnSetMenuOpen">Sets</button>
       <b>{{ selectedSymbols.length ? `${selectedSymbols.length} selected · ` : '' }}{{ filteredRows.length }}</b>
@@ -169,7 +172,7 @@ const props = withDefaults(defineProps<{
   conditionColumns?: Array<{ key: string; name: string; screener_id: number; timeframe: string }>
   conditionValues?: Record<string, Record<string, boolean | null>>
   dropError?: string
-  pythonCondition?: { code_version_id: number; name: string; mode: 'active' | 'inactive' | 'off' } | null
+  pythonCondition?: { code_version_id: number; name: string; mode: 'active' | 'inactive' | 'off'; timeframe?: string } | null
   reorderable?: boolean
   allowRemove?: boolean
   sourceWatchlistId?: number | null
@@ -203,7 +206,7 @@ const props = withDefaults(defineProps<{
   membershipTargets: () => [],
   columnOverrides: () => ({}),
 })
-const emit = defineEmits<{ select: [row: WatchlistRow]; compare: [symbols: string[]]; reorder: [itemIds: number[]]; 'plot-drop': [payload: ChartPlotDragPayload]; 'condition-drop': [payload: TechnicalConditionDragPayload]; 'row-action': [action: 'chart' | 'compare' | 'note' | 'alert' | 'copy' | 'copy-to-watchlist' | 'move-to-watchlist' | 'flag' | 'remove', row: WatchlistRow, targetWatchlistId?: number]; 'update:visibleColumnKeys': [keys: string[]]; 'update:filterText': [value: string]; 'update:conditionScreenerId': [id: number | null]; 'update:conditionFilterMode': [mode: 'active' | 'inactive' | 'off']; 'update:pinnedBooleanKeys': [keys: string[]]; 'update:columnGroups': [groups: Record<string, string>]; 'update:stackedColumnKeys': [keys: string[]]; 'update:columnOverrides': [overrides: Record<string, { label?: string; width?: string }>]; 'update:pythonColumns': [columns: Array<{ code_version_id: number; name: string; timeframe?: string }>]; 'update:pythonCondition': [condition: { code_version_id: number; name: string; mode: 'active' | 'inactive' | 'off' } | null] }>()
+const emit = defineEmits<{ select: [row: WatchlistRow]; compare: [symbols: string[]]; reorder: [itemIds: number[]]; 'plot-drop': [payload: ChartPlotDragPayload]; 'condition-drop': [payload: TechnicalConditionDragPayload]; 'row-action': [action: 'chart' | 'compare' | 'note' | 'alert' | 'copy' | 'copy-to-watchlist' | 'move-to-watchlist' | 'flag' | 'remove', row: WatchlistRow, targetWatchlistId?: number]; 'update:visibleColumnKeys': [keys: string[]]; 'update:filterText': [value: string]; 'update:conditionScreenerId': [id: number | null]; 'update:conditionFilterMode': [mode: 'active' | 'inactive' | 'off']; 'update:pinnedBooleanKeys': [keys: string[]]; 'update:columnGroups': [groups: Record<string, string>]; 'update:stackedColumnKeys': [keys: string[]]; 'update:columnOverrides': [overrides: Record<string, { label?: string; width?: string }>]; 'update:pythonColumns': [columns: Array<{ code_version_id: number; name: string; timeframe?: string }>]; 'update:pythonCondition': [condition: { code_version_id: number; name: string; mode: 'active' | 'inactive' | 'off'; timeframe?: string } | null] }>()
 const scrollElement = ref<HTMLElement | null>(null)
 const filter = ref(props.filterText)
 const conditionFilter = ref(props.conditionScreenerId == null ? '' : String(props.conditionScreenerId))
@@ -506,13 +509,20 @@ function configurePythonCondition(value: string) {
     }
     return
   }
-  const condition = { code_version_id: versionId, name: asset.name, mode: 'active' as const }
+  const condition = { code_version_id: versionId, name: asset.name, mode: 'active' as const, timeframe: props.timeframe }
   if (pythonConditionMode.value === 'off') pythonConditionMode.value = 'active'
   emit('update:pythonCondition', condition)
   void runPythonCondition(condition)
 }
 
-async function runPythonCondition(condition: { code_version_id: number; name: string; mode: 'active' | 'inactive' | 'off' }) {
+function setPythonConditionTimeframe(timeframe: string) {
+  if (!pythonCondition.value) return
+  const condition = { ...pythonCondition.value, timeframe }
+  emit('update:pythonCondition', condition)
+  void runPythonCondition(condition)
+}
+
+async function runPythonCondition(condition: { code_version_id: number; name: string; mode: 'active' | 'inactive' | 'off'; timeframe?: string }) {
   if (condition.mode !== 'active' || runningPythonConditions.has(condition.code_version_id)) return
   const symbols = [...new Set(props.rows.map(row => row.symbol).filter(Boolean))]
   if (!symbols.length) return
@@ -524,7 +534,8 @@ async function runPythonCondition(condition: { code_version_id: number; name: st
   pythonConditionState.value = 'Running Python condition…'
   pythonProgress.value = { ...pythonProgress.value, python_condition: 'Queued' }
   try {
-    const run = await api.post<{ id: number }>('/research/runs', { code_version_id: condition.code_version_id, run_config: { symbols }, dataset_manifest: { source: 'canonical_database' } })
+    const runTimeframe = condition.timeframe ?? props.timeframe
+    const run = await api.post<{ id: number }>('/research/runs', { code_version_id: condition.code_version_id, run_config: { symbols, timeframe: runTimeframe }, dataset_manifest: { source: 'canonical_database', timeframe: runTimeframe } })
     if (!isCurrent()) return
     pythonRunIds.value = { ...pythonRunIds.value, python_condition: run.id }
     for (let attempt = 0; attempt < 30; attempt += 1) {
