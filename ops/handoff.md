@@ -16839,3 +16839,16 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
   its immutable research-run reference and Boolean output contract.
 - The focused integration test passed (`1`); the full integration baseline remains green at
   `279` plus this new coverage (`280` current tests, `56` dependency warnings when combined).
+
+## Continuation update — 2026-08-04T18:40:00Z Provider capability-chain correction
+
+- Browser-backed acceptance exposed a stale runtime policy defect: Alpaca has an
+  assets/universe-discovery adapter but no `search_instruments` method, while an old
+  persisted policy could still place Alpaca in the instrument-search chain.
+- Removed Alpaca from the configured instrument-search chain and made chain resolution
+  verify the provider's current registered capability before returning any policy row.
+  Unknown/stale provider rows are skipped rather than invoked; this prevents an adapter
+  method mismatch from exhausting search.
+- Added regressions for stale unsupported policies and the `.env.example` chain contract.
+  Focused provider/runtime tests `17 passed`; full backend unit suite `917 passed` with
+  34 existing dependency warnings. Rebuild the branch stack before the next fresh log audit.

@@ -18416,3 +18416,14 @@ uncovered slice rather than repeat a generic completion claim.
 - Current integration coverage is `280` tests (`279` baseline plus this regression; `56`
   dependency warnings combined). Visual, provider-live, adversarial resource, performance,
   and broad interaction gates remain open.
+
+## 2026-08-04T18:40:00Z Provider capability-chain correction
+
+- Fixed a real provider-runtime defect exposed by fresh browser logs: stale Alpaca
+  instrument-search policies could invoke a method that Alpaca does not implement.
+- The ordinary search chain now uses Edgar, Massive, and Alpha Vantage; resolution also
+  filters persisted policies against the provider registry's current capabilities and
+  skips unknown providers. Focused provider/runtime coverage `17 passed`; full backend
+  unit suite `917 passed` with 34 existing dependency warnings.
+- Rebuild and fresh-audit the branch stack next. Exact-build visual approval, provider-live
+  probes, adversarial sandbox/resource coverage, performance, and broad E2E remain open.

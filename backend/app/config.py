@@ -64,7 +64,10 @@ class Settings(BaseSettings):
     IDENTIFIER_PROVIDER_PRIORITY: list[str] = ["openfigi"]
     OPTION_QUOTE_HISTORY_PROVIDER_PRIORITY: list[str] = []
     PROVIDER_CHAIN_SEEDS: dict[str, list[str]] = {
-        "instrument_search": ["edgar", "alpaca", "massive", "alpha_vantage"],
+        # Alpaca exposes an assets/discovery endpoint but no instrument-search
+        # operation. Keep it out of this chain; stale policies from older
+        # configurations are filtered by provider capability at runtime too.
+        "instrument_search": ["edgar", "massive", "alpha_vantage"],
         "instrument_metadata": ["edgar"],
         "price_history": ["alpaca", "alpha_vantage"],
         "latest_price": ["alpaca", "alpha_vantage"],

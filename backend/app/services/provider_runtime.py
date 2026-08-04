@@ -406,6 +406,15 @@ async def resolve_provider_chain(
     resolved: list[ResolvedProvider] = []
     current_environment = settings.APP_ENV.strip().lower()
     for policy, health, data_source, entitlement in rows:
+        # Policies may outlive a provider capability after a configuration or
+        # adapter change. Never let a stale row invoke a method the provider
+        # does not implement (for example Alpaca has discovery, not search).
+        try:
+            provider = get_provider(data_source.name)
+        except KeyError:
+            continue
+        if capability.value not in list_provider_capabilities(data_source.name):
+            continue
         allowed_environments = {
             str(value).strip().lower() for value in entitlement.enabled_environments
         }
@@ -421,7 +430,6 @@ async def resolve_provider_chain(
         )
         if effective_support == SUPPORT_STATUS_UNSUPPORTED:
             continue
-        provider = get_provider(data_source.name)
         policy.effective_score = _effective_score(policy, health)
         health.observed_score = policy.effective_score
         resolved.append(

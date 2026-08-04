@@ -22,6 +22,7 @@ def test_backend_env_example_keeps_yfinance_out_of_new_workstation_chains():
     identifier_line = next(line for line in lines if line.startswith("IDENTIFIER_PROVIDER_PRIORITY="))
     assert json.loads(identifier_line.split("=", 1)[1]) == ["openfigi"]
     assert seeds["option_chain"] == ["yfinance"]
+    assert "alpaca" not in seeds["instrument_search"]
     assert all(
         "yfinance" not in providers
         for capability, providers in seeds.items()

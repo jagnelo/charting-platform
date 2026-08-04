@@ -212,6 +212,40 @@ async def test_seed_provider_runtime_resyncs_unpinned_base_priority(db, monkeypa
     assert policy.base_priority == expected_priority
 
 
+@pytest.mark.asyncio
+async def test_provider_chain_ignores_stale_policy_for_unsupported_capability(db):
+    """Old runtime rows must not call methods removed from a provider adapter."""
+    async_db = AsyncSessionAdapter(db)
+    await seed_provider_runtime(async_db)
+    alpaca = db.execute(select(DataSource).where(DataSource.name == "alpaca")).scalar_one()
+    db.add(
+        ProviderPolicy(
+            data_source_id=alpaca.id,
+            capability=ProviderCapability.INSTRUMENT_SEARCH,
+            base_priority=1,
+        )
+    )
+    db.add(
+        ProviderEntitlement(
+            data_source_id=alpaca.id,
+            capability=ProviderCapability.INSTRUMENT_SEARCH,
+            configured_plan="legacy",
+            is_free=True,
+        )
+    )
+    db.add(
+        ProviderHealthState(
+            data_source_id=alpaca.id,
+            capability=ProviderCapability.INSTRUMENT_SEARCH,
+        )
+    )
+    db.commit()
+
+    chain = await resolve_provider_chain(async_db, ProviderCapability.INSTRUMENT_SEARCH)
+
+    assert all(item.provider_name != "alpaca" for item in chain)
+
+
 def test_bucket_rebuilds_when_policy_limits_change():
     policy = ProviderPolicy(
         data_source_id=1,
