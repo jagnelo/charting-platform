@@ -1,5 +1,21 @@
 # Active Handoff
 
+## Continuation update — 2026-08-05T00:15:00Z Clean-stack integration and browser acceptance
+
+- Re-ran the complete Docker-backed backend integration suite: `281 passed` with the
+  repository's existing 54 dependency deprecation warnings.
+- The first browser invocation was discarded because it was launched from the repository
+  root and therefore omitted the frontend Playwright base URL; the correctly configured
+  rerun from `frontend/` passed all 26 Chromium flows. A clean backend restart plus focused
+  and full pop-out reruns also passed (2/2 and 26/26).
+- Post-restart backend logs for the full browser run contained no `SAWarning`, garbage-
+  collector/non-checked-in connection, `InterfaceError`, traceback, provider error, or
+  unexpected error. This supersedes the pre-restart buffered warning as the current
+  browser evidence, while the lifecycle regression remains covered by the existing tests.
+- Exact-build V25 visual approval, configured multi-provider live matrix, adversarial
+  resource-pressure/crash/orphan probes, multi-window performance, migration re-audit, and
+  broad parity remain open.
+
 ## Continuation update — 2026-08-05T00:00:00Z SEC no-key provider probe
 
 - Ran a bounded live probe against the public SEC EDGAR endpoints with the repository's

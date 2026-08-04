@@ -1,5 +1,15 @@
 # Run Report
 
+## 2026-08-05T00:15:00Z Clean-stack integration and browser acceptance
+
+- Docker-backed backend integration: `281/281` passed (54 existing dependency warnings).
+- Correctly configured Chromium execution from `frontend/`: full `flows.spec.ts` passed
+  `26/26` in 42.5s; the isolated float/close lifecycle passed `2/2`.
+- The backend was restarted before the final browser run. Its post-restart log window was
+  empty for connection-leak/`SAWarning`, `InterfaceError`, traceback, provider-error, and
+  unexpected-error patterns. An earlier root-directory Playwright invocation was invalid
+  because it omitted the frontend config and is not acceptance evidence.
+
 ## 2026-08-05T00:00:00Z SEC no-key provider probe
 
 - Public SEC EDGAR `company_tickers.json` succeeded with the repository User-Agent.
