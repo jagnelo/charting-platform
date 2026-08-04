@@ -1,5 +1,11 @@
 # Active Handoff
 
+## Continuation update — 2026-08-05T00:35:00Z Post-persistence visual smoke
+
+- The default 1920×1080 visual probe passed readiness and core geometry/overlap checks after
+  the persistence fix, then correctly rejected the unapproved local screenshot at a 2% diff.
+  No baseline was promoted; exact-build V25 references remain `required_missing`.
+
 ## Continuation update — 2026-08-05T00:25:00Z Pop-out persistence defect closure
 
 - The ten-cycle pop-out audit found a real source-window loss defect: transient Golden Layout

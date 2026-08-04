@@ -1,5 +1,12 @@
 # Run Report
 
+## 2026-08-05T00:35:00Z Post-persistence visual smoke
+
+- The default 1920×1080 visual probe still passed layout readiness and all core overlap
+  checks after the Golden Layout persistence fix. It reached screenshot comparison and
+  correctly rejected the unapproved local snapshot at a 2% diff; no visual baseline was
+  promoted and the exact-build manifest remains required_missing.
+
 ## 2026-08-05T00:25:00Z Pop-out persistence defect closure
 
 - The strengthened ten-cycle pop-out audit exposed a real defect: transient Golden Layout
