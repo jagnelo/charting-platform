@@ -1,3 +1,5 @@
+import pytest
+
 from app.services.code_validation import validate_workstation_python
 
 
@@ -22,6 +24,22 @@ def test_rejects_imports_and_dynamic_execution_with_source_positions():
         ("forbidden_syntax", 1),
         ("forbidden_call", 2),
     }
+
+
+@pytest.mark.parametrize(
+    ("source", "expected_code"),
+    [
+        ("open('/tmp/secret')", "forbidden_call"),
+        ("socket.socket()", "unapproved_namespace"),
+        ("subprocess.Popen(['id'])", "unapproved_namespace"),
+        ("getattr(market, 'close')", "forbidden_call"),
+        ("type('Escape', (), {})", "unapproved_namespace"),
+    ],
+)
+def test_rejects_filesystem_network_process_reflection_and_dynamic_type_access(source, expected_code):
+    result = validate_workstation_python(source)
+    assert not result.valid
+    assert any(item.code == expected_code for item in result.diagnostics)
 
 
 def test_rejects_dunder_escape_attempts():

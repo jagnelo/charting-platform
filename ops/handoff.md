@@ -16892,3 +16892,12 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
   frontend Vitest remained `535` passed with type-check/build/diff clean.
 - Exact-build V25 visual approval, live-provider probes, adversarial sandbox/resource tests,
   multi-window performance, and deep browser parity remain open.
+
+## Continuation update — 2026-08-04T19:40:00Z Sandbox escape regression coverage
+
+- Added unified-Python validator regressions for filesystem access, sockets, subprocess
+  execution, reflection, and dynamic type construction.
+- Full backend unit coverage passed `922` tests with `34` existing dependency warnings;
+  focused validation passed `15` tests with `--no-cov`.
+- The isolated container boundary and broader adversarial resource/cancellation matrix remain
+  open alongside visual, provider-live, performance, and deep browser parity gates.

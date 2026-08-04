@@ -18463,3 +18463,12 @@ uncovered slice rather than repeat a generic completion claim.
   build, and diff check passed.
 - Exact-build V25 visual approval, live-provider probes, adversarial sandbox/resource tests,
   multi-window performance, and deep browser parity remain open.
+
+## 2026-08-04T19:40:00Z Sandbox escape regression coverage
+
+- Added explicit validator coverage for filesystem, network, subprocess, reflection, and
+  dynamic-type escape attempts.
+- Full backend unit suite passed `922` tests with `34` existing dependency warnings;
+  focused validation passed `15` tests with `--no-cov`.
+- Container adversarial resource/cancellation evidence, visual approval, live probes,
+  performance, and deep browser parity remain open.
