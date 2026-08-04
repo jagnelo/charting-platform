@@ -5,7 +5,7 @@
     "worker_session_started_at": "2026-07-28T21:40:33Z",
     "worker_soft_stop_at": null,
   "last_handoff_at": "2026-08-04T11:18:00Z",
-    "last_commit": "35cc38716f1a8cf15290732e875b3a6e585b6dcf ops: record frontend regression count",
+    "last_commit": "dc88d2192e4f5a193618353ca09a36206356aa3c ops: checkpoint sector lineage parity",
     "git_ready_to_commit": false,
     "validation": {
         "backend_lint": "passed (code validation including deterministic XNYS coverage calendar, restricted numerical facades, isolated research runner/resource restoration, screener, visual, analysis, research, OHLCV session model, and migration modules, 2026-08-03)",
