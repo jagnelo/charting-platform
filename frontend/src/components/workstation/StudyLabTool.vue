@@ -28,7 +28,20 @@
         <small v-if="parameterSchemaError" class="study-lab-tool__parameter-error">{{ parameterSchemaError }}</small>
       </section>
     </header>
-    <textarea v-model="source" aria-label="Study Python source" spellcheck="false" />
+    <div class="study-lab-tool__editor-shell">
+      <textarea ref="editor" v-model="source" aria-label="Study Python source" spellcheck="false" @input="updateSuggestions" @keyup="updateSuggestions" @focus="updateSuggestions" @blur="hideSuggestions" />
+      <div v-if="showSuggestions && editorSuggestions.length" class="study-lab-tool__suggestions" role="listbox" aria-label="Python SDK suggestions">
+        <button v-for="suggestion in editorSuggestions" :key="suggestion.insert" type="button" role="option" @mousedown.prevent="insertSuggestion(suggestion.insert)">{{ suggestion.insert }} <small>{{ suggestion.signature }}</small></button>
+      </div>
+    </div>
+    <details class="study-lab-tool__sdk-reference">
+      <summary>SDK reference</summary>
+      <span><b>market</b>: close/open/high/low/volume/vwap/ohlcv, benchmark_* accessors, timestamps, sessions, metadata</span>
+      <span><b>ta</b>: sma, ema, rsi, atr, highest, lowest, rate_of_change</span>
+      <span><b>stats</b>: streaks, ranks, percentiles, rolling, correlation, regression, distributions</span>
+      <span><b>research</b>: forward_returns, occurrences, regimes, breadth, historical comparisons</span>
+      <span><b>output</b>: scalar, boolean, series, table, events, histogram, scatter, heatmap, dashboard</span>
+    </details>
     <section v-if="validation" class="study-lab-tool__validation" :class="{ 'study-lab-tool__validation--bad': !validation.valid }">
       <strong>{{ validation.valid ? 'Validated for isolated execution' : 'Validation errors' }}</strong>
       <pre v-if="validation.diagnostics.length">{{ validation.diagnostics }}</pre>
@@ -58,7 +71,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { api } from '@/lib/api'
 import StudyHistogramUPlot from './StudyHistogramUPlot.vue'
 import StudyHeatmap from './StudyHeatmap.vue'
@@ -92,6 +105,22 @@ const startDate = ref(configString('start_date', ''))
 const endDate = ref(configString('end_date', ''))
 const parameterSchemaText = ref(typeof props.configuration?.parameter_schema === 'string' ? String(props.configuration.parameter_schema) : '')
 const parameterDrafts = ref<Record<string, string | boolean>>({})
+const editor = ref<HTMLTextAreaElement | null>(null)
+const showSuggestions = ref(false)
+const editorPrefix = ref('')
+const editorSuggestionCatalog = [
+  { prefix: 'market', insert: 'market.close()', signature: 'series[float]' },
+  { prefix: 'market', insert: 'market.ohlcv()', signature: 'list[OHLCVRow]' },
+  { prefix: 'market', insert: 'market.benchmark_close()', signature: 'series[float]' },
+  { prefix: 'market', insert: 'market.metadata()', signature: 'dict[str, object]' },
+  { prefix: 'ta', insert: 'ta.sma(market.close(), 20)', signature: 'series, period' },
+  { prefix: 'ta', insert: 'ta.rsi(market.close(), 14)', signature: 'series, period' },
+  { prefix: 'stats', insert: 'stats.positive_close_streaks(dataset)', signature: 'dataset' },
+  { prefix: 'research', insert: 'research.forward_returns(dataset, indices, [1, 5, 20])', signature: 'dataset, events, horizons' },
+  { prefix: 'output', insert: "output.scalar('name', value)", signature: 'name, value' },
+  { prefix: 'output', insert: "output.series('name', values)", signature: 'name, values' },
+  { prefix: 'output', insert: "output.table('name', rows)", signature: 'name, rows' },
+]
 const busy = ref(false)
 const validation = ref<Validation | null>(null)
 const run = ref<Run | null>(null)
@@ -130,6 +159,7 @@ const parameterDefinitions = computed<ParameterDefinition[]>(() => {
   })
 })
 const parameterSchemaError = computed(() => parameterSchemaText.value.trim() && !parsedParameterSchema.value ? 'Parameter schema must be a JSON object.' : '')
+const editorSuggestions = computed(() => editorPrefix.value ? editorSuggestionCatalog.filter(item => item.prefix.startsWith(editorPrefix.value.split('.')[0]) && item.insert.startsWith(editorPrefix.value)).slice(0, 8) : [])
 watch(() => props.activeSymbol, value => { if (!symbol.value || symbol.value === 'SPY') symbol.value = value })
 watch(() => props.configuration, configuration => {
   if (typeof configuration?.timeframe === 'string') timeframe.value = normaliseTimeframe(configuration.timeframe)
@@ -169,6 +199,27 @@ watch(parameterDefinitions, definitions => {
   parameterDrafts.value = next
 }, { immediate: true })
 function setParameterDraft(name: string, value: string | boolean) { parameterDrafts.value = { ...parameterDrafts.value, [name]: value } }
+function updateSuggestions() {
+  const element = editor.value
+  if (!element) return
+  const beforeCursor = source.value.slice(0, element.selectionStart)
+  const match = beforeCursor.match(/(?:^|\s)([A-Za-z_]+(?:\.[A-Za-z_]*)?)$/)
+  editorPrefix.value = match?.[1] ?? ''
+  showSuggestions.value = Boolean(editorPrefix.value)
+}
+function hideSuggestions() { window.setTimeout(() => { showSuggestions.value = false }, 120) }
+async function insertSuggestion(value: string) {
+  const element = editor.value
+  if (!element) return
+  const cursor = element.selectionStart
+  const prefix = editorPrefix.value
+  source.value = `${source.value.slice(0, cursor - prefix.length)}${value}${source.value.slice(cursor)}`
+  showSuggestions.value = false
+  await nextTick()
+  const nextCursor = cursor - prefix.length + value.length
+  element.focus()
+  element.setSelectionRange(nextCursor, nextCursor)
+}
 function buildParameters() {
   const values: Record<string, unknown> = {}
   for (const definition of parameterDefinitions.value) {
@@ -288,6 +339,14 @@ onBeforeUnmount(clearPoller)
 
 <style scoped>
 .study-lab-tool { display:grid; height:100%; min-height:0; grid-template-rows:auto minmax(110px,1fr) auto auto auto; gap:5px; padding:6px; background:#11161b; color:#cbd5dc; font:10px "Segoe UI",Arial,sans-serif; }
+.study-lab-tool__editor-shell { position:relative; min-height:0; }
+.study-lab-tool__editor-shell textarea { width:100%; height:100%; min-height:110px; resize:none; }
+.study-lab-tool__suggestions { position:absolute; z-index:5; top:4px; left:4px; display:grid; min-width:260px; max-width:calc(100% - 8px); border:1px solid #4a6675; background:#172027; box-shadow:0 3px 10px #0008; }
+.study-lab-tool__suggestions button { display:flex; justify-content:space-between; gap:8px; padding:3px 5px; border:0; border-bottom:1px solid #293740; color:#dce6ed; background:#172027; font:inherit; text-align:left; }
+.study-lab-tool__suggestions button:hover { background:#25485b; }
+.study-lab-tool__suggestions small { color:#8ea3b0; }
+.study-lab-tool__sdk-reference { display:grid; gap:2px; color:#8195a3; }
+.study-lab-tool__sdk-reference summary { cursor:pointer; color:#b5c6d0; }
 .study-lab-tool__parameters { display:grid; grid-template-columns:minmax(120px, 1fr) minmax(0, 2fr); gap:5px; align-items:start; color:#8ea3b0; }
 .study-lab-tool__parameters > label { display:grid; gap:2px; }
 .study-lab-tool__parameters textarea { min-height:28px; resize:vertical; }

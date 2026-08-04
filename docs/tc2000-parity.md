@@ -108,6 +108,9 @@ values before creating the immutable code version, and sends the resulting typed
 map with the run. The schema remains serializable in the workspace configuration boundary.
 Editing or clearing the schema immediately updates that persisted window configuration, so
 floating, reloading, or restoring the Study Lab does not silently discard its controls.
+The editor also provides constrained cursor-word suggestions and inline signatures for
+the supported SDK namespaces, plus a compact reference panel; suggestions only insert
+ordinary Python source and cannot execute code or inject frontend content.
 
 Unified Python assets now have lifecycle contracts for complete export/import, immutable
 version-preserving clone, and reversible archive/unarchive operations. Each imported or

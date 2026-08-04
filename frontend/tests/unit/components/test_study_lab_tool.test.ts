@@ -26,6 +26,17 @@ describe('StudyLabTool', () => {
     expect(wrapper.find('[aria-label="Study session"]').element).toHaveProperty('value', 'all')
   })
 
+  it('offers constrained SDK suggestions while retaining the plain Python editor', async () => {
+    const wrapper = mount(StudyLabTool, { props: { activeSymbol: 'SPY' } })
+    const editor = wrapper.find('[aria-label="Study Python source"]')
+    await editor.setValue('market.')
+    expect(wrapper.find('[aria-label="Python SDK suggestions"]').exists()).toBe(true)
+    expect(wrapper.text()).toContain('market.close()')
+    await wrapper.find('[aria-label="Python SDK suggestions"] button').trigger('mousedown')
+    expect((editor.element as HTMLTextAreaElement).value).toContain('market.close()')
+    expect(wrapper.text()).toContain('SDK reference')
+  })
+
   it('validates, starts an immutable isolated study run, and renders artifacts', async () => {
     apiPost.mockImplementation((path: string) => {
       if (path === '/code/validate') return Promise.resolve({ valid: true, diagnostics: [], dependencies: ['stats', 'output'], lookback_hint: 1, output_contracts: ['histogram', 'scatter', 'scalar', 'table'] })

@@ -2,6 +2,19 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-04T05:08:00Z Full SDK editor verification
+
+- Complete frontend Vitest passed `515` tests across `84` files after bounded Study Lab
+  SDK suggestions/reference additions; TypeScript and production build passed. Only
+  expected conflict-path test logging appeared on stderr.
+
+## 2026-08-04T04:42:00Z Study Lab SDK editor assistance
+
+- Added bounded cursor-word SDK suggestions with signatures and an inline reference panel
+  to Study Lab without replacing the plain Python editor or permitting frontend content.
+- Focused Study Lab suite passed `4` tests; TypeScript and diff checks passed. Exact-build
+  visual approval and the complete acceptance matrix remain open.
+
 ## 2026-08-04T04:18:00Z Study Lab parameter persistence
 
 - Parameter-schema edits now persist through the serializable Study Lab window

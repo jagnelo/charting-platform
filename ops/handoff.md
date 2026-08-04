@@ -1,5 +1,19 @@
 # Active Handoff
 
+## Continuation update — 2026-08-04T05:08:00Z
+
+- Re-ran the complete frontend suite after SDK autocomplete/reference additions: `515`
+  tests across `84` files passed; TypeScript and production build also passed. Existing
+  stderr remains limited to intentional conflict-path test logging.
+
+## Continuation update — 2026-08-04T04:42:00Z
+
+- Added constrained Study Lab SDK autocomplete/signature suggestions and a compact
+  namespace reference panel around the existing plain-Python editor. Suggestions are
+  bounded to supported SDK calls and insert source only.
+- Focused Study Lab coverage passed `4` tests and TypeScript/diff checks pass. Full frontend
+  verification, visual approval, and the broader acceptance gates remain open.
+
 ## Continuation update — 2026-08-04T04:18:00Z
 
 - Closed the Study Lab persistence hole: editing or clearing its parameter schema now
