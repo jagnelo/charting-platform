@@ -2,6 +2,12 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-04T11:28:00Z Analysis lineage columns
+
+- Added canonical response-level coverage, freshness, and provenance columns to top-down
+  benchmark/sector/constituent/proxy watchlists. Focused watchlist suite `41`, TypeScript,
+  production build, and diff checks passed; full regression and broad acceptance remain open.
+
 ## 2026-08-04T11:25:00Z Watchlist column clipboard
 
 - Added explicit copy/paste of integrated column settings with an in-memory fallback and

@@ -16606,3 +16606,14 @@ audit across remaining programmable surfaces and recovery/performance gates.
   Docker integration, and broad acceptance remain open.
 
 Next step: checkpoint the column clipboard slice, then continue the acceptance audit.
+## Continuation update — 2026-08-04T11:28:00Z Analysis lineage columns
+
+- Extended canonical group snapshot state and top-down watchlist adapters with response
+  lineage fields. Benchmark, sector, constituent, and verified-proxy lists now expose
+  `Coverage`, `Freshness`, and `Provenance` columns with explicit unavailable values.
+- Focused VirtualWatchlist suite `41`, TypeScript, production build, and diff checks passed.
+  Full frontend regression, visual density review, Docker integration, and broad acceptance
+  remain open.
+
+Next step: run the full frontend regression, checkpoint this lineage slice, then continue
+the requirement-level audit.
