@@ -1,5 +1,16 @@
 # Active Handoff
 
+## Continuation update — 2026-08-04T14:32:00Z
+
+- Re-ran the complete backend unit boundary with the repository Python 3.12
+  environment: `901 passed` with 34 existing dependency warnings.
+- Strict visual-manifest validation was executed with `--require-approved` and
+  correctly rejected `application-shell-default/default` as `required_missing`.
+  Online-source discovery confirms the available official screenshots are older or
+  version-unspecified; no false approval was introduced.
+- The active branch remains synchronized after the polling-coordinator commits; the
+  generated `test-results/` directory remains intentionally untracked.
+
 ## Continuation update — 2026-08-04T14:18:00Z
 
 - Replaced the uPlot chart host's recursive latest-bar timeout with a reactive Vue

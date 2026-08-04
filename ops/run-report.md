@@ -2,6 +2,15 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-04T14:32:00Z Backend and visual acceptance audit
+
+- Complete backend unit suite passed `901` tests with the repository Python 3.12
+  environment; 34 existing dependency warnings remain.
+- The strict visual validator intentionally failed at
+  `application-shell-default/default: required_missing`. Authoritative online sources
+  confirm build `25.0.9571`, but available images are earlier/version-unspecified and
+  remain discovery-only; no approval state was fabricated.
+
 ## 2026-08-04T14:18:00Z uPlot latest-bar query coordinator
 
 - Replaced the uPlot host's component-owned recursive latest-bar timeout with a

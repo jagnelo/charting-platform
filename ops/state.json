@@ -4,7 +4,7 @@
     "active_worker": "Codex",
     "worker_session_started_at": "2026-07-28T21:40:33Z",
     "worker_soft_stop_at": null,
-  "last_handoff_at": "2026-08-04T14:18:00Z",
+  "last_handoff_at": "2026-08-04T14:32:00Z",
   "last_commit": "8f1c6f5 perf(chart): coordinate latest bars with vue query",
     "git_ready_to_commit": true,
     "validation": {
@@ -23,6 +23,7 @@
         "backend_combo_library_test": "blocked_by_environment (new combo_list persistence regression is written, but the current uv invocation resolves Python 3.9 and cannot import datetime.UTC; repository backend requires Python >=3.12; no backend source change was needed because the existing user-isolated generic library contract already persists combo payloads)"
     },
   "notes": [
+        "2026-08-04T14:32:00Z: Complete backend unit suite passed 901 tests under Python 3.12 with 34 existing dependency warnings. Strict visual-manifest validation correctly rejected application-shell-default/default as required_missing; authoritative online sources confirm build 25.0.9571 but available images remain earlier/version-unspecified discovery-only evidence. No false approval was introduced.",
         "2026-08-04T14:18:00Z: Replaced the uPlot host's recursive latest-bar timeout with a timeframe-aware Vue Query observer keyed by canonical symbol, timeframe, and bar type. Visibility/intersection gating, in-place tail merging, and teardown remain. Full frontend 518 across 84 files, focused chart/shell coverage, TypeScript, production build, and diff passed. Exact-build visual approval and broad acceptance remain open.",
         "2026-08-04T14:06:00Z: Replaced the workstation shell's component-owned top-down refresh interval with the shared Vue Query market-analysis coordinator. Manual and scheduled refreshes share one deduplicated query, hidden documents and pop-outs are excluded, and visibility restoration refetches the shared cache. WorkstationView focused suite 3 passed; TypeScript, production build, and diff passed. Exact-build visual approval and broad acceptance remain open.",
         "2026-08-04T06:38:00Z: Added serializable Study Lab universe selectors and structured market.universe() execution for aggregate typed artifacts. Runner 37 passed; Study Lab 4 passed; visual approval and broad acceptance remain open.",
