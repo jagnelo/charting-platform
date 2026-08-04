@@ -38,6 +38,30 @@ describe('VirtualWatchlistTool', () => {
     expect(wrapper.find('.watchlist__scroll > div').attributes('style')).toContain('height:')
   })
 
+  it('cancels an active Python batch when the canonical row universe changes', async () => {
+    apiPost.mockImplementation(async (path: string) => {
+      if (path === '/research/runs') return { id: 91 }
+      return {}
+    })
+    apiGet.mockImplementation(async (path: string) => {
+      if (path.startsWith('/research/runs/91/')) return { status: 'running', cells: [], progress: { status: 'running' } }
+      return []
+    })
+
+    const wrapper = mount(VirtualWatchlistTool, {
+      props: {
+        label: 'Python universe',
+        rows,
+        pythonColumns: [{ code_version_id: 7, name: 'Signal', timeframe: 'D1' }],
+      },
+    })
+
+    await vi.waitFor(() => expect(apiPost).toHaveBeenCalledWith('/research/runs', expect.anything()))
+    await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith('/research/runs/91/batch-results'))
+    await wrapper.setProps({ rows: [rows[0]] })
+    await vi.waitFor(() => expect(apiPost).toHaveBeenCalledWith('/research/runs/91/cancel', {}))
+  })
+
   it('filters canonical rows and publishes the selected canonical row', async () => {
     const wrapper = mount(VirtualWatchlistTool, {
       props: {

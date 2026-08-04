@@ -18508,6 +18508,17 @@ uncovered slice rather than repeat a generic completion claim.
   manifest reports `application-shell-default/default` as `required_missing`. The online
   V25 discovery pack is not treated as an approved exact-build baseline.
 
+## 2026-08-04T21:20:00Z Stale Python batch cancellation
+
+- `VirtualWatchlistTool` now calls the research-run cancellation endpoint whenever its
+  canonical row universe changes, while retaining generation guards against late results.
+- Focused watchlist coverage: `42 passed`; full frontend Vitest: `536 passed` across `84`
+  files; TypeScript, production build, and `git diff --check`: passed.
+- Rebuilt branch-scoped stack: complete Chromium flows `23 passed (24.1s)`. Recent backend
+  logs were clean for cancellation traces, connection leaks, provider runtime errors, and
+  unexpected errors. The strict visual gate remains intentionally blocked by required
+  exact-build reference states.
+
 ## 2026-08-04T20:25:00Z Taxonomy read-path correction
 
 - Replaced request-time taxonomy mutation on market-group reads with a lightweight

@@ -720,6 +720,11 @@ async function applyConditionFilter(value: string) {
 const rowUniverseKey = computed(() => props.rows.map(row => `${row.instrumentId ?? ''}:${row.symbol}`).join('|'))
 watch(rowUniverseKey, () => {
   rowsGeneration.value += 1
+  // A changed universe invalidates active prepared-universe jobs. Cancel them
+  // at the backend as well as ignoring late results locally; otherwise a large
+  // Python column/condition run keeps consuming sandbox resources after the
+  // user has moved to another list or symbol set.
+  for (const key of Object.keys(pythonRunIds.value)) void cancelPythonRun(key)
   conditionMatchedIds.value = null
   pythonConditionMatchedSymbols.value = null
   for (const column of pythonColumns.value) {

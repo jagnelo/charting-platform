@@ -16953,3 +16953,16 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
   manifest: `application-shell-default/default` is still `required_missing`. No generated
   application screenshot was promoted as a TC2000 reference; the online discovery pack
   remains non-authoritative until exact-build/permission/review metadata is supplied.
+
+## Continuation update — 2026-08-04T21:20:00Z Stale Python batch cancellation
+
+- Changed canonical row universes now cancel active Python watchlist batches through the
+  backend before discarding their local generation. This prevents an old column/condition
+  job from continuing to consume isolated-runner resources after a list or symbol change.
+- Added a regression for the cancellation request. Focused `VirtualWatchlistTool` coverage
+  passed `42` tests; full frontend Vitest passed `536` tests across `84` files, with
+  TypeScript, production build, and `git diff --check` clean.
+- Rebuilt-stack Chromium acceptance passed `23/23` in `24.1s`; the post-run backend log
+  audit contained no cancellation traceback, connection leak, provider runtime error, or
+  unexpected error. Exact-build visual approval, provider-live, adversarial resource,
+  multi-window performance, and deep Version 25 parity evidence remain open.
