@@ -2,6 +2,13 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-04T10:08:00Z Python Library asset creation
+
+- Added a typed new-asset form to the Python Library for study, plot, column, condition,
+  and signal surfaces; it posts the matching immutable output contract to `/code/assets`.
+- Focused CodeLibraryTool suite passed `2`; TypeScript passed. Exact-build visual approval
+  and the complete acceptance matrix remain open.
+
 ## 2026-08-04T09:42:00Z Structured universe API materialization
 
 - Added authenticated integration coverage proving `run_config.symbols` materializes a

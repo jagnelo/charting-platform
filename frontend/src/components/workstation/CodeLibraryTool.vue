@@ -4,9 +4,17 @@
       <strong>Python Library</strong>
       <input v-model.trim="filter" aria-label="Filter Python assets" placeholder="Filter assets" />
       <button type="button" :disabled="loading" @click="refresh">{{ loading ? 'Loading…' : 'Refresh' }}</button>
+      <button type="button" @click="creating = !creating">{{ creating ? 'Close new' : 'New' }}</button>
       <button type="button" @click="fileInput?.click()">Import</button>
       <input ref="fileInput" class="code-library-tool__file" type="file" accept="application/json,.json" @change="importAsset" />
     </header>
+    <form v-if="creating" class="code-library-tool__create" aria-label="Create Python asset" @submit.prevent="createAsset">
+      <input v-model.trim="newName" aria-label="New Python asset name" placeholder="Asset name" />
+      <input v-model.trim="newStableKey" aria-label="New Python asset key" placeholder="stable-key" />
+      <select v-model="newKind" aria-label="New Python asset kind"><option value="study">Study</option><option value="plot">Plot</option><option value="column">Column</option><option value="condition">Condition</option><option value="signal">Signal</option></select>
+      <textarea v-model="newSource" aria-label="New Python asset source" spellcheck="false" />
+      <button type="submit" :disabled="creatingBusy || !newName || !newStableKey || !newSource.trim()">{{ creatingBusy ? 'Creating…' : 'Create asset' }}</button>
+    </form>
     <p v-if="error" class="code-library-tool__error">{{ error }}</p>
     <p v-else-if="loading && !assets.length" class="code-library-tool__notice">Loading user-owned assets…</p>
     <p v-else-if="!filteredAssets.length" class="code-library-tool__notice">No matching Python assets.</p>
@@ -67,6 +75,12 @@ const fileInput = ref<HTMLInputElement | null>(null)
 const drafts = ref<Record<number, string>>({})
 const selectedVersions = ref<Record<number, number>>({})
 const savingVersion = ref<number | null>(null)
+const creating = ref(false)
+const creatingBusy = ref(false)
+const newName = ref('')
+const newStableKey = ref('')
+const newKind = ref<'study' | 'plot' | 'column' | 'condition' | 'signal'>('study')
+const newSource = ref("output.scalar('value', 0)")
 const filteredAssets = computed(() => {
   const needle = filter.value.toLowerCase()
   return assets.value.filter(asset => !needle || `${asset.name} ${asset.kind} ${asset.stable_key}`.toLowerCase().includes(needle))
@@ -78,6 +92,17 @@ async function refresh() {
   try { assets.value = await api.get<CodeAsset[]>('/code/assets') }
   catch (cause: any) { error.value = cause?.message ?? 'Unable to load Python assets' }
   finally { loading.value = false }
+}
+function newOutputContract() { return newKind.value === 'plot' ? 'series' : newKind.value === 'condition' || newKind.value === 'signal' ? 'boolean' : newKind.value === 'study' ? 'study' : 'scalar' }
+async function createAsset() {
+  if (creatingBusy.value || !newName.value || !newStableKey.value || !newSource.value.trim()) return
+  creatingBusy.value = true; error.value = ''
+  try {
+    const asset = await api.post<CodeAsset>('/code/assets', { stable_key: newStableKey.value, name: newName.value, kind: newKind.value, initial_version: { source: newSource.value, output_contract: newOutputContract(), parameter_schema: {}, default_parameters: {} } })
+    assets.value = [...assets.value, asset].sort((left, right) => left.name.localeCompare(right.name))
+    creating.value = false; newName.value = ''; newStableKey.value = ''; newKind.value = 'study'; newSource.value = "output.scalar('value', 0)"
+  } catch (cause: any) { error.value = cause?.message ?? 'Unable to create Python asset' }
+  finally { creatingBusy.value = false }
 }
 function exportAsset(asset: CodeAsset) {
   const payload = JSON.stringify({ stable_key: asset.stable_key, name: asset.name, kind: asset.kind, versions: asset.versions.map(({ id: _id, ...version }) => version) }, null, 2)
@@ -149,6 +174,10 @@ onMounted(() => { void refresh() })
 .code-library-tool__header { display:grid; grid-template-columns:auto minmax(0,1fr) auto auto; align-items:center; gap:5px; }
 .code-library-tool__header input:not(.code-library-tool__file), .code-library-tool button { border:1px solid #3a4954; background:#172027; color:#dce6ed; font:inherit; padding:3px 5px; }
 .code-library-tool__file { display:none; }
+.code-library-tool__create { display:grid; grid-template-columns:minmax(80px,1fr) minmax(80px,1fr) auto; gap:4px; padding:4px; border:1px solid #3a4954; background:#0d1216; }
+.code-library-tool__create input, .code-library-tool__create select, .code-library-tool__create textarea { border:1px solid #3a4954; background:#172027; color:#dce6ed; font:inherit; padding:3px 5px; }
+.code-library-tool__create textarea { grid-column:1 / -1; min-height:58px; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; }
+.code-library-tool__create button { grid-column:1 / -1; }
 .code-library-tool__assets { overflow:auto; display:grid; align-content:start; gap:3px; }
 .code-library-tool__asset { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:6px; align-items:center; border:1px solid #293740; padding:5px; }
 .code-library-tool__asset--archived { opacity:.62; }

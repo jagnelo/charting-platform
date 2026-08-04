@@ -35,4 +35,17 @@ describe('CodeLibraryTool', () => {
     await flushPromises()
     expect(apiPost).toHaveBeenCalledWith('/code/assets/4/archive', { is_archived: true })
   })
+
+  it('creates a typed new study asset from the library form', async () => {
+    apiPost.mockImplementation((path: string) => path === '/code/assets' ? Promise.resolve({ ...asset, id: 9, stable_key: 'breadth-study', name: 'Breadth study' }) : Promise.resolve({}))
+    const wrapper = mount(CodeLibraryTool)
+    await flushPromises()
+    await wrapper.findAll('button').find(button => button.text() === 'New')!.trigger('click')
+    await wrapper.find('[aria-label="New Python asset name"]').setValue('Breadth study')
+    await wrapper.find('[aria-label="New Python asset key"]').setValue('breadth-study')
+    await wrapper.find('form').trigger('submit')
+    await flushPromises()
+    expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({ stable_key: 'breadth-study', kind: 'study', initial_version: expect.objectContaining({ output_contract: 'study' }) }))
+    expect(wrapper.text()).toContain('Breadth study')
+  })
 })

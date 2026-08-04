@@ -132,9 +132,10 @@ cloned version is revalidated against its asset kind and output contract before 
 persisted; user ownership and stable-key uniqueness remain enforced by the canonical API.
 The primary workstation now exposes those operations through a dockable Python Library
 tool with filtering, archived-state visibility, file import, JSON export, clone,
-archive/unarchive, and immutable new-version editing controls; the component is covered
-by focused lifecycle and interaction tests. Editing always posts a new validated version
-and never mutates an existing source record.
+archive/unarchive, typed new-asset creation, and immutable new-version editing controls;
+the component is covered by focused lifecycle and interaction tests. Editing always posts
+a new validated version and never mutates an existing source record. New assets select a
+surface kind and send the corresponding output contract through the same canonical API.
 
 The relative-rotation uPlot surface now updates `setData`/`setSize` in place during
 resize and data refresh; it destroys the chart only during component teardown. A

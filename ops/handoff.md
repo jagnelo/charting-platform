@@ -1,5 +1,12 @@
 # Active Handoff
 
+## Continuation update — 2026-08-04T10:08:00Z
+
+- Added typed new-asset creation to the dockable Python Library. The selected surface kind
+  determines the declared output contract and the canonical API validates it before save.
+- Focused CodeLibraryTool coverage passed `2`; TypeScript passed. Visual approval and the
+  broader acceptance gates remain open.
+
 ## Continuation update — 2026-08-04T09:42:00Z
 
 - Added authenticated API coverage for structured Study Lab universe materialization:
