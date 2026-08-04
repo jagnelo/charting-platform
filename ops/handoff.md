@@ -1,5 +1,19 @@
 # Active Handoff
 
+## Continuation update — 2026-08-05T01:55:00Z Rebuilt-stack Study Lab browser acceptance
+
+- Rebuilt and restarted the repository's branch-scoped Compose application stack after the
+  Study Lab polling change. The first attempt used the default Compose project and hit a
+  port-5432 collision; no application container was altered. The documented
+  `charting-stack-feat-tc2000-frontend-rework` project was then rebuilt and used.
+- Correctly configured authenticated Chromium acceptance passed `26/26` in `44.2s` against
+  the rebuilt frontend. The backend log audit for the run was empty for `ERROR`, traceback,
+  `InterfaceError`, `SAWarning`, connection-leak, provider-error, and unexpected-warning
+  patterns.
+- Exact-build V25 visual approval, configured provider-live matrix, resource-pressure and
+  orphan-job stress, multi-window performance, migration re-audit, and broad parity remain
+  open.
+
 ## Continuation update — 2026-08-05T01:45:00Z Study Lab query-contract hardening
 
 - Hardened Study Lab polling so every enabled Vue Query refresh either returns a valid

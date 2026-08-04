@@ -1,5 +1,16 @@
 # Run Report
 
+## 2026-08-05T01:55:00Z Rebuilt-stack Study Lab browser acceptance
+
+- Rebuilt the frontend image and restarted the documented branch-scoped Compose project
+  after the Study Lab polling hardening. An initial default-project attempt was discarded
+  after its expected port-5432 collision; the existing branch stack was left intact.
+- Authenticated Chromium `flows.spec.ts`: `26/26` passed in `44.2s` against the rebuilt
+  frontend. Backend logs for the run contained no error, traceback, connection-leak,
+  `InterfaceError`, `SAWarning`, provider-error, or unexpected-warning pattern.
+- Strict exact-build visual approval, configured provider-live, resource/orphan,
+  multi-window performance, migration, and broad parity gates remain open.
+
 ## 2026-08-05T01:45:00Z Study Lab query-contract hardening
 
 - Study Lab polling now rejects missing refresh payloads explicitly instead of allowing
