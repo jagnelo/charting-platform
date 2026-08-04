@@ -5,7 +5,7 @@
     "worker_session_started_at": "2026-07-28T21:40:33Z",
     "worker_soft_stop_at": null,
   "last_handoff_at": "2026-08-04T12:18:00Z",
-    "last_commit": "cafbb5f167f676b36a2c69ffb6c6dbae5250d5ad fix(alerts): bind websocket to auth lifecycle",
+    "last_commit": "220864e4ae9a29bba54cf659a79736e2a8a567f7 feat(alerts): persist screener firing history",
     "git_ready_to_commit": false,
     "validation": {
         "backend_lint": "passed (code validation including deterministic XNYS coverage calendar, restricted numerical facades, isolated research runner/resource restoration, screener, visual, analysis, research, OHLCV session model, and migration modules, 2026-08-03)",
