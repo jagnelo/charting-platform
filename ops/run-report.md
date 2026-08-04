@@ -1,5 +1,13 @@
 # Run Report
 
+## 2026-08-05T00:00:00Z SEC no-key provider probe
+
+- Public SEC EDGAR `company_tickers.json` succeeded with the repository User-Agent.
+- The repository `EdgarProvider` then resolved `NVDA` to CIK `1045810`, `Nasdaq`, and one
+  listing. This is live identity/profile evidence for the free-source path only; it is not a
+  claim of price-history or consolidated-real-time coverage.
+- Other provider live matrices remain unrun because their local credentials are unset.
+
 ## 2026-08-04T22:05:00Z Reference-pack bookkeeping and Docker cleanup
 
 - Fixed the manifest's stale controlled-pack count (`187` -> `189`) to match the indexed

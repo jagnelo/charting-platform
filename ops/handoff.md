@@ -1,5 +1,18 @@
 # Active Handoff
 
+## Continuation update — 2026-08-05T00:00:00Z SEC no-key provider probe
+
+- Ran a bounded live probe against the public SEC EDGAR endpoints with the repository's
+  descriptive User-Agent: `company_tickers.json` returned successfully, and the actual
+  `EdgarProvider` resolved `NVDA` to CIK `1045810`, exchange `Nasdaq`, and one canonical
+  listing. This confirms the no-key SEC identity/profile path, not price-history coverage.
+- Alpaca, FRED, OpenFIGI, Massive, and Alpha Vantage credentials remain unset in the local
+  environment, so their live matrices were not falsely marked as passed. Provider-live
+  acceptance remains partial until configured, entitled probes cover each required role.
+- No source change was required; the result is recorded as evidence only. Exact-build visual,
+  multi-provider, resource-pressure/crash/orphan, multi-window performance, migration, and
+  broad parity gates remain open.
+
 ## Continuation update — 2026-08-04T22:05:00Z Reference-pack bookkeeping and Docker cleanup
 
 - Corrected `tests/visual/references/tc2000-v25/manifest.yaml` from a stale media count of
