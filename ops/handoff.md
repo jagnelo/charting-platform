@@ -1,5 +1,19 @@
 # Active Handoff
 
+## Continuation update — 2026-08-05T04:00:00Z Read-only auth lifecycle repair
+
+- A post-fix browser audit exposed one residual pooled-connection warning immediately
+  after the read-only `/auth/me` path. `GET /auth/me` and `GET /auth/settings` now use the
+  already-tested detached authentication session, while mutating auth routes retain the
+  request-scoped transaction.
+- Validation: auth integration `15 passed` with 2 existing dependency warnings, full
+  backend unit `964 passed` with 34 existing dependency warnings, rebuilt backend,
+  authenticated Chromium `26/26` in `41.6s`, and a fresh backend/runner/worker log audit
+  with no `ERROR`, traceback, `SAWarning`, connection-leak, `InterfaceError`, provider,
+  permission, or unexpected-warning patterns.
+- Exact-build V25 visual approval, configured provider-live matrix, orphan-job stress,
+  multi-window performance, migration re-audit, and broad parity remain open.
+
 ## Continuation update — 2026-08-05T03:15:00Z Research-runner handoff and pressure gate
 
 - Live probing exposed and fixed a deployment defect: Compose did not give the backend

@@ -4,7 +4,7 @@
     "active_worker": "Codex",
     "worker_session_started_at": "2026-07-28T21:40:33Z",
     "worker_soft_stop_at": null,
-  "last_handoff_at": "2026-08-05T03:15:00Z",
+  "last_handoff_at": "2026-08-05T04:00:00Z",
   "last_commit": "9d00e14 fix(study-lab): enforce non-null polling responses",
     "git_ready_to_commit": true,
   "validation": {
@@ -16,7 +16,7 @@
         "frontend_build": "passed: TypeScript and production build after pre-v8 Golden Layout column-width migration; 459 modules built, 2026-08-04",
         "alembic_upgrade": "disposable PostgreSQL 16 validation passed: full chain upgrades to e9f0a1b2c3d4, downgrades to d3e4f5a6b7c8, re-upgrades, and direct SQL verifies watchlist_item.flagged is non-null with false server default; container removed 2026-08-03T22:20:00Z",
         "diff_check": "passed (route-boundary checkpoint, 2026-08-03)",
-        "playwright": "clean restarted branch-scoped Docker stack: rebuilt Study Lab frontend and backend/worker images; correctly configured Chromium flows.spec.ts passed 26/26 in 43.5s; post-run backend/worker log window had no connection-leak/SAWarning, InterfaceError, traceback, provider-error, or unexpected-error patterns; the initial default-project invocation was discarded after its port-5432 collision; strict visual command still blocks at application-shell-default/default required_missing",
+        "playwright": "clean restarted branch-scoped Docker stack: rebuilt Study Lab frontend and backend/worker images plus detached read-only auth fix; correctly configured Chromium flows.spec.ts passed 26/26 in 41.6s; post-run backend/runner/worker log window had no connection-leak/SAWarning, InterfaceError, traceback, provider-error, permission, or unexpected-error patterns; the initial default-project invocation was discarded after its port-5432 collision; strict visual command still blocks at application-shell-default/default required_missing",
         "console_check": "passed for focused F6/F7/F8b Chromium flow diagnostics (no unexpected console/page/request failures), 2026-07-30; full acceptance still required",
         "backend_log_check": "clean rebuilt-stack full browser audit after screener/cache and research-runner changes found no error-pattern or warning-pattern output: no connection leak, garbage-collector/non-checked-in connection, cancellation traceback, InterfaceError, SAWarning, provider-runtime error, traceback, or unexpected backend warning; expected structured missing-data and sandbox-limit responses remain explicit",
         "research_runner_handoff": "passed: backend and runner use shared /jobs and /results Compose paths; enqueue prepares fresh-volume permissions for UID 10001; live 70-million-element pressure job was claimed, returned structured memory_limit, produced processed sentinel, and left runner healthy; artifacts removed; 2026-08-05",

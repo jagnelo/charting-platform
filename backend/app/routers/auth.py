@@ -6,7 +6,7 @@ from pydantic import BaseModel, ConfigDict, EmailStr
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.dependencies import get_current_user
+from app.auth.dependencies import get_current_user, get_current_user_detached
 from app.auth.jwt import create_access_token, create_refresh_token, decode_token
 from app.auth.password import hash_password, verify_password
 from app.database import get_db
@@ -115,7 +115,7 @@ async def refresh(refresh_token: str, db: AsyncSession = Depends(get_db)):
 
 
 @router.get("/me", response_model=UserOut)
-async def get_me(current_user: User = Depends(get_current_user)):
+async def get_me(current_user: User = Depends(get_current_user_detached)):
     return current_user
 
 
@@ -132,7 +132,7 @@ async def update_me(
 
 
 @router.get("/settings", response_model=dict[str, Any])
-async def get_settings(current_user: User = Depends(get_current_user)):
+async def get_settings(current_user: User = Depends(get_current_user_detached)):
     return current_user.settings or {}
 
 

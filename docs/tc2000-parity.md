@@ -57,6 +57,12 @@ closes the fresh-volume handoff/path defect and one real memory-pressure case; o
 cleanup after process termination, cancellation under pressure, and broader namespace/
 multi-process stress remain required acceptance work.
 
+Read-only authentication lifecycle evidence: `GET /auth/me` and `GET /auth/settings` use
+the detached identity-session factory, avoiding a request transaction that outlives response
+serialization; writes remain request-scoped. Auth integration passed 15 tests, the full
+backend unit suite passed 964, and the rebuilt authenticated Chromium flow passed 26/26 with
+no pooled-connection or SQLAlchemy warning in the fresh backend/runner/worker log window.
+
 ## Authentication-session lifecycle evidence
 
 The authenticated legacy-route matrix exposed a separate session-lifetime defect around

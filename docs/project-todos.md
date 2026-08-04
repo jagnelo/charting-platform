@@ -3252,6 +3252,11 @@ directories for UID 10001 before enqueueing, and the runner returns a structured
 This closes the previously hidden fresh-volume permission/path gap; broader orphan-job,
 multi-window, and full security/resource acceptance remain separate gates.
 
+Read-only authenticated identity/settings reads use the detached short-lived session path;
+mutating authentication/settings routes retain the request-scoped transaction. The rebuilt
+browser flow and backend/runner/worker log audit now remain clean across the repeated login,
+streaming screener, workstation, and legacy-route matrix.
+
 Controlling objective:
 - This section and `docs/tc2000-visual-parity.md` are the controlling specification for
   the branch and supersede every older or narrower frontend-rework plan where they

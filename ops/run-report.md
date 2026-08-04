@@ -1,5 +1,14 @@
 # Run Report
 
+## 2026-08-05T04:00:00Z Read-only auth lifecycle repair
+
+- Moved read-only `/auth/me` and `/auth/settings` authentication to detached short-lived
+  sessions after the rebuilt browser audit identified a residual pooled-connection warning;
+  write routes remain request-scoped.
+- Auth integration: `15/15`; full backend unit: `964/964`; rebuilt Chromium flows: `26/26`
+  in `41.6s`; fresh backend/runner/worker logs were clean for leaks, tracebacks, SQLAlchemy
+  warnings, provider errors, permissions, and unexpected errors.
+
 ## 2026-08-05T03:15:00Z Research-runner handoff and pressure gate
 
 - Fixed the live shared-volume contract: backend Compose now points at `/jobs` and
