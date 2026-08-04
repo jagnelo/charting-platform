@@ -227,10 +227,10 @@ export interface IndustryProxySnapshotState {
   rows: Array<{
     symbol: string
     name: string
-    performance: Record<string, { value: number | null }>
-    technical: Record<string, { value: number | null }>
-    relative_to_benchmark: { value: number | null } | null
-    relative_to_market: { value: number | null } | null
+    performance: Record<string, { value: number | null; warning?: { code: string; message: string } | null }>
+    technical: Record<string, { value: number | null; warning?: { code: string; message: string } | null }>
+    relative_to_benchmark: { value: number | null; warning?: { code: string; message: string } | null } | null
+    relative_to_market: { value: number | null; warning?: { code: string; message: string } | null } | null
   }>
   coverage: number
   exclusions: Array<{ code: string; message: string }>

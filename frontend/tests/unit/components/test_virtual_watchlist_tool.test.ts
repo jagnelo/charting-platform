@@ -171,6 +171,18 @@ describe('VirtualWatchlistTool', () => {
     expect(wrapper.findAll('.watchlist__row')[0].text()).toContain('31.50')
   })
 
+  it('renders canonical row warnings instead of hiding unavailable analysis cells', () => {
+    const wrapper = mount(VirtualWatchlistTool, {
+      props: {
+        label: 'Sectors',
+        rows: [{ instrumentId: 4, symbol: 'XLF', name: 'Financials', values: { performance_1d: null }, warnings: { performance_1d: 'insufficient_history' } }],
+        columns: [{ key: 'symbol', label: 'Symbol' }, { key: 'performance_1d', label: '1D' }],
+      },
+    })
+
+    expect(wrapper.text()).toContain('⚠ insufficient_history')
+  })
+
   it('supports plain, ctrl/meta, and shift range selection without losing row activation', async () => {
     const wrapper = mount(VirtualWatchlistTool, { props: { label: 'Sectors', rows } })
     const selectRow = (wrapper.vm as unknown as { selectRow: (row: typeof rows[number], event: MouseEvent) => void }).selectRow

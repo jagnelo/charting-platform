@@ -120,6 +120,8 @@ export interface WatchlistRow {
   name: string
   flagged?: boolean
   values?: Record<string, string | number | null>
+  /** Cell-level canonical analysis warnings are rendered instead of silent blanks. */
+  warnings?: Record<string, string | null | undefined>
 }
 
 export interface WatchlistColumn {
@@ -741,7 +743,10 @@ function display(row: WatchlistRow, key: string) {
     return value == null ? '—' : value ? 'True' : 'False'
   }
   const value = key === 'symbol' ? row.symbol : key === 'name' ? row.name : row.values?.[key]
-  if (value == null || value === '') return '—'
+  if (value == null || value === '') {
+    const warning = row.warnings?.[key]
+    return warning ? `⚠ ${warning}` : '—'
+  }
   if (typeof value !== 'number') return String(value)
   const format = effectiveColumns.value.find(column => column.key === key)?.format ?? 'percent'
   return format === 'number' ? value.toFixed(2) : `${(value * 100).toFixed(2)}%`

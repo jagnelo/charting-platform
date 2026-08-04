@@ -3740,6 +3740,11 @@ Batch ranking columns:
 - volume ratio;
 - provider coverage and freshness.
 
+Top-down row adapters must preserve the backend `AnalysisCell.warning` message for
+performance, relative-strength, technical, and calendar-year cells. The workstation
+watchlist renders those messages (for example, `⚠ insufficient_history`) instead of
+turning an unavailable value into an unexplained blank or dash.
+
 Breadth analytics:
 - percentage above configurable 20/50/200 moving averages;
 - percentage near 52-week highs/lows;

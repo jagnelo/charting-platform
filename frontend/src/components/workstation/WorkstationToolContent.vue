@@ -382,7 +382,7 @@ import ChartPlotLibrary from './ChartPlotLibrary.vue'
 import { usePanelStore } from '@/stores/chart'
 import { useDrawingsStore } from '@/stores/drawings'
 import { useAlertsStore } from '@/stores/alerts'
-import { useWorkspaceStore, type LinkGroup, type WorkspaceWindowState } from '@/stores/workspace'
+import { useWorkspaceStore, type GroupSnapshotRow, type LinkGroup, type WorkspaceWindowState } from '@/stores/workspace'
 import { useWatchlistStore } from '@/stores/watchlist'
 import type { Watchlist } from '@/types'
 import ToolWindow from './ToolWindow.vue'
@@ -1023,6 +1023,25 @@ const benchmarkIdentity = computed(() => {
   }
 })
 const benchmarkSnapshot = computed(() => workspaceStore.groupSnapshots['us-benchmarks'])
+function cellWarning(cell: { warning?: { message: string } | null } | null | undefined) {
+  return cell?.warning?.message ?? null
+}
+function snapshotWarnings(row: GroupSnapshotRow | undefined) {
+  if (!row) return {}
+  const warnings: Record<string, string> = {}
+  for (const [period, cell] of Object.entries(row.performance)) {
+    if (cell.warning?.message) warnings[`performance_${period.toLowerCase()}`] = cell.warning.message
+  }
+  for (const [year, cell] of Object.entries(row.calendar_year_performance ?? {})) {
+    if (cell.warning?.message) warnings[`calendar_${year}`] = cell.warning.message
+  }
+  if (row.relative_to_benchmark?.warning?.message) warnings.relative_ratio = row.relative_to_benchmark.warning.message
+  if (row.relative_to_market?.warning?.message) warnings.relative_spy = row.relative_to_market.warning.message
+  for (const [key, cell] of Object.entries(row.technical ?? {})) {
+    if (cell.warning?.message) warnings[key] = cell.warning.message
+  }
+  return warnings
+}
 const sectorPerformance = computed(() => Object.fromEntries(
   (workspaceStore.groupSnapshots['sp500-sectors']?.rows ?? []).map(row => [row.symbol, row.performance['1M']?.value ?? null]),
 ))
@@ -1060,6 +1079,12 @@ const proxyRows = computed(() => (industryProxySnapshot.value?.rows ?? []).map(r
     as_of: evidence?.composition_date ?? 'Unavailable',
     known_at: evidence?.known_at ? new Date(evidence.known_at).toLocaleDateString() : 'Unknown',
   },
+  warnings: {
+    performance_1m: cellWarning(row.performance['1M']),
+    relative_sector: cellWarning(row.relative_to_benchmark),
+    relative_spy: cellWarning(row.relative_to_market),
+    rsi14: cellWarning(row.technical.rsi14),
+  },
 }}))
 const constituents = computed(() => {
   if (selectedETF.value && selectedIndustry.value) {
@@ -1096,6 +1121,7 @@ const benchmarkRows = computed(() => (workspaceStore.marketGroups['us-benchmarks
       volume_ratio_50: row?.technical?.volume_ratio_50?.value == null ? null : row.technical.volume_ratio_50.value.toFixed(2),
     }
   })(),
+  warnings: snapshotWarnings(benchmarkSnapshot.value?.rows.find(item => item.instrument_id === member.instrument.id)),
 })))
 const sectorRows = computed(() => (workspaceStore.marketGroups['sp500-sectors']?.members ?? []).map(member => ({
   instrumentId: member.instrument.id,
@@ -1121,6 +1147,7 @@ const sectorRows = computed(() => (workspaceStore.marketGroups['sp500-sectors']?
       ...Object.fromEntries(Object.entries(row?.calendar_year_performance ?? {}).map(([year, cell]) => [`calendar_${year}`, cell.value])),
     }
   })(),
+  warnings: snapshotWarnings(workspaceStore.groupSnapshots['sp500-sectors']?.rows.find(item => item.instrument_id === member.instrument.id)),
 })))
 const sectorByYearYears = computed(() => {
   return calendarYearKeys(workspaceStore.groupSnapshots['sp500-sectors']?.rows ?? [])
@@ -1167,6 +1194,7 @@ const constituentRows = computed(() => {
         above_ma50: analysis?.technical?.above_ma50?.value ?? null,
         position_52w: analysis?.technical?.position_52w?.value ?? null,
       },
+      warnings: snapshotWarnings(analysis),
     }
   })
 })

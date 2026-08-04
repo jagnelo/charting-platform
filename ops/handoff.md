@@ -1,5 +1,15 @@
 # Active Handoff
 
+## Continuation update — 2026-08-04T16:20:00Z Top-down cell-warning propagation
+
+- Preserved canonical `AnalysisCell.warning` messages when adapting benchmark, sector,
+  constituent, and industry-proxy analysis rows into virtualized watchlists.
+- `VirtualWatchlistTool` now renders an explicit warning for null row values rather than
+  an unexplained dash; indicator/Python warning behavior remains unchanged.
+- Focused virtual-watchlist coverage passed `37` tests; TypeScript and `git diff --check`
+  passed. Exact-build visual approval and broad acceptance remain open. Generated
+  `test-results/` remains intentionally untracked.
+
 ## Continuation update — 2026-08-04T16:05:00Z Top-down industry-proxy activation
 
 - Fixed a real drill-down gap in `frontend/src/views/WorkstationView.vue`: selecting

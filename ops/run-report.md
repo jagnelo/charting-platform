@@ -2,6 +2,13 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-04T16:20:00Z Top-down cell-warning propagation
+
+- Analysis-cell warnings now survive top-down row adaptation and render at the affected
+  watchlist cell (`⚠ ...`) instead of silently displaying a dash.
+- Focused virtual-watchlist suite passed `37`; TypeScript and diff checks passed.
+  Visual approval and broad acceptance remain open.
+
 ## 2026-08-04T16:05:00Z Top-down industry-proxy activation
 
 - Industry ETF proxy selection now publishes the canonical proxy to linked charts,

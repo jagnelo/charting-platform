@@ -142,6 +142,13 @@ the selected sector/industry context. The proxy therefore behaves as an analysis
 (`SMH` within `XLK`/Semiconductors, for example) rather than a cosmetic table selection
 that leaves linked charts on the prior instrument. Focused pop-out binding coverage
 passes; exact-build visual and full end-to-end acceptance remain open.
+
+Top-down cell provenance correction: benchmark, sector, constituent, and verified
+industry-proxy row adapters now retain canonical per-cell warning messages from the
+analysis response. Virtualized watchlists display the warning text for null values,
+so insufficient history, unavailable comparisons, and coverage exclusions remain
+visible at the cell where they occur instead of becoming silent dashes. Focused
+virtual-watchlist coverage passes; broad visual and acceptance gates remain open.
 Study Lab exposes a serializable comma-separated universe control; when populated it sends
 canonical symbol selectors as `run_config.symbols` and displays the selected universe in
 the run summary instead of silently using only the active symbol.
