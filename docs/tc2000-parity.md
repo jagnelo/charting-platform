@@ -107,7 +107,9 @@ The same gate runs when assets are created, imported, or versioned, so invalid d
 cannot be persisted as immutable code versions in the first place.
 Prepared-universe Study Lab runs now have a structured path: `output_contract: study`
 executes once over the declared, provider-free `market.universe()` datasets, allowing
-ranked tables, distributions, dashboards, and other typed aggregate artifacts. Scalar and
+ranked tables, distributions, dashboards, and other typed aggregate artifacts. Structured
+event outputs may identify any symbol in the declared universe and remain constrained to
+that point-in-time prepared dataset; they cannot introduce undeclared symbols. Scalar and
 Boolean watchlist/condition batches retain their bounded per-instrument cell contract.
 Study Lab exposes a serializable comma-separated universe control; when populated it sends
 canonical symbol selectors as `run_config.symbols` and displays the selected universe in

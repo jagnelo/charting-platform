@@ -1,5 +1,13 @@
 # Active Handoff
 
+## Continuation update — 2026-08-04T09:18:00Z
+
+- Structured Study Lab event artifacts now validate each event against the declared
+  prepared universe, allowing cross-sectional occurrence results without permitting
+  undeclared symbols; single-instrument event behavior remains unchanged.
+- Research runner coverage passed `37`; diff checks are clean. Visual approval and the
+  broader acceptance gates remain open.
+
 ## Continuation update — 2026-08-04T09:02:00Z
 
 - Extended the dockable Python Library with source editing that always creates a new

@@ -2,6 +2,13 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-04T09:18:00Z Structured universe event safety
+
+- Structured Study Lab event outputs now accept symbols only from the prepared universe,
+  preserving event linking for cross-sectional studies while rejecting undeclared data.
+- Research runner suite passed `37`; diff checks passed. Exact-build visual approval and
+  the complete acceptance matrix remain open.
+
 ## 2026-08-04T09:02:00Z Immutable Python Library version editing
 
 - Added version selection and source editing to the workstation Python Library. Save

@@ -475,13 +475,22 @@ class _Output:
         if not isinstance(value, list) or not all(isinstance(event, dict) for event in value):
             raise ValueError("events output must be a list of event objects")
         declared_symbol = str(self.dataset.get("symbol") or "").upper()
+        prepared_datasets = self.dataset.get("datasets")
+        if not isinstance(prepared_datasets, list):
+            prepared_datasets = []
+        universe_symbols = {
+            str(item.get("symbol") or "").upper()
+            for item in prepared_datasets
+            if isinstance(item, dict) and str(item.get("symbol") or "").strip()
+        }
         normalized: list[dict] = []
         for event in value:
             timestamp = event.get("timestamp")
             if not isinstance(timestamp, str) or not timestamp:
                 raise ValueError("each event must contain a timestamp")
             symbol = str(event.get("symbol") or declared_symbol).upper()
-            if not declared_symbol or symbol != declared_symbol:
+            allowed = {declared_symbol} if declared_symbol else universe_symbols
+            if not symbol or symbol not in allowed:
                 raise ValueError(
                     f"event symbol {symbol or '<missing>'} is not declared in this run dataset"
                 )
