@@ -16757,3 +16757,9 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
 - Full backend unit suite now passes `914` tests with `34` existing dependency warnings.
 - This includes the final backend environment/identifier-priority yfinance regression;
   Docker-backed integration/security and live-provider gates remain separate and open.
+## Continuation update — 2026-08-04T16:25:00Z Risk-free provider wording cleanup
+
+- Removed stale risk-free-rate wording that implied yfinance receives the canonical
+  `^IRX` symbol by default. The service now documents the active entitled provider
+  policy and generic provider-symbol fallback.
+- Focused risk-free-rate unit test: `1 passed`; diff check passed.

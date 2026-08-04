@@ -11,8 +11,9 @@ Strategy (in priority order):
 The canonical instrument symbol is settings.RFR_INSTRUMENT_SYMBOL (default "^IRX").
 Provider symbols (what each data source calls this instrument) are registered
 separately via the existing provider-symbol infrastructure; provider_symbol_for_instrument
-falls back to the canonical symbol when none is registered, which means yfinance
-receives "^IRX" by default without any extra configuration.
+falls back to the canonical symbol when none is registered. The active provider policy
+determines which independently entitled source receives that symbol; this service does
+not require or prefer yfinance.
 
 Switching data providers does not require updating RFR_INSTRUMENT_SYMBOL — only the
 provider symbol registration needs to change (or the new provider may accept the same

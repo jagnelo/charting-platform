@@ -18341,3 +18341,7 @@ uncovered slice rather than repeat a generic completion claim.
 - Full backend unit suite: `914 passed` with `34` existing dependency warnings.
 - The final provider reference-environment regression is covered; Docker-backed
   integration/security and live-provider gates remain open.
+## 2026-08-04T16:25:00Z Risk-free provider wording cleanup
+
+- Corrected stale risk-free-rate documentation that implied a default yfinance fetch.
+- Focused risk-free-rate unit test: `1 passed`; diff check passed.
