@@ -16852,3 +16852,14 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
 - Added regressions for stale unsupported policies and the `.env.example` chain contract.
   Focused provider/runtime tests `17 passed`; full backend unit suite `917 passed` with
   34 existing dependency warnings. Rebuild the branch stack before the next fresh log audit.
+
+## Continuation update — 2026-08-04T18:50:00Z Provider policy hygiene
+
+- Extended the provider runtime seed pass to disable persisted policy rows whose current
+  adapter no longer advertises the stored capability, while retaining the defensive
+  resolution filter. This keeps provider diagnostics, policy state, and actual invocation
+  behavior aligned after adapter changes.
+- The stale-policy regression now proves both chain exclusion and automatic disablement;
+  focused provider/runtime coverage remains `17 passed` with Ruff clean. The full
+  completion gates are unchanged: V25 visual approval, provider probes, adversarial
+  sandbox/resource evidence, performance, and broad interaction/E2E acceptance remain open.

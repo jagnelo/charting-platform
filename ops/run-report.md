@@ -18427,3 +18427,12 @@ uncovered slice rather than repeat a generic completion claim.
   unit suite `917 passed` with 34 existing dependency warnings.
 - Rebuild and fresh-audit the branch stack next. Exact-build visual approval, provider-live
   probes, adversarial sandbox/resource coverage, performance, and broad E2E remain open.
+
+## 2026-08-04T18:50:00Z Provider policy hygiene
+
+- Provider seeding now disables persisted policies for capabilities no longer advertised by
+  the registered adapter, in addition to the defensive chain filter. This prevents stale
+  diagnostics or future requests from treating removed methods as available.
+- The stale-policy regression proves both exclusion and disablement; focused provider/runtime
+  coverage remains `17 passed` and Ruff is clean. Visual, live-provider, adversarial sandbox,
+  performance, and broad E2E acceptance remain open.

@@ -244,6 +244,13 @@ async def test_provider_chain_ignores_stale_policy_for_unsupported_capability(db
     chain = await resolve_provider_chain(async_db, ProviderCapability.INSTRUMENT_SEARCH)
 
     assert all(item.provider_name != "alpaca" for item in chain)
+    stale_policy = db.execute(
+        select(ProviderPolicy).where(
+            ProviderPolicy.data_source_id == alpaca.id,
+            ProviderPolicy.capability == ProviderCapability.INSTRUMENT_SEARCH,
+        )
+    ).scalar_one()
+    assert stale_policy.is_enabled is False
 
 
 def test_bucket_rebuilds_when_policy_limits_change():

@@ -1698,7 +1698,7 @@ Why this was deferred:
 - Options and forward estimates require a budget commitment; the user will decide when to activate.
 
 ### 9A. Add a free-source-first forward IPO and market-events calendar
-Status: `Planned`
+Status: `In progress — full completion contract still open`
 
 Context:
 - The platform already has pieces that are adjacent to this problem, but not the actual subsystem we need:
@@ -3218,6 +3218,17 @@ Status: `Planned`
 
 Branch:
 - `feat/tc2000-frontend-rework`
+
+Current implementation checkpoint (2026-08-04): the workstation shell, linked
+Golden Layout mechanics, uPlot host/plugin path, top-down analysis contracts,
+virtualized watchlists, unified Python/Study Lab execution boundary, and free-source
+provider governance are implemented and covered by deterministic/frontend/backend
+regressions. The branch has also exercised 22 authenticated Chromium flows against
+the rebuilt stack. Remaining acceptance is intentionally still hard-gated by the
+full Version 25 visual reference/measurement matrix, opt-in provider probes, the
+broader adversarial sandbox/resource matrix, 10,000-row and multi-window performance
+evidence, deep top-down browser workflows, and the complete cross-surface/E2E parity
+matrix; no item below is considered delivered merely because this checkpoint exists.
 
 Controlling objective:
 - This section and `docs/tc2000-visual-parity.md` are the controlling specification for

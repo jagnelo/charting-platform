@@ -268,6 +268,21 @@ async def seed_provider_runtime(db: AsyncSession) -> None:
             if capability.value in provider_capabilities:
                 capability_providers[capability].append(provider_name)
 
+    # Provider adapters can lose a capability between deployments while the
+    # policy row remains in the database. Disable those stale rows during the
+    # normal seed pass so diagnostics and future resolution agree with the
+    # registry; resolution also applies the same check defensively.
+    existing_policies = (
+        await db.execute(select(ProviderPolicy, DataSource).join(DataSource))
+    ).all()
+    for policy, data_source in existing_policies:
+        if policy.capability.value not in set(
+            list_provider_capabilities(data_source.name)
+            if data_source.name in supported_provider_names()
+            else []
+        ):
+            policy.is_enabled = False
+
     for capability, supported_providers in capability_providers.items():
         preferred_order = ordered.get(capability, [])
         providers = preferred_order + [
