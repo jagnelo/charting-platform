@@ -1,4 +1,4 @@
-import { mount } from '@vue/test-utils'
+import { flushPromises, mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import ChartPlotLibrary from '@/components/workstation/ChartPlotLibrary.vue'
@@ -6,12 +6,13 @@ import { usePanelStore } from '@/stores/chart'
 import { useWorkspaceStore } from '@/stores/workspace'
 import { CHART_PLOT_DRAG_MIME } from '@/lib/workstation/plotDrag'
 
-const apiMock = vi.hoisted(() => ({ put: vi.fn().mockResolvedValue({}), post: vi.fn().mockResolvedValue({}) }))
+const apiMock = vi.hoisted(() => ({ get: vi.fn().mockResolvedValue([]), put: vi.fn().mockResolvedValue({}), post: vi.fn().mockResolvedValue({}) }))
 vi.mock('@/lib/api', () => ({ api: apiMock }))
 
 describe('ChartPlotLibrary', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
+    apiMock.get.mockReset().mockResolvedValue([])
     apiMock.put.mockReset().mockResolvedValue({})
     apiMock.post.mockReset().mockResolvedValue({})
   })
@@ -32,6 +33,19 @@ describe('ChartPlotLibrary', () => {
     expect(chart.indicators[0].type).toBe('ema')
     await wrapper.findAll('[aria-label="Delete EMA(50)"]')[0].trigger('click')
     expect(chart.indicators).toHaveLength(2)
+  })
+
+  it('loads and adds a typed Python plot asset without executing frontend code', async () => {
+    apiMock.get.mockResolvedValue([{ kind: 'plot', name: 'Breadth plot', versions: [{ id: 91, version_number: 2 }] }])
+    const chart = usePanelStore('python-plot-library-test')
+    const wrapper = mount(ChartPlotLibrary, { props: { sourceWindowKey: 'source', linkGroup: 'blue' }, global: { provide: { panelId: 'python-plot-library-test' } } })
+    await wrapper.get('button[aria-label="Chart plot library"]').trigger('click')
+    await wrapper.findAll('button').find(button => button.text() === 'Load Python plots')!.trigger('click')
+    await flushPromises()
+    await wrapper.get('[aria-label="Python plot asset"]').setValue('91')
+    await wrapper.findAll('.chart-plots__python button').find(button => button.text() === 'Add')!.trigger('click')
+    expect(wrapper.emitted('update:pythonPlots')?.at(-1)).toEqual([[{ code_version_id: 91, name: 'Breadth plot v2', color: '#ffb74d', timeframe: chart.timeframe }]])
+    expect(apiMock.get).toHaveBeenCalledWith('/code/assets')
   })
 
   it('writes a versioned serializable payload when a plot is dragged', async () => {

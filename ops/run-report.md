@@ -2,11 +2,11 @@
 
 Append a short entry after each worker session.
 
-## 2026-08-04T11:18:00Z Python chart plot assets
+## 2026-08-04T11:26:00Z Python chart plot assets
 
 - Added on-demand Python plot asset loading and chart-window persistence; isolated typed
   series results are timestamp-aligned and rendered through uPlot only.
-- Focused chart-plot/ratio suite passed `12`; TypeScript passed. Exact-build visual
+- Focused chart-plot suite passed `8`, ratio suite passed `5`, and TypeScript passed. Exact-build visual
   approval and the complete acceptance matrix remain open.
 
 ## 2026-08-04T10:48:00Z Python condition timeframe contract
