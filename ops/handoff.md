@@ -1,5 +1,17 @@
 # Active Handoff
 
+## Continuation update — 2026-08-04T21:10:00Z Adversarial Python sandbox matrix
+
+- Expanded static-validator and isolated-runner regressions for dynamic execution,
+  import/namespace, filesystem/network/process, reflection, object-graph and curated-wrapper
+  introspection attempts, plus wall-time alarm restoration after an infinite loop.
+- Validation: combined validator/runner slice `90 passed`; Ruff and diff checks passed; the
+  complete backend unit suite `955 passed` with 34 existing dependency warnings.
+- This closes another deterministic source-level sandbox slice but does not claim the full
+  deployment gate: Docker namespace/seccomp/resource-pressure/crash/orphan probes, provider
+  live matrix, exact-build V25 visual approval, multi-window performance, migration, and broad
+  parity acceptance remain open.
+
 ## Continuation update — 2026-08-04T19:50:00Z Official shared-layout reference expansion
 
 - Extended the controlled reference-pack fetcher with two official TC2000 shared-layout

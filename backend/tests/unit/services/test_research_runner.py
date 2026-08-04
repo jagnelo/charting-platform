@@ -478,6 +478,58 @@ def test_runner_rejects_numpy_and_pandas_file_access():
     assert result["diagnostics"][0]["code"] == "forbidden_data_access"
 
 
+@pytest.mark.parametrize(
+    "source",
+    [
+        "__import__('os')",
+        "eval('1 + 1')",
+        "compile('1 + 1', '<user>', 'eval')",
+        "globals()",
+        "locals()",
+        "vars()",
+        "getattr(market, 'close')",
+        "setattr(market, 'close', None)",
+        "delattr(market, 'close')",
+        "socket.socket()",
+        "subprocess.Popen(['id'])",
+    ],
+)
+def test_runner_rejects_filesystem_network_process_and_reflection_attempts(source):
+    result = execute_job({"source": source, "dataset": {}})
+    assert result["status"] == "failed"
+    assert result["diagnostics"]
+    assert result["diagnostics"][0]["code"] in {
+        "forbidden_name",
+        "forbidden_call",
+        "unapproved_namespace",
+    }
+
+
+@pytest.mark.parametrize(
+    "source",
+    [
+        "market.__dict__",
+        "output.scalar.__globals__",
+        "values = np.array([1])\nvalues.__array_interface__",
+        "series = pd.Series([1])\nseries._value",
+        "model = statsmodels.api.OLS([1, 2], [[1], [1]])\nmodel.__class__",
+    ],
+)
+def test_runner_rejects_object_graph_and_wrapper_introspection(source):
+    result = execute_job({"source": source, "dataset": {}})
+    assert result["status"] == "failed"
+    assert result["diagnostics"]
+
+
+def test_runner_enforces_wall_time_limit_and_restores_signal(monkeypatch):
+    previous_handler = __import__("signal").getsignal(__import__("signal").SIGALRM)
+    monkeypatch.setattr(runner, "MAX_SECONDS", 1)
+    result = execute_job({"source": "while True:\n    pass", "dataset": {}})
+    assert result["status"] == "failed"
+    assert result["diagnostics"][0]["code"] == "wall_time_limit"
+    assert __import__("signal").getsignal(__import__("signal").SIGALRM) == previous_handler
+
+
 @pytest.mark.parametrize("expression", [
     "values.tofile('/tmp/secret.bin')",
     "values.dump('/tmp/secret.npy')",

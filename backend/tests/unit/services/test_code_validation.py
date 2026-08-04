@@ -30,9 +30,17 @@ def test_rejects_imports_and_dynamic_execution_with_source_positions():
     ("source", "expected_code"),
     [
         ("open('/tmp/secret')", "forbidden_call"),
+        ("__import__('socket')", "forbidden_name"),
+        ("eval('1 + 1')", "forbidden_call"),
+        ("compile('1 + 1', '<user>', 'eval')", "forbidden_call"),
+        ("globals()", "forbidden_call"),
+        ("locals()", "forbidden_call"),
+        ("vars()", "forbidden_call"),
         ("socket.socket()", "unapproved_namespace"),
         ("subprocess.Popen(['id'])", "unapproved_namespace"),
         ("getattr(market, 'close')", "forbidden_call"),
+        ("setattr(market, 'close', None)", "forbidden_call"),
+        ("delattr(market, 'close')", "forbidden_call"),
         ("type('Escape', (), {})", "unapproved_namespace"),
     ],
 )
@@ -46,6 +54,21 @@ def test_rejects_dunder_escape_attempts():
     result = validate_workstation_python("market.__class__")
     assert not result.valid
     assert result.diagnostics[0].code == "forbidden_attribute"
+
+
+@pytest.mark.parametrize(
+    "source",
+    [
+        "market.__dict__",
+        "output.scalar.__globals__",
+        "values = np.array([1])\nvalues.__array_interface__",
+        "model = statsmodels.api.OLS([1, 2], [[1], [1]])\nmodel.__class__",
+    ],
+)
+def test_rejects_object_graph_introspection_paths(source):
+    result = validate_workstation_python(source)
+    assert not result.valid
+    assert any(item.code in {"forbidden_name", "forbidden_attribute"} for item in result.diagnostics)
 
 
 def test_rejects_numpy_and_pandas_file_access():

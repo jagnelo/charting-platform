@@ -719,8 +719,12 @@ count, and input-job bytes through deployment-configured limits. It converts mal
 or crashing jobs into terminal failed results, cleans progress/cancellation sentinels,
 and recovers claimed `.running` jobs when the worker restarts. Focused tests cover row
 and byte rejection, malformed-job recovery, and orphaned-claim recovery. These are
-operational sandbox safeguards; the complete adversarial security and resource matrix
-remains open.
+operational sandbox safeguards. The adversarial runner matrix now explicitly covers
+dynamic execution/import/namespace calls, filesystem/network/process names, reflection
+and object-graph/curated-wrapper introspection, dangerous NumPy attributes, and wall-time
+alarm restoration: the combined validator/runner slice is 90 passing tests and the complete
+backend unit suite is 955 passing tests. Docker namespace, seccomp, resource-pressure,
+crash/orphan, and live image probes remain separate deployment gates.
 
 Study Lab dataset controls are now part of the serializable workstation-window
 configuration. Reopening, reloading, or floating a Study Lab preserves timeframe,

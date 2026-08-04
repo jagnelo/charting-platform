@@ -1,5 +1,16 @@
 # Run Report
 
+## 2026-08-04T21:10:00Z Adversarial Python sandbox matrix
+
+- Added regressions for dynamic execution/import/namespace calls, filesystem/network/process
+  names, reflection and object-graph/curated-wrapper introspection, and wall-time alarm
+  restoration after a non-terminating user loop.
+- Combined validator/runner focused slice passed `90/90`; Ruff and diff checks passed; full
+  backend unit suite passed `955/955` with 34 existing dependency warnings.
+- Deterministic source-level coverage is green. Docker namespace/seccomp/resource-pressure/
+  crash/orphan probes, provider-live, exact-build V25 visual approval, multi-window performance,
+  migration, and broad parity acceptance remain open.
+
 ## 2026-08-04T19:50:00Z Official shared-layout reference expansion
 
 - Added reproducible direct-media fetching for two official TC2000 shared-layout previews:
