@@ -2,6 +2,13 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-04T13:10:00Z Full frontend regression after chart cache changes
+
+- Full frontend Vitest passed `517` tests across `84` files with no unhandled errors
+  after the uPlot latest-bar Vue Query cache-key change. Intentional watchlist conflict
+  logging remains the only stderr.
+- Production build passed; exact-build visual approval and broad acceptance remain open.
+
 ## 2026-08-04T12:48:00Z uPlot visibility polling
 
 - uPlot live latest-bar refresh now pauses for hidden documents and non-intersecting chart

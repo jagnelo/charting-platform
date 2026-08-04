@@ -1,5 +1,14 @@
 # Active Handoff
 
+## Continuation update — 2026-08-04T13:10:00Z
+
+- Re-ran the complete frontend Vitest suite after latest-bar cache-key changes: `517`
+  tests across `84` files passed with no unhandled Vitest errors. Existing stderr is
+  limited to intentional conflict-path logging in watchlist-store tests.
+- The production build had already passed after the same chart changes. The host
+  Chromium MachPort permission failure remains an environment-only rerun limitation;
+  the latest valid isolated-stack browser evidence remains `22` passing flows.
+
 ## Continuation update — 2026-08-04T12:48:00Z
 
 - Added document/intersection visibility gating to the reusable uPlot live latest-bar
