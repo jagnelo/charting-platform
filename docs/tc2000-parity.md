@@ -813,3 +813,7 @@ The shared primary-facing provenance hint now reports canonical source, observat
 times, selection reason, quality, and notes without exposing provider-specific symbol
 aliases. This keeps the workstation's provenance contract provider-neutral while the
 legacy options models retain their isolated provider fields for legacy-only routes.
+
+The Sector by Year factory watchlist now exposes the same `Coverage`, `Freshness`, and
+`Provenance` columns as the live sector ranking view, so calendar-year cells do not become
+a lineage-free exception when the factory layout changes.

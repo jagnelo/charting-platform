@@ -16676,3 +16676,9 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
 - TypeScript, production build, and diff checks pass. Full backend/frontend regression
   evidence remains green; visual, provider-live, Docker integration, and broad acceptance
   remain open.
+## Continuation update — 2026-08-04T11:58:00Z Sector-by-Year lineage parity
+
+- Added Coverage, Freshness, and Provenance columns to the Sector by Year factory
+  watchlist, closing the remaining top-down list variant that lacked response-lineage
+  visibility. TypeScript, production build, and diff checks pass; full backend/frontend
+  regression evidence remains green. Visual and broad acceptance remain open.

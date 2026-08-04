@@ -18278,3 +18278,8 @@ uncovered slice rather than repeat a generic completion claim.
 - Primary provenance hints no longer render provider-specific symbol aliases; canonical
   source, freshness, selection, quality, and notes remain visible. TypeScript/build/diff
   checks passed; broad acceptance remains open.
+## 2026-08-04T11:58:00Z Sector-by-Year lineage parity
+
+- Sector by Year now exposes canonical coverage/freshness/provenance columns alongside
+  calendar-year performance. TypeScript/build/diff checks passed; broad acceptance remains
+  open.
