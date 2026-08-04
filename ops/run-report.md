@@ -13,7 +13,7 @@ Append a short entry after each worker session.
 
 ## 2026-08-04T12:30:00Z TC2000 reference media pack
 
-- Retrieved 83 official Help Site screenshots into `/private/tmp/tc2000-v25-reference-pack`
+- Retrieved 187 official Help Site screenshots into `/private/tmp/tc2000-v25-reference-pack`
   with a per-media URL/SHA-256 index. Added the reproducible retrieval script and source
   catalogue covering charts, layouts, watchlists, Data Grids, Market Gauges, notes,
   conditions, tabs, floating windows, comparisons, markers, and past performance.

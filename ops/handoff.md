@@ -16700,7 +16700,7 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
 
 ## Continuation update — 2026-08-04T12:30:00Z TC2000 reference media pack
 
-- Retrieved 83 official Help Site screenshots from 19 source pages into controlled storage
+- Retrieved 187 official Help Site screenshots from 19 source pages into controlled storage
   outside the repository. The pack covers V25-tagged pinning, event markers, and past
   performance plus current/behavioral layout, chart, Data Grid, Market Gauge, notes,
   condition, tab, floating-window, comparison, and projection mechanics.

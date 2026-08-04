@@ -6,7 +6,7 @@ strict parity rules in `docs/tc2000-visual-parity.md`.
 
 ## Retrieved pack
 
-On 2026-08-04, the retrieval script obtained 83 publicly reachable screenshots
+On 2026-08-04, the retrieval script obtained 187 publicly reachable screenshots
 from the official TC2000 Help Site into a controlled directory outside the
 repository. The current pack is at:
 
