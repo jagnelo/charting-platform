@@ -16734,3 +16734,13 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
 - Host-permitted run passed (`1` test). The 2.5-second bound is intentionally generous
   for shared CI; authenticated workstation, pop-out, memory/leak, and four-environment
   performance acceptance remain open.
+## Continuation update — 2026-08-04T15:45:00Z Study Lab Strategy signal persistence
+
+- Fixed the cross-surface promotion gap: `POST /api/v1/strategy-lab/signals/from-code/{id}`
+  now validates a user-owned, active `signal` code version and creates a Strategy Lab
+  definition/version whose snapshot and metadata retain the immutable code-version id.
+- Study Lab’s promotion UI calls the endpoint after creating the signal asset. Wrong-kind,
+  archived, cross-user, and unsupported output contracts are rejected.
+- Focused Study Lab frontend tests (`9`), Ruff, Python compile, and diff checks pass.
+  Docker-backed API verification is currently blocked by the unavailable Docker socket;
+  Strategy Lab execution remains governed by its existing engine capability contract.

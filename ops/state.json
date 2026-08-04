@@ -28,7 +28,8 @@
     "study_lab_aggregate_helpers": "passed: isolated research runner cross_sectional_rank and breadth_snapshot helpers have direct aggregate assertions; runner suite 40 passed, 2026-08-04",
     "study_lab_signal_promotion": "passed: completed Boolean Study Lab results create reusable signal assets; aggregate starters warn and reject missing declared universes; focused Study Lab suite 9 and TypeScript/build passed, 2026-08-04",
     "frontend_regression_checkpoint": "passed: full frontend Vitest 534 across 84 files, TypeScript, production build, visual-manifest validation, and git diff --check passed on 2026-08-04; exact-build visual, Docker integration/security, provider-live, performance, and broad E2E acceptance remain open"
-    ,"uplot_large_history_benchmark": "passed: host-permitted Chromium rendered 100000 points and completed 40 zoom/pan viewport updates with the same chart element; renderer-level gate only, full workstation/memory/multi-environment performance remains open"
+    ,"uplot_large_history_benchmark": "passed: host-permitted Chromium rendered 100000 points and completed 40 zoom/pan viewport updates with the same chart element; renderer-level gate only, full workstation/memory/multi-environment performance remains open",
+    "study_lab_strategy_signal_promotion": "implemented: authenticated promotion now creates a user-owned Strategy Lab definition/version referencing the immutable signal code_version_id; focused Study Lab frontend 9 passed, Ruff/compile passed; Docker-backed API verification remains blocked by unavailable Docker socket"
     },
   "notes": [
         "2026-08-04T12:06:00Z: Added Study Lab As-of timestamp control and canonical research cutoff enforcement; future bars are excluded and invalid cutoff-before-start requests are rejected. Focused router tests 2, Study Lab 9, TypeScript/build/Ruff/diff passed; full regression and visual/provider/Docker/broad acceptance remain open.",

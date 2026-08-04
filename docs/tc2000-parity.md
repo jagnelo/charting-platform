@@ -809,6 +809,15 @@ back to the active symbol; the run guard prevents an invalid single-symbol reque
 Study Lab coverage now includes this promotion and missing-universe recovery path (`9`
 tests), with TypeScript and production build passing.
 
+Promotion now also creates a user-owned Strategy Lab definition through
+`POST /api/v1/strategy-lab/signals/from-code/{code_version_id}`. Its version snapshot and
+metadata retain the immutable signal code-version id and output contract instead of
+copying source text, so the Strategy Lab library can discover the promoted signal and
+revisions remain reproducible. The endpoint rejects archived, cross-user, non-signal, and
+non-Boolean/event code versions. The existing Strategy Lab engine remains authoritative
+for which execution modes are supported; this removes the previous false state where the
+UI claimed Strategy Lab reuse while persisting only a generic code asset.
+
 The shared primary-facing provenance hint now reports canonical source, observation/fetch
 times, selection reason, quality, and notes without exposing provider-specific symbol
 aliases. This keeps the workstation's provenance contract provider-neutral while the

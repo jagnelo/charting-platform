@@ -18324,3 +18324,10 @@ uncovered slice rather than repeat a generic completion claim.
 - Host-permitted run passed (`1` test). This closes only the renderer-level large-history
   check; full workstation, pop-out, memory/leak, and four-environment performance gates
   remain open.
+## 2026-08-04T15:45:00Z Study Lab Strategy signal persistence
+
+- Added authenticated signal promotion persistence: the new endpoint creates a
+  user-owned Strategy Lab definition/version referencing the immutable signal code version.
+- Focused Study Lab frontend tests (`9`), Ruff, Python compile, and diff checks passed.
+- The Docker-backed API test is environment-blocked by Docker socket permission; no
+  provider, sandbox, or engine capability was broadened by this slice.

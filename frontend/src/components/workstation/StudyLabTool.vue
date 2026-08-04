@@ -467,7 +467,10 @@ async function promote(target: PromotionTarget) {
     if (!versionId) throw new Error('Promotion did not return a code version')
     if (target === 'column') promotionStatus.value = 'Saved as a reusable watchlist column.'
     else if (target === 'plot') promotionStatus.value = 'Saved as a reusable chart plot.'
-    else if (target === 'signal') promotionStatus.value = 'Saved as a reusable Strategy Lab signal.'
+    else if (target === 'signal') {
+      await api.post(`/strategy-lab/signals/from-code/${versionId}`, {})
+      promotionStatus.value = 'Saved as a reusable Strategy Lab signal.'
+    }
     else {
       const scan = await api.post<{ id: number }>(`/screeners/from-python-condition/${versionId}`, {
         name: `${name.value} Scan`, universe_type: 'all', timeframe: timeframe.value,

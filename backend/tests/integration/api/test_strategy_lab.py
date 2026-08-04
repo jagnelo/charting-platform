@@ -1,4 +1,40 @@
 class TestStrategyLabAPI:
+    def test_study_lab_signal_promotion_creates_strategy_definition_reference(
+        self, client, auth_headers
+    ):
+        asset_res = client.post(
+            "/api/v1/code/assets",
+            headers=auth_headers,
+            json={
+                "stable_key": "study-signal-promotion",
+                "name": "Positive Close Signal",
+                "kind": "signal",
+                "initial_version": {
+                    "source": "output.boolean('signal', True)",
+                    "output_contract": "boolean",
+                    "parameter_schema": {},
+                    "default_parameters": {},
+                },
+            },
+        )
+        assert asset_res.status_code == 201
+        version_id = asset_res.json()["versions"][0]["id"]
+
+        promotion_res = client.post(
+            f"/api/v1/strategy-lab/signals/from-code/{version_id}",
+            headers=auth_headers,
+            json={},
+        )
+        assert promotion_res.status_code == 201
+        payload = promotion_res.json()
+        assert payload["definition_type"] == "python"
+        assert payload["metadata"]["code_version_id"] == version_id
+        assert payload["versions"][0]["definition_snapshot"] == {
+            "kind": "python_signal",
+            "code_version_id": version_id,
+            "output_contract": "boolean",
+        }
+
     def test_create_list_version_and_run_strategy(
         self, client, auth_headers, db, instrument, ohlcv_bars
     ):

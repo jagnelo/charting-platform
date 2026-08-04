@@ -5,6 +5,7 @@ from sqlalchemy.orm import selectinload
 
 from app.auth.dependencies import get_current_user
 from app.database import get_db
+from app.models.research import CodeAsset, CodeVersion
 from app.models.strategy import StrategyDefinition, StrategyRun, StrategyRunBatch, StrategyVersion
 from app.models.user import User
 from app.schemas.strategy import (
@@ -62,6 +63,86 @@ async def list_definitions(
 ):
     result = await db.execute(_definition_query_for_user(current_user.id))
     return result.scalars().all()
+
+
+@router.post("/signals/from-code/{code_version_id}", response_model=StrategyDefinitionDetailOut, status_code=201)
+async def promote_code_signal(
+    code_version_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Persist a unified-Python signal as a Strategy Lab definition.
+
+    The strategy snapshot stores the immutable code-version id rather than copying
+    source text. This keeps Study Lab promotion user-scoped and reproducible while
+    leaving execution to the Strategy Lab engine's existing capability contract.
+    """
+    version = (
+        await db.execute(
+            select(CodeVersion)
+            .join(CodeAsset)
+            .where(
+                CodeVersion.id == code_version_id,
+                CodeAsset.user_id == current_user.id,
+                CodeAsset.kind == "signal",
+                CodeAsset.is_archived.is_(False),
+            )
+            .options(selectinload(CodeVersion.asset))
+        )
+    ).scalar_one_or_none()
+    if version is None:
+        raise HTTPException(status_code=404, detail="Signal code version not found")
+    if version.output_contract not in {"boolean", "events"}:
+        raise HTTPException(status_code=422, detail="Signal code must produce Boolean or event output")
+
+    base_name = f"{version.asset.name} Strategy Signal"
+    name = base_name
+    suffix = 2
+    while (
+        await db.execute(
+            select(func.count())
+            .select_from(StrategyDefinition)
+            .where(
+                StrategyDefinition.user_id == current_user.id,
+                func.lower(StrategyDefinition.name) == name.lower(),
+            )
+        )
+    ).scalar_one():
+        name = f"{base_name} ({suffix})"
+        suffix += 1
+
+    strategy = StrategyDefinition(
+        user_id=current_user.id,
+        name=name,
+        description="Unified-Python signal promoted from Study Lab.",
+        source_type="custom",
+        definition_type="python",
+        is_active=True,
+        tags=["study-lab", "python-signal"],
+        metadata_json={
+            "origin": "study_lab_promotion",
+            "code_asset_id": version.code_asset_id,
+            "code_version_id": version.id,
+            "output_contract": version.output_contract,
+        },
+    )
+    strategy.versions.append(
+        StrategyVersion(
+            version_number=1,
+            definition_snapshot={
+                "kind": "python_signal",
+                "code_version_id": version.id,
+                "output_contract": version.output_contract,
+            },
+            parameter_schema=version.parameter_schema or {},
+            default_parameters=version.default_parameters or {},
+            notes="Immutable unified-Python signal reference promoted from Study Lab.",
+            is_current=True,
+        )
+    )
+    db.add(strategy)
+    await db.commit()
+    return await _load_definition_or_404(db, strategy_id=strategy.id, user_id=current_user.id)
 
 
 @router.post("/definitions", response_model=StrategyDefinitionDetailOut, status_code=201)

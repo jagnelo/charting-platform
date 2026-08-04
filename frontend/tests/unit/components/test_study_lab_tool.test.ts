@@ -176,6 +176,7 @@ describe('StudyLabTool', () => {
       if (path === '/research/runs') return Promise.resolve({ id: 90, status: 'completed', artifacts: [{ id: 1, name: 'qualifies', artifact_type: 'boolean', payload: { value: true } }] })
       if (path === '/screeners/from-python-condition/43') return Promise.resolve({ id: 77 })
       if (path === '/alerts/screener') return Promise.resolve({ id: 88 })
+      if (path.startsWith('/strategy-lab/signals/from-code/')) return Promise.resolve({ id: 91 })
       return Promise.resolve({})
     })
     const wrapper = mountTool({ activeSymbol: 'SPY' })

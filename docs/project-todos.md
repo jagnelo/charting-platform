@@ -4321,6 +4321,13 @@ Result behavior:
   Strategy Lab signal source;
 - save a suitable numeric series as a reusable chart plot.
 
+Implementation checkpoint: Study Lab signal promotion now persists a user-owned Strategy
+Lab definition whose immutable version snapshot references the promoted unified-Python
+`code_version_id` and output contract. Archived, cross-user, wrong-kind, and unsupported
+output versions are rejected. Strategy execution still follows the existing Strategy Lab
+engine capability contract; promotion no longer creates a code asset that is invisible to
+the Strategy Lab library.
+
 Ship editable factory studies for:
 - consecutive positive/negative closes;
 - event frequency and occurrence browsing;
