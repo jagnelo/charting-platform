@@ -403,7 +403,16 @@ async def create_run(
     db.add(run)
     await db.flush()
     enqueue_research_run(run)
-    return run
+    # A freshly flushed instance may still have a lazy ``artifacts`` loader.
+    # FastAPI serializes the response outside SQLAlchemy's greenlet, so return
+    # an explicitly eager-loaded instance rather than leaking MissingGreenlet.
+    return (
+        await db.execute(
+            select(ResearchRun)
+            .options(selectinload(ResearchRun.artifacts))
+            .where(ResearchRun.id == run.id)
+        )
+    ).scalar_one()
 
 
 @router.get("/runs", response_model=list[ResearchRunOut])
@@ -516,7 +525,13 @@ async def rerun(
     db.add(run)
     await db.flush()
     enqueue_research_run(run)
-    return run
+    return (
+        await db.execute(
+            select(ResearchRun)
+            .options(selectinload(ResearchRun.artifacts))
+            .where(ResearchRun.id == run.id)
+        )
+    ).scalar_one()
 
 
 @router.post("/runs/{run_id}/cancel", response_model=ResearchRunOut)

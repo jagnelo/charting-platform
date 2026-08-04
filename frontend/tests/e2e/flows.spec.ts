@@ -259,6 +259,26 @@ test.describe('TC2000 workstation', () => {
     browserDiagnostics.expectNoCriticalIssues()
   })
 
+  test('F8g — Study Lab validates, runs an isolated Python study, and renders its result', async ({ page, browserDiagnostics }) => {
+    await page.goto('/chart')
+    await expect(page.locator('.workspace-layout-host')).toBeVisible({ timeout: 10_000 })
+    await page.getByRole('button', { name: 'Study', exact: true }).click()
+
+    const study = page.locator('.study-lab-tool')
+    await expect(study).toBeVisible({ timeout: 10_000 })
+    await study.getByRole('textbox', { name: 'Study name' }).fill('E2E scalar study')
+    await study.getByRole('textbox', { name: 'Study symbol' }).fill('SPY')
+    await study.getByRole('textbox', { name: 'Study Python source' }).fill("output.scalar('smoke', 1)")
+    await study.getByRole('button', { name: 'Validate' }).click()
+    await expect(study).toContainText('Validated for isolated execution', { timeout: 10_000 })
+
+    await study.getByRole('button', { name: 'Run' }).click()
+    await expect(study.locator('.study-lab-tool__run')).toBeVisible({ timeout: 10_000 })
+    await expect(study.locator('.study-lab-tool__run-status--completed')).toBeVisible({ timeout: 30_000 })
+    await expect(study.locator('.study-lab-tool__metrics article').filter({ hasText: 'smoke' })).toContainText('1')
+    browserDiagnostics.expectNoCriticalIssues()
+  })
+
 })
 
 

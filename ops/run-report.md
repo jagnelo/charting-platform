@@ -1,5 +1,23 @@
 # Run Report
 
+## 2026-08-05T05:00:00Z Study Lab/auth regression closure
+
+- Full backend unit suite: `965/965` passed with 34 existing dependency warnings and
+  coverage `69.83%`.
+- Full Docker-backed integration suite: `281/281` passed with 54 existing dependency
+  warnings (the normal coverage-enabled invocation also passed every test body but exits
+  non-zero because the integration-only subset is below the repository's 55% global gate;
+  the clean `--no-cov` rerun exits zero).
+- The detached read-only auth cleanup initially caused `DetachedInstanceError` because
+  rollback expired the returned ORM identity. The fix detaches the fully loaded user
+  before rollback and adds a direct lifecycle regression; the focused lifecycle suite
+  passed `3/3`.
+- Rebuilt branch stack Chromium acceptance passed all `27/27` flows, including the new
+  Study Lab validation/run/render path. Fresh backend logs contained no 500s, tracebacks,
+  pooled-connection warnings, `SAWarning`, `InterfaceError`, or unexpected errors.
+- Remaining exact-build visual, configured provider-live, resource-pressure, multi-window
+  performance, migration re-audit, and broad parity gates remain open.
+
 ## 2026-08-05T04:20:00Z Orphan-job recovery probe
 
 - A uniquely identified `.running` job was injected into the private volume, the non-root

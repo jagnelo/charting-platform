@@ -1,6 +1,7 @@
 """Regression coverage for the streaming screener's connection ownership."""
 
 import inspect
+from types import SimpleNamespace
 
 import pytest
 from fastapi.routing import APIRoute
@@ -61,5 +62,48 @@ async def test_database_cleanup_helpers_finish_inside_a_cancelled_scope():
         await rollback_session_safely(session)
         await close_session_safely(session)
 
+    assert session.rollback_calls == 1
+    assert session.close_calls == 1
+
+
+@pytest.mark.asyncio
+async def test_detached_auth_user_survives_rollback_cleanup(monkeypatch):
+    """The short auth lookup must return a usable identity after rollback."""
+    from fastapi.security import HTTPAuthorizationCredentials
+
+    import app.auth.dependencies as dependencies
+
+    monkeypatch.setattr(dependencies, "decode_token", lambda _token: {"type": "access", "sub": "7"})
+
+    user = SimpleNamespace(id=7, is_active=True, display_name="Test user")
+
+    class Session:
+        def __init__(self):
+            self.expunge_calls = 0
+            self.rollback_calls = 0
+            self.close_calls = 0
+
+        async def get(self, _model, _user_id):
+            return user
+
+        def expunge(self, value):
+            assert value is user
+            self.expunge_calls += 1
+
+        async def rollback(self):
+            self.rollback_calls += 1
+
+        async def close(self):
+            self.close_calls += 1
+
+    session = Session()
+    result = await get_current_user_detached(
+        HTTPAuthorizationCredentials(scheme="Bearer", credentials="token"),
+        lambda: session,
+    )
+
+    assert result is user
+    assert result.display_name == "Test user"
+    assert session.expunge_calls == 1
     assert session.rollback_calls == 1
     assert session.close_calls == 1

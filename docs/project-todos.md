@@ -3262,6 +3262,21 @@ mutating authentication/settings routes retain the request-scoped transaction. T
 browser flow and backend/runner/worker log audit now remain clean across the repeated login,
 streaming screener, workstation, and legacy-route matrix.
 
+The detached-auth cleanup was regression-tested against rollback expiration: the fully
+loaded identity is expunged before the shielded rollback/close sequence, so `/auth/me`,
+`/auth/settings`, and streaming ownership checks receive a usable object after the session
+has ended. The focused lifecycle suite passes 3 tests, the full backend unit suite passes
+965 tests at 69.83% coverage, and the rebuilt authenticated Chromium flow passes all 27
+flows, including Study Lab. The timestamp-default Alembic repair (`ea0f1a2b3c4d`) has also
+passed a disposable PostgreSQL downgrade/upgrade round trip. These checks do not relax the
+single completion bar or the still-open exact-build visual, provider-live, pressure,
+multi-window performance, migration, and broad parity gates.
+
+The Docker-backed integration suite also passes all 281 tests with 54 existing dependency
+warnings. The integration-only coverage command remains a diagnostic subset and therefore
+does not satisfy the repository-wide threshold; the acceptance run is recorded with
+`--no-cov` while the full unit command remains the coverage gate.
+
 Controlling objective:
 - This section and `docs/tc2000-visual-parity.md` are the controlling specification for
   the branch and supersede every older or narrower frontend-rework plan where they

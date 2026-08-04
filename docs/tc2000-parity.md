@@ -19,6 +19,25 @@ the source reference is required before visual acceptance; it is not an approval
 No row can change to `Complete` until its full functional and visual acceptance evidence
 is recorded in the referenced test/baseline system.
 
+## Current runtime evidence (2026-08-05)
+
+The rebuilt branch stack now passes the complete authenticated Chromium flow (`27/27`),
+including Study Lab validation, isolated Python execution, and structured metric rendering.
+The full backend unit suite passes (`965/965`, 69.83% coverage); the detached-auth rollback
+regression is covered directly and backend logs are clean for 500s, tracebacks, pool leaks,
+SQLAlchemy warnings, and unexpected errors. The research timestamp-default migration
+`ea0f1a2b3c4d` has passed a PostgreSQL downgrade/upgrade round trip.
+The complete Docker-backed integration suite passes `281/281` with 54 existing dependency
+warnings; its clean acceptance invocation is `--no-cov` because the integration-only subset
+does not meet the repository-wide coverage threshold by itself.
+
+This is functional/runtime evidence only. The strict visual gate still rejects the required
+`application-shell-default/default` state because the manifest remains `required_missing`;
+discovery-only online media cannot be promoted without exact-build continuity, measurements,
+permission/storage review, and human approval. Provider-live credentials, adversarial pressure
+and cancellation, 10,000-row/multi-window performance, full migration acceptance, and the
+complete cross-surface parity matrix likewise remain open.
+
 ## Cancellation-safe streaming evidence
 
 The screener NDJSON route is an explicit lifecycle boundary rather than a normal

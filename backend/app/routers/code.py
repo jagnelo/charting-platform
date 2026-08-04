@@ -1,7 +1,10 @@
 """Unified-Python authoring APIs; execution is intentionally not hosted here."""
 
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -24,6 +27,7 @@ from app.services.code_validation import validate_workstation_python
 from app.services.parameter_validation import validate_parameter_values
 
 router = APIRouter(prefix="/code", tags=["code"])
+logger = logging.getLogger(__name__)
 
 _ASSET_CONTRACTS = {
     "plot": {"series"},
@@ -99,7 +103,9 @@ async def import_asset(
     db.add(asset)
     try:
         await db.flush()
-    except Exception as exc:
+    except IntegrityError as exc:
+        await db.rollback()
+        logger.warning("Code asset import violated a database constraint: %s", exc.orig)
         raise HTTPException(status_code=409, detail={"code": "code_asset_key_conflict"}) from exc
     return (await db.execute(_asset_query().where(CodeAsset.id == asset.id))).scalar_one()
 
@@ -118,7 +124,9 @@ async def create_asset(
     db.add(asset)
     try:
         await db.flush()
-    except Exception as exc:
+    except IntegrityError as exc:
+        await db.rollback()
+        logger.warning("Code asset creation violated a database constraint: %s", exc.orig)
         raise HTTPException(status_code=409, detail={"code": "code_asset_key_conflict"}) from exc
     return (await db.execute(_asset_query().where(CodeAsset.id == asset.id))).scalar_one()
 
@@ -152,7 +160,9 @@ async def clone_asset(
     db.add(clone)
     try:
         await db.flush()
-    except Exception as exc:
+    except IntegrityError as exc:
+        await db.rollback()
+        logger.warning("Code asset clone violated a database constraint: %s", exc.orig)
         raise HTTPException(status_code=409, detail={"code": "code_asset_key_conflict"}) from exc
     return (await db.execute(_asset_query().where(CodeAsset.id == clone.id))).scalar_one()
 

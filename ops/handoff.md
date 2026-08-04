@@ -1,5 +1,24 @@
 # Active Handoff
 
+## Continuation update — 2026-08-05T05:00:00Z Study Lab/auth regression closure
+
+- The first rebuilt browser run after detached auth cleanup exposed a real regression:
+  rollback expired the detached `User` instance and caused `/auth/me` and `/auth/settings`
+  HTTP 500s. The dependency now reads the active flag and expunges the fully loaded user
+  before shielded rollback/close; a direct lifecycle regression proves returned attributes
+  remain usable after cleanup.
+- Validation: focused lifecycle `3 passed`; full backend unit `965 passed` with 34 existing
+  dependency warnings and 69.83% coverage; rebuilt branch Chromium `27/27` including the
+  Study Lab flow; fresh backend log audit clean for 500s, tracebacks, pool leaks, SAWarnings,
+  InterfaceErrors, provider errors, and unexpected warnings.
+- The complete Docker-backed integration suite now passes `281/281` with 54 existing
+  dependency warnings. Its coverage-enabled command still reports the expected subset
+  threshold failure, so the clean acceptance result is recorded from the `--no-cov` run.
+- The research timestamp-default migration `ea0f1a2b3c4d` was also round-tripped through
+  PostgreSQL and is now the branch head. Exact-build V25 visual approval, configured
+  provider-live probes, adversarial pressure/cancellation, multi-window performance,
+  migration acceptance beyond the round-trip, and broad parity remain open.
+
 ## Continuation update — 2026-08-05T04:20:00Z Orphan-job recovery probe
 
 - Created a uniquely identified `.running` job in the private shared volume, restarted the

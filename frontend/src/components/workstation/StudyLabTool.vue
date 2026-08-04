@@ -336,6 +336,12 @@ function buildParameters() {
 }
 
 function stableKey(value: string) { return value.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 56) || 'study' }
+function uniqueAssetKey(value: string, kind = 'study') {
+  const suffix = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+    ? crypto.randomUUID().replace(/-/g, '').slice(0, 20)
+    : `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
+  return `${stableKey(value)}-${kind}-${suffix}`
+}
 function artifactText(payload: Record<string, unknown>) { return JSON.stringify(payload.value ?? payload, null, 2) }
 function formatMetric(artifact: Artifact) { return artifact.artifact_type === 'boolean' ? artifact.payload.value === true ? 'True' : artifact.payload.value === false ? 'False' : '—' : artifact.payload.value ?? '—' }
 function tableRows(artifact: Artifact): Array<Record<string, unknown>> {
@@ -425,7 +431,7 @@ async function saveAndRun() {
     promotionStatus.value = ''
     const parameters = buildParameters()
     const asset = await api.post<{ versions: Array<{ id: number }> }>('/code/assets', {
-      stable_key: `${stableKey(name.value)}-${Date.now()}`,
+      stable_key: uniqueAssetKey(name.value),
       name: name.value,
       kind: 'study',
       initial_version: { source: source.value, output_contract: 'study', parameter_schema: parsedParameterSchema.value ?? {}, default_parameters: parameters },
@@ -459,7 +465,7 @@ async function promote(target: PromotionTarget) {
     const isBooleanTarget = target === 'scan' || target === 'alert'
     const kind = target === 'scan' || target === 'alert' ? 'condition' : target
     const asset = await api.post<{ versions: Array<{ id: number }> }>('/code/assets', {
-      stable_key: `${stableKey(name.value)}-${kind}-${Date.now()}`,
+      stable_key: uniqueAssetKey(name.value, kind),
       name: `${name.value} ${kind}`,
       kind,
       initial_version: {

@@ -64,6 +64,19 @@ class AsyncSessionAdapter:
         return getattr(self._session, item)
 
 
+class DetachedAuthSessionAdapter(AsyncSessionAdapter):
+    """Model a short-lived auth session without rolling back the test savepoint.
+
+    The integration fixture deliberately shares one synchronous connection so each
+    test can be reverted cheaply.  A real detached auth session rolls back its own
+    transaction; rolling this adapter back would instead erase the test's outer
+    transaction and make freshly-created resources appear missing to the stream.
+    """
+
+    async def rollback(self):
+        return None
+
+
 # ── Containers (session-scoped) ────────────────────────────────────────────────
 
 
@@ -165,13 +178,14 @@ def app(db, redis_url, monkeypatch):
     monkeypatch.setattr(settings, "REDIS_URL", redis_url)
 
     async_db = AsyncSessionAdapter(db)
+    auth_db = DetachedAuthSessionAdapter(db)
 
     def _override():
         yield async_db
 
     _app.dependency_overrides[get_db] = _override
     _app.dependency_overrides[get_stream_session_factory] = lambda: lambda: async_db
-    _app.dependency_overrides[get_auth_session_factory] = lambda: lambda: async_db
+    _app.dependency_overrides[get_auth_session_factory] = lambda: lambda: auth_db
     yield _app
     _app.dependency_overrides.clear()
 
