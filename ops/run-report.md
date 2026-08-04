@@ -1,5 +1,15 @@
 # Run Report
 
+## 2026-08-04T21:30:00Z Runner container ceilings
+
+- Added and validated branch-scoped research-runner ceilings: 768 MiB memory, 1 CPU, and
+  128 PIDs, alongside the existing no-network/read-only/non-root/capability boundary.
+- Live inspection confirmed `memory=805306368`, `nano_cpus=1000000000`, `pids=128`,
+  `network=none`, read-only root, `user=10001:10001`, and `CapDrop=[ALL]`. Direct probes
+  produced read-only-filesystem and network-unreachable failures as expected.
+- Compose validation, deployment tests, Ruff, and diff checks passed. The complete
+  resource-pressure/crash/orphan matrix and other broad acceptance gates remain open.
+
 ## 2026-08-04T21:10:00Z Adversarial Python sandbox matrix
 
 - Added regressions for dynamic execution/import/namespace calls, filesystem/network/process

@@ -726,6 +726,13 @@ alarm restoration: the combined validator/runner slice is 90 passing tests and t
 backend unit suite is 955 passing tests. Docker namespace, seccomp, resource-pressure,
 crash/orphan, and live image probes remain separate deployment gates.
 
+The branch-scoped live runner was rebuilt with container-level ceilings of 768 MiB,
+1 CPU, and 128 PIDs in addition to the per-job limits. Docker inspection confirmed
+`uid=10001`, `network=none`, read-only root, dropped capabilities, no-new-privileges,
+and the configured ceilings. Direct probes returned read-only-filesystem and
+network-unreachable errors. This is deployment evidence for the isolated runner;
+the full resource-pressure/crash/orphan matrix remains open.
+
 Study Lab dataset controls are now part of the serializable workstation-window
 configuration. Reopening, reloading, or floating a Study Lab preserves timeframe,
 benchmark, adjustment, session, and date bounds through the existing workspace

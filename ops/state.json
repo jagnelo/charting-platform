@@ -4,13 +4,13 @@
     "active_worker": "Codex",
     "worker_session_started_at": "2026-07-28T21:40:33Z",
     "worker_soft_stop_at": null,
-  "last_handoff_at": "2026-08-04T21:10:00Z",
+  "last_handoff_at": "2026-08-04T21:30:00Z",
   "last_commit": "3ef3a05 test: expand isolated python sandbox adversarial matrix",
     "git_ready_to_commit": true,
   "validation": {
     "sandbox_numpy_method_guard": "passed: dangerous ndarray, dynamic execution/import/namespace, filesystem/network/process, reflection/object-graph introspection, and wall-time restoration regressions; combined validator/runner slice 90 passed and full backend unit suite 955 passed, 2026-08-04",
         "visual_reference_pack": "retrieved 189 official-help/shared-layout screenshots into controlled external storage with per-media URLs and SHA-256 index; the two official shared-layout previews are recorded as discovery-only candidates, exact-build approval remains required",
-        "backend_lint": "passed (code validation including deterministic XNYS coverage calendar, restricted numerical facades, isolated research runner/resource restoration, screener, visual, analysis, research, OHLCV session model, and migration modules, 2026-08-03)",
+        "backend_lint": "passed (code validation including deterministic XNYS coverage calendar, restricted numerical facades, isolated research runner/resource restoration, screener, visual, analysis, research, OHLCV session model, migration modules, and runner deployment ceilings, 2026-08-04)",
         "backend_tests": "repo-mounted full backend unit suite 955 passed (34 dependency warnings), including the adversarial validator/runner matrix, request-scoped normal auth, detached-auth screener streaming, shielded cancellation cleanup, cancellation-log filtering, synchronous compatibility cleanup, and injectable auth/stream session-factory coverage; full Docker-backed integration suite 281 passed with 54 dependency warnings; visual-manifest validator suite 3 passed and correctly rejects required_missing acceptance states",
         "frontend_tests": "passed: full frontend Vitest suite 547 across 84 files, including blocked/malformed localStorage cross-window recovery, stale top-down analysis, ratio prop reload, workspace persistence boundaries, pre-v8 Golden Layout width migration, and link-group chrome labels; TypeScript and production build passed, 2026-08-04",
         "frontend_build": "passed: TypeScript and production build after pre-v8 Golden Layout column-width migration; 459 modules built, 2026-08-04",
@@ -46,6 +46,7 @@
     "provider_reference_environment": "passed: backend/.env.example ordinary chains and identifier priority now exclude yfinance and retain it only for option_chain/explicit legacy slots; instrument_search also excludes Alpaca, whose adapter has no search method; runtime filters stale policies against current registry capabilities; JSON seed validation and provider-registry/runtime focused coverage 17 passed"
     ,"docker_integration_regression": "passed: current source reran the full Docker-backed backend integration suite with 281 passed and 54 dependency warnings; this includes the local-only existing-instrument read contract, empty-database taxonomy fallback, AlertFiringEvent metadata fix, promoted Python-signal queue coverage, and provider policy hygiene startup/disablement"
     ,"research_runner_container_probe": "passed: resolved Docker Compose config, deployment contract tests 2, runner/security tests 46, and direct image probe verified uid 10001, read-only root, no network, dropped capabilities/no-new-privileges, and writable constrained tmpfs"
+    ,"research_runner_container_limits": "passed: rebuilt branch-scoped runner inspected at memory=805306368, nano_cpus=1000000000, pids=128, uid=10001, network=none, read-only root, CapDrop=ALL; direct root-write and external-network probes failed as expected, 2026-08-04"
     ,"browser_acceptance_checkpoint": "passed: canonical row-universe, Python timeframe, watchlist-destruction, EasyScan-destruction, and Study Lab-destruction changes cancel owned active batches; Research Results remains non-owning; stale top-down technical responses and mounted ratio prop changes are generation-guarded; rebuilt-stack full Chromium flows passed 24/24 in 45.0s with no unexpected diagnostics; approved visual parity remains required_missing"
     },
   "notes": [

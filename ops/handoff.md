@@ -1,5 +1,18 @@
 # Active Handoff
 
+## Continuation update — 2026-08-04T21:30:00Z Runner container ceilings
+
+- Added container-level `mem_limit=768m`, `cpus=1.0`, and `pids_limit=128` alongside the
+  existing per-job rlimits, read-only root, no-network, non-root, dropped-capability, and
+  no-new-privileges boundary.
+- Rebuilt the branch-scoped runner and inspected the live container: memory `805306368`,
+  `nano_cpus=1000000000`, PIDs `128`, user `10001:10001`, network `none`, read-only root,
+  and `CapDrop=[ALL]`. Direct probes correctly returned read-only-filesystem and
+  network-unreachable errors.
+- Compose config, deployment tests, Ruff, and diff checks passed. Full resource-pressure,
+  crash/orphan recovery, provider-live, exact-build visual, multi-window performance,
+  migration, and broad parity gates remain open.
+
 ## Continuation update — 2026-08-04T21:10:00Z Adversarial Python sandbox matrix
 
 - Expanded static-validator and isolated-runner regressions for dynamic execution,

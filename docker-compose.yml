@@ -176,6 +176,11 @@ services:
     restart: unless-stopped
     network_mode: "none"
     read_only: true
+    # Keep native-library and accidental allocation pressure bounded at the
+    # container boundary as well as through the runner's per-job rlimits.
+    mem_limit: ${RESEARCH_CONTAINER_MEMORY_LIMIT:-768m}
+    cpus: "${RESEARCH_CONTAINER_CPUS:-1.0}"
+    pids_limit: ${RESEARCH_CONTAINER_PIDS_LIMIT:-128}
     user: "10001:10001"
     cap_drop: ["ALL"]
     security_opt: ["no-new-privileges:true"]

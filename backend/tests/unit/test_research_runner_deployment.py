@@ -8,6 +8,9 @@ def test_research_runner_compose_contract_preserves_isolated_execution_boundary(
 
     assert 'network_mode: "none"' in service
     assert "read_only: true" in service
+    assert "mem_limit: ${RESEARCH_CONTAINER_MEMORY_LIMIT:-768m}" in service
+    assert 'cpus: "${RESEARCH_CONTAINER_CPUS:-1.0}"' in service
+    assert "pids_limit: ${RESEARCH_CONTAINER_PIDS_LIMIT:-128}" in service
     assert 'user: "10001:10001"' in service
     assert 'cap_drop: ["ALL"]' in service
     assert 'security_opt: ["no-new-privileges:true"]' in service
