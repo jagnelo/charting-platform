@@ -5,7 +5,7 @@
     "worker_session_started_at": "2026-07-28T21:40:33Z",
     "worker_soft_stop_at": null,
   "last_handoff_at": "2026-08-05T00:20:00Z",
-  "last_commit": "604e9aa chore(ops): record research ownership correction",
+  "last_commit": "7aa04b3 fix(workstation): guard technical summary generations",
     "git_ready_to_commit": false,
   "validation": {
     "sandbox_numpy_method_guard": "passed: five dangerous ndarray attribute regressions; focused research runner 45 passed and full backend unit suite 913 passed",
