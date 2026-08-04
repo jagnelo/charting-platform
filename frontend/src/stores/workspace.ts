@@ -138,6 +138,9 @@ export interface GroupSnapshotState {
 
 export interface BreadthState {
   group_key: string
+  timeframe?: string
+  adjustment?: string
+  as_of?: string | null
   coverage: number
   evaluated_count: number
   above_ma: Record<string, number | null>
@@ -147,6 +150,8 @@ export interface BreadthState {
 
 export interface BreadthHistoryState {
   group_key: string
+  timeframe?: string
+  adjustment?: string
   points: Array<{ timestamp: string; above_ma: Record<string, number | null>; coverage: Record<string, number> }>
   freshness?: 'current' | 'stale' | 'partial' | 'unavailable'
   freshness_detail?: Record<string, number>
@@ -665,9 +670,15 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     }
   }
 
-  async function loadGroupSnapshot(stableKey: string, benchmark?: string) {
+  async function loadGroupSnapshot(stableKey: string, benchmark?: string, options: { timeframe?: string; adjusted?: boolean; as_of?: string } = {}) {
     try {
-      const snapshot = await api.get<GroupSnapshotState>(`/analysis/groups/${encodeURIComponent(stableKey)}/snapshot`, { benchmark })
+      const params = {
+        ...(benchmark ? { benchmark } : {}),
+        ...(options.timeframe ? { timeframe: options.timeframe } : {}),
+        ...(typeof options.adjusted === 'boolean' ? { adjusted: options.adjusted } : {}),
+        ...(options.as_of ? { as_of: options.as_of } : {}),
+      }
+      const snapshot = await api.get<GroupSnapshotState>(`/analysis/groups/${encodeURIComponent(stableKey)}/snapshot`, params)
       groupSnapshots.value = { ...groupSnapshots.value, [stableKey]: snapshot }
       return snapshot
     } catch (cause: any) {
@@ -676,9 +687,16 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     }
   }
 
-  async function loadBreadth(stableKey: string) {
+  async function loadBreadth(stableKey: string, options: { timeframe?: string; adjusted?: boolean; as_of?: string } = {}) {
     try {
-      const snapshot = await api.get<BreadthState>(`/analysis/groups/${encodeURIComponent(stableKey)}/breadth`)
+      const params = {
+        ...(options.timeframe ? { timeframe: options.timeframe } : {}),
+        ...(typeof options.adjusted === 'boolean' ? { adjusted: options.adjusted } : {}),
+        ...(options.as_of ? { as_of: options.as_of } : {}),
+      }
+      const snapshot = Object.keys(params).length
+        ? await api.get<BreadthState>(`/analysis/groups/${encodeURIComponent(stableKey)}/breadth`, params)
+        : await api.get<BreadthState>(`/analysis/groups/${encodeURIComponent(stableKey)}/breadth`)
       breadth.value = { ...breadth.value, [stableKey]: snapshot }
       return snapshot
     } catch (cause: any) {
@@ -687,9 +705,15 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     }
   }
 
-  async function loadBreadthHistory(stableKey: string) {
+  async function loadBreadthHistory(stableKey: string, options: { timeframe?: string; adjusted?: boolean; as_of?: string } = {}) {
     try {
-      const history = await api.get<BreadthHistoryState>(`/analysis/groups/${encodeURIComponent(stableKey)}/breadth/history`, { limit: 500 })
+      const params = {
+        limit: 500,
+        ...(options.timeframe ? { timeframe: options.timeframe } : {}),
+        ...(typeof options.adjusted === 'boolean' ? { adjusted: options.adjusted } : {}),
+        ...(options.as_of ? { as_of: options.as_of } : {}),
+      }
+      const history = await api.get<BreadthHistoryState>(`/analysis/groups/${encodeURIComponent(stableKey)}/breadth/history`, params)
       breadthHistory.value = { ...breadthHistory.value, [stableKey]: history }
       return history
     } catch (cause: any) {

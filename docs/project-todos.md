@@ -3759,7 +3759,9 @@ The primary breadth surface now exposes a canonical group selector, Above/Below 
 for the 20/50/200-MA states, and a linked passing/failing member drill-down. It loads
 the selected group's snapshot and current/historical breadth through the existing local
 analysis APIs; the drill-down preserves canonical symbol identity and publishes the
-selected member to the workstation link group.
+selected member to the workstation link group. Timeframe (daily/weekly/monthly) and
+split-adjustment controls are persisted with the tool and forwarded to all four group,
+snapshot, current-breadth, and historical-breadth requests.
 
 Relative rotation:
 - accept benchmark, peer universe, timeframe, lookback, sampling, and tail length;

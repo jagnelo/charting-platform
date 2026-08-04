@@ -156,7 +156,9 @@ each 20/50/200-MA aggregate, and corresponding passing/failing members as linked
 Changing the universe loads its group snapshot plus current/historical breadth through
 the local analysis APIs. Selecting a row publishes its canonical symbol to workstation
 charts without a route change; the historical uPlot breadth series remains visible
-alongside the drill-down. Focused workstation/watchlist coverage, TypeScript, and
+alongside the drill-down. Daily/weekly/monthly timeframe and split-adjustment controls
+are persisted and forwarded consistently to the group, snapshot, current-breadth, and
+history requests. Focused workstation/watchlist/store coverage, TypeScript, and
 production build pass; visual and full acceptance remain open.
 Study Lab exposes a serializable comma-separated universe control; when populated it sends
 canonical symbol selectors as `run_config.symbols` and displays the selected universe in

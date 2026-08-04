@@ -52,6 +52,19 @@ describe('workspace store layout tabs', () => {
     expect(store.error).toContain('temporary analysis outage')
   })
 
+  it('passes breadth timeframe and adjustment options through canonical analysis requests', async () => {
+    apiGet.mockResolvedValue({})
+    const store = useWorkspaceStore()
+
+    await store.loadGroupSnapshot('sp500-sectors', 'SPY', { timeframe: 'W1', adjusted: false })
+    await store.loadBreadth('sp500-sectors', { timeframe: 'W1', adjusted: false })
+    await store.loadBreadthHistory('sp500-sectors', { timeframe: 'W1', adjusted: false })
+
+    expect(apiGet).toHaveBeenCalledWith('/analysis/groups/sp500-sectors/snapshot', { benchmark: 'SPY', timeframe: 'W1', adjusted: false })
+    expect(apiGet).toHaveBeenCalledWith('/analysis/groups/sp500-sectors/breadth', { timeframe: 'W1', adjusted: false })
+    expect(apiGet).toHaveBeenCalledWith('/analysis/groups/sp500-sectors/breadth/history', { limit: 500, timeframe: 'W1', adjusted: false })
+  })
+
   it('keeps the active ETF drill-down when an older holdings response arrives late', async () => {
     const stale = deferred<unknown>()
     apiGet.mockImplementation((path: string) => {

@@ -2,6 +2,13 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-04T17:25:00Z Breadth timeframe and adjustment controls
+
+- Breadth timeframe and split-adjustment controls are now persisted and propagated to
+  all related group/snapshot/current/history requests. Store suite passed `24`, prior
+  focused workstation/watchlist boundary `40`, TypeScript/build/diff passed. Visual and
+  broad acceptance remain open.
+
 ## 2026-08-04T17:05:00Z Configurable breadth universe
 
 - Breadth universe is now persisted/configurable between S&P 500 sectors and US

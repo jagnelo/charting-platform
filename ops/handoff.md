@@ -1,5 +1,14 @@
 # Active Handoff
 
+## Continuation update — 2026-08-04T17:25:00Z Breadth timeframe and adjustment controls
+
+- Added persisted daily/weekly/monthly timeframe and split-adjustment controls to the
+  breadth tool. The selected options are forwarded consistently to group snapshot,
+  current-breadth, and historical-breadth requests for the selected universe.
+- Store option propagation coverage passed `24` tests; prior focused workstation/
+  watchlist boundary `40` remains green; TypeScript/build/diff passed. Visual and broad
+  acceptance remain open; generated `test-results/` remains untracked.
+
 ## Continuation update — 2026-08-04T17:05:00Z Configurable breadth universe
 
 - Breadth now accepts a persisted canonical universe selection (`sp500-sectors` or

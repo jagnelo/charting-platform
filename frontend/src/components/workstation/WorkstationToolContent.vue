@@ -348,7 +348,7 @@
       <RatioUPlot :symbol="activeSymbol" :benchmarks="ratioBenchmarks" :timeframe="activeTimeframe" :as-of="typeof tool.configuration.as_of === 'string' ? tool.configuration.as_of : null" :linked-timestamp="workspaceStore.timestampForLinkGroup(tool.link_group)" @cursor-timestamp="workspaceStore.publishTimestamp($event, tool.link_group, tool.instance_key)" @configuration="emit('configuration', tool.instance_key, { ...tool.configuration, ...$event })" />
     </div>
     <div v-else-if="tool.instance_key === 'breadth-summary' || tool.tool_type === 'breadth'" class="breadth-tool">
-      <label class="breadth-tool__universe">Universe <select :value="breadthGroupKey" aria-label="Breadth universe" @change="setBreadthGroup(($event.target as HTMLSelectElement).value)"><option value="sp500-sectors">S&amp;P 500 sectors</option><option value="us-benchmarks">US benchmarks</option></select></label>
+      <label class="breadth-tool__universe">Universe <select :value="breadthGroupKey" aria-label="Breadth universe" @change="setBreadthGroup(($event.target as HTMLSelectElement).value)"><option value="sp500-sectors">S&amp;P 500 sectors</option><option value="us-benchmarks">US benchmarks</option></select> Timeframe <select :value="breadthTimeframe" aria-label="Breadth timeframe" @change="setBreadthConfiguration({ timeframe: ($event.target as HTMLSelectElement).value })"><option value="D1">Daily</option><option value="W1">Weekly</option><option value="MN">Monthly</option></select> <label><input type="checkbox" :checked="breadthAdjusted" aria-label="Breadth split adjusted" @change="setBreadthConfiguration({ adjusted: ($event.target as HTMLInputElement).checked })" /> Adjusted</label></label>
       <div class="metrics">
         <template v-for="period in ['ma20', 'ma50', 'ma200']" :key="period">
           <span>Above {{ period.slice(2) }} MA</span>
@@ -1061,6 +1061,8 @@ const sectorPerformance = computed(() => Object.fromEntries(
   (workspaceStore.groupSnapshots['sp500-sectors']?.rows ?? []).map(row => [row.symbol, row.performance['1M']?.value ?? null]),
 ))
 const breadthGroupKey = computed(() => typeof props.tool.configuration.group_key === 'string' && props.tool.configuration.group_key.trim() ? props.tool.configuration.group_key.trim() : 'sp500-sectors')
+const breadthTimeframe = computed(() => ['D1', 'W1', 'MN'].includes(String(props.tool.configuration.timeframe)) ? String(props.tool.configuration.timeframe) : 'D1')
+const breadthAdjusted = computed(() => props.tool.configuration.adjusted !== false)
 const breadth = computed(() => workspaceStore.breadth[breadthGroupKey.value])
 const breadthHistory = computed(() => workspaceStore.breadthHistory[breadthGroupKey.value])
 const technical = computed(() => workspaceStore.technicals[activeSymbol.value])
@@ -1166,7 +1168,6 @@ const sectorRows = computed(() => (workspaceStore.marketGroups['sp500-sectors']?
   warnings: snapshotWarnings(workspaceStore.groupSnapshots['sp500-sectors']?.rows.find(item => item.instrument_id === member.instrument.id)),
 })))
 const breadthRows = computed<WatchlistRow[]>(() => {
-  if (breadthGroupKey.value === 'sp500-sectors') return sectorRows.value
   const snapshot = workspaceStore.groupSnapshots[breadthGroupKey.value]
   return (workspaceStore.marketGroups[breadthGroupKey.value]?.members ?? []).map(member => {
     const row = snapshot?.rows.find(item => item.instrument_id === member.instrument.id)
@@ -1503,19 +1504,22 @@ function setBreadthDrilldown(key: string, state: 'above' | 'below') {
 }
 function setBreadthGroup(groupKey: string) {
   const normalized = groupKey === 'us-benchmarks' ? 'us-benchmarks' : 'sp500-sectors'
-  emit('configuration', props.tool.instance_key, { ...props.tool.configuration, group_key: normalized })
-  void loadBreadthUniverse(normalized)
+  setBreadthConfiguration({ group_key: normalized })
 }
-async function loadBreadthUniverse(groupKey: string) {
+function setBreadthConfiguration(configuration: Record<string, unknown>) {
+  emit('configuration', props.tool.instance_key, { ...props.tool.configuration, ...configuration })
+}
+async function loadBreadthUniverse(groupKey: string, timeframe = breadthTimeframe.value, adjusted = breadthAdjusted.value) {
+  const options = { ...(timeframe !== 'D1' ? { timeframe } : {}), ...(adjusted !== true ? { adjusted } : {}) }
   await Promise.all([
     workspaceStore.loadMarketGroup(groupKey),
-    workspaceStore.loadGroupSnapshot(groupKey, 'SPY'),
-    workspaceStore.loadBreadth(groupKey),
-    workspaceStore.loadBreadthHistory(groupKey),
+    workspaceStore.loadGroupSnapshot(groupKey, 'SPY', options),
+    workspaceStore.loadBreadth(groupKey, options),
+    workspaceStore.loadBreadthHistory(groupKey, options),
   ])
 }
-watch(breadthGroupKey, groupKey => {
-  if (props.tool.instance_key === 'breadth-summary' || props.tool.tool_type === 'breadth') void loadBreadthUniverse(groupKey)
+watch([breadthGroupKey, breadthTimeframe, breadthAdjusted], ([groupKey, timeframe, adjusted]) => {
+  if (props.tool.instance_key === 'breadth-summary' || props.tool.tool_type === 'breadth') void loadBreadthUniverse(groupKey, timeframe, adjusted)
 }, { immediate: true })
 function formatNumber(value: number | null | undefined) { return value == null ? 'Unavailable' : value.toFixed(2) }
 function formatPercent(value: number | null | undefined) { return value == null ? 'Unavailable' : `${(value * 100).toFixed(1)}%` }
