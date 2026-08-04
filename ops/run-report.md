@@ -1,5 +1,19 @@
 # Run Report
 
+## 2026-08-04T19:50:00Z Official shared-layout reference expansion
+
+- Added reproducible direct-media fetching for two official TC2000 shared-layout previews:
+  Bulls on Wallstreet and Emmanuel. The controlled pack now indexes 189 media files with
+  source URLs and SHA-256 hashes; the new 1710×827 and 2558×1278 previews remain outside
+  the repository.
+- Recorded both previews as `official_shared_layout` discovery candidates and documented
+  their use for shell density, chart/watchlist composition, tab chrome, symbol/timeframe
+  controls, and multi-window reference work. They remain non-approved because the shared
+  pages do not establish the pinned build or complete capture environment.
+- Visual manifest validation and its three unit tests passed; script syntax and diff checks
+  passed. The strict `--require-approved` gate remains intentionally blocked by the existing
+  `required_missing` surface states.
+
 ## 2026-08-04T20:40:00Z Authentication-session factory and storage-fallback hardening
 
 - Re-audited the prior auth fix against a freshly rebuilt stack. Normal authentication now

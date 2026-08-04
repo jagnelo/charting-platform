@@ -1,5 +1,20 @@
 # Active Handoff
 
+## Continuation update — 2026-08-04T19:50:00Z Official shared-layout reference expansion
+
+- Extended the controlled reference-pack fetcher with two official TC2000 shared-layout
+  preview endpoints (Bulls on Wallstreet and Emmanuel). The pack now contains 189 media
+  files; both new images were downloaded outside the repository, SHA-256 verified, and
+  recorded in `manifest.yaml` with dimensions, source pages, direct locators, and explicit
+  discovery-only status.
+- Added the previews to the visual parity catalogue as high-resolution discovery evidence
+  for dense shell geometry, chart/watchlist composition, tabs, symbol/timeframe controls,
+  and multi-window arrangements. They do not claim build `25.0.9571` or complete capture
+  metadata, so the exact-build visual gate remains correctly blocked.
+- Validation: visual manifest CLI passed, the three visual-manifest unit tests passed,
+  fetch-script syntax and `git diff --check` passed. No protected media was added to the
+  repository or application bundle.
+
 ## Continuation update — 2026-08-04T20:40:00Z Authentication-session factory and storage-fallback hardening
 
 - The previous auth change was re-audited against a fresh rebuilt stack. A full browser run

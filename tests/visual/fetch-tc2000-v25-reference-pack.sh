@@ -55,6 +55,23 @@ for source in "${sources[@]}"; do
     done
 done
 
+# Official shared-layout preview images are served by a different endpoint than
+# Help Site media. Keep them in the same controlled pack and index them with the
+# originating layout page so the previews remain reproducible discovery evidence.
+declare -a direct_media_sources=(
+  "bulls-shared-layout|https://www.tc2000.com/share/affiliate/bulls/layout/7fe75a78-4faa-4f1d-8088-b4f4ff94b954|official_shared_layout|https://www.tc2000.com/util/ImageForExportedItem/7fe75a78-4faa-4f1d-8088-b4f4ff94b954?quality=low|bulls-shared-layout.png"
+  "emmanuel-shared-layout|https://www.tc2000.com/share/el3470/layout/18fbc0d1-daa4-4260-8167-111a275d6dc1|official_shared_layout|https://www.tc2000.com/util/ImageForExportedItem/18fbc0d1-daa4-4260-8167-111a275d6dc1?quality=low|emmanuel-shared-layout.png"
+)
+
+for source in "${direct_media_sources[@]}"; do
+  IFS='|' read -r source_id page_url source_type media_url media_file <<< "$source"
+  media_path="$media_dir/$media_file"
+  curl --fail --location --silent --show-error --max-time 45 "$media_url" -o "$media_path"
+  sha256="$(shasum -a 256 "$media_path" | awk '{print $1}')"
+  printf '%s\t%s\t%s\t%s\t%s\t%s\n' \
+    "$source_id" "$source_type" "$page_url" "$media_file" "$media_url" "$sha256" >> "$index_file"
+done
+
 printf 'Reference pack: %s\n' "$output_dir"
 printf 'Media files: %s\n' "$(find "$media_dir" -type f | wc -l | tr -d ' ')"
 printf 'Index: %s\n' "$index_file"

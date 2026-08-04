@@ -141,6 +141,15 @@ were recovered from the help articles, but they intentionally remain non-approve
 the pages do not prove exact build `25.0.9571`, complete capture environment, permissions,
 measurements, or human review.
 
+Two additional official shared-layout previews are retrieved by
+`tests/visual/fetch-tc2000-v25-reference-pack.sh` into controlled storage and recorded as
+`official_shared_layout` discovery candidates: the [Bulls on Wallstreet layout](https://www.tc2000.com/share/affiliate/bulls/layout/7fe75a78-4faa-4f1d-8088-b4f4ff94b954)
+and the [Emmanuel layout](https://www.tc2000.com/share/el3470/layout/18fbc0d1-daa4-4260-8167-111a275d6dc1).
+Their previews are useful high-resolution evidence for dense shell geometry, chart/watchlist
+composition, tab chrome, symbol/timeframe controls, and multi-window arrangements. The
+pages expose no pinned desktop build or capture environment, so both remain discovery-only
+and cannot satisfy exact-build visual approval.
+
 ### Watchlists, columns, filters, and market gauges
 
 - Column editor:

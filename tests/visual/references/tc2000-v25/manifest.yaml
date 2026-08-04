@@ -128,6 +128,30 @@ reference_policy:
       status: discovery_candidate
       eligible_for: [watchlist-column-filter]
       notes: "Official Version 25 pinned-column secondary-sort state; candidate only pending exact-build continuity and review."
+    - id: official-shared-layout-bulls
+      source_type: official_shared_layout
+      source_page: https://www.tc2000.com/share/affiliate/bulls/layout/7fe75a78-4faa-4f1d-8088-b4f4ff94b954
+      image_locator: https://www.tc2000.com/util/ImageForExportedItem/7fe75a78-4faa-4f1d-8088-b4f4ff94b954?quality=low
+      source_build: version-unspecified-current
+      retrieved_at: "2026-08-04"
+      controlled_storage: /private/tmp/tc2000-v25-reference-pack/shared-layouts/bulls-layout.png
+      image_sha256: ffb15d4d451a189c7d4e34ef4561f1c7e6fc0fde2b805eeffee212519d43d27d
+      image_resolution: { width: 1710, height: 827 }
+      status: discovery_candidate
+      eligible_for: [application-shell-default, workspace-docking, chart-window, watchlist-column-filter]
+      notes: "Official TC2000 shared-layout preview with two linked chart windows, dense watchlists, tabs, symbol/timeframe controls, and notes/options panels. The page exposes no pinned desktop build or capture environment, so this is discovery-only and cannot satisfy exact-build visual approval."
+    - id: official-shared-layout-emmanuel
+      source_type: official_shared_layout
+      source_page: https://www.tc2000.com/share/el3470/layout/18fbc0d1-daa4-4260-8167-111a275d6dc1
+      image_locator: https://www.tc2000.com/util/ImageForExportedItem/18fbc0d1-daa4-4260-8167-111a275d6dc1?quality=low
+      source_build: version-unspecified-current
+      retrieved_at: "2026-08-04"
+      controlled_storage: /private/tmp/tc2000-v25-reference-pack/shared-layouts/emmanuel-layout.png
+      image_sha256: a56e0f08b9686069150c8a45be42abaa501c7f8b03e9e39c68967498c5d835de
+      image_resolution: { width: 2558, height: 1278 }
+      status: discovery_candidate
+      eligible_for: [application-shell-default, workspace-docking, watchlist-column-filter]
+      notes: "Official TC2000 shared-layout preview with eight watchlist windows and dense shell chrome. It provides a high-resolution layout/density reference but no pinned build or environment metadata; retain as discovery-only evidence."
     - id: v23-factory-layout-history
       source_type: official_help_behavioral_history
       source_page: https://help.tc2000.com/m/69401/l/743982-factory-default-layout-workspace
