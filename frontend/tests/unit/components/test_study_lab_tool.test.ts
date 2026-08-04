@@ -204,6 +204,28 @@ describe('StudyLabTool', () => {
     expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({ kind: 'signal', initial_version: expect.objectContaining({ output_contract: 'boolean' }) }))
   })
 
+  it('promotes a completed event study without coercing its event contract', async () => {
+    apiPost.mockImplementation((path: string) => {
+      if (path === '/code/validate') return Promise.resolve({ valid: true, diagnostics: [], dependencies: ['market', 'output'], lookback_hint: 1, output_contracts: ['events'] })
+      if (path === '/code/assets') return Promise.resolve({ versions: [{ id: 144 }] })
+      if (path === '/research/runs') return Promise.resolve({ id: 145, status: 'completed', artifacts: [{ id: 1, name: 'signals', artifact_type: 'events', payload: { value: [{ symbol: 'SPY', timestamp: '2026-01-02', kind: 'signal' }] } }] })
+      if (path.startsWith('/strategy-lab/signals/from-code/')) return Promise.resolve({ id: 146 })
+      return Promise.resolve({})
+    })
+    const wrapper = mountTool({ activeSymbol: 'SPY' })
+    await wrapper.find('[aria-label="Study Python source"]').setValue("output.events('signals', [{'timestamp': '2026-01-02', 'kind': 'signal'}])")
+    await wrapper.find('button').trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Validated for isolated execution'))
+    await wrapper.findAll('button')[1].trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Run #145'))
+    const signalButton = wrapper.findAll('[aria-label="Promote study result"] button').find(button => button.text() === 'Save as Strategy signal')
+    expect(signalButton).toBeTruthy()
+    await signalButton!.trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Saved as a reusable Strategy Lab signal.'))
+    expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({ kind: 'signal', initial_version: expect.objectContaining({ output_contract: 'events' }) }))
+    expect(apiPost).toHaveBeenCalledWith('/strategy-lab/signals/from-code/144', {})
+  })
+
   it('reruns a completed study against its snapshot or latest canonical data', async () => {
     apiGet.mockImplementation((path: string) => path === '/research/runs/91' ? Promise.resolve({ id: 91, status: 'completed', artifacts: [] }) : Promise.resolve([]))
     apiPost.mockImplementation((path: string) => {

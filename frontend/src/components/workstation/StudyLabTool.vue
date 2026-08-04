@@ -58,7 +58,7 @@
         <button v-if="promotableKind === 'series'" type="button" :disabled="promotionBusy" @click="promote('plot')">{{ promotionBusy ? 'Promoting…' : 'Save as chart plot' }}</button>
         <button v-if="promotableKind === 'boolean'" type="button" :disabled="promotionBusy" @click="promote('scan')">{{ promotionBusy ? 'Promoting…' : 'Promote to scan' }}</button>
         <button v-if="promotableKind === 'boolean'" type="button" :disabled="promotionBusy" @click="promote('alert')">{{ promotionBusy ? 'Promoting…' : 'Promote to alert' }}</button>
-        <button v-if="promotableKind === 'boolean'" type="button" :disabled="promotionBusy" @click="promote('signal')">{{ promotionBusy ? 'Promoting…' : 'Save as Strategy signal' }}</button>
+        <button v-if="promotableKind === 'boolean' || promotableKind === 'events'" type="button" :disabled="promotionBusy" @click="promote('signal')">{{ promotionBusy ? 'Promoting…' : 'Save as Strategy signal' }}</button>
       </div>
       <p v-if="run.reproducibility_hash">Reproducibility {{ run.reproducibility_hash }}</p>
       <p class="study-lab-tool__dataset-summary">Dataset: {{ universeSymbols || symbol }} · {{ timeframe }} · {{ adjustment === 'split_adjusted' ? 'split adjusted' : 'raw' }} · {{ session }} session · benchmark {{ benchmark || 'none' }} ({{ benchmarkCoverageLabel }}) · {{ startDate || 'earliest available' }} → {{ endDate || 'latest available' }}</p>
@@ -202,9 +202,9 @@ watch(() => runQuery.error.value, cause => {
 
 const canCancel = computed(() => Boolean(run.value && !['completed', 'failed', 'canceled'].includes(run.value.status)))
 const canRerun = computed(() => Boolean(run.value && ['completed', 'failed', 'canceled'].includes(run.value.status)))
-const promotableKind = computed<'scalar' | 'boolean' | 'series' | null>(() => {
+const promotableKind = computed<'scalar' | 'boolean' | 'series' | 'events' | null>(() => {
   if (!run.value || run.value.status !== 'completed' || !runSource.value) return null
-  return runContract.value === 'scalar' || runContract.value === 'boolean' || runContract.value === 'series' ? runContract.value : null
+  return runContract.value === 'scalar' || runContract.value === 'boolean' || runContract.value === 'series' || runContract.value === 'events' ? runContract.value : null
 })
 const progressLabel = computed(() => {
   const progress = run.value?.progress
@@ -450,7 +450,7 @@ async function promote(target: PromotionTarget) {
   promotionBusy.value = true
   promotionStatus.value = ''
   try {
-    const isBooleanTarget = target === 'scan' || target === 'alert' || target === 'signal'
+    const isBooleanTarget = target === 'scan' || target === 'alert'
     const kind = target === 'scan' || target === 'alert' ? 'condition' : target
     const asset = await api.post<{ versions: Array<{ id: number }> }>('/code/assets', {
       stable_key: `${stableKey(name.value)}-${kind}-${Date.now()}`,

@@ -806,9 +806,10 @@ This adds functional authoring coverage; exact Version 25 visual approval, aggre
 cross-sectional breadth studies, live-provider probes, and the broader acceptance matrix
 remain open.
 
-Study Lab Boolean results can also be promoted directly into a reusable Strategy Lab
+Study Lab Boolean and event results can also be promoted directly into a reusable Strategy Lab
 signal asset through the same immutable Python code-version path used by columns, plots,
-EasyScan conditions, and alerts. Aggregate ranking/breadth starters explicitly require a
+EasyScan conditions, and alerts. Event signals retain their structured `events` output
+contract; they are not coerced into a Boolean condition. Aggregate ranking/breadth starters explicitly require a
 declared comma-separated universe and show a visible warning rather than silently falling
 back to the active symbol; the run guard prevents an invalid single-symbol request. Focused
 Study Lab coverage now includes this promotion and missing-universe recovery path (`9`
@@ -819,9 +820,12 @@ Promotion now also creates a user-owned Strategy Lab definition through
 metadata retain the immutable signal code-version id and output contract instead of
 copying source text, so the Strategy Lab library can discover the promoted signal and
 revisions remain reproducible. The endpoint rejects archived, cross-user, non-signal, and
-non-Boolean/event code versions. The existing Strategy Lab engine remains authoritative
-for which execution modes are supported; this removes the previous false state where the
-UI claimed Strategy Lab reuse while persisting only a generic code asset.
+non-Boolean/event code versions. The isolated runner now evaluates declared event signals
+across prepared-universe cells and returns bounded, symbol-qualified event artifacts. The
+existing Strategy Lab engine remains authoritative for which execution modes are supported;
+signal persistence and Study Lab event evaluation are complete for this contract, while
+Strategy Lab replay/execution of those immutable Python signals remains an explicitly tracked
+integration gap rather than a falsely reported capability.
 
 The shared primary-facing provenance hint now reports canonical source, observation/fetch
 times, selection reason, quality, and notes without exposing provider-specific symbol

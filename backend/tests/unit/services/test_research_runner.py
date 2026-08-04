@@ -48,6 +48,25 @@ def test_runner_injects_json_parameters_into_single_and_batch_runs():
     assert batch["artifacts"]["batch_cells"]["value"]["cells"][0]["value"] == 7.0
 
 
+def test_runner_executes_declared_event_signals_across_prepared_universe_cells():
+    result = execute_job(
+        {
+            "source": "output.events('signals', [{'timestamp': market.timestamps()[-1], 'kind': 'signal'}])",
+            "output_contract": "events",
+            "dataset": {
+                "datasets": [
+                    {"instrument_id": 1, "symbol": "SPY", "timestamps": ["2024-01-01T00:00:00+00:00", "2024-01-02T00:00:00+00:00"], "closes": [100, 101]},
+                    {"instrument_id": 2, "symbol": "XLK", "timestamps": ["2024-01-01T00:00:00+00:00", "2024-01-02T00:00:00+00:00"], "closes": [200, 202]},
+                ],
+            },
+        }
+    )
+    assert result["status"] == "completed"
+    cells = result["artifacts"]["batch_cells"]["value"]["cells"]
+    assert [cell["symbol"] for cell in cells] == ["SPY", "XLK"]
+    assert cells[0]["value"][0]["timestamp"] == "2024-01-02T00:00:00+00:00"
+
+
 def test_runner_rejects_non_object_parameters():
     result = execute_job({"source": "output.scalar('x', 1)", "parameters": [1], "dataset": {}})
     assert result["status"] == "failed"

@@ -251,8 +251,8 @@ def _execute_batch(
     progress_callback: Callable[[dict], None] | None = None,
     cancellation_check: Callable[[], bool] | None = None,
 ) -> dict:
-    if output_contract not in {"scalar", "boolean"}:
-        return {"status": "failed", "diagnostics": [{"code": "batch_output_contract_unsupported", "message": "Batch execution requires scalar or boolean output."}]}
+    if output_contract not in {"scalar", "boolean", "events"}:
+        return {"status": "failed", "diagnostics": [{"code": "batch_output_contract_unsupported", "message": "Batch execution requires scalar, boolean, or events output."}]}
     cells: list[dict] = []
     started = time.monotonic()
     total = len(datasets)
