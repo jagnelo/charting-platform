@@ -3271,6 +3271,10 @@ actions remain the sole destructive window operation. Store coverage and the ten
 regression pass, simultaneous independent pop-out recovery, and the full authenticated flow
 remain green at 28/28 with clean backend logs.
 
+The deep top-down browser flow also exercises constituent traversal through the virtual list's
+real `Space` keyboard path, asserting that the next canonical member becomes the active symbol
+without leaving the workstation route.
+
 Read-only authenticated identity/settings reads use the detached short-lived session path;
 mutating authentication/settings routes retain the request-scoped transaction. The rebuilt
 browser flow and backend/runner/worker log audit now remain clean across the repeated login,

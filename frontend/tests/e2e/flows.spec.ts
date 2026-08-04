@@ -296,6 +296,15 @@ test.describe('TC2000 workstation', () => {
     await nvda.click()
     await expect(page.getByRole('combobox', { name: 'Active symbol' })).toHaveValue('NVDA')
     await expect(page.locator('.tool-window').filter({ hasText: /NVDA\/(?:SMH|XLK|SPY)/ }).first()).toBeVisible({ timeout: 15_000 })
+
+    const constituentScroll = constituents.locator('.watchlist__scroll')
+    const constituentRows = constituents.locator('.watchlist__row')
+    await expect.poll(() => constituentRows.count(), { timeout: 10_000 }).toBeGreaterThan(1)
+    const secondConstituent = (await constituentRows.nth(1).innerText()).trim().split(/\s+/)[0]
+    await constituentRows.first().click()
+    await constituentScroll.focus()
+    await constituentScroll.press('Space')
+    await expect(page.getByRole('combobox', { name: 'Active symbol' })).toHaveValue(secondConstituent)
     await browserDiagnostics.expectNoCriticalIssues()
   })
 

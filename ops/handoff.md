@@ -1,5 +1,11 @@
 # Active Handoff
 
+## Continuation update — 2026-08-05T01:15:00Z Top-down keyboard traversal acceptance
+
+- The deep top-down flow now covers the real virtualized constituent-list `Space` traversal
+  path and verifies the next canonical member becomes active without route changes.
+- Complete authenticated Chromium remains `28/28`; the added acceptance evidence is clean.
+
 ## Continuation update — 2026-08-05T01:00:00Z Simultaneous pop-out acceptance
 
 - Added F8h for two concurrent pop-outs: both render, independent close/recovery works, and

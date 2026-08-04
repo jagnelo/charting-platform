@@ -52,6 +52,10 @@ attachments. All four required display-scale visual probes also assert that core
 and chart toolbar/surface rectangles do not overlap; each passes those geometry checks before
 the exact-build screenshot gate rejects its unapproved baseline.
 
+The deep top-down browser flow now also focuses the constituent virtual list and traverses to
+the next canonical member with `Space`, asserting that the linked active symbol changes without
+a route transition. The complete authenticated flow remains `28/28`.
+
 Golden Layout persistence no longer treats its observational visible-key list as a destructive
 close operation. Explicit close actions remain the only path that removes a serialized tool;
 this prevents transient/incomplete layout events during repeated pop-outs from deleting the

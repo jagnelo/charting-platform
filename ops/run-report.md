@@ -1,5 +1,13 @@
 # Run Report
 
+## 2026-08-05T01:15:00Z Top-down keyboard traversal acceptance
+
+- The deep benchmark → sector → industry → proxy → constituent flow now focuses the real
+  virtualized constituent list and traverses with `Space`, asserting the next canonical member
+  becomes the active symbol without a route transition.
+- The complete authenticated Chromium suite passed `28/28` in about one minute with no new
+  diagnostics or backend-log errors.
+
 ## 2026-08-05T01:00:00Z Simultaneous pop-out acceptance
 
 - Added F8h for two concurrent browser pop-outs: both tools render, the pages count reaches
