@@ -18273,3 +18273,8 @@ uncovered slice rather than repeat a generic completion claim.
 - Backend unit suite `906 passed` with 34 existing dependency warnings; frontend `534 passed`
   across 84 files, TypeScript, and production build passed. Docker-backed integration,
   visual/reference, provider-live, and broad acceptance gates remain open.
+## 2026-08-04T11:54:00Z Provider-neutral provenance display
+
+- Primary provenance hints no longer render provider-specific symbol aliases; canonical
+  source, freshness, selection, quality, and notes remain visible. TypeScript/build/diff
+  checks passed; broad acceptance remains open.

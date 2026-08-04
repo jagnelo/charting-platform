@@ -16667,3 +16667,12 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
 - This strengthens deterministic regression evidence only; Docker-backed integration,
   opt-in provider probes, exact-build visual approval, and the broader security/performance/
   browser acceptance matrix remain open.
+## Continuation update — 2026-08-04T11:54:00Z Provider-neutral provenance display
+
+- Removed provider-symbol alias rendering from the shared provenance hint and its primary
+  `FieldProvenance` type. The workstation now exposes canonical source/freshness/quality
+  context without leaking provider-specific ticker mappings; options-only legacy models are
+  unchanged.
+- TypeScript, production build, and diff checks pass. Full backend/frontend regression
+  evidence remains green; visual, provider-live, Docker integration, and broad acceptance
+  remain open.

@@ -808,3 +808,8 @@ declared comma-separated universe and show a visible warning rather than silentl
 back to the active symbol; the run guard prevents an invalid single-symbol request. Focused
 Study Lab coverage now includes this promotion and missing-universe recovery path (`9`
 tests), with TypeScript and production build passing.
+
+The shared primary-facing provenance hint now reports canonical source, observation/fetch
+times, selection reason, quality, and notes without exposing provider-specific symbol
+aliases. This keeps the workstation's provenance contract provider-neutral while the
+legacy options models retain their isolated provider fields for legacy-only routes.
