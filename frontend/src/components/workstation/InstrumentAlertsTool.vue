@@ -16,7 +16,7 @@
     <p v-if="error" class="alerts-tool__error">{{ error }}</p>
     <p v-else-if="loading" class="alerts-tool__state">Loading alerts…</p>
     <p v-else-if="!instrumentId" class="alerts-tool__state">Select a canonical instrument.</p>
-    <p v-else-if="!alerts.length && !indicatorAlerts.length" class="alerts-tool__state">No alerts for {{ symbol }}.</p>
+    <p v-else-if="!alerts.length && !indicatorAlerts.length && !screenerAlerts.length" class="alerts-tool__state">No alerts for {{ symbol }}.</p>
     <ul v-else class="alerts-tool__list">
       <li v-for="alert in alerts" :key="`price-${alert.id}`">
         <span><b>{{ conditionLabel(alert.condition) }}</b> {{ formatPrice(alert.threshold_price) }}</span>
@@ -36,6 +36,15 @@
         <button v-if="alert.status !== 'active'" type="button" @click="rearmIndicator(alert.id)">Rearm</button>
         <button type="button" aria-label="Delete indicator alert" @click="deleteIndicator(alert.id)">×</button>
       </li>
+      <li v-for="alert in screenerAlerts" :key="`screener-${alert.id}`">
+        <span><b>{{ alert.screener_name || `Scan #${alert.screener_id}` }}</b> {{ alert.trigger_type }}</span>
+        <small>{{ alert.status }}{{ alert.repeat ? ' · repeats' : '' }}</small>
+        <button type="button" :aria-label="`${alert.repeat ? 'Disable' : 'Enable'} repeat for scan alert`" @click="patchScreener(alert.id, { repeat: !alert.repeat })">{{ alert.repeat ? '↻' : '↺' }}</button>
+        <button v-if="alert.status === 'active'" type="button" aria-label="Pause scan alert" @click="patchScreener(alert.id, { status: 'paused' })">Ⅱ</button>
+        <button v-else-if="alert.status === 'paused'" type="button" aria-label="Resume scan alert" @click="patchScreener(alert.id, { status: 'active' })">▶</button>
+        <button v-if="alert.status !== 'active'" type="button" @click="rearmScreener(alert.id)">Rearm</button>
+        <button type="button" aria-label="Delete scan alert" @click="deleteScreener(alert.id)">×</button>
+      </li>
     </ul>
     <section v-if="instrumentId && history.length" class="alerts-tool__history" aria-label="Alert firing history">
       <header>Recent firing history</header>
@@ -52,11 +61,13 @@ import { api } from '@/lib/api'
 
 type PriceAlert = { id: number; condition: string; threshold_price: number | string; status: string; repeat: boolean }
 type IndicatorAlert = { id: number; indicator_a_type: string; condition: string; threshold_value: number | string | null; indicator_b_type: string | null; status: string; repeat: boolean }
+type ScreenerAlert = { id: number; screener_id: number; screener_name?: string; trigger_type: string; status: string; repeat: boolean }
 type AlertHistory = { id: number; alert_type: string; fired_at: string; trigger_value: number | string | null; is_viewed: boolean }
 
 const props = defineProps<{ instrumentId: number | null | undefined; symbol: string }>()
 const alerts = ref<PriceAlert[]>([])
 const indicatorAlerts = ref<IndicatorAlert[]>([])
+const screenerAlerts = ref<ScreenerAlert[]>([])
 const condition = ref('crosses_above')
 const threshold = ref('')
 const repeat = ref(false)
@@ -72,6 +83,7 @@ async function load() {
   busy.value = false
   alerts.value = []
   indicatorAlerts.value = []
+  screenerAlerts.value = []
   history.value = []
   error.value = ''
   if (!props.instrumentId) {
@@ -82,14 +94,16 @@ async function load() {
   try {
     const instrumentId = props.instrumentId
     const params = { instrument_id: instrumentId }
-    const [prices, indicators, firingHistory] = await Promise.all([
+    const [prices, indicators, scans, firingHistory] = await Promise.all([
       api.get<PriceAlert[]>('/alerts/price', params),
       api.get<IndicatorAlert[]>('/alerts/indicator', params),
+      api.get<ScreenerAlert[]>('/alerts/screener'),
       api.get<AlertHistory[]>(`/alerts/history/instrument/${instrumentId}`),
     ])
     if (generation !== viewGeneration || props.instrumentId !== instrumentId) return
     alerts.value = prices
     indicatorAlerts.value = indicators
+    screenerAlerts.value = scans
     history.value = firingHistory
   } catch (cause: any) {
     if (generation === viewGeneration) error.value = cause?.message ?? 'Unable to load alerts'
@@ -121,10 +135,13 @@ async function create() {
 }
 async function deletePrice(id: number) { await mutate(() => api.delete(`/alerts/price/${id}`), () => { alerts.value = alerts.value.filter(alert => alert.id !== id) }) }
 async function deleteIndicator(id: number) { await mutate(() => api.delete(`/alerts/indicator/${id}`), () => { indicatorAlerts.value = indicatorAlerts.value.filter(alert => alert.id !== id) }) }
+async function deleteScreener(id: number) { await mutate(() => api.delete(`/alerts/screener/${id}`), () => { screenerAlerts.value = screenerAlerts.value.filter(alert => alert.id !== id) }) }
 async function rearmPrice(id: number) { await mutate(() => api.post<PriceAlert>(`/alerts/price/${id}/rearm`, {}), updated => { alerts.value = alerts.value.map(alert => alert.id === id ? updated : alert) }) }
 async function rearmIndicator(id: number) { await mutate(() => api.post<IndicatorAlert>(`/alerts/indicator/${id}/rearm`, {}), updated => { indicatorAlerts.value = indicatorAlerts.value.map(alert => alert.id === id ? updated : alert) }) }
+async function rearmScreener(id: number) { await mutate(() => api.post<ScreenerAlert>(`/alerts/screener/${id}/rearm`, {}), updated => { screenerAlerts.value = screenerAlerts.value.map(alert => alert.id === id ? updated : alert) }) }
 async function patchPrice(id: number, patch: Partial<Pick<PriceAlert, 'repeat' | 'status'>>) { await mutate(() => api.patch<PriceAlert>(`/alerts/price/${id}`, patch), updated => { alerts.value = alerts.value.map(alert => alert.id === id ? updated : alert) }) }
 async function patchIndicator(id: number, patch: Partial<Pick<IndicatorAlert, 'repeat' | 'status'>>) { await mutate(() => api.patch<IndicatorAlert>(`/alerts/indicator/${id}`, patch), updated => { indicatorAlerts.value = indicatorAlerts.value.map(alert => alert.id === id ? updated : alert) }) }
+async function patchScreener(id: number, patch: Partial<Pick<ScreenerAlert, 'repeat' | 'status'>>) { await mutate(() => api.patch<ScreenerAlert>(`/alerts/screener/${id}`, patch), updated => { screenerAlerts.value = screenerAlerts.value.map(alert => alert.id === id ? updated : alert) }) }
 async function markViewed(id: number) { await mutate(() => api.patch<AlertHistory>(`/alerts/history/${id}/view`, {}), updated => { history.value = history.value.map(event => event.id === id ? updated : event) }) }
 async function mutate<T>(request: () => Promise<T>, apply: (value: T) => void) {
   const generation = viewGeneration

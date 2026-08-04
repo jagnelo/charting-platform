@@ -2,6 +2,12 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-04T10:51:00Z EasyScan alerts in primary Alerts tool
+
+- Added saved EasyScan alert visibility and management to the primary Alerts tool. Linked
+  instrument tests `4`, TypeScript/build/diff passed; visual, Docker integration, and broad
+  acceptance remain open.
+
 ## 2026-08-04T10:47:31Z Watchlist directional cell colors
 
 - Added automatic positive/negative/zero colors for numeric watchlist, indicator, and Python

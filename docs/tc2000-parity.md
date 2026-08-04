@@ -536,6 +536,10 @@ overwrite the newly linked instrument, leave its loading state stuck, or apply a
 alert mutation to the new symbol. Focused race regressions cover both tools; visual
 approval remains blocked by the V25 reference manifest.
 
+The primary Alerts tool also lists saved EasyScan alerts alongside price and indicator
+alerts, with the same pause/resume, repeat, rearm, delete, and user-scoped mutation behavior;
+this makes scan-entry/exit alerts visible from the shared alert workstation surface.
+
 The shared chart store applies the same generation boundary to instrument metadata,
 indicator configuration, OHLCV pages (including infinite-history backfill),
 transformed/synthetic bars, loading/error state, and coverage polling. Rapid symbol

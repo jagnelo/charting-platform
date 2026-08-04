@@ -1,5 +1,14 @@
 # Active Handoff
 
+## Continuation update — 2026-08-04T10:51:00Z EasyScan alerts in primary Alerts tool
+
+- The primary instrument Alerts tool now loads and manages saved EasyScan alerts alongside
+  price and indicator alerts, including pause/resume, repeat, rearm, delete, and generation-
+  guarded mutations.
+- Linked instrument-tool tests `4`, TypeScript, production build, and diff checks passed;
+  visual/reference, Docker-backed integration, and broad acceptance remain open. Generated
+  `test-results/` remains intentionally untracked.
+
 ## Continuation update — 2026-08-04T10:47:31Z Watchlist directional cell colors
 
 - Numeric watchlist, indicator, and Python cells now receive positive/negative/zero classes;

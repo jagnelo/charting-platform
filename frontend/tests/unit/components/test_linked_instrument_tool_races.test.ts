@@ -68,4 +68,16 @@ describe('linked instrument tool stale-response guards', () => {
     await wrapper.vm.$nextTick()
     expect((wrapper.vm as unknown as { busy: boolean }).busy).toBe(false)
   })
+
+  it('renders and manages saved EasyScan alerts alongside instrument alerts', async () => {
+    apiGet.mockImplementation((_path: string) => {
+      if (_path === '/alerts/screener') return Promise.resolve([{ id: 9, screener_id: 4, screener_name: 'Momentum', trigger_type: 'entered', status: 'active', repeat: true }])
+      return Promise.resolve([])
+    })
+    apiPatch.mockResolvedValue({ id: 9, screener_id: 4, screener_name: 'Momentum', trigger_type: 'entered', status: 'paused', repeat: true })
+    const wrapper = mount(InstrumentAlertsTool, { props: { instrumentId: 1, symbol: 'SPY' } })
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Momentum'))
+    await wrapper.get('button[aria-label="Pause scan alert"]').trigger('click')
+    expect(apiPatch).toHaveBeenCalledWith('/alerts/screener/9', { status: 'paused' })
+  })
 })
