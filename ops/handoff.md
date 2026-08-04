@@ -16744,3 +16744,11 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
 - Focused Study Lab frontend tests (`9`), Ruff, Python compile, and diff checks pass.
   Docker-backed API verification is currently blocked by the unavailable Docker socket;
   Strategy Lab execution remains governed by its existing engine capability contract.
+## Continuation update — 2026-08-04T16:00:00Z Provider reference-environment alignment
+
+- Corrected `backend/.env.example`, which still listed yfinance in ordinary history,
+  discovery, metadata, event, and search chains despite the runtime free-source-first
+  settings. Those chains now match `Settings`; yfinance remains only in explicit option/
+  legacy slots.
+- Backend provider-registry unit suite: `7 passed`; provider-seed JSON assertion and diff
+  checks passed.

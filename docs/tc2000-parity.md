@@ -784,6 +784,11 @@ identity and events, and Massive/Alpha Vantage only for optional corroboration. 
 is documented as an explicit legacy/options fallback only, and excluded options, analyst,
 earnings-estimate, and futures domains are capability stubs rather than new-workstation
 fallbacks. This is documentation/contract evidence, not live-provider probe evidence.
+The backend reference environment now matches those defaults as well: its ordinary
+price-history, latest-price, discovery, event, metadata, and instrument-search seeds
+exclude yfinance; yfinance remains listed only for explicit option/legacy slots. A fresh
+environment therefore cannot accidentally restore the unofficial provider to the new
+workstation's normal path by copying `backend/.env.example`.
 Study Lab now ships editable factory starters for the core open-ended research patterns
 required by the workstation scope: positive and negative close streaks (including
 occurrence events, completed-length tables, histograms, and forward outcomes), moving-

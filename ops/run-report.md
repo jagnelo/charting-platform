@@ -18331,3 +18331,8 @@ uncovered slice rather than repeat a generic completion claim.
 - Focused Study Lab frontend tests (`9`), Ruff, Python compile, and diff checks passed.
 - The Docker-backed API test is environment-blocked by Docker socket permission; no
   provider, sandbox, or engine capability was broadened by this slice.
+## 2026-08-04T16:00:00Z Provider reference-environment alignment
+
+- Updated `backend/.env.example` to remove yfinance from all ordinary new-workstation
+  chains while retaining the explicit option/legacy slots.
+- Provider-registry suite: `7 passed`; seed JSON and diff checks passed.
