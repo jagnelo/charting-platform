@@ -5,7 +5,8 @@
 - Raw API transport errors no longer pollute the dense workstation footer. They remain in
   the status tooltip for diagnostics, while the visible footer maps common 401/403/404/409
   and 5xx cases to concise recovery-oriented copy.
-- The new regression passes; full frontend Vitest is `551/551`, TypeScript/build pass, and
+- The new regression passes for 401/403/404/409 and 5xx mappings; full frontend Vitest is
+  `555/555`, TypeScript/build pass, and
   rebuilt Chromium flows pass `28/28`. Exact-build visual approval and broader acceptance
   gates remain open.
 

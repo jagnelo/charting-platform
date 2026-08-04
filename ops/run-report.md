@@ -6,8 +6,9 @@
   footer. The original diagnostic remains available via the status tooltip, while users
   see concise recovery-oriented states (`Some market data is unavailable`, session or
   permission required, workspace conflict, or service unavailable).
-- Added a regression covering the rendered footer and tooltip. Full frontend Vitest is
-  `551/551`, TypeScript/build pass, and rebuilt Chromium flows pass `28/28`.
+- Added a regression covering the rendered footer and tooltip, including 401/403/404/409
+  and 5xx mappings. Full frontend Vitest is `555/555`, TypeScript/build pass, and rebuilt
+  Chromium flows pass `28/28`.
 
 ## 2026-08-05T03:00:00Z Full unit-suite re-audit
 

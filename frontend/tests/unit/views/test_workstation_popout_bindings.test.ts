@@ -209,16 +209,22 @@ describe('WorkstationView pop-out bindings', () => {
     Object.defineProperty(document, 'visibilityState', { configurable: true, value: originalVisibility })
   })
 
-  it('keeps raw transport errors out of the dense footer while retaining them in the tooltip', async () => {
+  it.each([
+    ['401', 'Session or permission required'],
+    ['403', 'Session or permission required'],
+    ['404', 'Some market data is unavailable'],
+    ['409', 'Workspace changed elsewhere; recovery is available'],
+    ['503', 'Market service unavailable; cached data retained'],
+  ])('maps transport status %s to concise footer copy', async (statusCode, expected) => {
     routeState.path = '/'
     routeState.params = {}
-    harness.workspace.error = 'API GET /market-groups/etf/SPY/industries → 404: unavailable'
+    harness.workspace.error = `API GET /market-groups/etf/SPY/industries → ${statusCode}: unavailable`
     const wrapper = mount(WorkstationView, {
       global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
     })
 
     const status = wrapper.find('.workstation__footer span:nth-child(3)')
-    expect(status.text()).toBe('Some market data is unavailable')
+    expect(status.text()).toBe(expected)
     expect(status.attributes('title')).toContain('API GET /market-groups/etf/SPY/industries')
     harness.workspace.error = null
   })

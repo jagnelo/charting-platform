@@ -58,8 +58,9 @@ the exact-build screenshot gate rejects its unapproved baseline.
 
 Raw API transport errors are not rendered in the dense workstation footer. The shell maps
 common 401/403/404/409 and 5xx failures to concise recovery-oriented status text while
-retaining the original diagnostic in the status tooltip. The regression is covered by the
-full frontend suite (`551/551`), production build, and rebuilt Chromium flow (`28/28`).
+retaining the original diagnostic in the status tooltip. The regression covers 401/403/404/409
+and 5xx mappings and is covered by the full frontend suite (`555/555`), production build, and
+rebuilt Chromium flow (`28/28`).
 
 The deep top-down browser flow now also focuses the constituent virtual list and traverses to
 the next canonical member with `Space`, asserting that the linked active symbol changes without
