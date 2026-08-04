@@ -5,7 +5,7 @@
     "worker_session_started_at": "2026-07-28T21:40:33Z",
     "worker_soft_stop_at": null,
   "last_handoff_at": "2026-08-04T11:18:00Z",
-    "last_commit": "3f78eeaf30c3324198f3dbf86dcf66b33d90281e ops: checkpoint Study Lab point-in-time cutoff",
+  "last_commit": "8ff60f0de63819e42936c09b5c894db77ca2ce1c docs(visual): add TC2000 reference media pack",
     "git_ready_to_commit": false,
   "validation": {
     "visual_reference_pack": "retrieved 83 official-help screenshots into controlled external storage with per-media URLs and SHA-256 index; discovery/reference only, exact-build approval remains required",
