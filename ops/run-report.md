@@ -1,5 +1,12 @@
 # Run Report
 
+## 2026-08-04T18:59:57Z uPlot large-history performance
+
+- Current-branch real Chromium uPlot guard passed: `100,000` points and `40` zoom/pan
+  updates completed in `912ms`; the same chart element remained mounted.
+- This is renderer-level evidence, not a claim of complete workstation/multi-window
+  performance; strict V25 visual approval and broader parity gates remain open.
+
 ## 2026-08-04T18:56:50Z Streaming-session factory integration
 
 - Added `get_stream_session_factory` as the injectable seam: production uses dedicated

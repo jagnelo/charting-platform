@@ -1,5 +1,15 @@
 # Active Handoff
 
+## Continuation update — 2026-08-04T18:59:57Z uPlot large-history performance
+
+- Re-ran the real-browser uPlot renderer guard on the current branch: a 100,000-point
+  chart completed 40 zoom/pan viewport updates in `912ms` without replacing its chart
+  element. This validates the renderer invariant only; full workstation/multi-window
+  memory and performance acceptance remains open.
+- The prior session-factory checkpoint remains fully green: backend unit `925`, integration
+  `281`, Chromium `24/24`, and clean rebuilt-stack error/warning audits. Strict pinned-build
+  V25 visual approval remains `required_missing`.
+
 ## Continuation update — 2026-08-04T18:56:50Z Streaming-session factory integration
 
 - Made the dedicated streaming session factory injectable so the production route remains
