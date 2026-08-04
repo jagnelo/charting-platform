@@ -19,6 +19,12 @@ the source reference is required before visual acceptance; it is not an approval
 No row can change to `Complete` until its full functional and visual acceptance evidence
 is recorded in the referenced test/baseline system.
 
+The top-down technical-summary read now participates in the same generation guard as
+holdings, industries, constituent snapshots, and proxy rankings. A rapid linked-symbol
+change cannot let a late `/analysis/instruments/{symbol}/technical` response replace the
+new symbol's metrics or error state. The workspace-store regression covers the stale-SPY/
+current-XLK race; browser and full cross-window acceptance remain open.
+
 Current implementation evidence (not completion): the isolated Study Lab runner now
 supports a typed `histogram` artifact with deterministic numeric buckets, the factory
 positive-close study exposes current/longest/average/shortest streak metrics,

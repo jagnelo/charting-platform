@@ -18579,3 +18579,23 @@ uncovered slice rather than repeat a generic completion claim.
   the complete Docker-backed integration suite passed `281` tests with `54` warnings.
 - Exact-build visual approval, live-provider probes, adversarial sandbox/resource tests,
   multi-window performance, and deep browser parity remain open.
+## 2026-08-05T00:20:00Z Combo persistence gate closed
+
+- Re-ran `backend/tests/integration/api/test_workspaces.py -k combo_library_item_preserves_canonical_membership_sets`
+  with `backend/.venv/bin/python` (Python 3.12) and Docker access: `1 passed, 22 deselected`;
+  only two existing Nautilus NumPy-timedelta deprecation warnings were emitted.
+- Updated orchestration state to remove the stale Python 3.9 environment blocker and the
+  duplicate `frontend_build` JSON key. No application source change was required.
+- Strict V25 visual approval remains `required_missing`; provider-live, adversarial sandbox,
+  multi-window/performance, deep top-down browser, and full parity acceptance remain open.
+## 2026-08-05T01:00:00Z Top-down technical race guard
+
+- Added generation protection to the technical-summary loader so a late response for an old
+  linked symbol cannot replace current metrics or error state. Added a deferred SPY→XLK store
+  regression covering the stale-response path.
+- Full frontend Vitest: `542 passed` across `84` files; TypeScript, production build, and
+  `git diff --check`: passed. Rebuilt-stack Chromium flows: `23 passed (24.7s)` with no
+  unexpected console/page/request failures.
+- Backend log audit found no unexpected errors; only expected provider-credential warnings for
+  intentionally unconfigured free-source adapters were present. V25 visual approval and the
+  remaining live/adversarial/performance/deep-parity gates remain open.

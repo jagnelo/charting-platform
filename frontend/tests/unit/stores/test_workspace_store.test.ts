@@ -88,6 +88,24 @@ describe('workspace store layout tabs', () => {
     expect(store.etfHoldings.SPY).toBeUndefined()
   })
 
+  it('does not let a late technical snapshot overwrite the newer symbol', async () => {
+    const stale = deferred<unknown>()
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/analysis/instruments/SPY/technical') return stale.promise
+      if (path === '/analysis/instruments/XLK/technical') return Promise.resolve({ symbol: 'XLK', metrics: { rsi14: 61 } })
+      return Promise.resolve({})
+    })
+    const store = useWorkspaceStore()
+
+    const oldRequest = store.loadTechnical('SPY')
+    await store.loadTechnical('XLK')
+    stale.resolve({ symbol: 'SPY', metrics: { rsi14: 39 } })
+    await oldRequest
+
+    expect(store.technicals.XLK?.symbol).toBe('XLK')
+    expect(store.technicals.SPY).toBeUndefined()
+  })
+
   it('requests constituent strength against both the selected ETF and SPY', async () => {
     apiGet.mockImplementation((path: string) => {
       if (path === '/etf-holdings/XLK/holdings') return Promise.resolve({

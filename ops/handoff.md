@@ -1,5 +1,29 @@
 # Active Handoff
 
+## Continuation update — 2026-08-05T01:00:00Z Top-down technical race guard
+
+- Added generation checks to `useWorkspaceStore.loadTechnical`, matching the existing
+  holdings/industry/proxy guards. Late technical responses and stale errors are now ignored
+  after a newer linked-symbol request begins.
+- Added a SPY→XLK deferred-response regression. Full frontend Vitest passed `542` tests across
+  `84` files; TypeScript, production build, and `git diff --check` passed.
+- Rebuilt the branch-scoped frontend and reran authenticated Chromium flows: `23/23` passed
+  in `24.7s` with no unexpected browser diagnostics. Recent backend logs contained only the
+  expected missing-provider-credential startup warnings.
+- Strict V25 visual approval remains `required_missing`; provider-live, adversarial sandbox,
+  multi-window/performance, deep top-down browser, and full parity gates remain open.
+
+## Continuation update — 2026-08-05T00:20:00Z Combo persistence gate closed
+
+- Re-ran the previously environment-blocked `combo_list` persistence and user-isolated
+  library regression with the repository's Python 3.12 virtualenv and Docker access:
+  `1 passed, 22 deselected` (two existing Nautilus deprecation warnings).
+- The earlier Python 3.9/`datetime.UTC` note was stale operational evidence, not an application
+  defect. Corrected `ops/state.json` and removed its duplicate `frontend_build` JSON key.
+- Strict Version 25 visual approval remains `required_missing`; provider-live, adversarial
+  sandbox/resource, multi-window/performance, deep top-down browser, and full parity gates
+  remain open.
+
 ## Continuation update — 2026-08-04T12:24:00Z Shared workstation design tokens
 
 - Added the global workstation token sheet and wired shell/window chrome to centralized V25

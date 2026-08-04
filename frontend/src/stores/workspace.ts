@@ -915,11 +915,15 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   async function loadTechnical(symbol: string) {
     const normalized = symbol.trim().toUpperCase()
     if (!normalized) return null
+    const requestKey = 'top-down:technical'
+    const generation = beginAnalysisRequest(requestKey)
     try {
       const snapshot = await api.get<TechnicalSnapshotState>(`/analysis/instruments/${encodeURIComponent(normalized)}/technical`)
+      if (!isCurrentAnalysisRequest(requestKey, generation)) return null
       technicals.value = { ...technicals.value, [normalized]: snapshot }
       return snapshot
     } catch (cause: any) {
+      if (!isCurrentAnalysisRequest(requestKey, generation)) return null
       if (cause?.status === 404) {
         technicals.value = { ...technicals.value, [normalized]: null }
         return null
