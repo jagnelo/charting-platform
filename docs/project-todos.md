@@ -3238,7 +3238,7 @@ and leave canonical scan results usable rather than silently poisoning the trans
 
 Study Lab polling also enforces a non-null refresh contract: missing run payloads become
 bounded query errors rather than `undefined` cache entries, with active-run destruction
-covered by the component regression suite.
+and empty-response coverage covered by the component regression suite.
 
 Controlling objective:
 - This section and `docs/tc2000-visual-parity.md` are the controlling specification for

@@ -187,6 +187,22 @@ describe('StudyLabTool', () => {
     expect(apiPost).toHaveBeenCalledWith('/research/runs/101/cancel', {})
   })
 
+  it('surfaces an empty polling response instead of caching undefined', async () => {
+    apiGet.mockResolvedValue(undefined)
+    apiPost.mockImplementation((path: string) => {
+      if (path === '/code/validate') return Promise.resolve({ valid: true, diagnostics: [], dependencies: ['output'], lookback_hint: null, output_contracts: ['scalar'] })
+      if (path === '/code/assets') return Promise.resolve({ versions: [{ id: 42 }] })
+      if (path === '/research/runs') return Promise.resolve({ id: 102, status: 'running', artifacts: [] })
+      return Promise.resolve({})
+    })
+    const wrapper = mountTool({ activeSymbol: 'SPY' })
+    await wrapper.find('button').trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Validated for isolated execution'))
+    await wrapper.findAll('button')[1].trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Run #102'))
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Study run refresh returned no data'))
+  })
+
   it('promotes a completed boolean study into a reusable scan and alert', async () => {
     apiPost.mockImplementation((path: string) => {
       if (path === '/code/validate') return Promise.resolve({ valid: true, diagnostics: [], dependencies: ['output'], lookback_hint: null, output_contracts: ['boolean'] })

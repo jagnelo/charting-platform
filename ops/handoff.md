@@ -1,5 +1,15 @@
 # Active Handoff
 
+## Continuation update — 2026-08-05T02:15:00Z Study Lab empty-response regression
+
+- Added a direct regression for an enabled Study Lab poll that returns no payload. The
+  tool now surfaces the bounded `Study run refresh returned no data` error instead of
+  allowing an `undefined` Vue Query cache value.
+- Validation: focused Study Lab suite `12 passed`, full frontend Vitest `548 passed`
+  across 84 files, TypeScript and diff checks passed. The previously rebuilt-stack
+  Chromium flow remains valid for the source-level contract; the strict visual gate is
+  still blocked by required reference states.
+
 ## Continuation update — 2026-08-05T02:05:00Z Renderer and visual-gate audit
 
 - Re-ran the real-browser uPlot guard: 100,000 points and 40 zoom/pan updates completed
@@ -29,8 +39,8 @@
   run payload or produces an explicit error; it can no longer resolve `undefined` and
   emit a query-cache warning. The active-run unmount regression now supplies and checks
   the refresh contract.
-- Validation: focused Study Lab component suite `11 passed`, full frontend Vitest
-  `547 passed` across 84 files, TypeScript and production build passed, and `git diff
+- Validation: focused Study Lab component suite `12 passed`, full frontend Vitest
+  `548 passed` across 84 files, TypeScript and production build passed, and `git diff
   --check` passed. The change is isolated to Study Lab refresh behavior; no overall
   completion claim is made.
 - Exact-build V25 visual approval, configured provider-live matrix, resource-pressure and

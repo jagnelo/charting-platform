@@ -1,5 +1,12 @@
 # Run Report
 
+## 2026-08-05T02:15:00Z Study Lab empty-response regression
+
+- Added coverage for an enabled poll returning no run payload; the component exposes a
+  bounded refresh error and never caches `undefined`.
+- Focused Study Lab suite: `12/12`; full frontend Vitest: `548/548` across 84 files;
+  TypeScript and diff checks passed.
+
 ## 2026-08-05T02:05:00Z Renderer and visual-gate audit
 
 - Chromium uPlot performance guard: `1/1` passed; 100,000 points and 40 viewport updates
