@@ -5,7 +5,7 @@
     "worker_session_started_at": "2026-07-28T21:40:33Z",
     "worker_soft_stop_at": null,
   "last_handoff_at": "2026-08-04T11:18:00Z",
-    "last_commit": "7f185dd2d13ccf528f69e090f1e3820f2897ffa8 ops: checkpoint Study Lab signal promotion",
+    "last_commit": "fc8b433aef92e81c520fc8249cf9b61bc985915c ops: record full Study Lab regression",
     "git_ready_to_commit": false,
     "validation": {
         "backend_lint": "passed (code validation including deterministic XNYS coverage calendar, restricted numerical facades, isolated research runner/resource restoration, screener, visual, analysis, research, OHLCV session model, and migration modules, 2026-08-03)",
