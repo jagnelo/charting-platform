@@ -34,7 +34,8 @@
     <p v-if="conditionFilterState" class="watchlist__condition-state">{{ conditionFilterState }}</p>
     <p v-if="pythonConditionState" class="watchlist__condition-state">{{ pythonConditionState }}<button v-if="pythonRunIds.python_condition" type="button" aria-label="Cancel Python condition" @click="cancelPythonRun('python_condition')">Cancel</button><button v-if="pythonCondition?.mode === 'active' && !pythonAlertBusy" type="button" aria-label="Create alert from Python condition" @click="createPythonConditionAlert">Alert</button><small v-if="pythonAlertState">{{ pythonAlertState }}</small></p>
     <div v-if="columnMenuOpen" class="watchlist__column-menu">
-      <label v-for="column in effectiveColumns" :key="column.key" class="watchlist__column-editor-row" :class="{ 'watchlist__column-editor-row--dragging': draggedColumnKey === column.key }" draggable="true" @dragstart="dragColumn(column.key)" @dragover.prevent @drop.prevent="dropColumn(column.key)" @dragend="draggedColumnKey = null"><input type="checkbox" :checked="activeColumnKeys.includes(column.key)" @change="toggleColumn(column.key)" /><input class="watchlist__label-input" :aria-label="`${column.label} label`" :value="column.label" @change="setColumnOverride(column.key, { label: ($event.target as HTMLInputElement).value })" /><input class="watchlist__width-input" :aria-label="`${column.label} width`" :value="column.width ?? ''" placeholder="px/fr" @change="setColumnOverride(column.key, { width: ($event.target as HTMLInputElement).value })" /><select v-if="column.kind !== 'boolean'" class="watchlist__format-input" :aria-label="`${column.label} format`" :value="column.format ?? 'percent'" @change="setColumnOverride(column.key, { format: ($event.target as HTMLSelectElement).value as 'percent' | 'number' })"><option value="percent">%</option><option value="number">#</option></select><input v-if="column.kind !== 'boolean'" class="watchlist__decimals-input" type="number" min="0" max="6" :aria-label="`${column.label} decimals`" :value="column.decimals ?? ''" placeholder="dp" @change="setColumnOverride(column.key, { decimals: Number(($event.target as HTMLInputElement).value) })" /><button class="watchlist__order-button" type="button" :aria-label="`Move ${column.label} left`" :disabled="!canMoveColumn(column.key, -1)" @click="moveColumn(column.key, -1)">←</button><button class="watchlist__order-button" type="button" :aria-label="`Move ${column.label} right`" :disabled="!canMoveColumn(column.key, 1)" @click="moveColumn(column.key, 1)">→</button><input class="watchlist__group-input" :aria-label="`${column.label} group`" :value="columnGroups[column.key] ?? ''" placeholder="Group" @change="setColumnGroup(column.key, ($event.target as HTMLInputElement).value)" /><button class="watchlist__stack-button" type="button" :aria-pressed="stackedColumnKeys.includes(column.key)" @click="toggleStackedColumn(column.key)">Stack</button><button v-if="column.kind === 'boolean'" class="watchlist__pin-button" type="button" :aria-pressed="pinnedBooleanKeys.includes(column.key)" @click="togglePinnedBoolean(column.key)">Pin</button></label>
+      <div class="watchlist__column-clipboard"><button type="button" @click="pasteColumn">Paste column settings</button><small v-if="columnClipboardState">{{ columnClipboardState }}</small></div>
+      <label v-for="column in effectiveColumns" :key="column.key" class="watchlist__column-editor-row" :class="{ 'watchlist__column-editor-row--dragging': draggedColumnKey === column.key }" draggable="true" @dragstart="dragColumn(column.key)" @dragover.prevent @drop.prevent="dropColumn(column.key)" @dragend="draggedColumnKey = null"><input type="checkbox" :checked="activeColumnKeys.includes(column.key)" @change="toggleColumn(column.key)" /><input class="watchlist__label-input" :aria-label="`${column.label} label`" :value="column.label" @change="setColumnOverride(column.key, { label: ($event.target as HTMLInputElement).value })" /><input class="watchlist__width-input" :aria-label="`${column.label} width`" :value="column.width ?? ''" placeholder="px/fr" @change="setColumnOverride(column.key, { width: ($event.target as HTMLInputElement).value })" /><select v-if="column.kind !== 'boolean'" class="watchlist__format-input" :aria-label="`${column.label} format`" :value="column.format ?? 'percent'" @change="setColumnOverride(column.key, { format: ($event.target as HTMLSelectElement).value as 'percent' | 'number' })"><option value="percent">%</option><option value="number">#</option></select><input v-if="column.kind !== 'boolean'" class="watchlist__decimals-input" type="number" min="0" max="6" :aria-label="`${column.label} decimals`" :value="column.decimals ?? ''" placeholder="dp" @change="setColumnOverride(column.key, { decimals: Number(($event.target as HTMLInputElement).value) })" /><button class="watchlist__order-button" type="button" :aria-label="`Move ${column.label} left`" :disabled="!canMoveColumn(column.key, -1)" @click="moveColumn(column.key, -1)">←</button><button class="watchlist__order-button" type="button" :aria-label="`Move ${column.label} right`" :disabled="!canMoveColumn(column.key, 1)" @click="moveColumn(column.key, 1)">→</button><input class="watchlist__group-input" :aria-label="`${column.label} group`" :value="columnGroups[column.key] ?? ''" placeholder="Group" @change="setColumnGroup(column.key, ($event.target as HTMLInputElement).value)" /><button class="watchlist__stack-button" type="button" :aria-pressed="stackedColumnKeys.includes(column.key)" @click="toggleStackedColumn(column.key)">Stack</button><button v-if="column.kind === 'boolean'" class="watchlist__pin-button" type="button" :aria-pressed="pinnedBooleanKeys.includes(column.key)" @click="togglePinnedBoolean(column.key)">Pin</button><button class="watchlist__copy-button" type="button" :aria-label="`Copy ${column.label} settings`" @click="copyColumn(column)">Copy</button></label>
       <div class="watchlist__python"><select v-model="selectedPythonVersion" aria-label="Python column asset"><option value="">Add Python column…</option><option v-for="asset in pythonAssets" :key="asset.versionId" :value="String(asset.versionId)">{{ asset.name }}</option></select><button type="button" :disabled="!selectedPythonVersion" @click="addPythonColumn">Add</button><label v-for="column in pythonColumns" :key="`timeframe-${column.code_version_id}`">{{ column.name }} <select :aria-label="`${column.name} timeframe`" :value="column.timeframe ?? timeframe" @change="setPythonColumnTimeframe(column.code_version_id, ($event.target as HTMLSelectElement).value)"><option v-for="option in timeframeOptions" :key="option.value" :value="option.value">{{ option.label }}</option></select></label><template v-for="column in pythonColumns" :key="`progress-${column.code_version_id}`"><small v-if="pythonProgress[pythonKey(column.code_version_id)]">{{ column.name }} · {{ pythonProgress[pythonKey(column.code_version_id)] }}<button v-if="pythonRunIds[pythonKey(column.code_version_id)]" type="button" :aria-label="`Cancel ${column.name}`" @click="cancelPythonRun(pythonKey(column.code_version_id))">Cancel</button></small></template></div>
     </div>
     <div v-if="columnSetMenuOpen" class="watchlist__column-set-menu" aria-label="Saved column sets">
@@ -242,6 +243,8 @@ const columnSetLoading = ref(false)
 const columnSetBusy = ref(false)
 const columnSetError = ref('')
 const columnSets = ref<ColumnSetItem[]>([])
+const columnClipboard = ref('')
+const columnClipboardState = ref('')
 const selectedPythonVersion = ref('')
 const pythonAssets = ref<Array<{ versionId: number; name: string }>>([])
 const pythonConditionAssets = ref<Array<{ versionId: number; name: string }>>([])
@@ -884,6 +887,49 @@ function setColumnOverride(key: string, changes: { label?: string; width?: strin
     ...(decimals != null ? { decimals } : {}),
   }
   emit('update:columnOverrides', overrides)
+}
+
+async function copyColumn(column: WatchlistColumn) {
+  const payload = JSON.stringify({
+    type: 'workstation-column-settings',
+    key: column.key,
+    label: column.label,
+    width: column.width,
+    format: column.format,
+    decimals: column.decimals,
+    group: props.columnGroups[column.key] ?? '',
+    stacked: props.stackedColumnKeys.includes(column.key),
+    pinned: props.pinnedBooleanKeys.includes(column.key),
+  })
+  columnClipboard.value = payload
+  try { await navigator.clipboard?.writeText(payload) } catch { /* in-memory copy remains available */ }
+  columnClipboardState.value = `Copied ${column.label} settings.`
+}
+
+async function pasteColumn() {
+  let raw = columnClipboard.value
+  try { raw = await navigator.clipboard?.readText() || raw } catch { /* use the in-memory fallback */ }
+  try {
+    const payload = JSON.parse(raw) as Record<string, unknown>
+    const key = typeof payload.key === 'string' ? payload.key : ''
+    const column = effectiveColumns.value.find(item => item.key === key)
+    if (!column) {
+      columnClipboardState.value = 'Copied column is not available in this watchlist.'
+      return
+    }
+    setColumnOverride(key, {
+      ...(typeof payload.label === 'string' ? { label: payload.label } : {}),
+      ...(typeof payload.width === 'string' ? { width: payload.width } : {}),
+      ...(payload.format === 'percent' || payload.format === 'number' ? { format: payload.format } : {}),
+      ...(typeof payload.decimals === 'number' ? { decimals: payload.decimals } : {}),
+    })
+    setColumnGroup(key, typeof payload.group === 'string' ? payload.group : '')
+    if (typeof payload.stacked === 'boolean' && payload.stacked !== props.stackedColumnKeys.includes(key)) toggleStackedColumn(key)
+    if (column.kind === 'boolean' && typeof payload.pinned === 'boolean' && payload.pinned !== props.pinnedBooleanKeys.includes(key)) togglePinnedBoolean(key)
+    columnClipboardState.value = `Pasted ${column.label} settings.`
+  } catch {
+    columnClipboardState.value = 'Clipboard does not contain workstation column settings.'
+  }
 }
 
 function canMoveColumn(key: string, direction: -1 | 1) {

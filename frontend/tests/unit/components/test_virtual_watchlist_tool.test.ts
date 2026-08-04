@@ -558,6 +558,17 @@ describe('VirtualWatchlistTool', () => {
     expect(apiPost).toHaveBeenCalledWith('/research/runs', expect.objectContaining({ code_version_id: 88, run_config: { symbols: ['XLK', 'XLE', 'XLV'], timeframe: 'D1' } }))
   })
 
+  it('copies and pastes column settings through the workstation clipboard contract', async () => {
+    const wrapper = mount(VirtualWatchlistTool, { props: { label: 'Sectors', rows, columns: [{ key: 'symbol', label: 'Symbol', width: '72px' }, { key: 'name', label: 'Name', width: '1fr' }] } })
+    await wrapper.find('.watchlist__columns-button').trigger('click')
+    await wrapper.get('button[aria-label="Copy Symbol settings"]').trigger('click')
+    await wrapper.get('input[aria-label="Symbol label"]').setValue('Ticker')
+    await wrapper.get('input[aria-label="Symbol label"]').trigger('change')
+    await wrapper.get('.watchlist__column-clipboard button').trigger('click')
+    expect(wrapper.text()).toContain('Pasted Symbol settings.')
+    expect(wrapper.emitted('update:columnOverrides')?.at(-1)).toEqual([{ symbol: { label: 'Symbol', width: '72px' } }])
+  })
+
   it('creates a repeatable screener alert from the active Python condition', async () => {
     apiGet.mockImplementation((path: string) => {
       if (path === '/code/assets') return Promise.resolve([{ kind: 'condition', name: 'Positive close', versions: [{ id: 88, version_number: 2 }] }])

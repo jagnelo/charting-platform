@@ -762,3 +762,11 @@ screener, then the user-scoped screener alert through the existing alert lifecyc
 retaining explicit success/failure status and the condition timeframe. Focused
 VirtualWatchlist coverage proves the screener and alert requests and the resulting status;
 full authenticated browser and provider/runtime acceptance remain open.
+
+Watchlist column customization now has an explicit internal clipboard contract. Column
+settings (label, width, formatting, grouping, stack, and Boolean pin state) can be copied
+from the integrated editor and pasted into the same canonical column on another linked or
+restored watchlist; system clipboard failure falls back to an in-memory session copy, and
+unknown/missing source columns are reported instead of creating a blank column. Focused
+virtual-watchlist coverage proves the copy/paste round trip; full browser and visual
+acceptance remain open.
