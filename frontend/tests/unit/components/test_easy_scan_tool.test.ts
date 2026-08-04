@@ -1,4 +1,5 @@
-import { flushPromises, mount } from '@vue/test-utils'
+import { flushPromises, mount as vueMount } from '@vue/test-utils'
+import { VueQueryPlugin, QueryClient } from '@tanstack/vue-query'
 import { describe, expect, it, vi } from 'vitest'
 
 const { apiGet, apiPost, apiPut } = vi.hoisted(() => ({ apiGet: vi.fn(), apiPost: vi.fn(), apiPut: vi.fn() }))
@@ -6,6 +7,11 @@ vi.mock('@/lib/api', () => ({ api: { get: apiGet, post: apiPost, put: apiPut } }
 
 import EasyScanTool from '@/components/workstation/EasyScanTool.vue'
 import { CHART_PLOT_DRAG_MIME, createChartPlotDragPayload, writeChartPlotDrag } from '@/lib/workstation/plotDrag'
+
+function mount(component: typeof EasyScanTool, options: Parameters<typeof vueMount>[1] = {}) {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
+  return vueMount(component, { ...options, global: { ...(options.global ?? {}), plugins: [[VueQueryPlugin, { queryClient }]] } })
+}
 
 describe('EasyScanTool', () => {
   it('creates and runs a saved Python condition through the queued scan API', async () => {

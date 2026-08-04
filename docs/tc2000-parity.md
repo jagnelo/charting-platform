@@ -581,6 +581,12 @@ reads when the same watchlist is recreated or linked across windows. The focused
 10,000-row/Python watchlist suite passes; full polling and performance acceptance remains
 open.
 
+EasyScan's queued Python-condition result history now uses the same Vue Query cache
+identity (`screener-results:{screener_id}`) while retaining the existing bounded polling,
+partial-result safeguards, and isolated-run cancellation. Repeated result refreshes for
+the same saved scan therefore share one canonical retained snapshot; the focused EasyScan
+suite passes. Full coordinator, hidden-tool, and long-running scan acceptance remains open.
+
 The unified Python SDK now supports a typed `output.dashboard` composition contract. A
 dashboard contains only bounded references to named scalar, table, series, histogram,
 scatter, heatmap, or event artifacts plus title/span metadata; user code cannot provide

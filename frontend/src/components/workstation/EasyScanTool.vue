@@ -53,6 +53,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
+import { useQueryClient } from '@tanstack/vue-query'
 import { api } from '@/lib/api'
 import ConditionGroupEditor from '@/components/workstation/ConditionGroupEditor.vue'
 import { createDefaultTechnicalCondition } from '@/lib/technicalConditions'
@@ -63,6 +64,7 @@ type ConditionAsset = { stable_key: string; name: string; version: number; paylo
 type ScanResult = { id?: number; run_at?: string; matched_ids?: number[]; result_data?: Record<string, unknown>; error?: string | null }
 
 const props = withDefaults(defineProps<{ sourceWindowKey?: string }>(), { sourceWindowKey: 'easy-scan' })
+const queryClient = useQueryClient()
 
 const conditions = ref<ConditionAsset[]>([])
 const pythonConditions = ref<Array<{ versionId: number; name: string }>>([])
@@ -202,7 +204,11 @@ async function run() {
         const status = String(result.value.result_data?._status ?? '')
         if (['completed', 'failed', 'canceled'].includes(status)) break
         await new Promise(resolve => setTimeout(resolve, 250))
-        const retained = await api.get<ScanResult[]>(`/screeners/${scan.id}/results`, { limit: 1 })
+        const retained = await queryClient.fetchQuery<ScanResult[]>({
+          queryKey: ['workstation', 'screener-results', scan.id],
+          queryFn: () => api.get<ScanResult[]>(`/screeners/${scan.id}/results`, { limit: 1 }),
+          staleTime: 0,
+        })
         if (retained[0]) result.value = retained[0]
       }
     }

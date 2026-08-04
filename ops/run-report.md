@@ -2,6 +2,13 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-04T13:42:00Z EasyScan result cache
+
+- EasyScan Python-condition result polling now uses a shared Vue Query key by screener ID
+  while retaining bounded retries, cancellation, and partial-result safeguards.
+- Focused EasyScan suite passed `7`; TypeScript passed. Exact-build visual approval and
+  the complete acceptance matrix remain open.
+
 ## 2026-08-04T13:28:00Z Watchlist batch-result cache
 
 - Python watchlist column/condition result reads now use Vue Query by research run ID,

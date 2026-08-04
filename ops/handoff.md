@@ -1,5 +1,13 @@
 # Active Handoff
 
+## Continuation update — 2026-08-04T13:42:00Z
+
+- Routed EasyScan queued Python-condition result-history reads through Vue Query keyed by
+  screener ID, preserving bounded polling, partial-result rendering, and isolated-run
+  cancellation.
+- Focused EasyScan coverage passed `7`; TypeScript passed. Exact-build visual approval
+  and the broad coordinator/security/performance acceptance matrix remain open.
+
 ## Continuation update — 2026-08-04T13:28:00Z
 
 - Routed VirtualWatchlistTool Python column and Boolean-condition batch-result polling
