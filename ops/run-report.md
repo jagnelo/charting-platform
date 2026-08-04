@@ -18554,13 +18554,21 @@ uncovered slice rather than repeat a generic completion claim.
 
 ## 2026-08-04T22:40:00Z Research/chart teardown cancellation
 
-- Study Lab and Persisted Research Results now cancel selected active runs when destroyed;
-  chart-tool Python plot jobs cancel and invalidate their generations during teardown.
-- Full frontend Vitest: `542 passed` across `84` files; TypeScript, production build, and
+- Study Lab cancels its owned active run when destroyed; Persisted Research Results remains
+  a non-owning observer. Chart-tool Python plot jobs cancel and invalidate their generations
+  during teardown.
+- Full frontend Vitest: `541 passed` across `84` files; TypeScript, production build, and
   `git diff --check`: passed. Rebuilt branch-scoped Chromium flows: `23 passed (26.6s)`.
 - Recent backend logs were clean for cancellation traces, connection leaks, provider runtime
   errors, and unexpected errors. Strict visual approval and remaining live/adversarial/
   performance/deep-parity gates remain open.
+
+## 2026-08-04T23:00:00Z Run ownership correction
+
+- Removed viewer teardown cancellation from Persisted Research Results so closing an observer
+  cannot stop a run owned by Study Lab or another window. Explicit cancellation remains.
+- Removed its incorrect regression and updated the parity/state records; focused regression
+  and full frontend/rebuilt-stack validation are in progress.
 
 ## 2026-08-04T20:25:00Z Taxonomy read-path correction
 
