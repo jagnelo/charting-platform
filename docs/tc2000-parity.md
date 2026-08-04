@@ -755,3 +755,10 @@ existing revision-checked backend snapshot path; malformed or duplicate layouts 
 in place with an explicit error. The focused workspace-store suite covers normalization,
 reordering, deletion protection, export/import, and persistence scheduling. Visual
 comparison, browser drag/drop evidence, and the broader acceptance matrix remain open.
+
+An active unified-Python Boolean condition in a watchlist can now be promoted directly to
+a repeatable EasyScan entry/exit alert. The workstation creates the canonical Python-backed
+screener, then the user-scoped screener alert through the existing alert lifecycle, while
+retaining explicit success/failure status and the condition timeframe. Focused
+VirtualWatchlist coverage proves the screener and alert requests and the resulting status;
+full authenticated browser and provider/runtime acceptance remain open.

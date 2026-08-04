@@ -558,6 +558,29 @@ describe('VirtualWatchlistTool', () => {
     expect(apiPost).toHaveBeenCalledWith('/research/runs', expect.objectContaining({ code_version_id: 88, run_config: { symbols: ['XLK', 'XLE', 'XLV'], timeframe: 'D1' } }))
   })
 
+  it('creates a repeatable screener alert from the active Python condition', async () => {
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/code/assets') return Promise.resolve([{ kind: 'condition', name: 'Positive close', versions: [{ id: 88, version_number: 2 }] }])
+      if (path === '/research/runs/9/batch-results') return Promise.resolve({ status: 'completed', cells: rows.map((row, index) => ({ symbol: row.symbol, status: 'completed', value: index !== 1 })) })
+      return Promise.resolve([])
+    })
+    apiPost.mockImplementation((path: string) => {
+      if (path === '/research/runs') return Promise.resolve({ id: 9 })
+      if (path.startsWith('/screeners/from-python-condition/')) return Promise.resolve({ id: 12 })
+      if (path === '/alerts/screener') return Promise.resolve({ id: 18 })
+      return Promise.resolve({})
+    })
+    const wrapper = mount(VirtualWatchlistTool, { props: { label: 'Sectors', rows } })
+    await vi.waitFor(() => expect(wrapper.find('select[aria-label="Sectors Python condition filter"]').exists()).toBe(true))
+    await wrapper.get('select[aria-label="Sectors Python condition filter"]').setValue('88')
+    await wrapper.setProps({ pythonCondition: { code_version_id: 88, name: 'Positive close v2', mode: 'active', timeframe: 'D1' } })
+    await vi.waitFor(() => expect(wrapper.find('button[aria-label="Create alert from Python condition"]').exists()).toBe(true))
+    await wrapper.get('button[aria-label="Create alert from Python condition"]').trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Alert active'))
+    expect(apiPost).toHaveBeenCalledWith('/screeners/from-python-condition/88', expect.objectContaining({ name: 'Positive close v2 alert', universe_type: 'all', timeframe: 'D1' }))
+    expect(apiPost).toHaveBeenCalledWith('/alerts/screener', { screener_id: 12, trigger_type: 'both', repeat: true, notes: 'Created from Python condition Positive close v2' })
+  })
+
   it('exposes removal only for explicitly editable personal lists', async () => {
     const wrapper = mount(VirtualWatchlistTool, { props: { label: 'Momentum', rows: [{ ...rows[0], itemId: 41 }], allowRemove: true } })
     await wrapper.find('.watchlist__row').trigger('contextmenu', { clientX: 20, clientY: 24 })
