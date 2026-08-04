@@ -16596,3 +16596,13 @@ audit with the next unimplemented acceptance path.
 
 Next step: checkpoint this Python-condition alert slice, then continue the requirement-level
 audit across remaining programmable surfaces and recovery/performance gates.
+## Continuation update — 2026-08-04T11:25:00Z Watchlist column clipboard
+
+- Added copy/paste settings to the integrated watchlist column editor. The serialized
+  contract includes label, width, format, decimals, grouping, stack, and Boolean pin state;
+  system-clipboard failures use a bounded in-memory fallback and unknown columns are rejected.
+- Focused VirtualWatchlist suite `41` passed, TypeScript and production build passed, and
+  `git diff --check` remains clean. Visual references, browser-level cross-tool clipboard,
+  Docker integration, and broad acceptance remain open.
+
+Next step: checkpoint the column clipboard slice, then continue the acceptance audit.

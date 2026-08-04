@@ -2,6 +2,12 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-04T11:25:00Z Watchlist column clipboard
+
+- Added explicit copy/paste of integrated column settings with an in-memory fallback and
+  validation. VirtualWatchlist suite `41`, TypeScript, production build, and diff checks passed;
+  visual and broad acceptance remain open.
+
 ## 2026-08-04T11:18:00Z Personal layout lifecycle
 
 - Added Workspace-menu management for select, rename, clone, drag-reorder, delete with
