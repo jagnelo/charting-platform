@@ -16752,3 +16752,8 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
   legacy slots.
 - Backend provider-registry unit suite: `8 passed`; provider-seed JSON assertion and diff
   checks passed.
+## Continuation update — 2026-08-04T16:15:00Z Full backend regression after provider cleanup
+
+- Full backend unit suite now passes `914` tests with `34` existing dependency warnings.
+- This includes the final backend environment/identifier-priority yfinance regression;
+  Docker-backed integration/security and live-provider gates remain separate and open.

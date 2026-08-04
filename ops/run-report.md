@@ -18336,3 +18336,8 @@ uncovered slice rather than repeat a generic completion claim.
 - Updated `backend/.env.example` to remove yfinance from all ordinary new-workstation
   chains while retaining the explicit option/legacy slots.
 - Provider-registry suite: `8 passed`; seed JSON and diff checks passed.
+## 2026-08-04T16:15:00Z Full backend regression after provider cleanup
+
+- Full backend unit suite: `914 passed` with `34` existing dependency warnings.
+- The final provider reference-environment regression is covered; Docker-backed
+  integration/security and live-provider gates remain open.
