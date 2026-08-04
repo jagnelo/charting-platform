@@ -40,7 +40,6 @@ from app.services.expression_engine import (
 from app.services.instrument_events import ensure_instrument_events_loaded
 from app.services.instrument_mastering import (
     ensure_external_identifier,
-    has_external_identifier,
     ingest_provider_profile,
 )
 from app.services.market_data import (
@@ -1067,25 +1066,21 @@ async def get_instrument(
     )
     instrument = result.scalar_one_or_none()
 
-    created = False
     if instrument is None:
         instrument = await _create_from_provider(symbol.upper(), db)
         if instrument is None:
             raise HTTPException(404, f"Instrument '{symbol}' not found")
-        created = True
         background_tasks.add_task(_enqueue_bulk_fetch, instrument.id)
         background_tasks.add_task(_sync_instrument_events, instrument.id)
 
-    if not instrument.is_synthetic and _needs_metadata_refresh(instrument):
-        instrument = await _refresh_instrument_metadata(instrument, db)
-
+    # Existing canonical instruments are a read-only local-database path. Provider
+    # metadata enrichment belongs to scheduled/backfill jobs; doing it here would
+    # make ordinary workstation symbol hydration fan out to SEC/market-data APIs,
+    # introduce unpredictable latency, and violate the provider-neutral frontend
+    # contract. Missing fields remain explicitly unavailable with their stored
+    # provenance until a maintenance job refreshes them.
     if not instrument.is_synthetic and _needs_52w_stats_refresh(instrument):
         instrument = await _ensure_52w_stats(instrument, db)
-
-    if not created and not instrument.is_synthetic:
-        background_tasks.add_task(_sync_instrument_events, instrument.id)
-        if not has_external_identifier(instrument):
-            background_tasks.add_task(_sync_instrument_identifier, instrument.id)
 
     return instrument
 

@@ -18472,3 +18472,23 @@ uncovered slice rather than repeat a generic completion claim.
   focused validation passed `15` tests with `--no-cov`.
 - Container adversarial resource/cancellation evidence, visual approval, live probes,
   performance, and deep browser parity remain open.
+
+## 2026-08-04T20:05:00Z Provider-neutral instrument hydration
+
+- Removed synchronous provider metadata refresh and request-triggered enrichment from
+  existing-instrument reads; the normal workstation path is now canonical-database only.
+- Focused instrument integration passed `17`; full Docker-backed integration passed `281`
+  tests with `54` dependency warnings. Rebuilt F8d passed, and recent logs contain no
+  SEC/provider-runtime calls, unchecked asyncpg connections, tracebacks, or unexpected errors.
+- Exact-build visual approval, live-provider probes, adversarial sandbox/resource tests,
+  multi-window performance, and deep browser parity remain open.
+
+## 2026-08-04T20:25:00Z Taxonomy read-path correction
+
+- Replaced request-time taxonomy mutation on market-group reads with a lightweight
+  empty-database fallback; startup and maintenance remain responsible for normal taxonomy
+  refreshes.
+- Focused market-group integration passed, rebuilt F8d passed, fresh logs were clean, and
+  the complete Docker-backed integration suite passed `281` tests with `54` warnings.
+- Exact-build visual approval, live-provider probes, adversarial sandbox/resource tests,
+  multi-window performance, and deep browser parity remain open.

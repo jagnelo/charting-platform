@@ -69,6 +69,16 @@ class TestInstruments:
         data = res.json()
         assert data["symbol"] == "AAPL"
 
+    @patch("app.routers.instruments.get_provider_profile_async")
+    def test_existing_instrument_read_does_not_fan_out_to_provider_metadata(
+        self, provider_profile, client, auth_headers, instrument
+    ):
+        """Ordinary workstation hydration must use the canonical local database only."""
+        provider_profile.side_effect = AssertionError("provider metadata must be scheduled, not request-triggered")
+        res = client.get(f"/api/v1/instruments/{instrument.symbol}", headers=auth_headers)
+        assert res.status_code == 200
+        provider_profile.assert_not_called()
+
     def test_get_instrument_by_id(self, client, auth_headers, instrument):
         res = client.get(f"/api/v1/instruments/{instrument.id}", headers=auth_headers)
         assert res.status_code in (200, 404)  # depends on router implementation

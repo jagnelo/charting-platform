@@ -50,6 +50,20 @@ def _groups_query():
     )
 
 
+async def _ensure_taxonomy_if_empty(db: AsyncSession) -> None:
+    """Support empty test/bootstrap databases without mutating normal reads.
+
+    Production startup and scheduled maintenance own taxonomy refreshes. The
+    one-time empty-database fallback keeps a freshly created database usable,
+    while avoiding the previous relationship-heavy seed on every workstation
+    request.
+    """
+    result = await db.execute(select(MarketGroup.id).limit(1))
+    if result.scalar_one_or_none() is None:
+        await seed_top_down_taxonomy(db)
+        await db.flush()
+
+
 @router.get("/etf/{symbol}/industries", response_model=ETFIndustryCompositionOut)
 async def etf_industry_composition(
     symbol: str,
@@ -298,8 +312,7 @@ async def list_market_groups(
     _: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    await seed_top_down_taxonomy(db)
-    await db.flush()
+    await _ensure_taxonomy_if_empty(db)
     statement = _groups_query().order_by(MarketGroup.group_type, MarketGroup.name)
     if parent_id is None:
         statement = statement.where(MarketGroup.parent_id.is_(None))
@@ -316,8 +329,7 @@ async def get_market_group(
     _: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    await seed_top_down_taxonomy(db)
-    await db.flush()
+    await _ensure_taxonomy_if_empty(db)
     group = (
         await db.execute(_groups_query().where(MarketGroup.stable_key == stable_key))
     ).scalar_one_or_none()

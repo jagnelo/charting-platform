@@ -16901,3 +16901,27 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
   focused validation passed `15` tests with `--no-cov`.
 - The isolated container boundary and broader adversarial resource/cancellation matrix remain
   open alongside visual, provider-live, performance, and deep browser parity gates.
+
+## Continuation update — 2026-08-04T20:05:00Z Provider-neutral instrument hydration
+
+- Existing `GET /instruments/{symbol}` reads now use the canonical local database only.
+  Provider metadata enrichment and identifier/event synchronization no longer run as
+  request-triggered work; scheduled maintenance remains the owner of missing fields.
+- Added an integration regression proving an existing-instrument read does not call the
+  provider profile path. Focused instrument integration passed `17`; full Docker-backed
+  integration passed `281` tests with `54` dependency warnings.
+- Rebuilt-stack F8d passed and a fresh log audit found no SEC/provider-runtime calls,
+  unchecked SQLAlchemy connections, tracebacks, or unexpected errors. Visual approval,
+  live probes, adversarial resource evidence, performance, and deep browser parity remain open.
+
+## Continuation update — 2026-08-04T20:25:00Z Taxonomy read-path correction
+
+- Market-group reads no longer run the relationship-heavy taxonomy seed on every request.
+  They perform a lightweight empty-database check and seed once only when no groups exist;
+  normal production refresh remains startup/maintenance-owned.
+- The focused market-group integration test passed, rebuilt F8d passed, and fresh backend
+  logs remained free of provider fan-out, unchecked SQLAlchemy connections, tracebacks, and
+  unexpected errors. The complete Docker-backed integration suite passed `281` tests with
+  `54` dependency warnings.
+- Visual approval, live probes, adversarial resource evidence, performance, and deep browser
+  parity remain open.
