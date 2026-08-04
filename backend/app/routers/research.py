@@ -87,6 +87,14 @@ def _dataset_options(run_config: dict, manifest: dict) -> dict:
         )
     start = _parse_dataset_bound(run_config.get("start_date") or manifest.get("start_date"), end=False)
     end = _parse_dataset_bound(run_config.get("end_date") or manifest.get("end_date"), end=True)
+    as_of = _parse_dataset_bound(run_config.get("as_of") or manifest.get("as_of"), end=True)
+    if as_of and start and start > as_of:
+        raise HTTPException(
+            status_code=422,
+            detail={"code": "dataset_as_of_before_start", "as_of": as_of.isoformat(), "start_date": start.isoformat()},
+        )
+    if as_of and (end is None or as_of < end):
+        end = as_of
     if start and end and start > end:
         raise HTTPException(
             status_code=422,
@@ -102,6 +110,7 @@ def _dataset_options(run_config: dict, manifest: dict) -> dict:
         "session": session,
         "start": start,
         "end": end,
+        "as_of": as_of,
         "benchmark": benchmark.strip().upper() if isinstance(benchmark, str) else None,
     }
 
@@ -120,6 +129,8 @@ def _dataset_manifest_fields(manifest: dict, options: dict) -> dict:
         fields["start_date"] = options["start"].date().isoformat()
     if options["end"]:
         fields["end_date"] = options["end"].date().isoformat()
+    if options.get("as_of"):
+        fields["as_of"] = options["as_of"].isoformat()
     return fields
 
 

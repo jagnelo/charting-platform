@@ -23,13 +23,14 @@ describe('StudyLabTool', () => {
   it('hydrates serializable dataset controls and normalizes legacy timeframe values', () => {
     const wrapper = mountTool({
       activeSymbol: 'AAPL',
-      configuration: { timeframe: 'MN1', benchmark: 'XLK', adjustment: 'raw', session: 'all', start_date: '2024-01-01', end_date: '2024-02-01' },
+      configuration: { timeframe: 'MN1', benchmark: 'XLK', adjustment: 'raw', session: 'all', start_date: '2024-01-01', end_date: '2024-02-01', as_of: '2024-02-01T15:30:00Z' },
     })
 
     expect(wrapper.find('[aria-label="Study timeframe"]').element).toHaveProperty('value', 'MN')
     expect(wrapper.find('[aria-label="Study benchmark"]').element).toHaveProperty('value', 'XLK')
     expect(wrapper.find('[aria-label="Study adjustment"]').element).toHaveProperty('value', 'raw')
     expect(wrapper.find('[aria-label="Study session"]').element).toHaveProperty('value', 'all')
+    expect(wrapper.find('[aria-label="Study as of"]').element).toHaveProperty('value', '2024-02-01T15:30')
   })
 
   it('offers constrained SDK suggestions while retaining the plain Python editor', async () => {

@@ -16,6 +16,7 @@
         <label>Session <select v-model="session" aria-label="Study session"><option value="regular">Regular</option><option value="all">All</option></select></label>
         <label>From <input v-model.trim="startDate" aria-label="Study start date" type="date" /></label>
         <label>To <input v-model.trim="endDate" aria-label="Study end date" type="date" /></label>
+        <label>As of <input v-model.trim="asOf" aria-label="Study as of" type="datetime-local" /></label>
       </div>
       <p v-if="requiresDeclaredUniverse" class="study-lab-tool__universe-warning" role="status">This factory study needs a declared comma-separated universe; it will not fall back to the active symbol.</p>
       <section class="study-lab-tool__parameters" aria-label="Study parameter controls">
@@ -146,6 +147,7 @@ const adjustment = ref<'split_adjusted' | 'raw'>(configString('adjustment', 'spl
 const session = ref<'regular' | 'all'>(configString('session', 'regular') === 'all' ? 'all' : 'regular')
 const startDate = ref(configString('start_date', ''))
 const endDate = ref(configString('end_date', ''))
+const asOf = ref(configString('as_of', '').slice(0, 16))
 const parameterSchemaText = ref(typeof props.configuration?.parameter_schema === 'string' ? String(props.configuration.parameter_schema) : '')
 const parameterDrafts = ref<Record<string, string | boolean>>({})
 const editor = ref<HTMLTextAreaElement | null>(null)
@@ -247,12 +249,14 @@ watch(() => props.configuration, configuration => {
   else if (typeof configuration?.start_date === 'string') startDate.value = configuration.start_date
   if (configuration && !('end_date' in configuration)) endDate.value = ''
   else if (typeof configuration?.end_date === 'string') endDate.value = configuration.end_date
+  if (configuration && !('as_of' in configuration)) asOf.value = ''
+  else if (typeof configuration?.as_of === 'string') asOf.value = configuration.as_of.slice(0, 16)
   if (configuration && !('symbols' in configuration)) universeSymbols.value = ''
   else if (typeof configuration?.symbols === 'string') universeSymbols.value = configuration.symbols
   if (configuration && !('parameter_schema' in configuration)) parameterSchemaText.value = ''
   else if (typeof configuration?.parameter_schema === 'string') parameterSchemaText.value = configuration.parameter_schema
 }, { deep: true })
-watch([timeframe, benchmark, universeSymbols, adjustment, session, startDate, endDate], () => {
+watch([timeframe, benchmark, universeSymbols, adjustment, session, startDate, endDate, asOf], () => {
   const configuration: Record<string, unknown> = { ...(props.configuration ?? {}), timeframe: timeframe.value, adjustment: adjustment.value, session: session.value }
   if (benchmark.value) configuration.benchmark = benchmark.value.toUpperCase()
   else delete configuration.benchmark
@@ -260,6 +264,8 @@ watch([timeframe, benchmark, universeSymbols, adjustment, session, startDate, en
   else delete configuration.start_date
   if (endDate.value) configuration.end_date = endDate.value
   else delete configuration.end_date
+  if (asOf.value) configuration.as_of = asOf.value
+  else delete configuration.as_of
   if (universeSymbols.value) configuration.symbols = universeSymbols.value.toUpperCase()
   else delete configuration.symbols
   emit('configuration', configuration)
@@ -426,6 +432,7 @@ async function saveAndRun() {
     if (benchmark.value) datasetControls.benchmark = benchmark.value.toUpperCase()
     if (startDate.value) datasetControls.start_date = startDate.value
     if (endDate.value) datasetControls.end_date = endDate.value
+    if (asOf.value) datasetControls.as_of = new Date(asOf.value).toISOString()
     const symbols = universeSymbols.value.split(',').map(value => value.trim().toUpperCase()).filter(Boolean)
     const runConfig: Record<string, unknown> = symbols.length ? { symbols, parameters, ...datasetControls } : { symbol: symbol.value.toUpperCase(), parameters, ...datasetControls }
     run.value = await api.post<Run>('/research/runs', {
