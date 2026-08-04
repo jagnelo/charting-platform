@@ -1,5 +1,17 @@
 # Active Handoff
 
+## Continuation update — 2026-08-04T18:28:00Z Link-group chrome parity
+
+- Shared `ToolWindow` chrome now displays human-readable symbol/timeframe link-group labels
+  and color swatches while emitted values remain canonical IDs, preserving yellow wildcard
+  and grey isolation semantics across docked and pop-out tools.
+- Added focused assertions for labels and swatches. Full frontend Vitest passed `545` tests
+  across `84 files`; TypeScript and production build passed. A fresh browser stack rerun is
+  still required for complete E2E evidence after this visual-only chrome change.
+- Strict pinned-build V25 visual approval remains `required_missing`; provider-live,
+  adversarial sandbox/resource, multi-monitor, performance, migration, and complete parity
+  gates remain open.
+
 ## Continuation update — 2026-08-04T18:22:00Z Golden Layout snapshot migration
 
 - Added a context-aware migration for pre-v8 persisted Golden Layout columns: legacy

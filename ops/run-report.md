@@ -1,5 +1,14 @@
 # Run Report
 
+## 2026-08-04T18:28:00Z Link-group chrome parity
+
+- Shared tool-window headers now show readable link-group labels and color swatches for symbol
+  and timeframe links without changing canonical persisted/emitted IDs.
+- Focused assertions, full frontend Vitest (`545`/`84`), TypeScript, and production build passed.
+  Browser E2E requires a fresh rebuilt stack because the existing stack is not running.
+- Strict visual approval and remaining provider, sandbox, performance, migration, and parity
+  gates remain open.
+
 ## 2026-08-04T18:22:00Z Golden Layout snapshot migration
 
 - Added context-aware migration from pre-v8 column `width` to Golden Layout v2 `size` while

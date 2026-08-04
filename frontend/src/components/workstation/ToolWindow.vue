@@ -4,19 +4,21 @@
       <strong class="tool-window__title">{{ title }}</strong>
       <span v-if="symbol" class="tool-window__symbol">{{ symbol }}</span>
       <div class="tool-window__actions">
+        <span v-if="timeframe" class="tool-window__link-swatch" :style="{ background: dashboardLinkGroupColor(timeframeLinkGroup) }" :title="`${dashboardLinkGroupLabel(timeframeLinkGroup)} timeframe link`" aria-hidden="true" />
         <select v-if="timeframe" :value="timeframeLinkGroup" class="tool-window__timeframe-link" :aria-label="title + ' timeframe link group'" @change="emit('update:timeframeLinkGroup', ($event.target as HTMLSelectElement).value as LinkGroup)">
-          <option v-for="group in groups" :key="group" :value="group">{{ group }}</option>
+          <option v-for="group in groups" :key="group" :value="group">{{ dashboardLinkGroupLabel(group) }}</option>
         </select>
         <select v-if="timeframe" :value="timeframe" class="tool-window__timeframe" :aria-label="title + ' timeframe'" @change="emit('update:timeframe', ($event.target as HTMLSelectElement).value)">
           <option value="M1">1m</option><option value="M5">5m</option><option value="M15">15m</option><option value="M30">30m</option><option value="H1">1h</option><option value="H2">2h</option><option value="H4">4h</option><option value="H12">12h</option><option value="D1">D</option><option value="W1">W</option><option value="MN">M</option>
         </select>
+        <span class="tool-window__link-swatch" :style="{ background: dashboardLinkGroupColor(linkGroup) }" :title="`${dashboardLinkGroupLabel(linkGroup)} symbol link`" aria-hidden="true" />
         <select
           :value="linkGroup"
           class="tool-window__link"
           :aria-label="title + ' symbol link group'"
           @change="emit('update:linkGroup', ($event.target as HTMLSelectElement).value as LinkGroup)"
         >
-          <option v-for="group in groups" :key="group" :value="group">{{ group }}</option>
+          <option v-for="group in groups" :key="group" :value="group">{{ dashboardLinkGroupLabel(group) }}</option>
         </select>
         <button type="button" title="Maximize" @click="emit('maximize')">□</button>
         <button type="button" title="Float" @click="emit('float')">↗</button>
@@ -31,6 +33,7 @@
 
 <script setup lang="ts">
 import type { LinkGroup } from '@/stores/workspace'
+import { dashboardLinkGroupColor, dashboardLinkGroupLabel } from '@/stores/dashboardLinks'
 
 withDefaults(defineProps<{
   title: string
@@ -69,6 +72,7 @@ const groups: LinkGroup[] = ['blue', 'red', 'green', 'purple', 'orange', 'cyan',
 .tool-window__symbol { color: #9fc2e0; font-weight: 700; }
 .tool-window__actions { margin-left: auto; display: flex; align-items: center; }
 .tool-window__link { width: 54px; height: 18px; color: var(--tc-text); border: 1px solid var(--tc-border-strong); background: var(--tc-input-bg); font: 10px var(--tc-font-family); }
+.tool-window__link-swatch { width: 8px; height: 8px; flex: 0 0 8px; border: 1px solid #0b0f12; border-radius: 50%; box-shadow: 0 0 0 1px #65737d; }
 .tool-window__timeframe { width: 27px; height: 18px; color: var(--tc-text); border: 1px solid var(--tc-border-strong); background: var(--tc-input-bg); font: 10px var(--tc-font-family); }
 .tool-window__timeframe-link { width: 54px; height: 18px; color: var(--tc-text); border: 1px solid var(--tc-border-strong); background: var(--tc-input-bg); font: 10px var(--tc-font-family); }
 .tool-window__body { min-width: 0; min-height: 0; flex: 1; overflow: hidden; }

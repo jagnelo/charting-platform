@@ -41,6 +41,11 @@ column nodes, while arbitrary tool-state width fields remain unchanged. The migr
 focused regression test and is covered by the full frontend suite; this prevents existing
 users' saved proportions from being silently discarded after the factory-layout upgrade.
 
+Shared tool-window chrome now renders human-readable link-group labels and color swatches for
+both symbol and timeframe links while retaining canonical group IDs in emitted events. This
+keeps yellow wildcard and grey isolation discoverable in docked and pop-out tools without
+coupling persistence to display text.
+
 Current implementation evidence (not completion): the isolated Study Lab runner now
 supports a typed `histogram` artifact with deterministic numeric buckets, the factory
 positive-close study exposes current/longest/average/shortest streak metrics,

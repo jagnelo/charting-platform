@@ -19,6 +19,8 @@ describe('ToolWindow', () => {
     expect(wrapper.emitted('float')).toHaveLength(1)
     expect(wrapper.emitted('close')).toHaveLength(1)
     expect(wrapper.emitted('update:linkGroup')?.[0]).toEqual(['yellow'])
+    expect(wrapper.find('.tool-window__link-swatch').attributes('style')).toContain('background')
+    expect(wrapper.find('[aria-label="Chart symbol link group"] option[value="yellow"]').text()).toBe('Yellow')
   })
 
   it('keeps timeframe linking distinct from symbol linking and uses MN for monthly bars', async () => {
@@ -33,5 +35,7 @@ describe('ToolWindow', () => {
 
     expect(wrapper.emitted('update:timeframeLinkGroup')?.[0]).toEqual(['green'])
     expect(wrapper.emitted('update:timeframe')?.[0]).toEqual(['W1'])
+    expect(wrapper.find('[aria-label="Chart timeframe link group"] option[value="red"]').text()).toBe('Red')
+    expect(wrapper.findAll('.tool-window__link-swatch')).toHaveLength(2)
   })
 })
