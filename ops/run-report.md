@@ -2,6 +2,12 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-04T16:40:00Z Breadth member drill-down
+
+- Breadth now offers linked Above/Below 20/50/200-MA member drill-downs while retaining
+  the historical uPlot series. Focused workstation/watchlist coverage passed `40`,
+  TypeScript/build/diff passed; full acceptance remains open.
+
 ## 2026-08-04T16:20:00Z Top-down cell-warning propagation
 
 - Analysis-cell warnings now survive top-down row adaptation and render at the affected

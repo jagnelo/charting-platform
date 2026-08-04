@@ -4,7 +4,7 @@
     "active_worker": "Codex",
     "worker_session_started_at": "2026-07-28T21:40:33Z",
     "worker_soft_stop_at": null,
-  "last_handoff_at": "2026-08-04T16:20:00Z",
+  "last_handoff_at": "2026-08-04T16:40:00Z",
     "last_commit": "d594201 fix(workstation): preserve top-down cell warnings",
     "git_ready_to_commit": false,
     "validation": {
@@ -23,6 +23,7 @@
         "backend_combo_library_test": "blocked_by_environment (new combo_list persistence regression is written, but the current uv invocation resolves Python 3.9 and cannot import datetime.UTC; repository backend requires Python >=3.12; no backend source change was needed because the existing user-isolated generic library contract already persists combo payloads)"
     },
   "notes": [
+        "2026-08-04T16:40:00Z: Breadth tool now exposes linked Above/Below 20/50/200-MA member drill-downs and publishes selected canonical symbols while retaining historical uPlot breadth. Focused workstation/watchlist coverage 40 passed; TypeScript/build/diff passed. Strict V25 visual approval and broad acceptance remain open.",
         "2026-08-04T16:20:00Z: Top-down benchmark/sector/constituent/industry-proxy row adapters now preserve canonical AnalysisCell warning messages and VirtualWatchlistTool renders explicit warnings for null values. Focused virtual-watchlist coverage 37 passed; TypeScript and diff passed. Strict V25 visual approval and broad acceptance remain open.",
         "2026-08-04T16:05:00Z: Industry ETF proxy selection now resolves/publishes the canonical proxy, loads bars and technicals, updates the automatic ratio, and preserves the selected sector/industry context. Focused pop-out binding coverage 3 passed; TypeScript, production build, and diff passed. Strict V25 visual approval and broad acceptance remain open.",
         "2026-08-04T15:45:00Z: Added four editable Study Lab factory templates using the existing unified SDK; source edits return the selector to Custom Python and shared Python Library APIs remain the lifecycle path. Focused Study Lab coverage 7 passed; TypeScript, production build, and diff passed. Strict V25 visual approval and broad acceptance remain open.",

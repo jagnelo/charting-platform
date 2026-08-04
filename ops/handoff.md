@@ -1,5 +1,15 @@
 # Active Handoff
 
+## Continuation update — 2026-08-04T16:40:00Z Breadth member drill-down
+
+- Added Above/Below controls for 20/50/200-MA breadth and a passing/failing member
+  drill-down to the primary breadth surface. Selecting a member publishes its canonical
+  symbol to linked workstation tools without changing routes; the historical uPlot
+  breadth plot remains visible.
+- Focused virtual-watchlist/pop-out coverage passed `40` tests; TypeScript, production
+  build, and `git diff --check` passed. Full configurable-universe, visual, and broad
+  acceptance gates remain open. Generated `test-results/` remains untracked.
+
 ## Continuation update — 2026-08-04T16:20:00Z Top-down cell-warning propagation
 
 - Preserved canonical `AnalysisCell.warning` messages when adapting benchmark, sector,

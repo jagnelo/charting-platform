@@ -348,7 +348,21 @@
       <RatioUPlot :symbol="activeSymbol" :benchmarks="ratioBenchmarks" :timeframe="activeTimeframe" :as-of="typeof tool.configuration.as_of === 'string' ? tool.configuration.as_of : null" :linked-timestamp="workspaceStore.timestampForLinkGroup(tool.link_group)" @cursor-timestamp="workspaceStore.publishTimestamp($event, tool.link_group, tool.instance_key)" @configuration="emit('configuration', tool.instance_key, { ...tool.configuration, ...$event })" />
     </div>
     <div v-else-if="tool.instance_key === 'breadth-summary' || tool.tool_type === 'breadth'" class="breadth-tool">
-      <div class="metrics"><span>Above 20 MA</span><b>{{ breadthMetric('ma20') }}</b><span>Above 50 MA</span><b>{{ breadthMetric('ma50') }}</b><span>Above 200 MA</span><b>{{ breadthMetric('ma200') }}</b><span>Coverage</span><b>{{ breadthCoverage }}</b></div>
+      <div class="metrics">
+        <template v-for="period in ['ma20', 'ma50', 'ma200']" :key="period">
+          <span>Above {{ period.slice(2) }} MA</span>
+          <span class="breadth-tool__actions">
+            <button type="button" :class="{ 'breadth-tool__action--active': breadthDrilldown?.key === period && breadthDrilldown.state === 'above' }" @click="setBreadthDrilldown(period, 'above')">{{ breadthMetric(period) }}</button>
+            <button type="button" :class="{ 'breadth-tool__action--active': breadthDrilldown?.key === period && breadthDrilldown.state === 'below' }" @click="setBreadthDrilldown(period, 'below')">Below {{ breadthBelowCount(period) }}</button>
+          </span>
+        </template>
+        <span>Coverage</span><b>{{ breadthCoverage }}</b>
+      </div>
+      <div v-if="breadthDrilldown" class="breadth-tool__drilldown" aria-label="Breadth member drilldown">
+        <header><strong>{{ breadthDrilldown.state === 'above' ? 'Passing' : 'Failing' }} {{ breadthDrilldown.key.toUpperCase() }} members</strong><button type="button" @click="breadthDrilldown = null">Close</button></header>
+        <button v-for="row in breadthDrilldownRows" :key="row.symbol" type="button" @click="emit('select', row.symbol)"><strong>{{ row.symbol }}</strong><span>{{ row.name }}</span></button>
+        <small v-if="!breadthDrilldownRows.length">No locally evaluated members are available.</small>
+      </div>
       <BreadthHistoryUPlot :history="breadthHistory" />
     </div>
     <RelativeRotationTool v-else-if="tool.instance_key === 'relative-rotation' || tool.tool_type === 'relative_rotation'" :configuration="tool.configuration" @select="selectSymbol($event)" @configuration="emit('configuration', tool.instance_key, $event)" />
@@ -386,7 +400,7 @@ import { useWorkspaceStore, type GroupSnapshotRow, type LinkGroup, type Workspac
 import { useWatchlistStore } from '@/stores/watchlist'
 import type { Watchlist } from '@/types'
 import ToolWindow from './ToolWindow.vue'
-import VirtualWatchlistTool, { type WatchlistColumn } from './VirtualWatchlistTool.vue'
+import VirtualWatchlistTool, { type WatchlistColumn, type WatchlistRow } from './VirtualWatchlistTool.vue'
 import RatioUPlot from './RatioUPlot.vue'
 import InstrumentNoteTool from './InstrumentNoteTool.vue'
 import InstrumentAlertsTool from './InstrumentAlertsTool.vue'
@@ -1447,11 +1461,25 @@ const descriptions: Record<string, string> = {
 }
 const freshnessLabel = (value?: string) => value ? ` · ${value}` : ''
 const breadthCoverage = computed(() => breadth.value ? `${(breadth.value.coverage * 100).toFixed(0)}% · ${breadth.value.evaluated_count} symbols${freshnessLabel(breadth.value.freshness)}` : 'Unavailable')
+const breadthDrilldown = ref<{ key: string; state: 'above' | 'below' } | null>(null)
+const breadthDrilldownRows = computed(() => {
+  if (!breadthDrilldown.value) return []
+  const expected = breadthDrilldown.value.state === 'above' ? 1 : 0
+  return sectorRows.value.filter(row => (row as WatchlistRow).values?.[breadthDrilldown.value!.key] === expected)
+})
 const technicalMAs = computed(() => [technical.value?.sma20, technical.value?.sma50, technical.value?.sma200]
   .map(value => formatNumber(value)).join(' / '))
 function breadthMetric(key: string) {
   const value = breadth.value?.above_ma[key]
   return value == null ? 'Unavailable' : `${(value * 100).toFixed(1)}%`
+}
+function breadthBelowCount(key: string) {
+  return sectorRows.value.filter(row => (row as WatchlistRow).values?.[key] === 0).length
+}
+function setBreadthDrilldown(key: string, state: 'above' | 'below') {
+  breadthDrilldown.value = breadthDrilldown.value?.key === key && breadthDrilldown.value.state === state
+    ? null
+    : { key, state }
 }
 function formatNumber(value: number | null | undefined) { return value == null ? 'Unavailable' : value.toFixed(2) }
 function formatPercent(value: number | null | undefined) { return value == null ? 'Unavailable' : `${(value * 100).toFixed(1)}%` }
@@ -1494,7 +1522,7 @@ const proxyCoverage = computed(() => industryProxySnapshot.value
 .combo-editor select[multiple] { height: 34px; }
 .combo-editor input { width: 78px; }
 .analysis { height: 100%; min-height: 0; }
-.breadth-tool { display:grid; grid-template-rows:auto minmax(0,1fr); height:100%; min-height:0; }.metrics { display: grid; grid-template-columns: 1fr auto; gap: 5px 10px; padding: 9px; color: #99a8b1; font: 10px "Segoe UI", Arial, sans-serif; }
+.breadth-tool { display:grid; grid-template-rows:auto auto minmax(0,1fr); height:100%; min-height:0; }.metrics { display: grid; grid-template-columns: 1fr auto; gap: 5px 10px; padding: 9px; color: #99a8b1; font: 10px "Segoe UI", Arial, sans-serif; }.breadth-tool__actions { display:flex; gap:3px; justify-content:flex-end; }.breadth-tool__actions button,.breadth-tool__drilldown header button { border:1px solid #34434e; background:#172027; color:#b9c8d1; font:inherit; padding:1px 4px; cursor:pointer; }.breadth-tool__actions button:hover,.breadth-tool__action--active { background:#1d4057; color:#e5f1f7; }.breadth-tool__drilldown { min-height:0; max-height:150px; overflow:auto; border-top:1px solid #2b3841; border-bottom:1px solid #2b3841; background:#131a20; font:10px "Segoe UI",Arial,sans-serif; }.breadth-tool__drilldown header { display:flex; justify-content:space-between; align-items:center; padding:4px 7px; color:#9aabb6; position:sticky; top:0; background:#20282f; }.breadth-tool__drilldown > button { display:flex; gap:8px; width:100%; border:0; border-bottom:1px solid #20282f; background:transparent; color:#cad4db; padding:4px 7px; text-align:left; cursor:pointer; }.breadth-tool__drilldown > button:hover { background:#1d4057; }.breadth-tool__drilldown > button span { color:#81929e; }.breadth-tool__drilldown > small { display:block; padding:7px; color:#8497a4; }
 .metrics b { color: #d2dce3; font-weight: 500; text-align: right; }
 .industry-list { height: 100%; overflow: auto; background: #11161b; font: 11px "Segoe UI", Arial, sans-serif; }
 .industry-list__row { display: flex; width: 100%; justify-content: space-between; gap: 8px; padding: 7px; border: 0; border-bottom: 1px solid #20282f; background: transparent; color: #c7d0d8; text-align: left; cursor: pointer; }
