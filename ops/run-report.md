@@ -18041,3 +18041,11 @@ uncovered slice rather than repeat a generic completion claim.
 - Full frontend Vitest `498` across `81` files, TypeScript, production build, and diff
   checks passed. Checkpoint `a1b23ea` is committed and pushed; strict V25 visual approval
   and broad acceptance remain open.
+## 2026-08-04T14:50:00Z Study Lab promotion checkpoint
+
+- Study Lab now promotes completed single-contract scalar/series/Boolean results into
+  reusable column/plot assets or canonical EasyScan conditions, with optional screener
+  alerts for Boolean results. Promotion reuses immutable source and run configuration.
+- Validation: focused Study Lab `5 passed`; full frontend Vitest `519` across `84` files,
+  TypeScript, production build, and diff checks passed. Exact V25 visual references and
+  the remaining broad acceptance matrix remain required.

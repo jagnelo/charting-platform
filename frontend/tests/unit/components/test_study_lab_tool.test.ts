@@ -115,4 +115,34 @@ describe('StudyLabTool', () => {
     }))
     expect(apiPost).toHaveBeenCalledWith('/research/runs', expect.objectContaining({ run_config: expect.objectContaining({ symbols: ['SPY', 'XLK'], parameters: { lookback: 30 } }) }))
   })
+
+  it('promotes a completed boolean study into a reusable scan and alert', async () => {
+    apiPost.mockImplementation((path: string) => {
+      if (path === '/code/validate') return Promise.resolve({ valid: true, diagnostics: [], dependencies: ['output'], lookback_hint: null, output_contracts: ['boolean'] })
+      if (path === '/code/assets') return Promise.resolve({ versions: [{ id: apiPost.mock.calls.filter(call => call[0] === '/code/assets').length === 1 ? 42 : 43 }] })
+      if (path === '/research/runs') return Promise.resolve({ id: 90, status: 'completed', artifacts: [{ id: 1, name: 'qualifies', artifact_type: 'boolean', payload: { value: true } }] })
+      if (path === '/screeners/from-python-condition/43') return Promise.resolve({ id: 77 })
+      if (path === '/alerts/screener') return Promise.resolve({ id: 88 })
+      return Promise.resolve({})
+    })
+    const wrapper = mountTool({ activeSymbol: 'SPY' })
+    await wrapper.find('[aria-label="Study Python source"]').setValue("output.boolean('qualifies', True)")
+    await wrapper.find('button').trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Validated for isolated execution'))
+    await wrapper.findAll('button')[1].trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Run #90'))
+
+    expect(wrapper.find('[aria-label="Promote study result"]').text()).toContain('Promote to scan')
+    await wrapper.get('[aria-label="Promote study result"] button').trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Promoted to a reusable scan.'))
+    expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({
+      kind: 'condition',
+      initial_version: expect.objectContaining({ source: "output.boolean('qualifies', True)", output_contract: 'boolean' }),
+    }))
+    expect(apiPost).toHaveBeenCalledWith('/screeners/from-python-condition/43', expect.objectContaining({ name: 'Consecutive Positive Closes Scan', universe_type: 'all', timeframe: 'D1' }))
+
+    await wrapper.get('[aria-label="Promote study result"] button:last-of-type').trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Promoted to an active scan alert.'))
+    expect(apiPost).toHaveBeenCalledWith('/alerts/screener', { screener_id: 77, trigger_type: 'entered', repeat: true })
+  })
 })

@@ -111,6 +111,15 @@ ranked tables, distributions, dashboards, and other typed aggregate artifacts. S
 event outputs may identify any symbol in the declared universe and remain constrained to
 that point-in-time prepared dataset; they cannot introduce undeclared symbols. Scalar and
 Boolean watchlist/condition batches retain their bounded per-instrument cell contract.
+Completed Study Lab runs with exactly one validated scalar, series, or Boolean output
+contract can now be promoted without copying mutable run state: scalar results create a
+reusable Python watchlist column, series results create a reusable chart plot, and Boolean
+results create an EasyScan condition with an optional screener alert. The promotion keeps
+the immutable source, parameter schema, timeframe, and canonical-data contract. Polymorphic
+`study` runs remain research-only until the author explicitly supplies a single-contract
+asset, avoiding ambiguous promotion of a dashboard or mixed artifact set. Focused
+StudyLabTool coverage exercises the scan and alert paths; full visual and acceptance status
+remains in progress.
 Study Lab exposes a serializable comma-separated universe control; when populated it sends
 canonical symbol selectors as `run_config.symbols` and displays the selected universe in
 the run summary instead of silently using only the active symbol.
