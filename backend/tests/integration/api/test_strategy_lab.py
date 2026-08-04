@@ -35,6 +35,51 @@ class TestStrategyLabAPI:
             "output_contract": "boolean",
         }
 
+    def test_promoted_python_signal_run_queues_isolated_research(
+        self, client, auth_headers, instrument, ohlcv_bars
+    ):
+        asset_res = client.post(
+            "/api/v1/code/assets",
+            headers=auth_headers,
+            json={
+                "stable_key": "study-signal-run-queue",
+                "name": "Queued Positive Signal",
+                "kind": "signal",
+                "initial_version": {
+                    "source": "output.boolean('signal', market.close()[-1] > 0)",
+                    "output_contract": "boolean",
+                    "parameter_schema": {},
+                    "default_parameters": {},
+                },
+            },
+        )
+        assert asset_res.status_code == 201
+        version_id = asset_res.json()["versions"][0]["id"]
+        promotion_res = client.post(
+            f"/api/v1/strategy-lab/signals/from-code/{version_id}",
+            headers=auth_headers,
+            json={},
+        )
+        assert promotion_res.status_code == 201
+        strategy = promotion_res.json()
+        strategy_version_id = strategy["versions"][0]["id"]
+
+        run_res = client.post(
+            f"/api/v1/strategy-lab/versions/{strategy_version_id}/runs",
+            headers=auth_headers,
+            json={
+                "timeframe": "D1",
+                "universe_config": {"symbols": [instrument.symbol]},
+                "benchmark_config": {},
+            },
+        )
+        assert run_res.status_code == 201
+        run = run_res.json()
+        assert run["status"] == "queued"
+        assert run["result_summary"]["result_kind"] == "python_signal_research"
+        assert isinstance(run["result_summary"]["research_run_id"], int)
+        assert run["result_summary"]["output_contract"] == "boolean"
+
     def test_create_list_version_and_run_strategy(
         self, client, auth_headers, db, instrument, ohlcv_bars
     ):
