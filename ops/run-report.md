@@ -2,6 +2,19 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-04T03:58:00Z Full Study Lab control verification
+
+- Complete frontend Vitest passed `514` tests across `84` files after schema-driven Study
+  Lab controls; TypeScript and production build passed. Only expected conflict-path test
+  logging appeared on stderr.
+
+## 2026-08-04T03:42:00Z Study Lab parameter controls
+
+- Added schema-driven Study Lab parameter controls with typed numeric/boolean conversion;
+  values are persisted in the immutable code version and run configuration.
+- Focused Study Lab suite passed `3` tests and TypeScript passed. Full frontend/build,
+  exact-build visual approval, and the complete acceptance matrix remain open.
+
 ## 2026-08-04T03:05:00Z Parameter schema enforcement
 
 - Unified-Python research runs now merge immutable-version defaults and enforce declared

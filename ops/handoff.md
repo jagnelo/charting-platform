@@ -1,5 +1,20 @@
 # Active Handoff
 
+## Continuation update — 2026-08-04T03:58:00Z
+
+- Re-ran the complete frontend suite after schema-driven Study Lab controls: `514` tests
+  across `84` files passed, with TypeScript and production build also green. Existing
+  stderr remains limited to intentional conflict-path test logging.
+
+## Continuation update — 2026-08-04T03:42:00Z
+
+- Study Lab now renders schema-defined parameter controls and sends typed values into the
+  immutable code asset and research run configuration. Numeric and boolean conversion is
+  covered alongside existing diagnostics and artifact rendering.
+- Focused Study Lab coverage passed `3` tests, TypeScript passed, and the full frontend
+  suite/build remain the next verification boundary; visual approval and broad acceptance
+  remain open.
+
 ## Continuation update — 2026-08-04T03:05:00Z
 
 - Added authoritative parameter-schema validation for unified-Python research runs.

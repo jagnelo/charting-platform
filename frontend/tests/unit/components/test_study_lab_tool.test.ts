@@ -60,7 +60,7 @@ describe('StudyLabTool', () => {
 
     expect(apiPost).toHaveBeenCalledWith('/research/runs', expect.objectContaining({
       code_version_id: 42,
-      run_config: { symbol: 'SPY', timeframe: 'W1', benchmark: 'QQQ', adjustment: 'raw', session: 'all', start_date: '2024-01-01', end_date: '2024-02-01' },
+      run_config: { symbol: 'SPY', parameters: {}, timeframe: 'W1', benchmark: 'QQQ', adjustment: 'raw', session: 'all', start_date: '2024-01-01', end_date: '2024-02-01' },
       dataset_manifest: expect.objectContaining({ timeframe: 'W1', benchmark: 'QQQ', adjustment: 'raw', session: 'all', start_date: '2024-01-01', end_date: '2024-02-01' }),
     }))
     expect(wrapper.text()).toContain('Dataset: W1 · raw · all session · benchmark QQQ')
@@ -77,5 +77,25 @@ describe('StudyLabTool', () => {
     expect(wrapper.find('.dashboard-chart').exists()).toBe(true)
     await wrapper.find('.study-lab-tool__events button').trigger('click')
     expect(wrapper.emitted('occurrence')?.[0]).toEqual([{ symbol: 'SPY', timestamp: '2026-01-02', kind: 'positive_close' }])
+  })
+
+  it('renders schema-defined parameter controls and sends typed values to the immutable run', async () => {
+    apiPost.mockImplementation((path: string) => {
+      if (path === '/code/validate') return Promise.resolve({ valid: true, diagnostics: [], dependencies: ['output'], lookback_hint: null, output_contracts: ['scalar'] })
+      if (path === '/code/assets') return Promise.resolve({ versions: [{ id: 77 }] })
+      if (path === '/research/runs') return Promise.resolve({ id: 78, status: 'completed', artifacts: [] })
+      return Promise.resolve({})
+    })
+    const wrapper = mount(StudyLabTool, { props: { activeSymbol: 'SPY' } })
+    await wrapper.find('[aria-label="Study parameter schema"]').setValue(JSON.stringify({ properties: { lookback: { type: 'integer', default: 20, minimum: 1 } } }))
+    await wrapper.find('[aria-label="Study parameter lookback"]').setValue('30')
+    await wrapper.find('button').trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Validated for isolated execution'))
+    await wrapper.findAll('button')[1].trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Run #78'))
+    expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({
+      initial_version: expect.objectContaining({ parameter_schema: { properties: { lookback: { type: 'integer', default: 20, minimum: 1 } } }, default_parameters: { lookback: 30 } }),
+    }))
+    expect(apiPost).toHaveBeenCalledWith('/research/runs', expect.objectContaining({ run_config: expect.objectContaining({ parameters: { lookback: 30 } }) }))
   })
 })

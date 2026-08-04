@@ -15,6 +15,18 @@
         <label>From <input v-model.trim="startDate" aria-label="Study start date" type="date" /></label>
         <label>To <input v-model.trim="endDate" aria-label="Study end date" type="date" /></label>
       </div>
+      <section class="study-lab-tool__parameters" aria-label="Study parameter controls">
+        <label>Parameter schema <textarea v-model="parameterSchemaText" aria-label="Study parameter schema" spellcheck="false" placeholder='{"properties":{"lookback":{"type":"integer","default":20}}}' /></label>
+        <div v-if="parameterDefinitions.length" class="study-lab-tool__parameter-grid">
+          <label v-for="definition in parameterDefinitions" :key="definition.name">{{ definition.name }}
+            <select v-if="definition.enum?.length" :value="String(parameterDrafts[definition.name] ?? '')" :aria-label="`Study parameter ${definition.name}`" @change="setParameterDraft(definition.name, ($event.target as HTMLSelectElement).value)">
+              <option v-for="option in definition.enum" :key="String(option)" :value="String(option)">{{ option }}</option>
+            </select>
+            <input v-else :type="definition.type === 'boolean' ? 'checkbox' : definition.type === 'number' || definition.type === 'integer' ? 'number' : 'text'" :step="definition.type === 'integer' ? '1' : 'any'" :checked="definition.type === 'boolean' ? parameterDrafts[definition.name] === true : undefined" :value="definition.type === 'boolean' ? undefined : String(parameterDrafts[definition.name] ?? '')" :aria-label="`Study parameter ${definition.name}`" @change="setParameterDraft(definition.name, definition.type === 'boolean' ? ($event.target as HTMLInputElement).checked : ($event.target as HTMLInputElement).value)" />
+          </label>
+        </div>
+        <small v-if="parameterSchemaError" class="study-lab-tool__parameter-error">{{ parameterSchemaError }}</small>
+      </section>
     </header>
     <textarea v-model="source" aria-label="Study Python source" spellcheck="false" />
     <section v-if="validation" class="study-lab-tool__validation" :class="{ 'study-lab-tool__validation--bad': !validation.valid }">
@@ -55,6 +67,7 @@ import StudyScatterUPlot from './StudyScatterUPlot.vue'
 import StudySeriesUPlot from './StudySeriesUPlot.vue'
 
 interface Validation { valid: boolean; diagnostics: unknown[]; dependencies: string[]; lookback_hint: number | null; output_contracts: string[] }
+interface ParameterDefinition { name: string; type: string; default?: unknown; enum?: unknown[]; minimum?: number; maximum?: number }
 interface Run { id: number; status: string; progress?: { status?: string; completed_cells?: number; total_cells?: number }; diagnostics?: unknown[]; reproducibility_hash?: string | null; dataset_manifest?: { benchmark_coverage?: { status?: string; reason?: string } }; artifacts?: Array<{ id: number; name: string; artifact_type: string; payload: Record<string, unknown> }> }
 type Artifact = NonNullable<Run['artifacts']>[number]
 
@@ -77,6 +90,8 @@ const adjustment = ref<'split_adjusted' | 'raw'>(configString('adjustment', 'spl
 const session = ref<'regular' | 'all'>(configString('session', 'regular') === 'all' ? 'all' : 'regular')
 const startDate = ref(configString('start_date', ''))
 const endDate = ref(configString('end_date', ''))
+const parameterSchemaText = ref(typeof props.configuration?.parameter_schema === 'string' ? String(props.configuration.parameter_schema) : '')
+const parameterDrafts = ref<Record<string, string | boolean>>({})
 const busy = ref(false)
 const validation = ref<Validation | null>(null)
 const run = ref<Run | null>(null)
@@ -98,6 +113,23 @@ const benchmarkCoverageLabel = computed(() => {
   if (status === 'unavailable') return `unavailable: ${run.value?.dataset_manifest?.benchmark_coverage?.reason ?? 'unknown'}`
   return 'pending'
 })
+const parsedParameterSchema = computed<Record<string, unknown> | null>(() => {
+  if (!parameterSchemaText.value.trim()) return {}
+  try {
+    const parsed = JSON.parse(parameterSchemaText.value)
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed as Record<string, unknown> : null
+  } catch { return null }
+})
+const parameterDefinitions = computed<ParameterDefinition[]>(() => {
+  const schema = parsedParameterSchema.value
+  if (!schema) return []
+  const properties = schema.properties && typeof schema.properties === 'object' && !Array.isArray(schema.properties) ? schema.properties as Record<string, unknown> : schema
+  return Object.entries(properties).filter(([, value]) => value && typeof value === 'object' && !Array.isArray(value)).map(([name, value]) => {
+    const spec = value as Record<string, unknown>
+    return { name, type: typeof spec.type === 'string' ? spec.type : 'string', default: spec.default, enum: Array.isArray(spec.enum) ? spec.enum : undefined, minimum: typeof spec.minimum === 'number' ? spec.minimum : undefined, maximum: typeof spec.maximum === 'number' ? spec.maximum : undefined }
+  })
+})
+const parameterSchemaError = computed(() => parameterSchemaText.value.trim() && !parsedParameterSchema.value ? 'Parameter schema must be a JSON object.' : '')
 watch(() => props.activeSymbol, value => { if (!symbol.value || symbol.value === 'SPY') symbol.value = value })
 watch(() => props.configuration, configuration => {
   if (typeof configuration?.timeframe === 'string') timeframe.value = normaliseTimeframe(configuration.timeframe)
@@ -120,6 +152,27 @@ watch([timeframe, benchmark, adjustment, session, startDate, endDate], () => {
   else delete configuration.end_date
   emit('configuration', configuration)
 })
+watch(parameterDefinitions, definitions => {
+  const next: Record<string, string | boolean> = {}
+  for (const definition of definitions) {
+    const current = parameterDrafts.value[definition.name]
+    if (current !== undefined) next[definition.name] = current
+    else if (typeof definition.default === 'boolean') next[definition.name] = definition.default
+    else if (definition.default !== undefined) next[definition.name] = String(definition.default)
+    else next[definition.name] = definition.type === 'boolean' ? false : ''
+  }
+  parameterDrafts.value = next
+}, { immediate: true })
+function setParameterDraft(name: string, value: string | boolean) { parameterDrafts.value = { ...parameterDrafts.value, [name]: value } }
+function buildParameters() {
+  const values: Record<string, unknown> = {}
+  for (const definition of parameterDefinitions.value) {
+    const value = parameterDrafts.value[definition.name]
+    if (value === '' || value === undefined) continue
+    values[definition.name] = definition.type === 'number' || definition.type === 'integer' ? Number(value) : value
+  }
+  return values
+}
 
 function clearPoller() { if (poller) clearInterval(poller); poller = null }
 function stableKey(value: string) { return value.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 56) || 'study' }
@@ -193,14 +246,15 @@ async function refreshRun() {
   } catch (cause: any) { error.value = cause?.message ?? 'Unable to refresh study run'; clearPoller() }
 }
 async function saveAndRun() {
-  if (!validation.value?.valid) return
+  if (!validation.value?.valid || parameterSchemaError.value) return
   busy.value = true; error.value = ''; clearPoller()
   try {
+    const parameters = buildParameters()
     const asset = await api.post<{ versions: Array<{ id: number }> }>('/code/assets', {
       stable_key: `${stableKey(name.value)}-${Date.now()}`,
       name: name.value,
       kind: 'study',
-      initial_version: { source: source.value, output_contract: 'study' },
+      initial_version: { source: source.value, output_contract: 'study', parameter_schema: parsedParameterSchema.value ?? {}, default_parameters: parameters },
     })
     const datasetControls: Record<string, string> = {
       timeframe: timeframe.value,
@@ -212,7 +266,7 @@ async function saveAndRun() {
     if (endDate.value) datasetControls.end_date = endDate.value
     run.value = await api.post<Run>('/research/runs', {
       code_version_id: asset.versions[0].id,
-      run_config: { symbol: symbol.value.toUpperCase(), ...datasetControls },
+      run_config: { symbol: symbol.value.toUpperCase(), parameters, ...datasetControls },
       dataset_manifest: { source: 'canonical_database', requested_at: new Date().toISOString(), ...datasetControls },
     })
     poller = setInterval(() => { void refreshRun() }, 1000)
@@ -229,6 +283,12 @@ onBeforeUnmount(clearPoller)
 
 <style scoped>
 .study-lab-tool { display:grid; height:100%; min-height:0; grid-template-rows:auto minmax(110px,1fr) auto auto auto; gap:5px; padding:6px; background:#11161b; color:#cbd5dc; font:10px "Segoe UI",Arial,sans-serif; }
+.study-lab-tool__parameters { display:grid; grid-template-columns:minmax(120px, 1fr) minmax(0, 2fr); gap:5px; align-items:start; color:#8ea3b0; }
+.study-lab-tool__parameters > label { display:grid; gap:2px; }
+.study-lab-tool__parameters textarea { min-height:28px; resize:vertical; }
+.study-lab-tool__parameter-grid { display:flex; flex-wrap:wrap; gap:4px; align-items:start; }
+.study-lab-tool__parameter-grid label { display:grid; gap:2px; min-width:78px; color:#9db0bc; }
+.study-lab-tool__parameter-error { color:#ed9696; grid-column:1 / -1; }
 .study-lab-tool__header { display:grid; gap:4px; } .study-lab-tool__header-main { display:grid; grid-template-columns:minmax(80px,1fr) 56px 48px 38px; gap:4px; } .study-lab-tool__dataset { display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:4px; color:#8ea3b0; } .study-lab-tool__dataset label { display:grid; grid-template-columns:auto minmax(0,1fr); align-items:center; gap:3px; white-space:nowrap; } .study-lab-tool__dataset input,.study-lab-tool__dataset select { width:100%; min-width:0; }
 input,textarea,button,select { min-width:0; border:1px solid #3a4954; background:#172027; color:#dce6ed; font:inherit; } input,select { padding:2px 4px; } textarea { width:100%; resize:none; padding:5px; font:11px/1.35 ui-monospace,SFMono-Regular,monospace; } button { cursor:pointer; } button:disabled { cursor:default; opacity:.5; }
 .study-lab-tool__validation,.study-lab-tool__run { padding:5px; border:1px solid #34424c; background:#151b20; } .study-lab-tool__validation--bad,.study-lab-tool__error { border-color:#9e5757; color:#f0a2a2; } pre { max-height:100px; overflow:auto; margin:3px 0 0; color:#b8c6d0; white-space:pre-wrap; } .study-lab-tool__run > div { display:flex; align-items:center; gap:6px; } .study-lab-tool__run > div button { margin-left:auto; } .study-lab-tool__run p,.study-lab-tool__notice,.study-lab-tool__error { margin:0; color:#8195a3; } .study-lab-tool__dataset-summary { font-size:9px; } .study-lab-tool__run article { margin-top:5px; padding-top:4px; border-top:1px solid #29343c; } .study-lab-tool__run small { margin-left:5px; color:#779ab0; }.study-lab-tool__metrics { display:grid; grid-template-columns:repeat(auto-fit,minmax(70px,1fr)); gap:4px; margin-top:5px; }.study-lab-tool__metrics article { display:grid; gap:2px; margin:0; padding:4px; border:1px solid #29343c; background:#11161b; }.study-lab-tool__metrics strong { color:#b9e0f9; font-size:14px; }.study-lab-tool__metric--true { border-color:#3f8263!important; }.study-lab-tool__metric--true strong { color:#80d5a5!important; }.study-lab-tool__metric--false { border-color:#875454!important; }.study-lab-tool__metric--false strong { color:#f0a0a0!important; }.study-lab-tool__run table { width:100%; margin-top:4px; border-collapse:collapse; font-size:9px; }.study-lab-tool__run th,.study-lab-tool__run td { padding:2px 4px; border:1px solid #2c3943; text-align:left; white-space:nowrap; }.study-lab-tool__run th { color:#91a8b8; background:#1b252d; }.study-lab-tool__events { display:grid; gap:2px; margin-top:4px; }.study-lab-tool__events button { display:grid; grid-template-columns:50px 1fr auto; gap:5px; padding:3px 4px; border:1px solid #2d3c46; background:#11161b; color:#cddbe5; text-align:left; }.study-lab-tool__events button:hover { background:#1d3543; }.study-lab-tool__events span,.study-lab-tool__events small { color:#91a8b4; }.study-lab-tool__run-status--completed { color:#82c49b; }.study-lab-tool__run-status--failed { color:#ed9696; }.study-lab-tool__run-status--queued,.study-lab-tool__run-status--running { color:#80bce8; }

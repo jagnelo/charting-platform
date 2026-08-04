@@ -103,6 +103,9 @@ non-object parameters fail explicitly before user code runs.
 The API now treats each immutable code version's parameter schema as authoritative: it
 merges declared defaults, validates required/type/enum/range/unknown-key constraints,
 and rejects invalid runs before dataset materialization or sandbox enqueue.
+Study Lab now exposes the same schema as generated controls, converts numeric and boolean
+values before creating the immutable code version, and sends the resulting typed parameter
+map with the run. The schema remains serializable in the workspace configuration boundary.
 
 Unified Python assets now have lifecycle contracts for complete export/import, immutable
 version-preserving clone, and reversible archive/unarchive operations. Each imported or
