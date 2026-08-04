@@ -559,6 +559,11 @@ Screener entry/exit firings are persisted as user-scoped `screener` history even
 instrument, scan, direction, and run snapshot, so the existing alert history and instrument
 filter APIs retain scan events alongside price and indicator firings.
 
+The workstation shell and shared tool-window chrome now consume one global token sheet for
+font stack, shell/window/control surfaces, borders, accents, state colors, density, and core
+heights. The values mirror the current measured implementation and remain explicitly reviewable
+against the approved four-environment V25 reference pack rather than being scattered literals.
+
 The shared chart store applies the same generation boundary to instrument metadata,
 indicator configuration, OHLCV pages (including infinite-history backfill),
 transformed/synthetic bars, loading/error state, and coverage polling. Rapid symbol

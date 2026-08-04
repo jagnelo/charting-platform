@@ -62,14 +62,14 @@ const groups: LinkGroup[] = ['blue', 'red', 'green', 'purple', 'orange', 'cyan',
 <style scoped>
 .tool-window { min-width: 0; min-height: 0; display: flex; flex-direction: column; border: 1px solid var(--tc-border, #30363c); background: var(--tc-window, #15191e); box-shadow: inset 0 1px rgba(255, 255, 255, 0.035); }
 .tool-window--active { border-color: #607486; }
-.tool-window__header { height: 25px; display: flex; align-items: center; gap: 5px; padding: 0 4px; background: linear-gradient(#2a3036, #1d2227); border-bottom: 1px solid #0d0f11; color: #d7dce0; font: 600 11px/1 "Segoe UI", Arial, sans-serif; user-select: none; }
+.tool-window__header { height: var(--tc-window-header-height); display: flex; align-items: center; gap: 5px; padding: 0 4px; background: linear-gradient(var(--tc-header-top), var(--tc-header-bottom)); border-bottom: 1px solid #0d0f11; color: var(--tc-text); font: 600 11px/1 var(--tc-font-family); user-select: none; }
 .tool-window__actions button { border: 0; color: #aab4bc; background: transparent; cursor: pointer; min-width: 17px; height: 20px; font-size: 12px; }
 .tool-window__actions button:hover { color: #fff; background: #38414a; }
 .tool-window__title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .tool-window__symbol { color: #9fc2e0; font-weight: 700; }
 .tool-window__actions { margin-left: auto; display: flex; align-items: center; }
-.tool-window__link { width: 54px; height: 18px; color: #d7dce0; border: 1px solid #4b5660; background: #161b20; font: 10px "Segoe UI", Arial, sans-serif; }
-.tool-window__timeframe { width: 27px; height: 18px; color: #d7dce0; border: 1px solid #4b5660; background: #161b20; font: 10px "Segoe UI", Arial, sans-serif; }
-.tool-window__timeframe-link { width: 54px; height: 18px; color: #d7dce0; border: 1px solid #4b5660; background: #161b20; font: 10px "Segoe UI", Arial, sans-serif; }
+.tool-window__link { width: 54px; height: 18px; color: var(--tc-text); border: 1px solid var(--tc-border-strong); background: var(--tc-input-bg); font: 10px var(--tc-font-family); }
+.tool-window__timeframe { width: 27px; height: 18px; color: var(--tc-text); border: 1px solid var(--tc-border-strong); background: var(--tc-input-bg); font: 10px var(--tc-font-family); }
+.tool-window__timeframe-link { width: 54px; height: 18px; color: var(--tc-text); border: 1px solid var(--tc-border-strong); background: var(--tc-input-bg); font: 10px var(--tc-font-family); }
 .tool-window__body { min-width: 0; min-height: 0; flex: 1; overflow: hidden; }
 </style>

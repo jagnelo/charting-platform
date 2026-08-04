@@ -2,6 +2,11 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-04T12:24:00Z Shared workstation design tokens
+
+- Centralized shell and tool-window visual tokens and wired the primary chrome to them. Tests,
+  TypeScript/build, and diff checks passed; visual/reference and broad acceptance remain open.
+
 ## 2026-08-04T12:18:00Z Persisted screener alert history
 
 - Persisted scan entry/exit firing events and added history-filter integration assertions.

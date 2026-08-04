@@ -1,0 +1,29 @@
+:root {
+  /* Version 25 workstation tokens. Values remain measurable/reviewable until the
+     approved reference pack supplies the final environment-specific baselines. */
+  --tc-font-family: "Segoe UI", Arial, sans-serif;
+  --tc-shell-bg: #0d1013;
+  --tc-window-bg: #15191e;
+  --tc-panel-bg: #151a1f;
+  --tc-control-bg: #20282e;
+  --tc-input-bg: #11161a;
+  --tc-border: #303940;
+  --tc-border-strong: #4b5660;
+  --tc-header-top: #2a3036;
+  --tc-header-bottom: #1d2227;
+  --tc-text: #d5dde4;
+  --tc-text-muted: #81909a;
+  --tc-text-subtle: #697782;
+  --tc-accent: #68b6e9;
+  --tc-accent-soft: #8fc7ea;
+  --tc-positive: #63bd85;
+  --tc-negative: #ed9696;
+  --tc-warning: #dfbd82;
+  --tc-toolbar-height: 29px;
+  --tc-tab-height: 28px;
+  --tc-window-header-height: 25px;
+  --tc-status-height: 21px;
+  --tc-control-height: 20px;
+  --tc-radius: 0px;
+  --tc-shadow: 0 3px 10px #000a;
+}

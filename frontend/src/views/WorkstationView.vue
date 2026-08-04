@@ -574,11 +574,11 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-.workstation { --tc-border: #303940; --tc-window: #15191e; width: 100%; height: 100%; min-width: 980px; display: grid; grid-template-rows: 29px 28px minmax(0, 1fr) 21px; overflow: hidden; color: #d5dde4; background: #0d1013; font-family: "Segoe UI", Arial, sans-serif; }
+.workstation { width: 100%; height: 100%; min-width: 980px; display: grid; grid-template-rows: var(--tc-toolbar-height) var(--tc-tab-height) minmax(0, 1fr) var(--tc-status-height); overflow: hidden; color: var(--tc-text); background: var(--tc-shell-bg); font-family: var(--tc-font-family); }
 .workstation:has(.workstation__popout) { min-width: 320px; grid-template-rows: minmax(0, 1fr); }
 .workstation__popout { min-width: 0; min-height: 0; padding: 2px; background: #090c0f; }
-.workstation__menu { display: flex; align-items: center; gap: 12px; padding: 0 7px; background: linear-gradient(#2c3339, #1c2227); border-bottom: 1px solid #090b0d; }
-.workstation__brand { color: #8fc7ea; font-size: 10px; font-weight: 700; letter-spacing: .06em; white-space: nowrap; }
+.workstation__menu { display: flex; align-items: center; gap: 12px; padding: 0 7px; background: linear-gradient(var(--tc-header-top), var(--tc-header-bottom)); border-bottom: 1px solid #090b0d; }
+.workstation__brand { color: var(--tc-accent-soft); font-size: 10px; font-weight: 700; letter-spacing: .06em; white-space: nowrap; }
 .workstation__menu nav { display: flex; align-self: stretch; }
 .workstation__menu nav button, .workstation__tab-add, .workstation__tab-reset { border: 0; background: transparent; color: #d4d9dd; padding: 0 8px; font: 11px "Segoe UI", Arial, sans-serif; cursor: pointer; }
 .workstation__menu nav button:hover, .workstation__tab-add:hover, .workstation__tab-reset:hover { background: #3a444d; color: #fff; }
@@ -596,7 +596,7 @@ onBeforeUnmount(() => {
 .workstation__sign-out:hover { border-color: #6d8290; color: #fff; background: #33414a; }
 .workstation__leader { color: #63bd85; }
 .workstation__data-state--fetching { color:#80bce8; }.workstation__data-state--unavailable { color:#ed9696; }.workstation__data-state--cached { color:#aebbc4; }
-.workstation__tabs { display: flex; align-items: stretch; background: #151a1f; border-bottom: 1px solid #303940; }
+.workstation__tabs { display: flex; align-items: stretch; background: var(--tc-panel-bg); border-bottom: 1px solid var(--tc-border); }
 .workstation__tool-library { position: relative; display: flex; }
 .workstation__tool-library-menu { position: absolute; z-index: 60; top: 28px; left: 0; display: grid; min-width: 118px; padding: 2px; border: 1px solid #42505a; background: #1b2228; box-shadow: 0 3px 10px #000a; }
 .workstation__tool-library-menu button { border: 0; background: transparent; color: #cbd6dc; padding: 5px 8px; font: 11px "Segoe UI", Arial, sans-serif; text-align: left; cursor: pointer; }
@@ -614,6 +614,6 @@ onBeforeUnmount(() => {
 .workstation__analysis p { color: #84929c; line-height: 1.45; }
 .workstation__metrics { display: grid; grid-template-columns: 1fr auto; gap: 5px 10px; padding: 9px; color: #99a8b1; font-size: 10px; }
 .workstation__metrics b { color: #d2dce3; font-weight: 500; text-align: right; }
-.workstation__footer { display: flex; gap: 16px; align-items: center; padding: 0 7px; border-top: 1px solid #2f3941; color: #84939d; background: #151a1f; font-size: 10px; }
+.workstation__footer { display: flex; gap: 16px; align-items: center; padding: 0 7px; border-top: 1px solid var(--tc-border); color: var(--tc-text-muted); background: var(--tc-panel-bg); font-size: 10px; }
 .workstation__footer span:first-child { color: #d4e7f4; font-weight: 700; }
 </style>

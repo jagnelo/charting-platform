@@ -1,5 +1,13 @@
 # Active Handoff
 
+## Continuation update — 2026-08-04T12:24:00Z Shared workstation design tokens
+
+- Added the global workstation token sheet and wired shell/window chrome to centralized V25
+  typography, colors, borders, density, and height variables. Values remain provisional until
+  approved reference measurements exist.
+- Tool-window/router tests `6`, TypeScript, production build, and diff checks passed; full prior
+  backend/frontend suites remain green. Visual/reference and broad acceptance remain open.
+
 ## Continuation update — 2026-08-04T12:18:00Z Persisted screener alert history
 
 - Screener entry/exit processing now writes user-scoped `AlertFiringEvent` rows with direction,
