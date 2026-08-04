@@ -1,5 +1,25 @@
 # Run Report
 
+## 2026-08-04T20:40:00Z Authentication-session factory and storage-fallback hardening
+
+- Re-audited the prior auth fix against a freshly rebuilt stack. Normal authentication now
+  shares the request-scoped `get_db` session so one FastAPI generator owns the route's
+  transaction and finalizer. Detached screener authentication uses the injectable
+  `get_auth_session_factory`, closes its short-lived identity session explicitly, and no
+  longer couples stream lifetime to a request dependency finalizer.
+- Workspace cross-window persistence now treats localStorage as best-effort: blocked storage
+  cannot break BroadcastChannel publication/leadership cleanup, and malformed storage events
+  are ignored safely.
+- Validation: backend unit `926/926` (34 existing dependency warnings); Docker integration
+  `281/281` (54 existing dependency warnings; standalone coverage threshold remains a
+  pre-existing runner configuration issue); frontend Vitest `547/547` across 84 files;
+  TypeScript/build; focused F12; rebuilt Chromium flows `26/26` in `45.5s`; and a clean
+  backend error/warning audit with no pooled-connection leak, `SAWarning`, `InterfaceError`,
+  cancellation traceback, provider error, or unexpected warning.
+- Overall completion is not claimed: strict pinned-build V25 visual approval is still
+  `required_missing`, with provider-live, sandbox/resource, multi-monitor/memory/performance,
+  migration, and broad parity evidence still open.
+
 ## 2026-08-04T19:17:09Z Authentication-session lifecycle cleanup
 
 - Added a full authenticated legacy-route smoke matrix covering the retained `/legacy/*`

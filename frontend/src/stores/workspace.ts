@@ -284,6 +284,31 @@ function configuredLinkGroup(value: unknown, fallback: LinkGroup): LinkGroup {
     : fallback
 }
 
+function safeStorageGet(key: string) {
+  try {
+    return localStorage.getItem(key)
+  } catch {
+    return null
+  }
+}
+
+function safeStorageSet(key: string, value: string) {
+  try {
+    localStorage.setItem(key, value)
+  } catch {
+    // BroadcastChannel remains the primary same-origin transport when storage
+    // is unavailable or blocked by the browser's privacy policy.
+  }
+}
+
+function safeStorageRemove(key: string) {
+  try {
+    localStorage.removeItem(key)
+  } catch {
+    // Storage cleanup is best effort; leadership heartbeats still expire.
+  }
+}
+
 /** Normalize the legacy monthly token without corrupting the valid one-minute token. */
 function normalizeWorkstationTimeframe(value: string) {
   return value === 'MN1' ? 'MN' : value
@@ -418,9 +443,10 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     }
     channel?.postMessage(event)
     try {
-      localStorage.setItem(CHANNEL_NAME + ':workspace-snapshot', JSON.stringify(event))
+      safeStorageSet(CHANNEL_NAME + ':workspace-snapshot', JSON.stringify(event))
     } catch {
-      // BroadcastChannel remains the primary same-origin transport when storage is unavailable.
+      // JSON serialization of the serializable event should not fail, but a
+      // failed announcement must never break a successful workspace save.
     }
   }
 
@@ -438,14 +464,14 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   function refreshLeadership() {
     let current: { id: string; heartbeat: number } | null = null
     try {
-      const raw = localStorage.getItem(LEADER_KEY)
+      const raw = safeStorageGet(LEADER_KEY)
       current = raw ? JSON.parse(raw) as { id: string; heartbeat: number } : null
     } catch {
       current = null
     }
     const now = Date.now()
     if (!current || current.id === windowId || now - current.heartbeat > LEADER_TIMEOUT_MS) {
-      localStorage.setItem(LEADER_KEY, JSON.stringify({ id: windowId, heartbeat: now }))
+      safeStorageSet(LEADER_KEY, JSON.stringify({ id: windowId, heartbeat: now }))
       isPersistenceLeader.value = true
       return
     }
@@ -475,7 +501,14 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       return
     }
     if (!event.key || !event.newValue) return
-    const message = JSON.parse(event.newValue) as CrossWindowEvent
+    let message: CrossWindowEvent
+    try {
+      message = JSON.parse(event.newValue) as CrossWindowEvent
+    } catch {
+      // Another same-origin app or a partially written storage value must not
+      // take down the workstation's cross-window coordinator.
+      return
+    }
     if (event.key === CHANNEL_NAME + ':workspace-snapshot' && isWorkspaceSnapshotEvent(message)) {
       void reloadSharedWorkspace(message)
       return
@@ -499,10 +532,10 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     leaderTimer = null
     if (isPersistenceLeader.value) {
       try {
-        const current = JSON.parse(localStorage.getItem(LEADER_KEY) ?? 'null') as { id?: string } | null
-        if (current?.id === windowId) localStorage.removeItem(LEADER_KEY)
+        const current = JSON.parse(safeStorageGet(LEADER_KEY) ?? 'null') as { id?: string } | null
+        if (current?.id === windowId) safeStorageRemove(LEADER_KEY)
       } catch {
-        localStorage.removeItem(LEADER_KEY)
+        safeStorageRemove(LEADER_KEY)
       }
     }
     isPersistenceLeader.value = false
@@ -512,7 +545,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     if (event.group === 'grey') return
     applySharedSymbol(event)
     channel?.postMessage({ ...event, type: 'symbol' })
-    localStorage.setItem(CHANNEL_NAME + ':symbol', JSON.stringify(event))
+    safeStorageSet(CHANNEL_NAME + ':symbol', JSON.stringify(event))
   }
 
   function symbolForLinkGroup(group: LinkGroup, isolatedSymbol?: string | null) {
@@ -570,7 +603,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     }
     const event: LinkEvent & { type: 'timeframe' } = { symbol: linkedSymbol.value, timeframe, group, sourceWindowKey, type: 'timeframe' }
     channel?.postMessage(event)
-    localStorage.setItem(CHANNEL_NAME + ':timeframe', JSON.stringify(event))
+    safeStorageSet(CHANNEL_NAME + ':timeframe', JSON.stringify(event))
   }
 
   async function loadDefault() {

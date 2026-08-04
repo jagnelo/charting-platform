@@ -159,7 +159,7 @@ def db(db_engine) -> Generator[Session, None, None]:
 @pytest.fixture()
 def app(db, redis_url, monkeypatch):
     from app.config import settings
-    from app.database import get_db, get_stream_session_factory
+    from app.database import get_auth_session_factory, get_db, get_stream_session_factory
     from app.main import app as _app
 
     monkeypatch.setattr(settings, "REDIS_URL", redis_url)
@@ -171,6 +171,7 @@ def app(db, redis_url, monkeypatch):
 
     _app.dependency_overrides[get_db] = _override
     _app.dependency_overrides[get_stream_session_factory] = lambda: lambda: async_db
+    _app.dependency_overrides[get_auth_session_factory] = lambda: lambda: async_db
     yield _app
     _app.dependency_overrides.clear()
 

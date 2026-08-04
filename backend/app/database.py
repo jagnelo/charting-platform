@@ -47,6 +47,18 @@ def get_stream_session_factory():
     return AsyncSessionLocal
 
 
+def get_auth_session_factory():
+    """Return a factory for short-lived authentication lookups.
+
+    Authentication for a streaming response must not borrow FastAPI's
+    request-scoped ``get_db`` generator: that generator is finalized only
+    after the response body, while the stream may outlive the dependency
+    resolution.  A factory keeps the identity lookup's session lifetime
+    explicit and independently testable.
+    """
+    return AsyncSessionLocal
+
+
 class Base(DeclarativeBase):
     pass
 

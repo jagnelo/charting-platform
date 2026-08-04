@@ -6,7 +6,7 @@ import pytest
 from fastapi.routing import APIRoute
 
 from app.auth.dependencies import get_current_user_detached
-from app.database import get_db, get_stream_session_factory
+from app.database import get_auth_session_factory, get_db, get_stream_session_factory
 from app.routers.screener import router, stream_screener_run
 
 
@@ -21,6 +21,13 @@ def test_stream_route_owns_a_dedicated_session_with_explicit_body_cleanup():
     dependencies = {dependency.call for dependency in route.dependant.dependencies}
     assert get_current_user_detached in dependencies
     assert get_db not in dependencies
+    assert get_auth_session_factory in {
+        dependency.call
+        for dependency in next(
+            dependency for dependency in route.dependant.dependencies
+            if dependency.call is get_current_user_detached
+        ).dependencies
+    }
     assert get_stream_session_factory in dependencies
 
     source = inspect.getsource(stream_screener_run)

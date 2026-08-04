@@ -533,6 +533,45 @@ describe('workspace store layout tabs', () => {
     expect(localStorage.getItem('charting-platform-workstation-leader')).toBeNull()
   })
 
+  it('keeps the cross-window bus alive when storage is blocked or malformed', () => {
+    class FakeBroadcastChannel {
+      addEventListener() {}
+      close() {}
+      postMessage() {}
+    }
+    vi.stubGlobal('BroadcastChannel', FakeBroadcastChannel)
+    vi.stubGlobal('localStorage', {
+      getItem() { throw new Error('storage blocked') },
+      setItem() { throw new Error('storage blocked') },
+      removeItem() { throw new Error('storage blocked') },
+    })
+    const store = useWorkspaceStore()
+
+    expect(() => store.connect()).not.toThrow()
+    expect(() => store.publishSymbol({ symbol: 'XLK', group: 'blue', sourceWindowKey: 'test' })).not.toThrow()
+    expect(() => store.publishTimeframe('W1')).not.toThrow()
+    expect(() => store.disconnect()).not.toThrow()
+  })
+
+  it('ignores malformed storage messages without changing shared selection', () => {
+    class FakeBroadcastChannel {
+      addEventListener() {}
+      close() {}
+      postMessage() {}
+    }
+    vi.stubGlobal('BroadcastChannel', FakeBroadcastChannel)
+    const store = useWorkspaceStore()
+    store.connect()
+
+    window.dispatchEvent(new StorageEvent('storage', {
+      key: 'charting-platform-workstation:symbol',
+      newValue: '{not-json',
+    }))
+
+    expect(store.linkedSymbol).toBe('SPY')
+    store.disconnect()
+  })
+
   it('reloads a newer persisted workspace snapshot announced by another window', async () => {
     class FakeBroadcastChannel {
       addEventListener() {}

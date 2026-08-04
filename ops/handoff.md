@@ -1,5 +1,27 @@
 # Active Handoff
 
+## Continuation update — 2026-08-04T20:40:00Z Authentication-session factory and storage-fallback hardening
+
+- The previous auth change was re-audited against a fresh rebuilt stack. A full browser run
+  exposed that manually closing an uncached `get_db` session could still leave FastAPI's
+  generator finalizer with a second lifecycle, so normal authentication now shares the
+  ordinary request-scoped session. Detached streaming authentication uses an injectable
+  `get_auth_session_factory` and explicitly closes its independent identity session before
+  the response body begins.
+- Hardened the workspace cross-window coordinator against blocked localStorage and malformed
+  storage events. BroadcastChannel remains usable when storage is denied, and malformed
+  values are ignored without changing linked selection.
+- Validation: backend unit `926 passed` with 34 existing dependency warnings; Docker-backed
+  integration `281 passed` with 54 existing dependency warnings (coverage threshold is a
+  repository test-runner configuration issue when integration is run alone); frontend
+  Vitest `547 passed` across 84 files; TypeScript and production build passed; focused F12
+  passed; rebuilt Chromium `flows.spec.ts` `26/26` passed in `45.5s`; and a complete fresh
+  backend log audit found no connection-leak, `SAWarning`, `InterfaceError`, cancellation,
+  traceback, provider-runtime, or unexpected warning output.
+- These are reliability checkpoints only. Exact-build V25 visual approval remains
+  `required_missing`; provider-live, adversarial sandbox/resource, multi-monitor and
+  long-running performance, migration, and broad parity gates remain open.
+
 ## Continuation update — 2026-08-04T19:17:09Z Authentication-session lifecycle cleanup
 
 - The legacy-route compatibility matrix added a full authenticated smoke pass for ten
