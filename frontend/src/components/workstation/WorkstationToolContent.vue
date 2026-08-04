@@ -219,7 +219,7 @@
       <DrawingToolbar class="chart-tool__drawing-toolbar" />
         <div class="chart-tool__surface">
         <ChartTemplateControl class="chart-tool__templates" :configuration="liveChartConfiguration" :indicator-configs="chartStore.indicators" @apply="applyChartTemplate" />
-        <ChartPlotLibrary class="chart-tool__plots" :source-window-key="tool.instance_key" :link-group="tool.link_group" />
+        <ChartPlotLibrary class="chart-tool__plots" :source-window-key="tool.instance_key" :link-group="tool.link_group" :python-plots="configuredPythonPlots" @update:python-plots="updatePythonPlots" />
         <div class="chart-tool__compare" aria-label="Chart comparisons">
           <input v-model="comparisonDraft" aria-label="Comparison symbol" placeholder="Compare" @keydown.enter.prevent="addComparisonSymbol(comparisonDraft)" />
           <button type="button" title="Add comparison" @click="addComparisonSymbol(comparisonDraft)">＋</button>
@@ -236,6 +236,7 @@
           :workspace-link-group="tool.link_group"
           :linked-timestamp="workspaceStore.timestampForLinkGroup(tool.link_group)"
           :comparison-series="comparisonSeries"
+          :python-series="pythonSeries"
           @configuration="applyChartConfiguration"
         />
         <div v-else class="tool-state">Select a canonical instrument.</div>
@@ -406,7 +407,7 @@ import { INDICATOR_BY_TYPE } from '@/lib/indicators/catalog'
 import { buildFlaggedWatchlistRows } from '@/lib/workstation/flagged-watchlist'
 import { buildComboWatchlistRows, type ComboListDefinition } from '@/lib/workstation/combo-lists'
 import { indicatorColumnFromPlot, type ChartPlotDragPayload, type TechnicalConditionDragPayload } from '@/lib/workstation/plotDrag'
-import { CHART_BAR_TYPES, type ChartBarType, type ChartComparisonSeries, type IndicatorConfig, type OHLCVBar, type Timeframe } from '@/types'
+import { CHART_BAR_TYPES, type ChartBarType, type ChartComparisonSeries, type ChartPythonSeries, type IndicatorConfig, type OHLCVBar, type Timeframe } from '@/types'
 
 const props = defineProps<{
   tool: WorkspaceWindowState
@@ -782,6 +783,13 @@ const configuredComparisonSymbols = computed(() => {
 const comparisonSeries = computed<ChartComparisonSeries[]>(() => {
   return buildNormalizedComparisonSeries(chartStore.bars, comparisonTargets.value)
 })
+const configuredPythonPlots = computed(() => {
+  const plots = props.tool.configuration.python_plots
+  if (!Array.isArray(plots)) return []
+  return plots.filter((plot): plot is { code_version_id: number; name: string; color?: string; timeframe?: string } => Boolean(plot) && typeof plot === 'object' && Number.isInteger((plot as Record<string, unknown>).code_version_id) && typeof (plot as Record<string, unknown>).name === 'string' && (typeof (plot as Record<string, unknown>).color === 'undefined' || typeof (plot as Record<string, unknown>).color === 'string') && (typeof (plot as Record<string, unknown>).timeframe === 'undefined' || typeof (plot as Record<string, unknown>).timeframe === 'string'))
+})
+const pythonSeries = ref<ChartPythonSeries[]>([])
+let pythonPlotRequestSequence = 0
 const comparisonLegend = computed(() => comparisonSeries.value.map(series => ({
   symbol: series.symbol,
   label: series.label,
@@ -825,6 +833,36 @@ function persistComparisonSymbols() {
     ...liveChartConfiguration.value,
     comparison_symbols: comparisonTargets.value.map(target => target.symbol),
   })
+}
+
+function updatePythonPlots(plots: Array<{ code_version_id: number; name: string; color?: string; timeframe?: string }>) {
+  emit('configuration', props.tool.instance_key, { ...props.tool.configuration, python_plots: plots })
+}
+
+async function loadPythonPlots() {
+  const plots = configuredPythonPlots.value
+  if (props.tool.tool_type !== 'chart' || !plots.length || !activeSymbol.value) { pythonSeries.value = []; return }
+  const sequence = ++pythonPlotRequestSequence
+  const loaded = await Promise.all(plots.map(async plot => {
+    const timeframe = plot.timeframe ?? activeTimeframe.value
+    try {
+      const queued = await api.post<{ id: number }>('/research/runs', { code_version_id: plot.code_version_id, run_config: { symbol: activeSymbol.value, timeframe }, dataset_manifest: { source: 'canonical_database', timeframe } })
+      for (let attempt = 0; attempt < 30; attempt += 1) {
+        const result = await api.get<{ status: string; artifacts?: Array<{ name: string; artifact_type: string; payload: Record<string, unknown> }> }>(`/research/runs/${queued.id}`)
+        if (result.status === 'completed' || result.status === 'failed' || result.status === 'canceled') {
+          const artifact = result.artifacts?.find(item => item.artifact_type === 'series')
+          const value = artifact?.payload?.value
+          if (!value || typeof value !== 'object' || Array.isArray(value)) return null
+          const candidate = value as { timestamps?: unknown; values?: unknown }
+          if (!Array.isArray(candidate.timestamps) || !candidate.timestamps.every(item => typeof item === 'string') || !Array.isArray(candidate.values) || candidate.timestamps.length !== candidate.values.length || !candidate.values.every(item => item == null || typeof item === 'number')) return null
+          return { codeVersionId: plot.code_version_id, label: plot.name, color: plot.color ?? '#ffb74d', timestamps: candidate.timestamps, values: candidate.values } satisfies ChartPythonSeries
+        }
+        await new Promise(resolve => window.setTimeout(resolve, 250))
+      }
+    } catch { return null }
+    return null
+  }))
+  if (sequence === pythonPlotRequestSequence) pythonSeries.value = loaded.filter((item): item is ChartPythonSeries => item != null)
 }
 
 async function loadComparisonBars() {
@@ -929,6 +967,8 @@ watch([activeSymbol, activeTimeframe, syntheticExpression, chartBarType], async 
     true,
   )
 }, { immediate: true })
+
+watch([configuredPythonPlots, activeSymbol, activeTimeframe], () => { void loadPythonPlots() }, { deep: true, immediate: true })
 
 watch(() => props.tool.configuration, configuration => {
   liveChartConfiguration.value = configuration

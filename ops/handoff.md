@@ -1,5 +1,13 @@
 # Active Handoff
 
+## Continuation update — 2026-08-04T11:18:00Z
+
+- Python plot assets are now loadable from Chart Plot Library and evaluated through the
+  isolated research API; validated series artifacts align to canonical bars and render
+  as native uPlot series with persisted code-version/color/timeframe state.
+- Focused chart-plot/ratio coverage passed `12`; TypeScript passed. Visual approval and
+  the broader acceptance gates remain open.
+
 ## Continuation update — 2026-08-04T10:48:00Z
 
 - Extended the explicit timeframe contract to Python Boolean watchlist conditions, with a

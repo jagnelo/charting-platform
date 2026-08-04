@@ -146,6 +146,13 @@ The same explicit timeframe contract now applies to persisted Python Boolean con
 the filter editor exposes it, stores it with the condition binding, and includes it in
 the prepared-universe evaluation request.
 
+Python `plot` assets are now first-class chart plot targets. The Chart Plot Library loads
+user-owned plot versions on demand, persists selected code-version/color/timeframe state
+in the chart window, and the workstation evaluates those versions through the isolated
+research API. Typed `series` artifacts are aligned to canonical chart timestamps and
+passed to uPlot as native series; invalid, incomplete, or failed artifacts are omitted
+without injecting arbitrary frontend code.
+
 The relative-rotation uPlot surface now updates `setData`/`setSize` in place during
 resize and data refresh; it destroys the chart only during component teardown. A
 dedicated regression test proves repeated resize callbacks do not create additional

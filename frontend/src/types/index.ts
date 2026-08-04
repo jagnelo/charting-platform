@@ -409,6 +409,15 @@ export interface ChartComparisonSeries {
   percentChange?: number | null
 }
 
+/** A typed, uPlot-renderable series produced by a validated Python plot asset. */
+export interface ChartPythonSeries {
+  codeVersionId: number
+  label: string
+  color: string
+  timestamps: string[]
+  values: Array<number | null>
+}
+
 export type RadarSetupType =
   | 'approaching_support'
   | 'approaching_resistance'

@@ -220,7 +220,7 @@ import {
   radarIndicatorSignature,
 } from '@/lib/radar/visuals'
 import type { DrawingPoint }   from '@/lib/drawings/types'
-import type { ChartComparisonSeries, ChartDrawing, DrawingType, IndicatorConfig, PriceAlert, Timeframe, ChartBarType } from '@/types'
+import type { ChartComparisonSeries, ChartDrawing, ChartPythonSeries, DrawingType, IndicatorConfig, PriceAlert, Timeframe, ChartBarType } from '@/types'
 import { CHART_BAR_TYPES } from '@/types'
 import type { AnyDrawing }     from '@/lib/drawings/types'
 
@@ -236,6 +236,7 @@ const props = withDefaults(defineProps<{
   showControls?: boolean
   chartSettings?: Record<string, unknown>
   comparisonSeries?: ChartComparisonSeries[]
+  pythonSeries?: ChartPythonSeries[]
   workspaceLinkGroup?: import('@/stores/workspace').LinkGroup
   linkedTimestamp?: string | null
 }>(), {
@@ -303,6 +304,9 @@ const visibleActiveIndicators = computed(() =>
 )
 const visibleComparisonSeries = computed(() =>
   (props.comparisonSeries ?? []).filter(series => series.values.some(v => v != null && Number.isFinite(v)))
+)
+const visiblePythonSeries = computed(() =>
+  (props.pythonSeries ?? []).filter(series => series.timestamps.length === series.values.length && series.values.some(v => v != null && Number.isFinite(v)))
 )
 const visibleAlerts = computed(() => props.overlayAlerts ?? alertsStore.alerts)
 function chartDrawingToRenderable(d: ChartDrawing): AnyDrawing {
@@ -1205,8 +1209,20 @@ function buildData(): uPlot.AlignedData {
   const comparisonData = visibleComparisonSeries.value.map(series =>
     series.values.slice(0, closes.length).concat(new Array(Math.max(0, closes.length - series.values.length)).fill(null))
   )
+  const timestampIndexes = new Map<number, number>()
+  ts.forEach((timestamp, index) => timestampIndexes.set(timestamp, index))
+  const pythonData = visiblePythonSeries.value.map(series => {
+    const aligned = new Array<number | null>(closes.length).fill(null)
+    series.timestamps.forEach((timestamp, index) => {
+      const parsed = Number(timestamp)
+      const seconds = Number.isFinite(parsed) ? (parsed > 10_000_000_000 ? parsed / 1000 : parsed) : Date.parse(timestamp) / 1000
+      const target = timestampIndexes.get(seconds)
+      if (target != null) aligned[target] = series.values[index] == null ? null : Number(series.values[index])
+    })
+    return aligned
+  })
 
-  return [barIdx, opens, highs, lows, closes, vols, ...extraData, ...comparisonData] as uPlot.AlignedData
+  return [barIdx, opens, highs, lows, closes, vols, ...extraData, ...comparisonData, ...pythonData] as uPlot.AlignedData
 }
 
 // ── Indicator selection highlight plugin ──────────────────────────────────────
@@ -1350,6 +1366,15 @@ function buildSeries(): uPlot.Series[] {
       scale: 'y',
       stroke: series.color,
       width: 1.4,
+      points: { show: false },
+    })
+  }
+  for (const series of visiblePythonSeries.value) {
+    base.push({
+      label: series.label,
+      scale: 'y',
+      stroke: series.color,
+      width: 1.35,
       points: { show: false },
     })
   }
@@ -3044,7 +3069,7 @@ watch(() => chartStore.bars, () => {
 }, { deep: false })
 watch(() => chartStore.instrument?.id, () => { if (!chartStore.instrument?.is_synthetic) loadInstrumentEvents() })
 watch(() => chartStore.instrument?.id, () => { if (!chartStore.instrument?.is_synthetic) loadAlertFiringEvents() })
-watch(visibleComparisonSeries, () => { if (uplot) updateData(); else initChart() }, { deep: true })
+watch([visibleComparisonSeries, visiblePythonSeries], () => { if (uplot) updateData(); else initChart() }, { deep: true })
 watch(visibleActiveIndicators, async () => { await nextTick(); initChart() }, { deep: true })
 watch(effectiveChartType, async (type) => {
   if (chartStore.symbol && chartStore.barType !== type) {

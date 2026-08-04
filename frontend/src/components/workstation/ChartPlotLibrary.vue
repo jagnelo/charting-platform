@@ -19,6 +19,12 @@
           <option v-for="(indicator, index) in chartStore.indicators" :key="`promotion-${index}`" :value="String(index)">{{ label(indicator) }}</option>
         </select>
       </label>
+      <section class="chart-plots__python" aria-label="Python plot assets">
+        <button type="button" :disabled="pythonLoading" @click="loadPythonAssets">{{ pythonLoading ? 'Loading…' : 'Load Python plots' }}</button>
+        <select v-if="pythonAssets.length" v-model="selectedPythonVersion" aria-label="Python plot asset"><option value="">Add Python plot…</option><option v-for="asset in pythonAssets" :key="asset.versionId" :value="String(asset.versionId)">{{ asset.name }}</option></select>
+        <button v-if="selectedPythonVersion" type="button" @click="addPythonPlot">Add</button>
+        <small v-if="pythonStatus">{{ pythonStatus }}</small>
+      </section>
       <div v-if="selectedPromotionIndex !== ''" class="chart-plots__promotion">
         <select v-model="promotionTarget" aria-label="Plot promotion target"><option value="condition">Condition</option><option value="scan">EasyScan</option><option value="filter">Watchlist filter</option><option value="alert">Indicator alert</option></select>
         <select v-if="promotionTarget === 'filter'" v-model="selectedFilterTarget" aria-label="Plot promotion watchlist"><option value="" disabled>Select watchlist…</option><option v-for="target in watchlistTargets" :key="target.instance_key" :value="target.instance_key">{{ target.title || target.instance_key }}</option></select>
@@ -46,7 +52,8 @@ import { cloneDefaultIndicator, INDICATOR_CATALOG, indicatorDisplayName } from '
 import { api } from '@/lib/api'
 import type { IndicatorConfig, IndicatorType } from '@/types'
 import { createChartPlotDragPayload, writeChartPlotDrag } from '@/lib/workstation/plotDrag'
-const props = defineProps<{ sourceWindowKey: string; linkGroup: string }>()
+const props = defineProps<{ sourceWindowKey: string; linkGroup: string; pythonPlots?: Array<{ code_version_id: number; name: string; color?: string; timeframe?: string }> }>()
+const emit = defineEmits<{ 'update:pythonPlots': [plots: Array<{ code_version_id: number; name: string; color?: string; timeframe?: string }>] }>()
 const chartStore = usePanelStore(inject<string>('panelId', 'chart')); const open = ref(false); const catalog = INDICATOR_CATALOG; const workspaceStore = useWorkspaceStore()
 const selectedCopyTarget = ref('linked')
 const chartTargets = computed(() => (workspaceStore.activeTab?.windows ?? []).filter(window => ['chart', 'watchlist'].includes(window.tool_type) && window.instance_key !== props.sourceWindowKey))
@@ -62,8 +69,31 @@ const promotionThreshold = ref(0)
 const promotionName = ref('')
 const promotionBusy = ref(false)
 const promotionStatus = ref('')
+const pythonAssets = ref<Array<{ versionId: number; name: string }>>([])
+const selectedPythonVersion = ref('')
+const pythonLoading = ref(false)
+const pythonStatus = ref('')
 const draggingIndex = ref<number | null>(null)
 function label(indicator: IndicatorConfig) { return indicatorDisplayName(indicator) }
+async function loadPythonAssets() {
+  pythonLoading.value = true; pythonStatus.value = ''
+  try {
+    const assets = await api.get<Array<{ kind: string; name: string; versions: Array<{ id?: number; version_number: number }> }>>('/code/assets')
+    pythonAssets.value = assets.filter(asset => asset.kind === 'plot').flatMap(asset => asset.versions.slice(-1).flatMap(version => version.id ? [{ versionId: version.id, name: `${asset.name} v${version.version_number}` }] : []))
+    pythonStatus.value = pythonAssets.value.length ? `${pythonAssets.value.length} plot asset${pythonAssets.value.length === 1 ? '' : 's'} available` : 'No Python plot assets available'
+  } catch (cause: any) { pythonStatus.value = cause?.message ?? 'Unable to load Python plot assets' }
+  finally { pythonLoading.value = false }
+}
+function addPythonPlot() {
+  const versionId = Number(selectedPythonVersion.value)
+  const asset = pythonAssets.value.find(item => item.versionId === versionId)
+  if (!asset || (props.pythonPlots ?? []).some(plot => plot.code_version_id === versionId)) return
+  const colors = ['#ffb74d', '#81c784', '#ba68c8', '#f06292', '#4dd0e1']
+  const plot = { code_version_id: versionId, name: asset.name, color: colors[(props.pythonPlots ?? []).length % colors.length], timeframe: chartStore.timeframe }
+  emit('update:pythonPlots', [...(props.pythonPlots ?? []), plot])
+  selectedPythonVersion.value = ''
+  pythonStatus.value = `Added ${asset.name}`
+}
 function startDrag(index: number, event: DragEvent) {
   const item = chartStore.indicators[index]
   if (!item || !event.dataTransfer) return
