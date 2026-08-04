@@ -17,7 +17,42 @@ import pytest
 
 from app.services.screener_engine import (
     _compare,
+    _flush_indicator_cache,
 )
+
+
+class TestIndicatorCacheFlush:
+    @pytest.mark.asyncio
+    async def test_commit_failure_rolls_back_and_returns_structured_warning(self):
+        class FailingSession:
+            def __init__(self):
+                self.rollback_calls = 0
+
+            async def commit(self):
+                raise RuntimeError("cache database unavailable")
+
+            async def rollback(self):
+                self.rollback_calls += 1
+
+        db = FailingSession()
+        warning = await _flush_indicator_cache(db)
+
+        assert warning == {
+            "code": "indicator_cache_persistence_failed",
+            "message": "Indicator cache updates could not be persisted; results use canonical local data.",
+        }
+        assert db.rollback_calls == 1
+
+    @pytest.mark.asyncio
+    async def test_successful_commit_returns_no_warning(self):
+        class Session:
+            async def commit(self):
+                return None
+
+            async def rollback(self):
+                pytest.fail("rollback should not run after a successful commit")
+
+        assert await _flush_indicator_cache(Session()) is None
 
 # ── _compare — pure operator dispatch ─────────────────────────────────────────
 

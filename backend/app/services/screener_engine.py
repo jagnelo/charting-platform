@@ -120,6 +120,31 @@ async def _save_indicator_cache(
     )
 
 
+async def _flush_indicator_cache(db: AsyncSession) -> dict[str, str] | None:
+    """Commit indicator-cache writes without hiding a failed transaction.
+
+    A cache write is an optimization: a failed flush must not discard the
+    canonical scan results already evaluated in memory.  The previous stream
+    path swallowed commit errors, leaving the session in a failed transaction
+    state and giving the caller no indication that cache persistence failed.
+    Roll back explicitly, log the bounded failure, and let the stream expose a
+    structured warning while continuing to evaluate the canonical data.
+    """
+    try:
+        await db.commit()
+    except Exception:
+        logger.warning("Screener indicator-cache commit failed; continuing without cache", exc_info=True)
+        try:
+            await db.rollback()
+        except Exception:
+            logger.error("Screener indicator-cache rollback failed", exc_info=True)
+        return {
+            "code": "indicator_cache_persistence_failed",
+            "message": "Indicator cache updates could not be persisted; results use canonical local data.",
+        }
+    return None
+
+
 def _series_to_cacheable(result: dict[str, np.ndarray]) -> dict[str, list]:
     """Convert numpy arrays to JSON-serialisable lists (NaN → None)."""
     out = {}
@@ -1036,6 +1061,7 @@ async def stream_screener(
       {"type": "progress", "evaluated": int, "total": int, "matches": int}
       {"type": "match",    "instrument_id": int, "computed": dict}
       {"type": "error",    "instrument_id": int, "code": str, "message": str}
+      {"type": "warning",  "code": str, "message": str}
       {"type": "done",     "evaluated": int, "total": int, "matches": int,
                            "duration_ms": int, "result_id": int, "coverage": dict}
     """
@@ -1106,11 +1132,12 @@ async def stream_screener(
         if evaluated % 20 == 0:
             yield {"type": "progress", "evaluated": evaluated, "total": total, "matches": matched}
 
-    # Flush indicator cache writes accumulated during local evaluation.
-    try:
-        await db.commit()
-    except Exception:
-        pass
+    # Flush indicator cache writes accumulated during local evaluation. Cache
+    # persistence is optional, but failures must be visible and leave the
+    # transaction usable for the durable result commit below.
+    cache_warning = await _flush_indicator_cache(db)
+    if cache_warning:
+        yield {"type": "warning", **cache_warning}
 
     yield {"type": "progress", "evaluated": evaluated, "total": total, "matches": matched}
 

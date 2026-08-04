@@ -316,6 +316,9 @@
             <div class="scan-bar" :style="{ width: `${Math.round(scanProgress.evaluated / scanProgress.total * 100)}%` }" />
           </div>
         </div>
+        <div v-if="streamWarnings.length" class="scan-warning" role="status">
+          <span v-for="warning in streamWarnings" :key="`${warning.code}:${warning.message}`">{{ warning.message }}</span>
+        </div>
         <div v-else-if="latestResult" class="results-meta">
           Ran {{ fmtDate(latestResult.run_at) }} · {{ latestResult.duration_ms }}ms ·
           <strong>{{ latestResult.matched_ids.length }}</strong> matches
@@ -563,6 +566,7 @@ const instrMap    = ref<Record<number, InstrInfo>>({})
 interface ScanProgress { evaluated: number; total: number; matches: number }
 const scanProgress    = ref<ScanProgress | null>(null)
 const streamingResult = ref<{ matched_ids: number[]; result_data: Record<string, any> } | null>(null)
+const streamWarnings  = ref<Array<{ code: string; message: string }>>([])
 
 // Watchlist menu state
 const wlMenuInstrId = ref<number | null>(null)
@@ -785,6 +789,7 @@ async function runScreener() {
   running.value = true
   scanProgress.value = null
   streamingResult.value = { matched_ids: [], result_data: {} }
+  streamWarnings.value = []
 
   const token = localStorage.getItem('access_token')
   const headers: Record<string, string> = { 'Accept': 'application/x-ndjson' }
@@ -817,6 +822,8 @@ async function runScreener() {
             streamingResult.value!.matched_ids.push(event.instrument_id)
             if (event.computed) streamingResult.value!.result_data[String(event.instrument_id)] = event.computed
             await loadInstrumentInfo([event.instrument_id])
+          } else if (event.type === 'warning' && typeof event.code === 'string' && typeof event.message === 'string') {
+            streamWarnings.value.push({ code: event.code, message: event.message })
           } else if (event.type === 'done') {
             scanProgress.value = { evaluated: event.evaluated, total: event.total, matches: event.matches }
             const saved = await api.get<ScreenerResult[]>(`/screeners/${screenerId}/results`, { limit: 1 })
@@ -1195,6 +1202,16 @@ onUnmounted(() => {
   background: #64b5f6;
   border-radius: 1px;
   transition: width 0.3s ease;
+}
+.scan-warning {
+  display: grid;
+  gap: 2px;
+  margin-bottom: 10px;
+  padding: 5px 8px;
+  border: 1px solid #8a6b32;
+  background: #2a2416;
+  color: #e7c274;
+  font-size: 11px;
 }
 
 .results-table-wrap { flex: 1; overflow: auto; }
