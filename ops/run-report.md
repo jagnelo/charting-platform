@@ -1,5 +1,14 @@
 # Run Report
 
+## 2026-08-05T03:20:00Z Workstation error-surface hardening
+
+- Removed raw transport strings such as `API GET … → 404` from the dense workstation
+  footer. The original diagnostic remains available via the status tooltip, while users
+  see concise recovery-oriented states (`Some market data is unavailable`, session or
+  permission required, workspace conflict, or service unavailable).
+- Added a regression covering the rendered footer and tooltip. Full frontend Vitest is
+  `551/551`, TypeScript/build pass, and rebuilt Chromium flows pass `28/28`.
+
 ## 2026-08-05T03:00:00Z Full unit-suite re-audit
 
 - Current HEAD passes all frontend Vitest tests (`550/550` across 84 files) and all backend

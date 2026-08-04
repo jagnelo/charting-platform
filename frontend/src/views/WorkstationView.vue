@@ -129,7 +129,7 @@
     <footer v-if="!isPopout" class="workstation__footer">
       <span>{{ activeSymbol }}</span>
       <span>{{ chartStore.timeframe }}</span>
-      <span>{{ workspaceStore.error ?? 'Ready' }}</span>
+      <span :title="workspaceStore.error ?? undefined">{{ footerMessage }}</span>
       <span :class="`workstation__data-state--${dataState.kind}`">{{ dataState.label }}</span>
     </footer>
   </div>
@@ -185,7 +185,24 @@ const dataState = computed(() => {
   if (!latest) return { kind: 'unavailable', label: 'No local observations' }
   return { kind: 'cached', label: `Cached ${new Date(latest.ts).toLocaleString()}` }
 })
+const footerMessage = computed(() => humanizeWorkspaceError(workspaceStore.error))
 const isPopout = computed(() => route.path.startsWith('/popout/'))
+
+/** Keep raw transport diagnostics out of the dense workstation status bar.
+ * Detailed errors remain available as the native tooltip and in browser/backend
+ * diagnostics, while users get a concise recovery-oriented message in the shell.
+ */
+function humanizeWorkspaceError(error: string | null | undefined): string {
+  if (!error) return 'Ready'
+  const normalized = error.trim()
+  const status = normalized.match(/^API\s+(?:GET|POST|PUT|PATCH|DELETE)\s+[^→]+→\s*(\d{3})/i)?.[1]
+  if (status === '401' || status === '403') return 'Session or permission required'
+  if (status === '404') return 'Some market data is unavailable'
+  if (status === '409') return 'Workspace changed elsewhere; recovery is available'
+  if (status && Number(status) >= 500) return 'Market service unavailable; cached data retained'
+  if (/^API\s+/i.test(normalized)) return 'Market data request could not be completed'
+  return normalized
+}
 
 // The shell is the coordinator for the shared top-down inputs. Keep this in the
 // same Vue Query cache as the explicit Refresh action so docked and floated

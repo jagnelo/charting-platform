@@ -208,4 +208,18 @@ describe('WorkstationView pop-out bindings', () => {
     wrapper.unmount()
     Object.defineProperty(document, 'visibilityState', { configurable: true, value: originalVisibility })
   })
+
+  it('keeps raw transport errors out of the dense footer while retaining them in the tooltip', async () => {
+    routeState.path = '/'
+    routeState.params = {}
+    harness.workspace.error = 'API GET /market-groups/etf/SPY/industries → 404: unavailable'
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+
+    const status = wrapper.find('.workstation__footer span:nth-child(3)')
+    expect(status.text()).toBe('Some market data is unavailable')
+    expect(status.attributes('title')).toContain('API GET /market-groups/etf/SPY/industries')
+    harness.workspace.error = null
+  })
 })
