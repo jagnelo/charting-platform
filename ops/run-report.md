@@ -18064,3 +18064,9 @@ uncovered slice rather than repeat a generic completion claim.
 - Validation: focused Study Lab `6 passed` and TypeScript passed; previous full frontend
   `519`, production build, backend unit, and Ruff checks remain green. Exact V25 visual
   references and full acceptance remain required.
+## 2026-08-04T15:45:00Z Study Lab factory-template checkpoint
+
+- Added four editable Study Lab factory templates using the existing unified SDK and kept
+  lifecycle operations delegated to the shared Python Library asset APIs.
+- Validation: focused Study Lab `7 passed`; TypeScript, production build, and diff checks
+  passed. Exact V25 visual references and full acceptance remain required.

@@ -4259,6 +4259,9 @@ The active Study Lab, persisted Research Results, and dashboard surfaces render 
 uPlot-backed components, with finite-value/dimension validation and no user-supplied UI code.
 The active run panel also supports rerunning the immutable study against its saved snapshot
 or latest canonical data through the versioned research API.
+The primary editor includes editable factory templates for positive/negative close streaks,
+moving-average participation, and relative-strength history; changing source returns the
+editor to Custom Python while retaining the single unified language.
 
 uPlot plus platform-owned plugins renders every axes-based numeric result. Vue/HTML
 renders tables, metric cards, and layout. Do not add a second chart library and do not

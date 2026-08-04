@@ -16357,3 +16357,13 @@
 - Focused Study Lab coverage `6 passed`; TypeScript passed. The prior full frontend `519`
   suite, production build, backend focused/full unit evidence, and Ruff remain green.
   Strict V25 visual approval and broad acceptance remain open.
+## 2026-08-04T15:45:00Z Study Lab factory-template checkpoint
+
+- Added editable factory-study templates to the primary Study Lab: positive and negative
+  close streaks, moving-average participation, and relative-strength history. Selecting a
+  template resets only draft source/name and stale run state; editing source switches back
+  to Custom Python. Existing Python Library lifecycle APIs remain the shared clone/version/
+  archive/import/export path.
+- Focused Study Lab coverage `7 passed`; TypeScript, production build, and diff checks passed.
+  Strict V25 visual approval and the broader security/performance/E2E acceptance matrix
+  remain open.

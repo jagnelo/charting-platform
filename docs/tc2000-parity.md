@@ -129,6 +129,11 @@ remains in progress.
 The active Study Lab run panel also exposes snapshot and latest-data reruns through the
 canonical research rerun API; queued responses return to the shared polling coordinator,
 while the immutable code version and run configuration remain unchanged.
+The primary editor now ships editable factory templates for consecutive positive closes,
+consecutive negative closes, moving-average participation, and relative-strength history.
+Selecting a template replaces only the draft source/name and clears stale validation/run
+state; editing the source switches the selector to Custom Python, preserving normal Python
+freedom without creating a second language.
 Study Lab exposes a serializable comma-separated universe control; when populated it sends
 canonical symbol selectors as `run_config.symbols` and displays the selected universe in
 the run summary instead of silently using only the active symbol.
