@@ -1,5 +1,19 @@
 # Run Report
 
+## 2026-08-04T23:20:00Z Browser diagnostics and geometry hardening
+
+- Expected unavailable-data 404s are now classified after a short response-settling
+  window in every browser flow, and filtered from teardown attachments; genuine missing
+  assets/routes remain failures. The complete authenticated Chromium suite passed `27/27`
+  in `57.1s`.
+- Visual capture now waits for a serializable saved layout and asserts that tool-window
+  title/actions and chart drawing-toolbar/surface rectangles do not overlap. The direct
+  1920×1080 visual probe passed these checks before correctly failing screenshot comparison
+  against the unapproved/stale local snapshot; the strict manifest gate remains blocked by
+  exact-build `required_missing` references.
+- Full frontend Vitest remains `550` tests across `84` files; TypeScript and production
+  build passed (`459` modules).
+
 ## 2026-08-04T22:10:00Z Performance and cleanup recheck
 
 - The real-browser uPlot guard rendered `100,000` points and completed repeated zoom/pan

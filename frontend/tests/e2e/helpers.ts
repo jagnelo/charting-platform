@@ -26,6 +26,7 @@ async function ensureUserExists(
 }
 
 class BrowserDiagnostics {
+  private page: Page | null = null
   consoleErrors: string[] = []
   consoleWarnings: string[] = []
   pageErrors: string[] = []
@@ -44,6 +45,7 @@ class BrowserDiagnostics {
   expectedWorkspaceConflictResponses = 0
 
   attach(page: Page) {
+    this.page = page
     page.on('console', (msg) => {
       const text = msg.text()
       if (msg.type() === 'error') this.consoleErrors.push(text)
@@ -73,15 +75,17 @@ class BrowserDiagnostics {
   }
 
   async record(testInfo: TestInfo) {
+    await this.page?.waitForTimeout(250)
+    const unexpectedConsoleErrors = this.filterExpectedConsoleErrors()
     if (this.consoleWarnings.length) {
       await testInfo.attach('browser-console-warnings.txt', {
         body: this.consoleWarnings.join('\n'),
         contentType: 'text/plain',
       })
     }
-    if (this.consoleErrors.length || this.pageErrors.length || this.requestFailures.length) {
+    if (unexpectedConsoleErrors.length || this.pageErrors.length || this.requestFailures.length) {
       const body = [
-        this.consoleErrors.length ? `Console errors:\n${this.consoleErrors.join('\n')}` : '',
+        unexpectedConsoleErrors.length ? `Console errors:\n${unexpectedConsoleErrors.join('\n')}` : '',
         this.pageErrors.length ? `Page errors:\n${this.pageErrors.join('\n')}` : '',
         this.requestFailures.length ? `Request failures:\n${this.requestFailures.join('\n')}` : '',
       ].filter(Boolean).join('\n\n')
@@ -92,21 +96,12 @@ class BrowserDiagnostics {
     }
   }
 
-  expectNoCriticalIssues() {
-    let expectedUnavailableApi404s = this.expectedUnavailableApi404s
-    const unexpectedConsoleErrors = this.consoleErrors.filter(error => {
-      if (error === 'Failed to load resource: the server responded with a status of 404 (Not Found)'
-        && expectedUnavailableApi404s > 0) {
-        expectedUnavailableApi404s -= 1
-        return false
-      }
-      if (error === 'Failed to load resource: the server responded with a status of 409 (Conflict)'
-        && this.expectedWorkspaceConflictResponses > 0) {
-        this.expectedWorkspaceConflictResponses -= 1
-        return false
-      }
-      return true
-    })
+  async expectNoCriticalIssues() {
+    // Expected unavailable-data responses can finish just after the first
+    // workstation canvas becomes visible. Let the response classifier observe
+    // those responses before asserting that no unhandled browser errors exist.
+    await this.page?.waitForTimeout(250)
+    const unexpectedConsoleErrors = this.filterExpectedConsoleErrors()
     expect(
       {
         consoleErrors: unexpectedConsoleErrors,
@@ -118,6 +113,24 @@ class BrowserDiagnostics {
       consoleErrors: [],
       pageErrors: [],
       requestFailures: [],
+    })
+  }
+
+  private filterExpectedConsoleErrors() {
+    let expectedUnavailableApi404s = this.expectedUnavailableApi404s
+    let expectedWorkspaceConflictResponses = this.expectedWorkspaceConflictResponses
+    return this.consoleErrors.filter(error => {
+      if (error === 'Failed to load resource: the server responded with a status of 404 (Not Found)'
+        && expectedUnavailableApi404s > 0) {
+        expectedUnavailableApi404s -= 1
+        return false
+      }
+      if (error === 'Failed to load resource: the server responded with a status of 409 (Conflict)'
+        && expectedWorkspaceConflictResponses > 0) {
+        expectedWorkspaceConflictResponses -= 1
+        return false
+      }
+      return true
     })
   }
 }

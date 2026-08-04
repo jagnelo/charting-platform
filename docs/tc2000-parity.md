@@ -39,6 +39,12 @@ boundary is now enforced for Market Gauge, retained EasyScan results, Research R
 condition columns, and indicator batches; focused workstation coverage is 61 tests and the
 full frontend suite is 550 tests across 84 files.
 
+The browser acceptance harness now waits for expected unavailable-data responses before
+diagnostic assertions and excludes only those documented API 404/409 responses from teardown
+attachments. The visual probe also asserts that core tool headers and chart toolbar/surface
+rectangles do not overlap; the current 1920×1080 probe passes those geometry checks before
+the exact-build screenshot gate rejects its unapproved baseline.
+
 This is functional/runtime evidence only. The strict visual gate still rejects the required
 `application-shell-default/default` state because the manifest remains `required_missing`;
 discovery-only online media cannot be promoted without exact-build continuity, measurements,
