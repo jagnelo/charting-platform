@@ -19,6 +19,8 @@ def test_backend_env_example_keeps_yfinance_out_of_new_workstation_chains():
     lines = Path(__file__).parents[3].joinpath(".env.example").read_text().splitlines()
     seed_line = next(line for line in lines if line.startswith("PROVIDER_CHAIN_SEEDS="))
     seeds = json.loads(seed_line.split("=", 1)[1])
+    identifier_line = next(line for line in lines if line.startswith("IDENTIFIER_PROVIDER_PRIORITY="))
+    assert json.loads(identifier_line.split("=", 1)[1]) == ["openfigi"]
     assert seeds["option_chain"] == ["yfinance"]
     assert all(
         "yfinance" not in providers
