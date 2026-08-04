@@ -1,5 +1,25 @@
 # Active Handoff
 
+## Continuation update — 2026-08-05T19:10:00Z Deep top-down and workstation-layout acceptance
+
+- Added an opt-in `E2E_SEED_MARKET_DATA` fixture: 520 deterministic adjusted D1 bars for
+  benchmark/sector/proxy/constituent paths, point-in-time XLK/SMH/SOXX holdings, and explicit
+  Semiconductors/Systems Software classifications. The local database contains 12,480
+  `e2e_reference` bars and one holdings snapshot for each seeded proxy ETF.
+- Hardened linked selection and persistence races: per-surface analysis generations, same-ETF
+  holdings preservation, serialized workspace snapshot writes, immediate and derived auto-ratio
+  updates, and mounted RatioUPlot reloads on symbol/benchmark/timeframe changes.
+- Fixed the factory Golden Layout contract by using v2 `size` keys, importing the required base
+  stylesheet, and resizing from a `ResizeObserver`; factory columns and menu-opened Alerts now
+  render visibly. Added per-test isolated E2E workspaces and documented handled 409 snapshot
+  conflicts in browser diagnostics.
+- Validation: frontend Vitest `544` across `84` files, TypeScript, production build, backend Ruff,
+  focused factory-reset integration `1 passed/22 deselected`, and complete Chromium
+  `flows.spec.ts` `24/24` passed. Deep F8e passed on its own and reaches XLK → Semiconductors →
+  SMH → NVDA with an NVDA/sector-or-market ratio label.
+- Strict pinned-build V25 visual approval remains `required_missing`; provider-live, adversarial
+  sandbox/resource, multi-monitor, performance, migration, and complete parity gates remain open.
+
 ## Continuation update — 2026-08-05T01:00:00Z Top-down technical race guard
 
 - Added generation checks to `useWorkspaceStore.loadTechnical`, matching the existing

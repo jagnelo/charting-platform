@@ -72,7 +72,9 @@ class TestWorkspaces:
         assert response.status_code == 200
         reset = response.json()
         assert reset["revision"] == workspace["revision"] + 1
-        assert reset["settings"]["factory_version"] == 7
+        assert reset["settings"]["factory_version"] == 8
+        top_down = next(tab for tab in reset["tabs"] if tab["stable_key"] == "us-top-down")
+        assert [column["size"] for column in top_down["layout_config"]["root"]["content"]] == [22, 23, 55]
         four_timeframe = next(tab for tab in reset["tabs"] if tab["stable_key"] == "four-timeframe")
         assert {
             window["configuration"]["timeframe"] for window in four_timeframe["windows"]

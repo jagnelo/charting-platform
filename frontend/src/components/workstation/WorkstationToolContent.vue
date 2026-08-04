@@ -174,7 +174,7 @@
       />
     </div>
     <VirtualWatchlistTool
-      v-else-if="tool.tool_type === 'watchlist'"
+      v-else-if="tool.tool_type === 'watchlist' && !isIndustryTool"
       :label="tool.title || 'WatchList'"
       :timeframe="activeTimeframe"
       :rows="factoryWatchlistRows"
@@ -242,7 +242,7 @@
         <div v-else class="tool-state">Select a canonical instrument.</div>
       </div>
     </div>
-    <div v-else-if="tool.instance_key === 'industry-list' && industries.length" class="industry-list">
+    <div v-else-if="isIndustryTool && industries.length" class="industry-list">
       <button
         v-for="item in industries"
         :key="item.industry"
@@ -302,7 +302,7 @@
       </div>
       <small>{{ selectedETF }} holdings · point-in-time classification</small>
     </div>
-    <div v-else-if="tool.instance_key === 'industry-list'" class="tool-state">
+    <div v-else-if="isIndustryTool" class="tool-state">
       No mapped ETF proxy for {{ selectedETF || activeSymbol }}. Curated industry mappings require holdings and classification evidence.
     </div>
     <VirtualWatchlistTool
@@ -426,6 +426,7 @@ import { ensureKnownInstrumentSymbol } from '@/lib/instruments'
 import { INDICATOR_BY_TYPE } from '@/lib/indicators/catalog'
 import { buildFlaggedWatchlistRows } from '@/lib/workstation/flagged-watchlist'
 import { buildComboWatchlistRows, type ComboListDefinition } from '@/lib/workstation/combo-lists'
+import { autoRatioExpression } from '@/lib/workstation/ratioExpression'
 import { indicatorColumnFromPlot, type ChartPlotDragPayload, type TechnicalConditionDragPayload } from '@/lib/workstation/plotDrag'
 import { CHART_BAR_TYPES, type ChartBarType, type ChartComparisonSeries, type ChartPythonSeries, type IndicatorConfig, type OHLCVBar, type Timeframe } from '@/types'
 
@@ -765,15 +766,36 @@ const activeSymbol = computed(() => workspaceStore.symbolForLinkGroup(
   props.tool.link_group,
   typeof props.tool.configuration.symbol === 'string' ? props.tool.configuration.symbol : null,
 ))
+// Older persisted workspaces used the shorter `industries` instance key. Keep
+// that serialized state behavior-compatible while new factory layouts use the
+// explicit `industry-list` key.
+const isIndustryTool = computed(() => {
+  const instanceKey = props.tool.instance_key.toLowerCase()
+  const title = (props.tool.title ?? '').toLowerCase()
+  const marketGroup = typeof props.tool.configuration.market_group === 'string'
+    ? props.tool.configuration.market_group.toLowerCase()
+    : ''
+  return instanceKey === 'industry-list'
+    || instanceKey === 'industries'
+    || title.includes('industr')
+    || marketGroup === 'selected-sector-industries'
+})
 const activeTimeframe = computed(() => workspaceStore.timeframeForLinkGroup(
   timeframeLinkGroup.value,
   typeof props.tool.configuration.timeframe === 'string' ? props.tool.configuration.timeframe : null,
 ))
 const timeframeLinkGroup = computed(() => workspaceStore.timeframeLinkGroupForTool(props.tool))
 const ratioExpression = computed(() => {
-  const expression = typeof props.tool.configuration.expression === 'string'
+  const configuredExpression = typeof props.tool.configuration.expression === 'string'
     ? props.tool.configuration.expression.trim().toUpperCase()
     : ''
+  const expression = props.tool.configuration.auto_ratio === true
+    ? autoRatioExpression(
+      activeSymbol.value,
+      (workspaceStore.marketGroups['sp500-sectors']?.members ?? []).map(member => member.instrument.symbol),
+      workspaceStore.constituentETF,
+    )
+    : configuredExpression
   const match = expression.match(/^=([A-Z0-9.:-]+)\/([A-Z0-9.:-]+)$/)
   return match ? { numerator: match[1], denominator: match[2] } : null
 })
@@ -1230,7 +1252,7 @@ const factoryWatchlistRows = computed(() => {
   const factoryLayout = typeof props.tool.configuration.factory_layout === 'string' ? props.tool.configuration.factory_layout : ''
   if (props.factoryLayout === 'sector-by-year' || factoryLayout === 'sector-by-year' || title.includes('sector by year')) return sectorRows.value
   if (title.includes('sector')) return sectorRows.value
-  if (title.includes('industry')) return industryRows.value
+  if (title.includes('industry') || title.includes('industries')) return industryRows.value
   if (title.includes('component') || title.includes('constituent')) return constituentRows.value
   return benchmarkRows.value
 })
@@ -1239,7 +1261,7 @@ const factoryWatchlistColumns = computed<WatchlistColumn[]>(() => {
   const factoryLayout = typeof props.tool.configuration.factory_layout === 'string' ? props.tool.configuration.factory_layout : ''
   if (props.factoryLayout === 'sector-by-year' || factoryLayout === 'sector-by-year' || title.includes('sector by year')) return sectorByYearColumns.value
   if (title.includes('sector')) return sectorColumns
-  if (title.includes('industry')) return industryColumns
+  if (title.includes('industry') || title.includes('industries')) return industryColumns
   if (title.includes('component') || title.includes('constituent')) return constituentColumns
   return benchmarkColumns
 })

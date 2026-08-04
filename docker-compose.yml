@@ -71,6 +71,7 @@ services:
       REDIS_URL:         redis://redis:6379/0
       APP_ENV:           production
       E2E_SEED_INSTRUMENTS: ${E2E_SEED_INSTRUMENTS:-false}
+      E2E_SEED_MARKET_DATA: ${E2E_SEED_MARKET_DATA:-false}
       APP_HOST:          "0.0.0.0"
       APP_PORT:          "8000"
       # Secrets / deployment-specific — set these in a root-level .env file

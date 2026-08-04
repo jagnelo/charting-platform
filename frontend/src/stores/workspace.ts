@@ -331,6 +331,11 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   let channel: BroadcastChannel | null = null
   let leaderTimer: ReturnType<typeof setInterval> | null = null
   let snapshotTimer: ReturnType<typeof setTimeout> | null = null
+  let snapshotSavePromise: Promise<void> | null = null
+  // A PUT may resolve after a newer local edit has already been made.  Never let
+  // that older response replace the live reactive workspace with stale layout or
+  // tool configuration.
+  let snapshotGeneration = 0
   let marketRefreshPromise: Promise<void> | null = null
   const analysisGenerations = new Map<string, number>()
   const windowId = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
@@ -674,17 +679,23 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   }
 
   async function loadMarketGroup(stableKey: string) {
+    const requestKey = `top-down:market-group:${stableKey}`
+    const generation = beginAnalysisRequest(requestKey)
     try {
       const group = await api.get<MarketGroupState>(`/market-groups/${encodeURIComponent(stableKey)}`)
+      if (!isCurrentAnalysisRequest(requestKey, generation)) return null
       marketGroups.value = { ...marketGroups.value, [stableKey]: group }
       return group
     } catch (cause: any) {
+      if (!isCurrentAnalysisRequest(requestKey, generation)) return null
       error.value = cause?.message ?? `Unable to load ${stableKey}`
       return null
     }
   }
 
   async function loadGroupSnapshot(stableKey: string, benchmark?: string, options: { timeframe?: string; adjusted?: boolean; as_of?: string; new_high_lookback?: number; near_threshold?: number } = {}) {
+    const requestKey = `top-down:group-snapshot:${stableKey}`
+    const generation = beginAnalysisRequest(requestKey)
     try {
       const params = {
         ...(benchmark ? { benchmark } : {}),
@@ -693,15 +704,19 @@ export const useWorkspaceStore = defineStore('workspace', () => {
         ...(options.as_of ? { as_of: options.as_of } : {}),
       }
       const snapshot = await api.get<GroupSnapshotState>(`/analysis/groups/${encodeURIComponent(stableKey)}/snapshot`, params)
+      if (!isCurrentAnalysisRequest(requestKey, generation)) return null
       groupSnapshots.value = { ...groupSnapshots.value, [stableKey]: snapshot }
       return snapshot
     } catch (cause: any) {
+      if (!isCurrentAnalysisRequest(requestKey, generation)) return null
       error.value = cause?.message ?? `Unable to calculate ${stableKey}`
       return null
     }
   }
 
   async function loadBreadth(stableKey: string, options: { timeframe?: string; adjusted?: boolean; as_of?: string; new_high_lookback?: number; near_threshold?: number } = {}) {
+    const requestKey = `top-down:breadth:${stableKey}`
+    const generation = beginAnalysisRequest(requestKey)
     try {
       const params = {
         ...(options.timeframe ? { timeframe: options.timeframe } : {}),
@@ -713,15 +728,19 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       const snapshot = Object.keys(params).length
         ? await api.get<BreadthState>(`/analysis/groups/${encodeURIComponent(stableKey)}/breadth`, params)
         : await api.get<BreadthState>(`/analysis/groups/${encodeURIComponent(stableKey)}/breadth`)
+      if (!isCurrentAnalysisRequest(requestKey, generation)) return null
       breadth.value = { ...breadth.value, [stableKey]: snapshot }
       return snapshot
     } catch (cause: any) {
+      if (!isCurrentAnalysisRequest(requestKey, generation)) return null
       error.value = cause?.message ?? `Unable to calculate breadth for ${stableKey}`
       return null
     }
   }
 
   async function loadBreadthHistory(stableKey: string, options: { timeframe?: string; adjusted?: boolean; as_of?: string; new_high_lookback?: number; near_threshold?: number } = {}) {
+    const requestKey = `top-down:breadth-history:${stableKey}`
+    const generation = beginAnalysisRequest(requestKey)
     try {
       const params = {
         limit: 500,
@@ -732,9 +751,11 @@ export const useWorkspaceStore = defineStore('workspace', () => {
         ...(options.near_threshold ? { near_threshold: options.near_threshold } : {}),
       }
       const history = await api.get<BreadthHistoryState>(`/analysis/groups/${encodeURIComponent(stableKey)}/breadth/history`, params)
+      if (!isCurrentAnalysisRequest(requestKey, generation)) return null
       breadthHistory.value = { ...breadthHistory.value, [stableKey]: history }
       return history
     } catch (cause: any) {
+      if (!isCurrentAnalysisRequest(requestKey, generation)) return null
       error.value = cause?.message ?? `Unable to calculate historical breadth for ${stableKey}`
       return null
     }
@@ -783,9 +804,16 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       })
       if (!isCurrentAnalysisRequest(requestKey, generation)) return null
       etfHoldings.value = { ...etfHoldings.value, [normalized]: page }
+      const sameETF = constituentETF.value === normalized
       constituentETF.value = normalized
-      selectedIndustry.value = null
-      selectedIndustryProxy.value = null
+      // Repeated concurrent hydration for the same ETF is expected (initial
+      // shell load, linked-symbol watcher, and an explicit selection can all
+      // request it). It must not erase an industry/proxy selection the user has
+      // already made while those duplicate responses are arriving.
+      if (!sameETF) {
+        selectedIndustry.value = null
+        selectedIndustryProxy.value = null
+      }
       void loadETFConstituentSnapshot(normalized)
       return page
     } catch (cause: any) {
@@ -934,42 +962,61 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   }
 
   async function saveSnapshot() {
+    if (snapshotSavePromise) {
+      const waitingGeneration = snapshotGeneration
+      await snapshotSavePromise
+      if (workspace.value && snapshotGeneration !== waitingGeneration) return saveSnapshot()
+      return
+    }
     if (!workspace.value) return
     const current = workspace.value
-    try {
-      workspace.value = await api.put<WorkspaceState>(`/workspaces/${current.id}/snapshot`, snapshotPayload(current))
-      persistedWorkspace = cloneSerializable(workspace.value)
-      announceWorkspaceSnapshot(workspace.value)
-    } catch (cause: any) {
-      if (String(cause?.message ?? '').includes(' 409:')) {
-        try {
-          const latest = await api.get<WorkspaceState>(`/workspaces/${current.id}`)
-          const merged = mergeDisjointWindowChanges(persistedWorkspace, current, latest)
-          if (merged) {
-            const saved = await api.put<WorkspaceState>(`/workspaces/${latest.id}/snapshot`, snapshotPayload(merged))
-            workspace.value = saved
-            persistedWorkspace = cloneSerializable(saved)
-            announceWorkspaceSnapshot(saved)
-            error.value = null
+    const generation = snapshotGeneration
+    const persist = (async () => {
+      try {
+        const saved = await api.put<WorkspaceState>(`/workspaces/${current.id}/snapshot`, snapshotPayload(current))
+        if (generation !== snapshotGeneration) return
+        workspace.value = saved
+        persistedWorkspace = cloneSerializable(workspace.value)
+        announceWorkspaceSnapshot(workspace.value)
+      } catch (cause: any) {
+        if (String(cause?.message ?? '').includes(' 409:')) {
+          try {
+            const latest = await api.get<WorkspaceState>(`/workspaces/${current.id}`)
+            const merged = mergeDisjointWindowChanges(persistedWorkspace, current, latest)
+            if (merged) {
+              const saved = await api.put<WorkspaceState>(`/workspaces/${latest.id}/snapshot`, snapshotPayload(merged))
+              if (generation !== snapshotGeneration) return
+              workspace.value = saved
+              persistedWorkspace = cloneSerializable(saved)
+              announceWorkspaceSnapshot(saved)
+              error.value = null
+              return
+            }
+            const recovery = await preserveConflictRecovery(current)
+            workspace.value = latest
+            persistedWorkspace = cloneSerializable(latest)
+            activeTabKey.value = latest.tabs[0]?.stable_key ?? 'us-top-down'
+            error.value = `Workspace changed elsewhere. Your local changes were preserved as '${recovery.name}'.`
+            return
+          } catch (recoveryCause: any) {
+            error.value = `Workspace changed elsewhere and recovery failed: ${recoveryCause?.message ?? 'unknown error'}`
             return
           }
-          const recovery = await preserveConflictRecovery(current)
-          workspace.value = latest
-          persistedWorkspace = cloneSerializable(latest)
-          activeTabKey.value = latest.tabs[0]?.stable_key ?? 'us-top-down'
-          error.value = `Workspace changed elsewhere. Your local changes were preserved as '${recovery.name}'.`
-          return
-        } catch (recoveryCause: any) {
-          error.value = `Workspace changed elsewhere and recovery failed: ${recoveryCause?.message ?? 'unknown error'}`
-          return
         }
+        error.value = cause?.message ?? 'Unable to save workspace snapshot'
       }
-      error.value = cause?.message ?? 'Unable to save workspace snapshot'
+    })()
+    snapshotSavePromise = persist
+    try {
+      await persist
+    } finally {
+      if (snapshotSavePromise === persist) snapshotSavePromise = null
     }
   }
 
   function scheduleSnapshot() {
     if (snapshotTimer) clearTimeout(snapshotTimer)
+    snapshotGeneration += 1
     snapshotTimer = setTimeout(() => { void saveSnapshot() }, 350)
   }
 

@@ -1,5 +1,19 @@
 # Run Report
 
+## 2026-08-05T19:10:00Z Top-down fixture, ratio, and Golden Layout acceptance
+
+- Added the opt-in deterministic market fixture (`E2E_SEED_MARKET_DATA=true`) with 12,480
+  `e2e_reference` bars, 520 bars per seeded symbol, point-in-time XLK/SMH/SOXX holdings, and
+  explicit industry classifications.
+- Fixed stale linked analysis, same-ETF drilldown clearing, workspace snapshot races, mounted
+  ratio-series refreshes, derived auto-ratio labels, Golden Layout v2 sizing/base CSS/resize,
+  and F11 readiness. E2E accounts are isolated per test; handled workspace 409 responses remain
+  explicitly classified rather than hidden.
+- Passed: frontend Vitest `544`/`84`, TypeScript, production build, backend Ruff, focused
+  factory-reset integration `1 passed/22 deselected`, and full Chromium `24/24` in `45.0s`.
+- Strict pinned-build visual approval remains `required_missing`; this slice is functional
+  acceptance evidence, not a claim of full plan completion.
+
 ## 2026-08-04T11:38:00Z Study Lab factory coverage
 
 - Expanded editable factory studies to cover negative streaks, forward-return distributions,

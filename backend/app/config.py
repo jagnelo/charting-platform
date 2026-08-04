@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     APP_ENV: str = "development"
     LOG_LEVEL: str = "INFO"
     E2E_SEED_INSTRUMENTS: bool = False
+    E2E_SEED_MARKET_DATA: bool = False
     RESEARCH_JOB_DIR: str = "/tmp/charting-research/jobs"
     RESEARCH_RESULT_DIR: str = "/tmp/charting-research/results"
 

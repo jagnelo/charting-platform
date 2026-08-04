@@ -24,7 +24,7 @@ from app.schemas.workstation import (
 )
 
 router = APIRouter(prefix="/workspaces", tags=["workspaces"])
-FACTORY_WORKSPACE_VERSION = 7
+FACTORY_WORKSPACE_VERSION = 8
 
 
 class ConditionAssetWrite(BaseModel):
@@ -66,28 +66,24 @@ def _factory_layout(windows: list[tuple[str, str, str, dict]], factory_id: str) 
                 "content": [
                     {
                         "type": "column",
-                        "width": 22,
+                        "size": 22,
                         "content": [component(windows[0]), component(windows[3])],
                     },
                     {
                         "type": "column",
-                        "width": 23,
-                        "content": [component(windows[1]), component(windows[4])],
+                        "size": 23,
+                        "content": [component(windows[1]), component(windows[2])],
                     },
                     {
                         "type": "column",
-                        "width": 55,
+                        "size": 55,
                         "content": [
-                            component(windows[2]),
+                            component(windows[4]),
                             component(windows[5]),
-                            component(windows[6]),
-                            component(windows[7]),
-                            component(windows[8]),
-                            component(windows[9]),
-                            component(windows[10]),
-                            component(windows[11]),
-                            component(windows[12]),
-                            component(windows[13]),
+                            {
+                                "type": "stack",
+                                "content": [component(item) for item in windows[6:]],
+                            },
                         ],
                     },
                 ],
@@ -100,8 +96,8 @@ def _factory_layout(windows: list[tuple[str, str, str, dict]], factory_id: str) 
             "root": {
                 "type": "row",
                 "content": [
-                    {"type": "column", "width": 50, "content": [component(windows[0]), component(windows[1])]},
-                    {"type": "column", "width": 50, "content": [component(windows[2]), component(windows[3])]},
+                    {"type": "column", "size": 50, "content": [component(windows[0]), component(windows[1])]},
+                    {"type": "column", "size": 50, "content": [component(windows[2]), component(windows[3])]},
                 ],
             },
         }

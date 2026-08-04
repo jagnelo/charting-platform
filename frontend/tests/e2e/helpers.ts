@@ -38,6 +38,10 @@ class BrowserDiagnostics {
    * remain fatal in browser acceptance.
    */
   expectedUnavailableApi404s = 0
+  // Workspace snapshots deliberately return 409 for stale revisions so the
+  // client can exercise its merge/recovery path. The response is handled by the
+  // store; Chrome still reports the HTTP conflict as a console error.
+  expectedWorkspaceConflictResponses = 0
 
   attach(page: Page) {
     page.on('console', (msg) => {
@@ -56,6 +60,10 @@ class BrowserDiagnostics {
       this.requestFailures.push(`${req.method()} ${req.url()} :: ${errorText}`)
     })
     page.on('response', (response) => {
+      if (response.status() === 409 && /^\/api\/v1\/workspaces\/\d+\/snapshot$/.test(new URL(response.url()).pathname)) {
+        this.expectedWorkspaceConflictResponses += 1
+        return
+      }
       if (response.status() !== 404) return
       const path = new URL(response.url()).pathname
       if (/^\/api\/v1\/(?:analysis\/(?:relative-strength|groups\/[^/]+\/(?:snapshot|relative-rotation)|instruments\/[^/]+\/technical)|coverage\/instruments\/[^/]+|etf-holdings\/[^/]+\/holdings|market-groups\/etf\/[^/]+\/industries|instruments\/[^/]+|ohlcv(?:\/local)?\/[^/]+\/[^/]+)$/.test(path)) {
@@ -90,6 +98,11 @@ class BrowserDiagnostics {
       if (error === 'Failed to load resource: the server responded with a status of 404 (Not Found)'
         && expectedUnavailableApi404s > 0) {
         expectedUnavailableApi404s -= 1
+        return false
+      }
+      if (error === 'Failed to load resource: the server responded with a status of 409 (Conflict)'
+        && this.expectedWorkspaceConflictResponses > 0) {
+        this.expectedWorkspaceConflictResponses -= 1
         return false
       }
       return true
@@ -251,8 +264,12 @@ export const test = base.extend<Fixtures>({
 
   loggedIn: async ({ page, request }, use, testInfo) => {
     const workerSuffix = testInfo.workerIndex ?? 0
-    const username = `${USER}_${workerSuffix}`
-    const email = EMAIL.replace('@', `+${workerSuffix}@`)
+    // Keep each flow's workspace isolated. A single shared account lets a prior
+    // test's debounced snapshot race the next test and turns an otherwise handled
+    // revision conflict into noisy browser diagnostics.
+    const testSlug = testInfo.title.replace(/[^a-z0-9]+/gi, '_').slice(0, 12)
+    const username = `${USER}_${workerSuffix}_${testSlug}`
+    const email = EMAIL.replace('@', `+${workerSuffix}-${testSlug}@`)
     const lp = new LoginPage(page)
     await ensureUserExists(request, username, email, PASS)
     await lp.loginAs(username, PASS)

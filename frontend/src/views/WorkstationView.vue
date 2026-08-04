@@ -167,6 +167,10 @@ const searchIndex = ref(-1)
 let searchTimer: ReturnType<typeof setTimeout> | null = null
 let searchRequest = 0
 let suppressNextSearch = false
+// Initial route loading and fast list traversal can overlap. The latest symbol
+// intent wins so a late initial SPY request cannot restore an older selection.
+let symbolSelectionGeneration = 0
+let drilldownSelectionGeneration = 0
 const preserveDrilldownSymbol = ref<string | null>(null)
 const openableTools = OPENABLE_WORKSTATION_TOOLS
 const documentVisible = ref(typeof document === 'undefined' || document.visibilityState === 'visible')
@@ -237,6 +241,10 @@ const goldenLayoutConfig = computed(() => {
 async function selectSymbol(raw: string, timestamp?: string) {
   const requested = raw.trim()
   if (!requested) return
+  const generation = ++symbolSelectionGeneration
+  // A normal symbol selection supersedes any still-running proxy drill-down
+  // handler that was started by an earlier row click.
+  drilldownSelectionGeneration += 1
   suppressNextSearch = true
   searchResults.value = []
   searchIndex.value = -1
@@ -244,16 +252,22 @@ async function selectSymbol(raw: string, timestamp?: string) {
   try {
     symbol = await ensureKnownInstrumentSymbol(requested, 'Workstation symbol')
   } catch (cause: any) {
+    if (generation !== symbolSelectionGeneration) return
     workspaceStore.error = cause?.message ?? 'Unable to resolve symbol'
     return
   }
+  if (generation !== symbolSelectionGeneration) return
   symbolDraft.value = symbol
   // Capture the drill-down ETF before loading the newly selected symbol. A stock
   // selection from a constituent list may itself have no holdings endpoint, but
   // its relevant ratio denominator is still the list's active ETF.
   const comparisonETF = workspaceStore.constituentETF
   workspaceStore.publishSymbol({ symbol, timestamp, group: 'blue', sourceWindowKey: 'workstation' })
-  await loadSymbolData(symbol, comparisonETF, true)
+  // Update linked ratio state at publish time. Data hydration can take much
+  // longer than the user's next click and must not delay the visible target.
+  updateAutoRatioExpression(symbol, comparisonETF)
+  await loadSymbolData(symbol, comparisonETF, false)
+  if (generation !== symbolSelectionGeneration) return
 }
 
 async function loadSymbolData(symbol: string, comparisonETF = workspaceStore.constituentETF, updateRatio = true) {
@@ -343,7 +357,9 @@ async function signOut() {
 }
 
 async function selectIndustryProxy(symbol: string) {
+  const generation = ++drilldownSelectionGeneration
   const normalized = await ensureKnownInstrumentSymbol(symbol, 'Industry ETF proxy')
+  if (generation !== drilldownSelectionGeneration) return
   const comparisonETF = workspaceStore.constituentETF
   workspaceStore.selectIndustryProxy(normalized)
   symbolDraft.value = normalized
@@ -353,11 +369,11 @@ async function selectIndustryProxy(symbol: string) {
   // the sector holdings tree with the proxy's own holdings.
   preserveDrilldownSymbol.value = normalized
   workspaceStore.publishSymbol({ symbol: normalized, group: 'blue', sourceWindowKey: 'workstation' })
+  updateAutoRatioExpression(normalized, comparisonETF)
   await Promise.all([
     chartStore.loadBars(normalized, chartStore.timeframe, chartStore.barType, true),
     workspaceStore.loadTechnical(normalized),
   ])
-  updateAutoRatioExpression(normalized, comparisonETF)
 }
 
 function openTool(tool: OpenableToolDefinition) {
@@ -584,6 +600,10 @@ function handleKeydown(event: KeyboardEvent) {
 
 watch(activeSymbol, symbol => {
   if (!symbol) return
+  // Linked row selections can arrive through the workspace bus before the shell's
+  // async symbol handler resumes. Keep the auto-ratio tool tied to the newest
+  // published symbol at this boundary as well as in the explicit selection path.
+  updateAutoRatioExpression(symbol)
   // Selections made by linked watchlists, pop-outs, or another browser window
   // publish through the workspace bus rather than through the shell input.
   // Keep the active-symbol entry authoritative for those paths too, while

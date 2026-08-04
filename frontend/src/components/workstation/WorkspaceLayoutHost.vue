@@ -5,6 +5,7 @@
 <script setup lang="ts">
 import { getCurrentInstance, onBeforeUnmount, onMounted, ref, render, watch, type VNode } from 'vue'
 import { GoldenLayout, type LayoutConfig } from 'golden-layout'
+import '../../../node_modules/golden-layout/dist/css/goldenlayout-base.css'
 import { normaliseGoldenLayoutConfig } from '@/lib/workstation/layout'
 
 interface DockToolState {
@@ -26,6 +27,7 @@ let goldenLayout: GoldenLayout | null = null
 let suppressChange = false
 let lastLayoutFingerprint: string | null = null
 const mountedToolRoots: HTMLElement[] = []
+let resizeObserver: ResizeObserver | null = null
 
 function layoutFingerprint(layout: LayoutConfig) {
   return JSON.stringify(normaliseGoldenLayoutConfig(layout))
@@ -77,6 +79,9 @@ function install(layout: LayoutConfig) {
   suppressChange = true
   goldenLayout.loadLayout(normalised)
   suppressChange = false
+  const width = host.value.clientWidth
+  const height = host.value.clientHeight
+  if (width > 0 && height > 0) goldenLayout.setSize(width, height)
 }
 
 function extractToolKeys(value: unknown): string[] {
@@ -93,10 +98,24 @@ function extractToolKeys(value: unknown): string[] {
 watch(() => props.layout, layout => {
   if (layoutFingerprint(layout) !== lastLayoutFingerprint) install(layout)
 })
-onMounted(() => install(props.layout))
+onMounted(() => {
+  install(props.layout)
+  if (host.value) {
+    resizeObserver = new ResizeObserver(entries => {
+      const entry = entries[0]
+      if (!entry || !goldenLayout) return
+      const width = Math.round(entry.contentRect.width)
+      const height = Math.round(entry.contentRect.height)
+      if (width > 0 && height > 0) goldenLayout.setSize(width, height)
+    })
+    resizeObserver.observe(host.value)
+  }
+})
 onBeforeUnmount(() => {
   clearMountedTools()
   goldenLayout?.destroy()
+  resizeObserver?.disconnect()
+  resizeObserver = null
 })
 
 defineExpose({

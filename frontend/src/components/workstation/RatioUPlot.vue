@@ -87,6 +87,14 @@ watch(() => props.asOf, value => {
   asOfDraft.value = value ? value.slice(0, 10) : ''
 })
 
+// The ratio tool stays mounted while linked symbols and timeframes change. Reload
+// its aligned series when those inputs change; otherwise the legend can move to the
+// new numerator while the plotted/table data remains from the previous ratio.
+watch(
+  () => [props.symbol, props.benchmarks.join(','), props.timeframe],
+  () => void load(),
+)
+
 function seriesData(): uPlot.AlignedData {
   const timestamps = [...new Set(series.value.flatMap(item => item.points.map(point => point.timestamp)))].sort()
   return [timestamps.map(timestamp => Math.floor(new Date(timestamp).getTime() / 1000)), ...series.value.map(item => {

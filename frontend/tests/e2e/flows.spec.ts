@@ -195,12 +195,43 @@ test.describe('TC2000 workstation', () => {
     await expect(sectorList).toBeVisible({ timeout: 10_000 })
     await expect(sectorList.getByRole('button', { name: /XLK/ }).first()).toBeVisible()
 
-    // Identity-only E2E fixtures deliberately do not fabricate bars or holdings;
-    // selection must still publish the canonical ETF and retain the workstation
-    // while data-dependent tools report their honest unavailable state.
+    // The opt-in deterministic market fixture may hydrate the data-dependent tools;
+    // this assertion remains intentionally tolerant of honest unavailable/cached
+    // states so the route and linked-symbol contract is tested independently.
     await sectorList.getByRole('button', { name: /XLK/ }).first().click()
     await expect(page.getByRole('combobox', { name: 'Active symbol' })).toHaveValue('XLK')
     await expect(page.locator('.workstation__footer')).toContainText(/Unavailable|No local observations|cached|Fetching/i)
+    browserDiagnostics.expectNoCriticalIssues()
+  })
+
+  test('F8e — deep top-down drilldown reaches industry proxies and constituents', async ({ page, browserDiagnostics }) => {
+    await page.goto('/chart')
+    await expect(page.getByRole('region', { name: 'Major US benchmarks' })).toBeVisible({ timeout: 10_000 })
+    const sectorList = page.getByRole('region', { name: 'Relative to SPY' })
+    await expect(sectorList.getByRole('button', { name: /XLK/ }).first()).toBeVisible({ timeout: 10_000 })
+
+    await sectorList.getByRole('button', { name: /XLK/ }).first().click()
+    await expect(page.getByRole('combobox', { name: 'Active symbol' })).toHaveValue('XLK')
+    const industries = page.locator('.industry-list')
+    await expect(industries).toBeVisible({ timeout: 15_000 })
+    const semiconductors = industries.locator('.industry-list__row').filter({ hasText: 'Semiconductors' })
+    await expect(semiconductors).toBeVisible()
+    await semiconductors.click()
+
+    const proxies = page.getByRole('region', { name: 'Verified proxy rankings' })
+    await expect(proxies).toBeVisible({ timeout: 15_000 })
+    const smh = proxies.locator('.watchlist__row').filter({ hasText: 'SMH' })
+    await expect(smh).toBeVisible()
+    await smh.click()
+    await expect(page.getByRole('combobox', { name: 'Active symbol' })).toHaveValue('SMH')
+
+    const constituents = page.getByRole('region', { name: 'Constituents' }).filter({ has: page.locator('.watchlist__row') }).last()
+    await expect(constituents).toBeVisible({ timeout: 15_000 })
+    const nvda = constituents.locator('.watchlist__row').filter({ hasText: 'NVDA' })
+    await expect(nvda).toBeVisible()
+    await nvda.click()
+    await expect(page.getByRole('combobox', { name: 'Active symbol' })).toHaveValue('NVDA')
+    await expect(page.locator('.tool-window').filter({ hasText: /NVDA\/(?:SMH|XLK|SPY)/ }).first()).toBeVisible({ timeout: 15_000 })
     browserDiagnostics.expectNoCriticalIssues()
   })
 
@@ -223,6 +254,8 @@ test.describe('Alerts', () => {
 
   test('F11 — open active-symbol alerts from the workstation menu', async ({ page, browserDiagnostics }) => {
     await page.goto('/chart')
+    await expect(page.locator('.workspace-layout-host')).toBeVisible({ timeout: 10_000 })
+    await expect(page.locator('.tool-window').first()).toBeVisible({ timeout: 10_000 })
     await page.getByRole('button', { name: 'Alerts' }).click()
     await expect(page.locator('.tool-window').filter({ hasText: 'Alerts' }).last()).toBeVisible()
     browserDiagnostics.expectNoCriticalIssues()

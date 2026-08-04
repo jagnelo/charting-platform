@@ -19,11 +19,21 @@ the source reference is required before visual acceptance; it is not an approval
 No row can change to `Complete` until its full functional and visual acceptance evidence
 is recorded in the referenced test/baseline system.
 
-The top-down technical-summary read now participates in the same generation guard as
-holdings, industries, constituent snapshots, and proxy rankings. A rapid linked-symbol
-change cannot let a late `/analysis/instruments/{symbol}/technical` response replace the
-new symbol's metrics or error state. The workspace-store regression covers the stale-SPY/
-current-XLK race; browser and full cross-window acceptance remain open.
+Top-down asynchronous reads now use per-surface generation guards across market groups,
+group snapshots, breadth/history, technical summaries, holdings, industries, constituent
+snapshots, and proxy rankings. A rapid linked-symbol or timeframe change cannot let a late
+response replace the current metrics, rows, or error state. Workspace-store regressions cover
+stale SPY/XLK and daily/weekly analysis races; browser and full cross-window acceptance remain
+open.
+
+The deterministic browser fixture now seeds 520 adjusted D1 business-day bars for the benchmark,
+sector, proxy, and constituent paths, point-in-time XLK/SMH/SOXX holdings, and explicit
+Semiconductors/Systems Software classifications. The rebuilt deep acceptance flow reaches
+XLK → Semiconductors → SMH → NVDA and verifies the linked ratio label follows the selected
+constituent. RatioUPlot reloads its aligned series when mounted-tool symbol, benchmark, or
+timeframe props change; auto-ratio rendering also derives from the current linked symbol while
+the persisted configuration catches up. This is functional evidence only; strict pinned-build
+visual approval remains controlled by the reference manifest.
 
 Current implementation evidence (not completion): the isolated Study Lab runner now
 supports a typed `histogram` artifact with deterministic numeric buckets, the factory

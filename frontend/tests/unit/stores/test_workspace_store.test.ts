@@ -65,6 +65,39 @@ describe('workspace store layout tabs', () => {
     expect(apiGet).toHaveBeenCalledWith('/analysis/groups/sp500-sectors/breadth/history', { limit: 500, timeframe: 'W1', adjusted: false })
   })
 
+  it('ignores late shared-analysis snapshots after a newer timeframe request', async () => {
+    const staleSnapshot = deferred<unknown>()
+    const staleBreadth = deferred<unknown>()
+    const staleHistory = deferred<unknown>()
+    apiGet.mockImplementation((path: string, params?: Record<string, unknown>) => {
+      if (path === '/analysis/groups/sp500-sectors/snapshot' && params?.timeframe === 'D1') return staleSnapshot.promise
+      if (path === '/analysis/groups/sp500-sectors/snapshot' && params?.timeframe === 'W1') return Promise.resolve({ group_key: 'sp500-sectors', timeframe: 'W1', rows: [] })
+      if (path === '/analysis/groups/sp500-sectors/breadth' && params?.timeframe === 'D1') return staleBreadth.promise
+      if (path === '/analysis/groups/sp500-sectors/breadth' && params?.timeframe === 'W1') return Promise.resolve({ group_key: 'sp500-sectors', timeframe: 'W1', evaluated_count: 11 })
+      if (path === '/analysis/groups/sp500-sectors/breadth/history' && params?.timeframe === 'D1') return staleHistory.promise
+      if (path === '/analysis/groups/sp500-sectors/breadth/history' && params?.timeframe === 'W1') return Promise.resolve({ group_key: 'sp500-sectors', timeframe: 'W1', points: [] })
+      return Promise.resolve({})
+    })
+    const store = useWorkspaceStore()
+
+    const oldSnapshot = store.loadGroupSnapshot('sp500-sectors', 'SPY', { timeframe: 'D1' })
+    const oldBreadth = store.loadBreadth('sp500-sectors', { timeframe: 'D1' })
+    const oldHistory = store.loadBreadthHistory('sp500-sectors', { timeframe: 'D1' })
+    await Promise.all([
+      store.loadGroupSnapshot('sp500-sectors', 'SPY', { timeframe: 'W1' }),
+      store.loadBreadth('sp500-sectors', { timeframe: 'W1' }),
+      store.loadBreadthHistory('sp500-sectors', { timeframe: 'W1' }),
+    ])
+    staleSnapshot.resolve({ group_key: 'sp500-sectors', timeframe: 'D1', rows: [{ symbol: 'stale' }] })
+    staleBreadth.resolve({ group_key: 'sp500-sectors', timeframe: 'D1', evaluated_count: 1 })
+    staleHistory.resolve({ group_key: 'sp500-sectors', timeframe: 'D1', points: [{ timestamp: 'stale' }] })
+    await Promise.all([oldSnapshot, oldBreadth, oldHistory])
+
+    expect(store.groupSnapshots['sp500-sectors']?.rows).toEqual([])
+    expect(store.breadth['sp500-sectors']?.timeframe).toBe('W1')
+    expect(store.breadthHistory['sp500-sectors']?.points).toEqual([])
+  })
+
   it('keeps the active ETF drill-down when an older holdings response arrives late', async () => {
     const stale = deferred<unknown>()
     apiGet.mockImplementation((path: string) => {
@@ -149,6 +182,32 @@ describe('workspace store layout tabs', () => {
 
     await new Promise(resolve => setTimeout(resolve, 400))
     expect(apiPut).toHaveBeenCalledWith('/workspaces/10/snapshot', expect.objectContaining({ base_revision: 4, tabs: expect.any(Array) }))
+  })
+
+  it('does not let an older snapshot response replace a newer local tool edit', async () => {
+    const oldResponse = deferred<any>()
+    const store = useWorkspaceStore()
+    store.workspace = {
+      id: 10, user_id: 3, name: 'US Top Down', is_default: true, position: 0, revision: 4, schema_version: 1, settings: {},
+      tabs: [{
+        id: 20, stable_key: 'us-top-down', name: 'US Top Down', position: 0, active_window_key: 'chart', layout_config: {},
+        windows: [{ id: 30, instance_key: 'chart', tool_type: 'chart', title: 'Chart', link_group: 'blue', configuration: { expression: '=SPY/RSP' }, style: {}, state_schema_version: 1, position: 0 }],
+      }],
+    }
+    apiPut.mockImplementationOnce(() => oldResponse.promise).mockImplementation(async (_path, payload) => ({
+      ...store.workspace,
+      revision: 5,
+      tabs: payload.tabs,
+    }))
+
+    store.scheduleSnapshot()
+    await vi.waitFor(() => expect(apiPut).toHaveBeenCalledTimes(1), { timeout: 1_000 })
+    store.workspace.tabs[0].windows[0].configuration = { expression: '=NVDA/XLK' }
+    store.scheduleSnapshot()
+    oldResponse.resolve({ ...store.workspace, revision: 5, tabs: [{ ...store.workspace.tabs[0], windows: [{ ...store.workspace.tabs[0].windows[0], configuration: { expression: '=SPY/RSP' } }] }] })
+
+    await vi.waitFor(() => expect(apiPut).toHaveBeenCalledTimes(2), { timeout: 1_500 })
+    expect(store.workspace.tabs[0].windows[0].configuration.expression).toBe('=NVDA/XLK')
   })
 
   it('persists a closed layout tool by removing only that serialized window', async () => {

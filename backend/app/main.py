@@ -38,7 +38,7 @@ from app.routers import (
     workspaces,
 )
 from app.services.alert_engine import run_alert_check
-from app.services.e2e_seed import seed_e2e_instruments
+from app.services.e2e_seed import seed_e2e_instruments, seed_e2e_market_data
 from app.services.provider_runtime import seed_provider_runtime
 from app.services.top_down_taxonomy import seed_top_down_taxonomy
 
@@ -56,6 +56,8 @@ async def lifespan(app: FastAPI):
         await seed_provider_runtime(db)
         if settings.E2E_SEED_INSTRUMENTS:
             await seed_e2e_instruments(db)
+        if settings.E2E_SEED_MARKET_DATA:
+            await seed_e2e_market_data(db)
         await seed_top_down_taxonomy(db)
         await db.commit()
 
