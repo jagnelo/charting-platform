@@ -2,6 +2,14 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-04T16:05:00Z Top-down industry-proxy activation
+
+- Industry ETF proxy selection now publishes the canonical proxy to linked charts,
+  loads bars/technicals, updates the ratio target, and retains sector/industry context.
+- Focused `test_workstation_popout_bindings.test.ts` passed `3`; TypeScript,
+  production build, and `git diff --check` passed. Visual approval and broad acceptance
+  remain open.
+
 ## 2026-08-04T14:32:00Z Backend and visual acceptance audit
 
 - Complete backend unit suite passed `901` tests with the repository Python 3.12

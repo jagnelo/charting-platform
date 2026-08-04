@@ -321,10 +321,21 @@ async function signOut() {
 }
 
 async function selectIndustryProxy(symbol: string) {
-  workspaceStore.selectIndustryProxy(symbol)
-  symbolDraft.value = symbol
-  preserveDrilldownSymbol.value = symbol
-  updateAutoRatioExpression(symbol)
+  const normalized = await ensureKnownInstrumentSymbol(symbol, 'Industry ETF proxy')
+  const comparisonETF = workspaceStore.constituentETF
+  workspaceStore.selectIndustryProxy(normalized)
+  symbolDraft.value = normalized
+  // A proxy is a drill-down target, not a new taxonomy root. Publish it to the
+  // linked charts and load its price/technicals while preserving the selected
+  // sector/industry context. The watcher uses this marker to avoid replacing
+  // the sector holdings tree with the proxy's own holdings.
+  preserveDrilldownSymbol.value = normalized
+  workspaceStore.publishSymbol({ symbol: normalized, group: 'blue', sourceWindowKey: 'workstation' })
+  await Promise.all([
+    chartStore.loadBars(normalized, chartStore.timeframe, chartStore.barType, true),
+    workspaceStore.loadTechnical(normalized),
+  ])
+  updateAutoRatioExpression(normalized, comparisonETF)
 }
 
 function openTool(tool: OpenableToolDefinition) {

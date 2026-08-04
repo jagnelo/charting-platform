@@ -3721,6 +3721,10 @@ Linked drill-down mechanics:
 - selecting a sector loads industries, constituents, breadth, relative strength, and
   sector comparison;
 - selecting an industry loads its constituents and verified proxy ETFs;
+- selecting an industry proxy now publishes that proxy to the linked symbol group,
+  loads its canonical bars/technicals, and preserves the selected sector/industry
+  taxonomy context so the proxy can be compared against its sector without replacing
+  the drill-down tree with the proxy's own holdings;
 - selecting a constituent updates linked stock charts;
 - one action creates sector/benchmark, industry-proxy/sector, stock/sector, and
   stock/benchmark ratio views;

@@ -159,8 +159,9 @@ describe('WorkstationView pop-out bindings', () => {
     expect(harness.chartWindow.configuration).toMatchObject({ comparison_symbols: ['XLK', 'XLE'] })
     expect(harness.workspace.error).toBe('Copied XLK')
     expect(harness.workspace.selectIndustryProxy).toHaveBeenCalledWith('XLK')
+    await vi.waitFor(() => expect(harness.workspace.publishSymbol).toHaveBeenCalledWith({ symbol: 'XLK', group: 'blue', sourceWindowKey: 'workstation' }))
     expect(harness.workspace.scheduleSnapshot).toHaveBeenCalled()
-    expect(harness.workspace.publishSymbol).not.toHaveBeenCalled()
+    expect(harness.workspace.publishSymbol).toHaveBeenCalledWith({ symbol: 'XLK', group: 'blue', sourceWindowKey: 'workstation' })
     expect(harness.workspace.symbolForLinkGroup).toHaveBeenCalledWith('blue', null)
   })
 

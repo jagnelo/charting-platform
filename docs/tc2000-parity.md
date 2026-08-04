@@ -134,6 +134,14 @@ consecutive negative closes, moving-average participation, and relative-strength
 Selecting a template replaces only the draft source/name and clears stale validation/run
 state; editing the source switches the selector to Custom Python, preserving normal Python
 freedom without creating a second language.
+
+Top-down drill-down correction: selecting a verified industry ETF proxy from the
+industry surface now activates the canonical proxy symbol across the blue link group,
+loads its bars and technical snapshot, updates the automatic ratio target, and retains
+the selected sector/industry context. The proxy therefore behaves as an analysis target
+(`SMH` within `XLK`/Semiconductors, for example) rather than a cosmetic table selection
+that leaves linked charts on the prior instrument. Focused pop-out binding coverage
+passes; exact-build visual and full end-to-end acceptance remain open.
 Study Lab exposes a serializable comma-separated universe control; when populated it sends
 canonical symbol selectors as `run_config.symbols` and displays the selected universe in
 the run summary instead of silently using only the active symbol.

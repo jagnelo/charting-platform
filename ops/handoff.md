@@ -1,5 +1,16 @@
 # Active Handoff
 
+## Continuation update — 2026-08-04T16:05:00Z Top-down industry-proxy activation
+
+- Fixed a real drill-down gap in `frontend/src/views/WorkstationView.vue`: selecting
+  a verified industry ETF proxy now resolves and publishes the canonical proxy symbol,
+  loads its bars and technical snapshot, updates the automatic ratio, and preserves the
+  selected sector/industry context instead of only changing an internal label.
+- Updated the controlling top-down TODO and parity evidence to record the behavior.
+- Focused pop-out binding coverage passed `3` tests; TypeScript, production build, and
+  `git diff --check` passed. Exact-build visual approval and the broad acceptance matrix
+  remain open. The generated `test-results/` directory remains intentionally untracked.
+
 ## Continuation update — 2026-08-04T14:32:00Z
 
 - Re-ran the complete backend unit boundary with the repository Python 3.12
