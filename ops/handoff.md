@@ -1,5 +1,16 @@
 # Active Handoff
 
+## Continuation update — 2026-08-04T22:05:00Z Reference-pack bookkeeping and Docker cleanup
+
+- Corrected `tests/visual/references/tc2000-v25/manifest.yaml` from a stale media count of
+  187 to the fetched/indexed count of 189. The strict state remains discovery-only; no
+  unapproved reference was promoted.
+- Visual manifest CLI and its three unit tests passed after the correction.
+- Ran the requested `docker system prune -af`, reclaiming 7.885 GB of dangling images and
+  build cache. Active containers and named volumes were retained.
+- Next concrete gate remains broad performance and integration acceptance; exact-build visual
+  approval, provider-live probes, and full security/resource pressure remain open.
+
 ## Continuation update — 2026-08-04T21:30:00Z Runner container ceilings
 
 - Added container-level `mem_limit=768m`, `cpus=1.0`, and `pids_limit=128` alongside the

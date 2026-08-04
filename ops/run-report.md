@@ -1,5 +1,13 @@
 # Run Report
 
+## 2026-08-04T22:05:00Z Reference-pack bookkeeping and Docker cleanup
+
+- Fixed the manifest's stale controlled-pack count (`187` -> `189`) to match the indexed
+  official-help/shared-layout media; no discovery candidate was promoted to approval.
+- Visual manifest CLI and unit tests passed (`3/3`).
+- Executed the requested Docker cleanup, reclaiming `7.885GB`; active containers and named
+  volumes were preserved.
+
 ## 2026-08-04T21:30:00Z Runner container ceilings
 
 - Added and validated branch-scoped research-runner ceilings: 768 MiB memory, 1 CPU, and

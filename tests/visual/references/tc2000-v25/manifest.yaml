@@ -26,7 +26,7 @@ reference_policy:
     retrieval_script: tests/visual/fetch-tc2000-v25-reference-pack.sh
     controlled_storage: "/private/tmp/tc2000-v25-reference-pack"
     media_index: "/private/tmp/tc2000-v25-reference-pack/media-index.tsv"
-    media_count: 187
+    media_count: 189
     permission: "internal_reference_only; do not copy into application or distributable bundles"
     notes: "The pack contains official Help Site screenshots from V25-tagged and current/legacy help pages. It accelerates interaction and token discovery but does not alter required_missing states or strict exact-build approval rules."
   discovery_candidates:
