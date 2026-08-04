@@ -18407,3 +18407,12 @@ uncovered slice rather than repeat a generic completion claim.
   required V25 snapshots do not exist.
 - Exact-build visual approval, provider-live, adversarial sandbox/resource, multi-environment
   performance, and broad interaction parity remain open.
+
+## 2026-08-04T18:25:00Z Strategy signal integration coverage
+
+- Docker-backed API coverage now proves a promoted unified-Python signal can submit a
+  Strategy Lab run, materialize its canonical universe, and return a queued immutable
+  research-run reference. Focused test: `1 passed`.
+- Current integration coverage is `280` tests (`279` baseline plus this regression; `56`
+  dependency warnings combined). Visual, provider-live, adversarial resource, performance,
+  and broad interaction gates remain open.

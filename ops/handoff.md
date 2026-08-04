@@ -16831,3 +16831,11 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
   exist; that is an intentional visual completion gate, not a silently accepted baseline.
 - Remaining gates: exact-build visual references/approval, provider-live probes, adversarial
   sandbox/resource matrix, multi-environment performance, and broad visual/interaction parity.
+
+## Continuation update — 2026-08-04T18:25:00Z Strategy signal integration coverage
+
+- Added a Docker-backed API regression that creates a unified-Python signal, promotes it,
+  submits a Strategy Lab run with a canonical universe, and verifies the run is queued with
+  its immutable research-run reference and Boolean output contract.
+- The focused integration test passed (`1`); the full integration baseline remains green at
+  `279` plus this new coverage (`280` current tests, `56` dependency warnings when combined).
