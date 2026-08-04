@@ -57,7 +57,8 @@ close operation. Explicit close actions remain the only path that removes a seri
 this prevents transient/incomplete layout events during repeated pop-outs from deleting the
 source window. The store regression and a ten-cycle browser lifecycle check cover the boundary,
 including stable source canvas and browser-page counts. The full authenticated flow remains
-`27/27`, and the post-run backend/runner log audit is clean.
+`28/28`, including simultaneous independent pop-out recovery, and the post-run backend/runner
+log audit is clean.
 
 This is functional/runtime evidence only. The strict visual gate still rejects the required
 `application-shell-default/default` state because the manifest remains `required_missing`;

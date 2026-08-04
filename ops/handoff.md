@@ -1,5 +1,14 @@
 # Active Handoff
 
+## Continuation update — 2026-08-05T01:00:00Z Simultaneous pop-out acceptance
+
+- Added F8h for two concurrent pop-outs: both render, independent close/recovery works, and
+  serialized source tools remain intact. The complete authenticated Chromium suite passed
+  `28/28`; full frontend Vitest remains `550/550`, TypeScript/build pass, and the backend/runner
+  log audit is clean.
+- This strengthens multi-window functional evidence; full multi-monitor/memory performance and
+  exact-build visual acceptance remain open.
+
 ## Continuation update — 2026-08-05T00:45:00Z uPlot performance recheck
 
 - The packaged real-browser uPlot guard rendered 100,000 points and completed 40 zoom/pan

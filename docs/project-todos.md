@@ -3268,7 +3268,8 @@ The repeated pop-out browser audit also exposed and closed a real persistence de
 Layout's transient visible-key observations could delete serialized source windows during
 repeated float/close churn. `applyActiveLayout` now persists geometry only; explicit close
 actions remain the sole destructive window operation. Store coverage and the ten-cycle browser
-regression pass, and the full authenticated flow remains 27/27 with clean backend logs.
+regression pass, simultaneous independent pop-out recovery, and the full authenticated flow
+remain green at 28/28 with clean backend logs.
 
 Read-only authenticated identity/settings reads use the detached short-lived session path;
 mutating authentication/settings routes retain the request-scoped transaction. The rebuilt

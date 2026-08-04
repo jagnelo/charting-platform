@@ -207,6 +207,36 @@ test.describe('TC2000 workstation', () => {
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
+  test('F8h — simultaneous pop-outs retain both tools and recover independently', async ({ page, context, browserDiagnostics }) => {
+    await page.goto('/chart')
+    await expect.poll(() => page.locator('button[title="Float"]').count(), { timeout: 10_000 }).toBeGreaterThan(1)
+
+    const firstPopupPromise = context.waitForEvent('page')
+    await page.locator('button[title="Float"]').nth(0).click()
+    const firstPopup = await firstPopupPromise
+    await firstPopup.waitForLoadState('domcontentloaded')
+    await expect(firstPopup.locator('.workstation__popout .tool-window')).toBeVisible({ timeout: 10_000 })
+
+    const secondPopupPromise = context.waitForEvent('page')
+    await page.locator('button[title="Float"]').nth(1).click()
+    const secondPopup = await secondPopupPromise
+    await secondPopup.waitForLoadState('domcontentloaded')
+    await expect(secondPopup.locator('.workstation__popout .tool-window')).toBeVisible({ timeout: 10_000 })
+    await expect.poll(() => context.pages().length).toBe(3)
+
+    const firstClosed = firstPopup.waitForEvent('close')
+    await firstPopup.locator('button[title="Close"]').click()
+    await firstClosed
+    await expect(secondPopup.locator('.workstation__popout .tool-window')).toBeVisible()
+    await expect.poll(() => context.pages().length).toBe(2)
+
+    const secondClosed = secondPopup.waitForEvent('close')
+    await secondPopup.locator('button[title="Close"]').click()
+    await secondClosed
+    await expect.poll(() => page.locator('button[title="Float"]').count()).toBeGreaterThan(1)
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
   test('F8c — signing out propagates from the source workstation to its pop-out', async ({ page, context }) => {
     await page.goto('/chart')
     const popupPromise = context.waitForEvent('page')

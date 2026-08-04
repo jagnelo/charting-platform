@@ -1,5 +1,14 @@
 # Run Report
 
+## 2026-08-05T01:00:00Z Simultaneous pop-out acceptance
+
+- Added F8h for two concurrent browser pop-outs: both tools render, the pages count reaches
+  three, either popup can close independently, and the remaining popup/source recover without
+  losing serialized tools. The complete authenticated suite passed `28/28` in about one minute.
+- Full frontend Vitest remains `550/550` across 84 files; TypeScript and production build passed;
+  the post-run backend/runner log audit contained no error, traceback, connection-leak, or
+  SQLAlchemy-warning patterns.
+
 ## 2026-08-05T00:45:00Z uPlot performance recheck
 
 - The packaged real-browser uPlot guard rendered 100,000 points and completed 40 zoom/pan
