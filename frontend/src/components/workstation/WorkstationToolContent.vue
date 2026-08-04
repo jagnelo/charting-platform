@@ -1336,8 +1336,12 @@ const configuredColumnOverrides = computed(() => {
     const candidate = value as Record<string, unknown>
     const label = typeof candidate.label === 'string' ? candidate.label.trim() : ''
     const width = typeof candidate.width === 'string' ? candidate.width.trim() : ''
-    return label || width ? [[key, { ...(label ? { label } : {}), ...(width ? { width } : {}) }]] : []
-  })) as Record<string, { label?: string; width?: string }>
+    const format = candidate.format === 'number' || candidate.format === 'percent' ? candidate.format : undefined
+    const decimals = Number.isInteger(candidate.decimals) ? Math.min(6, Math.max(0, Number(candidate.decimals))) : undefined
+    return label || width || format || decimals != null
+      ? [[key, { ...(label ? { label } : {}), ...(width ? { width } : {}), ...(format ? { format } : {}), ...(decimals != null ? { decimals } : {}) }]]
+      : []
+  })) as Record<string, { label?: string; width?: string; format?: 'percent' | 'number'; decimals?: number }>
 })
 const configuredPythonColumns = computed(() => Array.isArray(props.tool.configuration.python_columns)
   ? props.tool.configuration.python_columns.filter((column): column is { code_version_id: number; name: string; timeframe?: string } => Boolean(column) && typeof column === 'object' && Number.isInteger((column as Record<string, unknown>).code_version_id) && typeof (column as Record<string, unknown>).name === 'string' && (typeof (column as Record<string, unknown>).timeframe === 'undefined' || typeof (column as Record<string, unknown>).timeframe === 'string'))

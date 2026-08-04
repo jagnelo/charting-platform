@@ -392,6 +392,22 @@ describe('VirtualWatchlistTool', () => {
     expect(wrapper.text()).toContain('12.00%')
   })
 
+  it('persists per-column format and decimal precision overrides', async () => {
+    const wrapper = mount(VirtualWatchlistTool, {
+      props: {
+        label: 'Sectors', rows: [{ instrumentId: 1, symbol: 'XLK', name: 'Technology', values: { performance_1m: 0.12345 } }],
+        columns: [{ key: 'symbol', label: 'Symbol' }, { key: 'performance_1m', label: '1M' }],
+      },
+    })
+    await wrapper.find('.watchlist__columns-button').trigger('click')
+    await wrapper.find('select[aria-label="1M format"]').setValue('number')
+    await wrapper.setProps({ columnOverrides: { performance_1m: { format: 'number' } } })
+    await wrapper.find('input[aria-label="1M decimals"]').setValue('3')
+    expect(wrapper.emitted('update:columnOverrides')?.at(-1)).toEqual([{ performance_1m: { format: 'number', decimals: 3 } }])
+    await wrapper.setProps({ columnOverrides: { performance_1m: { format: 'number', decimals: 3 } } })
+    expect(wrapper.text()).toContain('0.123')
+  })
+
   it('pins true Boolean rows ahead of the secondary sort and persists the pin choice', async () => {
     const wrapper = mount(VirtualWatchlistTool, {
       props: {

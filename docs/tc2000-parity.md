@@ -437,6 +437,10 @@ lists, uses the same serializable configuration path. Focused virtual-list cover
 the override events and restored header rendering; visual approval remains blocked by the
 V25 reference manifest.
 
+Numeric columns additionally expose persisted percent-versus-number formatting and bounded
+decimal precision, including indicator and Python-derived columns, so dense ranking tables can
+be tuned without changing their canonical values.
+
 The same editor now supports direct drag-and-drop ordering in addition to its explicit
 left/right controls. Dragging emits the shared visible-column configuration, so saved
 column sets and floated/docked watchlists retain one ordering contract; focused virtual-

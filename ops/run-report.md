@@ -2,6 +2,12 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-04T10:45:45Z Watchlist numeric formatting
+
+- Added persisted percent/number and decimal-precision overrides to the integrated column
+  editor. Focused VirtualWatchlistTool tests `38`, TypeScript/build/diff passed; visual,
+  Docker integration, and broad acceptance remain open.
+
 ## 2026-08-04T10:40:32Z Ratio response race protection
 
 - RatioUPlot now ignores late relative-strength responses after the active selection changes.

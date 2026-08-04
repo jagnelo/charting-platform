@@ -3558,6 +3558,8 @@ Column behavior:
 - saved reusable columns and column sets;
 - configurable header, decimals, units, positive/zero/negative colors, alignment, and
   missing-value display;
+- the current workstation editor now persists percent-versus-number format and bounded
+  decimal precision for numeric, indicator, and Python-derived columns;
 - ascending/descending click sort;
 - manual ordering;
 - Boolean/tag pinning above the remaining value sort;

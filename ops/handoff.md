@@ -1,5 +1,13 @@
 # Active Handoff
 
+## Continuation update — 2026-08-04T10:45:45Z Watchlist numeric formatting
+
+- Extended the persisted workstation column editor with percent/number format and bounded
+  decimal precision controls, applied to ordinary, indicator, and Python-derived numeric cells.
+- Focused VirtualWatchlistTool tests `38`, TypeScript, production build, and diff checks passed;
+  visual/reference, Docker-backed integration, and broad acceptance remain open. Generated
+  `test-results/` remains intentionally untracked.
+
 ## Continuation update — 2026-08-04T10:40:32Z Ratio response race protection
 
 - Added an active-generation guard to `RatioUPlot` so late relative-strength responses

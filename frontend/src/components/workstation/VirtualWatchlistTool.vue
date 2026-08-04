@@ -34,7 +34,7 @@
     <p v-if="conditionFilterState" class="watchlist__condition-state">{{ conditionFilterState }}</p>
     <p v-if="pythonConditionState" class="watchlist__condition-state">{{ pythonConditionState }}<button v-if="pythonRunIds.python_condition" type="button" aria-label="Cancel Python condition" @click="cancelPythonRun('python_condition')">Cancel</button></p>
     <div v-if="columnMenuOpen" class="watchlist__column-menu">
-      <label v-for="column in effectiveColumns" :key="column.key" class="watchlist__column-editor-row" :class="{ 'watchlist__column-editor-row--dragging': draggedColumnKey === column.key }" draggable="true" @dragstart="dragColumn(column.key)" @dragover.prevent @drop.prevent="dropColumn(column.key)" @dragend="draggedColumnKey = null"><input type="checkbox" :checked="activeColumnKeys.includes(column.key)" @change="toggleColumn(column.key)" /><input class="watchlist__label-input" :aria-label="`${column.label} label`" :value="column.label" @change="setColumnOverride(column.key, { label: ($event.target as HTMLInputElement).value })" /><input class="watchlist__width-input" :aria-label="`${column.label} width`" :value="column.width ?? ''" placeholder="px/fr" @change="setColumnOverride(column.key, { width: ($event.target as HTMLInputElement).value })" /><button class="watchlist__order-button" type="button" :aria-label="`Move ${column.label} left`" :disabled="!canMoveColumn(column.key, -1)" @click="moveColumn(column.key, -1)">←</button><button class="watchlist__order-button" type="button" :aria-label="`Move ${column.label} right`" :disabled="!canMoveColumn(column.key, 1)" @click="moveColumn(column.key, 1)">→</button><input class="watchlist__group-input" :aria-label="`${column.label} group`" :value="columnGroups[column.key] ?? ''" placeholder="Group" @change="setColumnGroup(column.key, ($event.target as HTMLInputElement).value)" /><button class="watchlist__stack-button" type="button" :aria-pressed="stackedColumnKeys.includes(column.key)" @click="toggleStackedColumn(column.key)">Stack</button><button v-if="column.kind === 'boolean'" class="watchlist__pin-button" type="button" :aria-pressed="pinnedBooleanKeys.includes(column.key)" @click="togglePinnedBoolean(column.key)">Pin</button></label>
+      <label v-for="column in effectiveColumns" :key="column.key" class="watchlist__column-editor-row" :class="{ 'watchlist__column-editor-row--dragging': draggedColumnKey === column.key }" draggable="true" @dragstart="dragColumn(column.key)" @dragover.prevent @drop.prevent="dropColumn(column.key)" @dragend="draggedColumnKey = null"><input type="checkbox" :checked="activeColumnKeys.includes(column.key)" @change="toggleColumn(column.key)" /><input class="watchlist__label-input" :aria-label="`${column.label} label`" :value="column.label" @change="setColumnOverride(column.key, { label: ($event.target as HTMLInputElement).value })" /><input class="watchlist__width-input" :aria-label="`${column.label} width`" :value="column.width ?? ''" placeholder="px/fr" @change="setColumnOverride(column.key, { width: ($event.target as HTMLInputElement).value })" /><select v-if="column.kind !== 'boolean'" class="watchlist__format-input" :aria-label="`${column.label} format`" :value="column.format ?? 'percent'" @change="setColumnOverride(column.key, { format: ($event.target as HTMLSelectElement).value as 'percent' | 'number' })"><option value="percent">%</option><option value="number">#</option></select><input v-if="column.kind !== 'boolean'" class="watchlist__decimals-input" type="number" min="0" max="6" :aria-label="`${column.label} decimals`" :value="column.decimals ?? ''" placeholder="dp" @change="setColumnOverride(column.key, { decimals: Number(($event.target as HTMLInputElement).value) })" /><button class="watchlist__order-button" type="button" :aria-label="`Move ${column.label} left`" :disabled="!canMoveColumn(column.key, -1)" @click="moveColumn(column.key, -1)">←</button><button class="watchlist__order-button" type="button" :aria-label="`Move ${column.label} right`" :disabled="!canMoveColumn(column.key, 1)" @click="moveColumn(column.key, 1)">→</button><input class="watchlist__group-input" :aria-label="`${column.label} group`" :value="columnGroups[column.key] ?? ''" placeholder="Group" @change="setColumnGroup(column.key, ($event.target as HTMLInputElement).value)" /><button class="watchlist__stack-button" type="button" :aria-pressed="stackedColumnKeys.includes(column.key)" @click="toggleStackedColumn(column.key)">Stack</button><button v-if="column.kind === 'boolean'" class="watchlist__pin-button" type="button" :aria-pressed="pinnedBooleanKeys.includes(column.key)" @click="togglePinnedBoolean(column.key)">Pin</button></label>
       <div class="watchlist__python"><select v-model="selectedPythonVersion" aria-label="Python column asset"><option value="">Add Python column…</option><option v-for="asset in pythonAssets" :key="asset.versionId" :value="String(asset.versionId)">{{ asset.name }}</option></select><button type="button" :disabled="!selectedPythonVersion" @click="addPythonColumn">Add</button><label v-for="column in pythonColumns" :key="`timeframe-${column.code_version_id}`">{{ column.name }} <select :aria-label="`${column.name} timeframe`" :value="column.timeframe ?? timeframe" @change="setPythonColumnTimeframe(column.code_version_id, ($event.target as HTMLSelectElement).value)"><option v-for="option in timeframeOptions" :key="option.value" :value="option.value">{{ option.label }}</option></select></label><template v-for="column in pythonColumns" :key="`progress-${column.code_version_id}`"><small v-if="pythonProgress[pythonKey(column.code_version_id)]">{{ column.name }} · {{ pythonProgress[pythonKey(column.code_version_id)] }}<button v-if="pythonRunIds[pythonKey(column.code_version_id)]" type="button" :aria-label="`Cancel ${column.name}`" @click="cancelPythonRun(pythonKey(column.code_version_id))">Cancel</button></small></template></div>
     </div>
     <div v-if="columnSetMenuOpen" class="watchlist__column-set-menu" aria-label="Saved column sets">
@@ -129,6 +129,7 @@ export interface WatchlistColumn {
   label: string
   width?: string
   format?: 'percent' | 'number'
+  decimals?: number
   kind?: 'boolean'
 }
 
@@ -180,7 +181,7 @@ const props = withDefaults(defineProps<{
   allowRemove?: boolean
   sourceWatchlistId?: number | null
   membershipTargets?: WatchlistMembershipTarget[]
-  columnOverrides?: Record<string, { label?: string; width?: string }>
+  columnOverrides?: Record<string, { label?: string; width?: string; format?: 'percent' | 'number'; decimals?: number }>
 }>(), {
   selected: '',
   columns: () => [
@@ -210,7 +211,7 @@ const props = withDefaults(defineProps<{
   columnOverrides: () => ({}),
 })
 const queryClient = useQueryClient()
-const emit = defineEmits<{ select: [row: WatchlistRow]; compare: [symbols: string[]]; reorder: [itemIds: number[]]; 'plot-drop': [payload: ChartPlotDragPayload]; 'condition-drop': [payload: TechnicalConditionDragPayload]; 'row-action': [action: 'chart' | 'compare' | 'note' | 'alert' | 'copy' | 'copy-to-watchlist' | 'move-to-watchlist' | 'flag' | 'remove', row: WatchlistRow, targetWatchlistId?: number]; 'update:visibleColumnKeys': [keys: string[]]; 'update:filterText': [value: string]; 'update:conditionScreenerId': [id: number | null]; 'update:conditionFilterMode': [mode: 'active' | 'inactive' | 'off']; 'update:pinnedBooleanKeys': [keys: string[]]; 'update:columnGroups': [groups: Record<string, string>]; 'update:stackedColumnKeys': [keys: string[]]; 'update:columnOverrides': [overrides: Record<string, { label?: string; width?: string }>]; 'update:pythonColumns': [columns: Array<{ code_version_id: number; name: string; timeframe?: string }>]; 'update:pythonCondition': [condition: { code_version_id: number; name: string; mode: 'active' | 'inactive' | 'off'; timeframe?: string } | null] }>()
+const emit = defineEmits<{ select: [row: WatchlistRow]; compare: [symbols: string[]]; reorder: [itemIds: number[]]; 'plot-drop': [payload: ChartPlotDragPayload]; 'condition-drop': [payload: TechnicalConditionDragPayload]; 'row-action': [action: 'chart' | 'compare' | 'note' | 'alert' | 'copy' | 'copy-to-watchlist' | 'move-to-watchlist' | 'flag' | 'remove', row: WatchlistRow, targetWatchlistId?: number]; 'update:visibleColumnKeys': [keys: string[]]; 'update:filterText': [value: string]; 'update:conditionScreenerId': [id: number | null]; 'update:conditionFilterMode': [mode: 'active' | 'inactive' | 'off']; 'update:pinnedBooleanKeys': [keys: string[]]; 'update:columnGroups': [groups: Record<string, string>]; 'update:stackedColumnKeys': [keys: string[]]; 'update:columnOverrides': [overrides: Record<string, { label?: string; width?: string; format?: 'percent' | 'number'; decimals?: number }>]; 'update:pythonColumns': [columns: Array<{ code_version_id: number; name: string; timeframe?: string }>]; 'update:pythonCondition': [condition: { code_version_id: number; name: string; mode: 'active' | 'inactive' | 'off'; timeframe?: string } | null] }>()
 const scrollElement = ref<HTMLElement | null>(null)
 const filter = ref(props.filterText)
 const conditionFilter = ref(props.conditionScreenerId == null ? '' : String(props.conditionScreenerId))
@@ -266,10 +267,12 @@ const relatedLists = computed(() => {
 const canCopyToTarget = computed(() => Boolean(contextMenu.value?.row.instrumentId && selectedMembershipTarget.value && !selectedMembershipTarget.value.locked && selectedMembershipTarget.value.id !== props.sourceWatchlistId))
 const canMoveToTarget = computed(() => Boolean(canCopyToTarget.value && props.sourceWatchlistId != null && props.allowRemove))
 const pythonCondition = computed(() => props.pythonCondition && Number.isInteger(props.pythonCondition.code_version_id) && props.pythonCondition.code_version_id > 0 && typeof props.pythonCondition.name === 'string' ? props.pythonCondition : null)
-const effectiveColumns = computed<WatchlistColumn[]>(() => [...props.columns, ...indicatorColumns.value.map(column => ({ key: column.key, label: column.name, width: '78px', format: 'number' as const })), ...conditionColumns.value.map(column => ({ key: column.key, label: column.name, width: '78px', kind: 'boolean' as const })), ...pythonColumns.value.map(column => ({ key: pythonKey(column.code_version_id), label: column.name, width: '78px', format: 'number' as const }))].map(column => ({
+const effectiveColumns = computed<WatchlistColumn[]>(() => ([...props.columns, ...indicatorColumns.value.map(column => ({ key: column.key, label: column.name, width: '78px', format: 'number' as const })), ...conditionColumns.value.map(column => ({ key: column.key, label: column.name, width: '78px', kind: 'boolean' as const })), ...pythonColumns.value.map(column => ({ key: pythonKey(column.code_version_id), label: column.name, width: '78px', format: 'number' as const }))] as WatchlistColumn[]).map(column => ({
   ...column,
   label: props.columnOverrides[column.key]?.label?.trim() || column.label,
   width: props.columnOverrides[column.key]?.width?.trim() || column.width,
+  format: props.columnOverrides[column.key]?.format || column.format,
+  decimals: props.columnOverrides[column.key]?.decimals ?? column.decimals,
 })))
 const activeColumnKeys = computed(() => props.visibleColumnKeys.length ? props.visibleColumnKeys : effectiveColumns.value.map(column => column.key))
 const visibleColumns = computed(() => activeColumnKeys.value
@@ -728,15 +731,22 @@ watch(pythonColumns, columns => {
 }, { deep: true })
 watch(pythonCondition, condition => { if (condition) void runPythonCondition(condition) }, { deep: true })
 
+function formatNumeric(key: string, value: number, fallbackDecimals = 2) {
+  const column = effectiveColumns.value.find(item => item.key === key)
+  const format = column?.format ?? 'percent'
+  const decimals = column?.decimals ?? fallbackDecimals
+  return format === 'number' ? value.toFixed(decimals) : `${(value * 100).toFixed(decimals)}%`
+}
+
 function display(row: WatchlistRow, key: string) {
   if (key.startsWith('indicator:')) {
     const value = props.indicatorValues[key]?.[row.symbol]
     const warning = props.indicatorWarnings[key]?.[row.symbol]
-    return value == null ? warning ? `⚠ ${warning}` : '—' : value.toFixed(2)
+    return value == null ? warning ? `⚠ ${warning}` : '—' : formatNumeric(key, value)
   }
   if (key.startsWith('python:')) {
     const cell = pythonCells.value[key]?.[row.symbol]
-    return cell?.error ? cell.error : cell?.value == null ? '—' : typeof cell.value === 'boolean' ? cell.value ? 'True' : 'False' : cell.value.toFixed(4)
+    return cell?.error ? cell.error : cell?.value == null ? '—' : typeof cell.value === 'boolean' ? cell.value ? 'True' : 'False' : formatNumeric(key, cell.value, 4)
   }
   if (key.startsWith('condition:')) {
     const value = props.conditionValues[key]?.[row.symbol]
@@ -748,8 +758,7 @@ function display(row: WatchlistRow, key: string) {
     return warning ? `⚠ ${warning}` : '—'
   }
   if (typeof value !== 'number') return String(value)
-  const format = effectiveColumns.value.find(column => column.key === key)?.format ?? 'percent'
-  return format === 'number' ? value.toFixed(2) : `${(value * 100).toFixed(2)}%`
+  return formatNumeric(key, value, key.startsWith('python:') ? 4 : 2)
 }
 
 function sortValue(row: WatchlistRow, key: string): number | string | null {
@@ -822,15 +831,18 @@ function toggleColumn(key: string) {
   }
 }
 
-function setColumnOverride(key: string, changes: { label?: string; width?: string }) {
+function setColumnOverride(key: string, changes: { label?: string; width?: string; format?: 'percent' | 'number'; decimals?: number }) {
   const overrides = { ...props.columnOverrides }
   const next = { ...(overrides[key] ?? {}), ...changes }
   const width = next.width?.trim() ?? ''
   if (width && !/^\d+(?:\.\d+)?(?:px|fr|%)$/.test(width)) return
-  if (!next.label?.trim() && !next.width?.trim()) delete overrides[key]
+  const decimals = next.decimals == null || Number.isNaN(next.decimals) ? undefined : Math.min(6, Math.max(0, Math.round(next.decimals)))
+  if (!next.label?.trim() && !next.width?.trim() && !next.format && decimals == null) delete overrides[key]
   else overrides[key] = {
     ...(next.label?.trim() ? { label: next.label.trim() } : {}),
     ...(width ? { width } : {}),
+    ...(next.format ? { format: next.format } : {}),
+    ...(decimals != null ? { decimals } : {}),
   }
   emit('update:columnOverrides', overrides)
 }
@@ -926,6 +938,8 @@ function onCtrlWheel(event: WheelEvent) {
 .watchlist__column-editor-row--dragging { opacity: .55; }
 .watchlist__label-input { width: 72px; margin-left: 3px; border: 1px solid #42515c; background: #182128; color: #c7d0d8; font: inherit; }
 .watchlist__width-input { width: 38px; margin-left: 2px; border: 1px solid #42515c; background: #182128; color: #c7d0d8; font: inherit; }
+.watchlist__format-input { width: 34px; margin-left: 2px; border: 1px solid #42515c; background: #182128; color: #c7d0d8; font: inherit; }
+.watchlist__decimals-input { width: 28px; margin-left: 2px; border: 1px solid #42515c; background: #182128; color: #c7d0d8; font: inherit; }
 .watchlist__group-input { width: 52px; margin-left: 3px; border: 1px solid #42515c; background: #182128; color: #c7d0d8; font: inherit; }
 .watchlist__order-button { margin-left: 2px; min-width: 15px; border: 1px solid #42515c; background: #182128; color: #a9c0d0; font: inherit; cursor: pointer; }
 .watchlist__order-button:disabled { cursor: default; opacity: .45; }
