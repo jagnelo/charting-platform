@@ -2,6 +2,14 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-04T11:18:00Z Personal layout lifecycle
+
+- Added Workspace-menu management for select, rename, clone, drag-reorder, delete with
+  last-layout protection, factory reset, JSON export, and validated JSON import.
+- Focused workspace-store suite passed `26` tests; TypeScript, production build, and
+  `git diff --check` passed. Exact-build visual, browser drag/drop, Docker integration,
+  and broad acceptance remain open.
+
 ## 2026-08-04T12:24:00Z Shared workstation design tokens
 
 - Centralized shell and tool-window visual tokens and wired the primary chrome to them. Tests,

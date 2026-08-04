@@ -16568,3 +16568,19 @@
 - Focused Study Lab coverage `7 passed`; TypeScript, production build, and diff checks passed.
   Strict V25 visual approval and the broader security/performance/E2E acceptance matrix
   remain open.
+## Continuation update — 2026-08-04T11:18:00Z Personal layout lifecycle
+
+- Added the missing primary-workstation layout controls against the existing serializable
+  workspace snapshot contract: select, rename, clone, drag-reorder, delete with last-layout
+  protection, factory reset, JSON export, and validated JSON import.
+- Import rejects empty, malformed, or duplicate layout IDs without replacing the current
+  workspace; accepted snapshots preserve the revision-checked `saveSnapshot` path and only
+  carry serializable tabs/settings/schema state.
+- Added focused workspace-store coverage (26 passing), TypeScript checking, production build,
+  and `git diff --check` validation. Generated `test-results/` remains intentionally untracked.
+- Exact V25 visual references, browser drag/drop evidence, Docker-backed integration, and the
+  broader performance/security/E2E acceptance matrix remain open; this is an incremental
+  implementation checkpoint, not completion.
+
+Next step: commit and push this layout-management slice, then continue the requirement-level
+audit with the next unimplemented acceptance path.

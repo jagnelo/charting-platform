@@ -4,8 +4,8 @@
     "active_worker": "Codex",
     "worker_session_started_at": "2026-07-28T21:40:33Z",
     "worker_soft_stop_at": null,
-  "last_handoff_at": "2026-08-04T12:24:00Z",
-    "last_commit": "8aa98180106c2dcae09810ae0706dae0fefab34c refactor(ui): centralize workstation design tokens",
+  "last_handoff_at": "2026-08-04T11:18:00Z",
+    "last_commit": "9c927bd6e1de8402ba633c444cc859408741afa3 feat(workstation): manage personal layouts",
     "git_ready_to_commit": false,
     "validation": {
         "backend_lint": "passed (code validation including deterministic XNYS coverage calendar, restricted numerical facades, isolated research runner/resource restoration, screener, visual, analysis, research, OHLCV session model, and migration modules, 2026-08-03)",
@@ -20,9 +20,11 @@
         "backend_log_check": "fresh branch stack logs confirm Alembic upgrade through head, successful top-down taxonomy seed, scheduler/API startup, passing health checks, and no instrument_indicator_config UndefinedTable/500 after focused browser acceptance; rebuilt backend was healthy after prepared-universe batch API addition",
         "provider_live_tests": "not_run (route compatibility changes covered by deterministic unit/integration fixtures; opt-in live provider matrix remains separate)",
         "yaml_json_parse": "passed (visual manifest validator, state.json, .env.example provider-chain JSON, and Docker Compose YAML; manifest records official drag/drop, pinning, column-group, and stack-state discovery references with direct locators; Alembic current head e9f0a1b2c3d4; official release notes confirm pinned build 25.0.9571 while available official help images remain earlier-generation or version-unspecified candidates; strict visual validator intentionally rejects required_missing surfaces, 2026-08-03)",
-        "backend_combo_library_test": "blocked_by_environment (new combo_list persistence regression is written, but the current uv invocation resolves Python 3.9 and cannot import datetime.UTC; repository backend requires Python >=3.12; no backend source change was needed because the existing user-isolated generic library contract already persists combo payloads)"
+    "backend_combo_library_test": "blocked_by_environment (new combo_list persistence regression is written, but the current uv invocation resolves Python 3.9 and cannot import datetime.UTC; repository backend requires Python >=3.12; no backend source change was needed because the existing user-isolated generic library contract already persists combo payloads)",
+    "workspace_layout_lifecycle": "passed: focused workspace-store suite 26; TypeScript and production build passed; import validates non-empty unique layout IDs and accepted snapshots use revision-checked persistence, 2026-08-04"
     },
   "notes": [
+        "2026-08-04T11:18:00Z: Added primary Workspace-menu personal layout lifecycle: select, rename, clone, drag-reorder, delete protection, JSON export/import, and factory reset. Focused store suite 26, TypeScript/build/diff passed; exact-build visual and broad acceptance remain open.",
         "2026-08-04T12:24:00Z: Centralized workstation shell/tool-window design tokens and wired primary chrome to them. Tool-window/router tests 6, TypeScript/build/diff passed; visual/reference and broad acceptance remain open.",
         "2026-08-04T17:50:00Z: Breadth API now returns near-52-week, configurable new-high/new-low, trend-state, and MA-distance statistics with echoed parameters; workstation surfaces them. Backend Ruff/router unit 9 and frontend store/watchlist 61 passed; TypeScript/build/diff passed. Docker-backed integration was blocked by denied socket access; strict V25 visual approval and broad acceptance remain open.",
         "2026-08-04T17:25:00Z: Breadth daily/weekly/monthly timeframe and split-adjustment controls are persisted and forwarded to group snapshot/current/history requests. Workspace-store coverage 24 passed; prior focused workstation/watchlist boundary 40, TypeScript/build/diff passed. Strict V25 visual approval and broad acceptance remain open.",
