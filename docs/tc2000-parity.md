@@ -835,3 +835,11 @@ writes, raw-memory exposure, and mutation attempts; this closes a concrete gap b
 the declared no-filesystem/no-host-access contract and the raw ndarray methods exposed
 by NumPy. Docker-level network, namespace, seccomp, and resource-limit acceptance
 remains a separate deployment gate.
+
+The renderer acceptance suite now includes a real Chromium uPlot benchmark at
+`frontend/tests/e2e/uplot_performance.spec.ts`. It loads the packaged uPlot build,
+renders 100,000 points, performs forty viewport zoom/pan updates, verifies the chart
+element is preserved, and enforces a bounded interaction time. The test passed in the
+host-permitted Chromium run on 2026-08-04; this is renderer-level evidence only and
+does not replace the pending authenticated workstation, pop-out, memory, and
+multi-environment performance matrix.

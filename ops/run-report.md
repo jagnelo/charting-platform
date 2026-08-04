@@ -18317,3 +18317,10 @@ uncovered slice rather than repeat a generic completion claim.
   passed. The suite's intentional conflict-path stderr remained non-fatal.
 - Exact-build visual baselines, Docker-backed integration/security, provider-live probes,
   real-browser performance, and broad E2E acceptance remain open.
+## 2026-08-04T15:30:00Z uPlot large-history benchmark
+
+- Added a real Chromium renderer test over the packaged uPlot build: 100,000 points,
+  forty zoom/pan updates, and chart-element preservation.
+- Host-permitted run passed (`1` test). This closes only the renderer-level large-history
+  check; full workstation, pop-out, memory/leak, and four-environment performance gates
+  remain open.

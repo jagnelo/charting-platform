@@ -16726,3 +16726,11 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
 - This closes the current deterministic frontend/static checkpoint; exact-build visual
   approval, Docker-backed integration/security, provider-live probes, real-browser
   performance, and broad E2E acceptance remain open.
+## Continuation update — 2026-08-04T15:30:00Z uPlot large-history benchmark
+
+- Added `frontend/tests/e2e/uplot_performance.spec.ts`, a real Chromium test using the
+  packaged uPlot build rather than the unit-test mock. It renders 100,000 points,
+  performs forty zoom/pan viewport updates, and verifies the chart element is preserved.
+- Host-permitted run passed (`1` test). The 2.5-second bound is intentionally generous
+  for shared CI; authenticated workstation, pop-out, memory/leak, and four-environment
+  performance acceptance remain open.
