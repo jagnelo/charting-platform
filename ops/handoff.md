@@ -1,5 +1,14 @@
 # Active Handoff
 
+## Continuation update — 2026-08-05T02:05:00Z Renderer and visual-gate audit
+
+- Re-ran the real-browser uPlot guard: 100,000 points and 40 zoom/pan updates completed
+  in `848ms`, with the chart element preserved. This is renderer-level evidence only;
+  full workstation/multi-window memory and performance acceptance remains open.
+- Re-ran the strict approved-visual command. It still rejects
+  `application-shell-default/default` because the manifest state is `required_missing`;
+  no unapproved or version-uncertain online media was promoted.
+
 ## Continuation update — 2026-08-05T01:55:00Z Rebuilt-stack Study Lab browser acceptance
 
 - Rebuilt and restarted the repository's branch-scoped Compose application stack after the

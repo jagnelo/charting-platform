@@ -1,5 +1,13 @@
 # Run Report
 
+## 2026-08-05T02:05:00Z Renderer and visual-gate audit
+
+- Chromium uPlot performance guard: `1/1` passed; 100,000 points and 40 viewport updates
+  completed in `848ms` without replacing the chart element.
+- Strict approved visual command remains intentionally blocked at
+  `application-shell-default/default: required_missing`; discovery media remains
+  unapproved until exact-build continuity, measurements, permissions, and review exist.
+
 ## 2026-08-05T01:55:00Z Rebuilt-stack Study Lab browser acceptance
 
 - Rebuilt the frontend image and restarted the documented branch-scoped Compose project
