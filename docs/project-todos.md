@@ -3224,7 +3224,7 @@ Golden Layout mechanics, uPlot host/plugin path, top-down analysis contracts,
 virtualized watchlists, unified Python/Study Lab execution boundary, and free-source
 provider governance are implemented and covered by deterministic/frontend/backend
 regressions. The branch has also exercised the complete Docker-backed integration
-suite (`281 passed`), clean authenticated Chromium flows (`26/26`), the public no-key
+suite (`281 passed`), clean authenticated Chromium flows (`27/27`), the public no-key
 SEC identity/profile path through `EdgarProvider`, and isolated research-runner crash
 recovery. Remaining acceptance is intentionally still hard-gated by the full Version
 25 visual reference/measurement matrix, configured multi-provider probes, adversarial
@@ -3271,6 +3271,13 @@ flows, including Study Lab. The timestamp-default Alembic repair (`ea0f1a2b3c4d`
 passed a disposable PostgreSQL downgrade/upgrade round trip. These checks do not relax the
 single completion bar or the still-open exact-build visual, provider-live, pressure,
 multi-window performance, migration, and broad parity gates.
+
+VirtualWatchlist Python column and condition polling now rejects missing batch payloads with a
+bounded error before Vue Query can cache `undefined`; this keeps empty/partial research data
+explicit at the tool boundary. Focused coverage is 46 tests, the full frontend suite is 549
+tests across 84 files, and rebuilt Chromium remains 27/27. This hardening does not relax the
+single completion bar or the exact-build visual/provider/pressure/performance/migration/parity
+gates.
 
 The Docker-backed integration suite also passes all 281 tests with 54 existing dependency
 warnings. The integration-only coverage command remains a diagnostic subset and therefore

@@ -1,5 +1,18 @@
 # Active Handoff
 
+## Continuation update — 2026-08-05T05:15:00Z VirtualWatchlist empty-result hardening
+
+- Hardened Python watchlist column/condition polling so an empty batch response becomes a
+  bounded user-visible error rather than a Vue Query `undefined` cache entry. The focused
+  VirtualWatchlist suite passed `46` tests; the full frontend suite passed `549` tests in
+  `84` files, type-check/build passed, and rebuilt Chromium passed `27/27`.
+- Backend logs from the rebuilt browser run were clean for 500s, tracebacks, pool leaks,
+  `SAWarning`, `InterfaceError`, provider errors, and unexpected warnings. The intentional
+  Vitest conflict-error stderr remains test fixture output, not a runtime failure.
+- Exact-build V25 visual approval, configured provider-live probes, pressure/cancellation,
+  multi-window performance, migration acceptance beyond round-trip, and broad parity remain
+  open.
+
 ## Continuation update — 2026-08-05T05:00:00Z Study Lab/auth regression closure
 
 - The first rebuilt browser run after detached auth cleanup exposed a real regression:

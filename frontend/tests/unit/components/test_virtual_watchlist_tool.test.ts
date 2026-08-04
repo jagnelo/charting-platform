@@ -134,6 +134,21 @@ describe('VirtualWatchlistTool', () => {
     await vi.waitFor(() => expect(apiPost).toHaveBeenCalledWith('/research/runs/94/cancel', {}))
   })
 
+  it('surfaces an empty Python batch refresh without caching undefined', async () => {
+    apiPost.mockImplementation(async (path: string) => path === '/research/runs' ? { id: 95 } : {})
+    apiGet.mockImplementation(async (path: string) => path === '/research/runs/95/batch-results' ? undefined : [])
+
+    const wrapper = mount(VirtualWatchlistTool, {
+      props: {
+        label: 'Empty Python result',
+        rows,
+        pythonColumns: [{ code_version_id: 11, name: 'Signal', timeframe: 'D1' }],
+      },
+    })
+
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Python batch refresh returned no data'))
+  })
+
   it('filters canonical rows and publishes the selected canonical row', async () => {
     const wrapper = mount(VirtualWatchlistTool, {
       props: {

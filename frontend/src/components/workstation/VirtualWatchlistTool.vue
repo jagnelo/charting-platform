@@ -443,7 +443,11 @@ type PythonBatchResult = { status: string; progress?: { completed_cells?: number
 function fetchPythonBatchResult(runId: number) {
   return queryClient.fetchQuery<PythonBatchResult>({
     queryKey: ['workstation', 'research-batch-result', runId],
-    queryFn: () => api.get<PythonBatchResult>(`/research/runs/${runId}/batch-results`),
+    queryFn: async () => {
+      const result = await api.get<PythonBatchResult>(`/research/runs/${runId}/batch-results`)
+      if (!result) throw new Error('Python batch refresh returned no data')
+      return result
+    },
     staleTime: 0,
   })
 }

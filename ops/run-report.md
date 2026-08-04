@@ -1,5 +1,17 @@
 # Run Report
 
+## 2026-08-05T05:15:00Z VirtualWatchlist empty-result hardening
+
+- Python watchlist column/condition polling now rejects an empty backend payload with a
+  bounded `Python batch refresh returned no data` error instead of handing `undefined` to
+  Vue Query. A focused regression and the full frontend suite passed (`549` tests across
+  `84` files); type-check and production build passed with `459` modules.
+- Rebuilt branch frontend authenticated Chromium acceptance passed `27/27` in `47.1s`,
+  including Study Lab, and the backend log audit was clean for 500s, tracebacks,
+  connection leaks, `SAWarning`, `InterfaceError`, and unexpected errors.
+- Exact-build visual, configured provider-live, adversarial pressure/cancellation,
+  multi-window performance, migration re-audit, and broad parity gates remain open.
+
 ## 2026-08-05T05:00:00Z Study Lab/auth regression closure
 
 - Full backend unit suite: `965/965` passed with 34 existing dependency warnings and
