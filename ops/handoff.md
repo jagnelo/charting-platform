@@ -16688,3 +16688,12 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
   and classification provenance beside proxy counts. No proxy or classification is inferred
   from a name; missing values remain explicit. TypeScript, production build, and diff checks
   passed; full regression evidence remains green and visual/broad acceptance remain open.
+## Continuation update — 2026-08-04T12:06:00Z Study Lab point-in-time cutoff
+
+- Added an explicit Study Lab `As of` control and propagated it through serializable
+  configuration, run requests, and dataset manifests. Research materialization clamps bars
+  to the cutoff and rejects an as-of timestamp before the requested start date.
+- Focused backend router tests `2`, Study Lab tests `9`, TypeScript, production build,
+  Ruff, and diff checks passed. Full backend/frontend regression evidence remains green;
+  Docker integration, provider probes, exact visual baselines, and broad acceptance remain
+  open.

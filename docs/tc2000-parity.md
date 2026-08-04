@@ -822,3 +822,8 @@ Industry drill-down rows now retain ETF-holdings classification lineage as well:
 coverage ratio, holdings composition date, and source/provenance are visible beside proxy
 counts. Missing classification or proxy data remains explicitly unavailable rather than
 being inferred from an industry name.
+
+Study Lab dataset controls now include an explicit `As of` timestamp. The backend clamps
+canonical bar materialization to that cutoff, rejects a cutoff before the requested start,
+and retains the normalized cutoff in the dataset manifest. This prevents future bars from
+entering historical studies and gives reruns a visible point-in-time boundary.

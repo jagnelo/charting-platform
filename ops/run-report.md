@@ -18287,3 +18287,8 @@ uncovered slice rather than repeat a generic completion claim.
 
 - Added ETF-holdings composition/freshness/provenance to industry drill-down rows and
   columns. TypeScript/build/diff passed; broad acceptance remains open.
+## 2026-08-04T12:06:00Z Study Lab point-in-time cutoff
+
+- Added the serializable Study Lab As-of timestamp and backend cutoff validation/materialization.
+  Focused router tests `2`, Study Lab tests `9`, TypeScript/build/Ruff/diff passed; broad
+  acceptance remains open.
