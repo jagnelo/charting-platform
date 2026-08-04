@@ -16617,3 +16617,13 @@ Next step: checkpoint the column clipboard slice, then continue the acceptance a
 
 Next step: run the full frontend regression, checkpoint this lineage slice, then continue
 the requirement-level audit.
+## Continuation update — 2026-08-04T11:34:00Z Provider policy documentation
+
+- Corrected `docs/data-providers.md` so its chain example and coverage table match the
+  free-source-first runtime defaults. yfinance is explicitly legacy/options-only; options,
+  futures, estimates, and analyst domains are capability stubs rather than fallbacks.
+- Added optional Massive/Alpha Vantage corroboration roles and aligned parity documentation.
+  JSON/YAML/diff checks remain clean; no live provider probe was claimed or run.
+
+Next step: checkpoint the provider documentation correction, then continue the acceptance
+audit with live-entitlement, backend integration, and remaining runtime gates.

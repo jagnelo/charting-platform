@@ -2,6 +2,12 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-04T11:34:00Z Provider policy documentation
+
+- Aligned provider documentation with free-source-first runtime defaults and explicit
+  yfinance legacy/options-only scope. Added optional corroboration roles and capability-stub
+  wording; JSON/YAML/diff checks passed, live provider probes remain separate.
+
 ## 2026-08-04T11:28:00Z Analysis lineage columns
 
 - Added canonical response-level coverage, freshness, and provenance columns to top-down
