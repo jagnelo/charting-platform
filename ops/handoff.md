@@ -1,5 +1,12 @@
 # Active Handoff
 
+## Continuation update — 2026-08-04T12:12:00Z Auth-bound WebSocket lifecycle
+
+- The application now connects alert WebSockets only while authenticated and disconnects on
+  logout, ensuring the token-scoped routing is actually used after login.
+- TypeScript, production build, store tests `31`, and diff checks passed; full backend `905` /
+  frontend `528` suites remain green. Docker integration and visual/broad acceptance remain open.
+
 ## Continuation update — 2026-08-04T12:08:00Z Alert payload compatibility
 
 - Normalized frontend alert handling to accept both `kind` and legacy `alert_kind` payload

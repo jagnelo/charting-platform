@@ -553,6 +553,8 @@ Unauthenticated legacy/test sockets retain only the explicitly broadcast compati
 production alert evaluators no longer broadcast one user's alert payload to every client.
 The frontend also accepts both the current `kind` and older `alert_kind` payload keys, so
 indicator notifications cannot be misclassified as price alerts during compatibility windows.
+The application now opens the socket only while the auth store is authenticated and closes it
+on logout, preventing an anonymous pre-login connection from surviving into the user session.
 
 The shared chart store applies the same generation boundary to instrument metadata,
 indicator configuration, OHLCV pages (including infinite-history backfill),

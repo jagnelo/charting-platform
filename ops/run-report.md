@@ -2,6 +2,11 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-04T12:12:00Z Auth-bound WebSocket lifecycle
+
+- Bound alert socket creation/destruction to authentication state. TypeScript/build, store
+  tests `31`, and diff checks passed; full prior suites remain green.
+
 ## 2026-08-04T12:08:00Z Alert payload compatibility
 
 - Accepted both current and legacy alert-kind payload keys. Store tests `31`, TypeScript/build,

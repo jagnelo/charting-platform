@@ -46,7 +46,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
+import { computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useChartStore } from '@/stores/chart'
@@ -59,9 +59,10 @@ const authStore   = useAuthStore()
 const chartStore  = useChartStore()
 const alertsStore = useAlertsStore()
 
-onMounted(() => {
-  alertsStore.connectWebSocket()
-})
+watch(() => authStore.isAuthenticated, (authenticated) => {
+  if (authenticated) alertsStore.connectWebSocket()
+  else alertsStore.disconnectWebSocket()
+}, { immediate: true })
 
 const isLegacyPage = computed(() => route.path.startsWith('/legacy/'))
 const userInitial  = computed(() => (authStore.user?.username?.[0] ?? '?').toUpperCase())
