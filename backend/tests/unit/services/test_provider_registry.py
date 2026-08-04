@@ -12,6 +12,21 @@ from app.providers.registry import (
 )
 
 
+def test_backend_env_example_keeps_yfinance_out_of_new_workstation_chains():
+    import json
+    from pathlib import Path
+
+    lines = Path(__file__).parents[3].joinpath(".env.example").read_text().splitlines()
+    seed_line = next(line for line in lines if line.startswith("PROVIDER_CHAIN_SEEDS="))
+    seeds = json.loads(seed_line.split("=", 1)[1])
+    assert seeds["option_chain"] == ["yfinance"]
+    assert all(
+        "yfinance" not in providers
+        for capability, providers in seeds.items()
+        if capability != "option_chain"
+    )
+
+
 class TestProviderRegistry:
     def test_new_workstation_defaults_are_free_source_first(self):
         assert get_default_market_data_provider().name == "alpaca"

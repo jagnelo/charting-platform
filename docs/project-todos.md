@@ -1667,7 +1667,7 @@ Why this was deferred:
 - It deserves a focused design and data-model pass rather than being smuggled in piecemeal under “alerts” or “paper trading.”
 
 ### 9. Activate paid providers for options data and forward earnings estimates
-Status: `Planned`
+Status: `In progress — full completion contract still open`
 
 Context:
 - The platform now has a full free-provider stack (Alpaca, FRED, Binance, CoinGecko, EDGAR)

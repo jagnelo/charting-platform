@@ -16750,5 +16750,5 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
   discovery, metadata, event, and search chains despite the runtime free-source-first
   settings. Those chains now match `Settings`; yfinance remains only in explicit option/
   legacy slots.
-- Backend provider-registry unit suite: `7 passed`; provider-seed JSON assertion and diff
+- Backend provider-registry unit suite: `8 passed`; provider-seed JSON assertion and diff
   checks passed.
