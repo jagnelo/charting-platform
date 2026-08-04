@@ -50,7 +50,6 @@ export interface FieldProvenance {
   source: string
   fetched_at?: string | null
   observed_at?: string | null
-  provider_symbol?: string | null
   selection_reason?: string | null
   quality_score?: number | null
   note?: string | null

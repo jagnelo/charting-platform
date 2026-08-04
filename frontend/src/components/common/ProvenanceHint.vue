@@ -21,7 +21,6 @@ const title = computed(() => {
     props.label ? `${props.label}` : 'Field provenance',
     `Source: ${p.source}`,
   ]
-  if (p.provider_symbol) lines.push(`Provider symbol: ${p.provider_symbol}`)
   if (p.observed_at) lines.push(`Observed: ${new Date(p.observed_at).toLocaleString()}`)
   if (p.fetched_at) lines.push(`Fetched: ${new Date(p.fetched_at).toLocaleString()}`)
   if (p.selection_reason) lines.push(`Reason: ${p.selection_reason}`)
