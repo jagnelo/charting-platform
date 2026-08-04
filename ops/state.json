@@ -5,7 +5,7 @@
     "worker_session_started_at": "2026-07-28T21:40:33Z",
     "worker_soft_stop_at": null,
   "last_handoff_at": "2026-08-04T12:04:00Z",
-    "last_commit": "917ee28b14d62fe518fb45f65fceb938c71a9a72 fix(alerts): preserve global scans before symbol selection",
+    "last_commit": "c963bda2b1bafb105e16862d13eb3002621554e7 fix(alerts): route notifications by authenticated user",
     "git_ready_to_commit": false,
     "validation": {
         "backend_lint": "passed (code validation including deterministic XNYS coverage calendar, restricted numerical facades, isolated research runner/resource restoration, screener, visual, analysis, research, OHLCV session model, and migration modules, 2026-08-03)",
