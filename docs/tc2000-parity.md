@@ -777,3 +777,10 @@ ranking fields. They are populated from the canonical analysis metadata rather t
 provider-specific frontend assumption, and remain visible as explicit unavailable values
 when a batch is not ready. The frontend contract accepts membership/version lineage for
 future detail panes; visual density and full backend/E2E acceptance remain open.
+
+Provider documentation is now aligned with the runtime entitlement policy: the default
+free-source-first chain is Alpaca/Alpha Vantage for permitted history, EDGAR/Alpaca for
+identity and events, and Massive/Alpha Vantage only for optional corroboration. yfinance
+is documented as an explicit legacy/options fallback only, and excluded options, analyst,
+earnings-estimate, and futures domains are capability stubs rather than new-workstation
+fallbacks. This is documentation/contract evidence, not live-provider probe evidence.

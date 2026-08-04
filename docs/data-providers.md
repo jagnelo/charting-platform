@@ -18,8 +18,10 @@ reflect `base_priority` seeding; the runtime's EWMA health scores refine orderin
 | binance    | Primary     | None                    | Free     |
 | coingecko  | Primary     | Free demo API key       | Free     |
 | edgar      | Primary     | None (User-Agent only)  | Free     |
-| yfinance   | Fallback    | None (unofficial)       | Free     |
+| yfinance   | Explicit legacy/options fallback only | None (unofficial) | Free, no SLA |
 | openfigi   | Supplementary | Optional API key      | Free     |
+| massive    | Optional reference corroboration | Optional API key | Free tier / quota |
+| alpha_vantage | Optional daily-history corroboration | Optional API key | Free tier / quota |
 
 ---
 
@@ -173,14 +175,14 @@ for time-sensitive intraday use.
 
 ---
 
-### Yahoo Finance (`yfinance`) — Fallback
+### Yahoo Finance (`yfinance`) — Explicit legacy/options fallback
 
-**Role**: Last-resort fallback for anything not covered by the primary providers.  
+**Role**: Opt-in compatibility provider for retained legacy/options or other explicitly configured capabilities. It is not part of any new-workstation default or acceptance path.
 **Auth**: None (unofficial library — no API key)  
 **Free tier**: ✓ (unofficial)
 
-**Capabilities**: All — search, metadata, OHLCV, latest price, events, identifiers, discovery,
-option chains
+**Capabilities**: Existing adapter surface includes search, metadata, OHLCV, latest price,
+events, identifiers, discovery, and option chains. Every value retains provider provenance.
 
 **Primary unique coverage**:
 - US and non-US options chains (the only free source)
@@ -234,11 +236,14 @@ FMP_API_KEY=                  # Financial Modeling Prep — fundamentals, forwar
 ## Provider Chain Defaults
 
 The default provider chain can be overridden per capability via `PROVIDER_CHAIN_SEEDS`
-(JSON dict in `.env.dev`).  Example that promotes Alpaca and Binance:
+(JSON dict in `.env.dev`). The free-source-first new-workstation baseline is:
 
 ```env
-PROVIDER_CHAIN_SEEDS={"price_history":["alpaca","binance","fred","yfinance"],"universe_discovery":["alpaca","binance","coingecko","yfinance"],"instrument_events":["alpaca","edgar","yfinance"],"instrument_metadata":["edgar","yfinance"],"instrument_search":["coingecko","yfinance"]}
+PROVIDER_CHAIN_SEEDS={"instrument_search":["edgar","alpaca","massive","alpha_vantage"],"instrument_metadata":["edgar"],"price_history":["alpaca","alpha_vantage"],"latest_price":["alpaca","alpha_vantage"],"instrument_events":["alpaca","edgar"],"universe_discovery":["alpaca","massive","alpha_vantage"]}
 ```
+
+Adding `yfinance` requires an explicit legacy/options deployment decision and must never
+silently broaden a new-workstation chain.
 
 Priority within a chain is refined at runtime by health scores (EWMA latency, success rate,
 completeness).  A provider that consistently fails for a given symbol class (e.g. Binance
@@ -250,20 +255,20 @@ receiving equity symbols) will be naturally deprioritised by the circuit-breaker
 
 | Data type                    | Primary provider  | Fallback        |
 |------------------------------|-------------------|-----------------|
-| US equity OHLCV              | alpaca            | yfinance        |
-| US equity universe discovery | alpaca            | yfinance        |
-| US splits + dividends        | alpaca            | yfinance        |
-| Crypto OHLCV                 | binance           | yfinance        |
-| Crypto universe discovery    | binance + coingecko | yfinance      |
-| Crypto metadata              | coingecko         | yfinance        |
-| Interest rates (RFR, yields) | fred              | yfinance        |
-| Major forex daily rates      | fred              | yfinance        |
+| US equity OHLCV              | alpaca            | alpha_vantage (quota-limited) |
+| US equity universe discovery | alpaca            | massive / alpha_vantage |
+| US splits + dividends        | alpaca            | edgar           |
+| Crypto OHLCV                 | binance           | —               |
+| Crypto universe discovery    | binance + coingecko | —             |
+| Crypto metadata              | coingecko         | —               |
+| Interest rates (RFR, yields) | fred              | —               |
+| Major forex daily rates      | fred              | —               |
 | Macro indicators             | fred              | —               |
-| US company profile           | edgar             | yfinance        |
-| Historical earnings dates    | edgar             | yfinance        |
-| US options chains            | yfinance          | *(gaps section)*|
-| Futures / commodities        | yfinance          | *(gaps section)*|
-| Forward earnings estimates   | yfinance          | *(gaps section)*|
-| Analyst price targets        | yfinance          | *(gaps section)*|
+| US company profile           | edgar             | —               |
+| Historical earnings dates    | edgar             | —               |
+| US options chains            | *(excluded)*      | *(capability stub)* |
+| Futures / commodities        | *(excluded)*      | *(capability stub)* |
+| Forward earnings estimates   | *(excluded)*      | *(capability stub)* |
+| Analyst price targets        | *(excluded)*      | *(capability stub)* |
 
 Remaining gaps are tracked in [project-todos.md](project-todos.md).
