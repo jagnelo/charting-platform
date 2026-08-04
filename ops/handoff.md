@@ -1,5 +1,12 @@
 # Active Handoff
 
+## Continuation update — 2026-08-04T22:10:00Z Performance and cleanup recheck
+
+- Re-ran the real-browser uPlot guard: `100,000` points and repeated zoom/pan updates
+  completed in `888ms` without replacing the chart element.
+- Ran the authorized periodic Docker cleanup; it reclaimed `0B` additional state and
+  left active branch services and named volumes intact.
+
 ## Continuation update — 2026-08-04T22:05:00Z Frontend query-boundary hardening
 
 - Hardened every remaining workstation `fetchQuery` boundary: empty Market Gauge,

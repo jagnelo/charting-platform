@@ -1,5 +1,12 @@
 # Run Report
 
+## 2026-08-04T22:10:00Z Performance and cleanup recheck
+
+- The real-browser uPlot guard rendered `100,000` points and completed repeated zoom/pan
+  updates in `888ms` without replacing the chart element.
+- The authorized periodic `docker system prune -af` completed with `0B` additional
+  reclaimable space; active branch services and named volumes remain intact.
+
 ## 2026-08-04T22:05:00Z Frontend query-boundary hardening
 
 - Closed the remaining workstation `fetchQuery` boundaries that could pass an empty
