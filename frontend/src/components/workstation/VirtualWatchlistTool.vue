@@ -32,7 +32,7 @@
     <p v-if="pythonConditionState" class="watchlist__condition-state">{{ pythonConditionState }}<button v-if="pythonRunIds.python_condition" type="button" aria-label="Cancel Python condition" @click="cancelPythonRun('python_condition')">Cancel</button></p>
     <div v-if="columnMenuOpen" class="watchlist__column-menu">
       <label v-for="column in effectiveColumns" :key="column.key" class="watchlist__column-editor-row" :class="{ 'watchlist__column-editor-row--dragging': draggedColumnKey === column.key }" draggable="true" @dragstart="dragColumn(column.key)" @dragover.prevent @drop.prevent="dropColumn(column.key)" @dragend="draggedColumnKey = null"><input type="checkbox" :checked="activeColumnKeys.includes(column.key)" @change="toggleColumn(column.key)" /><input class="watchlist__label-input" :aria-label="`${column.label} label`" :value="column.label" @change="setColumnOverride(column.key, { label: ($event.target as HTMLInputElement).value })" /><input class="watchlist__width-input" :aria-label="`${column.label} width`" :value="column.width ?? ''" placeholder="px/fr" @change="setColumnOverride(column.key, { width: ($event.target as HTMLInputElement).value })" /><button class="watchlist__order-button" type="button" :aria-label="`Move ${column.label} left`" :disabled="!canMoveColumn(column.key, -1)" @click="moveColumn(column.key, -1)">←</button><button class="watchlist__order-button" type="button" :aria-label="`Move ${column.label} right`" :disabled="!canMoveColumn(column.key, 1)" @click="moveColumn(column.key, 1)">→</button><input class="watchlist__group-input" :aria-label="`${column.label} group`" :value="columnGroups[column.key] ?? ''" placeholder="Group" @change="setColumnGroup(column.key, ($event.target as HTMLInputElement).value)" /><button class="watchlist__stack-button" type="button" :aria-pressed="stackedColumnKeys.includes(column.key)" @click="toggleStackedColumn(column.key)">Stack</button><button v-if="column.kind === 'boolean'" class="watchlist__pin-button" type="button" :aria-pressed="pinnedBooleanKeys.includes(column.key)" @click="togglePinnedBoolean(column.key)">Pin</button></label>
-      <div class="watchlist__python"><select v-model="selectedPythonVersion" aria-label="Python column asset"><option value="">Add Python column…</option><option v-for="asset in pythonAssets" :key="asset.versionId" :value="String(asset.versionId)">{{ asset.name }}</option></select><button type="button" :disabled="!selectedPythonVersion" @click="addPythonColumn">Add</button><template v-for="column in pythonColumns" :key="`progress-${column.code_version_id}`"><small v-if="pythonProgress[pythonKey(column.code_version_id)]">{{ column.name }} · {{ pythonProgress[pythonKey(column.code_version_id)] }}<button v-if="pythonRunIds[pythonKey(column.code_version_id)]" type="button" :aria-label="`Cancel ${column.name}`" @click="cancelPythonRun(pythonKey(column.code_version_id))">Cancel</button></small></template></div>
+      <div class="watchlist__python"><select v-model="selectedPythonVersion" aria-label="Python column asset"><option value="">Add Python column…</option><option v-for="asset in pythonAssets" :key="asset.versionId" :value="String(asset.versionId)">{{ asset.name }}</option></select><button type="button" :disabled="!selectedPythonVersion" @click="addPythonColumn">Add</button><label v-for="column in pythonColumns" :key="`timeframe-${column.code_version_id}`">{{ column.name }} <select :aria-label="`${column.name} timeframe`" :value="column.timeframe ?? timeframe" @change="setPythonColumnTimeframe(column.code_version_id, ($event.target as HTMLSelectElement).value)"><option v-for="option in timeframeOptions" :key="option.value" :value="option.value">{{ option.label }}</option></select></label><template v-for="column in pythonColumns" :key="`progress-${column.code_version_id}`"><small v-if="pythonProgress[pythonKey(column.code_version_id)]">{{ column.name }} · {{ pythonProgress[pythonKey(column.code_version_id)] }}<button v-if="pythonRunIds[pythonKey(column.code_version_id)]" type="button" :aria-label="`Cancel ${column.name}`" @click="cancelPythonRun(pythonKey(column.code_version_id))">Cancel</button></small></template></div>
     </div>
     <div v-if="columnSetMenuOpen" class="watchlist__column-set-menu" aria-label="Saved column sets">
       <input v-model.trim="columnSetName" aria-label="Column set name" placeholder="Column set name" @keydown.enter.prevent="saveColumnSet" />
@@ -161,7 +161,8 @@ const props = withDefaults(defineProps<{
   pinnedBooleanKeys?: string[]
   columnGroups?: Record<string, string>
   stackedColumnKeys?: string[]
-  pythonColumns?: Array<{ code_version_id: number; name: string }>
+  pythonColumns?: Array<{ code_version_id: number; name: string; timeframe?: string }>
+  timeframe?: string
   indicatorColumns?: Array<{ key: string; name: string; indicator: string; params: Record<string, unknown>; timeframe: string; output?: string }>
   indicatorValues?: Record<string, Record<string, number | null>>
   indicatorWarnings?: Record<string, Record<string, string | null>>
@@ -188,6 +189,7 @@ const props = withDefaults(defineProps<{
   columnGroups: () => ({}),
   stackedColumnKeys: () => [],
   pythonColumns: () => [],
+  timeframe: 'D1',
   indicatorColumns: () => [],
   indicatorValues: () => ({}),
   indicatorWarnings: () => ({}),
@@ -201,7 +203,7 @@ const props = withDefaults(defineProps<{
   membershipTargets: () => [],
   columnOverrides: () => ({}),
 })
-const emit = defineEmits<{ select: [row: WatchlistRow]; compare: [symbols: string[]]; reorder: [itemIds: number[]]; 'plot-drop': [payload: ChartPlotDragPayload]; 'condition-drop': [payload: TechnicalConditionDragPayload]; 'row-action': [action: 'chart' | 'compare' | 'note' | 'alert' | 'copy' | 'copy-to-watchlist' | 'move-to-watchlist' | 'flag' | 'remove', row: WatchlistRow, targetWatchlistId?: number]; 'update:visibleColumnKeys': [keys: string[]]; 'update:filterText': [value: string]; 'update:conditionScreenerId': [id: number | null]; 'update:conditionFilterMode': [mode: 'active' | 'inactive' | 'off']; 'update:pinnedBooleanKeys': [keys: string[]]; 'update:columnGroups': [groups: Record<string, string>]; 'update:stackedColumnKeys': [keys: string[]]; 'update:columnOverrides': [overrides: Record<string, { label?: string; width?: string }>]; 'update:pythonColumns': [columns: Array<{ code_version_id: number; name: string }>]; 'update:pythonCondition': [condition: { code_version_id: number; name: string; mode: 'active' | 'inactive' | 'off' } | null] }>()
+const emit = defineEmits<{ select: [row: WatchlistRow]; compare: [symbols: string[]]; reorder: [itemIds: number[]]; 'plot-drop': [payload: ChartPlotDragPayload]; 'condition-drop': [payload: TechnicalConditionDragPayload]; 'row-action': [action: 'chart' | 'compare' | 'note' | 'alert' | 'copy' | 'copy-to-watchlist' | 'move-to-watchlist' | 'flag' | 'remove', row: WatchlistRow, targetWatchlistId?: number]; 'update:visibleColumnKeys': [keys: string[]]; 'update:filterText': [value: string]; 'update:conditionScreenerId': [id: number | null]; 'update:conditionFilterMode': [mode: 'active' | 'inactive' | 'off']; 'update:pinnedBooleanKeys': [keys: string[]]; 'update:columnGroups': [groups: Record<string, string>]; 'update:stackedColumnKeys': [keys: string[]]; 'update:columnOverrides': [overrides: Record<string, { label?: string; width?: string }>]; 'update:pythonColumns': [columns: Array<{ code_version_id: number; name: string; timeframe?: string }>]; 'update:pythonCondition': [condition: { code_version_id: number; name: string; mode: 'active' | 'inactive' | 'off' } | null] }>()
 const scrollElement = ref<HTMLElement | null>(null)
 const filter = ref(props.filterText)
 const conditionFilter = ref(props.conditionScreenerId == null ? '' : String(props.conditionScreenerId))
@@ -242,6 +244,7 @@ const rowsGeneration = ref(0)
 const conditionRequestGeneration = ref(0)
 const pythonConditionRequestGeneration = ref(0)
 const pythonColumnRequestGenerations = new Map<number, number>()
+const timeframeOptions = [{ value: 'M15', label: '15m' }, { value: 'D1', label: 'Daily' }, { value: 'W1', label: 'Weekly' }, { value: 'MN', label: 'Monthly' }]
 const renderEpoch = ref(0)
 const pythonColumns = computed(() => props.pythonColumns.filter(column => Number.isInteger(column.code_version_id) && column.code_version_id > 0 && typeof column.name === 'string'))
 const indicatorColumns = computed(() => props.indicatorColumns.filter(column => typeof column.key === 'string' && column.key.startsWith('indicator:') && typeof column.name === 'string' && typeof column.indicator === 'string'))
@@ -435,7 +438,7 @@ async function cancelPythonRun(key: string) {
   try { await api.post(`/research/runs/${runId}/cancel`, {}) }
   catch (cause: any) { pythonProgress.value = { ...pythonProgress.value, [key]: cause?.message ?? 'Cancel failed' } }
 }
-async function runPythonColumn(column: { code_version_id: number; name: string }) {
+async function runPythonColumn(column: { code_version_id: number; name: string; timeframe?: string }) {
   if (runningPythonColumns.has(column.code_version_id)) return
   const symbols = [...new Set(props.rows.map(row => row.symbol).filter(Boolean))]
   if (!symbols.length) return
@@ -448,7 +451,8 @@ async function runPythonColumn(column: { code_version_id: number; name: string }
   pythonCells.value = { ...pythonCells.value, [key]: Object.fromEntries(symbols.map(symbol => [symbol, { error: 'Queued' }])) }
   pythonProgress.value = { ...pythonProgress.value, [key]: 'Queued' }
   try {
-    const run = await api.post<{ id: number }>('/research/runs', { code_version_id: column.code_version_id, run_config: { symbols }, dataset_manifest: { source: 'canonical_database' } })
+    const runTimeframe = column.timeframe ?? props.timeframe
+    const run = await api.post<{ id: number }>('/research/runs', { code_version_id: column.code_version_id, run_config: { symbols, timeframe: runTimeframe }, dataset_manifest: { source: 'canonical_database', timeframe: runTimeframe } })
     if (!isCurrent()) return
     pythonRunIds.value = { ...pythonRunIds.value, [key]: run.id }
     for (let attempt = 0; attempt < 30; attempt += 1) {
@@ -479,10 +483,16 @@ function addPythonColumn() {
   const versionId = Number(selectedPythonVersion.value)
   const asset = pythonAssets.value.find(item => item.versionId === versionId)
   if (!asset || pythonColumns.value.some(column => column.code_version_id === versionId)) return
-  const column = { code_version_id: versionId, name: asset.name }
+  const column = { code_version_id: versionId, name: asset.name, timeframe: props.timeframe }
   emit('update:pythonColumns', [...pythonColumns.value, column])
   selectedPythonVersion.value = ''
   void runPythonColumn(column)
+}
+function setPythonColumnTimeframe(codeVersionId: number, timeframe: string) {
+  const next = pythonColumns.value.map(column => column.code_version_id === codeVersionId ? { ...column, timeframe } : column)
+  emit('update:pythonColumns', next)
+  const changed = next.find(column => column.code_version_id === codeVersionId)
+  if (changed) void runPythonColumn(changed)
 }
 
 function configurePythonCondition(value: string) {

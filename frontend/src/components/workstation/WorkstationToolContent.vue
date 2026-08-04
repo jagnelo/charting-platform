@@ -8,6 +8,7 @@
       </div>
       <VirtualWatchlistTool
       label="Major US benchmarks"
+      :timeframe="activeTimeframe"
       :rows="benchmarkRows"
       :selected="activeSymbol"
       :visible-column-keys="configuredColumnKeys"
@@ -46,6 +47,7 @@
     <VirtualWatchlistTool
       v-else-if="tool.instance_key === 'sector-list'"
       label="Relative to SPY"
+      :timeframe="activeTimeframe"
       :rows="sectorRows"
       :selected="activeSymbol"
       :columns="sectorColumns"
@@ -129,6 +131,7 @@
       </div>
       <VirtualWatchlistTool
         v-if="selectedPersonalWatchlist || flaggedItemsSelected || selectedCombo"
+        :timeframe="activeTimeframe"
         :label="flaggedItemsSelected ? 'Flagged Items' : selectedCombo?.name ?? selectedPersonalWatchlist?.name ?? 'WatchList'"
         :rows="flaggedItemsSelected ? flaggedWatchlistRows : selectedCombo ? comboWatchlistRows : personalWatchlistRows"
         :selected="activeSymbol"
@@ -173,6 +176,7 @@
     <VirtualWatchlistTool
       v-else-if="tool.tool_type === 'watchlist'"
       :label="tool.title || 'WatchList'"
+      :timeframe="activeTimeframe"
       :rows="factoryWatchlistRows"
       :selected="tool.instance_key === 'industries' ? (selectedIndustry ?? '') : activeSymbol"
       :columns="factoryWatchlistColumns"
@@ -256,6 +260,7 @@
           <VirtualWatchlistTool
             class="industry-list__proxy-table"
             label="Verified proxy rankings"
+            :timeframe="activeTimeframe"
             :rows="proxyRows"
             :selected="selectedIndustryProxy ?? ''"
             :columns="proxyColumns"
@@ -302,6 +307,7 @@
     <VirtualWatchlistTool
       v-else-if="tool.instance_key === 'constituent-list'"
       :label="constituentLabel"
+      :timeframe="activeTimeframe"
       :rows="constituentRows"
       :selected="activeSymbol"
       :columns="constituentColumns"
@@ -1207,7 +1213,7 @@ const configuredColumnOverrides = computed(() => {
   })) as Record<string, { label?: string; width?: string }>
 })
 const configuredPythonColumns = computed(() => Array.isArray(props.tool.configuration.python_columns)
-  ? props.tool.configuration.python_columns.filter((column): column is { code_version_id: number; name: string } => Boolean(column) && typeof column === 'object' && Number.isInteger((column as Record<string, unknown>).code_version_id) && typeof (column as Record<string, unknown>).name === 'string')
+  ? props.tool.configuration.python_columns.filter((column): column is { code_version_id: number; name: string; timeframe?: string } => Boolean(column) && typeof column === 'object' && Number.isInteger((column as Record<string, unknown>).code_version_id) && typeof (column as Record<string, unknown>).name === 'string' && (typeof (column as Record<string, unknown>).timeframe === 'undefined' || typeof (column as Record<string, unknown>).timeframe === 'string'))
   : [])
 const configuredIndicatorColumns = computed(() => Array.isArray(props.tool.configuration.indicator_columns)
   ? props.tool.configuration.indicator_columns.filter((column): column is { key: string; name: string; indicator: string; params: Record<string, unknown>; timeframe: string; output?: string } => Boolean(column) && typeof column === 'object' && typeof (column as Record<string, unknown>).key === 'string' && typeof (column as Record<string, unknown>).name === 'string' && typeof (column as Record<string, unknown>).indicator === 'string' && typeof (column as Record<string, unknown>).params === 'object' && typeof (column as Record<string, unknown>).timeframe === 'string')

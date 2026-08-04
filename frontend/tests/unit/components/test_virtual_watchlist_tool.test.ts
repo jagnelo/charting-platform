@@ -477,10 +477,10 @@ describe('VirtualWatchlistTool', () => {
     await vi.waitFor(() => expect(wrapper.find('select[aria-label="Python column asset"]').exists()).toBe(true))
     await wrapper.find('select[aria-label="Python column asset"]').setValue('77')
     await wrapper.findAll('.watchlist__python button')[0].trigger('click')
-    await vi.waitFor(() => expect(wrapper.emitted('update:pythonColumns')?.at(-1)).toEqual([[{ code_version_id: 77, name: 'Last close v1' }]]))
-    await wrapper.setProps({ pythonColumns: [{ code_version_id: 77, name: 'Last close v1' }] })
+    await vi.waitFor(() => expect(wrapper.emitted('update:pythonColumns')?.at(-1)).toEqual([[{ code_version_id: 77, name: 'Last close v1', timeframe: 'D1' }]]))
+    await wrapper.setProps({ pythonColumns: [{ code_version_id: 77, name: 'Last close v1', timeframe: 'D1' }] })
     await vi.waitFor(() => expect(wrapper.text()).toContain('9.5000'))
-    expect(apiPost).toHaveBeenCalledWith('/research/runs', expect.objectContaining({ code_version_id: 77, run_config: { symbols: ['XLK', 'XLE', 'XLV'] } }))
+    expect(apiPost).toHaveBeenCalledWith('/research/runs', expect.objectContaining({ code_version_id: 77, run_config: { symbols: ['XLK', 'XLE', 'XLV'], timeframe: 'D1' } }))
   })
 
   it('runs a persisted Boolean Python condition as a watchlist filter without changing saved screener state', async () => {

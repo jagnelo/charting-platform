@@ -137,6 +137,12 @@ the component is covered by focused lifecycle and interaction tests. Editing alw
 a new validated version and never mutates an existing source record. New assets select a
 surface kind and send the corresponding output contract through the same canonical API.
 
+Python watchlist columns now carry an explicit serializable timeframe (defaulting to the
+owning watchlist's linked timeframe when first added). The column editor exposes the
+timeframe selector, reruns the isolated prepared-universe batch after a change, and sends
+the selected timeframe in both `run_config` and the dataset manifest; restored columns
+without a timeframe remain backward-compatible through the linked-timeframe default.
+
 The relative-rotation uPlot surface now updates `setData`/`setSize` in place during
 resize and data refresh; it destroys the chart only during component teardown. A
 dedicated regression test proves repeated resize callbacks do not create additional

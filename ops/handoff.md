@@ -1,5 +1,12 @@
 # Active Handoff
 
+## Continuation update — 2026-08-04T10:32:00Z
+
+- Python watchlist columns now persist and expose an explicit timeframe, default to the
+  owning linked timeframe, and include that value in prepared-universe research runs.
+- Focused VirtualWatchlistTool coverage passed `36`; TypeScript passed. Visual approval
+  and the broader acceptance gates remain open.
+
 ## Continuation update — 2026-08-04T10:08:00Z
 
 - Added typed new-asset creation to the dockable Python Library. The selected surface kind

@@ -2,6 +2,13 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-04T10:32:00Z Python column timeframe contract
+
+- Added per-column timeframe controls and persistence for Python watchlist columns;
+  changing the timeframe reruns the isolated batch with explicit dataset controls.
+- VirtualWatchlistTool suite passed `36`; TypeScript passed. Exact-build visual approval
+  and the complete acceptance matrix remain open.
+
 ## 2026-08-04T10:08:00Z Python Library asset creation
 
 - Added a typed new-asset form to the Python Library for study, plot, column, condition,
