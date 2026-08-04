@@ -131,6 +131,26 @@ def test_code_asset_kind_and_declared_output_contract_must_match(client, auth_he
     assert valid_condition.status_code == 201
 
 
+def test_code_asset_rejects_defaults_that_violate_its_parameter_schema(client, auth_headers):
+    response = client.post(
+        "/api/v1/code/assets",
+        headers=auth_headers,
+        json={
+            "stable_key": "invalid-default-study",
+            "name": "Invalid defaults",
+            "kind": "study",
+            "initial_version": {
+                "source": "output.scalar('lookback', parameters['lookback'])",
+                "output_contract": "study",
+                "parameter_schema": {"properties": {"lookback": {"type": "integer", "minimum": 1}}},
+                "default_parameters": {"lookback": 0},
+            },
+        },
+    )
+    assert response.status_code == 422
+    assert response.json()["detail"]["code"] == "parameter_validation_failed"
+
+
 def test_research_run_is_queued_for_isolated_runner(client, auth_headers, tmp_path, monkeypatch):
     monkeypatch.setattr(
         "app.services.research_jobs.settings.RESEARCH_JOB_DIR", str(tmp_path / "jobs")

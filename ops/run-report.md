@@ -2,6 +2,14 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-04T05:36:00Z Immutable parameter defaults
+
+- Asset creation/import/version endpoints now reject defaults that violate an immutable
+  code version's declared parameter schema.
+- Parameter unit suite passed `2`; Docker-backed code/research integration passed `17`;
+  Ruff and diff checks passed. Exact-build visual approval and the complete acceptance
+  matrix remain open.
+
 ## 2026-08-04T05:08:00Z Full SDK editor verification
 
 - Complete frontend Vitest passed `515` tests across `84` files after bounded Study Lab

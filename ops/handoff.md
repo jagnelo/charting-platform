@@ -1,5 +1,12 @@
 # Active Handoff
 
+## Continuation update — 2026-08-04T05:36:00Z
+
+- Extended parameter-schema enforcement to immutable asset creation, import, and new
+  version APIs; invalid defaults can no longer enter the code library.
+- Parameter unit coverage passed `2`, Docker-backed code/research integration passed `17`,
+  and Ruff/diff checks pass. Visual approval and the broad acceptance gates remain open.
+
 ## Continuation update — 2026-08-04T05:08:00Z
 
 - Re-ran the complete frontend suite after SDK autocomplete/reference additions: `515`

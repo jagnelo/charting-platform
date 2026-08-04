@@ -21,6 +21,7 @@ from app.schemas.code import (
     CodeVersionOut,
 )
 from app.services.code_validation import validate_workstation_python
+from app.services.parameter_validation import validate_parameter_values
 
 router = APIRouter(prefix="/code", tags=["code"])
 
@@ -50,6 +51,12 @@ def _validate_asset_contract(kind: str, body: CodeVersionCreate, validation) -> 
                 "observed": list(validation.output_contracts),
             },
         )
+
+
+def _validate_parameter_contract(body: CodeVersionCreate) -> None:
+    errors = validate_parameter_values(body.parameter_schema, body.default_parameters)
+    if errors:
+        raise HTTPException(status_code=422, detail={"code": "parameter_validation_failed", "errors": errors})
 
 
 def _asset_query():
@@ -87,6 +94,7 @@ async def import_asset(
         if not validation.valid:
             raise HTTPException(status_code=422, detail={"code": "code_validation_failed", "version_number": number, "diagnostics": [item.__dict__ for item in validation.diagnostics]})
         _validate_asset_contract(body.kind, version_body, validation)
+        _validate_parameter_contract(version_body)
         asset.versions.append(_version_from_input(version_body, number, validation))
     db.add(asset)
     try:
@@ -104,6 +112,7 @@ async def create_asset(
     if not validation.valid:
         raise HTTPException(status_code=422, detail={"code": "code_validation_failed", "diagnostics": [item.__dict__ for item in validation.diagnostics]})
     _validate_asset_contract(body.kind, body.initial_version, validation)
+    _validate_parameter_contract(body.initial_version)
     asset = CodeAsset(user_id=current_user.id, stable_key=body.stable_key, name=body.name.strip(), kind=body.kind)
     asset.versions.append(_version_from_input(body.initial_version, 1, validation))
     db.add(asset)
@@ -174,6 +183,7 @@ async def create_version(
     if not validation.valid:
         raise HTTPException(status_code=422, detail={"code": "code_validation_failed", "diagnostics": [item.__dict__ for item in validation.diagnostics]})
     _validate_asset_contract(asset.kind, body, validation)
+    _validate_parameter_contract(body)
     next_version = (await db.execute(select(func.max(CodeVersion.version_number)).where(CodeVersion.code_asset_id == asset.id))).scalar_one() or 0
     version = _version_from_input(body, next_version + 1, validation)
     asset.versions.append(version)
