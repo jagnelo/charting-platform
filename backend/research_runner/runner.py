@@ -373,6 +373,26 @@ class _Output:
     def table(self, name: str, value: object) -> None:
         self._store(name, {"type": "table", "value": _materialize(value)})
 
+    def bar(self, name: str, labels: object, values: object) -> None:
+        """Emit a bounded categorical/numeric bar series for Study Lab renderers."""
+        raw_labels = _materialize(labels)
+        raw_values = _materialize(values)
+        if not isinstance(raw_labels, list | tuple) or not isinstance(raw_values, list | tuple):
+            raise ValueError("bar labels and values must be lists")
+        if len(raw_labels) != len(raw_values) or not raw_labels:
+            raise ValueError("bar labels and values must be non-empty and have the same length")
+        normalized_values = [
+            float(value)
+            for value in raw_values
+            if isinstance(value, int | float) and not isinstance(value, bool) and math.isfinite(float(value))
+        ]
+        if len(normalized_values) != len(raw_values):
+            raise ValueError("bar values must be finite numbers")
+        normalized_labels = [str(label) for label in raw_labels]
+        if any(not label or len(label) > 128 for label in normalized_labels):
+            raise ValueError("bar labels must be non-empty strings of at most 128 characters")
+        self._store(name, {"type": "bar", "value": {"labels": normalized_labels, "values": normalized_values}})
+
     def histogram(self, name: str, value: object, bins: int = 8, current: object = None) -> None:
         """Emit a deterministic numeric distribution for Study Lab renderers."""
         value = _materialize(value)
@@ -408,6 +428,34 @@ class _Output:
             "type": "histogram",
             "value": {"bins": bucket_rows, "sample_size": len(numeric), "min": minimum, "max": maximum, "current": current},
         })
+
+    def range(self, name: str, lower: object, upper: object, center: object = None) -> None:
+        """Emit aligned lower/upper bands with an optional center series."""
+        lower_values = _materialize(lower)
+        upper_values = _materialize(upper)
+        center_values = _materialize(center) if center is not None else None
+        if not isinstance(lower_values, list | tuple) or not isinstance(upper_values, list | tuple):
+            raise ValueError("range bounds must be lists")
+        if len(lower_values) == 0 or len(lower_values) != len(upper_values):
+            raise ValueError("range bounds must be non-empty and have the same length")
+        if center_values is not None and (not isinstance(center_values, list | tuple) or len(center_values) != len(lower_values)):
+            raise ValueError("range center must match the bound length")
+        def finite_values(values: list | tuple) -> list[float]:
+            if not all(isinstance(value, int | float) and not isinstance(value, bool) and math.isfinite(float(value)) for value in values):
+                raise ValueError("range values must be finite numbers")
+            return [float(value) for value in values]
+        normalized_lower = finite_values(lower_values)
+        normalized_upper = finite_values(upper_values)
+        normalized_center = finite_values(center_values) if center_values is not None else None
+        timestamps = self.dataset.get("timestamps")
+        if not isinstance(timestamps, list) or len(timestamps) != len(normalized_lower):
+            timestamps = [str(index) for index in range(len(normalized_lower))]
+        self._store(name, {"type": "range", "value": {
+            "timestamps": [str(timestamp) for timestamp in timestamps],
+            "lower": normalized_lower,
+            "upper": normalized_upper,
+            "center": normalized_center,
+        }})
 
     def scatter(self, name: str, x: object, y: object) -> None:
         """Emit a bounded numeric x/y point cloud for uPlot rendering."""

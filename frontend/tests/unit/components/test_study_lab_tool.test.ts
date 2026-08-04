@@ -4,8 +4,10 @@ import { describe, expect, it, vi } from 'vitest'
 
 const { apiGet, apiPost } = vi.hoisted(() => ({ apiGet: vi.fn(), apiPost: vi.fn() }))
 vi.mock('@/lib/api', () => ({ api: { get: apiGet, post: apiPost } }))
+vi.mock('@/components/workstation/StudyBarsUPlot.vue', () => ({ default: { template: '<div class="bars-chart" />', props: ['name', 'labels', 'values'] } }))
 vi.mock('@/components/workstation/StudySeriesUPlot.vue', () => ({ default: { template: '<div class="series-chart" />', props: ['name', 'timestamps', 'values'] } }))
 vi.mock('@/components/workstation/StudyHistogramUPlot.vue', () => ({ default: { template: '<div class="histogram-chart" />', props: ['name', 'bins', 'current'] } }))
+vi.mock('@/components/workstation/StudyRangeUPlot.vue', () => ({ default: { template: '<div class="range-chart" />', props: ['name', 'timestamps', 'lower', 'upper', 'center'] } }))
 vi.mock('@/components/workstation/StudyScatterUPlot.vue', () => ({ default: { template: '<div class="scatter-chart" />', props: ['name', 'x', 'y'] } }))
 vi.mock('@/components/workstation/StudyHeatmap.vue', () => ({ default: { template: '<div class="heatmap-chart" />', props: ['name', 'rows', 'columns', 'values'] } }))
 vi.mock('@/components/workstation/StudyDashboard.vue', () => ({ default: { template: '<div class="dashboard-chart" />', props: ['name', 'panels', 'artifacts'] } }))
@@ -43,7 +45,7 @@ describe('StudyLabTool', () => {
 
   it('validates, starts an immutable isolated study run, and renders artifacts', async () => {
     apiPost.mockImplementation((path: string) => {
-      if (path === '/code/validate') return Promise.resolve({ valid: true, diagnostics: [], dependencies: ['stats', 'output'], lookback_hint: 1, output_contracts: ['histogram', 'scatter', 'scalar', 'table'] })
+      if (path === '/code/validate') return Promise.resolve({ valid: true, diagnostics: [], dependencies: ['stats', 'output'], lookback_hint: 1, output_contracts: ['bar', 'histogram', 'range', 'scatter', 'scalar', 'table'] })
       if (path === '/code/assets') return Promise.resolve({ versions: [{ id: 42 }] })
       if (path === '/research/runs') return Promise.resolve({ id: 9, status: 'completed', reproducibility_hash: 'sha256:test', artifacts: [
         { id: 3, name: 'current_streak', artifact_type: 'scalar', payload: { value: 4 } },
@@ -51,6 +53,8 @@ describe('StudyLabTool', () => {
         { id: 7, name: 'qualifies', artifact_type: 'boolean', payload: { value: true } },
         { id: 4, name: 'completed_streaks', artifact_type: 'table', payload: { value: [{ length: 2, end_timestamp: '2026-01-03' }] } },
         { id: 5, name: 'trend', artifact_type: 'series', payload: { value: { timestamps: ['2026-01-01', '2026-01-02'], values: [null, 11] } } },
+        { id: 13, name: 'ranking', artifact_type: 'bar', payload: { value: { labels: ['XLK', 'XLE'], values: [12, -3] } } },
+        { id: 14, name: 'confidence', artifact_type: 'range', payload: { value: { timestamps: ['2026-01-01', '2026-01-02'], lower: [1, 2], upper: [3, 4], center: [2, 3] } } },
         { id: 6, name: 'signals', artifact_type: 'events', payload: { value: [{ symbol: 'SPY', timestamp: '2026-01-02', kind: 'positive_close' }] } },
         { id: 8, name: 'distribution', artifact_type: 'histogram', payload: { value: { bins: [{ start: 1, end: 2, count: 1 }], sample_size: 1 } } },
         { id: 10, name: 'relationship', artifact_type: 'scatter', payload: { value: { x: [1, 2], y: [2, 4] } } },
@@ -86,7 +90,9 @@ describe('StudyLabTool', () => {
     expect(wrapper.text()).toContain('completed_streaks')
     expect(wrapper.find('table').text()).toContain('end_timestamp')
     expect(wrapper.find('.series-chart').exists()).toBe(true)
+    expect(wrapper.find('.bars-chart').exists()).toBe(true)
     expect(wrapper.find('.histogram-chart').exists()).toBe(true)
+    expect(wrapper.find('.range-chart').exists()).toBe(true)
     expect(wrapper.find('.scatter-chart').exists()).toBe(true)
     expect(wrapper.find('.heatmap-chart').exists()).toBe(true)
     expect(wrapper.find('.dashboard-chart').exists()).toBe(true)

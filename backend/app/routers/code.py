@@ -31,7 +31,7 @@ _ASSET_CONTRACTS = {
     "condition": {"boolean"},
     "signal": {"boolean", "events"},
     # Study Lab is intentionally the only polymorphic/artifact-producing surface.
-    "study": {"scalar", "series", "boolean", "events", "table", "histogram", "scatter", "heatmap", "dashboard", "study"},
+    "study": {"scalar", "series", "boolean", "events", "table", "bar", "histogram", "range", "scatter", "heatmap", "dashboard", "study"},
 }
 
 

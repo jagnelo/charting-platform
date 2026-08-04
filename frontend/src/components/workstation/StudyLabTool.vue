@@ -41,7 +41,7 @@
       <span><b>ta</b>: sma, ema, rsi, atr, highest, lowest, rate_of_change</span>
       <span><b>stats</b>: streaks, ranks, percentiles, rolling, correlation, regression, distributions</span>
       <span><b>research</b>: forward_returns, occurrences, regimes, breadth, historical comparisons</span>
-      <span><b>output</b>: scalar, boolean, series, table, events, histogram, scatter, heatmap, dashboard</span>
+      <span><b>output</b>: scalar, boolean, series, table, events, bar, histogram, range, scatter, heatmap, dashboard</span>
     </details>
     <section v-if="validation" class="study-lab-tool__validation" :class="{ 'study-lab-tool__validation--bad': !validation.valid }">
       <strong>{{ validation.valid ? 'Validated for isolated execution' : 'Validation errors' }}</strong>
@@ -64,7 +64,9 @@
         <strong>{{ artifact.name }}</strong><small>{{ artifact.artifact_type }}</small>
         <table v-if="artifact.artifact_type === 'table' && tableRows(artifact).length"><thead><tr><th v-for="column in tableColumns(artifact)" :key="column">{{ column }}</th></tr></thead><tbody><tr v-for="(row, index) in tableRows(artifact)" :key="index"><td v-for="column in tableColumns(artifact)" :key="column">{{ formatCell(row[column]) }}</td></tr></tbody></table>
         <StudySeriesUPlot v-else-if="artifact.artifact_type === 'series' && seriesData(artifact)" :name="artifact.name" :timestamps="seriesData(artifact)!.timestamps" :values="seriesData(artifact)!.values" />
+        <StudyBarsUPlot v-else-if="artifact.artifact_type === 'bar' && barData(artifact)" :name="artifact.name" :labels="barData(artifact)!.labels" :values="barData(artifact)!.values" />
         <StudyHistogramUPlot v-else-if="artifact.artifact_type === 'histogram' && histogramData(artifact)" :name="artifact.name" :bins="histogramData(artifact)!.bins" :current="histogramData(artifact)!.current" />
+        <StudyRangeUPlot v-else-if="artifact.artifact_type === 'range' && rangeData(artifact)" :name="artifact.name" :timestamps="rangeData(artifact)!.timestamps" :lower="rangeData(artifact)!.lower" :upper="rangeData(artifact)!.upper" :center="rangeData(artifact)!.center" />
         <StudyScatterUPlot v-else-if="artifact.artifact_type === 'scatter' && scatterData(artifact)" :name="artifact.name" :x="scatterData(artifact)!.x" :y="scatterData(artifact)!.y" />
         <StudyHeatmap v-else-if="artifact.artifact_type === 'heatmap' && heatmapData(artifact)" :name="artifact.name" :rows="heatmapData(artifact)!.rows" :columns="heatmapData(artifact)!.columns" :values="heatmapData(artifact)!.values" />
         <StudyDashboard v-else-if="artifact.artifact_type === 'dashboard' && dashboardData(artifact)" :name="artifact.name" :panels="dashboardData(artifact)!" :artifacts="run?.artifacts ?? []" @occurrence="emit('occurrence', $event)" />
@@ -82,9 +84,11 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useQuery } from '@tanstack/vue-query'
 import { api } from '@/lib/api'
+import StudyBarsUPlot from './StudyBarsUPlot.vue'
 import StudyHistogramUPlot from './StudyHistogramUPlot.vue'
 import StudyHeatmap from './StudyHeatmap.vue'
 import StudyDashboard from './StudyDashboard.vue'
+import StudyRangeUPlot from './StudyRangeUPlot.vue'
 import StudyScatterUPlot from './StudyScatterUPlot.vue'
 import StudySeriesUPlot from './StudySeriesUPlot.vue'
 
@@ -129,6 +133,8 @@ const editorSuggestionCatalog = [
   { prefix: 'research', insert: 'research.forward_returns(dataset, indices, [1, 5, 20])', signature: 'dataset, events, horizons' },
   { prefix: 'output', insert: "output.scalar('name', value)", signature: 'name, value' },
   { prefix: 'output', insert: "output.series('name', values)", signature: 'name, values' },
+  { prefix: 'output', insert: "output.bar('name', labels, values)", signature: 'labels, values' },
+  { prefix: 'output', insert: "output.range('name', lower, upper, center)", signature: 'lower, upper, center?' },
   { prefix: 'output', insert: "output.table('name', rows)", signature: 'name, rows' },
 ]
 const busy = ref(false)
@@ -286,6 +292,20 @@ function seriesData(artifact: Artifact): { timestamps: string[]; values: Array<n
   const candidate = value as { timestamps?: unknown; values?: unknown }
   if (!Array.isArray(candidate.timestamps) || !candidate.timestamps.every(item => typeof item === 'string') || !Array.isArray(candidate.values) || candidate.timestamps.length !== candidate.values.length || !candidate.values.every(item => item == null || typeof item === 'number')) return null
   return { timestamps: candidate.timestamps, values: candidate.values }
+}
+function barData(artifact: Artifact): { labels: string[]; values: number[] } | null {
+  const value = artifact.payload.value
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null
+  const candidate = value as { labels?: unknown; values?: unknown }
+  return Array.isArray(candidate.labels) && candidate.labels.every(item => typeof item === 'string') && Array.isArray(candidate.values) && candidate.labels.length === candidate.values.length && candidate.values.every(item => typeof item === 'number' && Number.isFinite(item)) ? { labels: candidate.labels, values: candidate.values } : null
+}
+function rangeData(artifact: Artifact): { timestamps: string[]; lower: number[]; upper: number[]; center: number[] | null } | null {
+  const value = artifact.payload.value
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null
+  const candidate = value as { timestamps?: unknown; lower?: unknown; upper?: unknown; center?: unknown }
+  if (!Array.isArray(candidate.timestamps) || !candidate.timestamps.every(item => typeof item === 'string') || !Array.isArray(candidate.lower) || !Array.isArray(candidate.upper) || candidate.lower.length !== candidate.upper.length || candidate.timestamps.length !== candidate.lower.length || !candidate.lower.every(item => typeof item === 'number' && Number.isFinite(item)) || !candidate.upper.every(item => typeof item === 'number' && Number.isFinite(item))) return null
+  const center = candidate.center == null ? null : Array.isArray(candidate.center) && candidate.center.length === candidate.lower.length && candidate.center.every(item => typeof item === 'number' && Number.isFinite(item)) ? candidate.center : null
+  return { timestamps: candidate.timestamps, lower: candidate.lower, upper: candidate.upper, center }
 }
 function histogramData(artifact: Artifact): { bins: Array<{ start: number; end: number; count: number }>; current: number | null } | null {
   const value = artifact.payload.value

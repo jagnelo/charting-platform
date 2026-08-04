@@ -284,6 +284,36 @@ def test_runner_emits_typed_histogram_for_study_distributions():
     }
 
 
+def test_runner_emits_typed_categorical_bars_for_study_rankings():
+    result = execute_job(
+        {"source": "output.bar('ranking', ['XLK', 'XLE'], [12.5, -3])", "dataset": {}}
+    )
+    assert result["status"] == "completed"
+    assert result["artifacts"]["ranking"] == {
+        "type": "bar",
+        "value": {"labels": ["XLK", "XLE"], "values": [12.5, -3.0]},
+    }
+
+
+def test_runner_emits_typed_range_band_with_aligned_timestamps():
+    result = execute_job(
+        {
+            "source": "output.range('band', [1, 2], [3, 4], [2, 3])",
+            "dataset": {"timestamps": ["2026-01-01", "2026-01-02"]},
+        }
+    )
+    assert result["status"] == "completed"
+    assert result["artifacts"]["band"] == {
+        "type": "range",
+        "value": {
+            "timestamps": ["2026-01-01", "2026-01-02"],
+            "lower": [1.0, 2.0],
+            "upper": [3.0, 4.0],
+            "center": [2.0, 3.0],
+        },
+    }
+
+
 def test_runner_emits_typed_scatter_points_for_study_relationships():
     result = execute_job(
         {"source": "output.scatter('relationship', [1, 2, 3], [2, 4, 9])", "dataset": {}}
