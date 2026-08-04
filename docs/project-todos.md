@@ -4253,6 +4253,11 @@ Structured native result types:
 - summary-statistics tables;
 - multi-panel dashboards composed from these types.
 
+Implementation checkpoint: the unified runner now exposes typed `output.bar(...)` and
+`output.range(...)` methods for the numeric/categorical-bar and lower/upper-band contracts.
+The active Study Lab, persisted Research Results, and dashboard surfaces render both through
+uPlot-backed components, with finite-value/dimension validation and no user-supplied UI code.
+
 uPlot plus platform-owned plugins renders every axes-based numeric result. Vue/HTML
 renders tables, metric cards, and layout. Do not add a second chart library and do not
 allow study-authored HTML, CSS, JavaScript, or frontend components.

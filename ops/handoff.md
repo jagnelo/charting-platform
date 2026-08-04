@@ -16340,3 +16340,12 @@
 - Focused Study Lab promotion coverage `5 passed`; full frontend Vitest `519` across `84`
   files, TypeScript, production build, and diff checks passed. Strict V25 visual approval
   and the broader functional/security/performance acceptance matrix remain open.
+## 2026-08-04T15:05:00Z Study Lab native bar/range checkpoint
+
+- Added typed unified-Python `output.bar(...)` and `output.range(...)` study artifacts with
+  finite-value and dimension validation. Active Study Lab, persisted Research Results, and
+  dashboard surfaces now render categorical/numeric bars and lower/upper bands through new
+  uPlot components with in-place updates and teardown.
+- Backend focused validation/research-runner tests `49 passed`; Ruff passed. Frontend
+  focused Study Lab tests `5 passed`, full Vitest `519` across `84` files, TypeScript, and
+  production build passed. Strict V25 visual approval and broad acceptance remain open.

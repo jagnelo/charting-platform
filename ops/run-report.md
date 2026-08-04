@@ -18049,3 +18049,11 @@ uncovered slice rather than repeat a generic completion claim.
 - Validation: focused Study Lab `5 passed`; full frontend Vitest `519` across `84` files,
   TypeScript, production build, and diff checks passed. Exact V25 visual references and
   the remaining broad acceptance matrix remain required.
+## 2026-08-04T15:05:00Z Study Lab native bar/range checkpoint
+
+- Added typed `output.bar(...)` and `output.range(...)` contracts to the isolated runner,
+  including finite/dimension checks and native uPlot renderers in active/persisted Study
+  Lab result surfaces and dashboards.
+- Validation: backend code-validation/research-runner `49 passed`, Ruff passed; focused
+  Study Lab `5 passed`; full frontend Vitest `519` across `84` files; TypeScript and
+  production build passed. Strict V25 visual approval and full acceptance remain open.

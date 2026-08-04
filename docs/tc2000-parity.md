@@ -34,6 +34,12 @@ approved Version 25 references exist.
 The shared Python validator and Study asset contract now recognize `scatter` and
 `heatmap` output methods, so these structured artifacts survive validation and can be
 reused from the same unified language rather than being runner-only extensions.
+Study Lab structured outputs now also include typed categorical/numeric `bar` artifacts
+and aligned lower/upper `range` bands with an optional center series. The isolated runner
+validates finite values and dimensions, persists the native payload, and the active Study
+Lab, persisted Research Results, and dashboard renderers display them through uPlot
+components with in-place updates and teardown. This completes the remaining first-pass
+native bar/range result contracts; visual acceptance still requires approved V25 baselines.
 
 Historical chart pagination now uses a bounded, timeframe-aware repair window when the
 local page is short. It anchors the request at the oldest cached bar (or a minimum cold
