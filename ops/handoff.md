@@ -1,5 +1,13 @@
 # Active Handoff
 
+## Continuation update — 2026-08-04T04:18:00Z
+
+- Closed the Study Lab persistence hole: editing or clearing its parameter schema now
+  emits the serializable workspace-window configuration, and restored configuration
+  hydrates it back into the generated controls.
+- Focused Study Lab coverage remains `3` passing tests; TypeScript and diff checks pass.
+  Visual approval and the broader acceptance gates remain open.
+
 ## Continuation update — 2026-08-04T03:58:00Z
 
 - Re-ran the complete frontend suite after schema-driven Study Lab controls: `514` tests

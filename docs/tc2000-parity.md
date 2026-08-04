@@ -106,6 +106,8 @@ and rejects invalid runs before dataset materialization or sandbox enqueue.
 Study Lab now exposes the same schema as generated controls, converts numeric and boolean
 values before creating the immutable code version, and sends the resulting typed parameter
 map with the run. The schema remains serializable in the workspace configuration boundary.
+Editing or clearing the schema immediately updates that persisted window configuration, so
+floating, reloading, or restoring the Study Lab does not silently discard its controls.
 
 Unified Python assets now have lifecycle contracts for complete export/import, immutable
 version-preserving clone, and reversible archive/unarchive operations. Each imported or

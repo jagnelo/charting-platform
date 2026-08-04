@@ -141,6 +141,8 @@ watch(() => props.configuration, configuration => {
   else if (typeof configuration?.start_date === 'string') startDate.value = configuration.start_date
   if (configuration && !('end_date' in configuration)) endDate.value = ''
   else if (typeof configuration?.end_date === 'string') endDate.value = configuration.end_date
+  if (configuration && !('parameter_schema' in configuration)) parameterSchemaText.value = ''
+  else if (typeof configuration?.parameter_schema === 'string') parameterSchemaText.value = configuration.parameter_schema
 }, { deep: true })
 watch([timeframe, benchmark, adjustment, session, startDate, endDate], () => {
   const configuration: Record<string, unknown> = { ...(props.configuration ?? {}), timeframe: timeframe.value, adjustment: adjustment.value, session: session.value }
@@ -151,6 +153,9 @@ watch([timeframe, benchmark, adjustment, session, startDate, endDate], () => {
   if (endDate.value) configuration.end_date = endDate.value
   else delete configuration.end_date
   emit('configuration', configuration)
+})
+watch(parameterSchemaText, value => {
+  emit('configuration', { ...(props.configuration ?? {}), parameter_schema: value })
 })
 watch(parameterDefinitions, definitions => {
   const next: Record<string, string | boolean> = {}

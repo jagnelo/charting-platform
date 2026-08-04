@@ -88,6 +88,7 @@ describe('StudyLabTool', () => {
     })
     const wrapper = mount(StudyLabTool, { props: { activeSymbol: 'SPY' } })
     await wrapper.find('[aria-label="Study parameter schema"]').setValue(JSON.stringify({ properties: { lookback: { type: 'integer', default: 20, minimum: 1 } } }))
+    expect(wrapper.emitted('configuration')?.at(-1)?.[0]).toEqual(expect.objectContaining({ parameter_schema: JSON.stringify({ properties: { lookback: { type: 'integer', default: 20, minimum: 1 } } }) }))
     await wrapper.find('[aria-label="Study parameter lookback"]').setValue('30')
     await wrapper.find('button').trigger('click')
     await vi.waitFor(() => expect(wrapper.text()).toContain('Validated for isolated execution'))

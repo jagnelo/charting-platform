@@ -2,6 +2,13 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-04T04:18:00Z Study Lab parameter persistence
+
+- Parameter-schema edits now persist through the serializable Study Lab window
+  configuration and restore into generated controls after reload/floating recovery.
+- Focused Study Lab tests (`3`), TypeScript, and diff checks passed; exact-build visual
+  approval and the complete acceptance matrix remain open.
+
 ## 2026-08-04T03:58:00Z Full Study Lab control verification
 
 - Complete frontend Vitest passed `514` tests across `84` files after schema-driven Study
