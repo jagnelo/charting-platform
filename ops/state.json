@@ -5,7 +5,7 @@
     "worker_session_started_at": "2026-07-28T21:40:33Z",
     "worker_soft_stop_at": null,
   "last_handoff_at": "2026-08-04T11:54:00Z",
-    "last_commit": "1c739866455379772ac3238c2afdf0227ea6e892 feat(alerts): surface EasyScan alerts in workstation",
+    "last_commit": "59c41d6a5fb50e52ae267dc437d74b18e8474c05 test(alerts): cover screener alert lifecycle",
     "git_ready_to_commit": false,
     "validation": {
         "backend_lint": "passed (code validation including deterministic XNYS coverage calendar, restricted numerical facades, isolated research runner/resource restoration, screener, visual, analysis, research, OHLCV session model, and migration modules, 2026-08-03)",
