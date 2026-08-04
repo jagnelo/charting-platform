@@ -44,11 +44,11 @@ does not meet the repository-wide coverage threshold by itself.
 
 The VirtualWatchlist Python polling path also rejects empty batch responses before they reach
 Vue Query, preserving an explicit error contract for columns and Boolean conditions. This is
-covered by the focused 46-test suite and the full 550-test frontend suite; the rebuilt
+covered by the focused 46-test suite and the full 555-test frontend suite; the rebuilt
 Chromium flow remains 28/28 with clean backend diagnostics. The same no-undefined query
 boundary is now enforced for Market Gauge, retained EasyScan results, Research Results,
 condition columns, and indicator batches; focused workstation coverage is 61 tests and the
-full frontend suite is 550 tests across 84 files.
+full frontend suite is 555 tests across 84 files.
 
 The browser acceptance harness now waits for expected unavailable-data responses before
 diagnostic assertions and excludes only those documented API 404/409 responses from teardown
