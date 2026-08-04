@@ -1966,7 +1966,7 @@ Why this was deferred:
   concern that should be done alongside end-to-end testing of the new provider stack.
 
 ### 11. Custom instrument baskets, ETF holdings navigation, and breadth analysis
-Status: `Planned`
+Status: `In progress — single completion bar not yet satisfied`
 
 Context:
 - The platform already supports individual instruments and expression-based synthetics (e.g., `=SPY-QQQ`).
@@ -3223,12 +3223,14 @@ Current implementation checkpoint (2026-08-05): the workstation shell, linked
 Golden Layout mechanics, uPlot host/plugin path, top-down analysis contracts,
 virtualized watchlists, unified Python/Study Lab execution boundary, and free-source
 provider governance are implemented and covered by deterministic/frontend/backend
-regressions. The branch has also exercised 26 authenticated Chromium flows against
-the rebuilt stack. Remaining acceptance is intentionally still hard-gated by the
-full Version 25 visual reference/measurement matrix, opt-in provider probes, the
-broader adversarial sandbox/resource matrix, 10,000-row and multi-window performance
-evidence, and the complete cross-surface/E2E parity
-matrix; no item below is considered delivered merely because this checkpoint exists.
+regressions. The branch has also exercised the complete Docker-backed integration
+suite (`281 passed`), clean authenticated Chromium flows (`26/26`), the public no-key
+SEC identity/profile path through `EdgarProvider`, and isolated research-runner crash
+recovery. Remaining acceptance is intentionally still hard-gated by the full Version
+25 visual reference/measurement matrix, configured multi-provider probes, adversarial
+resource-pressure and orphan-job coverage, 10,000-row and multi-window performance
+evidence, migration re-audit, and the complete cross-surface/E2E parity matrix; no
+item below is considered delivered merely because this checkpoint exists.
 
 Controlling objective:
 - This section and `docs/tc2000-visual-parity.md` are the controlling specification for
