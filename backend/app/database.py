@@ -41,6 +41,11 @@ AsyncSessionLocal = async_sessionmaker(
 )
 
 
+def get_stream_session_factory():
+    """Return the factory used by long-lived streaming request bodies."""
+    return AsyncSessionLocal
+
+
 class Base(DeclarativeBase):
     pass
 

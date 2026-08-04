@@ -181,6 +181,10 @@ class AsyncSessionAdapter:
     async def refresh(self, *args, **kwargs):
         self._session.refresh(*args, **kwargs)
 
+    async def close(self):
+        """Keep the shared sync fixture session available to later requests."""
+        return None
+
     async def delete(self, *args, **kwargs):
         self._session.delete(*args, **kwargs)
 
@@ -197,7 +201,7 @@ class AsyncSessionAdapter:
 @pytest.fixture()
 def app(db, monkeypatch):
     from app.config import settings
-    from app.database import get_db
+    from app.database import get_db, get_stream_session_factory
     from app.main import app as _app
 
     monkeypatch.setattr(settings, "REDIS_URL", "redis://localhost:6379/0")
@@ -208,6 +212,7 @@ def app(db, monkeypatch):
         yield async_db
 
     _app.dependency_overrides[get_db] = _override
+    _app.dependency_overrides[get_stream_session_factory] = lambda: lambda: async_db
     yield _app
     _app.dependency_overrides.clear()
 

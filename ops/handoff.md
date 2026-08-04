@@ -1,5 +1,17 @@
 # Active Handoff
 
+## Continuation update — 2026-08-04T18:56:50Z Streaming-session factory integration
+
+- Made the dedicated streaming session factory injectable so the production route remains
+  isolated while unit/integration FastAPI overrides retain their controlled database
+  sessions. Authenticated identity lookup still closes its request session before the body.
+- Validation: full backend unit suite `925 passed` with 34 existing dependency warnings;
+  Docker-backed integration suite `281 passed` with 54 existing warnings; rebuilt complete
+  Chromium `flows.spec.ts` `24/24` passed in `39.1s`; final backend error/warning audits
+  were empty. Strict pinned-build V25 visual approval remains `required_missing`, and
+  provider-live, adversarial sandbox/resource, multi-monitor, performance, migration, and
+  complete parity gates remain open.
+
 ## Continuation update — 2026-08-04T18:45:22Z Cancellation-safe screener streaming
 
 - Fixed the cancellation path exposed by the full browser audit. The screener stream now

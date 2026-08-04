@@ -8,7 +8,12 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user, get_current_user_detached
-from app.database import AsyncSessionLocal, close_session_safely, get_db, rollback_session_safely
+from app.database import (
+    close_session_safely,
+    get_db,
+    get_stream_session_factory,
+    rollback_session_safely,
+)
 from app.models.ohlcv import Timeframe
 from app.models.research import CodeAsset, CodeVersion
 from app.models.screener import ScreenerDefinition, ScreenerResult
@@ -346,6 +351,7 @@ async def delete_screener(
 async def stream_screener_run(
     screener_id: int,
     current_user: User = Depends(get_current_user_detached),
+    session_factory=Depends(get_stream_session_factory),
 ):
     """
     Streaming screener run — returns newline-delimited JSON (NDJSON).
@@ -360,7 +366,7 @@ async def stream_screener_run(
     sufficient local bars are returned as explicit coverage errors; a UI scan
     never fans out to providers.
     """
-    lookup_db = AsyncSessionLocal()
+    lookup_db = session_factory()
     try:
         screener = await lookup_db.get(ScreenerDefinition, screener_id)
     finally:
@@ -371,7 +377,7 @@ async def stream_screener_run(
     from app.services.screener_engine import stream_screener
 
     async def event_gen():
-        db = AsyncSessionLocal()
+        db = session_factory()
         try:
             stream_screener_definition = await db.get(ScreenerDefinition, screener_id)
             if stream_screener_definition is None:

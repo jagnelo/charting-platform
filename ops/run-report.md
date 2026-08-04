@@ -1,5 +1,15 @@
 # Run Report
 
+## 2026-08-04T18:56:50Z Streaming-session factory integration
+
+- Added `get_stream_session_factory` as the injectable seam: production uses dedicated
+  `AsyncSessionLocal` sessions, while controlled unit/integration adapters remain loop-safe.
+- Full backend unit suite passed `925/925` with 34 existing warnings; full Docker-backed
+  integration passed `281/281` with 54 existing warnings; rebuilt Chromium passed `24/24`
+  in `39.1s`; final backend error/warning audits were empty. Exact-build V25 visual approval
+  remains `required_missing` and broader provider-live, sandbox/resource, multi-monitor,
+  performance, migration, and parity gates remain open.
+
 ## 2026-08-04T18:45:22Z Cancellation-safe screener streaming
 
 - Isolated screener streaming from the shared FastAPI request session: detached auth and
