@@ -942,13 +942,26 @@ const TF_POLL_MS: Record<string, number> = {
   MN: 86_400_000,   // 24 hours
 }
 let livePollTimer: ReturnType<typeof setTimeout> | null = null
+const chartSurfaceVisible = ref(true)
+const chartDocumentVisible = ref(typeof document === 'undefined' || document.visibilityState !== 'hidden')
+let chartVisibilityObserver: IntersectionObserver | null = null
+function updateChartDocumentVisibility() {
+  chartDocumentVisible.value = document.visibilityState !== 'hidden'
+  if (chartDocumentVisible.value) startLivePolling()
+  else stopLivePolling()
+}
+function livePollingAllowed() {
+  return chartSurfaceVisible.value && chartDocumentVisible.value
+}
 
 function startLivePolling() {
   stopLivePolling()
+  if (!livePollingAllowed()) return
   const tf = chartStore.timeframe as string
   const interval = TF_POLL_MS[tf] ?? 60_000
 
   const poll = async () => {
+    if (!livePollingAllowed()) { stopLivePolling(); return }
     if (!chartStore.symbol || !chartStore.timeframe) return
     try {
       // Only fetch the latest page; merge any genuinely new bars at the tail
@@ -3045,6 +3058,15 @@ function destroyAll() {
 }
 
 onMounted(async () => {
+  document.addEventListener('visibilitychange', updateChartDocumentVisibility)
+  if (typeof IntersectionObserver !== 'undefined' && rootRef.value) {
+    chartVisibilityObserver = new IntersectionObserver(entries => {
+      chartSurfaceVisible.value = entries.some(entry => entry.isIntersecting && entry.intersectionRatio > 0)
+      if (livePollingAllowed()) startLivePolling()
+      else stopLivePolling()
+    })
+    chartVisibilityObserver.observe(rootRef.value)
+  }
   try { await userSettingsStore.loadSettings() } catch {}
   const initialType = effectiveChartType.value
   if (chartStore.symbol && chartStore.barType !== initialType) {
@@ -3061,7 +3083,13 @@ onMounted(async () => {
   }
 })
 
-onUnmounted(() => { destroyAll(); resizeObserver?.disconnect() })
+onUnmounted(() => {
+  destroyAll()
+  resizeObserver?.disconnect()
+  document.removeEventListener('visibilitychange', updateChartDocumentVisibility)
+  chartVisibilityObserver?.disconnect()
+  chartVisibilityObserver = null
+})
 
 watch(() => chartStore.bars, () => {
   if (uplot) updateData(); else void initChart()

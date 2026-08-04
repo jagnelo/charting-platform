@@ -562,6 +562,14 @@ research polling with the Market Gauge freshness/coordinator contract. Focused c
 coverage passes with the real Vue Query plugin; exact Version 25 visual approval and the
 full polling/performance acceptance matrix remain open.
 
+The reusable uPlot chart host applies the same visibility contract to live latest-bar
+refreshes. Its timeframe-aware timer is stopped when the browser is hidden or the chart
+root leaves the viewport, restarted when visibility returns, and guarded again immediately
+before each fetch so a hidden chart cannot continue provider/API work. Existing chart
+destruction still clears the timer and observer; focused chart-adjacent regressions and
+TypeScript checking pass. This is lifecycle evidence only; the complete 100,000-point,
+multi-window performance and visual acceptance suites remain open.
+
 The unified Python SDK now supports a typed `output.dashboard` composition contract. A
 dashboard contains only bounded references to named scalar, table, series, histogram,
 scatter, heatmap, or event artifacts plus title/span metadata; user code cannot provide

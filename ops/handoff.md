@@ -1,5 +1,15 @@
 # Active Handoff
 
+## Continuation update — 2026-08-04T12:48:00Z
+
+- Added document/intersection visibility gating to the reusable uPlot live latest-bar
+  timer. Hidden charts stop polling immediately and restart on visibility restoration;
+  the fetch callback rechecks visibility before doing work and chart teardown clears the
+  observer/timer.
+- Focused chart-adjacent coverage passed `9`; TypeScript and diff checks passed. The
+  previously recorded Chromium launch permission failure remains environmental, and
+  exact-build visual plus broad performance/security acceptance remain open.
+
 ## Continuation update — 2026-08-04T12:36:00Z
 
 - Consolidated primary Study Lab and Persisted Research Results run polling onto the
