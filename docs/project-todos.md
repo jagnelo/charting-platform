@@ -3772,6 +3772,9 @@ MA-distance summaries while retaining the same explicit unavailable semantics.
 It also returns `coverage_detail` for each metric family (individual moving averages,
 near-52-week, new-high/new-low, trend, and each distance average), preventing a single
 overall universe percentage from being misread as coverage for every statistic.
+The response also carries point-in-time `member_metrics` keyed by canonical instrument ID,
+so the workstation can open passing members for near-52-week, new-high/new-low, and trend
+conditions without re-querying providers or deriving membership from aggregate percentages.
 
 The relative-rotation uPlot plane draws each member's color-coded sampled tail as a connected
 trail before drawing its current/retained points and labels the four transparent state

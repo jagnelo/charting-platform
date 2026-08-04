@@ -734,6 +734,19 @@ class TestWorkspaces:
             "distance_ma50",
             "distance_ma200",
         } <= set(breadth_payload["coverage_detail"])
+        member_metrics = breadth_payload["member_metrics"]
+        assert member_metrics
+        assert {
+            "above_ma20",
+            "above_ma50",
+            "above_ma200",
+            "near_52w_high",
+            "near_52w_low",
+            "new_high",
+            "new_low",
+            "uptrend",
+            "downtrend",
+        } <= set(next(iter(member_metrics.values())))
 
         history = client.get(
             "/api/v1/analysis/groups/point-in-time-batch-test/breadth/history",

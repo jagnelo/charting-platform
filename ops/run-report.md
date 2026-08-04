@@ -2,6 +2,13 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-04T10:35:42Z Breadth advanced member drilldowns
+
+- Added canonical member-level breadth metrics and linked workstation drilldowns for
+  near-52-week, new-high/new-low, and trend conditions. Router unit `9`, frontend Vitest
+  `523`, TypeScript/build/diff passed; targeted Docker integration remains environment-blocked
+  by denied socket access; visual/broad acceptance remain open.
+
 ## 2026-08-04T10:31:04Z Relative-rotation quadrant labels
 
 - Added transparent state labels to the relative-rotation uPlot quadrants. Focused component

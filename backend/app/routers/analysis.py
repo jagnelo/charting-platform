@@ -1440,21 +1440,26 @@ async def group_breadth(
     trend_eligible = 0
     distance_totals = {20: 0.0, 50: 0.0, 200: 0.0}
     distance_eligible = {20: 0, 50: 0, 200: 0}
+    member_metrics: dict[str, dict[str, float | int | None]] = {}
     exclusions: list[AnalysisWarning] = []
     latest_as_of = None
     for member in members:
         bars = bars_by_id.get(member.instrument_id, [])
+        metrics: dict[str, float | int | None] = {}
         if bars:
             latest_as_of = max(latest_as_of, bars[-1].ts) if latest_as_of else bars[-1].ts
         for period in counts:
             if len(bars) < period:
+                metrics[f"above_ma{period}"] = None
                 continue
             eligible[period] += 1
             close = float(bars[-1].close)
             moving_average = sum(float(bar.close) for bar in bars[-period:]) / period
             distance_totals[period] += close / moving_average - 1 if moving_average else 0.0
             distance_eligible[period] += 1
-            if close > moving_average:
+            metrics[f"above_ma{period}"] = int(close > moving_average)
+            metrics[f"distance_ma{period}"] = close / moving_average - 1 if moving_average else None
+            if metrics[f"above_ma{period}"]:
                 counts[period] += 1
         if len(bars) >= 252:
             close = float(bars[-1].close)
@@ -1462,29 +1467,51 @@ async def group_breadth(
             high, low = max(window), min(window)
             if high:
                 near_eligible += 1
-                if close >= high * (1 - near_threshold):
+                near_high = close >= high * (1 - near_threshold)
+                near_low = bool(low and close <= low * (1 + near_threshold))
+                metrics["near_52w_high"] = int(near_high)
+                metrics["near_52w_low"] = int(near_low)
+                if near_high:
                     near_counts["high"] += 1
-                if low and close <= low * (1 + near_threshold):
+                if near_low:
                     near_counts["low"] += 1
+        else:
+            metrics["near_52w_high"] = None
+            metrics["near_52w_low"] = None
         if len(bars) > new_high_lookback:
             close = float(bars[-1].close)
             previous = [float(bar.close) for bar in bars[-(new_high_lookback + 1):-1]]
             if previous:
                 new_eligible += 1
-                if close >= max(previous):
+                new_high = close >= max(previous)
+                new_low = close <= min(previous)
+                metrics["new_high"] = int(new_high)
+                metrics["new_low"] = int(new_low)
+                if new_high:
                     new_counts["high"] += 1
-                if close <= min(previous):
+                if new_low:
                     new_counts["low"] += 1
+        else:
+            metrics["new_high"] = None
+            metrics["new_low"] = None
         if len(bars) >= 50:
             closes = [float(bar.close) for bar in bars]
             sma20 = sum(closes[-20:]) / 20 if len(closes) >= 20 else None
             sma50 = sum(closes[-50:]) / 50
             if sma20 is not None:
                 trend_eligible += 1
-                if closes[-1] > sma50 and sma20 > sma50:
+                uptrend = closes[-1] > sma50 and sma20 > sma50
+                downtrend = closes[-1] < sma50 and sma20 < sma50
+                metrics["uptrend"] = int(uptrend)
+                metrics["downtrend"] = int(downtrend)
+                if uptrend:
                     trend_counts["uptrend"] += 1
-                if closes[-1] < sma50 and sma20 < sma50:
+                if downtrend:
                     trend_counts["downtrend"] += 1
+        else:
+            metrics["uptrend"] = None
+            metrics["downtrend"] = None
+        member_metrics[str(member.instrument_id)] = metrics
         if not bars:
             exclusions.append(
                 AnalysisWarning(
@@ -1520,6 +1547,7 @@ async def group_breadth(
                 for period in distance_eligible
             },
         },
+        member_metrics=member_metrics,
         above_ma={
             f"ma{period}": counts[period] / eligible[period] if eligible[period] else None
             for period in counts

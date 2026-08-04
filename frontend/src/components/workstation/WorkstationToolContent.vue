@@ -358,14 +358,14 @@
           </span>
         </template>
         <span>Coverage</span><b>{{ breadthCoverage }}</b>
-        <span>Near 52W high / low</span><b>{{ breadthAdvanced('near_52w', 'high') }} / {{ breadthAdvanced('near_52w', 'low') }}</b>
-        <span>New high / low ({{ breadthLookback }})</span><b>{{ breadthAdvanced('new_highs', 'lookback') }} / {{ breadthAdvanced('new_lows', 'lookback') }}</b>
-        <span>Uptrend / downtrend</span><b>{{ breadthAdvanced('trend', 'uptrend') }} / {{ breadthAdvanced('trend', 'downtrend') }}</b>
+        <span>Near 52W high / low</span><span class="breadth-tool__actions"><button type="button" @click="setBreadthDrilldown('near_52w_high', 'above')">High {{ breadthMetric('near_52w_high') }}</button><button type="button" @click="setBreadthDrilldown('near_52w_low', 'above')">Low {{ breadthMetric('near_52w_low') }}</button></span>
+        <span>New high / low ({{ breadthLookback }})</span><span class="breadth-tool__actions"><button type="button" @click="setBreadthDrilldown('new_high', 'above')">High {{ breadthMetric('new_high') }}</button><button type="button" @click="setBreadthDrilldown('new_low', 'above')">Low {{ breadthMetric('new_low') }}</button></span>
+        <span>Uptrend / downtrend</span><span class="breadth-tool__actions"><button type="button" @click="setBreadthDrilldown('uptrend', 'above')">Up {{ breadthMetric('uptrend') }}</button><button type="button" @click="setBreadthDrilldown('downtrend', 'above')">Down {{ breadthMetric('downtrend') }}</button></span>
         <span>Avg distance from MA20 / MA50</span><b>{{ breadthAdvanced('distance_from_ma', 'ma20') }} / {{ breadthAdvanced('distance_from_ma', 'ma50') }}</b>
       </div>
       <small class="breadth-tool__coverage-detail">Metric coverage: {{ breadthMetricCoverage }}</small>
       <div v-if="breadthDrilldown" class="breadth-tool__drilldown" aria-label="Breadth member drilldown">
-        <header><strong>{{ breadthDrilldown.state === 'above' ? 'Passing' : 'Failing' }} {{ breadthDrilldown.key.toUpperCase() }} members</strong><button type="button" @click="breadthDrilldown = null">Close</button></header>
+        <header><strong>{{ breadthDrilldown.state === 'above' ? 'Passing' : 'Failing' }} {{ breadthDrilldownLabel(breadthDrilldown.key) }} members</strong><button type="button" @click="breadthDrilldown = null">Close</button></header>
         <button v-for="row in breadthDrilldownRows" :key="row.symbol" type="button" @click="emit('select', row.symbol)"><strong>{{ row.symbol }}</strong><span>{{ row.name }}</span></button>
         <small v-if="!breadthDrilldownRows.length">No locally evaluated members are available.</small>
       </div>
@@ -1177,6 +1177,7 @@ const breadthRows = computed<WatchlistRow[]>(() => {
   const snapshot = workspaceStore.groupSnapshots[breadthGroupKey.value]
   return (workspaceStore.marketGroups[breadthGroupKey.value]?.members ?? []).map(member => {
     const row = snapshot?.rows.find(item => item.instrument_id === member.instrument.id)
+    const metrics = breadth.value?.member_metrics?.[String(member.instrument.id)] ?? {}
     return {
       instrumentId: member.instrument.id,
       symbol: member.instrument.symbol,
@@ -1185,6 +1186,12 @@ const breadthRows = computed<WatchlistRow[]>(() => {
         above_ma20: row?.technical?.above_ma20?.value ?? null,
         above_ma50: row?.technical?.above_ma50?.value ?? null,
         above_ma200: row?.technical?.above_ma200?.value ?? null,
+        near_52w_high: metrics.near_52w_high ?? null,
+        near_52w_low: metrics.near_52w_low ?? null,
+        new_high: metrics.new_high ?? null,
+        new_low: metrics.new_low ?? null,
+        uptrend: metrics.uptrend ?? null,
+        downtrend: metrics.downtrend ?? null,
       },
       warnings: snapshotWarnings(row),
     }
@@ -1502,8 +1509,24 @@ const breadthDrilldownRows = computed(() => {
 const technicalMAs = computed(() => [technical.value?.sma20, technical.value?.sma50, technical.value?.sma200]
   .map(value => formatNumber(value)).join(' / '))
 function breadthMetric(key: string) {
-  const value = breadth.value?.above_ma[key]
+  const value = key.startsWith('ma')
+    ? breadth.value?.above_ma[key]
+    : key === 'near_52w_high' ? breadth.value?.near_52w?.high
+      : key === 'near_52w_low' ? breadth.value?.near_52w?.low
+        : key === 'new_high' ? breadth.value?.new_highs?.lookback
+          : key === 'new_low' ? breadth.value?.new_lows?.lookback
+            : key === 'uptrend' ? breadth.value?.trend?.uptrend
+              : key === 'downtrend' ? breadth.value?.trend?.downtrend
+                : null
   return value == null ? 'Unavailable' : `${(value * 100).toFixed(1)}%`
+}
+function breadthDrilldownLabel(key: string) {
+  return ({
+    ma20: '20-day MA', ma50: '50-day MA', ma200: '200-day MA',
+    near_52w_high: 'near 52-week high', near_52w_low: 'near 52-week low',
+    new_high: `new high (${breadthLookback.value})`, new_low: `new low (${breadthLookback.value})`,
+    uptrend: 'uptrend', downtrend: 'downtrend',
+  } as Record<string, string>)[key] ?? key
 }
 function breadthAdvanced(bucket: 'near_52w' | 'new_highs' | 'new_lows' | 'trend' | 'distance_from_ma', key: string) {
   const value = breadth.value?.[bucket]?.[key]

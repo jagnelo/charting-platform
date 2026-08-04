@@ -1,5 +1,13 @@
 # Active Handoff
 
+## Continuation update — 2026-08-04T10:35:42Z Breadth advanced member drilldowns
+
+- Breadth responses now include point-in-time `member_metrics` for moving-average,
+  near-52-week, new-high/new-low, and trend states; the workstation uses them for linked
+  advanced-statistic member drilldowns. Backend Ruff/router unit `9`, frontend full Vitest
+  `523`, TypeScript, production build, and diff checks passed. The targeted Docker integration
+  remains blocked by denied socket access; visual and broad acceptance remain open.
+
 ## Continuation update — 2026-08-04T10:31:04Z Relative-rotation quadrant labels
 
 - Added state labels for the Leading, Weakening, Improving, and Lagging quadrants to the
