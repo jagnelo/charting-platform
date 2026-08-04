@@ -3729,6 +3729,9 @@ Linked drill-down mechanics:
 - one action creates sector/benchmark, industry-proxy/sector, stock/sector, and
   stock/benchmark ratio views;
 - list traversal updates all windows in the same link group without route changes.
+Ratio loads must discard late responses from an earlier symbol, timeframe, or point-in-time
+selection so rapid top-down traversal cannot paint stale relative-strength data into the
+active window.
 
 Batch ranking columns:
 - 1D, 1W, 1M, 3M, 6M, YTD, and 1Y performance;

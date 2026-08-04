@@ -263,7 +263,9 @@ historical drill-downs. Its compact `As of` control emits serializable tool conf
 so docked and floated ratio windows retain the cutoff through workspace snapshots; current
 views omit the parameter when the control is blank. The focused frontend contract and
 backend helper suites pass; the Docker-backed route regression remains recorded but
-unexecuted because Docker socket access is unavailable.
+unexecuted because Docker socket access is unavailable. Ratio loads also use an active
+generation guard, so a late response from a prior symbol/timeframe/as-of selection cannot
+replace the current ratio window; the focused component suite covers that race.
 
 Queued Python EasyScan runs now expose their isolated research-run cancellation
 control in the primary workstation. Cancellation remains isolated to that run and

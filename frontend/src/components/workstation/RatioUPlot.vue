@@ -37,6 +37,7 @@ let chart: uPlot | null = null
 let resizeObserver: ResizeObserver | null = null
 let applyingLinkedCursor = false
 let lastPublishedCursor: string | null = null
+let loadGeneration = 0
 const ratioLabels = computed(() => props.benchmarks.map(benchmark => `${props.symbol}/${benchmark}`).join(' · '))
 const hasPoints = computed(() => series.value.some(item => item.points.length > 0))
 const colors = ['#6bc0ef', '#e7b35b', '#aa86e8', '#5fc8a2']
@@ -44,6 +45,7 @@ const colors = ['#6bc0ef', '#e7b35b', '#aa86e8', '#5fc8a2']
 async function load() {
   const benchmarks = [...new Set(props.benchmarks.map(value => value.trim().toUpperCase()).filter(Boolean))]
   if (!props.symbol || !benchmarks.length) return
+  const generation = ++loadGeneration
   error.value = null
   try {
     const payloads = await Promise.all(benchmarks.map(async benchmark => ({
@@ -60,12 +62,14 @@ async function load() {
         ...(asOfTimestamp() ? { as_of: asOfTimestamp() } : {}),
       }),
     })))
+    if (generation !== loadGeneration) return
     series.value = payloads.map(item => ({ benchmark: item.benchmark, points: item.payload.points, coverage: item.payload.coverage }))
     warning.value = payloads.flatMap(item => item.payload.warnings.map(warning => `${item.benchmark}: ${warning.message}`)).join(' ')
     status.value = `${payloads.map(item => `${item.benchmark} ${(item.payload.coverage * 100).toFixed(0)}%`).join(' · ')} overlap · local adjusted${asOfDraft.value ? ` · as of ${asOfDraft.value}` : ''}`
     await nextTick()
     draw()
   } catch (cause: any) {
+    if (generation !== loadGeneration) return
     series.value = []
     error.value = cause?.message ?? 'Unable to calculate ratio'
   }

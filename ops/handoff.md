@@ -1,5 +1,13 @@
 # Active Handoff
 
+## Continuation update — 2026-08-04T10:40:32Z Ratio response race protection
+
+- Added an active-generation guard to `RatioUPlot` so late relative-strength responses
+  cannot overwrite a newer symbol/timeframe/as-of selection.
+- Focused RatioUPlot tests `6`, TypeScript, production build, and diff checks passed;
+  visual/reference, Docker-backed integration, and broad acceptance remain open. Generated
+  `test-results/` remains intentionally untracked.
+
 ## Continuation update — 2026-08-04T10:37:37Z Breadth drilldown pass/fail toggle
 
 - Added in-place Pass/Fail controls to the active breadth member drilldown, so advanced

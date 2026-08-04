@@ -102,4 +102,17 @@ describe('RatioUPlot', () => {
     setCursor?.({ cursor: { idx: 0 }, data: [[1767225600]] } as unknown as uPlot)
     expect(wrapper.emitted('cursorTimestamp')).toHaveLength(1)
   })
+
+  it('ignores a late ratio response after the active symbol changes', async () => {
+    let resolveOld: ((value: unknown) => void) | undefined
+    const oldResponse = new Promise(resolve => { resolveOld = resolve })
+    vi.mocked(api.get).mockImplementationOnce(() => oldResponse as Promise<unknown>)
+      .mockResolvedValueOnce({ coverage: 1, points: [{ timestamp: '2026-02-01T00:00:00Z', value: 2 }], warnings: [] })
+    const wrapper = mount(RatioUPlot, { props: { symbol: 'XLK', benchmarks: ['SPY'] } })
+    await wrapper.setProps({ symbol: 'XLE' })
+    await vi.waitFor(() => expect(wrapper.text()).toContain('XLE/SPY'))
+    resolveOld?.({ coverage: 0.1, points: [{ timestamp: '2026-01-01T00:00:00Z', value: 1 }], warnings: [] })
+    await nextTick()
+    expect(wrapper.text()).not.toContain('SPY 10%')
+  })
 })

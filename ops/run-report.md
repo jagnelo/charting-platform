@@ -2,6 +2,12 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-04T10:40:32Z Ratio response race protection
+
+- RatioUPlot now ignores late relative-strength responses after the active selection changes.
+  Focused tests `6`, TypeScript/build/diff passed; visual, Docker integration, and broad
+  acceptance remain open.
+
 ## 2026-08-04T10:37:37Z Breadth drilldown pass/fail toggle
 
 - Added in-place Pass/Fail controls to the breadth member drilldown. TypeScript, production
