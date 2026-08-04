@@ -4,7 +4,7 @@
     "active_worker": "Codex",
     "worker_session_started_at": "2026-07-28T21:40:33Z",
     "worker_soft_stop_at": null,
-  "last_handoff_at": "2026-08-05T00:35:00Z",
+  "last_handoff_at": "2026-08-05T00:45:00Z",
   "last_commit": "latest pushed checkpoint: TC2000 workstation runtime, acceptance evidence, and Docker cleanup",
     "git_ready_to_commit": true,
   "validation": {
@@ -33,7 +33,7 @@
     "link_group_chrome": "passed: shared tool-window symbol/timeframe link selectors render human labels and canonical color swatches while retaining ID-valued events; focused tool-window tests and full frontend Vitest 545 passed, 2026-08-04",
     "screener_cancellation_cleanup": "passed: detached auth/ownership sessions and a dedicated NDJSON stream session use shielded child-task rollback/close cleanup; cancellation/logging regressions passed, backend unit suite 925 passed, complete Chromium 24/24 passed, and the final rebuilt-stack backend error/warning audit was empty, 2026-08-04",
     "stream_session_factory_integration": "passed: production dedicated stream sessions are provided through an injectable get_stream_session_factory; controlled unit/integration adapters remain loop-safe; backend unit 925 passed, Docker integration 281 passed, complete Chromium 24/24 passed, and rebuilt-stack error/warning audits were empty, 2026-08-04",
-        "uplot_performance_current": "passed: current-branch Chromium uPlot guard rendered 100,000 points and completed 40 zoom/pan updates in 888ms without replacing the chart element; renderer-level evidence only, full workstation/multi-window performance remains open, 2026-08-04",
+        "uplot_performance_current": "passed: current-branch Chromium uPlot guard rendered 100,000 points and completed 40 zoom/pan updates in 850ms without replacing the chart element; renderer-level evidence only, full workstation/multi-window performance remains open, 2026-08-05",
     "popout_lifecycle_repeat": "passed: F8f repeatedly floated and closed the same tool ten times, retaining the durable source tool count and clean browser diagnostics; focused run 4.9s and complete flows 27/27, 2026-08-04",
     "legacy_route_matrix": "passed: authenticated Chromium smoke coverage reached ten retained /legacy surfaces without login redirects or fatal overlays; complete flows.spec.ts passed 26/26 and browser diagnostics were clean, 2026-08-04",
     "auth_session_lifecycle": "passed: normal and detached authentication lookups use independent/eagerly closed sessions; cleanup helpers accept async SQLAlchemy and synchronous compatibility adapters; backend unit 926, Docker integration 281, complete Chromium 26/26, and fresh backend log audit were clean, 2026-08-04",

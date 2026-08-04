@@ -1,5 +1,11 @@
 # Run Report
 
+## 2026-08-05T00:45:00Z uPlot performance recheck
+
+- The packaged real-browser uPlot guard rendered 100,000 points and completed 40 zoom/pan
+  updates in `850ms` without replacing the chart element. This remains renderer-level
+  evidence; full authenticated multi-window workstation performance is still open.
+
 ## 2026-08-05T00:35:00Z Post-persistence visual smoke
 
 - The default 1920×1080 visual probe still passed layout readiness and all core overlap

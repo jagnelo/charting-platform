@@ -1,5 +1,11 @@
 # Active Handoff
 
+## Continuation update — 2026-08-05T00:45:00Z uPlot performance recheck
+
+- The packaged real-browser uPlot guard rendered 100,000 points and completed 40 zoom/pan
+  updates in `850ms` without replacing the chart element. This is renderer evidence only;
+  authenticated multi-window workstation performance remains open.
+
 ## Continuation update — 2026-08-05T00:35:00Z Post-persistence visual smoke
 
 - The default 1920×1080 visual probe passed readiness and core geometry/overlap checks after
