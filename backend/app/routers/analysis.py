@@ -1410,6 +1410,8 @@ async def group_breadth(
     timeframe: Timeframe = Timeframe.D1,
     adjusted: bool = True,
     as_of: datetime | None = Query(default=None),
+    new_high_lookback: int = Query(default=20, ge=2, le=252),
+    near_threshold: float = Query(default=0.05, gt=0, le=0.5),
     _: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -1430,6 +1432,14 @@ async def group_breadth(
     )
     counts = {20: 0, 50: 0, 200: 0}
     eligible = {20: 0, 50: 0, 200: 0}
+    near_counts = {"high": 0, "low": 0}
+    near_eligible = 0
+    new_counts = {"high": 0, "low": 0}
+    new_eligible = 0
+    trend_counts = {"uptrend": 0, "downtrend": 0}
+    trend_eligible = 0
+    distance_totals = {20: 0.0, 50: 0.0, 200: 0.0}
+    distance_eligible = {20: 0, 50: 0, 200: 0}
     exclusions: list[AnalysisWarning] = []
     latest_as_of = None
     for member in members:
@@ -1440,8 +1450,41 @@ async def group_breadth(
             if len(bars) < period:
                 continue
             eligible[period] += 1
-            if float(bars[-1].close) > sum(float(bar.close) for bar in bars[-period:]) / period:
+            close = float(bars[-1].close)
+            moving_average = sum(float(bar.close) for bar in bars[-period:]) / period
+            distance_totals[period] += close / moving_average - 1 if moving_average else 0.0
+            distance_eligible[period] += 1
+            if close > moving_average:
                 counts[period] += 1
+        if len(bars) >= 252:
+            close = float(bars[-1].close)
+            window = [float(bar.close) for bar in bars[-252:]]
+            high, low = max(window), min(window)
+            if high:
+                near_eligible += 1
+                if close >= high * (1 - near_threshold):
+                    near_counts["high"] += 1
+                if low and close <= low * (1 + near_threshold):
+                    near_counts["low"] += 1
+        if len(bars) > new_high_lookback:
+            close = float(bars[-1].close)
+            previous = [float(bar.close) for bar in bars[-(new_high_lookback + 1):-1]]
+            if previous:
+                new_eligible += 1
+                if close >= max(previous):
+                    new_counts["high"] += 1
+                if close <= min(previous):
+                    new_counts["low"] += 1
+        if len(bars) >= 50:
+            closes = [float(bar.close) for bar in bars]
+            sma20 = sum(closes[-20:]) / 20 if len(closes) >= 20 else None
+            sma50 = sum(closes[-50:]) / 50
+            if sma20 is not None:
+                trend_eligible += 1
+                if closes[-1] > sma50 and sma20 > sma50:
+                    trend_counts["uptrend"] += 1
+                if closes[-1] < sma50 and sma20 < sma50:
+                    trend_counts["downtrend"] += 1
         if not bars:
             exclusions.append(
                 AnalysisWarning(
@@ -1468,6 +1511,23 @@ async def group_breadth(
             f"ma{period}": counts[period] / eligible[period] if eligible[period] else None
             for period in counts
         },
+        near_52w={
+            "high": near_counts["high"] / near_eligible if near_eligible else None,
+            "low": near_counts["low"] / near_eligible if near_eligible else None,
+        },
+        new_highs={"lookback": new_counts["high"] / new_eligible if new_eligible else None},
+        new_lows={"lookback": new_counts["low"] / new_eligible if new_eligible else None},
+        trend={
+            "uptrend": trend_counts["uptrend"] / trend_eligible if trend_eligible else None,
+            "downtrend": trend_counts["downtrend"] / trend_eligible if trend_eligible else None,
+        },
+        distance_from_ma={
+            f"ma{period}": distance_totals[period] / distance_eligible[period]
+            if distance_eligible[period] else None
+            for period in distance_totals
+        },
+        new_high_lookback=new_high_lookback,
+        near_threshold=near_threshold,
         exclusions=exclusions,
     )
 

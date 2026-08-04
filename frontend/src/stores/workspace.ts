@@ -144,6 +144,13 @@ export interface BreadthState {
   coverage: number
   evaluated_count: number
   above_ma: Record<string, number | null>
+  near_52w?: Record<string, number | null>
+  new_highs?: Record<string, number | null>
+  new_lows?: Record<string, number | null>
+  trend?: Record<string, number | null>
+  distance_from_ma?: Record<string, number | null>
+  new_high_lookback?: number
+  near_threshold?: number
   freshness?: 'current' | 'stale' | 'partial' | 'unavailable'
   freshness_detail?: Record<string, number>
 }
@@ -670,7 +677,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     }
   }
 
-  async function loadGroupSnapshot(stableKey: string, benchmark?: string, options: { timeframe?: string; adjusted?: boolean; as_of?: string } = {}) {
+  async function loadGroupSnapshot(stableKey: string, benchmark?: string, options: { timeframe?: string; adjusted?: boolean; as_of?: string; new_high_lookback?: number; near_threshold?: number } = {}) {
     try {
       const params = {
         ...(benchmark ? { benchmark } : {}),
@@ -687,12 +694,14 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     }
   }
 
-  async function loadBreadth(stableKey: string, options: { timeframe?: string; adjusted?: boolean; as_of?: string } = {}) {
+  async function loadBreadth(stableKey: string, options: { timeframe?: string; adjusted?: boolean; as_of?: string; new_high_lookback?: number; near_threshold?: number } = {}) {
     try {
       const params = {
         ...(options.timeframe ? { timeframe: options.timeframe } : {}),
         ...(typeof options.adjusted === 'boolean' ? { adjusted: options.adjusted } : {}),
         ...(options.as_of ? { as_of: options.as_of } : {}),
+        ...(options.new_high_lookback ? { new_high_lookback: options.new_high_lookback } : {}),
+        ...(options.near_threshold ? { near_threshold: options.near_threshold } : {}),
       }
       const snapshot = Object.keys(params).length
         ? await api.get<BreadthState>(`/analysis/groups/${encodeURIComponent(stableKey)}/breadth`, params)
@@ -705,13 +714,15 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     }
   }
 
-  async function loadBreadthHistory(stableKey: string, options: { timeframe?: string; adjusted?: boolean; as_of?: string } = {}) {
+  async function loadBreadthHistory(stableKey: string, options: { timeframe?: string; adjusted?: boolean; as_of?: string; new_high_lookback?: number; near_threshold?: number } = {}) {
     try {
       const params = {
         limit: 500,
         ...(options.timeframe ? { timeframe: options.timeframe } : {}),
         ...(typeof options.adjusted === 'boolean' ? { adjusted: options.adjusted } : {}),
         ...(options.as_of ? { as_of: options.as_of } : {}),
+        ...(options.new_high_lookback ? { new_high_lookback: options.new_high_lookback } : {}),
+        ...(options.near_threshold ? { near_threshold: options.near_threshold } : {}),
       }
       const history = await api.get<BreadthHistoryState>(`/analysis/groups/${encodeURIComponent(stableKey)}/breadth/history`, params)
       breadthHistory.value = { ...breadthHistory.value, [stableKey]: history }

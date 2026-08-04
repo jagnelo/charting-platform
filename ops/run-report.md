@@ -2,6 +2,14 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-04T17:50:00Z Breadth advanced statistics
+
+- Added canonical near-52-week, new-high/new-low, trend-state, and moving-average
+  distance breadth statistics plus persisted lookback metadata and workstation summary.
+- Backend Ruff/router unit `9` passed; frontend store/watchlist `61` passed; TypeScript,
+  build, and diff passed. Targeted Docker-backed integration was environment-blocked by
+  denied Docker socket access; visual and broad acceptance remain open.
+
 ## 2026-08-04T17:25:00Z Breadth timeframe and adjustment controls
 
 - Breadth timeframe and split-adjustment controls are now persisted and propagated to

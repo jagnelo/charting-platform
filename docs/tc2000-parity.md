@@ -160,6 +160,12 @@ alongside the drill-down. Daily/weekly/monthly timeframe and split-adjustment co
 are persisted and forwarded consistently to the group, snapshot, current-breadth, and
 history requests. Focused workstation/watchlist/store coverage, TypeScript, and
 production build pass; visual and full acceptance remain open.
+
+Breadth analytics now also return canonical near-52-week-high/low, configurable
+new-high/new-low, uptrend/downtrend, and aggregate moving-average-distance metrics,
+with the request lookback echoed in the response. The workstation summary renders these
+values with explicit unavailable states. The focused router suite and frontend store/
+watchlist boundary pass; Docker-backed integration verification is still required.
 Study Lab exposes a serializable comma-separated universe control; when populated it sends
 canonical symbol selectors as `run_config.symbols` and displays the selected universe in
 the run summary instead of silently using only the active symbol.

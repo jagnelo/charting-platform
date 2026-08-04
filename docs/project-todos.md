@@ -3763,6 +3763,13 @@ selected member to the workstation link group. Timeframe (daily/weekly/monthly) 
 split-adjustment controls are persisted with the tool and forwarded to all four group,
 snapshot, current-breadth, and historical-breadth requests.
 
+The canonical breadth response also returns coverage-aware near-52-week-high/low
+participation, configurable-lookback new-high/new-low participation, uptrend/downtrend
+participation, and aggregate distance from the 20/50/200-day averages. The response
+echoes the lookback and proximity parameters so saved studies remain reproducible;
+the workstation currently surfaces the primary high/low, trend, new-high/new-low, and
+MA-distance summaries while retaining the same explicit unavailable semantics.
+
 Relative rotation:
 - accept benchmark, peer universe, timeframe, lookback, sampling, and tail length;
 - calculate aligned relative-strength series;

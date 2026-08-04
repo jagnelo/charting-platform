@@ -1,5 +1,16 @@
 # Active Handoff
 
+## Continuation update — 2026-08-04T17:50:00Z Breadth advanced statistics
+
+- Extended the canonical breadth response with near-52-week-high/low participation,
+  configurable-lookback new highs/lows, uptrend/downtrend participation, aggregate
+  distance from MA20/50/200, and echoed lookback/proximity parameters.
+- The workstation renders the new summary metrics while preserving explicit unavailable
+  states. Backend Ruff and router unit coverage `9` passed; frontend store/watchlist
+  coverage `61` passed; TypeScript/build/diff checks passed. The targeted Docker-backed
+  integration test could not start because Docker socket access is denied by the current
+  environment; visual and broad acceptance remain open.
+
 ## Continuation update — 2026-08-04T17:25:00Z Breadth timeframe and adjustment controls
 
 - Added persisted daily/weekly/monthly timeframe and split-adjustment controls to the

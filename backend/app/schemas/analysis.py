@@ -145,6 +145,13 @@ class BreadthOut(AnalysisResponseMetadata):
     evaluated_count: int
     coverage: float = Field(ge=0, le=1)
     above_ma: dict[str, float | None]
+    near_52w: dict[str, float | None] = Field(default_factory=dict)
+    new_highs: dict[str, float | None] = Field(default_factory=dict)
+    new_lows: dict[str, float | None] = Field(default_factory=dict)
+    trend: dict[str, float | None] = Field(default_factory=dict)
+    distance_from_ma: dict[str, float | None] = Field(default_factory=dict)
+    new_high_lookback: int = 20
+    near_threshold: float = 0.05
     exclusions: list[AnalysisWarning] = Field(default_factory=list)
 
 

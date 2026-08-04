@@ -713,12 +713,16 @@ class TestWorkspaces:
         breadth = client.get(
             "/api/v1/analysis/groups/point-in-time-batch-test/breadth",
             headers=auth_headers,
-            params=params,
+            params={**params, "new_high_lookback": 10, "near_threshold": 0.1},
         )
         assert breadth.status_code == 200
         breadth_payload = breadth.json()
         assert breadth_payload["evaluated_count"] == 1
         assert breadth_payload["universe_provenance"]["membership_as_of"] == params["as_of"]
+        assert breadth_payload["new_high_lookback"] == 10
+        assert breadth_payload["near_threshold"] == 0.1
+        assert set(breadth_payload["near_52w"]) == {"high", "low"}
+        assert set(breadth_payload["trend"]) == {"uptrend", "downtrend"}
 
         history = client.get(
             "/api/v1/analysis/groups/point-in-time-batch-test/breadth/history",
