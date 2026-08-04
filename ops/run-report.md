@@ -18388,3 +18388,12 @@ uncovered slice rather than repeat a generic completion claim.
   post-run persistence. The previously failing Python screener path is now green.
 - Provider-live probes, adversarial sandbox/container checks, exact-build visual approval,
   multi-environment workstation performance, and broad browser acceptance remain open.
+
+## 2026-08-04T17:50:00Z Research-runner container boundary
+
+- Built the pinned research-runner image and validated Compose config plus deployment tests.
+- Direct container probe passed for non-root uid `10001`, read-only root, no network,
+  dropped capabilities / `no-new-privileges`, and constrained tmpfs writes; deployment
+  contract tests `2` and runner/security tests `46` passed.
+- The broader adversarial escape/resource/cancellation matrix, visual baselines, provider-live,
+  performance, and browser acceptance remain open.
