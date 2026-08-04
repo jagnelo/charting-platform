@@ -10,6 +10,12 @@ Append a short entry after each worker session.
   `git diff --check` passed. Exact-build visual, browser drag/drop, Docker integration,
   and broad acceptance remain open.
 
+## 2026-08-04T11:21:00Z Python condition alert promotion
+
+- Added direct promotion from an active Python Boolean watchlist condition to a canonical
+  EasyScan plus repeatable screener alert. Focused VirtualWatchlist suite `40`, TypeScript,
+  production build, and diff checks passed; broad visual/security/E2E acceptance remains open.
+
 ## 2026-08-04T12:24:00Z Shared workstation design tokens
 
 - Centralized shell and tool-window visual tokens and wired the primary chrome to them. Tests,

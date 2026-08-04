@@ -5,7 +5,7 @@
     "worker_session_started_at": "2026-07-28T21:40:33Z",
     "worker_soft_stop_at": null,
   "last_handoff_at": "2026-08-04T11:18:00Z",
-    "last_commit": "9c927bd6e1de8402ba633c444cc859408741afa3 feat(workstation): manage personal layouts",
+    "last_commit": "7f10d36bb399d820c8b83296d0416db4aa4ab9d4 feat(workstation): promote python conditions to alerts",
     "git_ready_to_commit": false,
     "validation": {
         "backend_lint": "passed (code validation including deterministic XNYS coverage calendar, restricted numerical facades, isolated research runner/resource restoration, screener, visual, analysis, research, OHLCV session model, and migration modules, 2026-08-03)",
@@ -24,6 +24,7 @@
     "workspace_layout_lifecycle": "passed: focused workspace-store suite 26; TypeScript and production build passed; import validates non-empty unique layout IDs and accepted snapshots use revision-checked persistence, 2026-08-04"
     },
   "notes": [
+        "2026-08-04T11:21:00Z: Active Python Boolean watchlist conditions can now create canonical repeatable EasyScan entry/exit alerts. Focused VirtualWatchlist suite 40, TypeScript/build/diff passed; visual and broad acceptance remain open.",
         "2026-08-04T11:18:00Z: Added primary Workspace-menu personal layout lifecycle: select, rename, clone, drag-reorder, delete protection, JSON export/import, and factory reset. Focused store suite 26, TypeScript/build/diff passed; exact-build visual and broad acceptance remain open.",
         "2026-08-04T12:24:00Z: Centralized workstation shell/tool-window design tokens and wired primary chrome to them. Tool-window/router tests 6, TypeScript/build/diff passed; visual/reference and broad acceptance remain open.",
         "2026-08-04T17:50:00Z: Breadth API now returns near-52-week, configurable new-high/new-low, trend-state, and MA-distance statistics with echoed parameters; workstation surfaces them. Backend Ruff/router unit 9 and frontend store/watchlist 61 passed; TypeScript/build/diff passed. Docker-backed integration was blocked by denied socket access; strict V25 visual approval and broad acceptance remain open.",

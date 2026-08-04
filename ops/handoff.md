@@ -16584,3 +16584,15 @@
 
 Next step: commit and push this layout-management slice, then continue the requirement-level
 audit with the next unimplemented acceptance path.
+## Continuation update — 2026-08-04T11:21:00Z Python condition alert promotion
+
+- Added an explicit Alert action to the active Python Boolean condition in the virtualized
+  watchlist. It creates the canonical Python-backed EasyScan and a repeatable entry/exit
+  screener alert, preserving the condition timeframe and showing bounded success/failure
+  feedback in the tool.
+- Focused VirtualWatchlist suite `40` passed; TypeScript, production build, and diff checks
+  passed. Exact V25 visual references, browser-authenticated promotion flow, Docker-backed
+  integration, and the broad acceptance matrix remain open.
+
+Next step: checkpoint this Python-condition alert slice, then continue the requirement-level
+audit across remaining programmable surfaces and recovery/performance gates.
