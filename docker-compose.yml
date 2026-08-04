@@ -69,6 +69,8 @@ services:
       DATABASE_URL:      postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-chartingdb}
       DATABASE_URL_SYNC: postgresql+psycopg2://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-chartingdb}
       REDIS_URL:         redis://redis:6379/0
+      RESEARCH_JOB_DIR:  /jobs
+      RESEARCH_RESULT_DIR: /results
       APP_ENV:           production
       E2E_SEED_INSTRUMENTS: ${E2E_SEED_INSTRUMENTS:-false}
       E2E_SEED_MARKET_DATA: ${E2E_SEED_MARKET_DATA:-false}

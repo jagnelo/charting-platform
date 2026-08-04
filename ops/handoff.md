@@ -1,5 +1,20 @@
 # Active Handoff
 
+## Continuation update — 2026-08-05T03:15:00Z Research-runner handoff and pressure gate
+
+- Live probing exposed and fixed a deployment defect: Compose did not give the backend
+  the runner's `/jobs` and `/results` paths, and Docker-created volumes were not writable
+  by UID 10001. The backend now uses the shared paths, prepares private handoff directories
+  with explicit shared modes, and the runner reports a structured `memory_limit` diagnostic.
+- Corrected live probe: a backend-enqueued 70-million-element allocation was atomically
+  claimed by the non-root runner, returned `memory_limit`, produced a `.processed` sentinel,
+  and left the runner up. All uniquely named probe artifacts were removed afterward.
+- Validation: full backend unit `964 passed` with 34 existing dependency warnings;
+  research API integration `20 passed` with 2 existing dependency warnings; deployment,
+  research-job, runner, Ruff, Compose-config, and diff checks passed.
+- Exact-build V25 visual approval, configured provider-live matrix, orphan-job stress,
+  multi-window performance, migration re-audit, and broad parity remain open.
+
 ## Continuation update — 2026-08-05T02:40:00Z Post-worker-rebuild browser acceptance
 
 - After rebuilding backend/worker for the optional history-refresh registration, the

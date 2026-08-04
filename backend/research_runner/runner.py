@@ -214,6 +214,8 @@ def _execute_single(
         if not manage_timeout:
             raise
         return {"status": "failed", "diagnostics": [{"code": "wall_time_limit", "message": "research execution wall-time limit exceeded"}]}
+    except MemoryError:
+        return {"status": "failed", "diagnostics": [{"code": "memory_limit", "message": "research execution exceeded the configured memory limit"}]}
     except Exception as exc:
         return {"status": "failed", "diagnostics": [{"code": "runtime_error", "message": str(exc)}]}
     finally:

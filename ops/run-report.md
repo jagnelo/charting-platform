@@ -1,5 +1,17 @@
 # Run Report
 
+## 2026-08-05T03:15:00Z Research-runner handoff and pressure gate
+
+- Fixed the live shared-volume contract: backend Compose now points at `/jobs` and
+  `/results`, enqueue prepares the private directories for UID 10001, and the runner maps
+  `MemoryError` to a structured `memory_limit` diagnostic.
+- Live 70-million-element pressure job was claimed and processed by the non-root runner,
+  returned `memory_limit`, left the runner healthy, and was cleaned up. No probe artifacts
+  remain in either shared volume.
+- Full backend unit: `964/964` (34 existing warnings); research API integration: `20/20`
+  (2 existing warnings); deployment/research-job/runner tests, Ruff, Compose config, and
+  diff checks passed.
+
 ## 2026-08-05T02:40:00Z Post-worker-rebuild browser acceptance
 
 - Authenticated Chromium `flows.spec.ts` passed `26/26` in `43.5s` after rebuilding the

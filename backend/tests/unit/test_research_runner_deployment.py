@@ -25,6 +25,16 @@ def test_research_runner_compose_contract_preserves_isolated_execution_boundary(
     assert "RESEARCH_MAX_JOB_BYTES:" in service
 
 
+def test_backend_compose_contract_shares_research_job_protocol_volumes():
+    compose = (Path(__file__).resolve().parents[3] / "docker-compose.yml").read_text()
+    service = compose.split("  backend:\n", 1)[1].split("\n  # ── ARQ worker", 1)[0]
+
+    assert "RESEARCH_JOB_DIR:  /jobs" in service
+    assert "RESEARCH_RESULT_DIR: /results" in service
+    assert "- research_jobs:/jobs" in service
+    assert "- research_results:/results" in service
+
+
 def test_research_runner_image_pins_curated_numerical_dependencies_and_thread_budget():
     dockerfile = (Path(__file__).resolve().parents[2] / "Dockerfile.research-runner").read_text()
 

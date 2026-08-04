@@ -3245,6 +3245,13 @@ task at 05:00 UTC behind `MARKET_DATA_REFRESH_SCHEDULE_ENABLED`, disabled by def
 deployments must explicitly review free-provider entitlements and quotas before enabling
 it. The task continues to write only through the canonical local database path.
 
+The isolated research handoff is now deployable end-to-end: Compose gives the backend and
+runner the same `/jobs` and `/results` volumes, the backend prepares those private shared
+directories for UID 10001 before enqueueing, and the runner returns a structured
+`memory_limit` diagnostic for in-process allocation pressure while surviving the job.
+This closes the previously hidden fresh-volume permission/path gap; broader orphan-job,
+multi-window, and full security/resource acceptance remain separate gates.
+
 Controlling objective:
 - This section and `docs/tc2000-visual-parity.md` are the controlling specification for
   the branch and supersede every older or narrower frontend-rework plan where they

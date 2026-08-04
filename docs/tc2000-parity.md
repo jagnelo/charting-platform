@@ -40,6 +40,23 @@ leak, `InterfaceError`, `SAWarning`, or unexpected error.
 This is runtime reliability evidence, not Version 25 visual approval; strict visual
 acceptance remains controlled by the required reference manifest.
 
+## Isolated research handoff and resource-pressure evidence
+
+The Compose backend and isolated research runner now share explicit `/jobs` and `/results`
+volume paths. Enqueue prepares the private volume directories with shared permissions so
+the non-root UID 10001 runner can atomically claim backend-created jobs and write result and
+progress files; job files are mode 0666 and no provider credentials are mounted. The runner
+maps in-process `MemoryError` to a structured `memory_limit` diagnostic rather than an empty
+runtime error.
+
+Live evidence: a backend-enqueued 70-million-element allocation was claimed, returned the
+`memory_limit` diagnostic, produced a processed sentinel, and left the capped runner
+running. Full backend unit coverage passed 964 tests, research API integration passed 20,
+deployment/research-job/runner tests passed, and all probe artifacts were removed. This
+closes the fresh-volume handoff/path defect and one real memory-pressure case; orphan-job
+cleanup after process termination, cancellation under pressure, and broader namespace/
+multi-process stress remain required acceptance work.
+
 ## Authentication-session lifecycle evidence
 
 The authenticated legacy-route matrix exposed a separate session-lifetime defect around

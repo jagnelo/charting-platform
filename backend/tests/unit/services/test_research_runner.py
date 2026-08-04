@@ -530,6 +530,18 @@ def test_runner_enforces_wall_time_limit_and_restores_signal(monkeypatch):
     assert __import__("signal").getsignal(__import__("signal").SIGALRM) == previous_handler
 
 
+def test_runner_reports_memory_limit_diagnostic(monkeypatch):
+    def fail_compile(*_args, **_kwargs):
+        raise MemoryError()
+
+    monkeypatch.setattr(runner, "compile", fail_compile, raising=False)
+
+    result = execute_job({"source": "output.scalar('value', 1)", "dataset": {}})
+
+    assert result["status"] == "failed"
+    assert result["diagnostics"][0]["code"] == "memory_limit"
+
+
 @pytest.mark.parametrize("expression", [
     "values.tofile('/tmp/secret.bin')",
     "values.dump('/tmp/secret.npy')",
