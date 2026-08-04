@@ -1,3 +1,4 @@
+import inspect
 import json
 from datetime import datetime
 
@@ -357,9 +358,9 @@ async def stream_screener_run(
       {"type": "done",     "evaluated": N, "total": N, "matches": N,
                            "duration_ms": N, "result_id": N}
 
-    Pass 1 evaluates instruments already in the DB (fast).
-    Pass 2 fetches missing OHLCV from the configured provider then evaluates
-    (slow, rate-limited).
+    The stream evaluates canonical local history only.  Instruments without
+    sufficient local bars are returned as explicit coverage errors; a UI scan
+    never fans out to providers.
     """
     screener = await db.get(ScreenerDefinition, screener_id)
     if screener is None or screener.user_id != current_user.id:
@@ -368,8 +369,21 @@ async def stream_screener_run(
     from app.services.screener_engine import stream_screener
 
     async def event_gen():
-        async for event in stream_screener(db, screener):
-            yield json.dumps(event) + "\n"
+        try:
+            async for event in stream_screener(db, screener):
+                yield json.dumps(event) + "\n"
+        except BaseException:
+            # Roll back an interrupted scan before returning the dependency's
+            # connection to the pool.
+            await db.rollback()
+            raise
+        finally:
+            # FastAPI keeps yielded dependencies alive until a streaming body
+            # finishes.  Return this connection as soon as the body ends (or is
+            # cancelled); the dependency finalizer may close it idempotently.
+            close_method = getattr(db, "close", None)
+            if inspect.iscoroutinefunction(close_method):
+                await close_method()
 
     return StreamingResponse(
         event_gen(),

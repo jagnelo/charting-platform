@@ -218,27 +218,37 @@ async def test_provider_chain_ignores_stale_policy_for_unsupported_capability(db
     async_db = AsyncSessionAdapter(db)
     await seed_provider_runtime(async_db)
     alpaca = db.execute(select(DataSource).where(DataSource.name == "alpaca")).scalar_one()
-    db.add(
-        ProviderPolicy(
-            data_source_id=alpaca.id,
-            capability=ProviderCapability.INSTRUMENT_SEARCH,
-            base_priority=1,
+    stale_policy = db.execute(
+        select(ProviderPolicy).where(
+            ProviderPolicy.data_source_id == alpaca.id,
+            ProviderPolicy.capability == ProviderCapability.INSTRUMENT_SEARCH,
         )
-    )
-    db.add(
-        ProviderEntitlement(
+    ).scalar_one_or_none()
+    if stale_policy is None:
+        stale_policy = ProviderPolicy(
             data_source_id=alpaca.id,
             capability=ProviderCapability.INSTRUMENT_SEARCH,
-            configured_plan="legacy",
+            is_enabled=True,
+        )
+        db.add(stale_policy)
+    stale_policy.base_priority = 1
+    # Runtime seeding creates entitlement/health rows for every adapter
+    # capability.  Mutate those rows into a stale legacy record instead of
+    # inserting a duplicate under the composite uniqueness constraint.
+    stale_entitlement = db.execute(
+        select(ProviderEntitlement).where(
+            ProviderEntitlement.data_source_id == alpaca.id,
+            ProviderEntitlement.capability == ProviderCapability.INSTRUMENT_SEARCH,
+        )
+    ).scalar_one_or_none()
+    if stale_entitlement is None:
+        stale_entitlement = ProviderEntitlement(
+            data_source_id=alpaca.id,
+            capability=ProviderCapability.INSTRUMENT_SEARCH,
             is_free=True,
         )
-    )
-    db.add(
-        ProviderHealthState(
-            data_source_id=alpaca.id,
-            capability=ProviderCapability.INSTRUMENT_SEARCH,
-        )
-    )
+        db.add(stale_entitlement)
+    stale_entitlement.configured_plan = "legacy"
     db.commit()
 
     chain = await resolve_provider_chain(async_db, ProviderCapability.INSTRUMENT_SEARCH)

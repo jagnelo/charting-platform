@@ -16925,3 +16925,31 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
   `54` dependency warnings.
 - Visual approval, live probes, adversarial resource evidence, performance, and deep browser
   parity remain open.
+
+## Continuation update — 2026-08-04T20:45:00Z Streaming session lifecycle and final regression gates
+
+- Fixed cancellation/teardown handling for the NDJSON screener stream. Request sessions now
+  roll back on `BaseException`, and the stream generator explicitly returns a real async
+  session to the pool when the body completes or is cancelled. The test adapter remains
+  injectable, so integration tests do not cross event loops. This removes the observed
+  asyncpg `Exception terminating connection` and garbage-collector leak.
+- Added route-level lifecycle regression coverage and made the stale unsupported-provider
+  test idempotent with seeded runtime rows. Repo-mounted backend unit coverage passed `923`
+  tests with `34` dependency warnings; full backend integration passed `281` tests with
+  `54` dependency warnings.
+- Rebuilt the branch stack; complete Chromium authenticated flows passed `23/23` in `24.5s`.
+  The final backend log audit contained no connection-leak warning, cancellation traceback,
+  provider runtime error, or unexpected error. Strict Version 25 reference approval, live
+  probes, adversarial sandbox/resource, performance, and deep parity gates remain open.
+
+## Continuation update — 2026-08-04T21:00:00Z Frontend and visual gate audit
+
+- Frontend Vitest passed `535` tests across `84` files; `vue-tsc --noEmit`, production
+  `vite build`, Ruff, and `git diff --check` passed. The two expected Vitest stderr lines
+  are deliberate failure-path assertions for watchlist conflict/delete handling.
+- Real Chromium uPlot performance passed the 100,000-point, repeated zoom/pan invariant in
+  `762ms` without replacing the chart element.
+- The strict visual command was intentionally run and correctly stopped at the controlling
+  manifest: `application-shell-default/default` is still `required_missing`. No generated
+  application screenshot was promoted as a TC2000 reference; the online discovery pack
+  remains non-authoritative until exact-build/permission/review metadata is supplied.

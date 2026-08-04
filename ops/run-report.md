@@ -18483,6 +18483,31 @@ uncovered slice rather than repeat a generic completion claim.
 - Exact-build visual approval, live-provider probes, adversarial sandbox/resource tests,
   multi-window performance, and deep browser parity remain open.
 
+## 2026-08-04T20:45:00Z Streaming session lifecycle and final regression gates
+
+- `backend/app/database.py` now treats cancellation as a failed transaction, rolls back, and
+  always closes request sessions explicitly.
+- `backend/app/routers/screener.py` now rolls back and closes the real async request session
+  when the streaming body finishes or is cancelled; injected test adapters remain open for
+  their fixture transaction.
+- Added `backend/tests/unit/routers/test_screener_stream_lifecycle.py` and made the stale
+  provider runtime regression composite-key safe.
+- Evidence: repo-mounted backend unit `923 passed, 34 warnings`; backend integration `281
+  passed, 54 warnings`; complete Chromium flows `23 passed (24.5s)`; final backend logs had
+  no connection leak, cancellation traceback, provider error, or unexpected error. Strict
+  V25 reference approval and documented live/adversarial/performance/deep-parity gates remain.
+
+## 2026-08-04T21:00:00Z Frontend and visual gate audit
+
+- Frontend `npm run test -- --run`: `535 passed` in `84` files; `npm run type-check`,
+  production build, Ruff, and `git diff --check` passed. Vitest's two stderr messages are
+  expected assertions of conflict/delete failure recovery.
+- `uPlot large-history interaction`: `1 passed (762ms)` in real Chromium for 100,000 points
+  and repeated zoom/pan updates without replacing the chart element.
+- `npm run test:visual:approved` correctly failed before Playwright because the controlling
+  manifest reports `application-shell-default/default` as `required_missing`. The online
+  V25 discovery pack is not treated as an approved exact-build baseline.
+
 ## 2026-08-04T20:25:00Z Taxonomy read-path correction
 
 - Replaced request-time taxonomy mutation on market-group reads with a lightweight
