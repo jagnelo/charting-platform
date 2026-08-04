@@ -166,7 +166,8 @@ new-high/new-low, uptrend/downtrend, and aggregate moving-average-distance metri
 with the request lookback echoed in the response. The workstation summary renders these
 values with explicit unavailable states and shows metric-family coverage detail. The focused router suite and frontend store/
 watchlist boundary pass; member-level high/low and trend metrics now power linked
-advanced-statistic drill-downs; Docker-backed integration verification is still required.
+advanced-statistic drill-downs with an in-place Pass/Fail toggle; Docker-backed integration
+verification is still required.
 Study Lab exposes a serializable comma-separated universe control; when populated it sends
 canonical symbol selectors as `run_config.symbols` and displays the selected universe in
 the run summary instead of silently using only the active symbol.

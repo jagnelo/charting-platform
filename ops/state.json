@@ -4,7 +4,7 @@
     "active_worker": "Codex",
     "worker_session_started_at": "2026-07-28T21:40:33Z",
     "worker_soft_stop_at": null,
-  "last_handoff_at": "2026-08-04T10:35:42Z",
+  "last_handoff_at": "2026-08-04T10:37:37Z",
     "last_commit": "886c19b feat(breadth): add member drilldown metrics",
     "git_ready_to_commit": false,
     "validation": {
@@ -23,7 +23,7 @@
         "backend_combo_library_test": "blocked_by_environment (new combo_list persistence regression is written, but the current uv invocation resolves Python 3.9 and cannot import datetime.UTC; repository backend requires Python >=3.12; no backend source change was needed because the existing user-isolated generic library contract already persists combo payloads)"
     },
   "notes": [
-        "2026-08-04T10:35:42Z: Breadth responses now include point-in-time member_metrics and the workstation provides linked advanced-statistic drilldowns. Backend router unit 9, frontend Vitest 523, TypeScript/build/diff passed; targeted Docker integration remains blocked by denied socket; strict V25 visual approval and broad acceptance remain open.",
+        "2026-08-04T10:37:37Z: Breadth member drilldowns now expose in-place Pass/Fail controls for advanced conditions. TypeScript/build/diff passed; strict V25 visual approval, Docker integration, and broad acceptance remain open.",
         "2026-08-04T17:50:00Z: Breadth API now returns near-52-week, configurable new-high/new-low, trend-state, and MA-distance statistics with echoed parameters; workstation surfaces them. Backend Ruff/router unit 9 and frontend store/watchlist 61 passed; TypeScript/build/diff passed. Docker-backed integration was blocked by denied socket access; strict V25 visual approval and broad acceptance remain open.",
         "2026-08-04T17:25:00Z: Breadth daily/weekly/monthly timeframe and split-adjustment controls are persisted and forwarded to group snapshot/current/history requests. Workspace-store coverage 24 passed; prior focused workstation/watchlist boundary 40, TypeScript/build/diff passed. Strict V25 visual approval and broad acceptance remain open.",
         "2026-08-04T17:05:00Z: Breadth universe is now persisted/configurable between sp500-sectors and us-benchmarks; selected group/snapshot/current/history loads and linked Above/Below drill-downs use that group. Focused boundary 40 passed; TypeScript/build/diff passed. Strict V25 visual approval and broad acceptance remain open.",

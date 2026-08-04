@@ -2,6 +2,11 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-04T10:37:37Z Breadth drilldown pass/fail toggle
+
+- Added in-place Pass/Fail controls to the breadth member drilldown. TypeScript, production
+  build, and diff checks passed; broad visual, integration, and acceptance gates remain open.
+
 ## 2026-08-04T10:35:42Z Breadth advanced member drilldowns
 
 - Added canonical member-level breadth metrics and linked workstation drilldowns for

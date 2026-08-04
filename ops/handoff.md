@@ -1,5 +1,13 @@
 # Active Handoff
 
+## Continuation update — 2026-08-04T10:37:37Z Breadth drilldown pass/fail toggle
+
+- Added in-place Pass/Fail controls to the active breadth member drilldown, so advanced
+  high/low and trend conditions can switch result sets without changing the selected metric.
+- TypeScript, production build, and diff checks passed; prior backend router unit `9` and
+  frontend full Vitest `523` remain green. Visual/reference, Docker-backed integration, and
+  broad acceptance remain open. Generated `test-results/` remains intentionally untracked.
+
 ## Continuation update — 2026-08-04T10:35:42Z Breadth advanced member drilldowns
 
 - Breadth responses now include point-in-time `member_metrics` for moving-average,
