@@ -4,6 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.auth.dependencies import get_current_user
+from app.auth.jwt import decode_token
 from app.database import get_db
 from app.models.indicator_alert import IndicatorAlert
 from app.models.price_alert import AlertStatus, PriceAlert
@@ -238,7 +239,18 @@ async def update_indicator_alert(
 
 @router.websocket("/ws")
 async def alerts_websocket(websocket: WebSocket):
-    await ws_manager.connect(websocket)
+    user_id = None
+    token = websocket.query_params.get("token")
+    if token:
+        try:
+            payload = decode_token(token)
+            if payload.get("type") != "access":
+                raise ValueError("wrong token type")
+            user_id = int(payload["sub"])
+        except Exception:
+            await websocket.close(code=4401)
+            return
+    await ws_manager.connect(websocket, user_id=user_id)
     try:
         while True:
             data = await websocket.receive_text()

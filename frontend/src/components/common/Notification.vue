@@ -43,7 +43,9 @@ function remove(id: number) {
 function handleAlertEvent(e: Event) {
   const detail = (e as CustomEvent).detail
   const title = `${detail.symbol} alert`
-  const message = `${detail.condition?.replace(/_/g, ' ')} ${detail.threshold ?? ''} — current: ${detail.current_price?.toFixed?.(4) ?? detail.value_a?.toFixed?.(4) ?? 'n/a'}`
+  const message = detail.alert_kind === 'screener'
+    ? detail.condition
+    : `${detail.condition?.replace(/_/g, ' ')} ${detail.threshold ?? ''} — current: ${detail.current_price?.toFixed?.(4) ?? detail.value_a?.toFixed?.(4) ?? 'n/a'}`
   add({
     type: 'alert',
     title,

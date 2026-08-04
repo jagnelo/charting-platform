@@ -2,6 +2,12 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-04T12:04:00Z User-scoped alert notifications
+
+- Added authenticated WebSocket user routing, repaired screener dispatch, and rendered scan
+  notifications. Backend Ruff/manager tests `2`, frontend focused tests `5`, TypeScript/build,
+  and diff checks passed; Docker and visual/broad acceptance remain open.
+
 ## 2026-08-04T11:58:00Z Global EasyScan alert startup state
 
 - Preserved global EasyScan alert visibility before instrument selection. Focused linked-tool

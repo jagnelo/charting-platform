@@ -104,7 +104,7 @@ async def _fire_price_alert(db, alert, current_price):
         alert.last_notification_id = notif_id
     await db.commit()
 
-    await ws_manager.broadcast(
+    await ws_manager.broadcast_to_user(alert.user_id,
         {
             "type": "alert_triggered",
             "kind": "price",
@@ -138,7 +138,7 @@ async def _fire_indicator_alert(db, alert, current_val, current_b=None):
         alert.last_notification_id = notif_id
     await db.commit()
 
-    await ws_manager.broadcast(
+    await ws_manager.broadcast_to_user(alert.user_id,
         {
             "type": "alert_triggered",
             "kind": "indicator",

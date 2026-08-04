@@ -153,7 +153,9 @@ export const useAlertsStore = defineStore('alerts', () => {
   function connectWebSocket() {
     if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) return
     const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws'
-    const wsUrl = `${protocol}://${window.location.host}/api/v1/alerts/ws`
+    const accessToken = localStorage.getItem('access_token')
+    const tokenQuery = accessToken ? `?token=${encodeURIComponent(accessToken)}` : ''
+    const wsUrl = `${protocol}://${window.location.host}/api/v1/alerts/ws${tokenQuery}`
     ws = new WebSocket(wsUrl)
 
     ws.onopen = () => {
@@ -170,7 +172,14 @@ export const useAlertsStore = defineStore('alerts', () => {
 
     ws.onmessage = (event) => {
       const msg = JSON.parse(event.data)
-      if (msg.type === 'alert_triggered') {
+      if (msg.type === 'screener_alert_triggered') {
+        showAlertToast({
+          ...msg,
+          symbol: msg.screener_name ?? `Scan #${msg.screener_id}`,
+          condition: `${msg.trigger_type} · ${msg.entered_ids?.length ?? 0} entered · ${msg.left_ids?.length ?? 0} left`,
+          alert_kind: 'screener',
+        })
+      } else if (msg.type === 'alert_triggered') {
         if (msg.alert_kind === 'indicator') {
           const alert = indicatorAlerts.value.find(a => a.id === msg.alert_id)
           if (alert) {

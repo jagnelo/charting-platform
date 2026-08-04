@@ -909,7 +909,7 @@ def _dispatch_screener_alert_event(
     try:
         import asyncio
 
-        from app.websocket.manager import manager
+        from app.websocket.manager import ws_manager
 
         payload = {
             "type": "screener_alert_triggered",
@@ -921,10 +921,10 @@ def _dispatch_screener_alert_event(
             "left_ids": list(left),
             "triggered_at": alert.triggered_at.isoformat() if alert.triggered_at else None,
         }
-        # manager.broadcast_to_user is a coroutine; schedule it onto the running loop
+        # Targeted delivery prevents one user's scan membership from leaking to another.
         loop = asyncio.get_event_loop()
         if loop.is_running():
-            asyncio.ensure_future(manager.broadcast_to_user(alert.user_id, payload))
+            asyncio.ensure_future(ws_manager.broadcast_to_user(alert.user_id, payload))
     except Exception as e:
         logger.warning("Failed to dispatch screener alert event: %s", e)
 

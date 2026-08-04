@@ -546,6 +546,12 @@ Global EasyScan alerts are also loaded before an instrument identity is availabl
 primary alert surface does not lose scan-entry/exit state during workstation startup or
 empty-symbol recovery.
 
+Alert notifications now use authenticated, user-scoped WebSocket delivery. The screener
+engine targets the correct user instead of calling the nonexistent legacy manager symbol,
+and the frontend passes its access token to the socket and renders scan entry/exit events.
+Unauthenticated legacy/test sockets retain only the explicitly broadcast compatibility path;
+production alert evaluators no longer broadcast one user's alert payload to every client.
+
 The shared chart store applies the same generation boundary to instrument metadata,
 indicator configuration, OHLCV pages (including infinite-history backfill),
 transformed/synthetic bars, loading/error state, and coverage polling. Rapid symbol

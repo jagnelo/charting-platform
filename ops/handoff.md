@@ -1,5 +1,14 @@
 # Active Handoff
 
+## Continuation update — 2026-08-04T12:04:00Z User-scoped alert notifications
+
+- Repaired screener alert notification dispatch (`ws_manager.broadcast_to_user`) and added
+  user-indexed WebSocket connections. Price/indicator/screener evaluators now target the
+  owning user; the frontend authenticates its socket and renders scan events.
+- Backend Ruff and manager unit tests `2` passed; frontend linked-tool tests `5`, TypeScript,
+  production build, and diff checks passed. Docker integration, visual/reference, and broad
+  acceptance remain open.
+
 ## Continuation update — 2026-08-04T11:58:00Z Global EasyScan alert startup state
 
 - The primary Alerts tool now loads and renders user-owned EasyScan alerts even when no
