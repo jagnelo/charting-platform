@@ -1,5 +1,11 @@
 # Run Report
 
+## 2026-08-05T02:00:00Z Backend integration re-audit
+
+- Fresh Docker-backed backend integration run completed with `281/281` tests passing in
+  `181.13s` (`--no-cov`). The only output was 54 existing third-party deprecation warnings;
+  no integration failure or application error occurred.
+
 ## 2026-08-05T01:15:00Z Top-down keyboard traversal acceptance
 
 - The deep benchmark → sector → industry → proxy → constituent flow now focuses the real
