@@ -32,6 +32,31 @@ MAX_OUTPUT_ROWS = int(os.environ.get("RESEARCH_MAX_OUTPUT_ROWS", "10000"))
 MAX_OUTPUT_ARTIFACTS = int(os.environ.get("RESEARCH_MAX_OUTPUT_ARTIFACTS", "128"))
 MAX_JOB_BYTES = int(os.environ.get("RESEARCH_MAX_JOB_BYTES", str(64 * 1024 * 1024)))
 
+_SAFE_BUILTINS = {
+    "abs": abs,
+    "all": all,
+    "any": any,
+    "bool": bool,
+    "dict": dict,
+    "enumerate": enumerate,
+    "filter": filter,
+    "float": float,
+    "int": int,
+    "len": len,
+    "list": list,
+    "map": map,
+    "max": max,
+    "min": min,
+    "range": range,
+    "round": round,
+    "set": set,
+    "sorted": sorted,
+    "str": str,
+    "sum": sum,
+    "tuple": tuple,
+    "zip": zip,
+}
+
 
 def _materialize(value: object) -> object:
     if isinstance(value, dict):
@@ -154,7 +179,7 @@ def _execute_single(
     # No Python builtins, imports, filesystem APIs, sockets, or process APIs are exposed.
     outputs: dict[str, object] = {}
     safe_globals = {
-        "__builtins__": {},
+        "__builtins__": _SAFE_BUILTINS,
         "output": _Output(outputs, dataset),
         "dataset": dataset,
         "benchmark": dataset.get("benchmark_dataset"),

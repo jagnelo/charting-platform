@@ -44,6 +44,22 @@ def test_accepts_curated_scipy_namespace():
     assert result.dependencies == ("output", "scipy")
 
 
+def test_accepts_safe_python_composition_builtins():
+    result = validate_workstation_python(
+        "values = [1, 2, 3]\noutput.scalar('count', len(values))\noutput.scalar('total', sum(values))"
+    )
+    assert result.valid
+    assert result.output_contracts == ("scalar",)
+
+
+def test_rejects_dunder_name_access_in_the_runner_validator():
+    from research_runner.validation import validate_workstation_python as validate_runner
+
+    result = validate_runner("__builtins__['eval']('1 + 1')")
+    assert not result.valid
+    assert result.diagnostics[0].code == "forbidden_name"
+
+
 def test_accepts_curated_statsmodels_and_local_method_composition():
     result = validate_workstation_python(
         "model = statsmodels.api.OLS([1, 2, 3], [[1, 1], [1, 2], [1, 3]])\n"

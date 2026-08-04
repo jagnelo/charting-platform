@@ -91,6 +91,11 @@ When a benchmark is materialized, the same namespace exposes explicit
 `benchmark_*` accessors for aligned OHLCV, timestamps, sessions, and metadata; an absent
 or unavailable benchmark returns a structured runner diagnostic rather than silently
 falling back to the primary instrument.
+The unified language also exposes a bounded set of ordinary Python composition builtins
+(`len`, `sum`, `min`, `max`, `range`, collection constructors, and related pure helpers)
+in both validators and the isolated runner. Dunder names remain rejected, so this
+improves normal Python expressiveness without widening host, filesystem, network, or
+dynamic-execution access.
 
 Unified Python assets now have lifecycle contracts for complete export/import, immutable
 version-preserving clone, and reversible archive/unarchive operations. Each imported or

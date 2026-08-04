@@ -11,6 +11,19 @@ def test_runner_executes_only_validated_output_contract_in_its_own_process_modul
     assert result["artifacts"]["sample_size"] == {"type": "scalar", "value": 4}
 
 
+def test_runner_exposes_bounded_python_builtins_without_host_access():
+    result = execute_job(
+        {
+            "source": "values = [1, 2, 3]\noutput.scalar('count', len(values))\noutput.scalar('total', sum(values))\noutput.scalar('largest', max(values))",
+            "dataset": {},
+        }
+    )
+    assert result["status"] == "completed"
+    assert result["artifacts"]["count"]["value"] == 3
+    assert result["artifacts"]["total"]["value"] == 6
+    assert result["artifacts"]["largest"]["value"] == 3
+
+
 def test_runner_emits_typed_boolean_artifacts():
     result = execute_job({"source": "output.boolean('qualifies', 2 > 1)", "dataset": {}})
     assert result["status"] == "completed"

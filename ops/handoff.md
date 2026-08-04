@@ -1,5 +1,13 @@
 # Active Handoff
 
+## Continuation update — 2026-08-04T02:05:00Z
+
+- Aligned the FastAPI validator and isolated runner around a bounded pure-Python builtin
+  set, enabling normal study composition such as `len`, `sum`, `min`, `max`, `range`, and
+  collection helpers while retaining explicit dunder-name and host-access rejection.
+- Focused validation/runner coverage passed `44` tests with Ruff clean; visual approval
+  and the broader security, performance, migration, and acceptance gates remain open.
+
 ## Continuation update — 2026-08-04T01:42:00Z
 
 - Re-ran the complete frontend Vitest suite after adding the Python Library tool: `513`

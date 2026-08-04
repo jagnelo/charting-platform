@@ -2,6 +2,14 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-04T02:05:00Z Safe Python composition
+
+- Added the same bounded pure-Python builtin set to the API validator and isolated runner,
+  with dunder names still rejected. Normal Python studies can now use common collection,
+  aggregation, and iteration helpers without host access.
+- Focused validation/runner suite passed `44` tests and Ruff passed. Exact-build visual
+  approval and the complete acceptance matrix remain open.
+
 ## 2026-08-04T01:42:00Z Full frontend verification
 
 - Re-ran the complete frontend Vitest suite after the Python Library addition: `513`

@@ -11,6 +11,10 @@ import ast
 from dataclasses import dataclass
 
 _APPROVED_ROOTS = {"market", "ta", "stats", "research", "output", "np", "pd", "scipy", "statsmodels"}
+_SAFE_BUILTINS = {
+    "abs", "all", "any", "bool", "dict", "enumerate", "filter", "float", "int", "len",
+    "list", "map", "max", "min", "range", "round", "set", "sorted", "str", "sum", "tuple", "zip",
+}
 _BANNED_NODES = (
     ast.Import,
     ast.ImportFrom,
@@ -95,7 +99,7 @@ class _Validator(ast.NodeVisitor):
         if isinstance(node.func, ast.Attribute) and root in {"np", "pd"} and node.func.attr in _BANNED_DATA_CALLS:
             self.add(node, "forbidden_data_access", f"{root}.{node.func.attr}() cannot access files or external data.")
         if root and not banned_builtin:
-            if root not in (_APPROVED_ROOTS | self.bound_names):
+            if root not in (_APPROVED_ROOTS | _SAFE_BUILTINS | self.bound_names):
                 self.add(node, "unapproved_namespace", f"{root} is not an approved SDK namespace.")
             elif root in _APPROVED_ROOTS:
                 self.dependencies.add(root)
