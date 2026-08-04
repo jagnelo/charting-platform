@@ -770,3 +770,10 @@ restored watchlist; system clipboard failure falls back to an in-memory session 
 unknown/missing source columns are reported instead of creating a blank column. Focused
 virtual-watchlist coverage proves the copy/paste round trip; full browser and visual
 acceptance remain open.
+
+Top-down benchmark, sector, constituent, and verified-proxy watchlists now expose
+response-level `Coverage`, `Freshness`, and `Provenance` columns alongside the technical
+ranking fields. They are populated from the canonical analysis metadata rather than a
+provider-specific frontend assumption, and remain visible as explicit unavailable values
+when a batch is not ready. The frontend contract accepts membership/version lineage for
+future detail panes; visual density and full backend/E2E acceptance remain open.

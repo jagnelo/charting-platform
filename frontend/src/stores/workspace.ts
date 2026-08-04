@@ -130,6 +130,11 @@ export interface GroupSnapshotRow {
 
 export interface GroupSnapshotState {
   group_key: string
+  calculation_version?: string
+  data_provenance?: string
+  refreshed_at?: string
+  membership_version?: number
+  universe_provenance?: Record<string, unknown>
   coverage: number
   freshness?: 'current' | 'stale' | 'partial' | 'unavailable'
   freshness_detail?: Record<string, number>

@@ -1062,6 +1062,13 @@ function snapshotWarnings(row: GroupSnapshotRow | undefined) {
   }
   return warnings
 }
+function snapshotLineage(snapshot: { coverage?: number; freshness?: string; data_provenance?: string } | null | undefined) {
+  return {
+    coverage: snapshot?.coverage ?? null,
+    freshness: snapshot?.freshness ?? 'unavailable',
+    provenance: snapshot?.data_provenance ?? 'unavailable',
+  }
+}
 const sectorPerformance = computed(() => Object.fromEntries(
   (workspaceStore.groupSnapshots['sp500-sectors']?.rows ?? []).map(row => [row.symbol, row.performance['1M']?.value ?? null]),
 ))
@@ -1102,6 +1109,7 @@ const proxyRows = computed(() => (industryProxySnapshot.value?.rows ?? []).map(r
     source: evidence?.source_provider ?? 'Unavailable',
     as_of: evidence?.composition_date ?? 'Unavailable',
     known_at: evidence?.known_at ? new Date(evidence.known_at).toLocaleDateString() : 'Unknown',
+    ...snapshotLineage(industryProxySnapshot.value),
   },
   warnings: {
     performance_1m: cellWarning(row.performance['1M']),
@@ -1143,6 +1151,7 @@ const benchmarkRows = computed(() => (workspaceStore.marketGroups['us-benchmarks
       rsi14: row?.technical?.rsi14?.value ?? null,
       position_52w: row?.technical?.position_52w?.value ?? null,
       volume_ratio_50: row?.technical?.volume_ratio_50?.value == null ? null : row.technical.volume_ratio_50.value.toFixed(2),
+      ...snapshotLineage(benchmarkSnapshot.value),
     }
   })(),
   warnings: snapshotWarnings(benchmarkSnapshot.value?.rows.find(item => item.instrument_id === member.instrument.id)),
@@ -1168,6 +1177,7 @@ const sectorRows = computed(() => (workspaceStore.marketGroups['sp500-sectors']?
       above_ma200: row?.technical?.above_ma200?.value ?? null,
       position_52w: row?.technical?.position_52w?.value ?? null,
       volume_ratio_50: row?.technical?.volume_ratio_50?.value == null ? null : row.technical.volume_ratio_50.value.toFixed(2),
+      ...snapshotLineage(workspaceStore.groupSnapshots['sp500-sectors']),
       ...Object.fromEntries(Object.entries(row?.calendar_year_performance ?? {}).map(([year, cell]) => [`calendar_${year}`, cell.value])),
     }
   })(),
@@ -1240,7 +1250,8 @@ const constituentRows = computed(() => {
         relative_spy: analysis?.relative_to_market?.value == null ? null : analysis.relative_to_market.value.toFixed(4),
         rsi14: analysis?.technical?.rsi14?.value ?? null,
         above_ma50: analysis?.technical?.above_ma50?.value ?? null,
-        position_52w: analysis?.technical?.position_52w?.value ?? null,
+      position_52w: analysis?.technical?.position_52w?.value ?? null,
+      ...snapshotLineage(constituentSnapshot.value),
       },
       warnings: snapshotWarnings(analysis),
     }
@@ -1263,6 +1274,9 @@ const sectorColumns: WatchlistColumn[] = [
   { key: 'above_ma200', label: '>200', width: '58px', kind: 'boolean' },
   { key: 'position_52w', label: '52W Pos', width: '64px' },
   { key: 'volume_ratio_50', label: 'Vol x50', width: '62px' },
+  { key: 'coverage', label: 'Coverage', width: '68px' },
+  { key: 'freshness', label: 'Freshness', width: '74px' },
+  { key: 'provenance', label: 'Provenance', width: '92px' },
 ]
 const sectorByYearColumns = computed<WatchlistColumn[]>(() => [
   { key: 'symbol', label: 'Symbol', width: '54px' },
@@ -1285,6 +1299,9 @@ const benchmarkColumns: WatchlistColumn[] = [
   { key: 'rsi14', label: 'RSI', width: '52px', format: 'number' },
   { key: 'position_52w', label: '52W Pos', width: '64px' },
   { key: 'volume_ratio_50', label: 'Vol x50', width: '62px' },
+  { key: 'coverage', label: 'Coverage', width: '68px' },
+  { key: 'freshness', label: 'Freshness', width: '74px' },
+  { key: 'provenance', label: 'Provenance', width: '92px' },
 ]
 const industryColumns: WatchlistColumn[] = [
   { key: 'symbol', label: 'Industry', width: 'minmax(120px, 1fr)' },
@@ -1301,6 +1318,9 @@ const constituentColumns: WatchlistColumn[] = [
   { key: 'rsi14', label: 'RSI', width: '54px', format: 'number' },
   { key: 'above_ma50', label: '>50', width: '54px' },
   { key: 'position_52w', label: '52W Pos', width: '64px' },
+  { key: 'coverage', label: 'Coverage', width: '68px' },
+  { key: 'freshness', label: 'Freshness', width: '74px' },
+  { key: 'provenance', label: 'Provenance', width: '92px' },
 ]
 const proxyColumns: WatchlistColumn[] = [
   { key: 'symbol', label: 'Proxy', width: '56px' },
@@ -1312,6 +1332,9 @@ const proxyColumns: WatchlistColumn[] = [
   { key: 'as_of', label: 'Holdings', width: '78px', format: 'number' },
   { key: 'known_at', label: 'Known', width: '72px', format: 'number' },
   { key: 'source', label: 'Source', width: '72px', format: 'number' },
+  { key: 'coverage', label: 'Coverage', width: '68px' },
+  { key: 'freshness', label: 'Freshness', width: '74px' },
+  { key: 'provenance', label: 'Provenance', width: '92px' },
 ]
 const configuredColumnKeys = computed(() => {
   const keys = props.tool.configuration.column_keys
