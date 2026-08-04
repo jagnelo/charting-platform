@@ -4,9 +4,10 @@
 
 - Added document/intersection visibility gating to the reusable uPlot live latest-bar
   timer. Hidden charts stop polling immediately and restart on visibility restoration;
-  the fetch callback rechecks visibility before doing work and chart teardown clears the
-  observer/timer.
-- Focused chart-adjacent coverage passed `9`; TypeScript and diff checks passed. The
+  the fetch callback rechecks visibility before doing work, and latest-bar responses now
+  share a Vue Query key across linked/pop-out charts. Symbol/timeframe changes restart
+  the timer with a fresh key; chart teardown clears the observer/timer.
+- Focused chart-adjacent coverage passed `7`; TypeScript and diff checks passed. The
   previously recorded Chromium launch permission failure remains environmental, and
   exact-build visual plus broad performance/security acceptance remain open.
 

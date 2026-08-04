@@ -179,6 +179,7 @@ import { useAlertsStore }       from '@/stores/alerts'
 import { useUserSettingsStore } from '@/stores/userSettings'
 import { useOptionsExposureStore } from '@/stores/optionsExposure'
 import { useWorkspaceStore } from '@/stores/workspace'
+import { useQueryClient } from '@tanstack/vue-query'
 import { isEditorTarget } from '@/lib/workstation/keyboard'
 import { candlestickPlugin }       from '@/lib/uplot/plugins/candlestick'
 import { ohlcBarsPlugin }          from '@/lib/uplot/plugins/ohlc-bars'
@@ -273,6 +274,7 @@ const alertsStore        = useAlertsStore()
 const userSettingsStore  = useUserSettingsStore()
 const optionsExposureStore = useOptionsExposureStore()
 const workspaceStore = useWorkspaceStore()
+const queryClient = useQueryClient()
 const effectiveChartType = computed(() => props.chartType ?? userSettingsStore.chartType)
 function configuredBoolean(key: string, fallback: boolean) {
   const value = props.chartSettings?.[key]
@@ -959,13 +961,18 @@ function startLivePolling() {
   if (!livePollingAllowed()) return
   const tf = chartStore.timeframe as string
   const interval = TF_POLL_MS[tf] ?? 60_000
+  const latestQueryKey = ['workstation', 'latest-bars', chartStore.symbol, chartStore.timeframe, chartStore.barType]
 
   const poll = async () => {
     if (!livePollingAllowed()) { stopLivePolling(); return }
     if (!chartStore.symbol || !chartStore.timeframe) return
     try {
       // Only fetch the latest page; merge any genuinely new bars at the tail
-      const mapped = await chartStore.fetchLatestBars()
+      const mapped = await queryClient.fetchQuery({
+        queryKey: latestQueryKey,
+        queryFn: () => chartStore.fetchLatestBars(),
+        staleTime: Math.max(1_000, interval / 2),
+      })
       const existingLatestTs = chartStore.bars[chartStore.bars.length - 1]?.ts ?? ''
       const newLatestTs      = mapped[mapped.length - 1]?.ts ?? ''
       if (newLatestTs !== existingLatestTs) {
@@ -3095,6 +3102,10 @@ watch(() => chartStore.bars, () => {
   if (uplot) updateData(); else void initChart()
   applyLinkedTimestamp(props.linkedTimestamp)
 }, { deep: false })
+watch([() => chartStore.symbol, () => chartStore.timeframe, () => chartStore.barType], () => {
+  if (uplot) startLivePolling()
+  else stopLivePolling()
+})
 watch(() => chartStore.instrument?.id, () => { if (!chartStore.instrument?.is_synthetic) loadInstrumentEvents() })
 watch(() => chartStore.instrument?.id, () => { if (!chartStore.instrument?.is_synthetic) loadAlertFiringEvents() })
 watch([visibleComparisonSeries, visiblePythonSeries], () => { if (uplot) updateData(); else initChart() }, { deep: true })

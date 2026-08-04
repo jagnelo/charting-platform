@@ -5,8 +5,9 @@ Append a short entry after each worker session.
 ## 2026-08-04T12:48:00Z uPlot visibility polling
 
 - uPlot live latest-bar refresh now pauses for hidden documents and non-intersecting chart
-  roots, resumes on visibility restoration, and rechecks before each fetch.
-- Focused chart-adjacent tests passed `9`; TypeScript and diff checks passed. Exact-build
+  roots, resumes on visibility restoration, rechecks before each fetch, and shares latest
+  responses through a canonical Vue Query key across linked/pop-out charts.
+- Focused chart-adjacent tests passed `7`; TypeScript and diff checks passed. Exact-build
   visual approval and the complete performance/security acceptance matrix remain open.
 
 ## 2026-08-04T12:36:00Z Shared research polling
