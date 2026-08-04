@@ -584,6 +584,12 @@ function handleKeydown(event: KeyboardEvent) {
 
 watch(activeSymbol, symbol => {
   if (!symbol) return
+  // Selections made by linked watchlists, pop-outs, or another browser window
+  // publish through the workspace bus rather than through the shell input.
+  // Keep the active-symbol entry authoritative for those paths too, while
+  // suppressing the search request that is only intended for user typing.
+  suppressNextSearch = true
+  symbolDraft.value = symbol
   const preserveDrilldown = preserveDrilldownSymbol.value === symbol
   if (preserveDrilldown) preserveDrilldownSymbol.value = null
   if (chartStore.symbol === symbol) return

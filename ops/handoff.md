@@ -16872,3 +16872,12 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
   websocket, workspace, analysis, Study Lab, screener, holdings, or legacy contracts.
   Exact-build visual approval, live-provider probes, adversarial sandbox/resource tests,
   multi-window performance, and deep browser parity remain open.
+
+## Continuation update — 2026-08-04T19:05:00Z Active-symbol synchronization and browser flows
+
+- Fixed the shell active-symbol entry so linked watchlist, pop-out, and cross-window
+  selections mirror the canonical workspace symbol without initiating a search request.
+- Added F8d coverage for the US Top Down benchmark/sector selection path. Focused F8d passed;
+  full Chromium `flows.spec.ts` passed `23` tests in `31.8s` with no unexpected diagnostics.
+- Exact-build V25 visual approval, live-provider probes, adversarial sandbox/resource tests,
+  multi-window performance, and deep browser parity remain open.

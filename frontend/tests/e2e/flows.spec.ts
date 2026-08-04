@@ -186,6 +186,23 @@ test.describe('TC2000 workstation', () => {
     await expect(popup).toHaveURL(/\/login/, { timeout: 5_000 })
   })
 
+  test('F8d — US Top Down publishes benchmark and sector selections without route changes', async ({ page, browserDiagnostics }) => {
+    await page.goto('/chart')
+    await expect(page.locator('.workstation')).toBeVisible()
+    await expect(page.getByRole('region', { name: 'Major US benchmarks' })).toBeVisible({ timeout: 10_000 })
+    const sectorList = page.getByRole('region', { name: 'Relative to SPY' })
+    await expect(sectorList).toBeVisible({ timeout: 10_000 })
+    await expect(sectorList.getByRole('button', { name: /XLK/ }).first()).toBeVisible()
+
+    // Identity-only E2E fixtures deliberately do not fabricate bars or holdings;
+    // selection must still publish the canonical ETF and retain the workstation
+    // while data-dependent tools report their honest unavailable state.
+    await sectorList.getByRole('button', { name: /XLK/ }).first().click()
+    await expect(page.getByRole('combobox', { name: 'Active symbol' })).toHaveValue('XLK')
+    await expect(page.locator('.workstation__footer')).toContainText(/Unavailable|No local observations|cached|Fetching/i)
+    browserDiagnostics.expectNoCriticalIssues()
+  })
+
 })
 
 

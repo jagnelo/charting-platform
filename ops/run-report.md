@@ -18444,3 +18444,12 @@ uncovered slice rather than repeat a generic completion claim.
 - API/task/websocket, workspace/analysis, holdings, screener, Study Lab, strategy, and
   legacy-contract coverage remain green. Visual approval, live probes, adversarial sandbox,
   performance, and deep browser parity remain open.
+
+## 2026-08-04T19:05:00Z Active-symbol synchronization and browser flows
+
+- Linked watchlist, pop-out, and cross-window symbol publications now update the shell
+  active-symbol field while suppressing the user-search debounce path.
+- Focused F8d passed and the rebuilt branch-scoped Chromium flow suite passed `23` tests in
+  `31.8s` with no unexpected console/page/request diagnostics.
+- Exact-build V25 visual approval, live-provider probes, adversarial sandbox/resource tests,
+  multi-window performance, and deep browser parity remain open.
