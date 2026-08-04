@@ -40,6 +40,24 @@ leak, `InterfaceError`, `SAWarning`, or unexpected error.
 This is runtime reliability evidence, not Version 25 visual approval; strict visual
 acceptance remains controlled by the required reference manifest.
 
+## Authentication-session lifecycle evidence
+
+The authenticated legacy-route matrix exposed a separate session-lifetime defect: the normal
+`get_current_user` dependency could share a route session and leave its connection checked out
+while navigation or pop-out response work continued. Normal authentication now requests an
+uncached database dependency and closes its identity lookup before returning. The detached
+streaming variant retains the same eager-close contract. Cleanup helpers also accept the
+synchronous compatibility adapters used by controlled tests without scheduling a non-awaitable
+return value.
+
+Evidence: the ten-surface `/legacy/*` Chromium matrix passed without login redirects or fatal
+overlays; backend unit coverage passed `926` tests; Docker-backed integration passed `281` tests;
+the rebuilt complete Chromium flow passed `26/26` in `41.8s`; frontend Vitest passed `545` tests;
+TypeScript, production build, and diff checks passed; and a fresh backend-log audit found no
+garbage-collector/non-checked-in connection, `SAWarning`, `InterfaceError`, cancellation trace,
+provider-runtime error, or unexpected warning. This closes the observed auth-session leak class;
+it does not alter the strict V25 visual gate or broader performance/security/parity gates.
+
 ## Repeated pop-out lifecycle evidence
 
 The browser acceptance matrix now includes a repeated lifecycle regression: F8f floats and

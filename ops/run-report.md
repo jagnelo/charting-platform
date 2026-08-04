@@ -1,5 +1,21 @@
 # Run Report
 
+## 2026-08-04T19:17:09Z Authentication-session lifecycle cleanup
+
+- Added a full authenticated legacy-route smoke matrix covering the retained `/legacy/*`
+  surfaces. Its first run found a genuine SQLAlchemy non-checked-in connection warning tied
+  to normal authentication dependency lifetime.
+- Normal authentication now uses an uncached DB dependency and eagerly closes its identity
+  lookup session; cleanup helpers handle both async SQLAlchemy sessions and synchronous
+  compatibility adapters. Added a regression for the latter.
+- Validation is green: backend unit `926/926`, Docker integration `281/281`, rebuilt
+  Chromium `26/26` in `41.8s`, frontend Vitest `545/545`, TypeScript, production build, and
+  diff check. The fresh backend log audit was empty for connection leaks, `SAWarning`,
+  `InterfaceError`, cancellation traces, provider errors, and unexpected warnings.
+- This checkpoint does not change the overall completion claim: exact-build V25 visual
+  approval is still `required_missing`, and provider-live, adversarial sandbox/resource,
+  multi-monitor/memory/performance, migration, and broad parity acceptance remain open.
+
 ## 2026-08-04T19:03:48Z Repeated pop-out lifecycle acceptance
 
 - Added and passed F8f: five float/close cycles retain the same durable source-tool count;

@@ -413,6 +413,39 @@ test.describe('Dashboard', () => {
 })
 
 
+// ── Legacy route compatibility ───────────────────────────────────────────────
+
+test.describe('Legacy compatibility', () => {
+
+  test.beforeEach(async ({ loggedIn }) => {})
+
+  test('legacy authenticated surfaces remain reachable behind /legacy', async ({ page, browserDiagnostics }) => {
+    const routes = [
+      '/legacy/dashboard',
+      '/legacy/chart/SPY',
+      '/legacy/alerts',
+      '/legacy/radar',
+      '/legacy/strategy-lab',
+      '/legacy/baskets',
+      '/legacy/etf-holdings',
+      '/legacy/screener',
+      '/legacy/watchlist',
+      '/legacy/settings',
+    ]
+
+    for (const route of routes) {
+      await page.goto(route)
+      await expect(page).not.toHaveURL(/\/login/)
+      await expect(page.locator('body')).toBeVisible()
+      await expect(page.locator('.error-overlay, .fatal-error')).toHaveCount(0)
+    }
+
+    browserDiagnostics.expectNoCriticalIssues()
+  })
+
+})
+
+
 // ── Radar flows ───────────────────────────────────────────────────────────────
 
 test.describe('Radar', () => {

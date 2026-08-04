@@ -1,5 +1,24 @@
 # Active Handoff
 
+## Continuation update — 2026-08-04T19:17:09Z Authentication-session lifecycle cleanup
+
+- The legacy-route compatibility matrix added a full authenticated smoke pass for ten
+  `/legacy/*` surfaces. Its first run exposed a real SQLAlchemy warning: an authentication
+  lookup session could remain checked out while navigation/pop-out response work continued.
+- Normal `get_current_user` now requests an uncached DB dependency and closes its identity
+  lookup session immediately. The detached streaming-auth path keeps the same contract.
+  Cancellation-safe cleanup helpers now also accept synchronous compatibility adapters without
+  attempting to schedule `None` as a coroutine.
+- Validation: backend unit `926 passed` with 34 existing dependency warnings; Docker-backed
+  integration `281 passed` with 54 existing dependency warnings; rebuilt Chromium
+  `flows.spec.ts` `26/26 passed` in `41.8s`; frontend Vitest `545 passed` across 84 files;
+  TypeScript and production build passed; `git diff --check` passed. A fresh backend-log audit
+  over the browser run found no `SAWarning`, garbage-collector/non-checked-in connection,
+  cancellation traceback, InterfaceError, provider-runtime error, or unexpected warning.
+- The new legacy matrix and auth cleanup are still uncommitted. Exact-build V25 visual approval
+  remains `required_missing`; provider-live, adversarial sandbox/resource, multi-monitor and
+  memory/performance, migration, and complete parity gates remain open.
+
 ## Continuation update — 2026-08-04T19:03:48Z Repeated pop-out lifecycle acceptance
 
 - Added F8f browser coverage for five repeated float/close cycles, asserting the durable

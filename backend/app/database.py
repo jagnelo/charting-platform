@@ -1,5 +1,6 @@
 import asyncio
 import logging
+from inspect import isawaitable
 
 import anyio
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
@@ -52,6 +53,11 @@ class Base(DeclarativeBase):
 
 async def _finish_cleanup(operation, description: str) -> None:
     """Run an async cleanup operation outside the cancelled request task."""
+    # Some compatibility/test session adapters expose synchronous cleanup
+    # methods.  They have already completed by the time they return, so there
+    # is no child task to shield in that case.
+    if not isawaitable(operation):
+        return
     cleanup_task = asyncio.create_task(operation)
     try:
         await asyncio.shield(cleanup_task)
@@ -68,8 +74,9 @@ async def _finish_cleanup(operation, description: str) -> None:
 async def rollback_session_safely(session: AsyncSession) -> None:
     """Rollback without allowing ASGI cancellation to interrupt cleanup."""
     with anyio.CancelScope(shield=True):
+        operation = session.rollback()
         await _finish_cleanup(
-            session.rollback(),
+            operation,
             "Database rollback",
         )
 
@@ -77,8 +84,9 @@ async def rollback_session_safely(session: AsyncSession) -> None:
 async def close_session_safely(session: AsyncSession) -> None:
     """Close a session while shielding pool cleanup from cancellation."""
     with anyio.CancelScope(shield=True):
+        operation = session.close()
         await _finish_cleanup(
-            session.close(),
+            operation,
             "Database session close",
         )
 

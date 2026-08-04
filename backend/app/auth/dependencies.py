@@ -21,7 +21,7 @@ bearer_scheme = HTTPBearer(auto_error=False)
 
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
-    db: AsyncSession | Session = Depends(get_db),
+    db: AsyncSession | Session = Depends(get_db, use_cache=False),
 ) -> User:
     if credentials is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
@@ -36,9 +36,14 @@ async def get_current_user(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired token"
         )
 
-    user = db.get(User, user_id)
-    if isawaitable(user):
-        user = await user
+    try:
+        user = db.get(User, user_id)
+        if isawaitable(user):
+            user = await user
+    finally:
+        # Authentication must not keep a route's database connection checked
+        # out while a response body, pop-out, or navigation remains active.
+        await close_session_safely(db)
     if user is None or not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found or inactive"
