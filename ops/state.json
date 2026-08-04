@@ -27,6 +27,7 @@
     "study_lab_signal_promotion": "passed: completed Boolean Study Lab results create reusable signal code assets; aggregate starters warn and reject missing declared universes; focused Study Lab suite 9 and TypeScript/build passed, 2026-08-04"
     },
   "notes": [
+        "2026-08-04T12:02:00Z: Industry drill-down rows now expose resolved coverage ratio, holdings composition date, source/provenance, and proxy counts; missing classification remains explicit. TypeScript/build/diff passed; full regression and visual/broad acceptance states unchanged.",
         "2026-08-04T11:58:00Z: Added Coverage, Freshness, and Provenance columns to the Sector by Year factory watchlist so calendar-year performance retains canonical lineage. TypeScript/build/diff passed; full regression remains green and visual/broad acceptance remain open.",
         "2026-08-04T11:54:00Z: Removed provider-specific symbol alias rendering from the shared primary provenance hint and FieldProvenance type while retaining isolated legacy options fields. TypeScript/build/diff passed; full regression remains green and visual/provider-live/Docker/broad acceptance remain open.",
         "2026-08-04T11:46:00Z: Completed Study Lab Boolean results can now be promoted into reusable Strategy Lab signal assets; aggregate ranking/breadth starters visibly require a declared universe and reject empty runs. Focused Study Lab suite 9, full frontend 534 across 84 files, TypeScript/build/diff passed. Visual and broad acceptance remain open.",

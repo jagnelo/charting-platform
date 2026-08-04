@@ -817,3 +817,8 @@ legacy options models retain their isolated provider fields for legacy-only rout
 The Sector by Year factory watchlist now exposes the same `Coverage`, `Freshness`, and
 `Provenance` columns as the live sector ranking view, so calendar-year cells do not become
 a lineage-free exception when the factory layout changes.
+
+Industry drill-down rows now retain ETF-holdings classification lineage as well: resolved
+coverage ratio, holdings composition date, and source/provenance are visible beside proxy
+counts. Missing classification or proxy data remains explicitly unavailable rather than
+being inferred from an industry name.

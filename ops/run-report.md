@@ -18283,3 +18283,7 @@ uncovered slice rather than repeat a generic completion claim.
 - Sector by Year now exposes canonical coverage/freshness/provenance columns alongside
   calendar-year performance. TypeScript/build/diff checks passed; broad acceptance remains
   open.
+## 2026-08-04T12:02:00Z Industry lineage parity
+
+- Added ETF-holdings composition/freshness/provenance to industry drill-down rows and
+  columns. TypeScript/build/diff passed; broad acceptance remains open.

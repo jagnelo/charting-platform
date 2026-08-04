@@ -16682,3 +16682,9 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
   watchlist, closing the remaining top-down list variant that lacked response-lineage
   visibility. TypeScript, production build, and diff checks pass; full backend/frontend
   regression evidence remains green. Visual and broad acceptance remain open.
+## Continuation update — 2026-08-04T12:02:00Z Industry lineage parity
+
+- Industry drill-down rows now expose resolved coverage ratio, holdings composition date,
+  and classification provenance beside proxy counts. No proxy or classification is inferred
+  from a name; missing values remain explicit. TypeScript, production build, and diff checks
+  passed; full regression evidence remains green and visual/broad acceptance remain open.
