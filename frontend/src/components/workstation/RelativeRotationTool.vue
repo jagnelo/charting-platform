@@ -114,6 +114,17 @@ function drawPlot() {
     ctx.setLineDash([3, 3])
     if (Number.isFinite(zeroX)) { ctx.beginPath(); ctx.moveTo(zeroX, 0); ctx.lineTo(zeroX, chart.height); ctx.stroke() }
     if (Number.isFinite(zeroY)) { ctx.beginPath(); ctx.moveTo(0, zeroY); ctx.lineTo(chart.width, zeroY); ctx.stroke() }
+    ctx.font = '10px Segoe UI'
+    ctx.fillStyle = '#7fca9e'
+    if (Number.isFinite(zeroX) && Number.isFinite(zeroY)) {
+      ctx.fillText('Leading', Math.min(chart.width - 54, zeroX + 6), Math.max(12, zeroY - 8))
+      ctx.fillStyle = '#d2b675'
+      ctx.fillText('Weakening', Math.min(chart.width - 66, zeroX + 6), Math.min(chart.height - 6, zeroY + 18))
+      ctx.fillStyle = '#83bce0'
+      ctx.fillText('Improving', Math.max(4, zeroX - 64), Math.max(12, zeroY - 8))
+      ctx.fillStyle = '#d88b8b'
+      ctx.fillText('Lagging', Math.max(4, zeroX - 52), Math.min(chart.height - 6, zeroY + 18))
+    }
     ctx.restore()
     for (const row of rows.value) {
       if (row.tail.length < 2) continue

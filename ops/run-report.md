@@ -2,6 +2,12 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-04T10:31:04Z Relative-rotation quadrant labels
+
+- Added transparent state labels to the relative-rotation uPlot quadrants. Focused component
+  tests `4`, TypeScript, production build, and diff checks passed; visual and broad acceptance
+  remain open.
+
 ## 2026-08-04T10:29:22Z Relative-rotation visible tails
 
 - Added connected, state-colored historical tail rendering to the uPlot relative-rotation

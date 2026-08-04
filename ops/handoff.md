@@ -1,5 +1,14 @@
 # Active Handoff
 
+## Continuation update — 2026-08-04T10:31:04Z Relative-rotation quadrant labels
+
+- Added state labels for the Leading, Weakening, Improving, and Lagging quadrants to the
+  relative-rotation uPlot overlay while retaining connected member tails and in-place chart
+  updates.
+- Focused relative-rotation component tests `4`, TypeScript, production build, and diff checks
+  passed. Visual/reference and broad acceptance remain open. Generated `test-results/` remains
+  intentionally untracked.
+
 ## Continuation update — 2026-08-04T10:29:22Z Relative-rotation visible tails
 
 - Relative Rotation now draws each member's sampled history as a color-coded connected
