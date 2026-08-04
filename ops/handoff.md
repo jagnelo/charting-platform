@@ -1,5 +1,12 @@
 # Active Handoff
 
+## Continuation update — 2026-08-05T03:00:00Z Full unit-suite re-audit
+
+- Current HEAD passes the complete frontend Vitest suite (`550/550` across 84 files) and
+  backend unit suite (`965/965` in 31.33s, 34 existing dependency deprecation warnings).
+  The manifest validator continues to enforce the exact-build visual gate and rejects the
+  still-`required_missing` reference states.
+
 ## Continuation update — 2026-08-05T02:30:00Z Migration-chain acceptance audit
 
 - A fresh disposable PostgreSQL 16 audit against current HEAD upgraded the complete

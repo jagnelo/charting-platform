@@ -1,5 +1,12 @@
 # Run Report
 
+## 2026-08-05T03:00:00Z Full unit-suite re-audit
+
+- Current HEAD passes all frontend Vitest tests (`550/550` across 84 files) and all backend
+  unit tests (`965/965` in 31.33s, 34 existing dependency deprecation warnings). The visual
+  manifest test still correctly rejects approval while required exact-build states remain
+  missing.
+
 ## 2026-08-05T02:30:00Z Migration-chain acceptance audit
 
 - Fresh disposable PostgreSQL 16 validation against current HEAD upgraded the complete
