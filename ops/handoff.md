@@ -16656,6 +16656,6 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
   code assets for Strategy Lab, alongside the existing column/plot/scan/alert targets.
 - Aggregate ranking and breadth starters now declare their universe requirement in the UI,
   warn before execution, and reject empty-universe runs instead of falling back to the
-  active symbol. Focused Study Lab coverage `9`, TypeScript, and production build passed;
-  full frontend `533` remains green. Visual approval, point-in-time aggregate fixtures,
+  active symbol. Focused Study Lab coverage `9`, full frontend `534` across `84` files,
+  TypeScript, and production build passed. Visual approval, point-in-time aggregate fixtures,
   live probes, Docker integration, and broad acceptance remain open.
