@@ -62,6 +62,55 @@ describe('VirtualWatchlistTool', () => {
     await vi.waitFor(() => expect(apiPost).toHaveBeenCalledWith('/research/runs/91/cancel', {}))
   })
 
+  it('cancels the previous Python column run before changing its timeframe', async () => {
+    apiPost.mockImplementation(async (path: string) => {
+      if (path === '/research/runs') return { id: 92 }
+      return {}
+    })
+    apiGet.mockImplementation(async (path: string) => {
+      if (path.startsWith('/research/runs/92/')) return { status: 'running', cells: [], progress: { status: 'running' } }
+      return []
+    })
+
+    const wrapper = mount(VirtualWatchlistTool, {
+      props: {
+        label: 'Python timeframe',
+        rows,
+        pythonColumns: [{ code_version_id: 8, name: 'Signal', timeframe: 'D1' }],
+      },
+    })
+
+    await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith('/research/runs/92/batch-results'))
+    await wrapper.get('.watchlist__columns-button').trigger('click')
+    await wrapper.get('select[aria-label="Signal timeframe"]').setValue('W1')
+    await vi.waitFor(() => expect(apiPost).toHaveBeenCalledWith('/research/runs/92/cancel', {}))
+    expect(apiPost).toHaveBeenCalledWith('/research/runs', expect.objectContaining({ run_config: expect.objectContaining({ timeframe: 'W1' }) }))
+  })
+
+  it('cancels the previous Python condition run before changing its timeframe', async () => {
+    apiPost.mockImplementation(async (path: string) => {
+      if (path === '/research/runs') return { id: 93 }
+      return {}
+    })
+    apiGet.mockImplementation(async (path: string) => {
+      if (path.startsWith('/research/runs/93/')) return { status: 'running', cells: [], progress: { status: 'running' } }
+      return []
+    })
+
+    const wrapper = mount(VirtualWatchlistTool, {
+      props: {
+        label: 'Python condition timeframe',
+        rows,
+        pythonCondition: { code_version_id: 9, name: 'Trend', mode: 'active', timeframe: 'D1' },
+      },
+    })
+
+    await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith('/research/runs/93/batch-results'))
+    await wrapper.get('select[aria-label="Python condition timeframe Python condition timeframe"]').setValue('W1')
+    await vi.waitFor(() => expect(apiPost).toHaveBeenCalledWith('/research/runs/93/cancel', {}))
+    expect(apiPost).toHaveBeenCalledWith('/research/runs', expect.objectContaining({ run_config: expect.objectContaining({ timeframe: 'W1' }) }))
+  })
+
   it('filters canonical rows and publishes the selected canonical row', async () => {
     const wrapper = mount(VirtualWatchlistTool, {
       props: {

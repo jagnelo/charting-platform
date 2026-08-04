@@ -18519,6 +18519,16 @@ uncovered slice rather than repeat a generic completion claim.
   unexpected errors. The strict visual gate remains intentionally blocked by required
   exact-build reference states.
 
+## 2026-08-04T21:40:00Z Timeframe-change cancellation
+
+- Python column and condition timeframe edits now cancel the previous prepared-universe run
+  and invalidate its generation before starting the replacement request.
+- Full frontend Vitest: `538 passed` across `84` files; TypeScript, production build, and
+  `git diff --check`: passed. Rebuilt branch-scoped Chromium flows: `23 passed (24.2s)`.
+- Post-run backend logs contained no cancellation traceback, connection leak, provider
+  runtime error, or unexpected error. Strict visual approval and the remaining live,
+  adversarial, performance, and deep parity gates remain open.
+
 ## 2026-08-04T20:25:00Z Taxonomy read-path correction
 
 - Replaced request-time taxonomy mutation on market-group reads with a lightweight

@@ -461,6 +461,27 @@ async function cancelPythonRun(key: string) {
   try { await api.post(`/research/runs/${runId}/cancel`, {}) }
   catch (cause: any) { pythonProgress.value = { ...pythonProgress.value, [key]: cause?.message ?? 'Cancel failed' } }
 }
+
+function invalidatePythonColumn(codeVersionId: number) {
+  const key = pythonKey(codeVersionId)
+  void cancelPythonRun(key)
+  pythonColumnRequestGenerations.set(codeVersionId, (pythonColumnRequestGenerations.get(codeVersionId) ?? 0) + 1)
+  runningPythonColumns.delete(codeVersionId)
+  const { [key]: _run, ...remainingRuns } = pythonRunIds.value
+  pythonRunIds.value = remainingRuns
+  const { [key]: _progress, ...remainingProgress } = pythonProgress.value
+  pythonProgress.value = remainingProgress
+}
+
+function invalidatePythonCondition() {
+  void cancelPythonRun('python_condition')
+  pythonConditionRequestGeneration.value += 1
+  if (pythonCondition.value) runningPythonConditions.delete(pythonCondition.value.code_version_id)
+  const { python_condition: _run, ...remainingRuns } = pythonRunIds.value
+  pythonRunIds.value = remainingRuns
+  const { python_condition: _progress, ...remainingProgress } = pythonProgress.value
+  pythonProgress.value = remainingProgress
+}
 async function runPythonColumn(column: { code_version_id: number; name: string; timeframe?: string }) {
   if (runningPythonColumns.has(column.code_version_id)) return
   const symbols = [...new Set(props.rows.map(row => row.symbol).filter(Boolean))]
@@ -512,6 +533,7 @@ function addPythonColumn() {
   void runPythonColumn(column)
 }
 function setPythonColumnTimeframe(codeVersionId: number, timeframe: string) {
+  invalidatePythonColumn(codeVersionId)
   const next = pythonColumns.value.map(column => column.code_version_id === codeVersionId ? { ...column, timeframe } : column)
   emit('update:pythonColumns', next)
   const changed = next.find(column => column.code_version_id === codeVersionId)
@@ -537,6 +559,7 @@ function configurePythonCondition(value: string) {
 
 function setPythonConditionTimeframe(timeframe: string) {
   if (!pythonCondition.value) return
+  invalidatePythonCondition()
   const condition = { ...pythonCondition.value, timeframe }
   emit('update:pythonCondition', condition)
   void runPythonCondition(condition)

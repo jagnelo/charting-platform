@@ -16966,3 +16966,15 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
   audit contained no cancellation traceback, connection leak, provider runtime error, or
   unexpected error. Exact-build visual approval, provider-live, adversarial resource,
   multi-window performance, and deep Version 25 parity evidence remain open.
+
+## Continuation update — 2026-08-04T21:40:00Z Timeframe-change cancellation
+
+- Python column and condition timeframe changes now invalidate the previous request
+  generation, cancel the active backend run, and permit the new timeframe to start. This
+  closes the stale-work path for changes that do not alter the row universe.
+- Added regressions for both column and condition timeframe changes. Full frontend Vitest
+  passed `538` tests across `84` files; TypeScript, production build, and `git diff --check`
+  passed.
+- Rebuilt-stack Chromium acceptance passed `23/23` in `24.2s`; recent backend logs remain
+  clean. Exact-build visual approval, provider-live, adversarial resource, multi-window
+  performance, and deep Version 25 parity evidence remain open.
