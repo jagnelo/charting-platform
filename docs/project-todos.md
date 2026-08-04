@@ -3257,6 +3257,13 @@ runner restart, was requeued at startup, completed from the canonical prepared p
 and left no residue. Pressure concurrency/cancellation and broader sandbox stress remain
 separate acceptance gates.
 
+The live cancellation-under-pressure case is now also verified: a uniquely named 10,000-cell
+prepared-universe batch was claimed by the non-root runner, observed its cancellation sentinel
+during execution, returned a structured `canceled` / `batch_canceled` result with bounded
+completed-cell artifacts, and left the runner healthy. Probe artifacts were removed explicitly.
+This closes cancellation during a large batch; multi-process namespace/resource stress remains
+an acceptance gate.
+
 Read-only authenticated identity/settings reads use the detached short-lived session path;
 mutating authentication/settings routes retain the request-scoped transaction. The rebuilt
 browser flow and backend/runner/worker log audit now remain clean across the repeated login,

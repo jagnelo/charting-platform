@@ -1,5 +1,14 @@
 # Active Handoff
 
+## Continuation update — 2026-08-05T00:05:00Z Live research-runner cancellation probe
+
+- A uniquely named 10,000-cell prepared-universe job was claimed by the non-root isolated
+  runner, observed its cancellation sentinel during execution, and returned structured
+  `canceled` / `batch_canceled` output with bounded completed-cell artifacts.
+- The runner stayed healthy and the probe job/result files were removed explicitly. Live
+  cancellation-under-batch-pressure is evidenced; broader multi-process namespace and
+  resource stress remains open.
+
 ## Continuation update — 2026-08-04T23:32:00Z Pop-out lifecycle and handled expression-response hardening
 
 - F8f now exercises ten repeated float/close cycles; the focused test passed in `4.9s`

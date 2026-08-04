@@ -21,6 +21,13 @@ is recorded in the referenced test/baseline system.
 
 ## Current runtime evidence (2026-08-05)
 
+The live shared-volume runner protocol has also been exercised for cancellation: a uniquely
+named 10,000-cell prepared-universe batch was claimed by the non-root runner, observed a
+cancellation sentinel during execution, returned structured `canceled` / `batch_canceled`
+output with bounded completed-cell artifacts, and left the runner healthy. Probe artifacts
+were explicitly removed afterward. This closes live cancellation under batch pressure;
+broader multi-process namespace/resource stress remains open.
+
 The rebuilt branch stack now passes the complete authenticated Chromium flow (`27/27`),
 including Study Lab validation, isolated Python execution, and structured metric rendering.
 The full backend unit suite passes (`965/965`, 69.83% coverage); the detached-auth rollback
