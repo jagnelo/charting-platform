@@ -1,5 +1,15 @@
 # Active Handoff
 
+## Continuation update — 2026-08-05T00:20:00Z Research-runner crash recovery
+
+- Verified the live research-runner `restart: unless-stopped` behavior with no active job:
+  terminating PID 1 from inside the isolated namespace produced `FinishedAt=20:14:49Z`, a
+  later `StartedAt=20:15:21Z`, and a running container afterward. This is a real unexpected-
+  process crash/restart result, not a synthetic health assertion.
+- An intentional `docker kill` is treated as an operator stop and remains stopped under
+  `unless-stopped`; it was restored explicitly before the crash probe. No claim is made for
+  orphan-job recovery or resource-exhaustion behavior; those remain open.
+
 ## Continuation update — 2026-08-05T00:15:00Z Clean-stack integration and browser acceptance
 
 - Re-ran the complete Docker-backed backend integration suite: `281 passed` with the

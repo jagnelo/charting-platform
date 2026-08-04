@@ -1,5 +1,13 @@
 # Run Report
 
+## 2026-08-05T00:20:00Z Research-runner crash recovery
+
+- With no active research job, terminated the runner's in-namespace PID 1 and observed a
+  stopped interval followed by a new `StartedAt` and a running container under
+  `restart: unless-stopped`.
+- This validates unexpected-process recovery only. Intentional operator stops, orphan-job
+  cleanup, and memory/CPU/PID exhaustion remain separate unpassed gates.
+
 ## 2026-08-05T00:15:00Z Clean-stack integration and browser acceptance
 
 - Docker-backed backend integration: `281/281` passed (54 existing dependency warnings).
