@@ -573,6 +573,14 @@ destruction still clears the timer and observer; focused chart-adjacent regressi
 TypeScript checking pass. This is lifecycle evidence only; the complete 100,000-point,
 multi-window performance and visual acceptance suites remain open.
 
+Virtualized watchlist Python column and Boolean-condition batches now read their
+`/research/runs/{id}/batch-results` snapshots through the shared Vue Query client keyed
+by immutable run ID. Existing generation guards still discard late symbol/universe
+responses, cancellation remains per run, and the cached result path prevents duplicate
+reads when the same watchlist is recreated or linked across windows. The focused
+10,000-row/Python watchlist suite passes; full polling and performance acceptance remains
+open.
+
 The unified Python SDK now supports a typed `output.dashboard` composition contract. A
 dashboard contains only bounded references to named scalar, table, series, histogram,
 scatter, heatmap, or event artifacts plus title/span metadata; user code cannot provide

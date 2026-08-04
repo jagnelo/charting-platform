@@ -1,5 +1,14 @@
 # Active Handoff
 
+## Continuation update — 2026-08-04T13:28:00Z
+
+- Routed VirtualWatchlistTool Python column and Boolean-condition batch-result polling
+  through Vue Query cache keys based on immutable research run IDs. Existing generation
+  guards and cancellation behavior remain intact; linked/recreated watchlists reuse
+  retained batch snapshots.
+- Focused virtual-watchlist coverage passed `36`; TypeScript passed. Exact-build visual
+  approval and broad polling/performance/security acceptance remain open.
+
 ## Continuation update — 2026-08-04T13:10:00Z
 
 - Re-ran the complete frontend Vitest suite after latest-bar cache-key changes: `517`

@@ -2,6 +2,13 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-04T13:28:00Z Watchlist batch-result cache
+
+- Python watchlist column/condition result reads now use Vue Query by research run ID,
+  retaining late-response generation guards and per-run cancellation.
+- VirtualWatchlistTool passed all `36` focused tests and TypeScript passed. Exact-build
+  visual approval and the complete acceptance matrix remain open.
+
 ## 2026-08-04T13:10:00Z Full frontend regression after chart cache changes
 
 - Full frontend Vitest passed `517` tests across `84` files with no unhandled errors

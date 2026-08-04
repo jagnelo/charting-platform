@@ -1,4 +1,5 @@
-import { mount } from '@vue/test-utils'
+import { mount as vueMount } from '@vue/test-utils'
+import { VueQueryPlugin, QueryClient } from '@tanstack/vue-query'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const { apiDelete, apiGet, apiPost, apiPut } = vi.hoisted(() => ({ apiDelete: vi.fn(), apiGet: vi.fn(), apiPost: vi.fn(), apiPut: vi.fn() }))
@@ -6,6 +7,11 @@ vi.mock('@/lib/api', () => ({ api: { delete: apiDelete, get: apiGet, post: apiPo
 
 import VirtualWatchlistTool from '@/components/workstation/VirtualWatchlistTool.vue'
 import { createChartPlotDragPayload, createTechnicalConditionDragPayload, writeChartPlotDrag, writeTechnicalConditionDrag } from '@/lib/workstation/plotDrag'
+
+function mount(component: typeof VirtualWatchlistTool, options: Parameters<typeof vueMount>[1] = {}) {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
+  return vueMount(component, { ...options, global: { ...(options.global ?? {}), plugins: [[VueQueryPlugin, { queryClient }]] } })
+}
 
 const rows = [
   { instrumentId: 1, symbol: 'XLK', name: 'Technology', values: { relative_1m: 0.12 } },

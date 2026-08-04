@@ -107,6 +107,7 @@
 
 <script setup lang="ts">
 import { useVirtualizer } from '@tanstack/vue-virtual'
+import { useQueryClient } from '@tanstack/vue-query'
 import { computed, onMounted, ref, watch } from 'vue'
 import { api } from '@/lib/api'
 import { CHART_PLOT_DRAG_MIME, readAnalysisDrag, type ChartPlotDragPayload, type TechnicalConditionDragPayload } from '@/lib/workstation/plotDrag'
@@ -206,6 +207,7 @@ const props = withDefaults(defineProps<{
   membershipTargets: () => [],
   columnOverrides: () => ({}),
 })
+const queryClient = useQueryClient()
 const emit = defineEmits<{ select: [row: WatchlistRow]; compare: [symbols: string[]]; reorder: [itemIds: number[]]; 'plot-drop': [payload: ChartPlotDragPayload]; 'condition-drop': [payload: TechnicalConditionDragPayload]; 'row-action': [action: 'chart' | 'compare' | 'note' | 'alert' | 'copy' | 'copy-to-watchlist' | 'move-to-watchlist' | 'flag' | 'remove', row: WatchlistRow, targetWatchlistId?: number]; 'update:visibleColumnKeys': [keys: string[]]; 'update:filterText': [value: string]; 'update:conditionScreenerId': [id: number | null]; 'update:conditionFilterMode': [mode: 'active' | 'inactive' | 'off']; 'update:pinnedBooleanKeys': [keys: string[]]; 'update:columnGroups': [groups: Record<string, string>]; 'update:stackedColumnKeys': [keys: string[]]; 'update:columnOverrides': [overrides: Record<string, { label?: string; width?: string }>]; 'update:pythonColumns': [columns: Array<{ code_version_id: number; name: string; timeframe?: string }>]; 'update:pythonCondition': [condition: { code_version_id: number; name: string; mode: 'active' | 'inactive' | 'off'; timeframe?: string } | null] }>()
 const scrollElement = ref<HTMLElement | null>(null)
 const filter = ref(props.filterText)
@@ -427,6 +429,14 @@ async function loadPythonAssets() {
   } catch { pythonAssets.value = []; pythonConditionAssets.value = [] }
 }
 function sleep(ms: number) { return new Promise(resolve => setTimeout(resolve, ms)) }
+type PythonBatchResult = { status: string; progress?: { completed_cells?: number; total_cells?: number; status?: string }; cells: Array<{ symbol: string; status: string; value?: number | boolean; error?: string }> }
+function fetchPythonBatchResult(runId: number) {
+  return queryClient.fetchQuery<PythonBatchResult>({
+    queryKey: ['workstation', 'research-batch-result', runId],
+    queryFn: () => api.get<PythonBatchResult>(`/research/runs/${runId}/batch-results`),
+    staleTime: 0,
+  })
+}
 function progressLabel(progress?: { completed_cells?: number; total_cells?: number; status?: string }) {
   if (!progress) return 'Queued'
   const completed = Number(progress.completed_cells ?? 0)
@@ -459,7 +469,7 @@ async function runPythonColumn(column: { code_version_id: number; name: string; 
     if (!isCurrent()) return
     pythonRunIds.value = { ...pythonRunIds.value, [key]: run.id }
     for (let attempt = 0; attempt < 30; attempt += 1) {
-      const result = await api.get<{ status: string; progress?: { completed_cells?: number; total_cells?: number; status?: string }; cells: Array<{ symbol: string; status: string; value?: number | boolean; error?: string }> }>(`/research/runs/${run.id}/batch-results`)
+      const result = await fetchPythonBatchResult(run.id)
       if (!isCurrent()) return
       pythonProgress.value = { ...pythonProgress.value, [key]: progressLabel(result.progress) }
       if (result.status === 'completed' || result.status === 'failed' || result.status === 'canceled') {
@@ -539,7 +549,7 @@ async function runPythonCondition(condition: { code_version_id: number; name: st
     if (!isCurrent()) return
     pythonRunIds.value = { ...pythonRunIds.value, python_condition: run.id }
     for (let attempt = 0; attempt < 30; attempt += 1) {
-      const result = await api.get<{ status: string; progress?: { completed_cells?: number; total_cells?: number; status?: string }; cells: Array<{ symbol: string; status: string; value?: number | boolean; error?: string }> }>(`/research/runs/${run.id}/batch-results`)
+      const result = await fetchPythonBatchResult(run.id)
       if (!isCurrent()) return
       pythonProgress.value = { ...pythonProgress.value, python_condition: progressLabel(result.progress) }
       if (result.status !== 'completed' && result.status !== 'failed' && result.status !== 'canceled') pythonConditionState.value = `Python condition ${progressLabel(result.progress).toLowerCase()}…`
