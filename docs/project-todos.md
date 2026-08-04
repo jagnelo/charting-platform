@@ -3279,6 +3279,10 @@ tests across 84 files, and rebuilt Chromium remains 27/27. This hardening does n
 single completion bar or the exact-build visual/provider/pressure/performance/migration/parity
 gates.
 
+The requested periodic Docker cleanup was also run after the rebuilt-stack acceptance pass;
+active branch containers and named volumes were retained and 15.68GB of dangling Docker
+state was reclaimed.
+
 The Docker-backed integration suite also passes all 281 tests with 54 existing dependency
 warnings. The integration-only coverage command remains a diagnostic subset and therefore
 does not satisfy the repository-wide threshold; the acceptance run is recorded with

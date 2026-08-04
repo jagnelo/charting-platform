@@ -1,5 +1,10 @@
 # Run Report
 
+## 2026-08-05T05:25:00Z Docker cleanup
+
+- Ran the requested `docker system prune -af` while retaining active branch containers and
+  named research/database volumes; Docker reported `15.68GB` reclaimed.
+
 ## 2026-08-05T05:15:00Z VirtualWatchlist empty-result hardening
 
 - Python watchlist column/condition polling now rejects an empty backend payload with a

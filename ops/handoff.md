@@ -1,5 +1,10 @@
 # Active Handoff
 
+## Continuation update — 2026-08-05T05:25:00Z Docker cleanup
+
+- Ran the requested periodic `docker system prune -af`; active branch services and named
+  volumes were retained and Docker reclaimed `15.68GB` of dangling containers/images/cache.
+
 ## Continuation update — 2026-08-05T05:15:00Z VirtualWatchlist empty-result hardening
 
 - Hardened Python watchlist column/condition polling so an empty batch response becomes a
