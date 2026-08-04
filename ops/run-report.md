@@ -2,6 +2,13 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-04T06:38:00Z Structured Study Lab universe
+
+- Added serializable Study Lab universe input and structured `market.universe()` runner
+  execution for aggregate typed artifacts; empty input preserves active-symbol runs.
+- Runner suite passed `37` tests; Study Lab focused suite passed `4`; TypeScript and diff
+  checks passed. Exact-build visual approval and the complete acceptance matrix remain open.
+
 ## 2026-08-04T06:02:00Z Full backend unit verification
 
 - Complete backend unit suite passed `900` tests with `--no-cov`; 34 existing dependency

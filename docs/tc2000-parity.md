@@ -105,6 +105,13 @@ merges declared defaults, validates required/type/enum/range/unknown-key constra
 and rejects invalid runs before dataset materialization or sandbox enqueue.
 The same gate runs when assets are created, imported, or versioned, so invalid defaults
 cannot be persisted as immutable code versions in the first place.
+Prepared-universe Study Lab runs now have a structured path: `output_contract: study`
+executes once over the declared, provider-free `market.universe()` datasets, allowing
+ranked tables, distributions, dashboards, and other typed aggregate artifacts. Scalar and
+Boolean watchlist/condition batches retain their bounded per-instrument cell contract.
+Study Lab exposes a serializable comma-separated universe control; when populated it sends
+canonical symbol selectors as `run_config.symbols` and displays the selected universe in
+the run summary instead of silently using only the active symbol.
 Study Lab now exposes the same schema as generated controls, converts numeric and boolean
 values before creating the immutable code version, and sends the resulting typed parameter
 map with the run. The schema remains serializable in the workspace configuration boundary.

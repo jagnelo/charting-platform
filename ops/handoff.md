@@ -1,5 +1,13 @@
 # Active Handoff
 
+## Continuation update — 2026-08-04T06:38:00Z
+
+- Wired Study Lab's universe control to canonical `run_config.symbols`, with persisted
+  configuration and structured `market.universe()` execution for aggregate tables,
+  distributions, and dashboards. Empty universe input retains active-symbol behavior.
+- Focused runner coverage passed `37` tests and Study Lab coverage passed `4`; TypeScript
+  and diff checks are clean. Visual approval and the broader acceptance gates remain open.
+
 ## Continuation update — 2026-08-04T06:02:00Z
 
 - Re-ran the complete backend unit suite after safe builtins, parameter transport, and

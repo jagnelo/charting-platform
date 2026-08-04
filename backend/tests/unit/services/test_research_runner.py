@@ -52,6 +52,22 @@ def test_runner_rejects_non_object_parameters():
     assert result["diagnostics"][0]["code"] == "invalid_parameters"
 
 
+def test_runner_executes_structured_study_over_a_prepared_universe():
+    result = execute_job(
+        {
+            "source": "rows = [{'symbol': item['symbol'], 'last': item['closes'][-1]} for item in market.universe()]\noutput.table('ranking', rows)\noutput.histogram('distribution', [row['last'] for row in rows], 2)",
+            "output_contract": "study",
+            "dataset": {"datasets": [
+                {"instrument_id": 1, "symbol": "SPY", "closes": [100, 101]},
+                {"instrument_id": 2, "symbol": "XLK", "closes": [200, 205]},
+            ]},
+        }
+    )
+    assert result["status"] == "completed"
+    assert result["artifacts"]["ranking"]["value"] == [{"symbol": "SPY", "last": 101}, {"symbol": "XLK", "last": 205}]
+    assert result["artifacts"]["distribution"]["value"]["sample_size"] == 2
+
+
 def test_runner_emits_typed_boolean_artifacts():
     result = execute_job({"source": "output.boolean('qualifies', 2 > 1)", "dataset": {}})
     assert result["status"] == "completed"

@@ -157,6 +157,8 @@ def execute_job(
         }
     datasets = job.get("dataset", {}).get("datasets")
     if isinstance(datasets, list):
+        if str(job.get("output_contract") or "") == "study":
+            return _execute_single(source, job.get("dataset", {}), job)
         return _execute_batch(
             source,
             datasets,
@@ -776,6 +778,13 @@ class _Market:
 
     def benchmark_metadata(self) -> dict[str, object]:
         return self._benchmark_market().metadata()
+
+    def universe(self) -> list[dict[str, object]]:
+        """Return the prepared, provider-free universe for aggregate studies."""
+        datasets = self._dataset.get("datasets")
+        if not isinstance(datasets, list):
+            raise ValueError("Declared prepared universe is unavailable")
+        return [dict(item) for item in datasets if isinstance(item, dict)]
 
     def _benchmark_market(self) -> _Market:
         if self._benchmark is None:

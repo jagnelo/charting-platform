@@ -74,7 +74,7 @@ describe('StudyLabTool', () => {
       run_config: { symbol: 'SPY', parameters: {}, timeframe: 'W1', benchmark: 'QQQ', adjustment: 'raw', session: 'all', start_date: '2024-01-01', end_date: '2024-02-01' },
       dataset_manifest: expect.objectContaining({ timeframe: 'W1', benchmark: 'QQQ', adjustment: 'raw', session: 'all', start_date: '2024-01-01', end_date: '2024-02-01' }),
     }))
-    expect(wrapper.text()).toContain('Dataset: W1 · raw · all session · benchmark QQQ')
+    expect(wrapper.text()).toContain('Dataset: SPY · W1 · raw · all session · benchmark QQQ')
     expect(wrapper.text()).toContain('current_streak')
     expect(wrapper.text()).toContain('4')
     expect(wrapper.text()).toContain('qualifies')
@@ -101,6 +101,7 @@ describe('StudyLabTool', () => {
     await wrapper.find('[aria-label="Study parameter schema"]').setValue(JSON.stringify({ properties: { lookback: { type: 'integer', default: 20, minimum: 1 } } }))
     expect(wrapper.emitted('configuration')?.at(-1)?.[0]).toEqual(expect.objectContaining({ parameter_schema: JSON.stringify({ properties: { lookback: { type: 'integer', default: 20, minimum: 1 } } }) }))
     await wrapper.find('[aria-label="Study parameter lookback"]').setValue('30')
+    await wrapper.find('[aria-label="Study universe"]').setValue('SPY, XLK')
     await wrapper.find('button').trigger('click')
     await vi.waitFor(() => expect(wrapper.text()).toContain('Validated for isolated execution'))
     await wrapper.findAll('button')[1].trigger('click')
@@ -108,6 +109,6 @@ describe('StudyLabTool', () => {
     expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({
       initial_version: expect.objectContaining({ parameter_schema: { properties: { lookback: { type: 'integer', default: 20, minimum: 1 } } }, default_parameters: { lookback: 30 } }),
     }))
-    expect(apiPost).toHaveBeenCalledWith('/research/runs', expect.objectContaining({ run_config: expect.objectContaining({ parameters: { lookback: 30 } }) }))
+    expect(apiPost).toHaveBeenCalledWith('/research/runs', expect.objectContaining({ run_config: expect.objectContaining({ symbols: ['SPY', 'XLK'], parameters: { lookback: 30 } }) }))
   })
 })

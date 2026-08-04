@@ -10,6 +10,7 @@
       <div class="study-lab-tool__dataset" aria-label="Study dataset controls">
         <label>Timeframe <select v-model="timeframe" aria-label="Study timeframe"><option v-for="option in timeframeOptions" :key="option.value" :value="option.value">{{ option.label }}</option></select></label>
         <label>Benchmark <input v-model.trim="benchmark" aria-label="Study benchmark" placeholder="SPY" /></label>
+        <label>Universe <input v-model.trim="universeSymbols" aria-label="Study universe" placeholder="SPY, XLK, XLE" /></label>
         <label>Adjustment <select v-model="adjustment" aria-label="Study adjustment"><option value="split_adjusted">Split adjusted</option><option value="raw">Raw</option></select></label>
         <label>Session <select v-model="session" aria-label="Study session"><option value="regular">Regular</option><option value="all">All</option></select></label>
         <label>From <input v-model.trim="startDate" aria-label="Study start date" type="date" /></label>
@@ -50,7 +51,7 @@
     <section v-if="run" class="study-lab-tool__run">
       <div><strong>Run #{{ run.id }}</strong><span :class="`study-lab-tool__run-status--${run.status}`">{{ run.status }}</span><small v-if="progressLabel">{{ progressLabel }}</small><button v-if="canCancel" type="button" @click="cancel">Cancel</button></div>
       <p v-if="run.reproducibility_hash">Reproducibility {{ run.reproducibility_hash }}</p>
-      <p class="study-lab-tool__dataset-summary">Dataset: {{ timeframe }} · {{ adjustment === 'split_adjusted' ? 'split adjusted' : 'raw' }} · {{ session }} session · benchmark {{ benchmark || 'none' }} ({{ benchmarkCoverageLabel }}) · {{ startDate || 'earliest available' }} → {{ endDate || 'latest available' }}</p>
+      <p class="study-lab-tool__dataset-summary">Dataset: {{ universeSymbols || symbol }} · {{ timeframe }} · {{ adjustment === 'split_adjusted' ? 'split adjusted' : 'raw' }} · {{ session }} session · benchmark {{ benchmark || 'none' }} ({{ benchmarkCoverageLabel }}) · {{ startDate || 'earliest available' }} → {{ endDate || 'latest available' }}</p>
       <pre v-if="run.diagnostics?.length">{{ run.diagnostics }}</pre>
       <div v-if="metricArtifacts.length" class="study-lab-tool__metrics"><article v-for="artifact in metricArtifacts" :key="artifact.id" :class="{ 'study-lab-tool__metric--true': artifact.artifact_type === 'boolean' && artifact.payload.value === true, 'study-lab-tool__metric--false': artifact.artifact_type === 'boolean' && artifact.payload.value === false }"><small>{{ artifact.name }}</small><strong>{{ formatMetric(artifact) }}</strong></article></div>
       <article v-for="artifact in nonScalarArtifacts" :key="artifact.id">
@@ -99,6 +100,7 @@ const configString = (key: string, fallback: string) => typeof props.configurati
 const normaliseTimeframe = (value: string) => value === 'MN1' ? 'MN' : timeframeOptions.some(option => option.value === value) ? value : 'D1'
 const timeframe = ref(normaliseTimeframe(configString('timeframe', 'D1')))
 const benchmark = ref(configString('benchmark', 'SPY'))
+const universeSymbols = ref(configString('symbols', ''))
 const adjustment = ref<'split_adjusted' | 'raw'>(configString('adjustment', 'split_adjusted') === 'raw' ? 'raw' : 'split_adjusted')
 const session = ref<'regular' | 'all'>(configString('session', 'regular') === 'all' ? 'all' : 'regular')
 const startDate = ref(configString('start_date', ''))
@@ -171,10 +173,12 @@ watch(() => props.configuration, configuration => {
   else if (typeof configuration?.start_date === 'string') startDate.value = configuration.start_date
   if (configuration && !('end_date' in configuration)) endDate.value = ''
   else if (typeof configuration?.end_date === 'string') endDate.value = configuration.end_date
+  if (configuration && !('symbols' in configuration)) universeSymbols.value = ''
+  else if (typeof configuration?.symbols === 'string') universeSymbols.value = configuration.symbols
   if (configuration && !('parameter_schema' in configuration)) parameterSchemaText.value = ''
   else if (typeof configuration?.parameter_schema === 'string') parameterSchemaText.value = configuration.parameter_schema
 }, { deep: true })
-watch([timeframe, benchmark, adjustment, session, startDate, endDate], () => {
+watch([timeframe, benchmark, universeSymbols, adjustment, session, startDate, endDate], () => {
   const configuration: Record<string, unknown> = { ...(props.configuration ?? {}), timeframe: timeframe.value, adjustment: adjustment.value, session: session.value }
   if (benchmark.value) configuration.benchmark = benchmark.value.toUpperCase()
   else delete configuration.benchmark
@@ -182,6 +186,8 @@ watch([timeframe, benchmark, adjustment, session, startDate, endDate], () => {
   else delete configuration.start_date
   if (endDate.value) configuration.end_date = endDate.value
   else delete configuration.end_date
+  if (universeSymbols.value) configuration.symbols = universeSymbols.value.toUpperCase()
+  else delete configuration.symbols
   emit('configuration', configuration)
 })
 watch(parameterSchemaText, value => {
@@ -320,9 +326,11 @@ async function saveAndRun() {
     if (benchmark.value) datasetControls.benchmark = benchmark.value.toUpperCase()
     if (startDate.value) datasetControls.start_date = startDate.value
     if (endDate.value) datasetControls.end_date = endDate.value
+    const symbols = universeSymbols.value.split(',').map(value => value.trim().toUpperCase()).filter(Boolean)
+    const runConfig: Record<string, unknown> = symbols.length ? { symbols, parameters, ...datasetControls } : { symbol: symbol.value.toUpperCase(), parameters, ...datasetControls }
     run.value = await api.post<Run>('/research/runs', {
       code_version_id: asset.versions[0].id,
-      run_config: { symbol: symbol.value.toUpperCase(), parameters, ...datasetControls },
+      run_config: runConfig,
       dataset_manifest: { source: 'canonical_database', requested_at: new Date().toISOString(), ...datasetControls },
     })
     poller = setInterval(() => { void refreshRun() }, 1000)
