@@ -4,8 +4,8 @@
     "active_worker": "Codex",
     "worker_session_started_at": "2026-07-28T21:40:33Z",
     "worker_soft_stop_at": null,
-  "last_handoff_at": "2026-08-04T17:05:00Z",
-  "last_commit": "81d6b9e feat(strategy-lab): queue python signal runs",
+  "last_handoff_at": "2026-08-04T18:10:00Z",
+  "last_commit": "5f515d4 test(seed): provide top-down identity fixtures",
     "git_ready_to_commit": false,
   "validation": {
     "sandbox_numpy_method_guard": "passed: five dangerous ndarray attribute regressions; focused research runner 45 passed and full backend unit suite 913 passed",
@@ -17,7 +17,7 @@
         "frontend_build": "passed (TypeScript and production build after chart-plot promotion, indicator-column support, watchlist-filter binding, shared Vue Query deduplication, and cancellable indicator refreshes, 2026-08-03)",
         "alembic_upgrade": "disposable PostgreSQL 16 validation passed: full chain upgrades to e9f0a1b2c3d4, downgrades to d3e4f5a6b7c8, re-upgrades, and direct SQL verifies watchlist_item.flagged is non-null with false server default; container removed 2026-08-03T22:20:00Z",
         "diff_check": "passed (route-boundary checkpoint, 2026-08-03)",
-    "playwright": "rebuilt isolated branch stack: full Chromium flows.spec.ts passed 22 tests in 59.2s with no unexpected console/page/request failures after Python uPlot plot assets, stale-run cancellation, and EasyScan partial-result hardening; visual/multi-environment acceptance remains required, 2026-08-04",
+        "playwright": "rebuilt branch-scoped Docker stack with explicit identity-only top-down E2E seed; full Chromium flows.spec.ts passed 22 tests in 31.5s with no unexpected console/page/request failures; visual suite runs 4 environments but remains blocked by absent approved snapshots, 2026-08-04",
         "console_check": "passed for focused F6/F7/F8b Chromium flow diagnostics (no unexpected console/page/request failures), 2026-07-30; full acceptance still required",
         "backend_log_check": "fresh Docker-backed integration environment passed all 279 API/task/websocket tests; model metadata now includes alert_firing_event, with no residual UndefinedTable from screener alert history; branch stack logs previously confirmed Alembic upgrade through head, successful top-down taxonomy seed, scheduler/API startup, passing health checks, and no instrument_indicator_config UndefinedTable/500 after focused browser acceptance",
         "provider_live_tests": "not_run (route compatibility changes covered by deterministic unit/integration fixtures; opt-in live provider matrix remains separate)",
@@ -33,6 +33,7 @@
     "provider_reference_environment": "passed: backend/.env.example ordinary chains and identifier priority now exclude yfinance and retain it only for option_chain/explicit legacy slots; JSON seed validation and provider-registry unit suite 8 passed"
     ,"docker_integration_regression": "passed: full backend integration suite 279 passed with 54 dependency warnings after registering AlertFiringEvent in app.models; previously failing Python screener alert-history path is green"
     ,"research_runner_container_probe": "passed: resolved Docker Compose config, deployment contract tests 2, runner/security tests 46, and direct image probe verified uid 10001, read-only root, no network, dropped capabilities/no-new-privileges, and writable constrained tmpfs"
+    ,"browser_acceptance_checkpoint": "passed: branch-scoped stack rebuilt with E2E_SEED_INSTRUMENTS=true; Chromium flows 22 passed with no unexpected diagnostics; approved visual parity intentionally fails in all four environments because reference snapshots are absent"
     },
   "notes": [
         "2026-08-04T12:06:00Z: Added Study Lab As-of timestamp control and canonical research cutoff enforcement; future bars are excluded and invalid cutoff-before-start requests are rejected. Focused router tests 2, Study Lab 9, TypeScript/build/Ruff/diff passed; full regression and visual/provider/Docker/broad acceptance remain open.",

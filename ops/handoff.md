@@ -16818,3 +16818,16 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
   probe verified uid `10001`, read-only root, no network connectivity, dropped capabilities /
   `no-new-privileges`, and writable constrained `/tmp` tmpfs. This is concrete container
   boundary evidence; adversarial escape/resource/cancellation matrices remain open.
+
+## Continuation update — 2026-08-04T18:10:00Z Browser acceptance and top-down identity seed
+
+- Rebuilt the branch-scoped Docker stack with `E2E_SEED_INSTRUMENTS=true`. The E2E seed now
+  creates identity-only SPY/RSP/QQQ/DIA/IWM and all 11 sector ETFs plus unresolved ETF
+  profiles; it does not fabricate bars, holdings, or provider claims. Missing data remains
+  an explicit unavailable state.
+- Full Chromium `flows.spec.ts` passed `22` tests in `31.5s` with no unexpected
+  console/page/request failures. The four-environment approved visual suite was also
+  exercised with approval enabled and correctly failed because no approved V25 snapshots
+  exist; that is an intentional visual completion gate, not a silently accepted baseline.
+- Remaining gates: exact-build visual references/approval, provider-live probes, adversarial
+  sandbox/resource matrix, multi-environment performance, and broad visual/interaction parity.

@@ -18397,3 +18397,13 @@ uncovered slice rather than repeat a generic completion claim.
   contract tests `2` and runner/security tests `46` passed.
 - The broader adversarial escape/resource/cancellation matrix, visual baselines, provider-live,
   performance, and browser acceptance remain open.
+
+## 2026-08-04T18:10:00Z Browser acceptance and top-down identity seed
+
+- Rebuilt the branch stack with explicit identity-only E2E fixtures for SPY/RSP, major
+  benchmarks, and all 11 sector ETFs; no bars, holdings, or provider claims were fabricated.
+- Chromium `flows.spec.ts`: `22 passed` in `31.5s`, with no unexpected diagnostics. Approved
+  visual parity was enabled separately and failed in all four environments only because the
+  required V25 snapshots do not exist.
+- Exact-build visual approval, provider-live, adversarial sandbox/resource, multi-environment
+  performance, and broad interaction parity remain open.
