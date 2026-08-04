@@ -3769,6 +3769,9 @@ participation, and aggregate distance from the 20/50/200-day averages. The respo
 echoes the lookback and proximity parameters so saved studies remain reproducible;
 the workstation currently surfaces the primary high/low, trend, new-high/new-low, and
 MA-distance summaries while retaining the same explicit unavailable semantics.
+It also returns `coverage_detail` for each metric family (individual moving averages,
+near-52-week, new-high/new-low, trend, and each distance average), preventing a single
+overall universe percentage from being misread as coverage for every statistic.
 
 Relative rotation:
 - accept benchmark, peer universe, timeframe, lookback, sampling, and tail length;

@@ -1,5 +1,16 @@
 # Active Handoff
 
+## Continuation update — 2026-08-04T10:26:21Z Breadth metric coverage detail
+
+- Added `coverage_detail` to the breadth response for MA20/50/200, near-52-week,
+  new-high/new-low, trend, and distance metric families; the workstation now displays
+  that detail beside the advanced statistics.
+  - Backend Ruff/router unit `9` passed; frontend store/watchlist `71` passed; TypeScript,
+  production build, and diff passed. The targeted Docker-backed integration test was attempted
+  but remains blocked by denied
+  Docker socket access; visual and broad acceptance remain open. Generated `test-results/`
+  remains intentionally untracked.
+
 ## Continuation update — 2026-08-04T17:50:00Z Breadth advanced statistics
 
 - Extended the canonical breadth response with near-52-week-high/low participation,

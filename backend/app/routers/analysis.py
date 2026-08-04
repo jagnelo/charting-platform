@@ -1507,6 +1507,19 @@ async def group_breadth(
         freshness_detail=freshness_detail,
         evaluated_count=len(members),
         coverage=sum(1 for bars in bars_by_id.values() if bars) / max(len(members), 1),
+        coverage_detail={
+            **{
+                f"ma{period}": eligible[period] / max(len(members), 1)
+                for period in eligible
+            },
+            "near_52w": near_eligible / max(len(members), 1),
+            "new_high_low": new_eligible / max(len(members), 1),
+            "trend": trend_eligible / max(len(members), 1),
+            **{
+                f"distance_ma{period}": distance_eligible[period] / max(len(members), 1)
+                for period in distance_eligible
+            },
+        },
         above_ma={
             f"ma{period}": counts[period] / eligible[period] if eligible[period] else None
             for period in counts

@@ -164,7 +164,7 @@ production build pass; visual and full acceptance remain open.
 Breadth analytics now also return canonical near-52-week-high/low, configurable
 new-high/new-low, uptrend/downtrend, and aggregate moving-average-distance metrics,
 with the request lookback echoed in the response. The workstation summary renders these
-values with explicit unavailable states. The focused router suite and frontend store/
+values with explicit unavailable states and shows metric-family coverage detail. The focused router suite and frontend store/
 watchlist boundary pass; Docker-backed integration verification is still required.
 Study Lab exposes a serializable comma-separated universe control; when populated it sends
 canonical symbol selectors as `run_config.symbols` and displays the selected universe in

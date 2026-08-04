@@ -144,6 +144,7 @@ class BreadthOut(AnalysisResponseMetadata):
     universe_provenance: dict[str, object] = Field(default_factory=dict)
     evaluated_count: int
     coverage: float = Field(ge=0, le=1)
+    coverage_detail: dict[str, float] = Field(default_factory=dict)
     above_ma: dict[str, float | None]
     near_52w: dict[str, float | None] = Field(default_factory=dict)
     new_highs: dict[str, float | None] = Field(default_factory=dict)

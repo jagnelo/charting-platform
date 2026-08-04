@@ -142,6 +142,7 @@ export interface BreadthState {
   adjustment?: string
   as_of?: string | null
   coverage: number
+  coverage_detail?: Record<string, number>
   evaluated_count: number
   above_ma: Record<string, number | null>
   near_52w?: Record<string, number | null>

@@ -2,6 +2,14 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-04T10:26:21Z Breadth metric coverage detail
+
+- Breadth responses now expose per-metric-family coverage and the workstation renders it,
+  preventing aggregate coverage from masking partial eligibility. Backend router unit `9`,
+  frontend store/watchlist `71`, TypeScript/build/diff passed; the targeted Docker-backed
+  integration test was attempted but remains environment-blocked by denied socket access;
+  visual/broad acceptance remain open.
+
 ## 2026-08-04T17:50:00Z Breadth advanced statistics
 
 - Added canonical near-52-week, new-high/new-low, trend-state, and moving-average

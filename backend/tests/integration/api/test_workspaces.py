@@ -723,6 +723,17 @@ class TestWorkspaces:
         assert breadth_payload["near_threshold"] == 0.1
         assert set(breadth_payload["near_52w"]) == {"high", "low"}
         assert set(breadth_payload["trend"]) == {"uptrend", "downtrend"}
+        assert {
+            "ma20",
+            "ma50",
+            "ma200",
+            "near_52w",
+            "new_high_low",
+            "trend",
+            "distance_ma20",
+            "distance_ma50",
+            "distance_ma200",
+        } <= set(breadth_payload["coverage_detail"])
 
         history = client.get(
             "/api/v1/analysis/groups/point-in-time-batch-test/breadth/history",
