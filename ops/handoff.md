@@ -16990,3 +16990,14 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
 - Rebuilt-stack Chromium acceptance passed `23/23` in `24.5s`; the post-run backend log
   audit was clean. Exact-build visual approval, provider-live, adversarial resource,
   multi-window performance, and deep Version 25 parity evidence remain open.
+
+## Continuation update — 2026-08-04T22:20:00Z EasyScan teardown cancellation
+
+- The primary EasyScan tool now cancels a known queued/running Python research run during
+  unmount, while preserving terminal completed/failed/canceled results.
+- Added the EasyScan teardown regression. Focused EasyScan coverage passed `8`; full
+  frontend Vitest passed `540` tests across `84` files, with TypeScript, production build,
+  and `git diff --check` clean.
+- Rebuilt-stack Chromium acceptance passed `23/23` in `25.9s`; the backend log audit was
+  clean. Exact-build visual approval, provider-live, adversarial resource, multi-window
+  performance, and deep Version 25 parity evidence remain open.

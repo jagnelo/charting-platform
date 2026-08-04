@@ -18541,6 +18541,17 @@ uncovered slice rather than repeat a generic completion claim.
   Strict visual approval and the remaining live/adversarial/performance/deep-parity gates
   remain open.
 
+## 2026-08-04T22:20:00Z EasyScan teardown cancellation
+
+- EasyScan unmount now cancels known queued/running Python research runs and leaves terminal
+  results unchanged.
+- Focused EasyScan: `8 passed`; full frontend Vitest: `540 passed` across `84` files;
+  TypeScript, production build, and `git diff --check`: passed.
+- Rebuilt branch-scoped Chromium flows: `23 passed (25.9s)`. Recent backend logs were clean
+  for cancellation traces, connection leaks, provider runtime errors, and unexpected errors.
+  Strict visual approval and the remaining live/adversarial/performance/deep-parity gates
+  remain open.
+
 ## 2026-08-04T20:25:00Z Taxonomy read-path correction
 
 - Replaced request-time taxonomy mutation on market-group reads with a lightweight

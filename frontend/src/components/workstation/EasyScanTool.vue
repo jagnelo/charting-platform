@@ -52,7 +52,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useQueryClient } from '@tanstack/vue-query'
 import { api } from '@/lib/api'
 import ConditionGroupEditor from '@/components/workstation/ConditionGroupEditor.vue'
@@ -251,6 +251,11 @@ watch(selectedResultId, id => {
   if (selected) result.value = selected
 })
 onMounted(() => { void load() })
+onBeforeUnmount(() => {
+  const runId = pythonResearchRunId.value
+  const state = String(result.value?.result_data?._status ?? '')
+  if (runId && !['completed', 'failed', 'canceled'].includes(state)) void api.post(`/research/runs/${runId}/cancel`, {})
+})
 </script>
 
 <style scoped>

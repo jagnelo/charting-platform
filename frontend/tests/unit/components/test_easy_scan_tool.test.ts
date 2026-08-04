@@ -83,6 +83,30 @@ describe('EasyScanTool', () => {
     expect(apiPost).toHaveBeenCalledWith('/research/runs/99/cancel', {})
   })
 
+  it('cancels a queued Python scan when the EasyScan tool is destroyed', async () => {
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/workspaces/library/conditions') return Promise.resolve([])
+      if (path === '/code/assets') return Promise.resolve([{ kind: 'condition', name: 'Queued teardown', versions: [{ id: 44, version_number: 1, output_contract: 'boolean' }] }])
+      if (path === '/screeners/12/results') return Promise.resolve([{ matched_ids: [], result_data: { _status: 'queued', _python_research_run_id: 100 }, error: null }])
+      return Promise.resolve([])
+    })
+    apiPost.mockImplementation((path: string) => {
+      if (path === '/screeners/from-python-condition/44') return Promise.resolve({ id: 12 })
+      if (path === '/screeners/12/run') return Promise.resolve({ matched_ids: [], result_data: { _status: 'queued', _python_research_run_id: 100 }, error: null })
+      if (path === '/research/runs/100/cancel') return Promise.resolve({ status: 'canceled' })
+      return Promise.resolve({})
+    })
+
+    const wrapper = mount(EasyScanTool)
+    await flushPromises()
+    await wrapper.get('select[aria-label="Python condition"]').setValue('44')
+    await wrapper.get('input[aria-label="Scan name"]').setValue('Queued teardown scan')
+    await wrapper.findAll('button').find(button => button.text() === 'Run')!.trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Cancel'))
+    wrapper.unmount()
+    expect(apiPost).toHaveBeenCalledWith('/research/runs/100/cancel', {})
+  })
+
   it('saves an advanced technical condition tree through the shared condition contract', async () => {
     apiGet.mockResolvedValue([])
     apiPut.mockResolvedValue({ stable_key: 'rsi-tree', name: 'RSI tree', version: 1, payload: { condition: {} } })
