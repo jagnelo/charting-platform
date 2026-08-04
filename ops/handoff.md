@@ -16717,3 +16717,12 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
 - Added five focused escape regressions; the research-runner suite now passes `45` tests,
   the full backend unit suite passes `913`, Ruff passes, and Docker-level namespace,
   seccomp, network, and cgroup acceptance remains a separate deployment gate.
+## Continuation update — 2026-08-04T15:15:00Z Frontend regression checkpoint
+
+- Re-ran the complete frontend Vitest suite: `534` tests across `84` files passed.
+- `vue-tsc --noEmit`, the production Vite build, visual-manifest validation, and
+  `git diff --check` also passed. The expected conflict-path stderr in watchlist-store
+  tests did not fail the suite.
+- This closes the current deterministic frontend/static checkpoint; exact-build visual
+  approval, Docker-backed integration/security, provider-live probes, real-browser
+  performance, and broad E2E acceptance remain open.

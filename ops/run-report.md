@@ -18310,3 +18310,10 @@ uncovered slice rather than repeat a generic completion claim.
 - Research-runner suite: `45 passed`; full backend unit suite: `913 passed` with `34`
   existing dependency warnings; Ruff and diff checks passed. Docker-level security and
   the remaining full acceptance gates remain open.
+## 2026-08-04T15:15:00Z Frontend regression checkpoint
+
+- Full frontend Vitest: `534 passed` across `84` files.
+- `vue-tsc --noEmit`, production build, visual-manifest validation, and `git diff --check`
+  passed. The suite's intentional conflict-path stderr remained non-fatal.
+- Exact-build visual baselines, Docker-backed integration/security, provider-live probes,
+  real-browser performance, and broad E2E acceptance remain open.
