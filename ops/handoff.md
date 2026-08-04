@@ -1,5 +1,13 @@
 # Active Handoff
 
+## Continuation update — 2026-08-04T12:18:00Z
+
+- Re-ran production build and the rebuilt branch-scoped Chromium acceptance suite after
+  Python uPlot integration and EasyScan hardening: build passed; all `22` Chromium flows
+  passed in `59.2s` with no unexpected browser diagnostics.
+- The full frontend Vitest rerun passed `517` tests across `84` files with no unhandled
+  errors. Visual approval and the broader acceptance gates remain open.
+
 ## Continuation update — 2026-08-04T11:58:00Z
 
 - Hardened EasyScan against partial retained result payloads so missing `matched_ids` or

@@ -2,6 +2,14 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-04T12:18:00Z Frontend/build/browser verification
+
+- Production build passed; full rebuilt Chromium acceptance passed all `22` flows in
+  `59.2s` with no unexpected browser diagnostics. Full Vitest passed `517` tests across
+  `84` files with no unhandled errors.
+- Exact-build visual approval, security/resource matrix, and remaining broad acceptance
+  gates remain open.
+
 ## 2026-08-04T11:58:00Z EasyScan partial-result hardening
 
 - EasyScan now handles partial retained result payloads without an unhandled reactive
