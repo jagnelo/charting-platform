@@ -1,5 +1,12 @@
 # Active Handoff
 
+## Continuation update — 2026-08-04T09:02:00Z
+
+- Extended the dockable Python Library with source editing that always creates a new
+  immutable validated code version; existing source records remain unchanged.
+- Focused CodeLibraryTool interaction coverage passed `1`; TypeScript passed. Visual
+  approval and the broader acceptance gates remain open.
+
 ## Continuation update — 2026-08-04T06:38:00Z
 
 - Wired Study Lab's universe control to canonical `run_config.symbols`, with persisted

@@ -2,6 +2,14 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-04T09:02:00Z Immutable Python Library version editing
+
+- Added version selection and source editing to the workstation Python Library. Save
+  posts `/code/assets/{id}/versions`, preserving output/parameter contracts and creating
+  a new immutable version rather than mutating existing code.
+- Focused CodeLibraryTool test passed `1`; TypeScript passed. Exact-build visual approval
+  and the complete acceptance matrix remain open.
+
 ## 2026-08-04T06:38:00Z Structured Study Lab universe
 
 - Added serializable Study Lab universe input and structured `market.universe()` runner

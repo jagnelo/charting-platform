@@ -15,6 +15,17 @@
         <div class="code-library-tool__asset-main">
           <strong>{{ asset.name }}</strong>
           <small>{{ asset.kind }} · {{ asset.versions.length }} version{{ asset.versions.length === 1 ? '' : 's' }}{{ asset.is_archived ? ' · archived' : '' }}</small>
+          <details class="code-library-tool__editor" @toggle="event => event.target && (event.target as HTMLDetailsElement).open ? selectVersion(asset) : undefined">
+            <summary>Edit / create version</summary>
+            <label>Base version
+              <select :value="String(selectedVersions[asset.id] ?? latestVersion(asset)?.version_number ?? '')" :aria-label="`Base version for ${asset.name}`" @change="setSelectedVersion(asset, Number(($event.target as HTMLSelectElement).value))">
+                <option v-for="version in asset.versions" :key="version.version_number" :value="version.version_number">v{{ version.version_number }}</option>
+              </select>
+            </label>
+            <textarea :value="drafts[asset.id] ?? latestVersion(asset)?.source ?? ''" :aria-label="`Python source for ${asset.name}`" spellcheck="false" @input="setDraft(asset.id, ($event.target as HTMLTextAreaElement).value)" />
+            <button type="button" :disabled="savingVersion === asset.id || !drafts[asset.id]?.trim()" @click="saveVersion(asset)">{{ savingVersion === asset.id ? 'Saving…' : 'Save as new version' }}</button>
+            <small>Saving creates an immutable version; existing versions are never edited.</small>
+          </details>
         </div>
         <div class="code-library-tool__asset-actions">
           <button type="button" title="Export asset" @click="exportAsset(asset)">Export</button>
@@ -53,6 +64,9 @@ const filter = ref('')
 const loading = ref(false)
 const error = ref('')
 const fileInput = ref<HTMLInputElement | null>(null)
+const drafts = ref<Record<number, string>>({})
+const selectedVersions = ref<Record<number, number>>({})
+const savingVersion = ref<number | null>(null)
 const filteredAssets = computed(() => {
   const needle = filter.value.toLowerCase()
   return assets.value.filter(asset => !needle || `${asset.name} ${asset.kind} ${asset.stable_key}`.toLowerCase().includes(needle))
@@ -73,6 +87,32 @@ function exportAsset(asset: CodeAsset) {
   anchor.download = `${asset.stable_key || 'python-asset'}.json`
   anchor.click()
   URL.revokeObjectURL(url)
+}
+function latestVersion(asset: CodeAsset) { return [...asset.versions].sort((left, right) => right.version_number - left.version_number)[0] }
+function selectVersion(asset: CodeAsset) {
+  const version = asset.versions.find(item => item.version_number === selectedVersions.value[asset.id]) ?? latestVersion(asset)
+  if (!version) return
+  selectedVersions.value = { ...selectedVersions.value, [asset.id]: version.version_number }
+  drafts.value = { ...drafts.value, [asset.id]: version.source }
+}
+function setSelectedVersion(asset: CodeAsset, versionNumber: number) {
+  selectedVersions.value = { ...selectedVersions.value, [asset.id]: versionNumber }
+  const version = asset.versions.find(item => item.version_number === versionNumber)
+  if (version) drafts.value = { ...drafts.value, [asset.id]: version.source }
+}
+function setDraft(assetId: number, source: string) { drafts.value = { ...drafts.value, [assetId]: source } }
+async function saveVersion(asset: CodeAsset) {
+  const source = drafts.value[asset.id]?.trim()
+  const base = asset.versions.find(item => item.version_number === selectedVersions.value[asset.id]) ?? latestVersion(asset)
+  if (!source || !base) return
+  savingVersion.value = asset.id
+  error.value = ''
+  try {
+    const version = await api.post<CodeVersion>(`/code/assets/${asset.id}/versions`, { source, output_contract: base.output_contract, parameter_schema: base.parameter_schema, default_parameters: base.default_parameters })
+    assets.value = assets.value.map(item => item.id === asset.id ? { ...item, versions: [...item.versions, version] } : item)
+    selectedVersions.value = { ...selectedVersions.value, [asset.id]: version.version_number }
+  } catch (cause: any) { error.value = cause?.message ?? 'Unable to create Python asset version' }
+  finally { savingVersion.value = null }
 }
 async function cloneAsset(asset: CodeAsset) {
   error.value = ''
@@ -115,6 +155,12 @@ onMounted(() => { void refresh() })
 .code-library-tool__asset-main { display:grid; gap:2px; min-width:0; }
 .code-library-tool__asset-main strong { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .code-library-tool__asset-main small, .code-library-tool__notice { color:#8195a3; }
+.code-library-tool__editor { display:grid; gap:4px; margin-top:3px; padding:4px; border:1px solid #293740; background:#0d1216; }
+.code-library-tool__editor summary { cursor:pointer; color:#b8c8d3; }
+.code-library-tool__editor label { display:flex; gap:4px; align-items:center; }
+.code-library-tool__editor select, .code-library-tool__editor textarea { border:1px solid #3a4954; background:#172027; color:#dce6ed; font:inherit; padding:3px 5px; }
+.code-library-tool__editor textarea { min-height:90px; width:100%; resize:vertical; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; }
+.code-library-tool__editor small { color:#8195a3; }
 .code-library-tool__asset-actions { display:flex; gap:3px; }
 .code-library-tool__asset-actions button { padding:2px 4px; }
 .code-library-tool__error { color:#f0a2a2; }
