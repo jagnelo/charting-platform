@@ -180,7 +180,8 @@ export const useAlertsStore = defineStore('alerts', () => {
           alert_kind: 'screener',
         })
       } else if (msg.type === 'alert_triggered') {
-        if (msg.alert_kind === 'indicator') {
+        const alertKind = msg.alert_kind ?? msg.kind ?? 'price'
+        if (alertKind === 'indicator') {
           const alert = indicatorAlerts.value.find(a => a.id === msg.alert_id)
           if (alert) {
             alert.status = 'triggered'
@@ -203,7 +204,7 @@ export const useAlertsStore = defineStore('alerts', () => {
             id: msg.firing_event_id,
             instrument_id: null,
             instrument_symbol: msg.symbol ?? null,
-            alert_type: msg.alert_kind ?? 'price',
+            alert_type: alertKind,
             alert_id: msg.alert_id ?? 0,
             fired_at: msg.triggered_at ?? new Date().toISOString(),
             trigger_value: msg.current_price ?? msg.value_a ?? null,

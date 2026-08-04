@@ -551,6 +551,8 @@ engine targets the correct user instead of calling the nonexistent legacy manage
 and the frontend passes its access token to the socket and renders scan entry/exit events.
 Unauthenticated legacy/test sockets retain only the explicitly broadcast compatibility path;
 production alert evaluators no longer broadcast one user's alert payload to every client.
+The frontend also accepts both the current `kind` and older `alert_kind` payload keys, so
+indicator notifications cannot be misclassified as price alerts during compatibility windows.
 
 The shared chart store applies the same generation boundary to instrument metadata,
 indicator configuration, OHLCV pages (including infinite-history backfill),

@@ -1,5 +1,12 @@
 # Active Handoff
 
+## Continuation update — 2026-08-04T12:08:00Z Alert payload compatibility
+
+- Normalized frontend alert handling to accept both `kind` and legacy `alert_kind` payload
+  fields, preventing indicator events from being presented as price alerts.
+- Store tests `31`, TypeScript, production build, and diff checks passed; prior full backend
+  `905`/frontend `528` suites remain green. Visual/reference and broad acceptance remain open.
+
 ## Continuation update — 2026-08-04T12:06:00Z Alert regression verification
 
 - Full backend unit suite `905` passed with `--no-cov` (34 existing dependency warnings), and
