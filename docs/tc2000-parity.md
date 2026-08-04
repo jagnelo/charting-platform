@@ -117,6 +117,10 @@ the run summary instead of silently using only the active symbol.
 The authenticated research API now materializes that selector into a bounded canonical
 dataset manifest, preserves requested order, and returns exact per-symbol exclusions for
 unknown instruments or missing history before the isolated job is queued.
+EasyScan result rendering now tolerates partial or malformed retained payloads: missing
+match arrays and coverage metadata render as explicit zero/coverage-unavailable state
+instead of throwing during a reactive update. Polling also treats missing result metadata
+as non-terminal until a valid terminal status arrives.
 Study Lab now exposes the same schema as generated controls, converts numeric and boolean
 values before creating the immutable code version, and sends the resulting typed parameter
 map with the run. The schema remains serializable in the workspace configuration boundary.

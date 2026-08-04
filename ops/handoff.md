@@ -1,5 +1,12 @@
 # Active Handoff
 
+## Continuation update — 2026-08-04T11:58:00Z
+
+- Hardened EasyScan against partial retained result payloads so missing `matched_ids` or
+  coverage metadata cannot produce an unhandled render error.
+- Focused EasyScan coverage passed `7`; the full frontend rerun had exposed the defect and
+  is being repeated after this fix. Visual approval and broad acceptance remain open.
+
 ## Continuation update — 2026-08-04T11:42:00Z
 
 - Python chart-plot refreshes now cancel prior isolated runs when symbols, timeframes, or

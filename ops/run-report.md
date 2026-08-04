@@ -2,6 +2,13 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-04T11:58:00Z EasyScan partial-result hardening
+
+- EasyScan now handles partial retained result payloads without an unhandled reactive
+  render exception; absent matches/coverage are explicit unavailable state.
+- Focused EasyScan suite passed `7`; full frontend verification is being repeated after
+  the defect fix. Exact-build visual approval remains open.
+
 ## 2026-08-04T11:42:00Z Python plot cancellation
 
 - Added cancellation of obsolete isolated Python chart-plot runs and generation guards so

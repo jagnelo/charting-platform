@@ -44,7 +44,7 @@
     <p v-else-if="busy" class="easy-scan__state"><span>{{ status }}</span><button v-if="pythonResearchRunId" type="button" @click="cancelPythonRun">Cancel</button></p>
     <div v-else-if="result" class="easy-scan__result">
       <label v-if="resultHistory.length" class="easy-scan__history">Result <select v-model="selectedResultId" aria-label="Scan result history"><option value="">Latest</option><option v-for="item in resultHistory" :key="item.id" :value="String(item.id)">{{ item.run_at ? new Date(item.run_at).toLocaleString() : `Run ${item.id}` }}</option></select></label>
-      <span><b>{{ result.matched_ids.length }}</b> matches · {{ coverageText }}</span>
+      <span><b>{{ result.matched_ids?.length ?? 0 }}</b> matches · {{ coverageText }}</span>
       <span class="easy-scan__alert"><select v-model="alertTrigger" aria-label="Scan alert trigger"><option value="entered">Entry</option><option value="left">Exit</option><option value="both">Entry/exit</option></select><button type="button" :disabled="busy || !scanId" @click="createAlert">{{ alertCreated ? 'Alert active' : 'Alert' }}</button></span>
     </div>
     <p v-else class="easy-scan__state">Save a price/volume condition, then run it against local canonical data.</p>
@@ -60,7 +60,7 @@ import { CHART_PLOT_DRAG_MIME, createTechnicalConditionDragPayload, readChartPlo
 import type { Timeframe } from '@/types'
 
 type ConditionAsset = { stable_key: string; name: string; version: number; payload: { condition?: Record<string, unknown> } }
-type ScanResult = { id?: number; run_at?: string; matched_ids: number[]; result_data: Record<string, unknown>; error: string | null }
+type ScanResult = { id?: number; run_at?: string; matched_ids?: number[]; result_data?: Record<string, unknown>; error?: string | null }
 
 const props = withDefaults(defineProps<{ sourceWindowKey?: string }>(), { sourceWindowKey: 'easy-scan' })
 
@@ -100,7 +100,7 @@ const validCondition = computed(() => Boolean(conditionName.value) && (advancedM
   ? advancedGroup.value.conditions.length > 0
   : Number.isFinite(Number(value.value))))
 const coverageText = computed(() => {
-  const coverage = result.value?.result_data._coverage as { evaluated_count?: number; universe_count?: number; excluded?: Record<string, unknown> } | undefined
+  const coverage = result.value?.result_data?._coverage as { evaluated_count?: number; universe_count?: number; excluded?: Record<string, unknown> } | undefined
   if (!coverage) return 'coverage unavailable'
   const excluded = Object.keys(coverage.excluded ?? {}).length
   return `${coverage.evaluated_count ?? 0}/${coverage.universe_count ?? 0} evaluated${excluded ? ` · ${excluded} excluded` : ''}`
@@ -199,7 +199,7 @@ async function run() {
     result.value = await api.post<ScanResult>(`/screeners/${scan.id}/run`, {})
     if (selectedPythonVersion.value) {
       for (let attempt = 0; attempt < 30; attempt += 1) {
-        const status = String(result.value.result_data._status ?? '')
+        const status = String(result.value.result_data?._status ?? '')
         if (['completed', 'failed', 'canceled'].includes(status)) break
         await new Promise(resolve => setTimeout(resolve, 250))
         const retained = await api.get<ScanResult[]>(`/screeners/${scan.id}/results`, { limit: 1 })
