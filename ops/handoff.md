@@ -1,5 +1,12 @@
 # Active Handoff
 
+## Continuation update — 2026-08-04T11:42:00Z
+
+- Python chart-plot refreshes now cancel prior isolated runs when symbols, timeframes, or
+  plot selections change; generation guards retain only the current series results.
+- TypeScript and diff checks passed. Visual approval and the broader acceptance gates
+  remain open.
+
 ## Continuation update — 2026-08-04T11:26:00Z
 
 - Python plot assets are now loadable from Chart Plot Library and evaluated through the

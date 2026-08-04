@@ -790,6 +790,7 @@ const configuredPythonPlots = computed(() => {
 })
 const pythonSeries = ref<ChartPythonSeries[]>([])
 let pythonPlotRequestSequence = 0
+const pythonPlotRunIds = new Set<number>()
 const comparisonLegend = computed(() => comparisonSeries.value.map(series => ({
   symbol: series.symbol,
   label: series.label,
@@ -841,12 +842,17 @@ function updatePythonPlots(plots: Array<{ code_version_id: number; name: string;
 
 async function loadPythonPlots() {
   const plots = configuredPythonPlots.value
+  for (const runId of pythonPlotRunIds) void api.post(`/research/runs/${runId}/cancel`, {})
+  pythonPlotRunIds.clear()
   if (props.tool.tool_type !== 'chart' || !plots.length || !activeSymbol.value) { pythonSeries.value = []; return }
   const sequence = ++pythonPlotRequestSequence
   const loaded = await Promise.all(plots.map(async plot => {
     const timeframe = plot.timeframe ?? activeTimeframe.value
+    let runId: number | null = null
     try {
       const queued = await api.post<{ id: number }>('/research/runs', { code_version_id: plot.code_version_id, run_config: { symbol: activeSymbol.value, timeframe }, dataset_manifest: { source: 'canonical_database', timeframe } })
+      runId = queued.id
+      pythonPlotRunIds.add(queued.id)
       for (let attempt = 0; attempt < 30; attempt += 1) {
         const result = await api.get<{ status: string; artifacts?: Array<{ name: string; artifact_type: string; payload: Record<string, unknown> }> }>(`/research/runs/${queued.id}`)
         if (result.status === 'completed' || result.status === 'failed' || result.status === 'canceled') {
@@ -860,6 +866,7 @@ async function loadPythonPlots() {
         await new Promise(resolve => window.setTimeout(resolve, 250))
       }
     } catch { return null }
+    finally { if (runId != null) pythonPlotRunIds.delete(runId) }
     return null
   }))
   if (sequence === pythonPlotRequestSequence) pythonSeries.value = loaded.filter((item): item is ChartPythonSeries => item != null)

@@ -2,6 +2,13 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-04T11:42:00Z Python plot cancellation
+
+- Added cancellation of obsolete isolated Python chart-plot runs and generation guards so
+  late artifacts cannot overwrite a newer chart selection.
+- TypeScript and diff checks passed. Exact-build visual approval and the complete
+  acceptance matrix remain open.
+
 ## 2026-08-04T11:26:00Z Python chart plot assets
 
 - Added on-demand Python plot asset loading and chart-window persistence; isolated typed

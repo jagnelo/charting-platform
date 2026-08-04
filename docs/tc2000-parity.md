@@ -152,6 +152,9 @@ in the chart window, and the workstation evaluates those versions through the is
 research API. Typed `series` artifacts are aligned to canonical chart timestamps and
 passed to uPlot as native series; invalid, incomplete, or failed artifacts are omitted
 without injecting arbitrary frontend code.
+When the chart symbol, timeframe, or selected plot set changes, the workstation cancels
+the prior Python plot runs and ignores late results by generation, preventing stale
+research work from replacing the active chart.
 
 The relative-rotation uPlot surface now updates `setData`/`setSize` in place during
 resize and data refresh; it destroys the chart only during component teardown. A
