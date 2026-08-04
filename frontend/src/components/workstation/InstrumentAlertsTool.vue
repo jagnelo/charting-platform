@@ -15,7 +15,7 @@
     </form>
     <p v-if="error" class="alerts-tool__error">{{ error }}</p>
     <p v-else-if="loading" class="alerts-tool__state">Loading alerts…</p>
-    <p v-else-if="!instrumentId" class="alerts-tool__state">Select a canonical instrument.</p>
+    <p v-else-if="!instrumentId && !screenerAlerts.length" class="alerts-tool__state">Select a canonical instrument.</p>
     <p v-else-if="!alerts.length && !indicatorAlerts.length && !screenerAlerts.length" class="alerts-tool__state">No alerts for {{ symbol }}.</p>
     <ul v-else class="alerts-tool__list">
       <li v-for="alert in alerts" :key="`price-${alert.id}`">
@@ -87,7 +87,15 @@ async function load() {
   history.value = []
   error.value = ''
   if (!props.instrumentId) {
-    loading.value = false
+    loading.value = true
+    try {
+      const scans = await api.get<ScreenerAlert[]>('/alerts/screener')
+      if (generation === viewGeneration && !props.instrumentId) screenerAlerts.value = scans
+    } catch (cause: any) {
+      if (generation === viewGeneration) error.value = cause?.message ?? 'Unable to load alerts'
+    } finally {
+      if (generation === viewGeneration) loading.value = false
+    }
     return
   }
   loading.value = true

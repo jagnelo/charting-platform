@@ -1,5 +1,14 @@
 # Active Handoff
 
+## Continuation update — 2026-08-04T11:58:00Z Global EasyScan alert startup state
+
+- The primary Alerts tool now loads and renders user-owned EasyScan alerts even when no
+  canonical instrument is selected; this preserves global scan-entry/exit visibility during
+  startup and empty-symbol recovery.
+- Focused linked-tool tests `5`, TypeScript, production build, and diff checks passed. The
+  Docker-backed backend contract test remains environment-blocked; visual/reference and broad
+  acceptance remain open.
+
 ## Continuation update — 2026-08-04T11:54:00Z Screener-alert backend contract coverage
 
 - Added backend integration coverage for screener-alert create/list/pause/repeat/rearm/delete

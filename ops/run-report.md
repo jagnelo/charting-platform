@@ -2,6 +2,12 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-04T11:58:00Z Global EasyScan alert startup state
+
+- Preserved global EasyScan alert visibility before instrument selection. Focused linked-tool
+  tests `5`, TypeScript/build, and diff checks passed; Docker integration and visual/broad
+  acceptance remain open.
+
 ## 2026-08-04T11:54:00Z Screener-alert backend contract coverage
 
 - Added lifecycle and user-isolation integration coverage for screener alerts. Ruff passed;

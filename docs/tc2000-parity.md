@@ -542,6 +542,9 @@ this makes scan-entry/exit alerts visible from the shared alert workstation surf
 The backend screener-alert integration contract now covers create/list/pause/repeat/rearm/delete
 and cross-user read/update isolation. The test is Docker-backed and remains environment-blocked
 when the current runner cannot access the Docker socket.
+Global EasyScan alerts are also loaded before an instrument identity is available, so the
+primary alert surface does not lose scan-entry/exit state during workstation startup or
+empty-symbol recovery.
 
 The shared chart store applies the same generation boundary to instrument metadata,
 indicator configuration, OHLCV pages (including infinite-history backfill),

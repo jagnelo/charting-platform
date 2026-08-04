@@ -80,4 +80,14 @@ describe('linked instrument tool stale-response guards', () => {
     await wrapper.get('button[aria-label="Pause scan alert"]').trigger('click')
     expect(apiPatch).toHaveBeenCalledWith('/alerts/screener/9', { status: 'paused' })
   })
+
+  it('loads global EasyScan alerts before a canonical instrument is selected', async () => {
+    apiGet.mockImplementation((_path: string) => {
+      if (_path === '/alerts/screener') return Promise.resolve([{ id: 10, screener_id: 5, screener_name: 'Breadth', trigger_type: 'both', status: 'active', repeat: false }])
+      return Promise.resolve([])
+    })
+    const wrapper = mount(InstrumentAlertsTool, { props: { instrumentId: null, symbol: 'SPY' } })
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Breadth'))
+    expect(apiGet).toHaveBeenCalledWith('/alerts/screener')
+  })
 })
