@@ -5,7 +5,7 @@
     "worker_session_started_at": "2026-07-28T21:40:33Z",
     "worker_soft_stop_at": null,
   "last_handoff_at": "2026-08-04T10:26:21Z",
-    "last_commit": "78aed7f feat(analysis): add breadth advanced statistics",
+    "last_commit": "d4173b7 fix(analysis): expose breadth metric coverage",
     "git_ready_to_commit": false,
     "validation": {
         "backend_lint": "passed (code validation including deterministic XNYS coverage calendar, restricted numerical facades, isolated research runner/resource restoration, screener, visual, analysis, research, OHLCV session model, and migration modules, 2026-08-03)",
