@@ -5,7 +5,7 @@
     "worker_session_started_at": "2026-07-28T21:40:33Z",
     "worker_soft_stop_at": null,
   "last_handoff_at": "2026-08-04T20:40:00Z",
-  "last_commit": "e1b72e6 fix(auth): close lookup sessions before navigation",
+  "last_commit": "6d69d42 fix: harden auth and workspace persistence lifecycles",
     "git_ready_to_commit": true,
   "validation": {
     "sandbox_numpy_method_guard": "passed: five dangerous ndarray attribute regressions; focused research runner 45 passed and full backend unit suite 913 passed",
