@@ -4257,6 +4257,8 @@ Implementation checkpoint: the unified runner now exposes typed `output.bar(...)
 `output.range(...)` methods for the numeric/categorical-bar and lower/upper-band contracts.
 The active Study Lab, persisted Research Results, and dashboard surfaces render both through
 uPlot-backed components, with finite-value/dimension validation and no user-supplied UI code.
+The active run panel also supports rerunning the immutable study against its saved snapshot
+or latest canonical data through the versioned research API.
 
 uPlot plus platform-owned plugins renders every axes-based numeric result. Vue/HTML
 renders tables, metric cards, and layout. Do not add a second chart library and do not

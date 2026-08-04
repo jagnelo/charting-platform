@@ -16349,3 +16349,11 @@
 - Backend focused validation/research-runner tests `49 passed`; Ruff passed. Frontend
   focused Study Lab tests `5 passed`, full Vitest `519` across `84` files, TypeScript, and
   production build passed. Strict V25 visual approval and broad acceptance remain open.
+## 2026-08-04T15:20:00Z Study Lab rerun checkpoint
+
+- Active Study Lab completed runs now expose snapshot and latest-data reruns through the
+  canonical `/research/runs/{id}/rerun` API. Rerun responses replace the active run and
+  re-enter shared polling until terminal, while preserving the immutable source/contract.
+- Focused Study Lab coverage `6 passed`; TypeScript passed. The prior full frontend `519`
+  suite, production build, backend focused/full unit evidence, and Ruff remain green.
+  Strict V25 visual approval and broad acceptance remain open.

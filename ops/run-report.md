@@ -18057,3 +18057,10 @@ uncovered slice rather than repeat a generic completion claim.
 - Validation: backend code-validation/research-runner `49 passed`, Ruff passed; focused
   Study Lab `5 passed`; full frontend Vitest `519` across `84` files; TypeScript and
   production build passed. Strict V25 visual approval and full acceptance remain open.
+## 2026-08-04T15:20:00Z Study Lab rerun checkpoint
+
+- Added active Study Lab snapshot/latest rerun actions backed by the versioned research
+  rerun API and shared queued-run polling.
+- Validation: focused Study Lab `6 passed` and TypeScript passed; previous full frontend
+  `519`, production build, backend unit, and Ruff checks remain green. Exact V25 visual
+  references and full acceptance remain required.

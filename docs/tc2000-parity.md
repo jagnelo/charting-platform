@@ -126,6 +126,9 @@ the immutable source, parameter schema, timeframe, and canonical-data contract. 
 asset, avoiding ambiguous promotion of a dashboard or mixed artifact set. Focused
 StudyLabTool coverage exercises the scan and alert paths; full visual and acceptance status
 remains in progress.
+The active Study Lab run panel also exposes snapshot and latest-data reruns through the
+canonical research rerun API; queued responses return to the shared polling coordinator,
+while the immutable code version and run configuration remain unchanged.
 Study Lab exposes a serializable comma-separated universe control; when populated it sends
 canonical symbol selectors as `run_config.symbols` and displays the selected universe in
 the run summary instead of silently using only the active symbol.
