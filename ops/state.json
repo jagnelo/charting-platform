@@ -5,7 +5,7 @@
     "worker_session_started_at": "2026-07-28T21:40:33Z",
     "worker_soft_stop_at": null,
   "last_handoff_at": "2026-08-04T18:22:00Z",
-  "last_commit": "683520b fix(workstation): migrate legacy golden layout widths",
+  "last_commit": "eca4d55 chore(ops): record layout migration commit",
     "git_ready_to_commit": true,
   "validation": {
     "sandbox_numpy_method_guard": "passed: five dangerous ndarray attribute regressions; focused research runner 45 passed and full backend unit suite 913 passed",
