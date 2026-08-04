@@ -2,6 +2,12 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-04T12:18:00Z Persisted screener alert history
+
+- Persisted scan entry/exit firing events and added history-filter integration assertions.
+  Screener engine tests `29` and Ruff passed; Docker integration and visual/broad acceptance
+  remain open.
+
 ## 2026-08-04T12:12:00Z Auth-bound WebSocket lifecycle
 
 - Bound alert socket creation/destruction to authentication state. TypeScript/build, store

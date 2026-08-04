@@ -22,6 +22,7 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.models.alert_firing_event import AlertFiringEvent
 from app.models.basket import Basket, BasketMember
 from app.models.indicator_cache import IndicatorCache
 from app.models.instrument import EquityDetail, Instrument
@@ -892,6 +893,32 @@ async def _process_screener_alerts(
             alert.triggered_at = result.run_at
             if not alert.repeat:
                 alert.status = "triggered"
+
+            for event_kind, instrument_ids in (("entered", entered), ("left", left)):
+                if event_kind == "entered" and alert.trigger_type not in ("entered", "both"):
+                    continue
+                if event_kind == "left" and alert.trigger_type not in ("left", "both"):
+                    continue
+                for instrument_id in sorted(instrument_ids):
+                    db.add(
+                        AlertFiringEvent(
+                            user_id=alert.user_id,
+                            instrument_id=instrument_id,
+                            alert_type="screener",
+                            alert_id=alert.id,
+                            fired_at=result.run_at,
+                            trigger_value=None,
+                            condition_snapshot=json.dumps(
+                                {
+                                    "event": event_kind,
+                                    "screener_id": screener.id,
+                                    "screener_name": screener.name,
+                                    "trigger_type": alert.trigger_type,
+                                    "run_id": result.id,
+                                }
+                            ),
+                        )
+                    )
 
             # Dispatch in-app notification
             _dispatch_screener_alert_event(alert, screener, entered, left)

@@ -1,5 +1,13 @@
 # Active Handoff
 
+## Continuation update — 2026-08-04T12:18:00Z Persisted screener alert history
+
+- Screener entry/exit processing now writes user-scoped `AlertFiringEvent` rows with direction,
+  scan, and run snapshot metadata; alert-history instrument/type filters can retain and inspect
+  those events. Added integration assertions to the Python EasyScan path.
+- Screener engine unit tests `29` and Ruff passed. Docker-backed integration remains blocked by
+  denied socket access; visual/reference and broad acceptance remain open.
+
 ## Continuation update — 2026-08-04T12:12:00Z Auth-bound WebSocket lifecycle
 
 - The application now connects alert WebSockets only while authenticated and disconnects on

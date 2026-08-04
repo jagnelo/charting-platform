@@ -555,6 +555,9 @@ The frontend also accepts both the current `kind` and older `alert_kind` payload
 indicator notifications cannot be misclassified as price alerts during compatibility windows.
 The application now opens the socket only while the auth store is authenticated and closes it
 on logout, preventing an anonymous pre-login connection from surviving into the user session.
+Screener entry/exit firings are persisted as user-scoped `screener` history events with the
+instrument, scan, direction, and run snapshot, so the existing alert history and instrument
+filter APIs retain scan events alongside price and indicator firings.
 
 The shared chart store applies the same generation boundary to instrument metadata,
 indicator configuration, OHLCV pages (including infinite-history backfill),

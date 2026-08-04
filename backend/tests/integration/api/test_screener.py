@@ -129,6 +129,19 @@ class TestScreenerCRUD:
         alerts = client.get("/api/v1/alerts/screener", headers=auth_headers)
         assert alerts.status_code == 200
         assert alerts.json()[0]["last_checked_run_id"] == reconciled["id"]
+        history = client.get(
+            "/api/v1/alerts/history",
+            headers=auth_headers,
+            params={"alert_type": "screener", "instrument_id": instrument.id},
+        )
+        assert history.status_code == 200
+        assert history.json()[0]["condition_snapshot"] == {
+            "event": "entered",
+            "screener_id": screener["id"],
+            "screener_name": screener["name"],
+            "trigger_type": "entered",
+            "run_id": reconciled["id"],
+        }
 
     def test_create_screener(self, client, auth_headers):
         res = client.post(
