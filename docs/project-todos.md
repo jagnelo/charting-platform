@@ -3224,7 +3224,7 @@ Golden Layout mechanics, uPlot host/plugin path, top-down analysis contracts,
 virtualized watchlists, unified Python/Study Lab execution boundary, and free-source
 provider governance are implemented and covered by deterministic/frontend/backend
 regressions. The branch has also exercised the complete Docker-backed integration
-suite (`281 passed`), clean authenticated Chromium flows (`27/27`), the public no-key
+suite (`281 passed`), clean authenticated Chromium flows (`28/28`), the public no-key
 SEC identity/profile path through `EdgarProvider`, and isolated research-runner crash
 recovery. Remaining acceptance is intentionally still hard-gated by the full Version
 25 visual reference/measurement matrix, configured multi-provider probes, adversarial
@@ -3295,7 +3295,7 @@ bounded error before Vue Query can cache `undefined`; this keeps empty/partial r
 explicit at the tool boundary. The same boundary is enforced for Market Gauge, retained
 EasyScan results, Research Results, condition columns, and indicator batches. Focused
 workstation coverage is 61 tests, the full frontend suite is 550 tests across 84 files, and
-rebuilt Chromium remains 27/27. This hardening does not relax the
+rebuilt Chromium remains 28/28. This hardening does not relax the
 single completion bar or the exact-build visual/provider/pressure/performance/migration/parity
 gates.
 

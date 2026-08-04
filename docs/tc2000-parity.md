@@ -28,7 +28,7 @@ output with bounded completed-cell artifacts, and left the runner healthy. Probe
 were explicitly removed afterward. This closes live cancellation under batch pressure;
 broader multi-process namespace/resource stress remains open.
 
-The rebuilt branch stack now passes the complete authenticated Chromium flow (`27/27`),
+The rebuilt branch stack now passes the complete authenticated Chromium flow (`28/28`),
 including Study Lab validation, isolated Python execution, and structured metric rendering.
 The full backend unit suite passes (`965/965`, 69.83% coverage); the detached-auth rollback
 regression is covered directly and backend logs are clean for 500s, tracebacks, pool leaks,
@@ -41,7 +41,7 @@ does not meet the repository-wide coverage threshold by itself.
 The VirtualWatchlist Python polling path also rejects empty batch responses before they reach
 Vue Query, preserving an explicit error contract for columns and Boolean conditions. This is
 covered by the focused 46-test suite and the full 550-test frontend suite; the rebuilt
-Chromium flow remains 27/27 with clean backend diagnostics. The same no-undefined query
+Chromium flow remains 28/28 with clean backend diagnostics. The same no-undefined query
 boundary is now enforced for Market Gauge, retained EasyScan results, Research Results,
 condition columns, and indicator batches; focused workstation coverage is 61 tests and the
 full frontend suite is 550 tests across 84 files.
@@ -140,13 +140,12 @@ it does not alter the strict V25 visual gate or broader performance/security/par
 
 ## Repeated pop-out lifecycle evidence
 
-The browser acceptance matrix now includes a repeated lifecycle regression: F8f floats and
-closes the same workstation tool five consecutive times, asserting that the durable source
-layout retains the same tool count after each close and that browser diagnostics remain
-clean. The current run passed F8f in `4.1s`, the complete authenticated flow file passed
-`25/25`, and the rebuilt-stack backend error/warning audit was empty. This closes only the
-source-tool accumulation regression; multi-monitor placement, long-running memory behavior,
-and broader workstation performance acceptance remain open.
+The browser acceptance matrix now includes repeated and simultaneous lifecycle regressions:
+F8f floats and closes the same workstation tool ten consecutive times while retaining source
+canvas/page counts, and F8h keeps two concurrent pop-outs independently recoverable. The
+complete authenticated flow file passes `28/28` and the rebuilt-stack backend error/warning
+audit is clean. This closes only the covered source-tool/pop-out lifecycle cases; multi-monitor
+placement, long-running memory behavior, and broader workstation performance remain open.
 
 Top-down asynchronous reads now use per-surface generation guards across market groups,
 group snapshots, breadth/history, technical summaries, holdings, industries, constituent
