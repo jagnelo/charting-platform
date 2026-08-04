@@ -778,6 +778,12 @@ provider-specific frontend assumption, and remain visible as explicit unavailabl
 when a batch is not ready. The frontend contract accepts membership/version lineage for
 future detail panes; visual density and full backend/E2E acceptance remain open.
 
+The explicit E2E seed can now provision identity-only SPY/RSP, major benchmarks, and all
+11 sector ETFs with unresolved ETF profiles. It deliberately does not create OHLCV bars,
+holdings, or provider entitlements, so browser fixtures exercise the same labelled
+unavailable/coverage states as a cold free-source-first deployment rather than masking
+missing data with fabricated values.
+
 Provider documentation is now aligned with the runtime entitlement policy: the default
 free-source-first chain is Alpaca/Alpha Vantage for permitted history, EDGAR/Alpaca for
 identity and events, and Massive/Alpha Vantage only for optional corroboration. yfinance
