@@ -179,7 +179,7 @@ import { useAlertsStore }       from '@/stores/alerts'
 import { useUserSettingsStore } from '@/stores/userSettings'
 import { useOptionsExposureStore } from '@/stores/optionsExposure'
 import { useWorkspaceStore } from '@/stores/workspace'
-import { useQueryClient } from '@tanstack/vue-query'
+import { useQuery } from '@tanstack/vue-query'
 import { isEditorTarget } from '@/lib/workstation/keyboard'
 import { candlestickPlugin }       from '@/lib/uplot/plugins/candlestick'
 import { ohlcBarsPlugin }          from '@/lib/uplot/plugins/ohlc-bars'
@@ -221,7 +221,7 @@ import {
   radarIndicatorSignature,
 } from '@/lib/radar/visuals'
 import type { DrawingPoint }   from '@/lib/drawings/types'
-import type { ChartComparisonSeries, ChartDrawing, ChartPythonSeries, DrawingType, IndicatorConfig, PriceAlert, Timeframe, ChartBarType } from '@/types'
+import type { ChartComparisonSeries, ChartDrawing, ChartPythonSeries, DrawingType, IndicatorConfig, PriceAlert, Timeframe, ChartBarType, OHLCVBar } from '@/types'
 import { CHART_BAR_TYPES } from '@/types'
 import type { AnyDrawing }     from '@/lib/drawings/types'
 
@@ -274,7 +274,6 @@ const alertsStore        = useAlertsStore()
 const userSettingsStore  = useUserSettingsStore()
 const optionsExposureStore = useOptionsExposureStore()
 const workspaceStore = useWorkspaceStore()
-const queryClient = useQueryClient()
 const effectiveChartType = computed(() => props.chartType ?? userSettingsStore.chartType)
 function configuredBoolean(key: string, fallback: boolean) {
   const value = props.chartSettings?.[key]
@@ -943,67 +942,47 @@ const TF_POLL_MS: Record<string, number> = {
   W1: 86_400_000,   // 24 hours
   MN: 86_400_000,   // 24 hours
 }
-let livePollTimer: ReturnType<typeof setTimeout> | null = null
 const chartSurfaceVisible = ref(true)
 const chartDocumentVisible = ref(typeof document === 'undefined' || document.visibilityState !== 'hidden')
 let chartVisibilityObserver: IntersectionObserver | null = null
+const chartReady = ref(false)
 function updateChartDocumentVisibility() {
   chartDocumentVisible.value = document.visibilityState !== 'hidden'
-  if (chartDocumentVisible.value) startLivePolling()
-  else stopLivePolling()
 }
 function livePollingAllowed() {
-  return chartSurfaceVisible.value && chartDocumentVisible.value
+  return chartReady.value && chartSurfaceVisible.value && chartDocumentVisible.value
 }
 
-function startLivePolling() {
-  stopLivePolling()
-  if (!livePollingAllowed()) return
-  const tf = chartStore.timeframe as string
-  const interval = TF_POLL_MS[tf] ?? 60_000
-  const latestQueryKey = ['workstation', 'latest-bars', chartStore.symbol, chartStore.timeframe, chartStore.barType]
-
-  const poll = async () => {
-    if (!livePollingAllowed()) { stopLivePolling(); return }
-    if (!chartStore.symbol || !chartStore.timeframe) return
-    try {
-      // Only fetch the latest page; merge any genuinely new bars at the tail
-      const mapped = await queryClient.fetchQuery({
-        queryKey: latestQueryKey,
-        queryFn: () => chartStore.fetchLatestBars(),
-        staleTime: Math.max(1_000, interval / 2),
-      })
-      const existingLatestTs = chartStore.bars[chartStore.bars.length - 1]?.ts ?? ''
-      const newLatestTs      = mapped[mapped.length - 1]?.ts ?? ''
-      if (newLatestTs !== existingLatestTs) {
-        const wasAtLatest = isAtLatest.value
-        // Splice only the tail: keep all bars before the overlap, append new ones
-        const overlapIdx = chartStore.bars.findIndex(b => b.ts === mapped[0]?.ts)
-        if (overlapIdx >= 0) {
-          chartStore.bars = [...chartStore.bars.slice(0, overlapIdx), ...mapped]
-        } else {
-          // No overlap — just append (shouldn't normally happen)
-          chartStore.bars = [...chartStore.bars, ...mapped]
-        }
-        if (wasAtLatest && uplot) {
-          const [tArr] = uplot.data as number[][]
-          if (tArr?.length) {
-            const latest = tArr[tArr.length - 1]
-            const span   = uplot.scales.x.max! - uplot.scales.x.min!
-            uplot.setScale('x', latestXRange(latest, span))
-          }
-        }
-      }
-    } catch { /* silent */ }
-    livePollTimer = setTimeout(poll, interval)
+function mergeLatestBars(mapped: OHLCVBar[]) {
+  if (!mapped.length) return
+  const existingLatestTs = chartStore.bars[chartStore.bars.length - 1]?.ts ?? ''
+  const newLatestTs = mapped[mapped.length - 1]?.ts ?? ''
+  if (newLatestTs === existingLatestTs) return
+  const wasAtLatest = isAtLatest.value
+  const overlapIdx = chartStore.bars.findIndex(b => b.ts === mapped[0]?.ts)
+  if (overlapIdx >= 0) chartStore.bars = [...chartStore.bars.slice(0, overlapIdx), ...mapped]
+  else chartStore.bars = [...chartStore.bars, ...mapped]
+  if (wasAtLatest && uplot) {
+    const [tArr] = uplot.data as number[][]
+    if (tArr?.length) {
+      const latest = tArr[tArr.length - 1]
+      const span = uplot.scales.x.max! - uplot.scales.x.min!
+      uplot.setScale('x', latestXRange(latest, span))
+    }
   }
-
-  livePollTimer = setTimeout(poll, interval)
 }
 
-function stopLivePolling() {
-  if (livePollTimer != null) { clearTimeout(livePollTimer); livePollTimer = null }
-}
+const latestBarsQuery = useQuery({
+  queryKey: computed(() => ['workstation', 'latest-bars', chartStore.symbol, chartStore.timeframe, chartStore.barType]),
+  queryFn: () => chartStore.fetchLatestBars(),
+  enabled: computed(() => livePollingAllowed() && Boolean(chartStore.symbol) && Boolean(chartStore.timeframe)),
+  staleTime: computed(() => Math.max(1_000, (TF_POLL_MS[String(chartStore.timeframe)] ?? 60_000) / 2)),
+  refetchInterval: computed(() => TF_POLL_MS[String(chartStore.timeframe)] ?? 60_000),
+  refetchIntervalInBackground: false,
+})
+watch(() => latestBarsQuery.data.value, mapped => {
+  if (mapped) mergeLatestBars(mapped)
+})
 
 // ── Sub-panes ─────────────────────────────────────────────────────────────────
 const subPanes = computed(() =>
@@ -1728,7 +1707,7 @@ async function initChart() {
   syncCanvasSize(w, h)
   await buildSubPanes()
   applyLinkedTimestamp(props.linkedTimestamp)
-  startLivePolling()
+  chartReady.value = true
 }
 
 // ── Initial view: last DEFAULT_BARS_VISIBLE bars ──────────────────────────────
@@ -3054,7 +3033,7 @@ function handleResize() {
 
 // ── Lifecycle ──────────────────────────────────────────────────────────────────
 function destroyAll() {
-  stopLivePolling()
+  chartReady.value = false
   if (interactionCleanup) { interactionCleanup(); interactionCleanup = null }
   uplot?.destroy(); uplot = null
   firstRenderedBarTs = null
@@ -3069,8 +3048,6 @@ onMounted(async () => {
   if (typeof IntersectionObserver !== 'undefined' && rootRef.value) {
     chartVisibilityObserver = new IntersectionObserver(entries => {
       chartSurfaceVisible.value = entries.some(entry => entry.isIntersecting && entry.intersectionRatio > 0)
-      if (livePollingAllowed()) startLivePolling()
-      else stopLivePolling()
     })
     chartVisibilityObserver.observe(rootRef.value)
   }
@@ -3103,8 +3080,8 @@ watch(() => chartStore.bars, () => {
   applyLinkedTimestamp(props.linkedTimestamp)
 }, { deep: false })
 watch([() => chartStore.symbol, () => chartStore.timeframe, () => chartStore.barType], () => {
-  if (uplot) startLivePolling()
-  else stopLivePolling()
+  // The reactive Vue Query key starts a fresh latest-bars observer for the new
+  // canonical symbol/timeframe/bar type; no component-owned timer is needed.
 })
 watch(() => chartStore.instrument?.id, () => { if (!chartStore.instrument?.is_synthetic) loadInstrumentEvents() })
 watch(() => chartStore.instrument?.id, () => { if (!chartStore.instrument?.is_synthetic) loadAlertFiringEvents() })

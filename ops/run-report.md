@@ -2,6 +2,15 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-04T14:18:00Z uPlot latest-bar query coordinator
+
+- Replaced the uPlot host's component-owned recursive latest-bar timeout with a
+  timeframe-aware Vue Query observer keyed by canonical symbol, timeframe, and bar
+  type. Visibility/intersection gating and in-place tail merging remain intact.
+- Full frontend Vitest passed `518` tests across `84` files; focused chart/shell tests,
+  TypeScript, production build, and diff checks passed. Exact-build visual approval and
+  the complete performance/security/E2E acceptance matrix remain open.
+
 ## 2026-08-04T14:10:00Z Full frontend regression after shell polling coordinator
 
 - Full frontend Vitest passed `518` tests across `84` files with no unhandled errors;

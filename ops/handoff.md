@@ -1,5 +1,15 @@
 # Active Handoff
 
+## Continuation update — 2026-08-04T14:18:00Z
+
+- Replaced the uPlot chart host's recursive latest-bar timeout with a reactive Vue
+  Query observer keyed by canonical symbol, timeframe, and bar type. Its interval is
+  timeframe-aware and disabled until chart initialization completes or while the
+  document/chart surface is hidden; in-place uPlot tail merging and teardown remain.
+- Full frontend Vitest passed `518` across `84` files; focused chart/shell coverage,
+  TypeScript, production build, and diff checks passed. Exact-build visual approval and
+  broad performance/security/E2E acceptance remain open.
+
 ## Continuation update — 2026-08-04T14:10:00Z
 
 - Full frontend Vitest now passes `518` tests across `84` files after the shell polling

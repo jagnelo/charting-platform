@@ -574,15 +574,15 @@ coverage passes with the real Vue Query plugin; exact Version 25 visual approval
 full polling/performance acceptance matrix remain open.
 
 The reusable uPlot chart host applies the same visibility contract to live latest-bar
-refreshes. Its timeframe-aware timer is stopped when the browser is hidden or the chart
-root leaves the viewport, restarted when visibility returns, and guarded again immediately
-before each fetch so a hidden chart cannot continue provider/API work. Latest-bar requests
-are fetched through a shared Vue Query key for canonical symbol, timeframe, and bar type,
-so linked charts and pop-outs reuse the same fresh response instead of issuing duplicate
-requests; symbol/timeframe changes restart the timer with a new key. Existing chart
-destruction still clears the timer and observer; focused chart-adjacent regressions and
-TypeScript checking pass. This is lifecycle evidence only; the complete 100,000-point,
-multi-window performance and visual acceptance suites remain open.
+refreshes through a reactive Vue Query observer. Its timeframe-aware `refetchInterval`
+is disabled when the browser is hidden, the chart root leaves the viewport, or the chart
+has not finished initializing; it resumes when visibility/intersection returns. Latest-bar
+requests use a shared Vue Query key for canonical symbol, timeframe, and bar type, so
+linked charts and pop-outs reuse the same fresh response instead of issuing duplicate
+requests. Symbol/timeframe/bar-type changes create a new query key, while the existing
+uPlot tail merge and chart teardown remain in place. Focused chart-adjacent regressions,
+TypeScript checking, and production build pass. This is lifecycle evidence only; the
+complete 100,000-point, multi-window performance and visual acceptance suites remain open.
 
 Virtualized watchlist Python column and Boolean-condition batches now read their
 `/research/runs/{id}/batch-results` snapshots through the shared Vue Query client keyed
