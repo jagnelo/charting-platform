@@ -1138,6 +1138,94 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     scheduleSnapshot()
   }
 
+  function renameTab(stableKey: string, name: string) {
+    const tab = workspace.value?.tabs.find(item => item.stable_key === stableKey)
+    const normalized = name.trim().replace(/\s+/g, ' ')
+    if (!tab || !normalized) return false
+    if (tab.name === normalized) return true
+    tab.name = normalized.slice(0, 80)
+    scheduleSnapshot()
+    return true
+  }
+
+  function reorderTabs(fromStableKey: string, toStableKey: string) {
+    if (!workspace.value || fromStableKey === toStableKey) return false
+    const tabs = [...workspace.value.tabs]
+    const from = tabs.findIndex(tab => tab.stable_key === fromStableKey)
+    const to = tabs.findIndex(tab => tab.stable_key === toStableKey)
+    if (from < 0 || to < 0) return false
+    const [moved] = tabs.splice(from, 1)
+    tabs.splice(to, 0, moved)
+    workspace.value.tabs = tabs.map((tab, position) => ({ ...tab, position }))
+    scheduleSnapshot()
+    return true
+  }
+
+  function deleteTab(stableKey: string) {
+    if (!workspace.value || workspace.value.tabs.length <= 1) {
+      error.value = 'A workspace must retain at least one layout.'
+      return false
+    }
+    const index = workspace.value.tabs.findIndex(tab => tab.stable_key === stableKey)
+    if (index < 0) return false
+    const remaining = workspace.value.tabs.filter(tab => tab.stable_key !== stableKey)
+      .map((tab, position) => ({ ...tab, position }))
+    workspace.value.tabs = remaining
+    if (activeTabKey.value === stableKey) activeTabKey.value = remaining[Math.max(0, index - 1)]?.stable_key ?? remaining[0].stable_key
+    scheduleSnapshot()
+    return true
+  }
+
+  function exportWorkspaceSnapshot() {
+    if (!workspace.value) return null
+    return JSON.stringify({
+      schema_version: workspace.value.schema_version,
+      name: workspace.value.name,
+      settings: workspace.value.settings,
+      tabs: workspace.value.tabs,
+    }, null, 2)
+  }
+
+  function importWorkspaceSnapshot(raw: unknown) {
+    if (!workspace.value || !raw || typeof raw !== 'object') return false
+    const payload = raw as Record<string, unknown>
+    if (!Array.isArray(payload.tabs) || !payload.tabs.length) {
+      error.value = 'The workspace file contains no layouts.'
+      return false
+    }
+    const tabs = payload.tabs.filter(tab => {
+      if (!tab || typeof tab !== 'object') return false
+      const candidate = tab as Record<string, unknown>
+      return typeof candidate.stable_key === 'string' && typeof candidate.name === 'string' && Array.isArray(candidate.windows)
+    }).map((tab, position) => {
+      const candidate = tab as Record<string, unknown>
+      return {
+        ...candidate,
+        position,
+        name: String(candidate.name).trim().replace(/\s+/g, ' ').slice(0, 80) || `Layout ${position + 1}`,
+      }
+    }) as WorkspaceTabState[]
+    if (!tabs.length) {
+      error.value = 'The workspace file contains no valid layouts.'
+      return false
+    }
+    const keys = new Set<string>()
+    if (tabs.some(tab => keys.has(tab.stable_key) || (keys.add(tab.stable_key), false))) {
+      error.value = 'The workspace file contains duplicate layout IDs.'
+      return false
+    }
+    workspace.value = {
+      ...workspace.value,
+      tabs,
+      settings: payload.settings && typeof payload.settings === 'object' ? payload.settings as Record<string, unknown> : workspace.value.settings,
+      schema_version: Number.isInteger(payload.schema_version) ? Number(payload.schema_version) : workspace.value.schema_version,
+    }
+    activeTabKey.value = tabs[0].stable_key
+    error.value = null
+    scheduleSnapshot()
+    return true
+  }
+
   async function resetFactoryWorkspace() {
     if (!workspace.value || workspace.value.settings.factory_id !== 'us-top-down') return false
     try {
@@ -1216,6 +1304,11 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     selectToolSymbol,
     closeTool,
     cloneActiveTab,
+    renameTab,
+    reorderTabs,
+    deleteTab,
+    exportWorkspaceSnapshot,
+    importWorkspaceSnapshot,
     resetFactoryWorkspace,
   }
 })

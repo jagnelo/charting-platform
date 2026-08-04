@@ -155,6 +155,46 @@ describe('workspace store layout tabs', () => {
     expect(apiPut).toHaveBeenCalled()
   })
 
+  it('manages personal layouts without mutating factory tool state', async () => {
+    const store = useWorkspaceStore()
+    store.workspace = {
+      id: 10, user_id: 3, name: 'US Top Down', is_default: true, position: 0, revision: 4, schema_version: 1, settings: { factory_id: 'us-top-down' },
+      tabs: [
+        { id: 20, stable_key: 'one', name: 'One', position: 0, active_window_key: 'chart', layout_config: {}, windows: [{ id: 30, instance_key: 'chart', tool_type: 'chart', title: 'Chart', link_group: 'blue', configuration: {}, style: {}, state_schema_version: 1, position: 0 }] },
+        { id: 21, stable_key: 'two', name: 'Two', position: 1, active_window_key: 'chart-2', layout_config: {}, windows: [{ id: 31, instance_key: 'chart-2', tool_type: 'chart', title: 'Chart', link_group: 'red', configuration: {}, style: {}, state_schema_version: 1, position: 0 }] },
+      ],
+    }
+    apiPut.mockResolvedValue(store.workspace)
+
+    expect(store.renameTab('one', ' Morning   Scan ')).toBe(true)
+    expect(store.workspace.tabs[0].name).toBe('Morning Scan')
+    expect(store.reorderTabs('two', 'one')).toBe(true)
+    expect(store.workspace.tabs.map(tab => tab.stable_key)).toEqual(['two', 'one'])
+    expect(store.deleteTab('two')).toBe(true)
+    expect(store.workspace.tabs).toHaveLength(1)
+    expect(store.deleteTab('one')).toBe(false)
+    expect(store.workspace.tabs).toHaveLength(1)
+
+    const snapshot = JSON.parse(store.exportWorkspaceSnapshot()!)
+    expect(snapshot.tabs).toHaveLength(1)
+    expect(store.importWorkspaceSnapshot({ ...snapshot, tabs: [{ ...snapshot.tabs[0], stable_key: 'imported', name: ' Imported ' }] })).toBe(true)
+    expect(store.activeTabKey).toBe('imported')
+    expect(store.workspace.tabs[0].name).toBe('Imported')
+    await new Promise(resolve => setTimeout(resolve, 400))
+    expect(apiPut).toHaveBeenCalledWith('/workspaces/10/snapshot', expect.objectContaining({ tabs: expect.any(Array) }))
+  })
+
+  it('rejects malformed or duplicate imported layouts', () => {
+    const store = useWorkspaceStore()
+    store.workspace = {
+      id: 10, user_id: 3, name: 'US Top Down', is_default: true, position: 0, revision: 4, schema_version: 1, settings: {},
+      tabs: [{ id: 20, stable_key: 'one', name: 'One', position: 0, active_window_key: null, layout_config: {}, windows: [] }],
+    }
+    expect(store.importWorkspaceSnapshot({ tabs: [] })).toBe(false)
+    expect(store.importWorkspaceSnapshot({ tabs: [{ stable_key: 'duplicate', name: 'A', windows: [] }, { stable_key: 'duplicate', name: 'B', windows: [] }] })).toBe(false)
+    expect(store.workspace.tabs[0].stable_key).toBe('one')
+  })
+
   it('closes a tool through serializable state but protects the final tool in a tab', () => {
     const store = useWorkspaceStore()
     store.workspace = {

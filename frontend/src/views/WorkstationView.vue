@@ -3,7 +3,26 @@
     <header v-if="!isPopout" class="workstation__menu">
       <div class="workstation__brand">CHARTING WORKSTATION</div>
       <nav aria-label="Application menu">
-        <button type="button" title="Clone active workspace layout" @click="workspaceStore.cloneActiveTab()">Workspace</button>
+        <div class="workstation__workspace-menu">
+          <button type="button" title="Manage workspace layouts" :aria-expanded="workspaceMenuOpen" @click="workspaceMenuOpen = !workspaceMenuOpen">Workspace</button>
+          <div v-if="workspaceMenuOpen" class="workstation__workspace-popover" aria-label="Workspace layouts" @click.stop>
+            <header><strong>Layouts</strong><small>{{ workspaceStore.workspace?.name ?? 'Workspace' }}</small></header>
+            <div class="workstation__workspace-actions">
+              <button type="button" @click="workspaceStore.cloneActiveTab(); workspaceMenuOpen = false">Clone</button>
+              <button type="button" @click="exportWorkspace">Export</button>
+              <button type="button" @click="workspaceFileInput?.click()">Import</button>
+              <input ref="workspaceFileInput" class="workstation__workspace-file" type="file" accept="application/json,.json" @change="importWorkspace" />
+            </div>
+            <div class="workstation__layout-list">
+              <div v-for="tab in workspaceStore.workspace?.tabs ?? []" :key="tab.stable_key" class="workstation__layout-item" draggable="true" @dragstart="dragTabKey = tab.stable_key" @dragover.prevent @drop.prevent="dropTab(tab.stable_key)" @dragend="dragTabKey = null">
+                <button type="button" class="workstation__layout-select" :class="{ active: tab.stable_key === workspaceStore.activeTabKey }" @click="workspaceStore.activeTabKey = tab.stable_key; workspaceMenuOpen = false">{{ tab.name }}</button>
+                <input :aria-label="`Rename ${tab.name}`" :value="tab.name" @change="renameTab(tab.stable_key, ($event.target as HTMLInputElement).value)" />
+                <button type="button" class="workstation__layout-delete" :disabled="(workspaceStore.workspace?.tabs.length ?? 0) <= 1" :aria-label="`Delete ${tab.name}`" @click="deleteTab(tab.stable_key)">×</button>
+              </div>
+            </div>
+            <button v-if="workspaceStore.workspace?.settings.factory_id === 'us-top-down'" type="button" class="workstation__layout-reset" @click="resetFactoryWorkspace(); workspaceMenuOpen = false">Reset factory layout</button>
+          </div>
+        </div>
         <button type="button" title="Open Study Lab layout" @click="workspaceStore.activeTabKey = 'study-lab'">Study</button>
         <button type="button" title="Open active-symbol alerts" @click="openAlertsTool">Alerts</button>
         <button v-if="workspaceStore.workspace?.is_default" type="button" title="Reset factory workspace" @click="resetFactoryWorkspace">Reset</button>
@@ -140,6 +159,9 @@ const watchlistStore = useWatchlistStore()
 const symbolInput = ref<HTMLInputElement | null>(null)
 const symbolDraft = ref('')
 const toolLibraryOpen = ref(false)
+const workspaceMenuOpen = ref(false)
+const workspaceFileInput = ref<HTMLInputElement | null>(null)
+const dragTabKey = ref<string | null>(null)
 const searchResults = ref<Array<{ symbol: string; name: string; exchange: string; type: string }>>([])
 const searchIndex = ref(-1)
 let searchTimer: ReturnType<typeof setTimeout> | null = null
@@ -341,6 +363,46 @@ async function selectIndustryProxy(symbol: string) {
 function openTool(tool: OpenableToolDefinition) {
   workspaceStore.openTool(tool)
   toolLibraryOpen.value = false
+}
+
+function renameTab(stableKey: string, name: string) {
+  workspaceStore.renameTab(stableKey, name)
+}
+
+function deleteTab(stableKey: string) {
+  if (!window.confirm('Delete this personal layout?')) return
+  workspaceStore.deleteTab(stableKey)
+}
+
+function dropTab(targetStableKey: string) {
+  const source = dragTabKey.value
+  dragTabKey.value = null
+  if (source) workspaceStore.reorderTabs(source, targetStableKey)
+}
+
+function exportWorkspace() {
+  const snapshot = workspaceStore.exportWorkspaceSnapshot()
+  if (!snapshot) return
+  const blob = new Blob([snapshot], { type: 'application/json' })
+  const href = URL.createObjectURL(blob)
+  const anchor = document.createElement('a')
+  anchor.href = href
+  anchor.download = `${(workspaceStore.workspace?.name ?? 'workspace').replace(/[^a-z0-9]+/gi, '-').toLowerCase()}.json`
+  anchor.click()
+  URL.revokeObjectURL(href)
+}
+
+async function importWorkspace(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  input.value = ''
+  if (!file) return
+  try {
+    const payload = JSON.parse(await file.text()) as unknown
+    if (workspaceStore.importWorkspaceSnapshot(payload)) workspaceMenuOpen.value = false
+  } catch {
+    workspaceStore.error = 'The workspace file is not valid JSON.'
+  }
 }
 
 function openAlertsTool() {
@@ -580,6 +642,11 @@ onBeforeUnmount(() => {
 .workstation__menu { display: flex; align-items: center; gap: 12px; padding: 0 7px; background: linear-gradient(var(--tc-header-top), var(--tc-header-bottom)); border-bottom: 1px solid #090b0d; }
 .workstation__brand { color: var(--tc-accent-soft); font-size: 10px; font-weight: 700; letter-spacing: .06em; white-space: nowrap; }
 .workstation__menu nav { display: flex; align-self: stretch; }
+.workstation__workspace-menu { position: relative; display: flex; align-items: stretch; }
+.workstation__workspace-popover { position: absolute; z-index: 150; top: calc(100% + 1px); left: 0; width: 292px; padding: 5px; border: 1px solid #4d5a63; background: #151d23; box-shadow: 0 7px 18px #000b; color: #cbd6dc; }
+.workstation__workspace-popover header { display: flex; justify-content: space-between; align-items: baseline; padding: 3px 4px 5px; border-bottom: 1px solid #29343b; font-size: 11px; }.workstation__workspace-popover header small { color: #81909a; font-size: 9px; }
+.workstation__workspace-actions { display: flex; gap: 3px; padding: 5px 2px; border-bottom: 1px solid #29343b; }.workstation__workspace-actions button,.workstation__layout-reset { border: 1px solid #42505a; background: #202b32; color: #cbd6dc; padding: 3px 6px; font: 10px "Segoe UI",Arial,sans-serif; cursor: pointer; }.workstation__workspace-actions button:hover,.workstation__layout-reset:hover { background: #31424d; color: #fff; }.workstation__workspace-file { display: none; }
+.workstation__layout-list { display: grid; gap: 2px; max-height: 250px; overflow: auto; padding: 4px 0; }.workstation__layout-item { display: grid; grid-template-columns: minmax(72px, 1fr) 112px 20px; gap: 3px; align-items: center; padding: 2px; border: 1px solid transparent; }.workstation__layout-item:hover { border-color: #3e505c; }.workstation__layout-select { overflow: hidden; border: 0; background: transparent; color: #aebbc4; text-align: left; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; font: 10px "Segoe UI",Arial,sans-serif; }.workstation__layout-select.active { color: #eaf2f6; font-weight: 700; }.workstation__layout-item input { min-width: 0; border: 1px solid #3b4850; background: #11161a; color: #bfcbd3; padding: 2px 3px; font: 10px "Segoe UI",Arial,sans-serif; }.workstation__layout-delete { border: 0; background: transparent; color: #d78989; cursor: pointer; }.workstation__layout-delete:disabled { color: #5e686e; cursor: not-allowed; }.workstation__layout-reset { width: 100%; margin-top: 2px; }
 .workstation__menu nav button, .workstation__tab-add, .workstation__tab-reset { border: 0; background: transparent; color: #d4d9dd; padding: 0 8px; font: 11px "Segoe UI", Arial, sans-serif; cursor: pointer; }
 .workstation__menu nav button:hover, .workstation__tab-add:hover, .workstation__tab-reset:hover { background: #3a444d; color: #fff; }
 .workstation__search { position: relative; display: flex; height: 21px; margin-left: 10px; }

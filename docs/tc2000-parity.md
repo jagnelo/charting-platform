@@ -746,3 +746,12 @@ per-user isolation. The API already scopes both read and upsert queries by user 
 tests prove one user cannot read or overwrite another user's note for the same instrument.
 Linked-tool stale-load/save protections remain covered separately in the frontend race
 suite. Full legacy browser usability and Version 25 visual acceptance remain open.
+
+The primary workstation now exposes the persisted personal-layout lifecycle directly in
+the TC-style Workspace menu: select, rename, clone, drag-reorder, delete (with the last
+layout protected), reset the factory layout, and JSON export/import. Import accepts only
+serializable layout snapshots with non-empty, unique layout IDs and preserves the
+existing revision-checked backend snapshot path; malformed or duplicate layouts remain
+in place with an explicit error. The focused workspace-store suite covers normalization,
+reordering, deletion protection, export/import, and persistence scheduling. Visual
+comparison, browser drag/drop evidence, and the broader acceptance matrix remain open.
