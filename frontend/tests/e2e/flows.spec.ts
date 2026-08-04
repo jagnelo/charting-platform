@@ -173,6 +173,30 @@ test.describe('TC2000 workstation', () => {
     browserDiagnostics.expectNoCriticalIssues()
   })
 
+  test('F8f — repeated float/close cycles do not accumulate source tools', async ({ page, context, browserDiagnostics }) => {
+    await page.goto('/chart')
+    await expect(page.locator('button[title="Float"]').first()).toBeVisible({ timeout: 10_000 })
+    const sourceToolCount = await page.locator('.tool-window').count()
+    expect(sourceToolCount).toBeGreaterThan(0)
+
+    for (let cycle = 0; cycle < 5; cycle += 1) {
+      const floatButton = page.locator('button[title="Float"]').first()
+      await expect(floatButton).toBeVisible({ timeout: 10_000 })
+      const popupPromise = context.waitForEvent('page')
+      await floatButton.click()
+      const popup = await popupPromise
+      await popup.waitForLoadState('domcontentloaded')
+      await expect(popup.locator('.workstation__popout .tool-window')).toBeVisible({ timeout: 10_000 })
+
+      const closed = popup.waitForEvent('close')
+      await popup.locator('button[title="Close"]').click()
+      await closed
+      await expect(page.locator('.tool-window')).toHaveCount(sourceToolCount)
+    }
+
+    browserDiagnostics.expectNoCriticalIssues()
+  })
+
   test('F8c — signing out propagates from the source workstation to its pop-out', async ({ page, context }) => {
     await page.goto('/chart')
     const popupPromise = context.waitForEvent('page')

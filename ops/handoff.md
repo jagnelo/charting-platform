@@ -1,5 +1,15 @@
 # Active Handoff
 
+## Continuation update — 2026-08-04T19:03:48Z Repeated pop-out lifecycle acceptance
+
+- Added F8f browser coverage for five repeated float/close cycles, asserting the durable
+  source layout does not accumulate tools. F8f passed in `4.1s`; the complete authenticated
+  Chromium flow file now passes `25/25` in `40.8s`.
+- Full frontend Vitest passed `545` tests across `84` files; TypeScript and production build
+  passed with `459` modules. Fresh backend error/warning audit after all 25 flows was clean.
+  This closes one lifecycle regression; multi-monitor, long-running memory, and broader
+  workstation performance gates remain open, as does strict V25 visual approval.
+
 ## Continuation update — 2026-08-04T18:59:57Z uPlot large-history performance
 
 - Re-ran the real-browser uPlot renderer guard on the current branch: a 100,000-point

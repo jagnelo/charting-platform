@@ -40,6 +40,16 @@ leak, `InterfaceError`, `SAWarning`, or unexpected error.
 This is runtime reliability evidence, not Version 25 visual approval; strict visual
 acceptance remains controlled by the required reference manifest.
 
+## Repeated pop-out lifecycle evidence
+
+The browser acceptance matrix now includes a repeated lifecycle regression: F8f floats and
+closes the same workstation tool five consecutive times, asserting that the durable source
+layout retains the same tool count after each close and that browser diagnostics remain
+clean. The current run passed F8f in `4.1s`, the complete authenticated flow file passed
+`25/25`, and the rebuilt-stack backend error/warning audit was empty. This closes only the
+source-tool accumulation regression; multi-monitor placement, long-running memory behavior,
+and broader workstation performance acceptance remain open.
+
 Top-down asynchronous reads now use per-surface generation guards across market groups,
 group snapshots, breadth/history, technical summaries, holdings, industries, constituent
 snapshots, and proxy rankings. A rapid linked-symbol or timeframe change cannot let a late

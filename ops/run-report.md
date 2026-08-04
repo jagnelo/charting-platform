@@ -1,5 +1,13 @@
 # Run Report
 
+## 2026-08-04T19:03:48Z Repeated pop-out lifecycle acceptance
+
+- Added and passed F8f: five float/close cycles retain the same durable source-tool count;
+  focused runtime was `4.1s` with no browser diagnostics.
+- Full authenticated Chromium flows passed `25/25` in `40.8s`; frontend Vitest passed
+  `545/545`; TypeScript/build passed (`459` modules); fresh backend error/warning audit was
+  empty. Broader multi-monitor/memory/performance and exact-build visual gates remain open.
+
 ## 2026-08-04T18:59:57Z uPlot large-history performance
 
 - Current-branch real Chromium uPlot guard passed: `100,000` points and `40` zoom/pan
