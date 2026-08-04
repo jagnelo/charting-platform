@@ -43,6 +43,16 @@ describe('StudyLabTool', () => {
     expect(wrapper.text()).toContain('SDK reference')
   })
 
+  it('loads editable factory studies and switches back to custom Python on edit', async () => {
+    const wrapper = mountTool({ activeSymbol: 'SPY' })
+    const selector = wrapper.find('[aria-label="Factory study"]')
+    await selector.setValue('negative_streak')
+    expect(wrapper.find('[aria-label="Study name"]').element).toHaveProperty('value', 'Consecutive negative closes')
+    expect((wrapper.find('[aria-label="Study Python source"]').element as HTMLTextAreaElement).value).toContain('current_negative_streak')
+    await wrapper.find('[aria-label="Study Python source"]').setValue('output.scalar("custom", 1)')
+    expect(selector.element).toHaveProperty('value', 'custom')
+  })
+
   it('validates, starts an immutable isolated study run, and renders artifacts', async () => {
     apiPost.mockImplementation((path: string) => {
       if (path === '/code/validate') return Promise.resolve({ valid: true, diagnostics: [], dependencies: ['stats', 'output'], lookback_hint: 1, output_contracts: ['bar', 'histogram', 'range', 'scatter', 'scalar', 'table'] })

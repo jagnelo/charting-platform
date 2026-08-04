@@ -4,6 +4,7 @@
       <div class="study-lab-tool__header-main">
         <input v-model.trim="name" aria-label="Study name" placeholder="Study name" />
         <input v-model.trim="symbol" aria-label="Study symbol" placeholder="Symbol" />
+        <select v-model="factoryStudyKey" aria-label="Factory study" @change="applyFactoryStudy"><option value="custom">Custom Python</option><option v-for="template in factoryStudyTemplates" :key="template.key" :value="template.key">{{ template.name }}</option></select>
         <button type="button" :disabled="busy" @click="validate">Validate</button>
         <button type="button" :disabled="busy || !validation?.valid" @click="saveAndRun">Run</button>
       </div>
@@ -30,7 +31,7 @@
       </section>
     </header>
     <div class="study-lab-tool__editor-shell">
-      <textarea ref="editor" v-model="source" aria-label="Study Python source" spellcheck="false" @input="updateSuggestions" @keyup="updateSuggestions" @focus="updateSuggestions" @blur="hideSuggestions" />
+      <textarea ref="editor" v-model="source" aria-label="Study Python source" spellcheck="false" @input="sourceInput" @keyup="updateSuggestions" @focus="updateSuggestions" @blur="hideSuggestions" />
       <div v-if="showSuggestions && editorSuggestions.length" class="study-lab-tool__suggestions" role="listbox" aria-label="Python SDK suggestions">
         <button v-for="suggestion in editorSuggestions" :key="suggestion.insert" type="button" role="option" @mousedown.prevent="insertSuggestion(suggestion.insert)">{{ suggestion.insert }} <small>{{ suggestion.signature }}</small></button>
       </div>
@@ -101,7 +102,14 @@ const props = defineProps<{ activeSymbol: string; configuration?: Record<string,
 const emit = defineEmits<{ occurrence: [event: { symbol: string; timestamp: string; kind?: string }]; configuration: [configuration: Record<string, unknown>] }>()
 const name = ref('Consecutive Positive Closes')
 const symbol = ref(props.activeSymbol)
-const source = ref("streaks = stats.positive_close_streaks(dataset)\nindices = [record['end_index'] for record in streaks['records']]\noutput.scalar('current_streak', streaks['current'])\noutput.scalar('longest_streak', streaks['longest'])\noutput.scalar('average_streak', streaks['average'])\noutput.scalar('shortest_streak', streaks['shortest'])\noutput.table('completed_streaks', streaks['records'])\noutput.table('forward_returns', research.forward_returns(dataset, indices, [1, 5, 20]))\noutput.events('streak_events', research.occurrences(dataset, indices, 'positive_close_streak'))\noutput.histogram('streak_distribution', streaks['lengths'], 8, streaks['current'])")
+const positiveStreakSource = "streaks = stats.positive_close_streaks(dataset)\nindices = [record['end_index'] for record in streaks['records']]\noutput.scalar('current_streak', streaks['current'])\noutput.scalar('longest_streak', streaks['longest'])\noutput.scalar('average_streak', streaks['average'])\noutput.scalar('shortest_streak', streaks['shortest'])\noutput.table('completed_streaks', streaks['records'])\noutput.table('forward_returns', research.forward_returns(dataset, indices, [1, 5, 20]))\noutput.events('streak_events', research.occurrences(dataset, indices, 'positive_close_streak'))\noutput.histogram('streak_distribution', streaks['lengths'], 8, streaks['current'])"
+const source = ref(positiveStreakSource)
+const factoryStudyTemplates = [
+  { key: 'positive_streak', name: 'Consecutive positive closes', source: positiveStreakSource },
+  { key: 'negative_streak', name: 'Consecutive negative closes', source: "closes = market.close()\nlengths = []\ncurrent = 0\nfor index in range(1, len(closes)):\n    if closes[index] < closes[index - 1]:\n        current += 1\n    else:\n        if current > 0:\n            lengths.append(current)\n        current = 0\nif current > 0:\n    lengths.append(current)\nlongest = max(lengths) if lengths else 0\naverage = sum(lengths) / len(lengths) if lengths else 0\noutput.scalar('current_negative_streak', current)\noutput.scalar('longest_negative_streak', longest)\noutput.scalar('average_negative_streak', average)\noutput.table('completed_negative_streaks', [{'length': value} for value in lengths])\noutput.histogram('negative_streak_distribution', lengths, 8, current)" },
+  { key: 'moving_average_participation', name: 'Moving-average participation', source: "closes = market.close()\naverage = ta.sma(closes, 20)\nparticipation = [100 if value is not None and closes[index] > value else 0 for index, value in enumerate(average)]\noutput.series('above_20_day_average', participation)\noutput.boolean('currently_above_20_day_average', participation[-1] == 100 if participation else False)\noutput.scalar('percent_above_20_day_average', sum(participation) / len(participation) if participation else 0)" },
+  { key: 'relative_strength_history', name: 'Relative-strength history', source: "closes = market.close()\nbenchmark = market.benchmark_close()\nratio = [value / base if base else None for value, base in zip(closes, benchmark)]\noutput.series('relative_strength_ratio', ratio)\noutput.scalar('latest_relative_strength', ratio[-1] if ratio else None)" },
+]
 const timeframeOptions = [
   { value: 'D1', label: 'Daily' },
   { value: 'W1', label: 'Weekly' },
@@ -109,6 +117,7 @@ const timeframeOptions = [
   { value: 'M15', label: '15 minute' },
 ]
 const configString = (key: string, fallback: string) => typeof props.configuration?.[key] === 'string' ? String(props.configuration[key]) : fallback
+const factoryStudyKey = ref('positive_streak')
 const normaliseTimeframe = (value: string) => value === 'MN1' ? 'MN' : timeframeOptions.some(option => option.value === value) ? value : 'D1'
 const timeframe = ref(normaliseTimeframe(configString('timeframe', 'D1')))
 const benchmark = ref(configString('benchmark', 'SPY'))
@@ -255,6 +264,19 @@ function updateSuggestions() {
   const match = beforeCursor.match(/(?:^|\s)([A-Za-z_]+(?:\.[A-Za-z_]*)?)$/)
   editorPrefix.value = match?.[1] ?? ''
   showSuggestions.value = Boolean(editorPrefix.value)
+}
+function sourceInput() { factoryStudyKey.value = 'custom'; updateSuggestions() }
+function applyFactoryStudy() {
+  const template = factoryStudyTemplates.find(item => item.key === factoryStudyKey.value)
+  if (!template) return
+  name.value = template.name
+  source.value = template.source
+  validation.value = null
+  run.value = null
+  runSource.value = ''
+  runContract.value = null
+  promotionStatus.value = ''
+  error.value = ''
 }
 function hideSuggestions() { window.setTimeout(() => { showSuggestions.value = false }, 120) }
 async function insertSuggestion(value: string) {
@@ -473,7 +495,7 @@ onBeforeUnmount(() => {
 .study-lab-tool__parameter-grid { display:flex; flex-wrap:wrap; gap:4px; align-items:start; }
 .study-lab-tool__parameter-grid label { display:grid; gap:2px; min-width:78px; color:#9db0bc; }
 .study-lab-tool__parameter-error { color:#ed9696; grid-column:1 / -1; }
-.study-lab-tool__header { display:grid; gap:4px; } .study-lab-tool__header-main { display:grid; grid-template-columns:minmax(80px,1fr) 56px 48px 38px; gap:4px; } .study-lab-tool__dataset { display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:4px; color:#8ea3b0; } .study-lab-tool__dataset label { display:grid; grid-template-columns:auto minmax(0,1fr); align-items:center; gap:3px; white-space:nowrap; } .study-lab-tool__dataset input,.study-lab-tool__dataset select { width:100%; min-width:0; }
+.study-lab-tool__header { display:grid; gap:4px; } .study-lab-tool__header-main { display:grid; grid-template-columns:minmax(120px,1fr) 56px minmax(150px,1fr) 48px 38px; gap:4px; } .study-lab-tool__dataset { display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:4px; color:#8ea3b0; } .study-lab-tool__dataset label { display:grid; grid-template-columns:auto minmax(0,1fr); align-items:center; gap:3px; white-space:nowrap; } .study-lab-tool__dataset input,.study-lab-tool__dataset select { width:100%; min-width:0; }
 input,textarea,button,select { min-width:0; border:1px solid #3a4954; background:#172027; color:#dce6ed; font:inherit; } input,select { padding:2px 4px; } textarea { width:100%; resize:none; padding:5px; font:11px/1.35 ui-monospace,SFMono-Regular,monospace; } button { cursor:pointer; } button:disabled { cursor:default; opacity:.5; }
 .study-lab-tool__validation,.study-lab-tool__run { padding:5px; border:1px solid #34424c; background:#151b20; } .study-lab-tool__validation--bad,.study-lab-tool__error { border-color:#9e5757; color:#f0a2a2; } pre { max-height:100px; overflow:auto; margin:3px 0 0; color:#b8c6d0; white-space:pre-wrap; } .study-lab-tool__run > div { display:flex; align-items:center; gap:6px; } .study-lab-tool__run > div button { margin-left:auto; } .study-lab-tool__run p,.study-lab-tool__notice,.study-lab-tool__error { margin:0; color:#8195a3; } .study-lab-tool__dataset-summary { font-size:9px; } .study-lab-tool__run article { margin-top:5px; padding-top:4px; border-top:1px solid #29343c; } .study-lab-tool__run small { margin-left:5px; color:#779ab0; }.study-lab-tool__metrics { display:grid; grid-template-columns:repeat(auto-fit,minmax(70px,1fr)); gap:4px; margin-top:5px; }.study-lab-tool__metrics article { display:grid; gap:2px; margin:0; padding:4px; border:1px solid #29343c; background:#11161b; }.study-lab-tool__metrics strong { color:#b9e0f9; font-size:14px; }.study-lab-tool__metric--true { border-color:#3f8263!important; }.study-lab-tool__metric--true strong { color:#80d5a5!important; }.study-lab-tool__metric--false { border-color:#875454!important; }.study-lab-tool__metric--false strong { color:#f0a0a0!important; }.study-lab-tool__run table { width:100%; margin-top:4px; border-collapse:collapse; font-size:9px; }.study-lab-tool__run th,.study-lab-tool__run td { padding:2px 4px; border:1px solid #2c3943; text-align:left; white-space:nowrap; }.study-lab-tool__run th { color:#91a8b8; background:#1b252d; }.study-lab-tool__events { display:grid; gap:2px; margin-top:4px; }.study-lab-tool__events button { display:grid; grid-template-columns:50px 1fr auto; gap:5px; padding:3px 4px; border:1px solid #2d3c46; background:#11161b; color:#cddbe5; text-align:left; }.study-lab-tool__events button:hover { background:#1d3543; }.study-lab-tool__events span,.study-lab-tool__events small { color:#91a8b4; }.study-lab-tool__run-status--completed { color:#82c49b; }.study-lab-tool__run-status--failed { color:#ed9696; }.study-lab-tool__run-status--queued,.study-lab-tool__run-status--running { color:#80bce8; }
 .study-lab-tool__promotions { display:flex; flex-wrap:wrap; gap:4px; margin-top:4px; }.study-lab-tool__promotions button { margin-left:0!important; }.study-lab-tool__promotion-status { color:#9fd3a9!important; }
