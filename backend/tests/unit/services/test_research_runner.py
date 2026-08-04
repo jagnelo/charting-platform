@@ -1,6 +1,8 @@
 import json
 import resource
 
+import pytest
+
 from research_runner import runner
 from research_runner.runner import execute_job, recover_orphaned_jobs, run_once
 
@@ -455,6 +457,19 @@ def test_runner_rejects_numpy_and_pandas_file_access():
     result = execute_job({"source": "pd.read_csv('/tmp/secret.csv')", "dataset": {}})
     assert result["status"] == "failed"
     assert result["diagnostics"][0]["code"] == "forbidden_data_access"
+
+
+@pytest.mark.parametrize("expression", [
+    "values.tofile('/tmp/secret.bin')",
+    "values.dump('/tmp/secret.npy')",
+    "values.setflags(write=True)",
+    "values.resize(1)",
+    "values.ctypes.data",
+])
+def test_runner_rejects_dangerous_methods_on_numpy_values(expression):
+    result = execute_job({"source": f"values = np.array([1, 2])\n{expression}", "dataset": {}})
+    assert result["status"] == "failed"
+    assert result["diagnostics"][0]["code"] == "forbidden_attribute"
 
 
 def test_runner_does_not_expose_pandas_wrapper_internals():

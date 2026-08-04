@@ -16709,3 +16709,11 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
   states stay `required_missing` until exact-build continuity, environment measurements,
   permission review, and approval are recorded. YAML, manifest validation, shell syntax,
   and diff checks pass.
+## Continuation update — 2026-08-04T13:00:00Z Sandbox ndarray boundary
+
+- Hardened the unified-Python validator against dangerous methods reachable from raw
+  NumPy values returned by the restricted facade: file writes/dumps, raw ctypes/memory,
+  and mutation/resize methods are now rejected regardless of local variable name.
+- Added five focused escape regressions; the research-runner suite now passes `45` tests,
+  the full backend unit suite passes `913`, Ruff passes, and Docker-level namespace,
+  seccomp, network, and cgroup acceptance remains a separate deployment gate.

@@ -18302,3 +18302,11 @@ uncovered slice rather than repeat a generic completion claim.
 - Added the serializable Study Lab As-of timestamp and backend cutoff validation/materialization.
   Focused router tests `2`, Study Lab tests `9`, TypeScript/build/Ruff/diff passed; broad
   acceptance remains open.
+## 2026-08-04T13:00:00Z Sandbox ndarray boundary
+
+- Closed a concrete sandbox gap where raw NumPy values could expose file-write, raw
+  memory/ctypes, or mutation methods despite the no-filesystem/no-host-access contract.
+  The shared validator now rejects those attributes and focused tests cover each class.
+- Research-runner suite: `45 passed`; full backend unit suite: `913 passed` with `34`
+  existing dependency warnings; Ruff and diff checks passed. Docker-level security and
+  the remaining full acceptance gates remain open.

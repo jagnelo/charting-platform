@@ -12,6 +12,14 @@ _SAFE_BUILTINS = {"abs", "all", "any", "bool", "dict", "enumerate", "filter", "f
 _BANNED = (ast.Import, ast.ImportFrom, ast.Global, ast.Nonlocal, ast.Lambda, ast.ClassDef, ast.With, ast.AsyncWith, ast.Try, ast.Raise)
 _CALLS = {"eval", "exec", "compile", "open", "input", "__import__", "globals", "locals", "vars", "getattr", "setattr", "delattr", "help", "breakpoint"}
 _BANNED_DATA_CALLS = {"read_csv", "read_excel", "read_json", "read_parquet", "read_pickle", "read_sql", "read_sql_query", "to_csv", "to_excel", "to_json", "to_parquet", "to_pickle", "to_sql", "load", "save", "savetxt", "fromfile"}
+# ``np.array`` is intentionally a small facade, but it returns an ndarray-like
+# value so normal numerical composition remains useful.  These public ndarray
+# attributes can write files, expose raw memory/ctypes, or mutate process-owned
+# buffers; reject them regardless of the local variable name used to reach them.
+_BANNED_ATTRIBUTES = {
+    "tofile", "dump", "dumps", "savetxt", "fromfile", "load", "save",
+    "ctypes", "data", "base", "setflags", "resize", "fill", "put", "itemset",
+}
 
 
 @dataclass(frozen=True)
@@ -55,6 +63,8 @@ def validate_workstation_python(source: str) -> ValidationResult:
             diagnostics.append(CodeDiagnostic("forbidden_name", "Dunder names are not available.", node.lineno, node.col_offset))
         if isinstance(node, ast.Attribute) and node.attr.startswith("__"):
             diagnostics.append(CodeDiagnostic("forbidden_attribute", "Dunder attributes are not available.", node.lineno, node.col_offset))
+        if isinstance(node, ast.Attribute) and node.attr in _BANNED_ATTRIBUTES:
+            diagnostics.append(CodeDiagnostic("forbidden_attribute", f"{node.attr} is not available in the isolated numerical facade.", node.lineno, node.col_offset))
         if isinstance(node, ast.Call):
             root = node.func
             while isinstance(root, ast.Attribute):

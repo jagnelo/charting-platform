@@ -827,3 +827,11 @@ Study Lab dataset controls now include an explicit `As of` timestamp. The backen
 canonical bar materialization to that cutoff, rejects a cutoff before the requested start,
 and retains the normalized cutoff in the dataset manifest. This prevents future bars from
 entering historical studies and gives reruns a visible point-in-time boundary.
+Sandbox hardening: the isolated NumPy facade can still return array-like values for
+normal numerical composition, but the shared source validator now rejects dangerous
+array attributes such as `tofile`, `dump`, `setflags`, `resize`, and `ctypes` regardless
+of the local variable name used to reach them. Focused runner coverage exercises file
+writes, raw-memory exposure, and mutation attempts; this closes a concrete gap between
+the declared no-filesystem/no-host-access contract and the raw ndarray methods exposed
+by NumPy. Docker-level network, namespace, seccomp, and resource-limit acceptance
+remains a separate deployment gate.
