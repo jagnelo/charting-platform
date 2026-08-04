@@ -1,5 +1,14 @@
 # Active Handoff
 
+## Continuation update — 2026-08-04T02:32:00Z
+
+- Wired JSON `parameters` from persisted research run configuration through the job
+  protocol into both single-instrument and prepared-universe isolated execution. The
+  runner rejects non-object parameters before source execution.
+- Focused runner/validation coverage passed `44` tests; Docker-backed code/research API
+  coverage passed `15` tests with the new job-payload assertion. Ruff and diff checks are
+  clean; visual approval and the wider acceptance gates remain open.
+
 ## Continuation update — 2026-08-04T02:05:00Z
 
 - Aligned the FastAPI validator and isolated runner around a bounded pure-Python builtin

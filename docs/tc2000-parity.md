@@ -96,6 +96,10 @@ The unified language also exposes a bounded set of ordinary Python composition b
 in both validators and the isolated runner. Dunder names remain rejected, so this
 improves normal Python expressiveness without widening host, filesystem, network, or
 dynamic-execution access.
+Run configurations are now injected as a JSON-only `parameters` mapping in both single
+instrument and prepared-universe batch execution. Parameter values stay inside the
+isolated process and are included in the run payload/reproducibility input; malformed
+non-object parameters fail explicitly before user code runs.
 
 Unified Python assets now have lifecycle contracts for complete export/import, immutable
 version-preserving clone, and reversible archive/unarchive operations. Each imported or

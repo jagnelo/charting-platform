@@ -1,3 +1,6 @@
+import json
+
+
 def test_code_validation_never_executes_source(client, auth_headers):
     response = client.post(
         "/api/v1/code/validate",
@@ -161,6 +164,29 @@ def test_research_run_is_queued_for_isolated_runner(client, auth_headers, tmp_pa
     )
     assert canceled.status_code == 200
     assert canceled.json()["status"] == "canceled"
+
+
+def test_research_run_job_preserves_json_parameters_for_isolated_runner(client, auth_headers, tmp_path, monkeypatch):
+    monkeypatch.setattr("app.services.research_jobs.settings.RESEARCH_JOB_DIR", str(tmp_path / "jobs"))
+    monkeypatch.setattr("app.services.research_jobs.settings.RESEARCH_RESULT_DIR", str(tmp_path / "results"))
+    asset = client.post(
+        "/api/v1/code/assets",
+        headers=auth_headers,
+        json={
+            "stable_key": "parameter-study",
+            "name": "Parameter study",
+            "kind": "study",
+            "initial_version": {"source": "output.scalar('threshold', parameters['threshold'])", "output_contract": "study"},
+        },
+    ).json()
+    run = client.post(
+        "/api/v1/research/runs",
+        headers=auth_headers,
+        json={"code_version_id": asset["versions"][0]["id"], "run_config": {"parameters": {"threshold": 42}}},
+    )
+    assert run.status_code == 202
+    job = json.loads((tmp_path / "jobs" / f"{run.json()['id']}.json").read_text())
+    assert job["parameters"] == {"threshold": 42}
 
 
 def test_research_runs_list_is_user_scoped_and_newest_first(

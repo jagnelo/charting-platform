@@ -177,11 +177,15 @@ def _execute_single(
 ) -> dict:
     # The SDK is injected as immutable data/callables by the future materialiser.
     # No Python builtins, imports, filesystem APIs, sockets, or process APIs are exposed.
+    parameters = hash_input.get("parameters", {})
+    if not isinstance(parameters, dict):
+        return {"status": "failed", "diagnostics": [{"code": "invalid_parameters", "message": "research parameters must be a JSON object"}]}
     outputs: dict[str, object] = {}
     safe_globals = {
         "__builtins__": _SAFE_BUILTINS,
         "output": _Output(outputs, dataset),
         "dataset": dataset,
+        "parameters": parameters,
         "benchmark": dataset.get("benchmark_dataset"),
         "market": _Market(dataset),
         "ta": _Ta(),
@@ -274,7 +278,7 @@ def _execute_batch(
             result = _execute_single(
                 source,
                 candidate,
-                {"source": source, "dataset": candidate, "output_contract": output_contract},
+                {"source": source, "dataset": candidate, "output_contract": output_contract, "parameters": hash_input.get("parameters", {})},
                 manage_timeout=False,
             )
             if result.get("status") != "completed":

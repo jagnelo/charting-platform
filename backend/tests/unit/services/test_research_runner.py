@@ -24,6 +24,34 @@ def test_runner_exposes_bounded_python_builtins_without_host_access():
     assert result["artifacts"]["largest"]["value"] == 3
 
 
+def test_runner_injects_json_parameters_into_single_and_batch_runs():
+    single = execute_job(
+        {
+            "source": "output.scalar('threshold', parameters['threshold'])",
+            "parameters": {"threshold": 42},
+            "dataset": {},
+        }
+    )
+    assert single["status"] == "completed"
+    assert single["artifacts"]["threshold"]["value"] == 42
+    batch = execute_job(
+        {
+            "source": "output.scalar('threshold', parameters['threshold'])",
+            "parameters": {"threshold": 7},
+            "output_contract": "scalar",
+            "dataset": {"datasets": [{"instrument_id": 1, "symbol": "SPY", "closes": [1]}]},
+        }
+    )
+    assert batch["status"] == "completed"
+    assert batch["artifacts"]["batch_cells"]["value"]["cells"][0]["value"] == 7.0
+
+
+def test_runner_rejects_non_object_parameters():
+    result = execute_job({"source": "output.scalar('x', 1)", "parameters": [1], "dataset": {}})
+    assert result["status"] == "failed"
+    assert result["diagnostics"][0]["code"] == "invalid_parameters"
+
+
 def test_runner_emits_typed_boolean_artifacts():
     result = execute_job({"source": "output.boolean('qualifies', 2 > 1)", "dataset": {}})
     assert result["status"] == "completed"

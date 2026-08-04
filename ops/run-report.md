@@ -2,6 +2,14 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-04T02:32:00Z Research parameter propagation
+
+- Persisted run parameters now cross the job protocol into isolated single and batch
+  execution, with explicit non-object rejection before user code runs.
+- Runner/validation tests passed `44`; Docker-backed code/research integration passed
+  `15`, including the parameter payload assertion. Ruff and diff checks passed; exact-build
+  visual approval and the complete acceptance matrix remain open.
+
 ## 2026-08-04T02:05:00Z Safe Python composition
 
 - Added the same bounded pure-Python builtin set to the API validator and isolated runner,
