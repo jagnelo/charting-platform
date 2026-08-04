@@ -5,7 +5,7 @@
     "worker_session_started_at": "2026-07-28T21:40:33Z",
     "worker_soft_stop_at": null,
   "last_handoff_at": "2026-08-04T21:20:00Z",
-  "last_commit": "2ff6ad1 fix(api): close canceled screener sessions safely",
+  "last_commit": "a1230cc fix(workstation): cancel stale Python batches",
     "git_ready_to_commit": false,
   "validation": {
     "sandbox_numpy_method_guard": "passed: five dangerous ndarray attribute regressions; focused research runner 45 passed and full backend unit suite 913 passed",
