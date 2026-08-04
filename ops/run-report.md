@@ -2,6 +2,13 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-04T13:56:00Z Python chart-plot result cache
+
+- Python chart-plot run status/artifact reads now use the shared Vue Query research-run
+  key while retaining cancellation and late-result sequence guards.
+- Focused chart/popup coverage passed `10`; TypeScript passed. Exact-build visual approval
+  and the complete acceptance matrix remain open.
+
 ## 2026-08-04T13:42:00Z EasyScan result cache
 
 - EasyScan Python-condition result polling now uses a shared Vue Query key by screener ID

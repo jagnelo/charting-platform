@@ -854,7 +854,11 @@ async function loadPythonPlots() {
       runId = queued.id
       pythonPlotRunIds.add(queued.id)
       for (let attempt = 0; attempt < 30; attempt += 1) {
-        const result = await api.get<{ status: string; artifacts?: Array<{ name: string; artifact_type: string; payload: Record<string, unknown> }> }>(`/research/runs/${queued.id}`)
+        const result = await queryClient.fetchQuery({
+          queryKey: ['workstation', 'research-run', queued.id],
+          queryFn: () => api.get<{ status: string; artifacts?: Array<{ name: string; artifact_type: string; payload: Record<string, unknown> }> }>(`/research/runs/${queued.id}`),
+          staleTime: 0,
+        })
         if (result.status === 'completed' || result.status === 'failed' || result.status === 'canceled') {
           const artifact = result.artifacts?.find(item => item.artifact_type === 'series')
           const value = artifact?.payload?.value

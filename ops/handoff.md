@@ -1,5 +1,13 @@
 # Active Handoff
 
+## Continuation update — 2026-08-04T13:56:00Z
+
+- Routed workstation Python chart-plot research-run polling through the shared Vue Query
+  cache keyed by immutable run ID. Existing cancellation and sequence guards continue to
+  suppress obsolete late series.
+- Focused chart-library/popup coverage passed `10`; TypeScript passed. Exact-build visual
+  approval and broad multi-window polling/performance acceptance remain open.
+
 ## Continuation update — 2026-08-04T13:42:00Z
 
 - Routed EasyScan queued Python-condition result-history reads through Vue Query keyed by

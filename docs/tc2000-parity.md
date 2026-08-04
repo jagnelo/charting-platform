@@ -587,6 +587,12 @@ partial-result safeguards, and isolated-run cancellation. Repeated result refres
 the same saved scan therefore share one canonical retained snapshot; the focused EasyScan
 suite passes. Full coordinator, hidden-tool, and long-running scan acceptance remains open.
 
+Python chart-plot artifact polling in the workstation now uses the shared research-run
+Vue Query key by immutable run ID as well. Obsolete runs are still canceled and sequence
+guards discard late series, while repeated chart renders reuse the retained terminal
+artifact response instead of issuing a second request. Focused chart/popup coverage and
+TypeScript pass; complete multi-window polling/performance acceptance remains open.
+
 The unified Python SDK now supports a typed `output.dashboard` composition contract. A
 dashboard contains only bounded references to named scalar, table, series, histogram,
 scatter, heatmap, or event artifacts plus title/span metadata; user code cannot provide
