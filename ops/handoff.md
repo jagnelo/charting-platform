@@ -6,9 +6,9 @@
   filter only documented API 404/409 responses from teardown attachments. The complete
   authenticated Chromium flow passed `27/27` in `57.1s`.
 - The visual suite waits for a serializable layout and checks title/action and chart
-  toolbar/surface geometry for overlap. The direct 1920×1080 probe reaches screenshot
-  comparison with those checks green, then fails against the unapproved/stale local
-  snapshot as expected; exact-build V25 manifest approval remains open.
+  toolbar/surface geometry for overlap. All four required display-scale probes reach
+  screenshot comparison with those checks green, then fail against the unapproved/stale
+  local snapshots as expected; exact-build V25 manifest approval remains open.
 - Full frontend coverage is `550` tests across `84` files with TypeScript/build passing.
 
 ## Continuation update — 2026-08-04T22:10:00Z Performance and cleanup recheck
