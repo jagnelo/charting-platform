@@ -177,6 +177,11 @@ test.describe('TC2000 workstation', () => {
     await page.goto('/chart')
     await expect(page.locator('button[title="Float"]').first()).toBeVisible({ timeout: 10_000 })
     const sourceToolCount = await page.locator('.tool-window').count()
+    await expect.poll(() => page.locator('canvas').count()).toBeGreaterThan(0)
+    // Chart panes finish lazy initialization after the first canvas appears;
+    // settle that one-time growth before taking the lifecycle baseline.
+    await page.waitForTimeout(750)
+    const sourceCanvasCount = await page.locator('canvas').count()
     expect(sourceToolCount).toBeGreaterThan(0)
 
     // Exercise enough repeated browser-window churn to catch source-tool leaks
@@ -195,6 +200,8 @@ test.describe('TC2000 workstation', () => {
       await popup.locator('button[title="Close"]').click()
       await closed
       await expect(page.locator('.tool-window')).toHaveCount(sourceToolCount)
+      await expect.poll(() => context.pages().length).toBe(1)
+      await expect.poll(() => page.locator('canvas').count()).toBe(sourceCanvasCount)
     }
 
     await browserDiagnostics.expectNoCriticalIssues()

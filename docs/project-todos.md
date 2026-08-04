@@ -3264,6 +3264,12 @@ completed-cell artifacts, and left the runner healthy. Probe artifacts were remo
 This closes cancellation during a large batch; multi-process namespace/resource stress remains
 an acceptance gate.
 
+The repeated pop-out browser audit also exposed and closed a real persistence defect: Golden
+Layout's transient visible-key observations could delete serialized source windows during
+repeated float/close churn. `applyActiveLayout` now persists geometry only; explicit close
+actions remain the sole destructive window operation. Store coverage and the ten-cycle browser
+regression pass, and the full authenticated flow remains 27/27 with clean backend logs.
+
 Read-only authenticated identity/settings reads use the detached short-lived session path;
 mutating authentication/settings routes retain the request-scoped transaction. The rebuilt
 browser flow and backend/runner/worker log audit now remain clean across the repeated login,

@@ -52,6 +52,13 @@ attachments. All four required display-scale visual probes also assert that core
 and chart toolbar/surface rectangles do not overlap; each passes those geometry checks before
 the exact-build screenshot gate rejects its unapproved baseline.
 
+Golden Layout persistence no longer treats its observational visible-key list as a destructive
+close operation. Explicit close actions remain the only path that removes a serialized tool;
+this prevents transient/incomplete layout events during repeated pop-outs from deleting the
+source window. The store regression and a ten-cycle browser lifecycle check cover the boundary,
+including stable source canvas and browser-page counts. The full authenticated flow remains
+`27/27`, and the post-run backend/runner log audit is clean.
+
 This is functional/runtime evidence only. The strict visual gate still rejects the required
 `application-shell-default/default` state because the manifest remains `required_missing`;
 discovery-only online media cannot be promoted without exact-build continuity, measurements,

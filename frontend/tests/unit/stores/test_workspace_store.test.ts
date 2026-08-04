@@ -210,7 +210,7 @@ describe('workspace store layout tabs', () => {
     expect(store.workspace.tabs[0].windows[0].configuration.expression).toBe('=NVDA/XLK')
   })
 
-  it('persists a closed layout tool by removing only that serialized window', async () => {
+  it('persists layout geometry without deleting tools from an observational key list', async () => {
     const store = useWorkspaceStore()
     store.workspace = {
       id: 10, user_id: 3, name: 'US Top Down', is_default: true, position: 0, revision: 4, schema_version: 1, settings: {},
@@ -226,7 +226,7 @@ describe('workspace store layout tabs', () => {
 
     store.applyActiveLayout({ root: { componentState: { instance_key: 'chart' } } }, ['chart'])
 
-    expect(store.activeTab?.windows.map(window => window.instance_key)).toEqual(['chart'])
+    expect(store.activeTab?.windows.map(window => window.instance_key)).toEqual(['chart', 'notes'])
     expect(store.activeTab?.active_window_key).toBe('chart')
     await new Promise(resolve => setTimeout(resolve, 400))
     expect(apiPut).toHaveBeenCalled()

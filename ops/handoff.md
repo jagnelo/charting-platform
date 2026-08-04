@@ -1,5 +1,16 @@
 # Active Handoff
 
+## Continuation update — 2026-08-05T00:25:00Z Pop-out persistence defect closure
+
+- The ten-cycle pop-out audit found a real source-window loss defect: transient Golden Layout
+  visible-key observations could delete serialized windows during repeated float/close churn.
+  `applyActiveLayout` now persists geometry only; explicit close actions remain the sole
+  destructive window operation.
+- Store coverage passed `31/31`; the corrected lifecycle flow and complete authenticated
+  Chromium suite passed (`27/27` in `58.6s`), including stable canvas/page-count assertions.
+  Full frontend Vitest remains `550/550`, TypeScript/build pass, and the backend/runner log
+  audit is clean. Exact-build visual and remaining broad acceptance gates remain open.
+
 ## Continuation update — 2026-08-05T00:05:00Z Live research-runner cancellation probe
 
 - A uniquely named 10,000-cell prepared-universe job was claimed by the non-root isolated

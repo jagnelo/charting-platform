@@ -1057,13 +1057,13 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     const tab = activeTab.value
     if (!tab) return
     tab.layout_config = normaliseGoldenLayoutConfig(layout)
-    if (visibleToolKeys.length) {
-      const visible = new Set(visibleToolKeys)
-      tab.windows = tab.windows.filter(window => visible.has(window.instance_key))
-      if (!tab.windows.some(window => window.instance_key === tab.active_window_key)) {
-        tab.active_window_key = tab.windows[0]?.instance_key ?? null
-      }
-    }
+    // Golden Layout can emit a transient/incomplete component list while a
+    // virtual tool is being installed, resized, or mirrored in a browser
+    // pop-out. Never interpret that observational list as a destructive close:
+    // explicit close actions already call closeTool(), which is the sole owner
+    // of removing a persisted window. This preserves tools for pop-out
+    // recovery and prevents layout churn from deleting serialized state.
+    void visibleToolKeys
     scheduleSnapshot()
   }
 

@@ -1,5 +1,16 @@
 # Run Report
 
+## 2026-08-05T00:25:00Z Pop-out persistence defect closure
+
+- The strengthened ten-cycle pop-out audit exposed a real defect: transient Golden Layout
+  visible-key observations could delete serialized source windows, producing an unavailable
+  popup after repeated churn. `applyActiveLayout` now persists layout geometry only; explicit
+  close actions remain the sole destructive window operation.
+- Store coverage passed `31/31`; the corrected ten-cycle lifecycle flow passed `4.9s`, and
+  the complete authenticated Chromium suite passed `27/27` in `58.6s`. Canvas/page-count
+  stability assertions are now included. TypeScript, production build, and full frontend
+  Vitest (`550/550`, 84 files) passed; the backend/runner log audit was clean.
+
 ## 2026-08-05T00:05:00Z Live research-runner cancellation probe
 
 - A uniquely named 10,000-cell prepared-universe job was claimed by the non-root isolated
