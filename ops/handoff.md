@@ -16791,3 +16791,12 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
   diff checks passed. Full backend unit count is now `916` (34 existing dependency warnings).
   Docker-backed API/security verification, provider probes, exact-build visual approval, and
   broad acceptance remain open; this adapter does not claim brokerage/trade-fill simulation.
+
+## Continuation update — 2026-08-04T17:20:00Z Full regression after signal execution
+
+- Full backend unit suite passed `916` tests with 34 existing dependency warnings.
+- Full frontend Vitest passed `535` tests across `84` files; `vue-tsc --noEmit` and the
+  production Vite build passed. The expected conflict-path stderr in watchlist tests remains
+  intentional and non-failing.
+- Docker-backed integration/security, provider-live probes, exact-build visual approval,
+  multi-environment performance, and broad E2E acceptance remain open.

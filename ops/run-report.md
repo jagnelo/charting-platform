@@ -18371,3 +18371,11 @@ uncovered slice rather than repeat a generic completion claim.
 - This closes signal evaluation/reuse at the research boundary, not brokerage or trade-fill
   simulation. Docker-backed API/security, provider-live, exact-build visual, and broad
   acceptance gates remain open.
+
+## 2026-08-04T17:20:00Z Full regression after signal execution
+
+- Backend unit suite: `916 passed` with 34 existing dependency warnings.
+- Frontend Vitest: `535 passed` across `84` files; TypeScript and production build passed.
+  Expected watchlist conflict-path stderr remained non-failing.
+- Docker-backed integration/security, provider-live probes, exact-build visual approval,
+  multi-environment performance, and broad E2E acceptance remain open.
