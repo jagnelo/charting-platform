@@ -49,7 +49,7 @@
       <span v-else>Dependencies: {{ validation.dependencies.join(', ') || 'none' }} · Lookback: {{ validation.lookback_hint ?? 'none' }} · Outputs: {{ validation.output_contracts.join(', ') || 'none' }}</span>
     </section>
     <section v-if="run" class="study-lab-tool__run">
-      <div><strong>Run #{{ run.id }}</strong><span :class="`study-lab-tool__run-status--${run.status}`">{{ run.status }}</span><small v-if="progressLabel">{{ progressLabel }}</small><button v-if="canCancel" type="button" @click="cancel">Cancel</button></div>
+      <div><strong>Run #{{ run.id }}</strong><span :class="`study-lab-tool__run-status--${run.status}`">{{ run.status }}</span><small v-if="progressLabel">{{ progressLabel }}</small><button v-if="canCancel" type="button" @click="cancel">Cancel</button><button v-if="canRerun" type="button" :disabled="rerunBusy" @click="rerun(true)">{{ rerunBusy ? 'Rerunning…' : 'Rerun snapshot' }}</button><button v-if="canRerun" type="button" :disabled="rerunBusy" @click="rerun(false)">{{ rerunBusy ? 'Rerunning…' : 'Rerun latest' }}</button></div>
       <div v-if="promotableKind && run.status === 'completed'" class="study-lab-tool__promotions" aria-label="Promote study result">
         <button v-if="promotableKind === 'scalar'" type="button" :disabled="promotionBusy" @click="promote('column')">{{ promotionBusy ? 'Promoting…' : 'Save as column' }}</button>
         <button v-if="promotableKind === 'series'" type="button" :disabled="promotionBusy" @click="promote('plot')">{{ promotionBusy ? 'Promoting…' : 'Save as chart plot' }}</button>
@@ -140,6 +140,7 @@ const editorSuggestionCatalog = [
 const busy = ref(false)
 const promotionBusy = ref(false)
 const promotionStatus = ref('')
+const rerunBusy = ref(false)
 const validation = ref<Validation | null>(null)
 const run = ref<Run | null>(null)
 const runSource = ref('')
@@ -167,6 +168,7 @@ watch(() => runQuery.error.value, cause => {
 })
 
 const canCancel = computed(() => Boolean(run.value && !['completed', 'failed', 'canceled'].includes(run.value.status)))
+const canRerun = computed(() => Boolean(run.value && ['completed', 'failed', 'canceled'].includes(run.value.status)))
 const promotableKind = computed<'scalar' | 'boolean' | 'series' | null>(() => {
   if (!run.value || run.value.status !== 'completed' || !runSource.value) return null
   return runContract.value === 'scalar' || runContract.value === 'boolean' || runContract.value === 'series' ? runContract.value : null
@@ -422,6 +424,17 @@ async function promote(target: PromotionTarget) {
   } catch (cause: any) {
     promotionStatus.value = cause?.message ?? 'Unable to promote study result'
   } finally { promotionBusy.value = false }
+}
+async function rerun(snapshot: boolean) {
+  if (!run.value || rerunBusy.value) return
+  rerunBusy.value = true
+  error.value = ''
+  promotionStatus.value = ''
+  try {
+    run.value = await api.post<Run>(`/research/runs/${run.value.id}/rerun?snapshot=${snapshot}`, {})
+  } catch (cause: any) {
+    error.value = cause?.message ?? 'Unable to rerun study'
+  } finally { rerunBusy.value = false }
 }
 async function cancel() {
   if (!run.value) return
