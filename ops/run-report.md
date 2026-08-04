@@ -1,5 +1,13 @@
 # Run Report
 
+## 2026-08-05T02:40:00Z Post-worker-rebuild browser acceptance
+
+- Authenticated Chromium `flows.spec.ts` passed `26/26` in `43.5s` after rebuilding the
+  backend/worker images for the history-refresh registration.
+- Backend/worker logs contained no error, traceback, connection-leak, `InterfaceError`,
+  `SAWarning`, provider-error, or unexpected-warning pattern. The only test-run warning
+  was Playwright's Node `NO_COLOR`/`FORCE_COLOR` notice.
+
 ## 2026-08-05T02:30:00Z Canonical history-refresh registration
 
 - Registered `fetch_all_instruments_history` in the active ARQ worker behind the new

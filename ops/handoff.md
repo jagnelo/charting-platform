@@ -1,5 +1,17 @@
 # Active Handoff
 
+## Continuation update — 2026-08-05T02:40:00Z Post-worker-rebuild browser acceptance
+
+- After rebuilding backend/worker for the optional history-refresh registration, the
+  correctly configured authenticated Chromium flow passed `26/26` in `43.5s`.
+- The post-run backend/worker log window was empty for `ERROR`, traceback,
+  `InterfaceError`, `SAWarning`, connection-leak, provider-error, and unexpected-warning
+  patterns. The only emitted browser-run warning was Playwright's Node `NO_COLOR`/`FORCE_COLOR`
+  notice.
+- Exact-build V25 visual approval, configured provider-live matrix, resource-pressure and
+  orphan-job stress, multi-window performance, migration re-audit, and broad parity remain
+  open.
+
 ## Continuation update — 2026-08-05T02:30:00Z Canonical history-refresh registration
 
 - Registered the existing canonical `fetch_all_instruments_history` task in the active
