@@ -18358,3 +18358,16 @@ uncovered slice rather than repeat a generic completion claim.
 - Strategy Lab replay/execution of promoted immutable Python signals remains explicitly
   open; no unsupported execution claim was introduced. Docker-backed API/security,
   provider-live, exact-build visual, and broad acceptance gates remain open.
+
+## 2026-08-04T17:05:00Z Strategy Lab isolated Python signals
+
+- Strategy Lab Python-signal runs now resolve their immutable code version, materialize
+  canonical input data, queue the Boolean/event job through the isolated research runner,
+  and retain a durable research-run reference.
+- List/detail/refresh paths reconcile terminal artifacts, diagnostics, warnings, and
+  reproducibility metadata without executing user code in FastAPI. Focused strategy service
+  tests `8`, focused runner/strategy tests `54`, and full backend unit suite `916 passed`
+  with 34 existing dependency warnings.
+- This closes signal evaluation/reuse at the research boundary, not brokerage or trade-fill
+  simulation. Docker-backed API/security, provider-live, exact-build visual, and broad
+  acceptance gates remain open.

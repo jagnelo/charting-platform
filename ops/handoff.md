@@ -16777,3 +16777,17 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
   replay/execution of those immutable Python signals remains an open integration gate.
   Docker-backed API/security tests, provider probes, exact-build visual approval, and broad
   acceptance remain open.
+
+## Continuation update — 2026-08-04T17:05:00Z Strategy Lab isolated Python signals
+
+- Promoted Python signals are no longer inert library entries. Strategy Lab now resolves
+  the immutable `code_version_id`, materializes the requested canonical universe through
+  the Study Lab dataset path, queues the Boolean/event job in the isolated research runner,
+  and exposes a durable research-run reference.
+- Strategy run list/detail/refresh paths reconcile terminal research artifacts and preserve
+  reproducibility, warnings, diagnostics, and output-contract metadata. User code remains
+  outside FastAPI and provider credentials remain outside the runner.
+- Focused strategy service tests `8`, focused runner/strategy tests `54`, Ruff, compile, and
+  diff checks passed. Full backend unit count is now `916` (34 existing dependency warnings).
+  Docker-backed API/security verification, provider probes, exact-build visual approval, and
+  broad acceptance remain open; this adapter does not claim brokerage/trade-fill simulation.

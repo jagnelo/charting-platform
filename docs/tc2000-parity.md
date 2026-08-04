@@ -824,8 +824,11 @@ non-Boolean/event code versions. The isolated runner now evaluates declared even
 across prepared-universe cells and returns bounded, symbol-qualified event artifacts. The
 existing Strategy Lab engine remains authoritative for which execution modes are supported;
 signal persistence and Study Lab event evaluation are complete for this contract, while
-Strategy Lab replay/execution of those immutable Python signals remains an explicitly tracked
-integration gap rather than a falsely reported capability.
+Strategy Lab Python-signal runs now queue through the same canonical dataset materializer
+and isolated runner, expose queued/terminal research status, and reconcile bounded event or
+Boolean artifacts through run retrieval/refresh. This is research/signal evaluation rather
+than brokerage execution or a claim of trade-fill simulation; the existing Nautilus/rules
+engine remains authoritative for execution statistics and portfolio replay.
 
 The shared primary-facing provenance hint now reports canonical source, observation/fetch
 times, selection reason, quality, and notes without exposing provider-specific symbol
