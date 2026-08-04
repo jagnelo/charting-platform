@@ -3236,6 +3236,10 @@ The streaming screener also now treats indicator-cache persistence as an optiona
 observable optimization: failed cache commits roll back, produce a structured warning,
 and leave canonical scan results usable rather than silently poisoning the transaction.
 
+Study Lab polling also enforces a non-null refresh contract: missing run payloads become
+bounded query errors rather than `undefined` cache entries, with active-run destruction
+covered by the component regression suite.
+
 Controlling objective:
 - This section and `docs/tc2000-visual-parity.md` are the controlling specification for
   the branch and supersede every older or narrower frontend-rework plan where they

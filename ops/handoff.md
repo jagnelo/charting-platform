@@ -1,5 +1,19 @@
 # Active Handoff
 
+## Continuation update — 2026-08-05T01:45:00Z Study Lab query-contract hardening
+
+- Hardened Study Lab polling so every enabled Vue Query refresh either returns a valid
+  run payload or produces an explicit error; it can no longer resolve `undefined` and
+  emit a query-cache warning. The active-run unmount regression now supplies and checks
+  the refresh contract.
+- Validation: focused Study Lab component suite `11 passed`, full frontend Vitest
+  `547 passed` across 84 files, TypeScript and production build passed, and `git diff
+  --check` passed. The change is isolated to Study Lab refresh behavior; no overall
+  completion claim is made.
+- Exact-build V25 visual approval, configured provider-live matrix, resource-pressure and
+  orphan-job stress, multi-window performance, migration re-audit, and broad parity remain
+  open.
+
 ## Continuation update — 2026-08-05T01:35:00Z Screener cache-failure recovery
 
 - Removed a silent `except: pass` around the streaming screener's indicator-cache commit.

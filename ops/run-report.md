@@ -1,5 +1,15 @@
 # Run Report
 
+## 2026-08-05T01:45:00Z Study Lab query-contract hardening
+
+- Study Lab polling now rejects missing refresh payloads explicitly instead of allowing
+  Vue Query to cache `undefined`; the active-run destruction test supplies the valid
+  refresh response.
+- Focused Study Lab suite: `11/11`; full frontend Vitest: `547/547` across 84 files;
+  TypeScript and production build passed; `git diff --check` passed.
+- The strict exact-build visual, configured provider-live, resource/orphan, multi-window
+  performance, migration, and broad parity gates remain open.
+
 ## 2026-08-05T01:35:00Z Screener cache-failure recovery
 
 - Streaming screener indicator-cache commits now roll back and return a structured warning

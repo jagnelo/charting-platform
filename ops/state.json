@@ -4,7 +4,7 @@
     "active_worker": "Codex",
     "worker_session_started_at": "2026-07-28T21:40:33Z",
     "worker_soft_stop_at": null,
-  "last_handoff_at": "2026-08-04T22:05:00Z",
+  "last_handoff_at": "2026-08-05T01:45:00Z",
   "last_commit": "863b5c0 chore(ops): record screener persistence acceptance",
     "git_ready_to_commit": true,
   "validation": {
@@ -12,7 +12,7 @@
         "visual_reference_pack": "retrieved 189 official-help/shared-layout screenshots into controlled external storage with per-media URLs and SHA-256 index; manifest count corrected to 189 and the two official shared-layout previews remain discovery-only candidates, exact-build approval remains required",
         "backend_lint": "passed (code validation including deterministic XNYS coverage calendar, restricted numerical facades, isolated research runner/resource restoration, screener, visual, analysis, research, OHLCV session model, migration modules, and runner deployment ceilings, 2026-08-04)",
         "backend_tests": "repo-mounted full backend unit suite 957 passed (34 dependency warnings), including explicit screener indicator-cache rollback/warning coverage, the adversarial validator/runner matrix, request-scoped normal auth, detached-auth screener streaming, shielded cancellation cleanup, cancellation-log filtering, synchronous compatibility cleanup, and injectable auth/stream session-factory coverage; full Docker-backed integration suite 281 passed with 54 dependency warnings; visual-manifest validator suite 3 passed and correctly rejects required_missing acceptance states",
-        "frontend_tests": "passed: full frontend Vitest suite 547 across 84 files, including blocked/malformed localStorage cross-window recovery, stale top-down analysis, ratio prop reload, workspace persistence boundaries, pre-v8 Golden Layout width migration, and link-group chrome labels; TypeScript and production build passed, 2026-08-04",
+        "frontend_tests": "passed: full frontend Vitest suite 547 across 84 files, including Study Lab non-null refresh polling, blocked/malformed localStorage cross-window recovery, stale top-down analysis, ratio prop reload, workspace persistence boundaries, pre-v8 Golden Layout width migration, and link-group chrome labels; TypeScript and production build passed, 2026-08-05",
         "frontend_build": "passed: TypeScript and production build after pre-v8 Golden Layout column-width migration; 459 modules built, 2026-08-04",
         "alembic_upgrade": "disposable PostgreSQL 16 validation passed: full chain upgrades to e9f0a1b2c3d4, downgrades to d3e4f5a6b7c8, re-upgrades, and direct SQL verifies watchlist_item.flagged is non-null with false server default; container removed 2026-08-03T22:20:00Z",
         "diff_check": "passed (route-boundary checkpoint, 2026-08-03)",

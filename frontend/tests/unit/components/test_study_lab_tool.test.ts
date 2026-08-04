@@ -170,6 +170,7 @@ describe('StudyLabTool', () => {
   })
 
   it('cancels an active study run when the Study Lab tool is destroyed', async () => {
+    apiGet.mockResolvedValue({ id: 101, status: 'running', artifacts: [] })
     apiPost.mockImplementation((path: string) => {
       if (path === '/code/validate') return Promise.resolve({ valid: true, diagnostics: [], dependencies: ['output'], lookback_hint: null, output_contracts: ['scalar'] })
       if (path === '/code/assets') return Promise.resolve({ versions: [{ id: 42 }] })
