@@ -2,6 +2,13 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-04T09:42:00Z Structured universe API materialization
+
+- Added authenticated integration coverage proving `run_config.symbols` materializes a
+  canonical prepared universe and returns exact unknown-symbol exclusions before enqueue.
+- Docker-backed code/research integration passed `18` tests. Exact-build visual approval
+  and the complete acceptance matrix remain open.
+
 ## 2026-08-04T09:18:00Z Structured universe event safety
 
 - Structured Study Lab event outputs now accept symbols only from the prepared universe,

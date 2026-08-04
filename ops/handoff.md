@@ -1,5 +1,13 @@
 # Active Handoff
 
+## Continuation update — 2026-08-04T09:42:00Z
+
+- Added authenticated API coverage for structured Study Lab universe materialization:
+  requested order and exact unresolved-symbol exclusions are preserved in the prepared
+  manifest before enqueue.
+- Code/research integration passed `18` tests with Docker-backed services. Visual approval
+  and the broader acceptance gates remain open.
+
 ## Continuation update — 2026-08-04T09:18:00Z
 
 - Structured Study Lab event artifacts now validate each event against the declared

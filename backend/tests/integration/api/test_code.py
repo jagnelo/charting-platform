@@ -394,6 +394,43 @@ def test_research_run_materializes_only_declared_local_symbol_data(
     assert payload["dataset_manifest"]["adjustment"] == "split_adjusted"
 
 
+def test_research_run_materializes_structured_study_universe_with_exclusions(
+    client, auth_headers, tmp_path, monkeypatch, instrument, ohlcv_bars
+):
+    monkeypatch.setattr(
+        "app.services.research_jobs.settings.RESEARCH_JOB_DIR", str(tmp_path / "jobs")
+    )
+    monkeypatch.setattr(
+        "app.services.research_jobs.settings.RESEARCH_RESULT_DIR", str(tmp_path / "results")
+    )
+    asset = client.post(
+        "/api/v1/code/assets",
+        headers=auth_headers,
+        json={
+            "stable_key": "universe-study",
+            "name": "Universe study",
+            "kind": "study",
+            "initial_version": {
+                "source": "output.table('symbols', [{'symbol': item['symbol']} for item in market.universe()])",
+                "output_contract": "study",
+            },
+        },
+    ).json()
+    response = client.post(
+        "/api/v1/research/runs",
+        headers=auth_headers,
+        json={
+            "code_version_id": asset["versions"][0]["id"],
+            "run_config": {"symbols": [instrument.symbol, "NOT_A_CANONICAL_SYMBOL"]},
+        },
+    )
+    assert response.status_code == 202
+    manifest = response.json()["dataset_manifest"]
+    assert manifest["requested_symbols"] == [instrument.symbol, "NOT_A_CANONICAL_SYMBOL"]
+    assert [item["symbol"] for item in manifest["datasets"]] == [instrument.symbol]
+    assert manifest["exclusions"] == [{"symbol": "NOT_A_CANONICAL_SYMBOL", "code": "declared_instrument_not_found"}]
+
+
 def test_research_run_honors_study_dataset_controls_and_records_them(
     client, auth_headers, db, tmp_path, monkeypatch, instrument, ohlcv_bars
 ):
