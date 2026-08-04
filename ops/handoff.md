@@ -16650,3 +16650,12 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
   `84` files, TypeScript, production build, and diff checks passed. Exact-build visual
   approval, point-in-time aggregate membership fixtures, live probes, Docker integration,
   and broad acceptance remain open.
+## Continuation update — 2026-08-04T11:46:00Z Study Lab signal promotion and universe guard
+
+- Added direct promotion of completed Study Lab Boolean results into reusable `signal`
+  code assets for Strategy Lab, alongside the existing column/plot/scan/alert targets.
+- Aggregate ranking and breadth starters now declare their universe requirement in the UI,
+  warn before execution, and reject empty-universe runs instead of falling back to the
+  active symbol. Focused Study Lab coverage `9`, TypeScript, and production build passed;
+  full frontend `533` remains green. Visual approval, point-in-time aggregate fixtures,
+  live probes, Docker integration, and broad acceptance remain open.

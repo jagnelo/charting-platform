@@ -18262,3 +18262,9 @@ uncovered slice rather than repeat a generic completion claim.
   20-session participation/breadth thrusts.
 - Runner tests `40`, full frontend Vitest `533` across `84` files, TypeScript, production
   build, and diff checks passed. Exact-build visual and broad acceptance remain open.
+## 2026-08-04T11:46:00Z Study Lab signal promotion and universe guard
+
+- Added reusable Strategy Lab signal promotion for completed Boolean studies and explicit
+  missing-universe validation for aggregate ranking/breadth starters.
+- Focused Study Lab suite `9`, TypeScript, production build, and diff checks passed; full
+  frontend `533` remains green. Visual and broad acceptance remain open.

@@ -800,3 +800,11 @@ catalogue (`8` tests) and the runner has direct aggregate-rank/breadth assertion
 This adds functional authoring coverage; exact Version 25 visual approval, aggregate
 cross-sectional breadth studies, live-provider probes, and the broader acceptance matrix
 remain open.
+
+Study Lab Boolean results can also be promoted directly into a reusable Strategy Lab
+signal asset through the same immutable Python code-version path used by columns, plots,
+EasyScan conditions, and alerts. Aggregate ranking/breadth starters explicitly require a
+declared comma-separated universe and show a visible warning rather than silently falling
+back to the active symbol; the run guard prevents an invalid single-symbol request. Focused
+Study Lab coverage now includes this promotion and missing-universe recovery path (`9`
+tests), with TypeScript and production build passing.
