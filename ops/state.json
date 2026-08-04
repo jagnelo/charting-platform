@@ -5,7 +5,7 @@
     "worker_session_started_at": "2026-07-28T21:40:33Z",
     "worker_soft_stop_at": null,
   "last_handoff_at": "2026-08-04T11:18:00Z",
-    "last_commit": "74defcf69329bdf06b3b1096306aa93cbc59d911 ops: checkpoint industry lineage",
+    "last_commit": "3f78eeaf30c3324198f3dbf86dcf66b33d90281e ops: checkpoint Study Lab point-in-time cutoff",
     "git_ready_to_commit": false,
     "validation": {
         "backend_lint": "passed (code validation including deterministic XNYS coverage calendar, restricted numerical facades, isolated research runner/resource restoration, screener, visual, analysis, research, OHLCV session model, and migration modules, 2026-08-03)",
