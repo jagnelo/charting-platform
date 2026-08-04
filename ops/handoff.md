@@ -15,8 +15,8 @@
   TypeScript and production build passed; `git diff --check` passed. A fresh backend-log audit
   over the browser run found no `SAWarning`, garbage-collector/non-checked-in connection,
   cancellation traceback, InterfaceError, provider-runtime error, or unexpected warning.
-- The new legacy matrix and auth cleanup are still uncommitted. Exact-build V25 visual approval
-  remains `required_missing`; provider-live, adversarial sandbox/resource, multi-monitor and
+- The legacy matrix and auth cleanup are committed and pushed in `e1b72e6`. Exact-build V25
+  visual approval remains `required_missing`; provider-live, adversarial sandbox/resource, multi-monitor and
   memory/performance, migration, and complete parity gates remain open.
 
 ## Continuation update — 2026-08-04T19:03:48Z Repeated pop-out lifecycle acceptance
