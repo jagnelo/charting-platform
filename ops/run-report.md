@@ -1,5 +1,17 @@
 # Run Report
 
+## 2026-08-04T23:32:00Z Pop-out lifecycle and handled expression-response hardening
+
+- F8f now performs ten repeated float/close cycles and still preserves the durable
+  source-tool count; the focused lifecycle test passed in `4.9s`.
+- The complete authenticated Chromium suite passed `27/27` in `59.0s` after adding
+  the documented expression-resolution `400` response classifier. The prior full-run
+  failures were a handled unavailable-expression response and a transient Study Lab
+  run-state race; isolated reruns and this full run are green.
+- Full frontend Vitest remains `550` tests across `84` files and TypeScript checking
+  passed. The strict V25 visual gate remains correctly blocked by required exact-build
+  reference states.
+
 ## 2026-08-04T23:20:00Z Browser diagnostics and geometry hardening
 
 - Expected unavailable-data 404s are now classified after a short response-settling

@@ -39,6 +39,10 @@ class BrowserDiagnostics {
    * remain fatal in browser acceptance.
    */
   expectedUnavailableApi404s = 0
+  // Expression resolution is a handled validation/data-availability path. A
+  // fresh stack can return 400 when the requested synthetic expression cannot
+  // be materialized from the locally seeded observations.
+  expectedExpressionResolution400s = 0
   // Workspace snapshots deliberately return 409 for stale revisions so the
   // client can exercise its merge/recovery path. The response is handled by the
   // store; Chrome still reports the HTTP conflict as a console error.
@@ -70,6 +74,13 @@ class BrowserDiagnostics {
       const path = new URL(response.url()).pathname
       if (/^\/api\/v1\/(?:analysis\/(?:relative-strength|groups\/[^/]+\/(?:snapshot|relative-rotation)|instruments\/[^/]+\/technical)|coverage\/instruments\/[^/]+|etf-holdings\/[^/]+\/holdings|market-groups\/etf\/[^/]+\/industries|instruments\/[^/]+|ohlcv(?:\/local)?\/[^/]+\/[^/]+)$/.test(path)) {
         this.expectedUnavailableApi404s += 1
+      }
+    })
+    page.on('response', (response) => {
+      if (response.status() !== 400) return
+      const path = new URL(response.url()).pathname
+      if (path === '/api/v1/instruments/resolve-expression') {
+        this.expectedExpressionResolution400s += 1
       }
     })
   }
@@ -118,6 +129,7 @@ class BrowserDiagnostics {
 
   private filterExpectedConsoleErrors() {
     let expectedUnavailableApi404s = this.expectedUnavailableApi404s
+    let expectedExpressionResolution400s = this.expectedExpressionResolution400s
     let expectedWorkspaceConflictResponses = this.expectedWorkspaceConflictResponses
     return this.consoleErrors.filter(error => {
       if (error === 'Failed to load resource: the server responded with a status of 404 (Not Found)'
@@ -128,6 +140,11 @@ class BrowserDiagnostics {
       if (error === 'Failed to load resource: the server responded with a status of 409 (Conflict)'
         && expectedWorkspaceConflictResponses > 0) {
         expectedWorkspaceConflictResponses -= 1
+        return false
+      }
+      if (error === 'Failed to load resource: the server responded with a status of 400 (Bad Request)'
+        && expectedExpressionResolution400s > 0) {
+        expectedExpressionResolution400s -= 1
         return false
       }
       return true

@@ -179,7 +179,10 @@ test.describe('TC2000 workstation', () => {
     const sourceToolCount = await page.locator('.tool-window').count()
     expect(sourceToolCount).toBeGreaterThan(0)
 
-    for (let cycle = 0; cycle < 5; cycle += 1) {
+    // Exercise enough repeated browser-window churn to catch source-tool leaks
+    // that only appear after several pop-out lifecycles, while keeping the
+    // assertion deterministic on the shared CI browser.
+    for (let cycle = 0; cycle < 10; cycle += 1) {
       const floatButton = page.locator('button[title="Float"]').first()
       await expect(floatButton).toBeVisible({ timeout: 10_000 })
       const popupPromise = context.waitForEvent('page')

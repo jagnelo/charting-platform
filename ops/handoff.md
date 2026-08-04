@@ -1,5 +1,17 @@
 # Active Handoff
 
+## Continuation update — 2026-08-04T23:32:00Z Pop-out lifecycle and handled expression-response hardening
+
+- F8f now exercises ten repeated float/close cycles; the focused test passed in `4.9s`
+  without accumulating source tools.
+- The complete authenticated Chromium flow passed `27/27` in `59.0s`. Browser
+  diagnostics now classify the documented expression-resolution `400` as handled when
+  a fresh fixture cannot materialize the synthetic expression. The Study Lab flow is
+  green in the full rerun.
+- Frontend Vitest remains `550/550` across `84` files and TypeScript checking passed.
+  Exact-build V25 visual approval remains open because required reference states are
+  still `required_missing`.
+
 ## Continuation update — 2026-08-04T23:20:00Z Browser diagnostics and geometry hardening
 
 - Browser diagnostics now await expected unavailable-data responses before asserting and
