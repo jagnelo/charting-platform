@@ -2,6 +2,11 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-04T06:02:00Z Full backend unit verification
+
+- Complete backend unit suite passed `900` tests with `--no-cov`; 34 existing dependency
+  warnings remain. The full runner/validator and parameter-schema changes are included.
+
 ## 2026-08-04T05:36:00Z Immutable parameter defaults
 
 - Asset creation/import/version endpoints now reject defaults that violate an immutable

@@ -1,5 +1,11 @@
 # Active Handoff
 
+## Continuation update — 2026-08-04T06:02:00Z
+
+- Re-ran the complete backend unit suite after safe builtins, parameter transport, and
+  schema enforcement: `900 passed` with 34 existing dependency warnings. This covers the
+  full runner, validator, provider, router, strategy, and visual-manifest unit boundary.
+
 ## Continuation update — 2026-08-04T05:36:00Z
 
 - Extended parameter-schema enforcement to immutable asset creation, import, and new
