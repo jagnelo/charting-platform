@@ -1128,7 +1128,12 @@ const industryRows = computed(() => industries.value.map(item => ({
   instrumentId: null,
   symbol: item.industry,
   name: `${item.resolved_count}/${item.constituent_count}`,
-  values: { proxy_count: workspaceStore.industryProxies[`${selectedETF.value}:${item.industry}`]?.proxies.length ?? null },
+  values: {
+    proxy_count: workspaceStore.industryProxies[`${selectedETF.value}:${item.industry}`]?.proxies.length ?? null,
+    coverage: item.constituent_count ? item.resolved_count / item.constituent_count : null,
+    freshness: holdings.value?.snapshot?.composition_date ?? 'unavailable',
+    provenance: holdings.value?.snapshot?.source_provider ?? 'ETF holdings classification',
+  },
 })))
 const constituentLabel = computed(() => {
   if (!holdings.value) return 'No point-in-time ETF holdings snapshot'
@@ -1310,6 +1315,9 @@ const industryColumns: WatchlistColumn[] = [
   { key: 'symbol', label: 'Industry', width: 'minmax(120px, 1fr)' },
   { key: 'name', label: 'Coverage', width: '78px' },
   { key: 'proxy_count', label: 'Proxies', width: '58px' },
+  { key: 'coverage', label: 'Coverage %', width: '72px', format: 'percent' },
+  { key: 'freshness', label: 'Freshness', width: '74px' },
+  { key: 'provenance', label: 'Provenance', width: '110px' },
 ]
 const constituentColumns: WatchlistColumn[] = [
   { key: 'symbol', label: 'Symbol', width: '60px' },
