@@ -11,6 +11,16 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-04T12:30:00Z TC2000 reference media pack
+
+- Retrieved 83 official Help Site screenshots into `/private/tmp/tc2000-v25-reference-pack`
+  with a per-media URL/SHA-256 index. Added the reproducible retrieval script and source
+  catalogue covering charts, layouts, watchlists, Data Grids, Market Gauges, notes,
+  conditions, tabs, floating windows, comparisons, markers, and past performance.
+- Visual manifest validation, shell syntax, and `git diff --check` passed. The pack is
+  discovery/reference evidence only; exact-build visual approval and broad acceptance
+  remain open.
+
 ## 2026-08-04T11:34:00Z Provider policy documentation
 
 - Aligned provider documentation with free-source-first runtime defaults and explicit

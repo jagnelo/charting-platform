@@ -16697,3 +16697,15 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
   Ruff, and diff checks passed. Full backend/frontend regression evidence remains green;
   Docker integration, provider probes, exact visual baselines, and broad acceptance remain
   open.
+
+## Continuation update — 2026-08-04T12:30:00Z TC2000 reference media pack
+
+- Retrieved 83 official Help Site screenshots from 19 source pages into controlled storage
+  outside the repository. The pack covers V25-tagged pinning, event markers, and past
+  performance plus current/behavioral layout, chart, Data Grid, Market Gauge, notes,
+  condition, tab, floating-window, comparison, and projection mechanics.
+- Added a reproducible fetch script, source catalogue, per-media SHA-256 index, and
+  manifest metadata. The media remains discovery/reference-only: all strict V25 visual
+  states stay `required_missing` until exact-build continuity, environment measurements,
+  permission review, and approval are recorded. YAML, manifest validation, shell syntax,
+  and diff checks pass.

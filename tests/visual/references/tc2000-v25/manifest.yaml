@@ -21,6 +21,14 @@ reference_policy:
       observed_release: "April 2026"
       status: build_confirmed_not_visual_baseline
       notes: "Official release notes identify 25.0.9571 as the April 2026 Version 25 release. This confirms the pinned build identity but does not substitute for state captures, environment metadata, measurements, or visual review."
+  retrieved_reference_pack:
+    retrieved_at: "2026-08-04"
+    retrieval_script: tests/visual/fetch-tc2000-v25-reference-pack.sh
+    controlled_storage: "/private/tmp/tc2000-v25-reference-pack"
+    media_index: "/private/tmp/tc2000-v25-reference-pack/media-index.tsv"
+    media_count: 83
+    permission: "internal_reference_only; do not copy into application or distributable bundles"
+    notes: "The pack contains official Help Site screenshots from V25-tagged and current/legacy help pages. It accelerates interaction and token discovery but does not alter required_missing states or strict exact-build approval rules."
   discovery_candidates:
     - id: v25-pinning-columns
       source_type: official_v25_help
