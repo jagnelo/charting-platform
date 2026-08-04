@@ -18453,3 +18453,13 @@ uncovered slice rather than repeat a generic completion claim.
   `31.8s` with no unexpected console/page/request diagnostics.
 - Exact-build V25 visual approval, live-provider probes, adversarial sandbox/resource tests,
   multi-window performance, and deep browser parity remain open.
+
+## 2026-08-04T19:25:00Z Workstation recovery-state correctness
+
+- The workstation recovery `<main>` is now gated by the absence of a valid serializable
+  Golden Layout, eliminating a false error surface that was visible beside the live tools.
+- F8d now asserts that state is absent; rebuilt-stack focused F8d passed and full Chromium
+  flows passed `23` tests in `33.3s`. Frontend Vitest `535` passed; type-check, production
+  build, and diff check passed.
+- Exact-build V25 visual approval, live-provider probes, adversarial sandbox/resource tests,
+  multi-window performance, and deep browser parity remain open.

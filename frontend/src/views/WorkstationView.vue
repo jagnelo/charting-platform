@@ -118,7 +118,7 @@
       />
       <div v-else class="workstation__missing-tool">The requested tool is unavailable. It remains in the source workspace.</div>
     </main>
-    <main v-else-if="!isPopout" class="workstation__layout-state" role="status">
+    <main v-else-if="!isPopout && !goldenLayoutConfig" class="workstation__layout-state" role="status">
       <span v-if="workspaceStore.loading">Loading saved workstation…</span>
       <template v-else>
         <span>Unable to load a serializable workstation layout.</span>

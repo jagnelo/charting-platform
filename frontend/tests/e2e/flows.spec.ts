@@ -189,6 +189,7 @@ test.describe('TC2000 workstation', () => {
   test('F8d — US Top Down publishes benchmark and sector selections without route changes', async ({ page, browserDiagnostics }) => {
     await page.goto('/chart')
     await expect(page.locator('.workstation')).toBeVisible()
+    await expect(page.locator('.workstation__layout-state')).toHaveCount(0)
     await expect(page.getByRole('region', { name: 'Major US benchmarks' })).toBeVisible({ timeout: 10_000 })
     const sectorList = page.getByRole('region', { name: 'Relative to SPY' })
     await expect(sectorList).toBeVisible({ timeout: 10_000 })

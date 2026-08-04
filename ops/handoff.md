@@ -16881,3 +16881,14 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
   full Chromium `flows.spec.ts` passed `23` tests in `31.8s` with no unexpected diagnostics.
 - Exact-build V25 visual approval, live-provider probes, adversarial sandbox/resource tests,
   multi-window performance, and deep browser parity remain open.
+
+## Continuation update — 2026-08-04T19:25:00Z Workstation recovery-state correctness
+
+- Corrected the shell condition that rendered “Unable to load a serializable workstation
+  layout” alongside a valid Golden Layout. The recovery state now appears only when the
+  workstation is not a pop-out and no serializable layout exists.
+- Strengthened F8d to assert the false recovery surface is absent. After rebuilding the
+  branch stack, focused F8d passed and full Chromium flows passed `23` tests in `33.3s`;
+  frontend Vitest remained `535` passed with type-check/build/diff clean.
+- Exact-build V25 visual approval, live-provider probes, adversarial sandbox/resource tests,
+  multi-window performance, and deep browser parity remain open.
