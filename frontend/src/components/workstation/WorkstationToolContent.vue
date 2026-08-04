@@ -1285,6 +1285,9 @@ const sectorByYearColumns = computed<WatchlistColumn[]>(() => [
   { key: 'relative_ratio', label: '/ SPY', width: '64px' },
   { key: 'rsi14', label: 'RSI', width: '54px', format: 'number' as const },
   { key: 'position_52w', label: '52W Pos', width: '64px' },
+  { key: 'coverage', label: 'Coverage', width: '68px' },
+  { key: 'freshness', label: 'Freshness', width: '74px' },
+  { key: 'provenance', label: 'Provenance', width: '92px' },
 ])
 const benchmarkColumns: WatchlistColumn[] = [
   { key: 'symbol', label: 'Symbol', width: '58px' },
