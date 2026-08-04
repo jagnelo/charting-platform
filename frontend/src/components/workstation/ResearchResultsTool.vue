@@ -1,5 +1,5 @@
 <template>
-  <section class="research-results-tool">
+  <section ref="resultsRoot" class="research-results-tool">
     <header>
       <strong>Persisted runs</strong>
       <button v-if="comparisonRuns.length === 2" type="button" @click="comparisonOpen = !comparisonOpen">{{ comparisonOpen ? 'Hide compare' : 'Compare' }}</button>
@@ -55,7 +55,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { useQuery } from '@tanstack/vue-query'
 import { api } from '@/lib/api'
 import StudyHistogramUPlot from './StudyHistogramUPlot.vue'
 import StudySeriesUPlot from './StudySeriesUPlot.vue'
@@ -75,17 +76,41 @@ interface ResearchRunSummary {
 }
 
 const runs = ref<ResearchRunSummary[]>([])
+const resultsRoot = ref<HTMLElement | null>(null)
 const selectedRun = ref<ResearchRunSummary | null>(null)
 const comparisonIds = ref<number[]>([])
 const comparisonOpen = ref(false)
-const loading = ref(false)
 const error = ref('')
 const rerunning = ref(false)
 const canceling = ref(false)
 const emit = defineEmits<{ occurrence: [event: { symbol: string; timestamp: string; kind?: string }] }>()
-const shouldPoll = computed(() => runs.value.some(run => !['completed', 'failed', 'canceled'].includes(run.status)))
 const comparisonRuns = computed(() => comparisonIds.value.map(id => runs.value.find(run => run.id === id)).filter((run): run is ResearchRunSummary => Boolean(run)))
-let poller: ReturnType<typeof setInterval> | null = null
+const surfaceVisible = ref(true)
+const documentVisible = ref(typeof document === 'undefined' || document.visibilityState !== 'hidden')
+let visibilityObserver: IntersectionObserver | null = null
+function updateDocumentVisibility() { documentVisible.value = document.visibilityState !== 'hidden' }
+const runsQuery = useQuery({
+  queryKey: ['workstation', 'research-runs'],
+  queryFn: () => api.get<ResearchRunSummary[]>('/research/runs', { limit: 25 }),
+  enabled: computed(() => surfaceVisible.value && documentVisible.value),
+  staleTime: 5_000,
+  refetchOnWindowFocus: true,
+  refetchInterval: query => {
+    const data = query.state.data
+    return Array.isArray(data) && data.some(run => !['completed', 'failed', 'canceled'].includes(run.status)) ? 1_000 : false
+  },
+})
+const loading = computed(() => runsQuery.isFetching.value || rerunning.value || canceling.value)
+watch(() => runsQuery.data.value, next => {
+  if (!next) return
+  runs.value = next
+  const retained = selectedRun.value ? next.find(run => run.id === selectedRun.value?.id) : null
+  selectedRun.value = retained ?? next[0] ?? null
+  comparisonIds.value = comparisonIds.value.filter(id => next.some(run => run.id === id))
+}, { immediate: true })
+watch(() => runsQuery.error.value, cause => {
+  if (cause) error.value = cause instanceof Error ? cause.message : 'Unable to load persisted research runs'
+})
 
 function artifactText(payload: Record<string, unknown>) { return JSON.stringify(payload.value ?? payload, null, 2) }
 function formatMetric(artifact: ResearchRunSummary['artifacts'][number]) { return artifact.artifact_type === 'boolean' ? artifact.payload.value === true ? 'True' : artifact.payload.value === false ? 'False' : '—' : artifact.payload.value ?? '—' }
@@ -158,27 +183,18 @@ function comparisonClass(key: keyof ResearchRunSummary) { return JSON.stringify(
 function canCancel(run: ResearchRunSummary) { return !['completed', 'failed', 'canceled'].includes(run.status) }
 
 async function refresh() {
-  loading.value = true
   error.value = ''
-  try {
-    runs.value = await api.get<ResearchRunSummary[]>('/research/runs', { limit: 25 })
-    const retained = selectedRun.value ? runs.value.find(run => run.id === selectedRun.value?.id) : null
-    selectedRun.value = retained ?? runs.value[0] ?? null
-    comparisonIds.value = comparisonIds.value.filter(id => runs.value.some(run => run.id === id))
-    if (!shouldPoll.value && poller) { clearInterval(poller); poller = null }
-  } catch (cause: any) {
-    error.value = cause?.message ?? 'Unable to load persisted research runs'
-  } finally {
-    loading.value = false
-  }
+  try { await runsQuery.refetch() }
+  catch (cause: any) { error.value = cause?.message ?? 'Unable to load persisted research runs' }
 }
 async function rerun(run: ResearchRunSummary, snapshot: boolean) {
   rerunning.value = true
   error.value = ''
   try {
     const queued = await api.post<ResearchRunSummary>(`/research/runs/${run.id}/rerun?snapshot=${snapshot}`, {})
-    runs.value = [queued, ...runs.value]
+    runs.value = [queued, ...runs.value.filter(item => item.id !== queued.id)]
     selectedRun.value = queued
+    await runsQuery.refetch()
   } catch (cause: any) {
     error.value = cause?.message ?? 'Unable to queue study rerun'
   } finally {
@@ -192,6 +208,7 @@ async function cancel(run: ResearchRunSummary) {
     const canceled = await api.post<ResearchRunSummary>(`/research/runs/${run.id}/cancel`, {})
     runs.value = runs.value.map(item => item.id === run.id ? { ...item, ...canceled, status: canceled.status ?? 'canceled' } : item)
     if (selectedRun.value?.id === run.id) selectedRun.value = runs.value.find(item => item.id === run.id) ?? null
+    await runsQuery.refetch()
   } catch (cause: any) {
     error.value = cause?.message ?? 'Unable to cancel research run'
   } finally {
@@ -200,10 +217,19 @@ async function cancel(run: ResearchRunSummary) {
 }
 
 onMounted(() => {
-  void refresh()
-  poller = setInterval(() => { if (shouldPoll.value) void refresh() }, 1000)
+  document.addEventListener('visibilitychange', updateDocumentVisibility)
+  if (typeof IntersectionObserver !== 'undefined' && resultsRoot.value) {
+    visibilityObserver = new IntersectionObserver(entries => {
+      surfaceVisible.value = entries.some(entry => entry.isIntersecting && entry.intersectionRatio > 0)
+    })
+    visibilityObserver.observe(resultsRoot.value)
+  }
 })
-onBeforeUnmount(() => { if (poller) clearInterval(poller) })
+onBeforeUnmount(() => {
+  document.removeEventListener('visibilitychange', updateDocumentVisibility)
+  visibilityObserver?.disconnect()
+  visibilityObserver = null
+})
 </script>
 
 <style scoped>

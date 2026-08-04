@@ -553,6 +553,15 @@ components rather than falling back to raw JSON. Saved studies therefore retain 
 structured visual form after reload, comparison, or rerun; focused component coverage
 proves both render paths.
 
+The primary Study Lab and Persisted Research Results tools now use the shared TanStack
+Vue Query client for run retrieval and terminal-aware polling. They stop refetching once
+the run reaches `completed`, `failed`, or `canceled`, refetch after explicit cancel/rerun
+actions, and suspend requests when the document is hidden or the tool surface is not
+intersecting the viewport. This removes their independent interval timers and aligns
+research polling with the Market Gauge freshness/coordinator contract. Focused component
+coverage passes with the real Vue Query plugin; exact Version 25 visual approval and the
+full polling/performance acceptance matrix remain open.
+
 The unified Python SDK now supports a typed `output.dashboard` composition contract. A
 dashboard contains only bounded references to named scalar, table, series, histogram,
 scatter, heatmap, or event artifacts plus title/span metadata; user code cannot provide

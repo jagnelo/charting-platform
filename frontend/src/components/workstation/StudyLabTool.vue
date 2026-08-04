@@ -1,5 +1,5 @@
 <template>
-  <section class="study-lab-tool">
+  <section ref="studyLabRoot" class="study-lab-tool">
     <header class="study-lab-tool__header">
       <div class="study-lab-tool__header-main">
         <input v-model.trim="name" aria-label="Study name" placeholder="Study name" />
@@ -72,7 +72,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { useQuery } from '@tanstack/vue-query'
 import { api } from '@/lib/api'
 import StudyHistogramUPlot from './StudyHistogramUPlot.vue'
 import StudyHeatmap from './StudyHeatmap.vue'
@@ -127,7 +128,26 @@ const busy = ref(false)
 const validation = ref<Validation | null>(null)
 const run = ref<Run | null>(null)
 const error = ref('')
-let poller: ReturnType<typeof setInterval> | null = null
+const studyLabRoot = ref<HTMLElement | null>(null)
+const surfaceVisible = ref(true)
+const documentVisible = ref(typeof document === 'undefined' || document.visibilityState !== 'hidden')
+let visibilityObserver: IntersectionObserver | null = null
+function updateDocumentVisibility() { documentVisible.value = document.visibilityState !== 'hidden' }
+const runQuery = useQuery({
+  queryKey: computed(() => ['workstation', 'study-run', run.value?.id ?? null]),
+  queryFn: () => api.get<Run>(`/research/runs/${run.value!.id}`),
+  enabled: computed(() => Boolean(run.value?.id) && !['completed', 'failed', 'canceled'].includes(run.value?.status ?? '') && surfaceVisible.value && documentVisible.value),
+  staleTime: 0,
+  refetchOnWindowFocus: true,
+  refetchInterval: query => {
+    const status = query.state.data?.status
+    return status && !['completed', 'failed', 'canceled'].includes(status) ? 1_000 : false
+  },
+})
+watch(() => runQuery.data.value, next => { if (next && next.id === run.value?.id) run.value = next })
+watch(() => runQuery.error.value, cause => {
+  if (cause) error.value = cause instanceof Error ? cause.message : 'Unable to refresh study run'
+})
 
 const canCancel = computed(() => Boolean(run.value && !['completed', 'failed', 'canceled'].includes(run.value.status)))
 const progressLabel = computed(() => {
@@ -236,7 +256,6 @@ function buildParameters() {
   return values
 }
 
-function clearPoller() { if (poller) clearInterval(poller); poller = null }
 function stableKey(value: string) { return value.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 56) || 'study' }
 function artifactText(payload: Record<string, unknown>) { return JSON.stringify(payload.value ?? payload, null, 2) }
 function formatMetric(artifact: Artifact) { return artifact.artifact_type === 'boolean' ? artifact.payload.value === true ? 'True' : artifact.payload.value === false ? 'False' : '—' : artifact.payload.value ?? '—' }
@@ -300,16 +319,9 @@ async function validate() {
   catch (cause: any) { error.value = cause?.message ?? 'Unable to validate study source' }
   finally { busy.value = false }
 }
-async function refreshRun() {
-  if (!run.value) return
-  try {
-    run.value = await api.get<Run>(`/research/runs/${run.value.id}`)
-    if (!canCancel.value) clearPoller()
-  } catch (cause: any) { error.value = cause?.message ?? 'Unable to refresh study run'; clearPoller() }
-}
 async function saveAndRun() {
   if (!validation.value?.valid || parameterSchemaError.value) return
-  busy.value = true; error.value = ''; clearPoller()
+  busy.value = true; error.value = ''
   try {
     const parameters = buildParameters()
     const asset = await api.post<{ versions: Array<{ id: number }> }>('/code/assets', {
@@ -333,16 +345,28 @@ async function saveAndRun() {
       run_config: runConfig,
       dataset_manifest: { source: 'canonical_database', requested_at: new Date().toISOString(), ...datasetControls },
     })
-    poller = setInterval(() => { void refreshRun() }, 1000)
   } catch (cause: any) { error.value = cause?.message ?? 'Unable to start isolated study run' }
   finally { busy.value = false }
 }
 async function cancel() {
   if (!run.value) return
-  try { run.value = await api.post<Run>(`/research/runs/${run.value.id}/cancel`, {}); clearPoller() }
+  try { run.value = await api.post<Run>(`/research/runs/${run.value.id}/cancel`, {}) ; await runQuery.refetch() }
   catch (cause: any) { error.value = cause?.message ?? 'Unable to cancel study run' }
 }
-onBeforeUnmount(clearPoller)
+onMounted(() => {
+  document.addEventListener('visibilitychange', updateDocumentVisibility)
+  if (typeof IntersectionObserver !== 'undefined' && studyLabRoot.value) {
+    visibilityObserver = new IntersectionObserver(entries => {
+      surfaceVisible.value = entries.some(entry => entry.isIntersecting && entry.intersectionRatio > 0)
+    })
+    visibilityObserver.observe(studyLabRoot.value)
+  }
+})
+onBeforeUnmount(() => {
+  document.removeEventListener('visibilitychange', updateDocumentVisibility)
+  visibilityObserver?.disconnect()
+  visibilityObserver = null
+})
 </script>
 
 <style scoped>

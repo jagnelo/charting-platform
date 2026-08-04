@@ -1,4 +1,5 @@
 import { mount } from '@vue/test-utils'
+import { VueQueryPlugin, QueryClient } from '@tanstack/vue-query'
 import { describe, expect, it, vi } from 'vitest'
 
 const { apiGet, apiPost } = vi.hoisted(() => ({ apiGet: vi.fn(), apiPost: vi.fn() }))
@@ -12,12 +13,15 @@ vi.mock('@/components/workstation/StudyDashboard.vue', () => ({ default: { templ
 import StudyLabTool from '@/components/workstation/StudyLabTool.vue'
 
 describe('StudyLabTool', () => {
+  function mountTool(props: Record<string, unknown>) {
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
+    return mount(StudyLabTool, { props, global: { plugins: [[VueQueryPlugin, { queryClient }]] } })
+  }
+
   it('hydrates serializable dataset controls and normalizes legacy timeframe values', () => {
-    const wrapper = mount(StudyLabTool, {
-      props: {
-        activeSymbol: 'AAPL',
-        configuration: { timeframe: 'MN1', benchmark: 'XLK', adjustment: 'raw', session: 'all', start_date: '2024-01-01', end_date: '2024-02-01' },
-      },
+    const wrapper = mountTool({
+      activeSymbol: 'AAPL',
+      configuration: { timeframe: 'MN1', benchmark: 'XLK', adjustment: 'raw', session: 'all', start_date: '2024-01-01', end_date: '2024-02-01' },
     })
 
     expect(wrapper.find('[aria-label="Study timeframe"]').element).toHaveProperty('value', 'MN')
@@ -27,7 +31,7 @@ describe('StudyLabTool', () => {
   })
 
   it('offers constrained SDK suggestions while retaining the plain Python editor', async () => {
-    const wrapper = mount(StudyLabTool, { props: { activeSymbol: 'SPY' } })
+    const wrapper = mountTool({ activeSymbol: 'SPY' })
     const editor = wrapper.find('[aria-label="Study Python source"]')
     await editor.setValue('market.')
     expect(wrapper.find('[aria-label="Python SDK suggestions"]').exists()).toBe(true)
@@ -55,7 +59,7 @@ describe('StudyLabTool', () => {
       ] })
       return Promise.resolve({})
     })
-    const wrapper = mount(StudyLabTool, { props: { activeSymbol: 'SPY' } })
+    const wrapper = mountTool({ activeSymbol: 'SPY' })
 
     await wrapper.find('button').trigger('click')
     await vi.waitFor(() => expect(wrapper.text()).toContain('Validated for isolated execution'))
@@ -97,7 +101,7 @@ describe('StudyLabTool', () => {
       if (path === '/research/runs') return Promise.resolve({ id: 78, status: 'completed', artifacts: [] })
       return Promise.resolve({})
     })
-    const wrapper = mount(StudyLabTool, { props: { activeSymbol: 'SPY' } })
+    const wrapper = mountTool({ activeSymbol: 'SPY' })
     await wrapper.find('[aria-label="Study parameter schema"]').setValue(JSON.stringify({ properties: { lookback: { type: 'integer', default: 20, minimum: 1 } } }))
     expect(wrapper.emitted('configuration')?.at(-1)?.[0]).toEqual(expect.objectContaining({ parameter_schema: JSON.stringify({ properties: { lookback: { type: 'integer', default: 20, minimum: 1 } } }) }))
     await wrapper.find('[aria-label="Study parameter lookback"]').setValue('30')

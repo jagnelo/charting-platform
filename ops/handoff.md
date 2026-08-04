@@ -1,5 +1,18 @@
 # Active Handoff
 
+## Continuation update — 2026-08-04T12:36:00Z
+
+- Consolidated primary Study Lab and Persisted Research Results run polling onto the
+  shared TanStack Vue Query client. Terminal-aware intervals stop automatically, explicit
+  cancel/rerun actions refetch the shared cache, and document/intersection visibility
+  suspends hidden research surfaces.
+- Focused Study Lab and Research Results coverage passed `8` tests; TypeScript passed.
+  A fresh Chromium rerun was blocked by the host macOS Chromium
+  `MachPortRendezvousServer` permission failure before any test page launched; the
+  previously recorded isolated-stack `22`-flow pass remains the latest valid browser
+  evidence. Exact-build visual approval and the broader security, performance,
+  migration, and acceptance gates remain open.
+
 ## Continuation update — 2026-08-04T12:18:00Z
 
 - Re-ran production build and the rebuilt branch-scoped Chromium acceptance suite after

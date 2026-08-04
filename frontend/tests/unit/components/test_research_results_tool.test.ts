@@ -1,4 +1,5 @@
 import { flushPromises, mount } from '@vue/test-utils'
+import { VueQueryPlugin, QueryClient } from '@tanstack/vue-query'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const { apiGet, apiPost } = vi.hoisted(() => ({ apiGet: vi.fn(), apiPost: vi.fn() }))
@@ -13,9 +14,14 @@ import ResearchResultsTool from '@/components/workstation/ResearchResultsTool.vu
 describe('ResearchResultsTool', () => {
   beforeEach(() => { apiGet.mockReset(); apiPost.mockReset() })
 
+  function mountTool() {
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
+    return mount(ResearchResultsTool, { global: { plugins: [[VueQueryPlugin, { queryClient }]] } })
+  }
+
   it('loads persisted runs and exposes selected structured artifacts', async () => {
     apiGet.mockResolvedValue([{ id: 9, status: 'completed', reproducibility_hash: 'abc', diagnostics: [], artifacts: [{ id: 3, name: 'current_streak', artifact_type: 'scalar', payload: { value: 4 } }, { id: 4, name: 'distribution', artifact_type: 'histogram', payload: { value: { bins: [{ start: 1, end: 2, count: 1 }] } } }] }])
-    const wrapper = mount(ResearchResultsTool)
+    const wrapper = mountTool()
     await flushPromises()
 
     expect(apiGet).toHaveBeenCalledWith('/research/runs', { limit: 25 })
@@ -27,7 +33,7 @@ describe('ResearchResultsTool', () => {
   it('cancels a queued persisted research run', async () => {
     apiGet.mockResolvedValue([{ id: 12, status: 'running', code_version_id: 4, run_config: {}, dataset_manifest: {}, diagnostics: [], artifacts: [] }])
     apiPost.mockResolvedValue({ id: 12, status: 'canceled' })
-    const wrapper = mount(ResearchResultsTool)
+    const wrapper = mountTool()
     await flushPromises()
 
     const cancel = wrapper.findAll('button').find(button => button.text() === 'Cancel')
@@ -43,7 +49,7 @@ describe('ResearchResultsTool', () => {
       { id: 5, name: 'relationship', artifact_type: 'scatter', payload: { value: { x: [1, 2], y: [3, 4] } } },
       { id: 6, name: 'matrix', artifact_type: 'heatmap', payload: { value: { rows: ['A'], columns: ['B'], values: [[1]] } } },
     ] }])
-    const wrapper = mount(ResearchResultsTool)
+    const wrapper = mountTool()
     await flushPromises()
 
     expect(wrapper.find('.scatter-chart').exists()).toBe(true)
@@ -55,7 +61,7 @@ describe('ResearchResultsTool', () => {
       { id: 7, name: 'sample_size', artifact_type: 'scalar', payload: { value: 4 } },
       { id: 8, name: 'overview', artifact_type: 'dashboard', payload: { value: { panels: [{ artifact: 'sample_size', title: 'Sample size', span: 12 }] } } },
     ] }])
-    const wrapper = mount(ResearchResultsTool)
+    const wrapper = mountTool()
     await flushPromises()
 
     expect(wrapper.find('.dashboard-chart').exists()).toBe(true)

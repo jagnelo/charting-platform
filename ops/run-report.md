@@ -2,6 +2,17 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-04T12:36:00Z Shared research polling
+
+- Replaced independent Study Lab and Persisted Research Results polling intervals with
+  Vue Query queries keyed by workstation/run identity. Polling is terminal-aware and
+  pauses for hidden documents or non-intersecting tool surfaces; cancel/rerun refreshes
+  the same cache.
+- Focused suites passed `8` tests and TypeScript passed. Exact-build visual approval and
+  the complete acceptance matrix remain open. A fresh Chromium rerun could not launch
+  because the host denied Chromium's macOS MachPort rendezvous permission; no page-level
+  assertion executed.
+
 ## 2026-08-04T12:18:00Z Frontend/build/browser verification
 
 - Production build passed; full rebuilt Chromium acceptance passed all `22` flows in
