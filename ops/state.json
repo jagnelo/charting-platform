@@ -5,7 +5,7 @@
     "worker_session_started_at": "2026-07-28T21:40:33Z",
     "worker_soft_stop_at": null,
   "last_handoff_at": "2026-08-04T11:18:00Z",
-  "last_commit": "8ff60f0de63819e42936c09b5c894db77ca2ce1c docs(visual): add TC2000 reference media pack",
+  "last_commit": "46df69d406bd3a77356d2979324f59d4e7af0af1 docs(visual): record full reference media count",
     "git_ready_to_commit": false,
   "validation": {
     "visual_reference_pack": "retrieved 187 official-help screenshots into controlled external storage with per-media URLs and SHA-256 index; discovery/reference only, exact-build approval remains required",
