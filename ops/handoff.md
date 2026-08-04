@@ -1,5 +1,17 @@
 # Active Handoff
 
+## Continuation update — 2026-08-04T18:22:00Z Golden Layout snapshot migration
+
+- Added a context-aware migration for pre-v8 persisted Golden Layout columns: legacy
+  numeric `width` becomes a v2 `size` fraction only on column nodes, and arbitrary
+  component-state width values remain untouched.
+- Added a regression for the migration and ran the full frontend Vitest suite: `545 tests`
+  across `84 files` passed. TypeScript passed; the existing deliberate Vue Query and
+  watchlist-conflict stderr remains non-failing test output.
+- The Docker-backed workspace module remains green at `23 passed`; strict pinned-build V25
+  visual approval is still `required_missing`, with provider-live, adversarial sandbox/resource,
+  multi-monitor, performance, migration, and complete parity gates open.
+
 ## Continuation update — 2026-08-04T18:20:00Z Workspace factory contract correction
 
 - The Docker-backed workspace integration audit caught one stale assertion: the default

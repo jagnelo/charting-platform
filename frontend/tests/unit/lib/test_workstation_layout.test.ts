@@ -20,4 +20,28 @@ describe('Golden Layout persisted configuration', () => {
       dimensions: { defaultMinItemHeight: '10px', defaultMinItemWidth: '20px' },
     })
   })
+
+  it('migrates legacy column widths without rewriting component state widths', () => {
+    const layout = normaliseGoldenLayoutConfig({
+      root: {
+        type: 'row',
+        content: [{
+          type: 'column',
+          width: 22,
+          content: [{ type: 'component', componentState: { width: 640 } }],
+        }],
+      },
+    })
+
+    expect(layout).toEqual({
+      root: {
+        type: 'row',
+        content: [{
+          type: 'column',
+          size: '22fr',
+          content: [{ type: 'component', componentState: { width: 640 } }],
+        }],
+      },
+    })
+  })
 })

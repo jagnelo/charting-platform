@@ -1,5 +1,14 @@
 # Run Report
 
+## 2026-08-04T18:22:00Z Golden Layout snapshot migration
+
+- Added context-aware migration from pre-v8 column `width` to Golden Layout v2 `size` while
+  preserving arbitrary component-state width fields.
+- Focused migration test passed; full frontend Vitest passed `545` tests across `84` files and
+  TypeScript passed. Existing intentional Vue Query/conflict stderr remains non-failing.
+- Visual approval and the broader provider, sandbox, performance, migration, and parity gates
+  remain open.
+
 ## 2026-08-04T18:20:00Z Workspace factory contract correction
 
 - Docker-backed `backend/tests/integration/api/test_workspaces.py` initially exposed a stale

@@ -35,6 +35,12 @@ timeframe props change; auto-ratio rendering also derives from the current linke
 the persisted configuration catches up. This is functional evidence only; strict pinned-build
 visual approval remains controlled by the reference manifest.
 
+Persisted Golden Layout snapshots from the pre-v8 workstation format are migrated at the
+layout boundary: legacy numeric `width` values are converted to v2 `size` fractions only for
+column nodes, while arbitrary tool-state width fields remain unchanged. The migration has a
+focused regression test and is covered by the full frontend suite; this prevents existing
+users' saved proportions from being silently discarded after the factory-layout upgrade.
+
 Current implementation evidence (not completion): the isolated Study Lab runner now
 supports a typed `histogram` artifact with deterministic numeric buckets, the factory
 positive-close study exposes current/longest/average/shortest streak metrics,
