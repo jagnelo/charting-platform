@@ -1,5 +1,13 @@
 # Active Handoff
 
+## Continuation update — 2026-08-04T10:29:22Z Relative-rotation visible tails
+
+- Relative Rotation now draws each member's sampled history as a color-coded connected
+  trail in the existing uPlot plugin before rendering the points and hover target.
+- Focused relative-rotation component tests `4` passed; TypeScript, production build,
+  and diff checks passed. Visual/reference and broad acceptance remain open. Generated
+  `test-results/` remains intentionally untracked.
+
 ## Continuation update — 2026-08-04T10:26:21Z Breadth metric coverage detail
 
 - Added `coverage_detail` to the breadth response for MA20/50/200, near-52-week,

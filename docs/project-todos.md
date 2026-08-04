@@ -3773,6 +3773,10 @@ It also returns `coverage_detail` for each metric family (individual moving aver
 near-52-week, new-high/new-low, trend, and each distance average), preventing a single
 overall universe percentage from being misread as coverage for every statistic.
 
+The relative-rotation uPlot plane draws each member's color-coded sampled tail as a connected
+trail before drawing its current/retained points, so the tail-length control represents visible
+history rather than only a count of past observations.
+
 Relative rotation:
 - accept benchmark, peer universe, timeframe, lookback, sampling, and tail length;
 - calculate aligned relative-strength series;

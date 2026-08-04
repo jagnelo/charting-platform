@@ -236,7 +236,8 @@ Each rotation row now also returns transparent `heading` (degrees), `distance`, 
 `time_in_state`. The companion table exposes those values alongside trend, momentum,
 coverage, and tail length instead of implying proprietary rotation metrics. Every companion
 column is sortable with null-safe ordering and a visible direction marker. The uPlot
-rotation plane now draws zero-axis quadrant guides, identifies the nearest tail point on
+rotation plane now draws each member's color-coded historical tail as a connected trail,
+alongside zero-axis quadrant guides, and identifies the nearest tail point on
 hover with symbol/date/coordinates, and emits the normal linked-symbol selection when a
 hovered point is clicked; focused component coverage proves the interaction without
 recreating the chart.

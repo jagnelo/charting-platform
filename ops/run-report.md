@@ -2,6 +2,13 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-04T10:29:22Z Relative-rotation visible tails
+
+- Added connected, state-colored historical tail rendering to the uPlot relative-rotation
+  plane while preserving in-place `setData`/`setSize` updates and teardown-only destruction.
+- Focused component tests `4`, TypeScript, production build, and diff checks passed; visual
+  and broad acceptance remain open.
+
 ## 2026-08-04T10:26:21Z Breadth metric coverage detail
 
 - Breadth responses now expose per-metric-family coverage and the workstation renders it,

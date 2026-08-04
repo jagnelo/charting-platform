@@ -115,6 +115,23 @@ function drawPlot() {
     if (Number.isFinite(zeroX)) { ctx.beginPath(); ctx.moveTo(zeroX, 0); ctx.lineTo(zeroX, chart.height); ctx.stroke() }
     if (Number.isFinite(zeroY)) { ctx.beginPath(); ctx.moveTo(0, zeroY); ctx.lineTo(chart.width, zeroY); ctx.stroke() }
     ctx.restore()
+    for (const row of rows.value) {
+      if (row.tail.length < 2) continue
+      ctx.save()
+      ctx.strokeStyle = colors[row.state ?? ''] ?? '#8796a1'
+      ctx.globalAlpha = 0.72
+      ctx.lineWidth = 1
+      ctx.beginPath()
+      row.tail.forEach((tail, index) => {
+        const x = chart.valToPos(tail.trend, 'x')
+        const y = chart.valToPos(tail.momentum, 'y')
+        if (!Number.isFinite(x) || !Number.isFinite(y)) return
+        if (index === 0) ctx.moveTo(x, y)
+        else ctx.lineTo(x, y)
+      })
+      ctx.stroke()
+      ctx.restore()
+    }
     for (let index = 0; index < points.length; index += 1) {
       const point = points[index]
       const x = chart.valToPos(point.trend, 'x'), y = chart.valToPos(point.momentum, 'y')
