@@ -53,6 +53,26 @@ describe('StudyLabTool', () => {
     expect(selector.element).toHaveProperty('value', 'custom')
   })
 
+  it('exposes the required occurrence, distribution, regime, seasonality, and relative-strength study starters', async () => {
+    const wrapper = mountTool({ activeSymbol: 'SPY' })
+    const selector = wrapper.find('[aria-label="Factory study"]')
+    const options = selector.findAll('option').map(option => ({ value: option.element.getAttribute('value'), label: option.text() }))
+    expect(options).toEqual(expect.arrayContaining([
+      { value: 'positive_streak', label: 'Consecutive positive closes' },
+      { value: 'negative_streak', label: 'Consecutive negative closes' },
+      { value: 'forward_return_distribution', label: 'Forward-return distribution' },
+      { value: 'high_low_breakouts', label: 'Highs and lows' },
+      { value: 'volatility_regime', label: 'Volatility regime' },
+      { value: 'seasonality', label: 'Monthly seasonality' },
+      { value: 'relative_strength_regime', label: 'Relative-strength regime changes' },
+    ]))
+
+    for (const value of ['forward_return_distribution', 'high_low_breakouts', 'volatility_regime', 'seasonality', 'relative_strength_regime']) {
+      await selector.setValue(value)
+      expect((wrapper.find('[aria-label="Study Python source"]').element as HTMLTextAreaElement).value.length).toBeGreaterThan(80)
+    }
+  })
+
   it('validates, starts an immutable isolated study run, and renders artifacts', async () => {
     apiPost.mockImplementation((path: string) => {
       if (path === '/code/validate') return Promise.resolve({ valid: true, diagnostics: [], dependencies: ['stats', 'output'], lookback_hint: 1, output_contracts: ['bar', 'histogram', 'range', 'scatter', 'scalar', 'table'] })
