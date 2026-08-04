@@ -2,6 +2,15 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-04T03:05:00Z Parameter schema enforcement
+
+- Unified-Python research runs now merge immutable-version defaults and enforce declared
+  required/type/enum/range/unknown-key parameter constraints before materialization or
+  enqueue.
+- Parameter unit tests passed `2`; Docker-backed code/research integration passed `16`;
+  Ruff and diff checks passed. Exact-build visual approval and the complete acceptance
+  matrix remain open.
+
 ## 2026-08-04T02:32:00Z Research parameter propagation
 
 - Persisted run parameters now cross the job protocol into isolated single and batch

@@ -1,5 +1,14 @@
 # Active Handoff
 
+## Continuation update — 2026-08-04T03:05:00Z
+
+- Added authoritative parameter-schema validation for unified-Python research runs.
+  Declared defaults are merged, required/type/enum/range/unknown-key constraints are
+  enforced, and invalid values fail before materialization or sandbox enqueue.
+- Parameter validation unit coverage passed `2` tests and Docker-backed code/research
+  integration passed `16` tests; Ruff and diff checks are clean. Visual approval and the
+  broader acceptance gates remain open.
+
 ## Continuation update — 2026-08-04T02:32:00Z
 
 - Wired JSON `parameters` from persisted research run configuration through the job

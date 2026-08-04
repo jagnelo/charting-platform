@@ -14,6 +14,7 @@ from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.research import CodeAsset, CodeVersion, ResearchRun
 from app.models.user import User
 from app.schemas.code import ResearchBatchResultOut, ResearchRunCreate, ResearchRunOut
+from app.services.parameter_validation import validate_parameter_values
 from app.services.research_jobs import (
     cancel_research_run,
     collect_research_result,
@@ -369,13 +370,22 @@ async def create_run(
     ).scalar_one_or_none()
     if version is None:
         raise HTTPException(status_code=404, detail="Code version not found")
+    run_config = dict(body.run_config)
+    provided_parameters = run_config.get("parameters", {})
+    if not isinstance(provided_parameters, dict):
+        raise HTTPException(status_code=422, detail={"code": "parameters_must_be_object"})
+    parameters = {**(version.default_parameters or {}), **provided_parameters}
+    parameter_errors = validate_parameter_values(version.parameter_schema, parameters)
+    if parameter_errors:
+        raise HTTPException(status_code=422, detail={"code": "parameter_validation_failed", "errors": parameter_errors})
+    run_config["parameters"] = parameters
     dataset_manifest = await _materialize_declared_dataset(
-        db, body.dataset_manifest, body.run_config
+        db, body.dataset_manifest, run_config
     )
     run = ResearchRun(
         user_id=current_user.id,
         code_version_id=version.id,
-        run_config=body.run_config,
+        run_config=run_config,
         dataset_manifest=dataset_manifest,
     )
     run.code_version = version

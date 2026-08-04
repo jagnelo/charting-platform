@@ -100,6 +100,9 @@ Run configurations are now injected as a JSON-only `parameters` mapping in both 
 instrument and prepared-universe batch execution. Parameter values stay inside the
 isolated process and are included in the run payload/reproducibility input; malformed
 non-object parameters fail explicitly before user code runs.
+The API now treats each immutable code version's parameter schema as authoritative: it
+merges declared defaults, validates required/type/enum/range/unknown-key constraints,
+and rejects invalid runs before dataset materialization or sandbox enqueue.
 
 Unified Python assets now have lifecycle contracts for complete export/import, immutable
 version-preserving clone, and reversible archive/unarchive operations. Each imported or

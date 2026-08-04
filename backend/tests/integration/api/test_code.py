@@ -189,6 +189,40 @@ def test_research_run_job_preserves_json_parameters_for_isolated_runner(client, 
     assert job["parameters"] == {"threshold": 42}
 
 
+def test_research_run_merges_defaults_and_rejects_schema_invalid_parameters(client, auth_headers, tmp_path, monkeypatch):
+    monkeypatch.setattr("app.services.research_jobs.settings.RESEARCH_JOB_DIR", str(tmp_path / "jobs"))
+    monkeypatch.setattr("app.services.research_jobs.settings.RESEARCH_RESULT_DIR", str(tmp_path / "results"))
+    asset = client.post(
+        "/api/v1/code/assets",
+        headers=auth_headers,
+        json={
+            "stable_key": "schema-study",
+            "name": "Schema study",
+            "kind": "study",
+            "initial_version": {
+                "source": "output.scalar('lookback', parameters['lookback'])",
+                "output_contract": "study",
+                "parameter_schema": {"properties": {"lookback": {"type": "integer", "minimum": 1}}, "additionalProperties": False},
+                "default_parameters": {"lookback": 20},
+            },
+        },
+    ).json()
+    valid = client.post(
+        "/api/v1/research/runs",
+        headers=auth_headers,
+        json={"code_version_id": asset["versions"][0]["id"], "run_config": {}},
+    )
+    assert valid.status_code == 202
+    assert valid.json()["run_config"]["parameters"] == {"lookback": 20}
+    invalid = client.post(
+        "/api/v1/research/runs",
+        headers=auth_headers,
+        json={"code_version_id": asset["versions"][0]["id"], "run_config": {"parameters": {"lookback": 0}}},
+    )
+    assert invalid.status_code == 422
+    assert invalid.json()["detail"]["code"] == "parameter_validation_failed"
+
+
 def test_research_runs_list_is_user_scoped_and_newest_first(
     client, auth_headers, tmp_path, monkeypatch
 ):
