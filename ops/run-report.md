@@ -2,6 +2,23 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-04T14:10:00Z Full frontend regression after shell polling coordinator
+
+- Full frontend Vitest passed `518` tests across `84` files with no unhandled errors;
+  intentional watchlist conflict-path logging remains the only stderr.
+- The WorkstationView focused suite, TypeScript, production build, and diff checks pass.
+  Exact-build visual approval and the complete acceptance matrix remain open.
+
+## 2026-08-04T14:06:00Z Workstation top-down polling coordinator
+
+- Replaced the shell-owned top-down `setInterval` with the shared TanStack Vue Query
+  `workstation/market-analysis` query. Manual and scheduled refreshes now share the
+  same deduplicated store request; hidden documents and pop-outs do not poll, and
+  visibility restoration refetches the shared query.
+- WorkstationView focused coverage passed `3`; TypeScript, production build, and diff
+  checks passed. Exact-build visual approval and the complete acceptance matrix remain
+  open.
+
 ## 2026-08-04T13:56:00Z Python chart-plot result cache
 
 - Python chart-plot run status/artifact reads now use the shared Vue Query research-run

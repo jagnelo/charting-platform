@@ -1,5 +1,26 @@
 # Active Handoff
 
+## Continuation update — 2026-08-04T14:10:00Z
+
+- Full frontend Vitest now passes `518` tests across `84` files after the shell polling
+  coordinator change. Existing stderr remains limited to intentional watchlist conflict
+  path logging; no unhandled Vitest errors occurred.
+- The production build and focused WorkstationView suite remain green. Exact-build
+  visual approval and the broad backend/security/performance/E2E acceptance matrix
+  remain open.
+
+## Continuation update — 2026-08-04T14:06:00Z
+
+- Replaced the authenticated workstation shell's component-owned five-minute
+  `setInterval` with the shared TanStack Vue Query `workstation/market-analysis`
+  query. Manual Refresh and scheduled refreshes now share one cache/query function;
+  hidden documents and browser pop-outs are excluded, and visibility restoration
+  refetches the same query.
+- Added a WorkstationView regression for hidden-document pause and visibility
+  restoration. The focused shell suite passed `3`; TypeScript, production build, and
+  diff checks passed. Exact-build visual approval and the broad acceptance matrix
+  remain open.
+
 ## Continuation update — 2026-08-04T13:56:00Z
 
 - Routed workstation Python chart-plot research-run polling through the shared Vue Query

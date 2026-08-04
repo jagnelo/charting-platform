@@ -233,6 +233,17 @@ minutes only while the document is visible. The store records the last successfu
 refresh time only when every shared input succeeds, while the existing response
 freshness and coverage fields remain the source of truth for stale or partial data.
 
+The workstation shell's five-minute refresh is now coordinated by the shared TanStack
+Vue Query client rather than a component-owned interval. The query is keyed as
+`workstation/market-analysis`, uses the store's deduplicated refresh promise as its
+single query function, pauses while the document is hidden or the tool is a browser
+pop-out, and resumes through the same cache when visibility returns. The explicit
+Refresh control calls the query refetch path, so manual and scheduled refreshes share
+the same request identity. A WorkstationView regression covers hidden-document pause,
+visibility restoration, and the pop-out exclusion; TypeScript, production build, and
+the full frontend suite remain green. This is functional polling evidence only; the
+Version 25 visual reference remains unapproved.
+
 The Add Tool registry now includes every implemented primary analysis surface that was
 previously factory-only: Relative Rotation, Market Breadth, Technical Summary, Coverage,
 and Instrument Report. Each uses a stable tool type and serializable configuration, while

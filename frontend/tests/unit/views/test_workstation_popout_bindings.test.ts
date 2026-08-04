@@ -1,5 +1,6 @@
 import { defineComponent } from 'vue'
-import { mount } from '@vue/test-utils'
+import { mount as rawMount, type MountingOptions } from '@vue/test-utils'
+import { VueQueryPlugin, QueryClient } from '@tanstack/vue-query'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const harness = vi.hoisted(() => {
@@ -44,6 +45,7 @@ const harness = vi.hoisted(() => {
     marketGroups: { 'us-benchmarks': { members: [] }, 'sp500-sectors': { members: [] } },
     marketAnalysisRefreshing: false,
     connect: vi.fn(),
+    disconnect: vi.fn(),
     loadDefault: vi.fn().mockResolvedValue(undefined),
     refreshMarketAnalysis: vi.fn().mockResolvedValue(undefined),
     publishSymbol: vi.fn(),
@@ -88,6 +90,19 @@ vi.mock('vue-router', () => ({
 }))
 
 import WorkstationView from '@/views/WorkstationView.vue'
+
+function mount(component: typeof WorkstationView, options: MountingOptions<typeof WorkstationView> = {}) {
+  return rawMount(component, {
+    ...options,
+    global: {
+      ...options.global,
+      plugins: [
+        ...(options.global?.plugins ?? []),
+        [VueQueryPlugin, { queryClient: new QueryClient() }],
+      ],
+    },
+  })
+}
 
 const ToolStub = defineComponent({
   emits: ['conditionFilterMode', 'pinnedBooleanKeys', 'columnGroups', 'stackedColumnKeys', 'configuration', 'selectProxy', 'compare', 'row-action'],
@@ -168,5 +183,28 @@ describe('WorkstationView pop-out bindings', () => {
     await input.trigger('keydown', { key: 'ArrowDown' })
     await input.trigger('keydown', { key: 'Enter' })
     expect(harness.workspace.publishSymbol).toHaveBeenCalledWith(expect.objectContaining({ symbol: 'XLE', group: 'blue' }))
+  })
+
+  it('coordinates top-down refresh through Vue Query and resumes it after visibility returns', async () => {
+    routeState.path = '/'
+    routeState.params = {}
+    const originalVisibility = document.visibilityState
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+    await vi.waitFor(() => expect(harness.workspace.refreshMarketAnalysis).toHaveBeenCalled())
+    harness.workspace.refreshMarketAnalysis.mockClear()
+
+    Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'hidden' })
+    document.dispatchEvent(new Event('visibilitychange'))
+    await Promise.resolve()
+    expect(harness.workspace.refreshMarketAnalysis).not.toHaveBeenCalled()
+
+    Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'visible' })
+    document.dispatchEvent(new Event('visibilitychange'))
+    await vi.waitFor(() => expect(harness.workspace.refreshMarketAnalysis).toHaveBeenCalledTimes(1))
+
+    wrapper.unmount()
+    Object.defineProperty(document, 'visibilityState', { configurable: true, value: originalVisibility })
   })
 })

@@ -119,6 +119,7 @@
 <script setup lang="ts">
 import { computed, h, nextTick, onBeforeUnmount, onMounted, ref, watch, type VNode } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useQuery } from '@tanstack/vue-query'
 import WorkspaceLayoutHost from '@/components/workstation/WorkspaceLayoutHost.vue'
 import WorkstationToolContent from '@/components/workstation/WorkstationToolContent.vue'
 import { useChartStore } from '@/stores/chart'
@@ -146,7 +147,8 @@ let searchRequest = 0
 let suppressNextSearch = false
 const preserveDrilldownSymbol = ref<string | null>(null)
 const openableTools = OPENABLE_WORKSTATION_TOOLS
-let marketRefreshTimer: ReturnType<typeof setInterval> | null = null
+const documentVisible = ref(typeof document === 'undefined' || document.visibilityState === 'visible')
+let removeVisibilityListener: (() => void) | null = null
 
 const activeSymbol = computed(() => workspaceStore.linkedSymbol || 'SPY')
 const dataState = computed(() => {
@@ -159,8 +161,27 @@ const dataState = computed(() => {
 })
 const isPopout = computed(() => route.path.startsWith('/popout/'))
 
+// The shell is the coordinator for the shared top-down inputs. Keep this in the
+// same Vue Query cache as the explicit Refresh action so docked and floated
+// windows cannot create independent five-minute timers or duplicate the six
+// canonical requests. Vue Query automatically pauses the interval while the
+// document is hidden; the explicit visibility gate also prevents a queued
+// refresh from starting while hidden.
+const marketAnalysisQuery = useQuery({
+  queryKey: ['workstation', 'market-analysis'],
+  queryFn: async () => {
+    await workspaceStore.refreshMarketAnalysis()
+    return true
+  },
+  enabled: computed(() => !isPopout.value && documentVisible.value && Boolean(workspaceStore.workspace)),
+  staleTime: 60_000,
+  refetchInterval: 5 * 60 * 1000,
+  refetchIntervalInBackground: false,
+})
+
 async function refreshMarketData() {
-  await workspaceStore.refreshMarketAnalysis()
+  if (isPopout.value || !documentVisible.value) return
+  await marketAnalysisQuery.refetch()
 }
 const popoutTool = computed(() => {
   const key = String(route.params.windowKey ?? '')
@@ -506,6 +527,12 @@ watch(() => workspaceStore.linkedTimeframe, timeframe => {
 })
 
 onMounted(async () => {
+  const handleVisibilityChange = () => {
+    documentVisible.value = document.visibilityState === 'visible'
+    if (documentVisible.value && !isPopout.value) void marketAnalysisQuery.refetch()
+  }
+  document.addEventListener('visibilitychange', handleVisibilityChange)
+  removeVisibilityListener = () => document.removeEventListener('visibilitychange', handleVisibilityChange)
   workspaceStore.connect()
   await workspaceStore.loadDefault()
   const requestedTab = typeof route.query.tab === 'string' ? route.query.tab : null
@@ -523,17 +550,14 @@ onMounted(async () => {
     await selectSymbol(requested)
   }
   await nextTick()
-  if (!isPopout.value) {
-    marketRefreshTimer = setInterval(() => {
-      if (document.visibilityState === 'visible') void refreshMarketData()
-    }, 5 * 60 * 1000)
-  }
+  if (!isPopout.value) await refreshMarketData()
+
 })
 
 onBeforeUnmount(() => {
-  if (marketRefreshTimer) clearInterval(marketRefreshTimer)
+  removeVisibilityListener?.()
+  removeVisibilityListener = null
   if (searchTimer) clearTimeout(searchTimer)
-  marketRefreshTimer = null
   workspaceStore.disconnect()
 })
 </script>
