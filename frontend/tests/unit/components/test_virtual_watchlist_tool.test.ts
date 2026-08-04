@@ -111,6 +111,29 @@ describe('VirtualWatchlistTool', () => {
     expect(apiPost).toHaveBeenCalledWith('/research/runs', expect.objectContaining({ run_config: expect.objectContaining({ timeframe: 'W1' }) }))
   })
 
+  it('cancels active Python batches when the watchlist tool is destroyed', async () => {
+    apiPost.mockImplementation(async (path: string) => {
+      if (path === '/research/runs') return { id: 94 }
+      return {}
+    })
+    apiGet.mockImplementation(async (path: string) => {
+      if (path.startsWith('/research/runs/94/')) return { status: 'running', cells: [], progress: { status: 'running' } }
+      return []
+    })
+
+    const wrapper = mount(VirtualWatchlistTool, {
+      props: {
+        label: 'Destroying Python tool',
+        rows,
+        pythonColumns: [{ code_version_id: 10, name: 'Signal', timeframe: 'D1' }],
+      },
+    })
+
+    await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith('/research/runs/94/batch-results'))
+    wrapper.unmount()
+    await vi.waitFor(() => expect(apiPost).toHaveBeenCalledWith('/research/runs/94/cancel', {}))
+  })
+
   it('filters canonical rows and publishes the selected canonical row', async () => {
     const wrapper = mount(VirtualWatchlistTool, {
       props: {

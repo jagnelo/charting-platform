@@ -18529,6 +18529,18 @@ uncovered slice rather than repeat a generic completion claim.
   runtime error, or unexpected error. Strict visual approval and the remaining live,
   adversarial, performance, and deep parity gates remain open.
 
+## 2026-08-04T22:00:00Z Destroyed-tool cancellation
+
+- Watchlist unmount now invalidates active Python request generations and cancels known
+  column/condition runs so closed docked or popped-out tools do not leave isolated work
+  running or accept late results.
+- Focused VirtualWatchlistTool: `45 passed`; full frontend Vitest: `539 passed` across `84`
+  files; TypeScript, production build, and `git diff --check`: passed.
+- Rebuilt branch-scoped Chromium flows: `23 passed (24.5s)`. Recent backend logs contained
+  no cancellation traceback, connection leak, provider runtime error, or unexpected error.
+  Strict visual approval and the remaining live/adversarial/performance/deep-parity gates
+  remain open.
+
 ## 2026-08-04T20:25:00Z Taxonomy read-path correction
 
 - Replaced request-time taxonomy mutation on market-group reads with a lightweight

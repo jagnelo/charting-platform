@@ -686,6 +686,13 @@ reads when the same watchlist is recreated or linked across windows. The focused
 10,000-row/Python watchlist suite passes; full polling and performance acceptance remains
 open.
 
+The same cancellation contract now covers Python timeframe edits and tool destruction.
+Changing a column or condition timeframe invalidates the prior request generation before
+starting the replacement run; destroying a docked or floated watchlist cancels every known
+active run and invalidates pending generations so late POST/poll responses cannot repopulate
+destroyed state. Focused VirtualWatchlistTool coverage exercises universe, timeframe, and
+unmount cancellation; full polling, multi-window, and performance acceptance remains open.
+
 EasyScan's queued Python-condition result history now uses the same Vue Query cache
 identity (`screener-results:{screener_id}`) while retaining the existing bounded polling,
 partial-result safeguards, and isolated-run cancellation. Repeated result refreshes for

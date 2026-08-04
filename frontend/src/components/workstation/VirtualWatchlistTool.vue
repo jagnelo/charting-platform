@@ -109,7 +109,7 @@
 <script setup lang="ts">
 import { useVirtualizer } from '@tanstack/vue-virtual'
 import { useQueryClient } from '@tanstack/vue-query'
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { api } from '@/lib/api'
 import { CHART_PLOT_DRAG_MIME, readAnalysisDrag, type ChartPlotDragPayload, type TechnicalConditionDragPayload } from '@/lib/workstation/plotDrag'
 
@@ -784,6 +784,18 @@ watch(pythonColumns, columns => {
   }
 }, { deep: true })
 watch(pythonCondition, condition => { if (condition) void runPythonCondition(condition) }, { deep: true })
+
+onBeforeUnmount(() => {
+  // Closing a docked tool or pop-out must release any prepared-universe work it
+  // started. Invalidate local generations first so a late POST/poll response
+  // cannot repopulate state after the component has been destroyed.
+  rowsGeneration.value += 1
+  for (const codeVersionId of pythonColumnRequestGenerations.keys()) {
+    pythonColumnRequestGenerations.set(codeVersionId, (pythonColumnRequestGenerations.get(codeVersionId) ?? 0) + 1)
+  }
+  pythonConditionRequestGeneration.value += 1
+  for (const key of Object.keys(pythonRunIds.value)) void cancelPythonRun(key)
+})
 
 function formatNumeric(key: string, value: number, fallbackDecimals = 2) {
   const column = effectiveColumns.value.find(item => item.key === key)

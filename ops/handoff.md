@@ -16978,3 +16978,15 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
 - Rebuilt-stack Chromium acceptance passed `23/23` in `24.2s`; recent backend logs remain
   clean. Exact-build visual approval, provider-live, adversarial resource, multi-window
   performance, and deep Version 25 parity evidence remain open.
+
+## Continuation update — 2026-08-04T22:00:00Z Destroyed-tool cancellation
+
+- Watchlist teardown now invalidates all active Python generations and cancels known backend
+  runs, including both column and Boolean-condition batches. Late POST/poll responses cannot
+  repopulate a closed docked tool or browser pop-out.
+- Added the unmount regression. Focused VirtualWatchlistTool coverage passed `45` tests;
+  full frontend Vitest passed `539` tests across `84` files, with TypeScript, production
+  build, and `git diff --check` clean.
+- Rebuilt-stack Chromium acceptance passed `23/23` in `24.5s`; the post-run backend log
+  audit was clean. Exact-build visual approval, provider-live, adversarial resource,
+  multi-window performance, and deep Version 25 parity evidence remain open.
