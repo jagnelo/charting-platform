@@ -898,7 +898,11 @@ async function loadPythonPlots() {
       for (let attempt = 0; attempt < 30; attempt += 1) {
         const result = await queryClient.fetchQuery({
           queryKey: ['workstation', 'research-run', queued.id],
-          queryFn: () => api.get<{ status: string; artifacts?: Array<{ name: string; artifact_type: string; payload: Record<string, unknown> }> }>(`/research/runs/${queued.id}`),
+          queryFn: async () => {
+            const refreshed = await api.get<{ status: string; artifacts?: Array<{ name: string; artifact_type: string; payload: Record<string, unknown> }> }>(`/research/runs/${queued.id}`)
+            if (!refreshed) throw new Error('Research plot refresh returned no data')
+            return refreshed
+          },
           staleTime: 0,
         })
         if (result.status === 'completed' || result.status === 'failed' || result.status === 'canceled') {
@@ -1437,7 +1441,7 @@ async function loadConditionColumns(rows: Array<{ symbol: string; instrumentId?:
     try {
       const results = await queryClient.fetchQuery({
         queryKey: ['workstation', 'condition-column', column.screener_id],
-        queryFn: () => api.get<Array<{ matched_ids?: number[] }>>(`/screeners/${column.screener_id}/results`, { limit: 1 }),
+        queryFn: async () => (await api.get<Array<{ matched_ids?: number[] }>>(`/screeners/${column.screener_id}/results`, { limit: 1 })) ?? [],
         staleTime: 30_000,
       })
       const matched = new Set(results[0]?.matched_ids ?? [])
@@ -1497,9 +1501,13 @@ async function loadIndicatorColumns(rows: Array<{ symbol: string }>) {
       const requestSymbols = [...symbols].sort()
       const response = await queryClient.fetchQuery({
         queryKey: ['workstation', 'indicator-batch', requestSymbols, column.indicator, params, column.timeframe, true],
-        queryFn: ({ signal }) => api.post<{ values: Record<string, { value?: number | null; warning?: { code?: string } | null }> }>('/analysis/indicator-batch', {
-          symbols: requestSymbols, indicator: column.indicator, params, timeframe: column.timeframe, adjusted: true,
-        }, { signal }),
+        queryFn: async ({ signal }) => {
+          const result = await api.post<{ values: Record<string, { value?: number | null; warning?: { code?: string } | null }> }>('/analysis/indicator-batch', {
+            symbols: requestSymbols, indicator: column.indicator, params, timeframe: column.timeframe, adjusted: true,
+          }, { signal })
+          if (!result) throw new Error('Indicator batch returned no data')
+          return result
+        },
         staleTime: 30_000,
       })
       next[column.key] = Object.fromEntries(Object.entries(response.values ?? {}).map(([symbol, cell]) => [symbol, cell?.value ?? null]))

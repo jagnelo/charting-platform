@@ -33,8 +33,11 @@ does not meet the repository-wide coverage threshold by itself.
 
 The VirtualWatchlist Python polling path also rejects empty batch responses before they reach
 Vue Query, preserving an explicit error contract for columns and Boolean conditions. This is
-covered by the focused 46-test suite and the full 549-test frontend suite; the rebuilt
-Chromium flow remains 27/27 with clean backend diagnostics.
+covered by the focused 46-test suite and the full 550-test frontend suite; the rebuilt
+Chromium flow remains 27/27 with clean backend diagnostics. The same no-undefined query
+boundary is now enforced for Market Gauge, retained EasyScan results, Research Results,
+condition columns, and indicator batches; focused workstation coverage is 61 tests and the
+full frontend suite is 550 tests across 84 files.
 
 This is functional/runtime evidence only. The strict visual gate still rejects the required
 `application-shell-default/default` state because the manifest remains `required_missing`;

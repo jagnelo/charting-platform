@@ -65,4 +65,16 @@ describe('MarketGaugeTool', () => {
     await flushPromises()
     expect(apiGet).not.toHaveBeenCalledWith('/analysis/gauges/7')
   })
+
+  it('surfaces an empty gauge refresh without caching undefined', async () => {
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/screeners') return Promise.resolve([{ id: 7, name: 'Empty gauge' }])
+      return Promise.resolve(undefined)
+    })
+
+    const wrapper = mountTool()
+    await flushPromises()
+    await wrapper.find('select').setValue('7')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Market gauge refresh returned no data'))
+  })
 })

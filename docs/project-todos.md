@@ -3274,8 +3274,10 @@ multi-window performance, migration, and broad parity gates.
 
 VirtualWatchlist Python column and condition polling now rejects missing batch payloads with a
 bounded error before Vue Query can cache `undefined`; this keeps empty/partial research data
-explicit at the tool boundary. Focused coverage is 46 tests, the full frontend suite is 549
-tests across 84 files, and rebuilt Chromium remains 27/27. This hardening does not relax the
+explicit at the tool boundary. The same boundary is enforced for Market Gauge, retained
+EasyScan results, Research Results, condition columns, and indicator batches. Focused
+workstation coverage is 61 tests, the full frontend suite is 550 tests across 84 files, and
+rebuilt Chromium remains 27/27. This hardening does not relax the
 single completion bar or the exact-build visual/provider/pressure/performance/migration/parity
 gates.
 

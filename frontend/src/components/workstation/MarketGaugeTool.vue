@@ -47,13 +47,17 @@ let visibilityObserver: IntersectionObserver | null = null
 function updateDocumentVisibility() { documentVisible.value = document.visibilityState !== 'hidden' }
 const scansQuery = useQuery({
   queryKey: ['workstation', 'screeners'],
-  queryFn: () => api.get<Scan[]>('/screeners'),
+  queryFn: async () => (await api.get<Scan[]>('/screeners')) ?? [],
   staleTime: 60_000,
   refetchOnWindowFocus: true,
 })
 const gaugeQuery = useQuery({
   queryKey: computed(() => ['workstation', 'market-gauge', selectedId.value]),
-  queryFn: () => api.get<Gauge>(`/analysis/gauges/${selectedId.value}`),
+  queryFn: async () => {
+    const result = await api.get<Gauge>(`/analysis/gauges/${selectedId.value}`)
+    if (!result) throw new Error('Market gauge refresh returned no data')
+    return result
+  },
   enabled: computed(() => Boolean(selectedId.value) && surfaceVisible.value && documentVisible.value),
   staleTime: 30_000,
   refetchInterval: 60_000,

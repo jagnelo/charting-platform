@@ -95,7 +95,7 @@ let visibilityObserver: IntersectionObserver | null = null
 function updateDocumentVisibility() { documentVisible.value = document.visibilityState !== 'hidden' }
 const runsQuery = useQuery({
   queryKey: ['workstation', 'research-runs'],
-  queryFn: () => api.get<ResearchRunSummary[]>('/research/runs', { limit: 25 }),
+  queryFn: async () => (await api.get<ResearchRunSummary[]>('/research/runs', { limit: 25 })) ?? [],
   enabled: computed(() => surfaceVisible.value && documentVisible.value),
   staleTime: 5_000,
   refetchOnWindowFocus: true,

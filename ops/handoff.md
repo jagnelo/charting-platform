@@ -1,5 +1,17 @@
 # Active Handoff
 
+## Continuation update — 2026-08-04T22:05:00Z Frontend query-boundary hardening
+
+- Hardened every remaining workstation `fetchQuery` boundary: empty Market Gauge,
+  retained EasyScan, Research Results, condition-column, and indicator-batch payloads
+  are now typed empty results or bounded errors rather than cached as `undefined`.
+- Added a Market Gauge regression. Focused workstation coverage passed `61/61`; full
+  frontend Vitest passed `550` tests across `84` files; TypeScript/build passed; rebuilt
+  Chromium passed `27/27` in `46.2s`.
+- Exact-build V25 visual approval remains blocked by manifest `required_missing` states;
+  configured provider-live probes, adversarial pressure/cancellation, multi-window
+  performance, migration re-audit, and broad parity remain open.
+
 ## Continuation update — 2026-08-05T05:25:00Z Docker cleanup
 
 - Ran the requested periodic `docker system prune -af`; active branch services and named

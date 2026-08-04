@@ -206,7 +206,7 @@ async function run() {
         await new Promise(resolve => setTimeout(resolve, 250))
         const retained = await queryClient.fetchQuery<ScanResult[]>({
           queryKey: ['workstation', 'screener-results', scan.id],
-          queryFn: () => api.get<ScanResult[]>(`/screeners/${scan.id}/results`, { limit: 1 }),
+          queryFn: async () => (await api.get<ScanResult[]>(`/screeners/${scan.id}/results`, { limit: 1 })) ?? [],
           staleTime: 0,
         })
         if (retained[0]) result.value = retained[0]

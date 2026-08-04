@@ -1,5 +1,18 @@
 # Run Report
 
+## 2026-08-04T22:05:00Z Frontend query-boundary hardening
+
+- Closed the remaining workstation `fetchQuery` boundaries that could pass an empty
+  response into Vue Query: Market Gauge, retained EasyScan results, Research Results,
+  condition columns, and indicator batches now return typed empty collections or a
+  bounded error. Added a Market Gauge empty-response regression.
+- Focused workstation suites passed `61/61`; full frontend Vitest passed `550` tests
+  across `84` files. TypeScript and production build passed (`459` modules).
+- Rebuilt branch-scoped Chromium acceptance passed `27/27` in `46.2s`, including the
+  Study Lab path. The strict exact-build V25 visual command remains intentionally blocked
+  by `required_missing` references; provider-live, pressure/cancellation, multi-window
+  performance, migration re-audit, and broad parity gates remain open.
+
 ## 2026-08-05T05:25:00Z Docker cleanup
 
 - Ran the requested `docker system prune -af` while retaining active branch containers and
