@@ -3232,6 +3232,10 @@ resource-pressure and orphan-job coverage, 10,000-row and multi-window performan
 evidence, migration re-audit, and the complete cross-surface/E2E parity matrix; no
 item below is considered delivered merely because this checkpoint exists.
 
+The streaming screener also now treats indicator-cache persistence as an optional,
+observable optimization: failed cache commits roll back, produce a structured warning,
+and leave canonical scan results usable rather than silently poisoning the transaction.
+
 Controlling objective:
 - This section and `docs/tc2000-visual-parity.md` are the controlling specification for
   the branch and supersede every older or narrower frontend-rework plan where they

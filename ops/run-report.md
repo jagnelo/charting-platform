@@ -1,5 +1,14 @@
 # Run Report
 
+## 2026-08-05T01:35:00Z Screener cache-failure recovery
+
+- Streaming screener indicator-cache commits now roll back and return a structured warning
+  instead of silently swallowing the failed transaction; the frontend displays it.
+- Focused unit `31/31`, full backend unit `957/957`, Docker-backed screener integration
+  `22/22`, frontend Vitest `547/547`, TypeScript/build, and rebuilt Chromium `26/26` passed.
+- Fresh backend logs after the rebuilt browser run contained no connection leak, `SAWarning`,
+  traceback, `InterfaceError`, provider error, or unexpected error pattern.
+
 ## 2026-08-05T00:20:00Z Research-runner crash recovery
 
 - With no active research job, terminated the runner's in-namespace PID 1 and observed a

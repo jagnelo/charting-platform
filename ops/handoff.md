@@ -1,5 +1,19 @@
 # Active Handoff
 
+## Continuation update — 2026-08-05T01:35:00Z Screener cache-failure recovery
+
+- Removed a silent `except: pass` around the streaming screener's indicator-cache commit.
+  Cache persistence now rolls back failed transactions, logs bounded diagnostics, emits a
+  structured warning, and continues from canonical local data; the workstation screener
+  renders that warning instead of hiding it.
+- Validation: focused screener unit `31 passed`, full backend unit `957 passed` with 34
+  existing dependency warnings, Docker-backed screener integration `22 passed`, frontend
+  Vitest `547 passed`, TypeScript/build passed, rebuilt-stack Chromium `26/26` passed, and
+  the post-run backend error/warning audit was empty.
+- Exact-build V25 visual approval, configured provider-live matrix, resource-pressure and
+  orphan-job stress, multi-window performance, migration re-audit, and broad parity remain
+  open.
+
 ## Continuation update — 2026-08-05T00:20:00Z Research-runner crash recovery
 
 - Verified the live research-runner `restart: unless-stopped` behavior with no active job:
