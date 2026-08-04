@@ -75,6 +75,20 @@ describe('StudyLabTool', () => {
     }
   })
 
+  it('requires an explicit universe before running aggregate factory studies', async () => {
+    apiPost.mockImplementation((path: string) => path === '/code/validate'
+      ? Promise.resolve({ valid: true, diagnostics: [], dependencies: ['research', 'output'], lookback_hint: 20, output_contracts: ['bar', 'boolean', 'scalar', 'table'] })
+      : Promise.resolve({}))
+    const wrapper = mountTool({ activeSymbol: 'SPY' })
+    await wrapper.find('[aria-label="Factory study"]').setValue('cross_sectional_rank')
+    expect(wrapper.find('[role="status"]').text()).toContain('declared comma-separated universe')
+    await wrapper.find('button').trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Validated for isolated execution'))
+    await wrapper.findAll('button')[1].trigger('click')
+    expect(wrapper.text()).toContain('requires a declared comma-separated universe')
+    expect(apiPost).not.toHaveBeenCalledWith('/research/runs', expect.anything())
+  })
+
   it('validates, starts an immutable isolated study run, and renders artifacts', async () => {
     apiPost.mockImplementation((path: string) => {
       if (path === '/code/validate') return Promise.resolve({ valid: true, diagnostics: [], dependencies: ['stats', 'output'], lookback_hint: 1, output_contracts: ['bar', 'histogram', 'range', 'scatter', 'scalar', 'table'] })
@@ -179,9 +193,13 @@ describe('StudyLabTool', () => {
     }))
     expect(apiPost).toHaveBeenCalledWith('/screeners/from-python-condition/43', expect.objectContaining({ name: 'Consecutive Positive Closes Scan', universe_type: 'all', timeframe: 'D1' }))
 
-    await wrapper.get('[aria-label="Promote study result"] button:last-of-type').trigger('click')
+    await wrapper.findAll('[aria-label="Promote study result"] button').find(button => button.text() === 'Promote to alert')!.trigger('click')
     await vi.waitFor(() => expect(wrapper.text()).toContain('Promoted to an active scan alert.'))
     expect(apiPost).toHaveBeenCalledWith('/alerts/screener', { screener_id: 77, trigger_type: 'entered', repeat: true })
+
+    await wrapper.findAll('[aria-label="Promote study result"] button').find(button => button.text() === 'Save as Strategy signal')!.trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Saved as a reusable Strategy Lab signal.'))
+    expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({ kind: 'signal', initial_version: expect.objectContaining({ output_contract: 'boolean' }) }))
   })
 
   it('reruns a completed study against its snapshot or latest canonical data', async () => {

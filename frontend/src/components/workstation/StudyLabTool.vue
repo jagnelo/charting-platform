@@ -17,6 +17,7 @@
         <label>From <input v-model.trim="startDate" aria-label="Study start date" type="date" /></label>
         <label>To <input v-model.trim="endDate" aria-label="Study end date" type="date" /></label>
       </div>
+      <p v-if="requiresDeclaredUniverse" class="study-lab-tool__universe-warning" role="status">This factory study needs a declared comma-separated universe; it will not fall back to the active symbol.</p>
       <section class="study-lab-tool__parameters" aria-label="Study parameter controls">
         <label>Parameter schema <textarea v-model="parameterSchemaText" aria-label="Study parameter schema" spellcheck="false" placeholder='{"properties":{"lookback":{"type":"integer","default":20}}}' /></label>
         <div v-if="parameterDefinitions.length" class="study-lab-tool__parameter-grid">
@@ -56,6 +57,7 @@
         <button v-if="promotableKind === 'series'" type="button" :disabled="promotionBusy" @click="promote('plot')">{{ promotionBusy ? 'Promoting…' : 'Save as chart plot' }}</button>
         <button v-if="promotableKind === 'boolean'" type="button" :disabled="promotionBusy" @click="promote('scan')">{{ promotionBusy ? 'Promoting…' : 'Promote to scan' }}</button>
         <button v-if="promotableKind === 'boolean'" type="button" :disabled="promotionBusy" @click="promote('alert')">{{ promotionBusy ? 'Promoting…' : 'Promote to alert' }}</button>
+        <button v-if="promotableKind === 'boolean'" type="button" :disabled="promotionBusy" @click="promote('signal')">{{ promotionBusy ? 'Promoting…' : 'Save as Strategy signal' }}</button>
       </div>
       <p v-if="run.reproducibility_hash">Reproducibility {{ run.reproducibility_hash }}</p>
       <p class="study-lab-tool__dataset-summary">Dataset: {{ universeSymbols || symbol }} · {{ timeframe }} · {{ adjustment === 'split_adjusted' ? 'split adjusted' : 'raw' }} · {{ session }} session · benchmark {{ benchmark || 'none' }} ({{ benchmarkCoverageLabel }}) · {{ startDate || 'earliest available' }} → {{ endDate || 'latest available' }}</p>
@@ -122,8 +124,8 @@ const factoryStudyTemplates = [
   { key: 'volatility_regime', name: 'Volatility regime', source: volatilityRegimeSource },
   { key: 'seasonality', name: 'Monthly seasonality', source: seasonalitySource },
   { key: 'relative_strength_regime', name: 'Relative-strength regime changes', source: relativeStrengthRegimeSource },
-  { key: 'cross_sectional_rank', name: 'Cross-sectional ranking', source: crossSectionalRankSource },
-  { key: 'breadth_participation', name: 'Breadth participation', source: breadthParticipationSource },
+  { key: 'cross_sectional_rank', name: 'Cross-sectional ranking', source: crossSectionalRankSource, requiresUniverse: true },
+  { key: 'breadth_participation', name: 'Breadth participation', source: breadthParticipationSource, requiresUniverse: true },
   { key: 'relative_strength_history', name: 'Relative-strength history', source: "closes = market.close()\nbenchmark = market.benchmark_close()\nratio = [value / base if base else None for value, base in zip(closes, benchmark)]\noutput.series('relative_strength_ratio', ratio)\noutput.scalar('latest_relative_strength', ratio[-1] if ratio else None)" },
 ]
 const timeframeOptions = [
@@ -134,6 +136,8 @@ const timeframeOptions = [
 ]
 const configString = (key: string, fallback: string) => typeof props.configuration?.[key] === 'string' ? String(props.configuration[key]) : fallback
 const factoryStudyKey = ref('positive_streak')
+const selectedFactoryStudy = computed(() => factoryStudyTemplates.find(item => item.key === factoryStudyKey.value))
+const requiresDeclaredUniverse = computed(() => selectedFactoryStudy.value?.requiresUniverse === true)
 const normaliseTimeframe = (value: string) => value === 'MN1' ? 'MN' : timeframeOptions.some(option => option.value === value) ? value : 'D1'
 const timeframe = ref(normaliseTimeframe(configString('timeframe', 'D1')))
 const benchmark = ref(configString('benchmark', 'SPY'))
@@ -398,6 +402,10 @@ async function validate() {
 }
 async function saveAndRun() {
   if (!validation.value?.valid || parameterSchemaError.value) return
+  if (requiresDeclaredUniverse.value && !universeSymbols.value.split(',').some(value => value.trim())) {
+    error.value = 'This factory study requires a declared comma-separated universe before it can run.'
+    return
+  }
   busy.value = true; error.value = ''
   try {
     runSource.value = source.value
@@ -428,15 +436,15 @@ async function saveAndRun() {
   } catch (cause: any) { error.value = cause?.message ?? 'Unable to start isolated study run' }
   finally { busy.value = false }
 }
-type PromotionTarget = 'column' | 'plot' | 'scan' | 'alert'
+type PromotionTarget = 'column' | 'plot' | 'scan' | 'alert' | 'signal'
 async function promote(target: PromotionTarget) {
   const contract = promotableKind.value
   if (!contract || promotionBusy.value) return
   promotionBusy.value = true
   promotionStatus.value = ''
   try {
-    const isBooleanTarget = target === 'scan' || target === 'alert'
-    const kind = isBooleanTarget ? 'condition' : target
+    const isBooleanTarget = target === 'scan' || target === 'alert' || target === 'signal'
+    const kind = target === 'scan' || target === 'alert' ? 'condition' : target
     const asset = await api.post<{ versions: Array<{ id: number }> }>('/code/assets', {
       stable_key: `${stableKey(name.value)}-${kind}-${Date.now()}`,
       name: `${name.value} ${kind}`,
@@ -452,6 +460,7 @@ async function promote(target: PromotionTarget) {
     if (!versionId) throw new Error('Promotion did not return a code version')
     if (target === 'column') promotionStatus.value = 'Saved as a reusable watchlist column.'
     else if (target === 'plot') promotionStatus.value = 'Saved as a reusable chart plot.'
+    else if (target === 'signal') promotionStatus.value = 'Saved as a reusable Strategy Lab signal.'
     else {
       const scan = await api.post<{ id: number }>(`/screeners/from-python-condition/${versionId}`, {
         name: `${name.value} Scan`, universe_type: 'all', timeframe: timeframe.value,
@@ -515,6 +524,6 @@ onBeforeUnmount(() => {
 .study-lab-tool__parameter-error { color:#ed9696; grid-column:1 / -1; }
 .study-lab-tool__header { display:grid; gap:4px; } .study-lab-tool__header-main { display:grid; grid-template-columns:minmax(120px,1fr) 56px minmax(150px,1fr) 48px 38px; gap:4px; } .study-lab-tool__dataset { display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:4px; color:#8ea3b0; } .study-lab-tool__dataset label { display:grid; grid-template-columns:auto minmax(0,1fr); align-items:center; gap:3px; white-space:nowrap; } .study-lab-tool__dataset input,.study-lab-tool__dataset select { width:100%; min-width:0; }
 input,textarea,button,select { min-width:0; border:1px solid #3a4954; background:#172027; color:#dce6ed; font:inherit; } input,select { padding:2px 4px; } textarea { width:100%; resize:none; padding:5px; font:11px/1.35 ui-monospace,SFMono-Regular,monospace; } button { cursor:pointer; } button:disabled { cursor:default; opacity:.5; }
-.study-lab-tool__validation,.study-lab-tool__run { padding:5px; border:1px solid #34424c; background:#151b20; } .study-lab-tool__validation--bad,.study-lab-tool__error { border-color:#9e5757; color:#f0a2a2; } pre { max-height:100px; overflow:auto; margin:3px 0 0; color:#b8c6d0; white-space:pre-wrap; } .study-lab-tool__run > div { display:flex; align-items:center; gap:6px; } .study-lab-tool__run > div button { margin-left:auto; } .study-lab-tool__run p,.study-lab-tool__notice,.study-lab-tool__error { margin:0; color:#8195a3; } .study-lab-tool__dataset-summary { font-size:9px; } .study-lab-tool__run article { margin-top:5px; padding-top:4px; border-top:1px solid #29343c; } .study-lab-tool__run small { margin-left:5px; color:#779ab0; }.study-lab-tool__metrics { display:grid; grid-template-columns:repeat(auto-fit,minmax(70px,1fr)); gap:4px; margin-top:5px; }.study-lab-tool__metrics article { display:grid; gap:2px; margin:0; padding:4px; border:1px solid #29343c; background:#11161b; }.study-lab-tool__metrics strong { color:#b9e0f9; font-size:14px; }.study-lab-tool__metric--true { border-color:#3f8263!important; }.study-lab-tool__metric--true strong { color:#80d5a5!important; }.study-lab-tool__metric--false { border-color:#875454!important; }.study-lab-tool__metric--false strong { color:#f0a0a0!important; }.study-lab-tool__run table { width:100%; margin-top:4px; border-collapse:collapse; font-size:9px; }.study-lab-tool__run th,.study-lab-tool__run td { padding:2px 4px; border:1px solid #2c3943; text-align:left; white-space:nowrap; }.study-lab-tool__run th { color:#91a8b8; background:#1b252d; }.study-lab-tool__events { display:grid; gap:2px; margin-top:4px; }.study-lab-tool__events button { display:grid; grid-template-columns:50px 1fr auto; gap:5px; padding:3px 4px; border:1px solid #2d3c46; background:#11161b; color:#cddbe5; text-align:left; }.study-lab-tool__events button:hover { background:#1d3543; }.study-lab-tool__events span,.study-lab-tool__events small { color:#91a8b4; }.study-lab-tool__run-status--completed { color:#82c49b; }.study-lab-tool__run-status--failed { color:#ed9696; }.study-lab-tool__run-status--queued,.study-lab-tool__run-status--running { color:#80bce8; }
+.study-lab-tool__validation,.study-lab-tool__run { padding:5px; border:1px solid #34424c; background:#151b20; } .study-lab-tool__validation--bad,.study-lab-tool__error { border-color:#9e5757; color:#f0a2a2; } pre { max-height:100px; overflow:auto; margin:3px 0 0; color:#b8c6d0; white-space:pre-wrap; } .study-lab-tool__run > div { display:flex; align-items:center; gap:6px; } .study-lab-tool__run > div button { margin-left:auto; } .study-lab-tool__run p,.study-lab-tool__notice,.study-lab-tool__error { margin:0; color:#8195a3; } .study-lab-tool__universe-warning { margin:0; color:#e0b47d; } .study-lab-tool__dataset-summary { font-size:9px; } .study-lab-tool__run article { margin-top:5px; padding-top:4px; border-top:1px solid #29343c; } .study-lab-tool__run small { margin-left:5px; color:#779ab0; }.study-lab-tool__metrics { display:grid; grid-template-columns:repeat(auto-fit,minmax(70px,1fr)); gap:4px; margin-top:5px; }.study-lab-tool__metrics article { display:grid; gap:2px; margin:0; padding:4px; border:1px solid #29343c; background:#11161b; }.study-lab-tool__metrics strong { color:#b9e0f9; font-size:14px; }.study-lab-tool__metric--true { border-color:#3f8263!important; }.study-lab-tool__metric--true strong { color:#80d5a5!important; }.study-lab-tool__metric--false { border-color:#875454!important; }.study-lab-tool__metric--false strong { color:#f0a0a0!important; }.study-lab-tool__run table { width:100%; margin-top:4px; border-collapse:collapse; font-size:9px; }.study-lab-tool__run th,.study-lab-tool__run td { padding:2px 4px; border:1px solid #2c3943; text-align:left; white-space:nowrap; }.study-lab-tool__run th { color:#91a8b8; background:#1b252d; }.study-lab-tool__events { display:grid; gap:2px; margin-top:4px; }.study-lab-tool__events button { display:grid; grid-template-columns:50px 1fr auto; gap:5px; padding:3px 4px; border:1px solid #2d3c46; background:#11161b; color:#cddbe5; text-align:left; }.study-lab-tool__events button:hover { background:#1d3543; }.study-lab-tool__events span,.study-lab-tool__events small { color:#91a8b4; }.study-lab-tool__run-status--completed { color:#82c49b; }.study-lab-tool__run-status--failed { color:#ed9696; }.study-lab-tool__run-status--queued,.study-lab-tool__run-status--running { color:#80bce8; }
 .study-lab-tool__promotions { display:flex; flex-wrap:wrap; gap:4px; margin-top:4px; }.study-lab-tool__promotions button { margin-left:0!important; }.study-lab-tool__promotion-status { color:#9fd3a9!important; }
 </style>
