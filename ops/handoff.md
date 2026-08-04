@@ -1,5 +1,17 @@
 # Active Handoff
 
+## Continuation update — 2026-08-04T18:20:00Z Workspace factory contract correction
+
+- The Docker-backed workspace integration audit caught one stale assertion: the default
+  workstation factory now intentionally uses layout/settings version `8`, while the first
+  acceptance test still expected `7`.
+- Updated `backend/tests/integration/api/test_workspaces.py` to assert the current factory
+  version and reran the complete workspace integration module: `23 passed, 2 existing
+  Nautilus deprecation warnings` with real Postgres/Redis containers.
+- This closes an acceptance-contract defect; strict V25 visual approval remains
+  `required_missing`, and provider-live, adversarial sandbox/resource, multi-monitor,
+  performance, migration, and complete parity gates remain open.
+
 ## Continuation update — 2026-08-05T19:10:00Z Deep top-down and workstation-layout acceptance
 
 - Added an opt-in `E2E_SEED_MARKET_DATA` fixture: 520 deterministic adjusted D1 bars for

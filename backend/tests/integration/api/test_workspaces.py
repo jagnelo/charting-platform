@@ -7,8 +7,8 @@ class TestWorkspaces:
         assert workspace["revision"] == 1
         assert workspace["tabs"][0]["stable_key"] == "us-top-down"
         assert workspace["tabs"][0]["layout_config"]["root"]["type"] == "row"
-        assert workspace["tabs"][0]["layout_config"]["version"] == 7
-        assert workspace["settings"]["factory_version"] == 7
+        assert workspace["tabs"][0]["layout_config"]["version"] == 8
+        assert workspace["settings"]["factory_version"] == 8
         assert {window["tool_type"] for window in workspace["tabs"][0]["windows"]} >= {
             "watchlist",
             "chart",

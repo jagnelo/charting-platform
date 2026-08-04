@@ -1,5 +1,14 @@
 # Run Report
 
+## 2026-08-04T18:20:00Z Workspace factory contract correction
+
+- Docker-backed `backend/tests/integration/api/test_workspaces.py` initially exposed a stale
+  expected layout/settings version (`7`) after the factory moved to version `8`.
+- Corrected the test contract and reran the full module: `23 passed` with two existing Nautilus
+  deprecation warnings. No application rollback or compatibility reduction was introduced.
+- Exact-build visual approval remains `required_missing`; the broader provider, sandbox,
+  performance, migration, and parity gates remain open.
+
 ## 2026-08-05T19:10:00Z Top-down fixture, ratio, and Golden Layout acceptance
 
 - Added the opt-in deterministic market fixture (`E2E_SEED_MARKET_DATA=true`) with 12,480
