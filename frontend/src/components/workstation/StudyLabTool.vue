@@ -110,6 +110,8 @@ const highLowBreakoutSource = "closes = market.close()\nlookback = 20\nnew_highs
 const volatilityRegimeSource = "closes = market.close()\nreturns = [0] + [(closes[index] / closes[index - 1]) - 1 for index in range(1, len(closes))]\nvolatility = []\nfor index in range(len(returns)):\n    window = returns[max(0, index - 19):index + 1]\n    average = sum(window) / len(window) if window else 0\n    squared_error = 0\n    for value in window:\n        squared_error += (value - average) ** 2\n    variance = squared_error / len(window) if window else 0\n    volatility.append(variance ** 0.5)\nmedian_volatility = sorted(volatility)[len(volatility) // 2] if volatility else 0\nregime = [1 if value >= median_volatility else 0 for value in volatility]\noutput.series('realised_volatility_20', volatility)\noutput.series('high_volatility_regime', regime)\noutput.boolean('currently_high_volatility', bool(regime and regime[-1]))\noutput.histogram('volatility_distribution', volatility, 12, volatility[-1] if volatility else None)"
 const seasonalitySource = "timestamps = market.timestamps()\ncloses = market.close()\nreturns_by_month = {}\nfor index in range(1, len(closes)):\n    month = timestamps[index][5:7]\n    returns_by_month.setdefault(month, []).append((closes[index] / closes[index - 1]) - 1)\nmonths = sorted(returns_by_month.keys())\naverages = [sum(returns_by_month[month]) / len(returns_by_month[month]) for month in months]\noutput.bar('average_monthly_return', months, averages)\noutput.table('monthly_observations', [{'month': month, 'sample_size': len(returns_by_month[month]), 'average_return': average} for month, average in zip(months, averages)])"
 const relativeStrengthRegimeSource = "closes = market.close()\nbenchmark = market.benchmark_close()\nratio = [value / base if base else None for value, base in zip(closes, benchmark)]\ntrend = ta.sma([value if value is not None else 0 for value in ratio], 20)\nchanges = []\nfor index in range(1, len(ratio)):\n    if ratio[index] is None or trend[index] is None or ratio[index - 1] is None or trend[index - 1] is None:\n        continue\n    crossed_up = ratio[index - 1] <= trend[index - 1] and ratio[index] > trend[index]\n    crossed_down = ratio[index - 1] >= trend[index - 1] and ratio[index] < trend[index]\n    if crossed_up or crossed_down:\n        changes.append(index)\noutput.series('relative_strength_ratio', ratio)\noutput.series('relative_strength_trend', trend)\noutput.scalar('regime_change_count', len(changes))\noutput.events('relative_strength_regime_changes', research.occurrences(dataset, changes, 'relative_strength_regime_change'))"
+const crossSectionalRankSource = "rows = research.cross_sectional_rank(dataset, 20)\noutput.table('cross_sectional_rank', rows)\noutput.bar('trailing_20_day_return', [row['symbol'] for row in rows], [row['return'] for row in rows])\noutput.scalar('ranked_symbols', len(rows))"
+const breadthParticipationSource = "breadth = research.breadth_snapshot(dataset, 20)\noutput.scalar('breadth_coverage', breadth['coverage'])\noutput.scalar('above_20_day_average', breadth['above_count'])\noutput.scalar('percent_above_20_day_average', breadth['percent_above'] if breadth['percent_above'] is not None else 0)\noutput.boolean('breadth_thrust', breadth['percent_above'] is not None and breadth['percent_above'] >= 90)\noutput.table('breadth_members', breadth['rows'])"
 const source = ref(positiveStreakSource)
 const factoryStudyTemplates = [
   { key: 'positive_streak', name: 'Consecutive positive closes', source: positiveStreakSource },
@@ -120,6 +122,8 @@ const factoryStudyTemplates = [
   { key: 'volatility_regime', name: 'Volatility regime', source: volatilityRegimeSource },
   { key: 'seasonality', name: 'Monthly seasonality', source: seasonalitySource },
   { key: 'relative_strength_regime', name: 'Relative-strength regime changes', source: relativeStrengthRegimeSource },
+  { key: 'cross_sectional_rank', name: 'Cross-sectional ranking', source: crossSectionalRankSource },
+  { key: 'breadth_participation', name: 'Breadth participation', source: breadthParticipationSource },
   { key: 'relative_strength_history', name: 'Relative-strength history', source: "closes = market.close()\nbenchmark = market.benchmark_close()\nratio = [value / base if base else None for value, base in zip(closes, benchmark)]\noutput.series('relative_strength_ratio', ratio)\noutput.scalar('latest_relative_strength', ratio[-1] if ratio else None)" },
 ]
 const timeframeOptions = [
@@ -152,6 +156,8 @@ const editorSuggestionCatalog = [
   { prefix: 'ta', insert: 'ta.rsi(market.close(), 14)', signature: 'series, period' },
   { prefix: 'stats', insert: 'stats.positive_close_streaks(dataset)', signature: 'dataset' },
   { prefix: 'research', insert: 'research.forward_returns(dataset, indices, [1, 5, 20])', signature: 'dataset, events, horizons' },
+  { prefix: 'research', insert: 'research.cross_sectional_rank(dataset, 20)', signature: 'dataset, lookback' },
+  { prefix: 'research', insert: 'research.breadth_snapshot(dataset, 20)', signature: 'dataset, period' },
   { prefix: 'output', insert: "output.scalar('name', value)", signature: 'name, value' },
   { prefix: 'output', insert: "output.series('name', values)", signature: 'name, values' },
   { prefix: 'output', insert: "output.bar('name', labels, values)", signature: 'labels, values' },

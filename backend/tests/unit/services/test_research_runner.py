@@ -69,6 +69,24 @@ def test_runner_executes_structured_study_over_a_prepared_universe():
     assert len(result["artifacts"]["events"]["value"]) == 2
 
 
+def test_runner_computes_cross_sectional_rank_and_breadth_from_declared_bars():
+    result = execute_job(
+        {
+            "source": "ranking = research.cross_sectional_rank(dataset, 2)\nbreadth = research.breadth_snapshot(dataset, 2)\noutput.table('ranking', ranking)\noutput.bar('returns', [row['symbol'] for row in ranking], [row['return'] for row in ranking])\noutput.scalar('above', breadth['above_count'])\noutput.scalar('percent_above', breadth['percent_above'])",
+            "output_contract": "study",
+            "dataset": {"datasets": [
+                {"instrument_id": 1, "symbol": "SPY", "closes": [100, 101, 104]},
+                {"instrument_id": 2, "symbol": "XLK", "closes": [100, 99, 98]},
+                {"instrument_id": 3, "symbol": "XLE", "closes": [100, 101, 102]},
+            ]},
+        }
+    )
+    assert result["status"] == "completed"
+    assert [row["symbol"] for row in result["artifacts"]["ranking"]["value"]] == ["SPY", "XLE", "XLK"]
+    assert result["artifacts"]["above"]["value"] == 2
+    assert result["artifacts"]["percent_above"]["value"] == (2 / 3) * 100
+
+
 def test_runner_emits_typed_boolean_artifacts():
     result = execute_job({"source": "output.boolean('qualifies', 2 > 1)", "dataset": {}})
     assert result["status"] == "completed"

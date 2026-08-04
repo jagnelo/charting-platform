@@ -65,6 +65,8 @@ describe('StudyLabTool', () => {
       { value: 'volatility_regime', label: 'Volatility regime' },
       { value: 'seasonality', label: 'Monthly seasonality' },
       { value: 'relative_strength_regime', label: 'Relative-strength regime changes' },
+      { value: 'cross_sectional_rank', label: 'Cross-sectional ranking' },
+      { value: 'breadth_participation', label: 'Breadth participation' },
     ]))
 
     for (const value of ['forward_return_distribution', 'high_low_breakouts', 'volatility_regime', 'seasonality', 'relative_strength_regime']) {

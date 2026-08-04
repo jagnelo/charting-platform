@@ -705,6 +705,68 @@ class _PandasFacade:
 class _Research:
     """Deterministic, point-in-time study helpers over the prepared dataset."""
 
+    def cross_sectional_rank(self, dataset: dict, lookback: int = 20) -> list[dict]:
+        """Rank a declared universe by trailing price return without external access."""
+        if not isinstance(lookback, int) or isinstance(lookback, bool) or lookback <= 0:
+            raise ValueError("cross-sectional lookback must be a positive integer")
+        datasets = dataset.get("datasets")
+        if not isinstance(datasets, list):
+            raise ValueError("Declared prepared universe is unavailable")
+        rows: list[dict] = []
+        for item in datasets:
+            if not isinstance(item, dict):
+                continue
+            symbol = str(item.get("symbol") or "").upper()
+            closes = item.get("closes")
+            if not symbol or not isinstance(closes, list) or len(closes) <= lookback:
+                continue
+            latest = closes[-1]
+            base = closes[-lookback - 1]
+            if not isinstance(latest, int | float) or isinstance(latest, bool) or not isinstance(base, int | float) or isinstance(base, bool) or base == 0:
+                continue
+            rows.append({
+                "symbol": symbol,
+                "instrument_id": item.get("instrument_id"),
+                "return": (float(latest) / float(base)) - 1,
+                "lookback": lookback,
+            })
+        rows.sort(key=lambda row: (row["return"], row["symbol"]), reverse=True)
+        for rank, row in enumerate(rows, start=1):
+            row["rank"] = rank
+        return rows
+
+    def breadth_snapshot(self, dataset: dict, period: int = 20) -> dict:
+        """Summarize declared-universe participation above a simple moving average."""
+        if not isinstance(period, int) or isinstance(period, bool) or period <= 0:
+            raise ValueError("breadth period must be a positive integer")
+        datasets = dataset.get("datasets")
+        if not isinstance(datasets, list):
+            raise ValueError("Declared prepared universe is unavailable")
+        rows: list[dict] = []
+        for item in datasets:
+            if not isinstance(item, dict):
+                continue
+            symbol = str(item.get("symbol") or "").upper()
+            closes = item.get("closes")
+            if not symbol or not isinstance(closes, list) or len(closes) < period:
+                continue
+            latest = closes[-1]
+            window = closes[-period:]
+            if not isinstance(latest, int | float) or isinstance(latest, bool) or not all(isinstance(value, int | float) and not isinstance(value, bool) for value in window):
+                continue
+            average = sum(float(value) for value in window) / period
+            rows.append({"symbol": symbol, "moving_average": average, "close": float(latest), "above": float(latest) >= average})
+        above = sum(1 for row in rows if row["above"])
+        coverage = len(rows)
+        return {
+            "period": period,
+            "coverage": coverage,
+            "above_count": above,
+            "below_count": coverage - above,
+            "percent_above": (above / coverage) * 100 if coverage else None,
+            "rows": rows,
+        }
+
     def forward_returns(self, dataset: dict, event_indices: object, horizons: object = (1, 5, 20)) -> list[dict]:
         closes = dataset.get("closes", [])
         timestamps = dataset.get("timestamps", [])
