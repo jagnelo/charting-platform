@@ -48,6 +48,15 @@ describe('ResearchResultsTool', () => {
     expect(wrapper.text()).toContain('canceled')
   })
 
+  it('cancels the selected active run when the results tool is destroyed', async () => {
+    apiGet.mockResolvedValue([{ id: 15, status: 'running', code_version_id: 4, run_config: {}, dataset_manifest: {}, diagnostics: [], artifacts: [] }])
+    apiPost.mockResolvedValue({ id: 15, status: 'canceled' })
+    const wrapper = mountTool()
+    await flushPromises()
+    wrapper.unmount()
+    expect(apiPost).toHaveBeenCalledWith('/research/runs/15/cancel', {})
+  })
+
   it('renders persisted scatter and heatmap artifacts with native result surfaces', async () => {
     apiGet.mockResolvedValue([{ id: 13, status: 'completed', code_version_id: 4, run_config: {}, dataset_manifest: {}, diagnostics: [], artifacts: [
       { id: 5, name: 'relationship', artifact_type: 'scatter', payload: { value: { x: [1, 2], y: [3, 4] } } },

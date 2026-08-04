@@ -17001,3 +17001,14 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
 - Rebuilt-stack Chromium acceptance passed `23/23` in `25.9s`; the backend log audit was
   clean. Exact-build visual approval, provider-live, adversarial resource, multi-window
   performance, and deep Version 25 parity evidence remain open.
+
+## Continuation update — 2026-08-04T22:40:00Z Research/chart teardown cancellation
+
+- Study Lab and Persisted Research Results now cancel their selected active run during
+  unmount. Chart-tool Python plot jobs are also canceled on teardown, with chart and plot
+  generations invalidated before late results can reach a destroyed uPlot surface.
+- Added Study Lab and Research Results unmount regressions. Full frontend Vitest passed `542`
+  tests across `84` files; TypeScript, production build, and `git diff --check` passed.
+- Rebuilt-stack Chromium acceptance passed `23/23` in `26.6s`; the backend log audit was
+  clean. Exact-build visual approval, provider-live, adversarial resource, multi-window
+  performance, and deep Version 25 parity evidence remain open.

@@ -392,7 +392,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, provide, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, provide, ref, watch } from 'vue'
 import { useQueryClient } from '@tanstack/vue-query'
 import { api } from '@/lib/api'
 import UPlotChart from '@/components/chart/UPlotChart.vue'
@@ -1000,6 +1000,16 @@ watch([activeSymbol, activeTimeframe, syntheticExpression, chartBarType], async 
 }, { immediate: true })
 
 watch([configuredPythonPlots, activeSymbol, activeTimeframe], () => { void loadPythonPlots() }, { deep: true, immediate: true })
+
+onBeforeUnmount(() => {
+  // A chart tool can own several isolated Python plot runs. Cancel known runs
+  // when its dock/pop-out closes and invalidate both chart and plot generations
+  // so late research responses cannot update a destroyed uPlot surface.
+  chartSelectionSequence += 1
+  pythonPlotRequestSequence += 1
+  for (const runId of pythonPlotRunIds) void api.post(`/research/runs/${runId}/cancel`, {})
+  pythonPlotRunIds.clear()
+})
 
 watch(() => props.tool.configuration, configuration => {
   liveChartConfiguration.value = configuration

@@ -667,6 +667,13 @@ research polling with the Market Gauge freshness/coordinator contract. Focused c
 coverage passes with the real Vue Query plugin; exact Version 25 visual approval and the
 full polling/performance acceptance matrix remain open.
 
+Study Lab and Persisted Research Results now also cancel their selected active research run
+when the tool is destroyed. Chart-tool Python plot evaluation follows the same lifecycle:
+known plot runs are canceled and chart/plot generations are invalidated during teardown,
+preventing late artifacts from reaching a destroyed uPlot surface. Focused Study Lab and
+Research Results tests cover unmount cancellation; full multi-window and long-running-job
+performance acceptance remains open.
+
 The reusable uPlot chart host applies the same visibility contract to live latest-bar
 refreshes through a reactive Vue Query observer. Its timeframe-aware `refetchInterval`
 is disabled when the browser is hidden, the chart root leaves the viewport, or the chart

@@ -18552,6 +18552,16 @@ uncovered slice rather than repeat a generic completion claim.
   Strict visual approval and the remaining live/adversarial/performance/deep-parity gates
   remain open.
 
+## 2026-08-04T22:40:00Z Research/chart teardown cancellation
+
+- Study Lab and Persisted Research Results now cancel selected active runs when destroyed;
+  chart-tool Python plot jobs cancel and invalidate their generations during teardown.
+- Full frontend Vitest: `542 passed` across `84` files; TypeScript, production build, and
+  `git diff --check`: passed. Rebuilt branch-scoped Chromium flows: `23 passed (26.6s)`.
+- Recent backend logs were clean for cancellation traces, connection leaks, provider runtime
+  errors, and unexpected errors. Strict visual approval and remaining live/adversarial/
+  performance/deep-parity gates remain open.
+
 ## 2026-08-04T20:25:00Z Taxonomy read-path correction
 
 - Replaced request-time taxonomy mutation on market-group reads with a lightweight

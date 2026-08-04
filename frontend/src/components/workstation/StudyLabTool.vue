@@ -510,6 +510,7 @@ onMounted(() => {
   }
 })
 onBeforeUnmount(() => {
+  if (run.value && canCancel.value) void api.post(`/research/runs/${run.value.id}/cancel`, {})
   document.removeEventListener('visibilitychange', updateDocumentVisibility)
   visibilityObserver?.disconnect()
   visibilityObserver = null
