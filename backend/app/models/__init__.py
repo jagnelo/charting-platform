@@ -1,3 +1,4 @@
+from app.models.alert_firing_event import AlertFiringEvent
 from app.models.asset_class import AssetClass, InstrumentType
 from app.models.base import TimestampMixin
 from app.models.basket import Basket, BasketMember, BasketSnapshot, BasketSnapshotMember
@@ -169,6 +170,7 @@ __all__ = [
     "DashboardWidget",
     "IndicatorPreset",
     "PriceAlert",
+    "AlertFiringEvent",
     "AlertCondition",
     "AlertStatus",
     "RadarRun",
