@@ -18832,3 +18832,6 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
   modifier metadata. Focused unit coverage passes `12/12`, TypeScript/build pass, and F8k passes
   `10/10` repeated browser runs. The full matrix reached `41/42`; its sole miss was a transient
   Study Lab F8q runner/browser timeout, while an isolated F8q rerun passed.
+
+- Follow-up isolated F8q verification passed `3/3` after runner job/result inspection found no
+  queued or running residue; the earlier full-matrix timeout remains classified as environmental.

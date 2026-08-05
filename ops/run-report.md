@@ -20236,3 +20236,6 @@ uncovered slice rather than repeat a generic completion claim.
   Focused unit coverage is `12/12`, TypeScript/build pass, and ten repeated authenticated F8k
   runs pass. The surrounding full matrix was `41/42` because one Study Lab F8q run timed out;
   isolated F8q subsequently passed.
+
+- A further isolated F8q repeat passed `3/3` after runner job/result inspection found no queued or
+  running residue.
