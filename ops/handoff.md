@@ -18586,3 +18586,6 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
   sustained sandbox/resource, and indefinite-soak gates remain open.
 - Full frontend Vitest after the change passes `578/578` across 87 files; expected watchlist
   conflict-path stderr is unchanged.
+- Reran the bounded orphan-recovery probe after the resource-probe correction: the isolated runner
+  reclaimed a claimed job after an explicit container restart, completed it, and left no stale
+  cancel/progress artifacts. This does not close the sustained stress matrix.

@@ -53,6 +53,11 @@ comparison remains blocked only by the unapproved reference baselines, not by ro
 After that change, the complete frontend Vitest suite passes `578/578` across 87 files. The only
 stderr remains the intentionally exercised watchlist conflict-path logging.
 
+The isolated-runner orphan-recovery probe was rerun after the resource-probe correction and again
+completed a claimed job after terminating/restarting only the research-runner, with no stale cancel
+or progress artifacts. This remains bounded recovery evidence; the broader sustained stress matrix
+is still required.
+
 Provider-route recheck on 2026-08-05T21:45:00Z confirmed that the four remaining ETF holdings
 failures are still external-route conditions, not safe candidates for fallback substitution:
 official pages declare ADFI, DFTT, and NEOS downloads but the discovered acceptance routes remain
