@@ -18217,3 +18217,14 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
 - This closes a browser-level cross-surface promotion path while the broader scan, alert, plot,
   and Strategy signal promotion matrix remains covered separately. Strict visual approval,
   provider-live coverage, adversarial resource stress, native multi-monitor, and long-soak gates remain open.
+
+## Continuation update — 2026-08-06T04:50:00Z Notes canonical-instrument acceptance
+
+- Added F8s, an authenticated Chromium flow that opens Notes from the active workstation symbol,
+  writes a unique note, and verifies the canonical notes API save reaches `Saved` with no critical
+  diagnostics. The first run exposed that non-chart tools did not hydrate their panel-scoped
+  instrument identity; `WorkstationToolContent` now resolves the canonical instrument for Notes,
+  Alerts, and the instrument report while retaining chart-store fallback behavior.
+- Rebuilt-stack F8s passed `1/1`; the full frontend Vitest suite remains `577/577` across 87 files
+  and TypeScript passes. Strict visual approval, provider-live coverage, adversarial resource stress,
+  native multi-monitor, and long-soak gates remain open.

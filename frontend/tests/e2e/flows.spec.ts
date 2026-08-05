@@ -677,6 +677,20 @@ test.describe('TC2000 workstation', () => {
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
+  test('F8s — active-instrument Notes tool autosaves through the canonical notes API', async ({ page, browserDiagnostics }) => {
+    await page.goto('/chart')
+    await expect(page.locator('.workspace-layout-host')).toBeVisible({ timeout: 10_000 })
+    await page.getByRole('button', { name: 'Add tool' }).click()
+    await page.getByRole('button', { name: 'Notes', exact: true }).click()
+    const notes = page.locator('.tool-window').filter({ has: page.locator('.note-tool') }).last()
+    await expect(notes).toBeVisible({ timeout: 10_000 })
+    const editor = notes.getByRole('textbox', { name: 'Instrument note' })
+    await expect(editor).toBeEnabled({ timeout: 10_000 })
+    await editor.fill(`E2E note ${process.hrtime.bigint().toString(36)}`)
+    await expect(notes.locator('.note-tool__status')).toContainText('Saved', { timeout: 10_000 })
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
 })
 
 

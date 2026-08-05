@@ -19700,3 +19700,14 @@ uncovered slice rather than repeat a generic completion claim.
 - Chromium passed `1/1` on the seeded branch stack with no critical diagnostics. This is browser
   evidence for one promotion target; strict visual, provider-live, adversarial-resource, native
   multi-monitor, and long-soak acceptance remain open.
+
+## 2026-08-06T04:50:00Z Notes canonical-instrument acceptance
+
+- F8s opens Notes from the active workstation symbol, saves a unique note through the canonical
+  notes API, and verifies the `Saved` state without critical browser diagnostics.
+- The flow initially found a real integration defect: non-chart panel instances lacked a hydrated
+  canonical instrument. `WorkstationToolContent` now resolves the active instrument for Notes,
+  Alerts, and reports via `/instruments/{symbol}`, with request-generation protection and chart
+  fallback. Rebuilt-stack Chromium passed F8s `1/1`; full frontend Vitest passed `577/577` and
+  TypeScript passed. Strict visual, provider-live, adversarial-resource, native multi-monitor,
+  and long-soak gates remain open.

@@ -379,9 +379,9 @@
       <span>Volume ratio (50)</span><b>{{ formatRatio(technical?.volume_ratio_50) }}</b>
     </div>
     <CoverageSummaryTool v-else-if="tool.instance_key === 'coverage-summary' || tool.tool_type === 'coverage'" :symbol="activeSymbol" :configuration="tool.configuration" @configuration="emit('configuration', tool.instance_key, $event)" />
-    <InstrumentNoteTool v-else-if="tool.tool_type === 'notes'" :instrument-id="chartStore.instrument?.id" :symbol="activeSymbol" />
-    <InstrumentAlertsTool v-else-if="tool.tool_type === 'alerts'" :instrument-id="chartStore.instrument?.id" :symbol="activeSymbol" />
-    <InstrumentInfoPanel v-else-if="tool.tool_type === 'report'" class="instrument-report" :instrument="chartStore.instrument" :current-price="currentPrice" :session-high="currentSessionHigh" :session-low="currentSessionLow" @select="selectSymbol($event)" />
+    <InstrumentNoteTool v-else-if="tool.tool_type === 'notes'" :instrument-id="toolInstrument?.id ?? chartStore.instrument?.id" :symbol="activeSymbol" />
+    <InstrumentAlertsTool v-else-if="tool.tool_type === 'alerts'" :instrument-id="toolInstrument?.id ?? chartStore.instrument?.id" :symbol="activeSymbol" />
+    <InstrumentInfoPanel v-else-if="tool.tool_type === 'report'" class="instrument-report" :instrument="toolInstrument ?? chartStore.instrument" :current-price="currentPrice" :session-high="currentSessionHigh" :session-low="currentSessionLow" @select="selectSymbol($event)" />
     <EasyScanTool v-else-if="tool.tool_type === 'scan'" :source-window-key="tool.instance_key" />
     <MarketGaugeTool v-else-if="tool.tool_type === 'gauge'" />
     <StudyLabTool v-else-if="tool.tool_type === 'study_lab'" :active-symbol="activeSymbol" :configuration="tool.configuration" @configuration="emit('configuration', tool.instance_key, $event)" @occurrence="emit('occurrence', $event.symbol, $event.timestamp)" />
@@ -405,7 +405,7 @@ import { useDrawingsStore } from '@/stores/drawings'
 import { useAlertsStore } from '@/stores/alerts'
 import { useWorkspaceStore, type GroupSnapshotRow, type LinkGroup, type WorkspaceWindowState } from '@/stores/workspace'
 import { useWatchlistStore } from '@/stores/watchlist'
-import type { Watchlist } from '@/types'
+import type { Instrument, Watchlist } from '@/types'
 import ToolWindow from './ToolWindow.vue'
 import VirtualWatchlistTool, { type WatchlistColumn, type WatchlistRow } from './VirtualWatchlistTool.vue'
 import RatioUPlot from './RatioUPlot.vue'
@@ -767,6 +767,23 @@ const activeSymbol = computed(() => workspaceStore.symbolForLinkGroup(
   props.tool.link_group,
   typeof props.tool.configuration.symbol === 'string' ? props.tool.configuration.symbol : null,
 ))
+// Non-chart tools have their own panel-scoped chart store and therefore cannot
+// rely on a chart window having loaded the canonical instrument first. Resolve
+// identity directly for notes, alerts, and reports so active-symbol actions work
+// even when those tools are opened in isolation or in a pop-out.
+const toolInstrument = ref<Instrument | null>(null)
+let instrumentRequestSequence = 0
+watch(activeSymbol, async symbol => {
+  const sequence = ++instrumentRequestSequence
+  toolInstrument.value = null
+  if (!symbol || props.tool.tool_type === 'chart') return
+  try {
+    const loaded = await api.get<Instrument>(`/instruments/${encodeURIComponent(symbol)}`)
+    if (sequence === instrumentRequestSequence) toolInstrument.value = loaded
+  } catch {
+    if (sequence === instrumentRequestSequence) toolInstrument.value = null
+  }
+}, { immediate: true })
 // Older persisted workspaces used the shorter `industries` instance key. Keep
 // that serialized state behavior-compatible while new factory layouts use the
 // explicit `industry-list` key.
