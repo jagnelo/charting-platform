@@ -18161,3 +18161,11 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
   symbol selector.
 - The rebuilt-stack flow passed `1/1` with no critical browser diagnostics. Strict visual approval,
   provider-live coverage, adversarial resource stress, native multi-monitor, and long-soak gates remain open.
+
+## Continuation update — 2026-08-06T02:20:00Z Frontend regression refresh
+
+- The full frontend Vitest suite remains green at `577/577` across 87 files, and
+  `vue-tsc --noEmit` passes after the structured Study Lab browser-flow addition.
+- Expected conflict-path stderr from watchlist rollback tests remains unchanged and is
+  asserted behavior; no new browser or frontend diagnostics were introduced. The strict
+  visual, provider-live, adversarial-resource, native multi-monitor, and long-soak gates remain open.

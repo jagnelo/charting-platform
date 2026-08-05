@@ -19652,3 +19652,10 @@ uncovered slice rather than repeat a generic completion claim.
 - Chromium passed `1/1` with no critical diagnostics. This is functional evidence only; the strict
   V25 manifest remains `required_missing`, and provider-live, adversarial, native multi-monitor, and
   long-soak acceptance remain open.
+
+## 2026-08-06T02:20:00Z Frontend regression refresh
+
+- Full frontend Vitest passed `577/577` across 87 files and `vue-tsc --noEmit` passed after
+  the F8o addition. Existing watchlist conflict-path stderr is expected and unchanged.
+- No new frontend diagnostics were introduced; strict visual, provider-live, adversarial
+  resource, native multi-monitor, and long-soak gates remain open.
