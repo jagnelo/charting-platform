@@ -33,6 +33,16 @@ describe('StudyLabTool', () => {
     expect(wrapper.find('[aria-label="Study as of"]').element).toHaveProperty('value', '2024-02-01T15:30')
   })
 
+  it('hydrates a persisted run after a virtual-tool remount', async () => {
+    apiGet.mockImplementation((path: string) => path === '/research/runs/77'
+      ? Promise.resolve({ id: 77, status: 'completed', artifacts: [{ id: 1, name: 'event_count', artifact_type: 'scalar', payload: { value: 4 } }] })
+      : Promise.resolve(undefined))
+    const wrapper = mountTool({ activeSymbol: 'SPY', configuration: { study_run_id: 77, study_run_source: 'output.scalar("event_count", 4)', study_run_contract: 'scalar' } })
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Run #77'))
+    expect(wrapper.text()).toContain('event_count')
+    expect(apiGet).toHaveBeenCalledWith('/research/runs/77')
+  })
+
   it('offers constrained SDK suggestions while retaining the plain Python editor', async () => {
     const wrapper = mountTool({ activeSymbol: 'SPY' })
     const editor = wrapper.find('[aria-label="Study Python source"]')

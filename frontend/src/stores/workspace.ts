@@ -342,6 +342,10 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   // events can arrive out of order around a reset; this local value is the
   // authoritative displayed-symbol fallback when a tool is isolated.
   const locallyPublishedSymbols = ref<Partial<Record<LinkGroup, string>>>({ blue: 'SPY' })
+  // Shell-level selections are the user's canonical active-symbol intent. A
+  // late chart/pop-out publication must not overwrite this before Grey
+  // isolation captures the currently selected symbol.
+  const latestWorkstationSymbol = ref('SPY')
   const wildcardSymbol = ref<LinkEvent>({ symbol: 'SPY', group: 'blue', sourceWindowKey: 'workstation' })
   const linkedTimestamp = ref<string | null>(null)
   const linkedTimestamps = ref<Partial<Record<LinkGroup, string | null>>>({})
@@ -373,6 +377,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   let leaderTimer: ReturnType<typeof setInterval> | null = null
   let snapshotTimer: ReturnType<typeof setTimeout> | null = null
   let snapshotSavePromise: Promise<void> | null = null
+  let lastLocalWorkspaceMutationAt = 0
+  const recentLinkGroupOverrides = new Map<string, { group: LinkGroup; symbol: string; at: number }>()
   // A PUT may resolve after a newer local edit has already been made.  Never let
   // that older response replace the live reactive workspace with stale layout or
   // tool configuration.
@@ -439,6 +445,11 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   async function reloadSharedWorkspace(event: WorkspaceSnapshotEvent) {
     const current = workspace.value
     if (!current || current.id !== event.workspaceId || current.revision >= event.revision || event.sourceWindowId === windowId) return
+    // A remote event can have been queued before a local edit and arrive after
+    // the debounce/save completes. Keep a short revisioned-write settling
+    // window so that stale snapshots cannot undo the user's latest control
+    // selection; the next explicit event/read still reconciles normally.
+    if (Date.now() - lastLocalWorkspaceMutationAt < 750) return
     // A local edit is already queued or being persisted. Applying a remote
     // snapshot first would silently discard that edit and make the subsequent
     // save appear to have originated from a stale tool. Let the revisioned save
@@ -446,7 +457,22 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     if (snapshotTimer || snapshotSavePromise) return
     try {
       const latest = await api.get<WorkspaceState>(`/workspaces/${event.workspaceId}`)
+      // The read may have started before a local control change queued a
+      // snapshot. Re-check after the await so an older remote response cannot
+      // restore the previous link group over the user's current selection.
+      if (snapshotTimer || snapshotSavePromise || workspace.value?.revision !== current.revision) return
       if (latest.revision <= current.revision) return
+      const now = Date.now()
+      for (const [windowKey, override] of recentLinkGroupOverrides) {
+        if (now - override.at >= 5000) {
+          recentLinkGroupOverrides.delete(windowKey)
+          continue
+        }
+        const remoteTool = latest.tabs.flatMap(tab => tab.windows).find(window => window.instance_key === windowKey)
+        if (!remoteTool) continue
+        remoteTool.link_group = override.group
+        remoteTool.configuration = { ...remoteTool.configuration, symbol: override.symbol }
+      }
       workspace.value = latest
       persistedWorkspace = cloneSerializable(latest)
       if (!latest.tabs.some(tab => tab.stable_key === activeTabKey.value)) {
@@ -584,6 +610,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
 
   function publishSymbol(event: LinkEvent) {
     if (event.group === 'grey') return
+    if (event.sourceWindowKey === 'workstation') latestWorkstationSymbol.value = event.symbol
     locallyPublishedSymbols.value = { ...locallyPublishedSymbols.value, [event.group]: event.symbol }
     applySharedSymbol(event)
     // Keep each concrete linked tool's serializable fallback current as the
@@ -1108,6 +1135,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
 
   function scheduleSnapshot() {
     if (snapshotTimer) clearTimeout(snapshotTimer)
+    lastLocalWorkspaceMutationAt = Date.now()
     snapshotGeneration += 1
     snapshotTimer = setTimeout(() => { void saveSnapshot() }, 350)
   }
@@ -1185,10 +1213,15 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     // cannot overwrite the isolated view through the global active-symbol state.
     if (group === 'grey') {
       const configuredSymbol = typeof tool.configuration.symbol === 'string' ? tool.configuration.symbol : null
-      const isolatedSymbol = displayedSymbol?.trim().toUpperCase()
-        || locallyPublishedSymbols.value[tool.link_group]
-        || symbolForLinkGroup(tool.link_group, configuredSymbol)
+      const isolatedSymbol = displayedSymbol
+        ? (tool.link_group === 'blue' ? latestWorkstationSymbol.value : displayedSymbol.trim().toUpperCase())
+        : locallyPublishedSymbols.value[tool.link_group]
+          || symbolForLinkGroup(tool.link_group, configuredSymbol)
       tool.configuration = { ...tool.configuration, symbol: isolatedSymbol }
+      recentLinkGroupOverrides.set(windowKey, { group, symbol: isolatedSymbol, at: Date.now() })
+    } else {
+      const configuredSymbol = typeof tool.configuration.symbol === 'string' ? tool.configuration.symbol : 'SPY'
+      recentLinkGroupOverrides.set(windowKey, { group, symbol: configuredSymbol, at: Date.now() })
     }
     tool.link_group = group
     scheduleSnapshot()
@@ -1409,7 +1442,10 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       const reset = await api.post<WorkspaceState>(`/workspaces/${workspace.value.id}/reset-factory`, {})
       workspace.value = reset
       persistedWorkspace = cloneSerializable(reset)
+      recentLinkGroupOverrides.clear()
+      lastLocalWorkspaceMutationAt = Date.now()
       activeTabKey.value = reset.tabs[0]?.stable_key ?? 'us-top-down'
+      announceWorkspaceSnapshot(reset)
       error.value = null
       return true
     } catch (cause: any) {

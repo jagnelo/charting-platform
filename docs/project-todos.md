@@ -64,6 +64,19 @@ The focused host suite passes `2/2`; the full frontend suite is `580/580` across
 `vue-tsc --noEmit` remains green. This strengthens lifecycle evidence without changing the
 strict visual, provider-live, sustained-stress, multi-monitor, or indefinite-soak gates.
 
+The next rebuilt-stack audit found two further persistence/lifecycle races. Virtual workstation
+tools now keep a local link-group state while the native selector and parent workspace reconcile,
+and Grey isolation records the displayed symbol plus a short-lived remote-snapshot override so an
+in-flight save cannot restore the shared group. Study Lab now caches and hydrates its durable run,
+persists the run source/contract in tool configuration, and continues polling queued/running jobs
+even when Golden Layout briefly reports the tool outside the viewport. The full frontend suite is
+`584/584` across 88 files, `vue-tsc --noEmit` passes, and isolated rebuilt-stack F8g, F8m, F8o, and
+F8p checks pass. A complete 42-case browser run reached `41/42`; the sole F8p miss was a transient
+browser-process permission failure and a privileged isolated rerun passed `1/1`. This is stronger
+functional evidence, not completion: exact-build V25 visual approval, provider-live coverage,
+sustained sandbox/resource stress, native multi-monitor placement, indefinite soak, and remaining
+cross-surface parity gates stay open.
+
 The full authenticated browser sequence then exposed an order-dependent workspace race: stale
 remote snapshots or pre-reset Golden Layout saves could restore a shared link group after the user
 selected Grey, while a stale autocomplete listbox could intercept the next sector click. Search

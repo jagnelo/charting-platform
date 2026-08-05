@@ -1,5 +1,5 @@
 <template>
-  <ToolWindow :title="tool.title || tool.tool_type" :symbol="activeSymbol" :link-group="tool.link_group" :timeframe-link-group="timeframeLinkGroup" :timeframe="tool.tool_type === 'chart' ? activeTimeframe : ''" :active="tool.instance_key === activeWindowKey" @float="emit('float', tool.instance_key)" @maximize="emit('maximize', tool.instance_key)" @close="emit('close', tool.instance_key)" @update:link-group="emit('updateLinkGroup', tool.instance_key, $event, activeSymbol)" @update:timeframe-link-group="setTimeframeLinkGroup" @update:timeframe="setTimeframe">
+  <ToolWindow :window-key="tool.instance_key" :title="tool.title || tool.tool_type" :symbol="activeSymbol" :link-group="localLinkGroup" :timeframe-link-group="timeframeLinkGroup" :timeframe="tool.tool_type === 'chart' ? activeTimeframe : ''" :active="tool.instance_key === activeWindowKey" @float="emit('float', tool.instance_key)" @maximize="emit('maximize', tool.instance_key)" @close="emit('close', tool.instance_key)" @update:link-group="handleLinkGroupChange" @update:timeframe-link-group="setTimeframeLinkGroup" @update:timeframe="setTimeframe">
     <div v-if="tool.instance_key === 'benchmark-list'" class="benchmark-surface">
       <div class="benchmark-surface__identity" aria-label="S&P 500 benchmark identity">
         <strong>S&amp;P 500</strong>
@@ -213,13 +213,13 @@
         @condition-drop="addConditionColumn"
     />
     <div v-else-if="ratioExpression" class="analysis">
-      <RatioUPlot :symbol="ratioExpression.numerator" :benchmarks="[ratioExpression.denominator]" :timeframe="activeTimeframe" :as-of="typeof tool.configuration.as_of === 'string' ? tool.configuration.as_of : null" :linked-timestamp="workspaceStore.timestampForLinkGroup(tool.link_group)" @cursor-timestamp="workspaceStore.publishTimestamp($event, tool.link_group, tool.instance_key)" @configuration="emit('configuration', tool.instance_key, { ...tool.configuration, ...$event })" />
+      <RatioUPlot :symbol="ratioExpression.numerator" :benchmarks="[ratioExpression.denominator]" :timeframe="activeTimeframe" :as-of="typeof tool.configuration.as_of === 'string' ? tool.configuration.as_of : null" :linked-timestamp="workspaceStore.timestampForLinkGroup(localLinkGroup)" @cursor-timestamp="workspaceStore.publishTimestamp($event, localLinkGroup, tool.instance_key)" @configuration="emit('configuration', tool.instance_key, { ...tool.configuration, ...$event })" />
     </div>
     <div v-else-if="tool.tool_type === 'chart' && tool.instance_key !== 'ratio-chart'" class="chart-tool">
       <DrawingToolbar class="chart-tool__drawing-toolbar" />
         <div class="chart-tool__surface">
         <ChartTemplateControl class="chart-tool__templates" :configuration="liveChartConfiguration" :indicator-configs="chartStore.indicators" @apply="applyChartTemplate" />
-        <ChartPlotLibrary class="chart-tool__plots" :source-window-key="tool.instance_key" :link-group="tool.link_group" :python-plots="configuredPythonPlots" @update:python-plots="updatePythonPlots" />
+        <ChartPlotLibrary class="chart-tool__plots" :source-window-key="tool.instance_key" :link-group="localLinkGroup" :python-plots="configuredPythonPlots" @update:python-plots="updatePythonPlots" />
         <div class="chart-tool__compare" aria-label="Chart comparisons">
           <input v-model="comparisonDraft" aria-label="Comparison symbol" placeholder="Compare" @keydown.enter.prevent="addComparisonSymbol(comparisonDraft)" />
           <button type="button" title="Add comparison" @click="addComparisonSymbol(comparisonDraft)">＋</button>
@@ -233,8 +233,8 @@
           v-else-if="chartStore.symbol"
           :chart-type="chartBarType"
           :chart-settings="liveChartConfiguration"
-          :workspace-link-group="tool.link_group"
-          :linked-timestamp="workspaceStore.timestampForLinkGroup(tool.link_group)"
+          :workspace-link-group="localLinkGroup"
+          :linked-timestamp="workspaceStore.timestampForLinkGroup(localLinkGroup)"
           :comparison-series="comparisonSeries"
           :python-series="pythonSeries"
           @configuration="applyChartConfiguration"
@@ -345,7 +345,7 @@
       @condition-drop="addConditionColumn"
     />
     <div v-else-if="tool.instance_key === 'ratio-chart'" class="analysis">
-      <RatioUPlot :symbol="activeSymbol" :benchmarks="ratioBenchmarks" :timeframe="activeTimeframe" :as-of="typeof tool.configuration.as_of === 'string' ? tool.configuration.as_of : null" :linked-timestamp="workspaceStore.timestampForLinkGroup(tool.link_group)" @cursor-timestamp="workspaceStore.publishTimestamp($event, tool.link_group, tool.instance_key)" @configuration="emit('configuration', tool.instance_key, { ...tool.configuration, ...$event })" />
+      <RatioUPlot :symbol="activeSymbol" :benchmarks="ratioBenchmarks" :timeframe="activeTimeframe" :as-of="typeof tool.configuration.as_of === 'string' ? tool.configuration.as_of : null" :linked-timestamp="workspaceStore.timestampForLinkGroup(localLinkGroup)" @cursor-timestamp="workspaceStore.publishTimestamp($event, localLinkGroup, tool.instance_key)" @configuration="emit('configuration', tool.instance_key, { ...tool.configuration, ...$event })" />
     </div>
     <div v-else-if="tool.instance_key === 'breadth-summary' || tool.tool_type === 'breadth'" class="breadth-tool">
       <label class="breadth-tool__universe">Universe <select :value="breadthGroupKey" aria-label="Breadth universe" @change="setBreadthGroup(($event.target as HTMLSelectElement).value)"><option value="sp500-sectors">S&amp;P 500 sectors</option><option value="us-benchmarks">US benchmarks</option></select> Timeframe <select :value="breadthTimeframe" aria-label="Breadth timeframe" @change="setBreadthConfiguration({ timeframe: ($event.target as HTMLSelectElement).value })"><option value="D1">Daily</option><option value="W1">Weekly</option><option value="MN">Monthly</option></select> Lookback <input :value="breadthLookback" aria-label="Breadth new high low lookback" type="number" min="2" max="252" @change="setBreadthConfiguration({ new_high_lookback: Number(($event.target as HTMLInputElement).value) })" /> <label><input type="checkbox" :checked="breadthAdjusted" aria-label="Breadth split adjusted" @change="setBreadthConfiguration({ adjusted: ($event.target as HTMLInputElement).checked })" /> Adjusted</label></label>
@@ -384,7 +384,7 @@
     <InstrumentInfoPanel v-else-if="tool.tool_type === 'report'" class="instrument-report" :instrument="toolInstrument ?? chartStore.instrument" :current-price="currentPrice" :session-high="currentSessionHigh" :session-low="currentSessionLow" @select="selectSymbol($event)" />
     <EasyScanTool v-else-if="tool.tool_type === 'scan'" :source-window-key="tool.instance_key" />
     <MarketGaugeTool v-else-if="tool.tool_type === 'gauge'" />
-    <StudyLabTool v-else-if="tool.tool_type === 'study_lab'" :active-symbol="activeSymbol" :configuration="tool.configuration" @configuration="emit('configuration', tool.instance_key, $event)" @occurrence="emit('occurrence', $event.symbol, $event.timestamp)" />
+    <StudyLabTool v-else-if="tool.tool_type === 'study_lab'" :tool-key="tool.instance_key" :active-symbol="activeSymbol" :configuration="tool.configuration" @configuration="emit('configuration', tool.instance_key, $event)" @occurrence="emit('occurrence', $event.symbol, $event.timestamp)" />
     <ResearchResultsTool v-else-if="tool.tool_type === 'research_results'" @occurrence="emit('occurrence', $event.symbol, $event.timestamp)" />
     <CodeLibraryTool v-else-if="tool.tool_type === 'code_library'" />
     <UnknownToolRecovery v-else :tool="tool" />
@@ -441,6 +441,12 @@ const emit = defineEmits<{ select: [symbol: string]; compare: [symbols: string[]
 // workstation chart its own stable store identity so red/grey/yellow charts cannot
 // accidentally render the shell's blue/default data.
 const chartPanelId = `workstation-${props.tool.instance_key}`
+const localLinkGroup = ref<LinkGroup>(props.tool.link_group)
+watch(() => props.tool.link_group, group => { localLinkGroup.value = group })
+function handleLinkGroupChange(group: LinkGroup) {
+  localLinkGroup.value = group
+  emit('updateLinkGroup', props.tool.instance_key, group, activeSymbol.value)
+}
 provide('panelId', chartPanelId)
 const chartStore = usePanelStore(chartPanelId)
 const drawingsStore = useDrawingsStore()
@@ -764,7 +770,7 @@ watch(() => comboWatchlistRows.value.map(row => row.symbol).join(','), value => 
 // parent workspace snapshot.
 const liveChartConfiguration = ref<Record<string, unknown>>(props.tool.configuration)
 const activeSymbol = computed(() => workspaceStore.symbolForLinkGroup(
-  props.tool.link_group,
+  localLinkGroup.value,
   typeof props.tool.configuration.symbol === 'string' ? props.tool.configuration.symbol : null,
 ))
 // Non-chart tools have their own panel-scoped chart store and therefore cannot

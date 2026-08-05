@@ -22,6 +22,21 @@
 - These repairs are committed with the provider policy below only after final full-suite reruns;
   strict visual/provider-live/hardware/sustained-stress gates remain open.
 
+## Continuation update — 2026-08-05T19:05:00Z Virtual-tool link and durable Study Lab repair
+
+- Virtual tools now reconcile a local link-group state with the parent workspace. Grey isolation
+  captures the displayed symbol and protects the local choice from an in-flight remote snapshot;
+  the native selector emits through the same canonical path.
+- Study Lab now persists run source/contract metadata, hydrates a durable run after remount, and
+  does not gate queued/running polling on transient Golden Layout intersection visibility. Added
+  hydration and workspace race regressions.
+- Full frontend Vitest passes `584/584` across 88 files and `vue-tsc --noEmit` passes. Isolated
+  rebuilt-stack F8g/F8m/F8o/F8p pass. The 42-case serial browser run recorded 41/42 with only a
+  browser-process permission failure on F8p; a privileged isolated F8p rerun passed 1/1.
+- Remaining gates are unchanged: approved exact-build V25 references, provider-live entitlements,
+  sustained sandbox/resource stress, native multi-monitor placement, indefinite soak, and full
+  cross-surface parity.
+
 ## Continuation update — 2026-08-06T19:30:00Z Top-down taxonomy coverage
 
 - Added direct tests for the explicit industry-proxy registry and the real async taxonomy seeding

@@ -703,6 +703,37 @@ describe('workspace store layout tabs', () => {
     store.disconnect()
   })
 
+  it('does not apply an in-flight remote snapshot after a local link edit begins', async () => {
+    class FakeBroadcastChannel {
+      addEventListener() {}
+      close() {}
+      postMessage() {}
+    }
+    vi.stubGlobal('BroadcastChannel', FakeBroadcastChannel)
+    const store = useWorkspaceStore()
+    const current = {
+      id: 10, user_id: 3, name: 'US Top Down', is_default: true, position: 0, revision: 4, schema_version: 1, settings: {},
+      tabs: [{ id: 20, stable_key: 'us-top-down', name: 'US Top Down', position: 0, active_window_key: 'chart', layout_config: {}, windows: [{ id: 30, instance_key: 'chart', tool_type: 'chart', title: 'Chart', link_group: 'blue', configuration: { symbol: 'SPY' }, style: {}, state_schema_version: 1, position: 0 }] }],
+    }
+    store.workspace = current
+    let resolveRemote!: (value: typeof current) => void
+    apiGet.mockImplementation(() => new Promise(resolve => { resolveRemote = resolve as typeof resolveRemote }))
+    store.connect()
+    window.dispatchEvent(new StorageEvent('storage', {
+      key: 'charting-platform-workstation:workspace-snapshot',
+      newValue: JSON.stringify({ type: 'workspace-snapshot', workspaceId: 10, revision: 5, sourceWindowId: 'another-window' }),
+    }))
+    await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith('/workspaces/10'))
+
+    store.updateToolLinkGroup('chart', 'grey', 'SPY')
+    resolveRemote({ ...current, revision: 5, name: 'Remote update' })
+
+    await new Promise(resolve => setTimeout(resolve, 20))
+    expect(store.workspace?.tabs[0].windows[0].link_group).toBe('grey')
+    expect(store.workspace?.name).toBe('US Top Down')
+    store.disconnect()
+  })
+
   it('loads and caches verified industry-proxy rankings with the proxy evidence', async () => {
     const store = useWorkspaceStore()
     apiGet.mockImplementation((path: string) => {

@@ -20078,6 +20078,17 @@ uncovered slice rather than repeat a generic completion claim.
 - Remaining acceptance gates are unchanged: strict exact-build V25 visual references/baselines,
   configured provider-live coverage, sustained sandbox/resource stress, native multi-monitor,
   indefinite soak, and remaining cross-surface parity.
+
+## 2026-08-05T19:05:00Z Virtual-tool link and durable Study Lab repair
+
+- Reconciled native symbol-link changes with local virtual-tool state; Grey captures the displayed
+  symbol and remote snapshot application cannot immediately undo a local isolation choice.
+- Study Lab now hydrates persisted durable runs and polls queued/running runs independently of
+  transient Golden Layout intersection state. Added workspace and Study Lab regressions.
+- Validation: full frontend Vitest `584/584` across 88 files; `vue-tsc --noEmit` passed; isolated
+  rebuilt-stack F8g/F8m/F8o/F8p passed. The serial 42-case run was `41/42` because F8p hit a
+  Chromium permission failure; privileged isolated F8p rerun passed `1/1`. No visual baselines
+  were promoted; strict V25/provider-live/multi-monitor/sustained-stress/soak gates remain open.
 ## 2026-08-07T00:35:00Z Live sandbox probe refresh
 
 - Current runner probe results: namespace/mount/ptrace/fork/network/subprocess/root-write denied;

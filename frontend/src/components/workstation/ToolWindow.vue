@@ -1,5 +1,5 @@
 <template>
-  <section class="tool-window" :class="{ 'tool-window--active': active }" @keydown.escape="menuOpen = false">
+  <section class="tool-window" :data-window-key="windowKey" :class="{ 'tool-window--active': active }" @keydown.escape="menuOpen = false">
     <header class="tool-window__header">
       <span class="tool-window__drag-handle" draggable="true" aria-label="Drag tool" title="Drag tool" @dragstart="emit('dragstart', $event)">⋮⋮</span>
       <strong class="tool-window__title">{{ title }}</strong>
@@ -17,6 +17,7 @@
           :value="linkGroup"
           class="tool-window__link"
           :aria-label="title + ' symbol link group'"
+          @input="emit('update:linkGroup', ($event.target as HTMLSelectElement).value as LinkGroup)"
           @change="emit('update:linkGroup', ($event.target as HTMLSelectElement).value as LinkGroup)"
         >
           <option v-for="group in groups" :key="group" :value="group">{{ dashboardLinkGroupLabel(group) }}</option>
@@ -46,6 +47,7 @@ import type { LinkGroup } from '@/stores/workspace'
 import { dashboardLinkGroupColor, dashboardLinkGroupLabel } from '@/stores/dashboardLinks'
 
 withDefaults(defineProps<{
+  windowKey?: string
   title: string
   symbol?: string
   linkGroup?: LinkGroup

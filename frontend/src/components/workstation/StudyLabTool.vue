@@ -100,8 +100,9 @@ interface Validation { valid: boolean; diagnostics: unknown[]; dependencies: str
 interface ParameterDefinition { name: string; type: string; default?: unknown; enum?: unknown[]; minimum?: number; maximum?: number }
 interface Run { id: number; status: string; progress?: { status?: string; completed_cells?: number; total_cells?: number }; diagnostics?: unknown[]; reproducibility_hash?: string | null; dataset_manifest?: { benchmark_coverage?: { status?: string; reason?: string } }; artifacts?: Array<{ id: number; name: string; artifact_type: string; payload: Record<string, unknown> }> }
 type Artifact = NonNullable<Run['artifacts']>[number]
+const studyRunCache = new Map<string, { run: Run; source: string; contract: string | null }>()
 
-const props = defineProps<{ activeSymbol: string; configuration?: Record<string, unknown> }>()
+const props = defineProps<{ toolKey?: string; activeSymbol: string; configuration?: Record<string, unknown> }>()
 const emit = defineEmits<{ occurrence: [event: { symbol: string; timestamp: string; kind?: string }]; configuration: [configuration: Record<string, unknown>] }>()
 const name = ref('Consecutive Positive Closes')
 const symbol = ref(props.activeSymbol)
@@ -179,9 +180,15 @@ const promotionStatus = ref('')
 const rerunBusy = ref(false)
 const validation = ref<Validation | null>(null)
 const promotedScanId = ref<number | null>(null)
-const run = ref<Run | null>(null)
+const cacheKey = props.toolKey ? `study:${props.toolKey}` : null
+const cachedRun = cacheKey ? studyRunCache.get(cacheKey) : null
+const run = ref<Run | null>(cachedRun?.run ?? null)
 const runSource = ref('')
 const runContract = ref<string | null>(null)
+if (cachedRun) {
+  runSource.value = cachedRun.source
+  runContract.value = cachedRun.contract
+}
 const error = ref('')
 const studyLabRoot = ref<HTMLElement | null>(null)
 const surfaceVisible = ref(true)
@@ -197,7 +204,11 @@ const runQuery = useQuery({
     if (!refreshed) throw new Error('Study run refresh returned no data')
     return refreshed
   },
-  enabled: computed(() => Boolean(run.value?.id) && !['completed', 'failed', 'canceled'].includes(run.value?.status ?? '') && surfaceVisible.value && documentVisible.value),
+  // Research jobs are durable and must continue being observed while Golden
+  // Layout briefly reports a virtual tool as non-intersecting during a remount.
+  // Document visibility still gates browser-background polling; panel
+  // visibility alone must not strand a queued/running run.
+  enabled: computed(() => Boolean(run.value?.id) && !['completed', 'failed', 'canceled'].includes(run.value?.status ?? '') && documentVisible.value),
   staleTime: 0,
   refetchOnWindowFocus: true,
   refetchInterval: query => {
@@ -205,7 +216,12 @@ const runQuery = useQuery({
     return status && !['completed', 'failed', 'canceled'].includes(status) ? 1_000 : false
   },
 })
-watch(() => runQuery.data.value, next => { if (next && next.id === run.value?.id) run.value = next })
+watch(() => runQuery.data.value, next => {
+  if (next && next.id === run.value?.id) run.value = next
+})
+watch(run, next => {
+  if (cacheKey && next) studyRunCache.set(cacheKey, { run: next, source: runSource.value, contract: runContract.value })
+}, { deep: true })
 watch(() => runQuery.error.value, cause => {
   if (cause) error.value = cause instanceof Error ? cause.message : 'Unable to refresh study run'
 })
@@ -457,6 +473,12 @@ async function saveAndRun() {
       run_config: runConfig,
       dataset_manifest: { source: 'canonical_database', requested_at: new Date().toISOString(), ...datasetControls },
     })
+    emit('configuration', {
+      ...(props.configuration ?? {}),
+      study_run_id: run.value.id,
+      study_run_source: runSource.value,
+      study_run_contract: runContract.value,
+    })
   } catch (cause: any) { error.value = cause?.message ?? 'Unable to start isolated study run' }
   finally { busy.value = false }
 }
@@ -529,6 +551,17 @@ onMounted(() => {
       surfaceVisible.value = entries.some(entry => entry.isIntersecting && entry.intersectionRatio > 0)
     })
     visibilityObserver.observe(studyLabRoot.value)
+  }
+  const persistedRunId = Number(props.configuration?.study_run_id)
+  if (Number.isInteger(persistedRunId) && persistedRunId > 0) {
+    void api.get<Run>(`/research/runs/${persistedRunId}`).then(persistedRun => {
+      run.value = persistedRun
+      runSource.value = typeof props.configuration?.study_run_source === 'string' ? props.configuration.study_run_source : ''
+      runContract.value = typeof props.configuration?.study_run_contract === 'string' ? props.configuration.study_run_contract : null
+    }).catch(() => {
+      // Keep the tool usable when an old persisted run has been pruned.
+      run.value = null
+    })
   }
 })
 onBeforeUnmount(() => {

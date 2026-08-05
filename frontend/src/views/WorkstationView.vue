@@ -211,6 +211,10 @@ function handleWorkstationFocusIn(event: FocusEvent) {
 
 function handleWorkstationChange(event: Event) {
   const target = event.target
+  if (target instanceof HTMLSelectElement && target.classList.contains('tool-window__link')) {
+    const windowKey = target.closest<HTMLElement>('[data-window-key]')?.dataset.windowKey
+    if (windowKey) updateLinkGroup(windowKey, target.value as LinkGroup)
+  }
   if (target instanceof Element && target.closest('.workstation__search')) return
   closeSymbolSearch()
 }
