@@ -58,6 +58,12 @@ completed a claimed job after terminating/restarting only the research-runner, w
 or progress artifacts. This remains bounded recovery evidence; the broader sustained stress matrix
 is still required.
 
+The Golden Layout host now has direct component regression coverage for virtual-tool installation,
+serialised state-change emission, layout replacement, fingerprint-stable updates, and teardown.
+The focused host suite passes `2/2`; the full frontend suite is `580/580` across 88 files and
+`vue-tsc --noEmit` remains green. This strengthens lifecycle evidence without changing the
+strict visual, provider-live, sustained-stress, multi-monitor, or indefinite-soak gates.
+
 Provider-route recheck on 2026-08-05T21:45:00Z confirmed that the four remaining ETF holdings
 failures are still external-route conditions, not safe candidates for fallback substitution:
 official pages declare ADFI, DFTT, and NEOS downloads but the discovered acceptance routes remain

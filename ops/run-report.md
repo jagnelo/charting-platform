@@ -20037,3 +20037,11 @@ uncovered slice rather than repeat a generic completion claim.
 - Full frontend Vitest after the change passes `578/578` across 87 files.
 - Bounded orphan recovery rerun after the corrected resource probe completed successfully after
   restarting only the isolated runner; cancel/progress residue was absent.
+## 2026-08-06T23:50:00Z Golden Layout lifecycle coverage
+
+- `tests/unit/components/test_workspace_layout_host.test.ts` now covers virtual-tool installation,
+  state-change emission/tool-key extraction, prop-driven layout replacement, unchanged-layout
+  fingerprinting, and teardown (`2/2`).
+- Full frontend Vitest passed `580/580` across 88 files and `vue-tsc --noEmit` passed. This is
+  lifecycle evidence only; strict V25 visual, provider-live, sustained sandbox/resource,
+  native multi-monitor, indefinite-soak, and cross-surface parity gates remain open.

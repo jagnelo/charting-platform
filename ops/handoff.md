@@ -18589,3 +18589,12 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
 - Reran the bounded orphan-recovery probe after the resource-probe correction: the isolated runner
   reclaimed a claimed job after an explicit container restart, completed it, and left no stale
   cancel/progress artifacts. This does not close the sustained stress matrix.
+## Continuation update — 2026-08-06T23:50:00Z Golden Layout lifecycle coverage
+
+- Added direct `WorkspaceLayoutHost` component coverage for virtual-tool factory installation,
+  serialized `stateChanged` emission and tool-key extraction, layout replacement, stable-layout
+  fingerprinting, and teardown. Focused coverage passes `2/2`; full frontend Vitest passes
+  `580/580` across 88 files and `vue-tsc --noEmit` passes.
+- This closes a lifecycle-test gap only. Exact-build V25 visual approval, provider-live,
+  sustained sandbox/resource stress, native multi-monitor placement, indefinite soak, and the
+  remaining cross-surface parity gates remain open.
