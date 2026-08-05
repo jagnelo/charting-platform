@@ -21,6 +21,14 @@ is recorded in the referenced test/baseline system.
 
 ## Current runtime evidence (2026-08-05)
 
+Pop-outs now restore persisted `left`, `top`, `width`, and `height` geometry from the
+serializable workspace window style, capture move/resize changes while open, and stop
+polling after close. Geometry is clamped to usable minimum dimensions, and unchanged polls
+do not schedule snapshot writes. Focused geometry/store coverage is `35/35`; rebuilt
+authenticated pop-out flows F8b/F8f/F8h/F8i pass `4/4`. This closes persisted single-window
+geometry behavior; multi-monitor OS placement and long-duration memory soak remain separate
+acceptance gates.
+
 The free-source identifier probe now includes a live repository-level OpenFIGI check: the
 unauthenticated public mapping endpoint resolved `SPY` to three stable FIGI records (FIGI,
 composite FIGI, and share-class FIGI) through `OpenFigiProvider`. This does not imply quota

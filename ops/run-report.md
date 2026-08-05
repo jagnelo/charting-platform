@@ -1,5 +1,12 @@
 # Run Report
 
+## 2026-08-05T09:12:00Z Persisted pop-out geometry
+
+- Pop-outs now restore and capture serializable `left`, `top`, `width`, and `height` geometry,
+  while unchanged polling avoids repeated snapshot writes. Geometry/store coverage passed
+  `35/35`, the production build passed, and rebuilt authenticated F8b/F8f/F8h/F8i flows passed
+  `4/4`. OS-level multi-monitor placement and long-duration memory soak remain open.
+
 ## 2026-08-05T08:01:00Z Public OpenFIGI provider probe
 
 - The repository `OpenFigiProvider` resolved `SPY` through the unauthenticated public
