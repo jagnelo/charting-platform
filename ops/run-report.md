@@ -20191,3 +20191,11 @@ uncovered slice rather than repeat a generic completion claim.
 
 - Complete backend Ruff validation (`app` and `tests`) and repository `git diff --check` both pass.
   No new static diagnostics were introduced by the issuer-fallback or pop-out geometry changes.
+
+## 2026-08-07T07:00:00Z Extended pop-out lifecycle soak
+
+- Authenticated Chromium workstation performance passed twice with
+  `TC2000_POP_OUT_CHURN_ROUNDS=100` (200 pop-out opens/closes per run), stable source tool/canvas
+  counts, bounded heap checks where exposed, and clean critical diagnostics. A single preceding
+  run hit a transient page-closure teardown race and was not counted as a pass. Native OS
+  multi-monitor placement remains unverified.

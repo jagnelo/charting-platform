@@ -18778,3 +18778,12 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
 - Re-ran the complete backend Ruff tree (`app` and `tests`) and repository `git diff --check`.
   Both gates pass with no new diagnostics. This closes the post-fallback static-formatting audit;
   exact-build visual, native multi-monitor, and provider-live acceptance items remain open.
+
+## Continuation update — 2026-08-07T07:00:00Z Extended pop-out lifecycle soak
+
+- Ran the authenticated workstation performance suite with `TC2000_POP_OUT_CHURN_ROUNDS=100`.
+  The complete two-test run passed twice (including 100 rounds, 200 pop-out opens/closes) with
+  bounded tool/canvas counts and no critical browser diagnostics. One initial run encountered a
+  transient browser-page closure during teardown; the immediate clean rerun passed, so this is
+  retained as a flaky-environment observation rather than treated as acceptance evidence of a
+  product leak. Native OS multi-monitor placement remains unverified.
