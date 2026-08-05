@@ -410,10 +410,15 @@ test.describe('TC2000 workstation', () => {
     // state so this link-bus assertion cannot inherit a prior link selection.
     const reset = page.getByTitle('Reset factory workspace').first()
     if (await reset.count()) {
+      page.once('dialog', dialog => dialog.accept())
       await reset.click()
       await page.waitForTimeout(300)
       await page.reload()
     }
+    const activeSymbolInput = page.getByRole('combobox', { name: 'Active symbol' })
+    await activeSymbolInput.fill('SPY')
+    await activeSymbolInput.press('Enter')
+    await expect(activeSymbolInput).toHaveValue('SPY')
     const chartTool = page.locator('.chart-tool').first().locator('..').locator('..')
     const chartSymbol = chartTool.locator('.tool-window__symbol')
     const chartLink = chartTool.locator('select[aria-label="Chart symbol link group"]')
@@ -683,12 +688,14 @@ test.describe('TC2000 workstation', () => {
     await expect(page.getByRole('combobox', { name: 'Active symbol' })).toHaveValue('SPY', { timeout: 10_000 })
     await page.getByRole('button', { name: 'Add tool' }).click()
     await page.getByRole('button', { name: 'Notes', exact: true }).click()
-    const notes = page.locator('.tool-window').filter({ has: page.locator('.note-tool') }).last()
-    await expect(notes).toBeVisible({ timeout: 10_000 })
-    const editor = notes.getByRole('textbox', { name: 'Instrument note' })
+    const notes = page.locator('.tool-window').filter({ has: page.locator('.note-tool') })
+    await expect(notes.last()).toBeVisible({ timeout: 10_000 })
+    // Persisted workspaces may contain older Notes windows. Target the newly
+    // hydrated active-instrument editor rather than assuming DOM order.
+    const editor = page.locator('.note-tool textarea:not(:disabled)').last()
     await expect(editor).toBeEnabled({ timeout: 10_000 })
     await editor.fill(`E2E note ${process.hrtime.bigint().toString(36)}`)
-    await expect(notes.locator('.note-tool__status')).toContainText('Saved', { timeout: 10_000 })
+    await expect(editor.locator('xpath=ancestor::section[contains(@class,"note-tool")]').locator('.note-tool__status')).toContainText('Saved', { timeout: 10_000 })
     await browserDiagnostics.expectNoCriticalIssues()
   })
 

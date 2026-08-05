@@ -19733,6 +19733,16 @@ uncovered slice rather than repeat a generic completion claim.
 - Existing Nautilus/NumPy deprecation warnings remain unchanged. Strict visual, provider-live,
   adversarial-resource, native multi-monitor, and long-soak acceptance remain open.
 
+## 2026-08-06T07:35:00Z Primary workflow browser acceptance
+
+- Serial Chromium acceptance passed `7/7` for F8d/F8e/F8m/F8n/F8p/F8q/F8s, covering the complete
+  top-down path, link groups, timeframe propagation, Study Lab factory and promotion surfaces, and
+  Notes save behavior. F8m now establishes an explicit SPY baseline; F8s selects a hydrated active
+  Notes editor instead of assuming persisted DOM order, making the suite deterministic across prior
+  workspace mutations.
+- Strict V25 visual, provider-live, adversarial-resource, native multi-monitor, and long-soak
+  acceptance remain open.
+
 ## 2026-08-06T07:05:00Z Taxonomy startup and geometry acceptance
 
 - A fresh seeded stack initially failed backend health because taxonomy seeding lazily loaded

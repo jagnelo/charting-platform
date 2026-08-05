@@ -18250,6 +18250,16 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
   scope result, not a test failure. Ruff and rebuilt-stack F8s remain green. The strict visual,
   provider-live, adversarial resource, native multi-monitor, and long-soak gates remain open.
 
+## Continuation update — 2026-08-06T07:35:00Z Primary workflow browser acceptance
+
+- The combined authenticated top-down acceptance set now passes `7/7` serially: benchmark/sector
+  drilldown, yellow/grey linking, timeframe linking, industry/proxy/constituent drilldown, factory
+  Study Lab, Boolean scan/alert promotion, and active-symbol Notes persistence.
+- The browser harness now explicitly establishes SPY before F8m and targets the hydrated Notes
+  editor rather than relying on persisted tool DOM order. This removes shared-workspace state
+  flakiness without weakening the user-facing assertions. Strict visual, provider-live,
+  adversarial resource, native multi-monitor, and long-soak gates remain open.
+
 ## Continuation update — 2026-08-06T07:05:00Z Taxonomy startup and geometry acceptance
 
 - A fresh seeded-stack browser attempt exposed a real backend startup defect: taxonomy seeding
