@@ -18152,3 +18152,12 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
   integration checkpoint.
 - The strict visual manifest was re-run and still fails closed at
   `application-shell-default/default: required_missing`; no reference or baseline was promoted.
+
+## Continuation update — 2026-08-06T02:00:00Z Structured Study Lab browser acceptance
+
+- Added F8o, an authenticated Chromium flow that validates and runs a structured Python study
+  producing scalar metrics, bar frequency output, histogram output, a summary table, and
+  clickable occurrence events; the occurrence is verified to publish SPY back to the workstation
+  symbol selector.
+- The rebuilt-stack flow passed `1/1` with no critical browser diagnostics. Strict visual approval,
+  provider-live coverage, adversarial resource stress, native multi-monitor, and long-soak gates remain open.

@@ -19643,3 +19643,12 @@ uncovered slice rather than repeat a generic completion claim.
   Docker-backed `281/281` result remains authoritative.
 - Strict visual-manifest validation still rejects `application-shell-default/default` as
   `required_missing`; no snapshot or reference was promoted.
+
+## 2026-08-06T02:00:00Z Structured Study Lab browser acceptance
+
+- Added and executed F8o against the rebuilt authenticated stack. The flow validates and runs a
+  structured unified-Python study, then asserts scalar metrics, bar and histogram uPlot renderers,
+  a summary table, an occurrence event, and occurrence-to-active-symbol linking.
+- Chromium passed `1/1` with no critical diagnostics. This is functional evidence only; the strict
+  V25 manifest remains `required_missing`, and provider-live, adversarial, native multi-monitor, and
+  long-soak acceptance remain open.

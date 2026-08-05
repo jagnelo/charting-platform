@@ -579,6 +579,33 @@ test.describe('TC2000 workstation', () => {
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
+  test('F8o — Study Lab renders a structured event study with histogram, bars, table, and linked occurrences', async ({ page, browserDiagnostics }) => {
+    await page.goto('/chart')
+    await expect(page.locator('.workspace-layout-host')).toBeVisible({ timeout: 10_000 })
+    await page.getByRole('button', { name: 'Study', exact: true }).click()
+
+    const study = page.locator('.study-lab-tool')
+    await expect(study).toBeVisible({ timeout: 10_000 })
+    await study.getByRole('textbox', { name: 'Study name' }).fill('E2E structured event study')
+    await study.getByRole('textbox', { name: 'Study symbol' }).fill('SPY')
+    await study.getByRole('textbox', { name: 'Study Python source' }).fill(
+      "output.scalar('event_count', 4)\noutput.bar('monthly_frequency', ['2026-01', '2026-02'], [2, 2])\noutput.histogram('streak_distribution', [1, 2, 2, 3], 2, 2)\noutput.table('summary', [{'state': 'positive_close', 'count': 4}])\noutput.events('occurrences', [{'symbol': 'SPY', 'timestamp': '2026-01-02T00:00:00+00:00', 'kind': 'positive_close'}])"
+    )
+    await study.getByRole('button', { name: 'Validate' }).click()
+    await expect(study).toContainText('Validated for isolated execution', { timeout: 10_000 })
+    await study.getByRole('button', { name: 'Run' }).click()
+    await expect(study.locator('.study-lab-tool__run-status--completed')).toBeVisible({ timeout: 30_000 })
+    await expect(study.locator('.study-lab-tool__metrics article').filter({ hasText: 'event_count' })).toContainText('4')
+    await expect(study.locator('.study-bars-uplot, [class*="study-bars"]').first()).toBeVisible()
+    await expect(study.locator('.study-histogram-uplot, [class*="study-histogram"]').first()).toBeVisible()
+    await expect(study.locator('table').filter({ hasText: 'positive_close' })).toBeVisible()
+    const occurrence = study.locator('.study-lab-tool__events button').filter({ hasText: 'positive_close' })
+    await expect(occurrence).toBeVisible()
+    await occurrence.click()
+    await expect(page.getByRole('combobox', { name: 'Active symbol' })).toHaveValue('SPY')
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
 })
 
 
