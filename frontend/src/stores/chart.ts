@@ -95,7 +95,7 @@ function createChartStore(storeId: string) {
       opts: { before?: string; limit?: number; type?: ChartBarType; localOnly?: boolean } = {},
     ): Promise<OHLCVBar[]> {
       const type = opts.type ?? barType.value
-      const params: Record<string, any> = {}
+      const params: Record<string, any> = { adjusted: true }
       if (opts.before) params.before = opts.before
       if (opts.limit) params.limit = opts.limit
 

@@ -172,7 +172,7 @@ describe('useChartStore', () => {
 
     await store.loadBars('BASKET:42', 'D1')
 
-    expect(api.get).toHaveBeenCalledWith('/baskets/42/ohlcv/D1', { limit: 500 })
+    expect(api.get).toHaveBeenCalledWith('/baskets/42/ohlcv/D1', { adjusted: true, limit: 500 })
     expect(store.instrument).toBeNull()
     expect(store.bars[0].close).toBe(100.5)
     expect(store.hasReachedStart).toBe(true)
