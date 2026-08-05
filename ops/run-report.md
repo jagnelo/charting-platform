@@ -20259,3 +20259,12 @@ uncovered slice rather than repeat a generic completion claim.
   `application-shell-default/default: required_missing`; four-environment screenshot projects
   are skipped until approved exact-build references exist. Native multi-monitor, sustained
   adversarial runner stress, and unresolved external issuer routes remain open gates.
+## 2026-08-07T22:30:00Z Live provider and runner containment follow-up
+
+- Targeted issuer-native probes remain unavailable: Davis DUSA HTTP 522, Anfield ADFI HTTP 404,
+  and Donoghue Forlines DFTT HTTP 503 (`0 passed, 3 failed`, 344 deselected). No unverified
+  provider data was promoted.
+- Sandbox, recovery, and resource probes passed in sequence, including namespace/process/network/
+  filesystem denial, orphan recovery, cgroup 137, tmpfs ENOSPC, three contained concurrent
+  failures, and restart count zero. Sustained cancellation/crash/long-duration stress remains
+  open.

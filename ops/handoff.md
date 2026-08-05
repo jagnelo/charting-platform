@@ -18858,3 +18858,13 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
   required_missing`; all four visual projects are skipped without approved pinned-build references.
   Native OS multi-monitor placement, sustained adversarial runner stress, and unresolved external
   issuer probes remain open and are not being represented as complete.
+## Continuation update — 2026-08-07T22:30:00Z Live provider and runner containment follow-up
+
+- Re-ran the targeted issuer-native probes: Davis DUSA returned HTTP 522, Anfield ADFI returned
+  HTTP 404, and Donoghue Forlines DFTT returned HTTP 503 (`0 passed, 3 failed`, 344 deselected).
+  These are current external route/availability failures; no unverified rows were promoted.
+- The live research-runner sandbox, orphan-recovery, and resource probes all passed in sequence:
+  namespace/mount/ptrace/fork/network/subprocess/root-write denial, claimed-job recovery after
+  isolated restart, cgroup exit 137, tmpfs ENOSPC, three contained concurrent failures, and
+  unchanged restart count. This remains bounded evidence, not the required sustained
+  cancellation/crash/long-duration stress matrix.
