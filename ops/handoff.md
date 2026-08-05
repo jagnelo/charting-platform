@@ -18260,6 +18260,13 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
   flakiness without weakening the user-facing assertions. Strict visual, provider-live,
   adversarial resource, native multi-monitor, and long-soak gates remain open.
 
+## Continuation update — 2026-08-06T08:20:00Z Backend unit regression audit
+
+- Complete backend unit suite passes `974/974` with the repository coverage gate satisfied at
+  `69.82%`. The taxonomy startup change introduces no unit regressions; only the documented 34
+  Nautilus/pandas deprecation warnings remain. Docker integration, strict visual, provider-live,
+  adversarial-resource, multi-monitor, and long-soak gates remain separately tracked.
+
 ## Continuation update — 2026-08-06T08:00:00Z Sandbox unit acceptance
 
 - Focused isolated-Python validation, research-runner, deployment-isolation, and research-job

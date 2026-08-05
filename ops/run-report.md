@@ -19733,6 +19733,13 @@ uncovered slice rather than repeat a generic completion claim.
 - Existing Nautilus/NumPy deprecation warnings remain unchanged. Strict visual, provider-live,
   adversarial-resource, native multi-monitor, and long-soak acceptance remain open.
 
+## 2026-08-06T08:20:00Z Backend unit regression audit
+
+- `make test-unit` passed `974/974`; coverage reached `69.82%`, above the required `55%` threshold.
+  The taxonomy fix introduced no regressions. Only the documented 34 Nautilus/pandas deprecation
+  warnings remain. Strict visual, provider-live, adversarial-resource, multi-monitor, and long-soak
+  acceptance remain open.
+
 ## 2026-08-06T08:00:00Z Sandbox unit acceptance
 
 - Focused sandbox/code-validation/research-runner/deployment suite passed `97/97`. The command’s
