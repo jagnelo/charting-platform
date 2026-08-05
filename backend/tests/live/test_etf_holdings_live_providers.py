@@ -1627,7 +1627,10 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
         ),
         (
             "tuttle",
-            "MAGO",
+            # MAGO was liquidated on 2026-07-10; use the current DRMP fund for
+            # the provider-health probe while historical MAGO identity remains
+            # supported by the canonical security master.
+            "DRMP",
             None,
             {},
             2,

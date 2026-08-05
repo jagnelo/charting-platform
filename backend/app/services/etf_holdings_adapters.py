@@ -51372,7 +51372,10 @@ class ThorHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Fetch THOR ETF holdings through the public page-scoped Filepoint feed."""
 
     product_page_urls = {
-        "THIR": "https://www.thorfunds.com/etfs/thir/index.html",
+        # THOR moved the product page from the legacy ``index.html`` route to
+        # the extensionless route.  Keep the current canonical page here so
+        # live holdings probes do not treat a valid fund as unavailable.
+        "THIR": "https://www.thorfunds.com/etfs/thir/index",
     }
     portfolio_name_fragments = {
         "THIR": "THOR INDEX ROTATION ETF",
@@ -58872,7 +58875,7 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         source_provider="thor",
         source_access="issuer_public_product_page_scoped_holdings_api",
         url_templates=("https://filepoint.live/thor_getholdings_cached4.php",),
-        product_page_templates=("https://www.thorfunds.com/etfs/thir/index.html",),
+        product_page_templates=("https://www.thorfunds.com/etfs/thir/index",),
         live_tested_default_route=True,
         terms_note="THOR public ETF product pages and Filepoint holdings API may be subject to issuer terms.",
     ),
