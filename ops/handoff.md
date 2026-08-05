@@ -1,5 +1,13 @@
 # Active Handoff
 
+## Continuation update — 2026-08-06T12:20:00Z Extended 80-round lifecycle soak
+
+- The real Chromium workstation performance suite passed `2/2` with
+  `TC2000_POP_OUT_CHURN_ROUNDS=80` in `1.7m`. Repeated two-popout creation/closure preserved
+  bounded source tool, canvas, chart, and heap state throughout the run. This is stronger bounded
+  lifecycle evidence, but native multi-monitor, indefinite-duration, provider-live, sustained
+  resource-exhaustion, and strict V25 visual gates remain open.
+
 ## Continuation update — 2026-08-06T11:15:00Z Extended pop-out lifecycle soak
 
 - Removed the performance harness's old 20-round truncation and made its timeout proportional to

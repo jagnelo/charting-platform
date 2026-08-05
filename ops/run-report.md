@@ -1,5 +1,12 @@
 # Run Report
 
+## 2026-08-06T12:20:00Z Extended 80-round lifecycle soak
+
+- Chromium workstation performance passed `2/2` with `TC2000_POP_OUT_CHURN_ROUNDS=80` in `1.7m`.
+  Two simultaneous pop-outs were repeatedly created and closed while bounded source tool/canvas/
+  chart/heap invariants held. This does not substitute for native multi-monitor, indefinite soak,
+  provider-live, sustained resource, or strict visual acceptance.
+
 ## 2026-08-06T11:15:00Z Extended pop-out lifecycle soak
 
 - The workstation performance guard now permits configured churn through 100 rounds with a workload
