@@ -4,7 +4,7 @@
     "active_worker": "Codex",
     "worker_session_started_at": "2026-07-28T21:40:33Z",
     "worker_soft_stop_at": null,
-  "last_handoff_at": "2026-08-06T06:15:00Z",
+  "last_handoff_at": "2026-08-06T06:35:00Z",
   "last_commit": "2837a36 docs(ops): record complete backend integration audit",
     "git_ready_to_commit": true,
   "validation": {
@@ -27,6 +27,7 @@
     "notes_update_serialization_regression": "passed: repeated Notes save previously returned MissingGreenlet/500; router now assigns updated_at and refreshes before serialization, integration regression covers create/update/read, rebuilt backend plus authenticated Chromium F8s passed 1/1, 2026-08-06T05:20:00Z",
     "notes_integration_reverification": "passed: supported Python 3.12 focused Docker-backed notes integration --no-cov 4/4 including repeated update regression; coverage-enabled slice passed all bodies but remains below repository-wide 55% threshold by design, 2026-08-06T05:45:00Z",
     "backend_integration_full_current": "passed: complete Docker-backed integration suite 281/281 test bodies passed; integration-only coverage 43.44% exits below repository-wide 55% threshold, with 54 existing Nautilus/pandas deprecation warnings, 2026-08-06T06:15:00Z",
+    "frontend_visual_gate_current": "passed: full frontend Vitest 577/577 across 87 files; strict manifest correctly fails closed at application-shell-default/default required_missing and no unapproved discovery media was promoted, 2026-08-06T06:35:00Z",
     "current_regression_audit": "passed: full frontend Vitest 576/576, frontend type-check, full backend unit 974/974 in 50.10s, and current rebuilt-stack Chromium 37/37; only documented Nautilus/pandas deprecation warnings; strict visual/provider/long-soak gates remain open, 2026-08-05T20:30:00Z",
     "current_integration_audit": "passed: fresh Docker-backed backend integration 281/281 in 164.63s; branch-scoped Compose services healthy and post-run backend/worker/research-runner logs contain no unexpected errors, tracebacks, connection leaks, or provider-runtime failures, 2026-08-05T21:00:00Z",
     "docker_environment_current": "available for elevated read-only inspection and rebuilt-stack Chromium acceptance; branch-scoped services healthy, full non-visual browser slice 36/36 on 2026-08-05T19:00:00Z",

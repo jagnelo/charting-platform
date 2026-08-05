@@ -19733,6 +19733,15 @@ uncovered slice rather than repeat a generic completion claim.
 - Existing Nautilus/NumPy deprecation warnings remain unchanged. Strict visual, provider-live,
   adversarial-resource, native multi-monitor, and long-soak acceptance remain open.
 
+## 2026-08-06T06:35:00Z Frontend and visual-gate audit
+
+- Full frontend Vitest passed `577/577` across 87 files. The strict visual manifest command was
+  executed against `tests/visual/references/tc2000-v25/manifest.yaml` and intentionally rejected
+  `application-shell-default/default` as `required_missing`; no unapproved reference was silently
+  accepted.
+- Provider-live, adversarial-resource, native multi-monitor, long-soak, and full visual/parity
+  acceptance remain open.
+
 ## 2026-08-06T06:15:00Z Complete backend integration audit
 
 - `make test-int` executed all 281 Docker-backed integration tests; `281 passed` with no test

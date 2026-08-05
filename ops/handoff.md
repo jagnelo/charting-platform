@@ -18250,6 +18250,15 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
   scope result, not a test failure. Ruff and rebuilt-stack F8s remain green. The strict visual,
   provider-live, adversarial resource, native multi-monitor, and long-soak gates remain open.
 
+## Continuation update — 2026-08-06T06:35:00Z Frontend and visual-gate audit
+
+- Full frontend Vitest remains green at `577/577` across 87 files; expected watchlist conflict-path
+  stderr remains asserted behavior. The strict visual validator was run against the actual manifest
+  and correctly fails closed at `application-shell-default/default: required_missing`; no discovery
+  media or stale snapshots were promoted to an approval baseline.
+- The broad implementation goal remains active. Provider-live, adversarial resource, native
+  multi-monitor, long-soak, and complete visual/parity acceptance are still open.
+
 ## Continuation update — 2026-08-06T06:15:00Z Complete backend integration audit
 
 - Ran the complete Docker-backed backend integration suite: all `281/281` test bodies passed,
