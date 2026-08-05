@@ -1,5 +1,12 @@
 # Run Report
 
+## 2026-08-06T18:00:00Z Reference-pack refresh
+
+- The official-source retrieval script completed successfully into controlled storage, producing
+  189 media files and a fresh SHA-256 index at `/private/tmp/tc2000-v25-reference-pack-refresh`.
+  It did not provide pinned-build 25.0.9571 state captures or required environment metadata; no
+  discovery media was promoted to an approval baseline.
+
 ## 2026-08-06T17:00:00Z Post-flow runtime log audit
 
 - Following the 42-flow authenticated browser run, 100-round pop-out soak, and frontend regression,

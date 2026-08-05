@@ -1,5 +1,13 @@
 # Active Handoff
 
+## Continuation update — 2026-08-06T18:00:00Z Reference-pack refresh
+
+- Re-ran the documented official Help Site/shared-layout retrieval into controlled storage at
+  `/private/tmp/tc2000-v25-reference-pack-refresh`; it produced 189 media files and a fresh SHA-256
+  index. No newly exposed exact-build `25.0.9571` state captures or environment metadata were
+  present, so the pack remains discovery evidence only and required visual states remain
+  `required_missing`.
+
 ## Continuation update — 2026-08-06T17:00:00Z Post-flow runtime log audit
 
 - After the serial 42-flow Chromium suite, 100-round pop-out soak, and frontend regression run,
