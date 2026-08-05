@@ -1,5 +1,12 @@
 # Active Handoff
 
+## Continuation update — 2026-08-05T09:50:00Z Canonical backend-root acceptance
+
+- Canonical backend-root execution with explicit asyncio auto mode passes `1247`, skips
+  `348`, and fails `0` in 213.95s; all async integration tests execute.
+- Marker warnings are gone. The remaining 86 warnings are known third-party Nautilus/pandas
+  deprecations; live-provider skips are intentional credential/network gates.
+
 ## Continuation update — 2026-08-05T09:42:00Z Backend suite repaired and green
 
 - CoinGecko's missing-key warning now has provider-instance scope, with a regression test for

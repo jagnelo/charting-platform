@@ -1,5 +1,13 @@
 # Run Report
 
+## 2026-08-05T09:50:00Z Canonical backend-root acceptance rerun
+
+- From `backend/`, the canonical command `.venv/bin/pytest -q --no-cov --asyncio-mode=auto`
+  passed `1247`, skipped `348`, and failed `0` in 213.95s.
+- Marker registration is clean in this invocation; the only remaining warnings are 86 known
+  third-party deprecations from Nautilus/pandas. Live-provider skips remain intentional until
+  credentials/network probes are enabled.
+
 ## 2026-08-05T09:42:00Z Docker-reachable backend acceptance
 
 - Fixed CoinGecko's module-global missing-key warning state; the warning is now scoped to a
