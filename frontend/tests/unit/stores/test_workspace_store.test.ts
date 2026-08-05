@@ -462,6 +462,20 @@ describe('workspace store layout tabs', () => {
     expect(store.activeTab?.active_window_key).toBe(opened?.instance_key)
   })
 
+  it('persists pop-out geometry only when it actually changes', () => {
+    const store = useWorkspaceStore()
+    store.workspace = {
+      id: 10, user_id: 3, name: 'Personal', is_default: false, position: 0, revision: 4, schema_version: 1, settings: {},
+      tabs: [{ id: 20, stable_key: 'personal', name: 'Personal', position: 0, active_window_key: 'chart', layout_config: {}, windows: [{
+        id: 30, instance_key: 'chart', tool_type: 'chart', title: 'Chart', link_group: 'blue', configuration: {}, style: {}, state_schema_version: 1, position: 0,
+      }] }],
+    }
+
+    expect(store.updateToolStyle('chart', { popout: { left: 10, top: 20, width: 900, height: 600 } })).toBe(true)
+    expect(store.updateToolStyle('chart', { popout: { left: 10, top: 20, width: 900, height: 600 } })).toBe(false)
+    expect(store.activeTab?.windows[0]?.style).toEqual({ popout: { left: 10, top: 20, width: 900, height: 600 } })
+  })
+
   it('exposes implemented analysis surfaces through the workstation tool registry', () => {
     expect(OPENABLE_WORKSTATION_TOOLS.map(tool => tool.tool_type)).toEqual(expect.arrayContaining([
       'relative_rotation', 'breadth', 'technical_summary', 'coverage', 'report',

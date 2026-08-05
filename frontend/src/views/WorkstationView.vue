@@ -150,6 +150,7 @@ import { autoRatioExpression } from '@/lib/workstation/ratioExpression'
 import { api } from '@/lib/api'
 import { useWatchlistStore } from '@/stores/watchlist'
 import { workstationFreshness } from '@/lib/workstation/freshness'
+import { capturePopoutGeometry, popoutWindowFeatures, readPopoutGeometry } from '@/lib/workstation/popoutGeometry'
 
 const route = useRoute()
 const router = useRouter()
@@ -176,6 +177,7 @@ const preserveDrilldownSymbol = ref<string | null>(null)
 const openableTools = OPENABLE_WORKSTATION_TOOLS
 const documentVisible = ref(typeof document === 'undefined' || document.visibilityState === 'visible')
 let removeVisibilityListener: (() => void) | null = null
+const popoutGeometryPollers = new Map<string, ReturnType<typeof window.setInterval>>()
 
 const activeSymbol = computed(() => workspaceStore.linkedSymbol || 'SPY')
 const dataState = computed(() => {
@@ -550,8 +552,29 @@ async function handleRowAction(action: 'chart' | 'compare' | 'note' | 'alert' | 
 function floatTool(windowKey: string) {
   const tab = workspaceStore.activeTabKey
   const href = router.resolve({ path: `/popout/${encodeURIComponent(windowKey)}`, query: { tab } }).href
-  const popup = window.open(href, `workstation-${windowKey}`, 'popup=yes,width=1100,height=760,resizable=yes,scrollbars=no')
-  if (!popup) workspaceStore.error = 'Browser blocked the pop-out. The tool remains docked.'
+  const tool = workspaceStore.workspace?.tabs.flatMap(item => item.windows).find(item => item.instance_key === windowKey)
+  const popup = window.open(href, `workstation-${windowKey}`, popoutWindowFeatures(readPopoutGeometry(tool?.style)))
+  if (!popup) {
+    workspaceStore.error = 'Browser blocked the pop-out. The tool remains docked.'
+    return
+  }
+  const previous = popoutGeometryPollers.get(windowKey)
+  if (previous) window.clearInterval(previous)
+  const poll = window.setInterval(() => {
+    try {
+      if (popup.closed) {
+        window.clearInterval(poll)
+        popoutGeometryPollers.delete(windowKey)
+        return
+      }
+      const geometry = capturePopoutGeometry(popup)
+      if (geometry) workspaceStore.updateToolStyle(windowKey, { popout: geometry })
+    } catch {
+      window.clearInterval(poll)
+      popoutGeometryPollers.delete(windowKey)
+    }
+  }, 1000)
+  popoutGeometryPollers.set(windowKey, poll)
 }
 
 function renderDockTool(dockTool: { instance_key: string; title: string; tool_type: string }, actions: { toggleMaximize: () => void; close: () => void }): VNode {
@@ -675,6 +698,8 @@ onMounted(async () => {
 })
 
 onBeforeUnmount(() => {
+  for (const poll of popoutGeometryPollers.values()) window.clearInterval(poll)
+  popoutGeometryPollers.clear()
   removeVisibilityListener?.()
   removeVisibilityListener = null
   if (searchTimer) clearTimeout(searchTimer)

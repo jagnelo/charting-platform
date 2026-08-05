@@ -1126,6 +1126,15 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     return true
   }
 
+  function updateToolStyle(windowKey: string, style: Record<string, unknown>) {
+    const tool = workspace.value?.tabs.flatMap(tab => tab.windows).find(window => window.instance_key === windowKey)
+    if (!tool) return false
+    if (Object.entries(style).every(([key, value]) => JSON.stringify(tool.style?.[key]) === JSON.stringify(value))) return false
+    tool.style = { ...tool.style, ...style }
+    scheduleSnapshot()
+    return true
+  }
+
   /**
    * A chart timeframe belongs to its link group.  Grey is deliberately local to the
    * persisted tool; every other group publishes through the same cross-window link
@@ -1388,6 +1397,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     applyActiveLayout,
     openTool,
     updateToolLinkGroup,
+    updateToolStyle,
     updateToolTimeframe,
     updateToolTimeframeLinkGroup,
     selectToolSymbol,
