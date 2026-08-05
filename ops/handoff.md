@@ -4,7 +4,8 @@
 
 - The backend virtualenv’s `OpenFigiProvider` successfully resolved `SPY` through the free
   unauthenticated OpenFIGI mapping endpoint and returned FIGI, composite-FIGI, and
-  share-class-FIGI records. Other credentialed provider probes remain not-run.
+  share-class-FIGI records. The opt-in live regression passes (`1/1`) and the provider unit
+  slice passes (`2/2`); other credentialed provider probes remain not-run.
 
 ## Continuation update — 2026-08-05T08:02:00Z Concurrent memory pressure
 
