@@ -1,5 +1,11 @@
 # Run Report
 
+## 2026-08-06T16:30:00Z Frontend regression refresh
+
+- Full frontend Vitest passes `577/577` across 87 files; TypeScript and diff checks pass after the
+  browser-flow stabilization. The two expected watchlist conflict-path stderr cases remain covered.
+  Strict visual, provider, hardware, sustained-resource, and indefinite-soak acceptance remain open.
+
 ## 2026-08-06T16:00:00Z Full authenticated flow regression
 
 - Serial Chromium `tests/e2e/flows.spec.ts` passes `42/42` in `2.8m`. The run covers authentication,

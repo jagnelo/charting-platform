@@ -1,5 +1,12 @@
 # Active Handoff
 
+## Continuation update — 2026-08-06T16:30:00Z Frontend regression refresh
+
+- Full frontend Vitest passes `577/577` across 87 files after the authenticated-flow stabilization;
+  TypeScript and diff checks also pass. Expected watchlist conflict-path stderr remains asserted
+  behavior. Strict V25 visual approval, provider-live, native multi-monitor, sustained resource,
+  and indefinite-soak gates remain open.
+
 ## Continuation update — 2026-08-06T16:00:00Z Full authenticated flow regression
 
 - The complete serial authenticated browser suite now passes `42/42` after fixing three
