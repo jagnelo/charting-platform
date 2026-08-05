@@ -1,5 +1,10 @@
 # Active Handoff
 
+## Continuation update — 2026-08-06T00:30:00Z Live migration invariant
+
+- Read-only query against the branch PostgreSQL container reports Alembic head
+  `ea0f1a2b3c4d`; `watchlist_item.flagged` is `NOT NULL` with default `false`.
+
 ## Continuation update — 2026-08-06T00:15:00Z Complete integration rerun
 
 - Fresh Docker-backed `make test-int` executed all 281 integration tests; every test body passed in

@@ -1,5 +1,10 @@
 # Run Report
 
+## 2026-08-06T00:30:00Z Live migration invariant
+
+- Branch PostgreSQL read-only verification reports Alembic head `ea0f1a2b3c4d` and confirms
+  `watchlist_item.flagged` is `NOT NULL DEFAULT false`.
+
 ## 2026-08-06T00:15:00Z Complete integration rerun
 
 - Fresh `make test-int` ran all 281 Docker-backed integration tests; `281 passed` in 211.30s.
