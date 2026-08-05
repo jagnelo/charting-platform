@@ -142,6 +142,19 @@ describe('DrawingRenderer', () => {
     expect(ctx.fillText).toHaveBeenCalled()
   })
 
+  it('releases the chart and canvas references on teardown', () => {
+    const ctx = makeContext()
+    const canvas = makeCanvas(ctx)
+    const renderer = new DrawingRenderer(canvas)
+    const chart = { valToPos: vi.fn(() => 1) } as any
+
+    renderer.attach(chart)
+    renderer.destroy()
+
+    expect(ctx.clearRect).toHaveBeenCalled()
+    expect(() => renderer.renderAll([])).not.toThrow()
+  })
+
   it('returns safely when no plot is attached, and clear works independently', () => {
     const ctx = makeContext()
     const renderer = new DrawingRenderer(makeCanvas(ctx))

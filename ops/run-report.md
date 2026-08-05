@@ -1,5 +1,14 @@
 # Run Report
 
+## 2026-08-05T11:05:00Z uPlot drawing-renderer teardown regression
+
+- Added explicit `DrawingRenderer.destroy()` cleanup and invoked it for the primary and
+  sub-pane renderers before chart teardown, releasing canvas/context references and preventing
+  retained renderer graphs after repeated chart/pop-out destruction.
+- Focused drawing/hit-test coverage passes `30/30`; full frontend Vitest passes `573/573` across
+  87 files, TypeScript and production build pass, and rebuilt authenticated Chromium flows pass
+  `31/31` in 1.2 minutes.
+
 ## 2026-08-05T10:52:00Z Docker cleanup
 
 - `docker system prune -af` reclaimed `1.053GB` of dangling images/build cache. The active

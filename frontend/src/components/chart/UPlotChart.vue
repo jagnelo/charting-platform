@@ -3037,6 +3037,8 @@ function destroyAll() {
   if (interactionCleanup) { interactionCleanup(); interactionCleanup = null }
   uplot?.destroy(); uplot = null
   firstRenderedBarTs = null
+  drawingRenderer?.destroy(); drawingRenderer = null
+  for (const renderer of Object.values(subDrawingRenderers)) renderer.destroy()
   for (const sp of Object.values(subPlotsMap)) sp.destroy()
   subPlotsMap = {}
   subDrawingRenderers = {}

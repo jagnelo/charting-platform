@@ -1,5 +1,12 @@
 # Active Handoff
 
+## Continuation update — 2026-08-05T11:05:00Z Chart renderer lifecycle cleanup
+
+- `DrawingRenderer.destroy()` now clears canvas state and releases uPlot/context references;
+  `UPlotChart` invokes it for primary and sub-pane renderers before destroying plots.
+- Focused drawing tests pass `30/30`; full frontend Vitest is `573/573` across 87 files,
+  TypeScript/build pass, and rebuilt authenticated Chromium flows pass `31/31`.
+
 ## Continuation update — 2026-08-05T10:52:00Z Docker cleanup
 
 - Requested Docker cleanup reclaimed `1.053GB`; branch-scoped frontend, backend, worker, Redis,

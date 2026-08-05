@@ -30,6 +30,14 @@ export class DrawingRenderer {
     this.resize()
   }
 
+  destroy() {
+    this.clear()
+    this.uplot = null
+    this.timeToX = (time) => time
+    this.canvas = null as unknown as HTMLCanvasElement
+    this.ctx = null as unknown as CanvasRenderingContext2D
+  }
+
   setTimeToXMapper(mapper: (time: number) => number) {
     this.timeToX = mapper
   }
@@ -40,7 +48,7 @@ export class DrawingRenderer {
   }
 
   clear() {
-    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height)
+    this.ctx?.clearRect(0, 0, this.canvas?.width ?? 0, this.canvas?.height ?? 0)
   }
 
   renderAll(drawings: AnyDrawing[], measurement?: MeasurementOverlay | null) {
