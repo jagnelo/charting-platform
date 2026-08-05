@@ -412,6 +412,15 @@
   type-check passes. Strict visual, provider-live, adversarial-resource, native multi-monitor,
   and long-soak gates remain open.
 
+## Continuation update — 2026-08-06T04:05:00Z Core header overlap acceptance
+
+- Added F8r to run the title/action and symbol/action geometry checks from the visual harness
+  during the ordinary authenticated Chromium flow, ensuring core tool headers are checked even
+  while strict reference approval remains unavailable.
+- Rebuilt-stack F8r passed `1/1` with no critical diagnostics and reported no overlapping header
+  regions. The expanded Study Lab/promotion set passes `4/4`; strict V25 visual, provider-live,
+  adversarial-resource, native multi-monitor, and long-soak gates remain open.
+
 ## Continuation update — 2026-08-05T03:00:00Z Full unit-suite re-audit
 
 - Current HEAD passes the complete frontend Vitest suite (`550/550` across 84 files) and

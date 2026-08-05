@@ -19662,6 +19662,14 @@ uncovered slice rather than repeat a generic completion claim.
   diagnostics; full frontend Vitest passed `577/577` and type-check passed. Remaining strict
   visual/provider/adversarial/multi-monitor/long-soak gates are unchanged.
 
+## 2026-08-06T04:05:00Z Core header overlap acceptance
+
+- Added F8r, a non-visual authenticated geometry guard for title/action and symbol/action
+  separation in every visible tool header.
+- Rebuilt-stack F8r passed `1/1` with no critical diagnostics and no overlap issues. The four
+  Study Lab/promotion flows pass `4/4`; strict V25 visual and remaining provider, adversarial,
+  multi-monitor, and long-soak gates remain open.
+
 ## 2026-08-06T02:20:00Z Frontend regression refresh
 
 - Full frontend Vitest passed `577/577` across 87 files and `vue-tsc --noEmit` passed after

@@ -651,6 +651,30 @@ test.describe('TC2000 workstation', () => {
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
+  test('F8r — core tool headers keep titles, symbols, and actions geometrically separated', async ({ page, browserDiagnostics }) => {
+    await page.goto('/chart')
+    await expect(page.locator('.workspace-layout-host')).toBeVisible({ timeout: 10_000 })
+    await expect(page.locator('.tool-window').first()).toBeVisible({ timeout: 10_000 })
+    const issues = await page.evaluate(() => {
+      const rect = (element: Element | null) => {
+        if (!element) return null
+        const box = element.getBoundingClientRect()
+        return { left: box.left, right: box.right, top: box.top, bottom: box.bottom }
+      }
+      const overlaps = (left: ReturnType<typeof rect>, right: ReturnType<typeof rect>) => Boolean(
+        left && right && left.left < right.right && left.right > right.left && left.top < right.bottom && left.bottom > right.top,
+      )
+      const result: string[] = []
+      document.querySelectorAll('.tool-window__header').forEach((header, index) => {
+        if (overlaps(rect(header.querySelector('.tool-window__title')), rect(header.querySelector('.tool-window__actions')))) result.push(`title-actions-${index}`)
+        if (overlaps(rect(header.querySelector('.tool-window__symbol')), rect(header.querySelector('.tool-window__actions')))) result.push(`symbol-actions-${index}`)
+      })
+      return result
+    })
+    expect(issues).toEqual([])
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
 })
 
 

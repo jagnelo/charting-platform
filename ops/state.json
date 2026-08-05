@@ -4,7 +4,7 @@
     "active_worker": "Codex",
     "worker_session_started_at": "2026-07-28T21:40:33Z",
     "worker_soft_stop_at": null,
-  "last_handoff_at": "2026-08-06T03:45:00Z",
+  "last_handoff_at": "2026-08-06T04:05:00Z",
   "last_commit": "38934f4 fix(study-lab): reuse scan for alert promotion",
     "git_ready_to_commit": true,
   "validation": {
@@ -21,6 +21,7 @@
     "study_lab_factory_browser_acceptance": "passed: rebuilt branch stack with E2E_SEED_MARKET_DATA=true; authenticated Chromium F8p selected the real Consecutive positive closes factory study, validated generated Python, ran against canonical seeded SPY bars, and verified current/longest streak metrics plus occurrence output; 1/1 with no critical diagnostics, 2026-08-06T02:45:00Z",
     "study_lab_scalar_column_promotion_browser": "passed: authenticated seeded-stack Chromium F8g promoted a completed scalar Study Lab result through /code/assets into a reusable watchlist column and asserted the success status; 1/1 with no critical diagnostics, 2026-08-06T03:05:00Z",
     "study_lab_boolean_scan_alert_reuse": "passed: fixed scan-then-alert promotion to reuse the created screener ID instead of recreating it; component Study Lab 12/12, full frontend 577/577, type-check, rebuilt seeded-stack Chromium F8q 1/1 with no critical diagnostics, 2026-08-06T03:45:00Z",
+    "core_header_overlap_browser_acceptance": "passed: authenticated rebuilt-stack F8r checks title/action and symbol/action separation for every visible tool header; no overlap issues and no critical diagnostics, 1/1, 2026-08-06T04:05:00Z",
     "current_regression_audit": "passed: full frontend Vitest 576/576, frontend type-check, full backend unit 974/974 in 50.10s, and current rebuilt-stack Chromium 37/37; only documented Nautilus/pandas deprecation warnings; strict visual/provider/long-soak gates remain open, 2026-08-05T20:30:00Z",
     "current_integration_audit": "passed: fresh Docker-backed backend integration 281/281 in 164.63s; branch-scoped Compose services healthy and post-run backend/worker/research-runner logs contain no unexpected errors, tracebacks, connection leaks, or provider-runtime failures, 2026-08-05T21:00:00Z",
     "docker_environment_current": "available for elevated read-only inspection and rebuilt-stack Chromium acceptance; branch-scoped services healthy, full non-visual browser slice 36/36 on 2026-08-05T19:00:00Z",
