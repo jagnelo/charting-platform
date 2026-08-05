@@ -19488,3 +19488,11 @@ uncovered slice rather than repeat a generic completion claim.
   only as historical identity because the fund was liquidated.
 - Remaining external failures are Neos 403, Anfield 404, Donoghue Forlines 503, and Inverdale
   timeout. These are still surfaced as unaccepted provider conditions.
+## 2026-08-05T12:45:00Z Broad local regression audit
+
+- Frontend Vitest: `576 passed` across 87 files.
+- Backend unit suite: `973 passed` in 35.52s, with 34 known third-party Nautilus/pandas
+  deprecation warnings.
+- Docker socket access was unavailable in this execution environment, so no new Docker-backed
+  integration or browser result is claimed. Existing rebuilt-stack evidence remains authoritative.
+- Strict visual approval and the four remaining external provider-route failures remain open.

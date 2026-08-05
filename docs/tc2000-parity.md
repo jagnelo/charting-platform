@@ -1243,3 +1243,11 @@ holdings probe passes. The Tuttle health probe uses active DRMP because MAGO was
 historical MAGO identity remains in the canonical security master. Remaining failures are
 explicit external-source conditions: Neos HTTP 403, Anfield HTTP 404, Donoghue Forlines HTTP
 503, and an Inverdale timeout. They remain unaccepted and are not hidden by fallback behavior.
+## Continuation update — 2026-08-05T12:45:00Z Broad local regression audit
+
+The current branch still passes the full frontend suite (`576/576`) and full local backend unit
+suite (`973/973`). This confirms the recent provider-route corrections did not regress the
+workstation or backend unit contracts. Docker-backed integration/browser evidence was not rerun
+because the current execution environment cannot access the Docker Desktop socket; the previous
+rebuilt-stack results remain the authoritative evidence for those gates. Exact-build visual
+approval remains blocked by the manifest's `required_missing` states.

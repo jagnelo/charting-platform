@@ -17970,3 +17970,15 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
   identity remains supported by the canonical security master.
 - Remaining failures are explicit external conditions: Neos 403, Anfield 404, Donoghue Forlines
   503, and Inverdale timeout. They remain unaccepted; no fallback silently promotes them.
+## Continuation update — 2026-08-05T12:45:00Z Broad local regression audit
+
+- Full frontend Vitest passes `576/576` across 87 files.
+- Full local backend unit coverage passes `973/973` in 35.52s with 34 known third-party
+  Nautilus/pandas deprecation warnings; the provider-neutral frontend boundary and updated
+  ETF adapter tests are included.
+- A read-only Docker inspection was attempted but the current execution environment cannot
+  access the Docker Desktop socket. Docker-backed integration, rebuilt-stack browser, and
+  live runner checks therefore remain represented by the last successful branch-scoped evidence,
+  not by this local audit.
+- The strict visual manifest remains `required_missing`; provider live evidence remains
+  `342 passed, 1 skipped, 4 failed` with the four external route conditions documented below.
