@@ -1,5 +1,11 @@
 # Run Report
 
+## 2026-08-06T19:00:00Z Backend unit regression refresh
+
+- `make test-unit` passed `974/974` in `98.87s` with total coverage `69.82%` against the required
+  55% gate. The only warnings are the known 34 Nautilus/pandas deprecations. Other strict visual,
+  provider, hardware, sustained-resource, and indefinite-soak gates remain open.
+
 ## 2026-08-06T18:30:00Z Strict visual-manifest recheck
 
 - Normal visual-manifest validation passes. Strict `--require-approved` validation intentionally

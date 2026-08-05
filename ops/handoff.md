@@ -1,5 +1,12 @@
 # Active Handoff
 
+## Continuation update — 2026-08-06T19:00:00Z Backend unit regression refresh
+
+- Complete `make test-unit` passes `974/974` in `98.87s`; coverage is `69.82%`, above the 55%
+  repository gate. Only the documented 34 Nautilus/pandas deprecation warnings remain. Strict V25
+  visual, provider-live, native multi-monitor, sustained resource, and indefinite-soak gates remain
+  open.
+
 ## Continuation update — 2026-08-06T18:30:00Z Strict visual-manifest recheck
 
 - The visual manifest remains structurally valid, while the strict `--require-approved` validator
