@@ -1,5 +1,14 @@
 # Run Report
 
+## 2026-08-05T09:30:00Z Full backend suite environment boundary
+
+- `backend/.venv/bin/pytest -q --no-cov` completed with `965 passed`, `348 skipped`, and
+  `281 errors` in 64.08s. The errors occur during Docker-backed integration fixture setup:
+  the restricted runner cannot access the Docker Unix socket and raises
+  `PermissionError: [Errno 1] Operation not permitted`.
+- No code assertion failure is inferred from this run. Docker-reachable backend integration,
+  migration, sandbox, and end-to-end evidence remains required before completion.
+
 ## 2026-08-05T09:22:00Z Post-pop-out frontend verification
 
 - Full frontend Vitest passed `572/572`; `vue-tsc --noEmit` and the production Vite build

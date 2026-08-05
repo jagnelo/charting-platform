@@ -1,5 +1,13 @@
 # Active Handoff
 
+## Continuation update — 2026-08-05T09:30:00Z Backend suite environment boundary
+
+- The full backend suite finished with `965 passed`, `348 skipped`, and `281 errors`; all
+  errors were Docker fixture setup failures because this restricted runner cannot access the
+  Docker Unix socket (`PermissionError: Operation not permitted`).
+- Treat this as an unverified environment gate, not a code-pass claim. Docker-reachable
+  integration, migration, sandbox, and end-to-end checks still have to pass.
+
 ## Continuation update — 2026-08-05T09:22:00Z Post-pop-out verification
 
 - Full frontend Vitest is green at `572/572`; `vue-tsc --noEmit` and the production build
