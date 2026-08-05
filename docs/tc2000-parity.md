@@ -21,6 +21,12 @@ is recorded in the referenced test/baseline system.
 
 ## Current runtime evidence (2026-08-05)
 
+The post-pop-out-change frontend verification is green: Vitest `572/572`, `vue-tsc
+--noEmit`, and the production Vite build all pass. The suite includes the new active-display
+origin and persisted-geometry coverage. This is functional/build evidence only; it does not
+close the required Version 25 visual-reference gate or the remaining broad performance,
+security, provider, and soak audits.
+
 Pop-outs now restore persisted `left`, `top`, `width`, and `height` geometry from the
 serializable workspace window style, capture move/resize changes while open, and stop
 polling after close. Geometry is clamped to usable minimum dimensions, and unchanged polls

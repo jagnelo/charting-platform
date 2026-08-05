@@ -1,5 +1,12 @@
 # Active Handoff
 
+## Continuation update — 2026-08-05T09:22:00Z Post-pop-out verification
+
+- Full frontend Vitest is green at `572/572`; `vue-tsc --noEmit` and the production build
+  also pass after the active-display geometry update.
+- No acceptance gate is being relaxed: exact-build V25 visual references and the remaining
+  performance, security, provider, and soak evidence are still outstanding.
+
 ## Continuation update — 2026-08-05T09:18:00Z Active-display defaults
 
 - New pop-outs use the current display’s available origin where the browser exposes it,

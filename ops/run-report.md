@@ -1,5 +1,13 @@
 # Run Report
 
+## 2026-08-05T09:22:00Z Post-pop-out frontend verification
+
+- Full frontend Vitest passed `572/572`; `vue-tsc --noEmit` and the production Vite build
+  passed after the active-display pop-out change. The new geometry tests are included.
+- This verifies the current source/build boundary only; exact Version 25 visual references,
+  four-environment screenshot approval, full performance/security/soak audits, and remaining
+  configured provider probes remain open.
+
 ## 2026-08-05T09:18:00Z Active-display pop-out defaults
 
 - First-time pop-outs now offset from the current display's available origin when exposed;
