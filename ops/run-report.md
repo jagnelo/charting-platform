@@ -1,5 +1,12 @@
 # Run Report
 
+## 2026-08-05T16:25:00Z Month/day seasonality study
+
+- Expanded the factory seasonality study to cover both month and day-of-month distributions,
+  producing separate uPlot-compatible bars and detailed observation tables through unified Python.
+- Focused Study Lab tests pass `12/12`; full frontend Vitest remains `575/575`; TypeScript and
+  production build pass.
+
 ## 2026-08-05T16:00:00Z Global Ctrl+wheel symbol traversal
 
 - Implemented the workstation-level `Ctrl+wheel` keyboard interaction required by the Version 25

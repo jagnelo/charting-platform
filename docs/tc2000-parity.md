@@ -39,6 +39,9 @@ Latest continuation evidence:
   suppression, watchlist event isolation, and an honest canonical-benchmark navigation fallback
   during unavailable/initial group data. Rebuilt-stack browser acceptance passes `35/35`, including
   the dedicated F8k interaction test.
+- The seasonality factory now covers both month and day-of-month behavior, with separate frequency
+  bars and observation tables emitted by editable unified Python; Study Lab component coverage remains
+  `12/12`.
 
 Continuation evidence from the current branch checkpoint:
 

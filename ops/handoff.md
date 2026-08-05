@@ -1,5 +1,13 @@
 # Active Handoff
 
+## Continuation update — 2026-08-05T16:25:00Z Month/day seasonality study
+
+- Corrected the Study Lab seasonality starter from month-only to the required month/day study.
+  The editable unified-Python source now emits monthly and day-of-month average-return bars and
+  observation tables.
+- Study Lab tests pass `12/12`; full frontend Vitest remains `575/575`; TypeScript and production
+  build pass.
+
 ## Continuation update — 2026-08-05T16:00:00Z Global Ctrl+wheel symbol traversal
 
 - Added workstation-level `Ctrl+wheel` traversal for canonical symbols, with editor-focus

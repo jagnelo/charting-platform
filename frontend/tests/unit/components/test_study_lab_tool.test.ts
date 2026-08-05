@@ -65,7 +65,7 @@ describe('StudyLabTool', () => {
       { value: 'event_frequency', label: 'Event frequency and occurrences' },
       { value: 'high_low_breakouts', label: 'Highs and lows' },
       { value: 'volatility_regime', label: 'Volatility regime' },
-      { value: 'seasonality', label: 'Monthly seasonality' },
+      { value: 'seasonality', label: 'Month/day seasonality' },
       { value: 'relative_strength_regime', label: 'Relative-strength regime changes' },
       { value: 'cross_sectional_rank', label: 'Cross-sectional ranking' },
       { value: 'breadth_participation', label: 'Breadth participation' },
