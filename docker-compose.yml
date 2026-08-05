@@ -185,7 +185,9 @@ services:
     pids_limit: ${RESEARCH_CONTAINER_PIDS_LIMIT:-128}
     user: "10001:10001"
     cap_drop: ["ALL"]
-    security_opt: ["no-new-privileges:true"]
+    security_opt:
+      - "no-new-privileges:true"
+      - "seccomp:./backend/seccomp/research-runner.json"
     tmpfs: ["/tmp:rw,noexec,nosuid,size=64m"]
     environment:
       RESEARCH_JOB_DIR: /jobs

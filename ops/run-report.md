@@ -1,5 +1,16 @@
 # Run Report
 
+## 2026-08-05T10:40:00Z Runtime sandbox syscall hardening
+
+- Added an explicit Docker seccomp profile to the branch-scoped research runner, denying
+  namespace entry/creation, mounts, ptrace/process-memory inspection, fork/clone, and other
+  kernel-escalation syscalls while retaining the existing no-network/read-only/non-root limits.
+- The reproducible `ops/probe-research-runner-sandbox.sh` probe reports `denied` for unshare,
+  setns, mount, ptrace, network, subprocess, and root-write attempts against the live branch
+  container; the runner remained running with zero restarts.
+- Focused validator/runner/deployment/code API coverage passes `113/113`; deployment/profile
+  parsing, `bash -n`, and Compose validation pass.
+
 ## 2026-08-05T10:29:00Z Authenticated Chromium regression after Radar correction
 
 - Rebuilt-stack `flows.spec.ts` passes `31/31` in 1.2 minutes, including authentication,

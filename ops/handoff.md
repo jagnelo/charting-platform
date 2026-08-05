@@ -1,5 +1,12 @@
 # Active Handoff
 
+## Continuation update — 2026-08-05T10:40:00Z Runtime sandbox hardening
+
+- The branch-scoped runner now loads an explicit seccomp profile in addition to no-new-privileges,
+  network isolation, read-only root, dropped capabilities, and bounded resources.
+- Reproducible live probes deny namespace, mount, ptrace, subprocess, network, and root-write
+  attempts; the runner is healthy with no restart. Focused coverage is `113/113`.
+
 ## Continuation update — 2026-08-05T10:29:00Z Authenticated Chromium regression
 
 - Rebuilt-stack Chromium flows pass `31/31` with no unexpected browser diagnostics, including

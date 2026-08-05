@@ -13,7 +13,8 @@ def test_research_runner_compose_contract_preserves_isolated_execution_boundary(
     assert "pids_limit: ${RESEARCH_CONTAINER_PIDS_LIMIT:-128}" in service
     assert 'user: "10001:10001"' in service
     assert 'cap_drop: ["ALL"]' in service
-    assert 'security_opt: ["no-new-privileges:true"]' in service
+    assert '"no-new-privileges:true"' in service
+    assert '"seccomp:./backend/seccomp/research-runner.json"' in service
     assert 'tmpfs: ["/tmp:rw,noexec,nosuid,size=64m"]' in service
     assert "- research_jobs:/jobs" in service
     assert "- research_results:/results" in service
@@ -46,3 +47,16 @@ def test_research_runner_image_pins_curated_numerical_dependencies_and_thread_bu
     assert "OMP_NUM_THREADS=1" in dockerfile
     assert "MKL_NUM_THREADS=1" in dockerfile
     assert "NUMEXPR_NUM_THREADS=1" in dockerfile
+
+
+def test_research_runner_seccomp_profile_denies_namespace_escape_and_process_creation():
+    import json
+
+    profile = json.loads(
+        (Path(__file__).resolve().parents[2] / "seccomp" / "research-runner.json").read_text()
+    )
+    denied = set(profile["syscalls"][0]["names"])
+
+    assert profile["defaultAction"] == "SCMP_ACT_ALLOW"
+    assert profile["syscalls"][0]["action"] == "SCMP_ACT_ERRNO"
+    assert {"unshare", "setns", "mount", "ptrace", "clone", "clone3", "fork", "vfork"} <= denied
