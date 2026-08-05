@@ -18810,3 +18810,9 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
   only the isolated research-runner, verified the claimed job completed after restart, and found
   no stale cancellation or progress sentinel. This strengthens repeatability of bounded recovery;
   it does not replace the broader sustained cancellation/crash/long-duration matrix.
+
+## Continuation update — 2026-08-07T11:00:00Z Post-cleanup combined backend gate
+
+- After Docker cleanup and repeated runner restarts, the complete Docker-backed unit plus
+  integration gate passed `1266/1266` at `79.41%` coverage in 4m39s. The only output remains the
+  documented 86 third-party deprecation warnings; no branch regression was introduced.

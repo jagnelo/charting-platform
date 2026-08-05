@@ -20218,3 +20218,8 @@ uncovered slice rather than repeat a generic completion claim.
 - Three consecutive live recovery probes passed. Each isolated-runner restart recovered the
   claimed job to `completed` and left no cancellation or progress residue. Broader sustained
   cancellation/crash/long-duration stress remains open.
+
+## 2026-08-07T11:00:00Z Post-cleanup combined backend gate
+
+- Rebuilt/reused the cleaned Docker environment and ran the authoritative combined backend gate:
+  `1266 passed`, `79.41%` coverage, `86` documented third-party warnings, 4m39s. No failures.
