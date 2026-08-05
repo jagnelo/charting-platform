@@ -931,7 +931,7 @@ async function loadComparisonBars() {
   const loaded = await Promise.all(symbols.map(async symbol => {
     try {
       const limit = Math.max(chartStore.bars.length, 500)
-      const raw = await dedupeOhlcvRequest(`raw:${symbol.toUpperCase()}:${timeframe}:${limit}`, () => api.get<any[]>(`/ohlcv/${encodeURIComponent(symbol)}/${timeframe}`, { limit }))
+      const raw = await dedupeOhlcvRequest(`raw:${symbol.toUpperCase()}:${timeframe}:adjusted:${limit}`, () => api.get<any[]>(`/ohlcv/${encodeURIComponent(symbol)}/${timeframe}`, { limit, adjusted: true }))
       return { symbol, bars: raw.map(bar => ({
         ...bar,
         ts: Number(bar.ts ?? bar.timestamp),

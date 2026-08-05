@@ -101,7 +101,7 @@ function createChartStore(storeId: string) {
 
       const encoded = encodeURIComponent(sym)
       const basketId = basketIdFromSymbol(sym)
-      const requestKey = JSON.stringify({ sym: sym.toUpperCase(), tf, type, before: opts.before ?? null, limit: opts.limit ?? PAGE_SIZE, localOnly: Boolean(opts.localOnly), basketId })
+      const requestKey = JSON.stringify({ sym: sym.toUpperCase(), tf, type, adjusted: true, before: opts.before ?? null, limit: opts.limit ?? PAGE_SIZE, localOnly: Boolean(opts.localOnly), basketId })
       return dedupeOhlcvRequest(requestKey, async () => {
       if (opts.localOnly) {
         const raw = await api.get<any[]>(`/ohlcv/local/${encoded}/${tf}`, { limit: opts.limit ?? PAGE_SIZE })
