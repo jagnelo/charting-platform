@@ -19444,3 +19444,9 @@ uncovered slice rather than repeat a generic completion claim.
 - Full frontend Vitest: `576 passed` across `87` files. TypeScript checking and the production
   Vite build also passed. The two expected watchlist conflict/delete stderr traces remain
   deliberate failure-path assertions.
+
+## 2026-08-05T11:54:00Z Backend unit regression checkpoint
+
+- Current local backend unit suite passed `972/972` in `40.81s` with the known 34 Nautilus/
+  pandas deprecation warnings only. This includes the factory-source extraction and execution
+  matrix; no application failures were reported.
