@@ -19438,3 +19438,9 @@ uncovered slice rather than repeat a generic completion claim.
   dataset manifest.
 - Result: provider-neutral frontend boundary passes this static audit. External provider-live,
   entitlement, exact-build visual, broad performance, and complete parity gates remain open.
+
+## 2026-08-05T11:52:00Z Frontend regression checkpoint
+
+- Full frontend Vitest: `576 passed` across `87` files. TypeScript checking and the production
+  Vite build also passed. The two expected watchlist conflict/delete stderr traces remain
+  deliberate failure-path assertions.
