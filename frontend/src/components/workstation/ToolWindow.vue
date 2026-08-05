@@ -90,9 +90,9 @@ const groups: LinkGroup[] = ['blue', 'red', 'green', 'purple', 'orange', 'cyan',
 .tool-window__drag-handle:active { cursor: grabbing; }
 .tool-window__actions button { border: 0; color: #aab4bc; background: transparent; cursor: pointer; min-width: 17px; height: 20px; font-size: 12px; }
 .tool-window__actions button:hover { color: #fff; background: #38414a; }
-.tool-window__title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.tool-window__symbol { color: #9fc2e0; font-weight: 700; }
-.tool-window__actions { margin-left: auto; display: flex; align-items: center; }
+.tool-window__title { min-width: 0; flex: 1 1 auto; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tool-window__symbol { min-width: 0; max-width: 22%; color: #9fc2e0; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tool-window__actions { min-width: max-content; margin-left: auto; display: flex; align-items: center; flex: 0 0 auto; }
 .tool-window__menu-wrap { position: relative; }
 .tool-window__menu { position: absolute; z-index: 20; top: calc(100% + 3px); right: 0; display: grid; min-width: 110px; padding: 3px; border: 1px solid var(--tc-border-strong); background: #1a2025; box-shadow: 0 5px 14px rgba(0, 0, 0, .45); }
 .tool-window__menu button { width: 100%; padding: 4px 7px; text-align: left; }

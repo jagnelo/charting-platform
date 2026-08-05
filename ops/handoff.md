@@ -1,5 +1,14 @@
 # Active Handoff
 
+## Continuation update — 2026-08-05T11:50:00Z Header collision hardening
+
+- Shared tool-window chrome now reserves the action cluster and ellipsizes long titles/symbols;
+  the browser overlap audit additionally checks symbol/action collisions across all four scaled
+  visual projects. All overlap assertions pass.
+- Focused ToolWindow tests `2/2`, full frontend `573/573`, TypeScript/build, and authenticated
+  Chromium `31/31` pass. Three local screenshot comparisons remain unapproved at 1–2% because
+  exact-build V25 references are still missing.
+
 ## Continuation update — 2026-08-05T11:12:00Z Runner repeated-job probe
 
 - The live hardened runner completed 1,200 consecutive validated scalar executions with no

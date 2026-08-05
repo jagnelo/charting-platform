@@ -32,6 +32,9 @@ test.describe('TC2000 Version 25 approved visual parity', () => {
         if (overlaps(rect(header.querySelector('.tool-window__title')), rect(header.querySelector('.tool-window__actions')))) {
           issues.push(`header-${index}-title-actions`)
         }
+        if (overlaps(rect(header.querySelector('.tool-window__symbol')), rect(header.querySelector('.tool-window__actions')))) {
+          issues.push(`header-${index}-symbol-actions`)
+        }
       })
       document.querySelectorAll('.chart-tool').forEach((chart, index) => {
         const toolbar = rect(chart.querySelector('.chart-tool__drawing-toolbar'))

@@ -1,5 +1,15 @@
 # Run Report
 
+## 2026-08-05T11:50:00Z Dense tool-window header collision hardening
+
+- Constrained shared tool-window title and symbol flex items and made the action cluster
+  non-shrinking, with ellipsis handling for long active symbols. The four scaled visual browser
+  projects report zero title/action, symbol/action, and chart-toolbar/surface overlap issues.
+- The visual projects still correctly reject the three unapproved local screenshot baselines at
+  1–2% differences; no baseline was promoted because the V25 manifest remains required_missing.
+- Focused ToolWindow tests pass `2/2`, full frontend Vitest passes `573/573`, TypeScript/build
+  pass, and rebuilt authenticated Chromium flows pass `31/31`.
+
 ## 2026-08-05T11:12:00Z Research-runner repeated-job stability probe
 
 - The seccomp-protected branch runner completed 1,200 consecutive validated scalar executions
