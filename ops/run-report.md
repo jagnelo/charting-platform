@@ -20247,3 +20247,15 @@ uncovered slice rather than repeat a generic completion claim.
   shared acceptance data. Added a component assertion that promotion clears its busy state. Focused
   Study Lab tests pass `13/13`; TypeScript and the production build pass. A clean full authenticated
   matrix rerun is still required.
+
+## 2026-08-07T22:20:00Z Full acceptance rerun
+
+- Rebuilt the branch-scoped Compose stack and ran the combined backend gate: `1266/1266` passed,
+  `79.41%` coverage, 86 documented third-party deprecation warnings.
+- Authenticated Chromium flows pass `42/42`. The uPlot and workstation performance suites pass
+  `3/3`; the 100-round two-popout lifecycle soak passes `2/2` in 1.9 minutes. Frontend Vitest
+  passes `586/586` across 88 files, and TypeScript/build pass.
+- The strict visual manifest remains correctly blocked at
+  `application-shell-default/default: required_missing`; four-environment screenshot projects
+  are skipped until approved exact-build references exist. Native multi-monitor, sustained
+  adversarial runner stress, and unresolved external issuer routes remain open gates.

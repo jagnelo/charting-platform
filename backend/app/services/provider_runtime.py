@@ -676,7 +676,12 @@ async def execute_provider_call(
             f"No currently-supported providers available for {capability.value}/{operation}"
         )
     if last_error is not None:
-        logger.error(
+        # Exhaustion is an expected, user-visible coverage outcome when every
+        # entitled provider has no usable observations. Keep it distinguishable
+        # from an unhandled runtime fault while preserving the original typed
+        # exception for the caller's structured unavailable/partial response.
+        log_method = logger.warning if isinstance(last_error, ProviderNoDataError) else logger.error
+        log_method(
             "provider_runtime: all providers exhausted for %s/%s — last error: %s",
             capability.value,
             operation,

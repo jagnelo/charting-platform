@@ -18844,3 +18844,17 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
   button is re-enabled after the request settles. Focused Study Lab coverage is `13/13`, and
   TypeScript plus the production build pass. Strict V25 visual approval and a clean full matrix
   rerun remain open.
+
+## Continuation update — 2026-08-07T22:20:00Z Full acceptance rerun
+
+- Rebuilt the branch-scoped Docker stack and reran the authoritative combined backend gate:
+  `1266/1266` passed at `79.41%` coverage with 86 documented third-party deprecation warnings.
+- The complete authenticated Chromium flow matrix now passes `42/42`; the F8q signal-promotion
+  path passes with the bounded hydration wait. Real-browser performance passes `3/3`, including
+  the 100,000-point uPlot interaction and workstation multi-window guards; the 100-round two-popout
+  lifecycle soak passes `2/2` in 1.9 minutes with bounded tool/canvas/chart/heap state. Frontend
+  Vitest passes `586/586` across 88 files, with TypeScript and production build green.
+- Strict visual validation still fails closed at `application-shell-default/default:
+  required_missing`; all four visual projects are skipped without approved pinned-build references.
+  Native OS multi-monitor placement, sustained adversarial runner stress, and unresolved external
+  issuer probes remain open and are not being represented as complete.
