@@ -1,5 +1,15 @@
 # Active Handoff
 
+## Continuation update — 2026-08-05T16:00:00Z Global Ctrl+wheel symbol traversal
+
+- Added workstation-level `Ctrl+wheel` traversal for canonical symbols, with editor-focus
+  suppression and child-watchlist event isolation. When market-group data is unavailable during
+  startup, traversal falls back only to the known SPY/QQQ/DIA/IWM benchmark navigation set; selected
+  symbols still use normal canonical loading and freshness/coverage reporting.
+- Added unit coverage and authenticated F8k browser coverage. The complete rebuilt-stack non-visual
+  Playwright set now passes `35/35` in 1.4 minutes, including the new traversal test, pop-outs, all
+  factory layouts, Study Lab, legacy routes, and both performance guards.
+
 ## Continuation update — 2026-08-05T15:35:00Z Study Lab event-frequency factory study
 
 - Added the missing `Event frequency and occurrences` factory study to the primary Study Lab.

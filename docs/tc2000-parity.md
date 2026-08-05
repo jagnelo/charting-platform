@@ -35,6 +35,10 @@ Latest continuation evidence:
 - Study Lab now includes an explicit editable `Event frequency and occurrences` factory study that
   emits uPlot-compatible frequency bars plus linked occurrence artifacts; its component suite passes
   `12/12`.
+- Global `Ctrl+wheel` symbol traversal is now implemented at the workstation shell with editor
+  suppression, watchlist event isolation, and an honest canonical-benchmark navigation fallback
+  during unavailable/initial group data. Rebuilt-stack browser acceptance passes `35/35`, including
+  the dedicated F8k interaction test.
 
 Continuation evidence from the current branch checkpoint:
 

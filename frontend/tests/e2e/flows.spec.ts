@@ -359,6 +359,15 @@ test.describe('TC2000 workstation', () => {
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
+  test('F8k — Ctrl+wheel traverses the workstation symbol universe', async ({ page, browserDiagnostics }) => {
+    await page.goto('/chart')
+    const activeSymbol = page.getByRole('combobox', { name: 'Active symbol' })
+    await expect(activeSymbol).toHaveValue('SPY')
+    await page.locator('.workstation').dispatchEvent('wheel', { deltaY: 1, ctrlKey: true })
+    await expect.poll(() => activeSymbol.inputValue()).not.toBe('SPY')
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
   test('F8e — deep top-down drilldown reaches industry proxies and constituents', async ({ page, browserDiagnostics }) => {
     await page.goto('/chart')
     await expect(page.getByRole('region', { name: 'Major US benchmarks' })).toBeVisible({ timeout: 10_000 })

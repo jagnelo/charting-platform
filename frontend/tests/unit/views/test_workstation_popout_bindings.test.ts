@@ -128,6 +128,7 @@ describe('WorkstationView pop-out bindings', () => {
     routeState.query = {}
     apiGet.mockReset()
     apiGet.mockResolvedValue([])
+    harness.workspace.marketGroups = { 'us-benchmarks': { members: [] }, 'sp500-sectors': { members: [] } }
   })
 
   it('forwards watchlist persistence and proxy events from a floated tool to the shell', async () => {
@@ -184,6 +185,24 @@ describe('WorkstationView pop-out bindings', () => {
     await input.trigger('keydown', { key: 'ArrowDown' })
     await input.trigger('keydown', { key: 'Enter' })
     expect(harness.workspace.publishSymbol).toHaveBeenCalledWith(expect.objectContaining({ symbol: 'XLE', group: 'blue' }))
+  })
+
+  it('traverses the canonical workstation universe with Ctrl+wheel outside editors', async () => {
+    harness.workspace.marketGroups = {
+      'us-benchmarks': { members: [{ instrument: { symbol: 'SPY' } }, { instrument: { symbol: 'QQQ' } }, { instrument: { symbol: 'DIA' } }] },
+      'sp500-sectors': { members: [] },
+    }
+    routeState.path = '/'
+    routeState.params = {}
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+    await vi.waitFor(() => expect(harness.workspace.publishSymbol).toHaveBeenCalledWith(expect.objectContaining({ symbol: 'SPY' })))
+    harness.workspace.publishSymbol.mockClear()
+
+    wrapper.element.dispatchEvent(new WheelEvent('wheel', { ctrlKey: true, deltaY: 1, bubbles: true, cancelable: true }))
+    await vi.waitFor(() => expect(harness.workspace.publishSymbol).toHaveBeenCalledWith(expect.objectContaining({ symbol: 'QQQ', group: 'blue' })))
+    wrapper.unmount()
   })
 
   it('coordinates top-down refresh through Vue Query and resumes it after visibility returns', async () => {

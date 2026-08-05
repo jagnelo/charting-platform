@@ -1,5 +1,5 @@
 <template>
-  <div class="workstation" @keydown="handleKeydown">
+  <div class="workstation" @keydown="handleKeydown" @wheel="handleWheel">
     <header v-if="!isPopout" class="workstation__menu">
       <div class="workstation__brand">CHARTING WORKSTATION</div>
       <nav aria-label="Application menu">
@@ -248,10 +248,16 @@ const popoutTool = computed(() => {
     ?? workspaceStore.workspace?.tabs.flatMap(tab => tab.windows).find(window => window.instance_key === key)
     ?? null
 })
-const allSymbols = computed(() => [
-  ...(workspaceStore.marketGroups['us-benchmarks']?.members ?? []),
-  ...(workspaceStore.marketGroups['sp500-sectors']?.members ?? []),
-].map(member => member.instrument.symbol))
+const allSymbols = computed(() => {
+  const loaded = [
+    ...(workspaceStore.marketGroups['us-benchmarks']?.members ?? []),
+    ...(workspaceStore.marketGroups['sp500-sectors']?.members ?? []),
+  ].map(member => member.instrument.symbol)
+  // Navigation remains useful while a provider is unavailable or the first
+  // batch is still loading; selecting these canonical benchmark symbols then
+  // surfaces the normal freshness/coverage state instead of silently inventing data.
+  return [...new Set(loaded.length ? loaded : ['SPY', 'QQQ', 'DIA', 'IWM'])]
+})
 const goldenLayoutConfig = computed(() => {
   const layout = workspaceStore.activeTab?.layout_config
   if (layout?.root) return layout as LayoutConfig
@@ -645,6 +651,16 @@ function handleKeydown(event: KeyboardEvent) {
   if (!allSymbols.value.length) return
   const currentIndex = allSymbols.value.indexOf(activeSymbol.value)
   const nextIndex = (currentIndex + (event.shiftKey ? -1 : 1) + allSymbols.value.length) % allSymbols.value.length
+  void selectSymbol(allSymbols.value[nextIndex])
+}
+
+function handleWheel(event: WheelEvent) {
+  if (!event.ctrlKey || event.metaKey || event.altKey || workspaceStore.isEditorTarget(event.target)) return
+  event.preventDefault()
+  if (!allSymbols.value.length) return
+  const currentIndex = allSymbols.value.indexOf(activeSymbol.value)
+  const direction = event.deltaY > 0 ? 1 : -1
+  const nextIndex = (currentIndex + direction + allSymbols.value.length) % allSymbols.value.length
   void selectSymbol(allSymbols.value[nextIndex])
 }
 

@@ -1,5 +1,15 @@
 # Run Report
 
+## 2026-08-05T16:00:00Z Global Ctrl+wheel symbol traversal
+
+- Implemented the workstation-level `Ctrl+wheel` keyboard interaction required by the Version 25
+  contract. It traverses loaded canonical benchmark/sector symbols, suppresses editors, prevents
+  duplicate watchlist handling, and uses a bounded benchmark navigation fallback while groups are
+  unavailable or still loading.
+- Focused workstation view/watchlist tests pass `55/55`; TypeScript passes; rebuilt-stack F8k passes;
+  the complete authenticated non-visual Playwright set passes `35/35` in 1.4 minutes with no
+  unexpected browser diagnostics.
+
 ## 2026-08-05T15:35:00Z Study Lab event-frequency factory study
 
 - Added the explicit event-frequency/occurrence starter required by the Study Lab contract. The
