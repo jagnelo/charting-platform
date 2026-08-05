@@ -18759,3 +18759,9 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
   unapproved local snapshots by approximately 1–2% and therefore failed the strict screenshot
   threshold. No snapshot was promoted. This is evidence of deterministic rendering/overlap
   behavior, not exact TC2000 V25 visual approval.
+
+## Continuation update — 2026-08-07T05:00:00Z Authenticated browser matrix
+
+- Complete rebuilt-stack authenticated Chromium flow coverage passes `42/42` in 2.2 minutes,
+  including linking/isolation, timeframe propagation, top-down drilldown, Study Lab/factory study,
+  notes, alerts, pop-outs/recovery, legacy routes, Radar, and core header geometry.

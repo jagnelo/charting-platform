@@ -20175,3 +20175,9 @@ uncovered slice rather than repeat a generic completion claim.
 - Seeded visual geometry/overlap checks pass in all four required environments. The 100%/1080p
   case matches its local artifact; 125% and 1440p cases differ from unapproved local snapshots by
   approximately 1–2%, exceeding the 0.5% threshold. No snapshot was promoted.
+
+## 2026-08-07T05:00:00Z Authenticated browser matrix
+
+- Complete rebuilt-stack authenticated Chromium flow matrix passes `42/42` in 2.2 minutes,
+  covering workstation linking, drilldown, Study Lab, notes, pop-outs, recovery, legacy routes,
+  Radar, and header geometry.
