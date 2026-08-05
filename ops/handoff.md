@@ -18311,3 +18311,10 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
   failed. The output contains only the existing 54 Nautilus/pandas deprecation warnings.
 - This strengthens backend functional evidence but does not close strict V25 visual approval,
   provider-live, adversarial resource, native multi-monitor, or long-soak gates.
+## Continuation update — 2026-08-06T09:00:00Z Provider adapter unit acceptance
+
+- Focused OpenFIGI and new-provider unit suites pass `81/81` with `--no-cov`. This covers provider
+  parsing, identifier reconciliation, entitlement/capability handling, retries, and failure
+  classification without requiring live credentials. Provider-live probes, strict visual approval,
+  adversarial resource testing, native multi-monitor coverage, and long-duration soak acceptance
+  remain open.

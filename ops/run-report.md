@@ -19791,3 +19791,10 @@ uncovered slice rather than repeat a generic completion claim.
   warnings remain unchanged.
 - Strict V25 visual approval, provider-live, adversarial-resource, native multi-monitor, and
   long-soak acceptance remain open.
+## 2026-08-06T09:00:00Z Provider adapter unit acceptance
+
+- Focused OpenFIGI and new-provider unit suites passed `81/81` with `--no-cov`. The run covers
+  parser behavior, identifier reconciliation, entitlement/capability handling, retry policy, and
+  failure classification without depending on live provider credentials. Provider-live probes,
+  strict V25 visual approval, adversarial resource, native multi-monitor, and long-duration soak
+  acceptance remain open.
