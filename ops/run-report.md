@@ -1,5 +1,14 @@
 # Run Report
 
+## 2026-08-05T12:05:00Z Opt-in issuer holdings live audit
+
+- `RUN_LIVE_ETF_HOLDINGS_TESTS=1` public issuer matrix completed `339 passed`, `1 skipped`,
+  and `7 failed` across 347 tests. Current failures: IronHorse timeout; Neos 403; Tuttle,
+  Anfield, and Thor 404; Toews 500; Donoghue Forlines 503.
+- These are recorded as external source regressions, not accepted data. No route was silently
+  promoted or replaced; affected adapters require source repair or explicit demotion with
+  verified SEC fallback before this provider gate can pass.
+
 ## 2026-08-05T10:31:00Z Excluded-capability menu regression
 
 - Added an authenticated browser assertion that unsupported trading/brokerage/options/news/

@@ -54,6 +54,13 @@ origin and persisted-geometry coverage. This is functional/build evidence only; 
 close the required Version 25 visual-reference gate or the remaining broad performance,
 security, provider, and soak audits.
 
+An opt-in live ETF-holdings audit was rerun against current public issuer routes: `339 passed`,
+`1 skipped`, and `7 failed` of 347. Failures are source-state regressions rather than silent
+fallbacks: IronHorse timed out; Neos returned 403; Tuttle, Anfield, and Thor returned 404;
+Toews returned 500; and Donoghue Forlines returned 503. These adapters remain unpromoted for
+current-source acceptance until their routes are repaired or explicitly demoted with verified
+SEC fallback evidence.
+
 Pop-outs now restore persisted `left`, `top`, `width`, and `height` geometry from the
 serializable workspace window style, capture move/resize changes while open, and stop
 polling after close. Geometry is clamped to usable minimum dimensions, and unchanged polls

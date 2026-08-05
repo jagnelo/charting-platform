@@ -1,5 +1,12 @@
 # Active Handoff
 
+## Continuation update — 2026-08-05T12:05:00Z Issuer holdings live-source regressions
+
+- Opt-in public issuer holdings audit: `339 passed`, `1 skipped`, `7 failed`. Failures are
+  IronHorse timeout, Neos 403, Tuttle/Anfield/Thor 404, Toews 500, and Donoghue Forlines 503.
+- The affected routes remain explicitly unaccepted; repair or evidence-backed demotion with
+  SEC fallback is required. The system must not present these sources as healthy.
+
 ## Continuation update — 2026-08-05T10:31:00Z Excluded-capability menu coverage
 
 - Added and passed an authenticated browser regression proving unsupported trading, brokerage,
