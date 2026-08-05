@@ -1,5 +1,12 @@
 # Run Report
 
+## 2026-08-06T10:05:00Z Deployed sandbox escape probe
+
+- `ops/probe-research-runner-sandbox.sh` passed against the healthy branch-scoped container. All
+  eight hostile operations were denied: namespace changes, mount, ptrace, fork, network, subprocess
+  creation, and root-filesystem write. This is live deployment evidence, not a substitute for the
+  remaining sustained resource-pressure and long-soak gates.
+
 ## 2026-08-06T09:40:00Z Frontend regression refresh
 
 - Full frontend Vitest passes `577/577` across 87 files; the focused 10,000-row virtual-watchlist

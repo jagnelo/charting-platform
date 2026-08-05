@@ -1,5 +1,14 @@
 # Active Handoff
 
+## Continuation update — 2026-08-06T10:05:00Z Deployed sandbox escape probe
+
+- The branch-scoped research-runner container was healthy and the deployed probe denied all eight
+  hostile operations: `unshare`, `setns`, `mount`, `ptrace`, `fork`, network connection,
+  subprocess creation, and writes outside the allowed job/result volumes. This strengthens live
+  seccomp/no-new-privileges evidence; broader sustained resource-exhaustion stress, long-duration
+  soak, native multi-monitor validation, provider-live probes, and strict V25 visual approval remain
+  open.
+
 ## Continuation update — 2026-08-06T09:40:00Z Frontend regression refresh
 
 - The complete frontend Vitest suite passes `577/577` across 87 files. The dedicated 10,000-row
