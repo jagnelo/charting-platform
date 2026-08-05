@@ -78,6 +78,7 @@ describe('StudyLabTool', () => {
     await selector.setValue('seasonality')
     const seasonalitySource = (wrapper.find('[aria-label="Study Python source"]').element as HTMLTextAreaElement).value
     expect(seasonalitySource).toContain('average_day_of_week_return')
+    expect(seasonalitySource).toContain("weekday_names = ['Sat', 'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri']")
     expect(seasonalitySource).not.toContain('lambda')
   })
 

@@ -1,5 +1,11 @@
 # Run Report
 
+## 2026-08-05T17:20:00Z Weekday mapping correction
+
+- Fixed the Zeller weekday mapping in the seasonality factory so weekday bars/tables are labeled
+  correctly rather than shifted by one day.
+- Focused Study Lab tests pass `12/12`; TypeScript and production build pass.
+
 ## 2026-08-05T17:00:00Z Seasonality sandbox compatibility fix
 
 - Corrected the seasonality factory to avoid the validator's forbidden `lambda` AST node while

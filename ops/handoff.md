@@ -1,5 +1,12 @@
 # Active Handoff
 
+## Continuation update — 2026-08-05T17:20:00Z Weekday mapping correction
+
+- Corrected the Gregorian weekday label order in the seasonality factory (`0 = Saturday`), which
+  prevents weekday-return results from being shifted by one day.
+- Added a regression assertion for the exact mapping; Study Lab tests pass `12/12`, TypeScript and
+  production build pass.
+
 ## Continuation update — 2026-08-05T17:00:00Z Seasonality sandbox compatibility fix
 
 - Removed an unsupported `lambda` expression from the seasonality factory source after auditing the

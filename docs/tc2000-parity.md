@@ -47,6 +47,8 @@ Latest continuation evidence:
   another language or renderer.
 - The source was audited against the actual AST policy and no longer uses forbidden `lambda`; the
   Study Lab regression suite explicitly enforces this sandbox-compatible shape.
+- The Gregorian weekday mapping is also covered explicitly (`0 = Saturday`), preventing shifted
+  weekday labels in the calendar-seasonality result.
 
 Continuation evidence from the current branch checkpoint:
 
