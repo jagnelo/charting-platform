@@ -1,5 +1,13 @@
 # Active Handoff
 
+## Continuation update — 2026-08-06T09:15:00Z Frontend production build acceptance
+
+- `npm run type-check` and `npm run build` both pass on the current branch; Vite transforms 462
+  modules and emits the production bundle successfully. This confirms the latest workstation and
+  provider-boundary changes remain buildable. Strict V25 visual approval, provider-live probes,
+  adversarial resource testing, native multi-monitor coverage, and long-duration soak acceptance
+  remain open.
+
 ## Continuation update — 2026-08-05T12:55:00Z Research API integration checkpoint
 
 - Docker-backed `backend/tests/integration/api/test_code.py` passes `18/18` with only the two

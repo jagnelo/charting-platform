@@ -1,5 +1,12 @@
 # Run Report
 
+## 2026-08-06T09:15:00Z Frontend production build acceptance
+
+- Frontend `npm run type-check` and `npm run build` passed; Vite transformed 462 modules and emitted
+  the production bundle. No build or TypeScript errors were introduced. Strict V25 visual approval,
+  provider-live, adversarial resource, native multi-monitor, and long-duration soak acceptance
+  remain open.
+
 ## 2026-08-05T12:55:00Z Research API integration checkpoint
 
 - Focused Docker-backed code/research integration suite: `18 passed` in `26.08s`, with two
