@@ -19537,3 +19537,12 @@ uncovered slice rather than repeat a generic completion claim.
   preventing parallel-worker first-mount races from producing false growth failures.
 - Complete rebuilt-stack Chromium acceptance passed `37/37` in approximately 1.4 minutes with no
   unexpected diagnostics.
+
+## 2026-08-05T20:30:00Z Current regression audit
+
+- Full frontend Vitest: `576/576`; frontend type-check: passed.
+- Full backend unit: `974/974` in `50.10s`; only the existing Nautilus/pandas deprecation
+  warnings were emitted.
+- The current rebuilt-stack Chromium result remains `37/37` with clean diagnostics; no new local
+  defect was found. Strict visual, provider-live, adversarial stress, and long-duration soak gates
+  remain open.

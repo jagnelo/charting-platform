@@ -4,7 +4,7 @@
 
 The browser acceptance harness now treats logout's in-flight 401 responses as an explicit,
 bounded auth-boundary contract; unrelated unauthorized responses remain failures. Focused F5
-and the complete Chromium flow pass `29/29`.
+and the complete rebuilt-stack Chromium acceptance pass `37/37`.
 
 The targeted sandbox/resource and code API acceptance slice passes `112/112` with Docker
 access. Broader multi-process namespace/resource stress remains an explicit open gate.
@@ -20,6 +20,8 @@ multi-monitor/memory/polling evidence rather than identical-request duplication.
   contract and has exhaustive state mapping coverage (`565/565` frontend tests, TypeScript,
   production build, rebuilt Chromium `29/29`). The old timestamp-derived `Cached` shell state
   was removed because it could imply freshness the backend had not established.
+- The current local audit also passes the full frontend Vitest suite (`576/576`) and full backend
+  unit suite (`974/974`), with only the documented third-party deprecation warnings.
 - Remaining completion gates are unchanged: exact-build Version 25 visual references and
   approved baselines, configured multi-provider probes, adversarial sandbox/resource stress,
   10,000-row and multi-monitor/memory performance, and full cross-surface parity.

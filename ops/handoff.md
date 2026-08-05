@@ -18032,3 +18032,11 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
 - The complete rebuilt-stack Chromium set passes `37/37` in approximately 1.4 minutes with clean
   diagnostics. Strict V25 visual approval, multi-monitor/long-duration soak, adversarial stress,
   and external ETF issuer conditions remain open.
+
+## Continuation update — 2026-08-05T20:30:00Z Current regression audit
+
+- Full frontend Vitest passes `576/576`; frontend type-check passes.
+- Full backend unit suite passes `974/974` in `50.10s`; only the documented Nautilus/pandas
+  deprecation warnings remain.
+- Current rebuilt-stack Chromium remains `37/37` with clean diagnostics. No new local regression
+  was exposed; strict V25 visual, provider-live, adversarial stress, and long-soak gates remain.
