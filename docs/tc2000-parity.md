@@ -43,6 +43,11 @@ The branch-local PostgreSQL migration ledger also passed a reversible integrity 
 downgraded `ea0f1a2b3c4d` to `e9f0a1b2c3d4`, upgraded back to `ea0f1a2b3c4d`, and reports the head
 revision afterward.
 
+The authenticated Chromium flow suite now explicitly verifies that unsupported domains
+(`trading`, `brokerage`, `options`, `news`, ratings, earnings, and full financial statements)
+are absent from the primary workstation menu. The complete flow suite passes `31/31`, including
+pop-outs, top-down drill-down, Study Lab, legacy routes, and that exclusion assertion.
+
 The post-pop-out-change frontend verification is green: Vitest `572/572`, `vue-tsc
 --noEmit`, and the production Vite build all pass. The suite includes the new active-display
 origin and persisted-geometry coverage. This is functional/build evidence only; it does not

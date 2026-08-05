@@ -1,5 +1,12 @@
 # Run Report
 
+## 2026-08-05T10:31:00Z Excluded-capability menu regression
+
+- Added an authenticated browser assertion that unsupported trading/brokerage/options/news/
+  ratings/earnings/full-statement domains do not appear in the primary workstation menu.
+- Complete Chromium flow suite passes `31/31` in 1.2 minutes, including the new assertion,
+  pop-out lifecycle, top-down drill-down, Study Lab, and legacy compatibility routes.
+
 ## 2026-08-05T10:15:00Z Alembic reversible migration check
 
 - Branch-local PostgreSQL was at `ea0f1a2b3c4d` (head). A reversible downgrade to

@@ -153,6 +153,18 @@ test.describe('TC2000 workstation', () => {
 
   test.beforeEach(async ({ loggedIn }) => {})
 
+  test('unsupported capability domains stay out of the primary workstation menu', async ({ page, browserDiagnostics }) => {
+    await page.goto('/chart')
+    const primaryMenu = page.locator('.workstation__menu')
+    await expect(primaryMenu).toBeVisible({ timeout: 10_000 })
+    const labels = (await primaryMenu.locator('button, a').allTextContents()).join(' ').toLowerCase()
+    for (const excluded of ['trading', 'brokerage', 'options', 'news', 'ratings', 'earnings', 'financial statements']) {
+      expect(labels).not.toContain(excluded)
+    }
+    await expect(page.locator('.workstation__tabs')).toBeVisible()
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
   test('F8b — closing a floated tool preserves its source workspace tool', async ({ page, context, browserDiagnostics }) => {
     await page.goto('/chart')
     const floatButton = page.locator('button[title="Float"]').first()

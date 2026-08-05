@@ -1,5 +1,13 @@
 # Active Handoff
 
+## Continuation update — 2026-08-05T10:31:00Z Excluded-capability menu coverage
+
+- Added and passed an authenticated browser regression proving unsupported trading, brokerage,
+  options, news, ratings, earnings, and full-statement domains remain absent from the primary
+  workstation menu.
+- Complete Chromium flows pass `31/31`; legacy routes and the full top-down/Study Lab/pop-out
+  coverage remain green.
+
 ## Continuation update — 2026-08-05T10:15:00Z Alembic migration integrity
 
 - Branch-local PostgreSQL successfully downgraded from `ea0f1a2b3c4d` to `e9f0a1b2c3d4` and
