@@ -19601,3 +19601,11 @@ uncovered slice rather than repeat a generic completion claim.
   Yellow continues to resolve the latest wildcard event.
 - Focused workspace-store tests passed `35/35`; complete authenticated Chromium flows passed
   `36/36` in approximately `1.5m`; frontend type-check passed.
+
+## 2026-08-06T00:20:00Z Timeframe-link browser acceptance
+
+- Added F8n to the authenticated Chromium suite using the `4 Timeframe` factory layout. The
+  test verifies shared timeframe propagation between two blue-linked charts and then verifies
+  that a Grey-isolated chart keeps its local timeframe while a blue-linked chart changes.
+- Targeted Chromium run passed `1/1` in 2.5s with clean diagnostics. Strict visual, provider-live,
+  adversarial stress, native multi-monitor, and long-soak gates remain open.

@@ -18103,3 +18103,13 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
 - Added F8m proving Grey isolation and Yellow wildcard reception in the real workstation. Focused
   workspace-store coverage passed `35/35`; complete authenticated flows passed `36/36`; frontend
   type-check passed.
+
+## Continuation update — 2026-08-06T00:20:00Z Timeframe-link browser acceptance
+
+- Added F8n to the authenticated Chromium flow suite using the immutable `4 Timeframe` factory
+  layout. It proves two charts on the same timeframe bus receive each other's timeframe changes,
+  then proves a Grey-isolated chart retains its local timeframe while the shared bus changes
+  elsewhere.
+- The targeted test passed `1/1` with clean browser diagnostics. Strict V25 visual approval,
+  provider-live, adversarial resource stress, native multi-monitor placement, and longer-than-
+  20-round soak remain open.

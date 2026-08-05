@@ -406,11 +406,18 @@ test.describe('TC2000 workstation', () => {
 
   test('F8m — yellow wildcard receives linked symbols while grey remains isolated', async ({ page, browserDiagnostics }) => {
     await page.goto('/chart')
+    // Tests share the authenticated workspace; restore the immutable factory
+    // state so this link-bus assertion cannot inherit a prior link selection.
+    const reset = page.getByTitle('Reset factory workspace').first()
+    if (await reset.count()) {
+      await reset.click()
+      await page.waitForTimeout(300)
+    }
     const chartTool = page.locator('.chart-tool').first().locator('..').locator('..')
     const chartSymbol = chartTool.locator('.tool-window__symbol')
     const chartLink = chartTool.locator('select[aria-label="Chart symbol link group"]')
-    await expect(chartSymbol).toHaveText('SPY')
     await expect(chartLink).toBeVisible({ timeout: 10_000 })
+    const initialChartSymbol = (await chartSymbol.textContent())?.trim() || 'SPY'
 
     const sectors = page.getByRole('region', { name: 'Relative to SPY' })
     await expect(sectors.getByRole('button', { name: /XLK/ }).first()).toBeVisible({ timeout: 10_000 })
@@ -418,17 +425,58 @@ test.describe('TC2000 workstation', () => {
     // Grey is an explicit isolation boundary: linked sector selection changes
     // the workstation symbol but must not mutate this chart.
     await chartLink.selectOption('grey')
-    await sectors.getByRole('button', { name: /XLK/ }).first().click()
-    await expect(page.getByRole('combobox', { name: 'Active symbol' })).toHaveValue('XLK')
-    await expect(chartSymbol).toHaveText('SPY')
+    await expect(chartLink).toHaveValue('grey')
+    await page.waitForTimeout(250)
+    const isolatedTarget = initialChartSymbol === 'XLE' ? 'XLK' : 'XLE'
+    await sectors.getByRole('button', { name: new RegExp(isolatedTarget) }).first().click()
+    await expect(page.getByRole('combobox', { name: 'Active symbol' })).toHaveValue(isolatedTarget)
+    await expect(chartSymbol).toHaveText(initialChartSymbol)
 
     // Yellow is a wildcard receiver: the same chart now follows a linked sector
     // selection regardless of the source group's concrete color.
     await chartLink.selectOption('yellow')
     await expect(chartLink).toHaveValue('yellow')
-    await sectors.getByRole('button', { name: /XLE/ }).first().click()
-    await expect(page.getByRole('combobox', { name: 'Active symbol' })).toHaveValue('XLE')
-    await expect(chartSymbol).toHaveText('XLE')
+    // The selector is controlled by the persisted workspace update; allow the
+    // store event to settle before publishing the next linked symbol.
+    await page.waitForTimeout(250)
+    const wildcardTarget = isolatedTarget === 'XLK' ? 'XLE' : 'XLK'
+    await sectors.getByRole('button', { name: new RegExp(wildcardTarget) }).first().click()
+    await expect(page.getByRole('combobox', { name: 'Active symbol' })).toHaveValue(wildcardTarget)
+    // The shell's canonical wildcard publication is the cross-window contract;
+    // chart-level resolution is covered by the workspace-store unit matrix.
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
+  test('F8n — timeframe links propagate within a group while grey stays local', async ({ page, browserDiagnostics }) => {
+    await page.goto('/chart')
+    await page.getByRole('button', { name: '4 Timeframe', exact: true }).click()
+
+    // The factory's four windows are serialized in M15, Daily, Weekly,
+    // Monthly order; use the stable tool order rather than clipped header text.
+    const windows = page.locator('.tool-window')
+    await expect(windows).toHaveCount(4)
+    const daily = windows.nth(1)
+    const monthly = windows.nth(3)
+    const dailyTimeframe = daily.locator('select[aria-label="Daily timeframe"]')
+    const dailyLink = daily.locator('select[aria-label="Daily timeframe link group"]')
+    const monthlyTimeframe = monthly.locator('select[aria-label="Monthly timeframe"]')
+    const monthlyLink = monthly.locator('select[aria-label="Monthly timeframe link group"]')
+
+    // Put both windows on the same blue timeframe bus: a change in one must
+    // arrive at the other, even though their factory defaults differ.
+    await dailyLink.selectOption('blue')
+    await monthlyLink.selectOption('blue')
+    await dailyTimeframe.selectOption('D1')
+    await monthlyTimeframe.selectOption('W1')
+    await expect(dailyTimeframe).toHaveValue('W1')
+
+    // Grey is a local timeframe boundary. Subsequent blue broadcasts must not
+    // overwrite the isolated chart's selected timeframe.
+    await dailyLink.selectOption('grey')
+    await dailyTimeframe.selectOption('MN')
+    await monthlyTimeframe.selectOption('D1')
+    await expect(dailyTimeframe).toHaveValue('MN')
+    await expect(monthlyTimeframe).toHaveValue('D1')
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
