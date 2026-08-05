@@ -679,6 +679,8 @@ test.describe('TC2000 workstation', () => {
       return result
     })
     expect(issues).toEqual([])
+    const footerSymbols = await page.locator('.workstation__footer > span').filter({ hasText: 'SPY' }).count()
+    expect(footerSymbols).toBe(1)
     await browserDiagnostics.expectNoCriticalIssues()
   })
 

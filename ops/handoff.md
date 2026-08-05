@@ -1,5 +1,13 @@
 # Active Handoff
 
+## Continuation update — 2026-08-06T14:00:00Z Primary shell geometry guard
+
+- Extended F8r to assert the dense workstation footer exposes exactly one active-symbol value,
+  preventing duplicate symbol chrome from re-entering the primary shell. The focused authenticated
+  Chromium geometry test passed `1/1` with clean diagnostics. Maximum bounded lifecycle, strict V25
+  visual, native multi-monitor, provider-live, and sustained resource gates remain independently
+  tracked.
+
 ## Continuation update — 2026-08-06T13:10:00Z Maximum bounded lifecycle soak
 
 - The real Chromium workstation performance suite passed `2/2` with

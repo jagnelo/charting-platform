@@ -1,5 +1,11 @@
 # Run Report
 
+## 2026-08-06T14:00:00Z Primary shell geometry guard
+
+- F8r now checks that the workstation footer contains exactly one active-symbol value in addition to
+  title/symbol/action non-overlap checks. Focused authenticated Chromium F8r passed `1/1` with clean
+  diagnostics. Other strict visual, hardware, provider, and sustained-resource gates remain open.
+
 ## 2026-08-06T13:10:00Z Maximum bounded lifecycle soak
 
 - Chromium workstation performance passed `2/2` with `TC2000_POP_OUT_CHURN_ROUNDS=100` in `1.8m`.
