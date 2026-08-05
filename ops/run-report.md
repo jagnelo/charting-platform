@@ -1,5 +1,13 @@
 # Run Report
 
+## 2026-08-05T19:30:00Z Backend unit regression audit
+
+- Ran the current local backend unit suite: `972 passed` in 50.93s, with 34 known third-party
+  Nautilus/pandas deprecation warnings.
+- The attempted full integration command was outside the Docker-backed harness and failed during
+  fixture setup on Docker Unix-socket permissions; it produced no application test failures and is
+  not used as acceptance evidence.
+
 ## 2026-08-05T19:00:00Z Complete factory-source catalog normalization
 
 - Converted the inline relative-strength-history starter into a named source constant, eliminating

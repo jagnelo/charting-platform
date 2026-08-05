@@ -1,5 +1,14 @@
 # Active Handoff
 
+## Continuation update — 2026-08-05T19:30:00Z Backend unit regression audit
+
+- Current local backend unit suite passes `972/972` in 50.93s with 34 known third-party Nautilus/
+  pandas deprecation warnings; the new 4-test factory-source matrix is included.
+- A separate full integration invocation was intentionally not treated as application evidence: it
+  was launched outside the Docker-backed harness and stopped at fixture setup with Docker Unix-socket
+  permission errors. The previously recorded Docker-backed integration/full-suite evidence remains
+  authoritative.
+
 ## Continuation update — 2026-08-05T19:00:00Z Complete factory-source catalog normalization
 
 - Promoted the inline relative-strength-history factory source to a named constant so it shares the
