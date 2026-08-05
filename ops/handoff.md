@@ -18123,3 +18123,11 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
   frontend type-check passes, and the test no longer relies on an inherited workspace snapshot.
   Exact-build visual approval, provider-live, adversarial stress, native multi-monitor, and
   long-soak gates remain open.
+
+## Continuation update — 2026-08-06T01:00:00Z Frontend regression refresh
+
+- Full frontend Vitest now passes `577/577` across 87 files, including the 10,000-row
+  virtualization guard, link-group isolation, Study Lab, chart, and workspace suites.
+- Frontend type-check, JSON parsing, and `git diff --check` remain clean. Exact-build visual,
+  provider-live, adversarial stress, native multi-monitor, long-soak, and broad parity gates
+  remain unresolved.

@@ -19617,3 +19617,10 @@ uncovered slice rather than repeat a generic completion claim.
   isolation and Yellow wildcard assertions.
 - Repeated targeted Chromium coverage passed `3/3`; workspace-store coverage remains `35/35`,
   and frontend type-check/diff validation passed. The full completion bar remains open.
+
+## 2026-08-06T01:00:00Z Frontend regression refresh
+
+- Full frontend Vitest passed `577/577` across 87 files, including the 10,000-row virtualized
+  watchlist guard and the new link/timeframe interaction coverage.
+- TypeScript, JSON parsing, and diff validation remain clean; unresolved visual/provider,
+  adversarial, native multi-monitor, long-soak, and broad parity gates remain open.
