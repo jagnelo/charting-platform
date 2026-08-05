@@ -26,6 +26,7 @@ probe unshare '-1 1' 'import ctypes; x=ctypes.CDLL(None,use_errno=True).unshare(
 probe setns '-1 1' 'import ctypes,os; f=os.open("/proc/self/ns/mnt",0); x=ctypes.CDLL(None,use_errno=True).setns(f,0); print(x,ctypes.get_errno())'
 probe mount '-1 1' 'import ctypes; x=ctypes.CDLL(None,use_errno=True).mount(b"none",b"/tmp",b"tmpfs",0,None); print(x,ctypes.get_errno())'
 probe ptrace '-1 1' 'import ctypes; x=ctypes.CDLL(None,use_errno=True).ptrace(0,0,0,0); print(x,ctypes.get_errno())'
+probe fork 'Operation not permitted' 'import os; os.fork()'
 probe network '101' 'import socket; s=socket.socket(); s.settimeout(1); print(s.connect_ex(("1.1.1.1",80)))'
 probe subprocess 'Operation not permitted' 'import subprocess; subprocess.run(["id"],check=True)'
 probe root-write 'Read-only file system' 'open("/runner/escape","w").write("x")'

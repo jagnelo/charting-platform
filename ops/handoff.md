@@ -18049,3 +18049,11 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
   runtime failure.
 - This refreshes integration evidence only; exact V25 visual, provider-live, adversarial stress,
   and long-duration/multi-monitor performance gates remain open.
+
+## Continuation update — 2026-08-05T21:20:00Z Live fork-denial probe
+
+- Extended `ops/probe-research-runner-sandbox.sh` with a live `os.fork()` denial check so the
+  runtime probe covers the process-creation restriction already declared in the seccomp profile.
+- The current branch runner denied unshare, setns, mount, ptrace, fork, network, subprocess, and
+  root-write probes; the script exited successfully. This strengthens the adversarial evidence but
+  does not close the broader multi-process/resource stress or long-duration performance gates.

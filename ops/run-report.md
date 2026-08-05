@@ -19554,3 +19554,9 @@ uncovered slice rather than repeat a generic completion claim.
   contained no unexpected errors, tracebacks, connection leaks, or provider-runtime failures.
 - Exact-build visual, provider-live, adversarial sandbox, and long-duration/multi-monitor gates
   remain open.
+
+## 2026-08-05T21:20:00Z Live fork-denial probe
+
+- Added and ran the live fork-denial probe against the branch research runner.
+- Unshare, setns, mount, ptrace, fork, network, subprocess, and root-write probes were all denied;
+  the probe script exited successfully. Broader multi-process/resource stress remains separate.

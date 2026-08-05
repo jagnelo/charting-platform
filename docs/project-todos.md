@@ -9,6 +9,11 @@ and the complete rebuilt-stack Chromium acceptance pass `37/37`.
 The targeted sandbox/resource and code API acceptance slice passes `112/112` with Docker
 access. Broader multi-process namespace/resource stress remains an explicit open gate.
 
+The live branch-runner probe now also exercises process creation: unshare, setns, mount, ptrace,
+fork, network, subprocess, and root-write attempts are denied under the deployed policy. This is
+stronger runtime evidence, but it does not by itself close the broader multi-process/resource stress
+gate.
+
 OHLCV request fan-out is now bounded across linked chart surfaces: chart-store, workstation,
 comparison, and legacy chart reads share a short-lived canonical coordinator with immediate
 failure eviction. Full frontend Vitest is `576/576`, and rebuilt Chromium workstation
