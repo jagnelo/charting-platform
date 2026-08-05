@@ -20002,3 +20002,13 @@ uncovered slice rather than repeat a generic completion claim.
 - This is functional sequence evidence, not completion of the overall goal. Strict exact-build
   visual references, provider-live credentials/routes, sustained sandbox stress, native
   multi-monitor verification, and indefinite soak remain open.
+## 2026-08-06T22:00:00Z Autocomplete interaction repair
+
+- A post-soak full-flow run found a real stale autocomplete overlay race. Explicit symbol
+  selection now closes and invalidates search state for Go, Enter, Escape, and mouse option paths.
+- Evidence: focused F8m `1/1`; post-fix flow partitions `35/35` and `7/7`; full frontend Vitest
+  `577/577`, type-check, and Vite production build pass. The full serial runner was also exercised
+  but stopped reporting before its final summary; therefore the partitioned evidence is recorded
+  rather than claiming a new single-process 42/42 result.
+- Remaining gates: exact-build V25 visual approval, configured provider-live probes, native
+  multi-monitor verification, sustained sandbox/resource stress, and genuinely indefinite soak.

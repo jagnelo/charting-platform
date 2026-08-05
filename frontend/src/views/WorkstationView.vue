@@ -41,7 +41,7 @@
           @blur="closeSymbolSearch"
           @keydown.stop="handleSymbolInputKeydown"
         />
-        <button type="button" @click="selectSymbol(symbolDraft)">Go</button>
+        <button type="button" @click="closeSymbolSearch(); selectSymbol(symbolDraft)">Go</button>
         <div v-if="searchResults.length" id="workstation-symbol-results" class="workstation__symbol-results" role="listbox" aria-label="Symbol search results">
           <button
             v-for="(result, index) in searchResults"
@@ -356,9 +356,11 @@ function scheduleSymbolSearch(value: string) {
 }
 
 function selectSearchResult(symbol: string) {
+  // Close before changing the draft. The input remains focused while an option
+  // is selected with the mouse, so relying on blur leaves the listbox mounted
+  // above the workstation and can intercept the next tool click.
+  closeSymbolSearch()
   symbolDraft.value = symbol
-  searchResults.value = []
-  searchIndex.value = -1
   void selectSymbol(symbol)
 }
 
@@ -372,10 +374,10 @@ function handleSymbolInputKeydown(event: KeyboardEvent) {
   } else if (event.key === 'Enter') {
     event.preventDefault()
     const result = searchResults.value[searchIndex.value]
+    closeSymbolSearch()
     void selectSymbol(result?.symbol ?? symbolDraft.value)
   } else if (event.key === 'Escape') {
-    searchResults.value = []
-    searchIndex.value = -1
+    closeSymbolSearch()
   }
 }
 

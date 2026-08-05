@@ -18545,3 +18545,14 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
   TypeScript and production build pass, and post-run service logs remain clean. This closes the
   newly found functional regression slice only. Strict V25 visual approval, provider-live,
   sustained adversarial resource testing, native multi-monitor, and indefinite soak gates remain open.
+## Continuation update — 2026-08-06T22:00:00Z Autocomplete interaction repair
+
+- After the 100-round workstation soak, a full flow rerun exposed a stale active-symbol
+  autocomplete listbox intercepting the next sector click after Enter selection. `WorkstationView`
+  now closes and invalidates autocomplete on Go, Enter, Escape, and mouse option selection before
+  dispatching the canonical symbol. Focused F8m passed `1/1`; post-fix authenticated flow coverage
+  passed in bounded partitions (`35` core/pre-study/legacy and `7` Study Lab/notes tests), while
+  the focused F8k/F8o paths also passed. Frontend Vitest remains `577/577`, coverage is `79.98%`
+  statements / `71.28%` functions, vue-tsc and production build pass. Strict V25 visual approval,
+  provider-live, native multi-monitor, sustained sandbox/resource, and indefinite-soak gates remain
+  open.

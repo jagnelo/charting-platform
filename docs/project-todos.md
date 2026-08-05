@@ -20,6 +20,16 @@ The user-requested `docker system prune -af` cleanup reclaimed `7.319GB`; active
 remained healthy. Native multi-monitor placement and genuinely indefinite soak remain separate
 acceptance gates.
 
+The post-soak authenticated flow audit found and repaired one real interaction race: pressing
+Enter in the active-symbol search (or using Go) could leave a stale autocomplete listbox mounted
+over the workstation while the input remained focused, allowing it to intercept the next sector
+or tool click. Explicit selection now closes and invalidates autocomplete before dispatching the
+canonical symbol; Escape and mouse option selection use the same path. The focused F8m check passes
+`1/1`; the remaining authenticated-flow tests were re-run in bounded partitions after the fix
+(`35` pre-study/core/legacy tests and `7` Study Lab/notes tests passed), with no new application
+failures. This closes the autocomplete regression only; it does not change the strict visual,
+provider-live, native multi-monitor, sustained sandbox, or indefinite-soak gates.
+
 Provider-route recheck on 2026-08-05T21:45:00Z confirmed that the four remaining ETF holdings
 failures are still external-route conditions, not safe candidates for fallback substitution:
 official pages declare ADFI, DFTT, and NEOS downloads but the discovered acceptance routes remain
