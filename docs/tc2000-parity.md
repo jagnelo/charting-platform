@@ -1235,3 +1235,11 @@ element is preserved, and enforces a bounded interaction time. The test passed i
 host-permitted Chromium run on 2026-08-04; this is renderer-level evidence only and
 does not replace the pending authenticated workstation, pop-out, memory, and
 multi-environment performance matrix.
+## Continuation update — 2026-08-05T16:30:00Z Provider route refresh
+
+The opt-in public ETF-holdings audit now reports `342 passed`, `1 skipped`, and `4 failed`.
+The THOR THIR adapter follows the issuer's current extensionless product route and its live
+holdings probe passes. The Tuttle health probe uses active DRMP because MAGO was liquidated;
+historical MAGO identity remains in the canonical security master. Remaining failures are
+explicit external-source conditions: Neos HTTP 403, Anfield HTTP 404, Donoghue Forlines HTTP
+503, and an Inverdale timeout. They remain unaccepted and are not hidden by fallback behavior.

@@ -17962,3 +17962,11 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
   API routes and display platform-level provenance/freshness/coverage instead.
 - This closes only the static frontend-boundary audit. It does not close provider entitlement,
   live-source, exact-build visual, broad performance, or full parity acceptance gates.
+## Continuation update — 2026-08-05T16:30:00Z Provider route refresh
+
+- The latest opt-in public ETF-holdings matrix completed `342 passed`, `1 skipped`, `4 failed`.
+- THOR THIR now uses the issuer's current extensionless product page and the focused live probe
+  passes. Tuttle's health case now uses active DRMP because MAGO was liquidated; historical MAGO
+  identity remains supported by the canonical security master.
+- Remaining failures are explicit external conditions: Neos 403, Anfield 404, Donoghue Forlines
+  503, and Inverdale timeout. They remain unaccepted; no fallback silently promotes them.

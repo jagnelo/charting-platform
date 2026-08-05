@@ -19481,3 +19481,10 @@ uncovered slice rather than repeat a generic completion claim.
   `application-shell-default/default: visual acceptance is blocked by required_missing`.
   This is the expected fail-closed behavior; no discovery image or local screenshot was
   promoted to an exact-build approved baseline.
+## 2026-08-05T16:30:00Z Provider route refresh
+
+- The opt-in public ETF-holdings matrix completed `342 passed`, `1 skipped`, and `4 failed`.
+- The THOR THIR extensionless issuer route and active Tuttle DRMP probe pass; MAGO is retained
+  only as historical identity because the fund was liquidated.
+- Remaining external failures are Neos 403, Anfield 404, Donoghue Forlines 503, and Inverdale
+  timeout. These are still surfaced as unaccepted provider conditions.
