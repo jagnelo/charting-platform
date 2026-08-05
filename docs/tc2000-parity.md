@@ -1251,3 +1251,11 @@ workstation or backend unit contracts. Docker-backed integration/browser evidenc
 because the current execution environment cannot access the Docker Desktop socket; the previous
 rebuilt-stack results remain the authoritative evidence for those gates. Exact-build visual
 approval remains blocked by the manifest's `required_missing` states.
+## Continuation update — 2026-08-05T13:10:00Z Public-issuer 403 transport recovery
+
+The provider boundary now retries an explicit public-issuer HTTP 403 through a browser-compatible
+transport while retaining the same URL, headers, source identity, and provenance. This improves
+WAF compatibility without introducing provider substitution or changing fallback order. The
+deterministic ETF adapter suite passes `450/450` and the full backend unit suite passes `974/974`.
+A focused live NEOS attempt was DNS-blocked by the current environment and therefore does not
+promote that source; the last complete live matrix remains `342 passed, 1 skipped, 4 failed`.

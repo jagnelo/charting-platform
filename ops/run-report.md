@@ -19496,3 +19496,11 @@ uncovered slice rather than repeat a generic completion claim.
 - Docker socket access was unavailable in this execution environment, so no new Docker-backed
   integration or browser result is claimed. Existing rebuilt-stack evidence remains authoritative.
 - Strict visual approval and the four remaining external provider-route failures remain open.
+## 2026-08-05T13:10:00Z Public-issuer 403 transport recovery
+
+- Added a bounded same-URL browser-compatible requests retry for public issuer HTTP 403
+  responses in the generic and Innovator aggregate holdings transports.
+- Deterministic ETF adapter suite: `450 passed`; full backend unit suite: `974 passed`;
+  Ruff and diff checks passed.
+- Focused live NEOS probing hit DNS resolution failure in this environment and is not treated
+  as provider acceptance. The full matrix remains `342 passed, 1 skipped, 4 failed`.

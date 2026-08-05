@@ -17982,3 +17982,15 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
   not by this local audit.
 - The strict visual manifest remains `required_missing`; provider live evidence remains
   `342 passed, 1 skipped, 4 failed` with the four external route conditions documented below.
+## Continuation update — 2026-08-05T13:10:00Z Public-issuer 403 transport recovery
+
+- The shared public holdings transport now retries an issuer HTTP 403 once through the
+  browser-compatible requests transport, retaining the exact issuer URL, headers, and
+  provenance. It does not substitute providers or change fallback order.
+- The retry applies to both generic public CSV routes and the Innovator/FilePoint-style
+  aggregate route used by NEOS. Deterministic adapter coverage passes `450/450`; the new
+  403 regression is included. Ruff and `git diff --check` pass.
+- The full backend unit suite now passes `974/974` with the known 34 third-party warnings.
+- A focused live NEOS probe could not resolve DNS in this execution environment, so it is
+  recorded as an environment transport failure rather than evidence that the issuer route
+  recovered. The previously completed matrix result remains `342 passed, 1 skipped, 4 failed`.

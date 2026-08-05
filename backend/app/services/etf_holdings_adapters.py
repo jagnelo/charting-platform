@@ -2385,6 +2385,19 @@ class PublicCsvHoldingsAdapter:
                     headers=self.source_request_headers(source_url=source_url),
                     follow_redirects=True,
                 )
+            # Some issuer WAFs reject httpx's transport while allowing the same
+            # public, unauthenticated URL through a browser-compatible requests
+            # transport.  Retry only that explicit status and keep the same
+            # issuer URL/headers; this is transport resilience, not provider
+            # substitution or a fallback-order change.
+            if getattr(response, "status_code", 200) == 403:
+                response = await asyncio.to_thread(
+                    requests.get,
+                    source_url,
+                    headers=self.source_request_headers(source_url=source_url),
+                    timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS,
+                    allow_redirects=True,
+                )
             response.raise_for_status()
             raw_content = getattr(response, "content", None)
             response_text = response.text
@@ -37267,6 +37280,14 @@ class InnovatorHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 resolved_source_url,
                 headers=self.source_request_headers(source_url=resolved_source_url),
                 follow_redirects=True,
+            )
+        if getattr(response, "status_code", 200) == 403:
+            response = await asyncio.to_thread(
+                requests.get,
+                resolved_source_url,
+                headers=self.source_request_headers(source_url=resolved_source_url),
+                timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS,
+                allow_redirects=True,
             )
         response.raise_for_status()
         rows, composition_date = self._parse_innovator_csv(
