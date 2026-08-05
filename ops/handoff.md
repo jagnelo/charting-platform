@@ -1,5 +1,13 @@
 # Active Handoff
 
+## Continuation update — 2026-08-05T16:45:00Z Weekday seasonality refinement
+
+- Extended the month/day seasonality factory study with day-of-week grouping (using a bounded
+  Gregorian weekday calculation in the sandbox-safe Python source). It now emits monthly,
+  day-of-month, and weekday bars plus corresponding observation tables.
+- Study Lab tests pass `12/12`; full frontend Vitest remains `575/575`; TypeScript and production
+  build pass.
+
 ## Continuation update — 2026-08-05T16:25:00Z Month/day seasonality study
 
 - Corrected the Study Lab seasonality starter from month-only to the required month/day study.

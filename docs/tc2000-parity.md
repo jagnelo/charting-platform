@@ -42,6 +42,9 @@ Latest continuation evidence:
 - The seasonality factory now covers both month and day-of-month behavior, with separate frequency
   bars and observation tables emitted by editable unified Python; Study Lab component coverage remains
   `12/12`.
+- The same seasonality study now also emits day-of-week bars and observation tables using a bounded
+  Gregorian calculation, completing the month/day/calendar seasonality starter without introducing
+  another language or renderer.
 
 Continuation evidence from the current branch checkpoint:
 
