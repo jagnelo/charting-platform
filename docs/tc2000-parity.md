@@ -1289,3 +1289,13 @@ analysis remains quiescent while hidden and resumes only through the visible-sta
 performance baselines require repeated stable canvas samples before asserting lifecycle invariants,
 so transient first-mount panes cannot be mistaken for leaks. The complete rebuilt-stack Chromium
 set passes `37/37`; this remains functional/performance evidence rather than visual approval.
+
+## Notes identity and persistence regression — 2026-08-06
+
+Notes, Alerts, and report tools now resolve the active canonical instrument directly when opened
+without a chart sibling, including isolated and floated windows. A repeated Notes save also exposed
+an async SQLAlchemy response-serialization defect: server-side `updated_at` expiration could raise
+`MissingGreenlet` and return HTTP 500. The Notes router assigns the update timestamp locally and
+refreshes before returning; the create/update/read integration regression and rebuilt-stack F8s
+browser acceptance pass. This closes the instrument-note persistence contract; strict V25 visual
+approval and the broader provider, resource-stress, multi-monitor, and long-soak gates remain open.
