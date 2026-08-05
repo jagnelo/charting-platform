@@ -1,5 +1,13 @@
 # Active Handoff
 
+## Continuation update — 2026-08-06T18:30:00Z Strict visual-manifest recheck
+
+- The visual manifest remains structurally valid, while the strict `--require-approved` validator
+  correctly exits fail-closed at `application-shell-default/default: required_missing`. The refreshed
+  189-media discovery pack therefore has not weakened the approval gate or entered the product
+  bundle. Functional, provider, hardware, sustained-resource, and strict visual acceptance gaps
+  remain explicitly tracked.
+
 ## Continuation update — 2026-08-06T18:00:00Z Reference-pack refresh
 
 - Re-ran the documented official Help Site/shared-layout retrieval into controlled storage at

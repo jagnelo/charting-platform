@@ -1,5 +1,11 @@
 # Run Report
 
+## 2026-08-06T18:30:00Z Strict visual-manifest recheck
+
+- Normal visual-manifest validation passes. Strict `--require-approved` validation intentionally
+  fails at `application-shell-default/default: required_missing`, confirming the gate remains
+  fail-closed after the reference-pack refresh and no discovery media was silently promoted.
+
 ## 2026-08-06T18:00:00Z Reference-pack refresh
 
 - The official-source retrieval script completed successfully into controlled storage, producing
