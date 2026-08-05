@@ -43,6 +43,13 @@ tmpfs `ENOSPC`, three contained concurrent failures, and unchanged runner restar
 deployment contract suite passes `6/6`; sustained cancellation/crash/resource stress remains a
 separate broader gate.
 
+The visible-list audit found a second concrete issue: Golden Layout could leave a mounted
+virtualized watchlist using its one-row detached fallback even after its panel became visible.
+`VirtualWatchlistTool` now re-measures on mount and on two animation frames, and the seeded visual
+harness asserts that all five benchmark and eleven sector rows have distinct, non-overlapping
+geometry before capture. The top-down F8d/F8e browser checks pass `2/2`; exact-build visual
+comparison remains blocked only by the unapproved reference baselines, not by row geometry.
+
 Provider-route recheck on 2026-08-05T21:45:00Z confirmed that the four remaining ETF holdings
 failures are still external-route conditions, not safe candidates for fallback substitution:
 official pages declare ADFI, DFTT, and NEOS downloads but the discovered acceptance routes remain

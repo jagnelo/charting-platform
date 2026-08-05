@@ -18574,3 +18574,13 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
   with `ENOSPC`, three concurrent workers contained, and runner restart count unchanged. The
   deployment contract suite passes `6/6`. Sustained cancellation/crash/resource stress remains
   open beyond this bounded probe.
+## Continuation update — 2026-08-06T23:30:00Z Virtualized row measurement repair
+
+- Seeded visual inspection found that complete benchmark/sector counts could coexist with the
+  one-row detached fallback after Golden Layout made a tool visible. `VirtualWatchlistTool` now
+  re-measures immediately and on two animation frames after mount. The seeded visual harness
+  asserts five benchmark rows and eleven sector rows with distinct geometry; all overlap checks
+  pass. F8d/F8e top-down browser checks pass `2/2`, and type-check passes.
+- The visual screenshot comparison still fails only against stale/unapproved local snapshots;
+  no baseline was promoted. Exact-build V25 references, provider-live, native multi-monitor,
+  sustained sandbox/resource, and indefinite-soak gates remain open.

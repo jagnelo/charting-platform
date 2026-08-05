@@ -364,6 +364,11 @@ const virtualizer = useVirtualizer(computed(() => ({
   initialRect: { width: 480, height: 360 },
   overscan: 12,
 })))
+let virtualizerAnimationFrame: number | null = null
+let virtualizerSecondAnimationFrame: number | null = null
+function refreshVirtualizerMeasurement() {
+  virtualizer.value.measure()
+}
 const virtualItems = computed(() => {
   const items = virtualizer.value.getVirtualItems()
   if (items.length || !filteredRows.value.length) return items
@@ -775,6 +780,16 @@ watch(rowUniverseKey, () => {
 })
 
 onMounted(() => {
+  // Golden Layout can attach a virtual tool after the initial Vue mount. At
+  // that moment the scroll element may still report a zero rectangle, which
+  // intentionally selects the one-row detached fallback above. Re-measure on
+  // two animation frames so a now-visible tool renders its full viewport and
+  // not just the first benchmark/sector row.
+  refreshVirtualizerMeasurement()
+  virtualizerAnimationFrame = window.requestAnimationFrame(() => {
+    refreshVirtualizerMeasurement()
+    virtualizerSecondAnimationFrame = window.requestAnimationFrame(refreshVirtualizerMeasurement)
+  })
   void loadScreeners()
   void loadColumnSets()
   void loadPythonAssets()
@@ -790,6 +805,8 @@ watch(pythonColumns, columns => {
 watch(pythonCondition, condition => { if (condition) void runPythonCondition(condition) }, { deep: true })
 
 onBeforeUnmount(() => {
+  if (virtualizerAnimationFrame != null) window.cancelAnimationFrame(virtualizerAnimationFrame)
+  if (virtualizerSecondAnimationFrame != null) window.cancelAnimationFrame(virtualizerSecondAnimationFrame)
   // Closing a docked tool or pop-out must release any prepared-universe work it
   // started. Invalidate local generations first so a late POST/poll response
   // cannot repopulate state after the component has been destroyed.

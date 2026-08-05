@@ -20027,3 +20027,10 @@ uncovered slice rather than repeat a generic completion claim.
 - Corrected live run: cgroup kill `137`, tmpfs `ENOSPC`, three contained concurrent failures, and
   zero runner restarts. Deployment contract tests pass `6/6`. This is bounded enforcement evidence;
   sustained cancellation/crash/resource stress remains a separate open acceptance gate.
+## 2026-08-06T23:30:00Z Virtualized row measurement repair
+
+- Golden Layout could leave a visible virtualized list using its one-row detached fallback. The
+  component now re-measures on mount and two animation frames; seeded visual assertions verify
+  five benchmark and eleven sector rows have distinct, non-overlapping geometry.
+- Evidence: F8d/F8e `2/2`, type-check passed, all seeded overlap checks passed. Screenshot comparison
+  remains intentionally unapproved against stale local references; no snapshots changed.

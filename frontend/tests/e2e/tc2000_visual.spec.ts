@@ -17,7 +17,23 @@ test.describe('TC2000 Version 25 approved visual parity', () => {
     // present before visual comparison, and the expected unavailable-data 404s
     // must have reached the diagnostics classifier before it inspects the page.
     await expect(page.locator('.workstation__layout-state')).toHaveCount(0)
-    await page.waitForTimeout(250)
+    if (process.env.E2E_SEED_MARKET_DATA === 'true') {
+      // The deterministic fixture is intentionally complete. Wait for both
+      // canonical universes to hydrate before capturing a baseline; a first
+      // canvas paint can occur while only the first virtualized row is present.
+      await expect(page.getByRole('region', { name: 'Major US benchmarks' }).locator('.watchlist__controls b')).toContainText('5', { timeout: 10_000 })
+      await expect(page.getByRole('region', { name: 'Relative to SPY' }).locator('.watchlist__controls b')).toContainText('11', { timeout: 10_000 })
+      await expect(page.getByRole('region', { name: 'Major US benchmarks' }).locator('.watchlist__row')).toHaveCount(5, { timeout: 10_000 })
+      await expect(page.getByRole('region', { name: 'Relative to SPY' }).locator('.watchlist__row')).toHaveCount(11, { timeout: 10_000 })
+      const rowGeometry = await page.evaluate(() => Array.from(document.querySelectorAll('.watchlist__row')).map(row => {
+        const rect = row.getBoundingClientRect()
+        return { top: rect.top, bottom: rect.bottom, height: rect.height }
+      }))
+      expect(rowGeometry.every(row => row.height >= 20)).toBe(true)
+      expect(new Set(rowGeometry.map(row => row.top)).size).toBe(rowGeometry.length)
+    } else {
+      await page.waitForTimeout(250)
+    }
     const overlapIssues = await page.evaluate(() => {
       const rect = (element: Element | null) => {
         if (!element) return null
