@@ -18835,3 +18835,12 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
 
 - Follow-up isolated F8q verification passed `3/3` after runner job/result inspection found no
   queued or running residue; the earlier full-matrix timeout remains classified as environmental.
+
+## Continuation update — 2026-08-07T14:00:00Z Study Lab promotion wait hardening
+
+- The final F8q assertion now allows up to 25 seconds for the Strategy Lab signal definition's
+  hydrated version graph on a long-lived shared acceptance database, while remaining inside the
+  enclosing 30-second test budget. The Study Lab component test also asserts that the signal
+  button is re-enabled after the request settles. Focused Study Lab coverage is `13/13`, and
+  TypeScript plus the production build pass. Strict V25 visual approval and a clean full matrix
+  rerun remain open.

@@ -20239,3 +20239,11 @@ uncovered slice rather than repeat a generic completion claim.
 
 - A further isolated F8q repeat passed `3/3` after runner job/result inspection found no queued or
   running residue.
+
+## 2026-08-07T14:00:00Z Study Lab promotion wait hardening
+
+- Increased only the final F8q Strategy Lab signal-promotion assertion to a bounded 25-second wait
+  because the response includes the hydrated strategy version graph and can queue behind accumulated
+  shared acceptance data. Added a component assertion that promotion clears its busy state. Focused
+  Study Lab tests pass `13/13`; TypeScript and the production build pass. A clean full authenticated
+  matrix rerun is still required.
