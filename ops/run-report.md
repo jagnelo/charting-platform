@@ -19943,3 +19943,12 @@ uncovered slice rather than repeat a generic completion claim.
   failure classification without depending on live provider credentials. Provider-live probes,
   strict V25 visual approval, adversarial resource, native multi-monitor, and long-duration soak
   acceptance remain open.
+## 2026-08-06T16:45:00Z Full authenticated flow regression repair
+
+- Serial rebuilt-stack Chromium `tests/e2e/flows.spec.ts` passes `42/42` with one worker.
+- A late autocomplete response could reopen the symbol dropdown after explicit selection and
+  intercept link-group/Ctrl+wheel actions. `WorkstationView.selectSymbol` now cancels the debounce,
+  invalidates the request generation, and clears autocomplete state before publication. Focused
+  F8m/F8k/F8g/F8q checks pass; frontend Vitest remains `577/577`, TypeScript/build/diff pass.
+- Functional evidence only: exact-build visual references, provider-live, sustained sandbox
+  cancellation/orphan/crash, native multi-monitor, and indefinite soak remain open.

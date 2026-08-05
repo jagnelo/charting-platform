@@ -281,6 +281,15 @@ async function selectSymbol(raw: string, timestamp?: string) {
   // handler that was started by an earlier row click.
   drilldownSelectionGeneration += 1
   suppressNextSearch = true
+  // Invalidate an in-flight autocomplete request as soon as an explicit symbol
+  // selection starts. Otherwise a response for the value just committed can
+  // reopen the dropdown after Go/Enter has already closed it, intercepting the
+  // next workstation interaction.
+  if (searchTimer) {
+    clearTimeout(searchTimer)
+    searchTimer = null
+  }
+  searchRequest += 1
   searchResults.value = []
   searchIndex.value = -1
   let symbol: string

@@ -18478,3 +18478,12 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
   classification without requiring live credentials. Provider-live probes, strict visual approval,
   adversarial resource testing, native multi-monitor coverage, and long-duration soak acceptance
   remain open.
+## Continuation update — 2026-08-06T16:45:00Z Full authenticated flow regression repair
+
+- Serial Chromium `tests/e2e/flows.spec.ts` now passes `42/42` after fixing a real autocomplete
+  race in `WorkstationView`: explicit symbol selection cancels the timer, invalidates the in-flight
+  search generation, and clears stale results before publishing the canonical symbol.
+- Focused F8m, F8k, F8g, and F8q checks pass; frontend Vitest remains `577/577`, TypeScript and
+  production build pass, and post-run backend/worker/research-runner logs are clean. Strict V25
+  visual approval, provider-live, sustained sandbox cancellation/orphan/crash, native
+  multi-monitor, and indefinite soak gates remain open.

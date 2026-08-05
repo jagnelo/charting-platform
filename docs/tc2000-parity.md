@@ -1308,3 +1308,11 @@ an async SQLAlchemy response-serialization defect: server-side `updated_at` expi
 refreshes before returning; the create/update/read integration regression and rebuilt-stack F8s
 browser acceptance pass. This closes the instrument-note persistence contract; strict V25 visual
 approval and the broader provider, resource-stress, multi-monitor, and long-soak gates remain open.
+## Continuation update — 2026-08-06T16:45:00Z Symbol-selection race repair
+
+The complete authenticated flow suite passes `42/42` serially after correcting a real
+autocomplete race in the workstation header. Explicit symbol selection now cancels the pending
+debounce, invalidates any in-flight search generation, and clears stale results before publishing
+the canonical instrument. Focused F8m/F8k/F8g/F8q checks, full frontend Vitest (`577/577`),
+TypeScript, and production build pass. This is functional evidence only; strict V25 visual
+approval remains blocked by required-missing reference states.
