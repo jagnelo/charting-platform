@@ -18732,6 +18732,12 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
   `application-shell-default/default: required_missing`; no unapproved reference or baseline was
   promoted.
 
+## Continuation update — 2026-08-07T04:00:00Z Combined backend gate
+
+- Full Docker-backed unit and integration coverage passes `1266/1266` at `79.41%`, above the
+  required 75% threshold, with 86 documented third-party deprecation warnings. This revalidates
+  the complete backend gate after the custom issuer SEC-fallback changes.
+
 ## Continuation update — 2026-08-07T03:15:00Z Reference authority refresh
 
 - Added official current Version 25 web-platform capability evidence to the visual manifest for

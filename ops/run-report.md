@@ -20154,6 +20154,11 @@ uncovered slice rather than repeat a generic completion claim.
 - Strict visual manifest validation remains intentionally blocked at
   `application-shell-default/default: required_missing`; no baseline was promoted.
 
+## 2026-08-07T04:00:00Z Combined backend gate
+
+- Full Docker-backed unit and integration coverage passes `1266/1266` at `79.41%`, above the 75%
+  threshold, with 86 documented third-party deprecation warnings.
+
 ## 2026-08-07T03:15:00Z Reference authority refresh
 
 - Added official current Version 25 web-platform capability evidence to the manifest for layouts,
