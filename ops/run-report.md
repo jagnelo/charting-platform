@@ -1,5 +1,12 @@
 # Run Report
 
+## 2026-08-06T09:40:00Z Frontend regression refresh
+
+- Full frontend Vitest passes `577/577` across 87 files; the focused 10,000-row virtual-watchlist
+  suite passes `46/46`. Existing conflict-path stderr is expected and covered. Strict V25 visual,
+  provider-live, adversarial resource, native multi-monitor, and long-duration soak gates remain
+  open.
+
 ## 2026-08-06T09:15:00Z Frontend production build acceptance
 
 - Frontend `npm run type-check` and `npm run build` passed; Vite transformed 462 modules and emitted

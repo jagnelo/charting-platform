@@ -1,5 +1,12 @@
 # Active Handoff
 
+## Continuation update — 2026-08-06T09:40:00Z Frontend regression refresh
+
+- The complete frontend Vitest suite passes `577/577` across 87 files. The dedicated 10,000-row
+  virtual-watchlist suite passes `46/46`; expected conflict-path stderr remains asserted behavior.
+  Strict V25 visual approval, provider-live probes, adversarial resource testing, native
+  multi-monitor coverage, and long-duration soak acceptance remain open.
+
 ## Continuation update — 2026-08-06T09:15:00Z Frontend production build acceptance
 
 - `npm run type-check` and `npm run build` both pass on the current branch; Vite transforms 462
