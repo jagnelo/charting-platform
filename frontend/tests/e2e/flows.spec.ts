@@ -237,6 +237,23 @@ test.describe('TC2000 workstation', () => {
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
+  test('F8i — tool menu and drag handle are available without obscuring window actions', async ({ page, browserDiagnostics }) => {
+    await page.goto('/chart')
+    const tool = page.locator('.tool-window').filter({ has: page.locator('[title="Tool menu"]') }).first()
+    await expect(tool).toBeVisible({ timeout: 10_000 })
+    const dragHandle = tool.locator('[aria-label="Drag tool"]')
+    await expect(dragHandle).toHaveAttribute('draggable', 'true')
+    await tool.locator('[title="Tool menu"]').click()
+    const menu = tool.locator('[role="menu"]')
+    await expect(menu).toBeVisible()
+    await expect(menu.getByRole('menuitem', { name: 'Maximize' })).toBeVisible()
+    await expect(menu.getByRole('menuitem', { name: 'Float' })).toBeVisible()
+    await expect(menu.getByRole('menuitem', { name: 'Close' })).toBeVisible()
+    await page.keyboard.press('Escape')
+    await expect(menu).toHaveCount(0)
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
   test('F8c — signing out propagates from the source workstation to its pop-out', async ({ page, context }) => {
     await page.goto('/chart')
     const popupPromise = context.waitForEvent('page')

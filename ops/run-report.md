@@ -1,5 +1,12 @@
 # Run Report
 
+## 2026-08-05T08:30:00Z Tool-window chrome acceptance
+
+- Added a real drag-handle affordance and functional tool menu to every workstation window;
+  menu actions route through the existing maximize/float/close events and Escape dismisses
+  the menu. Full authenticated Chromium now passes `29/29`, including the new F8i browser
+  interaction, with no backend error-pattern diagnostics.
+
 ## 2026-08-05T03:20:00Z Workstation error-surface hardening
 
 - Removed raw transport strings such as `API GET … → 404` from the dense workstation

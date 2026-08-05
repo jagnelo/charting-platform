@@ -1,5 +1,11 @@
 # Active Handoff
 
+## Continuation update — 2026-08-05T08:30:00Z Tool-window chrome acceptance
+
+- Every workstation tool window now exposes a draggable handle and a functional menu with
+  Maximize, Float, and Close actions. Unit, type-check, build, focused F8i, and full browser
+  acceptance passed; the complete Chromium suite is now `29/29`.
+
 ## Continuation update — 2026-08-05T03:20:00Z Workstation error-surface hardening
 
 - Raw API transport errors no longer pollute the dense workstation footer. They remain in

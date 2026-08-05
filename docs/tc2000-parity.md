@@ -28,7 +28,7 @@ output with bounded completed-cell artifacts, and left the runner healthy. Probe
 were explicitly removed afterward. This closes live cancellation under batch pressure;
 broader multi-process namespace/resource stress remains open.
 
-The rebuilt branch stack now passes the complete authenticated Chromium flow (`28/28`),
+The rebuilt branch stack now passes the complete authenticated Chromium flow (`29/29`),
 including Study Lab validation, isolated Python execution, and structured metric rendering.
 The full backend unit suite passes (`965/965`, 69.83% coverage); the detached-auth rollback
 regression is covered directly and backend logs are clean for 500s, tracebacks, pool leaks,
@@ -45,7 +45,7 @@ does not meet the repository-wide coverage threshold by itself.
 The VirtualWatchlist Python polling path also rejects empty batch responses before they reach
 Vue Query, preserving an explicit error contract for columns and Boolean conditions. This is
 covered by the focused 46-test suite and the full 555-test frontend suite; the rebuilt
-Chromium flow remains 28/28 with clean backend diagnostics. The same no-undefined query
+Chromium flow remains 29/29 with clean backend diagnostics. The same no-undefined query
 boundary is now enforced for Market Gauge, retained EasyScan results, Research Results,
 condition columns, and indicator batches; focused workstation coverage is 61 tests and the
 full frontend suite is 555 tests across 84 files.
@@ -60,18 +60,18 @@ Raw API transport errors are not rendered in the dense workstation footer. The s
 common 401/403/404/409 and 5xx failures to concise recovery-oriented status text while
 retaining the original diagnostic in the status tooltip. The regression covers 401/403/404/409
 and 5xx mappings and is covered by the full frontend suite (`555/555`), production build, and
-rebuilt Chromium flow (`28/28`).
+rebuilt Chromium flow (`29/29`).
 
 The deep top-down browser flow now also focuses the constituent virtual list and traverses to
 the next canonical member with `Space`, asserting that the linked active symbol changes without
-a route transition. The complete authenticated flow remains `28/28`.
+a route transition. The complete authenticated flow remains `29/29`.
 
 Golden Layout persistence no longer treats its observational visible-key list as a destructive
 close operation. Explicit close actions remain the only path that removes a serialized tool;
 this prevents transient/incomplete layout events during repeated pop-outs from deleting the
 source window. The store regression and a ten-cycle browser lifecycle check cover the boundary,
 including stable source canvas and browser-page counts. The full authenticated flow remains
-`28/28`, including simultaneous independent pop-out recovery, and the post-run backend/runner
+`29/29`, including simultaneous independent pop-out recovery, and the post-run backend/runner
 log audit is clean.
 
 This is functional/runtime evidence only. The strict visual gate still rejects the required

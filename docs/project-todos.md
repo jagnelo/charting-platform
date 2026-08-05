@@ -3224,7 +3224,7 @@ Golden Layout mechanics, uPlot host/plugin path, top-down analysis contracts,
 virtualized watchlists, unified Python/Study Lab execution boundary, and free-source
 provider governance are implemented and covered by deterministic/frontend/backend
 regressions. The branch has also exercised the complete Docker-backed integration
-suite (`281 passed`), clean authenticated Chromium flows (`28/28`), the public no-key
+suite (`281 passed`), clean authenticated Chromium flows (`29/29`), the public no-key
 SEC identity/profile path through `EdgarProvider`, and isolated research-runner crash
 recovery. Remaining acceptance is intentionally still hard-gated by the full Version
 25 visual reference/measurement matrix, configured multi-provider probes, adversarial
@@ -3268,8 +3268,8 @@ The repeated pop-out browser audit also exposed and closed a real persistence de
 Layout's transient visible-key observations could delete serialized source windows during
 repeated float/close churn. `applyActiveLayout` now persists geometry only; explicit close
 actions remain the sole destructive window operation. Store coverage and the ten-cycle browser
-regression pass, simultaneous independent pop-out recovery, and the full authenticated flow
-remain green at 28/28 with clean backend logs.
+regression pass, simultaneous independent pop-out recovery, the tool-menu/drag-handle browser
+check, and the full authenticated flow remain green at 29/29 with clean backend logs.
 
 The deep top-down browser flow also exercises constituent traversal through the virtual list's
 real `Space` keyboard path, asserting that the next canonical member becomes the active symbol
@@ -3284,7 +3284,7 @@ The detached-auth cleanup was regression-tested against rollback expiration: the
 loaded identity is expunged before the shielded rollback/close sequence, so `/auth/me`,
 `/auth/settings`, and streaming ownership checks receive a usable object after the session
 has ended. The focused lifecycle suite passes 3 tests, the full backend unit suite passes
-965 tests at 69.83% coverage, and the rebuilt authenticated Chromium flow passes all 28
+965 tests at 69.83% coverage, and the rebuilt authenticated Chromium flow passes all 29
 flows, including Study Lab. The timestamp-default Alembic repair (`ea0f1a2b3c4d`) has also
 passed a fresh current-head PostgreSQL 16 upgrade, one-step downgrade, re-upgrade, and
 direct `watchlist_item.flagged` `NOT NULL DEFAULT false` invariant audit. These checks do
@@ -3296,7 +3296,7 @@ bounded error before Vue Query can cache `undefined`; this keeps empty/partial r
 explicit at the tool boundary. The same boundary is enforced for Market Gauge, retained
 EasyScan results, Research Results, condition columns, and indicator batches. Focused
 workstation coverage is 61 tests, the full frontend suite is 555 tests across 84 files, and
-rebuilt Chromium remains 28/28. This hardening does not relax the
+rebuilt Chromium remains 29/29. This hardening does not relax the
 single completion bar or the exact-build visual/provider/pressure/performance/parity
 gates.
 
