@@ -27,9 +27,13 @@ test.describe('TC2000 workstation performance guards', () => {
 
     await expect.poll(() => context.pages().length).toBe(3)
     const activeSymbolInput = page.locator('input[aria-label="Active symbol"]')
-    await activeSymbolInput.fill('SPY')
+    await activeSymbolInput.fill('XLB')
     await page.getByRole('button', { name: 'Go', exact: true }).click()
-    await expect(activeSymbolInput).toHaveValue('SPY')
+    await expect(activeSymbolInput).toHaveValue('XLB')
+    await expect(page.locator('.workstation__footer')).toContainText('XLB')
+    for (const popup of popups) {
+      await expect.poll(() => popup.locator('.tool-window__symbol').allTextContents()).toContain('XLB')
+    }
     await expect.poll(() => page.locator('.tool-window').count()).toBe(sourceToolCount)
 
     for (const popup of popups) {
