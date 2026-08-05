@@ -1,5 +1,12 @@
 # Run Report
 
+## 2026-08-06T20:00:00Z Complete integration regression refresh
+
+- `make test-int` ran all 281 Docker-backed integration tests; `281 passed` in `221.34s`. The
+  non-zero process exit is coverage-only: the intentionally narrow integration selection reports
+  `43.44%` versus the repository-wide 55% threshold. No integration body failed; 54 known dependency
+  warnings remain. Other strict visual/provider/hardware/resource gates remain open.
+
 ## 2026-08-06T19:00:00Z Backend unit regression refresh
 
 - `make test-unit` passed `974/974` in `98.87s` with total coverage `69.82%` against the required

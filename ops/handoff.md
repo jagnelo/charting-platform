@@ -1,5 +1,13 @@
 # Active Handoff
 
+## Continuation update — 2026-08-06T20:00:00Z Complete integration regression refresh
+
+- Docker-backed `make test-int` executed all `281` integration tests; every test body passed in
+  `221.34s`, with 54 existing dependency warnings. The command exits non-zero only because the
+  intentionally integration-only coverage slice is `43.44%` against the repository-wide 55% gate;
+  the full unit suite remains the coverage gate at 69.82%. Strict visual, provider-live, native
+  multi-monitor, sustained resource, and indefinite-soak acceptance remain open.
+
 ## Continuation update — 2026-08-06T19:00:00Z Backend unit regression refresh
 
 - Complete `make test-unit` passes `974/974` in `98.87s`; coverage is `69.82%`, above the 55%
