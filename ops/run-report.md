@@ -20124,3 +20124,12 @@ uncovered slice rather than repeat a generic completion claim.
   recovery completed after runner restart with no stale sentinels.
 - These are bounded containment/recovery checks and do not close sustained resource, long-running
   research, or indefinite-soak acceptance.
+
+## 2026-08-07T01:00:00Z Issuer holdings route refresh
+
+- THOR now resolves its current `/funds/thir` page and parses embedded issuer-native daily holdings
+  JSON with canonical fractional weights and composition-date provenance. Focused unit/live tests
+  pass (`3/3` and `1/1`); the repair is pushed in `fe8acc2`.
+- Full opt-in ETF issuer matrix: `341 passed, 1 skipped, 5 failed`. Open failures are Davis 522,
+  Lazard service/discovery, Anfield ADFI 404, and Donoghue Forlines 503. No provider failure was
+  hidden or reclassified; provider-live acceptance remains open.
