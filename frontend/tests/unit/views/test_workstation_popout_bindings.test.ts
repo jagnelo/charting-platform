@@ -247,6 +247,26 @@ describe('WorkstationView pop-out bindings', () => {
     wrapper.unmount()
   })
 
+  it('retains Ctrl+wheel traversal when the wheel event omits ctrlKey', async () => {
+    harness.workspace.marketGroups = {
+      'us-benchmarks': { members: [{ instrument: { symbol: 'SPY' } }, { instrument: { symbol: 'QQQ' } }] },
+      'sp500-sectors': { members: [] },
+    }
+    routeState.path = '/'
+    routeState.params = {}
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+    await vi.waitFor(() => expect(harness.workspace.publishSymbol).toHaveBeenCalledWith(expect.objectContaining({ symbol: 'SPY' })))
+    harness.workspace.publishSymbol.mockClear()
+
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Control' }))
+    wrapper.element.dispatchEvent(new WheelEvent('wheel', { deltaY: 1, bubbles: true, cancelable: true }))
+    await vi.waitFor(() => expect(harness.workspace.publishSymbol).toHaveBeenCalledWith(expect.objectContaining({ symbol: 'QQQ', group: 'blue' })))
+    window.dispatchEvent(new KeyboardEvent('keyup', { key: 'Control' }))
+    wrapper.unmount()
+  })
+
   it('coordinates top-down refresh through Vue Query and resumes it after visibility returns', async () => {
     routeState.path = '/'
     routeState.params = {}

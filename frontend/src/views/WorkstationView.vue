@@ -172,6 +172,11 @@ let searchTimer: ReturnType<typeof setTimeout> | null = null
 let searchRequest = 0
 const symbolSearchEnabled = ref(false)
 const handledWheelEvents = new WeakSet<Event>()
+// Some browser/OS combinations omit ctrlKey from a wheel event even while the
+// Control key is physically held. Track the modifier at window scope so the
+// desktop traversal gesture remains reliable without requiring a synthetic
+// event or changing editor shortcut ownership.
+const ctrlWheelHeld = ref(false)
 // Initial route loading and fast list traversal can overlap. The latest symbol
 // intent wins so a late initial SPY request cannot restore an older selection.
 let symbolSelectionGeneration = 0
@@ -705,10 +710,16 @@ function handleWheel(event: WheelEvent) {
   handledWheelEvents.add(event)
   // Ctrl+wheel is an explicit symbol-traversal gesture; unlike typed shortcuts
   // it remains usable while the active-symbol control retains focus after Go.
-  if (!event.ctrlKey || event.metaKey || event.altKey) return
+  const controlPressed = event.ctrlKey || ctrlWheelHeld.value || event.getModifierState?.('Control') === true
+  if (!controlPressed || event.metaKey || event.altKey) return
   event.preventDefault()
   if (!allSymbols.value.length) return
-  const currentIndex = allSymbols.value.indexOf(activeSymbol.value)
+  // The shell input is updated synchronously by an explicit Go action while
+  // the canonical store publication completes asynchronously. Use the draft
+  // as a short-lived fallback so an immediate wheel gesture cannot select SPY
+  // again simply because the store has not hydrated the same symbol yet.
+  const currentSymbol = activeSymbol.value || symbolDraft.value.trim().toUpperCase()
+  const currentIndex = allSymbols.value.indexOf(currentSymbol)
   const direction = event.deltaY > 0 ? 1 : -1
   let nextIndex = (currentIndex + direction + allSymbols.value.length) % allSymbols.value.length
   // A partially hydrated symbol can temporarily be absent from the list. Do
@@ -748,13 +759,28 @@ watch(() => workspaceStore.linkedTimeframe, timeframe => {
 })
 
 onMounted(async () => {
-  window.addEventListener('wheel', handleWheel, { passive: false })
+  // Capture before chart/uPlot gesture handlers can stop propagation. The
+  // workstation-level Ctrl+wheel traversal is a shell command and must remain
+  // available even when the pointer is over a chart canvas.
+  window.addEventListener('wheel', handleWheel, { passive: false, capture: true })
+  const handleModifierKeydown = (event: KeyboardEvent) => {
+    if (event.key === 'Control') ctrlWheelHeld.value = true
+  }
+  const handleModifierKeyup = (event: KeyboardEvent) => {
+    if (event.key === 'Control') ctrlWheelHeld.value = false
+  }
+  window.addEventListener('keydown', handleModifierKeydown)
+  window.addEventListener('keyup', handleModifierKeyup)
   const handleVisibilityChange = () => {
     documentVisible.value = document.visibilityState === 'visible'
     if (documentVisible.value && !isPopout.value) void marketAnalysisQuery.refetch()
   }
   document.addEventListener('visibilitychange', handleVisibilityChange)
-  removeVisibilityListener = () => document.removeEventListener('visibilitychange', handleVisibilityChange)
+  removeVisibilityListener = () => {
+    document.removeEventListener('visibilitychange', handleVisibilityChange)
+    window.removeEventListener('keydown', handleModifierKeydown)
+    window.removeEventListener('keyup', handleModifierKeyup)
+  }
   workspaceStore.connect()
   await workspaceStore.loadDefault()
   const requestedTab = typeof route.query.tab === 'string' ? route.query.tab : null
@@ -788,7 +814,8 @@ onMounted(async () => {
 })
 
 onBeforeUnmount(() => {
-  window.removeEventListener('wheel', handleWheel)
+  window.removeEventListener('wheel', handleWheel, { capture: true })
+  ctrlWheelHeld.value = false
   for (const poll of popoutGeometryPollers.values()) window.clearInterval(poll)
   popoutGeometryPollers.clear()
   removeVisibilityListener?.()
