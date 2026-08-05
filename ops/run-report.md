@@ -19450,3 +19450,10 @@ uncovered slice rather than repeat a generic completion claim.
 - Current local backend unit suite passed `972/972` in `40.81s` with the known 34 Nautilus/
   pandas deprecation warnings only. This includes the factory-source extraction and execution
   matrix; no application failures were reported.
+
+## 2026-08-05T11:56:00Z Strict visual gate recheck
+
+- `npm run test:visual:approved` still stops at the controlling manifest with
+  `application-shell-default/default: visual acceptance is blocked by required_missing`.
+  This is the expected fail-closed behavior; no discovery image or local screenshot was
+  promoted to an exact-build approved baseline.
