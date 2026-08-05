@@ -86,6 +86,12 @@ the default workstation policy remains yfinance-free. The complete backend unit 
 `983/983` with `69.91%` coverage. The strict visual command still fails closed at
 `application-shell-default/default: required_missing`; no discovery screenshot was promoted.
 
+The Docker-backed integration bodies also pass in full (`281/281`). Its standalone coverage
+command exits non-zero only because it measures integration files in isolation and therefore falls
+below the repository threshold; the authoritative combined unit+integration gate passes
+`1264/1264` at `79.43%`, above the required 75%. This confirms the API/runtime paths against the
+real PostgreSQL/Redis-backed test environment without weakening the documented coverage gate.
+
 The full authenticated browser sequence then exposed an order-dependent workspace race: stale
 remote snapshots or pre-reset Golden Layout saves could restore a shared link group after the user
 selected Grey, while a stale autocomplete listbox could intercept the next sector click. Search

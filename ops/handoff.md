@@ -49,6 +49,16 @@
   media was promoted. Provider-live, sustained sandbox/resource, native multi-monitor, indefinite
   soak, and broader parity gates remain open.
 
+## Continuation update — 2026-08-05T20:15:00Z Combined backend integration coverage
+
+- All Docker-backed integration test bodies pass (`281/281`). The standalone integration coverage
+  invocation reports the expected isolated-suite threshold failure, so it is not used as the
+  coverage gate.
+- The authoritative combined unit+integration run passes `1264/1264` at `79.43%`, above the
+  required 75% threshold, with only documented third-party deprecation warnings.
+- Exact-build visual approval, provider-live probes, sustained sandbox/resource stress, native
+  multi-monitor placement, indefinite soak, and remaining parity gates remain open.
+
 ## Continuation update — 2026-08-06T19:30:00Z Top-down taxonomy coverage
 
 - Added direct tests for the explicit industry-proxy registry and the real async taxonomy seeding

@@ -20099,6 +20099,14 @@ uncovered slice rather than repeat a generic completion claim.
   that legacy-ordering test. Full backend unit validation passed `983/983` at `69.91%` coverage.
 - Strict visual validation remains intentionally blocked by the manifest's
   `application-shell-default/default: required_missing` state; no baseline was promoted.
+
+## 2026-08-05T20:15:00Z Combined backend integration coverage
+
+- Docker-backed integration bodies passed `281/281`. The standalone integration coverage command
+  exits on its isolated 55% threshold, which is a diagnostic limitation rather than a failing test
+  body.
+- Combined unit+integration coverage passed `1264/1264` at `79.43%`, satisfying the documented 75%
+  backend gate. Only existing third-party deprecation warnings were emitted.
 ## 2026-08-07T00:35:00Z Live sandbox probe refresh
 
 - Current runner probe results: namespace/mount/ptrace/fork/network/subprocess/root-write denied;
