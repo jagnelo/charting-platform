@@ -1259,3 +1259,13 @@ WAF compatibility without introducing provider substitution or changing fallback
 deterministic ETF adapter suite passes `450/450` and the full backend unit suite passes `974/974`.
 A focused live NEOS attempt was DNS-blocked by the current environment and therefore does not
 promote that source; the last complete live matrix remains `342 passed, 1 skipped, 4 failed`.
+
+## Continuation update — 2026-08-05T18:00:00Z Rebuilt-stack browser acceptance repair
+
+The authenticated non-visual acceptance set now passes `35/35` on the rebuilt branch-scoped stack,
+covering core flows, the real Chromium uPlot guard, and workstation pop-out performance guards.
+The chart smoke test recognizes the documented explicit unavailable-data state while retaining a
+bounded requirement for the chart tool and symbol search. Pop-out lifecycle and canvas-count guards
+baseline after one-time lazy volume/indicator initialization, eliminating a harness race while
+preserving the settled-count invariant. This is functional/performance evidence only; strict V25
+visual acceptance remains blocked at `application-shell-default/default: required_missing`.

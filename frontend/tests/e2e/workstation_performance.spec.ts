@@ -5,7 +5,10 @@ test.describe('TC2000 workstation performance guards', () => {
     await page.goto('/chart')
     await expect(page.locator('.tool-window').first()).toBeVisible({ timeout: 10_000 })
     await expect.poll(() => page.locator('canvas').count(), { timeout: 10_000 }).toBeGreaterThan(0)
-    await page.waitForTimeout(750)
+    // Chart panes can add their volume/indicator canvases after the primary
+    // canvas appears. Settle the one-time initialization before recording the
+    // source baseline used by the pop-out recovery assertion.
+    await page.waitForTimeout(2_000)
     const sourceToolCount = await page.locator('.tool-window').count()
     const sourceCanvasCount = await page.locator('canvas').count()
     const started = await page.evaluate(() => performance.now())

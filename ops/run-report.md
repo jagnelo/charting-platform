@@ -19504,3 +19504,12 @@ uncovered slice rather than repeat a generic completion claim.
   Ruff and diff checks passed.
 - Focused live NEOS probing hit DNS resolution failure in this environment and is not treated
   as provider acceptance. The full matrix remains `342 passed, 1 skipped, 4 failed`.
+
+## 2026-08-05T18:00:00Z Rebuilt-stack browser acceptance repair
+
+- Full rebuilt-stack Chromium acceptance passed `35/35` across flows, uPlot performance, and
+  workstation performance suites.
+- F6 accepts the bounded explicit chart-tool unavailable state; F8f/performance baselines settle
+  the one-time lazy volume/indicator canvas initialization before lifecycle assertions.
+- Browser diagnostics were clean. Exact V25 visual approval remains blocked by `required_missing`;
+  external ETF issuer failures remain unchanged.

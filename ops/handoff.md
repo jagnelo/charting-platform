@@ -17994,3 +17994,13 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
 - A focused live NEOS probe could not resolve DNS in this execution environment, so it is
   recorded as an environment transport failure rather than evidence that the issuer route
   recovered. The previously completed matrix result remains `342 passed, 1 skipped, 4 failed`.
+
+## Continuation update — 2026-08-05T18:00:00Z Rebuilt-stack browser acceptance repair
+
+- Complete authenticated Chromium slice passes `35/35` across flows, uPlot performance, and
+  workstation performance suites.
+- F6 now waits for either mounted uPlot or the explicit chart-tool unavailable state; F8f and the
+  workstation performance guard baseline tool/canvas counts after one-time lazy initialization.
+- Browser diagnostics were clean. Strict V25 visual approval remains blocked at
+  `application-shell-default/default: required_missing`; provider matrix remains `342 passed,
+  1 skipped, 4 failed`.
