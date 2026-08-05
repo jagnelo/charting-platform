@@ -8,6 +8,12 @@
 - The fix is narrow and preserves normal cancellation/progress cleanup for completed runs.
   Remaining live pressure/soak and full parity gates are unchanged.
 
+## 2026-08-05T12:20:00Z Docker storage cleanup
+
+- Ran the authorized dangling-object cleanup with `docker system prune -af`; active branch
+  services and named volumes were retained and `5.617GB` of dangling images/build cache was
+  reclaimed.
+
 ## 2026-08-05T19:30:00Z Backend unit regression audit
 
 - Ran the current local backend unit suite: `972 passed` in 50.93s, with 34 known third-party
