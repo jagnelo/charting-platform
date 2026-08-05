@@ -648,6 +648,8 @@ test.describe('TC2000 workstation', () => {
     await expect(study).toContainText('Promoted to a reusable scan.', { timeout: 10_000 })
     await study.getByRole('button', { name: 'Promote to alert' }).click()
     await expect(study).toContainText('Promoted to an active scan alert.', { timeout: 10_000 })
+    await study.getByRole('button', { name: 'Save as Strategy signal' }).click()
+    await expect(study).toContainText('Saved as a reusable Strategy Lab signal.', { timeout: 10_000 })
     await browserDiagnostics.expectNoCriticalIssues()
   })
 

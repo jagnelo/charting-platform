@@ -19670,6 +19670,13 @@ uncovered slice rather than repeat a generic completion claim.
   Study Lab/promotion flows pass `4/4`; strict V25 visual and remaining provider, adversarial,
   multi-monitor, and long-soak gates remain open.
 
+## 2026-08-06T04:25:00Z Strategy signal promotion acceptance
+
+- Extended F8q to promote a completed Boolean Study Lab result into a reusable Strategy Lab
+  signal after scan and alert promotion; the authenticated signal API and success status passed.
+- Rebuilt-stack Chromium passed `1/1` with no critical diagnostics. Strict visual/provider,
+  adversarial-resource, native multi-monitor, and long-soak gates remain open.
+
 ## 2026-08-06T02:20:00Z Frontend regression refresh
 
 - Full frontend Vitest passed `577/577` across 87 files and `vue-tsc --noEmit` passed after

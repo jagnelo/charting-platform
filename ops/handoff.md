@@ -421,6 +421,14 @@
   regions. The expanded Study Lab/promotion set passes `4/4`; strict V25 visual, provider-live,
   adversarial-resource, native multi-monitor, and long-soak gates remain open.
 
+## Continuation update — 2026-08-06T04:25:00Z Strategy signal promotion acceptance
+
+- Extended F8q to promote the same completed Boolean Study Lab result into a reusable Strategy
+  Lab signal after scan and alert promotion. The authenticated signal endpoint completed
+  successfully and the UI reported the reusable-signal status.
+- Rebuilt-stack F8q passed `1/1` with no critical diagnostics. Strict V25 visual approval,
+  provider-live coverage, adversarial-resource stress, native multi-monitor, and long-soak gates remain open.
+
 ## Continuation update — 2026-08-05T03:00:00Z Full unit-suite re-audit
 
 - Current HEAD passes the complete frontend Vitest suite (`550/550` across 84 files) and
