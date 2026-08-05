@@ -77,6 +77,15 @@ functional evidence, not completion: exact-build V25 visual approval, provider-l
 sustained sandbox/resource stress, native multi-monitor placement, indefinite soak, and remaining
 cross-surface parity gates stay open.
 
+The subsequent acceptance audit ran the complete authenticated Chromium matrix with browser
+process permissions and closed the prior environmental ambiguity: all `42/42` flow cases passed,
+including Study Lab, linked-group isolation, timeframe propagation, pop-out recovery, notes, and
+legacy compatibility. The backend unit suite initially exposed one stale assertion that still
+expected implicit yfinance ordering; the test now explicitly opts into the legacy fallback while
+the default workstation policy remains yfinance-free. The complete backend unit suite then passed
+`983/983` with `69.91%` coverage. The strict visual command still fails closed at
+`application-shell-default/default: required_missing`; no discovery screenshot was promoted.
+
 The full authenticated browser sequence then exposed an order-dependent workspace race: stale
 remote snapshots or pre-reset Golden Layout saves could restore a shared link group after the user
 selected Grey, while a stale autocomplete listbox could intercept the next sector click. Search

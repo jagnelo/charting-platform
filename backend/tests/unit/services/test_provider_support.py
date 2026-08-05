@@ -6,6 +6,7 @@ from decimal import Decimal
 import pytest
 from sqlalchemy import select
 
+from app.config import settings
 from app.models.data_source import DataSource
 from app.models.instrument_identity import (
     InstrumentProviderCapabilityStatus,
@@ -153,7 +154,12 @@ async def test_execute_provider_call_downgrades_and_recovers_provider_support(
 
 
 @pytest.mark.asyncio
-async def test_resolve_provider_chain_prefers_supported_then_bound_provider(db, instrument):
+async def test_resolve_provider_chain_prefers_supported_then_bound_provider(db, instrument, monkeypatch):
+    # This test exercises the legacy-bound ordering contract explicitly. The
+    # new workstation keeps yfinance disabled by default; opt in here so the
+    # ordering assertion does not accidentally reintroduce it as an implicit
+    # provider dependency.
+    monkeypatch.setattr(settings, "ENABLE_LEGACY_YFINANCE_FALLBACK", True)
     async_db = AsyncSessionAdapter(db)
     alpha = _resolved_provider(
         db,

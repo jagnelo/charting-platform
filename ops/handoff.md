@@ -37,6 +37,18 @@
   sustained sandbox/resource stress, native multi-monitor placement, indefinite soak, and full
   cross-surface parity.
 
+## Continuation update — 2026-08-05T20:05:00Z Clean browser and backend audit
+
+- Rebuilt-stack authenticated Chromium now passes the complete serial matrix `42/42` with browser
+  process permissions, including Study Lab, linking, pop-outs, notes, legacy compatibility, and
+  recovery flows.
+- Updated one unit assertion so its provider-ordering case explicitly enables the legacy yfinance
+  fallback; the default/new-workstation policy remains disabled and separately covered.
+- Full backend unit suite passes `983/983` with `69.91%` coverage. Strict visual acceptance still
+  correctly fails closed at `application-shell-default/default: required_missing`; no candidate
+  media was promoted. Provider-live, sustained sandbox/resource, native multi-monitor, indefinite
+  soak, and broader parity gates remain open.
+
 ## Continuation update — 2026-08-06T19:30:00Z Top-down taxonomy coverage
 
 - Added direct tests for the explicit industry-proxy registry and the real async taxonomy seeding
