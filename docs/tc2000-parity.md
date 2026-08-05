@@ -27,6 +27,12 @@ mode. The eight async background-task tests execute and pass; the skipped set is
 credential/network-gated live-provider coverage. The provider warning is now once per provider
 instance rather than a process-global side effect.
 
+The live-stack visual interaction run reached all four required display-scale projects. The
+header/chart overlap assertions passed in every project; one existing 1080p/100% snapshot was
+unchanged, while three unapproved local snapshots exceeded the temporary `0.5%` diff threshold
+(1–2%) and remain blocked pending approved V25 references. The dedicated uPlot 100,000-point
+browser performance test passes in `863ms` without replacing the chart element.
+
 The post-pop-out-change frontend verification is green: Vitest `572/572`, `vue-tsc
 --noEmit`, and the production Vite build all pass. The suite includes the new active-display
 origin and persisted-geometry coverage. This is functional/build evidence only; it does not

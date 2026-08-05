@@ -1,5 +1,14 @@
 # Run Report
 
+## 2026-08-05T09:44:00Z Visual interaction and uPlot performance audit
+
+- Against the live stack, the four-project visual interaction run completed the overlap checks
+  in all projects. One 1080p/100% project matched its current local snapshot; the other three
+  exceeded the temporary `0.5%` screenshot threshold by 1–2%. These are not approved V25
+  baselines and were not promoted; the visual manifest remains the authority.
+- The dedicated browser uPlot performance guard passed: 100,000 points, repeated zoom/pan,
+  chart identity preserved, `863ms` interaction time.
+
 ## 2026-08-05T09:50:00Z Canonical backend-root acceptance rerun
 
 - From `backend/`, the canonical command `.venv/bin/pytest -q --no-cov --asyncio-mode=auto`

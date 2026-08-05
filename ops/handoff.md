@@ -1,5 +1,12 @@
 # Active Handoff
 
+## Continuation update — 2026-08-05T09:44:00Z Visual/performance audit
+
+- All four visual projects reached the geometry/overlap assertions; one local snapshot matched
+  and three differed by 1–2%, so none were promoted as V25 approval. Exact-build references
+  remain required.
+- The 100,000-point uPlot browser guard passes in `863ms` with chart identity preserved.
+
 ## Continuation update — 2026-08-05T09:50:00Z Canonical backend-root acceptance
 
 - Canonical backend-root execution with explicit asyncio auto mode passes `1247`, skips
