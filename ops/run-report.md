@@ -20159,3 +20159,9 @@ uncovered slice rather than repeat a generic completion claim.
 - Added official current Version 25 web-platform capability evidence to the manifest for layouts,
   floating windows, full-screen mode, and multiple monitors. Normal validation passes; strict
   validation remains correctly blocked by the missing exact-build visual state capture.
+
+## 2026-08-07T03:45:00Z Four-environment seeded visual audit
+
+- Seeded visual geometry/overlap checks pass in all four required environments. The 100%/1080p
+  case matches its local artifact; 125% and 1440p cases differ from unapproved local snapshots by
+  approximately 1–2%, exceeding the 0.5% threshold. No snapshot was promoted.

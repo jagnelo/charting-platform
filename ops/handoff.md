@@ -18739,3 +18739,11 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
   validation passes; strict approval remains correctly blocked at
   `application-shell-default/default: required_missing` because no exact-build deterministic state
   capture has been promoted.
+
+## Continuation update — 2026-08-07T03:45:00Z Four-environment seeded visual audit
+
+- Seeded visual harness geometry/overlap checks passed in all four required environments; the
+  100%/1080p case matched its local artifact, while 125% and 1440p cases differed from the
+  unapproved local snapshots by approximately 1–2% and therefore failed the strict screenshot
+  threshold. No snapshot was promoted. This is evidence of deterministic rendering/overlap
+  behavior, not exact TC2000 V25 visual approval.
