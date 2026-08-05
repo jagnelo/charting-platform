@@ -17624,6 +17624,38 @@ async def test_thor_adapter_uses_product_page_scoped_holdings_api(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_thor_adapter_parses_current_embedded_holdings_page(monkeypatch):
+    adapter = get_holdings_adapter("thor")
+    assert adapter is not None
+    product_page = (
+        r'<title>THIR - THOR Index Rotation ETF</title>'
+        r'<script>\"holdings\":[{'
+        r'\"ticker\":\"SPY\",\"cusip\":\"78462F103\",'
+        r'\"name\":\"SPDR S&P 500 ETF\",\"weight\":49.9,'
+        r'\"shares\":10,\"marketValue\":1000,\"sector\":\"EQUITY\",'
+        r'\"asOfDate\":\"2026-08-04T00:00:00\"}]</script>'
+    )
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=product_page,
+            content_type="text/html",
+            url=adapter.product_page_urls["THIR"],
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="THIR")
+
+    assert len(FakeAsyncClient.requested) == 1
+    assert result.rows[0].symbol == "SPY"
+    assert result.rows[0].cusip == "78462F103"
+    assert result.rows[0].weight == Decimal("0.499")
+    assert result.legal_metadata["route_resolution"] == "thor_product_page_embedded_holdings_json"
+    assert result.legal_metadata["composition_date"] == "2026-08-04"
+
+
+@pytest.mark.asyncio
 async def test_pictet_adapter_uses_public_fund_allocation_api(monkeypatch):
     adapter = get_holdings_adapter("pictet")
     assert adapter is not None

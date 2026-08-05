@@ -2511,7 +2511,10 @@ async def test_live_thor_product_page_scoped_holdings_api():
     result = await adapter.fetch_latest(symbol="THIR")
 
     _assert_live_holdings_result(result, adapter_key="thor", min_rows=2)
-    assert result.legal_metadata["route_resolution"] == "thor_product_page_scoped_holdings_api"
+    assert result.legal_metadata["route_resolution"] in {
+        "thor_product_page_scoped_holdings_api",
+        "thor_product_page_embedded_holdings_json",
+    }
     assert result.legal_metadata["composition_date"]
     assert any(row.cusip and row.holding_type == "equity" for row in result.rows)
 

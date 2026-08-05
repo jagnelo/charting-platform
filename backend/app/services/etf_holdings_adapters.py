@@ -51393,10 +51393,10 @@ class ThorHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Fetch THOR ETF holdings through the public page-scoped Filepoint feed."""
 
     product_page_urls = {
-        # THOR moved the product page from the legacy ``index.html`` route to
-        # the extensionless route.  Keep the current canonical page here so
+        # THOR moved the product page from the legacy ``/etfs/.../index`` route
+        # to the current fund detail route. Keep the canonical page here so
         # live holdings probes do not treat a valid fund as unavailable.
-        "THIR": "https://www.thorfunds.com/etfs/thir/index",
+        "THIR": "https://www.thorfunds.com/funds/thir",
     }
     portfolio_name_fragments = {
         "THIR": "THOR INDEX ROTATION ETF",
@@ -51444,6 +51444,35 @@ class ThorHoldingsAdapter(IssuerCsvHoldingsAdapter):
             )
             page_response.raise_for_status()
             portfolio_id = self._extract_portfolio_id(page_response.text, symbol=normalized_symbol)
+            if portfolio_id is None:
+                rows, composition_date = self._parse_embedded_page_holdings(
+                    page_response.text,
+                    symbol=normalized_symbol,
+                )
+                if not rows:
+                    raise ValueError(
+                        f"THOR's issuer page did not expose a complete portfolio for {normalized_symbol}."
+                    )
+                return HoldingsFetchResult(
+                    rows=rows,
+                    raw_text=page_response.text,
+                    raw_json={"source_format": "embedded_json", "row_count": len(rows)},
+                    source_url=str(page_response.url),
+                    source_identifier=normalized_symbol,
+                    legal_metadata={
+                        "source_access": "issuer_public_product_page_embedded_holdings_json",
+                        "source_provider": self.source_provider,
+                        "adapter_key": self.adapter_key,
+                        "source_format": "json",
+                        "route_resolution": "thor_product_page_embedded_holdings_json",
+                        "product_page_url": str(page_response.url),
+                        "source_quality": "issuer_reported_daily_holdings",
+                        "snapshot_provenance": "issuer_native_daily_holdings_page",
+                        "composition_date": composition_date.isoformat() if composition_date else None,
+                        "as_of_date": composition_date.isoformat() if composition_date else None,
+                        "terms_note": self.config.terms_note,
+                    },
+                )
             holdings_response = await client.post(
                 self.holdings_api_url,
                 data={"fundID": portfolio_id},
@@ -51489,18 +51518,68 @@ class ThorHoldingsAdapter(IssuerCsvHoldingsAdapter):
         )
 
     @staticmethod
-    def _extract_portfolio_id(raw_html: str, *, symbol: str) -> str:
+    def _extract_portfolio_id(raw_html: str, *, symbol: str) -> str | None:
         ticker_match = re.search(
             r'''\bdata-ticker=["'](?P<ticker>[^"']+)["']''', raw_html, re.IGNORECASE
         )
-        if ticker_match is None or ticker_match.group("ticker").strip().upper() != symbol:
+        if ticker_match is not None and ticker_match.group("ticker").strip().upper() != symbol:
             raise ValueError(f"THOR product page identity did not match requested ETF {symbol}.")
         portfolio_match = re.search(
             r'''\bdata-datafeed-id=["'](?P<id>\d+)["']''', raw_html, re.IGNORECASE
         )
-        if portfolio_match is None:
-            raise ValueError(f"THOR product page did not expose a holdings feed ID for {symbol}.")
-        return portfolio_match.group("id")
+        if portfolio_match is not None:
+            return portfolio_match.group("id")
+        # The current THOR Next.js page publishes the complete daily portfolio
+        # inline and no longer exposes the legacy datafeed attributes. The
+        # caller parses that authoritative page payload instead of guessing a
+        # stale feed id.
+        if re.search(rf"\b{re.escape(symbol)}\b", raw_html, re.IGNORECASE) is None:
+            raise ValueError(f"THOR product page identity did not match requested ETF {symbol}.")
+        return None
+
+    @classmethod
+    def _parse_embedded_page_holdings(
+        cls,
+        raw_html: str,
+        *,
+        symbol: str,
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+        marker = r'\"holdings\":['
+        marker_index = raw_html.find(marker)
+        if marker_index < 0:
+            return [], None
+        encoded = raw_html[marker_index + len(marker) - 1 :]
+        decoded = encoded.replace(r'\"', '"').replace(r'\u0026', '&')
+        try:
+            holdings = json.JSONDecoder().raw_decode(decoded)[0]
+        except json.JSONDecodeError:
+            return [], None
+        if not isinstance(holdings, list):
+            return [], None
+        payload = [
+            {
+                "portfolioName": cls.portfolio_name_fragments[symbol],
+                "asOfDate": item.get("asOfDate"),
+                "securityTicker": item.get("ticker"),
+                "securityIdentifier": item.get("cusip"),
+                "securityDescriptionLong": item.get("name"),
+                "segment": item.get("sector"),
+                # The current page renders percentages (49.9), while the
+                # legacy feed reports fractions (0.499). Canonical holdings
+                # weights are fractions in [0, 1].
+                "marketValuePercent": (
+                    _decimal(item.get("weight")) / Decimal("100")
+                    if _decimal(item.get("weight")) is not None
+                    else None
+                ),
+                "shares": item.get("shares"),
+                "marketValueBase": item.get("marketValue"),
+                "tradingCurrency": "USD",
+            }
+            for item in holdings
+            if isinstance(item, dict)
+        ]
+        return cls._parse_holdings_payload(payload, symbol=symbol)
 
     @classmethod
     def _parse_holdings_payload(
