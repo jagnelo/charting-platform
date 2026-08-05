@@ -1,5 +1,16 @@
 # Active Handoff
 
+## Continuation update — 2026-08-06T19:30:00Z Top-down taxonomy coverage
+
+- Added direct tests for the explicit industry-proxy registry and the real async taxonomy seeding
+  path. The idempotence case proves all known benchmark/sector proxies are attached once, carries
+  curated source and proxy verification provenance, and preserves the explicit SPX-to-SPY identity
+  policy without inferring unknown industry relationships.
+- Focused taxonomy tests pass `2/2`; the full backend unit suite passes `978/978` with `69.90%`
+  coverage. This is targeted top-down evidence, not restoration of the documented 75% coverage
+  target. Strict V25 visual approval, provider-live, sustained sandbox/resource, native
+  multi-monitor, and remaining parity gates remain open.
+
 ## Continuation update — 2026-08-06T00:45:00Z Concurrent resource pressure
 
 - Expanded the live resource probe with eight bounded concurrent 128 MiB allocations. The live

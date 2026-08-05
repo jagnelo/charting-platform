@@ -1,5 +1,15 @@
 # Run Report
 
+## 2026-08-06T19:30:00Z Top-down taxonomy coverage
+
+- Added `backend/tests/unit/services/test_top_down_taxonomy.py` covering exact-case curated
+  industry proxies, unknown-label rejection, async startup seeding, duplicate suppression,
+  source/verification provenance, and the explicit SPX/SPY benchmark identity policy.
+- Focused tests pass `2/2`. Full backend unit execution passes `978/978` in `85.46s` with `69.90%`
+  coverage and only the existing 34 third-party deprecation warnings. The repository’s documented
+  75% restoration target remains open, as do strict visual, provider-live, sandbox stress,
+  native multi-monitor, and cross-surface parity gates.
+
 ## 2026-08-06T00:45:00Z Concurrent resource pressure
 
 - Expanded and executed the live resource probe with eight concurrent bounded 128 MiB allocations.
