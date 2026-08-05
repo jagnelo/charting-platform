@@ -1,5 +1,7 @@
 """Per-user symbol notes used by the workstation and chart markers."""
 
+from datetime import UTC, datetime
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -53,5 +55,10 @@ async def save_instrument_note(
         db.add(note)
     else:
         note.content = body.content
+        # SQLAlchemy expires server-side `onupdate` expressions after flush;
+        # assign the timestamp locally so response serialization never attempts
+        # an async lazy refresh outside the greenlet context.
+        note.updated_at = datetime.now(UTC)
     await db.flush()
+    await db.refresh(note)
     return note

@@ -19711,3 +19711,15 @@ uncovered slice rather than repeat a generic completion claim.
   fallback. Rebuilt-stack Chromium passed F8s `1/1`; full frontend Vitest passed `577/577` and
   TypeScript passed. Strict visual, provider-live, adversarial-resource, native multi-monitor,
   and long-soak gates remain open.
+
+## 2026-08-06T05:20:00Z Notes API update regression
+
+- A repeated Notes save returned HTTP 500 because the async SQLAlchemy response attempted to lazy
+  load an expired server-side `updated_at` value (`MissingGreenlet`). The router now sets
+  `updated_at` explicitly on updates and refreshes the note before returning it; the integration
+  test covers create/update/read and the returned timestamp.
+- After rebuilding the backend image, authenticated Chromium F8s passed `1/1` and frontend
+  TypeScript passed. Host pytest cannot load this repository under Python 3.9, while the container
+  integration fixture requires the external Docker socket; these environment limits are recorded,
+  not treated as passing test evidence. Strict visual, provider-live, adversarial-resource,
+  native multi-monitor, and long-soak gates remain open.

@@ -22,9 +22,18 @@ class TestInstrumentNotes:
         assert created.json()["instrument_id"] == instrument.id
         assert created.json()["content"] == "SPY relative-strength review"
 
+        updated = client.put(
+            f"/api/v1/notes/instruments/{instrument.id}",
+            headers=auth_headers,
+            json={"content": "SPY relative-strength review updated"},
+        )
+        assert updated.status_code == 200
+        assert updated.json()["content"] == "SPY relative-strength review updated"
+        assert updated.json()["updated_at"]
+
         loaded = client.get(f"/api/v1/notes/instruments/{instrument.id}", headers=auth_headers)
         assert loaded.status_code == 200
-        assert loaded.json()["content"] == "SPY relative-strength review"
+        assert loaded.json()["content"] == "SPY relative-strength review updated"
 
     def test_notes_are_isolated_between_users(self, client, db, instrument, auth_headers):
         from app.models.user import User

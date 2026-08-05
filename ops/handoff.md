@@ -18228,3 +18228,15 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
 - Rebuilt-stack F8s passed `1/1`; the full frontend Vitest suite remains `577/577` across 87 files
   and TypeScript passes. Strict visual approval, provider-live coverage, adversarial resource stress,
   native multi-monitor, and long-soak gates remain open.
+
+## Continuation update — 2026-08-06T05:20:00Z Notes API update regression
+
+- F8s exposed a backend defect on repeated note saves: the SQLAlchemy server-side `onupdate`
+  expression expired `updated_at`, causing FastAPI response serialization to raise `MissingGreenlet`
+  and return HTTP 500. The notes router now assigns the update timestamp locally and refreshes the
+  entity before serialization. The integration test now exercises create followed by update and
+  asserts the returned timestamp. After rebuilding the backend image, F8s passed `1/1` and the
+  frontend type-check passed. Local host pytest remains unavailable under Python 3.9; container
+  test setup requires the external Docker socket, so the browser/backend runtime evidence is the
+  authoritative check for this fix. Strict visual, provider-live, adversarial, multi-monitor, and
+  long-soak gates remain open.

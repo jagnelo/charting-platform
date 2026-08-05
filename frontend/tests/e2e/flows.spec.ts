@@ -678,8 +678,9 @@ test.describe('TC2000 workstation', () => {
   })
 
   test('F8s — active-instrument Notes tool autosaves through the canonical notes API', async ({ page, browserDiagnostics }) => {
-    await page.goto('/chart')
+    await page.goto('/chart/SPY')
     await expect(page.locator('.workspace-layout-host')).toBeVisible({ timeout: 10_000 })
+    await expect(page.getByRole('combobox', { name: 'Active symbol' })).toHaveValue('SPY', { timeout: 10_000 })
     await page.getByRole('button', { name: 'Add tool' }).click()
     await page.getByRole('button', { name: 'Notes', exact: true }).click()
     const notes = page.locator('.tool-window').filter({ has: page.locator('.note-tool') }).last()
