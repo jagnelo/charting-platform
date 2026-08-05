@@ -395,6 +395,7 @@
 import { computed, onBeforeUnmount, onMounted, provide, ref, watch } from 'vue'
 import { useQueryClient } from '@tanstack/vue-query'
 import { api } from '@/lib/api'
+import { dedupeOhlcvRequest } from '@/lib/workstation/ohlcvRequests'
 import UPlotChart from '@/components/chart/UPlotChart.vue'
 import DrawingToolbar from '@/components/chart/DrawingToolbar.vue'
 import ChartTemplateControl from './ChartTemplateControl.vue'
@@ -929,7 +930,8 @@ async function loadComparisonBars() {
   const timeframe = activeTimeframe.value
   const loaded = await Promise.all(symbols.map(async symbol => {
     try {
-      const raw = await api.get<any[]>(`/ohlcv/${encodeURIComponent(symbol)}/${timeframe}`, { limit: Math.max(chartStore.bars.length, 500) })
+      const limit = Math.max(chartStore.bars.length, 500)
+      const raw = await dedupeOhlcvRequest(`raw:${symbol.toUpperCase()}:${timeframe}:${limit}`, () => api.get<any[]>(`/ohlcv/${encodeURIComponent(symbol)}/${timeframe}`, { limit }))
       return { symbol, bars: raw.map(bar => ({
         ...bar,
         ts: Number(bar.ts ?? bar.timestamp),

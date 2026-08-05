@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed, watch } from 'vue'
 import type { OHLCVBar, Timeframe, Instrument, IndicatorConfig, ChartBarType } from '@/types'
 import { api } from '@/lib/api'
+import { dedupeOhlcvRequest } from '@/lib/workstation/ohlcvRequests'
 
 const PAGE_SIZE = 500  // must match backend PAGE_SIZE
 const SERVER_TRANSFORMED_TYPES = new Set<ChartBarType>([
@@ -99,11 +100,13 @@ function createChartStore(storeId: string) {
       if (opts.limit) params.limit = opts.limit
 
       const encoded = encodeURIComponent(sym)
+      const basketId = basketIdFromSymbol(sym)
+      const requestKey = JSON.stringify({ sym: sym.toUpperCase(), tf, type, before: opts.before ?? null, limit: opts.limit ?? PAGE_SIZE, localOnly: Boolean(opts.localOnly), basketId })
+      return dedupeOhlcvRequest(requestKey, async () => {
       if (opts.localOnly) {
         const raw = await api.get<any[]>(`/ohlcv/local/${encoded}/${tf}`, { limit: opts.limit ?? PAGE_SIZE })
         return _mapBars(raw)
       }
-      const basketId = basketIdFromSymbol(sym)
       if (basketId != null) {
         const raw = await api.get<any[]>(`/baskets/${basketId}/ohlcv/${tf}`, {
           ...params,
@@ -115,6 +118,7 @@ function createChartStore(storeId: string) {
         ? await api.get<any[]>(`/ohlcv/${encoded}/${tf}/transformed`, { ...params, bar_type: type })
         : await api.get<any[]>(`/ohlcv/${encoded}/${tf}`, params)
       return _mapBars(raw)
+      })
     }
 
     async function loadBars(sym = symbol.value, tf: Timeframe = timeframe.value, nextBarType: ChartBarType = barType.value, localOnly = false) {

@@ -9,6 +9,12 @@ and the complete Chromium flow pass `29/29`.
 The targeted sandbox/resource and code API acceptance slice passes `112/112` with Docker
 access. Broader multi-process namespace/resource stress remains an explicit open gate.
 
+OHLCV request fan-out is now bounded across linked chart surfaces: chart-store, workstation,
+comparison, and legacy chart reads share a short-lived canonical coordinator with immediate
+failure eviction. Full frontend Vitest is `568/568`, rebuilt Chromium is `29/29`, and the
+remaining performance gate is specifically full workstation/multi-window memory and polling
+behavior rather than identical-request duplication.
+
 - Workstation freshness presentation now uses the canonical technical-analysis freshness
   contract and has exhaustive state mapping coverage (`565/565` frontend tests, TypeScript,
   production build, rebuilt Chromium `29/29`). The old timestamp-derived `Cached` shell state

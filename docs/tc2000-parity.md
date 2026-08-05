@@ -21,6 +21,12 @@ is recorded in the referenced test/baseline system.
 
 ## Current runtime evidence (2026-08-05)
 
+Chart surfaces now use a shared canonical OHLCV request coordinator. Identical instrument,
+timeframe, range/limit, transform, adjustment, and local/basket requests coalesce while
+in flight; successful results are retained briefly for linked-window reuse and failures are
+not cached. The coordinator is covered by coalescing, expiry, and failure-recovery tests;
+full frontend Vitest is `568/568`, rebuilt Chromium is `29/29`, and backend logs are clean.
+
 The targeted sandbox/resource and code API slice passes `112/112` with Docker access. It
 covers AST safety, forbidden imports/process/filesystem/network/reflection paths, isolated
 runner limits and cancellation, immutable code versions, queued Study Lab jobs, and the

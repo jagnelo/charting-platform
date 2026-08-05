@@ -1,5 +1,14 @@
 # Run Report
 
+## 2026-08-05T10:05:00Z Shared OHLCV request deduplication
+
+- Added a bounded provider-neutral OHLCV coordinator that coalesces identical in-flight
+  requests and retains successful canonical responses for five seconds. Chart-store loads,
+  workstation comparison charts, and legacy chart comparisons now share the same key space;
+  failures are never cached. Coordinator regressions cover coalescing, failure recovery, and
+  expiry. Full frontend Vitest is `568/568` across 86 files, TypeScript/build pass, rebuilt
+  authenticated Chromium is `29/29`, and the backend log audit is clean.
+
 ## 2026-08-05T09:30:00Z Docker cleanup
 
 - Ran the requested `docker system prune -af` after the acceptance probes. It reclaimed

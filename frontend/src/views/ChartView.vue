@@ -217,6 +217,7 @@ import { usePresetsStore }  from '@/stores/presets'
 import { useOptionsExposureStore } from '@/stores/optionsExposure'
 import { useRadarStore } from '@/stores/radar'
 import { api } from '@/lib/api'
+import { dedupeOhlcvRequest } from '@/lib/workstation/ohlcvRequests'
 import ResizeHandle         from '@/components/common/ResizeHandle.vue'
 import SearchBar            from '@/components/common/SearchBar.vue'
 import TimeframeSelector    from '@/components/chart/TimeframeSelector.vue'
@@ -403,9 +404,8 @@ async function loadComparisonBars() {
   const targets = [...comparisonTargets.value]
   const loaded = await Promise.all(targets.map(async target => {
     try {
-      const raw = await api.get<any[]>(`/ohlcv/${encodeURIComponent(target.symbol)}/${tf}`, {
-        limit: Math.max(chartStore.bars.length, 500),
-      })
+      const limit = Math.max(chartStore.bars.length, 500)
+      const raw = await dedupeOhlcvRequest(`raw:${target.symbol.toUpperCase()}:${tf}:${limit}`, () => api.get<any[]>(`/ohlcv/${encodeURIComponent(target.symbol)}/${tf}`, { limit }))
       return {
         symbol: target.symbol,
         bars: raw.map(bar => ({

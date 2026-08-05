@@ -1,5 +1,13 @@
 # Active Handoff
 
+## Continuation update — 2026-08-05T10:05:00Z Shared OHLCV request deduplication
+
+- Identical OHLCV reads now coalesce across chart-store panels, workstation comparisons,
+  floating/docked copies, and legacy chart comparisons using a bounded canonical key. The
+  successful-response TTL is five seconds; rejected requests are removed immediately. Full
+  frontend Vitest passes `568/568` across 86 files, TypeScript/build pass, rebuilt Chromium
+  passes `29/29`, and backend logs are clean.
+
 ## Continuation update — 2026-08-05T09:30:00Z Docker cleanup
 
 - Periodic Docker cleanup completed: `443.8MB` reclaimed from dangling images/build cache;
