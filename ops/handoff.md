@@ -18565,3 +18565,12 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
   (about 1–2% data/state differences), and no snapshots were promoted. Exact-build V25 visual
   approval, provider-live, native multi-monitor, sustained sandbox/resource, and indefinite-soak
   gates remain open.
+## Continuation update — 2026-08-06T23:00:00Z Sandbox resource-probe correction
+
+- A live rerun showed the previous 1 GiB allocation could succeed despite the configured 768 MiB
+  cgroup because Python did not make enough of the allocation resident. The probe now touches every
+  page of a 2 GiB allocation and uses resident 256 MiB allocations for concurrent pressure.
+- Corrected live evidence: cgroup allocation killed with status 137, 64 MiB tmpfs write rejected
+  with `ENOSPC`, three concurrent workers contained, and runner restart count unchanged. The
+  deployment contract suite passes `6/6`. Sustained cancellation/crash/resource stress remains
+  open beyond this bounded probe.

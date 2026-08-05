@@ -35,6 +35,14 @@ asserts that Enter, Escape, mouse option selection, and the explicit Go action a
 autocomplete listbox while the search input remains focused. The focused suite passes `10/10`,
 and the full frontend coverage run remains green with function coverage increased to `71.4%`.
 
+The live sandbox resource probe also received a correctness repair. Its earlier nominal 1 GiB
+allocation could remain below the effective resident-memory limit on this host and falsely report
+success. The probe now faults in every page of a 2 GiB allocation and uses resident 256 MiB
+allocations for the concurrent-pressure check. The corrected live run reports cgroup exit 137,
+tmpfs `ENOSPC`, three contained concurrent failures, and unchanged runner restart count. The
+deployment contract suite passes `6/6`; sustained cancellation/crash/resource stress remains a
+separate broader gate.
+
 Provider-route recheck on 2026-08-05T21:45:00Z confirmed that the four remaining ETF holdings
 failures are still external-route conditions, not safe candidates for fallback substitution:
 official pages declare ADFI, DFTT, and NEOS downloads but the discovered acceptance routes remain

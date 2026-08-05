@@ -29,9 +29,13 @@ run_expect() {
   printf '%s: denied (status=%s)\n' "$name" "$rc"
 }
 
-# The process must be killed by the cgroup rather than surviving a 1 GiB
-# allocation in the 768 MiB container. Docker reports SIGKILL as exit 137.
-run_expect memory-cgroup 137 '' 'x = bytearray(1024 * 1024 * 1024); print(len(x))'
+# The process must be killed by the cgroup rather than surviving a 2 GiB
+# allocation in the 768 MiB container. (A nominal 1 GiB Python allocation can
+# remain below the effective resident limit because the allocator does not
+# fault every requested page.) Touch every page so the allocation is
+# resident RSS rather than merely virtual address space; Docker reports SIGKILL
+# as exit 137 when the memory limit is enforced.
+run_expect memory-cgroup 137 '' 'x = bytearray(2 * 1024 * 1024 * 1024); [x[offset] for offset in range(0, len(x), 4096)]; print(len(x))'
 
 # The runner's /tmp is a 64 MiB no-exec tmpfs. A 70 MiB write must fail with
 # ENOSPC and must not consume host or persistent result volume space.
@@ -47,7 +51,7 @@ docker exec "$container" python -c 'import os; os.remove("/tmp/pressure.bin") if
 restart_before="$(docker inspect -f '{{.RestartCount}}' "$container")"
 pids=()
 for index in 1 2 3 4 5 6 7 8; do
-  docker exec "$container" python -c 'import time; x=bytearray(128 * 1024 * 1024); time.sleep(3)' \
+  docker exec "$container" python -c 'import time; x=bytearray(256 * 1024 * 1024); [x[offset] for offset in range(0, len(x), 4096)]; time.sleep(3)' \
     >"/tmp/tc2000-resource-pressure-${index}.log" 2>&1 &
   pids+=("$!")
 done

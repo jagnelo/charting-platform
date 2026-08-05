@@ -20019,3 +20019,11 @@ uncovered slice rather than repeat a generic completion claim.
 - Full frontend coverage remains green with approximately `71.4%` function coverage. The seeded
   four-environment visual run still fails only against stale/unapproved local snapshots; all four
   overlap assertions pass and no baseline was changed.
+## 2026-08-06T23:00:00Z Sandbox resource-probe correction
+
+- The original live memory check was too weak: an untouched nominal 1 GiB Python allocation did
+  not reliably become resident on this host. The probe now faults in every page of a 2 GiB
+  allocation and uses resident 256 MiB allocations for the concurrent check.
+- Corrected live run: cgroup kill `137`, tmpfs `ENOSPC`, three contained concurrent failures, and
+  zero runner restarts. Deployment contract tests pass `6/6`. This is bounded enforcement evidence;
+  sustained cancellation/crash/resource stress remains a separate open acceptance gate.

@@ -70,7 +70,9 @@ def test_live_resource_probe_is_bounded_and_requires_expected_failure_modes():
     assert "pids=128" in probe
     assert "run_expect memory-cgroup 137" in probe
     assert "run_expect tmpfs-capacity 1 'No space left on device'" in probe
-    assert "1024 * 1024 * 1024" in probe
+    assert "2 * 1024 * 1024 * 1024" in probe
+    assert "range(0, len(x), 4096)" in probe
+    assert "256 * 1024 * 1024" in probe
     assert "70 * 1024 * 1024" in probe
     assert "pressure.bin" in probe
     assert "for index in 1 2 3 4 5 6 7 8" in probe
