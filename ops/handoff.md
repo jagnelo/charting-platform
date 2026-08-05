@@ -18087,3 +18087,10 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
 - The authenticated 20-round, two-popout churn passed in `26.0s`; the complete workstation
   performance file passed `2/2` in `31.2s` with clean diagnostics. Native OS multi-monitor
   placement and longer-than-20-round soak remain separate acceptance gates.
+
+## Continuation update — 2026-08-05T23:15:00Z Disconnected pop-out recovery
+
+- Added F8k browser coverage for closing a pop-out through the browser/page lifecycle, verifying
+  that the source workspace retains the tool and can float it again before a normal close.
+- The complete authenticated flow suite passed `35/35` in approximately `1.4m` with clean
+  diagnostics. Native multi-monitor placement and strict V25 visual approval remain open.

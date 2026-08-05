@@ -19587,3 +19587,9 @@ uncovered slice rather than repeat a generic completion claim.
   512 MiB ceiling and a 256 MiB growth ceiling when Chromium exposes heap telemetry.
 - `TC2000_POP_OUT_CHURN_ROUNDS=20` passed the repeated-churn test (`1/1`, `26.0s`) and both
   workstation performance tests (`2/2`, `31.2s`).
+
+## 2026-08-05T23:15:00Z Disconnected pop-out recovery
+
+- Added F8k to simulate an externally closed pop-out, assert source-tool recovery, re-float the
+  same tool, and close it normally. Complete authenticated Chromium flows passed `35/35` in
+  approximately `1.4m` with clean browser diagnostics.

@@ -339,6 +339,40 @@ test.describe('TC2000 workstation', () => {
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
+  test('F8k — disconnected pop-outs restore into the source workspace and can be reopened', async ({ page, context, browserDiagnostics }) => {
+    await page.goto('/chart')
+    const sourceTool = page.locator('.tool-window').first()
+    const floatButton = sourceTool.locator('button[title="Float"]')
+    await expect(floatButton).toBeVisible({ timeout: 10_000 })
+
+    const popupPromise = context.waitForEvent('page')
+    await floatButton.click()
+    const popup = await popupPromise
+    await popup.waitForLoadState('domcontentloaded')
+    await expect(popup.locator('.workstation__popout .tool-window')).toBeVisible({ timeout: 10_000 })
+
+    // Simulate a browser-level close/disconnect rather than the tool's own close
+    // control. The source workspace must recover the tool and remain usable.
+    const closed = popup.waitForEvent('close')
+    await popup.close()
+    await closed
+    await expect.poll(() => context.pages().length).toBe(1)
+    await expect(page.locator('.tool-window').first().locator('button[title="Float"]')).toBeVisible({ timeout: 10_000 })
+
+    // Prove recovery is durable by floating the same tool again in the same
+    // authenticated session and then closing it through the normal control.
+    const reopenedPromise = context.waitForEvent('page')
+    await page.locator('.tool-window').first().locator('button[title="Float"]').click()
+    const reopened = await reopenedPromise
+    await reopened.waitForLoadState('domcontentloaded')
+    await expect(reopened.locator('.workstation__popout .tool-window')).toBeVisible({ timeout: 10_000 })
+    const reopenedClosed = reopened.waitForEvent('close')
+    await reopened.locator('button[title="Close"]').click()
+    await reopenedClosed
+    await expect(page.locator('.tool-window').first().locator('button[title="Float"]')).toBeVisible()
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
   test('F8c — signing out propagates from the source workstation to its pop-out', async ({ page, context }) => {
     await page.goto('/chart')
     const popupPromise = context.waitForEvent('page')

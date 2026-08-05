@@ -22,6 +22,10 @@ round, and checks both absolute and relative heap ceilings. The extended 20-roun
 run passed, as did both workstation performance tests (`2/2`); broader OS-level multi-monitor
 placement remains separate.
 
+Added browser-level recovery coverage for a disconnected/externally closed pop-out: the source
+workspace must retain the tool, allow it to be floated again in the same session, and close the
+reopened window cleanly. The complete authenticated flow suite passed `35/35` after this change.
+
 The browser acceptance harness now treats logout's in-flight 401 responses as an explicit,
 bounded auth-boundary contract; unrelated unauthorized responses remain failures. Focused F5
 and the complete rebuilt-stack Chromium acceptance pass `37/37`.
