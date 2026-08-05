@@ -1,5 +1,11 @@
 # Run Report
 
+## 2026-08-05T12:25:00Z Docker cleanup after runner soak
+
+- `docker system prune -af` reclaimed `4.308GB` of dangling images and build cache. The active
+  branch frontend, backend, worker, Redis, PostgreSQL, and seccomp-protected research-runner
+  containers remained running; named data volumes were retained.
+
 ## 2026-08-05T12:20:00Z Three-minute research-runner queue soak
 
 - Submitted 360 uniquely named jobs through the live `/jobs` queue and observed the hardened

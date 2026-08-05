@@ -1,5 +1,10 @@
 # Active Handoff
 
+## Continuation update — 2026-08-05T12:25:00Z Docker cleanup
+
+- Requested cleanup reclaimed `4.308GB`; all active branch-scoped services and named volumes
+  remain intact and running.
+
 ## Continuation update — 2026-08-05T12:20:00Z Three-minute queue soak
 
 - The live seccomp-protected runner processed 360/360 uniquely submitted queue jobs over 180
