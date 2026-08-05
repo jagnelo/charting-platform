@@ -1316,3 +1316,11 @@ debounce, invalidates any in-flight search generation, and clears stale results 
 the canonical instrument. Focused F8m/F8k/F8g/F8q checks, full frontend Vitest (`577/577`),
 TypeScript, and production build pass. This is functional evidence only; strict V25 visual
 approval remains blocked by required-missing reference states.
+## Continuation update — 2026-08-06T17:30:00Z Live runner crash/recovery
+
+The isolated research runner now has a repeatable live recovery probe covering the actual shared
+job/result volumes. A real long-running job was claimed, only the runner container was killed and
+restarted, and the restart-time orphan recovery completed the job with no stale cancellation or
+progress sentinel. The focused deployment contract suite passes `6/6`. This closes only the
+bounded crash/orphan recovery slice; sustained stress, provider-live, native multi-monitor,
+indefinite soak, and strict V25 visual acceptance remain open.

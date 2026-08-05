@@ -76,3 +76,17 @@ def test_live_resource_probe_is_bounded_and_requires_expected_failure_modes():
     assert "for index in 1 2 3 4 5 6 7 8" in probe
     assert "concurrent-memory: contained" in probe
     assert "restart_before" in probe and "restart_after" in probe
+
+
+def test_live_recovery_probe_is_bounded_and_verifies_orphan_cleanup():
+    probe = (Path(__file__).resolve().parents[3] / "ops" / "probe-research-runner-recovery.sh").read_text()
+
+    assert "isolated research runner" in probe
+    assert "100000000" in probe
+    assert "docker kill" in probe
+    assert "StartedAt" in probe
+    assert ".running" in probe
+    assert ".processed" in probe
+    assert ".cancel" in probe
+    assert "progress.json" in probe
+    assert '"status":"completed"' in probe

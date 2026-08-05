@@ -19952,3 +19952,11 @@ uncovered slice rather than repeat a generic completion claim.
   F8m/F8k/F8g/F8q checks pass; frontend Vitest remains `577/577`, TypeScript/build/diff pass.
 - Functional evidence only: exact-build visual references, provider-live, sustained sandbox
   cancellation/orphan/crash, native multi-monitor, and indefinite soak remain open.
+## 2026-08-06T17:30:00Z Live runner crash/recovery probe
+
+- The new bounded `ops/probe-research-runner-recovery.sh` claimed a real job, terminated only the
+  isolated research-runner, restarted it, and verified restart-time orphan recovery completed the
+  job. Start timestamp changed from `2026-08-05T16:16:21.367996966Z` to
+  `2026-08-05T16:17:25.843156593Z`; stale cancel/progress sentinels were absent.
+- Focused deployment contract tests pass `6/6`. This is bounded recovery evidence, not a claim
+  that the full sustained resource/cancellation matrix or other open gates are complete.

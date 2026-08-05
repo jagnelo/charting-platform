@@ -18487,3 +18487,13 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
   production build pass, and post-run backend/worker/research-runner logs are clean. Strict V25
   visual approval, provider-live, sustained sandbox cancellation/orphan/crash, native
   multi-monitor, and indefinite soak gates remain open.
+## Continuation update — 2026-08-06T17:30:00Z Live runner crash/recovery probe
+
+- Added `ops/probe-research-runner-recovery.sh`, a bounded live probe for the real shared-volume
+  protocol. It creates a long-running prepared job, waits until the isolated runner claims it,
+  kills only that container, explicitly restarts it, and verifies the orphan is requeued and
+  completes after restart.
+- The live probe passed with a changed container start timestamp and no `.cancel` or
+  `progress.json` residue. The deployment contract suite passes `6/6`. This closes the bounded
+  crash/orphan recovery evidence slice; sustained multi-run cancellation/resource stress,
+  provider-live, native multi-monitor, indefinite soak, and strict V25 visual approval remain open.
