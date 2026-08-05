@@ -186,6 +186,28 @@ describe('WorkstationView pop-out bindings', () => {
     await input.trigger('keydown', { key: 'ArrowDown' })
     await input.trigger('keydown', { key: 'Enter' })
     expect(harness.workspace.publishSymbol).toHaveBeenCalledWith(expect.objectContaining({ symbol: 'XLE', group: 'blue' }))
+    expect(wrapper.find('[role="listbox"]').exists()).toBe(false)
+    wrapper.unmount()
+  })
+
+  it('closes autocomplete for Escape and the explicit Go action while the input stays focused', async () => {
+    routeState.path = '/'
+    routeState.params = {}
+    apiGet.mockResolvedValue([{ symbol: 'XLK', name: 'Technology Select Sector SPDR Fund', exchange: 'ARCX', type: 'ETF' }])
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+    await vi.waitFor(() => expect(harness.workspace.publishSymbol).toHaveBeenCalledWith(expect.objectContaining({ symbol: 'SPY' })))
+    const input = wrapper.get('input[aria-label="Active symbol"]')
+    await input.setValue('xlk')
+    await vi.waitFor(() => expect(wrapper.find('[role="listbox"]').exists()).toBe(true))
+    await input.trigger('keydown', { key: 'Escape' })
+    expect(wrapper.find('[role="listbox"]').exists()).toBe(false)
+
+    await input.setValue('xl')
+    await vi.waitFor(() => expect(wrapper.find('[role="listbox"]').exists()).toBe(true))
+    await wrapper.get('.workstation__search > button').trigger('click')
+    expect(wrapper.find('[role="listbox"]').exists()).toBe(false)
     wrapper.unmount()
   })
 

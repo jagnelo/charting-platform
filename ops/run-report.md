@@ -20012,3 +20012,10 @@ uncovered slice rather than repeat a generic completion claim.
   rather than claiming a new single-process 42/42 result.
 - Remaining gates: exact-build V25 visual approval, configured provider-live probes, native
   multi-monitor verification, sustained sandbox/resource stress, and genuinely indefinite soak.
+## 2026-08-06T22:30:00Z Autocomplete regression coverage
+
+- Workstation unit coverage now explicitly proves that Enter, Escape, mouse option selection, and
+  Go close the autocomplete listbox while the input remains focused: `10/10` passed.
+- Full frontend coverage remains green with approximately `71.4%` function coverage. The seeded
+  four-environment visual run still fails only against stale/unapproved local snapshots; all four
+  overlap assertions pass and no baseline was changed.

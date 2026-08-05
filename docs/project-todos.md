@@ -30,6 +30,11 @@ canonical symbol; Escape and mouse option selection use the same path. The focus
 failures. This closes the autocomplete regression only; it does not change the strict visual,
 provider-live, native multi-monitor, sustained sandbox, or indefinite-soak gates.
 
+The regression is now covered at the component level as well: the workstation shell test suite
+asserts that Enter, Escape, mouse option selection, and the explicit Go action all remove the
+autocomplete listbox while the search input remains focused. The focused suite passes `10/10`,
+and the full frontend coverage run remains green with function coverage increased to `71.4%`.
+
 Provider-route recheck on 2026-08-05T21:45:00Z confirmed that the four remaining ETF holdings
 failures are still external-route conditions, not safe candidates for fallback substitution:
 official pages declare ADFI, DFTT, and NEOS downloads but the discovered acceptance routes remain

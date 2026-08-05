@@ -18556,3 +18556,12 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
   statements / `71.28%` functions, vue-tsc and production build pass. Strict V25 visual approval,
   provider-live, native multi-monitor, sustained sandbox/resource, and indefinite-soak gates remain
   open.
+## Continuation update — 2026-08-06T22:30:00Z Autocomplete regression coverage
+
+- Added component-level regression assertions for all explicit active-symbol search close paths:
+  Enter, Escape, mouse option selection, and Go. The focused workstation view suite passes `10/10`.
+- The full frontend coverage run remains green; function coverage is now approximately `71.4%`.
+  The seeded four-environment visual harness still correctly rejects the unapproved local snapshots
+  (about 1–2% data/state differences), and no snapshots were promoted. Exact-build V25 visual
+  approval, provider-live, native multi-monitor, sustained sandbox/resource, and indefinite-soak
+  gates remain open.
