@@ -18765,3 +18765,10 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
 - Complete rebuilt-stack authenticated Chromium flow coverage passes `42/42` in 2.2 minutes,
   including linking/isolation, timeframe propagation, top-down drilldown, Study Lab/factory study,
   notes, alerts, pop-outs/recovery, legacy routes, Radar, and core header geometry.
+
+## Continuation update — 2026-08-07T05:30:00Z Multi-monitor geometry contract
+
+- Added regression coverage for persisted pop-out geometry on a secondary monitor with negative
+  screen coordinates (`capturePopoutGeometry`); focused geometry tests pass `4/4` and TypeScript
+  checking passes. This proves the serializable coordinate contract, but native OS multi-monitor
+  placement still requires hardware-level verification.

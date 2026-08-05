@@ -20181,3 +20181,8 @@ uncovered slice rather than repeat a generic completion claim.
 - Complete rebuilt-stack authenticated Chromium flow matrix passes `42/42` in 2.2 minutes,
   covering workstation linking, drilldown, Study Lab, notes, pop-outs, recovery, legacy routes,
   Radar, and header geometry.
+
+## 2026-08-07T05:30:00Z Multi-monitor geometry contract
+
+- Added secondary-monitor regression coverage for negative screen-coordinate pop-out geometry;
+  focused tests pass `4/4` and TypeScript checking passes. Native OS placement remains unverified.
