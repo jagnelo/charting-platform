@@ -379,6 +379,34 @@ test.describe('TC2000 workstation', () => {
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
+  test('F8l — hidden workstation surfaces suspend market-analysis refreshes', async ({ page, browserDiagnostics }) => {
+    const refreshRequests: string[] = []
+    page.on('request', request => {
+      const path = new URL(request.url()).pathname
+      if (path.startsWith('/api/v1/market-groups/') || path.startsWith('/api/v1/analysis/')) refreshRequests.push(path)
+    })
+    await page.goto('/chart')
+    await expect(page.locator('.workstation').first()).toBeVisible({ timeout: 10_000 })
+    // The initial benchmark/sector/technical fan-out can complete after the
+    // workstation shell is visible; establish the hidden-state baseline only
+    // after that bounded first-load window has settled.
+    await page.waitForTimeout(3_000)
+    refreshRequests.length = 0
+
+    await page.evaluate(() => {
+      Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'hidden' })
+      document.dispatchEvent(new Event('visibilitychange'))
+    })
+    await page.waitForTimeout(1_500)
+    expect(refreshRequests).toEqual([])
+
+    await page.evaluate(() => {
+      Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'visible' })
+      document.dispatchEvent(new Event('visibilitychange'))
+    })
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
   test('F8e — deep top-down drilldown reaches industry proxies and constituents', async ({ page, browserDiagnostics }) => {
     await page.goto('/chart')
     await expect(page.getByRole('region', { name: 'Major US benchmarks' })).toBeVisible({ timeout: 10_000 })

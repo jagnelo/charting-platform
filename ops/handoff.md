@@ -18022,3 +18022,13 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
 - All eight factory layouts passed the targeted overlap audit (`1/1`) with no recovery state or
   browser diagnostics. This is an automated geometry guard, not a substitute for approved V25
   screenshot measurements.
+
+## Continuation update — 2026-08-05T20:00:00Z Hidden-refresh and settled-canvas acceptance
+
+- Added F8l to prove a hidden workstation does not issue market-analysis refresh requests; the
+  visible-state restoration path remains exercised in the same browser lifecycle.
+- Hardened both pop-out performance guards to baseline canvas counts only after repeated stable
+  samples, eliminating transient first-mount races exposed under parallel Chromium workers.
+- The complete rebuilt-stack Chromium set passes `37/37` in approximately 1.4 minutes with clean
+  diagnostics. Strict V25 visual approval, multi-monitor/long-duration soak, adversarial stress,
+  and external ETF issuer conditions remain open.

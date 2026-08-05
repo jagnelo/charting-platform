@@ -12,8 +12,8 @@ access. Broader multi-process namespace/resource stress remains an explicit open
 OHLCV request fan-out is now bounded across linked chart surfaces: chart-store, workstation,
 comparison, and legacy chart reads share a short-lived canonical coordinator with immediate
 failure eviction. Full frontend Vitest is `576/576`, and rebuilt Chromium workstation
-acceptance now passes `36/36`, including five rounds of two-popout churn with settled
-tool/canvas/chart counts and clean diagnostics. Remaining performance work is broader
+acceptance now passes `37/37`, including hidden-refresh suspension, five rounds of two-popout
+churn with settled tool/canvas/chart counts, and clean diagnostics. Remaining performance work is broader
 multi-monitor/memory/polling evidence rather than identical-request duplication.
 
 - Workstation freshness presentation now uses the canonical technical-analysis freshness

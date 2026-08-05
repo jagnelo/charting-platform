@@ -1283,3 +1283,9 @@ The factory-layout acceptance audit also rejects drawing-toolbar/chart-surface o
 tool-header title/symbol/action collisions. All eight factory layouts passed this geometry check
 without recovery state or browser diagnostics. It remains a deterministic safety guard; measured
 pixel parity still requires approved reference baselines.
+
+The workstation browser acceptance now includes an explicit hidden-document refresh guard: market
+analysis remains quiescent while hidden and resumes only through the visible-state handler. Pop-out
+performance baselines require repeated stable canvas samples before asserting lifecycle invariants,
+so transient first-mount panes cannot be mistaken for leaks. The complete rebuilt-stack Chromium
+set passes `37/37`; this remains functional/performance evidence rather than visual approval.

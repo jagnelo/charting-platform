@@ -8,9 +8,21 @@ test.describe('TC2000 workstation performance guards', () => {
     // Chart panes can add their volume/indicator canvases after the primary
     // canvas appears. Settle the one-time initialization before recording the
     // source baseline used by the pop-out recovery assertion.
-    await page.waitForTimeout(2_000)
+    const settledCanvasCount = async () => {
+      let previous = -1
+      let stableSamples = 0
+      for (let sample = 0; sample < 20; sample += 1) {
+        const current = await page.locator('canvas').count()
+        stableSamples = current === previous ? stableSamples + 1 : 0
+        previous = current
+        if (stableSamples >= 3) return current
+        await page.waitForTimeout(250)
+      }
+      return previous
+    }
+    await page.waitForTimeout(1_000)
     const sourceToolCount = await page.locator('.tool-window').count()
-    const sourceCanvasCount = await page.locator('canvas').count()
+    const sourceCanvasCount = await settledCanvasCount()
     const started = await page.evaluate(() => performance.now())
     const popups = []
 
@@ -46,7 +58,7 @@ test.describe('TC2000 workstation performance guards', () => {
     }
     await expect.poll(() => context.pages().length).toBe(1)
     await expect(page.locator('.tool-window')).toHaveCount(sourceToolCount)
-    await expect.poll(() => page.locator('canvas').count()).toBe(sourceCanvasCount)
+    await expect.poll(() => settledCanvasCount()).toBe(sourceCanvasCount)
     const elapsed = await page.evaluate((start) => performance.now() - start, started)
     expect(elapsed).toBeLessThan(20_000)
     await browserDiagnostics.expectNoCriticalIssues()
@@ -57,9 +69,21 @@ test.describe('TC2000 workstation performance guards', () => {
     await expect(page.locator('.tool-window').first()).toBeVisible({ timeout: 10_000 })
     await expect.poll(() => page.locator('canvas').count(), { timeout: 10_000 }).toBeGreaterThan(0)
     // Establish a settled baseline before exercising repeated browser-window churn.
-    await page.waitForTimeout(2_000)
+    const settledCanvasCount = async () => {
+      let previous = -1
+      let stableSamples = 0
+      for (let sample = 0; sample < 20; sample += 1) {
+        const current = await page.locator('canvas').count()
+        stableSamples = current === previous ? stableSamples + 1 : 0
+        previous = current
+        if (stableSamples >= 3) return current
+        await page.waitForTimeout(250)
+      }
+      return previous
+    }
+    await page.waitForTimeout(1_000)
     const sourceToolCount = await page.locator('.tool-window').count()
-    const sourceCanvasCount = await page.locator('canvas').count()
+    const sourceCanvasCount = await settledCanvasCount()
     const sourceChartCount = await page.locator('.chart-tool').count()
     const rounds = 5
 
@@ -84,7 +108,7 @@ test.describe('TC2000 workstation performance guards', () => {
       }
       await expect.poll(() => context.pages().length).toBe(1)
       await expect(page.locator('.tool-window')).toHaveCount(sourceToolCount)
-      await expect(page.locator('canvas')).toHaveCount(sourceCanvasCount)
+      await expect.poll(() => settledCanvasCount()).toBe(sourceCanvasCount)
       await expect(page.locator('.chart-tool')).toHaveCount(sourceChartCount)
     }
 

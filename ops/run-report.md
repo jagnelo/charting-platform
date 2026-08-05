@@ -19528,3 +19528,12 @@ uncovered slice rather than repeat a generic completion claim.
 - The factory-layout browser test now checks drawing-toolbar bounds against chart-surface bounds
   as well as tool-header title/symbol/action collisions.
 - All eight factory layouts passed the targeted Chromium audit (`1/1`) with clean diagnostics.
+
+## 2026-08-05T20:00:00Z Hidden-refresh and settled-canvas acceptance
+
+- Added F8l: hidden document state suppresses market-analysis refresh requests, then visible-state
+  restoration is dispatched through the normal visibility handler.
+- Both pop-out performance guards now use repeated stable canvas samples before lifecycle baselines,
+  preventing parallel-worker first-mount races from producing false growth failures.
+- Complete rebuilt-stack Chromium acceptance passed `37/37` in approximately 1.4 minutes with no
+  unexpected diagnostics.
