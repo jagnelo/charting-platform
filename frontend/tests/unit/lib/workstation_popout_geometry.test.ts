@@ -4,6 +4,7 @@ import { popoutWindowFeatures, readPopoutGeometry } from '@/lib/workstation/popo
 describe('workstation pop-out geometry', () => {
   it('uses stable defaults when no persisted geometry exists', () => {
     expect(readPopoutGeometry({})).toEqual({ left: 80, top: 80, width: 1100, height: 760 })
+    expect(readPopoutGeometry({}, { availLeft: 1920, availTop: 0 })).toEqual({ left: 2000, top: 80, width: 1100, height: 760 })
   })
 
   it('clamps malformed and undersized persisted dimensions', () => {

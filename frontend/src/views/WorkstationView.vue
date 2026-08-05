@@ -553,7 +553,7 @@ function floatTool(windowKey: string) {
   const tab = workspaceStore.activeTabKey
   const href = router.resolve({ path: `/popout/${encodeURIComponent(windowKey)}`, query: { tab } }).href
   const tool = workspaceStore.workspace?.tabs.flatMap(item => item.windows).find(item => item.instance_key === windowKey)
-  const popup = window.open(href, `workstation-${windowKey}`, popoutWindowFeatures(readPopoutGeometry(tool?.style)))
+  const popup = window.open(href, `workstation-${windowKey}`, popoutWindowFeatures(readPopoutGeometry(tool?.style, window.screen as Screen & { availLeft?: number; availTop?: number })))
   if (!popup) {
     workspaceStore.error = 'Browser blocked the pop-out. The tool remains docked.'
     return
