@@ -20205,3 +20205,10 @@ uncovered slice rather than repeat a generic completion claim.
 - Targeted live probes remain externally unavailable: Davis DUSA HTTP 522, Anfield ADFI HTTP 404,
   and Donoghue Forlines DFTT HTTP 503 (`0 passed, 3 failed`, 344 deselected). Current indexed
   pages were re-discovered, but no deterministic backend-reachable route was available to promote.
+
+## 2026-08-07T09:00:00Z Repeated runner resource containment
+
+- The live resource probe passed three consecutive runs. Each confirmed the deployed isolation
+  contract, resident-memory cgroup kill (137), tmpfs `ENOSPC`, three contained concurrent failures,
+  and unchanged runner restart count (`0`). Sustained cancellation/crash/long-duration stress
+  remains a separate open gate.

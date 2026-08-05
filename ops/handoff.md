@@ -18795,3 +18795,11 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
   DFTT remains HTTP 503. The run is `0 passed, 3 failed` with 344 cases deselected. These remain
   external availability/route conditions; no failure was suppressed or replaced with unverified
   holdings data.
+
+## Continuation update — 2026-08-07T09:00:00Z Repeated runner resource containment
+
+- Ran the live branch-scoped resource probe three consecutive times. Every run confirmed the
+  768 MiB/1 CPU/128 PID/no-network/read-only/non-root contract, cgroup-killed resident 2 GiB
+  allocation (137), rejected 70 MiB tmpfs write (`ENOSPC`), and contained three concurrent
+  pressure failures with restart count unchanged at zero. This strengthens repeatability but
+  does not close the separate sustained cancellation/crash/long-duration stress matrix.
