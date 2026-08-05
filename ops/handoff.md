@@ -1,5 +1,14 @@
 # Active Handoff
 
+## Continuation update — 2026-08-06T11:15:00Z Extended pop-out lifecycle soak
+
+- Removed the performance harness's old 20-round truncation and made its timeout proportional to
+  the requested workload, retaining a hard 100-round safety ceiling. A real Chromium run with 40
+  rounds and two simultaneous pop-outs passed `2/2` in `54.4s`, including bounded tool/canvas/chart
+  state and heap checks. TypeScript and diff checks passed. This strengthens lifecycle evidence but
+  does not close native multi-monitor, unbounded long-duration, provider-live, adversarial sustained
+  resource, or strict V25 visual approval gates.
+
 ## Continuation update — 2026-08-06T10:25:00Z Live migration-head verification
 
 - The running branch-scoped PostgreSQL reports Alembic head `ea0f1a2b3c4d`; the database ledger

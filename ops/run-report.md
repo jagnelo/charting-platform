@@ -1,5 +1,13 @@
 # Run Report
 
+## 2026-08-06T11:15:00Z Extended pop-out lifecycle soak
+
+- The workstation performance guard now permits configured churn through 100 rounds with a workload
+  proportional timeout. Chromium run `TC2000_POP_OUT_CHURN_ROUNDS=40` passed `2/2` in `54.4s`,
+  preserving bounded source tool/canvas/chart state and heap checks. TypeScript and diff checks also
+  passed. Native multi-monitor, genuinely long-duration, provider-live, sustained resource, and
+  strict V25 visual acceptance remain open.
+
 ## 2026-08-06T10:25:00Z Live migration-head verification
 
 - Running branch-scoped PostgreSQL reports Alembic head `ea0f1a2b3c4d`; the ledger matches and
