@@ -1,5 +1,12 @@
 # Run Report
 
+## 2026-08-05T17:40:00Z Cross-layer Study Lab source validation
+
+- Added a backend test against the actual frontend factory source, ensuring the seasonality study is
+  accepted by the real AST validator and preserves its declared typed outputs and weekday mapping.
+- Focused backend validation passes `1/1`; frontend Study Lab remains `12/12`, with TypeScript and
+  production build passing.
+
 ## 2026-08-05T17:20:00Z Weekday mapping correction
 
 - Fixed the Zeller weekday mapping in the seasonality factory so weekday bars/tables are labeled

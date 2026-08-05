@@ -49,6 +49,8 @@ Latest continuation evidence:
   Study Lab regression suite explicitly enforces this sandbox-compatible shape.
 - The Gregorian weekday mapping is also covered explicitly (`0 = Saturday`), preventing shifted
   weekday labels in the calendar-seasonality result.
+- A backend cross-layer regression now validates the exact source emitted by `StudyLabTool.vue`
+  through the production AST validator (`1/1`), preventing frontend-only source drift.
 
 Continuation evidence from the current branch checkpoint:
 

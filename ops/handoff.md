@@ -1,5 +1,13 @@
 # Active Handoff
 
+## Continuation update — 2026-08-05T17:40:00Z Cross-layer Study Lab source validation
+
+- Added a backend regression test that extracts the actual `seasonalitySource` emitted by
+  `StudyLabTool.vue` and runs it through `validate_workstation_python`. It passes with no
+  diagnostics, `bar`/`table` output contracts, correct Sat–Fri mapping, and no forbidden `lambda`.
+- Focused backend source-validation test passes `1/1`; existing frontend Study Lab tests remain
+  `12/12`, with TypeScript/build green.
+
 ## Continuation update — 2026-08-05T17:20:00Z Weekday mapping correction
 
 - Corrected the Gregorian weekday label order in the seasonality factory (`0 = Saturday`), which
