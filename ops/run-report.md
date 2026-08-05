@@ -19,6 +19,16 @@
   tests in `247.72s`, with `79.59%` combined coverage and 86 known third-party warnings. The
   backend coverage gate is restored; frontend function coverage remains a separate deferred item.
 
+## 2026-08-06T21:15:00Z 100-round workstation performance soak
+
+- `TC2000_POP_OUT_CHURN_ROUNDS=100 STACK_URL=http://localhost npx playwright test
+  tests/e2e/workstation_performance.spec.ts --workers=1` passed `2/2` in `1.9m` after the
+  active stack was checked healthy. The run exercised repeated simultaneous pop-out churn and
+  bounded tool/canvas/chart/heap invariants.
+- `docker system prune -af` reclaimed `7.319GB` and did not remove active branch containers.
+  This remains browser lifecycle evidence; native multi-monitor and indefinite-duration soak are
+  still unverified.
+
 ## 2026-08-06T00:45:00Z Concurrent resource pressure
 
 - Expanded and executed the live resource probe with eight concurrent bounded 128 MiB allocations.

@@ -16,6 +16,10 @@ unit and Docker-backed integration tests together and requires 75% coverage; the
 `1,262/1,262` at `79.59%`. This closes the backend coverage threshold while retaining the honest
 unit-only `69.93%` diagnostic.
 
+The 100-round Chromium workstation lifecycle soak also passes `2/2` in `1.9m`, with bounded
+simultaneous-popout tool/canvas/chart/heap state. This strengthens browser performance evidence;
+it does not substitute for native multi-monitor placement or an indefinite-duration soak.
+
 ## Latest continuation evidence — live resource pressure
 
 `ops/probe-research-runner-resources.sh` now provides a repeatable bounded deployment probe. The

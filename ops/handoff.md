@@ -23,6 +23,15 @@
   than being misrepresented as the combined gate. Strict V25 visual, provider-live, sustained
   sandbox/resource, native multi-monitor, and remaining parity gates remain open.
 
+## Continuation update — 2026-08-06T21:15:00Z Workstation soak and Docker cleanup
+
+- The real Chromium workstation performance suite passed `2/2` with
+  `TC2000_POP_OUT_CHURN_ROUNDS=100` in `1.9m`. Repeated two-popout open/close cycles retained
+  bounded source tool/canvas/chart counts and passed available heap ceilings.
+- The explicitly requested `docker system prune -af` reclaimed `7.319GB`; the five active branch
+  services remained present and healthy afterward. Native multi-monitor placement and indefinite
+  duration soak remain open.
+
 ## Continuation update — 2026-08-06T00:45:00Z Concurrent resource pressure
 
 - Expanded the live resource probe with eight bounded concurrent 128 MiB allocations. The live

@@ -1,6 +1,6 @@
 # Project TODO Memory
 
-## Current continuation checkpoint — 2026-08-06T20:45:00Z
+## Current continuation checkpoint — 2026-08-06T21:15:00Z
 
 The top-down analysis has direct unit coverage for its explicit industry-proxy registry, async
 taxonomy seeding, and relative-rotation/point-in-time helper edge cases. The analysis helper suite
@@ -12,6 +12,13 @@ passes at `79.59%`; the unit-only slice remains separately reported at `69.93%`.
 visual approval, configured
 provider-live probes, sustained sandbox/resource stress, native multi-monitor evidence, and the
 remaining cross-surface parity gates remain open.
+
+The latest Chromium workstation performance run completed both guards with
+`TC2000_POP_OUT_CHURN_ROUNDS=100`: `2/2` passed in `1.9m`, including repeated simultaneous
+pop-out lifecycle churn, bounded source tool/canvas/chart counts, and available heap ceilings.
+The user-requested `docker system prune -af` cleanup reclaimed `7.319GB`; active branch services
+remained healthy. Native multi-monitor placement and genuinely indefinite soak remain separate
+acceptance gates.
 
 Provider-route recheck on 2026-08-05T21:45:00Z confirmed that the four remaining ETF holdings
 failures are still external-route conditions, not safe candidates for fallback substitution:
