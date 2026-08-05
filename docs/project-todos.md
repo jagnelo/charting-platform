@@ -3284,7 +3284,7 @@ The detached-auth cleanup was regression-tested against rollback expiration: the
 loaded identity is expunged before the shielded rollback/close sequence, so `/auth/me`,
 `/auth/settings`, and streaming ownership checks receive a usable object after the session
 has ended. The focused lifecycle suite passes 3 tests, the full backend unit suite passes
-965 tests at 69.83% coverage, and the rebuilt authenticated Chromium flow passes all 27
+965 tests at 69.83% coverage, and the rebuilt authenticated Chromium flow passes all 28
 flows, including Study Lab. The timestamp-default Alembic repair (`ea0f1a2b3c4d`) has also
 passed a fresh current-head PostgreSQL 16 upgrade, one-step downgrade, re-upgrade, and
 direct `watchlist_item.flagged` `NOT NULL DEFAULT false` invariant audit. These checks do
