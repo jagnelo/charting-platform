@@ -1,5 +1,11 @@
 # Run Report
 
+## 2026-08-05T09:18:00Z Active-display pop-out defaults
+
+- First-time pop-outs now offset from the current display's available origin when exposed;
+  persisted geometry remains authoritative on later opens. Geometry helper tests and
+  TypeScript passed; browser persistence remains covered by F8j.
+
 ## 2026-08-05T09:12:00Z Persisted pop-out geometry
 
 - Pop-outs now restore and capture serializable `left`, `top`, `width`, and `height` geometry,

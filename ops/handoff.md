@@ -1,5 +1,11 @@
 # Active Handoff
 
+## Continuation update — 2026-08-05T09:18:00Z Active-display defaults
+
+- New pop-outs use the current display’s available origin where the browser exposes it,
+  while persisted coordinates remain authoritative. Geometry tests and TypeScript pass;
+  F8j continues to verify API persistence.
+
 ## Continuation update — 2026-08-05T09:12:00Z Persisted pop-out geometry
 
 - Float now restores saved geometry, tracks move/resize changes, and stops its poller after

@@ -27,8 +27,9 @@ polling after close. Geometry is clamped to usable minimum dimensions, and uncha
 do not schedule snapshot writes. Focused geometry/store coverage is `35/35`; rebuilt
 authenticated pop-out flows F8b/F8f/F8h/F8i pass `4/4`. This closes persisted single-window
 geometry behavior; authenticated F8j now verifies the persisted style through the live
-`/workspaces/default` API. Multi-monitor OS placement and long-duration memory soak remain
-separate acceptance gates.
+`/workspaces/default` API. First-time placement uses the current display's available origin
+when the browser exposes it, while saved coordinates remain authoritative. Multi-monitor OS
+placement and long-duration memory soak remain separate acceptance gates.
 
 The free-source identifier probe now includes a live repository-level OpenFIGI check: the
 unauthenticated public mapping endpoint resolved `SPY` to three stable FIGI records (FIGI,
