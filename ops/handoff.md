@@ -1,5 +1,13 @@
 # Active Handoff
 
+## Continuation update — 2026-08-05T12:20:00Z Three-minute queue soak
+
+- The live seccomp-protected runner processed 360/360 uniquely submitted queue jobs over 180
+  seconds, with no missing jobs, zero restarts, and no uniquely named artifact residue.
+- This closes sustained queue-dispatch/security evidence when combined with existing pressure,
+  cancellation, crash-recovery, and hostile-syscall probes; heavy research-duration performance
+  remains a separate open benchmark.
+
 ## Continuation update — 2026-08-05T11:50:00Z Header collision hardening
 
 - Shared tool-window chrome now reserves the action cluster and ellipsizes long titles/symbols;

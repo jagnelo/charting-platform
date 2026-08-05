@@ -1,5 +1,15 @@
 # Run Report
 
+## 2026-08-05T12:20:00Z Three-minute research-runner queue soak
+
+- Submitted 360 uniquely named jobs through the live `/jobs` queue and observed the hardened
+  runner for 180 seconds: `360/360` completed, `360/360` reached `.processed`, and no job was
+  missing. The runner remained `running` with restart count `0`; all uniquely named probe files
+  were removed afterward.
+- Together with the pressure, cancellation, crash-recovery, and syscall-denial probes, this
+  closes the sustained queue-dispatch/security acceptance slice. A production-scale heavy
+  research-duration benchmark remains a separate performance concern.
+
 ## 2026-08-05T11:50:00Z Dense tool-window header collision hardening
 
 - Constrained shared tool-window title and symbol flex items and made the action cluster
