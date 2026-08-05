@@ -18497,3 +18497,19 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
   `progress.json` residue. The deployment contract suite passes `6/6`. This closes the bounded
   crash/orphan recovery evidence slice; sustained multi-run cancellation/resource stress,
   provider-live, native multi-monitor, indefinite soak, and strict V25 visual approval remain open.
+## Continuation update — 2026-08-06T18:45:00Z Full-sequence workstation stabilization
+
+- A fresh complete serial Chromium run initially exposed three sequence-dependent defects that
+  focused tests did not reveal: stale autocomplete options intercepted later clicks, canonical
+  Ctrl+wheel symbols disappeared during partial market-group hydration, and a second pop-out could
+  render an unavailable-tool recovery state during workspace snapshot propagation.
+- `WorkstationView` now enables autocomplete only at an explicit user-input boundary, closes and
+  invalidates search on blur, symbol selection, and canonical symbol publication, retains the
+  benchmark fallback universe alongside partially loaded groups, and retries canonical workspace
+  hydration once for a pop-out that starts inside the snapshot race window. Unit wrappers now also
+  unmount after lifecycle assertions so stale mounted views cannot issue later search requests.
+- The final full serial `tests/e2e/flows.spec.ts --workers=1` run passes `42/42` in 2.6 minutes;
+  focused F8h passes `1/1`, focused F8m/F8k passes `3/3`, full frontend Vitest passes `577/577`,
+  TypeScript and production build pass, and post-run service logs remain clean. This closes the
+  newly found functional regression slice only. Strict V25 visual approval, provider-live,
+  sustained adversarial resource testing, native multi-monitor, and indefinite soak gates remain open.

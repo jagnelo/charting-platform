@@ -1324,3 +1324,19 @@ restarted, and the restart-time orphan recovery completed the job with no stale 
 progress sentinel. The focused deployment contract suite passes `6/6`. This closes only the
 bounded crash/orphan recovery slice; sustained stress, provider-live, native multi-monitor,
 indefinite soak, and strict V25 visual acceptance remain open.
+## Continuation update — 2026-08-06T18:45:00Z Sequence-dependent workstation regression repair
+
+The complete authenticated flow audit was rerun from a clean rebuilt-stack browser sequence rather
+than relying on isolated green tests. It exposed and fixed three real lifecycle races: stale symbol
+autocomplete options could intercept a subsequent workstation action; Ctrl+wheel traversal could
+lose canonical benchmark symbols while market groups were only partially hydrated; and simultaneous
+pop-outs could observe a transient workspace snapshot without their requested tool. The shell now
+has an explicit user-input search boundary with cancellation/invalidation on blur and canonical
+publication, a stable fallback traversal universe, and one bounded canonical hydration retry for
+pop-outs. Unit lifecycle tests unmount their wrappers after assertions.
+
+The final serial flow suite passes `42/42`, including all top-down, linking, Study Lab, notes,
+legacy, exclusion, and pop-out paths. Full frontend Vitest passes `577/577`; TypeScript and the
+production build pass. This strengthens functional parity evidence but does not alter the strict
+visual rule: no surface is approved without its pinned Version 25 reference state, and the visual
+manifest still correctly fails closed at `application-shell-default/default: required_missing`.

@@ -19960,3 +19960,16 @@ uncovered slice rather than repeat a generic completion claim.
   `2026-08-05T16:17:25.843156593Z`; stale cancel/progress sentinels were absent.
 - Focused deployment contract tests pass `6/6`. This is bounded recovery evidence, not a claim
   that the full sustained resource/cancellation matrix or other open gates are complete.
+## 2026-08-06T18:45:00Z Complete authenticated-flow rerun and sequence repairs
+
+- The first fresh full serial flow rerun found real order-dependent failures in F8h/F8k/F8m.
+  The fixes are now in `WorkstationView`: autocomplete is explicitly user-input gated and closed
+  on blur/programmatic publication, canonical fallback symbols remain available during partial
+  hydration, and pop-outs retry the canonical workspace snapshot once across the narrow startup
+  race. The pop-out binding unit tests now unmount wrappers to prevent cross-test request leakage.
+- Final evidence: `npx playwright test tests/e2e/flows.spec.ts --workers=1` passed `42/42` in
+  `2.6m`; focused F8h passed `1/1` and focused F8m/F8k passed `3/3`. Frontend Vitest passed
+  `577/577` across 87 files, `vue-tsc --noEmit` passed, and the Vite production build passed.
+- This is functional sequence evidence, not completion of the overall goal. Strict exact-build
+  visual references, provider-live credentials/routes, sustained sandbox stress, native
+  multi-monitor verification, and indefinite soak remain open.

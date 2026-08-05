@@ -37,6 +37,8 @@
           role="combobox"
           :aria-expanded="searchResults.length > 0"
           aria-controls="workstation-symbol-results"
+          @input="symbolSearchEnabled = true"
+          @blur="closeSymbolSearch"
           @keydown.stop="handleSymbolInputKeydown"
         />
         <button type="button" @click="selectSymbol(symbolDraft)">Go</button>
@@ -168,7 +170,7 @@ const searchResults = ref<Array<{ symbol: string; name: string; exchange: string
 const searchIndex = ref(-1)
 let searchTimer: ReturnType<typeof setTimeout> | null = null
 let searchRequest = 0
-let suppressNextSearch = false
+let symbolSearchEnabled = false
 // Initial route loading and fast list traversal can overlap. The latest symbol
 // intent wins so a late initial SPY request cannot restore an older selection.
 let symbolSelectionGeneration = 0
@@ -178,6 +180,17 @@ const openableTools = OPENABLE_WORKSTATION_TOOLS
 const documentVisible = ref(typeof document === 'undefined' || document.visibilityState === 'visible')
 let removeVisibilityListener: (() => void) | null = null
 const popoutGeometryPollers = new Map<string, ReturnType<typeof window.setInterval>>()
+
+function closeSymbolSearch() {
+  symbolSearchEnabled = false
+  if (searchTimer) {
+    clearTimeout(searchTimer)
+    searchTimer = null
+  }
+  searchRequest += 1
+  searchResults.value = []
+  searchIndex.value = -1
+}
 
 const activeSymbol = computed(() => workspaceStore.linkedSymbol || 'SPY')
 const dataState = computed(() => {
@@ -253,10 +266,11 @@ const allSymbols = computed(() => {
     ...(workspaceStore.marketGroups['us-benchmarks']?.members ?? []),
     ...(workspaceStore.marketGroups['sp500-sectors']?.members ?? []),
   ].map(member => member.instrument.symbol)
-  // Navigation remains useful while a provider is unavailable or the first
-  // batch is still loading; selecting these canonical benchmark symbols then
-  // surfaces the normal freshness/coverage state instead of silently inventing data.
-  return [...new Set(loaded.length ? loaded : ['SPY', 'QQQ', 'DIA', 'IWM'])]
+  // Keep the canonical fallback symbols available even when a partially hydrated
+  // group contains only one member. This preserves Ctrl+wheel traversal during
+  // cross-test/window hydration without inventing instruments or bypassing the
+  // normal freshness/coverage state.
+  return [...new Set([...loaded, 'SPY', 'QQQ', 'DIA', 'IWM'])]
 })
 const goldenLayoutConfig = computed(() => {
   const layout = workspaceStore.activeTab?.layout_config
@@ -280,18 +294,9 @@ async function selectSymbol(raw: string, timestamp?: string) {
   // A normal symbol selection supersedes any still-running proxy drill-down
   // handler that was started by an earlier row click.
   drilldownSelectionGeneration += 1
-  suppressNextSearch = true
   // Invalidate an in-flight autocomplete request as soon as an explicit symbol
-  // selection starts. Otherwise a response for the value just committed can
-  // reopen the dropdown after Go/Enter has already closed it, intercepting the
-  // next workstation interaction.
-  if (searchTimer) {
-    clearTimeout(searchTimer)
-    searchTimer = null
-  }
-  searchRequest += 1
-  searchResults.value = []
-  searchIndex.value = -1
+  // selection starts and close any stale options before the next interaction.
+  closeSymbolSearch()
   let symbol: string
   try {
     symbol = await ensureKnownInstrumentSymbol(requested, 'Workstation symbol')
@@ -326,10 +331,7 @@ async function loadSymbolData(symbol: string, comparisonETF = workspaceStore.con
 }
 
 function scheduleSymbolSearch(value: string) {
-  if (suppressNextSearch) {
-    suppressNextSearch = false
-    return
-  }
+  if (!symbolSearchEnabled) return
   if (searchTimer) clearTimeout(searchTimer)
   const query = value.trim()
   if (!query) {
@@ -652,6 +654,7 @@ function handleKeydown(event: KeyboardEvent) {
   if (/^[a-z0-9.=]$/i.test(event.key) && !event.ctrlKey && !event.metaKey && !event.altKey) {
     event.preventDefault()
     symbolInput.value?.focus()
+    symbolSearchEnabled = true
     symbolDraft.value = event.key.toUpperCase()
     return
   }
@@ -683,7 +686,7 @@ watch(activeSymbol, symbol => {
   // publish through the workspace bus rather than through the shell input.
   // Keep the active-symbol entry authoritative for those paths too, while
   // suppressing the search request that is only intended for user typing.
-  suppressNextSearch = true
+  closeSymbolSearch()
   symbolDraft.value = symbol
   const preserveDrilldown = preserveDrilldownSymbol.value === symbol
   if (preserveDrilldown) preserveDrilldownSymbol.value = null
@@ -712,6 +715,17 @@ onMounted(async () => {
   const requestedTab = typeof route.query.tab === 'string' ? route.query.tab : null
   if (requestedTab && workspaceStore.workspace?.tabs.some(tab => tab.stable_key === requestedTab)) {
     workspaceStore.activeTabKey = requestedTab
+  }
+  // A second browser pop-out can start while the first window is announcing a
+  // revisioned workspace snapshot. If that narrow race returns a stale snapshot
+  // without the requested tool, retry the canonical read once before rendering
+  // the honest unavailable-tool recovery state.
+  if (isPopout.value && !popoutTool.value) {
+    await new Promise(resolve => window.setTimeout(resolve, 120))
+    await workspaceStore.loadDefault()
+    if (requestedTab && workspaceStore.workspace?.tabs.some(tab => tab.stable_key === requestedTab)) {
+      workspaceStore.activeTabKey = requestedTab
+    }
   }
   await refreshMarketData()
   if (isPopout.value && popoutTool.value) {

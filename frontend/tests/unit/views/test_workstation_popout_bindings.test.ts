@@ -164,6 +164,7 @@ describe('WorkstationView pop-out bindings', () => {
     expect(harness.workspace.scheduleSnapshot).toHaveBeenCalled()
     expect(harness.workspace.publishSymbol).toHaveBeenCalledWith({ symbol: 'XLK', group: 'blue', sourceWindowKey: 'workstation' })
     expect(harness.workspace.symbolForLinkGroup).toHaveBeenCalledWith('blue', null)
+    wrapper.unmount()
   })
 
   it('provides keyboard-navigable canonical symbol search in the workstation shell', async () => {
@@ -185,6 +186,7 @@ describe('WorkstationView pop-out bindings', () => {
     await input.trigger('keydown', { key: 'ArrowDown' })
     await input.trigger('keydown', { key: 'Enter' })
     expect(harness.workspace.publishSymbol).toHaveBeenCalledWith(expect.objectContaining({ symbol: 'XLE', group: 'blue' }))
+    wrapper.unmount()
   })
 
   it('traverses the canonical workstation universe with Ctrl+wheel outside editors', async () => {
