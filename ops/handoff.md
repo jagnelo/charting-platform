@@ -18240,3 +18240,12 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
   test setup requires the external Docker socket, so the browser/backend runtime evidence is the
   authoritative check for this fix. Strict visual, provider-live, adversarial, multi-monitor, and
   long-soak gates remain open.
+
+## Continuation update — 2026-08-06T05:45:00Z Notes integration verification
+
+- Re-ran the focused Docker-backed Notes integration suite with the supported Python 3.12
+  environment: `4 passed` with two existing Nautilus/NumPy deprecation warnings. The normal
+  coverage-enabled focused command also passed all four test bodies but exits on the repository-wide
+  55% threshold (`25.39%` for the intentionally narrow slice); this is reported as a coverage
+  scope result, not a test failure. Ruff and rebuilt-stack F8s remain green. The strict visual,
+  provider-live, adversarial resource, native multi-monitor, and long-soak gates remain open.

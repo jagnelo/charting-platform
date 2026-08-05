@@ -19723,3 +19723,12 @@ uncovered slice rather than repeat a generic completion claim.
   integration fixture requires the external Docker socket; these environment limits are recorded,
   not treated as passing test evidence. Strict visual, provider-live, adversarial-resource,
   native multi-monitor, and long-soak gates remain open.
+
+## 2026-08-06T05:45:00Z Notes integration verification
+
+- Supported Python 3.12 Docker-backed focused run `tests/integration/api/test_notes.py --no-cov`
+  passed `4/4`, including the new repeated update regression. The coverage-enabled command also
+  passed every test body but correctly failed the repository-wide 55% threshold because only this
+  narrow file was selected (`25.39%`); the threshold result is not counted as a test-body failure.
+- Existing Nautilus/NumPy deprecation warnings remain unchanged. Strict visual, provider-live,
+  adversarial-resource, native multi-monitor, and long-soak acceptance remain open.
