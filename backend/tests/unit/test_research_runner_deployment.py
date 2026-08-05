@@ -73,3 +73,6 @@ def test_live_resource_probe_is_bounded_and_requires_expected_failure_modes():
     assert "1024 * 1024 * 1024" in probe
     assert "70 * 1024 * 1024" in probe
     assert "pressure.bin" in probe
+    assert "for index in 1 2 3 4 5 6 7 8" in probe
+    assert "concurrent-memory: contained" in probe
+    assert "restart_before" in probe and "restart_after" in probe

@@ -1,5 +1,11 @@
 # Run Report
 
+## 2026-08-06T00:45:00Z Concurrent resource pressure
+
+- Expanded and executed the live resource probe with eight concurrent bounded 128 MiB allocations.
+  Three child processes were contained/killed and the runner restart count stayed at `0`; the
+  service remained healthy. Sustained cancellation/orphan/crash testing remains open.
+
 ## 2026-08-06T00:30:00Z Live migration invariant
 
 - Branch PostgreSQL read-only verification reports Alembic head `ea0f1a2b3c4d` and confirms

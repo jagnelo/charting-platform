@@ -1,5 +1,12 @@
 # Active Handoff
 
+## Continuation update — 2026-08-06T00:45:00Z Concurrent resource pressure
+
+- Expanded the live resource probe with eight bounded concurrent 128 MiB allocations. The live
+  runner contained three process failures and retained restart count `0`; the runner stayed up.
+- The probe remains bounded and records containment, not a claim that the full sustained
+  cancellation/orphan/crash matrix is complete.
+
 ## Continuation update — 2026-08-06T00:30:00Z Live migration invariant
 
 - Read-only query against the branch PostgreSQL container reports Alembic head

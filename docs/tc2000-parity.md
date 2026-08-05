@@ -4,9 +4,10 @@
 
 `ops/probe-research-runner-resources.sh` now provides a repeatable bounded deployment probe. The
 branch-scoped runner reports the required 768 MiB/one-CPU/128-PID/no-network/read-only/non-root
-boundary; a 1 GiB allocation is killed by the cgroup and a 70 MiB `/tmp` write is rejected by the
-64 MiB tmpfs. This strengthens the live sandbox evidence but does not replace the required
-sustained concurrent pressure, cancellation, orphan, crash-recovery, and long-duration matrix.
+boundary; a 1 GiB allocation is killed by the cgroup, a 70 MiB `/tmp` write is rejected by the
+64 MiB tmpfs, and eight concurrent 128 MiB allocations contained three child failures without a
+runner restart. This strengthens the live sandbox evidence but does not replace the required
+sustained cancellation, orphan, crash-recovery, and long-duration matrix.
 
 ## Latest continuation evidence — 2026-08-05T12:10:00Z
 

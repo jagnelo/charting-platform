@@ -39,3 +39,28 @@ run_expect tmpfs-capacity 1 'No space left on device' 'open("/tmp/pressure.bin",
 
 # Clean only the bounded temporary file if the failed write created one.
 docker exec "$container" python -c 'import os; os.remove("/tmp/pressure.bin") if os.path.exists("/tmp/pressure.bin") else None' >/dev/null 2>&1 || true
+
+# Exercise aggregate cgroup pressure with eight short-lived processes. At
+# least one process must be contained/killed, while the service itself must not
+# restart. The probe intentionally uses bounded 128 MiB allocations and sleeps
+# only three seconds; it cannot create an unbounded workload.
+restart_before="$(docker inspect -f '{{.RestartCount}}' "$container")"
+pids=()
+for index in 1 2 3 4 5 6 7 8; do
+  docker exec "$container" python -c 'import time; x=bytearray(128 * 1024 * 1024); time.sleep(3)' \
+    >"/tmp/tc2000-resource-pressure-${index}.log" 2>&1 &
+  pids+=("$!")
+done
+failures=0
+for pid in "${pids[@]}"; do
+  if ! wait "$pid"; then failures=$((failures + 1)); fi
+done
+restart_after="$(docker inspect -f '{{.RestartCount}}' "$container")"
+rm -f /tmp/tc2000-resource-pressure-*.log
+if [[ "$failures" -lt 1 || "$restart_before" != "$restart_after" ]]; then
+  printf 'concurrent-memory: unexpected failures=%s restart_before=%s restart_after=%s\n' \
+    "$failures" "$restart_before" "$restart_after" >&2
+  exit 1
+fi
+printf 'concurrent-memory: contained %s process failure(s), restart count unchanged (%s)\n' \
+  "$failures" "$restart_after"
