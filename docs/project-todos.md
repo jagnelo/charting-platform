@@ -22,6 +22,9 @@ multi-monitor/memory/polling evidence rather than identical-request duplication.
   was removed because it could imply freshness the backend had not established.
 - The current local audit also passes the full frontend Vitest suite (`576/576`) and full backend
   unit suite (`974/974`), with only the documented third-party deprecation warnings.
+- Fresh Docker-backed backend integration also passes `281/281` in `164.63s`; branch-scoped
+  services remained healthy and the post-run backend/worker/research-runner log audit found no
+  unexpected error, traceback, connection-leak, or provider-runtime output.
 - Remaining completion gates are unchanged: exact-build Version 25 visual references and
   approved baselines, configured multi-provider probes, adversarial sandbox/resource stress,
   10,000-row and multi-monitor/memory performance, and full cross-surface parity.

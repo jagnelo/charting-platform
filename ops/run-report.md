@@ -19546,3 +19546,11 @@ uncovered slice rather than repeat a generic completion claim.
 - The current rebuilt-stack Chromium result remains `37/37` with clean diagnostics; no new local
   defect was found. Strict visual, provider-live, adversarial stress, and long-duration soak gates
   remain open.
+
+## 2026-08-05T21:00:00Z Docker integration audit
+
+- Fresh backend integration suite: `281/281` in `164.63s`.
+- Branch-scoped Compose services remained healthy. Post-run backend/worker/research-runner logs
+  contained no unexpected errors, tracebacks, connection leaks, or provider-runtime failures.
+- Exact-build visual, provider-live, adversarial sandbox, and long-duration/multi-monitor gates
+  remain open.

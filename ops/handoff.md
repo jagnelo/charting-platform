@@ -18040,3 +18040,12 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
   deprecation warnings remain.
 - Current rebuilt-stack Chromium remains `37/37` with clean diagnostics. No new local regression
   was exposed; strict V25 visual, provider-live, adversarial stress, and long-soak gates remain.
+
+## Continuation update — 2026-08-05T21:00:00Z Docker integration audit
+
+- Fresh Docker-backed backend integration passes `281/281` in `164.63s`.
+- All branch-scoped Compose services remained healthy after the run. A read-only backend, worker,
+  and research-runner log audit found no unexpected error, traceback, connection leak, or provider
+  runtime failure.
+- This refreshes integration evidence only; exact V25 visual, provider-live, adversarial stress,
+  and long-duration/multi-monitor performance gates remain open.
