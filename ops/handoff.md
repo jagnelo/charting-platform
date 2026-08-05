@@ -4,8 +4,9 @@
 
 - Float now restores saved geometry, tracks move/resize changes, and stops its poller after
   close; unchanged geometry does not write snapshots. Focused geometry/store tests pass
-  `35/35`, and rebuilt F8b/F8f/F8h/F8i browser flows pass `4/4`. OS-level multi-monitor and
-  long-duration memory evidence remain open.
+  `35/35`, rebuilt F8b/F8f/F8h/F8i browser flows pass `4/4`, and F8j verifies the persisted
+  geometry through the authenticated workspace API. OS-level multi-monitor and long-duration
+  memory evidence remain open.
 
 ## Continuation update — 2026-08-05T08:01:00Z Public OpenFIGI probe
 

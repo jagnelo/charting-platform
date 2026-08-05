@@ -258,6 +258,37 @@ test.describe('TC2000 workstation', () => {
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
+  test('F8j — floated geometry is persisted through the workspace API', async ({ page, context, browserDiagnostics }) => {
+    await page.goto('/chart')
+    const sourceTool = page.locator('.tool-window').first()
+    const floatButton = sourceTool.locator('button[title="Float"]')
+    await expect(floatButton).toBeVisible({ timeout: 10_000 })
+
+    const popupPromise = context.waitForEvent('page')
+    await floatButton.click()
+    const popup = await popupPromise
+    await popup.waitForLoadState('domcontentloaded')
+    await expect(popup.locator('.workstation__popout .tool-window')).toBeVisible({ timeout: 10_000 })
+
+    await page.waitForTimeout(1_250)
+    const result = await page.evaluate(async () => {
+      const token = localStorage.getItem('access_token')
+      const response = await fetch('/api/v1/workspaces/default', { headers: token ? { Authorization: `Bearer ${token}` } : {} })
+      return { ok: response.ok, body: await response.json() }
+    })
+    expect(result.ok).toBe(true)
+    const workspace = result.body
+    const windows = workspace.tabs.flatMap((tab: { windows: Array<Record<string, unknown>> }) => tab.windows)
+    const persisted = windows.find((window: Record<string, unknown>) => Boolean((window.style as { popout?: unknown } | undefined)?.popout))
+    const geometry = (persisted?.style as { popout?: Record<string, unknown> } | undefined)?.popout
+    expect(geometry).toEqual(expect.objectContaining({ left: expect.any(Number), top: expect.any(Number), width: expect.any(Number), height: expect.any(Number) }))
+
+    const closed = popup.waitForEvent('close')
+    await popup.locator('button[title="Close"]').click()
+    await closed
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
   test('F8c — signing out propagates from the source workstation to its pop-out', async ({ page, context }) => {
     await page.goto('/chart')
     const popupPromise = context.waitForEvent('page')
