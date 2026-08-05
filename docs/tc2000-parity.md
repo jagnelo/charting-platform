@@ -45,6 +45,8 @@ Latest continuation evidence:
 - The same seasonality study now also emits day-of-week bars and observation tables using a bounded
   Gregorian calculation, completing the month/day/calendar seasonality starter without introducing
   another language or renderer.
+- The source was audited against the actual AST policy and no longer uses forbidden `lambda`; the
+  Study Lab regression suite explicitly enforces this sandbox-compatible shape.
 
 Continuation evidence from the current branch checkpoint:
 

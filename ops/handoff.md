@@ -1,5 +1,13 @@
 # Active Handoff
 
+## Continuation update — 2026-08-05T17:00:00Z Seasonality sandbox compatibility fix
+
+- Removed an unsupported `lambda` expression from the seasonality factory source after auditing the
+  actual unified-Python validator. Day ordering now uses a bounded list construction compatible with
+  the isolated runner.
+- Added a regression assertion requiring weekday output and rejecting `lambda`; Study Lab tests pass
+  `12/12`, full frontend Vitest remains `575/575`, and TypeScript/build pass.
+
 ## Continuation update — 2026-08-05T16:45:00Z Weekday seasonality refinement
 
 - Extended the month/day seasonality factory study with day-of-week grouping (using a bounded

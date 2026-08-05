@@ -75,6 +75,10 @@ describe('StudyLabTool', () => {
       await selector.setValue(value)
       expect((wrapper.find('[aria-label="Study Python source"]').element as HTMLTextAreaElement).value.length).toBeGreaterThan(80)
     }
+    await selector.setValue('seasonality')
+    const seasonalitySource = (wrapper.find('[aria-label="Study Python source"]').element as HTMLTextAreaElement).value
+    expect(seasonalitySource).toContain('average_day_of_week_return')
+    expect(seasonalitySource).not.toContain('lambda')
   })
 
   it('requires an explicit universe before running aggregate factory studies', async () => {

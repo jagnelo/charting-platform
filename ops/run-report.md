@@ -1,5 +1,12 @@
 # Run Report
 
+## 2026-08-05T17:00:00Z Seasonality sandbox compatibility fix
+
+- Corrected the seasonality factory to avoid the validator's forbidden `lambda` AST node while
+  retaining month, day-of-month, and day-of-week outputs.
+- Added source-level regression coverage; focused Study Lab tests pass `12/12`, full frontend
+  Vitest remains `575/575`, and TypeScript/production build pass.
+
 ## 2026-08-05T16:45:00Z Weekday seasonality refinement
 
 - Added day-of-week seasonality to the existing month/day factory study while retaining day-of-month
