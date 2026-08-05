@@ -1,5 +1,17 @@
 # Run Report
 
+## 2026-08-05T10:22:00Z Full frontend regression after Radar correction
+
+- Vitest passes `572/572` across 87 files. TypeScript and production build also pass.
+- Two expected stderr messages are emitted by tests exercising optimistic rollback paths;
+  they are assertions of user-visible conflict handling, not unexpected failures.
+
+## 2026-08-05T10:25:00Z Full backend regression after Radar correction
+
+- Canonical Docker-backed backend suite from `backend/` passes `1248 passed`, `348 skipped`,
+  `0 failed` in 216.24s. Skips are credential/network-gated live-provider tests; 86 warnings
+  remain known third-party Nautilus/pandas deprecations.
+
 ## 2026-08-05T10:20:00Z Radar timeframe scoring correction
 
 - Replaced the legacy Radar `timeframe_importance` placeholder (`1.0` for every interval)

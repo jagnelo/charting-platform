@@ -1,5 +1,15 @@
 # Active Handoff
 
+## Continuation update — 2026-08-05T10:22:00Z Full frontend regression
+
+- Vitest is green at `572/572` across 87 files, with TypeScript and production build passing.
+- Expected conflict-path stderr remains limited to tests that deliberately force rollback.
+
+## Continuation update — 2026-08-05T10:25:00Z Full backend regression
+
+- The post-Radar-correction canonical backend suite is green at `1248/1248` with `348` intentional
+  live-provider skips and no failures. Existing third-party deprecation warnings remain only.
+
 ## Continuation update — 2026-08-05T10:20:00Z Radar scoring correction
 
 - Legacy Radar no longer reports a hard-coded timeframe factor or labels it as a placeholder.
