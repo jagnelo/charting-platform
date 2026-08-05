@@ -1,5 +1,11 @@
 # Active Handoff
 
+## Continuation update — 2026-08-05T10:47:00Z Hardened full backend regression
+
+- After replacing the branch-scoped runner, the full Docker-backed suite passes `1249/1249`,
+  with `348` intentional live-provider skips and no failures. The seccomp profile does not
+  break research/API behavior.
+
 ## Continuation update — 2026-08-05T10:40:00Z Runtime sandbox hardening
 
 - The branch-scoped runner now loads an explicit seccomp profile in addition to no-new-privileges,

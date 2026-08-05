@@ -1,5 +1,11 @@
 # Run Report
 
+## 2026-08-05T10:47:00Z Full backend regression with seccomp profile
+
+- Canonical branch-scoped Docker-backed backend suite passes `1249 passed`, `348 skipped`,
+  `0 failed` in 213.65s after the runner seccomp profile was deployed. The 348 skips are
+  intentional live-provider gates and the 86 warnings are known third-party deprecations.
+
 ## 2026-08-05T10:40:00Z Runtime sandbox syscall hardening
 
 - Added an explicit Docker seccomp profile to the branch-scoped research runner, denying
