@@ -18722,3 +18722,12 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
 - Complete ETF adapter unit coverage passes `452/452`; focused custom-adapter coverage passes
   `5/5`; Ruff and diff checks pass. Live issuer probes without SEC identifiers remain honest
   failures when their first-party routes are inaccessible.
+
+## Continuation update — 2026-08-07T03:00:00Z Full backend unit validation
+
+- Complete backend unit validation after the custom issuer fallback changes passes `985/985` at
+  `69.90%` coverage, above the active 55% unit threshold, with only the documented 34 third-party
+  deprecation warnings.
+- Strict visual validation still fails closed at
+  `application-shell-default/default: required_missing`; no unapproved reference or baseline was
+  promoted.

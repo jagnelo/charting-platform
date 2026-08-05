@@ -20146,3 +20146,10 @@ uncovered slice rather than repeat a generic completion claim.
 - Extended SEC fallback handling to the custom Davis, Anfield, and Donoghue Forlines adapters for
   issuer page/download HTTP failures, retaining route-failure provenance. Complete ETF adapter
   unit coverage passes `452/452`; focused custom-adapter tests pass `5/5`; Ruff/diff pass.
+
+## 2026-08-07T03:00:00Z Full backend unit validation
+
+- Complete backend unit suite passes `985/985` at `69.90%` coverage, above the 55% unit threshold,
+  with 34 documented third-party deprecation warnings.
+- Strict visual manifest validation remains intentionally blocked at
+  `application-shell-default/default: required_missing`; no baseline was promoted.
