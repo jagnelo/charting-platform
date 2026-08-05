@@ -1278,3 +1278,8 @@ counts after every round. When Chromium exposes heap telemetry, the guard also r
 heap above 512 MiB. Targeted performance passed `2/2`, and the complete rebuilt-stack Chromium set
 passed `36/36` with clean diagnostics. This strengthens lifecycle evidence but does not replace the
 remaining multi-monitor/long-duration soak or strict Version 25 visual approval.
+
+The factory-layout acceptance audit also rejects drawing-toolbar/chart-surface overlap alongside
+tool-header title/symbol/action collisions. All eight factory layouts passed this geometry check
+without recovery state or browser diagnostics. It remains a deterministic safety guard; measured
+pixel parity still requires approved reference baselines.

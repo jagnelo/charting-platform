@@ -18014,3 +18014,11 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
   passes `36/36` in approximately 1.9 minutes with clean browser diagnostics.
 - Broader multi-monitor placement, long-duration memory/polling soak, strict V25 visual approval,
   and four external ETF issuer conditions remain open.
+
+## Continuation update — 2026-08-05T19:20:00Z Core overlap audit
+
+- Extended the authenticated factory-layout browser audit to reject chart drawing-toolbar overlap
+  with the chart surface, in addition to title/symbol/action-header collisions.
+- All eight factory layouts passed the targeted overlap audit (`1/1`) with no recovery state or
+  browser diagnostics. This is an automated geometry guard, not a substitute for approved V25
+  screenshot measurements.

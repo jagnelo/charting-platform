@@ -188,6 +188,11 @@ test.describe('TC2000 workstation', () => {
           if (title && actions && overlaps(title, actions)) issues.push(`title-actions-${index}`)
           if (symbol && actions && overlaps(symbol, actions)) issues.push(`symbol-actions-${index}`)
         })
+        document.querySelectorAll('.chart-tool').forEach((chart, index) => {
+          const toolbar = chart.querySelector('.chart-tool__drawing-toolbar')?.getBoundingClientRect()
+          const surface = chart.querySelector('.chart-tool__surface')?.getBoundingClientRect()
+          if (toolbar && surface && toolbar.right > surface.left) issues.push(`chart-toolbar-surface-${index}`)
+        })
         return issues
       })
       expect(collisions).toEqual([])

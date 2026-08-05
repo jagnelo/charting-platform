@@ -19522,3 +19522,9 @@ uncovered slice rather than repeat a generic completion claim.
   set passed `36/36` in approximately 1.9 minutes.
 - Multi-monitor placement, long-duration memory/polling soak, exact-build visual approval, and
   external ETF route failures remain open.
+
+## 2026-08-05T19:20:00Z Core overlap audit
+
+- The factory-layout browser test now checks drawing-toolbar bounds against chart-surface bounds
+  as well as tool-header title/symbol/action collisions.
+- All eight factory layouts passed the targeted Chromium audit (`1/1`) with clean diagnostics.
