@@ -61,6 +61,7 @@ done
 declare -a direct_media_sources=(
   "bulls-shared-layout|https://www.tc2000.com/share/affiliate/bulls/layout/7fe75a78-4faa-4f1d-8088-b4f4ff94b954|official_shared_layout|https://www.tc2000.com/util/ImageForExportedItem/7fe75a78-4faa-4f1d-8088-b4f4ff94b954?quality=low|bulls-shared-layout.png"
   "emmanuel-shared-layout|https://www.tc2000.com/share/el3470/layout/18fbc0d1-daa4-4260-8167-111a275d6dc1|official_shared_layout|https://www.tc2000.com/util/ImageForExportedItem/18fbc0d1-daa4-4260-8167-111a275d6dc1?quality=low|emmanuel-shared-layout.png"
+  "official-version-25-product-image|https://www.tc2000.com/download/version|official_version_25_product_page|https://www.tc2000.com/CMS_Static/Uploads/6E7A586D453831/Flying_Laptop_Right_Mock_8bit.png|official-version-25-product-image.png"
 )
 
 for source in "${direct_media_sources[@]}"; do

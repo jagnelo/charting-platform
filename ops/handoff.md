@@ -1,5 +1,15 @@
 # Active Handoff
 
+## Continuation update — 2026-08-05T22:30:00Z Official Version 25 reference-pack extension
+
+- Extended `tests/visual/fetch-tc2000-v25-reference-pack.sh` with the official Version 25
+  download-page product image and refreshed the controlled pack to 190 media files. The image is
+  indexed with SHA-256 and recorded in the manifest as discovery-only evidence because it is a
+  perspective-composited product image without pinned-build capture metadata.
+- Normal manifest validation passes; strict `--require-approved` still fails closed at
+  `application-shell-default/default: required_missing`. No discovery media was promoted.
+- Corrected the stale `ops/state.json.last_commit` pointer after the prior integration checkpoint.
+
 ## Continuation update — 2026-08-06T20:00:00Z Complete integration regression refresh
 
 - Docker-backed `make test-int` executed all `281` integration tests; every test body passed in

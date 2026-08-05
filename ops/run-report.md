@@ -1,5 +1,16 @@
 # Run Report
 
+## 2026-08-05T22:30:00Z Official Version 25 reference-pack extension
+
+- Added the official Version 25 download-page product image to the reproducible retrieval script
+  and refreshed controlled storage to 190 indexed media files, including its SHA-256 and source
+  URL. It remains discovery-only: the image has no pinned-build capture state or environment
+  metadata and cannot satisfy strict visual approval.
+- Normal visual-manifest validation passes. Strict validation remains intentionally fail-closed at
+  `application-shell-default/default: required_missing`; no baseline was silently promoted.
+- Corrected the stale `ops/state.json.last_commit` pointer before committing the documentation
+  checkpoint.
+
 ## 2026-08-06T20:00:00Z Complete integration regression refresh
 
 - `make test-int` ran all 281 Docker-backed integration tests; `281 passed` in `221.34s`. The
