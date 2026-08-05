@@ -32,6 +32,9 @@ Latest continuation evidence:
 - Follower refresh-event regression coverage now passes as part of the focused store suite (`34/34`);
   the full frontend suite is `575/575` across 87 files. The follower path is verified to refresh from
   a leader event without publishing a competing periodic refresh.
+- Study Lab now includes an explicit editable `Event frequency and occurrences` factory study that
+  emits uPlot-compatible frequency bars plus linked occurrence artifacts; its component suite passes
+  `12/12`.
 
 Continuation evidence from the current branch checkpoint:
 

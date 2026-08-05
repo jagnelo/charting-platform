@@ -1,5 +1,13 @@
 # Run Report
 
+## 2026-08-05T15:35:00Z Study Lab event-frequency factory study
+
+- Added the explicit event-frequency/occurrence starter required by the Study Lab contract. The
+  editable unified-Python source groups positive-close events by month, emits a bar distribution,
+  summary metrics, an occurrence table, and linked event artifacts.
+- Study Lab tests pass `12/12`; full frontend Vitest remains `575/575`; TypeScript and production
+  build pass. No second language or chart renderer was introduced.
+
 ## 2026-08-05T15:25:00Z Follower refresh-event regression coverage
 
 - Added a regression test proving a non-leader window consumes a leader refresh event, completes the

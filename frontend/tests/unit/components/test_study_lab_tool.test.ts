@@ -62,6 +62,7 @@ describe('StudyLabTool', () => {
       { value: 'positive_streak', label: 'Consecutive positive closes' },
       { value: 'negative_streak', label: 'Consecutive negative closes' },
       { value: 'forward_return_distribution', label: 'Forward-return distribution' },
+      { value: 'event_frequency', label: 'Event frequency and occurrences' },
       { value: 'high_low_breakouts', label: 'Highs and lows' },
       { value: 'volatility_regime', label: 'Volatility regime' },
       { value: 'seasonality', label: 'Monthly seasonality' },
@@ -70,7 +71,7 @@ describe('StudyLabTool', () => {
       { value: 'breadth_participation', label: 'Breadth participation' },
     ]))
 
-    for (const value of ['forward_return_distribution', 'high_low_breakouts', 'volatility_regime', 'seasonality', 'relative_strength_regime']) {
+    for (const value of ['forward_return_distribution', 'event_frequency', 'high_low_breakouts', 'volatility_regime', 'seasonality', 'relative_strength_regime']) {
       await selector.setValue(value)
       expect((wrapper.find('[aria-label="Study Python source"]').element as HTMLTextAreaElement).value.length).toBeGreaterThan(80)
     }

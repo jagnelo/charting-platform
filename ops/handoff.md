@@ -1,5 +1,13 @@
 # Active Handoff
 
+## Continuation update — 2026-08-05T15:35:00Z Study Lab event-frequency factory study
+
+- Added the missing `Event frequency and occurrences` factory study to the primary Study Lab.
+  It is ordinary unified Python and emits period-frequency bars, occurrence tables/events, and
+  count/average metrics, so it can be edited and reused like every other study.
+- Study Lab component tests pass `12/12`; the full frontend Vitest suite remains green at `575/575`,
+  and TypeScript plus production build pass.
+
 ## Continuation update — 2026-08-05T15:25:00Z Follower refresh-event regression coverage
 
 - Added explicit follower-window coverage for the leader-owned market-analysis event: a follower
