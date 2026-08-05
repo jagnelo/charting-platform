@@ -533,6 +533,16 @@ class TestCoinGeckoCredentialWarning:
         assert headers == {}
         assert "COINGECKO_API_KEY" in caplog.text
 
+    def test_warns_once_per_provider_instance(self, caplog):
+        provider = CoinGeckoProvider()
+        with patch("app.providers.coingecko.settings") as mock_settings:
+            mock_settings.COINGECKO_API_KEY = ""
+            with caplog.at_level(logging.WARNING, logger="app.providers.coingecko"):
+                provider._headers()
+                provider._headers()
+        warnings = [record for record in caplog.records if record.levelno == logging.WARNING]
+        assert len(warnings) == 1
+
     def test_includes_key_header_when_configured(self):
         provider = CoinGeckoProvider()
         with patch("app.providers.coingecko.settings") as mock_settings:

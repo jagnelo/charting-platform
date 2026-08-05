@@ -40,9 +40,6 @@ _COIN_LIST_SLEEP = 1.0  # polite delay between coin-list fetch and first use
 _coin_list: dict[str, list[dict]] = {}
 _coin_list_ts: float = 0.0
 _coin_list_all: list[dict] = []  # ordered list for discovery pagination
-_warned_no_key: bool = False
-
-
 class CoinGeckoProvider:
     name = "coingecko"
     base_url = "https://api.coingecko.com"
@@ -51,17 +48,22 @@ class CoinGeckoProvider:
         "and instrument metadata (market cap, platforms, links)"
     )
 
+    def __init__(self) -> None:
+        # Keep the configuration warning scoped to this provider lifecycle. A module-global
+        # flag lets an unrelated instance suppress diagnostics (and makes test/application
+        # reconfiguration order observable).
+        self._warned_no_key = False
+
     def _headers(self) -> dict[str, str]:
-        global _warned_no_key
         if settings.COINGECKO_API_KEY:
             return {"x-cg-demo-api-key": settings.COINGECKO_API_KEY}
-        if not _warned_no_key:
+        if not self._warned_no_key:
             logger.warning(
                 "coingecko: COINGECKO_API_KEY is not set — running unauthenticated (~30 req/min "
                 "vs 500 req/min with a free Demo key). Get one at coingecko.com/en/api and set "
                 "COINGECKO_API_KEY in .env.dev."
             )
-            _warned_no_key = True
+            self._warned_no_key = True
         return {}
 
     def _get(self, path: str, params: dict | None = None) -> Any:

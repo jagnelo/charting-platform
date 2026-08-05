@@ -1,5 +1,14 @@
 # Run Report
 
+## 2026-08-05T09:42:00Z Docker-reachable backend acceptance
+
+- Fixed CoinGecko's module-global missing-key warning state; the warning is now scoped to a
+  provider instance and covered by a once-per-instance regression test.
+- Provider slice passed `79/79`. Full backend suite with Docker access and explicit
+  `--asyncio-mode=auto` passed `1247`, skipped `348`, and failed `0` in 207.19s. The async
+  background-task tests executed (`8/8`); remaining skips are credential/network-gated live
+  provider coverage.
+
 ## 2026-08-05T09:30:00Z Full backend suite environment boundary
 
 - `backend/.venv/bin/pytest -q --no-cov` completed with `965 passed`, `348 skipped`, and

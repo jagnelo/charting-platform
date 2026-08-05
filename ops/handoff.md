@@ -1,5 +1,13 @@
 # Active Handoff
 
+## Continuation update — 2026-08-05T09:42:00Z Backend suite repaired and green
+
+- CoinGecko's missing-key warning now has provider-instance scope, with a regression test for
+  one warning per instance. Provider tests pass `79/79`.
+- Docker-reachable full backend acceptance with explicit asyncio auto mode passes `1247`,
+  skips `348`, and has no failures; all eight async background-task tests execute and pass.
+  Remaining skips are credential/network-gated live-provider tests.
+
 ## Continuation update — 2026-08-05T09:30:00Z Backend suite environment boundary
 
 - The full backend suite finished with `965 passed`, `348 skipped`, and `281 errors`; all

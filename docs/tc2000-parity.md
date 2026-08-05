@@ -21,6 +21,12 @@ is recorded in the referenced test/baseline system.
 
 ## Current runtime evidence (2026-08-05)
 
+The Docker-reachable backend regression is now green after fixing CoinGecko's missing-key
+diagnostic lifecycle: `1247 passed`, `348 skipped`, and no failures with explicit asyncio auto
+mode. The eight async background-task tests execute and pass; the skipped set is the
+credential/network-gated live-provider coverage. The provider warning is now once per provider
+instance rather than a process-global side effect.
+
 The post-pop-out-change frontend verification is green: Vitest `572/572`, `vue-tsc
 --noEmit`, and the production Vite build all pass. The suite includes the new active-display
 origin and persisted-geometry coverage. This is functional/build evidence only; it does not
