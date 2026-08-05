@@ -63,6 +63,29 @@ describe('workspace store layout tabs', () => {
     store.disconnect()
   })
 
+  it('refreshes a follower from a leader refresh event without starting its own announcement', async () => {
+    const messages: unknown[] = []
+    let listener: ((event: MessageEvent) => void) | undefined
+    class FakeBroadcastChannel {
+      addEventListener(_type: string, callback: (event: MessageEvent) => void) { listener = callback }
+      close() {}
+      postMessage(message: unknown) { messages.push(message) }
+    }
+    vi.stubGlobal('BroadcastChannel', FakeBroadcastChannel)
+    window.localStorage.setItem('charting-platform-workstation-leader', JSON.stringify({ id: 'another-window', heartbeat: Date.now() }))
+    apiGet.mockResolvedValue({})
+    const store = useWorkspaceStore()
+    store.connect()
+
+    listener?.({ data: { type: 'market-analysis-refresh', refreshedAt: '2026-08-05T15:00:00.000Z', sourceWindowId: 'another-window' } } as MessageEvent)
+    await vi.waitFor(() => expect(apiGet).toHaveBeenCalledTimes(6))
+    await vi.waitFor(() => expect(store.marketAnalysisRefreshedAt).toEqual(expect.any(String)))
+
+    expect(messages).toEqual([])
+    store.disconnect()
+    window.localStorage.removeItem('charting-platform-workstation-leader')
+  })
+
   it('does not advance the successful-refresh timestamp when an input fails', async () => {
     apiGet.mockRejectedValue(new Error('temporary analysis outage'))
     const store = useWorkspaceStore()

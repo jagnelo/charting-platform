@@ -29,6 +29,9 @@ Latest continuation evidence:
 - Focused workspace-store tests pass `33/33`; full frontend Vitest is `574/574` across 87 files;
   TypeScript and production build pass; the exact rebuilt-stack non-visual Playwright set passes
   `34/34` in 1.3 minutes.
+- Follower refresh-event regression coverage now passes as part of the focused store suite (`34/34`);
+  the full frontend suite is `575/575` across 87 files. The follower path is verified to refresh from
+  a leader event without publishing a competing periodic refresh.
 
 Continuation evidence from the current branch checkpoint:
 

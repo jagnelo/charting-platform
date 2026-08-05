@@ -1,5 +1,13 @@
 # Active Handoff
 
+## Continuation update — 2026-08-05T15:25:00Z Follower refresh-event regression coverage
+
+- Added explicit follower-window coverage for the leader-owned market-analysis event: a follower
+  performs the six-request refresh after receiving a leader event and does not publish a competing
+  announcement.
+- Focused workspace-store tests pass `34/34`; full frontend Vitest passes `575/575` across 87 files;
+  TypeScript and production build pass. Rebuilt-stack non-visual Playwright remains `34/34`.
+
 ## Continuation update — 2026-08-05T15:00:00Z Leader-owned market refresh
 
 - Market-analysis polling is now leader-owned: the elected persistence leader runs the Vue Query
