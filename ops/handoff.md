@@ -1,5 +1,13 @@
 # Active Handoff
 
+## Continuation update — 2026-08-06T17:00:00Z Post-flow runtime log audit
+
+- After the serial 42-flow Chromium suite, 100-round pop-out soak, and frontend regression run,
+  branch-scoped backend, worker, and research-runner logs contain no `ERROR`, traceback,
+  `MissingGreenlet`, connection-leak, or restart signatures. Backend, PostgreSQL, Redis, and
+  research-runner services remain healthy. Strict V25 visual, provider-live, native multi-monitor,
+  sustained resource, and indefinite-soak gates remain open.
+
 ## Continuation update — 2026-08-06T16:30:00Z Frontend regression refresh
 
 - Full frontend Vitest passes `577/577` across 87 files after the authenticated-flow stabilization;

@@ -1,5 +1,13 @@
 # Run Report
 
+## 2026-08-06T17:00:00Z Post-flow runtime log audit
+
+- Following the 42-flow authenticated browser run, 100-round pop-out soak, and frontend regression,
+  branch-scoped backend/worker/research-runner logs contain no error, traceback, MissingGreenlet,
+  connection-leak, or restart signatures. Backend, PostgreSQL, Redis, and research-runner services
+  remain healthy. Strict visual, provider, hardware, sustained-resource, and indefinite-soak gates
+  remain open.
+
 ## 2026-08-06T16:30:00Z Frontend regression refresh
 
 - Full frontend Vitest passes `577/577` across 87 files; TypeScript and diff checks pass after the
