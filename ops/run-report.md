@@ -19659,3 +19659,12 @@ uncovered slice rather than repeat a generic completion claim.
   the F8o addition. Existing watchlist conflict-path stderr is expected and unchanged.
 - No new frontend diagnostics were introduced; strict visual, provider-live, adversarial
   resource, native multi-monitor, and long-soak gates remain open.
+
+## 2026-08-06T02:45:00Z Factory Study Lab seeded-data acceptance
+
+- Added and executed F8p against the rebuilt stack with the opt-in deterministic market fixture.
+  The flow selects the actual `Consecutive positive closes` factory study, validates its generated
+  Python source, runs it against canonical seeded SPY bars, and verifies current/longest streak
+  metrics and occurrence rendering.
+- Chromium passed `1/1` with no critical diagnostics; the fixture remains explicitly test-only.
+  Strict V25 visual, provider-live, adversarial resource, native multi-monitor, and long-soak gates remain open.

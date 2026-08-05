@@ -18169,3 +18169,13 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
 - Expected conflict-path stderr from watchlist rollback tests remains unchanged and is
   asserted behavior; no new browser or frontend diagnostics were introduced. The strict
   visual, provider-live, adversarial-resource, native multi-monitor, and long-soak gates remain open.
+
+## Continuation update — 2026-08-06T02:45:00Z Factory Study Lab seeded-data acceptance
+
+- Added F8p, an authenticated Chromium flow that selects the real `Consecutive positive closes`
+  factory study, validates its emitted unified-Python source, runs it against the opt-in canonical
+  E2E market fixture, and asserts current/longest streak metrics plus linked occurrence output.
+- Recreated the branch-scoped stack with `E2E_SEED_MARKET_DATA=true`; all services became healthy,
+  and Chromium passed F8p `1/1` with no critical diagnostics. The fixture is test-only and carries
+  controlled provenance. Strict visual approval, provider-live coverage, adversarial resource stress,
+  native multi-monitor, and long-soak gates remain open.
