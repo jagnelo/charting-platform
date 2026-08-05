@@ -1,5 +1,14 @@
 # Run Report
 
+## 2026-08-05T13:40:00Z Multi-window performance guard
+
+- Added a browser guard that opens two simultaneous pop-outs, initializes each tool, restores the
+  source tool/canvas counts after closing both, and asserts the full cycle completes within the
+  bounded 20-second budget. The guard passes in `4.2s`.
+- The complete non-visual Playwright suite passes `34 passed`, `4 skipped` (the visual projects
+  are skipped unless explicitly enabled), with no unexpected browser diagnostics. The dedicated
+  100,000-point uPlot guard and the new multi-window guard both pass.
+
 ## 2026-08-05T13:05:00Z Factory-layout browser acceptance
 
 - Added a real authenticated traversal for all eight required factory layouts. Each layout is

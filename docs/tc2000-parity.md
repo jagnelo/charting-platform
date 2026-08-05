@@ -35,6 +35,10 @@ Continuation evidence from the current branch checkpoint:
 - The live research runner has explicit seccomp plus the existing no-network/read-only/non-root
   boundary. A queue-level three-minute soak processed `360/360` uniquely submitted jobs with no
   missing jobs, zero restarts, and no probe residue. Heavy-study performance remains separate.
+- The authenticated multi-window performance guard opens two simultaneous pop-outs, initializes
+  both tools, closes them, and verifies stable source tool/canvas counts in `4.2s`; the complete
+  non-visual Playwright suite is `34 passed, 4 skipped`. This is browser-level evidence, while
+  multi-monitor placement and long-duration memory behavior remain separate gates.
 
 The Docker-reachable backend regression is now green after fixing CoinGecko's missing-key
 diagnostic lifecycle: `1247 passed`, `348 skipped`, and no failures with explicit asyncio auto

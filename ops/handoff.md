@@ -1,5 +1,13 @@
 # Active Handoff
 
+## Continuation update — 2026-08-05T13:40:00Z Multi-window performance
+
+- Added and passed the authenticated multi-window performance guard: two simultaneous pop-outs
+  initialize, source tool/canvas counts remain stable, both recover cleanly, and the complete
+  cycle finishes in `4.2s`.
+- Full non-visual Playwright is `34 passed, 4 skipped`; the skipped projects are the strict visual
+  suite, still governed by the required V25 reference manifest.
+
 ## Continuation update — 2026-08-05T13:05:00Z Factory-layout acceptance
 
 - Browser coverage now traverses `US Top Down`, `TC Classic`, `Drill Down`, `Sector by Year`,
