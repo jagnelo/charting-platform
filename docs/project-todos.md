@@ -50,6 +50,9 @@ harness asserts that all five benchmark and eleven sector rows have distinct, no
 geometry before capture. The top-down F8d/F8e browser checks pass `2/2`; exact-build visual
 comparison remains blocked only by the unapproved reference baselines, not by row geometry.
 
+After that change, the complete frontend Vitest suite passes `578/578` across 87 files. The only
+stderr remains the intentionally exercised watchlist conflict-path logging.
+
 Provider-route recheck on 2026-08-05T21:45:00Z confirmed that the four remaining ETF holdings
 failures are still external-route conditions, not safe candidates for fallback substitution:
 official pages declare ADFI, DFTT, and NEOS downloads but the discovered acceptance routes remain

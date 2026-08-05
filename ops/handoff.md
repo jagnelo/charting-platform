@@ -18584,3 +18584,5 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
 - The visual screenshot comparison still fails only against stale/unapproved local snapshots;
   no baseline was promoted. Exact-build V25 references, provider-live, native multi-monitor,
   sustained sandbox/resource, and indefinite-soak gates remain open.
+- Full frontend Vitest after the change passes `578/578` across 87 files; expected watchlist
+  conflict-path stderr is unchanged.

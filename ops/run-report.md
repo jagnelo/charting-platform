@@ -20034,3 +20034,4 @@ uncovered slice rather than repeat a generic completion claim.
   five benchmark and eleven sector rows have distinct, non-overlapping geometry.
 - Evidence: F8d/F8e `2/2`, type-check passed, all seeded overlap checks passed. Screenshot comparison
   remains intentionally unapproved against stale local references; no snapshots changed.
+- Full frontend Vitest after the change passes `578/578` across 87 files.
