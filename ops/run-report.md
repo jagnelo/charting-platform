@@ -1,5 +1,14 @@
 # Run Report
 
+## 2026-08-06T00:15:00Z Complete integration rerun
+
+- Fresh `make test-int` ran all 281 Docker-backed integration tests; `281 passed` in 211.30s.
+  The non-zero command status is coverage-only: integration selection reports 43.44% against the
+  repository-wide 55% threshold. No integration test body failed; 54 known dependency warnings
+  remain.
+- Backend, worker, and research-runner logs were audited after the run with no error, traceback,
+  MissingGreenlet, connection-leak, or restart signatures; all branch services remain healthy.
+
 ## 2026-08-05T23:15:00Z Live resource-pressure probe
 
 - Added and executed `ops/probe-research-runner-resources.sh` against the healthy branch-scoped

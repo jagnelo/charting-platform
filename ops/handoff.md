@@ -1,5 +1,13 @@
 # Active Handoff
 
+## Continuation update — 2026-08-06T00:15:00Z Complete integration rerun
+
+- Fresh Docker-backed `make test-int` executed all 281 integration tests; every test body passed in
+  211.30s. The command exits non-zero only because the intentionally integration-only coverage
+  slice is 43.44% against the repository-wide 55% threshold.
+- Post-run backend, worker, and research-runner logs contain no ERROR, traceback, MissingGreenlet,
+  connection-leak, or restart signatures. Branch-scoped services remain healthy.
+
 ## Continuation update — 2026-08-05T23:15:00Z Live resource-pressure probe
 
 - Added `ops/probe-research-runner-resources.sh`, a bounded reproducible probe for the deployed
