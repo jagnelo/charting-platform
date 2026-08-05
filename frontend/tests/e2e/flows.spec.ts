@@ -576,6 +576,8 @@ test.describe('TC2000 workstation', () => {
     await expect(study.locator('.study-lab-tool__run')).toBeVisible({ timeout: 10_000 })
     await expect(study.locator('.study-lab-tool__run-status--completed')).toBeVisible({ timeout: 30_000 })
     await expect(study.locator('.study-lab-tool__metrics article').filter({ hasText: 'smoke' })).toContainText('1')
+    await study.getByRole('button', { name: 'Save as column' }).click()
+    await expect(study).toContainText('Saved as a reusable watchlist column.', { timeout: 10_000 })
     await browserDiagnostics.expectNoCriticalIssues()
   })
 

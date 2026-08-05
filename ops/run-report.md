@@ -19668,3 +19668,11 @@ uncovered slice rather than repeat a generic completion claim.
   metrics and occurrence rendering.
 - Chromium passed `1/1` with no critical diagnostics; the fixture remains explicitly test-only.
   Strict V25 visual, provider-live, adversarial resource, native multi-monitor, and long-soak gates remain open.
+
+## 2026-08-06T03:05:00Z Unified Python promotion acceptance
+
+- F8g now promotes a completed scalar Study Lab result into a reusable watchlist column through
+  the authenticated code-asset API and asserts the success status in the UI.
+- Chromium passed `1/1` on the seeded branch stack with no critical diagnostics. This is browser
+  evidence for one promotion target; strict visual, provider-live, adversarial-resource, native
+  multi-monitor, and long-soak acceptance remain open.

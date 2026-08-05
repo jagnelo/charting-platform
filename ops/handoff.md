@@ -18179,3 +18179,13 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
   and Chromium passed F8p `1/1` with no critical diagnostics. The fixture is test-only and carries
   controlled provenance. Strict visual approval, provider-live coverage, adversarial resource stress,
   native multi-monitor, and long-soak gates remain open.
+
+## Continuation update — 2026-08-06T03:05:00Z Unified Python promotion acceptance
+
+- Extended F8g to promote a scalar Study Lab result into a reusable watchlist column through
+  the authenticated `/code/assets` path. The browser asserts the success status after the
+  isolated run completes; Chromium passed `1/1` on the seeded branch stack with no critical
+  diagnostics.
+- This closes a browser-level cross-surface promotion path while the broader scan, alert, plot,
+  and Strategy signal promotion matrix remains covered separately. Strict visual approval,
+  provider-live coverage, adversarial resource stress, native multi-monitor, and long-soak gates remain open.
