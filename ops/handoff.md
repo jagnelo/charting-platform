@@ -18069,3 +18069,13 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
   denied. Ballast's MGMT page currently reports TBD holdings, so it does not establish a complete
   replacement for the verified FilePoint route. The provider matrix therefore remains
   intentionally `342 passed, 1 skipped, 4 failed`; no fallback or silent substitution was added.
+
+## Continuation update — 2026-08-05T22:15:00Z Deterministic visual harness audit
+
+- Recreated the branch backend with `E2E_SEED_MARKET_DATA=true` and exercised the visual suite
+  across all four required environments. The application rendered deterministic seeded market
+  content, but the repository's unapproved snapshot artifacts are stale failure-state captures:
+  the 1080p/100 case matched, while the other three correctly exposed pixel differences against
+  those stale artifacts. The fixture was then disabled and the backend restored to normal config.
+- This is evidence that the visual harness can render the fixture, not visual approval. The strict
+  manifest validator still fails closed at `application-shell-default/default: required_missing`.

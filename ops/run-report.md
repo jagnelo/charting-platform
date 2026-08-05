@@ -19569,3 +19569,13 @@ uncovered slice rather than repeat a generic completion claim.
   Ballast's MGMT page reports TBD holdings and cannot replace the verified MGMT FilePoint contract.
 - The complete matrix remains `342 passed, 1 skipped, 4 failed`; no route was promoted without a
   deterministic parser/identity check and a passing opt-in live probe.
+
+## 2026-08-05T22:15:00Z Deterministic visual harness audit
+
+- Enabled the repository's opt-in `E2E_SEED_MARKET_DATA` fixture for the branch backend and ran
+  the visual test across 1920x1080/100%, 1920x1080/125%, 2560x1440/100%, and 2560x1440/125%.
+  The seeded workstation rendered normally; one existing snapshot matched and three differed
+  because the preserved untracked snapshots are stale failure-state captures from an unavailable
+  layout/data run. The backend was restored to its normal non-fixture configuration afterward.
+- `visual_manifest --require-approved` still rejects `application-shell-default/default` as
+  `required_missing`; no snapshot was rewritten or promoted as a V25 reference.

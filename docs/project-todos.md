@@ -9,6 +9,13 @@ official pages declare ADFI, DFTT, and NEOS downloads but the discovered accepta
 opt-in matrix remains `342 passed, 1 skipped, 4 failed` and no route is promoted without a passing
 deterministic/live identity check.
 
+The 2026-08-05T22:15:00Z visual-harness audit temporarily enabled the deterministic E2E market
+fixture and exercised all four required display environments. The current workstation rendered
+seeded data, but the preserved untracked Playwright snapshots are stale failure-state artifacts;
+three environments therefore differ from those snapshots. The backend was restored afterward,
+and no snapshot was rewritten or treated as an approved V25 reference. The strict manifest gate
+continues to fail closed at `application-shell-default/default: required_missing`.
+
 The browser acceptance harness now treats logout's in-flight 401 responses as an explicit,
 bounded auth-boundary contract; unrelated unauthorized responses remain failures. Focused F5
 and the complete rebuilt-stack Chromium acceptance pass `37/37`.
