@@ -728,7 +728,7 @@ const SCORE_FACTOR_HINTS: Record<string, string> = {
   avwap_anchor_quality: 'Quality of the chosen AVWAP anchor based on its type and contextual relevance.',
   volatility_squeeze: 'How compressed Bollinger-band volatility is right now. Higher means price is coiling more tightly.',
   recent_reaction_quality: 'How cleanly price respected this zone in the last 10 bars.',
-  timeframe_importance: 'Weight assigned to this timeframe. Fixed at 1.0 — placeholder for multi-timeframe scoring.',
+  timeframe_importance: 'Durability weight for the analysed timeframe. Higher timeframes receive a higher structural-weight factor.',
   normalized_score: 'Final composite score: weighted blend of all factors above.',
 }
 

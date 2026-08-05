@@ -18,6 +18,7 @@ from app.services.radar_engine import (
     _find_matching_thread,
     _invalidation_price,
     _overlapping_current_run_detection,
+    _timeframe_importance,
     analyze_instrument,
 )
 
@@ -87,6 +88,14 @@ class TestInvalidationPrice:
 
 
 class TestRadarEngine:
+    def test_timeframe_importance_is_explicit_and_monotonic(self):
+        values = [_timeframe_importance(timeframe) for timeframe in Timeframe]
+
+        assert values == sorted(values)
+        assert values[0] == 0.35
+        assert values[-1] == 1.0
+        assert _timeframe_importance("unknown") == 0.88
+
     def _support_detections(self):
         prices = [95, 100, 95, 100, 95, 100] * 20
         prices += [98, 97, 96, 97, 98]

@@ -1,5 +1,12 @@
 # Active Handoff
 
+## Continuation update — 2026-08-05T10:20:00Z Radar scoring correction
+
+- Legacy Radar no longer reports a hard-coded timeframe factor or labels it as a placeholder.
+  The engine now uses explicit bounded weights for every canonical timeframe and a safe fallback
+  for legacy values.
+- Backend Radar coverage `28/28`, frontend Radar coverage `5/5`, TypeScript, build, and Ruff pass.
+
 ## Continuation update — 2026-08-05T13:00:00Z Kernel-profile recheck
 
 - Focused validation/deployment security coverage remains green at `94/94`.

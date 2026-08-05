@@ -1,5 +1,13 @@
 # Run Report
 
+## 2026-08-05T10:20:00Z Radar timeframe scoring correction
+
+- Replaced the legacy Radar `timeframe_importance` placeholder (`1.0` for every interval)
+  with an explicit bounded M1→MN weighting, preserving the score-factor contract and making
+  the value explainable in the UI.
+- Radar engine tests pass `28/28`, Ruff is clean, the Radar view tests pass `5/5`, TypeScript
+  passes, and the production frontend build completes successfully.
+
 ## 2026-08-05T13:00:00Z Research-runner kernel-profile recheck
 
 - Current checkout focused AST/runner/deployment security suite passes `94/94` in 1.53s.

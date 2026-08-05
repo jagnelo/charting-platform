@@ -506,6 +506,30 @@ def _recent_reaction_quality(bars: list[OHLCVBar], zone: Zone) -> float:
     return _clamp(closes_away / hits)
 
 
+def _timeframe_importance(timeframe: Timeframe | str) -> float:
+    """Return the score weight for the timeframe being analysed.
+
+    Higher timeframes generally carry more durable structural information.  Keep
+    the mapping explicit and bounded so the factor is explainable in Radar
+    output, while still accepting legacy string values from deserialised bars.
+    """
+
+    values = {
+        Timeframe.M1.value: 0.35,
+        Timeframe.M5.value: 0.40,
+        Timeframe.M15.value: 0.45,
+        Timeframe.M30.value: 0.50,
+        Timeframe.H1.value: 0.58,
+        Timeframe.H2.value: 0.64,
+        Timeframe.H4.value: 0.72,
+        Timeframe.H12.value: 0.80,
+        Timeframe.D1.value: 0.88,
+        Timeframe.W1.value: 0.95,
+        Timeframe.MN.value: 1.00,
+    }
+    return values.get(timeframe.value if isinstance(timeframe, Timeframe) else str(timeframe), 0.88)
+
+
 def _build_score(
     close: float,
     atr: float,
@@ -519,6 +543,7 @@ def _build_score(
     gap_bonus: float,
     avwap_anchor_quality: float,
     volatility_squeeze_score: float,
+    timeframe_importance: float,
 ) -> dict:
     distance = abs(close - zone.center)
     atr_denom = max(atr, close * 0.005, 1e-6)
@@ -530,7 +555,7 @@ def _build_score(
         1 for level in confluence_levels if abs(level - zone.center) <= atr_denom * 1.1
     )
     confluence_score = _clamp(confluence_hits / 4)
-    timeframe_score = 1.0
+    timeframe_score = _clamp(timeframe_importance)
     multi_timeframe_score = _clamp(multi_timeframe_bonus)
     trend_pattern_score = _clamp(trend_pattern_bonus)
     gap_context_score = _clamp(gap_bonus)
@@ -1898,6 +1923,7 @@ def analyze_instrument(instrument: Instrument, bars: list[OHLCVBar]) -> list[Det
             gap_bonus=gap_bonus,
             avwap_anchor_quality=avwap_anchor_quality,
             volatility_squeeze_score=squeeze.score,
+            timeframe_importance=_timeframe_importance(latest_bar.timeframe),
         )
         score = float(score_factors["normalized_score"])
 
