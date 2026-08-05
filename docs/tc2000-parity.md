@@ -21,6 +21,15 @@ is recorded in the referenced test/baseline system.
 
 ## Current runtime evidence (2026-08-05)
 
+The dense workstation status bar now consumes the canonical technical snapshot freshness
+contract rather than treating the newest local bar as an unqualified cache timestamp. It
+renders `Current · canonical`, `Delayed`, `Stale · cached`, `Partial coverage`, `Coverage
+limited`, `Fetching`/`Backfilling history`, or `Unavailable`. `Current` is explicitly scoped
+to the canonical dataset's entitlement/freshness policy and does not imply consolidated
+real-time quotes; `Delayed` is accepted only when an entitled provider reports that semantic.
+The mapping is exhaustively unit-tested and the rebuilt authenticated Chromium flow remains
+`29/29`.
+
 The live shared-volume runner protocol has also been exercised for cancellation: a uniquely
 named 10,000-cell prepared-universe batch was claimed by the non-root runner, observed a
 cancellation sentinel during execution, returned structured `canceled` / `batch_canceled`

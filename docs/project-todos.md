@@ -1,5 +1,15 @@
 # Project TODO Memory
 
+## Current continuation checkpoint — 2026-08-05T08:45:00Z
+
+- Workstation freshness presentation now uses the canonical technical-analysis freshness
+  contract and has exhaustive state mapping coverage (`565/565` frontend tests, TypeScript,
+  production build, rebuilt Chromium `29/29`). The old timestamp-derived `Cached` shell state
+  was removed because it could imply freshness the backend had not established.
+- Remaining completion gates are unchanged: exact-build Version 25 visual references and
+  approved baselines, configured multi-provider probes, adversarial sandbox/resource stress,
+  10,000-row and multi-window performance, and full cross-surface parity.
+
 This file is the persistent deferred-work memory for the charting platform.
 
 Purpose:

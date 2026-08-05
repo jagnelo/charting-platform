@@ -149,6 +149,7 @@ import { ensureKnownInstrumentSymbol } from '@/lib/instruments'
 import { autoRatioExpression } from '@/lib/workstation/ratioExpression'
 import { api } from '@/lib/api'
 import { useWatchlistStore } from '@/stores/watchlist'
+import { workstationFreshness } from '@/lib/workstation/freshness'
 
 const route = useRoute()
 const router = useRouter()
@@ -178,12 +179,15 @@ let removeVisibilityListener: (() => void) | null = null
 
 const activeSymbol = computed(() => workspaceStore.linkedSymbol || 'SPY')
 const dataState = computed(() => {
-  if (chartStore.isLoading) return { kind: 'fetching', label: 'Fetching' }
-  if (chartStore.isFetchingHistory) return { kind: 'fetching', label: 'Backfilling history' }
   if (chartStore.error) return { kind: 'unavailable', label: 'Unavailable' }
-  const latest = chartStore.bars.length ? chartStore.bars[chartStore.bars.length - 1] : null
-  if (!latest) return { kind: 'unavailable', label: 'No local observations' }
-  return { kind: 'cached', label: `Cached ${new Date(latest.ts).toLocaleString()}` }
+  const technical = workspaceStore.technicals?.[activeSymbol.value]
+  return workstationFreshness({
+    freshness: technical?.freshness,
+    freshness_detail: technical?.freshness_detail,
+    isLoading: chartStore.isLoading,
+    isFetchingHistory: chartStore.isFetchingHistory,
+    hasBars: chartStore.bars.length > 0,
+  })
 })
 const footerMessage = computed(() => humanizeWorkspaceError(workspaceStore.error))
 const isPopout = computed(() => route.path.startsWith('/popout/'))
@@ -705,7 +709,7 @@ onBeforeUnmount(() => {
 .workstation__refresh:hover:not(:disabled),
 .workstation__sign-out:hover { border-color: #6d8290; color: #fff; background: #33414a; }
 .workstation__leader { color: #63bd85; }
-.workstation__data-state--fetching { color:#80bce8; }.workstation__data-state--unavailable { color:#ed9696; }.workstation__data-state--cached { color:#aebbc4; }
+.workstation__data-state--fetching { color:#80bce8; }.workstation__data-state--unavailable { color:#ed9696; }.workstation__data-state--current { color:#91d5a7; }.workstation__data-state--delayed,.workstation__data-state--stale { color:#e8c06b; }.workstation__data-state--partial,.workstation__data-state--coverage-limited { color:#e8b879; }
 .workstation__tabs { display: flex; align-items: stretch; background: var(--tc-panel-bg); border-bottom: 1px solid var(--tc-border); }
 .workstation__tool-library { position: relative; display: flex; }
 .workstation__tool-library-menu { position: absolute; z-index: 60; top: 28px; left: 0; display: grid; min-width: 118px; padding: 2px; border: 1px solid #42505a; background: #1b2228; box-shadow: 0 3px 10px #000a; }

@@ -1,5 +1,15 @@
 # Run Report
 
+## 2026-08-05T08:45:00Z Honest workstation freshness states
+
+- Replaced the shell's timestamp-based `Cached` label with the canonical analysis
+  freshness vocabulary: current, delayed, stale, partial, coverage-limited, fetching,
+  and unavailable. Current is explicitly labelled canonical-policy freshness and does not
+  claim consolidated real-time data; delayed is shown only when a provider contract reports
+  it. Added exhaustive mapping tests. Full frontend Vitest is now `565/565`, TypeScript and
+  production build pass, and rebuilt authenticated Chromium remains `29/29` with clean
+  backend diagnostics.
+
 ## 2026-08-05T08:30:00Z Tool-window chrome acceptance
 
 - Added a real drag-handle affordance and functional tool menu to every workstation window;

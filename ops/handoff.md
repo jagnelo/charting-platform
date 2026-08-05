@@ -1,5 +1,16 @@
 # Active Handoff
 
+## Continuation update — 2026-08-05T08:45:00Z Honest workstation freshness states
+
+- The workstation status bar now consumes the canonical technical freshness contract and
+  exposes current (canonical), delayed, stale, partial, coverage-limited, fetching, and
+  unavailable states. It no longer derives a misleading `Cached <timestamp>` status from
+  the newest local bar. Unknown local observations remain conservatively stale, and delayed
+  is never guessed without an explicit provider capability. Full frontend Vitest is `565/565`,
+  TypeScript/build pass, and rebuilt Chromium is `29/29` with clean diagnostics.
+- Exact-build V25 visual approval, configured multi-provider probes, adversarial sandbox
+  stress, 10k-row/multi-window performance, and complete cross-surface parity remain open.
+
 ## Continuation update — 2026-08-05T08:30:00Z Tool-window chrome acceptance
 
 - Every workstation tool window now exposes a draggable handle and a functional menu with
