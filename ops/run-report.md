@@ -20045,3 +20045,16 @@ uncovered slice rather than repeat a generic completion claim.
 - Full frontend Vitest passed `580/580` across 88 files and `vue-tsc --noEmit` passed. This is
   lifecycle evidence only; strict V25 visual, provider-live, sustained sandbox/resource,
   native multi-monitor, indefinite-soak, and cross-surface parity gates remain open.
+## 2026-08-07T00:30:00Z Cross-window workspace and autocomplete race repair
+
+- A complete rebuilt-stack flow found an order-dependent stale autocomplete overlay and a remote
+  workspace snapshot race that could restore a chart's shared link group after Grey isolation.
+  Search visibility is reactive with outside pointer/focus/change dismissal; reset invalidates and
+  drains pending snapshot saves; locally dirty workspaces are not replaced by remote snapshot events
+  before the revisioned save/merge path runs.
+- Evidence: outside-dismissal unit regression and locally-dirty snapshot regression pass; focused
+  workspace store `36/36`, workstation bindings `11/11`, rebuilt full authenticated Chromium
+  `42/42`, full frontend Vitest `582/582` across 88 files, type-check and production build pass.
+- Remaining acceptance gates are unchanged: strict exact-build V25 visual references/baselines,
+  configured provider-live coverage, sustained sandbox/resource stress, native multi-monitor,
+  indefinite soak, and remaining cross-surface parity.

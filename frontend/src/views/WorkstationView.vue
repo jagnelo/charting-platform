@@ -1,5 +1,5 @@
 <template>
-  <div class="workstation" @keydown="handleKeydown" @wheel="handleWheel">
+  <div class="workstation" @keydown="handleKeydown" @wheel="handleWheel" @pointerdown="handleWorkstationPointerDown" @focusin.capture="handleWorkstationFocusIn" @change.capture="handleWorkstationChange">
     <header v-if="!isPopout" class="workstation__menu">
       <div class="workstation__brand">CHARTING WORKSTATION</div>
       <nav aria-label="Application menu">
@@ -27,7 +27,7 @@
         <button type="button" title="Open active-symbol alerts" @click="openAlertsTool">Alerts</button>
         <button v-if="workspaceStore.workspace?.is_default" type="button" title="Reset factory workspace" @click="resetFactoryWorkspace">Reset</button>
       </nav>
-      <div class="workstation__search">
+      <div class="workstation__search" @pointerdown.stop>
         <input
           ref="symbolInput"
           v-model="symbolDraft"
@@ -42,7 +42,7 @@
           @keydown.stop="handleSymbolInputKeydown"
         />
         <button type="button" @click="closeSymbolSearch(); selectSymbol(symbolDraft)">Go</button>
-        <div v-if="searchResults.length" id="workstation-symbol-results" class="workstation__symbol-results" role="listbox" aria-label="Symbol search results">
+        <div v-if="symbolSearchEnabled && searchResults.length" id="workstation-symbol-results" class="workstation__symbol-results" role="listbox" aria-label="Symbol search results">
           <button
             v-for="(result, index) in searchResults"
             :key="`${result.symbol}:${result.exchange}`"
@@ -170,7 +170,7 @@ const searchResults = ref<Array<{ symbol: string; name: string; exchange: string
 const searchIndex = ref(-1)
 let searchTimer: ReturnType<typeof setTimeout> | null = null
 let searchRequest = 0
-let symbolSearchEnabled = false
+const symbolSearchEnabled = ref(false)
 // Initial route loading and fast list traversal can overlap. The latest symbol
 // intent wins so a late initial SPY request cannot restore an older selection.
 let symbolSelectionGeneration = 0
@@ -182,7 +182,7 @@ let removeVisibilityListener: (() => void) | null = null
 const popoutGeometryPollers = new Map<string, ReturnType<typeof window.setInterval>>()
 
 function closeSymbolSearch() {
-  symbolSearchEnabled = false
+  symbolSearchEnabled.value = false
   if (searchTimer) {
     clearTimeout(searchTimer)
     searchTimer = null
@@ -190,6 +190,28 @@ function closeSymbolSearch() {
   searchRequest += 1
   searchResults.value = []
   searchIndex.value = -1
+}
+
+// A focused symbol input can keep its listbox above the dock surface. Close it
+// during the pointer-down capture/bubble sequence for every tool click so the
+// overlay cannot intercept the later click event. Pointer events inside the
+// search control are stopped at the wrapper and retain normal list interaction.
+function handleWorkstationPointerDown(event: PointerEvent) {
+  const target = event.target
+  if (target instanceof Element && target.closest('.workstation__search')) return
+  closeSymbolSearch()
+}
+
+function handleWorkstationFocusIn(event: FocusEvent) {
+  const target = event.target
+  if (target instanceof Element && target.closest('.workstation__search')) return
+  closeSymbolSearch()
+}
+
+function handleWorkstationChange(event: Event) {
+  const target = event.target
+  if (target instanceof Element && target.closest('.workstation__search')) return
+  closeSymbolSearch()
 }
 
 const activeSymbol = computed(() => workspaceStore.linkedSymbol || 'SPY')
@@ -331,7 +353,7 @@ async function loadSymbolData(symbol: string, comparisonETF = workspaceStore.con
 }
 
 function scheduleSymbolSearch(value: string) {
-  if (!symbolSearchEnabled) return
+  if (!symbolSearchEnabled.value) return
   if (searchTimer) clearTimeout(searchTimer)
   const query = value.trim()
   if (!query) {
@@ -656,7 +678,7 @@ function handleKeydown(event: KeyboardEvent) {
   if (/^[a-z0-9.=]$/i.test(event.key) && !event.ctrlKey && !event.metaKey && !event.altKey) {
     event.preventDefault()
     symbolInput.value?.focus()
-    symbolSearchEnabled = true
+    symbolSearchEnabled.value = true
     symbolDraft.value = event.key.toUpperCase()
     return
   }

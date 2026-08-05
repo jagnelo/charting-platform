@@ -444,6 +444,7 @@ test.describe('TC2000 workstation', () => {
     await chartLink.selectOption('grey')
     await expect(chartLink).toHaveValue('grey')
     await page.waitForTimeout(250)
+    await expect(chartLink).toHaveValue('grey')
     const isolatedTarget = initialChartSymbol === 'XLE' ? 'XLK' : 'XLE'
     await sectors.getByRole('button', { name: new RegExp(isolatedTarget) }).first().click()
     await expect(page.getByRole('combobox', { name: 'Active symbol' })).toHaveValue(isolatedTarget)

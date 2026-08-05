@@ -64,6 +64,14 @@ The focused host suite passes `2/2`; the full frontend suite is `580/580` across
 `vue-tsc --noEmit` remains green. This strengthens lifecycle evidence without changing the
 strict visual, provider-live, sustained-stress, multi-monitor, or indefinite-soak gates.
 
+The full authenticated browser sequence then exposed an order-dependent workspace race: stale
+remote snapshots or pre-reset Golden Layout saves could restore a shared link group after the user
+selected Grey, while a stale autocomplete listbox could intercept the next sector click. Search
+visibility is now reactive and closes on outside pointer/focus/change capture; reset invalidates and
+drains pending snapshots; remote workspace events no longer replace locally dirty state before its
+revisioned save/merge path runs. The component/store regressions cover these contracts, the rebuilt
+stack full flow passes `42/42`, and the full frontend suite passes `582/582` across 88 files.
+
 Provider-route recheck on 2026-08-05T21:45:00Z confirmed that the four remaining ETF holdings
 failures are still external-route conditions, not safe candidates for fallback substitution:
 official pages declare ADFI, DFTT, and NEOS downloads but the discovered acceptance routes remain

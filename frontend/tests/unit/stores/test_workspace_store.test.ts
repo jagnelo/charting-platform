@@ -675,6 +675,34 @@ describe('workspace store layout tabs', () => {
     store.disconnect()
   })
 
+  it('does not replace a locally dirty workspace from a remote snapshot before save', async () => {
+    class FakeBroadcastChannel {
+      addEventListener() {}
+      close() {}
+      postMessage() {}
+    }
+    vi.stubGlobal('BroadcastChannel', FakeBroadcastChannel)
+    const store = useWorkspaceStore()
+    const current = {
+      id: 10, user_id: 3, name: 'US Top Down', is_default: true, position: 0, revision: 4, schema_version: 1, settings: {},
+      tabs: [{ id: 20, stable_key: 'us-top-down', name: 'US Top Down', position: 0, active_window_key: 'chart', layout_config: {}, windows: [{ id: 30, instance_key: 'chart', tool_type: 'chart', title: 'Chart', link_group: 'blue', configuration: {}, style: {}, state_schema_version: 1, position: 0 }] }],
+    }
+    store.workspace = current
+    store.updateToolLinkGroup('chart', 'grey')
+    apiGet.mockResolvedValue({ ...current, revision: 5, name: 'Remote update' })
+    store.connect()
+
+    window.dispatchEvent(new StorageEvent('storage', {
+      key: 'charting-platform-workstation:workspace-snapshot',
+      newValue: JSON.stringify({ type: 'workspace-snapshot', workspaceId: 10, revision: 5, sourceWindowId: 'another-window' }),
+    }))
+
+    await new Promise(resolve => setTimeout(resolve, 20))
+    expect(store.workspace?.tabs[0].windows[0].link_group).toBe('grey')
+    expect(store.workspace?.name).toBe('US Top Down')
+    store.disconnect()
+  })
+
   it('loads and caches verified industry-proxy rankings with the proxy evidence', async () => {
     const store = useWorkspaceStore()
     apiGet.mockImplementation((path: string) => {

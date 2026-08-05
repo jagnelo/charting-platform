@@ -200,6 +200,7 @@ describe('WorkstationView pop-out bindings', () => {
     await vi.waitFor(() => expect(harness.workspace.publishSymbol).toHaveBeenCalledWith(expect.objectContaining({ symbol: 'SPY' })))
     const input = wrapper.get('input[aria-label="Active symbol"]')
     await input.setValue('xlk')
+    await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith('/instruments/search', { q: 'xlk' }))
     await vi.waitFor(() => expect(wrapper.find('[role="listbox"]').exists()).toBe(true))
     await input.trigger('keydown', { key: 'Escape' })
     expect(wrapper.find('[role="listbox"]').exists()).toBe(false)
@@ -207,6 +208,23 @@ describe('WorkstationView pop-out bindings', () => {
     await input.setValue('xl')
     await vi.waitFor(() => expect(wrapper.find('[role="listbox"]').exists()).toBe(true))
     await wrapper.get('.workstation__search > button').trigger('click')
+    expect(wrapper.find('[role="listbox"]').exists()).toBe(false)
+    wrapper.unmount()
+  })
+
+  it('closes autocomplete before an outside tool pointer can be intercepted', async () => {
+    routeState.path = '/'
+    routeState.params = {}
+    apiGet.mockResolvedValue([{ symbol: 'XLK', name: 'Technology Select Sector SPDR Fund', exchange: 'ARCX', type: 'ETF' }])
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+    await vi.waitFor(() => expect(harness.workspace.publishSymbol).toHaveBeenCalledWith(expect.objectContaining({ symbol: 'SPY' })))
+    const input = wrapper.get('input[aria-label="Active symbol"]')
+    await input.setValue('xlk')
+    await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith('/instruments/search', { q: 'xlk' }))
+    await vi.waitFor(() => expect(wrapper.find('[role="listbox"]').exists()).toBe(true))
+    await wrapper.find('.workstation__tabs').trigger('pointerdown')
     expect(wrapper.find('[role="listbox"]').exists()).toBe(false)
     wrapper.unmount()
   })

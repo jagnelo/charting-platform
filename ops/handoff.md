@@ -18598,3 +18598,18 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
 - This closes a lifecycle-test gap only. Exact-build V25 visual approval, provider-live,
   sustained sandbox/resource stress, native multi-monitor placement, indefinite soak, and the
   remaining cross-surface parity gates remain open.
+## Continuation update — 2026-08-07T00:30:00Z Cross-window workspace and autocomplete race repair
+
+- The complete authenticated flow exposed an order-dependent regression: stale autocomplete could
+  intercept the sector click, and an in-flight/stale workspace snapshot could restore a chart's
+  shared link group after Grey isolation was selected. `WorkstationView` now uses reactive search
+  visibility and outside pointer/focus/change capture; workspace reset invalidates/drains pending
+  saves, and remote snapshots are ignored while local state is dirty so the revisioned save/merge
+  path remains authoritative.
+- Added unit regressions for outside autocomplete dismissal and locally dirty remote-snapshot
+  protection. Focused workspace-store coverage passes `36/36`; workstation binding coverage passes
+  `11/11`. After rebuilding the production frontend image, the complete authenticated Chromium
+  sequence passes `42/42`; full frontend Vitest passes `582/582` across 88 files, type-check and
+  production build pass.
+- Exact-build V25 visual approval, provider-live, sustained sandbox/resource stress, native
+  multi-monitor placement, indefinite soak, and remaining cross-surface parity gates remain open.
