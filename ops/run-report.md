@@ -1,5 +1,13 @@
 # Run Report
 
+## 2026-08-05T10:02:00Z Research-runner sandbox audit
+
+- Focused AST validation, isolated runner, and deployment tests passed `94/94`.
+- Live container inspection confirms UID/GID `10001`, `network_mode=none`, read-only root,
+  no host binds, `cap_drop=ALL`, `no-new-privileges`, 128 PIDs, 768 MiB memory, one CPU, and
+  no-exec/nosuid `/tmp` tmpfs. This verifies the configured container boundary; full hostile
+  namespace/seccomp/AppArmor and long-duration soak evidence remains separate.
+
 ## 2026-08-05T09:44:00Z Visual interaction and uPlot performance audit
 
 - Against the live stack, the four-project visual interaction run completed the overlap checks

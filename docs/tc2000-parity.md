@@ -33,6 +33,12 @@ unchanged, while three unapproved local snapshots exceeded the temporary `0.5%` 
 (1–2%) and remain blocked pending approved V25 references. The dedicated uPlot 100,000-point
 browser performance test passes in `863ms` without replacing the chart element.
 
+The isolated-runner security configuration was verified on the live container: effective UID
+`10001`, no network, read-only root, no host binds, all capabilities dropped, `no-new-privileges`,
+128-process limit, 768 MiB container memory, one CPU, and a constrained no-exec `/tmp` tmpfs.
+The focused AST/runner/deployment security slice passes `94/94`; the Docker-reachable backend
+suite also passes with the async runner tests enabled.
+
 The post-pop-out-change frontend verification is green: Vitest `572/572`, `vue-tsc
 --noEmit`, and the production Vite build all pass. The suite includes the new active-display
 origin and persisted-geometry coverage. This is functional/build evidence only; it does not

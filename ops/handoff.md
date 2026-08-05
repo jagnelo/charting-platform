@@ -1,5 +1,12 @@
 # Active Handoff
 
+## Continuation update — 2026-08-05T10:02:00Z Research-runner sandbox audit
+
+- Focused AST/runner/deployment security tests pass `94/94`.
+- The live runner is UID `10001`, networkless, read-only, host-bind-free, capability-free,
+  no-new-privileges, PID/memory/CPU bounded, and uses a no-exec `/tmp`. Hostile namespace and
+  long-soak evidence are still open; this audit does not overclaim them.
+
 ## Continuation update — 2026-08-05T09:44:00Z Visual/performance audit
 
 - All four visual projects reached the geometry/overlap assertions; one local snapshot matched
