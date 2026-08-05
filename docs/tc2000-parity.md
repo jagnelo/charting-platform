@@ -21,6 +21,11 @@ is recorded in the referenced test/baseline system.
 
 ## Current runtime evidence (2026-08-05)
 
+The targeted sandbox/resource and code API slice passes `112/112` with Docker access. It
+covers AST safety, forbidden imports/process/filesystem/network/reflection paths, isolated
+runner limits and cancellation, immutable code versions, queued Study Lab jobs, and the
+10,000-cell batch boundary. Only two existing Nautilus/NumPy deprecation warnings remain.
+
 The browser diagnostic contract also covers the logout boundary explicitly: F5 grants only
 the bounded 401 responses caused by clearing authentication while in-flight queries settle;
 all other 401s remain fatal. The focused logout test and complete authenticated flow pass

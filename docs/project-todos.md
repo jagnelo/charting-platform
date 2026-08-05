@@ -6,6 +6,9 @@ The browser acceptance harness now treats logout's in-flight 401 responses as an
 bounded auth-boundary contract; unrelated unauthorized responses remain failures. Focused F5
 and the complete Chromium flow pass `29/29`.
 
+The targeted sandbox/resource and code API acceptance slice passes `112/112` with Docker
+access. Broader multi-process namespace/resource stress remains an explicit open gate.
+
 - Workstation freshness presentation now uses the canonical technical-analysis freshness
   contract and has exhaustive state mapping coverage (`565/565` frontend tests, TypeScript,
   production build, rebuilt Chromium `29/29`). The old timestamp-derived `Cached` shell state

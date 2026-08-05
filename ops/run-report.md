@@ -1,5 +1,13 @@
 # Run Report
 
+## 2026-08-05T09:20:00Z Sandbox/API security slice
+
+- Re-ran the sandbox validator, isolated research-runner, deployment contract, and code API
+  integration slice with Docker access: `112/112` passed in `19.51s` with two existing
+  Nautilus/NumPy deprecation warnings. The unsandboxed attempt was not counted because its
+  18 disposable-Redis fixtures were blocked by Docker-socket permissions; no code assertion
+  failed.
+
 ## 2026-08-05T09:05:00Z Logout diagnostic contract
 
 - The full browser rerun exposed expected 401 console noise during logout: token clearing

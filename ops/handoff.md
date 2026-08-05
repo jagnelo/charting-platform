@@ -1,5 +1,13 @@
 # Active Handoff
 
+## Continuation update — 2026-08-05T09:20:00Z Sandbox/API security slice
+
+- The targeted sandbox/resource and code API acceptance slice passes `112/112` with Docker
+  access, including AST rejection, resource restoration, cancellation, memory-limit,
+  deployment isolation, immutable code assets, queued research runs, and 10,000-cell batch
+  boundaries. Two existing Nautilus/NumPy deprecation warnings remain; no application test
+  failures were observed.
+
 ## Continuation update — 2026-08-05T09:05:00Z Logout diagnostic contract
 
 - Browser diagnostics now model the logout token-clear race explicitly: F5 opts into a
