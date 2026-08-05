@@ -18250,6 +18250,16 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
   scope result, not a test failure. Ruff and rebuilt-stack F8s remain green. The strict visual,
   provider-live, adversarial resource, native multi-monitor, and long-soak gates remain open.
 
+## Continuation update — 2026-08-06T07:05:00Z Taxonomy startup and geometry acceptance
+
+- A fresh seeded-stack browser attempt exposed a real backend startup defect: taxonomy seeding
+  accessed `MarketGroup.members` through an implicit async lazy load, causing `MissingGreenlet`
+  and an unhealthy backend. `seed_top_down_taxonomy` now queries member IDs explicitly and tracks
+  duplicate membership without touching an unloaded relationship collection.
+- Rebuilt backend startup is healthy with no traceback/error output. Factory-layout and core-header
+  geometry acceptance passed `2/2` in Chromium with one worker and clean diagnostics. Strict visual,
+  provider-live, adversarial resource, native multi-monitor, and long-soak gates remain open.
+
 ## Continuation update — 2026-08-06T06:35:00Z Frontend and visual-gate audit
 
 - Full frontend Vitest remains green at `577/577` across 87 files; expected watchlist conflict-path

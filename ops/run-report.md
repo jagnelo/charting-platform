@@ -19733,6 +19733,15 @@ uncovered slice rather than repeat a generic completion claim.
 - Existing Nautilus/NumPy deprecation warnings remain unchanged. Strict visual, provider-live,
   adversarial-resource, native multi-monitor, and long-soak acceptance remain open.
 
+## 2026-08-06T07:05:00Z Taxonomy startup and geometry acceptance
+
+- A fresh seeded stack initially failed backend health because taxonomy seeding lazily loaded
+  `MarketGroup.members` inside `AsyncSession`, producing `MissingGreenlet`. The seeding path now
+  performs an explicit member-ID query and avoids implicit relationship IO. Rebuilt backend startup
+  is healthy and recent logs contain no startup traceback/error patterns.
+- Targeted Chromium factory-layout and core-header geometry checks passed `2/2`. Strict visual,
+  provider-live, adversarial-resource, native multi-monitor, and long-soak gates remain open.
+
 ## 2026-08-06T06:35:00Z Frontend and visual-gate audit
 
 - Full frontend Vitest passed `577/577` across 87 files. The strict visual manifest command was

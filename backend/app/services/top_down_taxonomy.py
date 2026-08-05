@@ -11,7 +11,6 @@ from datetime import UTC, datetime
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
 from app.models.instrument import Instrument
 from app.models.workstation import MarketGroup, MarketGroupMember
@@ -76,9 +75,7 @@ async def seed_top_down_taxonomy(db: AsyncSession) -> None:
     """
     existing = {
         group.stable_key: group
-        for group in (
-            await db.execute(select(MarketGroup).options(selectinload(MarketGroup.members)))
-        ).scalars()
+        for group in (await db.execute(select(MarketGroup))).scalars()
     }
     observed_at = datetime.now(UTC)
     roots = {
@@ -116,8 +113,19 @@ async def seed_top_down_taxonomy(db: AsyncSession) -> None:
             existing[stable_key].provenance = {
                 **(existing[stable_key].provenance or {}),
                 **taxonomy_provenance,
-            }
+    }
     await db.flush()
+
+    # Do not touch the relationship collection here.  Startup runs in an
+    # AsyncSession, and a collection that was not loaded in this transaction
+    # would trigger an implicit lazy query and MissingGreenlet.  Keep the
+    # duplicate check explicit and queryable instead.
+    member_rows = (
+        await db.execute(select(MarketGroupMember.market_group_id, MarketGroupMember.instrument_id))
+    ).all()
+    member_ids_by_group: dict[int, set[int]] = {}
+    for market_group_id, instrument_id in member_rows:
+        member_ids_by_group.setdefault(market_group_id, set()).add(instrument_id)
 
     symbols = [item[0] for item in _BENCHMARKS] + [item[0] for item in _SECTORS]
     instruments = {
@@ -132,10 +140,11 @@ async def seed_top_down_taxonomy(db: AsyncSession) -> None:
         if instrument is None:
             return
         group = existing[group_key]
-        if any(member.instrument_id == instrument.id for member in group.members):
+        if instrument.id in member_ids_by_group.setdefault(group.id, set()):
             return
-        group.members.append(
+        db.add(
             MarketGroupMember(
+                market_group_id=group.id,
                 instrument_id=instrument.id,
                 relationship_type=relationship_type,
                 position=position,
@@ -145,6 +154,7 @@ async def seed_top_down_taxonomy(db: AsyncSession) -> None:
                 provenance={"symbol": symbol, "classification": "ETF/index proxy"},
             )
         )
+        member_ids_by_group[group.id].add(instrument.id)
 
     for position, (symbol, _, relationship_type) in enumerate(_BENCHMARKS):
         await attach("us-benchmarks", symbol, relationship_type, position)
