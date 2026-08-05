@@ -17927,3 +17927,12 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
   remains available and is the only viewer-side destructive action.
 - Removed the incorrect teardown regression and updated parity/state documentation. Focused
   Research Results coverage remains green; full frontend and rebuilt-stack gates are rerunning.
+## Continuation update — 2026-08-05T12:00:00Z Provider-neutral frontend boundary audit
+
+- Audited authenticated workstation source under `frontend/src/lib`, `frontend/src/stores`,
+  `frontend/src/views`, and `frontend/src/components` for provider names, provider-specific
+  symbols, credential/API-key references, provider URLs, and fallback-order terminology.
+  No such leakage was found in the primary frontend path; it continues to consume canonical
+  API routes and display platform-level provenance/freshness/coverage instead.
+- This closes only the static frontend-boundary audit. It does not close provider entitlement,
+  live-source, exact-build visual, broad performance, or full parity acceptance gates.

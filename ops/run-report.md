@@ -19430,3 +19430,11 @@ uncovered slice rather than repeat a generic completion claim.
 - Backend log audit found no unexpected errors; only expected provider-credential warnings for
   intentionally unconfigured free-source adapters were present. V25 visual approval and the
   remaining live/adversarial/performance/deep-parity gates remain open.
+## 2026-08-05T12:00:00Z Provider-neutral frontend boundary audit
+
+- Read-only `rg` audit of primary authenticated frontend source found no `yfinance`, Alpaca,
+  Polygon/Massive, Alpha Vantage, OpenFIGI, FRED, API-key, provider URL, or provider fallback
+  references. Study Lab uses canonical `/code` and `/research` APIs and a canonical-database
+  dataset manifest.
+- Result: provider-neutral frontend boundary passes this static audit. External provider-live,
+  entitlement, exact-build visual, broad performance, and complete parity gates remain open.
