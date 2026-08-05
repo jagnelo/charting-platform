@@ -21,6 +21,12 @@ is recorded in the referenced test/baseline system.
 
 ## Current runtime evidence (2026-08-05)
 
+The free-source identifier probe now includes a live repository-level OpenFIGI check: the
+unauthenticated public mapping endpoint resolved `SPY` to three stable FIGI records (FIGI,
+composite FIGI, and share-class FIGI) through `OpenFigiProvider`. This does not imply quota
+or redistribution guarantees for every OpenFIGI use; the entitlement registry and the
+remaining credentialed provider probes stay authoritative.
+
 Chart surfaces now use a shared canonical OHLCV request coordinator. Identical instrument,
 timeframe, range/limit, transform, adjustment, and local/basket requests coalesce while
 in flight; successful results are retained briefly for linked-window reuse and failures are

@@ -1,5 +1,12 @@
 # Run Report
 
+## 2026-08-05T08:01:00Z Public OpenFIGI provider probe
+
+- The repository `OpenFigiProvider` resolved `SPY` through the unauthenticated public
+  `api.openfigi.com/v3/mapping` endpoint, returning three stable identifier records (FIGI,
+  composite FIGI, and share-class FIGI). Alpaca, FRED, Massive, and Alpha Vantage remain
+  `not_run` because their credentials are not configured.
+
 ## 2026-08-05T08:02:00Z Concurrent memory-pressure probe
 
 - Three uniquely named 70-million-element allocations were queued while a second non-root

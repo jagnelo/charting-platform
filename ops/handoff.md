@@ -1,5 +1,11 @@
 # Active Handoff
 
+## Continuation update — 2026-08-05T08:01:00Z Public OpenFIGI probe
+
+- The backend virtualenv’s `OpenFigiProvider` successfully resolved `SPY` through the free
+  unauthenticated OpenFIGI mapping endpoint and returned FIGI, composite-FIGI, and
+  share-class-FIGI records. Other credentialed provider probes remain not-run.
+
 ## Continuation update — 2026-08-05T08:02:00Z Concurrent memory pressure
 
 - Three 70-million-element pressure jobs were run concurrently with a second non-root
