@@ -18738,6 +18738,12 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
   required 75% threshold, with 86 documented third-party deprecation warnings. This revalidates
   the complete backend gate after the custom issuer SEC-fallback changes.
 
+## Continuation update — 2026-08-07T04:30:00Z Frontend regression gate
+
+- Full frontend Vitest passes `584/584` across 88 files; `vue-tsc --noEmit` and the Vite production
+  build pass. Expected conflict-path stderr remains limited to the existing watchlist failure
+  recovery tests. No frontend source changes were needed during this audit.
+
 ## Continuation update — 2026-08-07T03:15:00Z Reference authority refresh
 
 - Added official current Version 25 web-platform capability evidence to the visual manifest for

@@ -20159,6 +20159,11 @@ uncovered slice rather than repeat a generic completion claim.
 - Full Docker-backed unit and integration coverage passes `1266/1266` at `79.41%`, above the 75%
   threshold, with 86 documented third-party deprecation warnings.
 
+## 2026-08-07T04:30:00Z Frontend regression gate
+
+- Full frontend Vitest passes `584/584` across 88 files; `vue-tsc --noEmit` and the Vite production
+  build pass. Expected watchlist conflict-path stderr is unchanged.
+
 ## 2026-08-07T03:15:00Z Reference authority refresh
 
 - Added official current Version 25 web-platform capability evidence to the manifest for layouts,
