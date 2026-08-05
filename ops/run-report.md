@@ -1,5 +1,12 @@
 # Run Report
 
+## 2026-08-05T08:02:00Z Concurrent memory-pressure probe
+
+- Three uniquely named 70-million-element allocations were queued while a second non-root
+  runner raced the normal worker. Every job returned the structured `memory_limit` diagnostic,
+  produced a processed sentinel, and left no queued or `.running` residue. Full namespace/
+  seccomp adversarial stress and long-duration soak evidence remain open.
+
 ## 2026-08-05T07:58:00Z Multi-process research-runner claim probe
 
 - Queued twelve uniquely named scalar jobs on the branch-scoped runner volume while a

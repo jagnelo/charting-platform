@@ -1,5 +1,11 @@
 # Active Handoff
 
+## Continuation update — 2026-08-05T08:02:00Z Concurrent memory pressure
+
+- Three 70-million-element pressure jobs were run concurrently with a second non-root
+  runner process. All returned `memory_limit`, were processed, and left no queued/running
+  residue. Namespace/seccomp adversarial and long-duration soak gates remain open.
+
 ## Continuation update — 2026-08-05T07:58:00Z Multi-process runner claims
 
 - A bounded twelve-job shared-volume probe raced a second non-root runner process against

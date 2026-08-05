@@ -54,7 +54,10 @@ were explicitly removed afterward. A separate bounded concurrency probe then que
 independent jobs while a second runner process raced the normal worker; all twelve were
 claimed exactly once, completed successfully, and left no queued or running artifacts. This
 closes the shared-volume multi-process claim/recovery slice; broader namespace and sustained
-resource-exhaustion stress remains open.
+resource-exhaustion stress is now covered by a bounded three-job pressure probe: each
+70-million-element allocation returned `memory_limit`, was processed, and left no queued or
+running residue. Full namespace/seccomp adversarial stress and long-duration soak evidence
+remain open.
 
 The rebuilt branch stack now passes the complete authenticated Chromium flow (`29/29`),
 including Study Lab validation, isolated Python execution, and structured metric rendering.
