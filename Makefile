@@ -24,7 +24,7 @@
 .PHONY: \
   dev dev-install dev-infra dev-infra-stop dev-backend dev-worker dev-frontend \
   test test-unit test-int test-backend test-fe test-e2e-install test-e2e test-e2e-headed \
-  test-stack-up test-stack-down test-platform test-all \
+  test-stack-up test-stack-down test-platform test-all test-backend-coverage \
   lint lint-backend lint-frontend format \
   migrate migrate-new migrate-down \
   coverage clean ci
@@ -121,6 +121,16 @@ test-int:
 	  --no-header -q
 
 test-backend: test-unit test-int
+
+# Full backend coverage gate: combine the no-container unit suite with the
+# Docker-backed integration suite so coverage reflects the API/runtime paths
+# that are intentionally exercised only against PostgreSQL/Redis.
+test-backend-coverage:
+	@echo "▶  Combined backend unit + integration coverage (Docker required)..."
+	cd backend && $(BACKEND_ENV) uv run pytest tests/unit tests/integration \
+	  --cov=app --cov-report=term-missing --cov-report=html:coverage_html \
+	  --cov-report=xml:coverage-combined.xml --cov-fail-under=75 \
+	  --no-header -q
 
 test-fe:
 	@echo "▶  Frontend unit tests (Vitest)..."

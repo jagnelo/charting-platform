@@ -14,6 +14,15 @@
   target. Strict V25 visual approval, provider-live, sustained sandbox/resource, native
   multi-monitor, and remaining parity gates remain open.
 
+## Continuation update — 2026-08-06T20:45:00Z Combined backend coverage gate
+
+- Added `make test-backend-coverage`, an explicit Docker-backed gate that runs unit and integration
+  suites together with `--cov-fail-under=75`.
+- The gate passes `1,262/1,262` tests with `79.59%` combined coverage and 86 existing dependency
+  warnings. The unit-only slice remains `981/981` at `69.93%`; this is recorded separately rather
+  than being misrepresented as the combined gate. Strict V25 visual, provider-live, sustained
+  sandbox/resource, native multi-monitor, and remaining parity gates remain open.
+
 ## Continuation update — 2026-08-06T00:45:00Z Concurrent resource pressure
 
 - Expanded the live resource probe with eight bounded concurrent 128 MiB allocations. The live

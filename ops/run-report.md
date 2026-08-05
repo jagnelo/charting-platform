@@ -11,6 +11,14 @@
   75% restoration target remains open, as do strict visual, provider-live, sandbox stress,
   native multi-monitor, and cross-surface parity gates.
 
+## 2026-08-06T20:45:00Z Combined backend coverage gate
+
+- Added the `test-backend-coverage` Make target so the documented backend coverage requirement is
+  measured against both unit and Docker-backed integration paths with an explicit 75% threshold.
+- `UV_CACHE_DIR=/private/tmp/charting-uv-cache make test-backend-coverage` passes `1,262/1,262`
+  tests in `247.72s`, with `79.59%` combined coverage and 86 known third-party warnings. The
+  backend coverage gate is restored; frontend function coverage remains a separate deferred item.
+
 ## 2026-08-06T00:45:00Z Concurrent resource pressure
 
 - Expanded and executed the live resource probe with eight concurrent bounded 128 MiB allocations.

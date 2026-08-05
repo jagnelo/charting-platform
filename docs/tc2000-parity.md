@@ -6,11 +6,15 @@ The curated US taxonomy now has direct unit coverage for exact industry-proxy ca
 async startup seeding path. The regression proves that repeated startup does not duplicate members,
 only already-known canonical instruments are attached, provenance remains `curated_top_down_taxonomy`
 with `proxy_verified`, and the logical SPX identity continues to expose SPY as a clearly labelled
-tradable proxy. Focused tests pass `2/2`; the full backend unit suite passes `978/978` at `69.90%`
-coverage. Additional analysis helper edge-case coverage now passes `12/12`; the full unit suite
-passes `981/981` at `69.93%`. This strengthens the top-down contract but does not satisfy the
-separate 75% coverage restoration target or the remaining strict visual/provider/sandbox/
-multi-monitor/parity gates.
+tradable proxy. Focused taxonomy tests pass `2/2`; analysis helper edge-case tests pass `12/12`;
+the full backend unit suite passes `981/981` at `69.93%` coverage. The combined gate below is the
+authoritative backend coverage threshold; strict visual/provider/sandbox/multi-monitor/parity gates
+remain independent.
+
+The explicit combined backend gate is now implemented as `make test-backend-coverage`. It runs all
+unit and Docker-backed integration tests together and requires 75% coverage; the latest run passed
+`1,262/1,262` at `79.59%`. This closes the backend coverage threshold while retaining the honest
+unit-only `69.93%` diagnostic.
 
 ## Latest continuation evidence — live resource pressure
 

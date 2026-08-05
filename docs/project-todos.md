@@ -1,16 +1,15 @@
 # Project TODO Memory
 
-## Current continuation checkpoint — 2026-08-06T19:30:00Z
+## Current continuation checkpoint — 2026-08-06T20:45:00Z
 
-The top-down analysis now has direct unit coverage for its explicit industry-proxy registry,
-async taxonomy seeding contract, and relative-rotation/point-in-time helper edge cases. The
-analysis helper suite now passes `12/12`, while the taxonomy suite remains `2/2`. The
-top-down taxonomy now has direct unit coverage for its explicit industry-proxy registry and
-the real async startup seeding contract. The idempotence test verifies that all known benchmark and
-sector proxy instruments are attached once with source/verification provenance and that the SPX
-identity remains explicitly paired with SPY as the default tradable proxy. The full backend unit
-suite now passes `981/981` with `69.93%` coverage; this improves evidence for the top-down path but
-does not restore the documented 75% coverage target. Strict Version 25 visual approval, configured
+The top-down analysis has direct unit coverage for its explicit industry-proxy registry, async
+taxonomy seeding, and relative-rotation/point-in-time helper edge cases. The analysis helper suite
+passes `12/12`, while the taxonomy suite passes `2/2`. The idempotence test verifies that all known
+benchmark and sector proxy instruments are attached once with source/verification provenance and
+that the SPX identity remains explicitly paired with SPY as the default tradable proxy. The full
+backend unit suite passes `981/981` with `69.93%` coverage. The combined backend coverage gate
+passes at `79.59%`; the unit-only slice remains separately reported at `69.93%`. Strict Version 25
+visual approval, configured
 provider-live probes, sustained sandbox/resource stress, native multi-monitor evidence, and the
 remaining cross-surface parity gates remain open.
 
@@ -102,17 +101,15 @@ Status legend:
 ## Deferred TODOs
 
 ### 1. Expand test coverage further
-Status: `Deferred`
+Status: `Partially resolved — backend 75% gate restored; frontend coverage remains deferred`
 
 Context:
 - We stabilized the broken backend and frontend suites and got them green again.
-- Measured coverage is still uneven:
-  - backend full-suite coverage is materially improved but still has dark areas and currently sits below the normal default minimum coverage expectation
-  - frontend lines/statements/branches are strong, but function coverage remains the main weak point
-- The backend coverage gate was temporarily lowered so `make test` would stop failing on policy alone while the suite itself is green again.
+- Measured coverage is still uneven: the backend unit-only slice is `69.93%`, while the combined
+  unit plus Docker-backed integration gate now reaches `79.59%`.
+- Frontend lines/statements/branches are strong, but function coverage remains the main weak point.
 
 What remains:
-- Raise backend overall coverage back to at least the default `75%` minimum and restore the backend coverage gate accordingly.
 - Raise frontend function coverage, especially around:
   - stores
   - composables
@@ -126,9 +123,9 @@ What remains:
   - alerting, screener, sync/task, and background workflow paths
 - Add broader integration and end-to-end coverage where unit coverage alone leaves behavioral gaps.
 
-Why this was deferred:
-- The immediate goal was to first fix broken tests and restore reliability.
-- The next coverage push should be targeted, not broad or mechanical, but it now has a concrete acceptance target: restore the overall default `75%` coverage floor.
+The backend target is now enforced by `make test-backend-coverage`, which runs the complete unit and
+integration suites together with `--cov-fail-under=75`. Remaining coverage work is frontend-focused
+and does not reopen the restored backend gate.
 
 ### 2. Enrich options navigation and contract-history UX
 Status: `Deferred`
