@@ -18803,3 +18803,10 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
   allocation (137), rejected 70 MiB tmpfs write (`ENOSPC`), and contained three concurrent
   pressure failures with restart count unchanged at zero. This strengthens repeatability but
   does not close the separate sustained cancellation/crash/long-duration stress matrix.
+
+## Continuation update — 2026-08-07T10:00:00Z Repeated runner orphan recovery
+
+- Ran the live orphan-recovery probe three consecutive times. Each probe killed and restarted
+  only the isolated research-runner, verified the claimed job completed after restart, and found
+  no stale cancellation or progress sentinel. This strengthens repeatability of bounded recovery;
+  it does not replace the broader sustained cancellation/crash/long-duration matrix.

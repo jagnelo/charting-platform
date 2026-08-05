@@ -20212,3 +20212,9 @@ uncovered slice rather than repeat a generic completion claim.
   contract, resident-memory cgroup kill (137), tmpfs `ENOSPC`, three contained concurrent failures,
   and unchanged runner restart count (`0`). Sustained cancellation/crash/long-duration stress
   remains a separate open gate.
+
+## 2026-08-07T10:00:00Z Repeated runner orphan recovery
+
+- Three consecutive live recovery probes passed. Each isolated-runner restart recovered the
+  claimed job to `completed` and left no cancellation or progress residue. Broader sustained
+  cancellation/crash/long-duration stress remains open.
