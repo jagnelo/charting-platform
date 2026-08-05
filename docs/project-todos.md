@@ -92,6 +92,14 @@ below the repository threshold; the authoritative combined unit+integration gate
 `1264/1264` at `79.43%`, above the required 75%. This confirms the API/runtime paths against the
 real PostgreSQL/Redis-backed test environment without weakening the documented coverage gate.
 
+The live branch research-runner probes were rerun against the active Docker service: namespace,
+mount, ptrace, fork, network, subprocess, and root-write attempts were denied; resident 2 GiB
+pressure was cgroup-killed with status 137; the 70 MiB tmpfs write returned ENOSPC; three of eight
+concurrent pressure workers were contained without a runner restart; and a claimed job completed
+after an isolated runner restart with no stale sentinels. Ruff now passes the complete backend
+application/test tree. These are bounded containment and recovery results; sustained stress,
+long-running research responsiveness, and indefinite soak remain open.
+
 The full authenticated browser sequence then exposed an order-dependent workspace race: stale
 remote snapshots or pre-reset Golden Layout saves could restore a shared link group after the user
 selected Grey, while a stale autocomplete listbox could intercept the next sector click. Search

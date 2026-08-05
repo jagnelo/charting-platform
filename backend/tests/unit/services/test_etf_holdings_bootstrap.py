@@ -7,7 +7,10 @@ from sqlalchemy import select
 
 from app.models.instrument_identity import InstrumentIdentifier, InstrumentIdentifierType
 from app.services.etf_holdings import ensure_lightweight_etf_instrument
-from app.services.etf_holdings_refresh import ETFHoldingsBootstrapResult, bootstrap_etf_holdings_profile
+from app.services.etf_holdings_refresh import (
+    ETFHoldingsBootstrapResult,
+    bootstrap_etf_holdings_profile,
+)
 from app.services.instrument_mastering import ensure_internal_identifier
 
 

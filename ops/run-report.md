@@ -20107,6 +20107,15 @@ uncovered slice rather than repeat a generic completion claim.
   body.
 - Combined unit+integration coverage passed `1264/1264` at `79.43%`, satisfying the documented 75%
   backend gate. Only existing third-party deprecation warnings were emitted.
+
+## 2026-08-05T20:25:00Z Live runner containment refresh
+
+- Bounded live probes passed against the active research runner: namespace/mount/ptrace/fork/
+  network/subprocess/root-write denied; resident 2 GiB allocation cgroup-killed (137); 70 MiB
+  tmpfs write rejected (ENOSPC); three concurrent failures contained with restart count unchanged;
+  orphaned claimed job recovered after runner restart with no stale sentinels.
+- Complete backend Ruff check passes. Sustained stress, long-running research performance, and
+  indefinite soak remain separate acceptance gates.
 ## 2026-08-07T00:35:00Z Live sandbox probe refresh
 
 - Current runner probe results: namespace/mount/ptrace/fork/network/subprocess/root-write denied;

@@ -5,7 +5,6 @@ from pathlib import Path
 from app.services.code_validation import validate_workstation_python
 from research_runner.runner import execute_job
 
-
 FRONTEND_STUDY_LAB = Path(__file__).resolve().parents[4] / "frontend" / "src" / "components" / "workstation" / "StudyLabTool.vue"
 
 

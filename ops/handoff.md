@@ -59,6 +59,16 @@
 - Exact-build visual approval, provider-live probes, sustained sandbox/resource stress, native
   multi-monitor placement, indefinite soak, and remaining parity gates remain open.
 
+## Continuation update — 2026-08-05T20:25:00Z Live runner containment refresh
+
+- Active branch runner probes denied namespace/mount/ptrace/fork/network/subprocess/root-write
+  attempts, killed resident 2 GiB pressure with cgroup status 137, rejected a 70 MiB tmpfs write
+  with ENOSPC, contained three concurrent pressure failures without restart, and recovered a
+  claimed job after isolated runner restart without stale cancel/progress artifacts.
+- Backend Ruff passes for the complete application and test tree. These are bounded probes only;
+  sustained resource/cancellation stress, long-running research responsiveness, and indefinite
+  browser soak remain open.
+
 ## Continuation update — 2026-08-06T19:30:00Z Top-down taxonomy coverage
 
 - Added direct tests for the explicit industry-proxy registry and the real async taxonomy seeding
