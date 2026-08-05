@@ -16,6 +16,12 @@ three environments therefore differ from those snapshots. The backend was restor
 and no snapshot was rewritten or treated as an approved V25 reference. The strict manifest gate
 continues to fail closed at `application-shell-default/default: required_missing`.
 
+The workstation performance guard now supports bounded long-soak execution through
+`TC2000_POP_OUT_CHURN_ROUNDS` (capped at 20), samples Chromium heap usage after every churn
+round, and checks both absolute and relative heap ceilings. The extended 20-round/two-popout
+run passed, as did both workstation performance tests (`2/2`); broader OS-level multi-monitor
+placement remains separate.
+
 The browser acceptance harness now treats logout's in-flight 401 responses as an explicit,
 bounded auth-boundary contract; unrelated unauthorized responses remain failures. Focused F5
 and the complete rebuilt-stack Chromium acceptance pass `37/37`.

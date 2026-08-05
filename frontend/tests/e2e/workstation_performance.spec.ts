@@ -85,7 +85,17 @@ test.describe('TC2000 workstation performance guards', () => {
     const sourceToolCount = await page.locator('.tool-window').count()
     const sourceCanvasCount = await settledCanvasCount()
     const sourceChartCount = await page.locator('.chart-tool').count()
-    const rounds = 5
+    const configuredRounds = Number(process.env.TC2000_POP_OUT_CHURN_ROUNDS ?? 5)
+    const rounds = Number.isInteger(configuredRounds) && configuredRounds > 0
+      ? Math.min(configuredRounds, 20)
+      : 5
+    const memorySamples: number[] = []
+    const readHeap = async () => page.evaluate(() => {
+      const performanceWithMemory = performance as Performance & { memory?: { usedJSHeapSize: number } }
+      return performanceWithMemory.memory?.usedJSHeapSize ?? null
+    })
+    const initialMemory = await readHeap()
+    if (initialMemory != null) memorySamples.push(initialMemory)
 
     for (let round = 0; round < rounds; round += 1) {
       const popups = []
@@ -110,15 +120,18 @@ test.describe('TC2000 workstation performance guards', () => {
       await expect(page.locator('.tool-window')).toHaveCount(sourceToolCount)
       await expect.poll(() => settledCanvasCount()).toBe(sourceCanvasCount)
       await expect(page.locator('.chart-tool')).toHaveCount(sourceChartCount)
+      const currentMemory = await readHeap()
+      if (currentMemory != null) memorySamples.push(currentMemory)
     }
 
-    const memory = await page.evaluate(() => {
-      const performanceWithMemory = performance as Performance & { memory?: { usedJSHeapSize: number } }
-      return performanceWithMemory.memory?.usedJSHeapSize ?? null
-    })
     // Chromium does not expose performance.memory in every environment; when it does,
-    // reject unbounded churn without making the guard browser-engine dependent.
-    if (memory != null) expect(memory).toBeLessThan(512 * 1024 * 1024)
+    // reject unbounded churn without making the guard browser-engine dependent. The
+    // absolute ceiling catches catastrophic growth; the relative ceiling catches a
+    // leak that remains below the ceiling during a short run.
+    if (memorySamples.length) {
+      expect(Math.max(...memorySamples)).toBeLessThan(512 * 1024 * 1024)
+      expect(Math.max(...memorySamples) - memorySamples[0]).toBeLessThan(256 * 1024 * 1024)
+    }
     await browserDiagnostics.expectNoCriticalIssues()
   })
 })

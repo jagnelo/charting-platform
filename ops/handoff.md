@@ -18079,3 +18079,11 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
   those stale artifacts. The fixture was then disabled and the backend restored to normal config.
 - This is evidence that the visual harness can render the fixture, not visual approval. The strict
   manifest validator still fails closed at `application-shell-default/default: required_missing`.
+
+## Continuation update — 2026-08-05T22:45:00Z Extended pop-out soak
+
+- Strengthened the repeated multi-window guard with a bounded `TC2000_POP_OUT_CHURN_ROUNDS`
+  override (maximum 20), per-round Chromium heap sampling, and absolute/relative growth limits.
+- The authenticated 20-round, two-popout churn passed in `26.0s`; the complete workstation
+  performance file passed `2/2` in `31.2s` with clean diagnostics. Native OS multi-monitor
+  placement and longer-than-20-round soak remain separate acceptance gates.

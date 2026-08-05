@@ -19579,3 +19579,11 @@ uncovered slice rather than repeat a generic completion claim.
   layout/data run. The backend was restored to its normal non-fixture configuration afterward.
 - `visual_manifest --require-approved` still rejects `application-shell-default/default` as
   `required_missing`; no snapshot was rewritten or promoted as a V25 reference.
+
+## 2026-08-05T22:45:00Z Extended pop-out soak
+
+- Updated `frontend/tests/e2e/workstation_performance.spec.ts` to allow a bounded 1–20 round
+  churn setting and sample heap usage after every completed two-popout round, enforcing both a
+  512 MiB ceiling and a 256 MiB growth ceiling when Chromium exposes heap telemetry.
+- `TC2000_POP_OUT_CHURN_ROUNDS=20` passed the repeated-churn test (`1/1`, `26.0s`) and both
+  workstation performance tests (`2/2`, `31.2s`).
