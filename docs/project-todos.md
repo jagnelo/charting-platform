@@ -2,11 +2,14 @@
 
 ## Current continuation checkpoint — 2026-08-06T19:30:00Z
 
-The top-down taxonomy now has direct unit coverage for its explicit industry-proxy registry and
+The top-down analysis now has direct unit coverage for its explicit industry-proxy registry,
+async taxonomy seeding contract, and relative-rotation/point-in-time helper edge cases. The
+analysis helper suite now passes `12/12`, while the taxonomy suite remains `2/2`. The
+top-down taxonomy now has direct unit coverage for its explicit industry-proxy registry and
 the real async startup seeding contract. The idempotence test verifies that all known benchmark and
 sector proxy instruments are attached once with source/verification provenance and that the SPX
 identity remains explicitly paired with SPY as the default tradable proxy. The full backend unit
-suite now passes `978/978` with `69.90%` coverage; this improves evidence for the top-down path but
+suite now passes `981/981` with `69.93%` coverage; this improves evidence for the top-down path but
 does not restore the documented 75% coverage target. Strict Version 25 visual approval, configured
 provider-live probes, sustained sandbox/resource stress, native multi-monitor evidence, and the
 remaining cross-surface parity gates remain open.

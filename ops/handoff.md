@@ -6,7 +6,10 @@
   path. The idempotence case proves all known benchmark/sector proxies are attached once, carries
   curated source and proxy verification provenance, and preserves the explicit SPX-to-SPY identity
   policy without inferring unknown industry relationships.
-- Focused taxonomy tests pass `2/2`; the full backend unit suite passes `978/978` with `69.90%`
+- Focused taxonomy tests pass `2/2`; added analysis-helper edge-case coverage for rotation
+  quadrants, UTC provenance, empty data, and insufficient calendar history; the focused analysis
+  suite now passes `12/12`.
+- The full backend unit suite now passes `981/981` with `69.93%`
   coverage. This is targeted top-down evidence, not restoration of the documented 75% coverage
   target. Strict V25 visual approval, provider-live, sustained sandbox/resource, native
   multi-monitor, and remaining parity gates remain open.

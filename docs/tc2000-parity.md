@@ -7,8 +7,10 @@ async startup seeding path. The regression proves that repeated startup does not
 only already-known canonical instruments are attached, provenance remains `curated_top_down_taxonomy`
 with `proxy_verified`, and the logical SPX identity continues to expose SPY as a clearly labelled
 tradable proxy. Focused tests pass `2/2`; the full backend unit suite passes `978/978` at `69.90%`
-coverage. This strengthens the top-down contract but does not satisfy the separate 75% coverage
-restoration target or the remaining strict visual/provider/sandbox/multi-monitor/parity gates.
+coverage. Additional analysis helper edge-case coverage now passes `12/12`; the full unit suite
+passes `981/981` at `69.93%`. This strengthens the top-down contract but does not satisfy the
+separate 75% coverage restoration target or the remaining strict visual/provider/sandbox/
+multi-monitor/parity gates.
 
 ## Latest continuation evidence — live resource pressure
 

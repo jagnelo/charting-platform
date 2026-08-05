@@ -12,9 +12,12 @@ from app.routers.analysis import (
     _group_members_at,
     _group_provenance,
     _is_known_at,
+    _mean,
     _performance_cells,
+    _rotation_state,
     _sample_aligned_points,
     _truncate_bars_at,
+    _wire_datetime,
 )
 from app.routers.market_groups import _holdings_snapshot_at
 
@@ -136,3 +139,30 @@ def test_relative_rotation_sampling_retains_latest_aligned_observation():
     assert _sample_aligned_points(aligned, 1) == aligned
     sampled = _sample_aligned_points(aligned, 3)
     assert [timestamp.day for timestamp, _ in sampled] == [1, 4, 7]
+
+
+def test_relative_rotation_states_cover_all_quadrants_and_mean_is_explicit():
+    assert _rotation_state(1.0, 1.0) == "leading"
+    assert _rotation_state(1.0, -1.0) == "weakening"
+    assert _rotation_state(-1.0, 1.0) == "improving"
+    assert _rotation_state(-1.0, -1.0) == "lagging"
+    assert _mean([1.0, 2.0, 4.0]) == pytest.approx(7 / 3)
+
+
+def test_analysis_helpers_preserve_utc_wire_format_and_empty_data_warnings():
+    timestamp = datetime(2024, 1, 2, 3, 4, tzinfo=UTC)
+    assert _wire_datetime(timestamp) == "2024-01-02T03:04:00Z"
+    assert _wire_datetime(None) is None
+    assert _truncate_bars_at({7: [_bar(7, 2024, 1, "100")]}, None)[7]
+    assert _sample_aligned_points([], 3) == []
+
+    cells = _performance_cells([], instrument_id=7)
+    assert set(cells) == {"1D", "1W", "1M", "3M", "6M", "YTD", "1Y"}
+    assert all(cell.warning and cell.warning.code == "no_bars" for cell in cells.values())
+
+
+def test_calendar_year_cells_require_two_nonzero_observations():
+    cells = _calendar_year_cells([_bar(7, 2026, 1, "100")], instrument_id=7, years=[2026])
+    assert cells["2026"].value is None
+    assert cells["2026"].warning is not None
+    assert cells["2026"].warning.code == "insufficient_calendar_year_history"

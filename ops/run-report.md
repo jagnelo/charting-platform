@@ -6,7 +6,7 @@
   industry proxies, unknown-label rejection, async startup seeding, duplicate suppression,
   source/verification provenance, and the explicit SPX/SPY benchmark identity policy.
 - Focused tests pass `2/2`. `UV_CACHE_DIR=/private/tmp/charting-uv-cache make test-unit` passes
-  `978/978` in `47.80s` with `69.90%`
+  `981/981` in `47.00s` with `69.93%`
   coverage and only the existing 34 third-party deprecation warnings. The repository’s documented
   75% restoration target remains open, as do strict visual, provider-live, sandbox stress,
   native multi-monitor, and cross-surface parity gates.
