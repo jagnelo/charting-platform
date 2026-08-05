@@ -1,5 +1,13 @@
 # Run Report
 
+## 2026-08-05T13:00:00Z Research-runner kernel-profile recheck
+
+- Current checkout focused AST/runner/deployment security suite passes `94/94` in 1.53s.
+- The live container reports `no-new-privileges:true`; Docker Desktop leaves AppArmor empty on
+  this macOS host, so the host cannot provide an AppArmor assertion. Docker's platform default
+  seccomp profile remains in force, but hostile namespace/seccomp probes and long-duration soak
+  are still open acceptance gates and are not being inferred from this inspection.
+
 ## 2026-08-05T12:26:00Z ETF holdings fallback verification
 
 - Focused issuer-refresh/SEC-fallback API tests passed `12/12` (22.88s). This verifies that

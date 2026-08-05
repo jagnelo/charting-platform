@@ -1,5 +1,12 @@
 # Active Handoff
 
+## Continuation update — 2026-08-05T13:00:00Z Kernel-profile recheck
+
+- Focused validation/deployment security coverage remains green at `94/94`.
+- Live Docker inspection confirms explicit `no-new-privileges:true`; AppArmor is unavailable on
+  this macOS Docker host and no claim is made for it. Default Docker seccomp is present but not
+  treated as hostile-probe evidence; namespace/seccomp adversarial and long-soak gates remain open.
+
 ## Continuation update — 2026-08-05T12:26:00Z ETF fallback contract
 
 - Focused issuer-refresh and SEC reconstruction coverage passes `12/12`.
