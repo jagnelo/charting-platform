@@ -1,5 +1,25 @@
 # Run Report
 
+## 2026-08-07T00:45:00Z Explicit legacy yfinance boundary
+
+- Changed provider resolution so yfinance is not an implicit fallback for new workstation
+  price/history/event/universe paths; the opt-in setting is `false` in both environment examples.
+- Focused backend tests: `19/19`; Ruff and `git diff --check`: passed.
+- Rebuilt/restarted the branch backend image; Docker health check reports backend, frontend,
+  PostgreSQL, Redis, and research-runner healthy.
+- Remaining open gates are unchanged: exact-build approved V25 references, provider-live probes,
+  sustained sandbox/resource stress, native multi-monitor/indefinite soak, and full parity.
+
+## 2026-08-07T01:00:00Z Link isolation and traversal regression repair
+
+- Repeated browser runs exposed stale Grey fallback symbols and an intermittent Ctrl+wheel no-op.
+  Component-provided displayed-symbol capture, local publication tracking, window-level wheel
+  handling, and hydration-safe fallback traversal were added.
+- Rebuilt-stack focused acceptance: F8m `3/3`, Ctrl+wheel traversal `3/3`; workstation bindings
+  `11/11`; TypeScript passes. The prior isolated Study Lab checks pass when run separately.
+- A bounded full-suite rerun remains subject to shared-workspace/provider timing failures; those
+  failures are not treated as completion evidence and remain tracked for the next audit.
+
 ## 2026-08-06T19:30:00Z Top-down taxonomy coverage
 
 - Added `backend/tests/unit/services/test_top_down_taxonomy.py` covering exact-case curated

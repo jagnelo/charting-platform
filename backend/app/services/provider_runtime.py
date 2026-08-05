@@ -421,6 +421,16 @@ async def resolve_provider_chain(
     resolved: list[ResolvedProvider] = []
     current_environment = settings.APP_ENV.strip().lower()
     for policy, health, data_source, entitlement in rows:
+        if (
+            data_source.name == "yfinance"
+            and capability
+            not in {ProviderCapability.OPTION_CHAIN, ProviderCapability.OPTION_QUOTE_HISTORY}
+            and not settings.ENABLE_LEGACY_YFINANCE_FALLBACK
+        ):
+            # Keep the legacy adapter registered for explicit compatibility and
+            # options, but never let it become an implicit fallback for the new
+            # workstation's identity, history, event, or universe paths.
+            continue
         # Policies may outlive a provider capability after a configuration or
         # adapter change. Never let a stale row invoke a method the provider
         # does not implement (for example Alpaca has discovery, not search).

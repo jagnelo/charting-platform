@@ -79,6 +79,20 @@ child failures without a runner restart. A claimed shared-volume job also comple
 explicit runner restart with no stale cancellation/progress residue. This refreshes bounded
 containment/recovery evidence but does not satisfy sustained or indefinite stress acceptance.
 
+The provider runtime now enforces the documented yfinance boundary: the adapter remains registered
+for explicit legacy compatibility, but default price/history/event/universe chains exclude it unless
+`ENABLE_LEGACY_YFINANCE_FALLBACK=true` is deliberately configured. The backend image was rebuilt
+and is healthy; focused provider-runtime/registry coverage passes `19/19`. This removes implicit
+yfinance dependence from new workstation paths while preserving an auditable opt-in fallback.
+
+The rebuilt frontend then received two interaction hardenings found by browser repetition: a Grey
+link switch now captures the tool's displayed symbol through the component boundary and local
+publication state, and Ctrl+wheel traversal is handled at workstation/window scope with a canonical
+fallback universe when hydration is incomplete. Focused F8m passes `3/3`, focused traversal passes
+`3/3`, the workstation binding suite passes `11/11`, and the full frontend suite remains green at
+`582/582` after the final source changes. These close the observed races without changing the
+strict visual, provider-live, sustained-stress, multi-monitor, or indefinite-soak gates.
+
 Provider-route recheck on 2026-08-05T21:45:00Z confirmed that the four remaining ETF holdings
 failures are still external-route conditions, not safe candidates for fallback substitution:
 official pages declare ADFI, DFTT, and NEOS downloads but the discovered acceptance routes remain

@@ -171,6 +171,7 @@ const searchIndex = ref(-1)
 let searchTimer: ReturnType<typeof setTimeout> | null = null
 let searchRequest = 0
 const symbolSearchEnabled = ref(false)
+const handledWheelEvents = new WeakSet<Event>()
 // Initial route loading and fast list traversal can overlap. The latest symbol
 // intent wins so a late initial SPY request cannot restore an older selection.
 let symbolSelectionGeneration = 0
@@ -309,7 +310,7 @@ const goldenLayoutConfig = computed(() => {
     },
   } as unknown as LayoutConfig
 })
-async function selectSymbol(raw: string, timestamp?: string) {
+async function selectSymbol(raw: string, timestamp?: string, allowNavigationFallback = false) {
   const requested = raw.trim()
   if (!requested) return
   const generation = ++symbolSelectionGeneration
@@ -324,8 +325,13 @@ async function selectSymbol(raw: string, timestamp?: string) {
     symbol = await ensureKnownInstrumentSymbol(requested, 'Workstation symbol')
   } catch (cause: any) {
     if (generation !== symbolSelectionGeneration) return
-    workspaceStore.error = cause?.message ?? 'Unable to resolve symbol'
-    return
+    const navigationFallbacks = new Set(['SPY', 'QQQ', 'DIA', 'IWM'])
+    if (allowNavigationFallback && navigationFallbacks.has(requested.toUpperCase())) {
+      symbol = requested.toUpperCase()
+    } else {
+      workspaceStore.error = cause?.message ?? 'Unable to resolve symbol'
+      return
+    }
   }
   if (generation !== symbolSelectionGeneration) return
   symbolDraft.value = symbol
@@ -496,8 +502,8 @@ function openAlertsTool() {
   if (alerts) openTool(alerts)
 }
 
-function updateLinkGroup(windowKey: string, group: LinkGroup) {
-  workspaceStore.updateToolLinkGroup(windowKey, group)
+function updateLinkGroup(windowKey: string, group: LinkGroup, displayedSymbol?: string) {
+  workspaceStore.updateToolLinkGroup(windowKey, group, displayedSymbol)
 }
 
 function updateColumns(windowKey: string, columnKeys: string[]) {
@@ -652,7 +658,7 @@ function renderDockTool(dockTool: { instance_key: string; title: string; tool_ty
     onClose: () => {
       if (workspaceStore.closeTool(dockTool.instance_key)) actions.close()
     },
-    onUpdateLinkGroup: (windowKey: string, group: LinkGroup) => updateLinkGroup(windowKey, group),
+    onUpdateLinkGroup: (windowKey: string, group: LinkGroup, displayedSymbol?: string) => updateLinkGroup(windowKey, group, displayedSymbol),
   })
 }
 
@@ -687,17 +693,27 @@ function handleKeydown(event: KeyboardEvent) {
   if (!allSymbols.value.length) return
   const currentIndex = allSymbols.value.indexOf(activeSymbol.value)
   const nextIndex = (currentIndex + (event.shiftKey ? -1 : 1) + allSymbols.value.length) % allSymbols.value.length
-  void selectSymbol(allSymbols.value[nextIndex])
+  void selectSymbol(allSymbols.value[nextIndex], undefined, true)
 }
 
 function handleWheel(event: WheelEvent) {
-  if (!event.ctrlKey || event.metaKey || event.altKey || workspaceStore.isEditorTarget(event.target)) return
+  if (handledWheelEvents.has(event)) return
+  handledWheelEvents.add(event)
+  // Ctrl+wheel is an explicit symbol-traversal gesture; unlike typed shortcuts
+  // it remains usable while the active-symbol control retains focus after Go.
+  if (!event.ctrlKey || event.metaKey || event.altKey) return
   event.preventDefault()
   if (!allSymbols.value.length) return
   const currentIndex = allSymbols.value.indexOf(activeSymbol.value)
   const direction = event.deltaY > 0 ? 1 : -1
-  const nextIndex = (currentIndex + direction + allSymbols.value.length) % allSymbols.value.length
-  void selectSymbol(allSymbols.value[nextIndex])
+  let nextIndex = (currentIndex + direction + allSymbols.value.length) % allSymbols.value.length
+  // A partially hydrated symbol can temporarily be absent from the list. Do
+  // not turn a traversal gesture into a no-op in that case; advance once more
+  // through the canonical fallback universe.
+  if (allSymbols.value.length > 1 && allSymbols.value[nextIndex] === activeSymbol.value) {
+    nextIndex = (nextIndex + direction + allSymbols.value.length) % allSymbols.value.length
+  }
+  void selectSymbol(allSymbols.value[nextIndex], undefined, true)
 }
 
 watch(activeSymbol, symbol => {
@@ -728,6 +744,7 @@ watch(() => workspaceStore.linkedTimeframe, timeframe => {
 })
 
 onMounted(async () => {
+  window.addEventListener('wheel', handleWheel, { passive: false })
   const handleVisibilityChange = () => {
     documentVisible.value = document.visibilityState === 'visible'
     if (documentVisible.value && !isPopout.value) void marketAnalysisQuery.refetch()
@@ -767,6 +784,7 @@ onMounted(async () => {
 })
 
 onBeforeUnmount(() => {
+  window.removeEventListener('wheel', handleWheel)
   for (const poll of popoutGeometryPollers.values()) window.clearInterval(poll)
   popoutGeometryPollers.clear()
   removeVisibilityListener?.()

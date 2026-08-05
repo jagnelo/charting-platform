@@ -63,6 +63,10 @@ class Settings(BaseSettings):
     DEFAULT_EVENT_PROVIDER: str = "alpaca"
     DEFAULT_DISCOVERY_PROVIDER: str = "alpaca"
     DEFAULT_OPTIONS_PROVIDER: str = "yfinance"
+    # yfinance remains available for explicitly enabled legacy/options flows,
+    # but must not be appended automatically to new workstation capability
+    # chains. This keeps the default platform path free-source/API-first.
+    ENABLE_LEGACY_YFINANCE_FALLBACK: bool = False
     IDENTIFIER_PROVIDER_PRIORITY: list[str] = ["openfigi"]
     OPTION_QUOTE_HISTORY_PROVIDER_PRIORITY: list[str] = []
     PROVIDER_CHAIN_SEEDS: dict[str, list[str]] = {

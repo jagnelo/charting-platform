@@ -28,6 +28,7 @@ def test_backend_env_example_keeps_yfinance_out_of_new_workstation_chains():
         for capability, providers in seeds.items()
         if capability != "option_chain"
     )
+    assert next(line for line in lines if line.startswith("ENABLE_LEGACY_YFINANCE_FALLBACK=")) == "ENABLE_LEGACY_YFINANCE_FALLBACK=false"
 
 
 class TestProviderRegistry:

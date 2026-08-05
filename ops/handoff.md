@@ -1,5 +1,27 @@
 # Active Handoff
 
+## Continuation update — 2026-08-07T00:45:00Z Explicit legacy yfinance boundary
+
+- Default provider-runtime resolution now excludes yfinance from price/history/event/universe
+  fallback chains. The adapter remains available only for explicitly enabled legacy compatibility
+  (and its existing option-specific slots) through `ENABLE_LEGACY_YFINANCE_FALLBACK=false` by default.
+- Focused provider-runtime/registry coverage passes `19/19`; Ruff and diff checks pass. The rebuilt
+  branch backend is healthy alongside the frontend, PostgreSQL, Redis, and research-runner.
+- This is a policy hardening checkpoint, not completion: provider-live entitlement coverage,
+  strict V25 visual approval, sustained sandbox/resource stress, native multi-monitor evidence,
+  and the remaining parity gates remain open.
+
+## Continuation update — 2026-08-07T01:00:00Z Link isolation and traversal regression repair
+
+- Repeated rebuilt-stack Chromium testing found two order-dependent paths: Grey could capture a
+  stale factory symbol, and Ctrl+wheel could become a no-op during partial symbol hydration.
+- The tool boundary now supplies its displayed symbol when isolating; the workspace retains the
+  last local publication; traversal has a window-level listener, duplicate-event guard, and a
+  canonical fallback advance. Focused F8m and traversal checks each pass `3/3`; workstation
+  bindings pass `11/11`; TypeScript passes.
+- These repairs are committed with the provider policy below only after final full-suite reruns;
+  strict visual/provider-live/hardware/sustained-stress gates remain open.
+
 ## Continuation update — 2026-08-06T19:30:00Z Top-down taxonomy coverage
 
 - Added direct tests for the explicit industry-proxy registry and the real async taxonomy seeding

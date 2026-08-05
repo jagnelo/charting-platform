@@ -61,6 +61,28 @@ async def test_provider_chain_excludes_non_free_entitlements(db):
 
 
 @pytest.mark.asyncio
+async def test_new_workstation_chain_excludes_implicit_yfinance_fallback(db, monkeypatch):
+    async_db = AsyncSessionAdapter(db)
+    await seed_provider_runtime(async_db)
+    monkeypatch.setattr(settings, "ENABLE_LEGACY_YFINANCE_FALLBACK", False)
+
+    chain = await resolve_provider_chain(async_db, ProviderCapability.PRICE_HISTORY)
+
+    assert all(item.provider_name != "yfinance" for item in chain)
+
+
+@pytest.mark.asyncio
+async def test_explicit_legacy_yfinance_fallback_can_be_enabled(db, monkeypatch):
+    async_db = AsyncSessionAdapter(db)
+    await seed_provider_runtime(async_db)
+    monkeypatch.setattr(settings, "ENABLE_LEGACY_YFINANCE_FALLBACK", True)
+
+    chain = await resolve_provider_chain(async_db, ProviderCapability.PRICE_HISTORY)
+
+    assert any(item.provider_name == "yfinance" for item in chain)
+
+
+@pytest.mark.asyncio
 async def test_provider_chain_excludes_environment_ineligible_entitlements(db, monkeypatch):
     async_db = AsyncSessionAdapter(db)
     await seed_provider_runtime(async_db)

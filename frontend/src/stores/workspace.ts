@@ -338,6 +338,10 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   const linkedSymbols = ref<Partial<Record<LinkGroup, LinkEvent>>>({
     blue: { symbol: 'SPY', group: 'blue', sourceWindowKey: 'workstation' },
   })
+  // Last symbol explicitly published by this window. Cross-window storage
+  // events can arrive out of order around a reset; this local value is the
+  // authoritative displayed-symbol fallback when a tool is isolated.
+  const locallyPublishedSymbols = ref<Partial<Record<LinkGroup, string>>>({ blue: 'SPY' })
   const wildcardSymbol = ref<LinkEvent>({ symbol: 'SPY', group: 'blue', sourceWindowKey: 'workstation' })
   const linkedTimestamp = ref<string | null>(null)
   const linkedTimestamps = ref<Partial<Record<LinkGroup, string | null>>>({})
@@ -580,7 +584,24 @@ export const useWorkspaceStore = defineStore('workspace', () => {
 
   function publishSymbol(event: LinkEvent) {
     if (event.group === 'grey') return
+    locallyPublishedSymbols.value = { ...locallyPublishedSymbols.value, [event.group]: event.symbol }
     applySharedSymbol(event)
+    // Keep each concrete linked tool's serializable fallback current as the
+    // shared symbol changes. This is important when a tool is moved to Grey:
+    // the isolation boundary must capture the symbol the user was actually
+    // viewing, not the factory symbol that happened to be persisted earlier.
+    if (workspace.value) {
+      let changed = false
+      for (const tab of workspace.value.tabs) {
+        for (const tool of tab.windows) {
+          if (tool.link_group !== event.group) continue
+          if (tool.configuration.symbol === event.symbol) continue
+          tool.configuration = { ...tool.configuration, symbol: event.symbol }
+          changed = true
+        }
+      }
+      if (changed) scheduleSnapshot()
+    }
     channel?.postMessage({ ...event, type: 'symbol' })
     safeStorageSet(CHANNEL_NAME + ':symbol', JSON.stringify(event))
   }
@@ -1155,7 +1176,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
    * docked tool and any browser pop-out on the same persisted link contract after a
    * reload or recovery.
    */
-  function updateToolLinkGroup(windowKey: string, group: LinkGroup) {
+  function updateToolLinkGroup(windowKey: string, group: LinkGroup, displayedSymbol?: string) {
     const tab = activeTab.value
     const tool = tab?.windows.find(window => window.instance_key === windowKey)
     if (!tool || tool.link_group === group) return false
@@ -1164,7 +1185,9 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     // cannot overwrite the isolated view through the global active-symbol state.
     if (group === 'grey') {
       const configuredSymbol = typeof tool.configuration.symbol === 'string' ? tool.configuration.symbol : null
-      const isolatedSymbol = symbolForLinkGroup(tool.link_group, configuredSymbol)
+      const isolatedSymbol = displayedSymbol?.trim().toUpperCase()
+        || locallyPublishedSymbols.value[tool.link_group]
+        || symbolForLinkGroup(tool.link_group, configuredSymbol)
       tool.configuration = { ...tool.configuration, symbol: isolatedSymbol }
     }
     tool.link_group = group
