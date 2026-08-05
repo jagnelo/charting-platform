@@ -26,6 +26,11 @@ Added browser-level recovery coverage for a disconnected/externally closed pop-o
 workspace must retain the tool, allow it to be floated again in the same session, and close the
 reopened window cleanly. The complete authenticated flow suite passed `35/35` after this change.
 
+The link-group audit then exposed and fixed a real isolation defect: moving a shared tool to Grey
+now persists its currently displayed symbol before detaching it from the shared bus. Browser
+coverage proves Grey remains unchanged while Yellow follows subsequent linked selections. The
+complete authenticated flow suite now passes `36/36`, with frontend type-check passing.
+
 The browser acceptance harness now treats logout's in-flight 401 responses as an explicit,
 bounded auth-boundary contract; unrelated unauthorized responses remain failures. Focused F5
 and the complete rebuilt-stack Chromium acceptance pass `37/37`.

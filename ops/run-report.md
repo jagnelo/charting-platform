@@ -19593,3 +19593,11 @@ uncovered slice rather than repeat a generic completion claim.
 - Added F8k to simulate an externally closed pop-out, assert source-tool recovery, re-float the
   same tool, and close it normally. Complete authenticated Chromium flows passed `35/35` in
   approximately `1.4m` with clean browser diagnostics.
+
+## 2026-08-06T00:00:00Z Link-group isolation repair
+
+- F8m found a real Grey-link defect: the chart did not retain its displayed symbol when detached
+  from a shared group. `updateToolLinkGroup` now persists that symbol before entering Grey, while
+  Yellow continues to resolve the latest wildcard event.
+- Focused workspace-store tests passed `35/35`; complete authenticated Chromium flows passed
+  `36/36` in approximately `1.5m`; frontend type-check passed.

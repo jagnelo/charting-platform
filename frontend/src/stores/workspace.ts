@@ -1154,6 +1154,14 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     const tab = activeTab.value
     const tool = tab?.windows.find(window => window.instance_key === windowKey)
     if (!tool || tool.link_group === group) return false
+    // Grey is a true isolation boundary. Capture the tool's currently displayed
+    // symbol before detaching it from a shared group so a later linked selection
+    // cannot overwrite the isolated view through the global active-symbol state.
+    if (group === 'grey') {
+      const configuredSymbol = typeof tool.configuration.symbol === 'string' ? tool.configuration.symbol : null
+      const isolatedSymbol = symbolForLinkGroup(tool.link_group, configuredSymbol)
+      tool.configuration = { ...tool.configuration, symbol: isolatedSymbol }
+    }
     tool.link_group = group
     scheduleSnapshot()
     return true

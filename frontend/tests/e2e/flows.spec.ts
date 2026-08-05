@@ -404,6 +404,34 @@ test.describe('TC2000 workstation', () => {
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
+  test('F8m — yellow wildcard receives linked symbols while grey remains isolated', async ({ page, browserDiagnostics }) => {
+    await page.goto('/chart')
+    const chartTool = page.locator('.chart-tool').first().locator('..').locator('..')
+    const chartSymbol = chartTool.locator('.tool-window__symbol')
+    const chartLink = chartTool.locator('select[aria-label="Chart symbol link group"]')
+    await expect(chartSymbol).toHaveText('SPY')
+    await expect(chartLink).toBeVisible({ timeout: 10_000 })
+
+    const sectors = page.getByRole('region', { name: 'Relative to SPY' })
+    await expect(sectors.getByRole('button', { name: /XLK/ }).first()).toBeVisible({ timeout: 10_000 })
+
+    // Grey is an explicit isolation boundary: linked sector selection changes
+    // the workstation symbol but must not mutate this chart.
+    await chartLink.selectOption('grey')
+    await sectors.getByRole('button', { name: /XLK/ }).first().click()
+    await expect(page.getByRole('combobox', { name: 'Active symbol' })).toHaveValue('XLK')
+    await expect(chartSymbol).toHaveText('SPY')
+
+    // Yellow is a wildcard receiver: the same chart now follows a linked sector
+    // selection regardless of the source group's concrete color.
+    await chartLink.selectOption('yellow')
+    await expect(chartLink).toHaveValue('yellow')
+    await sectors.getByRole('button', { name: /XLE/ }).first().click()
+    await expect(page.getByRole('combobox', { name: 'Active symbol' })).toHaveValue('XLE')
+    await expect(chartSymbol).toHaveText('XLE')
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
   test('F8k — Ctrl+wheel traverses the workstation symbol universe', async ({ page, browserDiagnostics }) => {
     await page.goto('/chart')
     const activeSymbol = page.getByRole('combobox', { name: 'Active symbol' })

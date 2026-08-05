@@ -18094,3 +18094,12 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
   that the source workspace retains the tool and can float it again before a normal close.
 - The complete authenticated flow suite passed `35/35` in approximately `1.4m` with clean
   diagnostics. Native multi-monitor placement and strict V25 visual approval remain open.
+
+## Continuation update — 2026-08-06T00:00:00Z Link-group isolation repair
+
+- Browser coverage exposed that moving a shared tool to Grey did not persist its current symbol;
+  a later linked selection could therefore overwrite the supposedly isolated view. The workspace
+  store now captures the displayed symbol when entering Grey isolation.
+- Added F8m proving Grey isolation and Yellow wildcard reception in the real workstation. Focused
+  workspace-store coverage passed `35/35`; complete authenticated flows passed `36/36`; frontend
+  type-check passed.

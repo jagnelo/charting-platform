@@ -4,8 +4,8 @@
     "active_worker": "Codex",
     "worker_session_started_at": "2026-07-28T21:40:33Z",
     "worker_soft_stop_at": null,
-  "last_handoff_at": "2026-08-05T23:15:00Z",
-  "last_commit": "644fda7 test(e2e): cover disconnected popout recovery",
+  "last_handoff_at": "2026-08-06T00:00:00Z",
+  "last_commit": "pending: link-group isolation repair",
     "git_ready_to_commit": true,
   "validation": {
     "sandbox_numpy_method_guard": "passed: dangerous ndarray, dynamic execution/import/namespace, filesystem/network/process, reflection/object-graph introspection, and wall-time restoration regressions; combined validator/runner slice 90 passed and full backend unit suite 955 passed, 2026-08-04",
@@ -52,6 +52,7 @@
     "stream_session_factory_integration": "passed: production dedicated stream sessions are provided through an injectable get_stream_session_factory; controlled unit/integration adapters remain loop-safe; backend unit 925 passed, Docker integration 281 passed, complete Chromium 24/24 passed, and rebuilt-stack error/warning audits were empty, 2026-08-04",
     "uplot_performance_current": "passed: current-branch Chromium uPlot guard rendered 100,000 points and completed 40 zoom/pan updates without replacing the chart element; authenticated multi-window guard opened two simultaneous pop-outs and recovered with stable source tool/canvas counts; extended twenty-round two-popout churn sampled heap usage after every round and retained settled tool/canvas/chart counts with clean diagnostics; explicit drawing-renderer teardown releases primary/sub-pane canvas references; broader native multi-monitor placement and longer-than-twenty-round soak remain open, 2026-08-05T22:45:00Z",
     "popout_disconnect_recovery": "passed: browser-level externally closed pop-out retained its source tool, allowed re-float in the same authenticated session, and closed cleanly; complete flows 35/35 with clean diagnostics, 2026-08-05T23:15:00Z",
+    "link_group_isolation_recovery": "passed: moving a shared tool to Grey persists its current symbol before detachment; Yellow wildcard follows later linked selections; focused workspace-store 35/35, complete Chromium flows 36/36, frontend type-check passed, 2026-08-06T00:00:00Z",
     "popout_lifecycle_repeat": "passed: F8f repeatedly floated and closed the same tool ten times, retaining the durable source tool count and clean browser diagnostics; focused run 4.9s and complete flows 27/27, 2026-08-04",
     "legacy_route_matrix": "passed: authenticated Chromium smoke coverage reached ten retained /legacy surfaces without login redirects or fatal overlays; complete flows.spec.ts passed 26/26 and browser diagnostics were clean, 2026-08-04",
     "auth_session_lifecycle": "passed: normal and detached authentication lookups use independent/eagerly closed sessions; cleanup helpers accept async SQLAlchemy and synchronous compatibility adapters; backend unit 926, Docker integration 281, complete Chromium 26/26, and fresh backend log audit were clean, 2026-08-04",

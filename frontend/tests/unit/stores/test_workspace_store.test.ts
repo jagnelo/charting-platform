@@ -358,6 +358,22 @@ describe('workspace store layout tabs', () => {
     }))
   })
 
+  it('captures the current symbol when moving a shared tool into grey isolation', () => {
+    const store = useWorkspaceStore()
+    store.workspace = {
+      id: 10, user_id: 3, name: 'US Top Down', is_default: true, position: 0, revision: 4, schema_version: 1, settings: {},
+      tabs: [{
+        id: 20, stable_key: 'us-top-down', name: 'US Top Down', position: 0, active_window_key: 'chart', layout_config: {},
+        windows: [{ id: 30, instance_key: 'chart', tool_type: 'chart', title: 'Chart', link_group: 'blue', configuration: {}, style: {}, state_schema_version: 1, position: 0 }],
+      }],
+    }
+    store.publishSymbol({ symbol: 'XLK', group: 'blue', sourceWindowKey: 'sector-list' })
+
+    expect(store.updateToolLinkGroup('chart', 'grey')).toBe(true)
+    expect(store.activeTab?.windows[0].configuration.symbol).toBe('XLK')
+    expect(store.symbolForLinkGroup('grey', String(store.activeTab?.windows[0].configuration.symbol))).toBe('XLK')
+  })
+
   it('publishes a selected row only to its owning link group and retains grey isolation', () => {
     const store = useWorkspaceStore()
     store.workspace = {
