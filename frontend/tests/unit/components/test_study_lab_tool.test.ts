@@ -252,6 +252,7 @@ describe('StudyLabTool', () => {
 
     await wrapper.findAll('[aria-label="Promote study result"] button').find(button => button.text() === 'Save as Strategy signal')!.trigger('click')
     await vi.waitFor(() => expect(wrapper.text()).toContain('Saved as a reusable Strategy Lab signal.'))
+    expect(wrapper.findAll('[aria-label="Promote study result"] button').find(button => button.text() === 'Save as Strategy signal')!.attributes('disabled')).toBeUndefined()
     expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({ kind: 'signal', initial_version: expect.objectContaining({ output_contract: 'boolean' }) }))
   })
 

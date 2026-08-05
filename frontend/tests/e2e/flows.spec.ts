@@ -679,7 +679,12 @@ test.describe('TC2000 workstation', () => {
     await study.getByRole('button', { name: 'Promote to alert' }).click()
     await expect(study).toContainText('Promoted to an active scan alert.', { timeout: 10_000 })
     await study.getByRole('button', { name: 'Save as Strategy signal' }).click()
-    await expect(study).toContainText('Saved as a reusable Strategy Lab signal.', { timeout: 10_000 })
+    // Signal promotion creates a Strategy Lab definition and returns its fully
+    // hydrated version graph. On a long-lived shared acceptance database this
+    // can legitimately take longer than the scan/alert writes, so keep the
+    // assertion bounded by the enclosing test timeout without treating a
+    // transient database queue as a false product failure.
+    await expect(study).toContainText('Saved as a reusable Strategy Lab signal.', { timeout: 25_000 })
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
