@@ -1,5 +1,10 @@
 # Run Report
 
+## 2026-08-05T12:35:00Z Provider-neutral boundary regression
+
+- Added an automated scan test for provider leakage in the primary frontend. Focused test:
+  `1 passed`; complete backend unit suite: `973 passed` in `43.34s`; Ruff and diff checks passed.
+
 ## 2026-08-05T12:10:00Z Research-runner orphan cleanup
 
 - `recover_orphaned_jobs()` now removes the previous worker's cancellation and progress

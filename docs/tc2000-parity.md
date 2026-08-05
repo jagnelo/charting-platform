@@ -8,6 +8,10 @@ previous worker's state. The focused runner suite passes `64/64`, and the full b
 suite passes `972/972`. Live resource-pressure, long-duration performance, and exact-build
 visual approval remain independent open gates.
 
+The provider-neutral frontend boundary is now regression-tested in the backend unit suite:
+the primary `frontend/src` tree may not embed provider identifiers, credentials, direct provider
+URLs, or fallback-order logic. The guard passes as part of the current `973/973` unit result.
+
 This is the implementation-facing matrix for the controlling plan. `Blocked` means
 the source reference is required before visual acceptance; it is not an approval.
 

@@ -1,5 +1,13 @@
 # Active Handoff
 
+## Continuation update — 2026-08-05T12:35:00Z Provider-neutral boundary regression
+
+- Added `backend/tests/unit/test_frontend_provider_boundary.py`, an automated guard over the
+  primary `frontend/src` tree. It rejects provider identifiers, credential/API-key references,
+  direct provider details, and fallback-order logic from re-entering the authenticated UI.
+- The new guard passes, Ruff and `git diff --check` pass, and the complete backend unit suite
+  now passes `973/973` with the known 34 third-party deprecation warnings.
+
 ## Continuation update — 2026-08-05T12:10:00Z Research-runner orphan cleanup
 
 - Fixed isolated runner restart recovery: stale `*.cancel` and progress artifacts are now
