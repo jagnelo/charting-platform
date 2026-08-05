@@ -72,6 +72,13 @@ drains pending snapshots; remote workspace events no longer replace locally dirt
 revisioned save/merge path runs. The component/store regressions cover these contracts, the rebuilt
 stack full flow passes `42/42`, and the full frontend suite passes `582/582` across 88 files.
 
+The current branch runner was re-probed after the workspace changes. Namespace, mount, ptrace,
+fork, network, subprocess, and root-write attempts remain denied; the 2 GiB resident allocation
+is cgroup-killed, the 70 MiB tmpfs write returns ENOSPC, and concurrent pressure contains three
+child failures without a runner restart. A claimed shared-volume job also completed after an
+explicit runner restart with no stale cancellation/progress residue. This refreshes bounded
+containment/recovery evidence but does not satisfy sustained or indefinite stress acceptance.
+
 Provider-route recheck on 2026-08-05T21:45:00Z confirmed that the four remaining ETF holdings
 failures are still external-route conditions, not safe candidates for fallback substitution:
 official pages declare ADFI, DFTT, and NEOS downloads but the discovered acceptance routes remain

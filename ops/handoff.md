@@ -18613,3 +18613,13 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
   production build pass.
 - Exact-build V25 visual approval, provider-live, sustained sandbox/resource stress, native
   multi-monitor placement, indefinite soak, and remaining cross-surface parity gates remain open.
+## Continuation update — 2026-08-07T00:35:00Z Live sandbox probe refresh
+
+- Re-ran the branch research-runner sandbox/resource/recovery probes. Namespace, mount, ptrace,
+  fork, network, subprocess, and root-write attempts were denied; resident 2 GiB allocation was
+  killed by the 768 MiB cgroup; 70 MiB tmpfs write returned ENOSPC; three concurrent pressure
+  children were contained with restart count unchanged; and a claimed shared-volume job completed
+  after an explicit runner restart without stale cancel/progress residue.
+- This refreshes bounded evidence only. Sustained cancellation/resource stress, long-duration
+  research performance, and indefinite soak remain open alongside visual/provider/multi-monitor
+  gates.

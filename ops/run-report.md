@@ -20058,3 +20058,11 @@ uncovered slice rather than repeat a generic completion claim.
 - Remaining acceptance gates are unchanged: strict exact-build V25 visual references/baselines,
   configured provider-live coverage, sustained sandbox/resource stress, native multi-monitor,
   indefinite soak, and remaining cross-surface parity.
+## 2026-08-07T00:35:00Z Live sandbox probe refresh
+
+- Current runner probe results: namespace/mount/ptrace/fork/network/subprocess/root-write denied;
+  2 GiB resident allocation cgroup-killed; 70 MiB tmpfs write rejected with ENOSPC; three
+  concurrent pressure failures contained with restart count unchanged; and orphaned claimed-job
+  recovery completed after runner restart with no stale sentinels.
+- These are bounded containment/recovery checks and do not close sustained resource, long-running
+  research, or indefinite-soak acceptance.
