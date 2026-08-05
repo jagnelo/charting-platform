@@ -62,3 +62,28 @@ def test_seasonality_factory_source_executes_all_calendar_outputs_in_the_runner(
     assert result["artifacts"]["average_day_of_month_return"]["type"] == "bar"
     assert result["artifacts"]["average_day_of_week_return"]["type"] == "bar"
     assert result["artifacts"]["day_of_week_observations"]["type"] == "table"
+
+
+def test_all_named_factory_sources_execute_against_a_prepared_fixture():
+    timestamps = [f"2026-01-{day:02d}" for day in range(1, 31)]
+    closes = [100 + day + (day % 4) for day in range(30)]
+    dataset = {
+        "symbol": "SPY",
+        "timestamps": timestamps,
+        "closes": closes,
+        "benchmark_dataset": {"symbol": "SPY", "status": "ready", "closes": [200 + day for day in range(30)], "timestamps": timestamps},
+        "datasets": [
+            {"instrument_id": 1, "symbol": "SPY", "closes": closes, "timestamps": timestamps},
+            {"instrument_id": 2, "symbol": "XLK", "closes": [90 + day * 2 for day in range(30)], "timestamps": timestamps},
+            {"instrument_id": 3, "symbol": "XLE", "closes": [120 + day for day in range(30)], "timestamps": timestamps},
+        ],
+    }
+
+    aggregate_sources = {"crossSectionalRankSource", "breadthParticipationSource"}
+    for name, source in _source_constants().items():
+        run_dataset = dataset if name in aggregate_sources else {key: value for key, value in dataset.items() if key != "datasets"}
+        job = {"source": source, "dataset": run_dataset}
+        if name in aggregate_sources:
+            job["output_contract"] = "study"
+        result = execute_job(job)
+        assert result["status"] == "completed", (name, result.get("diagnostics"))

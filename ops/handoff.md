@@ -1,5 +1,12 @@
 # Active Handoff
 
+## Continuation update — 2026-08-05T18:45:00Z Full factory runtime matrix
+
+- Extended the cross-layer test to execute every named factory source against deterministic prepared
+  data. Aggregate ranking/breadth sources use the real structured `study` contract and declared
+  universe; scalar/series/event sources use the single-dataset path.
+- All 11 factory sources execute successfully; focused backend factory-source suite passes `4/4`.
+
 ## Continuation update — 2026-08-05T18:20:00Z All factory-source policy coverage
 
 - Expanded the cross-layer backend test to extract and validate all 11 named Study Lab factory

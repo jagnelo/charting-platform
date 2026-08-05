@@ -1,5 +1,11 @@
 # Run Report
 
+## 2026-08-05T18:45:00Z Full factory runtime matrix
+
+- Added deterministic execution coverage for every named Study Lab factory source, including the
+  structured aggregate contract and declared-universe dataset path used by ranking/breadth studies.
+- All 11 sources complete successfully; focused backend factory-source suite passes `4/4`.
+
 ## 2026-08-05T18:20:00Z All factory-source policy coverage
 
 - Added a cross-layer validator regression covering every named Study Lab factory source, not only

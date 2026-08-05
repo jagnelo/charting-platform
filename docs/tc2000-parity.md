@@ -56,6 +56,8 @@ Latest continuation evidence:
   now `2/2`.
 - The same cross-layer test now validates all 11 named factory sources against the production AST
   policy; the focused backend factory-source suite is `3/3`.
+- The matrix now executes all 11 sources with their actual single-dataset or structured aggregate
+  contracts and deterministic prepared data; the focused backend suite is `4/4`.
 
 Continuation evidence from the current branch checkpoint:
 
