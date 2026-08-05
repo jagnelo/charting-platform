@@ -1,5 +1,10 @@
 # Active Handoff
 
+## Continuation update — 2026-08-05T14:05:00Z Exact browser rerun
+
+- The exact pushed non-visual Playwright set passes `34/34` in 1.3 minutes after the cross-window
+  `XLB` propagation assertion was strengthened. No unexpected browser diagnostics were reported.
+
 ## Continuation update — 2026-08-05T13:40:00Z Multi-window performance
 
 - Added and passed the authenticated multi-window performance guard: two simultaneous pop-outs

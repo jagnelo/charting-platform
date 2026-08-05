@@ -1,5 +1,11 @@
 # Run Report
 
+## 2026-08-05T14:05:00Z Exact non-visual Playwright rerun
+
+- After strengthening the multi-window guard to assert `XLB` propagation into both pop-outs,
+  the exact non-visual acceptance set (`flows.spec.ts`, `uplot_performance.spec.ts`, and
+  `workstation_performance.spec.ts`) passes `34/34` in 1.3 minutes.
+
 ## 2026-08-05T13:40:00Z Multi-window performance guard
 
 - Added a browser guard that opens two simultaneous pop-outs, initializes each tool, restores the
