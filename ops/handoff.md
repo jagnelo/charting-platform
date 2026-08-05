@@ -1,5 +1,11 @@
 # Active Handoff
 
+## Continuation update — 2026-08-05T09:05:00Z Logout diagnostic contract
+
+- Browser diagnostics now model the logout token-clear race explicitly: F5 opts into a
+  bounded set of expected 401 console responses after the sign-out action; unrelated 401s
+  remain failures. Focused F5 and the complete Chromium suite pass `29/29`.
+
 ## Continuation update — 2026-08-05T08:45:00Z Honest workstation freshness states
 
 - The workstation status bar now consumes the canonical technical freshness contract and

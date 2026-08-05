@@ -1,5 +1,12 @@
 # Run Report
 
+## 2026-08-05T09:05:00Z Logout diagnostic contract
+
+- The full browser rerun exposed expected 401 console noise during logout: token clearing
+  races with in-flight Vue Query requests. F5 now explicitly opts into a bounded logout
+  allowance, while all other 401s remain fatal. Focused F5 and the complete authenticated
+  Chromium suite both pass (`29/29`).
+
 ## 2026-08-05T08:45:00Z Honest workstation freshness states
 
 - Replaced the shell's timestamp-based `Cached` label with the canonical analysis

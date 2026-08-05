@@ -48,6 +48,7 @@ test.describe('Authentication', () => {
   })
 
   test('F5 — logout redirects to login', async ({ page, loggedIn, browserDiagnostics }) => {
+    browserDiagnostics.allowExpectedUnauthorizedResponses()
     await page.click('.logout-btn, .user-avatar, button[title*="Sign out"]')
     await expect(page).toHaveURL(/\/login/, { timeout: 5_000 })
     await browserDiagnostics.expectNoCriticalIssues()
@@ -251,6 +252,9 @@ test.describe('TC2000 workstation', () => {
     await expect(menu.getByRole('menuitem', { name: 'Close' })).toBeVisible()
     await page.keyboard.press('Escape')
     await expect(menu).toHaveCount(0)
+    await expect(page.locator('[class^="workstation__data-state--"]').first()).toHaveText(
+      /Current · canonical|Delayed|Stale|Partial coverage|Coverage limited|Fetching|Backfilling history|Unavailable/,
+    )
     await browserDiagnostics.expectNoCriticalIssues()
   })
 

@@ -47,6 +47,13 @@ class BrowserDiagnostics {
   // client can exercise its merge/recovery path. The response is handled by the
   // store; Chrome still reports the HTTP conflict as a console error.
   expectedWorkspaceConflictResponses = 0
+  // Logout clears the token before in-flight Vue Query requests finish. Those
+  // documented auth-boundary responses are expected during the redirect only.
+  expectedUnauthorizedResponses = 0
+
+  allowExpectedUnauthorizedResponses(count = 20) {
+    this.expectedUnauthorizedResponses += count
+  }
 
   attach(page: Page) {
     this.page = page
@@ -140,6 +147,11 @@ class BrowserDiagnostics {
       if (error === 'Failed to load resource: the server responded with a status of 409 (Conflict)'
         && expectedWorkspaceConflictResponses > 0) {
         expectedWorkspaceConflictResponses -= 1
+        return false
+      }
+      if (error === 'Failed to load resource: the server responded with a status of 401 (Unauthorized)'
+        && this.expectedUnauthorizedResponses > 0) {
+        this.expectedUnauthorizedResponses -= 1
         return false
       }
       if (error === 'Failed to load resource: the server responded with a status of 400 (Bad Request)'

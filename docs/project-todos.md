@@ -2,6 +2,10 @@
 
 ## Current continuation checkpoint — 2026-08-05T08:45:00Z
 
+The browser acceptance harness now treats logout's in-flight 401 responses as an explicit,
+bounded auth-boundary contract; unrelated unauthorized responses remain failures. Focused F5
+and the complete Chromium flow pass `29/29`.
+
 - Workstation freshness presentation now uses the canonical technical-analysis freshness
   contract and has exhaustive state mapping coverage (`565/565` frontend tests, TypeScript,
   production build, rebuilt Chromium `29/29`). The old timestamp-derived `Cached` shell state

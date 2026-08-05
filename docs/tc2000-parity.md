@@ -21,6 +21,11 @@ is recorded in the referenced test/baseline system.
 
 ## Current runtime evidence (2026-08-05)
 
+The browser diagnostic contract also covers the logout boundary explicitly: F5 grants only
+the bounded 401 responses caused by clearing authentication while in-flight queries settle;
+all other 401s remain fatal. The focused logout test and complete authenticated flow pass
+`29/29`.
+
 The dense workstation status bar now consumes the canonical technical snapshot freshness
 contract rather than treating the newest local bar as an unqualified cache timestamp. It
 renders `Current · canonical`, `Delayed`, `Stale · cached`, `Partial coverage`, `Coverage
