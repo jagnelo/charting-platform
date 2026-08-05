@@ -21,6 +21,21 @@ is recorded in the referenced test/baseline system.
 
 ## Current runtime evidence (2026-08-05)
 
+Continuation evidence from the current branch checkpoint:
+
+- Full frontend Vitest is `573/573` across 87 files; TypeScript and production build pass.
+- The authenticated Chromium flow now includes a real traversal of all eight required factory
+  layouts (`US Top Down`, `TC Classic`, `Drill Down`, `Sector by Year`, `1 Chart`, `4 Timeframe`,
+  `Fundamentals`, and `Study Lab`). The traversal passes, and each layout renders without the
+  recovery state or title/symbol/action header collisions.
+- The complete authenticated flow is now `32/32` after that coverage addition; the existing
+  four scaled visual projects also report zero core overlap issues. Screenshot comparisons remain
+  intentionally unapproved because three local baselines differ by 1–2% and the exact-build V25
+  reference manifest is still `required_missing`.
+- The live research runner has explicit seccomp plus the existing no-network/read-only/non-root
+  boundary. A queue-level three-minute soak processed `360/360` uniquely submitted jobs with no
+  missing jobs, zero restarts, and no probe residue. Heavy-study performance remains separate.
+
 The Docker-reachable backend regression is now green after fixing CoinGecko's missing-key
 diagnostic lifecycle: `1247 passed`, `348 skipped`, and no failures with explicit asyncio auto
 mode. The eight async background-task tests execute and pass; the skipped set is the

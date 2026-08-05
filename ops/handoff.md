@@ -1,5 +1,13 @@
 # Active Handoff
 
+## Continuation update — 2026-08-05T13:05:00Z Factory-layout acceptance
+
+- Browser coverage now traverses `US Top Down`, `TC Classic`, `Drill Down`, `Sector by Year`,
+  `1 Chart`, `4 Timeframe`, `Fundamentals`, and `Study Lab`, asserting visible persisted tools,
+  no recovery state, and no core header collisions.
+- Focused traversal passes `1/1`; complete authenticated Chromium flows pass `32/32` in 1.5
+  minutes. Parity documentation was refreshed; exact V25 visual approval remains open.
+
 ## Continuation update — 2026-08-05T12:25:00Z Docker cleanup
 
 - Requested cleanup reclaimed `4.308GB`; all active branch-scoped services and named volumes

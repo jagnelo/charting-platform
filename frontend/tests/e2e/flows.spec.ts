@@ -165,6 +165,33 @@ test.describe('TC2000 workstation', () => {
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
+  test('factory layouts render without recovery state or core header collisions', async ({ page, browserDiagnostics }) => {
+    await page.goto('/chart')
+    const layouts = ['US Top Down', 'TC Classic', 'Drill Down', 'Sector by Year', '1 Chart', '4 Timeframe', 'Fundamentals', 'Study Lab']
+    for (const layout of layouts) {
+      const tab = page.getByRole('button', { name: layout, exact: true }).first()
+      await expect(tab).toBeVisible({ timeout: 10_000 })
+      await tab.click()
+      await expect(tab).toHaveClass(/workstation__tab--active/)
+      await expect(page.locator('.workstation__layout-state')).toHaveCount(0)
+      await expect(page.locator('.tool-window').first()).toBeVisible({ timeout: 10_000 })
+      const collisions = await page.evaluate(() => {
+        const overlaps = (a: DOMRect, b: DOMRect) => a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top
+        const issues: string[] = []
+        document.querySelectorAll('.tool-window__header').forEach((header, index) => {
+          const title = header.querySelector('.tool-window__title')?.getBoundingClientRect()
+          const symbol = header.querySelector('.tool-window__symbol')?.getBoundingClientRect()
+          const actions = header.querySelector('.tool-window__actions')?.getBoundingClientRect()
+          if (title && actions && overlaps(title, actions)) issues.push(`title-actions-${index}`)
+          if (symbol && actions && overlaps(symbol, actions)) issues.push(`symbol-actions-${index}`)
+        })
+        return issues
+      })
+      expect(collisions).toEqual([])
+    }
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
   test('F8b — closing a floated tool preserves its source workspace tool', async ({ page, context, browserDiagnostics }) => {
     await page.goto('/chart')
     const floatButton = page.locator('button[title="Float"]').first()

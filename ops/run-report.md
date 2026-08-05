@@ -1,5 +1,15 @@
 # Run Report
 
+## 2026-08-05T13:05:00Z Factory-layout browser acceptance
+
+- Added a real authenticated traversal for all eight required factory layouts. Each layout is
+  selected through the visible workspace tab, renders a persisted tool without the recovery
+  state, and passes title/action and symbol/action collision checks.
+- The focused traversal passes `1/1`; the complete authenticated Chromium suite now passes
+  `32/32` in 1.5 minutes with no unexpected browser diagnostics.
+- Updated `docs/tc2000-parity.md` with the current evidence. Exact-build V25 screenshot approval
+  remains intentionally blocked by the `required_missing` manifest state.
+
 ## 2026-08-05T12:25:00Z Docker cleanup after runner soak
 
 - `docker system prune -af` reclaimed `4.308GB` of dangling images and build cache. The active
