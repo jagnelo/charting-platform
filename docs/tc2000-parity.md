@@ -12,6 +12,10 @@ The provider-neutral frontend boundary is now regression-tested in the backend u
 the primary `frontend/src` tree may not embed provider identifiers, credentials, direct provider
 URLs, or fallback-order logic. The guard passes as part of the current `973/973` unit result.
 
+The Docker-backed research/code API integration suite also passes `18/18`, covering queued run
+creation/cancellation, declared dataset materialization, batch limits/results, durable progress,
+and structured artifacts.
+
 This is the implementation-facing matrix for the controlling plan. `Blocked` means
 the source reference is required before visual acceptance; it is not an approval.
 

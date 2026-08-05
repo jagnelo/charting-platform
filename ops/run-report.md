@@ -1,5 +1,10 @@
 # Run Report
 
+## 2026-08-05T12:55:00Z Research API integration checkpoint
+
+- Focused Docker-backed code/research integration suite: `18 passed` in `26.08s`, with two
+  known third-party deprecation warnings and no application failures.
+
 ## 2026-08-05T12:35:00Z Provider-neutral boundary regression
 
 - Added an automated scan test for provider leakage in the primary frontend. Focused test:

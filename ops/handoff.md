@@ -1,5 +1,12 @@
 # Active Handoff
 
+## Continuation update — 2026-08-05T12:55:00Z Research API integration checkpoint
+
+- Docker-backed `backend/tests/integration/api/test_code.py` passes `18/18` with only the two
+  known Nautilus deprecation warnings. This validates queued research creation, cancellation,
+  dataset materialization, batch limits/results, durable progress, and structured artifacts
+  across the API boundary after the runner recovery change.
+
 ## Continuation update — 2026-08-05T12:35:00Z Provider-neutral boundary regression
 
 - Added `backend/tests/unit/test_frontend_provider_boundary.py`, an automated guard over the
