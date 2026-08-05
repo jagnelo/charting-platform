@@ -18731,3 +18731,11 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
 - Strict visual validation still fails closed at
   `application-shell-default/default: required_missing`; no unapproved reference or baseline was
   promoted.
+
+## Continuation update — 2026-08-07T03:15:00Z Reference authority refresh
+
+- Added official current Version 25 web-platform capability evidence to the visual manifest for
+  customizable layouts, floating windows, full-screen mode, and multiple monitors. Normal manifest
+  validation passes; strict approval remains correctly blocked at
+  `application-shell-default/default: required_missing` because no exact-build deterministic state
+  capture has been promoted.

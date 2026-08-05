@@ -20153,3 +20153,9 @@ uncovered slice rather than repeat a generic completion claim.
   with 34 documented third-party deprecation warnings.
 - Strict visual manifest validation remains intentionally blocked at
   `application-shell-default/default: required_missing`; no baseline was promoted.
+
+## 2026-08-07T03:15:00Z Reference authority refresh
+
+- Added official current Version 25 web-platform capability evidence to the manifest for layouts,
+  floating windows, full-screen mode, and multiple monitors. Normal validation passes; strict
+  validation remains correctly blocked by the missing exact-build visual state capture.

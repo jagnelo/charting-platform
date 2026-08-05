@@ -21,6 +21,13 @@ reference_policy:
       observed_release: "April 2026"
       status: build_confirmed_not_visual_baseline
       notes: "Official release notes identify 25.0.9571 as the April 2026 Version 25 release. This confirms the pinned build identity but does not substitute for state captures, environment metadata, measurements, or visual review."
+    - id: v25-current-platform-windowing-capabilities
+      source_type: official_v25_platform_description
+      source_page: https://webplatform.tc2000.com/
+      source_build: "version-25-current"
+      status: behavior_confirmed_not_visual_baseline
+      capabilities: [custom_layouts, floating_windows, full_screen, multiple_monitors]
+      notes: "The official Version 25 platform entry explicitly describes customizable layouts, floating windows, full screen, and multiple-monitor support. This strengthens interaction-scope evidence but provides no deterministic screenshot, build hash, or capture-environment metadata, so it cannot satisfy visual approval."
   retrieved_reference_pack:
     retrieved_at: "2026-08-05"
     retrieval_script: tests/visual/fetch-tc2000-v25-reference-pack.sh
