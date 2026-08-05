@@ -39,6 +39,10 @@ The isolated-runner security configuration was verified on the live container: e
 The focused AST/runner/deployment security slice passes `94/94`; the Docker-reachable backend
 suite also passes with the async runner tests enabled.
 
+The branch-local PostgreSQL migration ledger also passed a reversible integrity check: Alembic
+downgraded `ea0f1a2b3c4d` to `e9f0a1b2c3d4`, upgraded back to `ea0f1a2b3c4d`, and reports the head
+revision afterward.
+
 The post-pop-out-change frontend verification is green: Vitest `572/572`, `vue-tsc
 --noEmit`, and the production Vite build all pass. The suite includes the new active-display
 origin and persisted-geometry coverage. This is functional/build evidence only; it does not

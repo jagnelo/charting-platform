@@ -1,5 +1,10 @@
 # Active Handoff
 
+## Continuation update — 2026-08-05T10:15:00Z Alembic migration integrity
+
+- Branch-local PostgreSQL successfully downgraded from `ea0f1a2b3c4d` to `e9f0a1b2c3d4` and
+  upgraded back; the final ledger revision is the expected head `ea0f1a2b3c4d`.
+
 ## Continuation update — 2026-08-05T10:02:00Z Research-runner sandbox audit
 
 - Focused AST/runner/deployment security tests pass `94/94`.

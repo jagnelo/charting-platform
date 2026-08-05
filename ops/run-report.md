@@ -1,5 +1,11 @@
 # Run Report
 
+## 2026-08-05T10:15:00Z Alembic reversible migration check
+
+- Branch-local PostgreSQL was at `ea0f1a2b3c4d` (head). A reversible downgrade to
+  `e9f0a1b2c3d4` and upgrade back to `ea0f1a2b3c4d` completed successfully; Alembic reports
+  the head revision afterward.
+
 ## 2026-08-05T10:02:00Z Research-runner sandbox audit
 
 - Focused AST validation, isolated runner, and deployment tests passed `94/94`.
