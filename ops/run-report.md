@@ -19624,3 +19624,13 @@ uncovered slice rather than repeat a generic completion claim.
   watchlist guard and the new link/timeframe interaction coverage.
 - TypeScript, JSON parsing, and diff validation remain clean; unresolved visual/provider,
   adversarial, native multi-monitor, long-soak, and broad parity gates remain open.
+
+## 2026-08-06T01:20:00Z Split Chromium flow verification
+
+- Playwright currently lists 40 tests: 37 non-visual flows and three performance tests. The
+  remaining bounded flow slice passed `11/11`, the retained `/legacy` route case passed `1/1`,
+  and the preceding slice plus repeated F8m/F8n runs cover the other 25 flow cases. This
+  establishes individually green evidence for all 37 non-visual flow cases despite the combined
+  reporter truncating its output after the first slice.
+- Strict visual, provider-live, adversarial resource, native multi-monitor, long-soak, and broad
+  parity gates remain open.

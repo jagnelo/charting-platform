@@ -18131,3 +18131,14 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
 - Frontend type-check, JSON parsing, and `git diff --check` remain clean. Exact-build visual,
   provider-live, adversarial stress, native multi-monitor, long-soak, and broad parity gates
   remain unresolved.
+
+## Continuation update — 2026-08-06T01:20:00Z Split Chromium flow verification
+
+- The current Playwright inventory is 40 tests: 37 non-visual flows plus the uPlot/workstation
+  performance files. The non-visual flows were verified in bounded slices because the combined
+  reporter stopped emitting after the first slice: the remaining top-down/Study Lab/alerts/
+  screener/drawing/dashboard/radar slice passed `11/11`, and the retained `/legacy` route test
+  passed `1/1`; together with the first 25-flow slice and repeated F8m/F8n coverage, all 37
+  flow cases are individually green.
+- This is functional browser evidence only; it does not close strict V25 visual approval,
+  provider-live, adversarial resource, native multi-monitor, or long-soak acceptance.
