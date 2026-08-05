@@ -18249,3 +18249,13 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
   55% threshold (`25.39%` for the intentionally narrow slice); this is reported as a coverage
   scope result, not a test failure. Ruff and rebuilt-stack F8s remain green. The strict visual,
   provider-live, adversarial resource, native multi-monitor, and long-soak gates remain open.
+
+## Continuation update — 2026-08-06T06:15:00Z Complete backend integration audit
+
+- Ran the complete Docker-backed backend integration suite: all `281/281` test bodies passed,
+  including the Notes update regression, workspace, screener, research, websocket, provider,
+  and strategy surfaces. The command exits non-zero only because integration-only execution
+  reaches `43.44%`, below the repository-wide `55%` coverage threshold; no integration test
+  failed. The output contains only the existing 54 Nautilus/pandas deprecation warnings.
+- This strengthens backend functional evidence but does not close strict V25 visual approval,
+  provider-live, adversarial resource, native multi-monitor, or long-soak gates.

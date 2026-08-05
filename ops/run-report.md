@@ -19732,3 +19732,12 @@ uncovered slice rather than repeat a generic completion claim.
   narrow file was selected (`25.39%`); the threshold result is not counted as a test-body failure.
 - Existing Nautilus/NumPy deprecation warnings remain unchanged. Strict visual, provider-live,
   adversarial-resource, native multi-monitor, and long-soak acceptance remain open.
+
+## 2026-08-06T06:15:00Z Complete backend integration audit
+
+- `make test-int` executed all 281 Docker-backed integration tests; `281 passed` with no test
+  failures. The process exit is non-zero only due to the integration-only coverage result of
+  `43.44%` versus the repository-wide `55%` threshold. Existing 54 Nautilus/pandas deprecation
+  warnings remain unchanged.
+- Strict V25 visual approval, provider-live, adversarial-resource, native multi-monitor, and
+  long-soak acceptance remain open.
