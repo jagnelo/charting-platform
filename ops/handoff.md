@@ -1,5 +1,13 @@
 # Active Handoff
 
+## Continuation update — 2026-08-05T18:00:00Z Executed seasonality source regression
+
+- Extended the cross-layer Study Lab test to execute the exact seasonality source in the isolated
+  research runner using deterministic dates. It now proves monthly, day-of-month, and weekday bars
+  plus the weekday observation table complete successfully under the real runtime.
+- Focused backend source suite passes `2/2`; frontend Study Lab remains `12/12`, with TypeScript/build
+  green.
+
 ## Continuation update — 2026-08-05T17:40:00Z Cross-layer Study Lab source validation
 
 - Added a backend regression test that extracts the actual `seasonalitySource` emitted by

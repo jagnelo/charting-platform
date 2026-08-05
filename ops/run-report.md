@@ -1,5 +1,12 @@
 # Run Report
 
+## 2026-08-05T18:00:00Z Executed seasonality source regression
+
+- The cross-layer regression now executes the exact frontend seasonality source inside the isolated
+  runner against deterministic dates and verifies all calendar artifacts complete with typed outputs.
+- Focused backend source suite passes `2/2`; frontend Study Lab remains `12/12`, with TypeScript and
+  production build passing.
+
 ## 2026-08-05T17:40:00Z Cross-layer Study Lab source validation
 
 - Added a backend test against the actual frontend factory source, ensuring the seasonality study is

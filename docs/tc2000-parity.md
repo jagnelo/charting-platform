@@ -51,6 +51,9 @@ Latest continuation evidence:
   weekday labels in the calendar-seasonality result.
 - A backend cross-layer regression now validates the exact source emitted by `StudyLabTool.vue`
   through the production AST validator (`1/1`), preventing frontend-only source drift.
+- That regression also executes the source in the isolated runner against deterministic dates and
+  verifies all three calendar bars plus weekday observations; the focused backend source suite is
+  now `2/2`.
 
 Continuation evidence from the current branch checkpoint:
 
