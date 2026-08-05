@@ -18822,3 +18822,13 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
 - Complete frontend Vitest passes `585/585` across 88 files. `vue-tsc --noEmit` and the Vite
   production build (462 modules) also pass. Expected conflict-path stderr remains limited to the
   existing watchlist failure-recovery tests.
+
+## Continuation update — 2026-08-07T13:00:00Z Ctrl+wheel propagation repair
+
+- The authenticated matrix exposed a flaky F8k traversal failure when the pointer was over a
+  chart: uPlot could stop the bubbling wheel event before the workstation handler. The shell now
+  handles wheel traversal in capture phase, tracks Control state when browsers omit `ctrlKey`, and
+  uses the current symbol draft during asynchronous Go hydration. Added a regression for omitted
+  modifier metadata. Focused unit coverage passes `12/12`, TypeScript/build pass, and F8k passes
+  `10/10` repeated browser runs. The full matrix reached `41/42`; its sole miss was a transient
+  Study Lab F8q runner/browser timeout, while an isolated F8q rerun passed.

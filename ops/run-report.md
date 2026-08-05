@@ -20228,3 +20228,11 @@ uncovered slice rather than repeat a generic completion claim.
 
 - Complete frontend Vitest passes `585/585` across 88 files; TypeScript checking and the 462-module
   Vite production build pass. Only the intentionally exercised watchlist conflict stderr appears.
+
+## 2026-08-07T13:00:00Z Ctrl+wheel propagation repair
+
+- Repaired F8k traversal by moving workstation wheel handling to capture phase, retaining a
+  Control-key fallback, and using the draft symbol during asynchronous selection hydration.
+  Focused unit coverage is `12/12`, TypeScript/build pass, and ten repeated authenticated F8k
+  runs pass. The surrounding full matrix was `41/42` because one Study Lab F8q run timed out;
+  isolated F8q subsequently passed.
