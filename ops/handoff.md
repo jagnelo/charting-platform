@@ -18787,3 +18787,11 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
   transient browser-page closure during teardown; the immediate clean rerun passed, so this is
   retained as a flaky-environment observation rather than treated as acceptance evidence of a
   product leak. Native OS multi-monitor placement remains unverified.
+
+## Continuation update — 2026-08-07T08:00:00Z Issuer route recheck
+
+- Re-ran the three unresolved issuer-native probes after current indexed product pages were
+  re-discovered: Davis DUSA remains HTTP 522, Anfield ADFI remains HTTP 404, and Donoghue Forlines
+  DFTT remains HTTP 503. The run is `0 passed, 3 failed` with 344 cases deselected. These remain
+  external availability/route conditions; no failure was suppressed or replaced with unverified
+  holdings data.

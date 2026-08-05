@@ -20199,3 +20199,9 @@ uncovered slice rather than repeat a generic completion claim.
   counts, bounded heap checks where exposed, and clean critical diagnostics. A single preceding
   run hit a transient page-closure teardown race and was not counted as a pass. Native OS
   multi-monitor placement remains unverified.
+
+## 2026-08-07T08:00:00Z Issuer route recheck
+
+- Targeted live probes remain externally unavailable: Davis DUSA HTTP 522, Anfield ADFI HTTP 404,
+  and Donoghue Forlines DFTT HTTP 503 (`0 passed, 3 failed`, 344 deselected). Current indexed
+  pages were re-discovered, but no deterministic backend-reachable route was available to promote.
