@@ -61,6 +61,11 @@ Toews returned 500; and Donoghue Forlines returned 503. These adapters remain un
 current-source acceptance until their routes are repaired or explicitly demoted with verified
 SEC fallback evidence.
 
+The production refresh fallback contract is covered separately: issuer-route failure/refresh
+paths and SEC reconstruction tests pass `12/12` in the focused API slice. Thus native-route live
+failures are not treated as healthy data, while the refresh service retains its documented SEC
+fallback behavior.
+
 Pop-outs now restore persisted `left`, `top`, `width`, and `height` geometry from the
 serializable workspace window style, capture move/resize changes while open, and stop
 polling after close. Geometry is clamped to usable minimum dimensions, and unchanged polls

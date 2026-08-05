@@ -1,5 +1,11 @@
 # Run Report
 
+## 2026-08-05T12:26:00Z ETF holdings fallback verification
+
+- Focused issuer-refresh/SEC-fallback API tests passed `12/12` (22.88s). This verifies that
+  issuer-route failures are surfaced and the production refresh path can use SEC reconstruction;
+  it does not promote the seven currently failing native public routes.
+
 ## 2026-08-05T12:05:00Z Opt-in issuer holdings live audit
 
 - `RUN_LIVE_ETF_HOLDINGS_TESTS=1` public issuer matrix completed `339 passed`, `1 skipped`,

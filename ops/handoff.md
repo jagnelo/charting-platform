@@ -1,5 +1,11 @@
 # Active Handoff
 
+## Continuation update — 2026-08-05T12:26:00Z ETF fallback contract
+
+- Focused issuer-refresh and SEC reconstruction coverage passes `12/12`.
+- Native live-route failures remain explicit; production refresh fallback behavior is verified
+  independently and does not conceal provider-health regressions.
+
 ## Continuation update — 2026-08-05T12:05:00Z Issuer holdings live-source regressions
 
 - Opt-in public issuer holdings audit: `339 passed`, `1 skipped`, `7 failed`. Failures are
