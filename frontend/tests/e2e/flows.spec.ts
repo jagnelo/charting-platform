@@ -211,9 +211,14 @@ test.describe('TC2000 workstation', () => {
     await popup.waitForLoadState('domcontentloaded')
     await expect(popup.locator('.workstation__popout .tool-window')).toBeVisible({ timeout: 10_000 })
 
-    const closed = popup.waitForEvent('close')
-    await popup.locator('button[title="Close"]').click()
-    await closed
+    // A persisted-layout refresh can close the browser-owned pop-out between the
+    // geometry read and cleanup. Treat that already-closed state as successful cleanup;
+    // otherwise close it through the user-facing control and await the browser event.
+    if (!popup.isClosed()) {
+      const closed = popup.waitForEvent('close')
+      await popup.locator('button[title="Close"]').click()
+      await closed
+    }
 
     // The docked window is the durable source of truth; a disposable pop-out cannot
     // remove it from the parent layout.
@@ -333,9 +338,11 @@ test.describe('TC2000 workstation', () => {
     const geometry = (persisted?.style as { popout?: Record<string, unknown> } | undefined)?.popout
     expect(geometry).toEqual(expect.objectContaining({ left: expect.any(Number), top: expect.any(Number), width: expect.any(Number), height: expect.any(Number) }))
 
-    const closed = popup.waitForEvent('close')
-    await popup.locator('button[title="Close"]').click()
-    await closed
+    if (!popup.isClosed()) {
+      const closed = popup.waitForEvent('close')
+      await popup.locator('button[title="Close"]').click()
+      await closed
+    }
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
@@ -416,14 +423,18 @@ test.describe('TC2000 workstation', () => {
       await page.reload()
     }
     const activeSymbolInput = page.getByRole('combobox', { name: 'Active symbol' })
-    await activeSymbolInput.fill('SPY')
-    await activeSymbolInput.press('Enter')
-    await expect(activeSymbolInput).toHaveValue('SPY')
     const chartTool = page.locator('.chart-tool').first().locator('..').locator('..')
     const chartSymbol = chartTool.locator('.tool-window__symbol')
     const chartLink = chartTool.locator('select[aria-label="Chart symbol link group"]')
     await expect(chartLink).toBeVisible({ timeout: 10_000 })
-    const initialChartSymbol = (await chartSymbol.textContent())?.trim() || 'SPY'
+    // Explicitly establish a broadcasting group before publishing SPY; persisted
+    // workspace state may otherwise leave this chart isolated from the shell.
+    await chartLink.selectOption('blue')
+    await activeSymbolInput.fill('SPY')
+    await activeSymbolInput.press('Enter')
+    await expect(activeSymbolInput).toHaveValue('SPY')
+    await expect(chartSymbol).toHaveText('SPY', { timeout: 10_000 })
+    const initialChartSymbol = 'SPY'
 
     const sectors = page.getByRole('region', { name: 'Relative to SPY' })
     await expect(sectors.getByRole('button', { name: /XLK/ }).first()).toBeVisible({ timeout: 10_000 })
@@ -490,8 +501,17 @@ test.describe('TC2000 workstation', () => {
   test('F8k — Ctrl+wheel traverses the workstation symbol universe', async ({ page, browserDiagnostics }) => {
     await page.goto('/chart')
     const activeSymbol = page.getByRole('combobox', { name: 'Active symbol' })
+    // Establish the starting symbol explicitly; persisted workspace hydration may leave
+    // the route-less input blank even though the canonical active symbol is SPY.
+    await activeSymbol.fill('SPY')
+    await page.getByRole('button', { name: 'Go', exact: true }).click()
     await expect(activeSymbol).toHaveValue('SPY')
-    await page.locator('.workstation').dispatchEvent('wheel', { deltaY: 1, ctrlKey: true })
+    await page.locator('.workstation').hover()
+    // Exercise the browser's real modifier + wheel path rather than dispatching a
+    // synthetic event with an implementation-specific target.
+    await page.keyboard.down('Control')
+    await page.mouse.wheel(0, 100)
+    await page.keyboard.up('Control')
     await expect.poll(() => activeSymbol.inputValue()).not.toBe('SPY')
     await browserDiagnostics.expectNoCriticalIssues()
   })
@@ -595,9 +615,13 @@ test.describe('TC2000 workstation', () => {
     await expect(study).toBeVisible({ timeout: 10_000 })
     await study.getByRole('textbox', { name: 'Study name' }).fill('E2E structured event study')
     await study.getByRole('textbox', { name: 'Study symbol' }).fill('SPY')
-    await study.getByRole('textbox', { name: 'Study Python source' }).fill(
-      "output.scalar('event_count', 4)\noutput.bar('monthly_frequency', ['2026-01', '2026-02'], [2, 2])\noutput.histogram('streak_distribution', [1, 2, 2, 3], 2, 2)\noutput.table('summary', [{'state': 'positive_close', 'count': 4}])\noutput.events('occurrences', [{'symbol': 'SPY', 'timestamp': '2026-01-02T00:00:00+00:00', 'kind': 'positive_close'}])"
-    )
+    const structuredSource = "output.scalar('event_count', 4)\noutput.bar('monthly_frequency', ['2026-01', '2026-02'], [2, 2])\noutput.histogram('streak_distribution', [1, 2, 2, 3], 2, 2)\noutput.table('summary', [{'state': 'positive_close', 'count': 4}])\noutput.events('occurrences', [{'symbol': 'SPY', 'timestamp': '2026-01-02T00:00:00+00:00', 'kind': 'positive_close'}])"
+    const sourceEditor = study.getByRole('textbox', { name: 'Study Python source' })
+    await sourceEditor.fill(structuredSource)
+    // Persisted Study Lab windows can hydrate their configuration after the tool becomes
+    // visible. Assert the editor retained the requested source before validating so a late
+    // hydration write cannot turn this into a false-negative race.
+    await expect(sourceEditor).toHaveValue(structuredSource)
     await study.getByRole('button', { name: 'Validate' }).click()
     await expect(study).toContainText('Validated for isolated execution', { timeout: 10_000 })
     await study.getByRole('button', { name: 'Run' }).click()
@@ -694,7 +718,7 @@ test.describe('TC2000 workstation', () => {
     await expect(notes.last()).toBeVisible({ timeout: 10_000 })
     // Persisted workspaces may contain older Notes windows. Target the newly
     // hydrated active-instrument editor rather than assuming DOM order.
-    const editor = page.locator('.note-tool textarea:not(:disabled)').last()
+    const editor = page.locator('.note-tool textarea:not(:disabled):visible').last()
     await expect(editor).toBeEnabled({ timeout: 10_000 })
     await editor.fill(`E2E note ${process.hrtime.bigint().toString(36)}`)
     await expect(editor.locator('xpath=ancestor::section[contains(@class,"note-tool")]').locator('.note-tool__status')).toContainText('Saved', { timeout: 10_000 })

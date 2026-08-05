@@ -1,5 +1,14 @@
 # Active Handoff
 
+## Continuation update — 2026-08-06T16:00:00Z Full authenticated flow regression
+
+- The complete serial authenticated browser suite now passes `42/42` after fixing three
+  persisted-workspace races: Study Lab source hydration, route-less symbol initialization and
+  real Ctrl+wheel traversal, and pop-out cleanup when the browser window closes during persistence.
+  The link-group flow now explicitly establishes a broadcasting chart group before testing Grey
+  isolation and Yellow wildcard behavior. TypeScript and diff checks pass. Strict V25 visual,
+  provider-live, native multi-monitor, sustained resource, and indefinite-soak gates remain open.
+
 ## Continuation update — 2026-08-06T14:00:00Z Primary shell geometry guard
 
 - Extended F8r to assert the dense workstation footer exposes exactly one active-symbol value,

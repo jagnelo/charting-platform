@@ -1,5 +1,13 @@
 # Run Report
 
+## 2026-08-06T16:00:00Z Full authenticated flow regression
+
+- Serial Chromium `tests/e2e/flows.spec.ts` passes `42/42` in `2.8m`. The run covers authentication,
+  charts, factory layouts, pop-outs/recovery, symbol/timeframe links, top-down drilldown, Study Lab
+  rendering and promotion, Notes, alerts, screener, drawings, dashboard, legacy routes, and Radar.
+  TypeScript and diff checks also pass. Remaining strict visual, provider, hardware, sustained
+  resource, and indefinite-soak gates are unchanged.
+
 ## 2026-08-06T14:00:00Z Primary shell geometry guard
 
 - F8r now checks that the workstation footer contains exactly one active-symbol value in addition to
