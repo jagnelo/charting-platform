@@ -1,5 +1,11 @@
 # Active Handoff
 
+## Continuation update — 2026-08-05T11:12:00Z Runner repeated-job probe
+
+- The live hardened runner completed 1,200 consecutive validated scalar executions with no
+  failures and remained healthy with zero restarts. A true long-duration soak remains open and
+  is not inferred from this bounded probe.
+
 ## Continuation update — 2026-08-05T11:05:00Z Chart renderer lifecycle cleanup
 
 - `DrawingRenderer.destroy()` now clears canvas state and releases uPlot/context references;

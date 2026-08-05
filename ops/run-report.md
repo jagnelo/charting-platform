@@ -1,5 +1,12 @@
 # Run Report
 
+## 2026-08-05T11:12:00Z Research-runner repeated-job stability probe
+
+- The seccomp-protected branch runner completed 1,200 consecutive validated scalar executions
+  with `0` failures; the container remained `running` with restart count `0` afterward.
+- This is bounded repeated-job evidence only. It strengthens the runtime check but does not
+  close the separately tracked long-duration soak requirement.
+
 ## 2026-08-05T11:05:00Z uPlot drawing-renderer teardown regression
 
 - Added explicit `DrawingRenderer.destroy()` cleanup and invoked it for the primary and
