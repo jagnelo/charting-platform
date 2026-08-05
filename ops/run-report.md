@@ -1,5 +1,12 @@
 # Run Report
 
+## 2026-08-06T13:10:00Z Maximum bounded lifecycle soak
+
+- Chromium workstation performance passed `2/2` with `TC2000_POP_OUT_CHURN_ROUNDS=100` in `1.8m`.
+  Two simultaneous pop-outs were repeatedly created and closed while source tool/canvas/chart/heap
+  bounds held. This is bounded evidence only; native multi-monitor, indefinite soak, provider-live,
+  sustained resource, and strict visual acceptance remain open.
+
 ## 2026-08-06T12:20:00Z Extended 80-round lifecycle soak
 
 - Chromium workstation performance passed `2/2` with `TC2000_POP_OUT_CHURN_ROUNDS=80` in `1.7m`.
