@@ -1,5 +1,10 @@
 # Active Handoff
 
+## Continuation update — 2026-08-05T10:29:00Z Authenticated Chromium regression
+
+- Rebuilt-stack Chromium flows pass `31/31` with no unexpected browser diagnostics, including
+  the full top-down/Study Lab/pop-out/legacy/Radar coverage.
+
 ## Continuation update — 2026-08-05T10:22:00Z Full frontend regression
 
 - Vitest is green at `572/572` across 87 files, with TypeScript and production build passing.

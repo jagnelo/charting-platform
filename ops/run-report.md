@@ -1,5 +1,11 @@
 # Run Report
 
+## 2026-08-05T10:29:00Z Authenticated Chromium regression after Radar correction
+
+- Rebuilt-stack `flows.spec.ts` passes `31/31` in 1.2 minutes, including authentication,
+  top-down drill-down, Study Lab, pop-out lifecycle, excluded-capability menu coverage,
+  legacy routes, and the Radar browser flow. No unexpected browser diagnostics were reported.
+
 ## 2026-08-05T10:22:00Z Full frontend regression after Radar correction
 
 - Vitest passes `572/572` across 87 files. TypeScript and production build also pass.
