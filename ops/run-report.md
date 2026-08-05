@@ -19560,3 +19560,12 @@ uncovered slice rather than repeat a generic completion claim.
 - Added and ran the live fork-denial probe against the branch research runner.
 - Unshare, setns, mount, ptrace, fork, network, subprocess, and root-write probes were all denied;
   the probe script exited successfully. Broader multi-process/resource stress remains separate.
+
+## 2026-08-05T21:45:00Z Issuer-route recheck
+
+- Official issuer pages were rechecked for the four remaining ETF-holdings failures. They confirm
+  that ADFI, DFTT, and NEOS publish holdings-download affordances, but the currently discovered
+  live routes remain respectively 404, 503, and access-denied in the acceptance environment.
+  Ballast's MGMT page reports TBD holdings and cannot replace the verified MGMT FilePoint contract.
+- The complete matrix remains `342 passed, 1 skipped, 4 failed`; no route was promoted without a
+  deterministic parser/identity check and a passing opt-in live probe.

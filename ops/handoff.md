@@ -18057,3 +18057,15 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
 - The current branch runner denied unshare, setns, mount, ptrace, fork, network, subprocess, and
   root-write probes; the script exited successfully. This strengthens the adversarial evidence but
   does not close the broader multi-process/resource stress or long-duration performance gates.
+
+## Continuation update — 2026-08-05T21:45:00Z Issuer-route recheck
+
+- Rechecked the four remaining ETF-holdings regressions against issuer-owned material. Regents
+  Park's current ADFI page still declares an all-holdings CSV, but the crawled dated CSV locator
+  currently returns 404 and the local environment cannot resolve the issuer host; no unverified
+  URL was promoted. Donoghue Forlines' current DFTT page still declares a full holdings CSV, but
+  the live matrix's 503 remains unreproduced outside the existing adapter transport. NEOS pages
+  expose a current "Download Full Holdings" control, while the tested AJAX route remains access
+  denied. Ballast's MGMT page currently reports TBD holdings, so it does not establish a complete
+  replacement for the verified FilePoint route. The provider matrix therefore remains
+  intentionally `342 passed, 1 skipped, 4 failed`; no fallback or silent substitution was added.

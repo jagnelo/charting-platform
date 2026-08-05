@@ -2,6 +2,13 @@
 
 ## Current continuation checkpoint — 2026-08-05T19:00:00Z
 
+Provider-route recheck on 2026-08-05T21:45:00Z confirmed that the four remaining ETF holdings
+failures are still external-route conditions, not safe candidates for fallback substitution:
+official pages declare ADFI, DFTT, and NEOS downloads but the discovered acceptance routes remain
+404, 503, and access-denied respectively; Ballast's MGMT page reports TBD holdings. The complete
+opt-in matrix remains `342 passed, 1 skipped, 4 failed` and no route is promoted without a passing
+deterministic/live identity check.
+
 The browser acceptance harness now treats logout's in-flight 401 responses as an explicit,
 bounded auth-boundary contract; unrelated unauthorized responses remain failures. Focused F5
 and the complete rebuilt-stack Chromium acceptance pass `37/37`.
