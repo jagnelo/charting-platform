@@ -18713,3 +18713,12 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
 - The complete ETF adapter unit suite passes `452/452`; Ruff and diff checks pass. This improves
   outage resilience for production profiles but does not make the three currently inaccessible
   live issuer routes pass without SEC identifiers.
+
+## Continuation update — 2026-08-07T02:30:00Z Custom issuer fallback coverage
+
+- Extended the SEC fallback contract to the custom Davis, Anfield, and Donoghue Forlines adapters,
+  covering issuer page/download HTTP failures while preserving the original route error in returned
+  provenance metadata when a SEC identifier is available.
+- Complete ETF adapter unit coverage passes `452/452`; focused custom-adapter coverage passes
+  `5/5`; Ruff and diff checks pass. Live issuer probes without SEC identifiers remain honest
+  failures when their first-party routes are inaccessible.

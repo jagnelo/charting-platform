@@ -2864,6 +2864,29 @@ class IssuerCsvHoldingsAdapter(PublicCsvHoldingsAdapter):
         }
         return result
 
+    async def _sec_fallback_after_route_error(
+        self,
+        route_error: Exception,
+        *,
+        symbol: str,
+        issuer_product_id: str | None,
+        identifiers: dict[str, str] | None,
+    ) -> HoldingsFetchResult:
+        if self.config.supports_sec_filing_fallback:
+            sec_result = await self._fetch_latest_sec_filing_holdings(
+                symbol=symbol,
+                issuer_product_id=issuer_product_id,
+                identifiers=identifiers or {},
+            )
+            if sec_result is not None:
+                sec_result.legal_metadata = {
+                    **(sec_result.legal_metadata or {}),
+                    "issuer_route_failure": str(route_error),
+                    "issuer_route_fallback": "sec_edgar_filing",
+                }
+                return sec_result
+        raise route_error
+
     async def _fetch_explicit_issuer_csv(
         self,
         *,
@@ -21008,7 +21031,7 @@ class TidalHoldingsAdapter(IssuerCsvHoldingsAdapter):
         source_url: str | None = None,
         identifiers: dict[str, str] | None = None,
     ) -> HoldingsFetchResult:
-        del source_url, identifiers
+        del source_url
         normalized_symbol = symbol.strip().upper()
         product = self._PRODUCTS.get(normalized_symbol)
         if product is None:
@@ -21586,7 +21609,7 @@ class CohanzickHoldingsAdapter(IssuerCsvHoldingsAdapter):
         source_url: str | None = None,
         identifiers: dict[str, str] | None = None,
     ) -> HoldingsFetchResult:
-        del source_url, identifiers
+        del source_url
         normalized_symbol = symbol.strip().upper()
         if normalized_symbol != self.supported_symbol:
             raise ValueError(
@@ -42461,7 +42484,15 @@ class AnfieldHoldingsAdapter(IssuerCsvHoldingsAdapter):
                     headers=_issuer_page_request_headers(accept="text/html,*/*"),
                     follow_redirects=True,
                 )
-                page_response.raise_for_status()
+                try:
+                    page_response.raise_for_status()
+                except httpx.HTTPError as route_error:
+                    return await self._sec_fallback_after_route_error(
+                        route_error,
+                        symbol=normalized_symbol,
+                        issuer_product_id=issuer_product_id,
+                        identifiers=identifiers,
+                    )
                 if not self._is_verified_product_page(page_response.text):
                     raise ValueError("Anfield product page identity did not match ADFI.")
                 resolved_source_url = self._discover_holdings_csv(
@@ -42476,7 +42507,15 @@ class AnfieldHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 headers=self.source_request_headers(source_url=resolved_source_url),
                 follow_redirects=True,
             )
-        response.raise_for_status()
+        try:
+            response.raise_for_status()
+        except httpx.HTTPError as route_error:
+            return await self._sec_fallback_after_route_error(
+                route_error,
+                symbol=normalized_symbol,
+                issuer_product_id=issuer_product_id,
+                identifiers=identifiers,
+            )
         rows, composition_date = self._parse_holdings_csv(response.text, fund_symbol=normalized_symbol)
         if not rows:
             raise ValueError("Anfield ADFI holdings CSV did not expose rows.")
@@ -42674,7 +42713,7 @@ class DonoghueForlinesHoldingsAdapter(IssuerCsvHoldingsAdapter):
         source_url: str | None = None,
         identifiers: dict[str, str] | None = None,
     ) -> HoldingsFetchResult:
-        del source_url, identifiers
+        del source_url
         normalized_symbol = symbol.strip().upper()
         product_page_url = self._PRODUCT_PAGE_URLS.get(normalized_symbol)
         if product_page_url is None:
@@ -42695,7 +42734,15 @@ class DonoghueForlinesHoldingsAdapter(IssuerCsvHoldingsAdapter):
                     product_page_url,
                     headers=_issuer_page_request_headers(accept="text/html,*/*"),
                 )
-            product_page_response.raise_for_status()
+            try:
+                product_page_response.raise_for_status()
+            except (httpx.HTTPError, requests.RequestException) as route_error:
+                return await self._sec_fallback_after_route_error(
+                    route_error,
+                    symbol=normalized_symbol,
+                    issuer_product_id=issuer_product_id,
+                    identifiers=identifiers,
+                )
             holdings_url = self._discover_holdings_url(
                 product_page_response.text,
                 base_url=str(product_page_response.url),
@@ -42721,7 +42768,15 @@ class DonoghueForlinesHoldingsAdapter(IssuerCsvHoldingsAdapter):
                         "Referer": product_page_url,
                     },
                 )
-        holdings_response.raise_for_status()
+        try:
+            holdings_response.raise_for_status()
+        except (httpx.HTTPError, requests.RequestException) as route_error:
+            return await self._sec_fallback_after_route_error(
+                route_error,
+                symbol=normalized_symbol,
+                issuer_product_id=issuer_product_id,
+                identifiers=identifiers,
+            )
         rows = self._parse_holdings_csv(holdings_response.text)
         if not rows:
             raise ValueError(
@@ -47974,7 +48029,15 @@ class DavisHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 headers=self.source_request_headers(source_url=resolved_source_url),
                 follow_redirects=True,
             )
-        response.raise_for_status()
+        try:
+            response.raise_for_status()
+        except httpx.HTTPError as route_error:
+            return await self._sec_fallback_after_route_error(
+                route_error,
+                symbol=symbol.strip().upper(),
+                issuer_product_id=issuer_product_id,
+                identifiers=identifiers,
+            )
         rows, composition_date = self._parse_davis_csv(response.text)
         if not rows:
             raise ValueError(f"Davis ETFs holdings download did not expose rows for {symbol}.")

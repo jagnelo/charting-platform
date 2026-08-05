@@ -20140,3 +20140,9 @@ uncovered slice rather than repeat a generic completion claim.
 - Generic issuer adapters now use the independent SEC EDGAR reconstruction path after issuer
   transport/parse/HTTP failure when an entitled SEC identifier is available, retaining the original
   route failure in metadata. ETF adapter unit suite: `452/452`; Ruff and diff checks pass.
+
+## 2026-08-07T02:30:00Z Custom issuer fallback coverage
+
+- Extended SEC fallback handling to the custom Davis, Anfield, and Donoghue Forlines adapters for
+  issuer page/download HTTP failures, retaining route-failure provenance. Complete ETF adapter
+  unit coverage passes `452/452`; focused custom-adapter tests pass `5/5`; Ruff/diff pass.
