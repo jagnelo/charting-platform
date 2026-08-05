@@ -18772,3 +18772,9 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
   screen coordinates (`capturePopoutGeometry`); focused geometry tests pass `4/4` and TypeScript
   checking passes. This proves the serializable coordinate contract, but native OS multi-monitor
   placement still requires hardware-level verification.
+
+## Continuation update — 2026-08-07T06:00:00Z Backend lint and diff audit
+
+- Re-ran the complete backend Ruff tree (`app` and `tests`) and repository `git diff --check`.
+  Both gates pass with no new diagnostics. This closes the post-fallback static-formatting audit;
+  exact-build visual, native multi-monitor, and provider-live acceptance items remain open.

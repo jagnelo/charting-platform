@@ -20186,3 +20186,8 @@ uncovered slice rather than repeat a generic completion claim.
 
 - Added secondary-monitor regression coverage for negative screen-coordinate pop-out geometry;
   focused tests pass `4/4` and TypeScript checking passes. Native OS placement remains unverified.
+
+## 2026-08-07T06:00:00Z Backend lint and diff audit
+
+- Complete backend Ruff validation (`app` and `tests`) and repository `git diff --check` both pass.
+  No new static diagnostics were introduced by the issuer-fallback or pop-out geometry changes.
