@@ -1,5 +1,10 @@
 # Active Handoff
 
+## Continuation update — 2026-08-05T09:30:00Z Docker cleanup
+
+- Periodic Docker cleanup completed: `443.8MB` reclaimed from dangling images/build cache;
+  active branch containers and named volumes were retained.
+
 ## Continuation update — 2026-08-05T09:20:00Z Sandbox/API security slice
 
 - The targeted sandbox/resource and code API acceptance slice passes `112/112` with Docker

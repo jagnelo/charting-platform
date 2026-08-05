@@ -1,5 +1,11 @@
 # Run Report
 
+## 2026-08-05T09:30:00Z Docker cleanup
+
+- Ran the requested `docker system prune -af` after the acceptance probes. It reclaimed
+  `443.8MB` of dangling images/build cache while retaining active branch containers and
+  named volumes.
+
 ## 2026-08-05T09:20:00Z Sandbox/API security slice
 
 - Re-ran the sandbox validator, isolated research-runner, deployment contract, and code API
