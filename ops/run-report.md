@@ -1,5 +1,10 @@
 # Run Report
 
+## 2026-08-05T10:52:00Z Docker cleanup
+
+- `docker system prune -af` reclaimed `1.053GB` of dangling images/build cache. The active
+  branch-scoped containers and named data volumes remained intact.
+
 ## 2026-08-05T10:47:00Z Full backend regression with seccomp profile
 
 - Canonical branch-scoped Docker-backed backend suite passes `1249 passed`, `348 skipped`,

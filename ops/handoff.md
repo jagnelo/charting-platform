@@ -1,5 +1,10 @@
 # Active Handoff
 
+## Continuation update — 2026-08-05T10:52:00Z Docker cleanup
+
+- Requested Docker cleanup reclaimed `1.053GB`; branch-scoped frontend, backend, worker, Redis,
+  PostgreSQL, and seccomp-protected research-runner containers remain running.
+
 ## Continuation update — 2026-08-05T10:47:00Z Hardened full backend regression
 
 - After replacing the branch-scoped runner, the full Docker-backed suite passes `1249/1249`,
