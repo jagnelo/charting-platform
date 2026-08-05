@@ -27,7 +27,7 @@ def _source_constants() -> dict[str, str]:
 def test_all_named_factory_sources_match_the_actual_sandbox_policy():
     sources = _source_constants()
 
-    assert len(sources) >= 11
+    assert len(sources) >= 12
     for name, source in sources.items():
         result = validate_workstation_python(source)
         assert result.diagnostics == (), name

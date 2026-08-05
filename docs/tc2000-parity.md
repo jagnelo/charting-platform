@@ -58,6 +58,8 @@ Latest continuation evidence:
   policy; the focused backend factory-source suite is `3/3`.
 - The matrix now executes all 11 sources with their actual single-dataset or structured aggregate
   contracts and deterministic prepared data; the focused backend suite is `4/4`.
+- Relative-strength history is now a named source rather than an inline literal, bringing the full
+  catalog to 12 named sources under the same cross-layer validation and runtime matrix.
 
 Continuation evidence from the current branch checkpoint:
 

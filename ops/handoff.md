@@ -1,5 +1,12 @@
 # Active Handoff
 
+## Continuation update — 2026-08-05T19:00:00Z Complete factory-source catalog normalization
+
+- Promoted the inline relative-strength-history factory source to a named constant so it shares the
+  same AST and runtime coverage as every other Study Lab starter.
+- The catalog now has 12 named sources; focused backend factory-source suite remains `4/4`, all
+  sources execute against deterministic prepared data, and frontend Study Lab tests remain `12/12`.
+
 ## Continuation update — 2026-08-05T18:45:00Z Full factory runtime matrix
 
 - Extended the cross-layer test to execute every named factory source against deterministic prepared

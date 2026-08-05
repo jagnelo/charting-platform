@@ -1,5 +1,12 @@
 # Run Report
 
+## 2026-08-05T19:00:00Z Complete factory-source catalog normalization
+
+- Converted the inline relative-strength-history starter into a named source constant, eliminating
+  the last factory entry outside the cross-layer AST/runtime matrix.
+- All 12 named factory sources remain covered by the deterministic execution matrix; backend focused
+  suite passes `4/4`, Study Lab frontend tests pass `12/12`, and TypeScript/build pass.
+
 ## 2026-08-05T18:45:00Z Full factory runtime matrix
 
 - Added deterministic execution coverage for every named Study Lab factory source, including the
