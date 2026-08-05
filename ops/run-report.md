@@ -19733,6 +19733,13 @@ uncovered slice rather than repeat a generic completion claim.
 - Existing Nautilus/NumPy deprecation warnings remain unchanged. Strict visual, provider-live,
   adversarial-resource, native multi-monitor, and long-soak acceptance remain open.
 
+## 2026-08-06T08:00:00Z Sandbox unit acceptance
+
+- Focused sandbox/code-validation/research-runner/deployment suite passed `97/97`. The command’s
+  coverage-only exit reflects `4.38%` coverage for the intentionally narrow selection versus the
+  repository-wide 55% threshold; all selected test bodies passed. Broader multi-process namespace,
+  resource-exhaustion, and long-soak acceptance remain open.
+
 ## 2026-08-06T07:35:00Z Primary workflow browser acceptance
 
 - Serial Chromium acceptance passed `7/7` for F8d/F8e/F8m/F8n/F8p/F8q/F8s, covering the complete

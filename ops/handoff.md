@@ -18260,6 +18260,14 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
   flakiness without weakening the user-facing assertions. Strict visual, provider-live,
   adversarial resource, native multi-monitor, and long-soak gates remain open.
 
+## Continuation update — 2026-08-06T08:00:00Z Sandbox unit acceptance
+
+- Focused isolated-Python validation, research-runner, deployment-isolation, and research-job
+  suites pass `97/97`. The coverage-enabled focused command reports the expected low slice coverage
+  (`4.38%`) because it intentionally selects only sandbox files; no test body failed. Existing
+  sandbox warnings remain documented. Broader multi-process namespace/resource stress and long
+  soak remain open.
+
 ## Continuation update — 2026-08-06T07:05:00Z Taxonomy startup and geometry acceptance
 
 - A fresh seeded-stack browser attempt exposed a real backend startup defect: taxonomy seeding
