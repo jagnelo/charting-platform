@@ -1,5 +1,12 @@
 # Run Report
 
+## 2026-08-06T10:25:00Z Live migration-head verification
+
+- Running branch-scoped PostgreSQL reports Alembic head `ea0f1a2b3c4d`; the ledger matches and
+  `watchlist_item.flagged` is `NOT NULL DEFAULT false`. This confirms the deployed schema invariant
+  without mutating application data; disposable downgrade/upgrade evidence remains separately
+  recorded.
+
 ## 2026-08-06T10:05:00Z Deployed sandbox escape probe
 
 - `ops/probe-research-runner-sandbox.sh` passed against the healthy branch-scoped container. All

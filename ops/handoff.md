@@ -1,5 +1,13 @@
 # Active Handoff
 
+## Continuation update — 2026-08-06T10:25:00Z Live migration-head verification
+
+- The running branch-scoped PostgreSQL reports Alembic head `ea0f1a2b3c4d`; the database ledger
+  matches that revision, and `watchlist_item.flagged` is verified `NOT NULL` with default `false`.
+  This is a live schema invariant check and does not replace the already-recorded disposable
+  downgrade/upgrade round trip. Visual approval, provider-live, adversarial sustained-resource,
+  native multi-monitor, and long-duration soak gates remain open.
+
 ## Continuation update — 2026-08-06T10:05:00Z Deployed sandbox escape probe
 
 - The branch-scoped research-runner container was healthy and the deployed probe denied all eight
