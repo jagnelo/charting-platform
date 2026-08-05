@@ -18142,3 +18142,13 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
   flow cases are individually green.
 - This is functional browser evidence only; it does not close strict V25 visual approval,
   provider-live, adversarial resource, native multi-monitor, or long-soak acceptance.
+
+## Continuation update — 2026-08-06T01:40:00Z Backend unit and visual-gate audit
+
+- Current backend unit suite passes `974/974` in 30.65s with the existing 34 Nautilus/pandas
+  deprecation warnings. A broad local invocation without the Docker-backed integration harness
+  cannot serve as integration evidence because its integration fixtures fail at environment
+  setup; the previously recorded Docker-backed `281/281` result remains the authoritative
+  integration checkpoint.
+- The strict visual manifest was re-run and still fails closed at
+  `application-shell-default/default: required_missing`; no reference or baseline was promoted.

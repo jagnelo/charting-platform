@@ -19634,3 +19634,12 @@ uncovered slice rather than repeat a generic completion claim.
   reporter truncating its output after the first slice.
 - Strict visual, provider-live, adversarial resource, native multi-monitor, long-soak, and broad
   parity gates remain open.
+
+## 2026-08-06T01:40:00Z Backend unit and visual-gate audit
+
+- Backend unit suite passed `974/974` in 30.65s with only the known 34 Nautilus/pandas
+  deprecation warnings. The local all-test invocation lacked the Docker integration harness and
+  produced fixture-setup errors, so it was not treated as integration evidence; the prior
+  Docker-backed `281/281` result remains authoritative.
+- Strict visual-manifest validation still rejects `application-shell-default/default` as
+  `required_missing`; no snapshot or reference was promoted.
