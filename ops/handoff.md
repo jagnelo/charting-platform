@@ -1,5 +1,16 @@
 # Active Handoff
 
+## Continuation update — 2026-08-05T12:10:00Z Research-runner orphan cleanup
+
+- Fixed isolated runner restart recovery: stale `*.cancel` and progress artifacts are now
+  removed when an orphaned `*.running` job is requeued, preventing a recovered job from being
+  immediately canceled by the previous worker's sentinel.
+- Added a regression asserting both artifacts are removed. Focused runner coverage passed
+  `64/64`; full backend unit coverage passed `972/972` with only the known 34 third-party
+  deprecation warnings. Ruff and `git diff --check` passed.
+- This closes the stale-sentinel recovery path; live resource-exhaustion and long-duration
+  performance gates remain separate acceptance requirements.
+
 ## Continuation update — 2026-08-05T19:30:00Z Backend unit regression audit
 
 - Current local backend unit suite passes `972/972` in 50.93s with 34 known third-party Nautilus/

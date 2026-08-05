@@ -1,5 +1,13 @@
 # TC2000 Version 25 Parity Matrix
 
+## Latest continuation evidence — 2026-08-05T12:10:00Z
+
+The isolated research runner now clears stale cancellation and progress sentinels when a
+worker-restart orphan is requeued. This prevents a recovered job from being canceled by the
+previous worker's state. The focused runner suite passes `64/64`, and the full backend unit
+suite passes `972/972`. Live resource-pressure, long-duration performance, and exact-build
+visual approval remain independent open gates.
+
 This is the implementation-facing matrix for the controlling plan. `Blocked` means
 the source reference is required before visual acceptance; it is not an approval.
 

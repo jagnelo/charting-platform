@@ -598,14 +598,21 @@ def test_runner_converts_malformed_job_to_terminal_result_and_keeps_polling(tmp_
 
 def test_runner_recovers_claimed_job_after_worker_restart(tmp_path, monkeypatch):
     jobs = tmp_path / "jobs"
+    results = tmp_path / "results"
     jobs.mkdir()
+    results.mkdir()
     monkeypatch.setattr(runner, "JOB_DIR", jobs)
+    monkeypatch.setattr(runner, "RESULT_DIR", results)
     (jobs / "99.running").write_text('{"source":"output.scalar(\'ok\', 1)"}')
+    (jobs / "99.cancel").write_text("")
+    (results / "99.progress.json").write_text('{"status":"running"}')
 
     recover_orphaned_jobs()
 
     assert (jobs / "99.json").exists()
     assert not (jobs / "99.running").exists()
+    assert not (jobs / "99.cancel").exists()
+    assert not (results / "99.progress.json").exists()
 
 
 def test_runner_exposes_only_declared_market_symbol_and_structured_ta_series():

@@ -1075,6 +1075,12 @@ def recover_orphaned_jobs() -> None:
     """Return jobs left in claimed state by a terminated worker to the queue."""
     JOB_DIR.mkdir(parents=True, exist_ok=True)
     for path in JOB_DIR.glob("*.running"):
+        job_id = path.stem
+        # A worker can terminate after creating these sentinels but before its
+        # normal cleanup path. They belong to the previous execution and must
+        # not cancel or masquerade as progress for the requeued job.
+        (JOB_DIR / f"{job_id}.cancel").unlink(missing_ok=True)
+        (RESULT_DIR / f"{job_id}.progress.json").unlink(missing_ok=True)
         destination = path.with_suffix(".json")
         if destination.exists():
             path.unlink(missing_ok=True)

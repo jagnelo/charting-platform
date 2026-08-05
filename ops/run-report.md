@@ -1,5 +1,13 @@
 # Run Report
 
+## 2026-08-05T12:10:00Z Research-runner orphan cleanup
+
+- `recover_orphaned_jobs()` now removes the previous worker's cancellation and progress
+  sentinels before requeuing a claimed job. Focused `test_research_runner.py`: `64 passed`;
+  full backend unit suite: `972 passed` in `32.49s`; Ruff and `git diff --check` passed.
+- The fix is narrow and preserves normal cancellation/progress cleanup for completed runs.
+  Remaining live pressure/soak and full parity gates are unchanged.
+
 ## 2026-08-05T19:30:00Z Backend unit regression audit
 
 - Ran the current local backend unit suite: `972 passed` in 50.93s, with 34 known third-party
