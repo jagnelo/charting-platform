@@ -41,6 +41,28 @@ describe('workspace store layout tabs', () => {
     expect(store.marketAnalysisRefreshedAt).toEqual(expect.any(String))
   })
 
+  it('publishes a leader-owned refresh event after a successful top-down refresh', async () => {
+    const messages: unknown[] = []
+    class FakeBroadcastChannel {
+      addEventListener() {}
+      close() {}
+      postMessage(message: unknown) { messages.push(message) }
+    }
+    vi.stubGlobal('BroadcastChannel', FakeBroadcastChannel)
+    apiGet.mockResolvedValue({})
+    const store = useWorkspaceStore()
+    store.connect()
+
+    await store.refreshMarketAnalysis()
+
+    expect(messages).toContainEqual(expect.objectContaining({
+      type: 'market-analysis-refresh',
+      refreshedAt: expect.any(String),
+      sourceWindowId: expect.any(String),
+    }))
+    store.disconnect()
+  })
+
   it('does not advance the successful-refresh timestamp when an input fails', async () => {
     apiGet.mockRejectedValue(new Error('temporary analysis outage'))
     const store = useWorkspaceStore()

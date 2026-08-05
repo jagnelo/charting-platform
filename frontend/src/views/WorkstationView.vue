@@ -222,7 +222,7 @@ const marketAnalysisQuery = useQuery({
     await workspaceStore.refreshMarketAnalysis()
     return true
   },
-  enabled: computed(() => !isPopout.value && documentVisible.value && Boolean(workspaceStore.workspace)),
+  enabled: computed(() => !isPopout.value && documentVisible.value && Boolean(workspaceStore.workspace) && workspaceStore.isPersistenceLeader),
   staleTime: 60_000,
   refetchInterval: 5 * 60 * 1000,
   refetchIntervalInBackground: false,
@@ -230,7 +230,13 @@ const marketAnalysisQuery = useQuery({
 
 async function refreshMarketData() {
   if (isPopout.value || !documentVisible.value) return
-  await marketAnalysisQuery.refetch()
+  if (workspaceStore.isPersistenceLeader) {
+    await marketAnalysisQuery.refetch()
+  } else {
+    // Followers still hydrate once when they open. Subsequent periodic refreshes are
+    // leader-owned and arrive through the cross-window refresh event.
+    await workspaceStore.refreshMarketAnalysis()
+  }
 }
 const popoutTool = computed(() => {
   const key = String(route.params.windowKey ?? '')

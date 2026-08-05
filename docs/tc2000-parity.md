@@ -21,6 +21,15 @@ is recorded in the referenced test/baseline system.
 
 ## Current runtime evidence (2026-08-05)
 
+Latest continuation evidence:
+
+- Market-analysis refresh coordination is leader-owned across browser windows: only the elected
+  persistence leader runs periodic Vue Query refreshes, while followers hydrate initially and consume
+  successful refresh events through BroadcastChannel/storage with in-flight deduplication.
+- Focused workspace-store tests pass `33/33`; full frontend Vitest is `574/574` across 87 files;
+  TypeScript and production build pass; the exact rebuilt-stack non-visual Playwright set passes
+  `34/34` in 1.3 minutes.
+
 Continuation evidence from the current branch checkpoint:
 
 - Full frontend Vitest is `573/573` across 87 files; TypeScript and production build pass.

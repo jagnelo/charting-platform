@@ -1,5 +1,17 @@
 # Active Handoff
 
+## Continuation update — 2026-08-05T15:00:00Z Leader-owned market refresh
+
+- Market-analysis polling is now leader-owned: the elected persistence leader runs the Vue Query
+  refresh loop, publishes successful refresh timestamps over BroadcastChannel/storage, and follower
+  windows refresh through the shared workspace store. Initial follower hydration remains supported;
+  in-flight refreshes are deduplicated.
+- Focused workspace-store tests pass `33/33`; full frontend Vitest passes `574/574` across 87 files;
+  TypeScript and production build pass; the exact rebuilt-stack authenticated non-visual Playwright
+  set passes `34/34` in 1.3 minutes.
+- Strict visual acceptance remains blocked only by the manifest's required V25 reference states;
+  no local screenshot baseline was promoted.
+
 ## Continuation update — 2026-08-05T14:05:00Z Exact browser rerun
 
 - The exact pushed non-visual Playwright set passes `34/34` in 1.3 minutes after the cross-window

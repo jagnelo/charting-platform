@@ -1,5 +1,16 @@
 # Run Report
 
+## 2026-08-05T15:00:00Z Leader-owned market-analysis refresh
+
+- Added cross-window `market-analysis-refresh` events and made the elected persistence leader the
+  sole periodic Vue Query refresh owner. Followers still hydrate on mount and receive subsequent
+  successful refreshes through BroadcastChannel/storage, with shared-store promise deduplication.
+- Focused workspace-store tests pass `33/33`; full frontend Vitest passes `574/574` across 87 files;
+  TypeScript and production build pass.
+- Rebuilt-stack exact non-visual Playwright acceptance (`flows.spec.ts`, `uplot_performance.spec.ts`,
+  and `workstation_performance.spec.ts`) passes `34/34` in 1.3 minutes with no unexpected browser
+  diagnostics. Strict visual acceptance remains intentionally blocked by required V25 references.
+
 ## 2026-08-05T14:05:00Z Exact non-visual Playwright rerun
 
 - After strengthening the multi-window guard to assert `XLB` propagation into both pop-outs,

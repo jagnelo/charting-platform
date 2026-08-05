@@ -84,13 +84,25 @@ interface WorkspaceSnapshotEvent {
   sourceWindowId: string
 }
 
-type CrossWindowEvent = (LinkEvent & { type?: string }) | WorkspaceSnapshotEvent
+interface MarketAnalysisRefreshEvent {
+  type: 'market-analysis-refresh'
+  refreshedAt: string
+  sourceWindowId: string
+}
+
+type CrossWindowEvent = (LinkEvent & { type?: string }) | WorkspaceSnapshotEvent | MarketAnalysisRefreshEvent
 
 function isWorkspaceSnapshotEvent(event: CrossWindowEvent): event is WorkspaceSnapshotEvent {
   return event.type === 'workspace-snapshot'
     && typeof (event as WorkspaceSnapshotEvent).workspaceId === 'number'
     && typeof (event as WorkspaceSnapshotEvent).revision === 'number'
     && typeof (event as WorkspaceSnapshotEvent).sourceWindowId === 'string'
+}
+
+function isMarketAnalysisRefreshEvent(event: CrossWindowEvent): event is MarketAnalysisRefreshEvent {
+  return event.type === 'market-analysis-refresh'
+    && typeof (event as MarketAnalysisRefreshEvent).refreshedAt === 'string'
+    && typeof (event as MarketAnalysisRefreshEvent).sourceWindowId === 'string'
 }
 
 export interface MarketGroupInstrument {
@@ -450,9 +462,23 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     }
   }
 
+  function announceMarketAnalysisRefresh(refreshedAt: string) {
+    const event: MarketAnalysisRefreshEvent = {
+      type: 'market-analysis-refresh', refreshedAt, sourceWindowId: windowId,
+    }
+    channel?.postMessage(event)
+    safeStorageSet(CHANNEL_NAME + ':market-analysis-refresh', JSON.stringify(event))
+  }
+
   function handleMessage(event: MessageEvent<CrossWindowEvent>) {
     if (isWorkspaceSnapshotEvent(event.data)) {
       void reloadSharedWorkspace(event.data)
+      return
+    }
+    if (isMarketAnalysisRefreshEvent(event.data)) {
+      if (!isPersistenceLeader.value && event.data.sourceWindowId !== windowId && event.data.refreshedAt !== marketAnalysisRefreshedAt.value) {
+        void refreshMarketAnalysis()
+      }
       return
     }
     if (event.data.group === 'grey') return
@@ -511,6 +537,12 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     }
     if (event.key === CHANNEL_NAME + ':workspace-snapshot' && isWorkspaceSnapshotEvent(message)) {
       void reloadSharedWorkspace(message)
+      return
+    }
+    if (event.key === CHANNEL_NAME + ':market-analysis-refresh' && isMarketAnalysisRefreshEvent(message)) {
+      if (!isPersistenceLeader.value && message.sourceWindowId !== windowId && message.refreshedAt !== marketAnalysisRefreshedAt.value) {
+        void refreshMarketAnalysis()
+      }
       return
     }
     if (![CHANNEL_NAME + ':symbol', CHANNEL_NAME + ':timeframe', CHANNEL_NAME + ':cursor'].includes(event.key)) return
@@ -815,6 +847,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       // advance the last-successful timestamp when any shared input failed.
       if (results.every(result => result !== null)) {
         marketAnalysisRefreshedAt.value = new Date().toISOString()
+        if (isPersistenceLeader.value) announceMarketAnalysisRefresh(marketAnalysisRefreshedAt.value)
       }
     }).finally(() => {
       marketAnalysisRefreshing.value = false
