@@ -20130,6 +20130,7 @@ uncovered slice rather than repeat a generic completion claim.
 - THOR now resolves its current `/funds/thir` page and parses embedded issuer-native daily holdings
   JSON with canonical fractional weights and composition-date provenance. Focused unit/live tests
   pass (`3/3` and `1/1`); the repair is pushed in `fe8acc2`.
-- Full opt-in ETF issuer matrix: `341 passed, 1 skipped, 5 failed`. Open failures are Davis 522,
-  Lazard service/discovery, Anfield ADFI 404, and Donoghue Forlines 503. No provider failure was
-  hidden or reclassified; provider-live acceptance remains open.
+- The post-repair targeted issuer run reports `285 passed, 1 skipped, 3 failed` with 58 unrelated
+  cases deselected: Davis 522, Anfield ADFI 404, and Donoghue Forlines page/AJAX 503. Lazard passed
+  after its transient service failure. No provider failure was hidden or reclassified;
+  provider-live acceptance remains open.

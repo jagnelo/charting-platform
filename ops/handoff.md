@@ -18699,8 +18699,8 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
   JSON, normalizing rendered percentages to canonical fractions while preserving composition-date
   and provenance metadata. Focused unit coverage passes `3/3`; the opt-in THOR live probe passes
   `1/1`; Ruff and `git diff --check` pass. The repair is pushed as `fe8acc2`.
-- The full opt-in ETF issuer matrix currently reports `341 passed, 1 skipped, 5 failed`:
-  Davis HTTP 522, Lazard service/discovery failure, Anfield ADFI page 404, and Donoghue Forlines
-  AJAX endpoint 503 (two parametrized cases are included in the total). These remain explicit
-  unresolved provider-route evidence; no failure was suppressed. Provider-live acceptance remains
-  open pending route repair or an explicit tested audited-capability disposition.
+- The post-repair targeted issuer run reports `285 passed, 1 skipped, 3 failed` with 58 unrelated
+  cases deselected: Davis HTTP 522, Anfield ADFI page 404, and Donoghue Forlines AJAX/page 503.
+  Lazard passed in this rerun after its transient service failure. These remain explicit unresolved
+  provider-route evidence; no failure was suppressed. Provider-live acceptance remains open pending
+  route repair or an explicit tested audited-capability disposition.
