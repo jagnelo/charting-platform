@@ -4,7 +4,7 @@
     "active_worker": "Codex",
     "worker_session_started_at": "2026-07-28T21:40:33Z",
     "worker_soft_stop_at": null,
-  "last_handoff_at": "2026-08-06T08:20:00Z",
+  "last_handoff_at": "2026-08-06T08:45:00Z",
   "last_commit": "0bc995e docs(ops): record backend unit regression audit",
     "git_ready_to_commit": true,
   "validation": {
@@ -32,6 +32,7 @@
     "primary_workflow_browser_current": "passed: serial Chromium F8d/F8e/F8m/F8n/F8p/F8q/F8s 7/7; deterministic SPY baseline and hydrated Notes selection prevent persisted-workspace flakiness, 2026-08-06T07:35:00Z",
     "sandbox_unit_current": "passed: focused code-validation/research-runner/deployment-isolation/research-job suites 97/97; narrow coverage command reports 4.38% by selection and exits threshold-only, 2026-08-06T08:00:00Z",
     "backend_unit_current_after_taxonomy": "passed: complete backend unit suite 974/974, coverage 69.82% above 55% gate, 34 documented third-party deprecation warnings only, 2026-08-06T08:20:00Z",
+    "performance_acceptance_current": "passed: TC2000_POP_OUT_CHURN_ROUNDS=20 workstation performance 2/2 and 100,000-point uPlot zoom/pan 1/1; native multi-monitor and long-duration soak remain open, 2026-08-06T08:45:00Z",
     "current_regression_audit": "passed: full frontend Vitest 576/576, frontend type-check, full backend unit 974/974 in 50.10s, and current rebuilt-stack Chromium 37/37; only documented Nautilus/pandas deprecation warnings; strict visual/provider/long-soak gates remain open, 2026-08-05T20:30:00Z",
     "current_integration_audit": "passed: fresh Docker-backed backend integration 281/281 in 164.63s; branch-scoped Compose services healthy and post-run backend/worker/research-runner logs contain no unexpected errors, tracebacks, connection leaks, or provider-runtime failures, 2026-08-05T21:00:00Z",
     "docker_environment_current": "available for elevated read-only inspection and rebuilt-stack Chromium acceptance; branch-scoped services healthy, full non-visual browser slice 36/36 on 2026-08-05T19:00:00Z",

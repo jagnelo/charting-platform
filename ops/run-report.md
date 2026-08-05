@@ -19733,6 +19733,14 @@ uncovered slice rather than repeat a generic completion claim.
 - Existing Nautilus/NumPy deprecation warnings remain unchanged. Strict visual, provider-live,
   adversarial-resource, native multi-monitor, and long-soak acceptance remain open.
 
+## 2026-08-06T08:45:00Z Performance acceptance refresh
+
+- `TC2000_POP_OUT_CHURN_ROUNDS=20` workstation performance suite passed `2/2`, covering repeated
+  two-popout lifecycle churn and bounded source tool/canvas/chart/heap state.
+- The 100,000-point uPlot interaction suite passed `1/1`, preserving the chart while repeatedly
+  zooming and panning. Native multi-monitor, long-duration soak, provider-live, and strict V25
+  visual acceptance remain open.
+
 ## 2026-08-06T08:20:00Z Backend unit regression audit
 
 - `make test-unit` passed `974/974`; coverage reached `69.82%`, above the required `55%` threshold.

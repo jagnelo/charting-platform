@@ -18260,6 +18260,14 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
   flakiness without weakening the user-facing assertions. Strict visual, provider-live,
   adversarial resource, native multi-monitor, and long-soak gates remain open.
 
+## Continuation update — 2026-08-06T08:45:00Z Performance acceptance refresh
+
+- Extended workstation performance acceptance with `TC2000_POP_OUT_CHURN_ROUNDS=20` passed `2/2`:
+  repeated two-popout churn maintained bounded source tool/canvas/chart state and heap checks.
+- The Chromium uPlot large-history guard passed `1/1` for 100,000 points and repeated zoom/pan
+  without chart replacement. These strengthen browser performance evidence; native multi-monitor,
+  long-duration soak, provider-live, and strict visual approval remain open.
+
 ## Continuation update — 2026-08-06T08:20:00Z Backend unit regression audit
 
 - Complete backend unit suite passes `974/974` with the repository coverage gate satisfied at
