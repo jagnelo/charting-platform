@@ -401,6 +401,17 @@
   rebuilt Chromium flows pass `28/28`. Exact-build visual approval and broader acceptance
   gates remain open.
 
+## Continuation update — 2026-08-06T03:45:00Z Boolean promotion reuse defect fixed
+
+- F8q initially exposed a real defect: promoting one Boolean study to a scan and then to an
+  alert attempted to create the same screener twice and returned `409`. Study Lab now retains
+  the created screener ID and reuses it for alert promotion; a component regression asserts the
+  screener endpoint is called exactly once.
+- Focused Study Lab coverage passes `12/12`; the rebuilt frontend stack was rebuilt with the fix
+  and F8q passes `1/1` with no critical diagnostics. Full frontend Vitest remains `577/577` and
+  type-check passes. Strict visual, provider-live, adversarial-resource, native multi-monitor,
+  and long-soak gates remain open.
+
 ## Continuation update — 2026-08-05T03:00:00Z Full unit-suite re-audit
 
 - Current HEAD passes the complete frontend Vitest suite (`550/550` across 84 files) and

@@ -19653,6 +19653,15 @@ uncovered slice rather than repeat a generic completion claim.
   V25 manifest remains `required_missing`, and provider-live, adversarial, native multi-monitor, and
   long-soak acceptance remain open.
 
+## 2026-08-06T03:45:00Z Boolean promotion reuse defect fixed
+
+- F8q found that scan-then-alert promotion recreated the same screener and returned `409`.
+  Study Lab now retains and reuses the screener ID for the second promotion; the component
+  suite asserts one screener creation call.
+- Focused Study Lab tests passed `12/12`; rebuilt-stack F8q passed `1/1` with no critical
+  diagnostics; full frontend Vitest passed `577/577` and type-check passed. Remaining strict
+  visual/provider/adversarial/multi-monitor/long-soak gates are unchanged.
+
 ## 2026-08-06T02:20:00Z Frontend regression refresh
 
 - Full frontend Vitest passed `577/577` across 87 files and `vue-tsc --noEmit` passed after

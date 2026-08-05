@@ -628,6 +628,29 @@ test.describe('TC2000 workstation', () => {
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
+  test('F8q — Study Lab promotes a Boolean result into a reusable scan and active scan alert', async ({ page, browserDiagnostics }) => {
+    await page.goto('/chart')
+    await expect(page.locator('.workspace-layout-host')).toBeVisible({ timeout: 10_000 })
+    await page.getByRole('button', { name: 'Study', exact: true }).click()
+
+    const study = page.locator('.study-lab-tool')
+    await expect(study).toBeVisible({ timeout: 10_000 })
+    const uniqueStudyName = `E2E Boolean promotion ${process.hrtime.bigint().toString(36)}`
+    await study.getByRole('textbox', { name: 'Study name' }).fill(uniqueStudyName)
+    await study.getByRole('textbox', { name: 'Study symbol' }).fill('SPY')
+    await study.getByRole('textbox', { name: 'Study Python source' }).fill("output.boolean('qualifies', True)")
+    await study.getByRole('button', { name: 'Validate' }).click()
+    await expect(study).toContainText('Validated for isolated execution', { timeout: 10_000 })
+    await study.getByRole('button', { name: 'Run' }).click()
+    await expect(study.locator('.study-lab-tool__run-status--completed')).toBeVisible({ timeout: 30_000 })
+    await expect(study.locator('.study-lab-tool__metrics article').filter({ hasText: 'qualifies' })).toHaveClass(/study-lab-tool__metric--true/)
+    await study.getByRole('button', { name: 'Promote to scan' }).click()
+    await expect(study).toContainText('Promoted to a reusable scan.', { timeout: 10_000 })
+    await study.getByRole('button', { name: 'Promote to alert' }).click()
+    await expect(study).toContainText('Promoted to an active scan alert.', { timeout: 10_000 })
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
 })
 
 

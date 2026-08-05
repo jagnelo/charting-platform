@@ -178,6 +178,7 @@ const promotionBusy = ref(false)
 const promotionStatus = ref('')
 const rerunBusy = ref(false)
 const validation = ref<Validation | null>(null)
+const promotedScanId = ref<number | null>(null)
 const run = ref<Run | null>(null)
 const runSource = ref('')
 const runContract = ref<string | null>(null)
@@ -428,6 +429,7 @@ async function saveAndRun() {
     return
   }
   busy.value = true; error.value = ''
+  promotedScanId.value = null
   try {
     runSource.value = source.value
     runContract.value = validation.value.output_contracts.length === 1 ? validation.value.output_contracts[0] : null
@@ -487,11 +489,16 @@ async function promote(target: PromotionTarget) {
       promotionStatus.value = 'Saved as a reusable Strategy Lab signal.'
     }
     else {
-      const scan = await api.post<{ id: number }>(`/screeners/from-python-condition/${versionId}`, {
-        name: `${name.value} Scan`, universe_type: 'all', timeframe: timeframe.value,
-      })
+      let scanId = promotedScanId.value
+      if (scanId == null) {
+        const scan = await api.post<{ id: number }>(`/screeners/from-python-condition/${versionId}`, {
+          name: `${name.value} Scan`, universe_type: 'all', timeframe: timeframe.value,
+        })
+        scanId = scan.id
+        promotedScanId.value = scanId
+      }
       if (target === 'alert') {
-        await api.post('/alerts/screener', { screener_id: scan.id, trigger_type: 'entered', repeat: true })
+        await api.post('/alerts/screener', { screener_id: scanId, trigger_type: 'entered', repeat: true })
         promotionStatus.value = 'Promoted to an active scan alert.'
       } else promotionStatus.value = 'Promoted to a reusable scan.'
     }
