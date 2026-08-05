@@ -16,6 +16,23 @@ def _source_constant(name: str) -> str:
     return ast.literal_eval(match.group(1))
 
 
+def _source_constants() -> dict[str, str]:
+    text = FRONTEND_STUDY_LAB.read_text(encoding="utf-8")
+    return {
+        name: ast.literal_eval(raw)
+        for name, raw in re.findall(r"^const (\w+Source) = (\".*\")$", text, re.MULTILINE)
+    }
+
+
+def test_all_named_factory_sources_match_the_actual_sandbox_policy():
+    sources = _source_constants()
+
+    assert len(sources) >= 11
+    for name, source in sources.items():
+        result = validate_workstation_python(source)
+        assert result.diagnostics == (), name
+
+
 def test_seasonality_factory_source_matches_the_actual_sandbox_policy():
     source = _source_constant("seasonalitySource")
     result = validate_workstation_python(source)

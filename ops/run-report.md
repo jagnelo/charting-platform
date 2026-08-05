@@ -1,5 +1,12 @@
 # Run Report
 
+## 2026-08-05T18:20:00Z All factory-source policy coverage
+
+- Added a cross-layer validator regression covering every named Study Lab factory source, not only
+  the seasonality study. All 11 sources pass the production AST policy.
+- Focused backend suite passes `3/3`; seasonality runtime execution remains covered and frontend
+  Study Lab tests remain `12/12`.
+
 ## 2026-08-05T18:00:00Z Executed seasonality source regression
 
 - The cross-layer regression now executes the exact frontend seasonality source inside the isolated

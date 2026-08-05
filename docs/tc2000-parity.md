@@ -54,6 +54,8 @@ Latest continuation evidence:
 - That regression also executes the source in the isolated runner against deterministic dates and
   verifies all three calendar bars plus weekday observations; the focused backend source suite is
   now `2/2`.
+- The same cross-layer test now validates all 11 named factory sources against the production AST
+  policy; the focused backend factory-source suite is `3/3`.
 
 Continuation evidence from the current branch checkpoint:
 

@@ -1,5 +1,12 @@
 # Active Handoff
 
+## Continuation update — 2026-08-05T18:20:00Z All factory-source policy coverage
+
+- Expanded the cross-layer backend test to extract and validate all 11 named Study Lab factory
+  sources emitted by `StudyLabTool.vue`, preventing unsupported AST constructs across the catalog.
+- Focused backend factory-source suite passes `3/3`; the seasonality source still executes in the
+  isolated runner, and frontend Study Lab coverage remains `12/12`.
+
 ## Continuation update — 2026-08-05T18:00:00Z Executed seasonality source regression
 
 - Extended the cross-layer Study Lab test to execute the exact seasonality source in the isolated
