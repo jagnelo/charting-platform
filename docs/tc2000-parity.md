@@ -50,8 +50,11 @@ The live shared-volume runner protocol has also been exercised for cancellation:
 named 10,000-cell prepared-universe batch was claimed by the non-root runner, observed a
 cancellation sentinel during execution, returned structured `canceled` / `batch_canceled`
 output with bounded completed-cell artifacts, and left the runner healthy. Probe artifacts
-were explicitly removed afterward. This closes live cancellation under batch pressure;
-broader multi-process namespace/resource stress remains open.
+were explicitly removed afterward. A separate bounded concurrency probe then queued twelve
+independent jobs while a second runner process raced the normal worker; all twelve were
+claimed exactly once, completed successfully, and left no queued or running artifacts. This
+closes the shared-volume multi-process claim/recovery slice; broader namespace and sustained
+resource-exhaustion stress remains open.
 
 The rebuilt branch stack now passes the complete authenticated Chromium flow (`29/29`),
 including Study Lab validation, isolated Python execution, and structured metric rendering.

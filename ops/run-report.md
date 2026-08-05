@@ -1,5 +1,12 @@
 # Run Report
 
+## 2026-08-05T07:58:00Z Multi-process research-runner claim probe
+
+- Queued twelve uniquely named scalar jobs on the branch-scoped runner volume while a
+  second non-root runner process raced the normal worker. All twelve produced one completed
+  result, no job remained queued or `.running`, and the uniquely prefixed probe artifacts
+  were removed. Sustained namespace/resource-exhaustion stress remains open.
+
 ## 2026-08-05T10:05:00Z Shared OHLCV request deduplication
 
 - Added a bounded provider-neutral OHLCV coordinator that coalesces identical in-flight

@@ -1,5 +1,11 @@
 # Active Handoff
 
+## Continuation update — 2026-08-05T07:58:00Z Multi-process runner claims
+
+- A bounded twelve-job shared-volume probe raced a second non-root runner process against
+  the normal worker. All jobs were claimed exactly once and completed with no queued or
+  running residue; only sustained namespace/resource-exhaustion stress remains open.
+
 ## Continuation update — 2026-08-05T10:05:00Z Shared OHLCV request deduplication
 
 - Identical OHLCV reads now coalesce across chart-store panels, workstation comparisons,
