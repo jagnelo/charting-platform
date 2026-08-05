@@ -1,5 +1,13 @@
 # TC2000 Version 25 Parity Matrix
 
+## Latest continuation evidence — live resource pressure
+
+`ops/probe-research-runner-resources.sh` now provides a repeatable bounded deployment probe. The
+branch-scoped runner reports the required 768 MiB/one-CPU/128-PID/no-network/read-only/non-root
+boundary; a 1 GiB allocation is killed by the cgroup and a 70 MiB `/tmp` write is rejected by the
+64 MiB tmpfs. This strengthens the live sandbox evidence but does not replace the required
+sustained concurrent pressure, cancellation, orphan, crash-recovery, and long-duration matrix.
+
 ## Latest continuation evidence — 2026-08-05T12:10:00Z
 
 The isolated research runner now clears stale cancellation and progress sentinels when a

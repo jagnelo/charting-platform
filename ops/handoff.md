@@ -1,5 +1,15 @@
 # Active Handoff
 
+## Continuation update — 2026-08-05T23:15:00Z Live resource-pressure probe
+
+- Added `ops/probe-research-runner-resources.sh`, a bounded reproducible probe for the deployed
+  runner's cgroup and tmpfs ceilings. Against the healthy branch container it verified the exact
+  `768 MiB` memory, `1 CPU`, `128 PID`, `network=none`, read-only-root, and non-root configuration;
+  a 1 GiB allocation was killed with exit `137`, and a 70 MiB `/tmp` write failed with `ENOSPC`.
+- The existing eight-operation namespace/network/process/root-write probe also passes. These are
+  stronger live pressure/escape observations, but they do not yet constitute the sustained,
+  concurrent, cancellation, orphan, and crash-recovery resource matrix required for completion.
+
 ## Continuation update — 2026-08-05T22:30:00Z Official Version 25 reference-pack extension
 
 - Extended `tests/visual/fetch-tc2000-v25-reference-pack.sh` with the official Version 25

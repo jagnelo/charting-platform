@@ -60,3 +60,16 @@ def test_research_runner_seccomp_profile_denies_namespace_escape_and_process_cre
     assert profile["defaultAction"] == "SCMP_ACT_ALLOW"
     assert profile["syscalls"][0]["action"] == "SCMP_ACT_ERRNO"
     assert {"unshare", "setns", "mount", "ptrace", "clone", "clone3", "fork", "vfork"} <= denied
+
+
+def test_live_resource_probe_is_bounded_and_requires_expected_failure_modes():
+    probe = (Path(__file__).resolve().parents[3] / "ops" / "probe-research-runner-resources.sh").read_text()
+
+    assert "memory=805306368" in probe
+    assert "nano_cpus=1000000000" in probe
+    assert "pids=128" in probe
+    assert "run_expect memory-cgroup 137" in probe
+    assert "run_expect tmpfs-capacity 1 'No space left on device'" in probe
+    assert "1024 * 1024 * 1024" in probe
+    assert "70 * 1024 * 1024" in probe
+    assert "pressure.bin" in probe

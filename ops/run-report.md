@@ -1,5 +1,15 @@
 # Run Report
 
+## 2026-08-05T23:15:00Z Live resource-pressure probe
+
+- Added and executed `ops/probe-research-runner-resources.sh` against the healthy branch-scoped
+  research runner. Live configuration matched the deployment contract (`805306368` bytes,
+  `1000000000` nano-CPUs, `128` PIDs, `network=none`, read-only root, UID `10001:10001`).
+- A bounded 1 GiB allocation was killed with exit `137`; a bounded 70 MiB `/tmp` write failed with
+  `ENOSPC`. The temporary probe file was cleaned. Existing namespace/network/process/root-write
+  denials also passed. Sustained concurrent pressure/cancellation/orphan/crash coverage remains
+  open and is not overclaimed.
+
 ## 2026-08-05T22:30:00Z Official Version 25 reference-pack extension
 
 - Added the official Version 25 download-page product image to the reproducible retrieval script
