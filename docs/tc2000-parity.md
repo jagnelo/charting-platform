@@ -1269,3 +1269,12 @@ bounded requirement for the chart tool and symbol search. Pop-out lifecycle and 
 baseline after one-time lazy volume/indicator initialization, eliminating a harness race while
 preserving the settled-count invariant. This is functional/performance evidence only; strict V25
 visual acceptance remains blocked at `application-shell-default/default: required_missing`.
+
+## Continuation update — 2026-08-05T19:00:00Z Multi-window churn coverage
+
+The workstation performance suite now includes five rounds of opening two simultaneous browser
+pop-outs, verifying both detached tools, closing them, and asserting stable source tool/canvas/chart
+counts after every round. When Chromium exposes heap telemetry, the guard also rejects a post-churn
+heap above 512 MiB. Targeted performance passed `2/2`, and the complete rebuilt-stack Chromium set
+passed `36/36` with clean diagnostics. This strengthens lifecycle evidence but does not replace the
+remaining multi-monitor/long-duration soak or strict Version 25 visual approval.

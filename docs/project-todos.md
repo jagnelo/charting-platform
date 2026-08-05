@@ -1,6 +1,6 @@
 # Project TODO Memory
 
-## Current continuation checkpoint — 2026-08-05T08:45:00Z
+## Current continuation checkpoint — 2026-08-05T19:00:00Z
 
 The browser acceptance harness now treats logout's in-flight 401 responses as an explicit,
 bounded auth-boundary contract; unrelated unauthorized responses remain failures. Focused F5
@@ -11,9 +11,10 @@ access. Broader multi-process namespace/resource stress remains an explicit open
 
 OHLCV request fan-out is now bounded across linked chart surfaces: chart-store, workstation,
 comparison, and legacy chart reads share a short-lived canonical coordinator with immediate
-failure eviction. Full frontend Vitest is `568/568`, rebuilt Chromium is `29/29`, and the
-remaining performance gate is specifically full workstation/multi-window memory and polling
-behavior rather than identical-request duplication.
+failure eviction. Full frontend Vitest is `576/576`, and rebuilt Chromium workstation
+acceptance now passes `36/36`, including five rounds of two-popout churn with settled
+tool/canvas/chart counts and clean diagnostics. Remaining performance work is broader
+multi-monitor/memory/polling evidence rather than identical-request duplication.
 
 - Workstation freshness presentation now uses the canonical technical-analysis freshness
   contract and has exhaustive state mapping coverage (`565/565` frontend tests, TypeScript,
@@ -21,7 +22,7 @@ behavior rather than identical-request duplication.
   was removed because it could imply freshness the backend had not established.
 - Remaining completion gates are unchanged: exact-build Version 25 visual references and
   approved baselines, configured multi-provider probes, adversarial sandbox/resource stress,
-  10,000-row and multi-window performance, and full cross-surface parity.
+  10,000-row and multi-monitor/memory performance, and full cross-surface parity.
 
 This file is the persistent deferred-work memory for the charting platform.
 
@@ -3247,11 +3248,11 @@ Golden Layout mechanics, uPlot host/plugin path, top-down analysis contracts,
 virtualized watchlists, unified Python/Study Lab execution boundary, and free-source
 provider governance are implemented and covered by deterministic/frontend/backend
 regressions. The branch has also exercised the complete Docker-backed integration
-suite (`281 passed`), clean authenticated Chromium flows (`29/29`), the public no-key
+suite (`281 passed`), clean authenticated Chromium flows (`36/36`), the public no-key
 SEC identity/profile path through `EdgarProvider`, and isolated research-runner crash
 recovery. Remaining acceptance is intentionally still hard-gated by the full Version
 25 visual reference/measurement matrix, configured multi-provider probes, adversarial
-resource-pressure and orphan-job coverage, 10,000-row and multi-window performance
+resource-pressure and orphan-job coverage, 10,000-row and multi-monitor/memory performance
 evidence, and the complete cross-surface/E2E parity matrix; no
 item below is considered delivered merely because this checkpoint exists.
 

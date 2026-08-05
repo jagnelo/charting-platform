@@ -18004,3 +18004,13 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
 - Browser diagnostics were clean. Strict V25 visual approval remains blocked at
   `application-shell-default/default: required_missing`; provider matrix remains `342 passed,
   1 skipped, 4 failed`.
+
+## Continuation update — 2026-08-05T19:00:00Z Multi-window churn guard
+
+- Added a five-round, two-popout Chromium lifecycle guard. Each round closes both detached
+  windows and asserts the source tool, canvas, and chart counts return to their settled baseline;
+  optional Chromium heap telemetry is bounded at 512 MiB.
+- Targeted workstation performance passed `2/2`; the complete rebuilt-stack Chromium slice now
+  passes `36/36` in approximately 1.9 minutes with clean browser diagnostics.
+- Broader multi-monitor placement, long-duration memory/polling soak, strict V25 visual approval,
+  and four external ETF issuer conditions remain open.

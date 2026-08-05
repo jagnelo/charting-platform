@@ -19513,3 +19513,12 @@ uncovered slice rather than repeat a generic completion claim.
   the one-time lazy volume/indicator canvas initialization before lifecycle assertions.
 - Browser diagnostics were clean. Exact V25 visual approval remains blocked by `required_missing`;
   external ETF issuer failures remain unchanged.
+
+## 2026-08-05T19:00:00Z Repeated multi-window churn guard
+
+- Added a five-round, two-popout lifecycle regression with settled source tool/canvas/chart
+  baselines, detached-page reclamation, optional Chromium heap telemetry, and diagnostics checks.
+- Targeted workstation performance passed `2/2`; the complete rebuilt-stack Chromium acceptance
+  set passed `36/36` in approximately 1.9 minutes.
+- Multi-monitor placement, long-duration memory/polling soak, exact-build visual approval, and
+  external ETF route failures remain open.
