@@ -18113,3 +18113,13 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
 - The targeted test passed `1/1` with clean browser diagnostics. Strict V25 visual approval,
   provider-live, adversarial resource stress, native multi-monitor placement, and longer-than-
   20-round soak remain open.
+
+## Continuation update — 2026-08-06T00:45:00Z Link-bus state isolation hardening
+
+- Hardened F8m against authenticated-workspace state carried between browser tests: it now
+  resets and reloads the factory workstation, waits for persisted Grey/Yellow selector updates,
+  and chooses targets relative to the current isolated symbol rather than assuming SPY.
+- Repeated targeted Chromium coverage passed `3/3`; workspace-store coverage remains `35/35`,
+  frontend type-check passes, and the test no longer relies on an inherited workspace snapshot.
+  Exact-build visual approval, provider-live, adversarial stress, native multi-monitor, and
+  long-soak gates remain open.

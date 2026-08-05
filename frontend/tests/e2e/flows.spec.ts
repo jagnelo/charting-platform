@@ -412,6 +412,7 @@ test.describe('TC2000 workstation', () => {
     if (await reset.count()) {
       await reset.click()
       await page.waitForTimeout(300)
+      await page.reload()
     }
     const chartTool = page.locator('.chart-tool').first().locator('..').locator('..')
     const chartSymbol = chartTool.locator('.tool-window__symbol')
@@ -431,6 +432,7 @@ test.describe('TC2000 workstation', () => {
     await sectors.getByRole('button', { name: new RegExp(isolatedTarget) }).first().click()
     await expect(page.getByRole('combobox', { name: 'Active symbol' })).toHaveValue(isolatedTarget)
     await expect(chartSymbol).toHaveText(initialChartSymbol)
+    await page.waitForTimeout(250)
 
     // Yellow is a wildcard receiver: the same chart now follows a linked sector
     // selection regardless of the source group's concrete color.

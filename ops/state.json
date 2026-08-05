@@ -4,8 +4,8 @@
     "active_worker": "Codex",
     "worker_session_started_at": "2026-07-28T21:40:33Z",
     "worker_soft_stop_at": null,
-  "last_handoff_at": "2026-08-06T00:20:00Z",
-  "last_commit": "0b6aa6b test(workstation): cover timeframe link isolation",
+  "last_handoff_at": "2026-08-06T00:45:00Z",
+  "last_commit": "pending: link-bus state isolation hardening",
     "git_ready_to_commit": true,
   "validation": {
     "sandbox_numpy_method_guard": "passed: dangerous ndarray, dynamic execution/import/namespace, filesystem/network/process, reflection/object-graph introspection, and wall-time restoration regressions; combined validator/runner slice 90 passed and full backend unit suite 955 passed, 2026-08-04",
@@ -54,6 +54,7 @@
     "popout_disconnect_recovery": "passed: browser-level externally closed pop-out retained its source tool, allowed re-float in the same authenticated session, and closed cleanly; complete flows 35/35 with clean diagnostics, 2026-08-05T23:15:00Z",
     "link_group_isolation_recovery": "passed: moving a shared tool to Grey persists its current symbol before detachment; Yellow wildcard follows later linked selections; focused workspace-store 35/35, complete Chromium flows 36/36, frontend type-check passed, 2026-08-06T00:00:00Z",
     "timeframe_link_browser_acceptance": "passed: F8n proves shared timeframe propagation and Grey local isolation in the authenticated 4 Timeframe factory layout; targeted Chromium 1/1 with clean diagnostics, 2026-08-06T00:20:00Z",
+    "link_bus_state_isolation": "passed: F8m resets/reloads the factory workspace, waits for persisted link transitions, and passes repeated Grey/Yellow browser coverage 3/3; workspace-store 35/35 and frontend type-check passed, 2026-08-06T00:45:00Z",
     "popout_lifecycle_repeat": "passed: F8f repeatedly floated and closed the same tool ten times, retaining the durable source tool count and clean browser diagnostics; focused run 4.9s and complete flows 27/27, 2026-08-04",
     "legacy_route_matrix": "passed: authenticated Chromium smoke coverage reached ten retained /legacy surfaces without login redirects or fatal overlays; complete flows.spec.ts passed 26/26 and browser diagnostics were clean, 2026-08-04",
     "auth_session_lifecycle": "passed: normal and detached authentication lookups use independent/eagerly closed sessions; cleanup helpers accept async SQLAlchemy and synchronous compatibility adapters; backend unit 926, Docker integration 281, complete Chromium 26/26, and fresh backend log audit were clean, 2026-08-04",

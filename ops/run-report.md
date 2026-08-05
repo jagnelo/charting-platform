@@ -19609,3 +19609,11 @@ uncovered slice rather than repeat a generic completion claim.
   that a Grey-isolated chart keeps its local timeframe while a blue-linked chart changes.
 - Targeted Chromium run passed `1/1` in 2.5s with clean diagnostics. Strict visual, provider-live,
   adversarial stress, native multi-monitor, and long-soak gates remain open.
+
+## 2026-08-06T00:45:00Z Link-bus state isolation hardening
+
+- F8m now resets/reloads the factory workspace and waits for persisted selector transitions before
+  publishing test symbols, eliminating cross-test workspace-state races while retaining the Grey
+  isolation and Yellow wildcard assertions.
+- Repeated targeted Chromium coverage passed `3/3`; workspace-store coverage remains `35/35`,
+  and frontend type-check/diff validation passed. The full completion bar remains open.
