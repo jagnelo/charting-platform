@@ -18704,3 +18704,12 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
   Lazard passed in this rerun after its transient service failure. These remain explicit unresolved
   provider-route evidence; no failure was suppressed. Provider-live acceptance remains open pending
   route repair or an explicit tested audited-capability disposition.
+
+## Continuation update — 2026-08-07T02:00:00Z Issuer outage fallback
+
+- Generic issuer adapters now fall through to SEC EDGAR holdings reconstruction when a configured
+  issuer route returns a transport, parse, or HTTP failure and the profile has an entitled SEC
+  identifier. The original issuer-route failure is retained in provenance metadata.
+- The complete ETF adapter unit suite passes `452/452`; Ruff and diff checks pass. This improves
+  outage resilience for production profiles but does not make the three currently inaccessible
+  live issuer routes pass without SEC identifiers.

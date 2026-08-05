@@ -34,6 +34,7 @@ from app.services.etf_holdings_adapters import (
     SUPERSEDED_US_ETF_PROMOTER_BENCHMARKS,
     US_ETF_PROMOTER_UNIVERSE_BENCHMARK,
     CanonicalHoldingRow,
+    HoldingsFetchResult,
     IssuerCsvAdapterConfig,
     IssuerCsvHoldingsAdapter,
     PublicCsvHoldingsAdapter,
@@ -17621,6 +17622,40 @@ async def test_thor_adapter_uses_product_page_scoped_holdings_api(monkeypatch):
     assert equity_row.weight == Decimal("0.3301")
     assert result.legal_metadata["composition_date"] == "2026-07-10"
     assert result.legal_metadata["route_resolution"] == "thor_product_page_scoped_holdings_api"
+
+
+@pytest.mark.asyncio
+async def test_generic_issuer_adapter_falls_back_to_sec_after_route_failure(monkeypatch):
+    adapter = IssuerCsvHoldingsAdapter(
+        IssuerCsvAdapterConfig(
+            adapter_key="fallback-fixture",
+            source_provider="fixture",
+            url_templates=("https://issuer.example/{symbol}.csv",),
+            supports_sec_filing_fallback=True,
+        )
+    )
+    fallback = HoldingsFetchResult(
+        rows=[CanonicalHoldingRow(symbol="SPY", name="SPDR S&P 500 ETF")],
+        raw_text="<nport />",
+        source_url="https://www.sec.gov/Archives/edgar/data/fixture.xml",
+        source_identifier="fixture-accession",
+        legal_metadata={"route_resolution": "sec_edgar_filing_fallback"},
+    )
+
+    async def fail_issuer_route(*args, **kwargs):
+        raise ValueError("issuer returned malformed holdings")
+
+    async def return_sec_fallback(*args, **kwargs):
+        return fallback
+
+    monkeypatch.setattr(PublicCsvHoldingsAdapter, "fetch_latest", fail_issuer_route)
+    monkeypatch.setattr(adapter, "_fetch_latest_sec_filing_holdings", return_sec_fallback)
+
+    result = await adapter.fetch_latest(symbol="SPY", identifiers={"sec_cik": "0000000001"})
+
+    assert result is fallback
+    assert result.legal_metadata["issuer_route_fallback"] == "sec_edgar_filing"
+    assert "malformed holdings" in result.legal_metadata["issuer_route_failure"]
 
 
 @pytest.mark.asyncio

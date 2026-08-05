@@ -2827,12 +2827,33 @@ class IssuerCsvHoldingsAdapter(PublicCsvHoldingsAdapter):
             route_resolution = "issuer_product_page_discovery"
         else:
             route_resolution = "issuer_profile_metadata"
-        result = await super().fetch_latest(
-            symbol=symbol,
-            issuer_product_id=issuer_product_id,
-            source_url=resolved_source_url,
-            identifiers=identifiers,
-        )
+        try:
+            result = await super().fetch_latest(
+                symbol=symbol,
+                issuer_product_id=issuer_product_id,
+                source_url=resolved_source_url,
+                identifiers=identifiers,
+            )
+        except (httpx.HTTPError, requests.RequestException, ValueError) as route_error:
+            # A configured issuer route can become unavailable or malformed after
+            # discovery. If the profile also has an entitled SEC identifier, use
+            # the independent EDGAR reconstruction path rather than treating the
+            # issuer outage as a permanent capability failure. Preserve the route
+            # error so the caller can expose the degraded provenance state.
+            if self.config.supports_sec_filing_fallback:
+                sec_result = await self._fetch_latest_sec_filing_holdings(
+                    symbol=symbol,
+                    issuer_product_id=issuer_product_id,
+                    identifiers=identifiers or {},
+                )
+                if sec_result is not None:
+                    sec_result.legal_metadata = {
+                        **(sec_result.legal_metadata or {}),
+                        "issuer_route_failure": str(route_error),
+                        "issuer_route_fallback": "sec_edgar_filing",
+                    }
+                    return sec_result
+            raise
         result.legal_metadata = {
             **(result.legal_metadata or {}),
             "source_access": self.config.source_access,

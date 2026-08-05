@@ -20134,3 +20134,9 @@ uncovered slice rather than repeat a generic completion claim.
   cases deselected: Davis 522, Anfield ADFI 404, and Donoghue Forlines page/AJAX 503. Lazard passed
   after its transient service failure. No provider failure was hidden or reclassified;
   provider-live acceptance remains open.
+
+## 2026-08-07T02:00:00Z Issuer outage fallback
+
+- Generic issuer adapters now use the independent SEC EDGAR reconstruction path after issuer
+  transport/parse/HTTP failure when an entitled SEC identifier is available, retaining the original
+  route failure in metadata. ETF adapter unit suite: `452/452`; Ruff and diff checks pass.
