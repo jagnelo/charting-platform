@@ -1,6 +1,6 @@
 # Project TODO Memory
 
-## Current continuation checkpoint — 2026-08-06T21:15:00Z
+## Current continuation checkpoint — 2026-08-07T07:00:00Z
 
 The top-down analysis has direct unit coverage for its explicit industry-proxy registry, async
 taxonomy seeding, and relative-rotation/point-in-time helper edge cases. The analysis helper suite
@@ -8,14 +8,13 @@ passes `12/12`, while the taxonomy suite passes `2/2`. The idempotence test veri
 benchmark and sector proxy instruments are attached once with source/verification provenance and
 that the SPX identity remains explicitly paired with SPY as the default tradable proxy. The full
 backend unit suite passes `981/981` with `69.93%` coverage. The combined backend coverage gate
-passes at `79.59%`; the unit-only slice remains separately reported at `69.93%`. Strict Version 25
-visual approval, configured
-provider-live probes, sustained sandbox/resource stress, native multi-monitor evidence, and the
-remaining cross-surface parity gates remain open.
+passes at `79.41%`; the unit-only slice remains separately reported at `69.90%`. Strict Version 25
+visual approval, configured provider-live probes, sustained sandbox/resource stress, native
+multi-monitor evidence, and the remaining cross-surface parity gates remain open.
 
-The latest Chromium workstation performance run completed both guards with
-`TC2000_POP_OUT_CHURN_ROUNDS=100`: `2/2` passed in `1.9m`, including repeated simultaneous
-pop-out lifecycle churn, bounded source tool/canvas/chart counts, and available heap ceilings.
+The latest Chromium workstation performance run completed both guards twice with
+`TC2000_POP_OUT_CHURN_ROUNDS=100`: `2/2` passed per run, including repeated simultaneous pop-out
+lifecycle churn, bounded source tool/canvas/chart counts, and available heap ceilings.
 The user-requested `docker system prune -af` cleanup reclaimed `7.319GB`; active branch services
 remained healthy. Native multi-monitor placement and genuinely indefinite soak remain separate
 acceptance gates.
@@ -129,12 +128,10 @@ fallback universe when hydration is incomplete. Focused F8m passes `3/3`, focuse
 `582/582` after the final source changes. These close the observed races without changing the
 strict visual, provider-live, sustained-stress, multi-monitor, or indefinite-soak gates.
 
-Provider-route recheck on 2026-08-05T21:45:00Z confirmed that the four remaining ETF holdings
-failures are still external-route conditions, not safe candidates for fallback substitution:
-official pages declare ADFI, DFTT, and NEOS downloads but the discovered acceptance routes remain
-404, 503, and access-denied respectively; Ballast's MGMT page reports TBD holdings. The complete
-opt-in matrix remains `342 passed, 1 skipped, 4 failed` and no route is promoted without a passing
-deterministic/live identity check.
+Provider-route rechecks and the subsequent SEC-fallback repair leave three external issuer-route
+failures: Davis 522, Anfield ADFI 404, and Donoghue Forlines 503. The targeted matrix is now
+`285 passed, 1 skipped, 3 failed` with no route suppressed or promoted without deterministic/live
+identity evidence; configured SEC identifiers can use the independent fallback path.
 
 The 2026-08-05T22:15:00Z visual-harness audit temporarily enabled the deterministic E2E market
 fixture and exercised all four required display environments. The current workstation rendered
@@ -144,10 +141,10 @@ and no snapshot was rewritten or treated as an approved V25 reference. The stric
 continues to fail closed at `application-shell-default/default: required_missing`.
 
 The workstation performance guard now supports bounded long-soak execution through
-`TC2000_POP_OUT_CHURN_ROUNDS` (capped at 20), samples Chromium heap usage after every churn
-round, and checks both absolute and relative heap ceilings. The extended 20-round/two-popout
-run passed, as did both workstation performance tests (`2/2`); broader OS-level multi-monitor
-placement remains separate.
+`TC2000_POP_OUT_CHURN_ROUNDS` (capped at 100), samples Chromium heap usage after every churn
+round, and checks both absolute and relative heap ceilings. The extended 100-round/two-popout
+run passed twice, as did both workstation performance tests (`2/2`); broader OS-level
+multi-monitor placement remains separate.
 
 Added browser-level recovery coverage for a disconnected/externally closed pop-out: the source
 workspace must retain the tool, allow it to be floated again in the same session, and close the
