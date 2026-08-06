@@ -85,7 +85,7 @@ const groups: LinkGroup[] = ['blue', 'red', 'green', 'purple', 'orange', 'cyan',
 </script>
 
 <style scoped>
-.tool-window { position: relative; min-width: 0; min-height: 0; display: flex; flex-direction: column; border: 1px solid var(--tc-border, #30363c); background: var(--tc-window, #15191e); box-shadow: inset 0 1px rgba(255, 255, 255, 0.035); }
+.tool-window { position: relative; width: 100%; height: 100%; min-width: 0; min-height: 0; display: flex; flex-direction: column; overflow: hidden; border: 1px solid var(--tc-border, #30363c); background: var(--tc-window, #15191e); box-shadow: inset 0 1px rgba(255, 255, 255, 0.035); }
 .tool-window--active { border-color: #607486; }
 .tool-window__header { height: var(--tc-window-header-height); display: flex; align-items: center; gap: 5px; padding: 0 4px; background: linear-gradient(var(--tc-header-top), var(--tc-header-bottom)); border-bottom: 1px solid #0d0f11; color: var(--tc-text); font: 600 11px/1 var(--tc-font-family); user-select: none; }
 .tool-window__drag-handle { display: inline-flex; width: 12px; flex: 0 0 12px; align-items: center; justify-content: center; color: #748793; font-size: 11px; letter-spacing: -2px; cursor: grab; }

@@ -1672,7 +1672,7 @@ const proxyCoverage = computed(() => industryProxySnapshot.value
 
 <style scoped>
 .chart-tool { display: flex; height: 100%; min-height: 0; background: #101419; }
-.chart-tool__drawing-toolbar { flex: 0 0 auto; }
+.chart-tool__drawing-toolbar { flex: 0 0 44px; max-height: 100%; box-sizing: border-box; overflow-x: hidden; overflow-y: auto; }
 .chart-tool__surface { position: relative; min-width: 0; min-height: 0; flex: 1 1 auto; }
 .chart-tool__templates { position: absolute; top: 3px; right: 4px; z-index: 12; }
 .chart-tool__compare { position: absolute; top: 3px; left: 4px; z-index: 12; display: flex; align-items: center; gap: 3px; max-width: calc(100% - 120px); overflow: hidden; }

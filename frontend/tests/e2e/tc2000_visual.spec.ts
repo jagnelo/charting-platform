@@ -65,6 +65,7 @@ test.describe('TC2000 Version 25 approved visual parity', () => {
         const toolbar = rect(chart.querySelector('.chart-tool__drawing-toolbar'))
         const surface = rect(chart.querySelector('.chart-tool__surface'))
         if (toolbar && surface && toolbar.right > surface.left) issues.push(`chart-${index}-toolbar-surface`)
+        if (toolbar && surface && (toolbar.top < surface.top || toolbar.bottom > surface.bottom)) issues.push(`chart-${index}-toolbar-vertical-overlap`)
       })
       return issues
     })

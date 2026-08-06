@@ -727,6 +727,11 @@ test.describe('TC2000 workstation', () => {
         if (overlaps(rect(header.querySelector('.tool-window__title')), rect(header.querySelector('.tool-window__actions')))) result.push(`title-actions-${index}`)
         if (overlaps(rect(header.querySelector('.tool-window__symbol')), rect(header.querySelector('.tool-window__actions')))) result.push(`symbol-actions-${index}`)
       })
+      document.querySelectorAll('.chart-tool').forEach((chart, index) => {
+        const toolbar = rect(chart.querySelector('.chart-tool__drawing-toolbar'))
+        const surface = rect(chart.querySelector('.chart-tool__surface'))
+        if (toolbar && surface && (toolbar.top < surface.top || toolbar.bottom > surface.bottom)) result.push(`chart-toolbar-vertical-${index}`)
+      })
       return result
     })
     expect(issues).toEqual([])
