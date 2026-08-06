@@ -1,6 +1,6 @@
 import { mount } from '@vue/test-utils'
 import { VueQueryPlugin, QueryClient } from '@tanstack/vue-query'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const { apiGet, apiPost } = vi.hoisted(() => ({ apiGet: vi.fn(), apiPost: vi.fn() }))
 vi.mock('@/lib/api', () => ({ api: { get: apiGet, post: apiPost } }))
@@ -15,6 +15,11 @@ vi.mock('@/components/workstation/StudyDashboard.vue', () => ({ default: { templ
 import StudyLabTool from '@/components/workstation/StudyLabTool.vue'
 
 describe('StudyLabTool', () => {
+  beforeEach(() => {
+    apiGet.mockReset()
+    apiPost.mockReset()
+  })
+
   function mountTool(props: Record<string, unknown>) {
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
     return mount(StudyLabTool, { props, global: { plugins: [[VueQueryPlugin, { queryClient }]] } })
@@ -41,6 +46,33 @@ describe('StudyLabTool', () => {
     await vi.waitFor(() => expect(wrapper.text()).toContain('Run #77'))
     expect(wrapper.text()).toContain('event_count')
     expect(apiGet).toHaveBeenCalledWith('/research/runs/77')
+  })
+
+  it('does not let late persisted hydration replace a newly started run', async () => {
+    let resolvePersisted!: (value: unknown) => void
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/research/runs/77') return new Promise(resolve => { resolvePersisted = resolve })
+      return Promise.resolve(undefined)
+    })
+    apiPost.mockImplementation((path: string) => {
+      if (path === '/code/validate') return Promise.resolve({ valid: true, diagnostics: [], dependencies: ['output'], lookback_hint: null, output_contracts: ['scalar'] })
+      if (path === '/code/assets') return Promise.resolve({ versions: [{ id: 78 }] })
+      if (path === '/research/runs') return Promise.resolve({ id: 88, status: 'completed', artifacts: [] })
+      return Promise.resolve({})
+    })
+    const wrapper = mountTool({ activeSymbol: 'SPY', configuration: { study_run_id: 77, study_run_source: 'output.scalar("old", 1)', study_run_contract: 'scalar' } })
+    await wrapper.find('[aria-label="Study Python source"]').setValue('output.scalar("new", 2)')
+    await wrapper.find('button').trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Validated for isolated execution'))
+    await wrapper.findAll('button').find(button => button.text() === 'Run')!.trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Run #88'))
+
+    resolvePersisted({ id: 77, status: 'queued', artifacts: [] })
+    await Promise.resolve()
+    await new Promise(resolve => setTimeout(resolve, 0))
+    expect(wrapper.text()).toContain('Run #88')
+    expect(wrapper.text()).not.toContain('Run #77')
+    wrapper.unmount()
   })
 
   it('offers constrained SDK suggestions while retaining the plain Python editor', async () => {
@@ -201,6 +233,25 @@ describe('StudyLabTool', () => {
     await vi.waitFor(() => expect(wrapper.text()).toContain('Run #101'))
     wrapper.unmount()
     expect(apiPost).toHaveBeenCalledWith('/research/runs/101/cancel', {})
+  })
+
+  it('cancels a run that is created after the Study Lab tool is destroyed', async () => {
+    let resolveRun!: (value: unknown) => void
+    apiPost.mockImplementation((path: string) => {
+      if (path === '/code/validate') return Promise.resolve({ valid: true, diagnostics: [], dependencies: ['output'], lookback_hint: null, output_contracts: ['scalar'] })
+      if (path === '/code/assets') return Promise.resolve({ versions: [{ id: 52 }] })
+      if (path === '/research/runs') return new Promise(resolve => { resolveRun = resolve })
+      if (path === '/research/runs/202/cancel') return Promise.resolve({ id: 202, status: 'canceled', artifacts: [] })
+      return Promise.resolve({})
+    })
+    const wrapper = mountTool({ activeSymbol: 'SPY' })
+    await wrapper.find('button').trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Validated for isolated execution'))
+    await wrapper.findAll('button').find(button => button.text() === 'Run')!.trigger('click')
+    wrapper.unmount()
+
+    resolveRun({ id: 202, status: 'queued', artifacts: [] })
+    await vi.waitFor(() => expect(apiPost).toHaveBeenCalledWith('/research/runs/202/cancel', {}))
   })
 
   it('surfaces an empty polling response instead of caching undefined', async () => {

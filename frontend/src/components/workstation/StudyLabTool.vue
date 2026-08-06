@@ -193,6 +193,8 @@ const error = ref('')
 const studyLabRoot = ref<HTMLElement | null>(null)
 const surfaceVisible = ref(true)
 const documentVisible = ref(typeof document === 'undefined' || document.visibilityState !== 'hidden')
+let disposed = false
+let runGeneration = 0
 let visibilityObserver: IntersectionObserver | null = null
 function updateDocumentVisibility() { documentVisible.value = document.visibilityState !== 'hidden' }
 const runQuery = useQuery({
@@ -211,13 +213,17 @@ const runQuery = useQuery({
   enabled: computed(() => Boolean(run.value?.id) && !['completed', 'failed', 'canceled'].includes(run.value?.status ?? '') && documentVisible.value),
   staleTime: 0,
   refetchOnWindowFocus: true,
-  refetchInterval: query => {
-    const status = query.state.data?.status
+  refetchInterval: () => {
+    // The first durable response is commonly `queued`. Deriving the interval
+    // from the reactive run state keeps polling alive after that first fetch;
+    // consulting only query.state.data can leave a queued run stranded when
+    // the initial result has not yet been collected by FastAPI.
+    const status = run.value?.status
     return status && !['completed', 'failed', 'canceled'].includes(status) ? 1_000 : false
   },
 })
 watch(() => runQuery.data.value, next => {
-  if (next && next.id === run.value?.id) run.value = next
+  if (!disposed && next && next.id === run.value?.id) run.value = next
 })
 watch(run, next => {
   if (cacheKey && next) studyRunCache.set(cacheKey, { run: next, source: runSource.value, contract: runContract.value })
@@ -444,6 +450,8 @@ async function validate() {
   finally { busy.value = false }
 }
 async function saveAndRun() {
+  if (disposed) return
+  const generation = ++runGeneration
   if (!validation.value?.valid || parameterSchemaError.value) return
   if (requiresDeclaredUniverse.value && !universeSymbols.value.split(',').some(value => value.trim())) {
     error.value = 'This factory study requires a declared comma-separated universe before it can run.'
@@ -462,6 +470,7 @@ async function saveAndRun() {
       kind: 'study',
       initial_version: { source: source.value, output_contract: 'study', parameter_schema: parsedParameterSchema.value ?? {}, default_parameters: parameters },
     })
+    if (disposed || generation !== runGeneration) return
     const datasetControls: Record<string, string> = {
       timeframe: timeframe.value,
       adjustment: adjustment.value,
@@ -473,11 +482,23 @@ async function saveAndRun() {
     if (asOf.value) datasetControls.as_of = new Date(asOf.value).toISOString()
     const symbols = universeSymbols.value.split(',').map(value => value.trim().toUpperCase()).filter(Boolean)
     const runConfig: Record<string, unknown> = symbols.length ? { symbols, parameters, ...datasetControls } : { symbol: symbol.value.toUpperCase(), parameters, ...datasetControls }
-    run.value = await api.post<Run>('/research/runs', {
+    const createdRun = await api.post<Run>('/research/runs', {
       code_version_id: asset.versions[0].id,
       run_config: runConfig,
       dataset_manifest: { source: 'canonical_database', requested_at: new Date().toISOString(), ...datasetControls },
     })
+    // A virtual tool can be destroyed while the durable run request is in
+    // flight (for example when a user changes layouts or closes a pop-out).
+    // Do not let that late response strand a queued job that no visible tool
+    // owns. The cancellation is deliberately sent after the create response
+    // so the server can identify the exact run even if the component vanished.
+    if (disposed || generation !== runGeneration) {
+      if (createdRun?.id) {
+        try { await api.post(`/research/runs/${createdRun.id}/cancel`, {}) } catch { /* best-effort cleanup */ }
+      }
+      return
+    }
+    run.value = createdRun
     emit('configuration', {
       ...(props.configuration ?? {}),
       study_run_id: run.value.id,
@@ -490,6 +511,7 @@ async function saveAndRun() {
 }
 type PromotionTarget = 'column' | 'plot' | 'scan' | 'alert' | 'signal'
 async function promote(target: PromotionTarget) {
+  if (disposed) return
   const contract = promotableKind.value
   if (!contract || promotionBusy.value) return
   promotionBusy.value = true
@@ -508,6 +530,7 @@ async function promote(target: PromotionTarget) {
         default_parameters: buildParameters(),
       },
     })
+    if (disposed) return
     const versionId = asset.versions[0]?.id
     if (!versionId) throw new Error('Promotion did not return a code version')
     if (target === 'column') promotionStatus.value = 'Saved as a reusable watchlist column.'
@@ -528,6 +551,7 @@ async function promote(target: PromotionTarget) {
       }
       if (target === 'alert') {
         await api.post('/alerts/screener', { screener_id: scanId, trigger_type: 'entered', repeat: true })
+        if (disposed) return
         promotionStatus.value = 'Promoted to an active scan alert.'
       } else promotionStatus.value = 'Promoted to a reusable scan.'
     }
@@ -537,11 +561,13 @@ async function promote(target: PromotionTarget) {
 }
 async function rerun(snapshot: boolean) {
   if (!run.value || rerunBusy.value) return
+  const generation = ++runGeneration
   rerunBusy.value = true
   error.value = ''
   promotionStatus.value = ''
   try {
-    run.value = await api.post<Run>(`/research/runs/${run.value.id}/rerun?snapshot=${snapshot}`, {})
+    const rerunResult = await api.post<Run>(`/research/runs/${run.value.id}/rerun?snapshot=${snapshot}`, {})
+    if (!disposed && generation === runGeneration) run.value = rerunResult
   } catch (cause: any) {
     error.value = cause?.message ?? 'Unable to rerun study'
   } finally { rerunBusy.value = false }
@@ -563,7 +589,11 @@ onMounted(() => {
   const persistedScanId = Number(props.configuration?.promoted_scan_id)
   if (Number.isInteger(persistedScanId) && persistedScanId > 0) promotedScanId.value = persistedScanId
   if (Number.isInteger(persistedRunId) && persistedRunId > 0) {
+    const hydrationGeneration = runGeneration
     void api.get<Run>(`/research/runs/${persistedRunId}`).then(persistedRun => {
+      // A persisted lookup can resolve after the user has started a new run.
+      // Never let that stale response replace the user's current analysis.
+      if (disposed || hydrationGeneration !== runGeneration || (run.value && run.value.id !== persistedRunId)) return
       run.value = persistedRun
       runSource.value = typeof props.configuration?.study_run_source === 'string' ? props.configuration.study_run_source : ''
       runContract.value = typeof props.configuration?.study_run_contract === 'string' ? props.configuration.study_run_contract : null
@@ -574,7 +604,13 @@ onMounted(() => {
   }
 })
 onBeforeUnmount(() => {
-  if (run.value && canCancel.value) void api.post(`/research/runs/${run.value.id}/cancel`, {})
+  disposed = true
+  if (run.value && canCancel.value) {
+    // Teardown is best-effort. A queued run may become terminal between the
+    // computed check and this request; that documented 409 must not surface as
+    // an unhandled browser error while the tool is being destroyed.
+    void api.post(`/research/runs/${run.value.id}/cancel`, {}).catch(() => {})
+  }
   document.removeEventListener('visibilitychange', updateDocumentVisibility)
   visibilityObserver?.disconnect()
   visibilityObserver = null

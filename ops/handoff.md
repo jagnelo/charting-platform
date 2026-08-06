@@ -1,5 +1,24 @@
 # Active Handoff
 
+## Continuation update — 2026-08-06T12:30:00Z Study Lab lifecycle and durable polling repair
+
+- Study Lab now guards asynchronous run creation and persisted-run hydration with a
+  generation/disposal boundary. A late response cannot replace a newer user run or leave a
+  queued job owned by a destroyed virtual tool; teardown cancellation is best-effort and
+  suppresses the expected terminal-race response.
+- Durable run polling now continues while the reactive run is queued/running. The previous
+  query-state-only interval could perform one queued fetch and then stop before the runner's
+  result was collected.
+- Added unit coverage for late post-unmount cancellation and stale persisted hydration. The
+  Study Lab unit file passes `15/15`; Vue type-check and production rebuild pass.
+- Focused authenticated checks pass the affected Study Lab/Notes surfaces (`F8g/F8o/F8p/F8q`
+  and `F8s`) in the rebuilt stack. The complete serial matrix remains sensitive to shared
+  stack contention and currently has intermittent pop-out/render timing failures; these are
+  not claimed as completion evidence until a clean full run is green.
+- E2E user isolation now includes `repeatEachIndex`, and durable Study Lab acceptance windows
+  are bounded at 90 seconds to reflect queued-job semantics rather than assuming sub-30-second
+  execution.
+
 ## Continuation update — 2026-08-07T09:40:00Z Workstation traversal, visibility, and pop-out persistence hardening
 
 - Ctrl+wheel traversal now captures the workstation-level wheel event, publishes the canonical benchmark fallback synchronously, and cannot be overwritten by late initial route hydration. Hidden tabs suspend symbol, market-analysis, and ratio requests and refresh on visibility restoration.

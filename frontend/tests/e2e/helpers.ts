@@ -309,7 +309,8 @@ export const test = base.extend<Fixtures>({
     // Keep each flow's workspace isolated. A single shared account lets a prior
     // test's debounced snapshot race the next test and turns an otherwise handled
     // revision conflict into noisy browser diagnostics.
-    const testSlug = testInfo.title.replace(/[^a-z0-9]+/gi, '_').slice(0, 12)
+    const repeatSuffix = testInfo.repeatEachIndex ?? 0
+    const testSlug = `${testInfo.title.replace(/[^a-z0-9]+/gi, '_').slice(0, 12)}_${repeatSuffix}`
     const username = `${USER}_${workerSuffix}_${testSlug}`
     const email = EMAIL.replace('@', `+${workerSuffix}-${testSlug}@`)
     const lp = new LoginPage(page)

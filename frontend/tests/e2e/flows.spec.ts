@@ -325,18 +325,15 @@ test.describe('TC2000 workstation', () => {
     await popup.waitForLoadState('domcontentloaded')
     await expect(popup.locator('.workstation__popout .tool-window')).toBeVisible({ timeout: 10_000 })
 
-    await page.waitForTimeout(1_250)
-    const result = await page.evaluate(async () => {
+    const geometry = await expect.poll(async () => page.evaluate(async () => {
       const token = localStorage.getItem('access_token')
       const response = await fetch('/api/v1/workspaces/default', { headers: token ? { Authorization: `Bearer ${token}` } : {} })
-      return { ok: response.ok, body: await response.json() }
-    })
-    expect(result.ok).toBe(true)
-    const workspace = result.body
-    const windows = workspace.tabs.flatMap((tab: { windows: Array<Record<string, unknown>> }) => tab.windows)
-    const persisted = windows.find((window: Record<string, unknown>) => Boolean((window.style as { popout?: unknown } | undefined)?.popout))
-    const geometry = (persisted?.style as { popout?: Record<string, unknown> } | undefined)?.popout
-    expect(geometry).toEqual(expect.objectContaining({ left: expect.any(Number), top: expect.any(Number), width: expect.any(Number), height: expect.any(Number) }))
+      if (!response.ok) return undefined
+      const body = await response.json()
+      const windows = body.tabs.flatMap((tab: { windows: Array<Record<string, unknown>> }) => tab.windows)
+      const persisted = windows.find((window: Record<string, unknown>) => Boolean((window.style as { popout?: unknown } | undefined)?.popout))
+      return (persisted?.style as { popout?: Record<string, unknown> } | undefined)?.popout
+    }), { timeout: 10_000, intervals: [250, 500, 1_000] }).toEqual(expect.objectContaining({ left: expect.any(Number), top: expect.any(Number), width: expect.any(Number), height: expect.any(Number) }))
 
     if (!popup.isClosed()) {
       const closed = popup.waitForEvent('close')
@@ -586,6 +583,7 @@ test.describe('TC2000 workstation', () => {
   })
 
   test('F8g — Study Lab validates, runs an isolated Python study, and renders its result', async ({ page, browserDiagnostics }) => {
+    test.setTimeout(120_000)
     await page.goto('/chart')
     await expect(page.locator('.workspace-layout-host')).toBeVisible({ timeout: 10_000 })
     await page.getByRole('button', { name: 'Study', exact: true }).click()
@@ -600,7 +598,7 @@ test.describe('TC2000 workstation', () => {
 
     await study.getByRole('button', { name: 'Run', exact: true }).click()
     await expect(study.locator('.study-lab-tool__run')).toBeVisible({ timeout: 10_000 })
-    await expect(study.locator('.study-lab-tool__run-status--completed')).toBeVisible({ timeout: 30_000 })
+    await expect(study.locator('.study-lab-tool__run-status--completed')).toBeVisible({ timeout: 90_000 })
     await expect(study.locator('.study-lab-tool__metrics article').filter({ hasText: 'smoke' })).toContainText('1')
     await study.getByRole('button', { name: 'Save as column' }).click()
     await expect(study).toContainText('Saved as a reusable watchlist column.', { timeout: 10_000 })
@@ -608,6 +606,7 @@ test.describe('TC2000 workstation', () => {
   })
 
   test('F8o — Study Lab renders a structured event study with histogram, bars, table, and linked occurrences', async ({ page, browserDiagnostics }) => {
+    test.setTimeout(120_000)
     await page.goto('/chart')
     await expect(page.locator('.workspace-layout-host')).toBeVisible({ timeout: 10_000 })
     await page.getByRole('button', { name: 'Study', exact: true }).click()
@@ -626,7 +625,7 @@ test.describe('TC2000 workstation', () => {
     await study.getByRole('button', { name: 'Validate' }).click()
     await expect(study).toContainText('Validated for isolated execution', { timeout: 10_000 })
     await study.getByRole('button', { name: 'Run', exact: true }).click()
-    await expect(study.locator('.study-lab-tool__run-status--completed')).toBeVisible({ timeout: 30_000 })
+    await expect(study.locator('.study-lab-tool__run-status--completed')).toBeVisible({ timeout: 90_000 })
     await expect(study.locator('.study-lab-tool__metrics article').filter({ hasText: 'event_count' })).toContainText('4')
     await expect(study.locator('.study-bars-uplot, [class*="study-bars"]').first()).toBeVisible()
     await expect(study.locator('.study-histogram-uplot, [class*="study-histogram"]').first()).toBeVisible()
@@ -639,6 +638,7 @@ test.describe('TC2000 workstation', () => {
   })
 
   test('F8p — Study Lab runs the factory consecutive-positive-close study against canonical market data', async ({ page, browserDiagnostics }) => {
+    test.setTimeout(120_000)
     await page.goto('/chart')
     await expect(page.locator('.workspace-layout-host')).toBeVisible({ timeout: 10_000 })
     await page.getByRole('button', { name: 'Study', exact: true }).click()
@@ -651,7 +651,7 @@ test.describe('TC2000 workstation', () => {
     await study.getByRole('button', { name: 'Validate' }).click()
     await expect(study).toContainText('Validated for isolated execution', { timeout: 10_000 })
     await study.getByRole('button', { name: 'Run', exact: true }).click()
-    await expect(study.locator('.study-lab-tool__run-status--completed')).toBeVisible({ timeout: 30_000 })
+    await expect(study.locator('.study-lab-tool__run-status--completed')).toBeVisible({ timeout: 90_000 })
     await expect(study.locator('.study-lab-tool__metrics article').filter({ hasText: 'current_streak' })).toBeVisible()
     await expect(study.locator('.study-lab-tool__metrics article').filter({ hasText: 'longest_streak' })).toBeVisible()
     await expect(study.locator('.study-lab-tool__events button').first()).toBeVisible()
@@ -659,6 +659,12 @@ test.describe('TC2000 workstation', () => {
   })
 
   test('F8q — Study Lab promotes a Boolean result into a reusable scan and active scan alert', async ({ page, browserDiagnostics }) => {
+    // Promotion writes are durable and can briefly queue behind the shared
+    // workspace/code-asset database workload in a long serial acceptance run.
+    // Keep the assertion bounded, but allow the product's explicit
+    // `Promoting…` state enough time to resolve instead of declaring a false
+    // failure at the short interaction timeout used by simple controls.
+    test.setTimeout(90_000)
     await page.goto('/chart')
     await expect(page.locator('.workspace-layout-host')).toBeVisible({ timeout: 10_000 })
     await page.getByRole('button', { name: 'Study', exact: true }).click()
@@ -672,19 +678,19 @@ test.describe('TC2000 workstation', () => {
     await study.getByRole('button', { name: 'Validate' }).click()
     await expect(study).toContainText('Validated for isolated execution', { timeout: 10_000 })
     await study.getByRole('button', { name: 'Run', exact: true }).click()
-    await expect(study.locator('.study-lab-tool__run-status--completed')).toBeVisible({ timeout: 30_000 })
+    await expect(study.locator('.study-lab-tool__run-status--completed')).toBeVisible({ timeout: 90_000 })
     await expect(study.locator('.study-lab-tool__metrics article').filter({ hasText: 'qualifies' })).toHaveClass(/study-lab-tool__metric--true/)
     await study.getByRole('button', { name: 'Promote to scan' }).click()
-    await expect(study).toContainText('Promoted to a reusable scan.', { timeout: 10_000 })
+    await expect(study).toContainText('Promoted to a reusable scan.', { timeout: 30_000 })
     await study.getByRole('button', { name: 'Promote to alert' }).click()
-    await expect(study).toContainText('Promoted to an active scan alert.', { timeout: 10_000 })
+    await expect(study).toContainText('Promoted to an active scan alert.', { timeout: 30_000 })
     await study.getByRole('button', { name: 'Save as Strategy signal' }).click()
     // Signal promotion creates a Strategy Lab definition and returns its fully
     // hydrated version graph. On a long-lived shared acceptance database this
     // can legitimately take longer than the scan/alert writes, so keep the
     // assertion bounded by the enclosing test timeout without treating a
     // transient database queue as a false product failure.
-    await expect(study).toContainText('Saved as a reusable Strategy Lab signal.', { timeout: 25_000 })
+    await expect(study).toContainText('Saved as a reusable Strategy Lab signal.', { timeout: 45_000 })
     await browserDiagnostics.expectNoCriticalIssues()
   })
 

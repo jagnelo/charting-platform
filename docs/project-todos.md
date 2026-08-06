@@ -3424,6 +3424,13 @@ row-count, viewport-containment, and core-header overlap checks; their screensho
 remain intentionally unapproved because the local artifacts are stale and the exact-build
 Version 25 reference manifest is still `required_missing`.
 
+The subsequent Study Lab audit closed a second class of asynchronous defects: queued runs now
+continue polling until terminal, late persisted-run hydration cannot overwrite a newer run,
+and destroyed virtual tools cancel runs whose create response arrives after unmount. Teardown
+terminal races are handled without browser-console noise. Focused Study Lab and Notes browser
+flows pass in the rebuilt stack; the full serial browser matrix still requires a clean,
+contention-free rerun before it can be treated as completion evidence.
+
 The streaming screener also now treats indicator-cache persistence as an optional,
 observable optimization: failed cache commits roll back, produce a structured warning,
 and leave canonical scan results usable rather than silently poisoning the transaction.
