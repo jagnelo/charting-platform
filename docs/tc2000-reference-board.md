@@ -17,11 +17,16 @@ python3 tests/visual/build-tc2000-reference-board.py \
 npx playwright screenshot --device='Desktop Chrome HiDPI' --full-page \
   file:///private/tmp/tc2000-v25-reference-pack/reference-board.html \
   /private/tmp/tc2000-v25-reference-pack/reference-board.png
+
+python3 tests/visual/validate-tc2000-reference-board.py \
+  /private/tmp/tc2000-v25-reference-pack/reference-board.html
 ```
 
 The board groups every image by surface and labels it with source type, source build,
 filename, and source-page link. It is an implementation and review aid; it does not merge
 different product states into a claim that they are one deterministic screenshot.
+The validator is a deterministic completeness check: it confirms that every generated image
+card has a local source file. It does not promote any reference to an approved baseline.
 
 ## Current coverage
 
