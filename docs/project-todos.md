@@ -3505,6 +3505,9 @@ checks, but all four screenshot comparisons remain unapproved: measured differen
 2% (above the 0.5% local threshold) against stale local snapshots, and the strict manifest still
 marks the exact-build reference `required_missing`. No screenshot baseline was promoted.
 
+The live sandbox escape probe also passed: unshare, setns, mount, ptrace, fork, network, subprocess,
+and read-only-root writes were all denied under the configured seccomp/no-new-privileges runner.
+
 The streaming screener also now treats indicator-cache persistence as an optional,
 observable optimization: failed cache commits roll back, produce a structured warning,
 and leave canonical scan results usable rather than silently poisoning the transaction.

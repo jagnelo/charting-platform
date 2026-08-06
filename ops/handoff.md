@@ -19102,3 +19102,10 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
 - Screenshot comparisons remained intentionally unapproved at approximately 2% difference,
   above the 0.5% threshold, against stale local snapshots. The strict exact-build manifest is
   still `required_missing`; no baseline was promoted.
+
+### 2026-08-06T16:50:00Z — sandbox escape probe
+
+- `ops/probe-research-runner-sandbox.sh` passed all eight denial checks: namespace changes,
+  mount, ptrace, fork, network, subprocess creation, and writes through the read-only root.
+- This strengthens adversarial sandbox evidence; indefinite soak and broader multi-process
+  resource testing remain separate gates.
