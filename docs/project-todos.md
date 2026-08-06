@@ -179,7 +179,7 @@ multi-monitor/memory/polling evidence rather than identical-request duplication.
   production build, rebuilt Chromium `29/29`). The old timestamp-derived `Cached` shell state
   was removed because it could imply freshness the backend had not established.
 - The current local audit also passes the full frontend Vitest suite (`576/576`) and full backend
-  unit suite (`974/974`), with only the documented third-party deprecation warnings.
+  unit suite (`988/988`), with only the documented third-party deprecation warnings.
 - Fresh Docker-backed backend integration also passes `281/281` in `164.63s`; branch-scoped
   services remained healthy and the post-run backend/worker/research-runner log audit found no
   unexpected error, traceback, connection-leak, or provider-runtime output.
