@@ -18912,3 +18912,6 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
   cleared build `25.0.9571` references with environment metadata are approved.
 - Post-fix full frontend Vitest is `587/587` across 88 files; the only stderr remains the
   intentionally exercised watchlist conflict-path logging.
+- A clean rebuilt-stack authenticated Chromium matrix after both fixes passes `42/42` in 1.8
+  minutes, including linking/isolation, top-down drilldown, Study Lab promotion, pop-outs/recovery,
+  notes, legacy compatibility, and Radar.

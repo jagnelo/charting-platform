@@ -20306,3 +20306,4 @@ uncovered slice rather than repeat a generic completion claim.
   manifest remains fail-closed at `application-shell-default/default: required_missing`.
 - Post-fix full frontend Vitest is `587/587` across 88 files; TypeScript and production build
   remain green, with only the expected watchlist conflict-path stderr.
+- Clean rebuilt-stack authenticated Chromium flows pass `42/42` in 1.8 minutes after both fixes.
