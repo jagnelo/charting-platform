@@ -59,4 +59,20 @@ describe('CoverageSummaryTool', () => {
     expect(wrapper.emitted('configuration')?.at(-1)?.[0]).toEqual(expect.objectContaining({ coverage_timeframe: 'W1', coverage_start: '2026-02-01', coverage_end: '2026-01-01', coverage_mode: 'historical', coverage_adjusted: true }))
     expect(apiGet).not.toHaveBeenCalledWith('/coverage/instruments/XLK/ohlcv', expect.anything())
   })
+
+  it('keeps stale and failed dataset states visible instead of hiding freshness limits', async () => {
+    apiGet.mockResolvedValue({
+      local_coverage: { D1: { oldest: '2024-01-01T00:00:00Z', newest: '2025-12-31T00:00:00Z', bar_count: 500 } },
+      dataset_states: [
+        { dataset_type: 'ohlcv', dataset_key: 'D1', status: 'stale' },
+        { dataset_type: 'corporate_actions', dataset_key: '', status: 'failed' },
+      ],
+    })
+    const wrapper = mount(CoverageSummaryTool, { props: { symbol: 'SPY' } })
+
+    await vi.waitFor(() => expect(wrapper.text()).toContain('ohlcv · D1: stale'))
+    expect(wrapper.text()).toContain('corporate_actions: failed')
+    expect(wrapper.find('.coverage-summary__dataset--stale').exists()).toBe(true)
+    expect(wrapper.find('.coverage-summary__dataset--failed').exists()).toBe(true)
+  })
 })
