@@ -3484,6 +3484,11 @@ before the persisted run was collected. Study Lab now owns an explicit one-secon
 poll loop and re-arms it whenever a run ID is created or hydrated. The rebuilt serial Study Lab
 subset passes F8g/F8o/F8p/F8q 4/4 in 12 seconds.
 
+The rebuilt full authenticated Chromium matrix now passes 43/43 in one elevated worker in
+1.8 minutes, including all Study Lab, linking, pop-out, top-down, legacy, dashboard, screener,
+and radar flows. This supersedes the earlier partition-only browser evidence for the current
+frontend build, although it remains functional evidence rather than exact-build visual approval.
+
 The streaming screener also now treats indicator-cache persistence as an optional,
 observable optimization: failed cache commits roll back, produce a structured warning,
 and leave canonical scan results usable rather than silently poisoning the transaction.

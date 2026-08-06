@@ -19065,3 +19065,12 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
   seconds; isolated F8q also passed in 6.3 seconds.
 - Focused Study Lab unit coverage remains 15/15 and TypeScript checking passes. The full 43-flow
   matrix still needs a fresh run before its single-process evidence is closed.
+
+### 2026-08-06T15:35:00Z — full authenticated browser matrix green
+
+- After rebuilding the frontend with the explicit polling/remount fix, the complete elevated
+  `flows.spec.ts` matrix passed 43/43 in one worker in 1.8 minutes.
+- This includes the previously unstable Study Lab flows plus linking, pop-outs, top-down drilldown,
+  legacy compatibility, dashboard, screener, and radar coverage.
+- This closes the current single-process functional browser gate for the build. Exact-build visual
+  approval, provider-live, sustained sandbox/soak, and native multi-monitor evidence remain open.
