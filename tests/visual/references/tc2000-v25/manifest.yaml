@@ -36,6 +36,14 @@ reference_policy:
     media_count: 190
     permission: "internal_reference_only; do not copy into application or distributable bundles"
     notes: "The pack contains official Help Site screenshots from V25-tagged and current/legacy help pages plus one current Version 25 product-page image. It accelerates interaction and token discovery but does not alter required_missing states or strict exact-build approval rules."
+  composite_reference_board:
+    builder: tests/visual/build-tc2000-reference-board.py
+    controlled_storage: "/private/tmp/tc2000-v25-reference-pack/reference-board.html"
+    rendered_preview: "/private/tmp/tc2000-v25-reference-pack/reference-board.png"
+    media_count: 190
+    surface_count: 22
+    status: implementation_aid
+    acceptance_role: "Use the grouped board to compose the product vision, compare implementation surfaces, and identify missing states. It is not a synthetic screenshot baseline and cannot satisfy require_approved."
   discovery_candidates:
     - id: v25-pinning-columns
       source_type: official_v25_help

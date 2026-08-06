@@ -77,3 +77,13 @@ def test_state_entries_must_cover_each_required_surface_state():
         broken = load_visual_manifest(MANIFEST)
         broken["surfaces"][0]["state_entries"] = broken["surfaces"][0]["state_entries"][:-1]
         validate_visual_manifest(broken)
+
+
+def test_manifest_records_composite_reference_board_contract():
+    manifest = load_visual_manifest(MANIFEST)
+    board = manifest["reference_policy"]["composite_reference_board"]
+    assert board["builder"] == "tests/visual/build-tc2000-reference-board.py"
+    assert board["media_count"] == 190
+    assert board["surface_count"] == 22
+    assert board["status"] == "implementation_aid"
+    assert "not a synthetic screenshot baseline" in board["acceptance_role"]

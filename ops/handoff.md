@@ -18930,3 +18930,16 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
   still lacks the capture-state, environment, permission, hash, measurement, and reviewer evidence
   required by the manifest. Existing media remains discovery-only; strict visual acceptance remains
   `application-shell-default/default: required_missing`.
+
+## Continuation update — 2026-08-08T00:15:00Z Composite V25 reference board
+
+- Built `tests/visual/build-tc2000-reference-board.py` and generated a controlled-storage board
+  from all 190 retrieved official/help/shared-layout/product images across 22 surface groups.
+  The board is rendered as both browsable HTML and a full-page PNG preview, with every card labeled
+  by source type, source build, filename, and source-page link.
+- Added `docs/tc2000-reference-board.md` with the visual vision and explicit gap matrix covering
+  pinned-build shell evidence, state variants, linking, Study Lab, target environments, and
+  permission/review metadata. Added manifest metadata and a regression contract; focused visual
+  manifest tests pass `4/4`.
+- The board is now the implementation-review reference for composing the product vision. It does
+  not replace per-state approval baselines; no image was promoted to `approved`.

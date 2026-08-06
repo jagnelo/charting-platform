@@ -20315,3 +20315,9 @@ uncovered slice rather than repeat a generic completion claim.
 - Final online reference search found no eligible exact-build capture beyond the release-notes
   build authority; existing help/product/shared-layout media remain discovery-only and the strict
   visual manifest remains `application-shell-default/default: required_missing`.
+
+## 2026-08-08T00:15:00Z Composite V25 reference board
+
+- Generated a controlled-storage HTML/PNG composite board from 190 retrieved media across 22
+  product surfaces, labeled with source/build/page context. Added the documented gap matrix,
+  manifest board contract, and focused visual-manifest regression; `4/4` passed.
