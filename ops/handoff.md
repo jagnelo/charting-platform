@@ -18,6 +18,11 @@
 - Official release notes still identify Version 25 build `25.0.9571`, and the official web-platform description confirms customizable layouts, floating windows, full-screen mode, and multiple-monitor behavior. Those sources do not provide permission-cleared deterministic desktop state captures with display-scale, locale, timezone, crop, and measured-token metadata.
 - The in-app browser surface is unavailable in this environment, so no live desktop capture could be obtained. Strict manifest validation was rerun and correctly failed closed at `application-shell-default/default: required_missing`; the 190-image discovery pack remains unapproved.
 
+## Continuation update — 2026-08-07T11:00:00Z Extended browser lifecycle soak
+
+- Rebuilt-stack Chromium `workstation_performance.spec.ts` passed `2/2` with `TC2000_POP_OUT_CHURN_ROUNDS=500` in `2.0m`. The run repeatedly opened/closed simultaneous pop-outs and retained bounded source-tool, canvas, chart, heap, and diagnostic invariants.
+- This strengthens browser lifecycle evidence beyond the prior 100-round runs. It does not prove genuinely indefinite duration or native OS multi-monitor placement.
+
 ## Continuation update — 2026-08-07T00:45:00Z Explicit legacy yfinance boundary
 
 - Default provider-runtime resolution now excludes yfinance from price/history/event/universe

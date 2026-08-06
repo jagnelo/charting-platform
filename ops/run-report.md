@@ -19,6 +19,11 @@
 - Official release notes confirm the pinned build identity `25.0.9571`; official platform documentation confirms windowing capabilities but not deterministic visual state captures or required environment metadata.
 - The in-app browser was unavailable for a live capture attempt. `app.services.visual_manifest --require-approved` still fails closed at `application-shell-default/default: required_missing`; no discovery media was promoted.
 
+## 2026-08-07T11:00:00Z Extended browser lifecycle soak
+
+- `TC2000_POP_OUT_CHURN_ROUNDS=500 STACK_URL=http://localhost npx playwright test tests/e2e/workstation_performance.spec.ts --project=chromium --workers=1` passed `2/2` in `2.0m`.
+- Simultaneous pop-out churn retained bounded tool/canvas/chart/heap state and clean diagnostics. Native multi-monitor placement and genuinely indefinite duration remain open.
+
 ## 2026-08-07T00:45:00Z Explicit legacy yfinance boundary
 
 - Changed provider resolution so yfinance is not an implicit fallback for new workstation
