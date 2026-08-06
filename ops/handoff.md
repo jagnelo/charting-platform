@@ -18925,3 +18925,8 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
   completed, and no running/cancel/progress sentinel remained. This closes the bounded sustained
   cancellation/queue-pressure case; native multi-monitor and exact-build visual approval remain
   external gates.
+- A final online authority search found no new eligible exact-build capture. The official release
+  notes continue to establish build `25.0.9571`, but the available help/product/shared-layout media
+  still lacks the capture-state, environment, permission, hash, measurement, and reviewer evidence
+  required by the manifest. Existing media remains discovery-only; strict visual acceptance remains
+  `application-shell-default/default: required_missing`.
