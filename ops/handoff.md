@@ -18910,3 +18910,5 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
   state, while the corrected render contains the complete seeded universes. Strict V25 acceptance
   remains fail-closed at `application-shell-default/default: required_missing` until permission-
   cleared build `25.0.9571` references with environment metadata are approved.
+- Post-fix full frontend Vitest is `587/587` across 88 files; the only stderr remains the
+  intentionally exercised watchlist conflict-path logging.

@@ -20304,3 +20304,5 @@ uncovered slice rather than repeat a generic completion claim.
 - The seeded screenshot comparison remains intentionally unapproved: `20,850` pixels (`2%`) differ
   from the stale local artifact because it captured the broken one-row state. The strict visual
   manifest remains fail-closed at `application-shell-default/default: required_missing`.
+- Post-fix full frontend Vitest is `587/587` across 88 files; TypeScript and production build
+  remain green, with only the expected watchlist conflict-path stderr.
