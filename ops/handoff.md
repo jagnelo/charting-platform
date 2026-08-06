@@ -18998,3 +18998,13 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
   `vue-tsc --noEmit` plus `git diff --check` pass.
 - This closes a cleanup leak path but does not change the outstanding visual/provider,
   sandbox-pressure, multi-monitor, or full single-process acceptance gates.
+
+### 2026-08-06T13:05:00Z — remove duplicate root link handling
+
+- Removed the workstation root's capture-phase symbol-link update handler. `ToolWindow` now
+  remains the sole publisher for link-group changes, avoiding duplicate persistence and link-bus
+  events from one native select interaction.
+- Focused ToolWindow/pop-out bindings coverage passes 15/15 and `vue-tsc --noEmit` plus
+  `git diff --check` pass.
+- This is a behavior/reliability correction and does not close the visual or external-provider
+  acceptance gates.

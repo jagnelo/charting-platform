@@ -3448,6 +3448,11 @@ the resize observer is disconnected. This closes an imperative pop-out/recovery 
 path that previously destroyed only Golden Layout and could retain observers or detached
 tool roots.
 
+The workstation root no longer re-processes symbol-link select changes during event capture.
+`ToolWindow` is the single owner of link-group publication; the root capture handler now only
+closes the search overlay. This prevents a single link selection from being persisted and
+propagated twice while preserving the shell's outside-change dismissal behavior.
+
 The streaming screener also now treats indicator-cache persistence as an optional,
 observable optimization: failed cache commits roll back, produce a structured warning,
 and leave canonical scan results usable rather than silently poisoning the transaction.
