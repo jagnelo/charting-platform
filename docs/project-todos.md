@@ -3410,7 +3410,7 @@ virtualized watchlists, unified Python/Study Lab execution boundary, and free-so
 provider governance are implemented and covered by deterministic/frontend/backend
 regressions. The branch has also exercised the complete Docker-backed integration
 suite (`281 passed`), the clean authenticated Chromium matrix (`43/43`), full frontend
-Vitest (`587/587`), the public no-key SEC identity/profile path through
+Vitest (`588/588`), the public no-key SEC identity/profile path through
 `EdgarProvider`, and isolated research-runner crash
 recovery. Remaining acceptance is intentionally still hard-gated by the full Version
 25 visual reference/measurement matrix, configured multi-provider probes, adversarial
