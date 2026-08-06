@@ -99,4 +99,14 @@ describe('WorkspaceLayoutHost', () => {
     expect(goldenLayouts).toHaveLength(1)
     wrapper.unmount()
   })
+
+  it('fully tears down virtual roots and resize observation through the exposed destroy action', () => {
+    const wrapper = mount(WorkspaceLayoutHost, { props: { layout: { root: { type: 'row', content: [] } } as any, renderTool: () => h('div') } })
+    const layout = goldenLayouts[0]
+
+    ;(wrapper.vm as any).destroy()
+
+    expect(layout.destroyed).toBe(true)
+    wrapper.unmount()
+  })
 })

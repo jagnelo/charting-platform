@@ -3442,6 +3442,12 @@ Browsers can emit both `input` and `change` for one select interaction; acceptin
 allowed duplicate link-bus publication and redundant workspace persistence/refresh work.
 Focused component coverage now verifies one update for the combined browser event sequence.
 
+The dock host's exposed destroy action now performs the same complete teardown as Vue
+unmount: virtual Vue roots are released, Golden Layout is destroyed and dereferenced, and
+the resize observer is disconnected. This closes an imperative pop-out/recovery cleanup
+path that previously destroyed only Golden Layout and could retain observers or detached
+tool roots.
+
 The streaming screener also now treats indicator-cache persistence as an optional,
 observable optimization: failed cache commits roll back, produce a structured warning,
 and leave canonical scan results usable rather than silently poisoning the transaction.

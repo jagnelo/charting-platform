@@ -18988,3 +18988,13 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
   suite passes 3/3 and `vue-tsc --noEmit` plus `git diff --check` pass.
 - This is a reliability correction only; it does not close the still-open visual, provider,
   sandbox-pressure, multi-monitor, or full single-process acceptance gates.
+
+### 2026-08-06T12:55:00Z — complete imperative dock-host teardown
+
+- `WorkspaceLayoutHost` now routes both Vue unmount and its exposed `destroy()` action through
+  one idempotent teardown path that clears virtual roots, destroys/dereferences Golden Layout,
+  and disconnects the resize observer.
+- Added coverage for the imperative destroy path; the focused component suite passes 3/3 and
+  `vue-tsc --noEmit` plus `git diff --check` pass.
+- This closes a cleanup leak path but does not change the outstanding visual/provider,
+  sandbox-pressure, multi-monitor, or full single-process acceptance gates.

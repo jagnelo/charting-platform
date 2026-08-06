@@ -37,6 +37,14 @@ function clearMountedTools() {
   for (const root of mountedToolRoots.splice(0)) render(null, root)
 }
 
+function teardown() {
+  clearMountedTools()
+  goldenLayout?.destroy()
+  goldenLayout = null
+  resizeObserver?.disconnect()
+  resizeObserver = null
+}
+
 function install(layout: LayoutConfig) {
   if (!host.value) return
   const normalised = normaliseGoldenLayoutConfig(layout)
@@ -112,15 +120,12 @@ onMounted(() => {
   }
 })
 onBeforeUnmount(() => {
-  clearMountedTools()
-  goldenLayout?.destroy()
-  resizeObserver?.disconnect()
-  resizeObserver = null
+  teardown()
 })
 
 defineExpose({
   saveLayout: () => goldenLayout?.saveLayout(),
-  destroy: () => goldenLayout?.destroy(),
+  destroy: teardown,
 })
 </script>
 
