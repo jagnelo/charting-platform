@@ -2,6 +2,12 @@
 
 Status: `Controlling implementation plan`
 
+Current audit state (2026-08-07): all four seeded workstation environments pass the
+independent geometry, viewport-containment, and core-overlap checks. Screenshot comparison
+remains intentionally blocked by `application-shell-default/default: required_missing`; the
+available online/help and shared-layout media are discovery evidence only until pinned-build
+and permission metadata are approved. No stale local screenshot is promoted as a baseline.
+
 Reference release: `TC2000 Version 25.0.9571`
 
 Reference date: `2026-08-03`

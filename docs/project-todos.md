@@ -3404,19 +3404,25 @@ Status: `In progress — single completion bar not yet satisfied`
 Branch:
 - `feat/tc2000-frontend-rework`
 
-Current implementation checkpoint (2026-08-06): the workstation shell, linked
+Current implementation checkpoint (2026-08-07): the workstation shell, linked
 Golden Layout mechanics, uPlot host/plugin path, top-down analysis contracts,
 virtualized watchlists, unified Python/Study Lab execution boundary, and free-source
 provider governance are implemented and covered by deterministic/frontend/backend
 regressions. The branch has also exercised the complete Docker-backed integration
-suite (`281 passed`), all 37 authenticated non-visual Chromium flow cases individually,
-full frontend Vitest (`577/577`), the public no-key SEC identity/profile path through
+suite (`281 passed`), the clean authenticated Chromium matrix (`42/42`), full frontend
+Vitest (`587/587`), the public no-key SEC identity/profile path through
 `EdgarProvider`, and isolated research-runner crash
 recovery. Remaining acceptance is intentionally still hard-gated by the full Version
 25 visual reference/measurement matrix, configured multi-provider probes, adversarial
-resource-pressure and orphan-job coverage, 10,000-row and multi-monitor/memory performance
-evidence, and the complete cross-surface/E2E parity matrix; no
-item below is considered delivered merely because this checkpoint exists.
+resource-pressure and orphan-job coverage, native multi-monitor hardware evidence, and
+approved screenshot baselines; no item below is considered delivered merely because this
+checkpoint exists.
+
+The latest rendered audit also fixed a real virtual-watchlist viewport overflow defect and
+a Study Lab Boolean promotion race. All four seeded visual environments pass independent
+row-count, viewport-containment, and core-header overlap checks; their screenshot comparisons
+remain intentionally unapproved because the local artifacts are stale and the exact-build
+Version 25 reference manifest is still `required_missing`.
 
 The streaming screener also now treats indicator-cache persistence as an optional,
 observable optimization: failed cache commits roll back, produce a structured warning,
