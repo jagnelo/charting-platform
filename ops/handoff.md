@@ -19074,3 +19074,12 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
   legacy compatibility, dashboard, screener, and radar coverage.
 - This closes the current single-process functional browser gate for the build. Exact-build visual
   approval, provider-live, sustained sandbox/soak, and native multi-monitor evidence remain open.
+
+### 2026-08-06T15:55:00Z — bounded runner pressure probe
+
+- `TC2000_RUNNER_STRESS_ROUNDS=5 bash ops/probe-research-runner-sustained.sh ...` passed all
+  five rounds against the active non-root research runner.
+- Every round canceled a 600-cell batch, completed a concurrent scalar job, and left no running,
+  cancel, or progress sentinels.
+- This closes the bounded cancellation/pressure probe; indefinite soak, broader multi-process
+  resource pressure, and adversarial escape coverage remain open.

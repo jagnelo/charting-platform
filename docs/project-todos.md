@@ -3489,6 +3489,11 @@ The rebuilt full authenticated Chromium matrix now passes 43/43 in one elevated 
 and radar flows. This supersedes the earlier partition-only browser evidence for the current
 frontend build, although it remains functional evidence rather than exact-build visual approval.
 
+The bounded isolated-runner pressure probe now passes all five configured rounds: each canceled
+600-cell batch observed cancellation and cleaned its sentinels while the concurrent scalar job
+completed. This is stronger live pressure evidence, but does not replace indefinite soak or
+broader multi-process resource/escape testing.
+
 The streaming screener also now treats indicator-cache persistence as an optional,
 observable optimization: failed cache commits roll back, produce a structured warning,
 and leave canonical scan results usable rather than silently poisoning the transaction.
