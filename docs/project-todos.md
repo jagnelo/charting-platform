@@ -3513,6 +3513,11 @@ ETF-provider/OpenFIGI probes were skipped by their credential/opt-in guards. Det
 provider and SEC no-key evidence remains green; configured multi-provider live acceptance still
 requires entitled credentials and terms review.
 
+The browser performance suites now pass all three local guards: 100,000-point uPlot zoom/pan,
+multiple chart initialization/recovery without canvas/tool growth, and repeated multi-window
+churn with a bounded source workspace. This closes the runnable performance slice; native
+multi-monitor and indefinite soak evidence remain external/long-running gates.
+
 The streaming screener also now treats indicator-cache persistence as an optional,
 observable optimization: failed cache commits roll back, produce a structured warning,
 and leave canonical scan results usable rather than silently poisoning the transaction.

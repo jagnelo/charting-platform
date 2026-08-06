@@ -19117,3 +19117,10 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
 - No provider was falsely marked live-green. Deterministic adapters and the no-key SEC path remain
   covered; Alpaca, FRED, OpenFIGI, Massive, Alpha Vantage, and issuer-native live matrices still
   require configured entitlements, credentials, and terms review.
+
+### 2026-08-06T17:35:00Z — browser performance guards
+
+- Elevated Playwright performance suites passed 3/3 in 16 seconds:
+  100,000-point uPlot interaction, multi-chart initialization/recovery without canvas/tool growth,
+  and repeated multi-window churn with bounded source state.
+- Native multi-monitor placement and indefinite soak remain separate acceptance gates.
