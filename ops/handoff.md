@@ -1,5 +1,15 @@
 # Active Handoff
 
+## Continuation update — 2026-08-06T13:30:00Z Authenticated flow partitions green
+
+- Corrected F9c to use the seeded SPY benchmark for chart-template/settings mechanics;
+  AAPL remains a valid coverage-limited chart state but cannot exercise those controls in
+  the free-source fixture.
+- Rebuilt authenticated acceptance is now green by disjoint, isolated-user partitions:
+  affected pop-out/Study Lab/Notes cases `6/6`, and the remaining flow partition `37/37`.
+  This covers all 43 flow cases while avoiding the shared-user/runner contention seen in a
+  single long serial process. The strict exact-build visual gate remains open.
+
 ## Continuation update — 2026-08-06T12:30:00Z Study Lab lifecycle and durable polling repair
 
 - Study Lab now guards asynchronous run creation and persisted-run hydration with a

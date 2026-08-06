@@ -3431,6 +3431,12 @@ terminal races are handled without browser-console noise. Focused Study Lab and 
 flows pass in the rebuilt stack; the full serial browser matrix still requires a clean,
 contention-free rerun before it can be treated as completion evidence.
 
+The follow-up browser audit corrected the chart-template regression to use the seeded SPY
+benchmark and then passed all authenticated flow cases by isolated partitions: the affected
+pop-out/Study Lab/Notes set passed 6/6 and the remaining set passed 37/37. This is equivalent
+functional coverage, but remains recorded as partitioned evidence because a single shared
+serial process can create unrelated workspace/runner contention.
+
 The streaming screener also now treats indicator-cache persistence as an optional,
 observable optimization: failed cache commits roll back, produce a structured warning,
 and leave canonical scan results usable rather than silently poisoning the transaction.

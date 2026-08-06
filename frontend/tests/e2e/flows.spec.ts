@@ -122,9 +122,13 @@ test.describe('Chart', () => {
   })
 
   test('F9c — chart templates open from a workstation chart without changing the symbol', async ({ page, browserDiagnostics }) => {
-    await page.goto('/chart/AAPL')
+    // The free-source seeded acceptance fixture guarantees a complete chart
+    // control surface for the workstation benchmark. AAPL is intentionally
+    // coverage-limited in that fixture and exercises the unavailable state,
+    // which cannot validate template/settings mechanics.
+    await page.goto('/chart/SPY')
     const symbolEntry = page.getByRole('combobox', { name: 'Active symbol' })
-    await expect(symbolEntry).toHaveValue('AAPL')
+    await expect(symbolEntry).toHaveValue('SPY')
     await page.getByRole('button', { name: 'Chart templates' }).first().click()
     const templateMenu = page.locator('.chart-template__menu:visible').last()
     await templateMenu.getByRole('combobox', { name: 'Chart bar type' }).selectOption('line')
@@ -132,13 +136,13 @@ test.describe('Chart', () => {
     const currentPriceProjection = page.getByRole('checkbox', { name: 'Show current price on Y axis' })
     await currentPriceProjection.check()
     await page.locator('.editor-box .ed-close').click()
-    const templateName = `AAPL template ${Date.now()}`
+    const templateName = `SPY template ${Date.now()}`
     await page.getByRole('textbox', { name: 'Chart template name' }).fill(templateName)
     await templateMenu.getByRole('button', { name: 'Save', exact: true }).click()
     const savedTemplate = templateMenu.locator('.chart-template__apply').filter({ hasText: templateName })
     await expect(savedTemplate).toBeVisible()
     await savedTemplate.click()
-    await expect(symbolEntry).toHaveValue('AAPL')
+    await expect(symbolEntry).toHaveValue('SPY')
     await expect(templateMenu.getByRole('combobox', { name: 'Chart bar type' })).toHaveValue('line')
     await page.getByTitle('Chart settings').first().click()
     await expect(currentPriceProjection).toBeChecked()
