@@ -19045,3 +19045,23 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
   `application-shell-default/default: required_missing`.
 - No discovery image was promoted to approved exact-build evidence; the board remains the
   active implementation aid while the pinned Version 25 capture/measurement gate is open.
+
+### 2026-08-06T14:35:00Z — harden Study Lab polling under serial load
+
+- The first elevated 43-flow serial run reached 28/43 before F8g timed out waiting for a
+  completed status; backend artifacts and the persisted run were completed, and isolated F8g
+  passed in 4.6 seconds.
+- Root cause was a status-derived Vue Query refetch interval that could evaluate false during
+  queued-response/reactive-state timing. The interval now remains at one second while the
+  query is enabled; terminal status still disables the query.
+- The serial matrix must be rerun after the rebuilt frontend before this issue can be closed.
+
+### 2026-08-06T15:10:00Z — close Study Lab serial polling race
+
+- The remaining F8q reproduction showed that a virtual-tool remount could discard Vue Query's
+  interval before a queued result was collected. Study Lab now uses an explicit durable-run
+  polling loop and re-arms it on run creation, hydration, and remount-observed run IDs.
+- Rebuilt frontend validation passed the serial Study Lab subset F8g/F8o/F8p/F8q 4/4 in 12.0
+  seconds; isolated F8q also passed in 6.3 seconds.
+- Focused Study Lab unit coverage remains 15/15 and TypeScript checking passes. The full 43-flow
+  matrix still needs a fresh run before its single-process evidence is closed.

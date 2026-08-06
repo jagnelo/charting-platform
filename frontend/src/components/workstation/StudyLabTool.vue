@@ -195,6 +195,7 @@ const surfaceVisible = ref(true)
 const documentVisible = ref(typeof document === 'undefined' || document.visibilityState !== 'hidden')
 let disposed = false
 let runGeneration = 0
+let runPollTimer: ReturnType<typeof setTimeout> | null = null
 let visibilityObserver: IntersectionObserver | null = null
 function updateDocumentVisibility() { documentVisible.value = document.visibilityState !== 'hidden' }
 const runQuery = useQuery({
@@ -213,21 +214,47 @@ const runQuery = useQuery({
   enabled: computed(() => Boolean(run.value?.id) && !['completed', 'failed', 'canceled'].includes(run.value?.status ?? '') && documentVisible.value),
   staleTime: 0,
   refetchOnWindowFocus: true,
-  refetchInterval: () => {
-    // The first durable response is commonly `queued`. Deriving the interval
-    // from the reactive run state keeps polling alive after that first fetch;
-    // consulting only query.state.data can leave a queued run stranded when
-    // the initial result has not yet been collected by FastAPI.
-    const status = run.value?.status
-    return status && !['completed', 'failed', 'canceled'].includes(status) ? 1_000 : false
-  },
+  // Durable-run polling is driven explicitly below. Vue Query remains the
+  // cache/observer, but its interval lifecycle can be reset by virtual-tool
+  // remounts while a queued job is still being collected.
+  refetchInterval: false,
 })
+function stopRunPolling() {
+  if (runPollTimer) clearTimeout(runPollTimer)
+  runPollTimer = null
+}
+function scheduleRunPolling(runId: number, generation = runGeneration) {
+  stopRunPolling()
+  if (disposed || !run.value || run.value.id !== runId || ['completed', 'failed', 'canceled'].includes(run.value.status)) return
+  runPollTimer = setTimeout(async () => {
+    runPollTimer = null
+    if (disposed || generation !== runGeneration || !run.value || run.value.id !== runId || ['completed', 'failed', 'canceled'].includes(run.value.status)) return
+    try {
+      const refreshed = await api.get<Run>(`/research/runs/${runId}`)
+      if (disposed || generation !== runGeneration || !run.value || run.value.id !== runId) return
+      run.value = refreshed
+      if (!['completed', 'failed', 'canceled'].includes(refreshed.status)) scheduleRunPolling(runId, generation)
+    } catch (cause: any) {
+      if (!disposed && generation === runGeneration) {
+        error.value = cause?.message ?? 'Unable to refresh study run'
+        scheduleRunPolling(runId, generation)
+      }
+    }
+  }, 1_000)
+}
 watch(() => runQuery.data.value, next => {
   if (!disposed && next && next.id === run.value?.id) run.value = next
 })
 watch(run, next => {
   if (cacheKey && next) studyRunCache.set(cacheKey, { run: next, source: runSource.value, contract: runContract.value })
 }, { deep: true })
+watch(() => run.value?.id, id => {
+  // Re-arm polling when Golden Layout remounts a virtual tool and the durable
+  // run is restored from workspace configuration/cache. The create path also
+  // schedules directly, but this watcher covers remounts where that timer was
+  // intentionally cleaned up with the previous component instance.
+  if (id && run.value) scheduleRunPolling(id)
+})
 watch(() => runQuery.error.value, cause => {
   if (cause) error.value = cause instanceof Error ? cause.message : 'Unable to refresh study run'
 })
@@ -499,6 +526,7 @@ async function saveAndRun() {
       return
     }
     run.value = createdRun
+    scheduleRunPolling(createdRun.id, generation)
     emit('configuration', {
       ...(props.configuration ?? {}),
       study_run_id: run.value.id,
@@ -567,7 +595,10 @@ async function rerun(snapshot: boolean) {
   promotionStatus.value = ''
   try {
     const rerunResult = await api.post<Run>(`/research/runs/${run.value.id}/rerun?snapshot=${snapshot}`, {})
-    if (!disposed && generation === runGeneration) run.value = rerunResult
+    if (!disposed && generation === runGeneration) {
+      run.value = rerunResult
+      scheduleRunPolling(rerunResult.id, generation)
+    }
   } catch (cause: any) {
     error.value = cause?.message ?? 'Unable to rerun study'
   } finally { rerunBusy.value = false }
@@ -595,6 +626,7 @@ onMounted(() => {
       // Never let that stale response replace the user's current analysis.
       if (disposed || hydrationGeneration !== runGeneration || (run.value && run.value.id !== persistedRunId)) return
       run.value = persistedRun
+      scheduleRunPolling(persistedRun.id, hydrationGeneration)
       runSource.value = typeof props.configuration?.study_run_source === 'string' ? props.configuration.study_run_source : ''
       runContract.value = typeof props.configuration?.study_run_contract === 'string' ? props.configuration.study_run_contract : null
     }).catch(() => {
@@ -605,6 +637,7 @@ onMounted(() => {
 })
 onBeforeUnmount(() => {
   disposed = true
+  stopRunPolling()
   if (run.value && canCancel.value) {
     // Teardown is best-effort. A queued run may become terminal between the
     // computed check and this request; that documented 409 must not surface as

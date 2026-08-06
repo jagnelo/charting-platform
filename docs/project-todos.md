@@ -3473,6 +3473,17 @@ The strict visual-manifest validator still fails closed at
 `application-shell-default/default: required_missing`, so the board remains an implementation
 and regression aid rather than an approved exact-build baseline.
 
+The first full serial browser matrix exposed a Study Lab polling race under accumulated browser
+load: the backend runner completed the durable job, but a status-derived Vue Query interval
+stopped after only two queued polls. The interval is now fixed at one second while the query's
+existing terminal-state `enabled` predicate remains authoritative. Isolated F8g passed; the
+serial reproduction is being rerun against this correction.
+
+The follow-up reproduction showed that virtual-tool remounts could still discard the interval
+before the persisted run was collected. Study Lab now owns an explicit one-second durable-run
+poll loop and re-arms it whenever a run ID is created or hydrated. The rebuilt serial Study Lab
+subset passes F8g/F8o/F8p/F8q 4/4 in 12 seconds.
+
 The streaming screener also now treats indicator-cache persistence as an optional,
 observable optimization: failed cache commits roll back, produce a structured warning,
 and leave canonical scan results usable rather than silently poisoning the transaction.
