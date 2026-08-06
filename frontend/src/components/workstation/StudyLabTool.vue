@@ -229,7 +229,12 @@ watch(() => runQuery.error.value, cause => {
 const canCancel = computed(() => Boolean(run.value && !['completed', 'failed', 'canceled'].includes(run.value.status)))
 const canRerun = computed(() => Boolean(run.value && ['completed', 'failed', 'canceled'].includes(run.value.status)))
 const promotableKind = computed<'scalar' | 'boolean' | 'series' | 'events' | null>(() => {
-  if (!run.value || run.value.status !== 'completed' || !runSource.value) return null
+  // Keep promotion controls available after the first promotion.  A completed
+  // research run can be refreshed by the durable-run query while the scan
+  // creation request is settling; that transient status must not remove the
+  // already valid boolean result or strand the newly-created scan before it
+  // can be promoted to an alert/signal.
+  if (!run.value || !runSource.value || (run.value.status !== 'completed' && promotedScanId.value == null)) return null
   return runContract.value === 'scalar' || runContract.value === 'boolean' || runContract.value === 'series' || runContract.value === 'events' ? runContract.value : null
 })
 const progressLabel = computed(() => {

@@ -18891,3 +18891,22 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
   isolated restart, cgroup exit 137, tmpfs ENOSPC, three contained concurrent failures, and
   unchanged restart count. This remains bounded evidence, not the required sustained
   cancellation/crash/long-duration stress matrix.
+
+## Continuation update — 2026-08-07T22:50:00Z Watchlist viewport and Study Lab promotion corrections
+
+- The seeded rendered audit exposed a real core-layout defect: when no condition/status row was
+  present, `VirtualWatchlistTool` used a stray fixed grid row, leaving its scroll viewport at 22px.
+  Virtual rows beyond the first therefore overflowed into neighboring Golden Layout tools and were
+  painted underneath them. The grid templates now account for the actual optional rows and reserve
+  the flexible track for the scroll viewport. Seeded Chromium geometry confirms all benchmark and
+  sector rows stay inside their own viewport; focused watchlist coverage is `46/46` and the Vite
+  build/type-check pass.
+- The same authenticated audit reproduced a Study Lab Boolean promotion race: after scan creation,
+  a settling durable-run refresh could remove the already-valid alert/signal promotion controls.
+  The controls now remain available once the created scan is retained. Isolated F8q passes `1/1`;
+  focused Study Lab/watchlist coverage is `59/59`.
+- The seeded visual screenshot still differs from the old local snapshot by `20,850` pixels (`2%`).
+  This is not being accepted as a visual baseline: the old snapshot captured the broken one-row
+  state, while the corrected render contains the complete seeded universes. Strict V25 acceptance
+  remains fail-closed at `application-shell-default/default: required_missing` until permission-
+  cleared build `25.0.9571` references with environment metadata are approved.

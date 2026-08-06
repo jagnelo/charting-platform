@@ -20292,3 +20292,15 @@ uncovered slice rather than repeat a generic completion claim.
   filesystem denial, orphan recovery, cgroup 137, tmpfs ENOSPC, three contained concurrent
   failures, and restart count zero. Sustained cancellation/crash/long-duration stress remains
   open.
+
+## 2026-08-07T22:50:00Z Watchlist viewport and Study Lab promotion corrections
+
+- Corrected the VirtualWatchlistTool CSS grid row allocation. The previous no-status layout left
+  the scroll area at 22px, so virtualized rows overflowed into adjacent Golden Layout content;
+  seeded browser geometry now proves benchmark and sector rows remain inside their scroll viewports.
+- Corrected the Study Lab Boolean promotion race so a settling durable-run refresh cannot remove
+  alert/signal controls after scan creation. Focused component coverage is `59/59`; isolated F8q
+  passes `1/1`; type-check and production build pass.
+- The seeded screenshot comparison remains intentionally unapproved: `20,850` pixels (`2%`) differ
+  from the stale local artifact because it captured the broken one-row state. The strict visual
+  manifest remains fail-closed at `application-shell-default/default: required_missing`.

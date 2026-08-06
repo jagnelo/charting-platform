@@ -31,6 +31,15 @@ test.describe('TC2000 Version 25 approved visual parity', () => {
       }))
       expect(rowGeometry.every(row => row.height >= 20)).toBe(true)
       expect(new Set(rowGeometry.map(row => row.top)).size).toBe(rowGeometry.length)
+      const viewportGeometry = await page.evaluate(() => Array.from(document.querySelectorAll('.watchlist__scroll')).map(scroll => {
+        const viewport = scroll.getBoundingClientRect()
+        const rows = Array.from(scroll.querySelectorAll<HTMLElement>('.watchlist__row'))
+        return {
+          viewportBottom: viewport.bottom,
+          overflowingRows: rows.filter(row => row.getBoundingClientRect().bottom > viewport.bottom + 1).length,
+        }
+      }))
+      expect(viewportGeometry.every(view => view.overflowingRows === 0)).toBe(true)
     } else {
       await page.waitForTimeout(250)
     }

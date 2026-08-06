@@ -1,5 +1,5 @@
 <template>
-  <section class="watchlist" :class="{ 'watchlist--columns-open': columnMenuOpen, 'watchlist--sets-open': columnSetMenuOpen, 'watchlist--grouped': hasColumnGroups, 'watchlist--plot-drop-active': plotDropActive }" :aria-label="label" @click="contextMenu = null" @keydown.esc="contextMenu = null" @dragover.prevent="dragOverPlot" @dragleave="dragLeavePlot" @drop.prevent="dropPlot">
+  <section class="watchlist" :class="{ 'watchlist--columns-open': columnMenuOpen, 'watchlist--sets-open': columnSetMenuOpen, 'watchlist--condition-open': Boolean(conditionFilterState || pythonConditionState), 'watchlist--grouped': hasColumnGroups, 'watchlist--plot-drop-active': plotDropActive }" :aria-label="label" @click="contextMenu = null" @keydown.esc="contextMenu = null" @dragover.prevent="dragOverPlot" @dragleave="dragLeavePlot" @drop.prevent="dropPlot">
     <p v-if="plotDropActive" class="watchlist__plot-drop-hint" role="status">Drop to add the chart plot as a numeric column</p>
     <p v-if="dropError" class="watchlist__drop-error" role="alert">{{ dropError }}</p>
     <header class="watchlist__controls">
@@ -1064,13 +1064,14 @@ function onCtrlWheel(event: WheelEvent) {
 </script>
 
 <style scoped>
-.watchlist { position: relative; display: grid; height: 100%; min-height: 0; grid-template-rows: 23px auto 22px minmax(0, 1fr); color: #c7d0d8; background: #11161b; font: 11px/1.2 "Segoe UI", Arial, sans-serif; }
+.watchlist { position: relative; display: grid; height: 100%; min-height: 0; grid-template-rows: 23px auto minmax(0, 1fr); color: #c7d0d8; background: #11161b; font: 11px/1.2 "Segoe UI", Arial, sans-serif; }
 .watchlist--plot-drop-active { outline: 1px solid #69a9d2; outline-offset: -1px; }
 .watchlist__plot-drop-hint { position: absolute; z-index: 4; inset: 3px 3px auto; margin: 0; padding: 4px 6px; border: 1px solid #69a9d2; background: #193040eF; color: #dcecf6; text-align: center; pointer-events: none; }
 .watchlist__drop-error { position: absolute; z-index: 4; inset: 3px 3px auto; margin: 0; padding: 4px 6px; border: 1px solid #9e5b5b; background: #3a1d1d; color: #f1b0b0; pointer-events: none; }
-.watchlist--columns-open { grid-template-rows: 23px auto auto 22px minmax(0, 1fr); }
-.watchlist--sets-open { grid-template-rows: 23px auto auto 22px minmax(0, 1fr); }
-.watchlist--grouped { grid-template-rows: 23px auto 32px minmax(0, 1fr); }
+.watchlist--columns-open, .watchlist--sets-open { grid-template-rows: 23px auto auto minmax(0, 1fr); }
+.watchlist--condition-open { grid-template-rows: 23px auto auto minmax(0, 1fr); }
+.watchlist--grouped { grid-template-rows: 23px 32px minmax(0, 1fr); }
+.watchlist--condition-open.watchlist--grouped { grid-template-rows: 23px auto 32px minmax(0, 1fr); }
 .watchlist--columns-open.watchlist--grouped,.watchlist--sets-open.watchlist--grouped { grid-template-rows: 23px auto auto 32px minmax(0, 1fr); }
 .watchlist__controls { display: flex; align-items: center; gap: 6px; padding: 0 7px; color: #84939e; background: #181f25; border-bottom: 1px solid #2b343c; font-size: 10px; text-transform: uppercase; letter-spacing: .04em; }
 .watchlist__controls input { min-width: 0; width: 80px; margin-left: auto; padding: 1px 4px; border: 1px solid #3d4a54; background: #11161b; color: #dce9f2; font: inherit; text-transform: none; }
