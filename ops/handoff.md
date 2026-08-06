@@ -19083,3 +19083,15 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
   cancel, or progress sentinels.
 - This closes the bounded cancellation/pressure probe; indefinite soak, broader multi-process
   resource pressure, and adversarial escape coverage remain open.
+
+### 2026-08-06T16:15:00Z — live sandbox resource and recovery probes
+
+- Resource probe passed: 768 MiB memory cgroup killed the 2 GiB allocation (137), 64 MiB tmpfs
+  rejected the 70 MiB write, eight concurrent 256 MiB workers were contained (3 failures), and
+  the runner restart count remained unchanged.
+- Configuration was verified as 1 CPU, 128 PID limit, `network=none`, read-only root, and UID
+  `10001:10001`.
+- Recovery probe passed: a claimed job completed after killing/restarting only the runner, with
+  no stale cancel/progress sentinel.
+- These close the bounded resource and orphan-recovery probes; indefinite soak and adversarial
+  escape testing remain open.

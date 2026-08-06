@@ -3494,6 +3494,12 @@ The bounded isolated-runner pressure probe now passes all five configured rounds
 completed. This is stronger live pressure evidence, but does not replace indefinite soak or
 broader multi-process resource/escape testing.
 
+The live resource/isolation probe now passes the configured 768 MiB memory cgroup, 64 MiB tmpfs,
+no-network/read-only/non-root configuration, and eight-process aggregate-pressure checks. The
+orphaned-job recovery probe also completed a claimed job after killing and restarting only the
+runner, with no stale cancellation or progress sentinel. Indefinite soak and adversarial escape
+coverage remain separate gates.
+
 The streaming screener also now treats indicator-cache persistence as an optional,
 observable optimization: failed cache commits roll back, produce a structured warning,
 and leave canonical scan results usable rather than silently poisoning the transaction.
