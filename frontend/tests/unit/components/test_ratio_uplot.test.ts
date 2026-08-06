@@ -61,6 +61,22 @@ describe('RatioUPlot', () => {
     }))
   })
 
+  it('suspends ratio requests while the browser document is hidden', async () => {
+    vi.mocked(api.get).mockResolvedValue({ coverage: 1, points: [], warnings: [] })
+    Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'hidden' })
+    const wrapper = mount(RatioUPlot, { props: { symbol: 'XLK', benchmarks: ['SPY'] } })
+    await nextTick()
+    expect(api.get).not.toHaveBeenCalled()
+
+    Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'visible' })
+    document.dispatchEvent(new Event('visibilitychange'))
+    await vi.waitFor(() => expect(api.get).toHaveBeenCalledWith('/analysis/relative-strength', {
+      symbol: 'XLK', benchmark: 'SPY', timeframe: 'D1', adjusted: true,
+    }))
+    wrapper.unmount()
+    Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'visible' })
+  })
+
   it('passes a persisted point-in-time cutoff without changing the current-view request shape', async () => {
     vi.mocked(api.get).mockResolvedValue({ coverage: 1, points: [], warnings: [] })
     mount(RatioUPlot, { props: { symbol: 'XLK', benchmarks: ['SPY'], asOf: '2025-12-31T23:59:59Z' } })

@@ -1,5 +1,5 @@
 <template>
-  <div class="workstation" @keydown="handleKeydown" @wheel="handleWheel" @pointerdown="handleWorkstationPointerDown" @focusin.capture="handleWorkstationFocusIn" @change.capture="handleWorkstationChange">
+  <div class="workstation" @keydown="handleKeydown" @wheel.capture="handleWheel" @pointerdown="handleWorkstationPointerDown" @focusin.capture="handleWorkstationFocusIn" @change.capture="handleWorkstationChange">
     <header v-if="!isPopout" class="workstation__menu">
       <div class="workstation__brand">CHARTING WORKSTATION</div>
       <nav aria-label="Application menu">
@@ -330,16 +330,25 @@ async function selectSymbol(raw: string, timestamp?: string, allowNavigationFall
   // selection starts and close any stale options before the next interaction.
   closeSymbolSearch()
   let symbol: string
-  try {
-    symbol = await ensureKnownInstrumentSymbol(requested, 'Workstation symbol')
-  } catch (cause: any) {
-    if (generation !== symbolSelectionGeneration) return
-    const navigationFallbacks = new Set(['SPY', 'QQQ', 'DIA', 'IWM'])
-    if (allowNavigationFallback && navigationFallbacks.has(requested.toUpperCase())) {
-      symbol = requested.toUpperCase()
-    } else {
-      workspaceStore.error = cause?.message ?? 'Unable to resolve symbol'
-      return
+  const navigationFallbacks = new Set(['SPY', 'QQQ', 'DIA', 'IWM'])
+  // Keyboard/list traversal is an interaction command, not an instrument
+  // search. Resolve the small canonical benchmark universe synchronously so a
+  // slow or unavailable metadata provider cannot make Ctrl+wheel appear to do
+  // nothing. Normal typed/search selections still require canonical identity
+  // resolution below.
+  if (allowNavigationFallback && navigationFallbacks.has(requested.toUpperCase())) {
+    symbol = requested.toUpperCase()
+  } else {
+    try {
+      symbol = await ensureKnownInstrumentSymbol(requested, 'Workstation symbol')
+    } catch (cause: any) {
+      if (generation !== symbolSelectionGeneration) return
+      if (allowNavigationFallback && navigationFallbacks.has(requested.toUpperCase())) {
+        symbol = requested.toUpperCase()
+      } else {
+        workspaceStore.error = cause?.message ?? 'Unable to resolve symbol'
+        return
+      }
     }
   }
   if (generation !== symbolSelectionGeneration) return
@@ -358,6 +367,7 @@ async function selectSymbol(raw: string, timestamp?: string, allowNavigationFall
 
 async function loadSymbolData(symbol: string, comparisonETF = workspaceStore.constituentETF, updateRatio = true) {
   symbolDraft.value = symbol
+  if (!documentVisible.value) return
   await Promise.all([
     chartStore.loadBars(symbol, chartStore.timeframe, chartStore.barType, true),
     workspaceStore.loadETFHoldings(symbol),
@@ -620,6 +630,32 @@ function floatTool(windowKey: string) {
     workspaceStore.error = 'Browser blocked the pop-out. The tool remains docked.'
     return
   }
+  // Record the requested geometry immediately. The browser-reported outer
+  // bounds may not be readable until the popup has painted, and the debounced
+  // poll below is intentionally only a refinement of this deterministic
+  // initial placement.
+  const initialGeometry = readPopoutGeometry(tool?.style, window.screen as Screen & { availLeft?: number; availTop?: number })
+  const persisted = workspaceStore.updateToolStyle(windowKey, { popout: initialGeometry })
+  // Do not leave the first pop-out placement behind the normal debounce: the
+  // popup immediately performs its own workspace read and may otherwise race
+  // the pending snapshot, especially when several windows are being opened.
+  void (async () => {
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      if (attempt > 0 || !persisted) {
+        // A concurrent cross-window revision can replace the local workspace
+        // between the button click and this handler. Rehydrate, then apply the
+        // geometry against the current canonical window record.
+        await workspaceStore.loadDefault()
+        workspaceStore.updateToolStyle(windowKey, { popout: initialGeometry })
+      }
+      await workspaceStore.saveSnapshot()
+      const savedTool = workspaceStore.workspace?.tabs
+        .flatMap(tab => tab.windows)
+        .find(candidate => candidate.instance_key === windowKey)
+      const savedGeometry = savedTool?.style?.popout
+      if (savedGeometry && typeof savedGeometry === 'object') return
+    }
+  })()
   const previous = popoutGeometryPollers.get(windowKey)
   if (previous) window.clearInterval(previous)
   const poll = window.setInterval(() => {
@@ -746,6 +782,7 @@ watch(activeSymbol, symbol => {
   const preserveDrilldown = preserveDrilldownSymbol.value === symbol
   if (preserveDrilldown) preserveDrilldownSymbol.value = null
   if (chartStore.symbol === symbol) return
+  if (!documentVisible.value) return
   void Promise.all([
     chartStore.loadBars(symbol, chartStore.timeframe, chartStore.barType, true),
     ...(preserveDrilldown ? [] : [workspaceStore.loadETFHoldings(symbol), workspaceStore.loadETFIndustries(symbol)]),
@@ -759,6 +796,7 @@ watch(() => workspaceStore.linkedTimeframe, timeframe => {
 })
 
 onMounted(async () => {
+  const mountSelectionGeneration = symbolSelectionGeneration
   // Capture before chart/uPlot gesture handlers can stop propagation. The
   // workstation-level Ctrl+wheel traversal is a shell command and must remain
   // available even when the pointer is over a chart canvas.
@@ -773,7 +811,10 @@ onMounted(async () => {
   window.addEventListener('keyup', handleModifierKeyup)
   const handleVisibilityChange = () => {
     documentVisible.value = document.visibilityState === 'visible'
-    if (documentVisible.value && !isPopout.value) void marketAnalysisQuery.refetch()
+    if (documentVisible.value && !isPopout.value) {
+      void marketAnalysisQuery.refetch()
+      void loadSymbolData(activeSymbol.value, workspaceStore.constituentETF, false)
+    }
   }
   document.addEventListener('visibilitychange', handleVisibilityChange)
   removeVisibilityListener = () => {
@@ -792,10 +833,15 @@ onMounted(async () => {
   // without the requested tool, retry the canonical read once before rendering
   // the honest unavailable-tool recovery state.
   if (isPopout.value && !popoutTool.value) {
-    await new Promise(resolve => window.setTimeout(resolve, 120))
-    await workspaceStore.loadDefault()
-    if (requestedTab && workspaceStore.workspace?.tabs.some(tab => tab.stable_key === requestedTab)) {
-      workspaceStore.activeTabKey = requestedTab
+    // A source window may still be settling a revisioned snapshot when the
+    // browser popup starts. Retry the canonical read for a bounded interval so
+    // a transient stale snapshot does not leave a black, empty pop-out.
+    for (let attempt = 0; attempt < 5 && !popoutTool.value; attempt += 1) {
+      await new Promise(resolve => window.setTimeout(resolve, 200))
+      await workspaceStore.loadDefault()
+      if (requestedTab && workspaceStore.workspace?.tabs.some(tab => tab.stable_key === requestedTab)) {
+        workspaceStore.activeTabKey = requestedTab
+      }
     }
   }
   await refreshMarketData()
@@ -806,7 +852,12 @@ onMounted(async () => {
     await loadSymbolData(linked, workspaceStore.constituentETF, false)
   } else {
     const requested = String(route.params.symbol ?? route.query.symbol ?? 'SPY')
-    await selectSymbol(requested)
+    // Route hydration can take long enough for the user to type/press Go or
+    // traverse with Ctrl+wheel first. Never let that late initial selection
+    // overwrite a newer user intent.
+    if (symbolSelectionGeneration === mountSelectionGeneration) {
+      await selectSymbol(requested)
+    }
   }
   await nextTick()
   if (!isPopout.value) await refreshMarketData()

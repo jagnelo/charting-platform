@@ -1,5 +1,12 @@
 # Run Report
 
+## 2026-08-07T09:40:00Z Workstation traversal, visibility, and pop-out persistence hardening
+
+- Added hydration-safe synchronous benchmark traversal, document-visibility request suspension for workstation and ratio surfaces, bounded pop-out hydration retries, and immediate/verified geometry snapshot persistence across revision conflicts.
+- Focused changed unit tests: `19/19`; isolated F8j geometry repetition: `10/10`; rebuilt-stack serial authenticated `tests/e2e/flows.spec.ts`: `42/42` in `2.3m`.
+- Frontend Docker production build (`vue-tsc` plus Vite) passed. No preserved unrelated untracked artifacts were staged.
+- Open gates remain: strict exact-build Version 25 visual references, native OS multi-monitor placement, sustained adversarial sandbox/resource stress, indefinite soak, and three issuer-native live routes that currently fail transport/HTTP checks despite SEC fallback coverage.
+
 ## 2026-08-07T00:45:00Z Explicit legacy yfinance boundary
 
 - Changed provider resolution so yfinance is not an implicit fallback for new workstation

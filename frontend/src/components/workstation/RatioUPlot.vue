@@ -38,11 +38,13 @@ let resizeObserver: ResizeObserver | null = null
 let applyingLinkedCursor = false
 let lastPublishedCursor: string | null = null
 let loadGeneration = 0
+const documentVisible = ref(typeof document === 'undefined' || document.visibilityState !== 'hidden')
 const ratioLabels = computed(() => props.benchmarks.map(benchmark => `${props.symbol}/${benchmark}`).join(' · '))
 const hasPoints = computed(() => series.value.some(item => item.points.length > 0))
 const colors = ['#6bc0ef', '#e7b35b', '#aa86e8', '#5fc8a2']
 
 async function load() {
+  if (!documentVisible.value) return
   const benchmarks = [...new Set(props.benchmarks.map(value => value.trim().toUpperCase()).filter(Boolean))]
   if (!props.symbol || !benchmarks.length) return
   const generation = ++loadGeneration
@@ -73,6 +75,12 @@ async function load() {
     series.value = []
     error.value = cause?.message ?? 'Unable to calculate ratio'
   }
+}
+
+function handleVisibilityChange() {
+  documentVisible.value = document.visibilityState !== 'hidden'
+  if (!documentVisible.value) loadGeneration += 1
+  else void load()
 }
 
 function asOfTimestamp() {
@@ -162,11 +170,13 @@ function applyLinkedTimestamp(timestamp: string | null) {
 watch(() => `${props.symbol}/${props.benchmarks.join('/')}/${props.timeframe}`, () => { void load() })
 watch(() => props.linkedTimestamp, applyLinkedTimestamp)
 onMounted(() => {
+  document.addEventListener('visibilitychange', handleVisibilityChange)
   resizeObserver = new ResizeObserver(() => draw())
   if (root.value) resizeObserver.observe(root.value)
   void load()
 })
 onBeforeUnmount(() => {
+  document.removeEventListener('visibilitychange', handleVisibilityChange)
   resizeObserver?.disconnect()
   chart?.destroy()
   chart = null
