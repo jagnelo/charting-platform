@@ -19008,3 +19008,12 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
   `git diff --check` pass.
 - This is a behavior/reliability correction and does not close the visual or external-provider
   acceptance gates.
+
+### 2026-08-06T13:20:00Z — focused link/header browser acceptance
+
+- Elevated Chromium acceptance passed F8m, F8n, and F8r (3/3, 9 seconds), covering yellow
+  wildcard versus grey isolation, timeframe propagation, and core tool-header geometry.
+- A non-elevated retry failed before application startup because Chromium could not complete
+  macOS `mach_port_rendezvous`; the elevated rerun is the authoritative result.
+- No visual baseline was promoted and the exact-build reference, provider-live, sandbox-pressure,
+  multi-monitor, and full single-process gates remain open.

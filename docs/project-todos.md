@@ -3453,6 +3453,12 @@ The workstation root no longer re-processes symbol-link select changes during ev
 closes the search overlay. This prevents a single link selection from being persisted and
 propagated twice while preserving the shell's outside-change dismissal behavior.
 
+An elevated Chromium rerun of the focused authenticated workstation matrix passed F8m, F8n,
+and F8r (yellow/grey symbol-link isolation, timeframe-link propagation, and tool-header
+geometry separation) 3/3 in 9 seconds. The preceding un-elevated attempt failed before page
+startup at macOS Chromium `mach_port_rendezvous` permission setup; it is recorded as an
+environment launch failure, not a product failure.
+
 The streaming screener also now treats indicator-cache persistence as an optional,
 observable optimization: failed cache commits roll back, produce a structured warning,
 and leave canonical scan results usable rather than silently poisoning the transaction.
