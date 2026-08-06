@@ -87,3 +87,28 @@ def test_manifest_records_composite_reference_board_contract():
     assert board["surface_count"] == 22
     assert board["status"] == "implementation_aid"
     assert "not a synthetic screenshot baseline" in board["acceptance_role"]
+
+
+def test_manifest_gap_ids_are_documented_and_attached_to_required_surfaces():
+    manifest = load_visual_manifest(MANIFEST)
+    board_doc = (MANIFEST.parents[4] / "docs/tc2000-reference-board.md").read_text()
+    expected_gap_ids = {
+        "REF-SHELL-V25",
+        "REF-STATE-VARIANTS",
+        "REF-LINKING-V25",
+        "REF-STUDY-LAB-V25",
+        "REF-ENV-TOKENS",
+        "REF-PERMISSION-REVIEW",
+    }
+    assert manifest["reference_policy"]["gap_register"] == "docs/tc2000-reference-board.md"
+    for gap_id in expected_gap_ids:
+        assert gap_id in board_doc
+    referenced_gap_ids = {
+        gap_id
+        for surface in manifest["surfaces"]
+        for gap_id in surface.get("gap_ids", [])
+    }
+    assert referenced_gap_ids == expected_gap_ids
+    for surface in manifest["surfaces"]:
+        if surface["state"] == "required_missing":
+            assert surface.get("gap_ids")
