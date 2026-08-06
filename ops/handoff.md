@@ -18920,3 +18920,8 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
   Their screenshot comparisons remain unapproved at roughly 2% against stale local artifacts;
   no snapshot was promoted. Branch-scoped services remained healthy and recent backend/worker/
   research-runner logs were clean.
+- The sustained runner probe was extended to 20 consecutive cancellation/concurrent-success
+  rounds. Every 600-cell CPU-bound batch canceled during execution, every concurrent scalar job
+  completed, and no running/cancel/progress sentinel remained. This closes the bounded sustained
+  cancellation/queue-pressure case; native multi-monitor and exact-build visual approval remain
+  external gates.

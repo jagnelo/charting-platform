@@ -20310,3 +20310,5 @@ uncovered slice rather than repeat a generic completion claim.
 - All four seeded visual environments pass independent row/viewport/header geometry checks; their
   screenshot comparisons remain unapproved at roughly 2% against stale local artifacts. Services
   stayed healthy and recent backend/worker/research-runner logs were clean.
+- The isolated runner sustained 20 consecutive cancellation/concurrent-success rounds against a
+  600-cell CPU-bound prepared-universe batch; all terminal results and cleanup invariants passed.
