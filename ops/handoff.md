@@ -18947,3 +18947,6 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
   persisted promoted-scan identity across tool remounts, and drawing-toolbar readiness without
   `networkidle` on a polling route. Focused F8t passed, the corrected drawing partition passed
   `6/6` repeated, and the full authenticated matrix now passes `43/43` in 1.8 minutes.
+- Rechecked the `REF-LINKING-V25` behavioral slice with elevated Chromium: F8m/F8n passed `2/2`,
+  proving yellow wildcard symbol propagation, grey symbol isolation, linked timeframe propagation,
+  and grey timeframe locality. Exact V25 visual reference coverage for those states remains open.

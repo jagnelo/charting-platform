@@ -20325,3 +20325,6 @@ uncovered slice rather than repeat a generic completion claim.
   remounts, and replaced drawing-test `networkidle` readiness with the real toolbar contract.
   Focused F8t passed, drawing tests passed `6/6` repeated, and the complete authenticated matrix
   passes `43/43`.
+- Re-ran the board-linked symbol/timeframe behavior slice under elevated Chromium. F8m/F8n passed
+  `2/2`; the visual gap remains limited to missing authoritative V25 captures, not untested
+  behavior.
