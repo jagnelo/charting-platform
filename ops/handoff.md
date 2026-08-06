@@ -19017,3 +19017,12 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
   macOS `mach_port_rendezvous`; the elevated rerun is the authoritative result.
 - No visual baseline was promoted and the exact-build reference, provider-live, sandbox-pressure,
   multi-monitor, and full single-process gates remain open.
+
+### 2026-08-06T13:40:00Z — full backend unit gate
+
+- `backend/.venv/bin/pytest -q backend/tests/unit` passed 988/988 in 50.17 seconds.
+- Repository coverage passed at 69.90% against the 55% threshold.
+- Only the existing Nautilus/pandas deprecation warnings were emitted; no new functional,
+  provider, research, sandbox, or workstation unit failures were observed.
+- This strengthens the backend evidence but does not close provider-live, exact-build visual,
+  sustained pressure/soak, multi-monitor, or full end-to-end acceptance gates.
