@@ -13,6 +13,11 @@
 - The real branch-scoped research runner passed `5/5` sustained rounds. The deployment contract tests now cover the probe shape; the first too-fast workload was corrected and is not counted as evidence.
 - This closes repeated cancellation/queue-pressure evidence. Native multi-monitor placement, genuinely indefinite soak, exact-build V25 visual approval, and unavailable issuer-native live routes remain open.
 
+## Continuation update — 2026-08-07T10:35:00Z Visual-reference authority recheck
+
+- Official release notes still identify Version 25 build `25.0.9571`, and the official web-platform description confirms customizable layouts, floating windows, full-screen mode, and multiple-monitor behavior. Those sources do not provide permission-cleared deterministic desktop state captures with display-scale, locale, timezone, crop, and measured-token metadata.
+- The in-app browser surface is unavailable in this environment, so no live desktop capture could be obtained. Strict manifest validation was rerun and correctly failed closed at `application-shell-default/default: required_missing`; the 190-image discovery pack remains unapproved.
+
 ## Continuation update — 2026-08-07T00:45:00Z Explicit legacy yfinance boundary
 
 - Default provider-runtime resolution now excludes yfinance from price/history/event/universe

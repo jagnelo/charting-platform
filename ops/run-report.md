@@ -14,6 +14,11 @@
 - The initial too-fast probe workload completed before cancellation and was discarded as invalid evidence; the corrected workload was rerun successfully.
 - Remaining open gates are strict exact-build V25 visual approval, native multi-monitor placement, indefinite soak, and three issuer-native routes currently failing transport/HTTP checks.
 
+## 2026-08-07T10:35:00Z Visual-reference authority recheck
+
+- Official release notes confirm the pinned build identity `25.0.9571`; official platform documentation confirms windowing capabilities but not deterministic visual state captures or required environment metadata.
+- The in-app browser was unavailable for a live capture attempt. `app.services.visual_manifest --require-approved` still fails closed at `application-shell-default/default: required_missing`; no discovery media was promoted.
+
 ## 2026-08-07T00:45:00Z Explicit legacy yfinance boundary
 
 - Changed provider resolution so yfinance is not an implicit fallback for new workstation
