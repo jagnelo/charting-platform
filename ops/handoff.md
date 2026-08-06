@@ -7,6 +7,12 @@
 - Focused changed unit tests pass `19/19`; isolated F8j geometry passes `10/10`; rebuilt-stack authenticated Chromium `flows.spec.ts` passes `42/42` in `2.3m`. The source production build and `vue-tsc` pass.
 - This is an implementation checkpoint, not completion: exact-build V25 visual approval, native multi-monitor evidence, sustained sandbox/resource stress, indefinite soak, and live issuer route failures remain open and explicitly tracked.
 
+## Continuation update — 2026-08-07T10:20:00Z Sustained isolated-runner cancellation stress
+
+- Added `ops/probe-research-runner-sustained.sh`, a bounded live probe that overlaps a 600-cell CPU-bound prepared-universe batch with a successful scalar job, requests cancellation during execution, and verifies terminal results plus cleanup of all running/cancel/progress sentinels.
+- The real branch-scoped research runner passed `5/5` sustained rounds. The deployment contract tests now cover the probe shape; the first too-fast workload was corrected and is not counted as evidence.
+- This closes repeated cancellation/queue-pressure evidence. Native multi-monitor placement, genuinely indefinite soak, exact-build V25 visual approval, and unavailable issuer-native live routes remain open.
+
 ## Continuation update — 2026-08-07T00:45:00Z Explicit legacy yfinance boundary
 
 - Default provider-runtime resolution now excludes yfinance from price/history/event/universe

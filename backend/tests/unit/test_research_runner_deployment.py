@@ -92,3 +92,16 @@ def test_live_recovery_probe_is_bounded_and_verifies_orphan_cleanup():
     assert ".cancel" in probe
     assert "progress.json" in probe
     assert '"status":"completed"' in probe
+
+
+def test_live_sustained_probe_overlaps_cancellation_and_success_without_leaking_sentinels():
+    probe = (Path(__file__).resolve().parents[3] / "ops" / "probe-research-runner-sustained.sh").read_text()
+
+    assert "TC2000_RUNNER_STRESS_ROUNDS" in probe
+    assert "600" in probe
+    assert ".cancel" in probe
+    assert ".running" in probe
+    assert ".processed" in probe
+    assert "progress.json" in probe
+    assert '"status":"canceled"' in probe
+    assert '"status":"completed"' in probe

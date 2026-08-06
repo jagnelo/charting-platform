@@ -7,6 +7,13 @@
 - Frontend Docker production build (`vue-tsc` plus Vite) passed. No preserved unrelated untracked artifacts were staged.
 - Open gates remain: strict exact-build Version 25 visual references, native OS multi-monitor placement, sustained adversarial sandbox/resource stress, indefinite soak, and three issuer-native live routes that currently fail transport/HTTP checks despite SEC fallback coverage.
 
+## 2026-08-07T10:20:00Z Sustained isolated-runner cancellation stress
+
+- Added a bounded live queue-pressure probe and deployment-contract regression. It submits a 600-cell CPU-bound batch, cancels it during execution, runs a concurrent successful scalar job, and asserts no stale job/progress sentinels remain.
+- Live branch runner result: `5/5` rounds passed; every canceled batch ended `canceled`, every concurrent scalar ended `completed`, and cleanup was verified.
+- The initial too-fast probe workload completed before cancellation and was discarded as invalid evidence; the corrected workload was rerun successfully.
+- Remaining open gates are strict exact-build V25 visual approval, native multi-monitor placement, indefinite soak, and three issuer-native routes currently failing transport/HTTP checks.
+
 ## 2026-08-07T00:45:00Z Explicit legacy yfinance boundary
 
 - Changed provider resolution so yfinance is not an implicit fallback for new workstation
