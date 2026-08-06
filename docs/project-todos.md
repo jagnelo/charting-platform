@@ -3463,6 +3463,11 @@ The complete backend unit suite subsequently passed 988/988 with the repository 
 gate satisfied at 69.90% (55% required). The run produced only the known Nautilus/pandas
 deprecation warnings; no provider, research, sandbox, or workstation unit failure occurred.
 
+The Docker-backed backend integration suite also passed its complete 281/281 matrix in
+169.49 seconds with 54 known Nautilus/pandas warnings. The first un-elevated invocation
+could not access the Docker socket and produced setup errors before tests ran; the elevated
+rerun started the containers and is the authoritative result.
+
 The streaming screener also now treats indicator-cache persistence as an optional,
 observable optimization: failed cache commits roll back, produce a structured warning,
 and leave canonical scan results usable rather than silently poisoning the transaction.

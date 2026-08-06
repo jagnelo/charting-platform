@@ -19026,3 +19026,14 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
   provider, research, sandbox, or workstation unit failures were observed.
 - This strengthens the backend evidence but does not close provider-live, exact-build visual,
   sustained pressure/soak, multi-monitor, or full end-to-end acceptance gates.
+
+### 2026-08-06T14:00:00Z — Docker-backed integration gate
+
+- Elevated Docker-backed `backend/.venv/bin/pytest -q backend/tests/integration --no-cov`
+  passed 281/281 in 169.49 seconds.
+- The un-elevated attempt failed during testcontainers setup because the Docker socket was
+  inaccessible; no application test ran in that attempt.
+- The successful run emitted only 54 known Nautilus/pandas deprecation warnings. Provider,
+  research, workspace, screener, Study Lab, task, and websocket integration cases all passed.
+- This closes the current integration-suite gate, while exact-build visual, provider-live,
+  sustained sandbox/soak, multi-monitor, and full serial browser evidence remain open.
