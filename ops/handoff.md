@@ -19095,3 +19095,10 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
   no stale cancel/progress sentinel.
 - These close the bounded resource and orphan-recovery probes; indefinite soak and adversarial
   escape testing remain open.
+
+### 2026-08-06T16:35:00Z — local visual harness audit
+
+- Seeded visual geometry/containment checks completed in all four configured environments.
+- Screenshot comparisons remained intentionally unapproved at approximately 2% difference,
+  above the 0.5% threshold, against stale local snapshots. The strict exact-build manifest is
+  still `required_missing`; no baseline was promoted.

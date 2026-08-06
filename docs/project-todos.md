@@ -3500,6 +3500,11 @@ orphaned-job recovery probe also completed a claimed job after killing and resta
 runner, with no stale cancellation or progress sentinel. Indefinite soak and adversarial escape
 coverage remain separate gates.
 
+The local four-environment visual harness also completed its deterministic geometry/containment
+checks, but all four screenshot comparisons remain unapproved: measured differences are roughly
+2% (above the 0.5% local threshold) against stale local snapshots, and the strict manifest still
+marks the exact-build reference `required_missing`. No screenshot baseline was promoted.
+
 The streaming screener also now treats indicator-cache persistence as an optional,
 observable optimization: failed cache commits roll back, produce a structured warning,
 and leave canonical scan results usable rather than silently poisoning the transaction.
