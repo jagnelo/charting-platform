@@ -19109,3 +19109,11 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
   mount, ptrace, fork, network, subprocess creation, and writes through the read-only root.
 - This strengthens adversarial sandbox evidence; indefinite soak and broader multi-process
   resource testing remain separate gates.
+
+### 2026-08-06T17:10:00Z — live-provider collection audit
+
+- `backend/.venv/bin/pytest -q backend/tests/live --no-cov` collected 348 optional live probes;
+  all 348 were skipped by explicit credential/opt-in guards.
+- No provider was falsely marked live-green. Deterministic adapters and the no-key SEC path remain
+  covered; Alpaca, FRED, OpenFIGI, Massive, Alpha Vantage, and issuer-native live matrices still
+  require configured entitlements, credentials, and terms review.

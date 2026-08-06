@@ -3508,6 +3508,11 @@ marks the exact-build reference `required_missing`. No screenshot baseline was p
 The live sandbox escape probe also passed: unshare, setns, mount, ptrace, fork, network, subprocess,
 and read-only-root writes were all denied under the configured seccomp/no-new-privileges runner.
 
+The live-provider collection was executed without fabricating credentials: all 348 optional
+ETF-provider/OpenFIGI probes were skipped by their credential/opt-in guards. Deterministic
+provider and SEC no-key evidence remains green; configured multi-provider live acceptance still
+requires entitled credentials and terms review.
+
 The streaming screener also now treats indicator-cache persistence as an optional,
 observable optimization: failed cache commits roll back, produce a structured warning,
 and leave canonical scan results usable rather than silently poisoning the transaction.
