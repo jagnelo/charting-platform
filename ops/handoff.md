@@ -19037,3 +19037,11 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
   research, workspace, screener, Study Lab, task, and websocket integration cases all passed.
 - This closes the current integration-suite gate, while exact-build visual, provider-live,
   sustained sandbox/soak, multi-monitor, and full serial browser evidence remain open.
+
+### 2026-08-06T14:15:00Z — visual reference gate audit
+
+- The browsable reference-board validator passed all 190 retrieved image cards.
+- The strict manifest validator was also rerun and correctly failed closed at
+  `application-shell-default/default: required_missing`.
+- No discovery image was promoted to approved exact-build evidence; the board remains the
+  active implementation aid while the pinned Version 25 capture/measurement gate is open.

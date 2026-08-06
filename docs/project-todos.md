@@ -3468,6 +3468,11 @@ The Docker-backed backend integration suite also passed its complete 281/281 mat
 could not access the Docker socket and produced setup errors before tests ran; the elevated
 rerun started the containers and is the authoritative result.
 
+The reference-board validator confirms all 190 retrieved board images are locally present.
+The strict visual-manifest validator still fails closed at
+`application-shell-default/default: required_missing`, so the board remains an implementation
+and regression aid rather than an approved exact-build baseline.
+
 The streaming screener also now treats indicator-cache persistence as an optional,
 observable optimization: failed cache commits roll back, produce a structured warning,
 and leave canonical scan results usable rather than silently poisoning the transaction.
