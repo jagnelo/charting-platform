@@ -20321,3 +20321,7 @@ uncovered slice rather than repeat a generic completion claim.
 - Generated a controlled-storage HTML/PNG composite board from 190 retrieved media across 22
   product surfaces, labeled with source/build/page context. Added the documented gap matrix,
   manifest board contract, and focused visual-manifest regression; `4/4` passed.
+- Added F8t for Study Lab validation-error recovery, persisted promoted scan identity across
+  remounts, and replaced drawing-test `networkidle` readiness with the real toolbar contract.
+  Focused F8t passed, drawing tests passed `6/6` repeated, and the complete authenticated matrix
+  passes `43/43`.

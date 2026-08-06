@@ -53,7 +53,7 @@
     </section>
     <section v-if="run" class="study-lab-tool__run">
       <div><strong>Run #{{ run.id }}</strong><span :class="`study-lab-tool__run-status--${run.status}`">{{ run.status }}</span><small v-if="progressLabel">{{ progressLabel }}</small><button v-if="canCancel" type="button" @click="cancel">Cancel</button><button v-if="canRerun" type="button" :disabled="rerunBusy" @click="rerun(true)">{{ rerunBusy ? 'Rerunning…' : 'Rerun snapshot' }}</button><button v-if="canRerun" type="button" :disabled="rerunBusy" @click="rerun(false)">{{ rerunBusy ? 'Rerunning…' : 'Rerun latest' }}</button></div>
-      <div v-if="promotableKind && run.status === 'completed'" class="study-lab-tool__promotions" aria-label="Promote study result">
+      <div v-if="promotableKind" class="study-lab-tool__promotions" aria-label="Promote study result">
         <button v-if="promotableKind === 'scalar'" type="button" :disabled="promotionBusy" @click="promote('column')">{{ promotionBusy ? 'Promoting…' : 'Save as column' }}</button>
         <button v-if="promotableKind === 'series'" type="button" :disabled="promotionBusy" @click="promote('plot')">{{ promotionBusy ? 'Promoting…' : 'Save as chart plot' }}</button>
         <button v-if="promotableKind === 'boolean'" type="button" :disabled="promotionBusy" @click="promote('scan')">{{ promotionBusy ? 'Promoting…' : 'Promote to scan' }}</button>
@@ -483,6 +483,7 @@ async function saveAndRun() {
       study_run_id: run.value.id,
       study_run_source: runSource.value,
       study_run_contract: runContract.value,
+      promoted_scan_id: null,
     })
   } catch (cause: any) { error.value = cause?.message ?? 'Unable to start isolated study run' }
   finally { busy.value = false }
@@ -523,6 +524,7 @@ async function promote(target: PromotionTarget) {
         })
         scanId = scan.id
         promotedScanId.value = scanId
+        emit('configuration', { ...(props.configuration ?? {}), study_run_id: run.value?.id, study_run_source: runSource.value, study_run_contract: runContract.value, promoted_scan_id: scanId })
       }
       if (target === 'alert') {
         await api.post('/alerts/screener', { screener_id: scanId, trigger_type: 'entered', repeat: true })
@@ -558,6 +560,8 @@ onMounted(() => {
     visibilityObserver.observe(studyLabRoot.value)
   }
   const persistedRunId = Number(props.configuration?.study_run_id)
+  const persistedScanId = Number(props.configuration?.promoted_scan_id)
+  if (Number.isInteger(persistedScanId) && persistedScanId > 0) promotedScanId.value = persistedScanId
   if (Number.isInteger(persistedRunId) && persistedRunId > 0) {
     void api.get<Run>(`/research/runs/${persistedRunId}`).then(persistedRun => {
       run.value = persistedRun

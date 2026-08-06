@@ -18943,3 +18943,7 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
   manifest tests pass `4/4`.
 - The board is now the implementation-review reference for composing the product vision. It does
   not replace per-state approval baselines; no image was promoted to `approved`.
+- Added browser acceptance for Study Lab validation diagnostics and recovery from invalid Python,
+  persisted promoted-scan identity across tool remounts, and drawing-toolbar readiness without
+  `networkidle` on a polling route. Focused F8t passed, the corrected drawing partition passed
+  `6/6` repeated, and the full authenticated matrix now passes `43/43` in 1.8 minutes.

@@ -3409,7 +3409,7 @@ Golden Layout mechanics, uPlot host/plugin path, top-down analysis contracts,
 virtualized watchlists, unified Python/Study Lab execution boundary, and free-source
 provider governance are implemented and covered by deterministic/frontend/backend
 regressions. The branch has also exercised the complete Docker-backed integration
-suite (`281 passed`), the clean authenticated Chromium matrix (`42/42`), full frontend
+suite (`281 passed`), the clean authenticated Chromium matrix (`43/43`), full frontend
 Vitest (`587/587`), the public no-key SEC identity/profile path through
 `EdgarProvider`, and isolated research-runner crash
 recovery. Remaining acceptance is intentionally still hard-gated by the full Version

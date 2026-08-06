@@ -688,6 +688,27 @@ test.describe('TC2000 workstation', () => {
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
+  test('F8t — Study Lab validation errors are visible and recoverable', async ({ page, browserDiagnostics }) => {
+    await page.goto('/chart')
+    await expect(page.locator('.workspace-layout-host')).toBeVisible({ timeout: 10_000 })
+    await page.getByRole('button', { name: 'Study', exact: true }).click()
+
+    const study = page.locator('.study-lab-tool')
+    await expect(study).toBeVisible({ timeout: 10_000 })
+    await study.getByRole('textbox', { name: 'Study name' }).fill('E2E Study validation recovery')
+    await study.getByRole('textbox', { name: 'Study symbol' }).fill('SPY')
+    await study.getByRole('textbox', { name: 'Study Python source' }).fill("output.scalar('broken'")
+    await study.getByRole('button', { name: 'Validate' }).click()
+    await expect(study).toContainText('Validation errors', { timeout: 10_000 })
+    await expect(study.locator('.study-lab-tool__validation--bad pre')).toBeVisible()
+
+    await study.getByRole('textbox', { name: 'Study Python source' }).fill("output.scalar('recovered', 1)")
+    await study.getByRole('button', { name: 'Validate' }).click()
+    await expect(study).toContainText('Validated for isolated execution', { timeout: 10_000 })
+    await expect(study.locator('.study-lab-tool__validation--bad')).toHaveCount(0)
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
   test('F8r — core tool headers keep titles, symbols, and actions geometrically separated', async ({ page, browserDiagnostics }) => {
     await page.goto('/chart')
     await expect(page.locator('.workspace-layout-host')).toBeVisible({ timeout: 10_000 })
@@ -802,10 +823,9 @@ test.describe('Drawing tools', () => {
 
   test('F13 — drawing toolbar shows expected tools', async ({ page, browserDiagnostics }) => {
     await page.goto('/chart')
-    await page.waitForLoadState('networkidle')
 
     const toolbar = page.locator('.drawing-toolbar, [class*="toolbar"]')
-    await expect(toolbar.first()).toBeVisible()
+    await expect(toolbar.first()).toBeVisible({ timeout: 15_000 })
 
     await toolbar.getByRole('button', { name: 'Lines' }).click()
     await expect(page.getByRole('button', { name: 'Trend Line' })).toBeVisible()
@@ -817,9 +837,9 @@ test.describe('Drawing tools', () => {
 
   test('F14 — selecting a drawing tool activates it', async ({ page, browserDiagnostics }) => {
     await page.goto('/chart')
-    await page.waitForLoadState('networkidle')
 
     const toolbar = page.locator('.drawing-toolbar').first()
+    await expect(toolbar).toBeVisible({ timeout: 15_000 })
     const linesButton = toolbar.getByRole('button', { name: 'Lines' })
     await linesButton.click()
     const horizBtn = toolbar.getByRole('button', { name: 'Horizontal Line' })
