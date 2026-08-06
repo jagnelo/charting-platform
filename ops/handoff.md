@@ -18979,3 +18979,12 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
 - Rechecked the `REF-LINKING-V25` behavioral slice with elevated Chromium: F8m/F8n passed `2/2`,
   proving yellow wildcard symbol propagation, grey symbol isolation, linked timeframe propagation,
   and grey timeframe locality. Exact V25 visual reference coverage for those states remains open.
+### 2026-08-06T12:45:00Z — prevent duplicate tool-window link publication
+
+- Removed the duplicate native `input` listener from the shared symbol-link selector in
+  `frontend/src/components/workstation/ToolWindow.vue`; `change` remains the single browser
+  publication point.
+- Added a regression covering a selection that produces both browser events; the component
+  suite passes 3/3 and `vue-tsc --noEmit` plus `git diff --check` pass.
+- This is a reliability correction only; it does not close the still-open visual, provider,
+  sandbox-pressure, multi-monitor, or full single-process acceptance gates.

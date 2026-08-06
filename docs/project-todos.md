@@ -3437,6 +3437,11 @@ pop-out/Study Lab/Notes set passed 6/6 and the remaining set passed 37/37. This 
 functional coverage, but remains recorded as partitioned evidence because a single shared
 serial process can create unrelated workspace/runner contention.
 
+The shared tool-window symbol-link selector now listens only to the native `change` event.
+Browsers can emit both `input` and `change` for one select interaction; accepting both had
+allowed duplicate link-bus publication and redundant workspace persistence/refresh work.
+Focused component coverage now verifies one update for the combined browser event sequence.
+
 The streaming screener also now treats indicator-cache persistence as an optional,
 observable optimization: failed cache commits roll back, produce a structured warning,
 and leave canonical scan results usable rather than silently poisoning the transaction.

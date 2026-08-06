@@ -42,4 +42,15 @@ describe('ToolWindow', () => {
     expect(wrapper.find('[aria-label="Chart timeframe link group"] option[value="red"]').text()).toBe('Red')
     expect(wrapper.findAll('.tool-window__link-swatch')).toHaveLength(2)
   })
+
+  it('publishes one symbol-link update when a browser emits input and change for one selection', async () => {
+    const wrapper = mount(ToolWindow, { props: { title: 'Chart', linkGroup: 'blue' } })
+    const select = wrapper.find('[aria-label="Chart symbol link group"]')
+
+    await select.setValue('yellow')
+    await select.trigger('input')
+
+    expect(wrapper.emitted('update:linkGroup')).toHaveLength(1)
+    expect(wrapper.emitted('update:linkGroup')?.[0]).toEqual(['yellow'])
+  })
 })

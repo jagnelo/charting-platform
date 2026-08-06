@@ -17,7 +17,6 @@
           :value="linkGroup"
           class="tool-window__link"
           :aria-label="title + ' symbol link group'"
-          @input="emit('update:linkGroup', ($event.target as HTMLSelectElement).value as LinkGroup)"
           @change="emit('update:linkGroup', ($event.target as HTMLSelectElement).value as LinkGroup)"
         >
           <option v-for="group in groups" :key="group" :value="group">{{ dashboardLinkGroupLabel(group) }}</option>
