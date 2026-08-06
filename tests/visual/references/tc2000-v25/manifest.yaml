@@ -44,6 +44,8 @@ reference_policy:
     surface_count: 22
     status: implementation_aid
     acceptance_role: "Use the grouped board to compose the product vision, compare implementation surfaces, and identify missing states. It is not a synthetic screenshot baseline and cannot satisfy require_approved."
+  gap_register: docs/tc2000-reference-board.md
+  gap_register_rule: "Every required state without an authoritative approved reference maps to a documented gap ID; such states remain limited or blocked for visual acceptance."
   discovery_candidates:
     - id: v25-pinning-columns
       source_type: official_v25_help
@@ -234,6 +236,7 @@ environments:
     display_scale: 125
 surfaces:
   - id: application-shell-default
+    gap_ids: [REF-SHELL-V25, REF-STATE-VARIANTS, REF-ENV-TOKENS, REF-PERMISSION-REVIEW]
     state: required_missing
     tc2000: { generation: "25", build: "25.0.9571", capture_date: null, operator: null }
     source: { type: authorised_live_capture, locator: null, sha256: null, permission: controlled_reference_only }
@@ -250,6 +253,7 @@ surfaces:
     reproduction: "Open the factory US Top Down layout with SPY active."
     masks: []
   - id: workspace-docking
+    gap_ids: [REF-STATE-VARIANTS, REF-LINKING-V25, REF-ENV-TOKENS, REF-PERMISSION-REVIEW]
     state: required_missing
     tc2000: { generation: "25", build: "25.0.9571", capture_date: null, operator: null }
     source: { type: authorised_live_capture, locator: null, sha256: null, permission: controlled_reference_only }
@@ -268,6 +272,7 @@ surfaces:
     reproduction: "Move Chart into a watchlist stack; float then restore it."
     masks: []
   - id: chart-window
+    gap_ids: [REF-STATE-VARIANTS, REF-LINKING-V25, REF-ENV-TOKENS, REF-PERMISSION-REVIEW]
     state: required_missing
     tc2000: { generation: "25", build: "25.0.9571", capture_date: null, operator: null }
     source: { type: authorised_live_capture, locator: null, sha256: null, permission: controlled_reference_only }
@@ -286,6 +291,7 @@ surfaces:
     reproduction: "Open SPY D1 chart in the default workspace."
     masks: []
   - id: watchlist-column-filter
+    gap_ids: [REF-STATE-VARIANTS, REF-ENV-TOKENS, REF-PERMISSION-REVIEW]
     state: required_missing
     tc2000: { generation: "25", build: "25.0.9571", capture_date: null, operator: null }
     source: { type: authorised_live_capture, locator: null, sha256: null, permission: controlled_reference_only }
@@ -304,6 +310,7 @@ surfaces:
     reproduction: "Open S&P 500 Sector ranking with SPY comparison."
     masks: []
   - id: study-lab
+    gap_ids: [REF-STUDY-LAB-V25, REF-STATE-VARIANTS, REF-ENV-TOKENS, REF-PERMISSION-REVIEW]
     state: required_missing
     tc2000: { generation: "25", build: "25.0.9571", capture_date: null, operator: null }
     source: { type: authorised_live_capture, locator: null, sha256: null, permission: controlled_reference_only }

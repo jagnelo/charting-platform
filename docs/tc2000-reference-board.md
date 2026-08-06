@@ -42,21 +42,17 @@ minimal decoration, and frequent drag/drop transfer between tools.
 ## Gaps identified from the board
 
 These are now explicit implementation/acceptance gaps rather than an undifferentiated
-“visual references unavailable” state:
+“visual references unavailable” state. Each gap has an interim oracle so development can
+continue without disguising the absence of authoritative Version 25 evidence.
 
-1. **Pinned-build shell baseline:** no source image proves the complete application shell at
-   build `25.0.9571` with capture environment, permissions, and review metadata.
-2. **State variants:** the pack does not fully cover loading, stale, partial, provider-error,
-   blocked-pop-out, recovery, focused, keyboard-selected, and disabled states at one target
-   environment.
-3. **Linking:** help material explains linking, but a complete V25 capture set for all normal
-   groups, yellow wildcard, grey isolation, and timeframe propagation is absent.
-4. **Study Lab:** the retrieved product media does not establish the modern open-ended research
-   editor, structured result renderers, occurrence browser, or sandbox-error presentation.
-5. **Acceptance environments:** none of the retrieved media provides deterministic 1920×1080
-   and 2560×1440 captures at both display scales with measured tokens.
-6. **Permission/review evidence:** online media has source URLs and hashes but not the required
-   permission classification and human approval for use as a baseline.
+| Gap ID | Missing reference and affected acceptance cases | Current implementation treatment | Interim test/oracle | Evidence required to close the gap |
+|---|---|---|---|---|
+| `REF-SHELL-V25` | Pinned-build shell at `25.0.9571`; application shell, menus, workspace tabs, search, status areas, and factory-layout geometry | Use the board’s factory-layout/product-image groups for density, proportions, chrome, and token direction; keep strict manifest state `required_missing` | Four seeded environment geometry/containment audits, deterministic screenshot harness, and browser shell interaction tests | Permission-cleared capture of the exact build with environment metadata, measurements, SHA-256, and reviewer approval |
+| `REF-STATE-VARIANTS` | Loading, stale, partial, provider-error, blocked-pop-out, recovery, focused, keyboard-selected, and disabled states | Implement explicit freshness/error/recovery states from platform contracts; do not infer their exact V25 styling from unrelated screenshots | Browser tests for stale/partial/error/recovery flows, accessibility/focus assertions, and structured cell warnings | Complete state capture set from the pinned build at a reviewed target environment |
+| `REF-LINKING-V25` | All normal link groups, yellow wildcard, grey isolation, timeframe propagation, linked crosshair, and cross-window propagation | Preserve canonical-ID link bus and test behavioral semantics independently of missing visual proof | Link-group, keyboard, cross-window, and chart crosshair integration tests | Authoritative captures covering every link state and interaction, with timing and environment metadata |
+| `REF-STUDY-LAB-V25` | Open-ended research editor, structured renderers, occurrence browser, sandbox-error and promotion surfaces | Use the board’s dense editor/grid language for composition; use product contracts and existing browser tests for behavior | Study Lab validation, run, cancellation, recovery, structured-output, occurrence-link, and promotion tests | Pinned-build Study Lab captures or authoritative V25 documentation with reviewed visual states |
+| `REF-ENV-TOKENS` | Deterministic 1920×1080 and 2560×1440 captures at 100% and 125% display scale, with measured tokens | Maintain four seeded visual environments and tokenized geometry checks; keep screenshot comparison failures visible | Geometry/viewport containment, token assertions, and unmasked screenshot diff reporting | Captures and measurements for all four required environments, approved against the manifest |
+| `REF-PERMISSION-REVIEW` | Permission classification and human review needed to promote online media to a baseline | Keep retrieved media in controlled storage as implementation aid only; do not promote any board entry to `approved` | Manifest schema/unit tests require source, hash, state, and review fields | Permission decision, reviewer identity/date, storage classification, and approved manifest entry |
 
 The board is used immediately for implementation review and gap-directed browser checks. The
 strict manifest remains authoritative for screenshot acceptance; no board image is promoted to
