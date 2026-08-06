@@ -20307,3 +20307,6 @@ uncovered slice rather than repeat a generic completion claim.
 - Post-fix full frontend Vitest is `587/587` across 88 files; TypeScript and production build
   remain green, with only the expected watchlist conflict-path stderr.
 - Clean rebuilt-stack authenticated Chromium flows pass `42/42` in 1.8 minutes after both fixes.
+- All four seeded visual environments pass independent row/viewport/header geometry checks; their
+  screenshot comparisons remain unapproved at roughly 2% against stale local artifacts. Services
+  stayed healthy and recent backend/worker/research-runner logs were clean.

@@ -18915,3 +18915,8 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
 - A clean rebuilt-stack authenticated Chromium matrix after both fixes passes `42/42` in 1.8
   minutes, including linking/isolation, top-down drilldown, Study Lab promotion, pop-outs/recovery,
   notes, legacy compatibility, and Radar.
+- All four seeded visual environments (1080p/100, 1080p/125, 1440p/100, 1440p/125) also pass the
+  independent row-count, row-separation, viewport-containment, and core-header overlap checks.
+  Their screenshot comparisons remain unapproved at roughly 2% against stale local artifacts;
+  no snapshot was promoted. Branch-scoped services remained healthy and recent backend/worker/
+  research-runner logs were clean.
