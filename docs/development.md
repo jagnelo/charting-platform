@@ -60,6 +60,23 @@ When you switch branches and run `make dev-infra`, the tooling:
 
 That means Alembic history and DB data stay separated by branch, while the local backend/frontend config stays simple.
 
+For concurrent full-stack acceptance projects, the Compose host bindings are overrideable without
+changing Docker-internal service URLs:
+
+```bash
+POSTGRES_HOST_PORT=55432 BACKEND_HOST_PORT=18000 FRONTEND_HOST_PORT=18080 \
+  E2E_SEED_INSTRUMENTS=true E2E_SEED_MARKET_DATA=true \
+  docker compose -p charting-acceptance up -d
+```
+
+`REDIS_HOST_PORT` is likewise available for the development-only Redis binding. The defaults
+remain `5432`, `8000`, `80`, and `6379`.
+
+`make test-stack-up` preserves the normal unseeded market-data default, but accepts
+`E2E_SEED_INSTRUMENTS` and `E2E_SEED_MARKET_DATA` from the caller. For deterministic visual
+acceptance, use a fresh Compose project/volume with both flags set to `true`; never compare a
+seeded render against a persistent canonical-data stack.
+
 ### 4. Start everything
 
 ```bash

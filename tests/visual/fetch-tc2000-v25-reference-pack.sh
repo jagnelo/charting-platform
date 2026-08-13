@@ -34,6 +34,10 @@ declare -a sources=(
   "event-markers|https://help.tc2000.com/m/125751/l/1909214-managing-event-markers|official_v25_help"
   "past-performance|https://help.tc2000.com/m/125751/l/1909245-past-performance-lines|official_v25_help"
   "column-editor|https://help.tc2000.com/m/125751/l/1874588-how-to-use-the-column-editor|official_help_discovery"
+  "condition-editor-filters|https://help.tc2000.com/m/125751/l/1659573-how-to-create-filters-with-the-new-condition-editor|official_v25_help"
+  "condition-editor-filter-selection|https://help.tc2000.com/m/125751/l/1659574-how-to-choose-single-or-multiple-filters|official_v25_help"
+  "symbol-linking|https://help.tc2000.com/m/69401/l/312314-how-symbol-linking-works|official_help_behavioral_history"
+  "historic-columns|https://help.tc2000.com/m/125751/l/1874583-how-to-create-past-historic-columns|official_v25_help"
 )
 
 printf 'source_id\tsource_type\tpage_url\tmedia_file\tmedia_url\tsha256\n' > "$index_file"

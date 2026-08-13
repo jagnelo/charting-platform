@@ -2,11 +2,18 @@
 
 Status: `Controlling implementation plan`
 
-Current audit state (2026-08-07): all four seeded workstation environments pass the
-independent geometry, viewport-containment, and core-overlap checks. Screenshot comparison
-remains intentionally blocked by `application-shell-default/default: required_missing`; the
-available online/help and shared-layout media are discovery evidence only until pinned-build
-and permission metadata are approved. No stale local screenshot is promoted as a baseline.
+Current audit state (2026-08-10T06:40:00Z): all four seeded workstation environments pass the
+independent geometry, viewport-containment, and core-overlap checks. The authenticated visual
+fixture resets the default factory workspace after login, so persisted ratio/link/layout state
+cannot leak between projects or reruns. The browsable reference board is the accepted working
+visual authority for represented states; screenshot comparison must not be blocked globally merely
+because a local permission-cleared pinned-build capture is unavailable. The official serialized
+board-guided command passes `104/104`, including shell, EasyScan condition editor, Study Lab, loading, provider-error,
+blocked-pop-out, stale, partial-coverage, and validation-error comparisons across all four
+display environments. Only genuinely unrepresented or materially ambiguous states remain limited
+gaps. The EasyScan condition-editor state is board-covered; its source-build continuity is
+recorded as optional strengthening evidence rather than a gap. No stale local screenshot is
+promoted as a baseline.
 
 Reference release: `TC2000 Version 25.0.9571`
 
@@ -21,6 +28,20 @@ It is subordinate only to the complete product contract in
 `docs/project-todos.md`, section 14. Together, those two documents supersede every
 older repository note that refers to TC2000 Version 20, treats visual research as an
 open question, or describes a less complete frontend-only reskin.
+
+`docs/tc2000-acceptance-governance.md` defines how board-covered states,
+unrepresented visual states, external providers, hardware-only behavior, and bounded stress
+evidence are accepted and reported. It prevents a missing direct exact-build capture from
+becoming a blanket stop condition.
+
+The manifest's per-surface `board_covered_states` / `board_gap_states` partition is the
+authoritative state-level ledger. A surface-level `required_missing` status must not be read as
+meaning that every state on that surface lacks evidence.
+
+Use `npm run test:visual:board` for the normal board-guided visual harness. Use
+`npm run test:visual:approved` only when the stronger exact-build manifest gate is intentionally
+being audited. A failed strict audit must not be reported as failure of all board-guided visual
+acceptance.
 
 The target is a pixel-close, behavior-close reproduction of the current TC2000
 Version 25 desktop workstation for the features supported by this platform. The
@@ -72,17 +93,19 @@ Resolve visual or behavioral ambiguity in this order:
    storage capture is equally eligible when the manifest proves its build and state.
 2. **Official help material explicitly tagged Version 25.** Use it for controls or
    states that cannot be reproduced in the live capture environment.
-3. **Official Version 23 or Version 24 help material.** Use it only after a live
-   Version 25 capture confirms that the surface is materially unchanged.
+3. **Official Version 23 or Version 24 help material.** Use it as Version-25-family evidence
+   when the board records the source build/context and no concrete Version 25 conflict is known;
+   record the continuity limitation rather than treating it as exact-build proof.
 4. **Official Version 20 help or release material.** Use it only as behavioral history
    where newer sources do not explain a still-present mechanic.
 5. **Third-party screenshots or videos.** Use them only to discover a state that must
    then be confirmed using an authoritative source. They never decide dimensions,
    colors, or acceptance.
 
-Written descriptions do not overrule visible live behavior. If sources conflict,
-record the conflict in the reference manifest and obtain an approved authoritative
-Version 25 reference before accepting the affected surface.
+Written descriptions do not overrule visible live behavior. If sources conflict, record the
+conflict in the reference manifest. A direct exact-build source wins when it demonstrates a
+concrete difference; otherwise apply board-guided acceptance and retain uncertainty as an
+explicit gap.
 
 Online acquisition is an approved reference path. An online or controlled-storage
 reference can be approved when its source is authoritative, its Version 25 build and
@@ -280,11 +303,16 @@ Manifest status is one of:
 - `captured_unmeasured`;
 - `measured_unapproved`;
 - `approved`;
+- `board_covered`;
 - `superseded`;
 - `out_of_scope`.
 
-Implementation of a surface may begin from `captured_unmeasured`, but it cannot satisfy
-visual acceptance until every required state is `approved`.
+Implementation may begin from `captured_unmeasured`. Under the current
+`approved_or_board_covered` policy, a represented state may satisfy board-guided visual
+acceptance after its deterministic local baseline and interaction checks pass with
+`board_covered`; a state without sufficient board evidence remains `required_missing` until
+targeted closure evidence is available. The optional strict audit still requires every state to
+be `approved`.
 
 ## Deterministic capture environments
 

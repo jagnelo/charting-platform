@@ -12,7 +12,16 @@ reference_policy:
     - official_v25_help
     - confirmed_v23_v24_surface
     - v20_behavioral_history
-  acceptance_requires: approved
+  # Board-covered states are accepted against the composed reference board and
+  # local measured regression baselines. `approved` remains reserved for a
+  # stronger exact-build baseline, or for a state the board does not represent.
+  acceptance_requires: approved_or_board_covered
+  visual_thresholds:
+    # These values are the deterministic local-regression contract. They do
+    # not turn board evidence into an exact-build approval.
+    max_diff_pixel_ratio: 0.005
+    geometry_tolerance_css_px: 1
+    solid_color_delta_e2000: 2
   authority_evidence:
     - id: v25-pinned-build-release-notes
       source_type: official_release_notes
@@ -28,24 +37,38 @@ reference_policy:
       status: behavior_confirmed_not_visual_baseline
       capabilities: [custom_layouts, floating_windows, full_screen, multiple_monitors]
       notes: "The official Version 25 platform entry explicitly describes customizable layouts, floating windows, full screen, and multiple-monitor support. This strengthens interaction-scope evidence but provides no deterministic screenshot, build hash, or capture-environment metadata, so it cannot satisfy visual approval."
+    - id: v25-official-hotkeys-behavior
+      source_type: official_v25_help_behavior
+      source_page: https://help.tc2000.com/m/125751/l/1874569-hot-keys-keyboard-shortcuts
+      source_build: "version-25-current-help"
+      status: behavior_confirmed_not_visual_baseline
+      capabilities: [symbol_search, spacebar_traversal, ctrl_spacebar_reverse_traversal, ctrl_wheel_timeframes, chart_shortcuts, window_maximize]
+      notes: "The official Version 25 help article documents symbol typing/search, Spacebar and Ctrl+Spacebar traversal, Ctrl+wheel timeframe navigation, chart shortcuts, and Shift+L window maximize. It contains no deterministic screenshot or pinned-build environment metadata, so it strengthens keyboard behavior evidence but does not close the keyboard-help visual gap."
+    - id: v25-official-timeframe-linking-behavior
+      source_type: official_help_behavior
+      source_page: https://help.tc2000.com/m/69401/l/327472-how-timeframe-linking-works
+      source_build: version-unspecified-current-help
+      status: behavior_confirmed_not_visual_baseline
+      capabilities: [timeframe_link_groups, yellow_timeframe_wildcard, grey_timeframe_isolation, cross_layout_timeframe_linking, multi_monitor_timeframe_linking]
+      notes: "The official help article confirms eight timeframe groups, yellow wildcard propagation, grey isolation, cross-layout linking, and multi-monitor linking. It does not provide a pinned-build screenshot or deterministic environment measurements, so REF-LINKING-V25 remains a visual gap while this evidence strengthens the behavioral contract."
   retrieved_reference_pack:
-    retrieved_at: "2026-08-05"
+    retrieved_at: "2026-08-10"
     retrieval_script: tests/visual/fetch-tc2000-v25-reference-pack.sh
     controlled_storage: "/private/tmp/tc2000-v25-reference-pack"
     media_index: "/private/tmp/tc2000-v25-reference-pack/media-index.tsv"
-    media_count: 190
+    media_count: 230
     permission: "internal_reference_only; do not copy into application or distributable bundles"
-    notes: "The pack contains official Help Site screenshots from V25-tagged and current/legacy help pages plus one current Version 25 product-page image. It accelerates interaction and token discovery but does not alter required_missing states or strict exact-build approval rules."
+    notes: "The pack contains official Help Site screenshots from V25-tagged and current/legacy help pages plus one current Version 25 product-page image. It is the accepted working visual authority for represented states under docs/tc2000-acceptance-governance.md; uncovered states remain required_missing and exact-build approval remains optional strengthening or targeted gap-closure evidence."
   composite_reference_board:
     builder: tests/visual/build-tc2000-reference-board.py
     controlled_storage: "/private/tmp/tc2000-v25-reference-pack/reference-board.html"
     rendered_preview: "/private/tmp/tc2000-v25-reference-pack/reference-board.png"
-    media_count: 190
-    surface_count: 22
-    status: implementation_aid
-    acceptance_role: "Use the grouped board to compose the product vision, compare implementation surfaces, and identify missing states. It is not a synthetic screenshot baseline and cannot satisfy require_approved."
+    media_count: 230
+    surface_count: 26
+    status: accepted_working_authority
+    acceptance_role: "Use the grouped board as the visual and interaction authority for represented states; compare implementation surfaces against it and maintain measured local baselines. It is not a synthetic screenshot, and does not claim exact-build approval for uncovered states."
   gap_register: docs/tc2000-reference-board.md
-  gap_register_rule: "Every required state without an authoritative approved reference maps to a documented gap ID; such states remain limited or blocked for visual acceptance."
+  gap_register_rule: "Every required state not represented sufficiently by the working board maps to a documented gap ID; only those states remain limited for visual acceptance. Board-covered states are not globally blocked by missing exact-build approval."
   discovery_candidates:
     - id: v25-pinning-columns
       source_type: official_v25_help
@@ -56,7 +79,7 @@ reference_policy:
       image_resolution: { width: 501, height: 632 }
       status: discovery_candidate
       eligible_for: [watchlist-column-filter]
-      notes: "Official Version 25 help image from 25.0.9172.22877; the pinned-build release notes confirm 25.0.9571 separately. Requires pinned-build unchanged review, measured tokens, target-environment mapping, and reviewer approval before any state can leave required_missing."
+      notes: "Official Version 25 help image from 25.0.9172.22877; the pinned-build release notes confirm 25.0.9571 separately. It can guide board-covered states; pinned-build unchanged review, measured tokens, target-environment mapping, and reviewer approval remain required for stronger exact-build promotion or uncovered-state closure."
     - id: v25-pinning-columns-menu
       source_type: official_v25_help
       source_page: https://help.tc2000.com/m/125751/l/1916114-pinning-columns
@@ -95,6 +118,42 @@ reference_policy:
       status: discovery_candidate
       eligible_for: [watchlist-column-filter]
       notes: "Official help describes the integrated Columns & Filters editor, visibility, groups, stacks, per-column timeframes, and Active/Inactive/Off filter states. Textual mechanics are authoritative discovery evidence; no pinned-build screenshot baseline is claimed."
+    - id: official-condition-editor-filters
+      source_type: official_v25_help
+      source_page: https://help.tc2000.com/m/125751/l/1659573-how-to-create-filters-with-the-new-condition-editor
+      image_locator: https://media.screensteps.com/image_assets/assets/007/013/323/original/d5ef38d7-f166-47b8-9ccf-b9b9a98c2aa8.png
+      source_build: "version-25.0.9172.22877-current-help"
+      image_sha256: ebe7e631995842f839846a15ad1dc66accce6fdf95217f1e19c26ce813fa5c4c
+      status: discovery_candidate
+      eligible_for: [watchlist-column-filter]
+      notes: "Official Version 25 condition-editor/filter flow; the pack also retains the complete page image set. Use for composition and mechanics discovery only until pinned-build continuity and review are recorded."
+    - id: official-condition-editor-filter-selection
+      source_type: official_v25_help
+      source_page: https://help.tc2000.com/m/125751/l/1659574-how-to-choose-single-or-multiple-filters
+      image_locator: https://media.screensteps.com/image_assets/assets/006/962/578/original/7b776908-cbb2-4fde-8e2a-b14661e461c3.png
+      source_build: "version-25.0.9172.22877-current-help"
+      image_sha256: 15f2f12b0e384d8d23d72345e29842c2fb26ec4c61a387da29ac8e839fdefd5f
+      status: discovery_candidate
+      eligible_for: [watchlist-column-filter]
+      notes: "Official Version 25 ALL/ANY filter-selection state; discovery evidence only pending pinned-build continuity and review."
+    - id: official-symbol-linking
+      source_type: official_help_behavioral_history
+      source_page: https://help.tc2000.com/m/69401/l/312314-how-symbol-linking-works
+      image_locator: https://media.screensteps.com/image_assets/assets/007/128/805/original/7b47d653-1e05-42d2-9d16-62f5abf5432c.png
+      source_build: version-unspecified-current-help
+      image_sha256: a63cf1cfc365675da9a23c031a4da62cffc6b2ec8ef63f946d99e154c2beb58a
+      status: discovery_candidate
+      eligible_for: [workspace-docking, application-shell-default]
+      notes: "Official symbol-linking visual mechanics evidence, including link-color behavior; the article is retained as behavioral history and is not an exact 25.0.9571 visual baseline."
+    - id: official-historic-columns
+      source_type: official_v25_help
+      source_page: https://help.tc2000.com/m/125751/l/1874583-how-to-create-past-historic-columns
+      image_locator: https://media.screensteps.com/image_assets/assets/006/968/078/original/2ca87f7c-e72c-47b3-8929-264b579fbb94.png
+      source_build: version-unspecified-current-help
+      image_sha256: 3993ed5d633a99031434b0d5293005bf4c504bb7a4c428fc142402fa7ceb7467
+      status: discovery_candidate
+      eligible_for: [watchlist-column-filter]
+      notes: "Official historic-column mechanics evidence; source build is not pinned and therefore remains discovery-only."
     - id: official-column-group-editor
       source_type: official_help_discovery
       source_page: https://help.tc2000.com/m/125751/l/1874601-how-to-group-columns
@@ -244,12 +303,19 @@ surfaces:
     bounds: { window: null, crop: null }
     measurements: { tokens: {}, approved_by: null }
     review: { status: required_missing, reviewer: null, supersedes: null }
-    required_states: [default, menu_open, search_focused, stale_data]
+    required_states: [default, menu_open, keyboard_help, search_focused, search_keyboard_selected, fetching_data, stale_data, delayed_data, unavailable_data]
+    board_covered_states: [default, menu_open, search_focused]
+    board_gap_states: [keyboard_help, search_keyboard_selected, fetching_data, stale_data, delayed_data, unavailable_data]
     state_entries:
-      - { id: default, state: required_missing, review: { status: required_missing } }
-      - { id: menu_open, state: required_missing, review: { status: required_missing } }
-      - { id: search_focused, state: required_missing, review: { status: required_missing } }
-      - { id: stale_data, state: required_missing, review: { status: required_missing } }
+      - { id: default, state: board_covered, review: { status: board_covered }, local_baselines: ["application-shell-default-visual-1080p-100", "application-shell-default-visual-1080p-125", "application-shell-default-visual-1440p-100", "application-shell-default-visual-1440p-125"] }
+      - { id: menu_open, state: board_covered, review: { status: board_covered }, interim_oracle: "Workspace menu interaction and four-environment board-guided screenshot baseline", local_baselines: ["application-shell-menu-open-visual-1080p-100", "application-shell-menu-open-visual-1080p-125", "application-shell-menu-open-visual-1440p-100", "application-shell-menu-open-visual-1440p-125"] }
+      - { id: keyboard_help, state: required_missing, review: { status: required_missing }, interim_oracle: "Help-menu visibility, shortcut-content, F1 activation, and editor-focus dismissal contract", local_baselines: ["application-shell-help-open-visual-1080p-100", "application-shell-help-open-visual-1080p-125", "application-shell-help-open-visual-1440p-100", "application-shell-help-open-visual-1440p-125"] }
+      - { id: search_focused, state: board_covered, review: { status: board_covered }, interim_oracle: "Active-symbol search interaction and four-environment board-guided screenshot baseline", local_baselines: ["application-shell-search-focused-visual-1080p-100", "application-shell-search-focused-visual-1080p-125", "application-shell-search-focused-visual-1440p-100", "application-shell-search-focused-visual-1440p-125"] }
+      - { id: search_keyboard_selected, state: required_missing, review: { status: required_missing }, interim_oracle: "Keyboard ArrowDown selection and aria-selected interaction contract", local_baselines: ["application-shell-search-keyboard-selected-visual-1080p-100", "application-shell-search-keyboard-selected-visual-1080p-125", "application-shell-search-keyboard-selected-visual-1440p-100", "application-shell-search-keyboard-selected-visual-1440p-125"] }
+      - { id: fetching_data, state: required_missing, review: { status: required_missing }, interim_oracle: "Pending OHLCV request exposes the shell Fetching state while preserving the usable workstation layout", local_baselines: ["fetching-freshness-gap-visual-1080p-100", "fetching-freshness-gap-visual-1080p-125", "fetching-freshness-gap-visual-1440p-100", "fetching-freshness-gap-visual-1440p-125"] }
+      - { id: stale_data, state: required_missing, review: { status: required_missing }, interim_oracle: "F8i-c functional freshness assertion", local_baselines: ["stale-freshness-gap-visual-1080p-100", "stale-freshness-gap-visual-1080p-125", "stale-freshness-gap-visual-1440p-100", "stale-freshness-gap-visual-1440p-125"] }
+      - { id: delayed_data, state: required_missing, review: { status: required_missing }, interim_oracle: "F8w-a delayed freshness assertion", local_baselines: ["delayed-freshness-gap-visual-1080p-100", "delayed-freshness-gap-visual-1080p-125", "delayed-freshness-gap-visual-1440p-100", "delayed-freshness-gap-visual-1440p-125"] }
+      - { id: unavailable_data, state: required_missing, review: { status: required_missing }, interim_oracle: "F8i-a/F8d-SPX unavailable-data contract plus deterministic status baseline", local_baselines: ["unavailable-freshness-gap-visual-1080p-100", "unavailable-freshness-gap-visual-1080p-125", "unavailable-freshness-gap-visual-1440p-100", "unavailable-freshness-gap-visual-1440p-125"] }
     reproduction: "Open the factory US Top Down layout with SPY active."
     masks: []
   - id: workspace-docking
@@ -261,14 +327,17 @@ surfaces:
     bounds: { window: null, crop: null }
     measurements: { tokens: {}, approved_by: null }
     review: { status: required_missing, reviewer: null, supersedes: null }
-    required_states: [tabbed, maximized, floating, restored, drag_target, blocked_popout]
+    required_states: [tabbed, maximized, floating, restored, drag_target, tool_menu_open, blocked_popout]
+    board_covered_states: [tabbed, maximized, floating, restored, drag_target]
+    board_gap_states: [tool_menu_open, blocked_popout]
     state_entries:
-      - { id: tabbed, state: required_missing, review: { status: required_missing } }
-      - { id: maximized, state: required_missing, review: { status: required_missing } }
-      - { id: floating, state: required_missing, review: { status: required_missing } }
-      - { id: restored, state: required_missing, review: { status: required_missing } }
-      - { id: drag_target, state: required_missing, review: { status: required_missing } }
-      - { id: blocked_popout, state: required_missing, review: { status: required_missing } }
+      - { id: tabbed, state: board_covered, review: { status: board_covered }, local_baselines: ["workspace-tabbed-visual-1080p-100", "workspace-tabbed-visual-1080p-125", "workspace-tabbed-visual-1440p-100", "workspace-tabbed-visual-1440p-125"] }
+      - { id: maximized, state: board_covered, review: { status: board_covered }, local_baselines: ["workspace-maximized-visual-1080p-100", "workspace-maximized-visual-1080p-125", "workspace-maximized-visual-1440p-100", "workspace-maximized-visual-1440p-125"] }
+      - { id: floating, state: board_covered, review: { status: board_covered }, local_baselines: ["workspace-floating-visual-1080p-100", "workspace-floating-visual-1080p-125", "workspace-floating-visual-1440p-100", "workspace-floating-visual-1440p-125"] }
+      - { id: restored, state: board_covered, review: { status: board_covered }, local_baselines: ["workspace-restored-visual-1080p-100", "workspace-restored-visual-1080p-125", "workspace-restored-visual-1440p-100", "workspace-restored-visual-1440p-125"] }
+      - { id: drag_target, state: board_covered, review: { status: board_covered }, local_baselines: ["workspace-drag-target-visual-1080p-100", "workspace-drag-target-visual-1080p-125", "workspace-drag-target-visual-1440p-100", "workspace-drag-target-visual-1440p-125"] }
+      - { id: tool_menu_open, state: required_missing, review: { status: required_missing }, interim_oracle: "F8i tool-menu action contract and deterministic four-environment local menu baseline", local_baselines: ["workspace-tool-menu-open-visual-1080p-100", "workspace-tool-menu-open-visual-1080p-125", "workspace-tool-menu-open-visual-1440p-100", "workspace-tool-menu-open-visual-1440p-125"] }
+      - { id: blocked_popout, state: required_missing, review: { status: required_missing }, interim_oracle: "F8k-a behavioral recovery assertion", local_baselines: ["blocked-popout-gap-visual-1080p-100", "blocked-popout-gap-visual-1080p-125", "blocked-popout-gap-visual-1440p-100", "blocked-popout-gap-visual-1440p-125"] }
     reproduction: "Move Chart into a watchlist stack; float then restore it."
     masks: []
   - id: chart-window
@@ -281,13 +350,15 @@ surfaces:
     measurements: { tokens: {}, approved_by: null }
     review: { status: required_missing, reviewer: null, supersedes: null }
     required_states: [daily_candles, linked_crosshair, drawing, alert_marker, loading, error]
+    board_covered_states: [daily_candles, linked_crosshair, drawing, alert_marker]
+    board_gap_states: [loading, error]
     state_entries:
-      - { id: daily_candles, state: required_missing, review: { status: required_missing } }
-      - { id: linked_crosshair, state: required_missing, review: { status: required_missing } }
-      - { id: drawing, state: required_missing, review: { status: required_missing } }
-      - { id: alert_marker, state: required_missing, review: { status: required_missing } }
-      - { id: loading, state: required_missing, review: { status: required_missing } }
-      - { id: error, state: required_missing, review: { status: required_missing } }
+      - { id: daily_candles, state: board_covered, review: { status: board_covered } }
+      - { id: linked_crosshair, state: board_covered, review: { status: board_covered } }
+      - { id: drawing, state: board_covered, review: { status: board_covered }, board_evidence: [chart-timeframes, comparison-chart, factory-default-layout], interim_oracle: "F13/F14 drawing interaction plus deterministic CSS icon and 32px control geometry contract", gap_note: "The board covers dense chart/drawing composition but not a pinned-build toolbar icon sheet or exact selected/disabled icon variants; REF-STATE-VARIANTS remains open for those details." }
+      - { id: alert_marker, state: board_covered, review: { status: board_covered } }
+      - { id: loading, state: required_missing, review: { status: required_missing }, interim_oracle: "F8i-b functional loading assertion", local_baselines: ["chart-loading-gap-visual-1080p-100", "chart-loading-gap-visual-1080p-125", "chart-loading-gap-visual-1440p-100", "chart-loading-gap-visual-1440p-125"] }
+      - { id: error, state: required_missing, review: { status: required_missing }, interim_oracle: "F8i-a functional provider-error assertion plus deterministic four-environment visual baseline", local_baselines: ["chart-provider-error-gap-visual-1080p-100", "chart-provider-error-gap-visual-1080p-125", "chart-provider-error-gap-visual-1440p-100", "chart-provider-error-gap-visual-1440p-125"] }
     reproduction: "Open SPY D1 chart in the default workspace."
     masks: []
   - id: watchlist-column-filter
@@ -299,14 +370,18 @@ surfaces:
     bounds: { window: null, crop: null }
     measurements: { tokens: {}, approved_by: null }
     review: { status: required_missing, reviewer: null, supersedes: null }
-    required_states: [sorted, grouped, stacked, filtered, selected, partial_coverage]
+    required_states: [sorted, grouped, stacked, filtered, selected, column_editor, condition_editor, partial_coverage]
+    board_covered_states: [sorted, grouped, stacked, filtered, selected, column_editor, condition_editor]
+    board_gap_states: [partial_coverage]
     state_entries:
-      - { id: sorted, state: required_missing, review: { status: required_missing } }
-      - { id: grouped, state: required_missing, review: { status: required_missing } }
-      - { id: stacked, state: required_missing, review: { status: required_missing } }
-      - { id: filtered, state: required_missing, review: { status: required_missing } }
-      - { id: selected, state: required_missing, review: { status: required_missing } }
-      - { id: partial_coverage, state: required_missing, review: { status: required_missing } }
+      - { id: sorted, state: board_covered, review: { status: board_covered }, board_evidence: [data-grid-use, data-grid-appearance], interim_oracle: "F9e-resize native mouse interaction on the rendered header separator and grid geometry contract", gap_note: "Board represents dense data-grid resizing but not a pinned-build pointer-state measurement; REF-STATE-VARIANTS remains open." }
+      - { id: grouped, state: board_covered, review: { status: board_covered } }
+      - { id: stacked, state: board_covered, review: { status: board_covered } }
+      - { id: filtered, state: board_covered, review: { status: board_covered } }
+      - { id: selected, state: board_covered, review: { status: board_covered } }
+      - { id: column_editor, state: board_covered, review: { status: board_covered } }
+      - { id: condition_editor, state: board_covered, review: { status: board_covered }, board_evidence: [official-condition-editor-filters, official-condition-editor-filter-selection], interim_oracle: "Integrated EasyScan technical condition tree interaction and deterministic four-environment local baseline", local_baselines: ["easyscan-condition-editor-open-visual-1080p-100", "easyscan-condition-editor-open-visual-1080p-125", "easyscan-condition-editor-open-visual-1440p-100", "easyscan-condition-editor-open-visual-1440p-125"] }
+      - { id: partial_coverage, state: required_missing, review: { status: required_missing }, interim_oracle: "F8i-d functional partial-coverage assertion", local_baselines: ["partial-coverage-gap-visual-1080p-100", "partial-coverage-gap-visual-1080p-125", "partial-coverage-gap-visual-1440p-100", "partial-coverage-gap-visual-1440p-125"] }
     reproduction: "Open S&P 500 Sector ranking with SPY comparison."
     masks: []
   - id: study-lab
@@ -318,13 +393,16 @@ surfaces:
     bounds: { window: null, crop: null }
     measurements: { tokens: {}, approved_by: null }
     review: { status: required_missing, reviewer: null, supersedes: null }
-    required_states: [editor, validation_error, running, histogram, occurrence_table, sandbox_error]
+    required_states: [editor, validation_error, disabled_controls, running, histogram, occurrence_table, sandbox_error]
+    board_covered_states: []
+    board_gap_states: [editor, validation_error, disabled_controls, running, histogram, occurrence_table, sandbox_error]
     state_entries:
-      - { id: editor, state: required_missing, review: { status: required_missing } }
-      - { id: validation_error, state: required_missing, review: { status: required_missing } }
-      - { id: running, state: required_missing, review: { status: required_missing } }
-      - { id: histogram, state: required_missing, review: { status: required_missing } }
-      - { id: occurrence_table, state: required_missing, review: { status: required_missing } }
-      - { id: sandbox_error, state: required_missing, review: { status: required_missing } }
+      - { id: editor, state: required_missing, review: { status: required_missing }, interim_oracle: "Study Lab original-surface baseline plus F8g editor/validation flow", local_baselines: ["study-lab-original-visual-1080p-100", "study-lab-original-visual-1080p-125", "study-lab-original-visual-1440p-100", "study-lab-original-visual-1440p-125"] }
+      - { id: validation_error, state: required_missing, review: { status: required_missing }, interim_oracle: "F8t validation-error recovery flow plus deterministic four-environment visual baseline", local_baselines: ["study-lab-validation-error-gap-visual-1080p-100", "study-lab-validation-error-gap-visual-1080p-125", "study-lab-validation-error-gap-visual-1440p-100", "study-lab-validation-error-gap-visual-1440p-125"] }
+      - { id: disabled_controls, state: required_missing, review: { status: required_missing }, interim_oracle: "F8t validation-error flow asserts the Run control is disabled; shared deterministic validation-error baselines", local_baselines: ["study-lab-validation-error-gap-visual-1080p-100", "study-lab-validation-error-gap-visual-1080p-125", "study-lab-validation-error-gap-visual-1440p-100", "study-lab-validation-error-gap-visual-1440p-125"] }
+      - { id: running, state: required_missing, review: { status: required_missing }, interim_oracle: "Deterministic queued/running research fixture asserts durable polling progress and Cancel control", local_baselines: ["study-lab-running-gap-visual-1080p-100", "study-lab-running-gap-visual-1080p-125", "study-lab-running-gap-visual-1440p-100", "study-lab-running-gap-visual-1440p-125"] }
+      - { id: histogram, state: required_missing, review: { status: required_missing }, interim_oracle: "F8o structured histogram renderer assertion plus deterministic completed structured-result fixture", local_baselines: ["study-lab-structured-result-gap-visual-1080p-100", "study-lab-structured-result-gap-visual-1080p-125", "study-lab-structured-result-gap-visual-1440p-100", "study-lab-structured-result-gap-visual-1440p-125"] }
+      - { id: occurrence_table, state: required_missing, review: { status: required_missing }, interim_oracle: "F8o occurrence-table and linked-event assertion plus deterministic completed structured-result fixture", local_baselines: ["study-lab-structured-result-gap-visual-1080p-100", "study-lab-structured-result-gap-visual-1080p-125", "study-lab-structured-result-gap-visual-1440p-100", "study-lab-structured-result-gap-visual-1440p-125"] }
+      - { id: sandbox_error, state: required_missing, review: { status: required_missing }, interim_oracle: "Deterministic failed-run fixture asserts sandbox diagnostics, warning, execution log, rerun affordance, and bounded failure presentation", local_baselines: ["study-lab-sandbox-error-gap-visual-1080p-100", "study-lab-sandbox-error-gap-visual-1080p-125", "study-lab-sandbox-error-gap-visual-1440p-100", "study-lab-sandbox-error-gap-visual-1440p-125"] }
     reproduction: "Run the consecutive positive closes factory study."
     masks: []

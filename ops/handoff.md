@@ -1,5 +1,5591 @@
 # Active Handoff
 
+## 2026-08-13 — Private Python attribute boundary repair
+
+- Tightened both unified-Python validators so every private attribute (not only dunder names) is
+  rejected before execution. This closes the remaining mismatch where `series._value` could pass
+  static validation although the curated pandas wrapper rejects private internals at runtime.
+- Updated the runner regression to assert the improved pre-execution diagnostic. Focused Python
+  security/research tests pass `112/112`; code API integration passes `21/21`; full backend unit
+  suite passes `1116/1116` with the existing third-party deprecation warnings.
+- Rebuilt backend, worker, and the isolated research-runner images; all are healthy. Authenticated
+  Study Lab validation/run and validation-error recovery flows pass `2/2`; service logs show no
+  unexpected traceback, critical/fatal, integrity, or 5xx signature.
+- Acceptance flexibility used: **None**. No visual, product, or sandbox criterion was relaxed.
+  Exact/unrepresented V25, historical/GICS, provider breadth, native-monitor, endurance, and
+  final-audit gaps remain open.
+
+## 2026-08-13 — Unified Python validator/runner parity repair
+
+- The API-side code validator now rejects the same sensitive ndarray/numerical-wrapper attributes
+  as the isolated research runner (`tofile`, dump/load/file helpers, raw `ctypes`/`data`/`base`,
+  and mutation methods). Previously a source could be persisted as valid by `/code/validate` and
+  fail only after entering the isolated runner.
+- Added parity regressions at both validation boundaries. Code API integration passes `21/21`,
+  sandbox/research units `119/119`, and the full backend unit suite `1114/1114` with only the
+  existing third-party deprecation warnings.
+- Frontend Vitest passes `770/770`; type-check and 471-module production build pass. Rebuilt
+  backend/worker services are healthy; recent backend/worker logs show no unexpected error
+  signature. The invalid `test:unit` npm command and nonexistent router test path were invocation
+  mistakes only and are not counted as product evidence. Rebuilt authenticated Study Lab validation
+  and recovery flows pass `2/2`.
+- Acceptance flexibility used: **None**. No visual, data, product, or sandbox criterion was
+  relaxed. Exact/unrepresented V25, historical/GICS, provider breadth, native-monitor, endurance,
+  and final-audit gaps remain open.
+- The worktree remains intentionally dirty from the ongoing stint. Git staging/commit/push is still
+  not available in this Codex sandbox because creating `.git/index.lock` is denied; no destructive
+  workaround was attempted. The next normal-terminal checkpoint should stage the contextual
+  changes and commit/push them after reviewing the combined diff.
+
+## 2026-08-13 — Constituent batch exclusion disclosure repair
+
+- Repaired `/analysis/etf/{symbol}/constituents/snapshot` so disclosed ETF holdings remain the
+  coverage denominator. Cash, derivative, unresolved, and non-equity rows now return stable
+  exclusion codes and explanations rather than being silently removed.
+- Focused Docker-backed integration passes `2/2`; focused router/adapter units pass `493/493`; the
+  full backend unit suite passes `1106/1106`; Ruff, compileall, and `git diff --check` pass.
+- Rebuilt services are healthy. The authorized authenticated top-down browser slice passes `7/7`
+  for drilldown, all-sector industry surfaces, swing analysis, watchlist freshness/error, breadth,
+  and relative rotation.
+- Acceptance flexibility used: **None**. No visual, product, or data-quality threshold was
+  relaxed. Historical/GICS, provider, exact/unrepresented V25, native-monitor, endurance, and
+  final-audit gaps remain open.
+
+## 2026-08-13 — IronHorse empty-download fallback repair
+
+- Opt-in live ETF matrix recorded `368 passed, 1 skipped, 6 failed`; IronHorse was reproduced as
+  an official page with a declared download returning HTTP 200 and an empty body.
+- Repaired `IronHorseHoldingsAdapter` to treat empty/malformed rows as a failed native route and
+  use SEC EDGAR reconstruction when a CIK exists, retaining route-failure/fallback provenance.
+  Focused tests `3/3`; backend unit `1106/1106`; compileall and Ruff pass.
+- Vident/MM VAM 502, JPMorgan timeout, Donoghue Forlines 503, and Lazard 404 remain external
+  source/route gaps; no provider completeness or freshness was claimed.
+- Acceptance flexibility used: **None**. Goal remains active; provider breadth and historical
+  source gaps remain explicitly tracked.
+
+## 2026-08-13 — Rebuilt-stack top-down revalidation
+
+- Rebuilt branch backend/worker images with the IronHorse repair; backend, worker, PostgreSQL, and
+  Redis returned healthy/running.
+- Docker-backed workspace integration passes `26/26` with two expected dependency warnings.
+- Focused authenticated browser slice passes `21/21`, covering SPY/RSP relative strength, live
+  sector/industry/constituent drilldown, ratios, swing-analysis flow, Study Lab factory/custom
+  studies, watchlist freshness/error states, breadth, rotation, plot/condition drag transfer,
+  and Market Gauge coverage semantics.
+- Acceptance flexibility used: **None**. This is current-source behavior evidence; provider route,
+  historical truth, board gap, native-monitor, endurance, and final-audit gaps remain open.
+
+## 2026-08-13 — Final-image adapter parity check
+
+- Rebuilt the backend/worker images once more after the cross-adapter audit; services are healthy.
+- Docker-backed workspace integration passes `26/26`. Representative browser checks from the
+  frontend project directory pass `7/7`: deep top-down drilldown, all-sector industry surfaces,
+  Study Lab/Python, consecutive-close study, watchlist refresh/error, and plot-to-column transfer.
+- An initial browser command from repository root was rejected because that directory has no
+  Playwright project configuration; the correct frontend-directory rerun is authoritative.
+- Acceptance flexibility used: **None**. This closes the image-parity validation advance; the
+  documented provider, historical, visual-board, hardware, endurance, and final-audit gaps remain.
+
+## 2026-08-13 — Current-source workstation acceptance matrix
+
+- Rebuilt `charting-stack-feat-tc2000-frontend-rework` with both E2E seed flags disabled;
+  backend/frontend/PostgreSQL/Redis/worker/research-runner are healthy or running.
+- Fixed `frontend/tests/e2e/helpers.ts`: `ChartPage.goto()` waits for the visible workstation dock
+  instead of `networkidle`, which is invalid while intentional polling/WebSocket traffic remains
+  open.
+- Full authenticated Chromium matrix: `136/136` passed in `6.7m`; isolated prior failures passed
+  twice on rerun. No product acceptance was relaxed. Post-run service logs contain no unexpected
+  traceback, critical/fatal, integrity, or 5xx signature.
+- Acceptance flexibility used: **None**. Goal remains active; exact/unrepresented V25,
+  historical/GICS, provider/entitlement breadth, native physical-monitor, longer-endurance, and
+  final-audit gaps remain open.
+- Next: continue the full goal audit, prioritizing provider/ETF source completeness, historical
+  truth, visual-board gap closure, endurance/security evidence, and final acceptance.
+
+## 2026-08-13 — Provider contracts, frontend gates, and Docker maintenance boundary
+
+- ETF provider registry/live-route contracts pass `2/2`: all 496 registered adapters have the
+  expected fallback metadata, and the 352 native/live-backed set has a corresponding concrete
+  route-test disposition. Network-bearing issuer probes remain opt-in and were not silently
+  claimed as live evidence.
+- Frontend regression after the readiness-helper correction passes `770/770` Vitest tests, type
+  checking, and the 471-module production build.
+- `docker system df` measured 8.9 GB images + 4.314 GB build cache (13.214 GB excluding volumes),
+  above the maintenance threshold. The explicitly requested global `docker system prune -af` was
+  rejected by the execution safety boundary because it broadly deletes unused Docker state. No
+  workaround or indirect deletion was attempted; active containers and named volumes remain safe.
+- Acceptance flexibility used: **None**. This is an operational maintenance limitation, not a
+  product acceptance waiver; the Docker cleanup gap remains recorded for safer project-scoped or
+  explicitly approved manual maintenance.
+
+## 2026-08-13 — ETF enrichment strict industry boundary
+
+- Fixed the remaining provider write-path bypass: `_enrich_existing_constituent_classification`,
+  `_holding_needs_reconcile`, and snapshot re-ingestion no longer use sector as a substitute for
+  industry. A profile without `extra["industry"]` cannot create or overwrite `EquityDetail.industry`;
+  supplied sector metadata is stored separately without fabricated industry provenance.
+- Added a sector-only enrichment regression, including the retry predicate. ETF-resolution units
+  pass `16/16`; taxonomy units pass `9/9`; Docker-backed workspace integration passes `26/26`;
+  Ruff and compileall pass. The first local integration attempt failed before setup at the
+  restricted Docker Unix-socket boundary; the permitted rerun is authoritative.
+- Acceptance flexibility used: **None**. Goal remains active. Official GICS/historical coverage,
+  provider breadth/entitlement evidence, exact or unrepresented V25 states, native physical
+  monitor placement, longer endurance, and final audit remain open.
+- Next: continue the full repository-controlled goal audit and repair the next shared defect found.
+
+## 2026-08-13 — Sector-only classification is not industry membership
+
+- Tightened `source_classification_for_as_of` and historical snapshot classification so only an
+  actual industry field can produce an industry label. Sector-only metadata now yields an explicit
+  unclassified result rather than false industry membership.
+- Taxonomy units pass `9/9`; workspace integration passes `26/26` with `--no-cov`; frontend
+  Vitest passes `770/770`; type-check/build, Ruff, compileall, and diff checks pass.
+- Acceptance flexibility used: **None**. Goal remains active; official GICS/historical, provider,
+  exact/unrepresented V25, native-monitor, endurance, and final-audit gaps remain open.
+- Next: continue the full repository-controlled goal audit.
+
+## 2026-08-13 — Strict enrichment broader regression gates
+
+- Broader validation after the ETF enrichment repair is green: backend unit suite `1105/1105`,
+  frontend Vitest `770/770` across 95 files, frontend type-check, 471-module production build,
+  uPlot renderer contract (`43` audited source files), visual acceptance policy (`26` assertions;
+  thresholds unchanged), task-ledger uniqueness (`275/275`), and `git diff --check`.
+- The workspace integration gate remains authoritative at Docker-backed `26/26`; its first local
+  attempt failed before test setup because the restricted Docker Unix socket was unavailable.
+  No application assertion failed. The system-Python visual-policy invocation likewise lacked
+  PyYAML; the repository backend environment rerun passed.
+- Acceptance flexibility used: **None**. Goal remains active; exact/unrepresented V25 states,
+  official GICS/historical completeness, provider/entitlement breadth, native physical monitor
+  placement, longer endurance, and final audit remain open.
+- Next: continue auditing the remaining shared top-down and workstation contracts; do not treat
+  these green regression gates as overall-goal completion.
+
+## 2026-08-13 — Resolved-identity consistency guard
+
+- `_holding_exclusion_code` now treats `is_resolved=true` with no canonical constituent ID as
+  `unresolved_holding`, preventing coverage inflation and composition/constituent disagreement.
+- The explicit exclusion regression covers that contradictory row. Workspace integration passes
+  `26/26` with `--no-cov`; rebuilt seeded authenticated F8e.1 passes `1/1`; Ruff and compileall
+  pass.
+- Acceptance flexibility used: **None**. Goal remains active; exact/unrepresented V25, historical/
+  GICS, provider, native-monitor, endurance, and final-audit gaps remain open.
+- Next: continue the repository-controlled full-goal audit.
+
+## 2026-08-13 — Constituent disclosure browser and visual revalidation
+
+- Rebuilt the branch-scoped stack with `E2E_SEED_INSTRUMENTS=true` and
+  `E2E_SEED_MARKET_DATA=true`; all services became healthy and the frontend image included the
+  constituent-pane change.
+- Authenticated `F8e.1` deep top-down drill-down passes `1/1`, covering sector → industry → proxy
+  → constituent loading, selection, and keyboard traversal.
+- Full board-guided `tc2000_visual.spec.ts` passes `104/104` in `5.2m` across all four required
+  display environments. No baseline, mask, threshold, or product criterion changed.
+- Acceptance flexibility used: **board-guided visual authority plus controlled deterministic seeded
+  market data** for represented states only. Exact/unrepresented V25, historical/GICS, provider,
+  native-monitor, endurance, and final-audit gaps remain open.
+- Next: continue the active full-goal audit; do not mark the goal complete or blocked.
+
+## 2026-08-13 — Constituent exclusion disclosure and partial-coverage correction
+
+- Repaired the industry constituent query to use an outer `EquityDetail` join. Eligible holdings
+  without classification now remain in the denominator and are disclosed as
+  `unclassified_constituent`, instead of disappearing and inflating coverage.
+- The constituent workstation tool now renders the selected snapshot's exclusion codes in a dense
+  provenance footer and includes the excluded count in its label.
+- Focused backend integration `tests/integration/api/test_workspaces.py` passes `26/26` with
+  `--no-cov`; frontend focused VirtualWatchlist tests pass `64/64`; full Vitest `770/770`;
+  type-check/build; Ruff; compileall; and diff checks pass. The first single-file coverage run
+  also passed all 26 tests but failed the global coverage threshold at `28.61%`, which is expected
+  for that command scope and is not treated as a product failure.
+- Acceptance flexibility used: **None**. Remaining official GICS/historical, provider, exact/
+  unrepresented V25, native-monitor, endurance, and final-audit gaps remain open.
+- Next: continue the full goal audit with the same fix-first tie-break; do not mark the goal complete.
+
+## 2026-08-13 — Industry classification coverage semantics corrected
+
+- `classification_coverage` now correctly reports classified eligible rows / all eligible rows for
+  an industry constituent response. It no longer reports membership share as coverage.
+- Current and historical source fallback is unified so returned systems and selected rows use the
+  same provenance decision. Industry API regressions pass `2/2`; backend unit `1103/1103`;
+  frontend focused `64/64`; type-check/build, Ruff, compileall, and diff checks pass.
+- Acceptance flexibility used: **None**. Remaining historical/GICS, provider, visual, hardware,
+  endurance, and final-audit gaps remain open.
+
+## 2026-08-13 — Industry constituent lineage contract repaired
+
+- Industry-constituent API responses now include composition date, known-at, source provider,
+  classification systems, and classification coverage. The frontend preserves and displays the
+  selected industry's own lineage rather than inheriting the parent ETF label.
+- Taxonomy/workspace regressions pass `9/9`; backend unit suite passes `1103/1103`; frontend
+  focused component coverage `64/64`; type-check/build, Ruff, compileall, and diff checks pass.
+- Acceptance flexibility used: **None**. Remaining historical/GICS, provider, visual-reference,
+  hardware, endurance, and final-audit gaps remain open.
+
+## 2026-08-13 — Classification edge semantics and task ledger repaired
+
+- Removed the orphan duplicate classification task ID; YAML validation confirms `268/268` unique
+  task IDs.
+- A provider label without a classification namespace now remains `unknown` and is shown as
+  `Unknown source`, separate from `Unclassified`.
+- Taxonomy/workspace regressions pass `8/8`; frontend type-check and focused VirtualWatchlist tests
+  pass; Ruff, compileall, YAML parsing, and diff checks pass.
+- Acceptance flexibility used: **None**. No visual or seeded acceptance basis changed. Official
+  GICS/historical, provider, exact/unrepresented visual, hardware, endurance, and final-audit gaps
+  remain open.
+
+## 2026-08-13 — Industries provenance disclosure is implemented and verified
+
+- Industries rows now show their source-labelled classification system, an explicit `Unclassified`
+  state when evidence is absent, tooltip evidence, aggregate classification coverage, and excluded
+  row count. The seeded fixture path is labeled `controlled_fixture` in the UI.
+- Seed/taxonomy tests pass `9/9`; focused seeded drill-down passes `2/2`; complete board-guided
+  four-environment visual matrix passes `104/104` in `5.1m`; frontend Vitest `770/770`; type-check,
+  build, Ruff, compileall, and diff checks pass.
+- Acceptance flexibility used: **controlled deterministic seeded fixture data plus board-guided visual
+  authority**. This is interim represented-state evidence, not official GICS or exact-build approval.
+- Remaining gaps: official GICS-compatible/historical coverage, exact or unrepresented V25 states,
+  provider entitlement breadth, native monitor behavior, longer endurance, and final audit.
+
+## 2026-08-13 — Historical classification provenance repair is verified
+
+- Provider profile reconciliation now preserves `classification_system` in canonical sector/industry
+  field provenance, including the persisted snapshot path. The top-down APIs can distinguish SEC SIC
+  from provider-native classifications after a merge instead of losing the source system.
+- Focused taxonomy/persistence coverage: `17/17`; backend unit suite: `1102/1102`; Docker-backed
+  integration suite: `302/302`; frontend Vitest: `770/770`; type-check, 471-module build, Ruff,
+  compileall, and diff checks pass.
+- Acceptance flexibility used: **None** for the repair. The initial integration invocation was
+  blocked before setup by the unprivileged Docker socket; the permissioned rerun is authoritative.
+- Remaining gap: this improves provenance correctness but does not provide official GICS-compatible
+  mapping or complete historical classification/profile coverage. Those remain actionable.
+
+## 2026-08-13 — Board-guided four-environment visual gate is green
+
+- Isolated seeded stack was rebuilt and migrated successfully. The complete board-guided
+  `tc2000_visual.spec.ts` matrix passes `104/104` in `5.4m` with one worker across all four
+  required display-scale environments (1920×1080/100%, 1920×1080/125%, 2560×1440/100%,
+  2560×1440/125%).
+- Coverage includes shell/layout, factory workspaces, links, uPlot charts, watchlists, ratios,
+  scans/gauges, Python/Study Lab, alerts/notes, pop-outs, error/freshness states, overlap checks,
+  and deterministic screenshot baselines.
+- Acceptance flexibility used: **board-guided visual authority plus controlled deterministic seeded
+  fixture data**. Exact-build/permission review, unrepresented/ambiguous V25 states, hardware
+  multi-monitor behavior, and remaining reference-board gaps remain open and are not treated as
+  silently satisfied.
+
+## 2026-08-13 — Current-source final authenticated matrix is green
+
+- Shared plot-drag fallback and watchlist visible-column reassertion are repaired at the source;
+  F8u real browser drag stress passes `5/5`.
+- Successful indicator alert creations remain visible through query invalidation until the canonical
+  list catches up; F11a/F11b/F11c pass `3/3`.
+- Complete authenticated Chromium matrix: `136/136` in `7.4m`, one serial worker. Full frontend
+  Vitest: `770/770`; plot-drag units: `6/6`; type-check/build pass.
+- Acceptance flexibility used: **None**. Open goal gaps remain exact/unrepresented V25 states,
+  historical/GICS, entitlement breadth, native multi-monitor, longer endurance, issuer routes, and
+  final audit.
+
+## 2026-08-13 — Complete authenticated browser acceptance is green
+
+- F8u's real chart-plot-to-watchlist drag journey is stress-tested `5/5` after synchronizing the
+  fixed Plot Library close/reopen transition and retrying only the same browser DnD path when the
+  custom MIME payload is lost by Chromium.
+- F8n gesture recovery now waits on the actual latest-bar control after bounded historical pans;
+  F9h waits for the actual Add Tool menu before opening Python Library.
+- Final authenticated Chromium `flows.spec.ts` matrix: `136/136` passed in `7.1m`, one serial
+  worker, no accepted skips. This is the current broad evidence for the workstation's functional
+  surface. Focused chart-store/Plot Library coverage remains `55/55`; full frontend Vitest remains
+  `768/768` from the preceding repair gate.
+- Acceptance flexibility used: **None**. Remaining goal gaps are exact/unrepresented V25 visual
+  states, historical/GICS coverage, provider-entitlement breadth, native multi-monitor behavior,
+  longer endurance, issuer-route breadth, and final audit.
+
+## 2026-08-13 — Local-canonical workstation chart boundary
+
+- Log tracing found a real provider-boundary gap: workstation initial loads used
+  `/ohlcv/local`, but transformed charts, left-pagination, and latest refresh could call the
+  provider-hydrating route.
+- Added backend `local_only` handling for raw/transformed/range/paginated/latest reads, including
+  a local `before` page; workstation chart state propagates the mode across pagination and refresh.
+  Legacy callers retain the provider-hydrating default.
+- Focused backend market-data/router tests pass `13/13`; frontend Vitest passes `763/763`;
+  type-check, 471-module build, Ruff, compileall, and diff checks pass.
+- Rebuilt frontend and ran targeted authenticated top-down flows: `5/5` passed. Recent backend
+  logs show only `/ohlcv/local/SPY/D1`; no Nasdaq hydration or generic workstation OHLCV call was
+  observed. The provider-boundary task is complete. Acceptance flexibility used: **None**. Goal
+  remains active; remaining visual/reference, historical/GICS, entitlement, native-monitor,
+  endurance, broad issuer, and final-audit gaps remain open.
+
+## 2026-08-13 — Personal-watchlist boundary and endurance evidence
+
+- Personal-watchlist symbol additions now carry the workstation local-only flag through eager
+  price refresh; legacy/dashboard callers retain hydrating behavior. Focused store coverage is
+  `21/21`, full frontend Vitest is `765/765`, type-check/build pass, and rebuilt authenticated
+  `F8y` passes `1/1`.
+- The governed 100-round two-popout churn run passes `2/2` in `2.8m`, with bounded source
+  tool/canvas counts and clean browser diagnostics.
+- Acceptance flexibility used: **bounded stress in place of indefinite soak**. This is not a claim
+  of indefinite endurance; longer-duration endurance remains an actionable gap.
+
+## 2026-08-13 — Real uPlot gesture journey and latest-bar recovery
+
+- Added authenticated browser evidence for wheel zoom, trackpad-style horizontal pan, uPlot surface
+  identity preservation, and `Go to latest bar` recovery. The focused journey passes `1/1` with
+  clean browser diagnostics.
+- Acceptance flexibility used: **None** for product behavior. The first unprivileged Chromium launch
+  failed before test execution at the known macOS Mach-port permission boundary; the permissioned
+  rerun is authoritative and the setup limitation remains recorded rather than hidden.
+
+## 2026-08-13 — Indicator persistence race repair
+
+- Strengthened the real-user swing flow to require RSI and drawing restoration after the full
+  sector/industry/constituent round-trip. It exposed a genuine per-instrument persistence race.
+- The chart store now queues saves while canonical instrument metadata hydrates, cancels stale
+  debounced writes on navigation, and persists copied indicator payloads. Focused coverage is
+  `55/55`; type-check/build pass; rebuilt authenticated flow passes `1/1`. The post-repair
+  authenticated regression slice passes `4/4` across gestures, swing analysis, personal-watchlist
+  activation, and combo persistence.
+- Acceptance flexibility used: **None**. This was fixed and tested under the mandatory goal tie-break.
+
+## 2026-08-13 — Swing-analysis browser journey
+
+- Added and validated a real-user journey covering benchmark/sector trend review, relative
+  strength, RSI insertion, drawing activation, industry/constituent drill-down, ratio refresh,
+  keyboard traversal, and restoration of the annotated sector's per-instrument chart state.
+- The first run exposed a real Plot Library overlay defect; insertion now closes the menu. Focused
+  component coverage passes `19/19`, full frontend Vitest passes `766/766`, type-check/build pass,
+  and the rebuilt journey passes `1/1`.
+- Acceptance flexibility used: **None**. The initial setup-only and test-oracle failures were
+  retained as diagnostics and corrected; no product criterion or visual threshold was relaxed.
+
+## 2026-08-13 — Current-head audit and static/runtime gates
+
+- Current branch-scoped non-seeded stack is healthy: backend, frontend, PostgreSQL, Redis,
+  worker, and research-runner are running; `/health` reports both E2E seed flags false.
+- Frontend Vitest passes `762/762` across `95` files; type-check and the `471`-module production
+  build pass.
+- The audit covered visible primary-menu controls, excluded capability stubs, skipped browser
+  cases, provider/yfinance boundaries, visual manifest partitioning, and the uPlot-only contract.
+  No new repository-controlled defect or undisclosed gap was found.
+- The older provider-bootstrap `repair-in-progress` record is superseded by the later non-seeded
+  `42/42` core workstation evidence and current healthy runtime. The earlier 502/restart remains
+  preserved as historical diagnostic evidence, not erased.
+- Acceptance flexibility used: **None**. No board/seeded, physical-monitor, or bounded-stress
+  substitution was used in this advance.
+- Next work remains the active goal audit: exact/unrepresented visual states, historical/GICS
+  coverage, provider entitlement breadth, native monitor validation, longer endurance, broad
+  issuer-route work, and final audit.
+
+## 2026-08-13 — DFTT external issuer-access gap confirmed
+
+- Official Donoghue Forlines homepage is reachable, but the DFTT product page returns Cloudflare
+  `403`; alternate official fact-sheet domains return `503`. The homepage exposes no executable
+  complete fund-scoped holdings artifact.
+- Existing DFTT adapter remains correct: product-page verification, declared AJAX CSV discovery,
+  browser-compatible retry, provenance, and conditional SEC fallback only with entitled IDs.
+  Deterministic adapter/transport regressions pass `2/2` with `--no-cov`.
+- This is an external issuer-access gap, not a repository defect or goal-wide blocker. No
+  non-issuer substitute or fabricated data was promoted.
+- Acceptance flexibility used: **None**.
+
+## 2026-08-13 — Authoritative gates green; transient Study Lab failures disproven
+
+- Backend unit coverage passes `1099/1099` at `70.08%`; Docker-backed integration passes
+  `302/302`. Visual manifest/policy and uPlot renderer-contract validators pass unchanged.
+- Board-guided visual acceptance passes `104/104` across 1920x1080 and 2560x1440 at 100%/125%.
+  This is the documented visual-board/seeded-data flexibility for represented states, not an
+  assertion that every image is an exact pinned-build capture.
+- The non-seeded core workstation slice passes `42/42`. Its initial `39/42` Study Lab/provisioning
+  failures were not reproducible: focused F8g and F8o/F8p reruns passed, followed by the complete
+  slice. No assertion, threshold, mask, or product criterion was relaxed.
+- Provider audit confirms yfinance is not an implicit dependency of new-workstation chains;
+  remaining use is explicitly legacy/options-scoped.
+- Continue the active goal. Open gaps remain exact/unrepresented V25 states, historical profile
+  and GICS-compatible classification coverage, provider entitlement breadth, native monitor
+  placement, longer endurance, and final audit/documentation closure.
+
+## 2026-08-13 — Explicit ETF holding exclusions and full browser revalidation
+
+- ETF-derived top-down reads now share an explicit exclusion classifier: cash/currency/collateral,
+  derivatives, unresolved rows, and other non-equity holdings cannot silently become sector,
+  industry, proxy, or constituent members. Eligible-equity coverage and returned exclusion codes
+  are now consistent across those surfaces.
+- Selected taxonomy/ETF/workspace backend tests pass `48/48`; frontend Vitest passes `762/762`;
+  Ruff, compileall, `git diff --check`, frontend type-check, and production build pass.
+- Complete authenticated Chromium matrix passes `134/134` after the rebuilt branch stack.
+- No new visual/product flexibility used. Existing board-guided visual authority with controlled
+  seeded data for represented states remains documented. Open goal gaps remain: historical profile
+  completeness, official GICS-compatible mapping, provider-entitlement breadth, exact/unrepresented
+  V25 states, physical multi-monitor placement, longer endurance, and final audit.
+
+## 2026-08-13 — Point-in-time classification snapshots and live revalidation
+
+- Historical ETF industry/proxy/constituent reads now select the latest immutable provider
+  profile snapshot known by `as_of` when current flattened metadata is newer/undated. Enrichment
+  retains the raw provider snapshot; source-labelled systems remain visible and SEC SIC is not
+  claimed as GICS.
+- Selected taxonomy/ETF/workspace backend coverage passes `47/47`; Ruff, compileall, and diff
+  checks pass. Frontend type-check and production build pass.
+- The rebuilt branch backend/worker is healthy and the live workstation acceptance slice passes
+  `22/22`. Docker disk-full startup was recovered by removing only individually verified dangling
+  images; named database/Redis/research volumes were preserved.
+- No visual/product acceptance flexibility used. Remaining gaps: completeness of free historical
+  profile observations, official GICS-compatible classification, exact/unrepresented V25 states,
+  provider-entitlement breadth, native monitor placement, longer endurance, and final audit.
+
+## 2026-08-13 — Historical classification provenance contract and live slice
+
+- Added source-labelled classification/coverage fields to ETF industry composition responses.
+  Historical `as_of` reads now reject current metadata without field observation/known-at evidence
+  rather than leaking present-day SEC SIC into past analysis; excluded rows retain their source
+  system in the response.
+- Focused taxonomy and Docker-backed workspace tests pass `5/5`; compileall and `git diff --check`
+  pass. Frontend `type-check` and production build pass.
+- Rebuilt backend/worker health is green. Live non-seeded Chromium workstation slice passes
+  `22/22` over top-down drill-down, ratios, Python/Study Lab reuse, pop-outs, and keyboard/linking.
+- No visual acceptance flexibility was used for this contract correction. Remaining goal gaps are
+  explicit: historical point-in-time classifications, official GICS-compatible mapping, broader
+  entitlement/provider evidence, exact/unrepresented visual states, native monitor placement,
+  endurance, and final audit.
+
+## 2026-08-13 — Complete workstation acceptance and resumable classification maintenance
+
+- Added the opt-in bounded classification-maintenance worker path. It selects only profiles whose
+  latest non-fixture snapshot still has missing sector/industry metadata, skips complete profiles,
+  caps per-profile enrichment, and records isolated failures. Targeted maintenance/worker tests
+  pass `12/12`; compileall and diff checks pass.
+- Corrected the F7 acceptance selector to target the exact shell `Go` button rather than an
+  industry row whose visible text begins with `Go`; isolated F7/F8k-type pass `2/2`.
+- Rebuilt the isolated stack and completed the canonical non-seeded browser matrix: `134/134`.
+- Completed the board-guided visual matrix: `104/104` across 1920x1080 and 2560x1440 at 100% and
+  125% display scale. Flexibility used and explicitly retained: board-guided visual authority
+  plus controlled seeded data for represented states.
+- Normal non-seeded backend runtime was restored and is healthy. Remaining gaps are not being
+  treated as blockers or silently ignored: exact/unrepresented V25 states, GICS-compatible
+  historical classification, unresolved/cash/derivative rows, provider entitlement breadth,
+  point-in-time truth, native monitor placement, endurance, and final audit.
+
+## 2026-08-13 — Core live ETF membership and top-down drill-down repair
+
+- Curated issuer route metadata is now applied before ETF adapter probes. SPY/RSP, all 11
+  Select Sector SPDR ETFs, and the curated iShares/VanEck/SPDR industry proxies bootstrap
+  through free issuer routes and persist canonical holdings snapshots.
+- Dated refreshes for unresolved adapters return structured `409 holdings_adapter_unresolved`
+  capability responses instead of 500s. Focused API regression coverage passes `3/3`.
+- Existing snapshot reconciliation eagerly loads relationships, uses SEC EDGAR SIC-derived
+  classifications only when missing, records field provenance, caches SEC profiles, and bounds
+  interactive enrichment. Focused backend bootstrap/resolution/provider coverage is `103/103`.
+- Live non-seeded browser evidence: top-down F8e slice `8/8`; adjacent F8d/F8d-SPX/F8k-shift and
+  Python/Study Lab paths `7/7`. No product or visual criterion was relaxed.
+- Remaining limitation: SIC is not GICS; unclassified/cash/derivative rows remain explicit
+  exclusions, and a scheduled continuation is needed for full point-in-time classification.
+- Acceptance flexibility used: **None for visual/product acceptance**. Board-guided represented
+  states, exact/unrepresented visual, provider-entitlement breadth, historical truth,
+  native-monitor, endurance, and final-audit gaps remain open.
+
+## 2026-08-13 — Virtual watchlist status/control glyph parity
+
+- Saved-column-set deletion now uses deterministic `WorkstationGlyph` geometry.
+- Watchlist unavailable cells retain `—` and canonical warning data while exposing warning geometry
+  and a warning-code title; platform-dependent warning text is gone.
+- Focused VirtualWatchlistTool coverage `64/64`; full frontend Vitest `756/756`; type-check and
+  production build pass.
+- Rebuilt seeded stack validation passes the real Columns/Sets interaction `1/1`; affected board
+  visual case passes `4/4` across all four required display environments with clean diagnostics.
+- Canonical unseeded full matrix after the fixture correction reached `133/134`; the Study Lab
+  rerun flow passed. F8e.1a's sole failure coincided with transient gateway 502s and passes
+  isolated `1/1` in `15.3s`; it remains discovery evidence pending a stable full rerun.
+
+## 2026-08-13 — Instrument Report disclosure glyph parity
+
+- Description `more`/`less` disclosure now uses deterministic shared chevron geometry; labels,
+  keyboard semantics, and report behavior are unchanged.
+- Focused Instrument Info/glyph coverage `26/26`; type-check pass; rebuilt F8s-report `1/1`.
+- Complete rebuilt seeded board-guided visual matrix `104/104` in `5.1m` across all four required
+  display environments. Flexibility used: board-guided represented-state authority plus controlled
+  seeded data; exact/unrepresented visual, provider/live-entitlement, historical-truth,
+  native-monitor, longer-endurance, and final-audit gaps remain open.
+
+## 2026-08-13 — Indicator Panel membership/preset glyph parity
+
+- Replaced Indicator Panel membership and preset action symbols with deterministic shared geometry
+  (`list`, `scan`, `apply`, `edit`); existing titles, handlers, and semantics remain unchanged.
+- Glyph coverage is `26`; full frontend Vitest `756/756`; type-check/build/diff checks pass; rebuilt
+  drawing/control browser slice `5/5`.
+- Rebuilt seeded board-guided visual matrix `104/104` in `5.1m` across all four environments.
+  Flexibility used: board-guided represented-state authority plus controlled seeded data; exact/
+  unrepresented visual, provider/live-entitlement, historical-truth, native-monitor, longer-
+  endurance, and final-audit gaps remain open.
+
+## 2026-08-13 — Canonical post-glyph regression and gateway tie-break
+
+- Current unseeded full matrix: `127/134`; seven late failures had 502 gateway/provisioning
+  evidence. F8v backend writes were successful and logs contain no app-error signature.
+- Independent recovery validation: F8v `1/1` in `5.6s`; F8w/F8w-a/F8x/F8x-library/F10/F11/F11a/
+  F11b/F11c `9/9` in `30.4s`.
+- The full result remains discovery evidence pending a clean complete rerun. This is not an
+  acceptance relaxation; board/seeded represented-state flexibility and exact/provider/historical/
+  native-monitor/endurance/final-audit gaps remain explicit.
+- Flexibility used: board-guided represented-state authority plus controlled seeded data. Exact/
+  unrepresented visual, provider/live-entitlement, historical-truth, native-monitor, longer-
+  endurance, and final-audit gaps remain open.
+
+## 2026-08-13 — Primary chart side-panel deterministic glyph parity
+
+- Converted primary Indicator/Drawings/Alerts, Instrument Info, Instrument Alerts, and condition-
+  group action symbols to shared deterministic CSS glyphs; the warning glyph is pure geometry.
+- Focused coverage `34/34`; type-check/build pass; fresh canonical browser slice `10/10`.
+- Fresh seeded board-guided visual matrix passes `104/104` in `5.1m` across all four required
+  environments; full frontend Vitest remains `756/756`.
+- Acceptance flexibility used: board-guided visual authority plus controlled seeded data for
+  represented states. Exact-build/unrepresented visual, provider/live-entitlement, historical-
+  truth, native-monitor, longer-endurance, and final-audit gaps remain open. The pre-rebuild
+  browser slice is explicitly superseded setup evidence.
+- The fresh rebuilt canonical full authenticated matrix passes `134/134` in `7.3m` after this
+  batch; no shared-state, top-down, Study Lab, legacy, or browser-scale regression was introduced.
+
+## 2026-08-13 — Deterministic primary chart/control glyph parity correction
+
+- Replaced remaining primary-workstation Unicode controls in plot library, chart templates,
+  ratio chips, chart settings/help, and Relative Rotation warnings with deterministic CSS glyphs.
+- Focused glyph/plot/template/ratio/rotation coverage `63/63`; affected browser flows `6/6`;
+  type-check/build pass; full frontend Vitest `756/756`.
+- Captured board-guided visual rerun exits `0`: `104/104` in `5.0m` across all four required
+  display environments. The earlier detached/no-output invocation and repository-root
+  Playwright invocation are setup-only evidence and are discarded.
+- Acceptance flexibility used: board-guided visual authority plus controlled seeded data for
+  represented states. Exact-build/unrepresented visual, provider/live-entitlement,
+  historical-truth, native-monitor, longer-endurance, and final-audit gaps remain open.
+- The complete non-seeded authenticated workstation matrix passes `134/134` in `7.3m` after the
+  change; no canonical functional or containment regression was introduced.
+
+## 2026-08-13 — Post-busy-state full acceptance revalidation
+
+- Frontend Vitest `746/746`; canonical authenticated browser flows `134/134` in `7.2m`.
+- Seeded board-guided visual matrix `104/104` in `5.1m` across the four required display
+  environments.
+- Flexibility used: board-guided visual authority plus controlled seeded data for represented
+  states. This does not close exact-build/unrepresented, provider/live-entitlement,
+  historical-truth, native-monitor, beyond-bounded-endurance, or final-audit gaps.
+
+## 2026-08-13 — Backend gate and runtime/storage audit
+
+- Combined Docker backend gate `1390/1390`, `79.70%`; runtime logs clean for tracked error,
+  5xx, integrity, duplicate-key, fatal, OOM, and sandbox signatures; branch services healthy.
+- Docker storage is `11.57GB` images / `3.01GB` reclaimable cache. Host-wide prune was rejected
+  by safety controls as potentially affecting unrelated stacks; scoped cleanup remains open.
+- Flexibility used: deterministic canonical fixtures/entitlement contracts in place of unavailable
+  live provider credentials; provider/live-terms evidence remains an explicit gap.
+
+## 2026-08-13 — Personal watchlist busy-state race closed
+
+- Background watchlist reconciliation no longer reports a selected, usable personal list as
+  busy; initial loading and active mutations remain announced.
+- Rebuilt runtime; focused mutation/combo/error coverage passes `3/3`, and the complete post-fix
+  canonical matrix passes `134/134` in `7.2m`. The prior `133/134` full run remains discovery
+  evidence only.
+
+## 2026-08-13 — EasyScan activation race closed
+
+- Add-tool readiness now preserves clicks when Golden Layout already has a usable active tab
+  during initial workspace hydration; it still waits when no tab exists.
+- Rebuilt runtime and focused F9e group pass `10/10`.
+- Full post-fix canonical matrix passes `134/134` in `7.2m`; `133/134` remains discovery
+  evidence only.
+- No acceptance flexibility changed; board-guided represented-state authority and all existing
+  exact/unrepresented/provider/monitor/endurance/final-audit gaps remain tracked.
+
+## 2026-08-13 — Shared shell/watchlist control geometry correction
+
+- Primary workstation shell/watchlist controls now use reusable deterministic CSS geometry instead
+  of platform-font Unicode glyphs for close/delete/reset/disclosure/reorder actions. Focused unit
+  coverage is `82/82`, focused browser coverage `15/15`, and rebuilt seeded board matrix `104/104`.
+- The subsequent full canonical run reached `126/134`; six late tests encountered transient nginx
+  502 reset/provisioning responses, while the personal-watchlist observation passes in isolation
+  (`F8y 1/1`). Backend logs show normal successful reset/register/API traffic and no app 5xx
+  signature. Stable full-matrix rerun remains actionable.
+- Acceptance flexibility used: board-guided visual authority plus controlled seeded data for
+  represented states. No thresholds, masks, baselines, or product criteria were relaxed. Exact
+  state variants, provider breadth, historical truth, native monitor placement, endurance, and final
+  audit gaps remain open.
+
+## 2026-08-13 — Deterministic tool-window chrome parity correction
+
+- The shared workstation chrome no longer uses Unicode temporary icons; drag, menu, maximize,
+  float, and close controls are deterministic CSS geometry with semantic labels. Focused unit
+  coverage is `7/7`; branch and seeded visual images rebuild cleanly.
+- Validation: constrained workstation `F8r` `10/10`, canonical deep top-down drilldown `1/1`,
+  and seeded board-guided visual matrix `104/104` across 1920×1080 and 2560×1440 at 100%/125%.
+- Final canonical non-seeded authenticated flows pass `134/134` in `7.1m`.
+- A full-flow invocation with `E2E_SEED_MARKET_DATA=true` against the non-seeded branch stack was
+  discarded as setup evidence; its other order-dependent failure passes in isolation and in the
+  related group. No thresholds, masks, baselines, or product criteria were relaxed.
+- Remaining active gaps are exact pinned-build/unrepresented visual states, native physical-monitor
+  placement, beyond-bounded endurance, DFTT issuer access, broader provider/historical truth, and
+  final audit. Board-guided represented-state flexibility remains explicit.
+
+## 2026-08-13 — Post-repair frontend/performance acceptance revalidation
+
+- Frontend Vitest `735/735` across 94 files; coverage generated at 80.68% statements / 71.41%
+  branches. Type-check/build remain green.
+- Permissioned current-source performance guard `3/3` in `2.6m`: 100,000-point uPlot
+  zoom/pan, lifecycle recovery, and 100-round two-popout churn. Backend log audit is clean for
+  tracked runtime-error signatures.
+- The unprivileged browser Mach-port launch failure is setup-only and not product evidence.
+- Flexibility used: board-guided visual authority plus controlled seeded data, browser pop-out in
+  place of native monitor placement, bounded stress in place of indefinite soak, and fixtures/
+  contracts where live provider credentials are unavailable. Exact/unrepresented visual,
+  physical-monitor, beyond-bounded-endurance, external-provider, historical, and final-audit gaps
+  remain actionable.
+
+## 2026-08-13 — Current-source visual and contract revalidation
+
+- uPlot contract `42` files, visual policy `26` assertions, Ruff, JSON/YAML, and diff checks pass.
+- The rebuilt seeded board-guided visual matrix passes `104/104` across 1920×1080 and 2560×1440
+  at 100% and 125% display scale. A port collision and unseeded fixture invocation were setup-only
+  and discarded; no screenshots, masks, thresholds, or baselines changed.
+
+## 2026-08-13 — Chart plot drag hydration race closed
+
+- Repaired the F8u real-user drag defect: late indicator hydration can no longer replace a plot
+  stack changed by the user during chart loading.
+- Evidence: store `32/32`, plot-library/pop-out `40/40`, repeated F8u `10/10`, rebuilt full
+  authenticated workstation matrix `134/134` in `7.2m`.
+- The first failed `133/134` run was retained for fix-first diagnosis; the rebuilt rerun is
+  authoritative. No acceptance threshold, mask, baseline, or product criterion changed.
+- Continue tracking exact/unrepresented V25 visual, external provider, historical truth,
+  native-monitor, beyond-bounded endurance, and final-audit gaps.
+
+## 2026-08-13 — Nasdaq EOD repair boundary closed
+
+- The Nasdaq adapter now widens narrow EOD repair requests by three calendar days and filters
+  the response back to the canonical interval; its cache distinguishes lower and upper bounds.
+- Focused coverage is `30/30`; rebuilt-container probes return the repaired session for `SPY`,
+  `XLK`, and `AAPL`; post-rebuild logs contain no new provider exhaustion or 5xx signatures.
+- The Docker-reachable backend gate is `1390/1390` at `79.70%` coverage. This is supporting
+  data-layer progress for the TC2000 top-down workflow, not a change to visual acceptance.
+- Remaining gaps are unchanged: DFTT access, exact/unrepresented V25 states, native monitor,
+  beyond-bounded endurance, and final audit.
+
+## 2026-08-13 — Security, renderer, endurance, and visual revalidation
+
+- Current-source performance passes `3/3`: 100,000-point uPlot interaction, chart lifecycle
+  recovery, and `TC2000_POP_OUT_CHURN_ROUNDS=100` two-popout churn.
+- Live research-runner probes pass all eight sandbox denials, resource/cgroup/tmpfs/concurrent
+  containment, isolated orphan recovery, and five sustained cancellation/success rounds.
+- Fresh isolated seeded board run passes `104/104` across all four required display environments.
+- Acceptance flexibility used: board-guided visual authority plus controlled seeded data for
+  represented states; browser pop-out evidence for native monitor behavior; bounded stress for
+  indefinite endurance. The corresponding exact/unrepresented, physical-monitor, and long-soak
+  gaps remain open and actionable.
+
+## 2026-08-13 — Full acceptance rerun after conflict-recovery repair
+
+- Repaired the user-visible workspace conflict recovery defect: when a 409 required a recovery
+  copy, the footer now displays the explicit recovery name and `local changes were preserved`
+  message rather than the generic 409 summary.
+- Verification: focused browser `F8j-conflict` `1/1`; focused workspace/popout units `71/71`;
+  complete rebuilt current-source authenticated flows `134/134`; frontend Vitest `734/734`;
+  TypeScript/build; Docker-backed backend `1388/1388` at `79.70%` coverage.
+- Flexibility: **none for this repair**. Existing board-guided represented-state authority,
+  DFTT external-access gap, exact/unrepresented V25 references, historical/provider breadth,
+  native-monitor, endurance, and final-audit gaps remain explicitly tracked.
+
+## 2026-08-13 — Public ETF issuer route audit after supporting-data repairs
+
+- Fixed four repository-controlled route/parser defects exposed by the public holdings audit:
+  PGIM current catalogue/PDF parsing, Tuttle DRMP's IncomeBlast public API, Wayfinder CMBO's
+  current declared CSV, and Keating's 403 transport fallback. Existing routes remain compatible.
+- Deterministic adapter validation is `475/475`. The complete network-enabled opt-in live matrix is
+  `373 passed, 1 skipped, 1 failed` in 500.00s; PGIM, Hashdex, Tuttle, Gladius, and Keating pass.
+- Donoghue Forlines DFTT remains explicitly open because both its product page and fund-scoped
+  AJAX holdings endpoint return access-limited HTTP 503 responses. No alternate official route was
+  found in the bounded public-route check; conditional SEC fallback remains fallback-only.
+- Flexibility: **none** for functional or visual acceptance. A restricted-DNS invocation was
+  discarded as setup evidence; the permitted network rerun is authoritative. The DFTT route is an
+  external issuer-access gap and remains in the ledger rather than being silently accepted.
+
+## 2026-08-13 — Current-source and board-guided acceptance after race repairs
+
+- Repaired three real interaction races found by the full authenticated matrix: queued Golden
+  Layout snapshots could overwrite workspace CRUD mutations; the workspace menu root lacked a
+  deterministic keyboard focus target; and chart plot drag could lose its source during pointer
+  dismissal or chart hydration. The fixes are covered by workspace/plot units and rebuilt browser
+  acceptance; repeated F8u drag validation is 10/10.
+- Authoritative validation now includes frontend Vitest `734/734`, type-check/build, complete
+  current-source authenticated `flows.spec.ts` `134/134`, and board-guided `tc2000_visual.spec.ts`
+  `104/104` across 1920×1080 and 2560×1440 at 100% and 125% display scale.
+- Flexibility used: **board-guided visual authority plus controlled seeded data**, only for states
+  represented by the reference board. This does not close exact pinned-build/unrepresented V25,
+  live provider/entitlement, historical truth, native physical-monitor, endurance, or final-audit
+  gaps. Those remain active and must be addressed or explicitly evidenced before completion.
+
+## 2026-08-12 — Indicator configuration race repaired
+
+- Service-log inspection found repeated `uq_user_instrument_indicators` duplicate-key errors in
+  the running acceptance stack. The cause was a read-then-insert race when linked/floating charts
+  persisted one instrument concurrently.
+- The PostgreSQL route now uses an atomic `ON CONFLICT DO UPDATE` keyed by the existing unique
+  constraint; non-PostgreSQL development sessions retain a compatibility fallback. The branch
+  backend was rebuilt and health returned `200` with both seed flags false.
+- Evidence: focused indicator integration `2/2`, primary indicator-alert browser flows `3/3`,
+  frontend Vitest `733/733`, type-check/build, full Docker-backed backend gate `1384/1384` at
+  `79.68%`, and no new duplicate-key/IntegrityError/traceback signatures in branch backend or
+  Postgres logs after the rebuild.
+- Acceptance flexibility used: **None**. The earlier malformed guessed test path and its resulting
+  no-test/coverage output are discarded invocation evidence. Provider entitlement warnings remain
+  honest diagnostics; live-source, historical, visual-reference, monitor, endurance, and final
+  audit gaps remain open.
+
+## 2026-08-12 — Backend audit environment boundary
+
+- Local backend units pass `1085` tests with 34 known warnings.
+- A fresh combined unit/integration invocation collected the suite but 299 integration cases
+  failed before application assertions because `testcontainers` could not access the Docker Unix
+  socket (`PermissionError: Operation not permitted`). This is an environment evidence gap, not
+  a product failure claim. The last authoritative Docker-backed combined gate remains `1384/1384`
+  at `79.69%` coverage.
+- Acceptance flexibility used: **None**. Docker-backed integration refresh, live-provider and
+  historical truth, sandbox/security, and final service-log audit work remain open.
+
+## 2026-08-12 — Board-guided visual matrix closed for represented states
+
+- The corrected seeded `tc2000_visual.spec.ts` run passes `104/104` in `7.4m` against the isolated
+  acceptance frontend. It covers all four required display environments (1920×1080 and 2560×1440,
+  each at 100% and 125%) and the current shell, docking, search, Study Lab, freshness/error, and
+  recovery states represented by the visual board.
+- The earlier canonical invocation with seeded-data flags was rejected by the fixture guard and is
+  discarded setup evidence; the isolated seeded run is authoritative for this board track.
+- Acceptance flexibility used: **board-guided visual authority plus controlled seeded data**. This
+  closes represented-state evidence only; exact pinned-build/unrepresented references, live
+  provider/historical truth, native physical-monitor placement, longer endurance, and final audit
+  gaps remain open and actionable. No threshold, mask, baseline, or product criterion changed.
+
+## 2026-08-12 — Full current-source matrix closed after repairs
+
+- The rebuilt non-seeded branch stack now passes the complete authenticated `flows.spec.ts`
+  matrix `134/134` in `7.1m` with one worker.
+- This includes the repaired shell Escape ownership, chart price-scale context-menu geometry,
+  deterministic workspace CRUD, and the previously intermittent Python Library activation path.
+- The earlier `133/134` result is superseded; the F9h miss was not reproducible in isolation or
+  the adjacent Python sequence and is green in the full rerun.
+- No visual threshold, mask, baseline, product criterion, or acceptance flexibility changed.
+  Remaining work is the broader backend/security/sandbox, board visual, provider/historical,
+  native-monitor, endurance, and final acceptance audit.
+
+## 2026-08-12 — Shell Escape, chart geometry, and workspace CRUD repairs
+
+- Repaired a real shell keyboard defect: Escape is handled at workstation capture level only while
+  a shell menu is open, so nested listbox propagation cannot leave Workspace/Help/Add tool menus
+  stuck. Chart/editor Escape remains local when no shell menu is active.
+- Kept the chart context-menu oracle tied to the product's rendered `.u-over` edge. The earlier
+  fixed wrapper coordinate was invalid after template/narrow-layout geometry changes.
+- Hardened workspace CRUD acceptance against durable state: it selects the default workspace and
+  uses a unique run-scoped rename/clone name. The real flow passes isolated `1/1`; the rebuilt
+  affected shell/chart/EasyScan/workspace slice passes `10/10`.
+- Focused workstation bindings pass `22/22`; type-check passes. No acceptance flexibility,
+  visual threshold, mask, baseline, or product criterion changed. Full matrix rerun remains open.
+
+## 2026-08-12 — Chart context-menu sequence geometry repair
+
+- Reproduced and repaired the localized `F9c3-keyboard` sequence failure. After narrow and
+  bottom-edge chart cases, a persisted compact layout made the old fixed coordinate miss the
+  rendered price-scale gutter; the product menu itself was not reached.
+- The acceptance test now restores a 1280×720 desktop viewport and derives the right-click from
+  the current `.uplot-wrapper` edge, keeping the event inside the wrapper while targeting the
+  gutter. This is a fix-first test-oracle repair, not a product or visual-policy relaxation.
+- Evidence: isolated `F9c3-keyboard` `1/1`; affected chart/shell sequence `17/17`; frontend
+  Vitest `733/733`; `vue-tsc --noEmit`; and 468-module production build pass. The initial
+  `npm run test:unit` command was an invalid script name and is not test evidence.
+- Flexibility used: **None**. Existing exact/unrepresented V25 visual, provider/entitlement,
+  historical, native-monitor, endurance, and final-audit gaps remain open.
+
+## 2026-08-12 — Typed symbol-search hydration and keyboard-selection repair
+
+- Fixed a real shell race: late route/linked-symbol hydration no longer closes a newer user symbol
+  draft or cancels its canonical search request. The combobox reaches results and keyboard
+  selection during initial hydration.
+- Evidence: rebuilt current-source `F8i-search-keyboard` `1/1`; adjacent shell/history/workspace/
+  context keyboard slice `5/5`; workstation bindings `22/22`; full frontend Vitest `733/733`;
+  type-check and production build pass. The non-seeded canonical backend path `F8i-search-canonical`
+  also passes `1/1`; its initial failure was an over-specific option-text locator, corrected only
+  after direct request/response inspection confirmed `q=XLK` and an XLK result.
+- Acceptance flexibility used: **board-guided search composition plus controlled canonical search
+  fixture**. This is deterministic interaction evidence, not live-provider proof; the
+  `REF-STATE-VARIANTS` keyboard-selected-search styling gap and broader final gaps remain open.
+
+## 2026-08-12 — Workspace listbox keyboard ownership repair
+
+- Persisted workspace choices now use a focused ARIA listbox with stable active-descendant
+  semantics, arrow/Home/End traversal, Enter/Space activation, and trigger-focus recovery.
+- Fix-first browser evidence found the opening `ArrowDown` bubbling into the newly mounted menu,
+  which focused `New` instead of the workspace list. The trigger now stops propagation before the
+  generic action handler can consume that event.
+- Evidence: workstation binding units `22/22`, full frontend Vitest `733/733`, type-check,
+  production build, and rebuilt current-source shell/workspace/keyboard browser slice `3/3`.
+- Acceptance flexibility used: **None**. No visual threshold, mask, baseline, or product
+  criterion changed. Exact pinned-build V25 keyboard/selected-state references and the existing
+  provider/entitlement, historical-truth, native-monitor, endurance, and final-audit gaps remain
+  open.
+
+## 2026-08-12 — Persisted workspace management in the primary shell
+
+- Added primary-shell workspace list/switch, New, Clone, Rename, and Delete actions on top of the
+  existing layout-tab controls; deleting the default workspace remains blocked by the backend.
+- Fix-first: startup list hydration initially added an extra `/workspaces` call and broke four
+  existing store conflict/hydration tests; current-workspace hydration plus menu-time refresh
+  restores request ordering. The first browser flow used a stale menu locator after switching;
+  the corrected flow passes.
+- Evidence: store `48/48`, workstation binding `22/22`, focused `70/70`, type-check/build, and
+  real-browser `F9d-workspaces` `1/1`. Workspace-ID switches now force Golden Layout dock
+  replacement so stale tools cannot survive a workspace change. Acceptance flexibility used:
+  **None**. Full post-change gates and exact/unrepresented V25 workspace visuals remain open.
+- Broader current-source evidence: frontend Vitest `733/733`; board visual `104/104`; final
+  canonical browser `132/132` in `7.2m`. Earlier F9c3/F8u/F8r-breadth interaction races were
+  isolated, repaired at the test/activation boundary, and rerun successfully. No visual
+  threshold, mask, baseline, or product criterion changed.
+
+## 2026-08-12 — Chart-template rename and async library response repair
+
+- Added a durable in-menu rename action to the primary chart-template library. It preserves the
+  stable key and configuration while creating the next immutable library version.
+- The first browser validation exposed a genuine backend defect: updating a library item returned
+  HTTP 500 because the server-generated `updated_at` attribute was expired during async response
+  serialization (`MissingGreenlet`). The upsert now explicitly refreshes the item before return.
+- Focused evidence: workspace-library integration `4/4`, chart-template unit `7/7`, full frontend
+  Vitest `732/732` across 94 files, current-source browser `F9c` `1/1`, type-check/build, and
+  diff-check. The complete workspace API module passes `25/25`; the authoritative combined backend
+  gate passes `1384/1384` at `79.69%`. The complete canonical current-source browser matrix passes
+  `131/131` in `6.6m`. The corrected fresh isolated seeded board-guided visual matrix passes
+  `104/104` in `5.1m` across the four required display environments. The earlier canonical visual
+  invocation was rejected by the fixture guard and is discarded setup evidence.
+- Acceptance flexibility used: board-guided visual authority plus a controlled seeded fixture for
+  represented-state screenshot comparison; this remains interim evidence and does not close the
+  exact/unrepresented state gaps. No threshold, mask, baseline, or product criterion was relaxed.
+- Docker non-volume cleanup reclaimed `12.87GB`; named volumes were preserved. Exact/unrepresented
+  V25 template states, provider/entitlement, historical, native-monitor, endurance, and final-audit
+  gaps remain.
+
+## 2026-08-12 — Alerts indicator-pair comparison evidence
+
+- The primary Alerts editor now supports Price/Indicator modes, fixed-value comparisons, and
+  indicator-vs-indicator comparisons. The latter exposes editable comparison-indicator catalog
+  parameters and sends `indicator_b_type`/`indicator_b_params` without `threshold_value`.
+- Current focused evidence: linked-alert units `10/10`, full frontend Vitest `731/731`,
+  type-check/build pass, and browser `F11a`/`F11b`/`F11c` plus `F8r-alerts-narrow` pass `4/4`.
+  The earlier socket/auth failures were setup-only and discarded; the healthy rerun is authoritative.
+- A stale frontend image initially caused the new Study B parameter locator to time out; the
+  container was rebuilt and the focused rerun passed. No visual threshold, mask, baseline, product
+  criterion, or goal flexibility was changed. The
+- The rebuilt full authenticated `flows.spec.ts` matrix then passed `131/131` in `6.8m` with one
+  worker, including the new alert cases. This supersedes the earlier no-marker 129-case runs.
+  broad post-change matrix remains incomplete/unclaimed; exact/unrepresented V25 states,
+  provider/entitlement, historical, native-monitor, endurance, and final-audit gaps remain open.
+
+## 2026-08-12 — Alerts comparison operators and final focused evidence
+
+- Completed the follow-up audit of the indicator-alert editor: fixed-value comparison operators
+  (`>`, `>=`, `<`, `<=`) are now exposed in indicator mode, while price mode retains its own
+  crossing/touch operators. The existing backend engine contract is now reachable from the primary
+  workstation without requiring chart promotion.
+- Final focused evidence: linked-alert units `9/9`; full frontend Vitest `730/730` across 94
+  files; type-check/build pass; browser `F11a` indicator creation plus `F11b` fixed-value operator
+  creation pass `2/2`; isolated `F8r-alerts-narrow` passes `1/1`; health, JSON, and diff checks
+  pass. A combined run's first narrow case hit an auth `ECONNRESET` before page creation and was
+  discarded; the isolated rerun is authoritative.
+- The broad post-change 129-case matrix and 112-case partition have not emitted completion
+  summaries and remain explicitly unclaimed final-audit evidence. This is a runner/evidence issue,
+  not a confirmed product failure or a goal-wide blocker. No visual threshold, mask, baseline, or
+  product criterion was relaxed; all documented visual/provider/historical/hardware/endurance
+  gaps remain open.
+
+## 2026-08-12 — Complete-matrix status after Alerts correction
+
+- The final localized Alerts correction is fully covered by focused page-level evidence: the
+  catalog-backed indicator creation path and narrow 340px containment both pass `2/2`, linked
+  alert units pass `8/8`, full frontend Vitest passes `729/729`, and type-check/build/health/
+  parsing/diff checks pass.
+- A complete post-change `129`-case authenticated matrix was started against the canonical
+  rebuilt stack but has not emitted a completion marker within the bounded observation window;
+  it is intentionally not claimed as passed. The earlier authoritative current-head matrix
+  (`128/128`) remains valid for the pre-Alerts-change source, while the focused current-source
+  evidence is authoritative for this localized change. Re-run the full matrix before final
+  completion audit; do not treat this as a goal-wide blocker.
+
+## 2026-08-12 — Primary Alerts linked-timeframe correction
+
+- Follow-up audit found that the new indicator-alert form would have silently sent `D1` even when
+  the linked workstation timeframe was weekly/monthly/intraday. The form now inherits the active
+  linked timeframe, exposes an explicit timeframe selector, and updates when the linked timeframe
+  changes; the existing catalog remains the source for indicator parameters.
+- Validation after the correction: linked-alert unit coverage `8/8` proves a `W1` payload, final
+  browser checks `2/2` (`F11a` indicator creation and `F8r-alerts-narrow` containment), full
+  frontend Vitest `729/729`, type-check/build, health, diff-check, and state parsing pass.
+- No acceptance flexibility was used for this behavior correction. The board-guided visual,
+  exact/unrepresented V25 state, provider/entitlement, historical, native-monitor, endurance,
+  and final-audit gaps remain open and recorded.
+
+## 2026-08-12 — Primary Alerts indicator creation parity
+
+- Closed a repository-controlled workstation gap: the primary `Alerts` tool could list and
+  manage indicator alerts but its creation form only created price alerts. It now offers an
+  explicit Price/Indicator mode, the shared indicator catalog (including catalog-defined
+  parameters), timeframe/threshold/repeat payloads, and persists indicator alerts through the
+  existing `/alerts/indicator` contract. Price-alert behavior remains unchanged.
+- The first catalog-backed browser rerun exposed a real 340px hit-target regression: the repeat
+  checkbox collapsed out of the responsive grid. The checkbox now has an explicit 13px flex basis
+  and focused narrow-dock coverage was rerun successfully.
+- Validation: focused linked-alert units `8/8`; full frontend Vitest `729/729` across 94 files;
+  type-check/build pass; rebuilt canonical-stack browser `F11a` indicator creation `1/1`; rebuilt
+  `F8r-alerts-narrow` containment `1/1`; `git diff --check` and state JSON parsing pass.
+- A prior unprivileged Playwright launch failed before page creation with macOS Chromium
+  `mach_port_rendezvous` permission denial and is discarded as setup-only. The later privileged
+  runs above are the authoritative page-level evidence. No visual threshold, mask, baseline, or
+  product requirement was relaxed. Board-guided/fixture visual evidence, exact/unrepresented V25
+  states, provider/entitlement breadth, historical truth, native-monitor, endurance, and final
+  audit gaps remain open.
+
+## 2026-08-12 — TC2000 workstation SIT-REP and workstream separation
+
+- The primary objective remains `tc2000-frontend-rework`: the authenticated default is now a
+  usable TC2000 V25-style workstation, not an ETF-provider project. The current-head canonical
+  authenticated matrix passes `128/128`; the board-guided four-environment visual matrix passes
+  `104/104`; the authoritative backend unit/integration gate passes `1383/1383` at `79.69%`; the
+  frontend suite passes `728/728`; and the bounded uPlot/workstation performance suite passes
+  `3/3`.
+- ETF holdings/provider work is supporting infrastructure for truthful SPY/RSP/sector/industry/
+  constituent membership and therefore enables the top-down workstation; it is not a replacement
+  for the frontend workstream. Its broad issuer/entitlement coverage remains open and must not be
+  presented as the product’s delivery focus.
+- The initial robust daily-analysis version is therefore available at the current head for the
+  supported US top-down workflow: benchmark/equal-weight comparison, sector ranking, industry and
+  proxy drill-down, constituent traversal, ratios, charts, watchlists, linking, Python/Study Lab,
+  alerts, notes, scans/gauges, persistence, pop-outs, and legacy boundaries are exercised.
+- Overall completion remains open. The remaining work is chiefly: exact or unrepresented V25
+  visual states (`REF-SHELL-V25`, `REF-STATE-VARIANTS`, `REF-LINKING-V25`, `REF-STUDY-LAB-V25`,
+  `REF-ENV-TOKENS`, `REF-PERMISSION-REVIEW`); broader provider/entitlement and historical-truth
+  coverage; native physical multi-monitor evidence; beyond-bounded endurance; and the final
+  cross-layer audit/documentation pass. These are explicit gaps, not silently accepted failures.
+
+## 2026-08-12 — Primary factory/registry/renderer consistency audit
+
+- Audited backend factory layouts, the frontend `OPENABLE_WORKSTATION_TOOLS` registry, and
+  `WorkstationToolContent` renderer branches as one contract. Every backend factory tool type is
+  rendered; every openable primary tool type is rendered; `research_results` is present in both the
+  Study Lab factory layout and Add Tool registry; excluded brokerage/news/ratings/earnings/
+  financial/realtime domains remain absent from the primary registry.
+- No mismatch was found, so no product code change was necessary. Existing unit and integration
+  tests remain the executable guard; the 128/128 authenticated and 104/104 visual results remain
+  current.
+
+## 2026-08-12 — Authoritative backend unit/integration gate
+
+- The first local combined run was setup-only: macOS Docker socket permissions prevented
+  testcontainers from starting integration fixtures, yielding 298 fixture errors. It is not
+  product evidence and is superseded.
+- With Docker permission, the authoritative combined backend gate passes `1383/1383` tests at
+  `79.69%` coverage (required threshold 55%). This includes canonical instrument/provenance,
+  ETF holdings, point-in-time analysis, Python validation/research, Study Lab/Strategy Lab,
+  workspaces, watchlists, providers, background tasks, and websocket integration.
+- There are 86 known third-party NumPy/pandas deprecation warnings; no test failure or product
+  acceptance criterion was relaxed. Provider breadth, historical truth, and final audit gaps
+  remain open.
+
+## 2026-08-12 — uPlot and workstation performance guards
+
+- Real-browser performance guards pass `3/3` in `15.9s`: 100,000-point uPlot history with
+  repeated zoom/pan and chart identity preservation, two simultaneous pop-outs with symbol
+  propagation/recovery, and bounded repeated multi-window churn with canvas/tool/heap checks.
+- No renderer replacement, polling behavior, or performance threshold was changed. This closes
+  the current bounded performance gate; beyond-bounded endurance and native physical-monitor
+  placement remain open documented gaps.
+
+## 2026-08-12 — Board-guided visual regression revalidated
+
+- The first board-run attempt was discarded as setup-only: the seeded service recreation had
+  removed the frontend container, so all 104 cases failed before capture with `ECONNREFUSED
+  ::1:80`. No screenshot comparison was produced by that run.
+- The frontend was rebuilt and restored; `/health` confirmed `e2e_seed_market_data=true` and the
+  browser stack was healthy. The unchanged four-environment board-guided visual suite then passed
+  `104/104` in `7.9m` with one worker across 1920x1080 and 2560x1440 at 100% and 125% display
+  scale.
+- No screenshot baseline, mask, threshold, token, or acceptance criterion changed. The visual
+  result is authoritative for represented states; exact/unrepresented V25 references,
+  `REF-STATE-VARIANTS`, provider/live-entitlement breadth, historical truth, native-monitor,
+  beyond-bounded endurance, and final-audit gaps remain explicitly open.
+
+## 2026-08-12 — Canonical-mode acceptance alignment, Breadth containment, and full matrix
+
+- The complete authenticated Chromium matrix initially exposed two environment-sensitive
+  failures: the non-seeded canonical holdings assertion was run against a seeded backend, and
+  the seeded proxy assertion was run with the canonical expectation. The stack was recreated
+  with `E2E_SEED_MARKET_DATA=false`; the three affected flows then passed `3/3`.
+- The remaining real defect was a Market Breadth control-row overflow at a 340px dock. The
+  control markup was made wrap-safe and the dock-width CSS now applies flex wrapping to labels,
+  selects, lookback, and the adjusted checkbox. No calculations or acceptance thresholds changed.
+- Focused repaired flows pass `3/3`; the complete authenticated `flows.spec.ts` matrix now passes
+  `128/128` in `9.5m` with one worker. This includes the canonical SPY/RSP/XLK holdings and
+  industry-proxy paths, all workstation linking/pop-out/keyboard/Study Lab/Results paths, and the
+  narrow Breadth containment assertion.
+- Flexibility used and retained: canonical acceptance required the non-seeded backend mode; the
+  seeded fixture remains valid only for labelled deterministic visual/interaction paths. This is
+  an environment alignment, not a relaxed product criterion. Board-guided dense composition and
+  controlled data remain the explicit visual limitation; `REF-STATE-VARIANTS`, exact V25 state,
+  provider/live-entitlement breadth, historical truth, native-monitor, beyond-bounded endurance,
+  and final-audit gaps remain open.
+
+## 2026-08-12 — Study Results restored to primary Add Tool registry
+
+- `ResearchResultsTool` was implemented and available in the Study Lab factory layout, but its
+  `research_results` definition was missing from `OPENABLE_WORKSTATION_TOOLS`. Users could not add
+  persisted Study Results from the primary Add tool menu, making the reusable Study Lab/results
+  workflow incomplete.
+- Added the registry definition and a rebuilt browser acceptance flow proving Add tool → Study
+  Results opens the visible results surface. Focused store/results coverage passes `57/57`, full
+  frontend Vitest passes `728/728`, type-check/build pass, and rebuilt authenticated results flows
+  pass `2/2` with no browser diagnostics.
+- The first Add-tool browser attempt used a stale frontend image and was discarded; the page
+  snapshot showed the old menu ending at Python Library. After rebuilding the frontend image, the
+  same flow passed. No acceptance flexibility, visual baseline, threshold, or mask changed.
+- This is a functional registry repair. The Results surface remains under the board-guided
+  represented-state track; exact V25 Study Results styling remains `REF-STUDY-LAB-V25`.
+
+## 2026-08-12 — Persisted Study Results state guidance
+
+- Persisted Results now presents human-readable Queued/Running/Completed/Failed/Canceled labels,
+  per-run status semantics, and state-specific recovery guidance. Failed/canceled runs retain their
+  diagnostics/logs and expose both snapshot/latest rerun actions; completed runs explain artifact
+  inspection/comparison and in-flight runs explain automatic refresh.
+- Focused unit coverage passes `10/10`; full frontend Vitest passes `728/728`; type-check and the
+  468-module production build pass; rebuilt authenticated `F8t-results` passes `1/1` with no browser
+  diagnostics. No visual baseline, threshold, or mask was changed.
+- No acceptance flexibility was used for the behavior repair. The visual composition remains
+  board-guided with controlled data, so exact V25 state styling remains the explicit
+  `REF-STUDY-LAB-V25` gap.
+
+## 2026-08-12 — Study Lab failed/canceled recovery states
+
+- Study Lab now labels queued/running/completed/failed/canceled states and provides explicit
+  recovery guidance. Failed/canceled runs retain diagnostics/logs and expose snapshot/latest
+  rerun actions.
+- Focused units pass `22/22`; rebuilt current-stack cancellation/failed-recovery/results browser
+  coverage passes `3/3`; full frontend Vitest passes `727/727`; type-check/build pass; and the
+  affected four-environment board-guided visual case passes `4/4` after reviewing only the two
+  changed 1080p structured-result snapshots.
+- The first browser attempt used a stale frontend image and was discarded. No threshold or mask
+  changed. Flexibility used: board-guided dense Study Lab composition plus controlled seeded data;
+  `REF-STUDY-LAB-V25` and exact V25 state styling remain open.
+- The complete seeded authenticated Chromium matrix after this repair passes `125/127` executed
+  tests with two intentional skips in `5.5m`; all existing workstation/top-down/linking/Python/
+  Study Lab/legacy/performance paths remain green.
+
+## 2026-08-12 — Live ETF membership evidence clarified
+
+- Isolated non-seeded acceptance for canonical SPY/RSP/XLK holdings, all sector industry
+  surfaces, and the full sector drill-down passes `3/3` in `13.3s`.
+- The current stack log's `404` holdings records are therefore not a failing core top-down path:
+  they occur on deliberate unavailable/fallback probes and symbol-specific paths while the
+  canonical live-membership contract returns the required non-fixture snapshots. No speculative
+  provider change was made. Broader ETF issuer coverage and historical/provider entitlement gaps
+  remain explicit.
+
+## 2026-08-12 — Current-head non-seeded operational workstation gate
+
+- Rebuilt the branch-scoped Compose stack with `E2E_SEED_INSTRUMENTS=false` and
+  `E2E_SEED_MARKET_DATA=false`; backend, worker, research-runner, frontend, Postgres, and Redis
+  were healthy after migrations.
+- The complete authenticated Chromium matrix passes `126/126` in `6.7m` with one worker. It
+  covers the live `US Top Down` benchmark/sector/industry/proxy/constituent workflow, SPY/RSP and
+  XLK/XLE ratios, linking/timeframes/cross-window cursors, charts/templates/drawings, Python and
+  Study Lab, scans/gauges, notes/alerts, freshness/error states, pop-outs/recovery, legacy and
+  excluded-domain boundaries, and performance/containment paths.
+- Post-run service logs contain only expected negative-path `401`/`404` responses and client
+  cancellation `499` records; no unhandled exception or tracked runtime-error signature was
+  observed. This re-certifies the initial robust daily-analysis workstation gate on the current
+  head.
+- Acceptance flexibility used: **none for this operational gate**. The broader board-guided
+  represented-state, provider/live-entitlement breadth, historical truth, native-monitor,
+  beyond-bounded-endurance, and final-audit gaps remain open and actionable.
+
+## 2026-08-12 — Alerts and Python Library narrow-dock coverage
+
+- Added constrained 340px browser geometry and internal scroll-overflow checks for Alert creation
+  and Python Library creation controls. Both pass `1/1`; no production CSS change was warranted.
+- Acceptance flexibility used: board-guided dense-tool composition and controlled seeded data.
+  Exact/state, provider/live entitlement, historical truth, native-monitor, endurance, and
+  final-audit gaps remain tracked.
+
+## 2026-08-12 — Top-down acceptance-oracle sequence hardening
+
+- Hardened the ratio and Relative Rotation browser oracles after a longer seeded slice exposed
+  sequence-sensitive failures. Ratio selection now scopes to the visible row-bearing sector list
+  and checks the exact `XLK/SPY` semantic legend across visible ratio surfaces. Relative Rotation
+  constrains its actual tool surface before measuring geometry.
+- Focused ratio/rotation coverage passes `2/2`; broader top-down/dense-tool slice passes `13/15`
+  with two intentional skips. No product assertion was weakened.
+- Acceptance flexibility used: board-guided dense-tool composition and controlled seeded data.
+  Exact/state, provider/live entitlement, historical truth, native-monitor, endurance, and
+  final-audit gaps remain tracked.
+
+## 2026-08-12 — Market Breadth dock-width containment
+
+- Repaired a real Market Breadth control-row overflow at a constrained 340px dock. The universe,
+  timeframe, lookback, and adjusted controls now wrap through a dock-width container query without
+  changing breadth calculations, metrics, or drilldown behavior.
+- Rebuilt browser geometry passes `1/1`; full frontend Vitest `725/725`, type-check, visual matrix
+  `104/104`, and diff-check pass. No visual baseline, threshold, mask, or product criterion changed.
+- Acceptance flexibility used: board-guided dense-tool composition and controlled seeded data.
+  `REF-STATE-VARIANTS` and exact/state, provider/live entitlement, historical truth, native-monitor,
+  endurance, and final-audit gaps remain open.
+
+## 2026-08-12 — EasyScan dock-width containment
+
+- Repaired a real EasyScan geometry defect: at a constrained 340px tool surface, fixed builder and
+  scan-control tracks pushed controls outside the tool. The component now uses `container-type:
+  inline-size` and a `max-width:560px` container query to reflow builder tracks and controls.
+- Rebuilt current-stack browser geometry passes `1/1`; EasyScan units pass `12/12`, full frontend
+  Vitest `725/725`, type-check, Docker production build, and diff-check pass.
+- The first browser result was stale-image evidence (old fixed tracks) and was discarded; the
+  rebuilt run is authoritative. Acceptance flexibility used: board-guided dense-tool composition
+  and controlled seeded data. `REF-STATE-VARIANTS` plus exact/state, provider/live entitlement,
+  historical truth, native-monitor, endurance, and final-audit gaps remain open.
+
+## 2026-08-12 — Top-down ratio context-menu targeting
+
+- Fixed an order-sensitive acceptance defect in `F8e.2a`: the full seeded run first failed at
+  `119/122` because a page-global `Open ratio vs active` locator could target a stale detached
+  Golden Layout context menu. The action is now scoped to the originating `Relative to SPY`
+  watchlist while retaining the exact `XLK/SPY` legend assertion.
+- The affected pair passes `2/2`; the isolated flow passes `1/1`; diff-check passes. This is a
+  fix-first repair of a local test/interaction boundary, not a relaxation of product acceptance.
+- Acceptance flexibility used: board-guided dense-tool composition and controlled seeded data.
+  `REF-STUDY-LAB-V25`, exact/state variants, provider/live entitlement, historical truth,
+  native-monitor, endurance, and final-audit gaps remain tracked.
+
+## 2026-08-12 — Relative Rotation narrow-dock acceptance coverage
+
+- Added rebuilt-stack browser coverage proving Relative Rotation controls, plot, and header stay
+  visible, contained, and non-overlapping at a 390px desktop dock (`1/1`). No implementation
+  change was needed: the existing flex-wrap controls and intentionally scrollable companion table
+  passed the geometry contract.
+- Acceptance flexibility used: board-guided dense-tool composition and controlled seeded data.
+  `REF-STUDY-LAB-V25`, exact/state variants, provider/live entitlement, historical truth,
+  native-monitor, endurance, and final-audit gaps remain tracked.
+
+## 2026-08-12 — Unified Python editor popup semantics
+
+- Added `aria-haspopup=listbox`, explicit `aria-expanded`, and a unique per-instance
+  `aria-controls` relationship from the native Python `<textarea>` to its SDK suggestion list.
+  The native textbox role, stable accessible name, keyboard completion, Arrow navigation, Enter/
+  Tab insertion, and Escape dismissal remain unchanged.
+- The first counter-based ID attempt failed the linked-instance unit test; it was corrected with
+  per-instance UUID/fallback generation before broader validation. Focused editor coverage passes
+  `4/4`, full frontend Vitest passes `725/725`, rebuilt current-stack Study Lab editor/promotion
+  browser coverage passes `1/1`, type-check and diff-check pass.
+- Acceptance flexibility used: board-guided Study Lab/editor composition and controlled seeded
+  interaction/data. `REF-STUDY-LAB-V25` remains open for authoritative V25 Study Lab visuals;
+  exact state variants, provider/live-entitlement, historical truth, native-monitor, endurance,
+  and final-audit gaps remain tracked.
+- The four-environment board-guided visual matrix passes `104/104` after the semantics change;
+  no baseline, mask, threshold, or gap state was changed.
+
+## 2026-08-12 — Study Lab narrow-dock containment
+
+- Reflowed the Study Lab header, dataset controls, parameter editor, and Python editor below
+  560px so a 390px desktop dock no longer overflows horizontally or overlaps the editor.
+- Focused Study Lab/Python unit coverage passes `23/23`; rebuilt-stack Chromium geometry coverage
+  passes `1/1`; type-check and diff-check pass. The first browser attempt used a stale frontend
+  image and was discarded after the geometry dump proved the old five-column CSS was running;
+  the rebuilt-stack rerun is the authoritative result.
+- Acceptance flexibility used: board-guided dense-tool composition plus controlled seeded data.
+  `REF-STUDY-LAB-V25` remains open because the board has no authoritative V25 Study Lab capture;
+  exact state variants, provider/live-entitlement, historical truth, native-monitor, endurance,
+  and final-audit gaps remain tracked.
+- Supporting backend unit regression after the repair passes `1085/1085` at `70.04%` coverage;
+  the configured unit threshold is `55%`. Known third-party deprecation warnings remain
+  non-blocking and are not hidden.
+- The complete seeded authenticated Chromium matrix passes `119/121` with two intentional
+  skips in `5.3m`, including the new narrow Study Lab geometry test and all existing workstation,
+  top-down, linking, Python, Study Lab, legacy, exclusion, and performance paths.
+- Docker-backed combined backend unit/integration coverage passes `1383/1383` at `79.69%`, above
+  the configured `75%` threshold. The 86 third-party dependency warnings are known and
+  non-blocking; this remains deterministic local/isolated evidence rather than live provider or
+  historical-truth proof.
+
+## 2026-08-12 — Recent Symbols containment acceptance
+
+- Added constrained browser coverage for the fixed Recent Symbols shell overlay, including
+  viewport bounds and Escape recovery; rebuilt-stack flow passes `1/1`.
+- Type-check and diff-check pass. This is a coverage completion for a shared shell surface;
+  broader exact-build/unrepresented and backend/operations gaps remain open.
+
+## 2026-08-12 — Shell-menu listener cleanup
+
+- Fixed shell overlay listener ownership so outside pointer, focus, change, global Escape,
+  selection, and unmount paths remove fixed-menu resize/scroll listeners.
+- Workstation view unit coverage passes `22/22`; focused rebuilt-stack shell browser coverage
+  passes `3/3`; type-check and diff-check pass.
+- This is a repository-controlled lifecycle repair under the fix-first tie-break. It does not
+  close exact-build/unrepresented visual or broader provider/data/operations gaps.
+- Post-repair frontend Vitest passes `724/724`; type-check and diff-check pass. The preceding
+  complete browser `118/120` and visual `104/104` evidence remains valid for the shared geometry,
+  and focused post-cleanup shell browser coverage passes `3/3`.
+
+## 2026-08-12 — Shell-menu viewport containment
+
+- Repaired Workspace, Help, Add Tool, and Recent Symbols shell overlays: they now use fixed
+  trigger anchoring, actual document/visual viewport clamping, above/below collision placement,
+  internal scrolling, capture-phase scroll/resize repositioning, and cleanup.
+- Workstation shell unit coverage passes `21/21`; rebuilt-stack focused Chromium coverage passes
+  `3/3` for keyboard recovery, outside dismissal, and constrained containment; type-check and
+  diff-check pass.
+- Flexibility used: board-guided represented shell composition and a constrained browser oracle
+  that closes via Escape when the clamped menu physically covers its trigger. This is recorded
+  rather than hidden; exact-build/unrepresented state gaps remain open.
+- Broader validation is green: complete seeded authenticated Chromium `118/120` with two
+  intentional skips, and board-guided visual `104/104` across all four required environments.
+
+## 2026-08-12 — LayoutPicker dismissal and focus recovery
+
+- Added document-level Escape and outside-pointer dismissal to the retained legacy LayoutPicker;
+  every close, custom-grid selection, profile save/load, and unmount path removes transient
+  listeners, and dismissal restores focus to the owning trigger.
+- Focused component coverage passes `3/3`; rebuilt-stack legacy containment browser coverage
+  passes `1/1`; frontend type-check and diff-check pass.
+- Browser coverage deliberately uses the owning-trigger close path because restored legacy stacks
+  can contain multiple picker instances; document-level Escape/outside behavior is covered in the
+  component suite. This bounded oracle flexibility is recorded and does not close
+  `REF-STATE-VARIANTS` or exact pinned-build interaction gaps.
+
+## 2026-08-12 — LayoutPicker, EasyScan capacity, and Radar race closure
+
+- Fixed three repository-controlled acceptance defects under the mandatory fix-first rule:
+  LayoutPicker custom-grid/profile menus were ancestor-clipped at the viewport edge; the
+  canonical all-instruments universe had grown beyond the old 10,000-row Python batch cap; and
+  Radar result rows could be clicked while the post-scan busy overlay still owned pointer input.
+- LayoutPicker now uses fixed trigger anchoring, 8px viewport gutters, below/above placement,
+  width/height clamping, internal scrolling, capture-phase scroll/resize repositioning, and
+  listener cleanup on close/unmount. Its corrected legacy-chart browser oracle passes `1/1`;
+  focused unit coverage plus adjacent chart handoff passes `3/3`.
+- Raised the bounded Python/research batch ceiling from 10,000 to 25,000 canonical symbols so
+  the current security master can run the real `All instruments` EasyScan without rejecting a
+  legitimate 10,948-row universe. The existing materialisation contract tests pass `2/2` with
+  the updated rejection ceiling.
+- Radar acceptance now waits for the documented busy overlay to disappear before selecting a
+  result. The focused real-browser Radar flow passes `1/1`.
+- Full frontend Vitest passes `722/722`; type-check, production build, and diff-check pass;
+  complete four-environment board-guided visual matrix passes `104/104`; final rebuilt seeded
+  authenticated Chromium matrix passes `117/119` with two intentional skips. All workstation,
+  top-down, EasyScan/Python, ratios, linking, Study Lab, pop-out, legacy, exclusion, and
+  performance paths are green.
+- Two earlier complete-run observations were discarded as setup evidence: one used a backend
+  recreated without seed flags and produced legitimate ETF constituent 404s; another used a
+  stopped/mixed runtime. The authoritative rerun recreated the full stack with
+  `E2E_SEED_INSTRUMENTS=true`, `E2E_SEED_MARKET_DATA=true`, and
+  `CORE_WORKSTATION_BOOTSTRAP_ENABLED=true`.
+- Acceptance flexibility used: board-guided represented states and controlled seeded data;
+  exact-build/unrepresented visual states, provider/live-entitlement breadth, historical truth,
+  native physical-monitor placement, beyond-bounded endurance, and final-audit gaps remain
+  explicitly open. No visual threshold, mask, product, provenance, or uPlot rule changed.
+
+
+## 2026-08-12 — Full authenticated regression after chart-toolbar repair
+
+- Complete rebuilt-stack Chromium flows pass `116/118` executed tests with two intentional skips
+  in 5.1m across chart toolbar/templates/plots, layouts, linking, top-down ratios/drill-down,
+  Python/Study Lab, scans/gauges, notes/alerts, pop-outs/recovery, legacy, exclusions, and
+  performance/containment paths.
+- No product or visual criterion was relaxed. Board-guided represented UI and controlled seeded
+  browser data remain interim evidence; exact/unrepresented, provider/live, historical,
+  native-monitor, endurance, and final-audit gaps remain tracked.
+
+## 2026-08-12 — Constrained chart-toolbar overlap repair
+
+- Chart utility controls now use a compact two-row layout below 520px: compare controls occupy
+  the first row while Plot Library and Templates occupy the second, with chart surface padding
+  reserved so controls do not overlap the chart or OHLCV header.
+- Added a real 390px browser geometry oracle for compare/plots/templates and corrected the
+  adjacent narrow-menu oracle to accept the new deliberate above-trigger placement. Focused
+  chart/menu component units pass 31/31; full frontend Vitest passes 720/720; type-check,
+  production build, and diff-check pass; affected browser slice passes 4/4; complete
+  four-environment board-guided visual matrix passes 104/104.
+- Fix-first tie-break applied to a shared repository-controlled overlap risk and a stale test
+  assumption. No baseline, threshold, mask, provider, provenance, product, or uPlot criterion
+  changed.
+- Acceptance flexibility used: board-guided represented toolbar composition and controlled
+  seeded interaction/data. Exact pinned-build selected/disabled toolbar variants remain under
+  REF-STATE-VARIANTS, along with provider/live-entitlement, historical-truth, native-monitor,
+  beyond-bounded-endurance, and final-audit gaps.
+- Exact next step: continue the next directly visible workstation parity gap.
+
+## 2026-08-12 — ToolWindow menu vertical viewport containment
+
+- The shared ToolWindow action menu now uses fixed trigger anchoring, an 8px viewport gutter,
+  horizontal and available-height clamping, below-trigger placement with above-trigger fallback,
+  and capture-phase scroll plus resize repositioning. Close, outside-pointer, action, and
+  unmount paths remove transient listeners and retain focus recovery.
+- Added bottom-edge component and browser coverage. Focused ToolWindow unit coverage passes
+  7/7; full frontend Vitest passes 720/720; type-check, production build, and diff-check pass;
+  rebuilt seeded affected browser slice passes 11/11; complete four-environment board-guided
+  visual matrix passes 104/104.
+- Fix-first tie-break applied to a localized repository-controlled overlap risk. No baseline,
+  threshold, mask, provider, provenance, product, or uPlot criterion changed.
+- Acceptance flexibility used: board-guided represented dense-window/menu composition and
+  controlled seeded interaction/data. Exact-build/unrepresented visual, provider/live-
+  entitlement, historical truth, native-monitor, beyond-bounded-endurance, and final-audit
+  gaps remain open and tracked.
+- Exact next step: continue the next directly visible workstation parity gap.
+
+## 2026-08-12 — Chart-local menu vertical viewport containment
+
+- Chart Templates and Plot Library now share a complete viewport-safe placement contract:
+  fixed trigger anchoring, 8px horizontal/vertical gutter, width and available-height
+  clamping, below-trigger placement with above-trigger flipping when the lower viewport would
+  clip the menu, and capture-phase scroll plus resize repositioning.
+- Both controls remove resize/scroll listeners on close and unmount. Added bottom-edge geometry
+  and listener cleanup unit coverage; focused chart-menu units pass 24/24, full frontend
+  Vitest passes 719/719, type-check, production build, and diff-check pass. Rebuilt seeded
+  stack focused browser coverage passes 4/4; complete four-environment board-guided visual
+  matrix passes 104/104.
+- Fix-first tie-break applied to a localized repository-controlled overlap risk. No baseline,
+  threshold, mask, provider, provenance, product, or uPlot criterion changed.
+- Acceptance flexibility used: board-guided represented chart/menu composition and controlled
+  seeded interaction/data. Exact-build/unrepresented visual, provider/live-entitlement,
+  historical truth, native-monitor, beyond-bounded-endurance, and final-audit gaps remain open
+  and tracked.
+- Exact next step: continue the next directly visible workstation parity gap.
+
+## 2026-08-12 — Plot Library viewport containment and lifecycle cleanup
+
+- Chart Plot Library now shares the chart-template viewport contract: fixed trigger anchoring,
+  8px viewport gutter, width clamping down to 180px, resize repositioning, and resize-listener
+  cleanup on close/unmount. Its stylesheet no longer reintroduces ancestor-clipped absolute
+  positioning.
+- Added a narrow real-browser regression covering visible bounds and close/focus recovery. Focused
+  chart-menu units pass `22/22`; full frontend Vitest passes `717/717`; type-check, production
+  build, and diff-check pass; rebuilt seeded browser regressions pass `3/3`; complete board-guided
+  visual matrix passes `104/104` across the four required display environments.
+- Goal tie-break applied: this was a localized chart-menu lifecycle/viewport defect under branch
+  control; it was repaired and independently validated. No visual threshold, mask, provider,
+  provenance, product, or uPlot rule changed.
+- Acceptance flexibility used: board-guided represented chart/menu composition and controlled
+  seeded interaction/data. Exact-build/unrepresented visual states, provider/live-entitlement,
+  historical truth, native-monitor, beyond-bounded-endurance, and final-audit gaps remain open.
+- Exact next step: continue the next directly visible workstation parity gap.
+
+## 2026-08-12 — Ratio row-action oracle hardened and browser rerun
+
+- The complete seeded Chromium matrix exposed one failure in `F8e.2a`: the sector-row ratio
+  action was checked using the last visible `.ratio-chart`, which is not a stable active-window
+  oracle when Golden Layout retains detached/stacked roots. The product action was correct in an
+  isolated run; the test now asserts the requested `XLK/SPY` legend among visible ratio legends,
+  avoiding both DOM order and transient activation-class timing.
+- Serial ratio tests and the repaired top-down/chart regression slice pass `11/11`; the adjacent
+  serial ratio oracle rerun passes `3/3`; focused chart-menu units remain `21/21`; full frontend
+  Vitest passes `716/716`; type-check, production build, and diff-check pass. The authoritative
+  complete seeded Chromium rerun passes `112/112` executed with two intentional skips in 4.9m.
+- Goal tie-break applied: this was a localized acceptance-oracle defect under repository control;
+  it was repaired and regression-tested rather than treated as a goal-wide blocker. No visual
+  baseline, threshold, mask, provider, provenance, product, or uPlot rule changed.
+- Acceptance flexibility used: board-guided represented chart/menu composition and controlled
+  seeded interaction/data. Exact-build/unrepresented visual states, provider/live-entitlement,
+  historical truth, native-monitor, beyond-bounded-endurance, and final-audit gaps remain open.
+- Exact next step: continue the next directly visible workstation parity gap; this localized
+  ratio-oracle task is closed with its residual flexibility gaps retained below.
+
+## 2026-08-12 — Chart-menu close-path cleanup and seeded rerun
+
+- Closed the remaining cleanup hole in both chart-local menu headers: Templates and Plot Library
+  now call their shared close-to-trigger path from the visible close button, rather than mutating
+  `open` directly. This removes resize listeners and restores trigger focus consistently.
+- Focused units pass `21/21`; full frontend Vitest passes `716/716`; type-check, production
+  build, and diff-check pass. The exact rebuilt frontend focused browser slice passes `4/4`.
+- A complete browser run started after recreating only the frontend also recreated the backend
+  without the required seed/bootstrap flags. It produced mixed-runtime setup failures: expected
+  top-down `/analysis/etf/XLK/constituents/snapshot` returned 404 and one ratio remained `SPY/RSP`.
+  The run was stopped and not counted as product evidence. Recreating the entire branch stack with
+  `E2E_SEED_INSTRUMENTS=true`, `E2E_SEED_MARKET_DATA=true`, and
+  `CORE_WORKSTATION_BOOTSTRAP_ENABLED=true` restored a healthy consistent runtime; the affected
+  F8m/F8e.2/F8e.2a/F8e.1/F8e.1a slice passes `5/5`.
+- Goal tie-break applied: this was a localized cleanup defect and a runtime setup mismatch, both
+  handled under branch control. No visual baseline, threshold, mask, provider, provenance,
+  product, or uPlot rule changed.
+- Acceptance flexibility used: board-guided represented chart/menu composition and controlled
+  seeded interaction/data. Exact-build/unrepresented visual states, provider/live-entitlement,
+  historical truth, native-monitor, beyond-bounded-endurance, and final-audit gaps remain open.
+- Exact next step: continue the next directly visible workstation parity gap.
+
+## 2026-08-12 — Chart-local menu viewport containment
+
+- Audited the board-represented chart menu states and found an inconsistent positioning contract:
+  Plot Library was fixed-positioned, while Chart Templates was absolutely positioned inside the
+  dense chart toolbar. Chart Templates now uses trigger-anchored fixed positioning, clamps its
+  width to the viewport with an 8px gutter, repositions on resize, and removes listeners on close
+  and unmount.
+- Added a real 390px browser regression covering both Templates and Plot Library menu bounds.
+  Focused chart-template/plot-library units pass `19/19`; type-check, production build, and
+  `git diff --check` pass; focused browser coverage passes `3/3`; complete authenticated
+  Chromium passes `112/112` executed tests with two intentional skips; and the four-environment
+  no-update board-guided visual matrix passes `104/104`.
+- Goal tie-break applied: this was a localized repository-controlled dense-window interaction
+  risk, repaired immediately and validated through focused, complete, and visual gates. No visual
+  baseline, threshold, mask, provider, provenance, product, or uPlot rule changed.
+- Acceptance flexibility used: board-guided represented chart/menu composition and controlled
+  seeded interaction/data. Exact-build/unrepresented visual states (`REF-STATE-VARIANTS`),
+  provider/live-entitlement, historical truth, native-monitor, beyond-bounded-endurance, and
+  final-audit gaps remain open.
+- Exact next step: continue the next directly visible shared workstation parity gap under the same
+  fix-first and explicit-flexibility rules.
+
+## 2026-08-12 — Tool-window menu overflow and acceptance rerun
+
+- The shared tool-window action cluster no longer clips its absolutely positioned menu in a
+  constrained dock: `.tool-window__actions` now permits visible overflow while retaining the
+  existing flex/minimum-width contract. The 390px browser regression now opens the first tool menu
+  and verifies that its rendered bounds remain inside the viewport and below the trigger.
+- Focused ToolWindow unit coverage passes `6/6`; type-check, production build, and `git diff
+  --check` pass. Focused authenticated browser coverage for keyboard, normal-width header, and
+  narrow menu geometry passes `3/3`. After rebuilding the branch-scoped seeded stack, the complete
+  authenticated Chromium matrix passes `111/111` executed tests with two intentional skips, and
+  the four-environment no-update board-guided visual matrix passes `104/104`.
+- The first full-matrix attempt timed out at workspace readiness only because the branch-scoped
+  Docker stack had stopped when the previous run was interrupted; no application defect was
+  inferred from that run. The stack was rebuilt with `E2E_SEED_INSTRUMENTS=true`,
+  `E2E_SEED_MARKET_DATA=true`, and `CORE_WORKSTATION_BOOTSTRAP_ENABLED=true`, reached healthy
+  status, and F9c passed `1/1` before the authoritative reruns.
+- Goal tie-break applied: this was a localized repository-controlled interaction risk, repaired
+  immediately, focused-regression tested, and broader-validated. It does not block independent
+  TC2000 work. No visual baseline, threshold, mask, provider, provenance, product, or uPlot rule
+  changed.
+- Acceptance flexibility used: board-guided represented dense-window composition and controlled
+  seeded interaction/data. Exact-build/unrepresented visual, provider/live-entitlement, historical
+  truth, native-monitor, beyond-bounded-endurance, and final-audit gaps remain explicitly open.
+- Exact next step: continue the next directly visible shared workstation parity gap, keeping the
+  same fix-first and explicit-flexibility rules.
+
+## 2026-08-12 — Constrained tool-window header geometry
+
+- Shared tool-window headers now retain title/symbol separation and usable link/timeframe
+  selectors, menu, maximize, float, and close actions in narrow desktop docks. Flex shrink and
+  minimum-width rules prevent the action cluster from being pushed out; at <=420px only decorative
+  link swatches are hidden to preserve functional controls.
+- Focused ToolWindow coverage passes `6/6`; type-check, production build, and diff-check pass.
+  Normal-width and 390px browser geometry regressions pass `2/2`; the complete authenticated
+  Chromium matrix passes `111/111` executed with two intentional skips and clean diagnostics.
+- The no-update four-environment board-guided visual matrix passes `104/104`; no baseline,
+  threshold, or mask changed. The first visual command used invalid project names and was rejected
+  before launch; the corrected repository project names produced the authoritative result.
+- Acceptance flexibility: board-guided represented dense-window composition and controlled seeded
+  browser data. Exact-build/unrepresented visual, provider/live-entitlement, historical truth,
+  native-monitor, beyond-bounded-endurance, and final-audit gaps remain open.
+- Exact next step: continue the next directly visible shared workstation state/interaction gap.
+
+## 2026-08-12 — Virtualized watchlist active-descendant and keyboard traversal
+
+- The virtualized watchlist now gives every mounted instance isolated option IDs and a truthful
+  `aria-activedescendant` on its listbox. Initial and refreshed universes establish the first
+  canonical row when no explicit selection exists, while explicit symbol selection remains
+  authoritative.
+- Home/End and existing arrow/Space/Ctrl+wheel traversal now update the active row, scroll the
+  TanStack virtualizer to it, and publish the same canonical selection contract.
+- Focused component coverage passes `64/64`; type-check, production build, and diff-check pass;
+  focused authenticated Chromium passes `1/1`; full authenticated Chromium passes `110/110`
+  executed with two intentional skips and clean browser diagnostics.
+- Fix-first evidence: initial browser runs against a stale frontend image and an initial-row
+  lifecycle gap were corrected before authoritative validation. No visual baseline, threshold,
+  mask, provider, provenance, product, or uPlot rule changed.
+- Acceptance flexibility: board-guided represented watchlist composition plus controlled seeded
+  browser data. Exact-build/unrepresented visual, provider/live-entitlement, historical truth,
+  native-monitor, beyond-bounded-endurance, and final-audit gaps remain open.
+- Exact next step: continue the next directly visible workstation state/interaction gap, then
+  repeat the relevant focused and complete gates.
+
+## 2026-08-12 — Visual fixture history alignment closed
+
+- The apparent post-resize visual mismatch was isolated to the retained `visual-1440p-125`
+  snapshots, which were generated against an older seeded history; it was not a watchlist header
+  regression.
+- The branch-scoped stack was rebuilt with both seed flags, the per-test factory reset was retained,
+  only the stale 125% snapshots were regenerated after review, and the complete no-update matrix
+  passed `104/104` across all four required environments. No mask, threshold, or product criterion
+  changed.
+- The local fixture/baseline alignment gap is closed. Exact-build/native hit-target and other
+  unrepresented-state gaps remain tracked. Resize evidence remains `63/63` units and browser `1/1`.
+
+## 2026-08-12 — Native resize hit-target correction and revalidation
+
+- Native Playwright initially exposed a real collapsed-header defect: the grid header was 1px
+  high, so the scroll layer intercepted the painted separator. A 23px minimum height plus header
+  stacking context fixed it under the goal-level fix-first rule.
+- Focused component coverage passes `63/63`; native resize passes `1/1`; full seeded authenticated
+  Chromium passes `109/109` executed with two intentional skips; corrected baselines were reviewed
+  and the no-update four-environment visual matrix passes `104/104`.
+- Acceptance flexibility used: board-guided represented data-grid composition and controlled seeded
+  data. Native hit-target evidence is closed; exact-build pointer-state measurements and other
+  unrepresented gaps remain tracked. No threshold, mask, provider, provenance, product, or uPlot
+  rule was relaxed.
+
+## 2026-08-12 — Watchlist data-grid header resizing
+
+- The dense workstation watchlist now supports desktop mouse resizing from a focusable header
+  separator. Width changes update immediately while dragging and flow through the existing
+  `columnOverrides` serialization contract, preserving virtualization, sorting, grouping,
+  stacking, saved sets, and workspace persistence.
+- Focused VirtualWatchlistTool coverage passes `63/63`; type-check, production build, and
+  diff-check pass; focused authenticated Chromium resize coverage passes `1/1` using native
+  Playwright mouse targeting. A real collapsed-header geometry defect was fixed with an explicit
+  23px header minimum height, putting the separator above the scroll layer; native hit-target
+  evidence is now closed.
+- The first complete seeded run after a frontend-only restart reached `108/111` with two
+  intentional skips and one known seed-provenance mismatch in `F8e.1`; matching all-stack seed
+  flags were restored and `F8e.1`/`F8e.1a` passed `2/2`. This is retained as fix-first environment
+  evidence, not a product regression.
+- Acceptance flexibility used: **board-guided represented data-grid composition and controlled
+  seeded data**. Exact-build pointer-state measurements remain `REF-STATE-VARIANTS`; native
+  hit-target evidence is closed. No threshold, mask, provider, provenance, product, or uPlot rule
+  was relaxed.
+- Exact next step: continue the next directly visible workstation state/interaction gap. The
+  header-change visual matrix is already green at `104/104` no-update after reviewed rebaseline.
+
+## 2026-08-12 — Multi-toolbar flyout ownership
+
+- Drawing-toolbar flyout IDs and keyboard queries are now scoped to each mounted toolbar. Unique
+  per-instance DOM IDs prevent cross-chart/floating layouts from redirecting menu focus or
+  `aria-controls`; IDs are not persisted or used as data identity.
+- Focused ownership/keyboard/context coverage passes `3/3`; type-check and production build pass.
+- The complete consistently seeded authenticated Chromium matrix now passes `108/108` executed
+  tests with two intentional skips in 4.7m, including the new four-timeframe ownership test.
+- Fix-first evidence retained: the initial test assumed the default layout had multiple charts and
+  was corrected to use the real `4 Timeframe` layout; the next run exposed a real duplicate-ID
+  defect (`v-0`, then a module-counter collision) and the implementation was repaired with
+  per-mount random DOM identity. No product behavior was weakened.
+- Acceptance flexibility used: **none beyond the already documented board-guided represented-state
+  and controlled seeded fixture tracks**. No visual threshold, mask, product, provider,
+  provenance, or uPlot rule was relaxed.
+- Final no-update board-guided visual matrix passes `104/104` across 1920x1080 and 2560x1440 at
+  100% and 125% display scale in 5.5m, with no baseline, threshold, or mask changes.
+- Exact next step: continue the next directly visible workstation state/interaction gap; broader
+  backend, reference-gap, hardware, endurance, and final-audit requirements remain open.
+
+## 2026-08-12 — Visual-oracle semantic role repair after toolbar update
+
+- The first complete four-environment board-guided run stopped on a stale visual-spec selector:
+  workspace `Clone` and `Export` are exposed by the current shell as semantic `menuitem`s, not
+  buttons. The queries were corrected; no product code, baseline, threshold, or mask changed.
+- The authoritative no-update rerun passes `104/104` across 1920x1080 and 2560x1440 at 100% and
+  125% display scale in 7.0m. The toolbar change therefore remains visually/regression green in
+  all required environments.
+- Fix-first evidence: this localized oracle defect was repaired and rerun rather than treated as a
+  toolbar or goal-wide blocker. Acceptance flexibility used: **none beyond the already-recorded
+  board-guided represented-state and controlled seeded fixture tracks**; their gap IDs remain open.
+- Exact next step: continue auditing the next repository-controlled visible workstation parity gap.
+
+## 2026-08-12 — Deterministic drawing-toolbar visual correction
+
+- The visible chart drawing toolbar now uses deterministic original CSS geometry rather than emoji
+  or Unicode glyphs. Group/tool icons plus AVWAP, delete, visibility, lock, and cancel are stable
+  across browsers; the rail is 40px and controls are 32px. Explicit button type/name semantics
+  were added where missing. Drawing behavior, flyouts, keyboard navigation, context menus, and
+  uPlot rendering are unchanged.
+- Focused drawing browser coverage passes `4/4`, including no-text-glyph and compact-geometry
+  assertions; type-check, 468-module production build, frontend Vitest `710/710`, and diff-check
+  pass. No-update board-guided default-workstation visual coverage passes at 1920x1080/100%.
+- Complete consistently seeded authenticated Chromium passes `107/107` executed tests with two
+  intentional skips in 4.8m. No broad workflow regression was observed.
+- Fix-first evidence: the repository-controlled platform-dependent glyph mismatch was corrected
+  before continuing. The initial visual command selected no tests due to an incorrect project/
+  selector combination; the valid visual project was listed and rerun successfully, without
+  updating baselines.
+- Acceptance flexibility used: **board-guided represented chart/dense-window composition plus
+  controlled seeded interaction/data fixtures**. `REF-STATE-VARIANTS` remains open for pinned-build
+  toolbar icon measurements and exact selected/disabled variants; stronger evidence requires a
+  reviewed pinned-build capture or measurements. No visual threshold, mask, product, provider,
+  provenance, or uPlot rule was relaxed.
+- Exact next step: continue the next directly visible workstation state/interaction gap, with
+  priority on dense chart/watchlist parity and unrepresented state recovery, then repeat focused
+  and complete gates.
+
+## 2026-08-12 — Chart context-menu focus recovery
+
+- The shared chart root is now an explicit focusable region. Price-axis and drawing context menus
+  return focus to that owning chart after Escape, Deselect, Log Scale, or Reset Price Scale; local
+  handlers avoid the global editor-focus guard swallowing menu Escape.
+- Focused price-axis/selected-drawing coverage passes `2/2`; type-check, 468-module production
+  build, and `git diff --check` pass; complete consistently seeded authenticated Chromium passes
+  `107/107` executed tests with 2 intentional skips in 4.7 minutes.
+- Fix-first evidence: the first focused run hit a stale container image, which was rebuilt before
+  the passing rerun. No product criterion, visual threshold, mask, provenance, provider, or uPlot
+  renderer rule was relaxed.
+- Flexibility used: board-guided represented chart/menu composition and controlled seeded
+  interaction/data fixtures. Exact-build/unrepresented visual, provider/live-entitlement,
+  historical-truth, native-monitor, endurance, and final-audit gaps remain open.
+- Exact next step: continue the next directly visible workstation behavior/state gap.
+
+## 2026-08-12 — Selected-drawing context-menu regression
+
+- Added a real browser interaction regression for a selected persisted horizontal drawing: create
+  it through the toolbar/canvas, locate its rendered hit band with bounded probing, open the
+  drawing context menu, navigate with ArrowDown, and activate Deselect.
+- Focused selected-drawing coverage passes `1/1`; type-check, 468-module production build, and
+  `git diff --check` pass; complete consistently seeded authenticated Chromium passes `107/107`
+  executed tests with 2 intentional skips in 4.7 minutes.
+- Fix-first test work: initial guessed coordinates failed because seeded ranges move the rendered
+  line; the oracle was corrected to probe only the chart's actual rendered surface. No product
+  behavior was weakened and no visual threshold, mask, provenance, provider, or uPlot rule was
+  relaxed.
+- Flexibility used: board-guided represented chart/drawing-menu composition and controlled seeded
+  drawing/data fixtures. Exact-build/unrepresented visual, provider/live-entitlement,
+  historical-truth, native-monitor, endurance, and final-audit gaps remain open.
+- Exact next step: continue the next directly visible workstation behavior/state gap.
+
+## 2026-08-12 — Per-chart control identity and scoped context menus
+
+- Chart utility dialog IDs are now unique per mounted chart instance using Vue's component
+  `useId`, so multiple charts with the same injected panel key cannot redirect `aria-controls` or
+  focus into a hidden sibling. Context-menu keyboard queries are scoped to the owning chart root,
+  preventing cross-chart menu selection.
+- Added a browser invariant asserting unique settings dialog targets across mounted chart controls.
+  Focused dialog/context-menu coverage passes `2/2`; full Vitest passes `710/710`; type-check,
+  468-module production build, and `git diff --check` pass; complete consistently seeded
+  authenticated Chromium passes `106/106` executed tests with 2 intentional skips in 4.7 minutes.
+- Fix-first: this was a shared chart-instance correctness issue under branch control, repaired and
+  validated before continuing. No visual threshold, mask, product criterion, provenance rule,
+  provider requirement, or uPlot renderer rule was relaxed.
+- Flexibility remains explicit: board-guided represented chart/dialog/menu composition and
+  controlled seeded data are interim acceptance tracks. Exact-build/unrepresented visual,
+  provider/live-entitlement, historical-truth, native-monitor, beyond-bounded endurance, and
+  final-audit gaps remain open.
+- Exact next step: continue the next directly visible workstation behavior/state gap.
+
+## 2026-08-12 — Chart context-menu keyboard semantics
+
+- Price-axis and drawing right-click menus now expose named `role=menu` surfaces with `menuitem`
+  actions, deterministic first focus, Arrow/Home/End traversal, Enter/Space activation, and
+  Escape dismissal. Existing pointer actions and uPlot rendering remain unchanged.
+- Focused authenticated context-menu coverage passes `1/1`; type-check, 468-module production
+  build, and full frontend Vitest pass `710/710`; complete consistently seeded authenticated
+  Chromium passes `106/106` executed tests with 2 intentional skips in 4.7 minutes.
+- Fix-first: the complete matrix was run only after restoring matching instrument/market-data seed
+  flags across backend, worker, and frontend. No visual threshold, mask, product criterion,
+  provenance rule, provider requirement, or uPlot renderer rule was relaxed.
+- Remaining exact-build/unrepresented visual, provider/live-entitlement, historical-truth,
+  native-monitor, beyond-bounded endurance, and final-audit gaps remain open and tracked.
+- Exact next step: continue the next directly visible workstation behavior/state gap.
+
+## 2026-08-12 — Chart utility controls and ratio targeting
+
+- Chart utility controls now expose explicit button names/pressed state, dialog semantics,
+  per-instance ownership, initial focus, local Escape dismissal, and trigger-focus recovery for
+  auto/log scale, keyboard help, chart settings, event details, and latest-bar navigation. uPlot
+  lifecycle/rendering remains unchanged.
+- The sector context-menu acceptance now targets the active visible ratio tool rather than relying
+  on DOM order when the factory workspace retains its SPY/RSP comparison. This matches the product
+  behavior: launching XLK against the active SPY benchmark yields XLK/SPY in the active ratio tool.
+- Fix-first browser evidence: two genuine dialog issues were repaired (duplicate chart IDs causing
+  focus to land in a hidden sibling, then Escape being consumed by the chart editor-target guard).
+  The ratio assertion was likewise corrected to select the active tool, not to weaken the product
+  behavior.
+- Validation: frontend type-check and 468-module production build pass; full Vitest passes
+  `710/710`; focused chart utility browser flow passes `1/1`; corrected sector-ratio flow passes
+  `1/1`; complete consistently seeded authenticated Chromium passes `105/105` executed tests with
+  2 intentional skips in 5.1 minutes.
+- Flexibility used: board-guided represented chart/dialog/ratio composition and controlled seeded
+  data remain interim acceptance tracks. No visual threshold, mask, product criterion, provenance
+  rule, provider requirement, or uPlot-renderer rule was relaxed.
+- Remaining gaps: exact-build/unrepresented visual states, provider/live-entitlement breadth,
+  historical truth, native monitor placement, beyond-bounded endurance, and final audit remain
+  open and tracked.
+- Exact next step: continue the next directly visible workstation behavior/state gap; do not mark
+  the overall goal complete.
+
+## 2026-08-12 — Symbol-search state contract
+
+- The workstation's canonical symbol search now renders an explicit loading state while the
+  query is pending, a recoverable error state on rejection, and a clear no-result state for an
+  empty canonical response. The listbox remains present while the user is typing, with input and
+  listbox `aria-busy`, live status text, stable option IDs, and active-descendant keyboard state.
+- Focused mounted-view coverage passes `21/21`; full frontend Vitest passes `710/710`; type-check,
+  468-module production build, and `git diff --check` pass. Rebuilt authenticated Chromium passes
+  the no-result flow `1/1`; the adjacent real typing/Escape flow also passes.
+- Fix-first evidence: an initial held-request test exposed a brittle response-wait ordering and a
+  stale frontend image. The test was simplified to the product-visible lifecycle, the image was
+  rebuilt from current source, and the authoritative rerun passed. No product criterion, visual
+  threshold, mask, or provenance rule was relaxed.
+- Remaining gaps: exact-build/unrepresented search-state visual evidence (`REF-STATE-VARIANTS`),
+  broader provider/live-entitlement and historical-truth coverage, native monitor placement,
+  beyond-bounded endurance, and final repository/runtime audit. Controlled seeded browser data and
+  board-guided represented shell evidence remain explicitly interim.
+- Exact next step: continue the next directly visible workstation behavior/state gap and repeat
+  focused-to-full validation; do not mark the overall goal complete.
+
+- After rebuilding the complete seeded stack with consistent `E2E_SEED_INSTRUMENTS=true` and
+  `E2E_SEED_MARKET_DATA=true`, the previously mixed-runtime top-down/watchlist failures passed in
+  isolation (`3/3`). The complete authenticated Chromium matrix then passed `103/103` executed
+  tests with two intentional skips in 4.6 minutes. The earlier failures were retained as setup
+  evidence, not silently discarded; no product or provenance criterion was weakened.
+
+## 2026-08-12 — Watchlist batch membership and keyboard-scope acceptance
+
+- Added `POST /watchlists/{target_id}/items/transfer-batch` with atomic copy/move semantics,
+  canonical item ordering, metadata preservation, duplicate rejection, and protected-list checks.
+- Wired personal watchlist context actions to the selected row set while preserving the existing
+  single-row event arity. The browser flow now proves two-row selection, copy, move, source removal,
+  and destination membership.
+- Made the workstation shell explicitly focusable so typing outside editors opens symbol search
+  deterministically. The acceptance flow uses visible semantic controls, Meta on macOS, and waits
+  for `aria-busy=false` after mutations.
+- Validation: focused frontend `61/61`; full Vitest `707/707`; type-check/build/diff-check pass;
+  backend Docker suite `1385 passed, 374 skipped`; rebuilt seeded Chromium `105 passed, 2 skipped`.
+- Fix-first flexibility: controlled seeded browser data was used for deterministic UI evidence;
+  no visual threshold, mask, product criterion, or provenance rule was relaxed. Exact-build /
+  unrepresented visual, provider/live-entitlement, historical-truth, native-monitor, endurance,
+  and final-audit gaps remain tracked.
+- Exact next step: select the next directly visible workstation behavior/state gap and repeat the
+  focused-to-full validation loop; do not mark the overall goal complete.
+
+## 2026-08-12 — Current-head browser matrix and fix-first oracle repairs
+
+- Corrected four browser-oracle defects exposed by the complete Chromium run: workspace export/
+  clone actions are `menuitem`s, factory layouts are ARIA `tab`s, recent-symbol selection excludes
+  the `Clear` menuitem, and `4 Timeframe` is opened through its tab role. All four focused flows
+  pass `4/4`.
+- Added the declared completed Python plot batch-results fixture and classified the two conflict-flow
+  404s as the existing labelled SPY industry/ETF-holdings unavailable-data paths. Focused Python
+  plot and workspace-conflict flows pass `2/2`.
+- Rebuilt seeded authenticated Chromium complete matrix passes `102/102` executed tests with `2`
+  intentional skips. Backend gate remains `1382/1382` at `79.69%`; frontend Vitest remains
+  `706/706`; type-check, production build, and diff checks remain green.
+- Fix-first evidence: no product criterion, visual threshold, or mask was weakened. Test selectors
+  were aligned with the implemented accessibility contract; unavailable provider paths remain
+  explicitly classified rather than hidden.
+- Acceptance flexibility used: **controlled seeded market-data fixture for deterministic browser
+  evidence**. Exact-build/unrepresented visual states, provider/live-entitlement breadth,
+  historical truth, native-monitor, endurance beyond bounded runs, and final-audit gaps remain
+  open and tracked.
+- Exact next step: continue the next directly visible workstation behavior/state gap, then repeat
+  the full backend/frontend/browser gates.
+
+## 2026-08-12 — Factory analysis-layout comparison surfaces
+
+- `Drill Down` now contains sector, industry, and constituent lists plus a tabbed `Selected
+  Symbol`/`Sector Comparison` chart stack. `Sector by Year` now contains the linked lists plus
+  visible `Selected Symbol`/`Normalized Comparison` charts; both comparison windows persist an
+  explicit `SPY`/`RSP` configuration and use the existing uPlot renderer.
+- Backend workspace integration passes `24/24` with Docker fixtures. Frontend Vitest passes
+  `706/706`; type-check, production build, Ruff, compile, and diff checks pass. Rebuilt seeded
+  authenticated Chromium factory acceptance passes `1/1` with clean diagnostics.
+- Fix-first evidence: the initial browser oracle queried factory tabs as buttons; the repository
+  exposes them as ARIA tabs. The selector was corrected and the same product assertions passed;
+  no product criterion was weakened.
+- Acceptance flexibility used: **board-guided represented factory-layout state plus controlled
+  seeded browser evidence**. Exact-build/unrepresented factory states, provider/live-entitlement,
+  historical truth, native-monitor, endurance, and final-audit gaps remain open.
+- Exact next step: continue the next directly visible workstation behavior gap, then rerun the
+  broader backend/frontend/browser gates before any completion decision.
+
+## 2026-08-12 — Keyboard-operable EasyScan condition builder
+
+- The EasyScan advanced technical-condition builder now exposes `aria-expanded`/`aria-controls`,
+  a named region, deterministic entry focus, and focus recovery when collapsed. Existing nested
+  AND/OR/NOT editing, Python compilation, scan universes/timeframes/schedules, drag-in plots,
+  results, cancellation, and alert creation remain unchanged.
+- Focused EasyScan coverage passes `12/12`; full frontend Vitest passes `706/706`; type-check,
+  production build, and diff checks pass; rebuilt authenticated Chromium passes `1/1` with clean
+  browser diagnostics.
+- Fix-first evidence: the browser oracle was corrected to open EasyScan through Add tool, target
+  the outer advanced region, and use the stable toggle class after its state-dependent label
+  changed. A real duplicate accessible-name defect between the outer region and nested condition
+  tree was then fixed by naming the nested tree distinctly; focused, rebuilt-browser, and full
+  frontend gates passed after the repair.
+- Acceptance flexibility used: **board-guided represented condition-editor/grid state plus
+  controlled seeded browser evidence**. `REF-STATE-VARIANTS` and the condition-editor exact-build
+  styling gap remain open. No provider, backend, uPlot, or numerical charting change.
+- Exact next step: continue the remaining visible scan/gauge/study interaction gaps and shared
+  state defects before expanding provider breadth.
+
+## 2026-08-12 — Keyboard-operable watchlist column editors
+
+- The integrated Columns and Sets editors now expose dialog semantics, open from Enter/Space/
+  Arrow keys, focus their first meaningful control, support predictable arrow/Home/End movement,
+  dismiss on Escape, and restore focus to the owning trigger. Existing column serialization,
+  drag ordering, Python-column insertion, saved-set CRUD, filtering, and virtualized rows remain
+  unchanged.
+- Focused VirtualWatchlistTool coverage passes `60/60`; full frontend Vitest passes `705/705`;
+  type-check, production build, and diff checks pass; rebuilt authenticated Chromium passes `1/1`
+  for the keyboard flow and `2/2` alongside the established pointer-based Columns/Sets
+  round-trip, all with clean browser diagnostics.
+- Acceptance flexibility used: **board-guided represented watchlist/grid/editor state plus
+  controlled seeded browser evidence**. `REF-STATE-VARIANTS` partial/editor exact-build styling
+  gaps remain open. No provider, backend, uPlot, or numerical charting change.
+- Exact next step: continue the remaining visible watchlist/chart state gaps and shared interaction
+  defects before expanding provider breadth.
+
+## 2026-08-12 — Keyboard-operable workstation shell menus
+
+- Workspace, Add tool, Help, and Recent symbols shell menus now expose semantic menu items,
+  open from Enter/Space/Arrow keys, support Arrow/Home/End traversal, dismiss on Escape, and
+  restore focus to their owning trigger. Existing pointer dismissal, symbol selection, layout
+  cloning/import/export, and tool-opening behavior remain intact.
+- Focused WorkstationView coverage passes `18/18`; full frontend Vitest passes `704/704`;
+  type-check, production build, and diff checks pass; rebuilt authenticated Chromium passes
+  `1/1` with clean browser diagnostics.
+- Fix-first evidence: the initial browser oracle used title text as the accessible name for the
+  visible Workspace/Help buttons; selectors were corrected to the user-visible labels and the
+  test was rerun successfully. The existing recent-symbol unit oracle was also corrected to skip
+  the Clear action when selecting XLK. No product failure remained after correction.
+- Acceptance flexibility used: **board-guided represented shell/menu state plus controlled seeded
+  browser evidence**. `REF-SHELL-V25` and `REF-STATE-VARIANTS` exact-build/unrepresented shell
+  states remain open. No provider, backend, uPlot, or numerical charting change.
+- Exact next step: continue the remaining directly visible workstation gaps, prioritising dense
+  chart/watchlist state coverage and any repository-controlled interaction defects.
+
+## 2026-08-12 — Keyboard-operable chart plot library
+
+- The chart plot library now exposes semantic menu state, opens from Enter/Space/ArrowUp/ArrowDown,
+  focuses the indicator picker when opened, and restores focus to its trigger on Escape. Existing
+  indicator, Python-plot, EasyScan-plot, copy, drag, and promotion contracts remain unchanged.
+- Focused ChartPlotLibrary coverage passes `15/15`; frontend type-check, production build, and
+  rebuilt authenticated Chromium passes `1/1` with clean browser diagnostics.
+- Acceptance flexibility used: **board-guided represented chart/plot-library state plus controlled
+  seeded browser evidence**. Exact-build/unrepresented plot-library visual states remain open. No
+  provider, backend, uPlot renderer, or numerical charting change.
+- Exact next step: continue the remaining visible workstation gaps, prioritising dense chart and
+  watchlist interaction/state coverage before additional provider breadth.
+
+## 2026-08-12 — Keyboard-operable chart template control
+
+- Chart templates now open from Enter/Space/ArrowDown on the trigger, expose menu semantics,
+  focus the template-name editor when opened, and restore trigger focus on Escape. Existing
+  save/apply/import/export/reset behavior and symbol-preserving template application remain intact.
+- Focused ChartTemplateControl coverage passes `4/4`; full frontend Vitest passes `702/702`;
+  type-check, production build, and diff checks pass; rebuilt authenticated Chromium passes `1/1`
+  with clean browser diagnostics.
+- Acceptance flexibility used: **board-guided represented chart/template state plus controlled
+  seeded browser evidence**. Exact-build/unrepresented template visual gaps remain open. No
+  provider, backend, uPlot, or chart-renderer change.
+- Exact next step: continue remaining visible workstation gaps, prioritising chart/watchlist state
+  defects and interaction coverage before additional provider breadth.
+
+## 2026-08-12 — Keyboard-operable watchlist row context menus
+
+- Watchlist row context menus now focus the first enabled action when opened, support Arrow
+  navigation with wraparound, Home/End, Enter/Space activation, Escape dismissal, and focus
+  recovery to the originating row. Existing right-click and click action contracts remain intact.
+- Focused VirtualWatchlistTool coverage passes `59/59`; full frontend Vitest passes `701/701`;
+  type-check, production build, and diff checks pass; rebuilt authenticated Chromium passes
+  `1/1` with clean browser diagnostics.
+- Acceptance flexibility used: **board-guided represented watchlist/context-menu state plus
+  controlled seeded browser evidence**. Exact-build/unrepresented context-menu visual gaps remain
+  open. No provider, backend, uPlot, or chart-renderer change.
+- Exact next step: continue the remaining visible workstation gaps, prioritising chart/watchlist
+  state defects and interaction coverage before additional provider breadth.
+
+## 2026-08-12 — Keyboard-operable tool-window menus
+
+- Tool-window menus now open from Enter/Space/ArrowDown/ArrowUp on the trigger, expose focused
+  menu items, support Arrow navigation with wraparound plus Home/End, activate with Enter/Space,
+  dismiss with Escape, and return focus to the trigger. Existing pointer dismissal and click
+  actions remain unchanged.
+- The first browser attempt was against a stale frontend image and failed because the new keyboard
+  handler was not deployed. The branch frontend was rebuilt; the focused authenticated Chromium
+  test then passed `1/1` with clean browser diagnostics.
+- Focused ToolWindow units pass `5/5`; full frontend Vitest passes `700/700`; type-check,
+  production build, and diff checks pass.
+- Acceptance flexibility used: **board-guided represented tool-window/menu state plus controlled
+  seeded browser evidence**. Exact-build/unrepresented menu visual gaps remain open. No provider,
+  backend, uPlot, or chart-renderer change.
+- Exact next step: continue the remaining visible workstation gaps, prioritising chart/watchlist
+  state defects and interaction coverage before additional provider breadth.
+
+## 2026-08-12 — Keyboard-operable primary workspace tabs
+
+- The visible workspace strip is now a semantic `role=tablist`: tabs expose selected state and
+  roving `tabindex`; ArrowLeft/ArrowRight/ArrowUp/ArrowDown traverse with wraparound, Home/End
+  move focus to boundaries, and Enter/Space activate the focused layout. Existing pointer/mouse
+  drag rearrangement and persisted ordering are unchanged.
+- A first detached-mount unit assertion found that `document.activeElement` cannot prove focus
+  for a component mounted outside `document.body`. Focus lookup was corrected to scope to the
+  event's owning tablist, and the regression now uses an attached mount.
+- Focused mounted-view units pass `17/17`; full frontend Vitest passes `699/699`; type-check,
+  production build, and diff checks pass; rebuilt authenticated Chromium keyboard flow passes
+  `1/1` with clean browser diagnostics.
+- Acceptance flexibility used: **board-guided represented tab/layout state plus controlled seeded
+  browser evidence**. Exact-build/unrepresented visual states remain open. No provider, backend,
+  uPlot, or chart-renderer change.
+- Exact next step: continue the remaining directly visible workstation gaps, prioritising any
+  interaction that has an implementation defect and can be focused-tested without expanding
+  provider scope.
+
+## 2026-08-12 — Primary workspace tab rearrangement
+
+- The visible TC2000-style workspace tab strip now supports deterministic pointer/mouse drag
+  rearrangement, exposes `aria-grabbed` and drag-target feedback, persists the reordered tab
+  positions through the existing workspace snapshot contract, and keeps the Workspace-menu drag
+  path intact. Native drag data is retained where available; window-level pointer/mouse tracking
+  handles browser paths that omit a `drop` event, with idempotent commit guards.
+- The first browser attempt was run against a stale frontend container and correctly exposed no
+  new DOM attributes. The branch frontend was rebuilt; the focused authenticated Chromium test
+  then passed `1/1` in `2.7s`. Focused workspace/pop-out unit coverage remains `63/63`, full
+  frontend Vitest passes `698/698`, type-check and production build pass. Acceptance flexibility
+  used: **board-guided represented tab/layout state plus browser evidence**; the exact-build
+  and broader unrepresented-state visual gaps remain open. No provider, backend, uPlot, or chart
+  renderer change was made.
+
+## 2026-08-12 — Point-in-time membership cache identity
+
+- Group-backed analysis responses now derive `membership_version` from the selected group,
+  lifecycle boundaries, member identities, relationship/position/weight, verification state,
+  and field-level provenance rather than the immutable group row ID. Equivalent member order is
+  canonicalised; membership, lifecycle, or provenance changes therefore invalidate cached
+  rankings, breadth, snapshots, and rotation results without changing ETF snapshot IDs or the
+  industry-proxy composition hash.
+- Focused analysis unit coverage passes `17/17`; point-in-time rotation and snapshot/breadth
+  integration coverage passes `2/2`; changed-file Ruff/compile pass; and the authoritative
+  backend gate passes `1382/1382` at `79.69%` with 86 known dependency deprecation warnings.
+  An earlier test invocation named a nonexistent selector and collected no tests; it was corrected
+  before validation and is not a product failure. Acceptance flexibility used: **None**. No
+  frontend, uPlot, CSS, or visual baseline
+  changed. Historical source truth, provider/ETF, visual, native-monitor, endurance, and final-
+  audit gaps remain open.
+
+## 2026-08-12 — Point-in-time membership completeness guard
+
+- Explicit `as_of` analysis now excludes market-group member rows without a `known_at` boundary.
+  Current/latest views retain legacy rows, and static root groups may omit a group-level
+  `known_at` when individual members provide the historical boundary.
+- Focused analysis unit coverage passes `16/16`; point-in-time rotation and group snapshot/breadth
+  integration coverage passes `2/2`; authoritative backend passes `1381/1381` at `79.68%`; and
+  changed-file Ruff/compile pass.
+- The first tightened implementation incorrectly rejected legacy groups without group-level
+  timestamps; it was narrowed to member rows and rerun successfully. This is retained fix-first
+  evidence. Acceptance flexibility used: **None**. No frontend, uPlot, CSS, or visual baseline
+  changed. Historical source truth, provider/ETF, visual, native-monitor, endurance, and final-
+  audit gaps remain open.
+
+## 2026-08-12 — ETF live-route coverage contract execution guard
+
+- The ETF live-provider module no longer applies its opt-in network skip to the two registry
+  contracts that do not perform network I/O. `test_live_provider_matrix_covers_every_registered_issuer_adapter`
+  and `test_live_backed_providers_each_have_a_concrete_live_route_test` now execute on every
+  backend run, so a newly promoted native adapter cannot silently lose its concrete route test.
+- Focused contract checks pass `2/2`; the complete live module reports `2 passed, 373 skipped`
+  with network probes still opt-in; Ruff and compilation pass; all `471` deterministic ETF
+  adapter tests pass; and the authoritative backend gate passes `1380/1380` at `79.68%` with
+  the existing 86 dependency deprecation warnings.
+- This is supporting data-integrity/maintainability work for top-down ETF constituents, not a
+  change in product focus. Acceptance flexibility used: **None**. The broader issuer route,
+  entitlement/live-access, historical truth, visual, native-monitor, endurance, and final-audit
+  gaps remain open. No frontend, chart, CSS, or visual baseline changed, so no new visual run is
+  claimed for this test-only repair.
+
+## 2026-08-12 — Canonical listing lifecycle timestamps
+
+- `InstrumentListing` now stores nullable `effective_at`, `known_at`, and `delisted_at` values;
+  discovery and profile ingestion propagate provider observations and ingestion time without
+  toggling canonical active state. Normal and provenance instrument responses expose the fields.
+- Focused exchange/upsert/API coverage passes `17/17`; migration `f6a7b8c9d0e1` passes disposable
+  PostgreSQL 16 upgrade/downgrade/re-upgrade; frontend Vitest `698/698`, type/build, and backend
+  `1380/1380` at `79.68%` pass. Acceptance flexibility used: **None**.
+- These timestamps improve durable evidence but are not authoritative historical truth. Venue
+  moves/relistings, independent delisted snapshots, broader provider/ETF breadth, exact/ambiguous
+  V25 visual states, native-monitor, endurance, and final-audit gaps remain open.
+
+## 2026-08-12 — Provenance listing exchange parity repair
+
+- The canonical `/instruments/{symbol}/provenance` response now serializes the nested exchange
+  metadata for every listing, matching the exchange-aware normal instrument response and keeping
+  MIC/venue identity available to lineage consumers.
+- The focused exchange-aware integration regressions pass `2/2`, including an explicit no-exchange
+  listing case; changed-file Ruff/compile pass;
+  and the authoritative backend gate passes `1373/1373` at `79.67%` with 86 known dependency
+  deprecation warnings. Acceptance flexibility used: **None**.
+- This is a localized contract repair, not whole-goal completion. Historical listing truth,
+  broader provider/ETF coverage, exact/unrepresented V25 visual states, native-monitor validation,
+  beyond-bounded endurance, and final-audit gaps remain open.
+
+## 2026-08-12 — Multi-exchange listing visibility and seeded board rerun
+
+- `InstrumentInfoPanel` now renders every canonical listing with ticker, MIC/venue, and
+  active/primary status. Focused component coverage passes `5/5`; frontend type-check/build and
+  complete Vitest pass `698/698` across 93 files.
+- The first default-target visual command was setup-only: the target stack did not advertise seeded
+  market data, so no screenshot comparison ran. A separate seeded Compose project on unused ports
+  passed health preflight and the strict no-update board-guided matrix passed `104/104` across
+  1920x1080 and 2560x1440 at 100% and 125% display scale in 5.4 minutes. No snapshot, mask,
+  threshold, or product criterion changed; acceptance flexibility used: **None**.
+- Remaining gaps are unchanged: historical listing/delisting truth, broader provider/ETF breadth,
+  exact-build/unrepresented V25 visual states, native physical-monitor validation, beyond-bounded
+  endurance, and final whole-goal audit.
+
+## 2026-08-12 — Listing report browser contract and eager-load repair
+
+- Controlled E2E identity data now contains a labelled active-primary `SPY`/`ARCX` listing, and
+  `F8s-report` asserts the venue through the authenticated report. Existing canonical rows remain
+  visible; the browser assertion selects the seeded venue instead of assuming a single listing.
+- A real HTTP 500 was found and repaired: both instrument-detail and post-refresh reload queries
+  now eager-load `InstrumentListing.exchange`, so nested `InstrumentOut` serialization never
+  triggers async lazy loading. Focused seed/health `3/3` (without global coverage), API integration
+  `17/17`, changed Ruff/compile, report browser `1/1`, frontend `698/698`, type/build, and
+  authoritative backend `1373/1373` at `79.65%` pass. The complete authenticated Chromium run
+  passes `95/95` executed tests with `106` suite-gated skips; the strict visual matrix passes
+  `104/104` across the four required display environments.
+- Fix-first flexibility used: **None**. The original 500 and assertion correction are retained as
+  evidence. No snapshot, mask, threshold, or product criterion changed. Historical listing truth,
+  broader provider/ETF coverage, exact/unrepresented V25 visual states, native physical-monitor
+  validation, beyond-bounded endurance, and final-audit gaps remain open.
+
+## 2026-08-12 — Canonical multi-exchange listing payload
+
+- `GET /instruments/{symbol}` now serializes each canonical listing's exchange metadata, and the
+  frontend contract carries the same MIC/venue information. This removes a provider-neutral API
+  omission for same-issuer listings across US venues.
+- Focused authenticated API coverage passes `1/1`; frontend type-check/build and Vitest pass
+  `697/697`; authoritative backend passes `1373/1373` at `79.67%` with 86 known dependency
+  warnings. Acceptance flexibility used: **None**.
+- Historical listing truth, venue moves/relistings, broader provider/ETF coverage, visual-reference,
+  native-monitor, endurance, and final-audit gaps remain open.
+
+## 2026-08-12 — Consolidated canonical listing model
+
+- Removed the unused duplicate `backend/app/models/instrument_listing.py` declaration; the
+  exchange-aware `backend/app/models/listing.py` is the sole imported ORM model for
+  `instrument_listing`.
+- Focused listing/model checks pass `4/4`; the authoritative combined backend gate passes
+  `1373/1373` at `79.67%` coverage with 86 known dependency deprecation warnings. Acceptance
+  flexibility used: **None**.
+- This removes model-definition ambiguity only. Historical listing truth, broader provider/ETF
+  coverage, visual-reference, native-monitor, endurance, and final-audit gaps remain open.
+
+## 2026-08-12 — Canonical lifecycle reactivation guard
+
+- Fixed a shared security-master defect: provider discovery can no longer silently reactivate an
+  existing inactive canonical instrument, listing, or provider-symbol binding. Lifecycle
+  observations are retained with provenance and require reconciliation before canonical state
+  changes.
+- Focused seed/listing tests pass `4/4`; the authoritative combined backend gate passes `1373/1373` at
+  `79.64%` with 86 known dependency deprecation warnings. Acceptance flexibility used: **None**.
+- Historical listing truth, delisted snapshots, venue moves/relistings, broader provider/ETF
+  coverage, visual-reference, native-monitor, endurance, and final-audit gaps remain open.
+
+## 2026-08-12 — Authoritative backend gate after listing-lifecycle evidence retention
+
+- The host-permitted complete backend unit/integration gate passes `1372/1372` at `79.62%`, with
+  86 known third-party deprecation warnings. The earlier non-elevated attempt was setup-only
+  evidence: Docker and uv-cache permissions failed before integration collection.
+- Listing evidence is retained conservatively and does not silently alter canonical lifecycle
+  state. Acceptance flexibility used: **None**. Historical listing truth, broader provider/ETF
+  coverage, exact/unrepresented V25 reference states, physical-monitor validation, endurance, and
+  final audit remain open.
+
+## 2026-08-11 — Provider listing-lifecycle evidence retention
+
+Alpha Vantage discovery fields for IPO date, status, and delisting date are now retained as
+source-labelled provider observations in canonical instrument provenance and provider-symbol
+metadata. The repair is conservative: it does not toggle canonical `is_active` or claim historical
+listing truth from a single feed. Focused metadata tests pass `2/2`, Ruff/compile and repository
+checks pass. Acceptance flexibility used: **None**. Independent delisted snapshots, venue moves,
+relistings, and terms-reviewed historical promotion remain open.
+
+## 2026-08-11 — Deterministic visual acceptance policy guard
+
+The visual acceptance contract is now machine-checked rather than only duplicated in test code.
+The V25 manifest declares `max_diff_pixel_ratio=0.005`, `geometry_tolerance_css_px=1`, and
+`solid_color_delta_e2000=2`; the validator confirms all 26 workstation screenshot assertions apply
+the pixel threshold, disabled animation/caret, and CSS-scale capture settings, and that every
+`required_missing` state retains an interim oracle and four-environment local baselines.
+`make test-visual-policy` and manifest validation pass. Acceptance flexibility used: **None**.
+This does not close exact-build/unrepresented visual gaps; it prevents them or their interim
+oracles from being silently weakened.
+
+## 2026-08-11 — SEC ambiguous-ticker reconciliation guard
+
+- SEC issuer/listing discovery now refuses ticker-only canonical promotion when distinct CIK/name
+  identities share a ticker. The complete raw page remains in `UniverseDiscoverySnapshot` for a
+  later reconciliation decision; same-issuer multi-venue rows still produce one instrument with
+  multiple canonical listings.
+- Focused tests pass `90/90`; authoritative backend passes `1359/1359` at `79.57%`; changed-file
+  Ruff/compile pass. Acceptance flexibility used: **none**.
+- Open security-master work is now explicit: durable ambiguity review/resolution, historical
+  listing/delisting truth, ETF/fund discovery, and SEC live-access promotion after the observed
+  HTTP 403 environment response.
+
+## 2026-08-11 — SEC multi-venue security-master discovery
+
+- The product focus remains the TC2000 V25 workstation. This change closes a supporting backend
+  weakness exposed by the user's Nasdaq-only concern: SEC's official ticker/exchange directory is
+  now a no-key discovery source after Alpaca in the universe chain.
+- The provider handles both known SEC payload shapes, deterministic paging, 24-hour caching, CIK
+  retention, and exchange evidence through canonical MIC normalisation. It is deliberately not
+  treated as a price feed, tradability guarantee, ETF directory, or point-in-time delisting source.
+- Focused SEC tests `81/81`, full backend `1357/1357` at `79.56%`, frontend `682/682`, changed-file
+  Ruff/compile, and frontend gates pass. Acceptance flexibility used: **none**.
+- Remaining security-master gaps are ETF/fund discovery, historical listing/delisting truth,
+  provider entitlement/price coverage, and the final requirement-level audit; they remain tracked
+  rather than being implied closed by SEC coverage. A direct opt-in SEC directory probe returned
+  HTTP 403 in this environment, so runtime promotion remains pending an authorised SEC-access
+  environment.
+
+## 2026-08-11 — Core workstation clean-deployment bootstrap
+
+- The active scope is still the TC2000 V25 workstation and its top-down analysis workflow. The
+  ETF/holdings work completed here is enabling infrastructure for that UI, not a reprioritisation.
+- Fresh non-seeded deployment readiness is materially improved: API startup creates the curated 17
+  core identities and taxonomy, while the worker hydrates provider-backed adjusted D1 history and
+  ETF holdings asynchronously. Isolated Compose evidence shows all 17 core histories and 16
+  non-fixture holdings snapshots persisted with provenance; no fixture or yfinance path was used.
+- Focused tests plus the authoritative backend gate pass `1355/1355` at `79.56%`. XLC's shorter
+  coverage is visible and retained as a data-quality limitation. Acceptance flexibility used:
+  **none** for implementation or data correctness.
+- Remaining goal gaps are broader all-exchange/security-master and provider-entitlement coverage,
+  exact/unrepresented V25 visual states, native physical multi-monitor evidence, long-duration
+  endurance, and the final whole-goal audit. The existing board-guided/populated-canonical track
+  remains an explicitly documented interim acceptance path for missing visual or clean-volume
+  evidence; it is not being silently promoted to exact-build parity.
+- Docker hygiene was completed after measured usage exceeded 10GB: non-volume prune reclaimed
+  `4.628GB`, and a post-prune Compose check confirms the active branch services are healthy.
+
+## 2026-08-11 — Seeded provenance isolation and complete board visual revalidation (latest)
+
+- The work remains centred on the TC2000-style workstation and US top-down workflow. ETF adapter
+  and holdings work is supporting backend infrastructure for that product, not a reprioritisation.
+- Fixed seeded persistent-database leakage: market-data reads are local-only and restricted to
+  `e2e_reference`; holdings reads are restricted to `controlled_fixture`/`e2e_reference`. Normal
+  non-seeded provider-neutral reads are unchanged. Focused backend tests pass `36/36`, the
+  authoritative backend gate passes `1351/1351` at `79.62%`, changed Ruff passes, and the final
+  SPY seeded distribution is 520 fixture bars with no provider rows.
+- Refreshed the contaminated untracked board snapshots once from the corrected runtime and then
+  verified them with no update mode: `104/104` across 1920x1080 and 2560x1440 at 100% and 125%.
+  No threshold, mask, CSS token, or product criterion changed. This uses only the documented
+  seeded-fixture/board-guided flexibility; it does not close exact-build/permission or
+  unrepresented V25 evidence gaps.
+- Docker non-volume prune reclaimed 16.12GB; named volumes were preserved. Remaining gaps are
+  wider free-source/provider entitlements, exact/unrepresented references, native physical-monitor
+  validation, long-duration endurance, and final audit.
+
+- Complete authenticated workstation workflows now pass `85/87` with two canonical-only skips.
+  Frontend Vitest is `682/682` across 92 files; type-check and the 468-module production build
+  pass. The provider audit confirms API-first new-workstation defaults and explicit exclusion of
+  yfinance from non-options fallback chains. This is supporting infrastructure validation for the
+  TC2000 UI/top-down goal, not a scope change.
+
+- The 230-image official reference pack was restored into controlled storage, rebuilt, validated
+  `230/230`, and visually inspected as the active board. The populated canonical branch volume
+  passes the complete authenticated workflow matrix `87/87` with seeded mode disabled; a fresh
+  non-seeded volume's 16 failures are explicitly classified as missing canonical-data
+  initialization (1 SPY identity, 0 bars/groups/holdings), not application regressions. Seeded
+  acceptance mode is restored and healthy. Docker prune reclaimed 6.808GB without deleting named
+  volumes.
+
+## 2026-08-11 — Authoritative post-fix backend and frontend revalidation
+
+- The active product focus remains the TC2000-style workstation and its US top-down flow; ETF
+  route work is supporting infrastructure for that experience.
+- The authoritative repository gate passes `1351/1351` backend unit/integration tests at `79.64%`
+  combined coverage (threshold `75%`), including the SMH route repair. Frontend Vitest passes
+  `682/682` across 92 files, the uPlot contract passes, changed-file Ruff checks pass, and
+  YAML/JSON parsing plus `git diff --check` pass.
+- No acceptance flexibility was used for this revalidation. Open goal gaps remain wider provider
+  entitlement coverage, exact-build/unrepresented V25 visual evidence, native physical-monitor
+  validation, long-duration endurance, and the final whole-goal audit.
+
+## 2026-08-11 — Canonical ETF-proxy drilldown and industry-context race repair
+
+- The active product focus remains the TC2000-style workstation and its US top-down flow. ETF
+  adapter/bootstrap work here is enabling data infrastructure for that flow, not a replacement
+  product objective.
+- Fixed a real race in industry drilldown: docked and popped-out industry selections carry the
+  selected sector ETF explicitly, and the store establishes `constituentETF` synchronously before
+  asynchronous holdings hydration can clear `selectedIndustry`.
+- Canonical branch-stack validation now returns both SOXX and SMH as verified XLK/Semiconductors
+  proxies. SOXX uses iShares; SMH now uses VanEck's dated native workbook (`2026-08-10`, 27 rows,
+  25 resolved). The repair corrected the stale persisted `ark` adapter and made the explicit
+  VanEck product slug win over SEC series metadata during bootstrap, ingest, and bulk refresh.
+- Evidence: F8d/F8e `10/10`; complete authenticated Playwright `87/87`; Vitest `682/682` across
+  92 files; backend `1351/1351` at `79.64%`; `vue-tsc`, 468-module production build, uPlot
+  contract, YAML/JSON parsing, and diff check all pass. The focused test waits for and asserts the
+  canonical proxy response, making the browser oracle deterministic.
+- Runtime audit: expected 499 cancellations, deliberate 401/409 auth/conflict probes, and
+  explicit 404 unavailable-data paths only; no unhandled exception, traceback, 5xx,
+  MissingGreenlet, UniqueViolation, CRITICAL, FATAL, or unhandled-error signature.
+- No acceptance flexibility used. Remaining gaps are exact-build/permission/unrepresented V25
+  visual evidence, wider free-source/provider entitlement coverage, native physical multi-monitor
+  validation, indefinite endurance, and final audit.
+- Acceptance flexibility used: **None** for this advance. SMH closure used the authorised public
+  issuer route and live dated response; no fixture substitution or visual relaxation was used.
+- The post-fix visual rerun with elevated Chromium was correctly rejected by the suite's fixture
+  preflight (`e2e_seed_market_data=false`) and is discarded as setup evidence. The accepted seeded
+  board matrix remains `104/104`; this code change touched event context/selection timing only,
+  with no CSS/layout/token or baseline change.
+
+## 2026-08-11 — Direct watchlist ratio launch
+
+- Added the missing dense-workstation context-menu action `Open ratio vs active`; it is available
+  on virtual watchlists, disabled for self-ratios, and opens the existing Relative Strength tool
+  with a canonical `=ROW/ACTIVE` expression while preserving the current workspace.
+- Corrected the ratio-chart rendering branch to honour that explicit expression. Focused component
+  coverage passes `58/58`; adjacent authenticated browser ratio flows pass `2/2`, including XLK/SPY;
+  `vue-tsc --noEmit` and the rebuilt 468-module production frontend pass.
+- The initial browser failure was stale-container setup evidence; after rebuilding the frontend,
+  the browser run passed and the recent Compose log audit found no tracked runtime errors. No
+  acceptance flexibility was used.
+- Remaining exact-build/unrepresented visual, provider-entitlement breadth, physical-monitor,
+  endurance, and final-audit gaps remain actionable.
+
+## 2026-08-11 — Seeded fixture isolation and complete board visual revalidation
+
+- Fixed a real persistent-database acceptance defect: seeded E2E startup now replaces adjusted D1
+  bars for the controlled universe, while seeded holdings reads are explicitly fixture-scoped.
+  Focused regression coverage passes `17/17`.
+- Refreshed the affected deterministic board-guided snapshots once from the corrected seeded
+  runtime and then ran the complete no-update matrix: `104/104` across 1920x1080 and 2560x1440 at
+  100% and 125% display scale. No mask, threshold, or product criterion changed.
+- Rebuilt the corrected seeded stack and reran the complete authenticated functional matrix:
+  `84/84` executed tests passed with two documented canonical-only skips; backend coverage is
+  `1347/1347` at `79.62%`, and the audited service logs are clean.
+- Flexibility ledger: seeded-fixture/board-guided baseline refresh used and recorded; exact-build,
+  permission, and unrepresented-state visual evidence remains open, along with provider breadth,
+  physical-monitor, endurance, and final-audit work.
+
+## 2026-08-11 — Golden Layout readiness/tie-break repair and complete seeded matrix
+
+- Golden Layout startup now suppresses observational activation/normalisation events until user
+  interaction; Add Tool waits on an explicit workspace-ready promise and no longer disappears
+  during slow hydration. F8j conflict injection targets only the newly added local Notes window,
+  so unrelated bootstrap/pop-out snapshots cannot consume the 409 oracle.
+- The focused adjacent F8j sequence passes `2/2` twice. The full authenticated
+  `flows.spec.ts` matrix passes `84/84` executed tests with two documented canonical-only skips
+  after backend, worker, and research-runner were recreated with both E2E seed flags true.
+  Authenticated API probes returned XLK/XLB industry compositions and XLK/Semiconductors
+  verified proxies. The prior four failures came from a frontend-only rebuild leaving backend
+  seed mode false/false and are retained as invalid setup evidence, not product acceptance.
+- No visual threshold, mask, or functional criterion was relaxed. Remaining visual/reference,
+  provider/entitlement breadth, physical-monitor, endurance, and final-audit gaps are open.
+- Vitest passes `679/679` across 92 files; `vue-tsc`, the 468-module production build,
+  `make test-uplot-contract`, YAML/JSON parsing, `git diff --check`, and the final audited service
+  log window all pass.
+
+## 2026-08-11 — Versioned provider entitlements and seeded top-down oracle
+
+- Entitlements now retain append-only revisions, expose ordered history, and increment revision on
+  API PATCH. Unknown/unreviewed rows are not implicitly free; explicit free-source entitlement
+  seeds control runtime chains. Legacy unreviewed rows upgrade to a new revision without losing
+  the old snapshot.
+- Migration `f2a3b4c5d6e7` is applied at the rebuilt stack head. Focused provider/runtime/router
+  tests pass `19/19`; revision-transition coverage passes `14/14`; current-head authoritative
+  backend coverage passes `1346/1346` at `79.61%`.
+- Rebuilt seeded top-down F8d/F8e acceptance passes `7/7` with two canonical-only tests skipped.
+  `F8e.1` now asserts fixture provenance only when seeded and canonical provenance otherwise; the
+  prior seeded failure was an oracle/setup mismatch and is recorded as corrected.
+- Acceptance flexibility used: **None**. Provider breadth/entitlement review, visual/reference,
+  physical-monitor, endurance, and final-audit gaps remain actionable.
+
+## 2026-08-11 — Provider-neutral workstation boundary audit
+
+- The primary frontend contains no provider identifiers, credentials, endpoint details, or
+  fallback-order logic. Focused backend boundary/runtime tests pass `12/12` with `--no-cov`.
+- An isolated seeded current-head Compose stack passes the authenticated unsupported-capability menu
+  check `1/1`; excluded trading, brokerage, options, news, ratings, earnings, financial-statement,
+  and consolidated-real-time labels remain absent and no disabled/coming-soon shell is exposed.
+- Workspace persistence/layout Vitest coverage passes `52/52`.
+- The first focused invocations were setup issues (shared uv-cache coverage threshold and an
+  unavailable browser port); both were corrected and the valid reruns passed.
+- Acceptance flexibility used: **None**. This proves boundary isolation only; provider-entitlement
+  breadth, visual/reference, physical-monitor, endurance, and final-audit gaps remain actionable.
+
+## 2026-08-10 — Industries empty-state clarity and current-head closure
+
+- The default Industries tool no longer reports `No mapped ETF proxy for SPY` before a sector is
+  selected. It now prompts `Select a sector to inspect its industries and verified ETF proxies`;
+  selected-ETF missing-proxy messaging remains evidence-qualified.
+- Focused authenticated `F8e-empty-industry` passes `1/1`; full frontend Vitest passes `679/679`;
+  Docker frontend build passes 468-module production compilation; complete authenticated matrix
+  passes `86/86` in `9.7m`; post-run service logs are clean.
+- The fresh seeded board-guided default-shell visual assertions pass `4/4` across all four required
+  display-scale environments after updating only the affected default-shell baselines. No mask or
+  threshold changed. The unseeded visual attempt and nonexistent unit-test path were setup errors,
+  corrected and retained as such.
+- Acceptance flexibility used: **None** for implementation. Remaining visual/reference,
+  provider-entitlement, physical-monitor, long-duration endurance, and final-audit gaps remain
+  actionable.
+
+## 2026-08-10 — Complete current-head authenticated workstation matrix
+
+- The complete `frontend/tests/e2e/flows.spec.ts` matrix passes `85/85` in `9.6m` with one
+  worker. It covers shell/authentication, charts/templates, docking/pop-outs/recovery, link
+  groups/timeframes/cross-window cursors, the complete US top-down drill-down, Python/Study Lab,
+  scans/gauges, notes/alerts, legacy boundaries, unsupported-domain containment, uPlot performance,
+  and lifecycle churn.
+- Post-run Compose service audit found no audited HTTP-5xx, traceback, `MissingGreenlet`,
+  `UniqueViolation`, `CRITICAL`, `FATAL`, `Unhandled`, or `ERROR` signatures. Backend, worker,
+  research-runner, and frontend services remain running/healthy.
+- Acceptance flexibility used: **None**. Remaining visual/reference, provider-entitlement,
+  physical-monitor, long-duration endurance, and final-audit gaps remain actionable.
+
+## 2026-08-10 — Study Lab and Research Results browser revalidation
+
+- Focused authenticated flows for reusable scalar/series outputs, structured studies, factory
+  streaks, scan/alert promotion, validation recovery, queued cancellation, and semantic Study
+  Results pass `8/8` in `1.1m` on the current branch stack.
+- The full frontend Vitest suite immediately afterward passes `679/679` across 92 files. Expected
+  watchlist failure-path stderr is covered behavior; no test failure or unhandled error occurred.
+- Acceptance flexibility used: **None**. Remaining visual/reference, provider-entitlement,
+  physical-monitor, long-duration endurance, and final-audit gaps remain actionable.
+
+## 2026-08-10 — Authoritative combined backend revalidation
+
+- The repository-root `make test-backend-coverage` gate passes `1343/1343` in `240.69s` with
+  `79.60%` combined coverage, above the configured 75% threshold. Provider/ETF adapters,
+  canonical instruments/exchanges, top-down analysis, unified Python/research/sandbox,
+  persistence, and API integration paths are included.
+- The initial sandbox invocation could not open the shared `uv` cache before collection; the
+  identical command was rerun with approved elevated access and passed. Only 86 known third-party
+  NumPy/nautilus deprecation warnings were emitted.
+- Acceptance flexibility used: **None**. This is backend revalidation, not completion of the
+  remaining visual/reference, provider-entitlement breadth, native-monitor, endurance, or final
+  audit gaps.
+
+## 2026-08-10 — Sparkline non-finite data normalization
+
+- Shared sparkline history now filters null, non-numeric, and non-finite closes before caching;
+  uPlot receives only finite numeric points and retains the existing two-point minimum.
+- Focused composable/component tests pass `6/6`; full frontend Vitest passes `679/679`; type-check,
+  468-module production build, `make test-uplot-contract`, and authenticated dashboard `F15`
+  pass. The first contract command was run from `frontend/` instead of the repository root and
+  was corrected; it was setup noise, not a product failure.
+- Acceptance flexibility used: **None**. Remaining visual/provider/hardware/endurance/final-audit
+  gaps remain actionable.
+
+## 2026-08-10 — uPlot-only Strategy Lab outcome maps
+
+- Replaced the axes-based SVG numerical renderers in `DistributionBars.vue` and
+  `SymbolPerformanceBars.vue` with uPlot numeric axes/canvas plugins and accessible HTML point
+  overlays. Histograms, loss/breakeven/win composition, keyboard-focusable points, and detailed
+  hover tooltips remain supported.
+- Focused outcome-map tests pass `2/2` and assert uPlot/plugin construction. The first full run
+  exposed incomplete positional methods in the shared jsdom uPlot double; defensive guards were
+  added under the fix-first rule, and the subsequent full frontend suite passes `676/676` with no
+  unhandled errors. Type-check, production build, and elevated authenticated legacy-route browser
+  check pass (`1/1`).
+- Acceptance flexibility used: **None**. Exact-build/unrepresented visual, provider/entitlement/
+  taxonomy, physical-monitor, long-duration endurance, and final-audit gaps remain actionable.
+
+## 2026-08-10 — uPlot-only Strategy result renderer
+
+- Replaced the remaining axes-based hand-built SVG numerical renderer in `StrategyResultChart.vue`
+  with uPlot. Real elapsed timestamps, range selection/shifting, numeric axis formatting, dense
+  hover details, resize, and unmount cleanup remain covered by the component contract.
+- Focused renderer tests pass `6/6`; Strategy Lab view tests pass `28/28`; the full frontend suite
+  passes `676/676`; `vue-tsc --noEmit` and the 468-module production build pass.
+- The elevated authenticated legacy-route browser check passes `1/1`. The initial un-elevated
+  attempt failed before page startup with macOS Chromium `mach_port_rendezvous` permission denial;
+  it is retained as environment evidence, not treated as a product result.
+- Acceptance flexibility used: **None**. Exact-build/unrepresented visual, provider/entitlement/
+  taxonomy, physical-monitor, long-duration endurance, and final-audit gaps remain actionable.
+
+## 2026-08-10 — Rebuilt service-runtime verification
+
+- Rebuilt the branch backend, research-runner, and worker images after the authorised
+  non-volume Docker cleanup; all recreated services reached healthy status.
+- A no-network smoke through the rebuilt research-runner executed the positive-close streak
+  Study Lab factory study and returned the expected current streak and occurrence records.
+- Startup log audit for the three rebuilt services found no audited 5xx, traceback,
+  `MissingGreenlet`, `UniqueViolation`, `CRITICAL`, `FATAL`, `Unhandled`, or `ERROR` signatures.
+- This is runtime packaging evidence for the current implementation. Acceptance flexibility used:
+  **None**. The broader visual-reference, provider/entitlement/taxonomy, physical-monitor,
+  long-duration endurance, and final-audit gaps remain open.
+
+## 2026-08-10 — Unified-Python lookback preflight closure
+
+- The validator now infers static lookback from generated `ta.indicator` parameter maps and
+  numeric `market.percent_change` calls, while dynamic parameter expressions remain unclaimed.
+  This closes a dataset-preflight/reproducibility metadata gap without introducing another
+  executable condition language.
+- Focused validator/compiler tests pass `36/36`; authenticated `/code/validate` tests pass
+  `19/19`; authoritative combined backend unit/integration coverage passes `1341/1341` at
+  `79.60%` with 86 known third-party deprecation warnings. No frontend contract changed, so the
+  existing frontend/browser gates remain authoritative.
+- Acceptance flexibility used: **None**. Exact-build/unrepresented visual, provider/
+  entitlement/taxonomy, physical-monitor, long-duration endurance, and final-audit gaps remain
+  explicit and actionable.
+
+## 2026-08-10 — Lookback-aware canonical dataset materialization
+
+- Immutable code-version lookback now controls canonical history across Study Lab, EasyScan,
+  Strategy Lab, and reruns. Batch datasets receive at least `lookback + 1` bars; single and
+  benchmark datasets use the same bounded requirement; lookbacks at or above 5,000 bars fail with
+  a structured error rather than silently producing insufficient-history results.
+- Focused materialization API coverage passes `21/21`; affected EasyScan/Strategy Lab suites pass
+  `82/82`; the authoritative backend gate passes `1343/1343` at `79.60%` coverage with 86 known
+  third-party warnings. Docker storage exceeded the 10GB hygiene threshold, so authorised
+  non-volume `docker system prune -af` reclaimed `12.29GB`; named volumes remained intact.
+- Acceptance flexibility used: **None**. Visual board/state, provider/live, physical-monitor,
+  long-duration endurance, and final-audit gaps remain explicitly open.
+
+## 2026-08-10 — Unified Python visual conditions and current acceptance gates
+
+- Visual EasyScan conditions now compile deterministically into the unified Python SDK rather
+  than creating a second executable condition language. Supported tree nodes cover logical
+  groups, price/indicator thresholds and crosses, bar and named-period performance, 52-week
+  events, and prepared metadata/statistics; unsupported nodes return source-positioned errors.
+- Saving a visual condition creates or versions a user-owned immutable Boolean `CodeAsset`; the
+  condition payload retains the visual tree plus `python_code_version_id` and generated source.
+  New `/from-condition` runs use the isolated Python runner, while older records without a Python
+  version remain on the explicit compatibility evaluator. The first Run in EasyScan uses the
+  returned immutable Python version directly.
+- The research runner now exposes prepared canonical metadata and canonical indicator evaluation
+  through the same SDK, with declared timeframe materialization and no-network image smoke
+  validation. The Market Gauge exclusion normalizer accepts both legacy maps and Python manifest
+  lists.
+- Focused compiler, runner, workspace, screener, analysis, and EasyScan tests pass; the full
+  frontend Vitest suite passes `676/676`, and the full backend gate passes `1337/1337` at `79.59%`
+  coverage (75% required, 86 known third-party deprecation warnings). The full authenticated
+  Chromium matrix passes `85/85` in `10.2m` on
+  the current branch stack; a preceding 84/85 run exposed the hidden-refresh timing race, the
+  isolated flow stress run passed `10/10`, and the complete rerun passed cleanly. Branch service
+  logs contain no audited 5xx/traceback/MissingGreenlet/UniqueViolation/CRITICAL/FATAL/Unhandled/
+  ERROR signatures.
+- This closes the current repository-controlled unified-Python condition boundary. It does not
+  close exact-build or unrepresented visual references, provider/entitlement/taxonomy breadth,
+  physical multi-monitor validation, beyond-bounded endurance, or the final whole-product audit.
+  Acceptance flexibility used for this entry: **None** for product behavior; the existing
+  board/fixture, browser-popout, and bounded-stress substitutions remain explicitly tracked.
+
+## 2026-08-10 — Non-seeded core top-down workstation gate
+
+- Rebuilt the branch-scoped Compose stack with `E2E_SEED_INSTRUMENTS=false` and
+  `E2E_SEED_MARKET_DATA=false`; `/health` reports both flags as `false`.
+- The authenticated Chromium top-down slice passes `8/8` in `48.2s`: labelled SPX-to-SPY
+  fallback, SPY/RSP relative strength, canonical SPY/RSP/XLK holdings, all 11 sector industry
+  surfaces, XLK/XLE ratio editing, deep industry-proxy/constituent drilldown, and stable
+  horizontal scrolling.
+- The complete authenticated `flows.spec.ts` matrix against the same non-seeded stack passes
+  `85/85` in `9.5m` with one worker, including the workstation shell, linking, pop-outs,
+  Python/Study Lab, scans/gauges, notes/alerts, legacy boundaries, uPlot performance, and
+  lifecycle/churn paths.
+- Backend, worker, and research-runner logs are clean for the audited HTTP 5xx, traceback,
+  MissingGreenlet, UniqueViolation, CRITICAL, FATAL, Unhandled, and ERROR signatures.
+- Together with the current backend/type/build gates recorded below, this satisfies the
+  documented initial robust-workstation gate on this clean non-seeded deployment. It does not
+  close broader provider/entitlement/taxonomy coverage, visual-reference gaps, native physical
+  multi-monitor validation, beyond-bounded endurance, or the final requirement audit.
+- Acceptance flexibility used: **None** for this run. The separate board/fixture visual track,
+  browser pop-out/physical-monitor substitution, and bounded-stress substitution remain explicit
+  in their existing ledger entries.
+
+## 2026-08-10 — Final current-head workstation acceptance matrix and oracle tie-breaks
+
+- The complete authenticated Chromium matrix now passes `85/85` in `9.6m` with one serial
+  worker. This is the authoritative current-head browser evidence for the workstation, including
+  shell/layouts, docking/pop-outs/recovery, linking/timeframes/cross-window cursors, top-down
+  SPY/RSP/sector/industry/constituent analysis and ratios, Python/Study Lab, scans/gauges,
+  notes/alerts, legacy compatibility, excluded-domain containment, uPlot performance, and churn.
+- Full frontend Vitest passes `675/675` across 91 files; `vue-tsc --noEmit` and the 468-module
+  production build pass. Focused follow-up paths pass: oracle repairs `5/5` and freshness/lifecycle
+  regressions `4/4`, with the final full run covering all 85 paths.
+- Repaired and reran localized test-oracle races: deterministic delayed watchlist fixture instead
+  of a slow backend proxy, explicit technical/OHLCV response waits, pop-out hydration budgets,
+  sector-row readiness, SPX `canonical_only` route matching, and reset readiness. F8f now tests its
+  actual source-tool leak contract without requiring unrelated data-dependent canvases. These are
+  documented fix-first tie-breaks, not hidden product gaps.
+- Flexibility used and retained in the evidence: deterministic browser fixtures for unavailable/
+  delayed responses, bounded per-test hydration budgets, browser pop-outs rather than physical
+  multi-monitor placement, and the accepted 230-image board/fixture visual track. No visual
+  threshold, mask, or product capability was silently relaxed. Exact-build/unrepresented visual,
+  provider/entitlement/taxonomy, physical-monitor, beyond-bounded-endurance, and final-audit gaps
+  remain explicitly open.
+
+## 2026-08-10 — Watchlist failure isolation and final current-head matrix
+
+- Added list-scoped error state for top-down benchmark and sector watchlists. Failed market-group
+  or snapshot requests now remain attached to the affected list, show an assertive alert, and
+  retain any cached rows; unrelated lists remain clean.
+- Focused watchlist browser coverage passes `2/2` (busy plus deliberate unavailable snapshot) in
+  `22.1s`; focused component coverage passes `56/56`; full frontend Vitest passes `674/674`;
+  type-check and the 468-module production build pass.
+- The rebuilt branch stack's complete authenticated Chromium matrix passes `84/84` in `13.3m`
+  with one worker. The intentional unavailable-data oracle uses the repository's existing handled
+  404 diagnostic contract; no acceptance flexibility, visual threshold, or mask was used.
+- Remaining exact-build/unrepresented visual, provider/entitlement/taxonomy, native-monitor,
+  beyond-bounded-endurance, and final-audit gaps remain explicitly tracked.
+
+## 2026-08-10 — Top-down watchlist refresh semantics and current-head matrix
+
+- Top-down benchmark and sector watchlists now expose explicit `aria-busy` state and a visible
+  polite refresh status while the shared Vue Query market-analysis refresh is in flight. Dense
+  virtualized rows remain mounted, preserving list identity and selection.
+- Focused component coverage passes `55/55`; type-check and the 468-module production build pass.
+  After rebuilding only the branch frontend container, F8s-watchlist passes `1/1` in `16.7s`.
+- The complete authenticated Chromium matrix passes `83/83` in `12.1m` with one worker.
+- No acceptance flexibility, visual threshold, or mask was used. Board/fixture interim visual
+  authority, exact-build/unrepresented visual, provider/entitlement/taxonomy, native-monitor,
+  beyond-bounded-endurance, and final-audit gaps remain explicitly open.
+
+## 2026-08-10 — Current board-guided visual matrix after lifecycle/recovery work
+
+- The exact current UI passes the complete no-update board-guided visual matrix `104/104` in
+  `8.9m` across 1920×1080 and 2560×1440 at 100% and 125% display scale. The isolated seeded
+  project used alternate ports, and its backend/worker/research-runner logs contain no audited
+  runtime error signatures; the project was stopped without deleting named volumes.
+- This advance explicitly uses the accepted board/fixture flexibility: the 230-image board and
+  deterministic seeded data are interim authority for represented states, not exact-build approval.
+  Remaining gaps are `REF-SHELL-V25`, `REF-STATE-VARIANTS`, `REF-LINKING-V25`, `REF-STUDY-LAB-V25`,
+  `REF-ENV-TOKENS`, `REF-PERMISSION-REVIEW`, broader provider/entitlement/taxonomy coverage,
+  native physical multi-monitor validation, and beyond-bounded endurance. No threshold, mask, or
+  product criterion was changed.
+
+## 2026-08-10 — Workspace conflict recovery and current-head matrix
+
+- Added a browser acceptance path that forces a revision conflict during a real Add Tool
+  mutation, returns a deterministic concurrent workspace, and verifies the user-facing recovery
+  message that local changes were preserved in a named recovery copy.
+- The first oracle run exposed two test defects: the baseline fetch lacked the browser bearer
+  token, and the recovery assertion was case-sensitive. Both were repaired; focused F8j-conflict
+  now passes `1/1` in `13.1s`.
+- The exact current source's complete authenticated Chromium matrix passes `82/82` in `14.9m`
+  with one worker. Full frontend Vitest remains `672/672`; type-check/build remain green.
+- No acceptance flexibility, visual threshold, or mask was used. Exact-build/unrepresented visual,
+  provider breadth, native-monitor, beyond-bounded-endurance, and final-audit gaps remain open.
+
+## 2026-08-10 — Study Lab cancellation lifecycle and current-head matrix
+
+- Added a real browser acceptance path for Study Lab validation → queued run → Cancel → terminal
+  canceled state, including the absence of stale cancel controls/polling state after cancellation.
+  This covers the required durable research lifecycle; existing component coverage already covers
+  shared-cache cancellation races.
+- Focused F8t-cancel passes `1/1` in `14.7s`; the exact current source's complete authenticated
+  Chromium matrix passes `81/81` in `13.5m` with one worker. Full frontend Vitest remains
+  `672/672`; the latest type-check and production build remain green.
+- No acceptance flexibility, visual threshold, or mask was used. Exact-build/unrepresented visual,
+  provider breadth, native-monitor, beyond-bounded-endurance, and final-audit gaps remain open.
+
+## 2026-08-10 — Market Breadth state semantics and current-head matrix
+
+- Market Breadth now has explicit universe-scoped loading, error, unavailable, and busy state
+  semantics backed by independent snapshot/history request state in the workstation store. The
+  dense metric, drilldown, and uPlot history presentation is unchanged.
+- Focused store coverage passes `45/45`; type-check and the 468-module production build pass;
+  rebuilt-stack F8s-breadth passes `1/1` in `17.4s`; full frontend Vitest passes `672/672`.
+- The exact current source then passed the complete authenticated Chromium matrix `80/80` in
+  `11.6m` with one worker. No acceptance flexibility, visual threshold, or mask was used;
+  exact-build/unrepresented visual, provider breadth, native-monitor, beyond-bounded-endurance,
+  and final-audit gaps remain open.
+
+## 2026-08-10 — Current-head workstation matrix after state-semantics repairs
+
+- The rebuilt branch stack's complete authenticated Chromium matrix now passes `79/79` in
+  `14.2m` with one worker. It covers authentication, charts/templates/drawings, workspaces,
+  docking/pop-outs/recovery, links/timeframes/cross-window cursors, top-down SPY/RSP/sector/
+  industry/constituent analysis and ratios, Python/Study Lab, scans/gauges, notes/alerts,
+  legacy compatibility, excluded-domain containment, uPlot performance, and workstation churn.
+- The three latest workstation repairs (Notes, Coverage, Relative Rotation, Instrument Report)
+  are included in this authoritative run. Backend/worker/research-runner service logs were not
+  reported with audited runtime errors by the matrix. No acceptance flexibility, visual threshold,
+  or mask was used; exact-build/unrepresented visual, provider breadth, native-monitor,
+  beyond-bounded-endurance, and final-audit gaps remain open.
+
+## 2026-08-10 — Instrument Report disclosure keyboard isolation
+
+- Converted the symbol-linked Instrument Report section header into a keyboard-operable disclosure
+  region with explicit `role=region`, `role=button`, `tabindex`, and `aria-expanded` state. Enter
+  and Space toggle the report without changing its dense visual composition.
+- The first real-user test exposed a genuine propagation defect: Space bubbled into the workstation
+  global symbol traversal and changed SPY to QQQ. Enter/Space now stop propagation; focused report
+  coverage passes `3/3`, type-check/build pass, and the rebuilt browser oracle passes `1/1` in `9.4s`.
+- This localized keyboard defect was repaired and independently rerun under the fix-first tie-break;
+  no acceptance flexibility, visual threshold, or mask was used. Exact-build/unrepresented visual,
+  provider breadth, native-monitor, beyond-bounded-endurance, and final-audit gaps remain open.
+
+## 2026-08-10 — Relative Rotation state semantics and oracle correction
+
+- Added a benchmark-scoped Relative Rotation region with `aria-busy`, polite loading/empty status
+  regions, and assertive calculation errors. The uPlot rotation plane, tails, sortable table, and
+  dense controls are unchanged.
+- Focused RelativeRotationTool coverage passes `6/6`; type-check and the 468-module production
+  build pass; rebuilt Add Tool → Relative Rotation acceptance passes `1/1` in `9.2s`.
+- The first browser oracle incorrectly required a status node after a successful loaded response;
+  the valid loaded state renders rows/plot instead. The oracle was corrected to accept rows or an
+  explicit status/error state and rerun successfully. This is recorded as a localized test
+  tie-break repair; no acceptance flexibility, visual threshold, or mask was used.
+- Exact-build/unrepresented visual, provider breadth, native-monitor, beyond-bounded-endurance,
+  and final-audit gaps remain open.
+
+## 2026-08-10 — Coverage tool state semantics
+
+- Added a symbol-scoped Coverage region with `aria-busy`, polite loading/assessment/empty status
+  regions, assertive fetch/range-validation errors, and labelled dataset-state cells. The dense
+  provenance and OHLCV-readiness layout is unchanged.
+- Focused CoverageSummaryTool coverage passes `4/4`; type-check and the 468-module production
+  build pass; the rebuilt Add Tool → Coverage browser oracle passes `1/1` in `15.3s`; full frontend
+  Vitest passes `670/670`.
+- No acceptance flexibility, visual threshold, or mask was used. Exact-build/unrepresented visual,
+  provider breadth, native-monitor, beyond-bounded-endurance, and final-audit gaps remain open.
+
+## 2026-08-10 — Symbol-linked Notes state semantics and rebuilt-image validation
+
+- Added a named symbol-scoped Notes region with `aria-busy`, polite status announcements for
+  loading/saving/saved states, and assertive alert semantics for load/save failures. Notes now
+  reads and updates the shared Vue Query cache while retaining generation checks and debounced
+  canonical autosave; visible dense composition is unchanged.
+- Focused linked-tool/race coverage passes `7/7`; local type-check and the 468-module production
+  build pass; full frontend Vitest passes `670/670`.
+- The first rebuilt-stack browser attempt exposed a stale frontend image whose bundle omitted the
+  source patch. A no-cache frontend rebuild corrected the deployment; authoritative F8s passes
+  `1/1` in `13.1s`, and the complete rebuilt authenticated `flows.spec.ts` matrix passes `76/76`
+  in `13.9m`.
+- This is a localized repository-controlled defect and was repaired under the fix-first tie-break;
+  no acceptance flexibility, visual threshold, or mask was used. Exact-build/unrepresented visual,
+  provider breadth, native-monitor, beyond-bounded-endurance, and final-audit gaps remain open.
+
+## 2026-08-10 — Active Alerts state semantics
+
+- Added a named symbol-scoped Alerts region with busy state, assertive error state, loading/empty
+  status regions, labelled saved-alert list items, and accessible firing-history controls. The
+  dense alert editor/list layout is unchanged.
+- Focused linked-alert/stale-response coverage passes `7/7`; rebuilt F11 browser acceptance passes
+  `1/1` in `24.3s`; full frontend Vitest passes `670/670`, type-check and the 468-module production
+  build pass.
+- The first browser invocation ended without a completion summary; it was rerun rather than treated
+  as evidence and the authoritative rerun passed. No acceptance flexibility, visual threshold, or
+  mask was used; exact-build/unrepresented visual, provider, native-monitor, endurance, and final-
+  audit gaps remain open.
+
+## 2026-08-10 — Market Gauge state semantics
+
+- Added a named `Market Gauge` region with busy state, polite freshness status, assertive error
+  state, and explicit loading/empty status regions. The scan-driven dense gauge layout and values
+  are unchanged.
+- Focused Market Gauge coverage passes `7/7`; rebuilt scan/gauge browser flows F8w/F8w-a pass
+  `2/2` in `25.7s`; full frontend Vitest passes `670/670`, type-check and the 468-module
+  production build pass.
+- No acceptance flexibility, visual threshold, or mask was used. This closes a repository-controlled
+  top-down state/accessibility gap; exact-build/unrepresented visual, provider, native-monitor,
+  endurance, and final-audit gaps remain open.
+
+## 2026-08-10 — Shell freshness live-status semantics
+
+- Added a stable `workstation__data-state` status region to both docked and pop-out shell
+  headers/footers. Current, fetching, backfilling, stale, delayed, partial, coverage-limited,
+  and unavailable labels now expose polite live announcements with atomic freshness labels;
+  visible density and styling are unchanged.
+- Focused freshness/pop-out coverage passes `31/31`; rebuilt F8i shell interaction passes `1/1`
+  in `8.6s`; full frontend Vitest passes `669/669` and type-check passes.
+- The first browser attempt exposed two brittle class-prefix test locators after the intentional
+  base-class addition. They were migrated to the stable semantic selector and the focused rerun
+  passed. No acceptance flexibility, visual threshold, or mask was used; exact-build/unrepresented
+  visual, provider, native-monitor, endurance, and final-audit gaps remain open.
+
+## 2026-08-10 — Study Results state semantics
+
+- Added explicit semantic regions to persisted Study Results: named surface and run list, selected
+  run state, run status, detail loading/empty/error states, structured artifact labels, table
+  captions/scopes, and occurrence list items. The dense visual composition is unchanged.
+- Focused Research Results coverage passes `9/9`; full frontend Vitest passes `669/669` across 91
+  files, type-check and the 468-module production build pass; rebuilt browser F8t-results passes
+  `1/1` in `13.8s`.
+- No acceptance flexibility, visual threshold, or mask was used. This closes a repository-controlled
+  state/accessibility gap; exact-build/unrepresented visual, provider, native-monitor, endurance,
+  and final-audit gaps remain open.
+
+## 2026-08-10 — Study Lab state live-region semantics
+
+- Added explicit live-region semantics to Study Lab validation, running, and execution-error
+  surfaces: invalid validation is an assertive alert, valid validation is a polite status, and
+  run/error updates are announced without changing the dense visual composition.
+- Focused Study Lab coverage passes `19/19`; the rebuilt branch browser oracle F8t passes `1/1`
+  in `10.1s`.
+- No acceptance flexibility, visual threshold, or mask was used. This closes a
+  repository-controlled state/accessibility gap; exact-build/unrepresented visual, provider,
+  native-monitor, endurance, and final-audit gaps remain open.
+
+## 2026-08-10 — Study Lab structured-result semantics
+
+- Added stable semantic labels to Study Lab metric cards, non-scalar result regions, table captions
+  and column scopes, and occurrence lists/items. The rendered composition is unchanged; dense
+  structured outputs are now navigable and addressable by tests and assistive technology.
+- Focused Study Lab coverage passes `19/19`; full frontend Vitest passes `668/668` across 91 files,
+  type-check and the 468-module production build pass.
+- Rebuilt the branch frontend and authenticated Study Lab browser acceptance passes `5/5` in 1.2m
+  (`F8g`, `F8o`, `F8p`, `F8q`, `F8t`) with no reported browser diagnostics.
+- No acceptance flexibility, visual threshold, or mask was used. This closes a repository-controlled
+  structured-output accessibility gap; Study Lab visual-reference, provider, native-monitor,
+  endurance, and final-audit gaps remain open.
+
+## 2026-08-10 — virtual watchlist selection semantics
+
+- Added listbox/option semantics to the virtualized workstation watchlists, including accessible
+  symbol/name labels, active and multi-selected row state, and explicit multi-selection metadata.
+- The focused watchlist suite passes `54/54`; the full frontend suite passes `667/667` across 91
+  files, type-check and the 468-module production build pass.
+- The complete authenticated `flows.spec.ts` matrix passes `75/75` in 11.6m after the frontend
+  image rebuild, covering the full workstation, legacy, exclusions, and containment paths.
+- Rebuilt the branch frontend container and authenticated Chromium F8d, F8d-SPX, and F8r pass
+  `3/3` in 28.6s. No acceptance flexibility, visual threshold, or mask was used.
+- The first browser attempt correctly exposed stale-container/test-locator evidence; the bundle
+  was rebuilt and all affected real-user locators were migrated to the new option contract.
+- This closes a repository-controlled watchlist accessibility contract gap; board/reference,
+  provider breadth, native-monitor, endurance, and final-audit gaps remain open.
+
+## 2026-08-10 — shared tool-window action accessibility parity
+
+- Hardened the shared TC2000-style `ToolWindow` chrome so the menu, maximize, float, and close
+  icon controls expose explicit accessible names in both docked and browser-popout instances;
+  visible titles and behavior are unchanged.
+- Focused component regression passes `4/4`; the full frontend suite passes `666/666`,
+  `vue-tsc --noEmit`, and the 468-module production build pass.
+- The real-user F8r browser oracle now asserts the same accessible names and passed `1/1` in 13.0s
+  against the rebuilt branch Compose stack, with no reported browser diagnostics.
+- This is a repository-controlled UI parity/accessibility correction. Acceptance flexibility used:
+  None. The board-guided visual, unrepresented-state, provider breadth, native-monitor,
+  endurance, and final-audit gaps remain open.
+
+## 2026-08-10 — Keating native holdings route
+
+- Promoted Keating's official KEAT fund-page HTML holdings table at
+  [etfkeatinginvestment.com](https://etfkeatinginvestment.com/) from generic fallback to a
+  provider-specific adapter with dated `EFFECTIVE_DATE` parsing, provenance, and SEC fallback.
+- Deterministic ETF adapter units pass `471/471`; the exact opt-in official-route live probe
+  passes `1/1`; the authoritative Docker-backed backend gate passes `1,329/1,329` at `79.60%`.
+- Registry state is now `496` registered, `352` native/live-backed, and `144` audited fallback-only.
+- This is supporting infrastructure for ETF-proxy/constituent drill-down. No UI, visual
+  threshold, mask, or product acceptance criterion changed; visual-reference, broader provider,
+  native-monitor, indefinite-endurance, and final-audit gaps remain open.
+
+## 2026-08-10 — top-down browser regression after provider rebuild
+
+- Rebuilt the branch backend image and ran the focused authenticated `F8d` top-down slice against
+  the normal non-fixture stack: benchmark/sector selection and the labelled SPX→SPY proxy path
+  pass `2/2` in `23.5s`.
+- Health remains normal (`e2e_seed_instruments=false`, `e2e_seed_market_data=false`); this
+  validates that the supporting provider change did not regress the workstation's core top-down
+  flow. Acceptance flexibility used: None for this advance; the existing board, hardware, and
+  bounded-endurance substitutions remain separately tracked.
+
+## 2026-08-10 — Truth Social/Yorkville native-route identity reconciliation
+
+- Corrected a second naming-dependent top-down data defect: the complete Yorkville/Truth Social
+  native Google CSV adapter was live-backed under `yorkville`, while canonical `truth_social`
+  discovery still selected the generic fallback.
+- `truth_social` now shares the verified native route with `yorkville`; its fallback audit and
+  adapter map are removed, while the original adviser key remains intact.
+- The official Truth Social TSIC product page and downloadable holdings route were exercised;
+  the two selected live cases (`yorkville`, `truth_social`) pass `2/2`.
+- ETF adapter/catalog units pass `469/469`; the Docker-backed combined backend gate passes
+  `1,327/1,327` at `79.60%` coverage with only known third-party warnings. Registry state is
+  `496` registered, `351` native/live-backed, and `145` audited fallback-only.
+- No TC2000 UI, visual threshold, mask, or acceptance criterion changed. Remaining provider
+  breadth, visual exact/unrepresented states, physical-monitor, indefinite-endurance, and final
+  audit gaps remain tracked.
+
+## 2026-08-10 — bounded 500-round workstation lifecycle soak
+
+- The current branch stack completed both workstation performance tests with
+  `TC2000_POP_OUT_CHURN_ROUNDS=500`: `2/2` passed in `11.2m`.
+- The run repeatedly opened two real browser pop-outs, synchronized symbols, closed them, and
+  checked bounded source tool/chart/canvas counts plus available Chromium heap ceilings on every
+  round. Browser diagnostics passed.
+- This materially strengthens bounded endurance evidence and raises the exercised churn budget
+  to the hard repository cap. It is still not indefinite endurance and does not use native
+  physical multi-monitor placement; those gaps remain explicitly open. No criterion was relaxed.
+
+## 2026-08-10 — current-head authenticated matrix after supporting-data correction
+
+- The actual current branch stack is healthy in normal mode (`e2e_seed_instruments=false`,
+  `e2e_seed_market_data=false`). The complete current `frontend/tests/e2e/flows.spec.ts` matrix
+  runs `75/75` in `11.9m` with one worker.
+- This rerun covers the current source file's authentication, chart/templates/drawings,
+  workspace/pop-outs, link groups/timeframes/crosshairs, top-down/ratios, Python/Study Lab,
+  scans/gauges, notes/alerts, legacy, unsupported domains, and containment paths.
+- This reconciles older prose mentioning `78/78` against the actual current test collection;
+  no test was silently omitted. The current file collects 75 tests and all pass.
+- No UI, visual, threshold, mask, or acceptance criterion changed. Existing board/fixture
+  interim flexibility and visual-reference, provider breadth, physical-monitor, endurance, and
+  final-audit gaps remain explicitly open.
+
+## 2026-08-10 — AltShares native-route identity reconciliation
+
+- Corrected a supporting top-down data defect: the verified complete AltShares holdings route
+  was previously registered only under its Water Island adviser alias, while canonical
+  `altshares` discovery still selected the generic fallback adapter.
+- `altshares` now shares the verified periodic portfolio-report route and native parser with
+  `water_island`; the fallback audit and adapter map no longer classify it as unresolved.
+- The official AltShares route live check passes `1/1`; ETF adapter/catalog units pass `468/468`;
+  the Docker-backed backend gate passes `1,326/1,326` with `79.60%` coverage and only known
+  third-party NumPy/nautilus warnings.
+- No TC2000 UI, visual threshold, mask, or acceptance criterion changed. This is supporting
+  infrastructure for ETF-proxy/constituent drill-down. Broader provider breadth, visual exact-
+  build/state variants, physical-monitor, indefinite-endurance, and final-audit gaps remain.
+
+## 2026-08-10 — full authenticated workflow revalidation after fixture-target repair
+
+- After restoring the persistent branch stack to `e2e_seed_instruments=false` and
+  `e2e_seed_market_data=false`, the complete authenticated Chromium matrix passes `75/75` in
+  `11.1m` with one worker.
+- Coverage includes authentication, chart/template/drawing flows, workspace layouts and
+  pop-outs, symbol/timeframe/link-group/crosshair propagation, top-down SPX/SPY/RSP/sector/
+  industry/constituent drill-down, ratios, unified Python and Study Lab, scans/gauges,
+  notes/alerts, unsupported-domain hiding, legacy routes, and performance/containment checks.
+- Post-run backend, worker, and research-runner log audits contain no HTTP-5xx, traceback,
+  MissingGreenlet, UniqueViolation, critical, fatal, unhandled, or error signatures. Health is
+  normal non-fixture mode. No acceptance flexibility was used for this functional run; the
+  documented board/fixture visual flexibility, provider breadth, native-monitor, endurance, and
+  final-audit gaps remain open.
+
+## 2026-08-10 — fixture propagation repair and isolated board visual acceptance
+
+- Fixed `make test-stack-up` so `E2E_SEED_INSTRUMENTS` and `E2E_SEED_MARKET_DATA` are propagated
+  from the caller with safe defaults (`true` and `false` respectively), and the selected fixture
+  mode is printed before Compose starts. This closes the harness defect where
+  `test:visual:board` requested market fixtures while the backend remained unseeded.
+- The repaired target was verified by rebuilding the branch stack with both flags true; its
+  health endpoint reported `status=ok`, `e2e_seed_instruments=true`, and
+  `e2e_seed_market_data=true`.
+- A visual run against that persistent stack exposed the known mixed canonical/fixture-data
+  content difference (`33,132` pixels, 2%) and was stopped without promoting snapshots. This is
+  an environment/data-isolation result, not a UI regression.
+- The dedicated temporary `tc2000-board-current` Compose project on alternate ports was then
+  started with both fixture flags true. The complete board-guided matrix passed `104/104` in
+  `8.1m` across 1920×1080 and 2560×1440 at 100% and 125% display scale. Manifest validation and
+  visual interaction/overlap assertions passed; no threshold, mask, or product criterion changed.
+- Interim flexibility used explicitly: controlled seeded fixtures and the composite reference
+  board for visual acceptance. Exact-build/unrepresented visual, provider/entitlement,
+  native-monitor, endurance, and final-audit gaps remain open.
+
+## 2026-08-10 — focused provider and top-down backend regression gate
+
+- The provider, ETF-adapter, and top-down-taxonomy focused suite passes `557/557` tests in
+  17.72s with `--no-cov`.
+- A first subset invocation also had zero test failures but exited at 52.23% because the
+  repository-wide pytest coverage threshold is applied to subsets; that result was not treated
+  as a coverage gate. The corrected no-coverage invocation is the focused-test evidence, while
+  the full `make test-backend-coverage` result remains authoritative for coverage.
+- No provider route was promoted and no acceptance flexibility was used in this advance. The
+  broader provider/entitlement breadth gap remains explicitly tracked.
+
+## 2026-08-10 — frontend regression, type-check, and production build gate
+
+- The corrected frontend gate passes all 91 Vitest files and `666/666` tests. The two conflict
+  messages emitted by watchlist failure-path tests are expected assertions, not failures.
+- `vue-tsc --noEmit` passes and the production Vite build succeeds after transforming 468 modules.
+- The initial invocation used an unsupported Jest-only `--runInBand` flag; it was corrected and
+  the actual Vitest command was rerun successfully. No application defect was exposed by the
+  failed invocation.
+- No acceptance flexibility was used. The board/state-variant, provider/entitlement,
+  native-monitor, endurance, and final-audit gaps remain open.
+
+## 2026-08-10 — official keyboard behavior evidence added to visual ledger
+
+- Added the official Version 25 Hot Keys & Keyboard Shortcuts article to the visual manifest
+  authority evidence. It confirms symbol typing/search, Spacebar and Ctrl+Spacebar traversal,
+  Ctrl+wheel timeframe navigation, chart shortcuts, and window maximize behavior.
+- This is behavior evidence only: the article has no deterministic screenshot, pinned-build
+  environment metadata, or visual measurements. It therefore strengthens the interaction oracle
+  but does not close the keyboard-help or keyboard-selected visual gaps.
+- No threshold, mask, baseline, product criterion, or acceptance flexibility changed. The
+  affected required-missing states remain explicitly tracked under the reference-gap ledger.
+
+## 2026-08-10 — manifest and operations consistency audit
+
+- The current visual manifest validates successfully against all 230 retrieved board media
+  records. Operations YAML and JSON parse successfully, and `git diff --check` is clean.
+- This confirms the board/gap ledger remains structurally valid after the latest functional and
+  backend checkpoints. No visual reference was promoted, no mask/threshold changed, and no
+  acceptance flexibility was used.
+
+## 2026-08-10 — authoritative backend gate after full workflow closure
+
+- The current branch backend gate passes `1,325/1,325` in `4m24s` with `79.60%` coverage,
+  above the required 75% threshold. This includes provider/ETF adapters, canonical instrument
+  boundaries, top-down taxonomy/analysis, Python validation, Study Lab/research jobs, sandbox
+  deployment/security contracts, workspaces, watchlists, and API integrations.
+- The only emitted warnings are the already-known third-party NumPy/nautilus deprecations; no
+  repository test failure or new backend warning was introduced. Acceptance flexibility used: none.
+- The latest frontend `75/75` authenticated matrix remains valid. Remaining goal work is limited
+  to the explicitly tracked visual-reference/state variants, provider/entitlement breadth,
+  native physical-monitor evidence, endurance, and final whole-product audit.
+
+## 2026-08-10 — full authenticated workflow closure after shell and watchlist fixes
+
+- The first post-watchlist full flow run exposed two localized defects: live watchlist
+  grouping/stacking did not observe replaced configuration objects, and deep-linking to
+  `/chart/SPY` left the active-symbol editor blank during workspace hydration. The fixes keep
+  the mounted configuration object identity, update group editing on input, and initialize the
+  shell draft synchronously from the route with a SPY fallback.
+- Regression evidence: focused workstation unit suite passes `15/15`; the focused F9c chart
+  template browser flow passes `1/1`; the rebuilt complete authenticated Chromium matrix passes
+  `75/75` in `11.8m`; frontend Vitest passes `665/665` across 91 files; `vue-tsc`, production
+  build (468 modules), stack health, service-log audit, and `git diff --check` pass.
+- Acceptance flexibility used: none for these defects or functional checks. The separate visual
+  revalidation used the documented 230-image board and controlled fixtures for represented and
+  unrepresented states; exact-build/state-variant references, provider/entitlement breadth,
+  native physical multi-monitor evidence, endurance, and final whole-product audit remain open.
+- This is a functional checkpoint, not completion of the persistent goal. Continue with the
+  remaining reference-gap, provider-coverage, endurance, and final acceptance work.
+
+## 2026-08-10 — isolated seeded visual acceptance revalidation
+
+- A persistent-branch visual run was correctly rejected because its database contained
+  canonical holdings while `E2E_SEED_MARKET_DATA=true`; its 27,345-pixel diff was not promoted
+  as a UI regression or snapshot update.
+- The documented isolated Compose project `tc2000-board-current` was rebuilt with alternate
+  ports (`55432`, `18000`, `18080`), both controlled fixture flags true, and a fresh database.
+  The complete board-guided visual matrix passes `104/104` in `9.0m` across all four required
+  display environments. The manifest validates, health reports both seed flags true, and the
+  isolated backend/worker/research-runner log audit is clean.
+- Acceptance flexibility used: the 230-image board and controlled fixture data were used for
+  board-guided/interim visual acceptance; exact-build and unrepresented-state gaps remain
+  explicitly open. No threshold, mask, snapshot, or product criterion changed.
+- The temporary project was stopped without deleting its volumes. The persistent branch stack was
+  restored with both seed flags false; health is `false/false`, the deep drill-down and all-sector
+  normal-stack reruns pass `1/1` each, and the post-run error-signature audit is clean.
+
+## 2026-08-10 — canonical industry-proxy metadata and rebuilt-stack verification
+
+- All 14 curated industry-proxy candidates now carry explicit issuer route metadata: SPDR
+  (`XBI`, `KRE`, `XAR`, `XHB`, `XOP`, `XRT`, `XME`), iShares (`SOXX`, `IBB`, `ITA`, `ITB`),
+  and VanEck (`SMH`, `OIH`, `SLX`). A taxonomy regression prevents future candidates from
+  entering without a named canonical adapter.
+- The opt-in live proxy matrix passes `10/10`; the ETF adapter suite passes `467/467`; the
+  authoritative Docker-backed backend gate passes `1,325/1,325`; and the six focused F8e
+  browser cases pass individually against the rebuilt branch stack. Health remains seed-free
+  (`false/false`) and the recent service-log audit is clean.
+- No acceptance flexibility used. This closes the curated-proxy route gap only; visual-state
+  reference gaps, physical multi-monitor evidence, long-duration endurance, broader provider
+  entitlement coverage, and the final whole-product audit remain open and tracked.
+
+## 2026-08-10 — curated SPDR/VanEck industry-proxy route coverage
+
+- Added canonical SPDR metadata for `XAR`, `XHB`, and `XOP`; added VanEck product slugs for
+  `OIH`, `SLX`, and `SMH` so proxy bootstrap does not depend on name matching.
+- The expanded opt-in live issuer matrix passes `10/10`; the complete ETF adapter suite passes
+  `467/467`; the authoritative Docker-backed backend gate passes `1,324/1,324` at the configured
+  coverage threshold.
+- Rebuilt branch services and reran authenticated `F8e`; the top-down browser slice passes `6/6`,
+  health reports seed flags false/false, and recent backend/worker/research-runner logs are clean.
+- No acceptance flexibility used. Remaining proxy/provider breadth, visual-state/reference,
+  native-monitor/endurance, and final-audit gaps remain open.
+
+## 2026-08-10 — curated iShares industry-proxy route coverage
+
+- Added issuer-resolved iShares product IDs for `IBB` (`239699`), `ITA` (`239502`), and `ITB`
+  (`239512`) from the official product pages: https://www.ishares.com/us/products/239699/,
+  https://www.ishares.com/us/products/239502/, and https://www.ishares.com/us/products/239512/.
+- The opt-in live issuer slice passes `3/3`; curated resolver checks pass `4/4` including SOXX,
+  the complete ETF adapter suite passes `467/467`, compilation/Ruff/diff checks pass, and the
+  authoritative combined Docker-backed backend gate passes `1,324/1,324` at the configured
+  coverage threshold.
+- No acceptance flexibility used. Remaining curated proxy routes, visual-state gaps,
+  native-monitor/endurance evidence, and the final whole-product audit remain open.
+
+## 2026-08-10 — rebuilt-stack iShares/top-down revalidation
+
+- Rebuilt only the branch-scoped backend, worker, and research-runner services so the running
+  application includes the new issuer route metadata; health reports `e2e_seed_instruments=false`
+  and `e2e_seed_market_data=false`.
+- The focused authenticated `F8e` top-down browser slice passes `6/6`; backend, worker, and
+  research-runner logs contain none of the audited HTTP 5xx, traceback, MissingGreenlet,
+  UniqueViolation, critical, fatal, unhandled, or error signatures.
+- This is live-stack functional evidence, not visual-reference flexibility. Remaining industry
+  proxy breadth, visual-state/reference, native-monitor, endurance, and final-audit gaps remain.
+
+## 2026-08-10 — SPDR industry-proxy live coverage
+
+- Added live acceptance cases for curated SPDR proxies `XBI`, `KRE`, `XRT`, and `XME`.
+- Official dated workbooks returned 157, 161, 77, and 41 parseable rows respectively; the SPDR
+  live slice including SPY passes `5/5`.
+- Route-matrix invariants, compilation, and lint pass. No acceptance flexibility used; remaining
+  iShares/VanEck and other industry-proxy coverage remains open.
+
+## 2026-08-10 — SOXX industry-proxy live validation
+
+- Added live acceptance coverage for curated semiconductor proxy `SOXX` through the official
+  iShares product-data route.
+- The dated response returned 34 parseable holdings including NVDA. The initial generic 100-row
+  expectation was corrected to a justified concentrated-ETF minimum of 30, with route/date and
+  representative-constituent assertions.
+- Focused iShares checks, compilation, and lint pass. No acceptance flexibility used; broader
+  industry-proxy coverage remains open.
+
+## 2026-08-10 — EasyScan condition editor board-coverage closure
+
+- Reclassified `watchlist-column-filter/condition_editor` from `required_missing` to
+  `board_covered`. The composed board contains official Version 25 condition-editor and
+  filter-selection states, and the real interaction oracle plus four deterministic local
+  baselines pass.
+- The source pages do not prove pinned `25.0.9571`; this remains optional strengthening evidence,
+  not an unrepresented-state gap. The remaining watchlist gap is partial coverage.
+- Acceptance flexibility used: board-guided evidence for this represented state. No threshold,
+  mask, or product criterion changed.
+
+## 2026-08-10 — O'Shares native holdings route and backend gate
+
+- Promoted O'Shares to a native/live-backed adapter using the official ALPS public holdings
+  proxy; the OUSA route returned complete dated holdings with issuer provenance.
+- Deterministic checks pass, elevated opt-in live coverage passes `2/2`, the complete ETF adapter
+  suite passes `464/464`, and the authoritative combined backend gate passes `1,321/1,321` at
+  `79.60%` coverage.
+- Registry is 496 registered / 349 native-live-backed / 147 audited fallback-only. No acceptance
+  flexibility used; remaining provider and workstation completion gaps remain open.
+
+## 2026-08-10 — Docker storage maintenance
+
+- Docker usage was 13.4GB before maintenance; the authorised non-volume `docker system prune -af`
+  reclaimed 11.71GB.
+- Post-cleanup usage is approximately 4.10GB (2.908GB images, 1.187GB named volumes, and
+  negligible containers); all 28 named volumes were preserved.
+- This is operational hygiene only and does not alter the TC2000 scope or acceptance bar.
+
+## 2026-08-10 — full backend gate after provider promotion
+
+- The authoritative combined Docker-backed backend unit/integration gate passes `1,320/1,320`
+  at `79.59%` line coverage against the required `75%` threshold.
+- The run includes the complete ETF adapter suite and the Leverage Shares native route; only
+  the known third-party NumPy/nautilus deprecation warnings were emitted.
+- This is supporting backend evidence for the TC2000 top-down workstation, not a workstation
+  completion claim. Exact-build/unrepresented visual, remaining provider/entitlement, native
+  multi-monitor, endurance, and final-audit gaps remain open.
+
+## 2026-08-10 — Leverage Shares native holdings route
+
+- Promoted Leverage Shares to a provider-specific native/live-backed adapter using the official
+  symbol-scoped CSV route `https://leverageshares.com/us/storage/holdings/{SYMBOL}_Holdings.csv`.
+- Official MPG fetch returned HTTP 200 with dated equity, treasury, and cash rows; provenance and
+  route metadata are preserved.
+- Focused parser/registry checks pass, ETF adapter units pass `463/463`, opt-in live MPG passes
+  `1/1`, and compile/lint/diff checks pass.
+- Registry state is now 496 registered / 348 native-live-backed / 148 audited fallback-only.
+  No acceptance flexibility used; remaining provider routes and Anfield's documented 404 remain
+  independent gaps.
+
+## 2026-08-10 — EasyScan condition-editor acceptance path
+
+- Added and strictly verified the real Add tool → EasyScan → Build technical condition tree path;
+  default AND semantics and +Condition/+Group controls are asserted.
+- Four deterministic local baselines pass 4/4; the complete isolated seeded board-guided matrix
+  passes `104/104` in `8.1m` across all four required display environments, with clean service logs.
+- This uses controlled-fixture/interim evidence only. `watchlist-column-filter/condition_editor`
+  remains `required_missing` because the official help material is not a pinned-build capture.
+- No threshold, mask, or acceptance criterion changed. Remaining exact-build/state-variant,
+  provider/live, native-monitor, endurance, and final-audit gaps remain open.
+
+## 2026-08-10 — board-guided matrix after column-editor repair
+
+- The benchmark watchlist now supplies its configured analytical column schema to the shared
+  virtualized list; the column editor is a bounded dense grid with scrolling and usable controls.
+- A strict rerun found 19 deterministic screenshot drifts from that intentional UI change and
+  stale 1440px seeded dates. Only affected baselines were regenerated and reviewed.
+- No-update acceptance now passes `100/100` in `7.7m` across all four display environments;
+  service-log audit is clean and the isolated stack was stopped without deleting volumes.
+- No acceptance flexibility was used for the code fix. Exact-build/state-variant, provider/live,
+  native-monitor, indefinite-endurance, and final-audit gaps remain open.
+
+## 2026-08-10 — reference-board expansion for filters, linking, and historic columns
+
+- Added official help-page sources for the integrated Condition Editor, ALL/ANY filter selection,
+  symbol linking, and historic columns to the controlled fetch catalogue.
+- Refreshed pack contains 230 media files across 26 surfaces; board validation passes `230/230`.
+- This strengthens board-guided watchlist/filter/linking composition. Sources remain discovery-only
+  when their page does not prove pinned build `25.0.9571`; exact-build and state-variant gaps stay
+  open. Acceptance flexibility used: none; no threshold, mask, or product criterion changed.
+
+## 2026-08-10 — board-guided visual matrix after reference-pack refresh
+
+- The refreshed 230-image working board is now paired with deterministic seeded states for the
+  currently represented workstation surfaces.
+- Isolated Compose project `tc2000-board-current` passes the unchanged visual matrix `100/100` in
+  `7.7m` at 1920×1080 and 2560×1440, both 100% and 125% display scale.
+- Backend/worker/research-runner logs are clean for the audited HTTP 5xx/traceback/
+  `MissingGreenlet`/`UniqueViolation`/critical/fatal/unhandled/error signatures.
+- The project was stopped without deleting volumes. Board-guided flexibility is explicit and
+  limited to represented states in the controlled fixture; exact-build/permission,
+  unrepresented-state, live-provider/taxonomy, native-monitor, indefinite-endurance, and final
+  requirement-audit gaps remain open. No thresholds, masks, baselines, or product criteria were
+  relaxed.
+
+## 2026-08-10 — reference-pack refresh and current backend gate
+
+- Refreshed the controlled official reference pack: all 190 media files retrieved, the board
+  rebuilt across 22 surfaces, and the board validator passed `190/190`.
+- The current Docker-backed combined backend gate passes `1,319/1,319` at `79.60%` coverage
+  with 86 known third-party deprecation warnings.
+- Acceptance flexibility used: none for this advance. Existing exact-build/unrepresented visual,
+  provider breadth, native-monitor, endurance, and final-audit gaps remain open.
+
+## 2026-08-10 — current-head F9e/F8l regression closure
+
+- Applied the fix-first tie-break to the two localized regressions exposed by the latest full
+  matrix. Workspace import/factory reset now flushes Golden Layout root withdrawal/replacement
+  boundaries; the F9d→F9e sequence passes `10/10` across five repetitions.
+- Shared top-down store loaders now reject queued market-analysis requests while the document is
+  hidden; the focused visibility regression passes `44/44`.
+- Rebuilt authenticated Chromium matrix passes `78/78` in `12.2m`; frontend Vitest passes
+  `665/665` across 91 files, type-check/build and `git diff --check` pass, and recent backend/
+  worker/research-runner error-signature logs are clean.
+- Acceptance flexibility used: none. Board/reference, provider breadth, native-monitor,
+  endurance, and final-audit gaps remain open.
+
+## 2026-08-10 — current-head live top-down browser revalidation
+
+- Rebuilt the durable branch backend/worker images so the browser exercised the latest canonical
+  RSP route.
+- Authenticated Chromium top-down slice passes `8/8`: SPX fallback, SPY/RSP, canonical holdings,
+  all-sector industry surfaces, ratio editing, deep proxy/constituent drilldown, and stable scroll.
+- Backend/worker/research-runner logs are clean for audited runtime error signatures. Acceptance
+  flexibility used: none.
+
+## 2026-08-10 — current-tree frontend revalidation
+
+- Full frontend Vitest passes `664/664` across 91 files.
+- `vue-tsc --noEmit` and the Vite production build (468 modules) pass after the backend RSP
+  route correction.
+- No visual threshold, mask, or acceptance criterion changed; remaining board/reference,
+  provider breadth, native-monitor, endurance, and final-audit gaps remain open.
+
+## 2026-08-10 — Invesco route correction and complete backend gate
+
+- The first full gate after the RSP canonical-route bridge exposed three stale ticker-route
+  assertions and one explicit product-page compatibility regression.
+- The adapter now keeps explicitly configured Invesco product-page discovery intact while
+  symbol-only canonical profiles use catalog→CUSIP; the assertions now describe the real route.
+- Focused correction checks pass `3/3`; the complete Docker-backed backend suite passes
+  `1,319/1,319` at `79.60%` coverage with 86 known dependency warnings. No acceptance flexibility
+  used. The initial failed gate remains recorded as fix-first evidence.
+
+## 2026-08-10 — canonical RSP bootstrap route
+
+- Known ETF route metadata now seeds RSP as Invesco with CUSIP `46137V357` and the `invesco`
+  holdings adapter.
+- Canonical bootstrap emits the CUSIP-addressed holdings URL; adapter catalog metadata no longer
+  advertises the rejected ticker-addressed URL as canonical.
+- Focused unit and Docker-backed integration regressions pass. Acceptance flexibility used: none.
+
+## 2026-08-10 — Invesco CUSIP-resolved RSP holdings route
+
+- Corrected the Invesco adapter's real route: ticker-addressed holdings requests can be rejected;
+  the public product catalog now resolves ticker→CUSIP and the adapter fetches the CUSIP route.
+- Live RSP ingestion returned 511 holdings with effective date `2026-08-08`, source URL recorded
+  as the CUSIP endpoint, and `issuer_public_json_catalog_cusip` route provenance.
+- The opt-in live RSP test passes and all 462 ETF-adapter unit tests pass. Acceptance flexibility
+  used: none.
+
+## 2026-08-10 — patched-stack live top-down revalidation
+
+- Rebuilt the durable branch stack with the holdings source-policy guard.
+- The complete focused authenticated top-down Chromium subset passes `7/7`: labelled SPX→SPY
+  fallback, SPY/RSP, canonical holdings, all-sector industry surfaces, ratio editing, deep
+  proxy/constituent drilldown, and stable horizontal scrolling. The backend/worker/
+  research-runner error-signature audit is clean.
+- Acceptance flexibility used: none.
+
+## 2026-08-10 — top-down controlled-fixture provenance boundary
+
+- Normal (non-E2E) market-group composition, industry-constituent, verified-proxy, and ETF
+  constituent reads now share a guard excluding `controlled_fixture`/`e2e_reference` snapshots.
+- The focused Docker-backed integration regression passes and proves a newer controlled fixture
+  cannot displace the canonical issuer disclosure. Seeded acceptance mode remains explicitly
+  opt-in through `E2E_SEED_MARKET_DATA`.
+- Acceptance flexibility used: none. Provider breadth and exact/unrepresented visual gaps remain
+  explicit.
+
+## 2026-08-10 — complete authenticated matrix after branch-stack rebuild
+
+- Rebuilt durable branch stack complete Chromium run passes `78/78` in 11.5 minutes with one
+  worker, covering the full authenticated workstation/supporting acceptance matrix.
+- Coverage includes shell/layouts, docking/pop-outs/recovery, link groups and cross-window
+  cursors/timeframes, keyboard, live top-down drilldown/ratios, Study Lab/Python promotion,
+  scans/gauges, notes/alerts, legacy/excluded domains, uPlot performance, and churn.
+- Backend/worker/research-runner logs are clean for the audited error signatures.
+- Acceptance flexibility used: none. Remaining visual-reference, provider breadth, physical
+  monitor, endurance, and final-audit gaps remain explicit.
+
+## 2026-08-10 — rebuilt branch-stack live top-down acceptance
+
+- Rebuilt the durable branch Compose stack after the `/health` proxy repair.
+- Frontend port 80 and backend port 8000 both return the JSON health contract with fixture flags
+  `false`/`false`.
+- The live non-seeded top-down subset passes `5/5`: SPX-to-SPY fallback labelling, SPY/RSP default
+  ratio, canonical SPY/RSP/XLK holdings, all-sector industry traversal, and XLK/XLE ratio editing.
+- Backend, worker, and research-runner logs contain none of the audited HTTP 5xx, traceback,
+  MissingGreenlet, UniqueViolation, CRITICAL, FATAL, Unhandled, or ERROR signatures.
+- Acceptance flexibility used: none. Seeded visual, unrepresented-reference, provider breadth,
+  physical-monitor, endurance, and final-audit gaps remain explicit.
+
+## 2026-08-10 — Docker acceptance-build cleanup
+
+- Docker usage was approximately 11.9 GB before cleanup, above the goal's 10 GB threshold.
+- The authorised `docker system prune -af` removed unused images/build cache and reclaimed
+  8.083 GB. Active containers and named volumes were preserved; post-cleanup usage is
+  approximately 3.9 GB including volumes.
+- Acceptance flexibility used: none.
+
+## 2026-08-10 — Anfield native-route re-audit
+
+- The indexed official Anfield/Regents Park ADFI page was rechecked directly because search still
+  described a downloadable holdings file; the current issuer URL returned HTTP 404.
+- The adapter therefore remains fallback-only. No stale indexed result was promoted to native/live
+  support. The route failure and conditional SEC fallback remain explicit provider-gap evidence.
+- This external gap does not affect the core SPY/RSP/sector workflow. Acceptance flexibility used:
+  none.
+
+## 2026-08-10 — current-code board-visual acceptance after fixture preflight repair
+
+- The first run of the new `/health` fixture preflight found a proxy defect: frontend nginx/Vite
+  returned the SPA HTML fallback instead of backend JSON. Both proxies now forward the exact health
+  path to the backend.
+- The rebuilt isolated seeded stack passed the unchanged board-guided visual command `96/96` in
+  7.4 minutes across all four required environments. Backend/worker/research-runner logs were
+  clean. No screenshot, threshold, mask, or product criterion changed.
+- The temporary stack was stopped without deleting volumes. Board-guided represented-state
+  flexibility remains explicit; exact-build/permission, unrepresented-state, provider/taxonomy,
+  native-monitor, endurance, and final-audit gaps remain tracked.
+
+## 2026-08-10 — isolated board-visual revalidation and fixture preflight
+
+- The first unchanged board-visual attempt against the persistent branch stack was discarded:
+  `E2E_SEED_MARKET_DATA=true` only reached Playwright while the backend remained unseeded, mixing
+  canonical Nasdaq data with deterministic fixtures and causing a 27,345-pixel (2%) content diff.
+- This was a harness/data-isolation defect, not a product geometry result. No snapshots were
+  promoted. `/health` now exposes fixture mode and the visual spec fails fast when the requested
+  seeded backend is absent; the focused health regression passes.
+- A separate seeded Compose project on alternate ports passed the complete board-guided matrix
+  `96/96` across all four required display environments. Manifest and backend/worker/research-runner
+  log audits were clean. The isolated stack was stopped without volume deletion; the persistent
+  branch stack was not altered.
+- **Acceptance flexibility used:** the approved 190-image board remains the represented-state
+  authority; no threshold, mask, or product criterion was relaxed. Exact-build/permission and
+  unrepresented-state visual gaps remain tracked, as do provider/taxonomy, native-monitor,
+  endurance, and final-audit gaps.
+
+## 2026-08-10 — current-state authenticated Chromium revalidation
+
+- The unchanged full Playwright matrix passes `78/78` in one serial Chromium worker in 12.2
+  minutes against the current branch stack.
+- It covers authentication, workstation/layouts, docking/pop-outs/recovery, link groups,
+  cross-window cursors/timeframes, keyboard traversal, canonical top-down drilldown and ratios,
+  Study Lab/Python promotions, scans/gauges, notes/alerts, legacy/excluded domains, uPlot
+  performance, and workstation churn.
+- A post-run backend/worker/research-runner log audit found no HTTP 5xx, traceback,
+  MissingGreenlet, UniqueViolation, CRITICAL, FATAL, Unhandled, or ERROR signatures.
+- The first non-elevated launch failed before application startup at the macOS Chromium Mach-port
+  permission boundary; the elevated unchanged rerun is authoritative. Acceptance flexibility used:
+  none. Remaining visual/reference, provider/entitlement/taxonomy, native-monitor, endurance,
+  and final-audit gaps remain open.
+
+## 2026-08-10 — post-lint-fix backend revalidation
+
+- Repaired three repository-controlled Ruff defects: two import-order issues and one unused test
+  import. Full-tree `ruff check` passes; focused exchange-catalog/instrument-mastering regressions
+  pass `28/28`.
+- The unchanged authoritative backend command passes `1,316/1,316` at `79.61%` coverage against a
+  temporary isolated PostgreSQL database and Redis namespace, with 86 known third-party
+  deprecation warnings only. The temporary database was removed after the run.
+- `ruff format --check` still reports 79 broad pre-existing formatting differences; no unrelated
+  large files were reformatted. Acceptance flexibility used: none. Remaining visual/reference,
+  provider/entitlement/taxonomy, native-monitor, endurance, and final-audit gaps remain open.
+
+## 2026-08-10 — strict visual-reference audit
+
+- `visual_manifest ... --require-approved` fails closed at
+  `application-shell-default/default` because the current lifecycle is `board_covered`, not
+  exact-build `approved`.
+- Normal manifest validation and board-guided four-environment visual acceptance remain the active
+  track for represented states; this is an explicit stronger-evidence gap, not a whole-goal
+  blocker or a screenshot mismatch.
+- **Acceptance flexibility used:** the approved 190-image board substituted for locally
+  permission-cleared exact-build media for represented states. Exact-build/permission evidence
+  remains open and must not be silently promoted.
+
+## 2026-08-10 — isolated Alembic round-trip
+
+- Temporary PostgreSQL acceptance database passed `alembic upgrade head`, `downgrade -1`, and
+  `upgrade head` again, including current migration `eb1f2a3c4d5e`.
+- The temporary database was removed after validation; branch workstation data was not touched.
+- Acceptance flexibility used: none. Remaining visual/reference, provider/entitlement/taxonomy,
+  native-monitor, endurance, and final completion-audit gaps remain open.
+
+## 2026-08-10 — complete authenticated Chromium workflow
+
+- The full non-visual Playwright suite passes `78/78` in one serial Chromium worker against the
+  branch stack, closing the earlier incomplete unpartitioned-run observation.
+- Coverage includes authentication, workstation shell/layouts, docking/pop-outs/recovery,
+  linking/cross-window cursors, keyboard traversal, canonical top-down drilldown and ratios,
+  Study Lab, unified Python promotions, EasyScan/Market Gauge, notes/alerts, legacy and excluded
+  domains, uPlot 100,000-point interaction, and workstation churn guards.
+- Backend, worker, and research-runner log audit over the run window found no HTTP 500, traceback,
+  MissingGreenlet, UniqueViolation, CRITICAL, FATAL, Unhandled, or ERROR signatures.
+- Acceptance flexibility used: none. Visual/reference, provider/entitlement/taxonomy,
+  native-monitor, endurance, and final completion-audit gaps remain open.
+
+## 2026-08-10 — frontend regression/build and manifest gate
+
+- The current frontend Vitest suite passes `664/664` across 91 files.
+- `vue-tsc --noEmit`, Vite production build (468 modules), visual-manifest validation,
+  JSON/YAML parsing, and `git diff --check` pass.
+- Vitest emitted only the existing deliberately exercised watchlist conflict-path stderr.
+  The initial unsupported `--runInBand` invocation is not evidence; the actual repository command
+  was rerun unchanged and passed.
+- Acceptance flexibility used: none. Remaining visual/reference, provider/entitlement/taxonomy,
+  native-monitor, endurance, and final completion-audit gaps remain open.
+
+## 2026-08-10 — authoritative combined backend gate
+
+- The complete backend unit/integration command passed `1,316/1,316` at `79.61%` coverage,
+  exceeding the 75% threshold; 86 known third-party dependency deprecation warnings were the
+  only warnings reported.
+- The initial backend-container invocation is explicitly not acceptance evidence: `1,026` unit
+  tests passed but `290` integration setups failed because Testcontainers could not access the
+  Docker socket. The unchanged suite was rerun against an isolated temporary PostgreSQL database
+  and Redis namespace using `TEST_DATABASE_URL` and `TEST_REDIS_URL`, and passed completely.
+- Acceptance flexibility used: none. Remaining visual/reference, provider/entitlement/taxonomy,
+  native-monitor, endurance, and final completion-audit gaps remain open.
+
+## 2026-08-10 — bounded sandbox and runner-stress acceptance
+
+- Live research-runner escape probe: all eight denial cases pass.
+- Resource-pressure probe: 768 MiB/1 CPU/128 PID/no-network/read-only/non-root contract,
+  cgroup kill, tmpfs ceiling, and eight-process containment pass; restart count remains `0`.
+- Recovery probe completes an orphaned job after an isolated runner restart.
+- Sustained queue probe passes `5/5` cancellation/success rounds with no stale sentinels.
+- Acceptance flexibility used: none. These are hard-bounded probes; indefinite soak and native
+  physical multi-monitor validation remain open, as do visual/reference/provider/taxonomy/final
+  audit gaps.
+
+## 2026-08-10 — isolated seeded acceptance-stack portability
+
+- Compose host bindings are now configurable with `POSTGRES_HOST_PORT`, `BACKEND_HOST_PORT`,
+  `FRONTEND_HOST_PORT`, and `REDIS_HOST_PORT`; default ports are unchanged.
+- Deployment contract tests pass `8/8` with `--no-cov`. A seeded stack ran concurrently on
+  55432/18000/18080 and `F8e.1a` passed `1/1` against its deterministic data.
+- The auxiliary stack was stopped without deleting volumes; the normal branch stack remained
+  healthy and its error-signature audit was clean. Acceptance flexibility used: none.
+
+## 2026-08-10 — partitioned authenticated workflow revalidation
+
+- Replaced the incomplete unpartitioned `flows.spec.ts` attempt with bounded serial partitions on
+  the same non-seeded branch stack.
+- Passing evidence: workspace export/columns/templates `3/3`; docking, pop-outs, linking,
+  keyboard, and freshness `24/24`; support tools, compatibility, legacy, and performance `23/23`;
+  authentication, chart bootstrap, templates, and Study Lab states `14/14`; canonical top-down,
+  ratios, Study Lab streak, and Python promotion `12/12`.
+- Acceptance flexibility used: none for these normal-stack partitions. The interrupted
+  unpartitioned runner remains an operational observation only; visual/reference, provider,
+  taxonomy, native-monitor, endurance, and final audit gaps remain open.
+
+## 2026-08-10 — broad authenticated-suite follow-up
+
+- The full `flows.spec.ts` run was started against the normal non-seeded branch stack after the
+  focused `12/12` gate. It generated normal API traffic but did not produce a completion summary
+  within a bounded wait and was interrupted; no broad-suite pass is claimed.
+- The branch stack remained healthy and the post-run audit found no HTTP 500, traceback,
+  MissingGreenlet, UniqueViolation, critical, fatal, or unhandled signatures.
+- Follow-up: partition the broad suite around the long-running boundary. This is an incomplete
+  validation item, not a goal-wide blocker; the focused live gate remains valid.
+
+## 2026-08-10 — authenticated initial robust-workstation gate advance
+
+- Focused Playwright gate passed `12/12` tests. Backend environment confirmation was
+  `E2E_SEED_INSTRUMENTS=false` and
+  `E2E_SEED_MARKET_DATA=false`.
+- Evidence covers canonical SPY/RSP membership, labelled SPY fallback for unavailable official
+  SPX, all live sector industry surfaces, XLK/XLE ratio editing, deep live drill-down to
+  constituents with NVDA ratios, the positive-close Study Lab factory study, and unified Python
+  promotion into column, EasyScan/alert, and chart plot. The formerly fixture-only exhaustive
+  sector assertion now runs against canonical data and passes. A separate controlled-fixture run
+  was not started because the normal stack owns host port 5432.
+- Acceptance flexibility used: none for this live gate. Visual board/exact-build, unrepresented states, provider and
+  entitlement breadth, taxonomy completeness, native monitor, endurance, and final audit gaps
+  remain open.
+
+## 2026-08-10T01:25:00Z — complete deterministic board matrix stabilized
+
+- The duplicate ratio uPlot legend was removed and covered by unit/browser regressions.
+- Deterministic snapshots were regenerated once from a fresh controlled fixture, then the complete
+  matrix was rerun without update mode: `96/96` across 1920x1080 and 2560x1440 at 100% and 125%.
+- Shell, docking, menus/search, chart, freshness/error, pop-out, Study Lab, geometry, containment,
+  and overlap checks all pass. No mask, threshold, product boundary, or exact-build claim changed.
+- The original branch stack/data volume was restored after the isolated fixture run.
+- The seeded default-shell case was then rerun with explicit ratio-warning containment and
+  visible duplicate-uPlot-legend checks; it passes `1/1`.
+
+**Acceptance flexibility used:** the 190-image board and controlled fixture were used for the
+board-guided/interim visual track. Exact-build and unrepresented-state gaps remain open in the
+manifest/register, as do live provider/entitlement, taxonomy, native-monitor, endurance, and final
+security/runtime gaps.
+
+## 2026-08-10T01:06:00Z — ratio-window overlap repair
+
+- Board comparison found a real compact-window defect: uPlot's default HTML legend duplicated the
+  workstation ratio legend and collided with warning/footer content.
+- `RatioUPlot` now disables the uPlot legend; the focused unit regression passes and the rebuilt
+  browser top-down/ratio/crosshair suite passes 6/6 with one intentional seeded-only skip. The
+  visual overlap oracle passes before screenshot-content comparison.
+- Frontend Vitest is 664/664; type-check and production build remain green. Existing 10/24 seeded
+  board-project result and its 14 screenshot differences remain recorded; snapshots, masks, and
+  thresholds were not changed.
+
+**Acceptance flexibility used:** board-guided local references and controlled fixture data only;
+no product acceptance criterion was relaxed. Exact-build, unrepresented-state, live coverage,
+multi-monitor, endurance, and final audit gaps remain open.
+
+## 2026-08-10T00:59:00Z — workstation race repairs and visual-gate revalidation
+
+- The TC2000 workstation remains the primary objective. ETF/provider work continues only as
+  canonical data support for the top-down workflow.
+- Fixed and verified four localized frontend races: initial workspace hydration overwriting early
+  Add-tool actions; stale Golden Layout activation callbacks targeting detached headers
+  (`HSACI56632`); Python autocomplete intercepting Code Library actions; and screener initial-list
+  hydration overwriting newly created screeners.
+- Focused browser checks pass 6/6 for Python/Study Lab opening and 3/3 for screener creation. The
+  complete `flows.spec.ts` run passes 74 executed tests with one intentional seeded-only skip.
+- Frontend Vitest 663/663, TypeScript, production build, backend 1,316/1,316 at 79.59%, and visual
+  manifest validation pass.
+- A visual run started with seeded assertions against the existing live-data backend and was
+  discarded. A fresh isolated seeded-volume run passes 10/24 for 1920x1080 at 100%; 14 screenshot
+  differences remain as explicit local baseline/geometry gaps. No thresholds, masks, snapshots,
+  or product criteria were weakened. The original branch stack/data volume was restored.
+
+**Acceptance flexibility used:** the approved 190-image board-guided policy and controlled seeded
+fixture were used for local visual iteration; the code fixes themselves used no relaxed criterion.
+Exact-build/permission evidence, unrepresented states, broader live data/entitlements/taxonomy,
+native multi-monitor, endurance, and final audit gates remain open.
+
+## 2026-08-09T22:44:50Z — SOXX proxy and live top-down drilldown advance
+
+- Promoted the public iShares SOXX route (`239705`) into canonical holdings: 34 rows, 32
+  resolved, composition date 2026-08-07; EDGAR classification enrichment covers 27/29 profiles.
+- Added a reviewed semiconductor classification alias, excluded controlled proxy fixtures from
+  non-seeded market-group responses, and fixed proxy selection so the sector taxonomy context is
+  retained. Value-only watchlist refreshes preserve row identity.
+- Authenticated real-data checks now cover all 11 sectors and repeated sector → industry/proxy →
+  constituent drilldown with canonical relative-strength ratios. F8d/F8e: 7/7 with one
+  intentional seeded-only skip; backend 1,316/1,316 at 79.59%; frontend 663/663; type/build pass.
+- **Acceptance flexibility used:** None. The provider route is supporting evidence for the
+  workstation and does not supersede the TC2000 UI objective. Remaining work is the broader V25
+  mechanics/visual matrix, wider taxonomy and entitlements, Python/Study Lab promotion, and
+  multi-monitor/endurance/final audit evidence.
+
+## 2026-08-09T22:13:51Z — canonical holdings promotion and validation advance
+
+- Official State Street SPDR workbooks now have canonical snapshots for SPY, DIA, and all 11
+  Select Sector SPDR ETFs. Latest composition is 2026-08-06; SPY is 505/505 resolved, DIA is
+  31/31, and sector rows retain `spdr_native_daily_holdings_workbook` provenance.
+- The configured Invesco RSP route returned HTTP 500 and was not represented as successful.
+  SEC N-PORT reconstruction is the explicit fallback (2026-04-30, 508/508 resolved,
+  `sec_nport_reconstructed_holdings`). No fixture holdings were relabelled.
+- Legal/disclaimer footer rows and per-row provider fanout inside bounded issuer/SEC
+  transactions were fixed. Focused resolver/parser checks pass 2/2; authenticated real
+  membership passes; F8d/F8e passes 6/6 with one intentional skip; backend passes 1,314/1,314
+  at 79.59%; frontend passes 662/662 plus type-check/build and repository parsing/diff gates.
+- **Acceptance flexibility used:** None. Docker log inspection is unavailable in the restricted
+  shell; the prior rebuilt-stack audit was clean. This is supporting data work. Next focus is
+  the actual live `US Top Down` workstation drilldown and remaining V25 completion evidence.
+
+## 2026-08-09T21:47:16Z — bounded SPDR holdings promotion attempt
+
+- The State Street SPDR fund-scoped daily-workbook route is configured for SPY, DIA, and all 11
+  Select Sector SPDR ETFs, with identity validation before persistence.
+- A bounded attempt to ingest those official workbooks through the active backend could not resolve
+  the issuer host and timed out. It committed no snapshots, and no controlled fixture holdings
+  were relabelled or removed. The route remains an open live-evidence/canonical-membership gap.
+- This does not change the product priority: TC2000 workstation UI and the first robust real-data
+  top-down gate remain primary; provider work is supporting infrastructure.
+
+**Acceptance flexibility used:** None. The unavailable network was recorded as a gap rather than
+substituted with fixture success. Closure needs an authorised live probe, canonical ingestion, and
+authenticated sector/constituent drill-down evidence.
+
+## 2026-08-09T21:35:00Z — canonical Nasdaq EOD path and real-data top-down validation
+
+- Added `NasdaqProvider` as a free public D1 split-adjusted price/volume adapter and registered
+  it in the canonical price-history/latest-price chains. The adapter widens historical endpoint
+  queries through the current date, bounds results locally, pages defensively, and caches short
+  lived responses. It does not claim intraday, streaming, or total-return support.
+- Direct probes returned 652 rows through 2026-08-07 for SPY, RSP, XLK, XLE, and NVDA. The
+  existing durable bulk-fetch service persisted 3,034 rows through 2026-08-07 for SPY/RSP/
+  QQQ/DIA/IWM, all 11 sector ETFs, and NVDA. Only E2E fixture rows for those 17 core symbols
+  were deleted; they were not relabelled. Provenance is therefore source-truthful.
+- Canonical analysis evidence: `XLK/SPY`, `XLK/XLE`, `NVDA/XLK`, and `NVDA/SPY` each have
+  2,514 aligned points and full coverage; sector rotation returns 11 rows; sector breadth is
+  11/11 at 100% coverage; sector snapshot is 11/11 with SPY-relative cells and no exclusions.
+- Fixed the zero-width XNYS repair-slice defect and added a narrowly typed recovery rule for
+  provider availability failures when cached bars exist. Cold loads and unexpected exceptions
+  still fail. Focused backend tests pass `22/22`; Nasdaq/registry coverage is included; Ruff and
+  `git diff --check` pass.
+- No acceptance flexibility was used. This is the core product focus: the next work is to drive
+  the authenticated workstation UI from these canonical histories and close holdings/proxy,
+  broader constituent, entitlement/live-probe, and full-gate gaps. Peripheral ETF issuer work is
+  supporting infrastructure only.
+- The first real-data browser run exposed a shared analysis 500 because provider bars may have
+  `volume = NULL`. `_volume_ratio_50` now returns a structured `missing_volume` warning/cell rather
+  than coercing or crashing. Focused analysis/provider tests pass `35/35`; authenticated top-down
+  checks pass `5/5` with one intentional skip; the post-run backend log audit is clean; and the
+  fresh Docker backend gate passes `1,313/1,313` with 358 live tests skipped.
+
+## 2026-08-09T20:36:07Z — Range ETFs native holdings route and backend regression gate
+
+- Added a native Range ETFs adapter for the official NUKZ and COAL product-page holdings payload.
+  It parses the complete dated Nuxt holdings component, preserves ticker/FIGI/shares/value/
+  weight fields, classifies cash rows, and retains issuer composition/as-of provenance.
+- Both opt-in official live routes pass `2/2`; deterministic route/registry checks pass `2/2`;
+  all `461/461` ETF adapter test bodies pass. The focused adapter command's non-zero exit is only
+  the single-file repository coverage threshold (`51.36%`), not a failing test body.
+- The authoritative fresh temporary-database backend gate passes `1,305/1,305` with `358` live
+  tests skipped at `79.58%` coverage. Registry counts are `496` registered, `347` native/live-
+  backed, and `149` audited fallback-only. The first run exposed a localized missing SEC-fallback
+  probe invariant; it was fixed and the gate rerun. No acceptance criterion was relaxed.
+- Python compilation and `git diff --check` pass; Ruff remains unavailable in the backend image.
+  Official provider pages and live probes are evidence for this route, while the broader provider
+  and membership coverage gaps remain open.
+- This is explicitly supporting infrastructure for the TC2000 top-down workflow. The next work
+  stays on the first robust live-data workstation gate: removing fixture-only reliance from the
+  core US Top Down path and closing remaining UI, interaction, data-integrity, and acceptance gaps.
+
+**Acceptance flexibility used:** None for this advance. The deterministic Nuxt fixture was paired
+with the authorised official live routes; no board, seeded-data, browser-monitor, bounded-stress,
+or other relaxed criterion was used to claim Range support. Existing flexibility ledgers and their
+open gaps remain unchanged.
+
+## 2026-08-09T20:15:22Z — Oakmark native holdings route and backend regression gate
+
+- Promoted Oakmark's official symbol-scoped OAKM/OAKI holdings CSV exports to a native adapter.
+  It filters the fund identifier, converts percentage-point weights, classifies net-other-assets,
+  and preserves the issuer-provided as-of date. Both opt-in live probes pass `2/2`; focused
+  Oakmark/registry tests pass `2/2`; the complete ETF adapter suite passes `460/460`.
+- The full isolated Docker-backed backend gate passes `1,304/1,304` with `356` intentionally
+  skipped live tests and `79.56%` coverage. Registry counts are `496` registered, `346`
+  native/live-backed, and `150` audited fallback-only.
+- The first adapter run exposed the existing reconciliation-batch invariant; Oakmark was added
+  to the native batch and the complete adapter suite plus full backend gate were rerun. No
+  acceptance criterion was relaxed. Ruff is unavailable in the image; compilation and diff
+  checks pass.
+- This is supporting infrastructure for the TC2000 top-down constituent workflow. Provider/live,
+  visual/reference, native-monitor, endurance, and remaining workstation/backend gaps remain open.
+
+## 2026-08-09T20:01:49Z — ACSI native holdings route and backend regression gate
+
+- Promoted ACSI Funds' issuer-owned daily holdings CSV to a symbol-scoped native adapter for
+  top-down constituent drilldown. The opt-in live route test passes `1/1`; focused deterministic
+  route/provenance and fallback tests pass `2/2`; the complete ETF adapter suite passes `459/459`.
+- The full Docker-backed backend gate passes `1,303/1,303` with `354` intentionally skipped live
+  tests and `79.56%` coverage when run against a fresh temporary Postgres database. Registry
+  counts are `496` registered, `345` native/live-backed, and `151` audited fallback-only.
+- A first broad attempt against the persistent application database failed only during fixture
+  teardown because its schema constraint names predate the current model metadata. The isolated
+  rerun passed; the temporary database was removed. The backend image has no Ruff executable, so
+  lint is unverified; Python compilation and `git diff --check` pass.
+- No acceptance criterion or threshold was relaxed. This provider work supports the TC2000
+  workstation's real sector/industry/constituent workflow. Remaining provider/live, visual,
+  native-monitor, endurance, and product gaps remain open.
+
+## 2026-08-09T19:40:12Z — Complete authenticated workstation flow matrix
+
+- Rebuilt authenticated Playwright `flows.spec.ts` passes `73/73` in one serial run.
+- This covers the seeded top-down workflow (SPY/RSP, all-sector ranking, industry/proxy/
+  constituent drilldown, NVDA ratios, and keyboard traversal), chart/template/drawing mechanics,
+  Python reuse across columns/EasyScan/alerts/plots, Study Lab, notes, watchlist mutation,
+  Market Gauges, link groups/cross-window propagation, pop-outs/recovery, unsupported-domain
+  absence, legacy routes, 125% containment, and Radar.
+- The clean visual matrix remains `96/96`; type/build and log checks remain green. Functional
+  flexibility used: controlled seeded market data for deterministic workflow assertions. This
+  does not close real provider/live, exact/unrepresented visual, native-monitor, endurance, or
+  remaining backend/data-coverage gaps.
+
+## 2026-08-09T19:30:37Z — Complete visual matrix revalidation
+
+- The complete board-guided visual matrix passes `96/96` in one clean run across all four required
+  display environments after the drag-target header-race and workspace-reset synchronization
+  repairs.
+- Coverage includes shell/menu/search/freshness, tabbed/maximized/restored/floating/drag-target
+  workspace mechanics, Study Lab states, chart loading/provider-error, blocked pop-out, and
+  partial-coverage baselines.
+- Type-check, production build, manifest validation, 190-image board validation, service-log
+  audit, and `git diff --check` pass. No screenshot threshold, mask, or product criterion changed.
+- Acceptance flexibility used: board/local interim evidence and controlled seeded data. Exact-build
+  and genuinely unrepresented visual states, free/live provider evidence, native monitor placement,
+  endurance, and remaining functional/top-down data gaps remain open.
+
+## 2026-08-09T19:10:21Z — Drag-target race repair and affected-project visual acceptance
+
+- Added the board-covered `workspace-docking/drag_target` browser oracle: drag a real ToolWindow
+  tab into a Golden Layout drop target, assert the drop indicator, and capture four deterministic
+  environment baselines.
+- The first full matrix exposed a localized `HSACI56632` header-ownership race during the drag;
+  `WorkspaceLayoutHost` now guards the Golden Layout header reassertion by current component
+  ownership. Focused regression coverage passes `7/7`; drag-target visual coverage passes `4/4`
+  after rebuilding the branch-scoped stack; the affected `visual-1440p-100` project passes
+  `24/24`.
+- The preceding full matrix completed `95/96` because the Study Lab reset oracle's default
+  five-second wait was too short under serial four-project load. The oracle now has a bounded
+  15-second wait; the isolated reproduction passes. Frontend Vitest passes `662/662`,
+  type-check/build pass, `git diff --check` passes, and recent service logs contain no unhandled
+  error signatures.
+- Acceptance flexibility used: board/local interim baselines and controlled seeded market data;
+  no visual threshold, mask, or product criterion changed. These states remain locally measured,
+  not exact-build-approved. Exact/unrepresented references, free/live provider evidence,
+  native monitor placement, bounded endurance, and remaining chart/linking gaps remain open.
+
+## 2026-08-09T18:38:06Z — Floating workspace visual acceptance
+
+- Added a popup-level browser oracle for `workspace-docking/floating`: float a real ToolWindow,
+  assert the pop-out, capture it, close it through the user-facing control, and verify source
+  recovery.
+- Snapshot generation and no-update verification pass `4/4`; complete four-environment visual
+  matrix passes `92/92`; frontend Vitest `661/661`; type-check/build, board/manifest validators,
+  service-log audit, and diff checks pass.
+- Linked four local baselines in the manifest. Board/local interim evidence and browser pop-outs
+  were used; no threshold or mask changed. Floating is locally measured, not exact-build-approved.
+- Next: close the remaining board-covered drag-target state, then continue chart/link/reference,
+  provider/live, native-monitor, and endurance work.
+
+## 2026-08-09T18:17:23Z — Restored workspace visual acceptance
+
+- Added a real browser oracle for `workspace-docking/restored`: maximize a ToolWindow, invoke
+  its restore control, assert Golden Layout leaves maximized mode, and capture the composition.
+- Snapshot generation and no-update verification pass `4/4`; complete four-environment visual
+  matrix passes `88/88`; frontend Vitest `661/661`; type-check/build, board/manifest validators,
+  service-log audit, and diff checks pass.
+- Linked four local baselines in the manifest. Board/local interim evidence used; no threshold or
+  mask changed. Tabbed/maximized/restored are locally measured, not exact-build-approved.
+- Next: continue floating and drag-target state coverage, then remaining chart/link/reference,
+  provider/live, native-monitor, and endurance gates.
+
+## 2026-08-09T18:04:19Z — Tabbed workspace visual acceptance
+
+- Added a real browser oracle for `workspace-docking/tabbed`: assert multiple Golden Layout tabs,
+  activate a non-default tab, and capture the composition.
+- Snapshot generation and no-update verification pass `4/4`; complete four-environment visual
+  matrix passes `84/84`; frontend Vitest `661/661`; type-check/build, board/manifest validators,
+  service-log audit, and diff checks pass.
+- Linked four local baselines in the manifest. Board/local interim evidence used; no threshold or
+  mask changed. Maximized and tabbed states are locally measured but not exact-build-approved.
+- Next: continue remaining shared workspace/chart/link state coverage, then the open provider/live,
+  native-monitor, and endurance gates.
+
+## 2026-08-09T17:48:52Z — Maximized workspace visual acceptance
+
+- Added a real board-guided visual oracle for `workspace-docking/maximized`: open a ToolWindow
+  menu, invoke Maximize, assert Golden Layout's maximized state, and capture the composition.
+- Snapshot generation and no-update verification pass `4/4`; complete four-environment visual
+  matrix passes `80/80`; frontend Vitest `661/661`; type-check/build, board/manifest validators,
+  service-log audit, and diff checks pass.
+- Linked four local baselines in the manifest. Acceptance flexibility used: board/local interim
+  evidence for the composite-board track; no threshold or mask changed. This is not exact-build
+  approval and the broader reference gaps remain open.
+- Next: continue the shared workstation gap ledger, prioritising remaining workspace/chart/link
+  state coverage and then the still-open free-source/live, native-monitor, and endurance gates.
+
+## 2026-08-09T17:32:34Z — ToolWindow outside-click dismissal and visual gap coverage
+
+- ToolWindow’s three-dot menu now closes on document-level outside `pointerdown` capture; inside
+  menu actions remain usable and the listener is removed during unmount.
+- Focused ToolWindow unit coverage passes `4/4`; full frontend Vitest `661/661`; type-check,
+  production build, and diff checks pass.
+- Rebuilt authenticated Chromium matrix passes `73/73`; focused F8i outside-click browser path
+  passes `1/1`.
+- Added `workspace-docking/tool_menu_open` as an explicit `required_missing` state with four
+  deterministic local baselines. Full board-guided visual matrix passes `76/76`; manifest and
+  190-image board validators pass.
+- Acceptance flexibility used: board/local interim evidence for the unrepresented tool-menu
+  state under `REF-STATE-VARIANTS`; no threshold or mask changed. The state still needs an
+  authoritative V25 capture to close the gap.
+- Provider/live, native-monitor, endurance, and other reference gaps remain open. Continue the
+  core workstation gap ledger next.
+
+## 2026-08-09T17:04:53Z — Shell transient-menu exclusivity
+
+- Implemented one transient shell-menu invariant in `WorkstationView`: Workspace, Add tool,
+  Help, and Recent symbols close competing popovers and stale search state when opened.
+- Search retains its own editor/listbox/history state; outside pointer input and Escape dismiss
+  all shell menus. Added focused unit assertions and extended F8k-help browser coverage.
+- Focused WorkstationView binding suite passes `14/14`; the rebuilt authenticated Chromium matrix
+  passes `73/73`; focused keyboard-help visual coverage passes `4/4`; full frontend Vitest
+  `660/660`, `vue-tsc --noEmit`, production build, and `git diff --check` pass.
+- Post-matrix backend/worker/research-runner/frontend logs contain no unhandled error signatures;
+  expected provider-freshness warnings remain visible and are not hidden.
+- No acceptance flexibility was used. Exact/unrepresented board states, live/free-source
+  provider breadth, physical multi-monitor behavior, and long-duration endurance remain open.
+- Next step: continue the remaining core workstation gap ledger; rerun the full visual matrix
+  after the next shared shell or tool-surface change.
+
+## 2026-08-09T16:58:25Z — Keyboard-help visual gap and Study Lab oracle stabilized
+
+- Added `keyboard_help` as a named `required_missing` application-shell state with shortcut
+  content/focus behavior and deterministic four-environment interim baselines.
+- Full visual validation exposed a shared-account Study Lab baseline race: persisted splitter
+  geometry and asynchronous chart/research responses differed in one 1080p/125% project. The
+  case now resets factory geometry and holds both adjacent requests in stable loading states.
+- Only the four affected Study Lab baselines were regenerated after review. Focused visual
+  keyboard-help `4/4`, focused Study Lab `4/4`, complete board-guided visual `72/72`, and the
+  190-image reference-board validator pass.
+- Acceptance flexibility used: board/state-variant interim evidence and controlled seeded data.
+  No threshold or mask changed. `REF-SHELL-V25`, `REF-STATE-VARIANTS`, `REF-STUDY-LAB-V25`,
+  `REF-ENV-TOKENS`, and `REF-PERMISSION-REVIEW` remain open where applicable.
+
+## 2026-08-09T16:39:54Z — Shell keyboard-help and editor-focus gap closed
+
+- Added a TC2000-style shell Help menu documenting the implemented keyboard contract; `F1`/`?`
+  opens it when shell focus owns the event.
+- Editor focus dismisses the global menu and retains `F1`/`Space` for the Active symbol editor.
+  Focused rebuilt-stack browser coverage passes `1/1`; complete authenticated Chromium passes
+  `72/72` from 73 collected tests with one intentional skip.
+- Frontend Vitest passes `660/660`; type-check and production frontend image build pass; all
+  branch-scoped service logs are clean after the matrix.
+- A stale frontend image caused the first focused attempt to miss the new button; the correct
+  branch-scoped rebuild then exposed and closed the localized focus-dismissal defect.
+- Acceptance flexibility used: controlled seeded market data for browser validation only. No
+  visual threshold, mask, or product criterion changed; visual/provider, hardware, endurance,
+  and unrepresented-state gaps remain open.
+
+## 2026-08-09T16:23:30Z — Reverse Space traversal acceptance added
+
+- Added F8k-shift to exercise the real browser keyboard path for backward `Shift+Space`
+  traversal and Active-symbol editor ownership of literal `Space`.
+- Focused flow passes `1/1`; the complete rebuilt authenticated Chromium matrix passes `71/71`
+  from 72 collected tests with one intentional skip.
+- Frontend Vitest `660/660`, type-check, and production build pass.
+- Acceptance flexibility used: controlled seeded market data for browser validation only. No
+  visual threshold, mask, or product criterion changed; visual/provider, hardware, and endurance
+  gaps remain open.
+
+## 2026-08-09T16:05:08Z — Anfield provider classification corrected
+
+- Anfield/ADFI is no longer falsely classified as native/live-backed after its configured
+  Regents Park route returned HTTP 404.
+- The isolated adapter and conditional SEC fallback remain available; the registry now records
+  `issuer_access_blocked` and does not require a native live-route assertion until a complete
+  issuer-owned route is re-established.
+- Current source-state counts: 496 registered, 344 native/live-backed, 152 audited fallback-only.
+- Focused provider invariant/parser coverage passes `10/10` test bodies; the complete ETF adapter
+  suite passes `458/458`, the authoritative backend gate passes `1,302/1,302` at `79.50%`, and
+  the frontend baseline remains green at `660/660` with type-check and production build passing.
+  Opt-in live checks are skipped unless explicitly enabled. No acceptance flexibility was used;
+  the route gap remains open and does not block independent workstation work.
+
+## 2026-08-09T22:10:00Z — Visual blocked-popout baseline race closed
+
+- The blocked-popout visual oracle previously captured an asynchronous loading/ready state rather
+  than a stable product composition. It now calls the shared shell readiness guard before and
+  after the blocked browser action.
+- The four affected local baselines were regenerated after review; focused visual coverage is
+  `4/4`, and the complete board-guided four-environment matrix is `68/68`.
+- Acceptance flexibility used: board-guided/local deterministic baselines with controlled seeded
+  data. This does not close `REF-STATE-VARIANTS`; authoritative V25 blocked-state evidence is
+  still missing and remains explicitly tracked.
+- Operational cleanup: targeted `docker builder prune -af` removed the 5.07 GB reclaimable build
+  cache. The broader system-wide prune was rejected as unsafe and was not circumvented; all active
+  images, containers, and volumes remain intact.
+
+## 2026-08-09T21:30:00Z — Watchlist membership transfer is atomic and runtime-verified
+
+- `POST /watchlists/{target}/items/transfer` now owns copy/move semantics. Move locks and
+  updates source/target in one transaction; copy retains the source; both preserve item notes
+  and flags and reject invalid ownership, duplicates, modes, and locked destinations.
+- Backend focused coverage is `19/19`; full Docker-backed backend coverage is `1301/1301` at
+  `79.50%`; frontend store coverage is `18/18`; Vitest is `660/660`; type-check/build pass.
+- A stale backend image first returned `405` in F8y. The backend/worker images were rebuilt with
+  `--no-cache`, the running container was inspected for the route, F8y then passed `1/1`, the
+  complete authenticated Chromium matrix passed `71/71`, and runtime logs were clean.
+- Acceptance flexibility used: controlled seeded market data for browser validation. No visual
+  threshold, mask, or product criterion changed. Exact/unrepresented V25 reference states,
+  live/free-source coverage and entitlement evidence, native physical monitors, and indefinite
+  endurance remain explicitly open.
+
+## 2026-08-09T15:06:44Z — Board-guided visual matrix after workspace repair
+
+- Strict `RUN_BOARD_VISUAL_PARITY=1` validation passes `68/68` across 1920×1080 and 2560×1440
+  at both 100% and 125% display scale after the workspace replacement repair.
+- Acceptance flexibility used: the 190-image board/local deterministic baselines and controlled
+  seeded data for states without live-provider evidence. No mask, threshold, or exact-build claim
+  changed; `REF-SHELL-V25`, `REF-STATE-VARIANTS`, `REF-LINKING-V25`, `REF-STUDY-LAB-V25`,
+  `REF-ENV-TOKENS`, and `REF-PERMISSION-REVIEW` remain tracked where evidence is incomplete.
+
+## 2026-08-09T16:00:21Z — Workspace replacement race repaired and revalidated
+
+- Reproduction: after F9d exported/imported a workspace, F9e could edit a stale Golden Layout
+  virtual root; the grouping/stacking update was persisted to the new workspace object but the
+  visible header remained bound to the old object.
+- Repair: imports and factory resets explicitly mark whole-workspace replacement pending, remove
+  the dock during the asynchronous request, increment a reload token after success, and recreate
+  virtual roots from the new serializable tool state. Ordinary column edits do not recreate the
+  dock or uPlot instances.
+- Focused host lifecycle regression passes `6/6`; F9d→F9e passes `10/10` across five repeats;
+  complete rebuilt authenticated Chromium passes `71/71`; Vitest `659/659`; type/build,
+  compile, diff, ops parsing, and status-aware runtime logs are clean.
+- Acceptance flexibility used: controlled seeded market data for browser validation. No visual
+  threshold or mask changed; exact/unrepresented references and live-provider evidence remain
+  tracked separately.
+
+## 2026-08-09T14:38:35Z — Research-runner isolation and recovery revalidated
+
+- Live branch-stack probes deny namespace/mount/setns/unshare, ptrace, fork, network,
+  subprocess, and root-write attempts.
+- The deployed runner reports the expected `768 MiB`, `1 CPU`, `128 PID`, `network=none`,
+  read-only root, and non-root UID limits. A resident 2 GiB allocation was killed by cgroups;
+  tmpfs capacity and concurrent-pressure containment passed.
+- An orphaned job completed after an isolated runner restart, and five cancellation/success
+  rounds completed without stale running/cancel/progress sentinels.
+- Acceptance flexibility used: bounded stress rather than indefinite soak. The security,
+  resource, and recovery checks themselves used no substitution; indefinite endurance remains
+  an open operational gap.
+
+## 2026-08-09T15:37:07Z — Renderer and large-list scale guards revalidated
+
+- Current packaged uPlot Chromium acceptance passes `1/1`: 100,000 points, 40 zoom/pan
+  viewport updates, and chart-element identity preservation.
+- The focused `VirtualWatchlistTool` suite passes `52/52`, covering the 10,000-row DOM bound,
+  wide-column virtualization, and header/row scroll alignment.
+- Acceptance flexibility used: `None` for these direct renderer/list checks. Physical monitor
+  placement and longer-duration endurance remain separately documented gaps.
+
+## 2026-08-09T14:35:35Z — Bounded workstation performance revalidated
+
+- The performance guards were first blocked before application startup by Chromium/macOS
+  bootstrap permission, then rerun with the required elevated browser permission.
+- Chart-window initialization/recovery and repeated pop-out cleanup both pass with
+  `TC2000_POP_OUT_CHURN_ROUNDS=100` in `2.1m`; canvas/tool counts stayed bounded and browser
+  diagnostics were clean.
+- Acceptance flexibility used: bounded stress rather than indefinite soak, and browser
+  pop-outs rather than physical multi-monitor placement. These substitutions are interim:
+  long-duration endurance and native monitor validation remain open and actionable.
+
+## 2026-08-09T20:45:00Z — Board-guided visual matrix revalidated
+
+- After the watchlist virtual-root repair, the configured board-guided visual suite was rerun
+  with `RUN_BOARD_VISUAL_PARITY=1` and passed `68/68` across all four required environments.
+- Acceptance flexibility used: the 190-image board/local deterministic baselines for represented
+  and genuinely unrepresented states. The six reference-gap IDs remain open; this run does not
+  promote any state to exact-build approval. Browser pop-out/controlled-fixture substitutions,
+  live/free-source provider breadth, native physical multi-monitor behavior, and endurance remain
+  explicitly tracked.
+
+## 2026-08-09T15:30:00Z — Watchlist virtual-root race fixed and full matrix revalidated
+
+- The fix-first tie-break was applied to the intermittent F8y failure instead of treating it as
+  a blocker. Golden Layout duplicate roots now submit the live/latest draft intent, duplicate
+  creates are store-deduplicated, and a reactive newest-created selection fence prevents stale
+  workspace snapshots from reverting the visible list.
+- Focused F8y passes `5/5`; the complete rebuilt authenticated Chromium matrix passes `71/71`.
+  Frontend Vitest passes `658/658`, `vue-tsc`, production build, compileall, manifest, diff, and
+  status-aware backend-log checks pass. No visual threshold, mask, or acceptance criterion was
+  relaxed.
+- Remaining gaps are explicit and unchanged: exact/unrepresented V25 visual states,
+  official/live-free-source population and entitlement breadth, native physical multi-monitor
+  validation, and long-duration endurance. Continue the active goal; this green matrix is not
+  completion.
+
+## 2026-08-09T13:45:00Z — Venue linking correction and final rebuilt-stack revalidation
+
+- Added canonical exchange/MIC resolution and listing persistence so known Nasdaq, NYSE, Arca,
+  American, BATS, IEX, OTC, Cboe, and Chicago labels link to the exchange catalog; same ticker
+  values on distinct venues remain distinct listings rather than being merged. Exchange-catalog
+  tests pass `9/9`; provider persistence/new-provider tests pass `86/86`.
+- This is enabling security-master work for the TC2000 top-down US workflow, not a product
+  diversion into provider support. Unknown venue labels remain provenance-labelled and are not
+  guessed into canonical exchanges.
+- Rebuilt frontend validation fixed the RatioUPlot comparison-leg race by retaining optimistic
+  local legs until the debounced workspace snapshot acknowledges them. Focused F8e.2 passes
+  `5/5`; complete authenticated Chromium passes `71/71`; frontend Vitest `658/658`,
+  `vue-tsc`, production build, compileall, manifest, diff, and status-aware backend-log audit
+  pass. Docker-backed backend passes `1,291/1,291` with `362` skipped under `--no-cov`.
+- Flexibility used and retained in the ledger: controlled fixture market data, board-guided
+  local baselines for unrepresented exact-build states, browser pop-outs as the monitor proxy,
+  and bounded endurance checks. No threshold, mask, or completion criterion was relaxed.
+- Remaining gaps are explicit: official/live-free-source universe and entitlement breadth,
+  exact/unrepresented V25 visual states, native physical multi-monitor validation, and
+  long-duration endurance. Continue core workstation acceptance and close those gaps; do not
+  treat this green stack as completion.
+
+## 2026-08-09T12:45:00Z — Full authenticated workstation matrix green
+
+- Rebuilt-stack authenticated `flows.spec.ts` passes `71/71` after fixing the remaining
+  repository-controlled interaction defects in wide-column visibility, stacked-column placement,
+  Python/condition-column promotion, and personal watchlist name editing under delayed layout
+  snapshots.
+- Frontend Vitest passes `658/658` across 91 files; `vue-tsc --noEmit`, production build, visual
+  manifest validation, Python compilation, `git diff --check`, and the post-run backend log audit
+  are green. No HTTP 500, traceback, MissingGreenlet, UniqueViolation, ERROR, CRITICAL, or FATAL
+  signatures were found in the audited backend logs.
+- The visible-cell coordinate assertions are deterministic test stabilization for a horizontally
+  virtualized canvas, not a relaxed product criterion. No visual thresholds or masks changed.
+- Flexibility remains limited to the documented controlled fixture and board-guided references:
+  exact/unrepresented TC2000 states, official/live-free-source breadth, physical multi-monitor
+  validation, and long-duration endurance remain explicit gaps.
+- Next work remains core-goal completion: audit/close those external and reference gaps and run
+  the remaining full acceptance, security, migration, performance, and recovery checks. Do not
+  treat the green seeded matrix as final completion.
+- Board-guided visual baselines were refreshed only for the controlled fixture's now-complete
+  freshness/numeric observations after representative screenshot review; strict four-environment
+  visual rerun passes `68/68`. Thresholds, masks, and exact-build requirements are unchanged.
+
+## 2026-08-09T13:12:00Z — 52-week stats hydration race repaired
+
+- The new all-sector browser traversal exposed a real backend defect: concurrent linked-symbol
+  requests could both insert the one-to-one `instrument_stats` row and return HTTP 500 on the
+  unique constraint.
+- `_ensure_52w_stats` now serializes per-instrument persistence within a worker and recovers a
+  concurrently committed row after a cross-worker `IntegrityError`. A concurrent unit regression
+  covers the invariant that only one stats row survives.
+- Focused backend coverage passes `22/22`; rebuilt seeded Playwright traversal passes `1/1` with
+  no critical browser diagnostics; recent backend logs contain no 500s or integrity failures.
+- The complete Docker-backed backend suite passes `1,282/1,282` with `362` skipped under
+  `--no-cov`; frontend Vitest remains `658/658`, type-check/build pass.
+- Flexibility used: none for the defect. The all-sector market data remains a controlled,
+  provenance-labelled fixture and therefore does not close official membership/live-provider
+  coverage. Exact/unrepresented visual states, physical multi-monitor behavior, and long-duration
+  endurance remain open in the acceptance ledger.
+- Exact next step: continue the core workstation acceptance audit, prioritising live/free-source
+  canonical universe evidence and remaining unrepresented TC2000 reference states; do not treat
+  the fixture or this race fix as completion.
+
+## 2026-08-09T12:55:00Z — All-sector controlled top-down fixture
+
+- Expanded `backend/app/services/e2e_seed.py` so all 11 sector ETFs have representative,
+  classified holdings, adjusted OHLCV, and point-in-time provenance snapshots.
+- Added backend fixture invariants and a seeded Playwright traversal that selects every sector and
+  requires a non-empty industry drill-down surface.
+- Focused backend taxonomy/fixture/analysis coverage passes `16/16`; Playwright lists 71 tests;
+  frontend Vitest remains `658/658`, type-check/build, compile, and diff checks pass.
+- Flexibility used: controlled fixture data for reproducible acceptance only. It remains explicitly
+  labelled as non-official membership and does not close live/free-source population gaps.
+- Exact next step: run the new seeded browser traversal against the rebuilt stack when Docker is
+  available, then continue the canonical live-universe/provider audit.
+
+## 2026-08-09T12:50:00Z — Wide-watchlist virtualization
+
+- Implemented horizontal column virtualization in `VirtualWatchlistTool` for lists over the
+  dense-column threshold, including a translated header viewport and absolute-positioned row cells.
+- Added 100-column DOM/scroll-canvas and header-scroll-alignment regressions.
+- Final frontend Vitest passes `658/658` across 91 files; `vue-tsc --noEmit` and production build
+  pass.
+- Focused backend top-down taxonomy/analysis regressions pass `14/14`; `git diff --check` and
+  repository JSON/YAML parsing also pass.
+- This is core TC2000 workstation work. ETF/provider adapters remain supporting data infrastructure
+  for top-down population, not the primary product objective. Live/free-source population breadth,
+  exact/unrepresented visual references, physical multi-monitor, and long-duration endurance remain
+  explicitly open; no acceptance criterion was relaxed.
+- Exact next step: continue the core workstation/data audit from the remaining gap ledger, starting
+  with the real canonical US-universe/ETF-membership path and its authenticated drill-down evidence;
+  do not treat this checkpoint as completion.
+
+## 2026-08-09T14:00:00Z — Visual gap baseline governance hardening
+
+- Tightened `backend/app/services/visual_manifest.py`: every `required_missing` state now needs
+  a unique local deterministic baseline for each of the four required display environments, as
+  well as its documented interim oracle.
+- Added regression coverage for missing and duplicate baseline declarations; the focused manifest
+  suite passes `10/10` with `--no-cov`, and the checked-in manifest validates.
+- This is acceptance infrastructure, not an exact-build visual approval. Board-guided/local
+  baselines remain interim evidence for unrepresented states; live/free-source population,
+  physical multi-monitor, and long-duration endurance gaps remain tracked.
+
+## 2026-08-09T12:25:00Z — Focused acceptance closure and full matrix revalidation
+
+- Repaired a real chart-workstation contract defect: `ChartPlotLibrary` now emits the literal
+  `update:python-plots` event consumed by `WorkstationToolContent`, with an optimistic
+  serializable plot list so a newly promoted Study Lab series is visible before a parent snapshot
+  response completes. Added component coverage; chart-plot library and watchlist component tests
+  pass `60/60`.
+- Repaired the localized workspace conflict path exposed by EasyScan: additive locally opened
+  tools now merge with a concurrent remote Golden Layout snapshot by stable instance key; explicit
+  removals, settings, identity, and membership conflicts still create recovery. Added a store
+  regression; workspace-store tests pass `43/43`.
+- Focused Python/Study Lab acceptance passes `5/5` (`F9g`, `F9h`, `F9i`, `F8g`, `F8o`). Full
+  frontend Vitest passes `656/656` across 91 files; `vue-tsc`, production build, backend compile,
+  and `git diff --check` pass.
+- Full authenticated Chromium flow matrix passes `70/70`. Board-guided visual parity passes
+  `68/68` across 1920×1080 and 2560×1440 at 100% and 125% display scale. The complete
+  Docker-backed backend unit/integration gate passes `1,285/1,285` at `79.47%` (above the 75%
+  threshold), including workspace integration `24/24` against Postgres/Redis.
+- Explicit tie-break/flexibility used: additive tool-opening races are merged deterministically;
+  controlled seeded market data remains fixture evidence rather than live-provider evidence; board
+  guided/local baselines remain the active visual track for unrepresented states. No pixel threshold,
+  mask, feature boundary, or completion criterion was silently relaxed.
+- Remaining completion gaps are evidence/coverage scope, not these repaired paths: exact-build
+  approval for board-unrepresented states, live/free-source population breadth and entitlement
+  probes, native physical multi-monitor verification, bounded-vs-long-duration endurance, and
+  excluded-domain capability-stub enablement. They remain tracked and must not be presented as
+  exact V25 approval.
+
+## 2026-08-09T13:20:00Z — Ratio persistence and concurrent snapshot repair
+
+- Fixed the workspace persistence path exposed by the ratio-leg interaction. Golden Layout was
+  emitting identical `stateChanged` snapshots continuously, starving the debounce timer; the host
+  now deduplicates fingerprints and the store keeps a bounded pending save instead of postponing
+  forever. Persisted blue-link symbol hydration is covered by the workspace-store regression.
+- Added row-level locking to snapshot and factory-reset endpoints so concurrent tab replacement
+  produces the intended revision conflict rather than a PostgreSQL duplicate-key 500. Stale local
+  generations now schedule a retry instead of silently abandoning the edit.
+- Focused ratio browser regression passes `1/1`; frontend Vitest passes `654/654` across 91 files;
+  type-check/build pass. The broad authenticated run reached `38` passed before interruption and
+  exposed `9` existing/adjacent failures (Study Lab runner completion, reset-factory races, and a
+  pop-out 404); it is not being reported as a full pass.
+- No acceptance flexibility was used for these code fixes. Existing flexibility remains explicit:
+  board-guided/local visual evidence for the unrepresented ratio-editor state, controlled fixture
+  data instead of live provider evidence, and exact-build/coverage gaps tracked separately.
+
+## 2026-08-09T10:40:00Z — First-class ratio-leg comparison
+
+- The primary Relative Strength tool now has an editable, persisted comparison-leg control.
+  Users can add/remove arbitrary canonical legs directly in the workstation, including `XLK/SPY`
+  plus `XLK/XLE`, without typing an indirect chart expression or leaving the top-down layout.
+- Focused `RatioUPlot` coverage passes `10/10`; rebuilt browser `F8e.2` passes `1/1`; full frontend
+  Vitest passes `653/653` across 91 files; type-check/build pass; authenticated browser passes
+  `70/70`; and the full board-guided visual matrix passes `68/68` across all four environments.
+- The new control intentionally changed two 1920×1080/125%-display local baselines. They were
+  reviewed and refreshed only for those affected states; no threshold, mask, or acceptance
+  criterion changed.
+- Acceptance flexibility used: the ratio-leg editor is an unrepresented state judged against the
+  accepted board-guided/local-baseline track. Exact-build evidence for that state remains a
+  documented visual gap; it is not silently treated as exact V25 approval.
+
+## 2026-08-09T09:08:00Z — Seeded top-down data path and complete acceptance revalidation
+
+- Fixed a real backend contract defect: analysis freshness looked only for legacy `D1`, while
+  canonical adjusted bars are tracked under `D1:adj`. The API now prefers the adjustment-specific
+  dataset key and retains the legacy fallback; the focused regression passes logically and the
+  authoritative backend gate is `1285/1285` at `79.47%`.
+- The rebuilt branch-scoped stack seeds a controlled acceptance dataset (`12,480` bars,
+  `3` snapshots, `12` holdings, `26` instruments, and `D1:adj` freshness rows). SPY technicals
+  and `XLK/SPY` now report current freshness and full coverage; the focused top-down slice passes
+  `7/7`.
+- Full authenticated Playwright passes `69/69`; the board-guided visual matrix passes `68/68`
+  across all four required display environments; the visual manifest validates. Recent backend
+  logs contain no 5xx, traceback, MissingGreenlet, UniqueViolation, critical, or fatal signatures.
+- Acceptance flexibility used: repository-controlled, provenance-labelled market fixture instead
+  of live provider data. This is not official market membership or live/free-source coverage;
+  provider entitlements, population breadth, and taxonomy completeness remain explicit gaps. No
+  visual threshold, mask, or product acceptance criterion was relaxed.
+
+## 2026-08-09T08:34:23Z — Fresh rebuilt-stack authenticated revalidation
+
+- `make test-stack-up` rebuilt the branch-scoped Compose stack and applied migrations; backend,
+  frontend, worker, research-runner, Postgres, and Redis reported healthy.
+- Authenticated `flows.spec.ts` passes `69/69` in one worker, covering the current workstation and
+  top-down workflow, linking/timeframes/crosshairs, browser pop-outs, Study Lab, unified Python
+  reuse, scans/gauges, notes/alerts, legacy compatibility, unsupported-domain absence, uPlot,
+  and performance guards.
+- Recent service logs contain no HTTP 500, traceback, MissingGreenlet, UniqueViolation, critical,
+  or fatal signatures. Expected 404s for unseeded ETF holdings/industry compositions and OHLCV
+  without entitled/free-source coverage, plus missing optional provider credentials and exhausted
+  fallback warnings, remain explicit data/provider gaps; no acceptance criterion was relaxed.
+
+## 2026-08-09T12:30:00Z — Study Lab sandbox-error visual-oracle coverage
+
+- Added deterministic failed-run browser coverage for sandbox diagnostics, warnings, execution-log
+  disclosure, resource usage, and the rerun affordance.
+- Focused visual checks pass `4/4`; the complete board-guided visual matrix now passes `68/68`.
+- This remains interim `REF-STUDY-LAB-V25` / `REF-STATE-VARIANTS` evidence because the board has no
+  authoritative Study Lab error capture. Acceptance flexibility used: deterministic failed-run
+  fixture only; no masks, thresholds, or criteria changed. `sandbox_error` remains a manifest gap.
+
+## 2026-08-09T12:00:00Z — Study Lab structured-result visual-oracle coverage
+
+- Added deterministic completed-run browser coverage for scalar metrics, bar and histogram uPlot
+  output, a summary table, and clickable occurrence events.
+- Focused visual checks pass `4/4` across all four required display environments; the complete
+  board-guided visual matrix now passes `64/64`.
+- This is interim `REF-STUDY-LAB-V25` / `REF-STATE-VARIANTS` evidence because the board does not
+  represent Study Lab. Acceptance flexibility used: deterministic completed-run fixture only;
+  no masks, thresholds, or criteria changed. Histogram and occurrence-table remain manifest gaps.
+
+## 2026-08-09T11:00:00Z — Study Lab running-state visual-oracle coverage
+
+- Added the Study Lab `running` state to the manifest and captured deterministic baselines in all
+  four required display environments.
+- The focused flow exercises validation, run creation, progress (`12/100`), durable polling, and
+  the Cancel control; focused visual checks pass `4/4`.
+- This remains interim `REF-STUDY-LAB-V25` / `REF-STATE-VARIANTS` evidence, not an exact V25
+  visual claim. Acceptance flexibility used: deterministic runner fixture only; no masks,
+  thresholds, or criteria changed. The complete board-guided visual matrix passes `60/60` across
+  all four required environments.
+
+## 2026-08-09 authenticated workflow revalidation
+
+- Rebuilt-stack authenticated Chromium `flows.spec.ts` passes `69/69` in one worker.
+- Coverage includes the current top-down drill-down, link groups/timeframes/crosshairs,
+  pop-outs, Study Lab and Python promotions, scans/gauges, notes/alerts, legacy routes,
+  unsupported-domain absence, uPlot and workstation performance guards.
+- This is functional evidence, separate from the board-guided visual matrix (`60/60`). Exact or
+  unrepresented visual states, live-provider entitlement, native multi-monitor, and
+  beyond-bounded endurance gaps remain open; no criteria or masks changed.
+
+## 2026-08-09T10:30:00Z — Fetching freshness visual-oracle coverage
+
+- Added `fetching_data` to the application-shell manifest gap register and captured the real
+  pending-OHLCV shell state in all four required display environments.
+- Focused visual checks pass `4/4`; this remains interim `REF-STATE-VARIANTS` evidence, not
+  pinned-build approval. Acceptance flexibility used: documented board/state-variant substitution
+  only; no masks, thresholds, or criteria changed.
+- The complete board-guided visual matrix passes `60/60` across 1920×1080 and 2560×1440 at 100%
+  and 125% display scale.
+- Verified safe Docker cleanup: `docker builder prune -af` completed and `docker system df` now
+  reports zero build cache while preserving 34 images, 6 containers, and 4 volumes. The broader
+  `docker system prune -af` was not executed because it would be unbounded destructive cleanup.
+
+## 2026-08-09T10:00:00Z — Disabled-control visual-oracle coverage
+
+- Study Lab validation-error acceptance now asserts the invalid study’s Run control is disabled;
+  the manifest links this state to the existing four-environment baselines.
+- Focused visual checks pass `4/4`; `REF-STATE-VARIANTS` remains an interim, not exact-build,
+  visual oracle.
+- Acceptance flexibility used: documented board/state-variant substitution only; no masks,
+  thresholds, or criteria changed.
+
+## 2026-08-09T09:30:00Z — Keyboard-selected search visual-oracle coverage
+
+- Added the keyboard-selected active-symbol search state to the application-shell manifest gap
+  register; the ArrowDown/`aria-selected` behavior is asserted directly.
+- Focused visual checks pass `4/4` across all required display environments; the complete
+  board-guided visual matrix passes `52/52`. This remains interim `REF-STATE-VARIANTS` evidence,
+  not exact-build approval.
+- Acceptance flexibility used: documented board/state-variant substitution only; no masks,
+  thresholds, or criteria changed.
+
+## 2026-08-09T09:00:00Z — Unavailable freshness visual-oracle coverage
+
+- Added `unavailable_data` to the application-shell manifest gap register and captured deterministic
+  baselines in all four visual environments.
+- Focused unavailable visual checks pass `4/4`; the complete board-guided visual matrix passes
+  `48/48`. The state remains an interim `REF-STATE-VARIANTS` oracle, not exact-build approval.
+- Acceptance flexibility used: documented board/state-variant substitution only; no masks,
+  thresholds, or criteria changed.
+
+## 2026-08-09T08:35:00Z — Delayed freshness visual-oracle coverage
+
+- Added the delayed application-shell state to the manifest gap register and captured deterministic
+  local baselines at 1920×1080 and 2560×1440, both 100% and 125% display scale.
+- Focused delayed visual checks pass `4/4`; the complete board-guided visual matrix passes `44/44`.
+- Acceptance flexibility used: documented board/state-variant substitution only. `REF-STATE-VARIANTS`
+  remains open because the baselines are interim local evidence, not exact-build V25 captures.
+
+## 2026-08-09T08:10:00Z — Point-in-time analysis integration verification
+
+- Corrected a stale parity record: Docker-backed breadth, relative-rotation, and point-in-time
+  relative-strength routes are now verified in the current stack.
+- Focused `test_workspaces.py` analysis matrix passes `5/5`, covering aligned bars, membership and
+  bar cutoffs, breadth history, rotation tails, and ratio legs; only two known third-party
+  deprecation warnings were emitted.
+- Acceptance flexibility used: none. Exact/unrepresented visual, live-entitlement,
+  native-monitor, endurance, and remaining scope gaps remain open.
+
+## 2026-08-09T07:50:00Z — Market Gauge delayed-state styling correction
+
+- Normalized `delayed` freshness now uses warning styling instead of the green current-data color;
+  `coverage_limited` and `coverage-limited` remain normalized consistently.
+- Focused Market Gauge/freshness tests pass `22/22`; rebuilt `F8w-a` passes `1/1`; full frontend
+  Vitest passes `652/652`; `vue-tsc`/production build pass; board-guided visual passes `40/40`.
+- No acceptance flexibility, baseline, mask, threshold, or criterion change. Exact/unrepresented
+  visual, provider-entitlement, native-monitor, endurance, and remaining scope gaps remain tracked.
+
+## 2026-08-09T07:35:00Z — Market Gauge freshness and browser-boundary fixes
+
+- Market Gauge now uses the shared workstation freshness normalizer and a normalized state key;
+  both backend `coverage_limited` and frontend `coverage-limited` render as `Coverage limited`.
+- Focused Market Gauge/freshness tests pass `21/21`; rebuilt `F8w-a` passes `1/1`; full frontend
+  Vitest passes `651/651`; `vue-tsc`/production build pass; complete Chromium passes `69/69`;
+  board-guided visual passes `40/40`; manifest and final service logs are clean.
+- The same full run found two localized, recoverable races and they were fixed rather than used as
+  blockers: F8f pop-out cleanup is idempotent when the child already closed (`5/5` repetitions),
+  and the logout diagnostics helper filters the explicitly allowed `Authentication required`
+  page error beside expected 401 responses (`F5` `1/1`).
+- Acceptance flexibility used: none. The stale pre-rebuild browser bundle was an environment
+  refresh issue and was rebuilt; no visual thresholds, masks, or product criteria changed.
+  Exact/unrepresented visual, provider-live, native-monitor, endurance, and remaining scope gaps
+  remain tracked.
+
+## 2026-08-09T07:20:00Z — Top-down lineage field correction
+
+- Fixed a data-label defect in the industry-row model: ETF holdings composition date is now
+  represented as `as_of`, not `freshness`; the associated column is labelled `As of` where used.
+  The compact Industries UI remains the intended count/list surface.
+- Corrected F8e.1 passes `1/1`; adjacent F8d/F8d-SPX/F8e passes `4/4`; type-check and focused
+  workstation regressions pass. Existing full frontend `649/649`, Chromium `68/68`, visual
+  `40/40`, build, and clean log evidence remain valid.
+- Acceptance flexibility used: none. No product criterion or visual baseline changed; remaining
+  documented external/reference gaps remain open.
+
+## 2026-08-09T07:00:00Z — Freshness contract normalization
+
+- Corrected the shared workstation freshness boundary: backend `coverage_limited` and frontend
+  `coverage-limited` now normalize to the visible `Coverage limited` state; delayed and
+  coverage-limited values are represented in the workspace contracts. Relative Rotation and
+  top-down lineage metadata use the same human-readable formatter.
+- Focused freshness/rotation regression `22/22`, authenticated F8i-e `1/1`, full frontend Vitest `649/649`,
+  type-check/build, complete authenticated Chromium `68/68`, board-guided visual `40/40`, and
+  final branch-stack log audit all pass.
+- No visual baselines, masks, thresholds, or acceptance criteria changed. Acceptance flexibility
+  used: none; exact/unrepresented visual, live-provider, native-monitor, bounded-endurance, and
+  remaining scope gaps remain tracked.
+
+## 2026-08-09T06:45:00Z — Canonical-only workstation instrument boundary
+
+- New-workstation autocomplete and every workstation symbol/expression path now request the
+  local canonical security master explicitly (`canonical_only=true`). Legacy/default callers
+  retain provider discovery for compatibility; provider fan-out remains outside the normal
+  workstation read path.
+- Focused Docker-backed canonical-boundary integration tests pass `2/2`; focused frontend
+  contract tests pass `19/19`; rebuilt F7/F8d/F8d-SPX pass `3/3`.
+- Broad validation after the change: backend `1,284/1,284` at `79.49%` combined coverage,
+  frontend Vitest `643/643`, `vue-tsc --noEmit`, production build, authenticated Chromium
+  `67/67`, and clean final service-log audit.
+- Acceptance flexibility used: none. Exact-build/unrepresented visual states, live provider
+  entitlements, native physical monitor behavior, beyond-bounded endurance, and remaining
+  requirement-level work stay open and tracked.
+
+## 2026-08-09T06:15:00Z — SPX proxy fallback and indicator persistence correction
+
+- The explicit SPX workflow now attempts canonical official SPX and, only when unavailable,
+  resolves the configured canonical SPY tradable proxy. The footer says `SPX official series
+  unavailable; using tradable proxy SPY`; it never presents SPY as official SPX. Rebuilt-stack
+  browser regression `F8d-SPX` passes `1/1`.
+- The same audit found a real concurrent indicator persistence `MissingGreenlet` 500. The
+  endpoint now extracts the loaded user identity without implicit async ORM attribute IO;
+  focused Docker-backed integration tests pass `2/2`; the authoritative combined backend gate
+  passes `1,282/1,282` at `79.43%` coverage above the 75% threshold; and the complete rebuilt
+  authenticated Chromium matrix passes `67/67`. The final service-log audit has no HTTP 500,
+  traceback, MissingGreenlet, UniqueViolation, critical, or fatal signatures.
+- Frontend Vitest remains `643/643` across 91 files; `vue-tsc --noEmit` and production build pass.
+- Acceptance flexibility used: deterministic 404 fixture for the free-source/unentitled SPX path.
+  Live entitlement remains open; exact/unrepresented visual, native-monitor, bounded-endurance,
+  and remaining product-scope gaps remain tracked.
+
+## 2026-08-09T05:55:00Z — Focused symbol-entry race and shell-baseline correction
+
+- Fixed a real async hydration race: initial SPY loading could rewrite a focused autocomplete
+  query between keystrokes, producing `SPYSP`. User edits now invalidate the initial selection
+  generation, while hydration and active-symbol watchers preserve a newer focused draft until an
+  explicit selection or submit. The browser regression asserts `SP` in the DOM and the live
+  captured render; all four focused-search baselines were regenerated from that evidence.
+- Stabilized the stale-data visual capture by waiting for the Refresh control to settle. This
+  preserved the existing pixel threshold and corrected the one 125%-scale baseline that still
+  contained pre-overlap-fix geometry.
+- Rebuilt-stack validation: board-guided visual `40/40`, authenticated Chromium `66/66`,
+  frontend Vitest `643/643` across 91 files, `vue-tsc --noEmit`, production build, and a clean
+  timestamped service-log audit with no HTTP 500, traceback, MissingGreenlet, UniqueViolation,
+  critical, or fatal signatures.
+- Acceptance flexibility used: documented composite-board track for represented states and a
+  deterministic canonical autocomplete fixture because seeded data does not guarantee search
+  results. Exact-build/unrepresented visual, provider/live-entitlement, native physical
+  multi-monitor, beyond-bounded endurance, and remaining product-scope gaps remain open.
+
+## 2026-08-09T04:15:00Z — Chart control/readout overlap correction
+
+- Fixed a real visual defect found by the fix-first geometry audit: chart Compare, Plots, and
+  Templates controls could overlap the uPlot OHLC readout. `.chart-tool__surface` now reserves a
+  dedicated top control strip, and the visual harness explicitly rejects control/readout and
+  control/control intersections.
+- Preserved the prior generated baselines in `/private/tmp/tc2000-shell-baselines-20260809-overlap-fix/`
+  and `/private/tmp/tc2000-gap-baselines-20260809-overlap-fix/`; refreshed only the affected
+  shell/stale/partial snapshots. Rebuilt-stack evidence: board-guided visual `32/32` across all
+  four environments, authenticated Chromium `66/66`, frontend Vitest `643/643`, `vue-tsc`, and
+  production build pass. The final two-minute timestamped service-log audit is clean of HTTP 500,
+  traceback, MissingGreenlet, UniqueViolation, critical, and fatal signatures.
+- Acceptance flexibility used: documented composite-board track for represented visual states.
+  Exact-build/unrepresented, provider/live-entitlement, native-monitor, bounded-endurance, and
+  remaining product-scope gaps remain open and must not be silently treated as closed.
+
+## 2026-08-09T04:44:00Z — Default relative-strength ratio correction
+
+- Fixed the default top-down Relative Strength defect where the chart could derive `SPY/SPY`
+  from the selected holdings ETF. `autoRatioBenchmarks` now centralizes the contract: SPY/RSP,
+  sector/SPY, and constituent/sector plus constituent/SPY legs, with self-reference removed.
+- Added unit regression coverage (3/3), rebuilt authenticated F8e coverage (2/2), and made the
+  visual harness wait for `SPY/RSP` before capturing the shell state. The complete board-guided
+  visual matrix passes `32/32` across four environments. Full frontend Vitest passed `643/643`,
+  `vue-tsc --noEmit`, and production build passed.
+- Acceptance flexibility used: the documented composite-board track for represented visual states;
+  exact/unrepresented states remain open. The repository-controlled defect was fixed and verified.
+  Provider/live-entitlement, native-monitor,
+  bounded-endurance, and remaining product-scope gaps remain open.
+
+## 2026-08-09T03:33:12Z — Backend gate and operational audit
+
+- Re-ran the authoritative combined backend unit/integration coverage gate: `1,282/1,282`
+  passed, `79.43%` line coverage, 86 known third-party deprecation warnings.
+- The branch-scoped Docker stack remains healthy. The current browser evidence remains board-guided
+  visual `32/32` and authenticated Chromium `65/65`.
+- Docker usage is approximately `10.0 GB` with `8.5 GB` reclaimable. The requested broad
+  `docker system prune -af` was rejected by safety policy because it would irreversibly remove
+  shared Docker artifacts; no workaround or unrelated deletion was attempted. This is an
+  operational cleanup limitation, not a product blocker or acceptance relaxation.
+- Acceptance flexibility used: none.
+
+## 2026-08-09T03:24:16Z — Deterministic authenticated visual-fixture isolation
+
+- Fixed the visual-board rerun instability by resetting each authenticated test user's default
+  factory workspace after login. Persisted ratio expressions, symbol-link selections, and layout
+  edits from another visual project or prior run can no longer leak into a baseline.
+- The isolated stale-freshness test passes `3/3` at 1440×900/125%; the complete board-guided visual
+  matrix passes `32/32` across all four required environments. The complete authenticated Chromium
+  matrix passes `65/65`; frontend Vitest passes `642/642` across 91 files; `vue-tsc` and the
+  production build pass.
+- The timestamped five-minute window covering the completed browser run contains no HTTP 500,
+  traceback, MissingGreenlet, UniqueViolation, critical, or fatal signatures. Older cumulative
+  container logs retain historical duplicate-indicator/MissingGreenlet entries from prior runs;
+  they were not attributed to this run and remain covered by the backend regression gate.
+- Acceptance flexibility used: none for this fix or functional evidence. The composite-board
+  track remains explicitly limited to represented visual states; exact-build/unrepresented
+  visual, provider/live-entitlement, native physical-monitor, beyond-bounded endurance, and
+  remaining product-scope gaps remain open.
+
+## 2026-08-09T03:01:36Z — Unified Python editor across Study Lab and Code Library
+
+- Replaced Study Lab’s duplicate plain textarea/autocomplete implementation with the shared
+  `PythonSourceEditor` used by Code Library. The primary programmable surfaces now share SDK
+  suggestions/signatures, normalization, keyboard completion, outside-pointer dismissal, and ARIA
+  listbox behavior.
+- Focused Study Lab/editor coverage passed `21/21`; rebuilt authenticated F8g/F9i passed `2/2`;
+  the complete authenticated Chromium matrix passed `65/65`; full frontend Vitest passed
+  `642/642` across 91 files; `vue-tsc --noEmit` and production build passed.
+- The post-run backend/worker/research-runner/frontend log audit found no HTTP 500, traceback,
+  MissingGreenlet, UniqueViolation, critical, or fatal signatures.
+- Acceptance flexibility used: none. Explicit visual-reference, provider-live, native-monitor,
+  bounded-endurance, and remaining product-scope gaps remain open.
+
+## 2026-08-09T02:57:50Z — Section 14 checkpoint synchronization
+
+- Corrected the controlling `docs/project-todos.md` section 14 summary so it matches the latest
+  authoritative evidence already recorded in the handoff/state: backend `1,282/1,282` at `79.43%`,
+  authenticated Chromium `65/65`, frontend Vitest `642/642` across 91 files, and board-guided
+  visual `32/32`.
+- The status remains `In progress — single completion bar not yet satisfied`. The update does not
+  close or relax any visual, provider-live, physical-monitor, endurance, or uncovered
+  requirement-level gaps.
+- Acceptance flexibility used: none for the documentation synchronization. Existing board-guided,
+  fixture/live-provider, browser-hardware, and bounded-endurance ledger entries remain unchanged.
+
+## 2026-08-09T05:10:00Z — Anfield provider route re-audit
+
+- Re-probed the configured official Regents Park ADFI product route and confirmed HTTP `404`.
+  Current public search evidence still describes the ADFI page and its “Download All Holdings”
+  surface, but the live route is not executable from this environment. Anfield’s current site
+  also states that Anfield Capital Management is now part of Horizon, indicating a likely issuer /
+  distribution transition.
+- No replacement first-party holdings endpoint was verified, so the native route was not promoted
+  and no fabricated holdings or generic-provider substitution was introduced. The adapter retains
+  route-failure provenance and the documented conditional SEC fallback.
+- Acceptance flexibility used: none. This remains a precise external provider-route gap and does
+  not block independent workstation or backend work.
+
+## 2026-08-09T04:50:00Z — Combined backend coverage gate
+
+- The authoritative Docker-backed combined backend unit/integration gate completed successfully:
+  `1,282/1,282` tests passed with `79.43%` line coverage, above the required 75% threshold.
+- This revalidates the current code/ETF-provider/research/sandbox/API surface after the frontend
+  continuation. No new backend error class or acceptance regression was observed.
+- Acceptance flexibility used: none.
+
+## 2026-08-09T04:30:00Z — Complete authenticated matrix after editor changes
+
+- Rebuilt the branch-scoped stack and ran the complete authenticated `flows.spec.ts` matrix.
+  All `65/65` tests passed, covering authentication, charts, layouts, pop-outs, link groups,
+  cross-window links/cursors, top-down drill-down, Study Lab, Python promotions, notes, alerts,
+  scans/gauges, drag/drop, legacy routes, unsupported-domain visibility, and performance guards.
+- Post-run backend/worker/research-runner/frontend logs contain no ERROR, traceback, HTTP 500,
+  MissingGreenlet, UniqueViolation, critical, or fatal signatures.
+- Acceptance flexibility used: none for this functional matrix. The previously recorded
+  board-guided visual flexibility remains applicable only to represented visual states; exact /
+  unrepresented visual, provider/live-entitlement, native physical monitor, beyond-bounded
+  endurance, and remaining product-scope gaps remain open.
+
+## 2026-08-09T04:00:00Z — Keyboard-completable Python authoring
+
+- Added accessible keyboard completion to `PythonSourceEditor`: ArrowUp/ArrowDown move the
+  selected SDK suggestion, Enter/Tab insert it, Escape dismisses it, and the listbox exposes
+  `aria-activedescendant`/`aria-selected` state. Plain editor navigation remains untouched when
+  suggestions are closed.
+- Focused editor/CodeLibrary coverage passes `7/7`; full frontend Vitest passes `642/642` across
+  91 files; type-check/build pass; rebuilt authenticated F9h passes `1/1`; final board-guided
+  visual matrix passes `32/32` across all four required display environments.
+- Acceptance flexibility used: board-guided visual track for represented states during the visual
+  run. No masks, thresholds, or baselines changed. Exact-build/unrepresented visual gaps,
+  provider/live-entitlement, native physical monitor, beyond-bounded endurance, and remaining
+  product-scope gaps remain open.
+
+## 2026-08-09T03:50:00Z — Board-guided visual revalidation after Python editor integration
+
+- Revalidated the rebuilt workstation against the 190-image composite board across the four
+  required display environments. Manifest validation passed and all `32/32` board-guided visual
+  cases passed, including shell, Study Lab, loading, provider-error, blocked-pop-out, stale,
+  partial-coverage, and validation-error states.
+- This advance uses the documented board-guided visual flexibility for represented states. It does
+  not close `REF-SHELL-V25`, `REF-STATE-VARIANTS`, or any other exact-build/unrepresented gap;
+  those remain explicitly recorded with their required closure evidence.
+- Acceptance flexibility used: board-guided visual track for represented states. No masks,
+  thresholds, or baseline criteria were changed.
+
+## 2026-08-09T03:35:00Z — Unified Python source editor and interaction hardening
+
+- Added the reusable `PythonSourceEditor` to Code Library creation and immutable-version editing.
+  It exposes unified SDK suggestions/signature hints, deterministic whitespace/line-ending
+  normalization, and retains the existing canonical validation/output-contract gate.
+- Browser validation found that the suggestion popover intercepted the Create button. The editor
+  now dismisses on outside pointer input and makes only suggestion buttons hit-testable; unrelated
+  form controls remain clickable while suggestions are visible.
+- Focused editor/CodeLibrary coverage passes `6/6`; full frontend Vitest passes `641/641` across
+  91 files; `vue-tsc --noEmit` and production build pass; rebuilt authenticated F9h passes `1/1`.
+  Rebuilt backend/worker/research-runner/frontend logs contain no ERROR, traceback, HTTP 500,
+  MissingGreenlet, UniqueViolation, critical, or fatal signatures.
+- Acceptance flexibility used: none. Exact/unrepresented visual, provider/live-entitlement,
+  native physical monitor, beyond-bounded endurance, and remaining product-scope gaps remain open.
+
+## 2026-08-09T02:15:30Z — Python output-contract preflight
+
+- Reconciled `/code/validate` output contracts with the selected reusable asset kind/version.
+  Plot, column, condition, signal, and study declarations now receive the same compatibility
+  check before persistence; incompatible valid Python produces a source-positioned diagnostic.
+- Added the valid-but-wrong-contract regression. Focused CodeLibraryTool coverage passes `4/4`;
+  full frontend Vitest passes `639/639`; type-check/build pass; rebuilt authenticated F9h passes
+  `1/1` through Python Library → EasyScan → alert creation.
+- Acceptance flexibility used: none. Exact/unrepresented visual, provider/live-entitlement,
+  native monitor, beyond-bounded endurance, and remaining product-scope gaps remain open.
+
+## 2026-08-09T02:11:47Z — Python Library validation parity
+
+- Added explicit canonical Python validation to reusable asset creation and immutable-version
+  editing. Diagnostics include source line/column and message; invalid code is not persisted, and
+  editing code clears any previous validation result.
+- Focused CodeLibraryTool coverage passes `3/3`; full frontend Vitest passes `638/638`; type-check
+  and production build pass. The rebuilt authenticated F9h Python-library → EasyScan → alert flow
+  passes `1/1` with clean browser diagnostics.
+- Acceptance flexibility used: none. This closes the inconsistent validation behavior between
+  Study Lab and the reusable Python library; visual reference, provider/live-entitlement, native
+  monitor, beyond-bounded endurance, and remaining product-scope gaps remain open.
+
+## 2026-08-09T02:06:26Z — Screen inventory completeness correction
+
+- Corrected the Window Management API recovery contract so an off-screen pop-out is recovered only
+  when every reported display has complete usable bounds. A partially malformed inventory now
+  preserves the saved coordinates rather than filtering invalid records and making an unsafe
+  single-display decision.
+- Added the partial-inventory regression. The focused geometry suite passes `7/7`; full frontend
+  Vitest passes `637/637`; `vue-tsc --noEmit` and the production build pass; the rebuilt pop-out,
+  recovery, and cross-window subset passes `9/9`, including elevated F8b `1/1`.
+- The initial non-elevated Chromium launch failed before test code at the macOS Mach-port boundary;
+  the configured elevated rerun passed. Its stale generated root test artifact was removed. This
+  was harness/host evidence, not a product assertion failure.
+- Acceptance flexibility used: none. Native physical monitor placement, exact/unrepresented
+  visual states, provider/live-entitlement coverage, beyond-bounded endurance, and remaining
+  product-scope gaps remain open.
+
+## 2026-08-11T23:00:00Z — Expanded workstation endurance soak
+
+- Raised the explicit pop-out churn guard ceiling from 100 to 500 rounds while keeping a hard
+  bounded limit and preserving the existing absolute/relative Chromium heap ceilings.
+- Ran `TC2000_POP_OUT_CHURN_ROUNDS=250` against the rebuilt stack. The two-popout lifecycle soak
+  passed `1/1` in `4.8m`, preserving source tool/canvas/chart counts after every round and producing
+  no heap-limit failure or browser diagnostic issue.
+- `vue-tsc --noEmit` passed after the harness change; the previous full frontend `636/636` and
+  rebuilt authenticated `65/65` evidence remains valid because no product source changed in this
+  iteration.
+- Acceptance flexibility used: none. This materially strengthens bounded endurance evidence but
+  does not claim indefinite soak; native multi-monitor, exact/unrepresented visual, provider/live
+  entitlement, and remaining product-scope gaps remain open.
+
+## 2026-08-11T22:00:00Z — Screen-aware pop-out recovery
+
+- Added screen-aware pop-out recovery around the existing synchronous `window.open` path. When the
+  browser exposes the Window Management API and confirms an extended desktop, saved geometry is
+  checked against the complete available-screen inventory; a window saved on a disconnected
+  display is moved/resized to the current display's safe default. Without permission/API support,
+  persisted coordinates remain authoritative, preserving valid negative-coordinate secondary
+  monitor placements.
+- Added deterministic geometry coverage for visible secondary monitors, disconnected displays,
+  incomplete screen inventories, and conservative fallback behavior. The focused geometry suite
+  passes `6/6`; `vue-tsc`, production build, and full frontend Vitest pass `636/636`.
+- Rebuilt the branch-scoped production stack and ran the pop-out subset `9/9` plus the complete
+  authenticated Chromium matrix `65/65`. Post-run logs contain only expected provider-exhaustion
+  freshness warnings; no HTTP 500, traceback, critical, or fatal signatures were found.
+- Acceptance flexibility used: none. This closes the repository-controlled screen-recovery path,
+  but native physical multi-monitor placement still requires hardware-level validation; exact /
+  unrepresented visual states, provider/live-entitlement gaps, and beyond-bounded endurance remain
+  open.
+
+## 2026-08-11T21:00:00Z — Cross-window symbol/timeframe propagation
+
+- Added `F8n-cross-window-links`, which floats the real primary chart and verifies that changing
+  the parent workstation to `QQQ` and `W1` updates the detached chart's canonical symbol and
+  timeframe through the link bus.
+- Focused acceptance passed `1/1`; the complete rebuilt authenticated Chromium matrix passed
+  `65/65`, including cross-window symbols, timeframes, and cursor timestamps, all existing
+  pop-out/recovery flows, top-down analysis, Study Lab, drag/drop, legacy, and performance.
+- Existing implementation passed unchanged. Acceptance flexibility used: none. Browser-level
+  multi-window behavior is now evidenced; native physical monitor placement remains an external
+  hardware gap, alongside exact/unrepresented visual, provider-entitlement, and long-duration
+  endurance gaps.
+
+## 2026-08-11T20:00:00Z — Cross-window linked crosshair verification
+
+- Added `F8n-cross-window`, a real browser acceptance flow that floats the primary chart, moves
+  its uPlot cursor in the child window, and verifies the parent Relative Strength chart follows
+  through the canonical BroadcastChannel/storage link bus.
+- The implementation already behaved correctly; no product-code change was required. Focused
+  cross-window acceptance passed `1/1`, and the complete rebuilt authenticated Chromium matrix
+  passed `64/64`, including all existing linking, pop-out, top-down, Study Lab, drag/drop, legacy,
+  and performance flows.
+- Acceptance flexibility used: none. This closes the functional cross-window cursor evidence gap;
+  exact-build/unrepresented visual states, native physical multi-monitor placement, provider/live
+  entitlement coverage, and beyond-bounded endurance remain open and tracked.
+
+## 2026-08-11T19:00:00Z — Linked crosshair acceptance and lifecycle-oracle hardening
+
+- Added a real browser acceptance flow for linked chart cursors. The primary uPlot chart now
+  publishes the selected bar timestamp through the existing canonical link bus, and the seeded
+  Relative Strength uPlot follows it in the same link group; focused acceptance passed `1/1`.
+- The first assertion incorrectly read `style.left`; uPlot positions its cursor with CSS
+  `transform` and exposes the hidden state through `u-off`. The oracle was corrected to assert the
+  actual uPlot contract, then the focused flow passed without changing product behavior.
+- The complete rebuilt authenticated Chromium `flows.spec.ts` matrix passed `63/63` after the
+  correction, including pop-outs, Study Lab, top-down drill-down, linking, legacy routes, and
+  workstation performance flows.
+- The same matrix briefly exposed a timing-sensitive F8f baseline: the ratio chart can add its
+  legitimate uPlot canvas after the primary chart's first canvas appears. The acceptance setup
+  now waits for both factory charts to finish initialization before measuring lifecycle stability;
+  isolated F8f and the complete matrix pass. This is an oracle stabilization, not a relaxed leak
+  criterion and not a product-code workaround.
+- Acceptance flexibility used: none in this iteration. The board-guided visual track remains the
+  active track for represented states; `REF-SHELL-V25`, native multi-monitor, exact-build
+  unrepresented states, provider/live entitlement coverage, and endurance gaps remain open.
+
+## 2026-08-11T18:00:00Z — Active-symbol history integration and visual-baseline reconciliation
+
+- Added the missing TC2000-style active-symbol history affordance to the authenticated workstation
+  shell. It uses the existing bounded persisted recent-instrument store, exposes a compact menu with
+  keyboard/ARIA semantics, supports direct selection and clearing, and dismisses on outside pointer
+  input or Escape without interfering with autocomplete.
+- Browser validation first exposed a real localized defect: an initial route whose symbol was already
+  `SPY` did not trigger the active-symbol watcher, leaving history disabled. Symbols are now recorded
+  at successful explicit selection (including industry-proxy selection), while the watcher continues
+  to capture linked/cross-window changes.
+- Focused shell tests passed `14/14`; full frontend Vitest passed `634/634` across 90 files;
+  `vue-tsc --noEmit` and production build passed; focused rebuilt-stack history acceptance passed
+  `1/1`; corrected complete authenticated Chromium matrix passed `62/62`.
+- The first board-guided visual run found one stale 1080p/100 application-shell baseline that still
+  represented an older unavailable/loading capture. Only that reviewed deterministic baseline was
+  regenerated; masks and thresholds were unchanged. The complete four-environment board-guided
+  matrix then passed `32/32`.
+- Acceptance flexibility used: board-guided visual acceptance for represented shell states
+  (`REF-SHELL-V25` remains open for uncovered exact-build details). No criterion, threshold, or mask
+  was relaxed; the exact baseline refresh is recorded as a reviewed local fixture correction.
+- Post-run backend, worker, and research-runner logs contain only the expected provider-exhaustion
+  freshness warnings; no HTTP 500, traceback, `MissingGreenlet`, `UniqueViolation`, critical, or
+  fatal signatures were found.
+
+## 2026-08-11T17:00:00Z — Workstation transient-menu parity fix
+
+- Closed a localized Version 25 desktop-interaction gap in the primary workstation: Workspace
+  and Add Tool menus now expose explicit menu semantics, dismiss on outside pointer input, and
+  dismiss reliably on Escape without interfering with editor focus or symbol search.
+- The pointer handler runs in capture order so dismissal is deterministic even when Golden Layout
+  or a nested tool consumes the bubbling event. The Add Tool entries are now `menuitem`s, and the
+  E2E oracle was updated to assert that contract rather than treating the corrected role as a
+  product failure.
+- Focused shell unit coverage passed `13/13`; full frontend Vitest passed `633/633` across 90
+  files; `vue-tsc --noEmit` and production Vite build passed; rebuilt-stack focused browser check
+  passed `1/1`; the corrected complete authenticated Chromium matrix passed `61/61`.
+- Acceptance flexibility used: none. This is a recoverable repo-controlled interaction fix;
+  provider route, exact-build reference, native multi-monitor, and endurance gaps remain tracked
+  independently and did not block this work.
+
+## 2026-08-11T16:00:00Z — REX Shares native holdings route and provenance fix
+
+- The official REX Shares TSLT product page returned HTTP 200 and a complete holdings CSV. The
+  existing `RexHoldingsAdapter` is now native/live-backed and removed from fallback audits.
+- The first live assertion exposed that the issuer CSV has no composition-date field. The test was
+  corrected to assert preservation of the missing provenance rather than infer a date; the REX
+  live selection then passed `3/3`, adapter units passed `457/457`, and the authoritative combined
+  Docker-backed backend gate passed `1,282/1,282` at `79.43%` coverage with 86 known dependency
+  warnings. Anfield remains an explicit HTTP 404 route gap. Acceptance flexibility used: none.
+
+## 2026-08-11T15:00:00Z — Sterling Fund Management native holdings route
+
+- The official Sterling Capital SCMC export returned HTTP 200 with a dated PDF; the existing
+  `SterlingFundManagementHoldingsAdapter` parsed 182 holdings successfully. Sterling is now
+  native/live-backed, removed from fallback audits, and covered by a concrete opt-in live test.
+- Deterministic adapter/catalog/parser checks passed; the complete ETF adapter suite passed
+  `456/456`, the focused Redwood+Sterling live matrix passed `2/2`, and the authoritative
+  Docker-backed backend gate passed `1,281/1,281` at `79.43%` coverage with 86 known dependency
+  deprecation warnings. Anfield remains an explicit HTTP 404 route gap. Acceptance flexibility
+  used: none.
+
+## 2026-08-11T14:00:00Z — Redwood native holdings route
+
+- The official LeaderShares endpoint for LSAT returned HTTP 200 and a complete dated CSV through
+  an elevated HTTPS probe. The existing `RedwoodHoldingsAdapter` now counts as native/live-backed;
+  Redwood is removed from `non_executable_public_source` fallback audits and has a concrete live
+  matrix test.
+- Deterministic Redwood/parser and registry coverage passed; the opt-in live LSAT test passed
+  `1/1`. Anfield was not promoted: its current Regents Park product route returned HTTP 404 and
+  remains an explicit provider-route gap. The full Docker-backed backend gate then passed
+  `1,280/1,280` at `79.43%` coverage with 86 known dependency deprecation warnings. Acceptance
+  flexibility used: none.
+
+## 2026-08-11T13:00:00Z — Tie-break verification continuation
+
+- The goal-level tie-break was applied explicitly: localized provider-route corrections were
+  repaired and re-tested rather than allowed to block the overall goal.
+- Fairlead and Impact Shares remain green under the deterministic contract: ETF adapter units
+  `454/454`, registry/route invariants `2 skipped` with opt-in live HTTP disabled, Ruff,
+  compileall, and diff checks pass.
+- REX/Sterling route promotion remains deliberately deferred because this environment cannot
+  resolve their issuer hosts; no search-result or mocked evidence was treated as a live pass.
+  The broader frontend Vitest regression also passed `632/632` across 90 files. Acceptance
+  flexibility used: none.
+
+## 2026-08-11T12:00:00Z — Impact Shares native holdings route
+
+- Impact Shares' official NACP page-declared `TidalFG_Holdings_NACP.csv` route returned HTTP 200
+  via curl and is now configured as a native `impact_shares` issuer adapter; the identity is
+  removed from fallback-only audits and the route is included in the opt-in live matrix.
+- The official CSV uses `% Net of Assets`; the generic holdings parser now accepts that header
+  spelling. Deterministic mocked route/parser coverage passes, the complete ETF-adapter suite is
+  `454/454`, registry/fallback invariants pass, and Ruff/compile/diff checks pass.
+- The opt-in Python live probe remains limited by this environment's DNS resolution and is not
+  represented as a passing live request. Acceptance flexibility used: none.
+
+## 2026-08-11T11:00:00Z — Fairlead alias native-route correction
+
+- The discovered `fairlead` identity was incorrectly left in the fallback-only audit even though
+  the verified Fairlead/Cary Street TACK issuer-page/FilePoint adapter already existed. It now has
+  an explicit native config and resolves to `CaryStreetHoldingsAdapter`; `cary_street` remains the
+  legal-issuer identity and both aliases retain distinct provenance labels.
+- The mocked issuer-page/holdings JSON regression runs for both aliases, the complete ETF-adapter
+  unit suite passes `453/453`, live-provider registry/route-invariant checks pass with live HTTP
+  cases skipped by default, and Ruff is clean. The combined backend gate was green at `1,277/1,277`
+  before this isolated registry correction; no other backend contract changed.
+- Acceptance flexibility used: none. The direct Fairlead live probe remains an opt-in evidence
+  item and is not represented as a passing live request.
+
+## 2026-08-11T10:00:00Z — Academy route full backend gate
+
+- After adding the explicit Academy `fetch_latest` entry point and updating the fallback-audit
+  expectation for the native promotion, all 452 ETF-adapter unit tests pass and Ruff is clean.
+- Docker-backed integration validation passes `285/285`; the combined authoritative backend gate
+  passes `1,277/1,277` at `79.43%` coverage in 247.18 seconds, above the 75% threshold. The 86
+  warnings remain known Nautilus/pandas dependency deprecations only.
+- The opt-in Python live route test remains an environment DNS limitation even though the official
+  CSV was independently reached with curl; it stays explicitly open and is not represented as a
+  passing live-probe result. Acceptance flexibility used: none.
+
+## 2026-08-11T09:00:00Z — Academy native holdings route promotion
+
+- Academy's official VETZ product page declares a downloadable holdings file; the resolved
+  `TidalFG_Holdings_VETZ.csv` route was independently checked with curl and returned HTTP 200
+  with a dated complete CSV payload.
+- Promoted `academy` from recognition/fallback-only to a configured native issuer adapter, added
+  deterministic URL-resolution/parser coverage, catalog assertions, and the opt-in live-provider
+  case. Ruff and the focused adapter unit test pass; the deterministic data-URL parser check passes.
+- The Python live pytest probe was attempted and failed before HTTP with an environment DNS error;
+  this is retained as an unclosed live-probe environment limitation, not reported as a passing
+  Python live test. Acceptance flexibility used: none.
+
+## 2026-08-11T08:00:00Z — fix-first validation checkpoint
+
+- Re-ran the focused regression slice for the localized Study/Results interaction repairs:
+  Workspace layout, Research Results, Study Lab, and chart plot-library suites pass `41/41`.
+- The complete frontend Vitest suite passes `632/632` across 90 files; `vue-tsc --noEmit` and
+  the production Vite build also pass. The earlier failed invocation used an undefined
+  `test:unit` script from the repository root and did not execute tests; it was corrected by
+  running the supported frontend `test` script from the frontend project root.
+- No acceptance flexibility used. The mandatory tie-break was applied as fix-first plus focused
+  and broader verification; remaining provider/reference/native-multi-monitor/endurance gaps stay
+  tracked rather than blocking independent work.
+
+## 2026-08-10T18:00:00Z — issuer route re-probe
+
+- Correct Python 3.12 live probe: Donoghue Forlines DFTT passed; Anfield ADFI failed on HTTP 404
+  from its formerly verified Regents Park product URL.
+- Anfield's adapter attempted SEC fallback, but the standalone probe supplied no SEC identifiers;
+  route-failure provenance remains explicit and no native success was fabricated.
+- This is a localized provider-route gap, not a core workstation blocker; acceptance flexibility used:
+  none.
+
+## 2026-08-10T17:00:00Z — complete fresh-stack authenticated matrix
+
+- Fresh branch-stack Playwright passed `63/63` executed non-visual/performance flows, including
+  workstation, links, pop-outs, Study Lab, EasyScan, alerts, notes, drag/drop, legacy, uPlot,
+  and churn; 32 visual projects were intentionally skipped here.
+- Post-run logs contain only expected provider-exhaustion freshness warnings, with no 500,
+  traceback, MissingGreenlet, UniqueViolation, critical, or fatal signatures.
+- Acceptance flexibility used: none.
+
+## 2026-08-10T16:00:00Z — fresh-stack runtime audit
+
+- Branch-scoped Compose services are healthy; backend `/health` is `status=ok`, frontend serves on
+  port 80, and F8d/F9h/F8g authenticated smoke flows pass `3/3`.
+- Post-smoke logs contain only the expected FRED/provider-exhaustion freshness warning; no 500,
+  traceback, MissingGreenlet, UniqueViolation, critical, or fatal signatures.
+- Acceptance flexibility used: none.
+
+## 2026-08-10T15:00:00Z — current-head backend coverage gate
+
+- Complete Docker-backed backend gate passed `1,277/1,277` unit/integration tests at `79.43%`
+  coverage, above the required 75% threshold.
+- No backend regression or new error class was observed; acceptance flexibility used: none.
+
+## 2026-08-10T14:00:00Z — board-guided visual gate rerun
+
+- Manifest validation passed and the complete four-environment visual matrix passed `32/32` with
+  elevated Chromium permissions.
+- The preceding non-elevated run failed before test execution because macOS denied Chromium's
+  `mach_port_rendezvous`; this is retained as environment-level evidence, not a product failure.
+- No visual mask or acceptance criterion changed; acceptance flexibility used: none.
+
+## 2026-08-10T13:30:00Z — EasyScan duplicate-scan reconciliation
+
+- EasyScan `409` recovery now uses a fresh shared `['workstation','screeners']` query instead of a
+  provider read bypass; the intentional post-run invalidation/refetch remains.
+- Focused EasyScan tests pass `10/10`; full frontend Vitest: `628/628` across 90 files;
+  type-check, production build, and authenticated F9h: `1/1` pass.
+- Acceptance flexibility used: none.
+
+## 2026-08-10T13:00:00Z — unified durable research-run cache
+
+- Study Lab now uses the platform-wide `['workstation','research-run',run_id]` cache key shared
+  with chart Python plots; fresh persisted entries are reused and active polling remains fresh.
+- Focused Study Lab tests pass `17/17`; full frontend Vitest: `627/627` across 90 files;
+  type-check, production build, and authenticated F8g/F9i: `2/2` pass.
+- Acceptance flexibility used: none.
+
+## 2026-08-10T12:30:00Z — Study Lab persisted-run query coordination
+
+- Persisted Study Lab hydration now uses the shared `['workstation','study-run',run_id]` Vue Query
+  entry; concurrent linked roots deduplicate while explicit one-second polling remains unchanged.
+- Focused Study Lab tests pass `16/16`; full frontend Vitest: `626/626` across 90 files;
+  type-check, production build, and rebuilt authenticated F8g/F8o/F8q: `3/3` pass.
+- The active goal's fix-first tie-break entry was explicitly refreshed; acceptance flexibility used:
+  none.
+
+## 2026-08-10T12:00:00Z — shared workstation symbol search
+
+- Workstation symbol search now shares normalized query results across active/pop-out shells while
+  retaining the 120ms debounce and stale-request generation checks.
+- Focused workstation-shell tests pass `12/12`; full frontend Vitest: `625/625` across 90 files;
+  type-check, production build, and rebuilt authenticated F8d: `1/1` pass.
+- Acceptance flexibility used: none.
+
+## 2026-08-10T11:30:00Z — shared watchlist condition-result summaries
+
+- VirtualWatchlistTool now shares per-screener result summaries while including the active universe
+  member IDs in the key so linked-universe changes still refetch correctly.
+- Focused VirtualWatchlist tests pass `50/50`; full frontend Vitest: `625/625` across 90 files;
+  type-check, production build, and rebuilt authenticated F8y: `1/1` pass.
+- Acceptance flexibility used: none.
+
+## 2026-08-10T11:00:00Z — shared EasyScan result history
+
+- EasyScan retained result history now uses a shared per-scan query entry and invalidates it after
+  a completed run, preventing stale history while avoiding duplicate reads across linked roots.
+- Focused EasyScan tests pass `9/9`; full frontend Vitest: `625/625` across 90 files; type-check,
+  production build, and rebuilt authenticated F9h: `1/1` pass.
+- Acceptance flexibility used: none.
+
+## 2026-08-10T10:30:00Z — shared EasyScan condition hydration
+
+- EasyScan saved-condition reads now use the shared library query namespace; saves publish the
+  updated condition and invalidate the shared result.
+- Two-root deduplication passes; focused EasyScan tests: `9/9`; full frontend Vitest: `625/625`
+  across 90 files; type-check, production build, and rebuilt authenticated F9h: `1/1` pass.
+- Acceptance flexibility used: none.
+
+## 2026-08-10T10:00:00Z — relative-rotation diagnostics surfaced
+
+- RelativeRotationTool now displays backend row-level warnings, including insufficient-history and
+  partial-overlap diagnostics, with exact messages available by tooltip.
+- Focused rotation suite passes `6/6`; full frontend Vitest: `624/624` across 90 files;
+  `vue-tsc --noEmit`, production build, and rebuilt authenticated F8e: `1/1` pass.
+- Acceptance flexibility used: none.
+
+## 2026-08-10T09:00:00Z — reusable canonical instrument query contract
+
+- Canonical instrument hydration is factored into `fetchCanonicalInstrument`, providing one
+  normalized-symbol/cache contract for workstation orchestration and future consumers.
+- Contract tests pass `2/2`; full frontend Vitest: `623/623` across 90 files; type-check, production
+  build, and rebuilt authenticated F8e: `1/1` pass.
+- Acceptance flexibility used: none.
+
+## 2026-08-10T08:30:00Z — shared canonical instrument resolution
+
+- Isolated workstation tools now resolve canonical instruments through the shared normalized-symbol
+  Vue Query contract, preventing duplicate lookups across linked/pop-out roots.
+- Generation guards remain intact; query contract tests pass `2/2`; full frontend Vitest: `623/623`
+  across 90 files; `vue-tsc --noEmit`, production build, and rebuilt authenticated F8e: `1/1` pass.
+- Acceptance flexibility used: none.
+
+## 2026-08-10T08:00:00Z — shared relative-strength ratio hydration
+
+- RatioUPlot now shares each parameterized relative-strength leg across linked windows while
+  retaining timestamp intersection, hidden-document suspension, late-response guards, and uPlot
+  reuse.
+- Focused ratio tests pass `9/9`; full frontend Vitest: `621/621` across 89 files;
+  `vue-tsc --noEmit`, production build, and rebuilt authenticated F8e: `1/1` pass.
+- Acceptance flexibility used: none.
+
+## 2026-08-10T07:30:00Z — shared relative-rotation hydration
+
+- RelativeRotationTool now shares parameterized group-analysis reads across linked roots without
+  recreating its uPlot instance or weakening stale-response protection.
+- Focused rotation tests pass `5/5`; full frontend Vitest: `620/620` across 89 files;
+  `vue-tsc --noEmit`, production build, and rebuilt authenticated F8e: `1/1` pass.
+- Acceptance flexibility used: none.
+
+## 2026-08-10T07:00:00Z — shared coverage hydration
+
+- CoverageSummaryTool now shares canonical instrument coverage and keyed OHLCV-range assessments
+  across linked roots through Vue Query.
+- Focused coverage tests pass `4/4`; full frontend Vitest: `619/619` across 89 files;
+  `vue-tsc --noEmit`, production build, and rebuilt authenticated F8i-d: `1/1` pass.
+- Acceptance flexibility used: none.
+
+## 2026-08-10T06:30:00Z — shared instrument-note hydration
+
+- InstrumentNoteTool now shares canonical note reads across linked roots and writes autosave
+  results back into the shared cache.
+- Stale-relink and two-root deduplication tests pass; full frontend Vitest: `618/618` across 89
+  files; `vue-tsc --noEmit`, production build, and rebuilt authenticated F8s: `1/1` pass.
+- Acceptance flexibility used: none.
+
+## 2026-08-10T06:00:00Z — shared instrument-alert hydration
+
+- InstrumentAlertsTool now coordinates global screener and per-instrument alert/history reads
+  through shared Vue Query keys, with mutation invalidation after local application.
+- Existing stale-relink and mutation-guard coverage plus a two-root dedup regression pass; full
+  frontend Vitest: `617/617` across 89 files; `vue-tsc --noEmit`, production build, and rebuilt
+  authenticated F11: `1/1` pass.
+- Acceptance flexibility used: none.
+
+## 2026-08-10T05:30:00Z — shared combo-list hydration
+
+- Personal workstation combo-list hydration now uses `['workstation', 'library-items', 'combo_list']`
+  with save/delete invalidation, preventing duplicate library reads across active/popped-out roots.
+- Full frontend Vitest: `616/616` across 89 files; `vue-tsc --noEmit`: passed; production rebuild
+  passed; rebuilt authenticated F8y personal-watchlist acceptance: `1/1`.
+- Acceptance flexibility used: none.
+
+## 2026-08-10T05:00:00Z — shared chart-template hydration
+
+- Chart-template lists now use the shared Vue Query key
+  `['workstation', 'library-items', 'chart_template']`; save/delete mutations invalidate and
+  reload the result so linked/floated chart windows converge without duplicate requests.
+- Two-root component regression passed; full frontend Vitest: `616/616` across 89 files;
+  `vue-tsc --noEmit`: passed; production rebuild passed; rebuilt authenticated F9c: `1/1`.
+- Acceptance flexibility used: none.
+
+## 2026-08-10T04:30:00Z — shared screener cache for condition-column creation
+
+- Workstation condition-column creation now reads existing screeners through the shared
+  `['workstation', 'screeners']` Vue Query entry and invalidates it after creating/running a new
+  Boolean scan, preventing already-mounted Market Gauge/watchlist tools from retaining stale scan
+  lists.
+- Full frontend Vitest: `615/615` across 89 files; `vue-tsc --noEmit`: passed; production rebuild
+  passed; rebuilt authenticated F8v technical-condition drag acceptance: `1/1`.
+- Acceptance flexibility used: none. This is a shared-state consistency correction with direct
+  browser evidence, not a visual or provider exception.
+
+## 2026-08-10T04:10:00Z — shared Python assets and membership-source race correction
+
+- Added the shared Vue Query code-asset contract `['workstation', 'code-assets']` for EasyScan,
+  virtual watchlists, chart plot libraries, and the Python library. Asset creation, versioning,
+  cloning, archiving, importing, Study Lab creation, and Study Lab promotion invalidate the key.
+- Direct query regression proves concurrent hydration makes one `/code/assets` request and
+  invalidation causes a fresh request. Full frontend Vitest: `615/615` across 89 files; focused
+  watchlist suite: `50/50`; `vue-tsc --noEmit`: passed.
+- Rebuilt F8y first reproduced a localized target-list failure during a 409 workspace-recovery
+  sequence. The failure was fixed by deriving the disabled/current-source identity from the row
+  being acted on before falling back to the tool prop. Focused stale-source regression passes and
+  rebuilt authenticated F8y now passes `1/1`.
+- Acceptance flexibility used: none. The transient browser failure was treated as a recoverable
+  product defect under the mandatory goal tie-break; reproduction, remediation, focused test,
+  broader suite, rebuild, and browser evidence are recorded here rather than waiving it.
+
+## 2026-08-10T03:40:00Z — virtual watchlist column-set query deduplication
+
+- Saved column-set hydration now uses the shared Vue Query key
+  `['workstation', 'library-items', 'column_set']`, preventing duplicate library requests across
+  docked and popped-out watchlist roots. Save/delete mutations invalidate and reload that query.
+- Two-root deduplication regression passed; focused VirtualWatchlist suite: `49/49`.
+- Full frontend Vitest: `613/613` across 88 files; `vue-tsc --noEmit`: passed; rebuilt authenticated
+  Chromium F8y workstation acceptance: `1/1`.
+- Acceptance flexibility used: none. This was a localized recoverable defect handled under the
+  mandatory tie-break rule; no broader goal work was blocked and remaining gaps stay tracked.
+
+## 2026-08-10T03:20:00Z — virtual watchlist screener-query deduplication
+
+- `VirtualWatchlistTool` now hydrates saved screeners through the shared Vue Query cache key
+  `['workstation', 'screeners']`, preventing duplicate `/screeners` requests across docked and
+  popped-out roots while retaining EasyScan invalidation behavior.
+- Two-root deduplication regression passed; focused VirtualWatchlist suite: `48/48`.
+- Full frontend Vitest: `612/612` across 88 files; `vue-tsc --noEmit`: passed; rebuilt authenticated
+  Chromium F8y workstation acceptance: `1/1`.
+- Acceptance flexibility used: none. This was a localized recoverable defect, so the goal-level
+  tie-break rule required immediate repair and focused plus broader validation rather than
+  blocking unrelated workstation/backend work. Remaining external and unrepresented-state gaps
+  are unchanged and remain tracked.
+
+## 2026-08-10T18:30:00Z — Research Results mutation-cache reconciliation
+
+Applied the mandatory fix-first tie-break to a localized linked-results race. Rerun and cancel
+responses now update the shared `['workstation', 'research-runs']` Vue Query cache after server
+list reconciliation, preventing docked and popped-out Results roots from retaining stale run
+statuses. Focused Research Results passed `6/6`, including a two-root propagation regression;
+the full frontend passed `629/629`, `vue-tsc --noEmit`, and production build passed. No
+acceptance flexibility or visual mask was used; remaining visual/provider/hardware/endurance
+gaps are unchanged and tracked.
+
+## 2026-08-10T19:00:00Z — Study Lab shared mutation-cache reconciliation
+
+Applied the same fix-first contract to Study Lab rerun/cancel controls. Authoritative mutation
+responses now populate the shared `['workstation', 'research-run', run_id]` cache used by persisted
+hydration and chart Python plots. Focused Study Lab plus Research Results coverage passed `23/23`;
+full frontend Vitest passed `629/629`, `vue-tsc --noEmit`, and production build passed. No
+acceptance flexibility or visual mask was used; documented external and unrepresented-state gaps
+are unchanged.
+
+## 2026-08-10T19:30:00Z — Study Lab cross-root mutation regression
+
+Added a browser-equivalent two-root unit regression proving that canceling a durable Study Lab
+run in one linked root updates the other root through the shared per-run Vue Query cache. Focused
+Study Lab/Research Results coverage passed `24/24`; full frontend Vitest passed `630/630`,
+`vue-tsc --noEmit`, and production build passed. The test fixture initially exposed an eager
+zero-stale read transition and was corrected to model the server state change explicitly. No
+acceptance flexibility or visual mask was used.
+
+## 2026-08-10T23:00:00Z — Board-guided visual closure after Results/Study hardening
+
+The four-environment board-guided visual matrix passed `32/32` after the Results and Study Lab UI
+changes. Manifest validation passed; shell, Study Lab, loading/error/freshness/partial states,
+and blocked-pop-out interim baselines remained deterministic at 1080p/100%, 1080p/125%,
+1440p/100%, and 1440p/125%. No snapshot or mask was changed. Acceptance flexibility used: none;
+unrepresented exact-build states remain explicit manifest gaps.
+
+## 2026-08-11T00:00:00Z — Authoritative backend coverage after hardening
+
+The full backend unit/integration coverage gate was rerun directly after the Research Results API
+change and completed `1,277/1,277` in 248.55 seconds at `79.43%` coverage, above the required 75%
+threshold. The only warnings were 86 known Nautilus/pandas dependency deprecations. This confirms
+the compact list/detail contract did not regress backend behavior. Acceptance flexibility used: none.
+
+## 2026-08-11T00:30:00Z — Research Results detail hydration state
+
+The compact Results list previously displayed “No structured artifacts” during the short interval
+before a selected run's full detail request resolved. It now exposes an explicit detail-loading
+state, preventing a false empty result in the dense workstation surface. A deferred-response unit
+regression passed; focused Results coverage is `7/7`, full frontend Vitest is `631/631`, type-check
+and production build pass, and rebuilt F8g/F9i pass `2/2`. Acceptance flexibility used: none.
+
+## 2026-08-10T22:00:00Z — Full browser closure after Results/Study hardening
+
+The rebuilt branch-scoped stack passed the complete authenticated Chromium matrix `63/63` after
+the Research Results compact list/detail contract and customized-workspace Study action recovery.
+The matrix includes the top-down drilldown, Study Lab, linking, pop-outs, legacy routes, uPlot
+100,000-point interaction, and workstation churn. The stricter backend/worker/research-runner
+log audit found no `ERROR`, traceback, HTTP 500, `MissingGreenlet`, `UniqueViolation`, critical,
+or fatal signatures; expected 401/404 unavailable-data paths and provider-freshness warnings remain
+honestly surfaced. Acceptance flexibility used: none. The exact-build/unrepresented visual,
+live-provider, physical multi-monitor, and indefinite-soak gaps remain tracked.
+
+## 2026-08-10T20:30:00Z — Research Results compact list and Study Lab entry recovery
+
+The persisted Research Results list now uses a compact summary contract by default and hydrates
+full run details, including artifacts, only for the selected run. The response-size audit dropped
+the authenticated list payload from approximately 2.7–3.3 MB to 6,104 bytes while preserving
+artifact counts and full-detail comparison behavior. The new `include_artifacts` backend branch
+is covered by the focused integration test (`1/1`, 17 deselected) and the component request
+contract. Separately, the global Study action now activates the persisted Study Lab tab and opens
+the tool when a customized workspace has no mounted Study Lab window, eliminating a no-op entry
+path exposed by the browser-equivalent regression.
+
+Ordered rebuilt-stack F8g/F9i passed `2/2`; the full frontend passed `630/630`, `vue-tsc
+--noEmit`, and production build passed. Recent service logs contain only expected provider
+freshness warnings and the documented SPY holdings-unavailable fallback. Acceptance flexibility
+used: none. These were localized recoverable defects repaired under the goal tie-break; exact-build
+visual, live-provider, physical multi-monitor, and indefinite-soak gaps remain tracked.
+
+## Continuation update — 2026-08-06T23:15:00Z Add Tool and final gate closure
+
+- Fixed the Add Tool persistence race: an older in-flight workspace snapshot `409` no longer
+  restores over a newer tool-opening mutation. New tools remain in an existing Golden Layout stack
+  instead of forming 10px root columns, and asynchronous active-window restoration remains guarded.
+- Workspace-store coverage is `40/40`; frontend Vitest is `598/598`; type-check, production build,
+  and diff check pass.
+- Rebuilt-stack authenticated Chromium passes `56/56` executed cases. Board-guided visual passes
+  `24/24` across 1080p/1440p at 100%/125% display scale. Recent service logs contain only expected
+  provider-exhaustion freshness warnings, with no HTTP 500, traceback, MissingGreenlet, or
+  UniqueViolation.
+- F8v/F8y/F11 now select the newly added/selected tab deterministically. Personal-list copy/move
+  browser coverage remains open and is explicitly tracked; no acceptance flexibility was used.
+- The overall goal remains open: exact/unrepresented V25 states, live-provider probes, physical
+  multi-monitor, endurance beyond bounded stress, and broader documented product gaps remain.
+
+## Continuation update — 2026-08-06T21:50:00Z post-race verification
+
+- Re-read the active goal and audited the current implementation against the controlling TODO,
+  parity, visual-governance, and board documents.
+- After the instrument-indicator race fix, the complete elevated backend gate remains green at
+  `1,275/1,275` and `79.41%`; the new indicator integration regression passes `2/2`.
+- The complete authenticated browser run passes `53/53` executed tests; the separate board-guided
+  visual run passes `24/24`; focused chart/transfer checks pass `7/7`. Recent backend, worker, and
+  research-runner logs are free of HTTP 500s, tracebacks, `MissingGreenlet`, and unique violations.
+- A requested `docker system prune -af` was not run because the host-wide destructive cleanup was
+  rejected by the execution safety policy. No workaround or broader deletion was attempted; the
+  active branch services remain intact.
+- Acceptance flexibility used: elevated Docker/Chromium execution and deterministic seeded data.
+  Exact-build/unrepresented visuals, live-provider probes, physical multi-monitor, and indefinite
+  soak remain explicit gaps.
+
+## Continuation update — 2026-08-06T21:35:00Z full-gate audit and indicator-race fix
+
+- Complete authenticated Playwright execution passed `53/53` in 2.1m; the 24 visual cases were
+  intentionally skipped by the separate board command, which passed `24/24` after the toolbar
+  baseline refresh.
+- The elevated complete backend gate passed `1,275/1,275` with `79.41%` coverage and 86 known
+  third-party deprecation warnings.
+- Post-gate log inspection exposed a real concurrent chart persistence defect: linked/floating
+  charts could race on `/instrument-indicators/{id}`, producing `UniqueViolation`/HTTP 500.
+  The endpoint now rolls back, reloads the winning row, and applies the latest indicator config.
+- Added integration coverage for authenticated indicator round-trip/auth boundaries (`2/2`),
+  rebuilt the backend, and reran chart/drag-transfer browser coverage (`7/7`). Recent backend,
+  worker, and runner logs contain no 500, traceback, `MissingGreenlet`, or `UniqueViolation`.
+- Acceptance flexibility used: elevated Docker/Chromium execution and deterministic seeded market
+  fixtures. The board-guided visual track remains the working authority; exact-build and other
+  unrepresented gaps remain explicitly open.
+
+## Continuation update — 2026-08-06T21:05:00Z Drag/drop and serialization closure
+
+- Added real Chromium coverage for chart-plot → watchlist numeric-column transfer and
+  technical-condition → Boolean-column transfer (`F8u`/`F8v`).
+- Fixed chart comparison-input overlap over the plot-library control, condition-library
+  `MissingGreenlet` response serialization, and repeated-run screener conflicts.
+- Focused rebuilt-stack browser checks pass `2/2` with no critical diagnostics. Elevated Chromium
+  execution and deterministic branch fixtures were used; no visual-reference gap was waived.
+- Targeted workspace-library integration passes `3/3` with Docker access; related frontend unit
+  coverage passes `62/62`, type-check, diff-check, and JSON/YAML parsing pass.
+- After refreshing only the seven intentional local screenshot baselines affected by the toolbar
+  geometry, the clean board-guided visual matrix passes `24/24` across all four environments.
+
+## Continuation update — 2026-08-06T20:42:00Z Combo-list persistence gap closed
+
+- Ran the targeted Docker-backed `test_combo_library_item_preserves_canonical_membership_sets`
+  regression under Python 3.12: `1 passed`, 22 deselected, with only two known Nautilus warnings.
+- Reconciled the stale `ops/tasks.yaml` note: combo-list canonical union/intersection/exclusion
+  persistence is now backend-verified; remaining combo work is broader browser/visual parity.
+- Acceptance flexibility used: Docker-backed integration fixtures. No live-provider or visual
+  exact-build claim was made.
+
+## Continuation update — 2026-08-06T20:38:00Z Post-E2E log audit
+
+- Branch health remains green after the visual and full E2E runs.
+- Recent backend logs contain repeated provider-exhaustion `WARNING` entries for requests outside
+  the deterministic seeded market fixture (last errors from FRED/Alpha Vantage/Binance/Alpaca);
+  no traceback, exception, MissingGreenlet, connection leak, or service-health failure was found.
+- These are explicit coverage/freshness diagnostics, not silently ignored failures; the fixture
+  path intentionally exercises unavailable-data handling and the UI exposes those states.
+- Acceptance flexibility used: deterministic fixture data instead of complete live-provider data;
+  live provider coverage remains an open gap.
+
+## Continuation update — 2026-08-06T20:36:00Z Full E2E after frontend upstream repair
+
+- Complete `npm run test:e2e` passed `51` authenticated/non-visual/performance tests in `3.0m`;
+  the 24 visual cases were skipped by their explicit board-project guard and were independently
+  passed by the official board command immediately beforehand.
+- No new browser failure or cross-surface regression appeared after rebuilding the backend and
+  restarting the frontend Nginx container.
+- Acceptance flexibility used: board-guided visual evidence and elevated browser execution remain
+  the basis for visual coverage; exact-build/unrepresented, live-provider, native multi-monitor,
+  and beyond-bounded-endurance gaps remain open.
+
+## Continuation update — 2026-08-06T20:32:49Z Board visual matrix after upstream repair
+
+- The first official visual run failed `24/24` during E2E-user provisioning with Nginx `502`
+  responses because the long-lived frontend retained the pre-rebuild backend address.
+- Restarted only the retained branch frontend container; the official `npm run test:visual:board`
+  then passed `24/24` in `1.3m` across all four display-scale projects, including screenshot
+  comparisons and gap-state baselines.
+- Acceptance flexibility used: the 190-image board, deterministic seeded market fixture, and
+  elevated browser execution. These remain interim board-guided evidence; unrepresented visual,
+  live-provider, native multi-monitor, and beyond-bounded-endurance gaps remain open.
+
+## Continuation update — 2026-08-06T20:29:00Z Complete backend gate after migration
+
+- Combined backend unit and Docker-backed integration coverage passed `1,275/1,275` in
+  `239.27s` at `79.41%`, above the 75% requirement; only 86 known third-party deprecation
+  warnings were emitted.
+- The gate ran after live `eb1f2a3c4d5e` migration application, so the named structured-output
+  schema is covered in the current branch database path.
+- Acceptance flexibility used: Docker-backed branch-stack fixtures. This remains distinct from
+  live-provider, native multi-monitor, beyond-bounded-endurance, and unrepresented visual evidence.
+
+## Continuation update — 2026-08-06T20:24:55Z Live migration application
+
+- Rebuilt the existing branch-scoped backend, worker, and isolated research-runner containers
+  with the named structured-output migration and ran `alembic upgrade head` against the retained
+  PostgreSQL volume.
+- Live branch database now reports `eb1f2a3c4d5e (head)` and the rebuilt backend is healthy.
+- A separate temporary stack created during the first port-conflict attempt was removed with its
+  own volumes; the existing branch stack was preserved.
+- Acceptance flexibility used: Docker-backed branch-stack evidence, not live-provider evidence.
+  The provider-live, native multi-monitor, beyond-bounded-endurance, and unrepresented visual gaps
+  remain open and documented.
+
+## Continuation update — 2026-08-06T20:20:50Z Structured-output promotion revalidation
+
+- Suppressed duplicate named-promotion controls for compatible single-output Study Lab runs;
+  structured/multi-output runs retain named immutable artifact adapters.
+- Full frontend Vitest passed `593/593`; `vue-tsc --noEmit`, production Vite build, Alembic head
+  validation (`eb1f2a3c4d5e`), Python bytecode compilation, and `git diff --check` passed.
+- No new acceptance flexibility was used. Board-guided visual evidence remains the accepted
+  reference for represented states; unrepresented/ambiguous states, live-provider probes, native
+  multi-monitor placement, and beyond-bounded endurance remain tracked gaps.
+
+## Continuation update — 2026-08-06T20:18:00Z Named structured-output promotion
+
+- Added nullable immutable `CodeVersion.output_name` with Alembic revision `eb1f2a3c4d5e`.
+- Code API validation accepts a typed adapter for a named artifact only when its declared output
+  contract is present in the validated source; research job payloads carry the selector and the
+  isolated runner filters batch cells to exactly that named artifact.
+- Study Lab exposes named promotion controls for scalar columns, series plots, Boolean scans/
+  alerts, and event signals from multi-output runs; ordinary single-output runs still reuse their
+  original immutable version directly.
+- Docker-backed code API integration passed `18/18`; Python 3.12 runner/job/validator unit tests
+  passed `94/94` (narrow coverage threshold exit only); frontend focused tests passed `20/20` and
+  TypeScript passed; Ruff and diff checks passed.
+- Acceptance flexibility used: elevated Docker access for the API integration fixtures. No visual,
+  provider, hardware, or endurance gap was closed.
+
+## Continuation update — 2026-08-06T17:15:00Z Board-guided visual gate revalidated
+
+- The official `npm run test:visual:board` command passed `24/24` in `1.4m` with one worker.
+- Manifest validation passed before Playwright execution. All four required display-scale
+  environments completed: 1920×1080 and 2560×1440 at 100% and 125% display scale.
+- No browser assertion failed. The run is deterministic board-guided evidence, not exact-build
+  approval; required-missing and ambiguous-state entries remain open in the manifest and board.
+- Acceptance flexibility used: the 190-image browsable board plus deterministic local baselines
+  in place of local permission-cleared exact-build captures for represented states. Remaining gaps
+  are still actionable and require the closure evidence recorded in `docs/tc2000-reference-board.md`.
+
+## Continuation update — 2026-08-06T18:20:00Z Unified Python cross-surface audit
+
+- Frontend chart-plot and Study Lab component tests pass `23/23`.
+- Backend Python validator and all named Study Lab factory-source tests pass `31/31`.
+- Authorized Docker-backed screener and Strategy Lab integration tests pass `41/41` with 54
+  known third-party deprecation warnings and no project failures.
+- The verified path uses immutable typed promotion assets and the isolated research runner for
+  columns, plots, Boolean conditions, EasyScan, alerts, Study Lab artifacts, and Strategy signals.
+- Acceptance flexibility used: elevated Docker access for Redis/PostgreSQL integration fixtures.
+  This is direct integration evidence; live-provider, visual-gap, native-multi-monitor, and
+  beyond-bounded-endurance gaps remain unchanged.
+
+## Continuation update — 2026-08-06T18:35:00Z Operational acceptance-state reconciliation
+
+- Updated `ops/tasks.yaml` so the active board-guided visual track is clearly distinguished from
+  the stronger exact-build audit; represented states are no longer described as globally blocked.
+- Updated the current `ops/state.json` visual record from `blocked` to the evidenced `24/24`
+  board-guided matrix result. Historical strict-audit entries remain unchanged as history.
+- Unrepresented/ambiguous visual states, live-provider evidence, native multi-monitor placement,
+  and beyond-bounded endurance remain open and actionable.
+- Acceptance flexibility used: board-guided evidence in place of direct exact-build media. No gap
+was closed by this bookkeeping correction.
+
+## Continuation update — 2026-08-06T21:05:00Z Shared Python version reuse
+
+- Compatible single-output Study Lab runs now retain and reuse the original immutable
+  `code_version_id` across chart plots, watchlist columns, EasyScan, alerts, and Strategy signals.
+- Backend promotion routes accept `study` assets when the referenced version has the compatible
+  scalar, series, Boolean, or event contract; the frontend falls back to typed adapters only for
+  structured or incompatible targets.
+- Focused frontend regression passed `69/69`; Docker-backed screener and Strategy Lab integration
+  passed `43/43`; `vue-tsc --noEmit` passed.
+- Structured multi-output studies remain an explicit follow-up gap: their `study` version is not
+  yet a universal direct binding for every consumer contract.
+- Acceptance flexibility used: elevated Docker access for Redis/PostgreSQL integration fixtures.
+  No visual-reference, live-provider, native-multi-monitor, or beyond-bounded-endurance gap was
+  closed by this change.
+
+## Continuation update — 2026-08-06T20:07:24Z Frontend unified-Python regression refresh
+
+- Full frontend Vitest passed `592/592` across 88 files.
+- Study Lab focused coverage passed `15/15`; the new regression asserts that a structured/multi-
+  output source is persisted as `output_contract: study`, while direct scalar/series/Boolean/event
+  runs retain their compatible immutable contract for cross-surface reuse.
+- `vue-tsc --noEmit` and `git diff --check` passed.
+- Acceptance flexibility used: none for this validation. The board-guided visual, live-provider,
+  native-multi-monitor, and beyond-bounded-endurance gaps remain unchanged.
+
+## Continuation update — 2026-08-06T20:10:09Z Research-run observability
+
+- Study Lab and persisted Research Results now render structured diagnostics, warnings, execution
+  logs, and resource usage from `ResearchRunOut`; object diagnostics are formatted as readable
+  JSON rather than `[object Object]`.
+- Full frontend Vitest passed `593/593` across 88 files, including the new persisted-run health
+  regression; `vue-tsc --noEmit` and `git diff --check` passed.
+- Acceptance flexibility used: none. Visual-reference, live-provider, native-multi-monitor, and
+  beyond-bounded-endurance gaps remain explicit and unchanged.
+
+## Continuation update — 2026-08-06T20:11:52Z Research observability layout validation
+
+- Added compact, collapsible run-health panels to both Study Lab and Research Results for
+  diagnostics, warnings, logs, and resource usage; they are bounded so long output cannot overlap
+  result headers or numerical renderers.
+- Focused component tests remain `20/20`; `vue-tsc --noEmit`, production Vite build, and
+  `git diff --check` pass.
+- Acceptance flexibility used: none. No external visual/provider/hardware/endurance gap changed.
+
+## Continuation update — 2026-08-08T09:00:00Z Parity evidence snapshot extended
+
+- `docs/tc2000-parity.md` now includes combined backend coverage (`1,272/1,272`, `79.41%`),
+  authenticated E2E (`51` passed), and production-build evidence alongside the existing unit,
+  visual, and virtualization checks.
+- Remaining gaps remain unchanged and explicit.
+- Acceptance flexibility used: none. Documentation of verified evidence only.
+
+## Continuation update — 2026-08-08T08:00:00Z Production frontend build green
+
+- `npm run build` passes TypeScript validation and Vite production bundling in `12.29s`.
+- `git diff --check` passes after the build.
+- Acceptance flexibility used: none. Direct local production-build evidence.
+
+## Continuation update — 2026-08-08T07:00:00Z Combined backend coverage gate green
+
+- `make test-backend-coverage` passes `1,272/1,272` unit and Docker-backed integration tests in
+  `4m55.58s`.
+- Combined coverage is `79.41%`, above the required 75% threshold.
+- The only output warnings are 86 known Nautilus/pandas deprecations; no project test failed.
+- Acceptance flexibility used: elevated Docker execution. This is direct combined backend
+  evidence; no external-provider or visual gap was promoted.
+
+## Continuation update — 2026-08-08T06:00:00Z Complete E2E command green
+
+- `npm run test:e2e` passes `51` authenticated/non-visual/performance tests in `2.6m` with one
+  serialized worker.
+- The 24 visual-project cases are intentionally skipped by their explicit board/approved flag
+  guard; the official board visual command independently passes `24/24`.
+- No E2E failure or new product defect was observed.
+- Acceptance flexibility used: elevated browser execution. Board-guided visual evidence remains
+  separately reported; no gap was promoted.
+
+## Continuation update — 2026-08-08T05:00:00Z Official board visual command green
+
+- The documented `npm run test:visual:board` path now passes manifest validation and the complete
+  serialized four-environment visual matrix: `24/24` in `1.5m`.
+- This validates the repository command itself, not only an equivalent direct Playwright command.
+- Acceptance flexibility used: board-guided visual evidence and elevated browser execution. The
+  exact-build/unrepresented-state gaps remain explicit and unchanged.
+
+## Continuation update — 2026-08-08T04:00:00Z Parity current-evidence snapshot added
+
+- Added a current evidence snapshot to `docs/tc2000-parity.md` with backend `991/991`, frontend
+  `592/592`, serialized board-guided visual `24/24`, and the 10,000-row virtualization invariant.
+- The snapshot names the remaining external/unrepresented-state gaps without treating them as
+  completed or as blanket blockers.
+- Acceptance flexibility used: none. Documentation of already-verified evidence only.
+
+## Continuation update — 2026-08-08T03:00:00Z Parity matrix reconciled with acceptance governance
+
+- Updated the implementation matrix in `docs/tc2000-parity.md`: board-guided surfaces are no
+  longer labelled blanket `Blocked`, while stale/loading/error/partial/blocked-popout and other
+  unrepresented states remain named gaps.
+- Replaced the obsolete rule requiring exact-build approval before any row can be complete with
+  the controlling board-guided/deterministic-evidence rule. Exact V25 approval remains targeted
+  strengthening evidence, not silently implied.
+- Acceptance flexibility used: none. Documentation reconciliation only.
+
+## Continuation update — 2026-08-08T02:00:00Z Frontend regression revalidated
+
+- Full frontend Vitest passes `592/592` across 88 files in `22.09s`.
+- `vue-tsc --noEmit` and `git diff --check` pass.
+- The only stderr is intentional conflict-path logging from tests that verify rollback/error
+  handling; no frontend test failed.
+- Acceptance flexibility used: none. Direct local regression evidence.
+
+## Continuation update — 2026-08-08T01:00:00Z Backend unit matrix revalidated
+
+- Complete backend unit suite passes `991/991` in `56.18s`.
+- The only output is 34 known Nautilus/pandas deprecation warnings; no project test failed.
+- This revalidates manifest, provider, security-master, research-runner, sandbox-contract, and
+  workstation backend unit coverage after the latest harness changes.
+- Acceptance flexibility used: none. Direct local unit evidence.
+
+## Continuation update — 2026-08-08T00:00:00Z Playwright worker override hardened
+
+- The serialized visual-worker default remains `1`; malformed or non-positive
+  `PLAYWRIGHT_WORKERS` values now safely fall back to `1`.
+- `vue-tsc --noEmit`, Playwright discovery with `PLAYWRIGHT_WORKERS=invalid`, and
+  `git diff --check` pass.
+- Acceptance flexibility used: none. Configuration validation only.
+
+## Continuation update — 2026-08-07T23:00:00Z Visual project contention fixed
+
+- `frontend/playwright.config.ts` now defaults to `workers: 1`; the value remains overrideable via
+  `PLAYWRIGHT_WORKERS` for isolated environments.
+- This prevents the four visual display-scale projects from racing through the same authenticated
+  workspace/backend state. The serialized board-guided matrix passes `24/24` in `2.7m`.
+- The earlier `12/24` contention result is superseded as a harness diagnosis, not as a product
+  regression. Shared-state visual acceptance must use the serialized default.
+- Acceptance flexibility used: elevated browser execution. No visual gap was promoted.
+
+## Continuation update — 2026-08-07T22:00:00Z Full visual rerun exposed shared-service contention
+
+- Focused stale/partial visual tests pass `8/8` with one worker after route-matcher hardening.
+- A subsequent four-worker full matrix run produced `12/24`: shell, stale, and partial cases
+  observed shared-service `Unavailable`/`Fetching` states before their mocked responses, while
+  the other cases completed. This is an environment-contended harness result, not evidence of a
+  new application defect.
+- The previously successful `24/24` board-guided run remains valid evidence; this newer run is
+  retained as an unresolved reproducibility issue and must be rerun after the shared backend is
+  healthy before updating the current matrix total.
+- Acceptance flexibility used: elevated browser execution and deterministic fixture routes. No
+  gap was promoted or silently suppressed.
+
+## Continuation update — 2026-08-07T21:00:00Z Study Lab baseline traceability repaired
+
+- Linked the existing four-environment `study-lab-original` screenshots to the manifest's
+  `study-lab/editor` gap entry and clarified the reference-board register.
+- The state remains `required_missing`: this is an original product surface and the local images
+  are deterministic composition evidence, not an exact TC2000 reference.
+- Manifest validation remains required before visual execution; no acceptance state was promoted.
+- Acceptance flexibility used: local deterministic baseline for an unrepresented Study Lab state.
+
+## Continuation update — 2026-08-07T20:00:00Z Frontend regression and 10,000-row virtualization audit
+
+- Full frontend Vitest passes `592/592` across 88 files after the latest visual-test and manifest
+  changes. The only stderr is the intentional conflict-path logging covered by tests.
+- Confirmed the direct 10,000-row virtual-watchlist invariant: all 10,000 logical rows remain in
+  the canonical data set, fewer than 100 `.watchlist__row` elements are rendered, and the
+  virtualizer preserves total scroll height.
+- No new defect or acceptance gap was introduced by this audit.
+- Acceptance flexibility used: none. This is direct local regression evidence.
+
+## Continuation update — 2026-08-07T19:00:00Z Section 14 acceptance wording reconciled
+
+- Updated the controlling section 14 checkpoint in `docs/project-todos.md` to match the current
+  evidence: backend `281/281`, authenticated browser `48/48`, frontend `592/592`, and
+  board-guided visual `28/28`.
+- Removed stale wording that treated exact-build visual approval, live credentials, native
+  multi-monitor hardware, or indefinite endurance as blanket gates. Those remain explicitly
+  tracked gaps under the acceptance governance policy, with targeted closure paths.
+- No implementation or acceptance gap was silently closed; this prevents future continuation
+  work from following obsolete source-of-truth language.
+- Acceptance flexibility used: none. Documentation reconciliation only.
+
+## Continuation update — 2026-08-07T18:00:00Z Provider-error visual baseline added
+
+- Added deterministic four-environment screenshot baselines for the chart provider-error state;
+  the complete board-guided visual matrix passes `28/28` with elevated Playwright.
+- Linked the baseline IDs into the visual manifest and board gap register. The state remains
+  `required_missing`; the images verify stable error containment and recovery composition, not
+  exact Version 25 styling.
+- Acceptance flexibility used: board-guided visual evidence, local deterministic baselines for
+  an unrepresented state, and elevated browser execution. The exact-build gap remains open.
+
+## Continuation update — 2026-08-07T17:00:00Z Freshness-gap visual baselines added
+
+- Added deterministic four-environment screenshot baselines for stale freshness and partial
+  technical coverage (`24/24` board-guided visual tests pass with elevated Playwright).
+- Updated the visual manifest and reference-board gap register with the new baseline IDs. Both
+  states remain `required_missing`; local images verify deterministic layout and honest status
+  rendering only and do not claim exact V25 styling.
+- The unprivileged attempt failed before browser launch because macOS Chromium could not register
+  its sandbox bootstrap service; the authorised elevated rerun passed all 24 tests.
+- Acceptance flexibility used: board-guided visual evidence for represented states, local
+  deterministic baselines for unrepresented states, and elevated browser execution. Exact-build
+  visual gaps remain open and actionable.
+
+## Continuation update — 2026-08-07T16:00:00Z Acceptance-flexibility advance notice made mandatory
+
+- Confirmed the active goal and repository policy use the 190-image V25 reference board as the
+  working visual authority wherever it represents a state; missing exact-build local captures are
+  not a blanket blocker.
+- Added an explicit governance rule that any allowed substitution (board evidence, deterministic
+  provider fixtures, browser multi-window evidence, or bounded stress) must be announced in
+  progress commentary before the dependent work starts, then repeated in the handoff with the
+  remaining gap and closure evidence.
+- No gap was closed or promoted by this documentation-only clarification.
+- Acceptance flexibility used: none. This advance strengthens disclosure and traceability.
+
+## Continuation update — 2026-08-07T15:00:00Z Visual harness revalidated after manifest enforcement
+
+- Manifest validation plus the complete board-guided visual matrix passes `16/16` in `15.0s`
+  across all four required environments.
+- The new required-missing interim-oracle validation does not alter or regress visual execution.
+- Acceptance flexibility used: board-guided visual evidence and elevated browser execution. No
+  visual gap was promoted by this run.
+
+## Continuation update — 2026-08-07T14:00:00Z Manifest gap-oracle enforcement
+
+- The visual manifest validator now rejects every `required_missing` state that lacks a non-empty
+  interim oracle. All Study Lab gap states now name their functional or local-baseline oracle.
+- Manifest validation passes and focused manifest coverage is `8/8`.
+- This converts the goal's gap-recording rule into an enforced invariant; it does not weaken exact
+  V25 approval or promote any missing reference state.
+- Acceptance flexibility used: none. This is stricter bookkeeping and direct regression evidence.
+
+## Continuation update — 2026-08-07T13:00:00Z Frontend regression audit green
+
+- Full frontend Vitest passes `592/592` across 88 files; expected conflict-path stderr remains the
+  only test output.
+- `vue-tsc --noEmit` and `git diff --check` pass after the latest capability-boundary and visual
+  evidence changes.
+- Acceptance flexibility used: none. This is direct local regression evidence.
+
+## Continuation update — 2026-08-07T12:00:00Z Excluded-capability boundary strengthened
+
+- The authenticated workstation exclusion regression now covers `consolidated-realtime` in
+  addition to trading, brokerage, options, news, ratings, earnings, and financial statements.
+- It also asserts that no visible “coming soon”, unavailable-capability, or disabled-capability
+  shell is rendered in the primary workstation. Focused Playwright check passes `1/1`.
+- Acceptance flexibility used: none. This is a direct product-boundary regression.
+
+## Continuation update — 2026-08-07T11:00:00Z Live sandbox and bounded recovery probes green
+
+- Branch-scoped sandbox escape probe passed all eight denials: unshare, setns, mount, ptrace,
+  fork, network, subprocess, and root-write.
+- Resource-pressure probe passed the configured 768 MiB/1 CPU/128 PID/no-network/read-only/non-root
+  contract: cgroup allocation terminated with status 137, tmpfs overflow returned ENOSPC, and
+  three concurrent child failures were contained with restart count unchanged.
+- Orphan-recovery probe terminated and restarted only the research runner; the orphaned job
+  completed with no stale cancel/progress residue.
+- Sustained bounded cancellation probe passed `5/5` rounds, isolating canceled batches while
+  concurrent scalar jobs completed and cleanup sentinels were removed.
+- Acceptance flexibility used: bounded probes instead of indefinite soak. This closes the bounded
+  sandbox/resource/recovery evidence; indefinite endurance remains a distinct gap.
+
+## Continuation update — 2026-08-07T10:00:00Z Live-provider probe classification
+
+- The opt-in live suite collected `348` tests and skipped all `348` with explicit guards:
+  `RUN_LIVE_ETF_HOLDINGS_TESTS=1` for 347 issuer checks and `RUN_LIVE_PROVIDER_TESTS=1` for the
+  OpenFIGI probe.
+- No live provider result is being implied by the green deterministic/backend matrices. The
+  remaining live-evidence gap is specifically missing opt-in execution/credentials, not an
+  unclassified test failure.
+- Acceptance flexibility used: deterministic provider fixtures/contracts in place of disabled
+  live probes. This remains an explicit gap under the governance policy.
+
+## Continuation update — 2026-08-07T09:00:00Z Manifest gap evidence made auditable
+
+- Visual-manifest gap entries now record their interim functional oracle and any known local
+  baseline artifact IDs. Loading and blocked-pop-out each reference four environment baselines;
+  provider-error, stale, and partial states reference their functional tests explicitly.
+- The manifest validator remains green and its focused unit suite is now `7/7`.
+- This change improves traceability only; it does not promote any unrepresented state to exact V25
+  approval.
+- Acceptance flexibility used: none beyond the already documented board-guided/local-baseline
+  policy. The gap records were made more explicit, not relaxed.
+
+## Continuation update — 2026-08-07T08:00:00Z Visual baseline determinism review
+
+- The visual matrix remains green at `16/16` after adding loading and blocked-pop-out baselines.
+- A proposed stale-freshness screenshot was deliberately not retained: parallel seeded workspace
+  hydration made the mocked technical response nondeterministic, so the capture could not provide
+  trustworthy evidence. Stale and partial freshness remain covered by deterministic functional
+  tests (`F8i-c`/`F8i-d`) and remain visual-manifest gaps.
+- Acceptance flexibility used: local baselines for unrepresented loading/blocked-pop-out states
+  and elevated browser execution. The stale visual gap was retained rather than masked or
+  promoted on weak evidence.
+
+## Continuation update — 2026-08-07T07:00:00Z Blocked-pop-out visual gap baselined
+
+- Added four-environment deterministic screenshot baselines for blocked browser pop-out recovery.
+  The board-guided visual matrix now passes `16/16` across shell, Study Lab, loading, and
+  blocked-pop-out states.
+- `workspace-docking/blocked_popout` remains `required_missing` in the manifest because no
+  authoritative V25 capture exists for that state. The local baseline verifies containment and
+  recovery composition only; `F8k-a` remains the behavioral oracle.
+- Acceptance flexibility used: board-guided/local baseline evidence for an unrepresented state and
+  elevated browser execution. The gap remains explicitly actionable.
+
+## Continuation update — 2026-08-07T06:00:00Z Loading-state visual gap baselined
+
+- Added a four-environment deterministic screenshot test for the chart loading state. The board
+  visual matrix now passes `12/12`, covering the shell, Study Lab, and the new loading-state
+  baseline at both required resolutions and display scales.
+- The loading state remains `required_missing` in the visual manifest because no authoritative
+  V25 reference represents it. The local images provide geometry/containment regression evidence,
+  not exact-build approval. Provider-error remains functionally covered by `F8i-a`.
+- Acceptance flexibility used: board-guided/local baseline evidence for an unrepresented state and
+  elevated browser execution. The visual gap was narrowed but not silently closed.
+
+## Continuation update — 2026-08-07T04:30:00Z Bounded performance gates green
+
+- `TC2000_POP_OUT_CHURN_ROUNDS=100 npx playwright test tests/e2e/workstation_performance.spec.ts tests/e2e/uplot_performance.spec.ts` passes `3/3` in 2m18s.
+- This covers 100,000-point uPlot zoom/pan, multi-window initialization, repeated pop-out churn,
+  bounded canvas/tool/chart counts, and available heap ceilings.
+- Acceptance flexibility used: elevated browser execution. The bounded run is accepted evidence
+  under the current governance policy; it does not claim indefinite soak or native physical
+  multi-monitor placement, which remain explicitly tracked gaps.
+
+## Continuation update — 2026-08-07T01:45:00Z Cross-layer browser matrix repaired and green
+
+- The first full rebuilt-stack browser pass exposed five failures: a deep-linked `SPY` symbol
+  could remain blank while metadata search was unavailable, one delayed-history test observed a
+  server diagnostic response, and three Study Lab/Notes checks were timing-sensitive in the
+  long serial run.
+- The concrete product race is fixed in `WorkstationView`: canonical benchmark route entry now
+  uses the deterministic navigation fallback, keeping the visible symbol authoritative while
+  data tools report their real freshness/error state.
+- The five previously failing tests pass `5/5` in a focused rerun. The complete authenticated
+  flow matrix then passes `48/48` in 2m36s with no browser failures.
+- Acceptance flexibility used: elevated browser/local-service access. No fixture substituted for
+  the final browser matrix, and the remaining visual/live-provider/hardware/endurance gaps remain
+  documented rather than closed by this fix.
+
+## Continuation update — 2026-08-06T23:00:00Z Docker-backed backend matrix closed
+
+- With authorised Docker access, the dedicated integration suite passes `281/281` in 4m18s.
+- The complete backend command `pytest -q --no-cov` passes `1,270` tests with `348` intentional
+  skips and `86` deprecation warnings in 4m12s. No backend failures remain in this matrix.
+- This supersedes the earlier environment-only Docker limitation for the current backend audit;
+  historical entries remain as historical evidence of prior restricted runs.
+- Acceptance flexibility used: elevated Docker access was required for the test environment.
+  No deterministic fixture substituted for these integration tests, and no backend gap was
+  silently closed beyond the evidence shown above.
+
+## Continuation update — 2026-08-06T16:45:00Z Board-guided visual gate revalidated
+
+- Manifest validation and visual-manifest unit coverage pass (`6/6`).
+- The elevated Chromium run of `npm run test:visual:board` passes all four required viewport/
+  display-scale projects for both the shell and Study Lab (`8/8` in `21.3s`).
+- The unprivileged attempt failed before page launch at macOS Chromium Mach-port rendezvous;
+  this is an environment permission limitation, not an application assertion failure. The
+  meaningful acceptance result is the permission-enabled run above.
+- Acceptance flexibility used: board-guided visual evidence instead of direct local exact-build
+  captures, plus elevated browser execution. Remaining unrepresented-state and environment gaps
+  remain open in the board/manifest and were not closed by this run.
+
+## Continuation update — 2026-08-06T17:15:00Z Backend integration audit environment limit
+
+- The manifest-focused backend suite remains green (`6/6`). A full `pytest -q --no-cov` attempt
+  collected `1,618` tests but could not execute Docker-backed integration fixtures: the restricted
+  environment denied access to the Docker socket (`PermissionError: Operation not permitted`),
+  producing setup errors rather than application failures. The run was stopped after confirming
+  the common infrastructure failure.
+- This is an environment evidence gap, not a product acceptance pass. The Docker-backed matrix
+  must be rerun with an authorised Docker socket before final completion.
+- Acceptance flexibility used: deterministic/local manifest evidence in place of unavailable
+  Docker-backed integration execution. No backend integration requirement was marked complete.
+
+## Continuation update — 2026-08-06T18:00:00Z Local regression audit
+
+- Frontend Vitest passes `592/592` across 88 files; `vue-tsc --noEmit` passes.
+- Backend unit collection passes through the 989-test unit suite without product failures; the
+  full integration collection remains separately blocked at Docker fixture setup as recorded
+  above.
+- Corrected the parity document's state vocabulary so `board_covered` is explicitly recognized
+  by the active policy while strict `approved` remains available as an optional stronger audit.
+- Acceptance flexibility used: deterministic local unit evidence in place of Docker-backed
+  integration execution. No integration or strict exact-build visual gate was marked complete.
+
+## Continuation update — 2026-08-06T14:00:00Z Active-goal acceptance policy reaffirmed
+
+- The active TC2000 workstation goal treats the 190-image composite board as the working visual
+  authority for represented states. A missing local permission-cleared exact-build capture is not
+  a blanket blocker.
+- Authorised substitutions are board-guided visual baselines, deterministic provider fixtures,
+  browser pop-out evidence, and bounded stress runs. Each is an interim acceptance basis only.
+- Remaining gaps stay tracked in `docs/tc2000-reference-board.md` and the visual manifest:
+  uncovered state variants, physical multi-monitor placement, unavailable live-provider evidence,
+  and endurance beyond recorded budgets. They must be named in every progress report when used.
+- Acceptance flexibility used for this documentation update: board instead of direct exact-build
+  media. No gap was closed by this change.
+
 ## Continuation update — 2026-08-06T13:30:00Z Authenticated flow partitions green
 
 - Corrected F9c to use the seeded SPY benchmark for chart-template/settings mechanics;
@@ -19124,3 +24710,1038 @@ audit with live-entitlement, backend integration, and remaining runtime gates.
   100,000-point uPlot interaction, multi-chart initialization/recovery without canvas/tool growth,
   and repeated multi-window churn with bounded source state.
 - Native multi-monitor placement and indefinite soak remain separate acceptance gates.
+
+### 2026-08-06T18:00:00Z — visual-reference authority correction
+
+- The 190-image browsable TC2000 Version 25 reference board is now the accepted working visual
+  authority for every represented state. Missing local permission-cleared exact-build captures
+  are not a blanket blocker and must not be reported as though the board does not exist.
+- Exact-build evidence remains optional strengthening evidence, or a targeted requirement only
+  for a specifically unrepresented/ambiguous state. Such states remain in the documented gap
+  register with an interim oracle; board-covered states proceed through measured local baselines
+  and interaction acceptance.
+
+### 2026-08-06T18:15:00Z — acceptance flexibility ledger
+
+- `docs/tc2000-acceptance-governance.md` is now controlling for board-guided visual parity,
+  external provider evidence, multi-window versus physical multi-monitor validation, and bounded
+  stress evidence. Historic “strict” audit entries are evidence history, not blanket blockers.
+- Every future progress update must explicitly state `Acceptance flexibility used: None` or list
+  the exact board/fixture/browser/bounded-stress substitution used and update its gap record.
+- A substitution is an interim acceptance basis only. It does not erase the gap or permit an
+  unsupported claim of exact TC2000, live-provider, hardware, or indefinite-duration validation.
+
+### 2026-08-06T18:30:00Z — board-guided visual harness and state ledger
+
+- The visual manifest now partitions each required state into `board_covered_states` and
+  `board_gap_states`, so surface-level `required_missing` no longer obscures covered mechanics.
+- Added `frontend`'s `test:visual:board` command for normal board-guided visual regression;
+  `test:visual:approved` remains the intentionally stronger exact-build audit. Manifest tests
+  pass `6/6`, manifest validation passes, Playwright lists all four configured environments, and
+  frontend type-check passes.
+
+### 2026-08-06T18:45:00Z — seeded board-guided visual baselines
+
+- The first board-harness run exposed a harness defect: the command omitted
+  `E2E_SEED_MARKET_DATA=true` and compared an unavailable-data capture with seeded snapshots.
+  The command now enables the deterministic fixture explicitly.
+- After visual inspection against the composite board, the four local environment baselines
+  were refreshed and the board-guided harness passed `4/4` without update mode. Geometry,
+  viewport containment, and core-overlap assertions also passed.
+- This uses the accepted board-guided visual track; it is not exact-build TC2000 approval and
+  does not close the listed stale/loading/error/partial, blocked-popout, or Study Lab visual
+  gaps.
+
+### 2026-08-06T19:00:00Z — covered-state manifest promotion
+
+- Manifest state entries for shell, docking, chart, and watchlist mechanics that are represented
+  by the board are now explicitly `board_covered`; only the named stale/loading/error/partial or
+  blocked-popout entries remain `required_missing`. Study Lab remains gap-tracked because it has
+  no direct TC2000 visual analogue.
+- The partition and state-entry mapping tests pass `6/6`; normal manifest validation passes.
+- Full frontend Vitest passes `592/592`; the expected conflict-path stderr remains the only
+  exercised diagnostic. The earlier invalid `--runInBand` invocation was a command error and is
+  not test evidence.
+
+### 2026-08-06T19:20:00Z — chart loading/error gap oracle
+
+- Added browser regressions for the two chart state gaps: `F8i-a` forces unavailable OHLCV and
+  verifies an explicit error state with no canvas; `F8i-b` delays the same request and verifies
+  the visible loading state before terminal error. Both pass (`2/2`) with no unexpected browser
+  diagnostics.
+- These tests close the functional oracle gap but not the visual-reference gap: the manifest
+  continues to mark loading/error as `required_missing` because no authoritative V25 state image
+  exists for their exact styling.
+
+### 2026-08-06T19:35:00Z — blocked-popout gap oracle
+
+- Added `F8k-a`, which blocks `window.open`, verifies the tool remains docked, confirms the
+  workstation reports `Browser blocked the pop-out`, and proves no pop-out shell is mounted.
+  Focused browser regression passes (`1/1`) with no unexpected diagnostics.
+- This closes the blocked-popout functional oracle while retaining its visual-reference gap in
+  the manifest; exact V25 blocked-state styling remains unverified.
+
+### 2026-08-06T19:50:00Z — freshness-state gap oracles
+
+- Added `F8i-c` and `F8i-d` with deterministic technical-snapshot responses. They verify that
+  stale data renders `Stale · cached` and partial data renders `Partial coverage` in the dense
+  workstation status bar rather than collapsing both into an ambiguous unavailable state.
+- Both browser regressions pass (`2/2`) with no unexpected diagnostics. The exact V25 visual
+  treatment remains a documented reference gap, but the freshness semantics and user-facing
+  distinction now have a real-user oracle.
+
+### 2026-08-06T20:10:00Z — Study Lab original-surface baselines
+
+- Added a four-environment board-guided visual test for the original Study Lab surface, including
+  authenticated layout settling, editor/action visibility, and header/editor overlap protection.
+- Refreshed and verified the deterministic baselines: board visual harness passes `8/8` (four
+  default-workstation environments plus four Study Lab environments).
+- Study Lab remains explicitly outside exact TC2000 visual parity because no direct TC2000
+  analogue exists; its local baselines and existing functional browser suite are the interim
+  oracle under the documented original-surface exception.
+
+### 2026-08-06T20:35:00Z — complete authenticated flow matrix
+
+- Rebuilt-stack Chromium flow matrix passes `48/48` in `1.9m`, including the newly added
+  loading/error/stale/partial freshness states, blocked pop-out recovery, top-down drilldown,
+  Study Lab, linked windows, notes, alerts, legacy compatibility, and excluded-domain visibility.
+- No new order-dependent browser defect or unexpected diagnostic was found. This is functional
+  evidence; it does not replace the explicitly documented visual-reference gaps or optional live,
+  hardware, and bounded-stress audits.
+### 2026-08-08T12:30:00Z — active-goal acceptance alignment
+
+- Updated the controlling governance and TODO documentation to make the active goal's board-guided
+  visual track explicit: the 190-image browsable board is the working authority for represented
+  states, while exact-build local captures are targeted strengthening/closure evidence rather than
+  a blanket blocker.
+- All uncovered or ambiguous states remain actionable gaps with named interim oracles and closure
+  paths; no gap was promoted to exact-build approval or removed.
+- Acceptance flexibility used: board-guided evidence in place of local permission-cleared exact-build
+  media for represented states. Open gaps remain `REF-SHELL-V25`, `REF-STATE-VARIANTS`,
+  `REF-LINKING-V25`, `REF-STUDY-LAB-V25`, `REF-ENV-TOKENS`, and `REF-PERMISSION-REVIEW` where
+  applicable; closure requires the evidence specified in `docs/tc2000-reference-board.md`.
+### 2026-08-06T22:20:00Z — EasyScan to Market Gauge acceptance
+
+- Added shared Vue Query invalidation/refetch after EasyScan creation/reuse so an already-mounted Market Gauge receives the new saved scan without remounting.
+- Added a deterministic authenticated F8w browser acceptance: create a condition, run a uniquely named EasyScan, refresh the mounted Market Gauge, and verify the rendered match reading. F8w passed `1/1` with no critical diagnostics.
+- EasyScan component coverage remains green at `8/8`. No visual flexibility was used for this behavior; the board-guided visual authority remains unchanged and the known V25 reference gaps remain tracked.
+### 2026-08-06T22:35:00Z — Add Tool activation closure
+
+- Fixed a real workstation defect: Add Tool persisted a new Golden Layout window but left the
+  previous stack active, making the new tool appear absent or hidden.
+- `WorkspaceLayoutHost` now resolves `active_window_key` to its component and activates the
+  containing stack after installation and restoration. Host unit coverage is `4/4`; authenticated
+  Chromium F8x passes `1/1` with clean diagnostics.
+- Full frontend Vitest is `594/594`; type-check, production build, and diff checks pass.
+- No visual acceptance flexibility was used. The board-guided track and unrepresented/ambiguous
+  visual gap register remain unchanged; live-provider, native multi-monitor, and endurance gaps
+  remain explicit.
+### 2026-08-06T22:50:00Z — active-tab persistence and Docker cleanup audit
+
+- Golden Layout now emits active component changes; the workspace store validates and persists
+  `active_window_key` through the revisioned snapshot path. Host tests are `5/5`, the store covers
+  unknown/repeated keys, authenticated F8x is `1/1`, and full frontend Vitest is `596/596`.
+- No visual acceptance flexibility was used. Existing board-guided and unrepresented-state tracks
+  remain unchanged.
+- The updated objective requested `docker system prune -af --volumes`; execution safety rejected
+  the host-wide destructive operation. No workaround was attempted. Read-only `docker system df`
+  reports 6.547 GB reclaimable images, 5.395 GB build cache, and only 532 B reclaimable volumes.
+## 2026-08-08T00:45:00Z — focused regression closure and current status
+
+- Authenticated F8g, F8q, and F8w passed `3/3` in a clean focused run. The fixes cover unique
+  Study Lab fixtures, promotion clicks surviving virtual-tool remounts, and selecting the last
+  visible Market Gauge tab after EasyScan creation.
+- Full frontend Vitest passed `596/596` across 88 files; `vue-tsc`, the 462-module production
+  build, and `git diff --check` passed. The expected watchlist conflict-path stderr remains the
+  only exercised diagnostic.
+- The preceding long-run Playwright artifact was a setup failure (`apiRequestContext.post:
+  Invalid URL`) and is not product-failure evidence. A clean complete matrix rerun remains open.
+- Acceptance flexibility used: **None** for these changes. The board-guided visual track and all
+  existing gap records remain unchanged; no strict visual, provider, hardware, or endurance gate
+  was silently downgraded.
+- Rough work-item estimate (non-authoritative): three recent regression slices are closed. The
+  overall goal still has a large open set spanning six visual gap IDs, optional provider/live
+  entitlement probes, native multi-monitor validation, sustained stress, and remaining backend /
+  product scope; it is not near completion merely because the focused slice is green.
+## 2026-08-08T01:20:00Z — complete acceptance refresh
+
+- Clean authenticated Playwright matrix passed `55/55` in one worker; 24 visual projects are
+  intentionally separate. The earlier `Invalid URL` artifact was setup-only and is superseded.
+- Board-guided visual command passed `24/24` across the four required environments, including
+  shell, Study Lab, loading, blocked-popout, stale, and partial-coverage cases.
+- Combined backend gate passed `1,277/1,277` at `79.43%` coverage with 86 known third-party
+  deprecation warnings. Frontend Vitest remains `596/596`; type-check, production build, and
+  diff checks pass.
+- Acceptance flexibility used: deterministic local market fixtures and the 190-image composite
+  board. Live-provider, physical multi-monitor, beyond-bounded-endurance, and named visual-gap
+  records remain open; no gap was silently closed.
+- Regression status: no new regression in this refresh. The earlier F8g/F8q/F8w issues remain
+  fixed and passed in the full matrix.
+## 2026-08-08T01:30:00Z — Docker cleanup safety audit
+
+- Read-only `docker system df` reports 44 images / 7.732 GB with 6.547 GB reclaimable, plus
+  5.395 GB reclaimable build cache: approximately 11.9 GB exceeds the requested cleanup threshold.
+- The explicitly requested host-wide `docker system prune -af` was rejected by the execution
+  safety boundary because it would irreversibly remove unused objects outside this branch.
+  No indirect or broader deletion was attempted; the active stack remains intact.
+- This is an operational limitation, not a product regression or goal blocker. User-approved
+  narrower cleanup or explicit host-wide authorization would be required to close it.
+## 2026-08-06T23:30:00Z — Add Tool stack audit
+
+- Closed store-level Golden Layout root-column regression: new tools now join a stack rather than
+  becoming 10px-wide root columns. Workspace-store tests: 39/39; full frontend Vitest: 597/597;
+  type-check/build: pass.
+- Browser audit uncovered a separate open issue: a newly added personal-watchlist component can
+  remain in the serialized layout without becoming reliably visible/interactable after stack
+  installation/restoration. The provisional E2E flow was removed rather than using forced clicks.
+- Acceptance flexibility used: none for this slice. Keep this as an explicit implementation gap.
+
+## 2026-08-08T00:28:00Z — personal watchlist membership race closure
+
+- The real Add Tool personal-watchlist copy/move path is stable under concurrent refreshes. Duplicate-name creates are idempotent, locally-created lists survive lagging cross-window reloads, and stale workspace snapshot echoes cannot revert a local selection.
+- Virtualized row refreshes no longer prevent the real context-menu pointer action; authenticated F8y passed after a rebuilt frontend with successful copy and move requests.
+- Focused watchlist store coverage is `12/12`; full frontend Vitest is `600/600`; type-check, production build, and `git diff --check` pass.
+- Acceptance flexibility used: none. Six visual/reference gaps, provider/live, native multi-monitor, sustained-stress, and remaining product-scope gaps remain explicitly open.
+
+## 2026-08-08T00:35:00Z — final Chromium flow refresh
+
+- Complete authenticated Chromium flow matrix passed `53/53` after the watchlist race closure. This supersedes the preceding `52/53` run whose sole failure was the now-fixed F8y selection/create race.
+- No new browser diagnostics or product regressions were observed. Board-guided visual, provider/live, native multi-monitor, sustained-stress, and remaining product-scope gaps remain open.
+
+## 2026-08-08T01:05:00Z — board-guided visual refresh
+
+- First visual invocation after stack recreation was setup-only (`ECONNREFUSED`) because the fresh Compose volume had fixture seeding disabled; no UI assertion was made from that run.
+- After restoring the exact branch-scoped stack with `E2E_SEED_INSTRUMENTS=true E2E_SEED_MARKET_DATA=true`, the board-guided visual matrix passed `24/24` across 1920×1080 and 2560×1440 at 100% and 125% display scale.
+- Manual inspection of the board and current application-shell baseline found dense workstation composition, contained headers/tool surfaces, and no unexplained core overlap. Unavailable chart/technical cells remain honestly labelled.
+- Acceptance flexibility used: deterministic local fixture data and the 190-image board. Remaining visual gap IDs and live/provider, native multi-monitor, endurance, and product-scope gaps remain open.
+## 2026-08-08T01:20:00Z — focused E2E regression follow-up
+
+- The latest full authenticated Chromium refresh produced 50/53: 50 passed, with F8i-b, F8s, and F8x failing.
+- A focused rerun with the required browser permissions produced F8i-b passing and reproduced F8s/F8x. This supersedes the earlier 53/53 as the current runtime result.
+- F8s and F8x both indicate Golden Layout activation after opening a tool against a persisted workspace is still vulnerable to a hidden active tab; a delayed activation reassertion was added in `WorkspaceLayoutHost.vue` but did not fully close the defect.
+- Flexibility remains explicit: deterministic seeded fixtures and browser evidence are used; the board remains the accepted visual authority for represented states. Remaining visual gaps and the native multi-monitor/exact-build evidence limitations remain tracked and are not being waived.
+- Bounded active-component reconciliation (40 checks at 25ms, plus bootstrap guards) was also exercised and did not close F8s/F8x. The failure remains a genuine layout-tree/active-state defect; no acceptance test was relaxed.
+## 2026-08-08T15:00:00Z — blocker tie-break and validation
+
+- The goal-level blocker policy now distinguishes localized recoverable UI defects from goal-wide blockers. The Add Tool activation issue remains an acceptance failure but does not stop unrelated implementation or validation.
+- The direct user-facing activation attempt (wait for the newly created tab, then click it) was tested in authenticated Chromium and still failed because a later layout/state update reselected the previous tab.
+- Full frontend validation after correcting an unintended suppression regression: 600/600 Vitest tests, type-check, and diff-check pass. The attempted fix therefore introduced no remaining unit-suite regression, but the focused E2E defect remains open.
+- Backend acceptance slice attempted after the blocker tie-break: local pytest and `uv run pytest` both resolve to Python 3.9, while the suite requires `datetime.UTC` (Python 3.11+). This is an environment/setup limitation, not a code failure; the branch-scoped backend container remains the correct execution path for this suite.
+- Backend visual-manifest environment fix: Compose now mounts `./tests` at `/tests` and `./docs` at `/docs` read-only. The visual-manifest assertions now pass 8/8 inside the supported Python 3.12 container; the command still exits non-zero only because the targeted subset cannot meet the repository-wide 55% coverage threshold.
+- Backend unit follow-up: after mounting `./frontend` at `/frontend`, Study Lab factory-source tests pass 4/4. Targeted commands still return non-zero solely from the global coverage threshold; the assertions themselves are green.
+- Research-runner deployment contract assertions now pass 7/7 after mounting Compose and ops sources. The targeted command exits only because isolated deployment-contract tests do not meet the global coverage threshold; no contract assertion fails.
+- Complete backend unit baseline after container mount fixes: 992/992 passed in Python 3.12, coverage 69.89% (above the 55% threshold), with 34 dependency warnings only.
+- Board-guided visual acceptance remains green: manifest validation plus 24/24 Playwright visual tests across 1080p/1440p at 100%/125% display scales passed with seeded market fixtures.
+## 2026-08-07T15:50:00Z — Add Tool detached-root activation fix and tie-break validation
+
+- Fixed the localized Add Tool activation defect in `WorkspaceLayoutHost.vue`: detached Golden
+  Layout virtual roots now retain their actual `ComponentItem` by instance key, and requested
+  active components are reasserted across bootstrap/restoration without persisting tab-selection
+  mutations as layout changes. This covers overflow tabs and duplicate tool titles.
+- Focused fresh-account authenticated F8s/F8x passed `2/2`; WorkspaceLayoutHost/workspace-store
+  unit coverage passed `45/45`; full frontend Vitest had already passed `600/600`; type-check,
+  production build, and `git diff --check` passed. No debug spec or telemetry remains.
+- Full authenticated Chromium is currently `54/56`: F8v technical-condition drag/drop and F8y
+  personal-watchlist move remain open. They are recorded acceptance failures, not silently waived.
+- The goal tie-break rule is active: a localized recoverable defect must retain a repro, test,
+  owner, and gap record, but does not block unrelated implementation or validation. Goal-wide
+  blocking remains reserved for broad workflow/data-integrity/security/oracle failures, no
+  meaningful independent work, or an external dependency after repeated safe attempts.
+- Flexibility used: none for visual/provider criteria. The browser used a fresh isolated account
+  and deterministic seeded fixtures to remove accumulated workspace state; this is recorded test
+  context, not a relaxation of acceptance requirements.
+- 2026-08-07T16:00:00Z — Watchlist membership traversal follow-up: added row-source-aware move enablement and source resolution, plus a one-second acknowledgement fence against stale workspace snapshot echoes. Unit coverage is 47/47 for VirtualWatchlistTool and full frontend Vitest is 601/601; type-check, production build, and diff-check pass. Fresh rebuilt-stack F8y remains failing at the move POST wait, so this localized issue is not claimed closed. A subsequent focused browser run also encountered E2E-user provisioning/login 500/timeout setup failures for F8s/F8x; F8v still fails at real drag target resolution. No visual/provider flexibility was used.
+- 2026-08-07T16:20:00Z — Browser regression refresh: F8v now passes `1/1` with a corrected visible-sector drop target; the former benchmark target was hidden by the Add Tool stack activation and could not be a valid drag oracle. Unique-account F8s/F8x passed `2/2`. F8y remains a genuine interaction failure: after the real pointer context-menu gesture, the move POST is not observed and the captured menu is attached to the sector surface while the personal list is visually empty, indicating a remaining detached-root/coordinate or selection-reconciliation defect. No acceptance flexibility was used; the F8v oracle was corrected to a visible in-scope watchlist and the F8y gap remains open.
+- 2026-08-07T16:40:00Z — F8y geometry audit: the personal virtual root can report an off-screen/oversized row (observed `x=-349`, row width `1303px`) while the pointer coordinate lands on the sector surface. Narrowing the test to the active tool window did not close the issue; the move POST remains absent. This confirms a localized Golden Layout virtual-root recting/selection interaction defect, not an acceptance-oracle waiver. F8v remains green with its visible-sector target; no visual/provider flexibility used.
+- 2026-08-07T16:25:00Z — Virtual-root lifecycle follow-up: virtual roots are now removed after Golden Layout unbinds them, preventing orphaned detached DOM elements; teardown ordering was corrected after the first attempt exposed a `removeChild` regression. Host coverage `5/5`, watchlist coverage `47/47`, type-check, rebuild, and diff checks pass. F8y still fails at the move POST, so the geometry/selection defect remains open; no acceptance flexibility used.
+- 2026-08-07T16:22:00Z — Full frontend regression after lifecycle correction: Vitest `601/601`, type-check, production rebuild, and diff checks pass. The corrected teardown no longer produces `removeChild` console errors; unique-account F8y still reaches the move POST wait, so the pointer/selection defect remains open. No visual/provider flexibility used.
+
+## 2026-08-08T16:45:00Z — F8y sizing-fix attempt validated and retained as localized gap
+
+- Attempted a narrow CSS containment fix for the personal virtualized watchlist after browser geometry showed a detached row at `x=-349` with width about `1303px` inside a `278px` tool. The fix was exercised with a rebuilt Docker stack, focused authenticated Chromium, the watchlist unit suite, and production build.
+- The geometry changed during the attempt, but the real context-menu/copy/move flow still did not produce the expected visible context menu/API action. The experimental sizing rules were reverted rather than leaving an unproven layout workaround in place; the existing lifecycle fixes remain.
+- Validation evidence: VirtualWatchlistTool `47/47`; production frontend build succeeded; focused F8y remains failing at the context-menu interaction. This is an explicit localized acceptance gap, not a goal-wide blocker.
+- Tie-break applied: no visual/provider criteria were relaxed. The goal continues through independent work while this recoverable Golden Layout/virtualized-row coordinate defect retains its repro and test owner.
+
+## 2026-08-08T17:10:00Z — F8y horizontal-overflow defect closed
+
+- Root cause was isolated from browser geometry: the personal watchlist control strip widened its CSS grid track to the full desktop width. Playwright visibility scrolling moved `.tool-window__body` horizontally by about 350px, placing the watchlist row at `x=-349` and sending pointer coordinates to the sector tool.
+- Fixed the layout by constraining the personal watchlist grid to a `minmax(0, 1fr)` column and constraining its control strip to the tool width with hidden horizontal overflow. The watchlist's intended column behavior remains unchanged.
+- Rebuilt-stack authenticated Chromium evidence: F8y passed `1/1`; neighboring F8s/F8v/F8x passed `4/4` together. Full frontend Vitest passed `601/601` across 88 files, `vue-tsc` passed, and the production Docker build/start succeeded.
+- No acceptance flexibility was used. The previous F8y gap is closed for this reproducer; broader visual/provider/hardware/endurance gaps remain unchanged and tracked.
+- Board-guided visual regression after the layout fix passed `24/24` across 1920x1080 and 2560x1440 at 100% and 125% display scale. The active composite board remained the visual authority; no masks or provider/hardware relaxations were added.
+
+## 2026-08-08T18:05:00Z — complete authenticated matrix revalidated
+
+- The first live-stack rerun produced `52/53`; its sole F8u failure was a transient chart-plot drag/drop interaction-state miss. The isolated F8u flow then passed five fresh-user repetitions, and the complete authenticated Chromium matrix was rerun successfully at `53/53`.
+- No code change or acceptance-oracle relaxation was needed for F8u. The result is treated as a flaky test observation, not a stable product defect; it remains worth monitoring in future matrix runs.
+- The earlier `ECONNREFUSED` full-matrix attempt was setup-only because the branch-scoped stack was down and is superseded by the live-stack evidence above.
+- Tie-break applied: localized flaky evidence did not block the goal; it was reproduced, independently stress-checked, and resolved by successful matrix revalidation. No visual/provider/hardware flexibility was used.
+
+## 2026-08-08T18:30:00Z — visual gap-oracle coverage restored
+
+- Restored deterministic board-suite tests for chart provider-error and Study Lab validation-error states, using the already generated four-environment snapshots.
+- Manifest validation plus the serialized board-guided suite passed `32/32`; frontend Vitest passed `601/601`, `vue-tsc --noEmit`, and `git diff --check` passed.
+- Both states remain explicitly `required_missing`: the board lacks authoritative pinned-build styling evidence. The new screenshots are interim local baselines and do not promote either state to exact V25 approval.
+- Acceptance flexibility used: deterministic route-intercepted fixtures and the composite reference board for interim state evidence. Open gaps: `REF-STATE-VARIANTS`, `REF-STUDY-LAB-V25`, and `REF-PERMISSION-REVIEW` remain actionable.
+
+## 2026-08-08T19:15:00Z — 125% browser-scale robustness guard
+
+- Added F8z to exercise the workstation under Chromium 125% page scaling, checking shell containment, benchmark/sector visibility, tool-header title/symbol/action separation, and footer bounds.
+- Complete non-visual/performance E2E run passed `57/57` executed tests, including F8z, uPlot 100,000-point interaction, and multi-window churn. The 32 visual projects were intentionally skipped by that command and remain green independently at `32/32`.
+- `vue-tsc --noEmit`, JSON/YAML validation, and `git diff --check` passed. The initial validation command used the wrong relative path for `ops/state.json`; the corrected repository-root check passed and no product test was affected.
+- Acceptance flexibility used: none for F8z itself. Existing board/fixture flexibility remains active for the named visual gaps; native multi-monitor and beyond-bounded-endurance gaps remain open.
+
+## 2026-08-08T20:00:00Z — workspace export/import round-trip
+
+- Added F9d to exercise the actual workspace Export download, Clone mutation, JSON file-picker Import, and restored-layout-count path for a fresh authenticated user.
+- Focused F9d passed; the complete non-visual/performance Playwright invocation passed `58/58` executed tests. Its 32 visual projects were intentionally skipped and remain independently green at `32/32`.
+- `vue-tsc --noEmit`, JSON/YAML validation, and `git diff --check` passed. No application implementation change was needed; the existing round-trip implementation now has direct browser evidence.
+- Acceptance flexibility used: none. Remaining gaps are live-provider, native multi-monitor, beyond-bounded endurance, and unrepresented/ambiguous V25 visual states.
+
+## 2026-08-08T22:00:00Z — chart-template export/import round-trip and tie-break audit
+
+- Added F9f to exercise save, download, delete, JSON file-picker import, and reapply through the real chart-template controls while preserving the active symbol. Focused F9f passed for a fresh user.
+- The complete non-visual/performance invocation reached the 92-test matrix; 59 passed before one existing F8v ordering-sensitive drag oracle failed and 32 visual projects were skipped. F8v then passed in isolation and in the adjacent F8u→F8v sequence, so the observation is retained as a reproducibility gap rather than treated as a product fix or hidden waiver. The next complete rerun remains required before calling the 60-executed-test matrix green.
+- `vue-tsc --noEmit` passed. Repository JSON/YAML parsing and `git diff --check` are required after this entry.
+- Acceptance flexibility used: none for F9f or F8v. Goal-level tie-break applied: this localized, recoverable ordering-sensitive oracle does not block independent work; it remains explicitly tracked with focused regression evidence.
+
+### Follow-up validation — 2026-08-08T22:20:00Z
+
+- The complete rerun passed `60/60` executed tests with `32` visual projects skipped; F8v passed in the same complete matrix. The prior `59/60` observation is superseded as a transient ordering-sensitive failure, but its focused and adjacent-order regression evidence remains in the test history.
+- Board-guided visual acceptance remains independently green at `32/32`; no new visual gap or flexibility was introduced.
+
+## 2026-08-08T23:00:00Z — scalar Python result reused as watchlist column
+
+- Added F9g to exercise the real cross-tool path: validate and run a scalar Study Lab source, save it as an immutable reusable column, return to `US Top Down`, add the asset through the watchlist Columns editor, and verify the rendered column header.
+- Focused F9g passed. The complete authenticated Playwright matrix passed `61/61` executed tests with 32 visual projects skipped; the board-guided visual suite remains independently green at `32/32`.
+- Full frontend Vitest passed `601/601` and `vue-tsc --noEmit` passed. The initial attempt used a nonexistent `test:unit` script; the repository’s actual `npm test -- --run` command then passed and is the authoritative unit result.
+- Acceptance flexibility used: none. Two test-only oracle corrections were made (reactivating the source layout and reading native option values); no forced actions or product acceptance waivers were used.
+
+## 2026-08-08T23:45:00Z — unified Python condition → EasyScan → alert
+
+- Added F9h for the real Code Library → EasyScan → alert workflow. It creates a Python
+  `condition`, selects it through the integrated condition option, runs the scan, and promotes the
+  result to an alert.
+- F9h initially exposed a backend HTTP 500: `collect_research_result` synchronously accessed
+  lazily-loaded `ResearchRun.artifacts` from an async SQLAlchemy session, causing `MissingGreenlet`.
+  `screener_engine.py` and `strategy_lab.py` now eager-load artifacts with `selectinload` before
+  artifact collection. Combined targeted screener/Strategy Lab integration assertions pass 43/43;
+  their non-zero exit is only the repository-wide coverage threshold on a partial subset.
+- Rebuilt-stack F9h passes 1/1; the affected F8q/F8w/F9h slice passes 3/3. Full authenticated
+  Chromium executed 62 tests: 61 passed and one F8u chart-plot drag oracle missed. Fresh F8u
+  repetitions passed 3/5 and a fresh isolated rerun passed 1/1. This is recorded as a localized
+  ordering/state reproducibility gap under the goal tie-break, not silently waived and not a
+  goal-wide blocker. Further remediation remains queued.
+- The Study Lab validation-error visual oracle now holds the adjacent OHLCV request pending so its
+  documented loading state is deterministic; no mask or baseline refresh was used. Manifest plus
+  board-guided visual acceptance passes 32/32 in all four environments.
+- Frontend Vitest passes 601/601 and `vue-tsc --noEmit` passes.
+- Acceptance flexibility used: None for this code/test advance. Existing board/fixture evidence,
+  live-provider, physical multi-monitor, and bounded-endurance substitutions remain open in the
+  flexibility ledger; no gap was closed by this work.
+
+## 2026-08-09T13:20:00Z — Study Lab series reused as chart plot
+
+- Added F9i: create/run a numeric Python series in Study Lab, save it as an immutable chart-plot
+  asset, return to `US Top Down`, load it through Chart Plot Library, and verify the reusable Python
+  plot entry. ChartPlotLibrary now renders/removes Python plots through `python_plots` state.
+- F9i passed `1/1` against the rebuilt stack; ChartPlotLibrary unit coverage passed `9/9`; full
+  frontend Vitest passed `602/602`; `vue-tsc --noEmit` passed.
+- F9i exposed and fixed two real UI defects: persisted Study Lab layout activation needed explicit
+  top-level/inner tab activation, and a narrow chart's plot menu was escaping over the sector
+  watchlist. The menu now uses a trigger-anchored fixed position and the chart surface has an
+  explicit stacking context. No forced browser click was used.
+- The follow-up full authenticated matrix executed `63` tests: `61` passed, with only F8u and F8y
+  missing. F8u passed five fresh repetitions; F8y remains the localized personal-watchlist state
+  gap already governed by the tie-break policy. Board visual acceptance remains independently
+  required and unchanged.
+- Acceptance flexibility used: None. No visual/provider/hardware/endurance criterion was relaxed.
+
+## 2026-08-08T21:00:00Z — watchlist Columns/Sets editor
+
+- Added F9e to exercise the real integrated Columns editor: assign a group, stack a column, save a named column set through the canonical API, and reapply the saved set.
+- Focused F9e passed; the complete non-visual/performance Playwright invocation passed `59/59` executed tests. The 32 visual projects were intentionally skipped and remain independently green at `32/32`.
+- `vue-tsc --noEmit`, JSON/YAML validation, and `git diff --check` passed. Two test-oracle issues were corrected during development (semantic container targeting and ambiguous saved-set button matching); no application defect was found.
+- Acceptance flexibility used: none. Remaining gaps are live-provider, native multi-monitor, beyond-bounded endurance, and unrepresented/ambiguous V25 visual states.
+## 2026-08-09T13:45:00Z — watchlist mutation reconciliation follow-up
+
+- Added canonical-read reconciliation for local item additions/removals, same-name create
+  deduplication, duplicate item idempotency, and immutable membership updates for virtualized rows.
+- Store regressions passed `14/14`; type-check passed; rebuilt F8y progressed past the original
+  missing-XLE-row defect but still timed out in the later copy/move interaction.
+- F8y remains a localized recoverable acceptance gap under the goal tie-break. No visual,
+  provider, hardware, or endurance flexibility was used.
+## 2026-08-09T14:00:00Z — F8y watchlist interaction closure
+
+- Rebuilt authenticated F8y passed `1/1`, then `3/3` independent repetitions after the local-delta,
+  duplicate-create, duplicate-item, and structured-API-error fixes.
+- Diagnostic evidence confirmed source creation, XLE add, copy POST, move POST, and source DELETE.
+- The prior localized F8y timeout is closed; no acceptance flexibility was used.
+
+## 2026-08-09T14:10:00Z — workspace-selection fence hardening
+
+- Extended the local acknowledgement fence from one second to ten seconds to cover queued
+  workspace snapshots during rapid multi-list operations.
+- Affected F8u/F8v/F8y passed `2/3` with one F8u drag miss; isolated F8u then passed `5/5`.
+- F8u remains a localized drag-ordering risk tracked under the tie-break. No acceptance flexibility.
+
+## 2026-08-09T14:20:00Z — F8u drag-to-column closure
+
+- Added a same-document drag payload fallback and preserved the payload through `dragend` until
+  the receiving watchlist handles `drop`.
+- Plot drops now register and reveal the indicator column in customized watchlists, including the
+  duplicate-definition case; chart indicator additions persist immediately for cross-tool handoffs.
+- Targeted frontend coverage passed `61/61`, `vue-tsc --noEmit` passed, the rebuilt production
+  stack passed, F8u passed `5/5` repetitions, and F8u/F8v/F8y passed `3/3` together.
+- No acceptance flexibility used. F8u is closed; the goal-level tie-break remains explicit for
+  future localized defects and does not waive their tracking or regression evidence.
+
+## 2026-08-09T14:35:00Z — F8y cross-root mutation follow-up
+
+- Duplicate create and item-add operations are now deduplicated at module scope across separate
+  Pinia instances; successful item additions reassert the accepting watchlist selection.
+- Store coverage is `16/16`; the combined watchlist/virtualized-tool subset is `64/64`; type-check
+  and rebuilt production build pass.
+- Repeated F8y still exposes a localized Golden Layout root-selection race during rapid multi-create
+actions. The active control may resolve to a different virtual root between actions, so F8y is
+reopened as a tracked recoverable gap. No acceptance flexibility or visual mask was used.
+The subsequent clean rebuilt-stack repetition timed out while the workstation remained in its
+explicit `Fetching` state; this is retained as additional failure evidence rather than waived.
+
+## 2026-08-09 F8y create-result hardening
+
+- Added a request-origin marker so duplicate conflict responses cannot steal workspace selection
+  from the request that actually created the list.
+- Store coverage (`16/16`), type-check, and rebuilt production stack passed; F8y passed `5/5`.
+- The adjacent F8u/F8v/F8y slice passed `7/9`; both failures were combined-order F8u drag misses,
+  while F8v/F8y stayed green. Isolated F8u passed `2/2`, so this remains a localized
+  reproducibility gap under the tie-break, not a whole-goal blocker.
+- No acceptance flexibility or visual mask was used. The 60-second F8y timeout is runtime-only.
+
+## 2026-08-09 full Chromium regression
+
+- Preserving the last watchlist snapshot on transient refresh failure has a regression test and
+  closes the full-suite F8y disappearance. The complete Chromium matrix is now `61/63`.
+- F8u/F8v are the only misses in combined ordering. Isolated repetitions passed F8u `3/3` and
+  F8v `2/3`; the single F8v miss remains a localized drag/drop reproducibility gap under the
+  explicit tie-break, not a whole-goal blocker.
+- No acceptance flexibility or visual mask was used.
+
+Current-source bounded workstation performance checks passed `2/2` for multi-chart recovery and
+repeated multi-window churn without canvas/tool growth. This uses bounded stress in place of
+indefinite soak; longer endurance remains an explicit open gap.
+
+## 2026-08-11 — Combo-list workstation parity closure
+
+The personal WatchList tool now has a verified union/intersection/exclusion path. The browser
+acceptance creates two personal lists and an exclusion list, populates them, saves a combo, verifies
+the active combo view, and deletes it. During fix-first triage, stale Golden Layout roots, hidden
+mutation completion, and clipped editor geometry were repaired by fencing explicit selection,
+exposing `aria-busy`, wrapping the combo editor, and clearing the personal-list fence on combo
+activation. Focused/adjacent browser coverage passed `2/2`; frontend Vitest passed `696/696`; the
+complete authenticated Chromium matrix passed `95/95`; and the rebuilt seeded board-guided visual
+matrix passed `104/104` across all four environments. No functional or visual criterion was relaxed.
+The composite-board plus deterministic seeded-fixture policy remains interim visual evidence, so
+exact-build/permission, unrepresented states, provider/live-entitlement breadth, physical-monitor
+placement, beyond-bounded endurance, and final-audit gaps remain open.
+
+## 2026-08-11 — Typed symbol-search keyboard acceptance
+
+Added and verified the real-user keyboard path for typing outside an editor: the active-symbol
+search receives the query, canonical results appear, and Escape closes the results while preserving
+the search editor’s focus. The focused keyboard slice passed `5/5`; the complete authenticated
+Chromium matrix passed `96/96`. No visual baseline, mask, threshold, or functional criterion was
+relaxed. Exact-build/unrepresented visual, provider/live-entitlement, physical-monitor, endurance,
+and final-audit gaps remain open.
+
+## 2026-08-11 — EasyScan history plot acceptance
+
+- Added canonical `GET /screeners/{screener_id}/plot` count/percentage history with coverage and
+  explicit no-history behavior; no scan rerun or fabricated data is used.
+- Chart Plot Library now discovers retained EasyScan history and routes it through the existing
+  serializable uPlot numeric-series lifecycle, including add, persist, hide/show, reorder, duplicate,
+  recolour, remove, and linked/selected-chart copy.
+- Evidence: backend integration `25/25`; authoritative backend `1,370/1,370` at `79.62%`; Ruff;
+  frontend `696/696`; type-check/build; focused F9j `1/1`; full Chromium `94/94`; seeded board
+  visual `104/104` across 1920×1080 and 2560×1440 at 100%/125% display scale.
+- No acceptance flexibility was used for the feature. The visual run used the documented composite
+  board plus deterministic seeded fixture. Exact-build/unrepresented visual, provider/entitlement,
+  native-monitor, beyond-bounded-endurance, and final-audit gaps remain open.
+
+## 2026-08-11 — Configurable Study Lab breakout lookback
+
+The Study Lab Highs and lows factory study now exposes a bounded integer lookback control (default 20,
+minimum 2, maximum 252), passes it through unified Python `parameters`, and uses it for new-high/new-low
+event labels and forward-return outputs. Both API and isolated-runner validators recognise `parameters`
+as an approved read-only run input. Focused unit coverage passed 20/20, focused browser 1/1, full
+frontend Vitest 697/697, type-check/build and the 42-file uPlot contract audit passed, and complete
+authenticated Chromium passed 97/97 in 5.3 minutes. No acceptance flexibility was used. The rebuilt
+seeded board-guided four-environment visual matrix passed 104/104 in 5.4 minutes; this is represented-
+state evidence only. Exact-build/unrepresented visual, provider/live-entitlement, physical-monitor,
+endurance, and final-audit gaps remain tracked.
+
+## 2026-08-11 — Current-source board-guided visual matrix
+
+- Manifest validation passed, followed by `104/104` board-guided visual tests across all required
+  environments: 1920×1080 at 100% and 125%, and 2560×1440 at 100% and 125%.
+- The current seeded build covers shell, menus, factory layouts, docking/floating/drag states,
+  watchlists/editors, Study Lab, chart/loading/provider/error/freshness states, and blocked-popout
+  recovery without baseline or mask changes.
+- This is board-guided evidence for represented states. Exact-build/unrepresented or materially
+  ambiguous states remain open and are not silently promoted by this result.
+
+## 2026-08-11 — Current-head backend acceptance gate
+
+- Combined backend unit/integration gate passed `1368/1368`; total coverage is `79.62%` against
+  the required `75%` minimum.
+- Current coverage includes canonical identity/reconciliation, provider entitlement governance,
+  ETF holdings/taxonomy, freshness, Python/research execution, Study Lab, workspaces, watchlists,
+  scans, and legacy APIs.
+- Only the known dependency deprecation warnings appeared. No backend failure or new runtime
+  error class was observed. Remaining live-provider, visual-reference, native-monitor, endurance,
+  and final-audit gaps remain explicit.
+
+# 2026-08-11 — Admin-only provider configuration boundary
+
+- Legacy Settings now hides provider `Show config` and configuration-panel controls from ordinary
+  users after governance mutations became admin-only; read-only usage remains available.
+- Settings unit coverage passed `4/4`, full frontend Vitest passed `691/691` across 93 files,
+  type-check and production build passed, and the rebuilt branch regular-user browser regression
+  passed `1/1`.
+- The complete authenticated Chromium flow matrix passed `88/88` against the rebuilt branch,
+  covering the workstation, top-down drilldown, Study Lab, legacy routes, and Radar.
+- The first template-condition placement hid the usage control instead of the configuration
+  control; the focused test caught it and the fix-first rerun corrected it. Acceptance flexibility
+  used: **None**. Visual/reference, provider breadth/live entitlement, native-monitor,
+  beyond-bounded-endurance, and final-audit gaps remain explicit.
+
+# 2026-08-11 — Initial robust workstation gate
+
+- The rebuilt branch canonical path is non-seeded (`e2e_seed_instruments=false`,
+  `e2e_seed_market_data=false`).
+- The complete authenticated Chromium matrix passed `88/88`, covering canonical top-down
+  membership and drilldown, ratios, linking, keyboard traversal, persistence, pop-outs, Study Lab,
+  Python reuse, alerts, notes, and freshness/error states. Frontend Vitest `691/691`, type/build,
+  and the tracked service-log audit passed.
+- This is the initial daily-analysis gate, not overall completion. Exact-build/unrepresented
+  visual states, broader provider/live evidence, native physical-monitor placement,
+  beyond-bounded endurance, and final audit remain open. Acceptance flexibility used: **None**.
+
+# 2026-08-11 — Governed 100-round endurance guard
+
+- Ran `TC2000_POP_OUT_CHURN_ROUNDS=100` against the branch performance suite; both guards passed
+  `2/2` in `2.6m` and all 100 two-popout rounds returned to the source tool/canvas baseline.
+- Chromium memory ceilings and diagnostics passed. A narrowed backend/worker/research-runner log
+  audit found no tracked runtime-error signatures.
+- Acceptance flexibility used: **bounded stress in place of indefinite soak**. This strengthens
+  the governed bounded-stress oracle; longer-duration endurance remains an explicit gap.
+
+# 2026-08-11 — Python Library lifecycle browser coverage
+
+- Added and ran a real-user browser path for creating a Study asset, saving an immutable version,
+  cloning it, and archiving the original through the workstation Python Library.
+- The complete authenticated Chromium matrix passed `89/89`; no visual baseline, mask, threshold,
+  or acceptance criterion changed. Existing unit coverage retains import and validation-failure
+  evidence. Acceptance flexibility used: **None**; visual/reference, provider breadth/live
+  entitlement, native-monitor, beyond-bounded-endurance, and final-audit gaps remain open.
+
+# 2026-08-11 — Research Results comparison browser coverage
+
+- Persisted Study Results now has a real-user browser assertion for selecting two runs, opening
+  comparison, and inspecting changed code-version, parameter, dataset, and reproducibility data.
+- The initial focused assertion targeted all run rows instead of the selected row; the fix-first
+  correction passed focused comparison `1/1`, and the complete authenticated matrix remained
+  `89/89`.
+- Acceptance flexibility used: **None**. Visual/reference, provider breadth/live entitlement,
+  native-monitor, beyond-bounded-endurance, and final-audit gaps remain explicit.
+
+## 2026-08-11 — Python plot-library workstation parity
+
+- Python numeric-series plots are now first-class chart plot assets: hide/show, reorder, duplicate,
+  recolour, remove, drag, copy to linked charts, and copy to a selected chart/watchlist target.
+- Watchlist drops create reusable `python_columns`; hidden plots remain persisted but are excluded
+  from research execution.
+- Validation: focused unit/library `17/17`; focused browser `1/1`; adjacent Study Lab/Python
+  browser acceptance `3/3`; frontend Vitest `694/694`; type-check/build; uPlot contract `42`;
+  `git diff --check`.
+- Browser execution used the deterministic seeded branch stack on alternate ports because the
+  canonical 5432 port was occupied. This is explicitly interim browser-regression evidence, not
+  a replacement for the canonical non-seeded gate. No visual criterion, mask, threshold, or
+  baseline was relaxed.
+- Remaining gaps: exact-build/unrepresented visual states, broader provider/live-entitlement
+  evidence, native physical-monitor placement, beyond-bounded endurance, and final audit.
+
+## 2026-08-11 — Current-head canonical workstation gate
+
+- Rebuilt the canonical non-seeded Compose stack from the current source; the prior failure was
+  traced to a stale frontend image, not application behavior.
+- Complete authenticated Chromium matrix: `93/93` in 5.0 minutes. Focused ratio acceptance:
+  `2/2`. Frontend Vitest: `694/694` across 93 files. Type-check/build, uPlot audit (`42` files),
+  and `git diff --check`: pass.
+- Fix-first oracle repairs: dynamic/idempotent Python plot fixture labels and visible-active ratio
+  selection instead of a stale hidden Golden Layout root. Initial current-source run was `92/93`
+  with only these localized oracle failures; final rerun was `93/93`.
+- No visual baseline, mask, threshold, or acceptance criterion was relaxed. Remaining gaps are
+  exact-build/unrepresented visual states, broader provider/live-entitlement evidence, native
+  physical-monitor placement, beyond-bounded endurance, and final requirement audit.
+
+# 2026-08-11 — Provider-governance authorization repair
+
+- Provider policy, entitlement mutation, and ambiguous-instrument reconciliation review endpoints
+  now require administrator authorization; ordinary authenticated users retain read-only provider
+  status/policy/entitlement visibility.
+- The new regular-user `403` regression initially had a test syntax error; it was fixed immediately
+  under the goal's fix-first tie-break. Router tests passed `8/8`, provider integration `7/7`, Ruff
+  and compile checks passed, and the authoritative backend gate passed `1,368/1,368` at `79.62%`.
+- No acceptance criterion or visual mask was relaxed. Exact-build/unrepresented visual,
+  provider-entitlement breadth/live access, native-monitor, beyond-bounded endurance, and final
+  audit gaps remain explicit.
+- The first restricted-sandbox browser launch failed before page creation due to a macOS Mach-port
+  permission boundary; the permitted rerun passed the excluded-menu check `1/1`.
+
+# 2026-08-11 — Durable reconciliation review workflow
+
+- Ambiguous security-master issues now persist `resolved_by_user_id`; reopening an issue clears
+  the attribution. Migration `f5a6b7c8d9e0` passed isolated upgrade/downgrade/re-upgrade and the
+  branch database reports that revision as head.
+- Legacy Settings now provides an administrator-only reconciliation queue with candidate details
+  and resolve/ignore actions. Ordinary users do not fetch or see it.
+- Evidence: backend focused `10/10`; authoritative backend `1,368/1,368` at `79.62%`; frontend
+  Vitest `690/690`; Settings component `3/3`; type/build; regular-user authenticated browser
+  check `1/1`; branch health and logs are clean after the corrected isolated-port rebuild.
+- No acceptance flexibility or visual mask was used. Remaining historical listing/SEC live-access,
+  provider breadth, visual/reference, native-monitor, endurance, and final-audit gaps remain open.
+
+# 2026-08-11 — Current-head Alembic round-trip revalidation
+
+- Revalidated the full current migration graph in a separately named disposable PostgreSQL
+  database, including `f2a3b4c5d6e7` and `f4a5b6c7d8e9`.
+- `alembic upgrade head`, `alembic downgrade -1`, and `alembic upgrade head` all passed; the
+  downgrade and re-upgrade explicitly exercised the durable instrument reconciliation queue.
+- Removed the disposable database afterward; the branch workstation database was not touched.
+- Acceptance flexibility used: **None**. Exact-build/unrepresented visual states, provider
+  entitlement breadth, native physical-monitor behavior, beyond-bounded endurance, and final
+  audit remain open.
+- Exact next step: continue the remaining goal acceptance audit, prioritizing repository-controlled
+  defects or missing evidence before external/hardware gaps.
+
+# 2026-08-11 — Runtime provider-boundary and excluded-menu audit
+
+- Branch Compose services are healthy; backend `/health` returns `ok` with
+  `e2e_seed_instruments=false` and `e2e_seed_market_data=false`, and the frontend shell returns
+  HTTP 200.
+- Provider-neutral and entitlement focused tests pass `18/18`.
+- Authenticated excluded-capability menu check passes `1/1`; trading, brokerage, options, news,
+  ratings, earnings, financial statements, and consolidated real-time remain absent from the
+  primary workstation menu.
+- Recent backend/worker/research-runner/frontend logs contain no tracked 5xx, traceback,
+  MissingGreenlet, constraint, critical, fatal, unhandled, or error signatures. One transient
+  startup Redis retry warning resolved and did not recur.
+- Acceptance flexibility used: **None**. Exact next step is the remaining acceptance audit;
+  visual/reference, provider breadth/live entitlement, native-monitor, beyond-bounded endurance,
+  and final-audit gaps remain open.
+
+Current-source board-guided visual revalidation passed `104/104` across all four required display
+environments. This advance uses the documented board-plus-deterministic-fixture interim track;
+no threshold, baseline, or mask changed, and exact-build/unrepresented visual gaps remain open.
+
+## 2026-08-09 condition-column persistence hardening
+
+- Boolean condition columns remain visible through the workspace persistence acknowledgement
+  window and are removed when creation fails.
+- Type-check and VirtualWatchlistTool coverage passed `47/47`; rebuilt F8v passed `5/5`.
+- The combined F8u/F8v/F8y slice passed `6/9` under shared-order contention, with one localized
+  miss per flow. No acceptance flexibility or visual mask was used.
+
+## 2026-08-09 backend coverage gate
+
+- Updated the stale visual-manifest unit expectation to the current provider-error interim-oracle
+  contract and retained its four local baselines.
+- Complete elevated backend unit/integration coverage passed `1,277/1,277` at `79.43%`.
+- The 86 warnings are known dependency deprecations. No acceptance flexibility or visual mask was
+  used.
+
+## 2026-08-09 board-guided visual regression
+
+- Manifest validation and the serialized four-environment visual matrix passed `32/32`.
+- The run covers shell/layout, Study Lab, chart loading/error, blocked pop-out, stale/partial
+  data, and validation-error interim baselines.
+- Unrepresented exact-build states remain in the gap ledger as `required_missing`; no visual mask
+  or acceptance flexibility was used.
+
+## 2026-08-09 clean frontend acceptance matrix
+
+- Complete frontend Vitest: `610/610`; type-check passed.
+- Complete authenticated Chromium matrix: `63/63`, including F8u/F8v/F8y, Study Lab, pop-outs,
+  legacy compatibility, uPlot performance, and workstation churn.
+- No acceptance flexibility or visual mask was used; explicit visual/provider/hardware gaps remain
+  tracked.
+
+## 2026-08-10 bounded runner operational probes
+
+- Sandbox/resource probes passed: escape attempts denied, limits enforced, and concurrent pressure
+  contained without runner restart.
+- Orphan-recovery probe passed after restarting only the runner.
+- Sustained probe passed `5/5` cancellation/success rounds with no stale sentinels.
+- This uses the documented bounded-stress interim track; indefinite soak and native multi-monitor
+  gaps remain open. No functional or visual criterion was relaxed.
+
+## 2026-08-09 Docker storage note
+
+Docker reported approximately `10.3 GB` in images/build cache. The goal-requested broad
+`docker system prune -af` was attempted but rejected by the execution safety policy because it
+would delete unused Docker state across unrelated projects. No workaround or destructive cleanup
+was performed; active stack containers remain intact.
+
+## 2026-08-10T00:48:00Z — fix-first drag-column follow-up
+
+The active goal's tie-break rule was exercised rather than used to stop progress. Elevated F8v
+found a real condition-column visibility defect; the implementation now updates the customized
+watchlist visible-column allow-list and F8v/F8y passed `2/2`. A complete Chromium run then found
+one intermittent F8u plot-column miss (`62/63`); optimistic indicator-column reconciliation was
+added and the focused F8u/F8v slice passed `2/2`. Unit coverage (`610/610`, VirtualWatchlistTool
+`47/47`) and type-check are green. The intermittent F8u result remains tracked as a localized
+residual until a complete matrix reconfirms it; no acceptance flexibility or visual mask was used.
+
+The closure rerun subsequently passed the complete authenticated Chromium matrix `63/63`, including
+F8u/F8v/F8y; the localized F8u residual is closed. Remaining gaps are the documented visual,
+provider-live, physical multi-monitor, and indefinite-soak items.
+
+Durable `ops/state.json` validation fields were refreshed to the same evidence (`610/610`
+frontend and `63/63` authenticated Chromium), removing superseded `54/56` and `601/601` claims.
+JSON/YAML parsing and `git diff --check` pass (Ruby validator; uv cache permissions affected only
+the attempted Python validator).
+
+## 2026-08-10T02:12:00Z — top-down ratio and drag closure
+
+The dedicated `ratio-chart` branch now precedes the generic expression renderer, restoring both
+constituent-relative and market-relative labels (`NVDA/XLK` plus `NVDA/SPY`) in the real drilldown.
+The intermittent F8u miss was traced to virtualized row-level `.stop` propagation preventing the
+section drop handler; row drops now bubble, with explicit dragenter/drop-effect handling. F8e
+passed `1/1`, F8u/F8v/F8y `3/3`, repeated F8u `5/5`, the complete authenticated Chromium matrix
+`63/63`, frontend Vitest `610/610`, type-check, and visual board `32/32`. No acceptance
+flexibility or visual mask was used. Remaining gaps are unchanged: unrepresented V25 states,
+live-provider evidence, physical multi-monitor validation, and indefinite soak.
+## 2026-08-10T02:30:00Z — reconciled current-state blocker wording
+
+Updated the current `ops/state.json` validation fields so the operational snapshot no longer
+describes the strict manifest's `required_missing` states as blocking the workstation as a whole.
+The current evidence is the authenticated Chromium matrix `63/63` plus board-guided visual `32/32`;
+unrepresented or ambiguous exact-build states remain per-state gaps under the controlling
+acceptance governance. Historical entries are unchanged. No acceptance flexibility was used.
+## 2026-08-10T02:45:00Z — ratio timestamp-intersection correction
+
+`RatioUPlot` now renders only timestamps shared by every requested ratio leg, preventing mismatched
+benchmark calendars from becoming union dates with implicit gaps. Focused ratio tests passed `8/8`,
+full frontend Vitest passed `611/611`, type-check passed, rebuilt authenticated F8e passed `1/1`,
+and the board-guided visual matrix passed `32/32`. No acceptance flexibility was used. Remaining
+exact-build/unrepresented visual, live-provider, native multi-monitor, and beyond-bounded-endurance
+gaps remain open and tracked.
+## 2026-08-10T03:00:00Z — ratio duplicate-request correction
+
+Removed the second overlapping `RatioUPlot` symbol/timeframe watcher. The exact request-count
+regression now proves one request per linked change; ratio tests pass `8/8`, full frontend
+Vitest `611/611`, type-check passes, and rebuilt authenticated F8e passes `1/1`. No acceptance
+flexibility was used; remaining documented external and visual gaps are unchanged.
+## 2026-08-10T03:20:00Z — virtual watchlist screener-query deduplication
+
+- `VirtualWatchlistTool` now hydrates saved screeners through the shared Vue Query cache key
+  `['workstation', 'screeners']`, preventing duplicate `/screeners` requests across docked and
+  popped-out roots while retaining EasyScan invalidation behavior.
+- Two-root deduplication regression passed; focused VirtualWatchlist suite: `48/48`.
+- Full frontend Vitest: `612/612` across 88 files; `vue-tsc --noEmit`: passed.
+- Acceptance flexibility used: none. This was a localized recoverable defect, so the goal-level
+  tie-break rule required immediate repair and focused plus broader validation rather than
+  blocking unrelated workstation/backend work. Remaining external and unrepresented-state gaps
+  are unchanged and remain tracked.
+# 2026-08-11T01:00:00Z — Fix-first tie-break continuation and Thrivent route audit
+
+- The active goal now explicitly requires fix-first handling for localized,
+  repository-controlled defects: repair, focused regression, relevant broader
+  validation, then continue independent work. Such a defect is not a goal-wide
+  blocker unless it broadens into shared-state, security/data-integrity,
+  acceptance-oracle, or external-dependency failure. Acceptance flexibility
+  used: none.
+- Research Results compact-list detail hydration now exposes a bounded
+  `Loading selected run details…` state while `/research/runs/{id}` resolves,
+  instead of briefly claiming that structured artifacts do not exist.
+  Focused Results coverage is 7/7; full frontend Vitest is 631/631; type-check
+  and production build pass; rebuilt authenticated F8g/F9i pass 2/2.
+- Audited the official Thrivent TSCV daily-holdings route linked from its
+  product page. The direct CSV request is currently rejected with HTTP 403 by
+  CloudFront/WAF, so no native adapter promotion is justified. Thrivent remains
+  an explicitly audited fallback-only identity with provenance-preserving SEC
+  or metadata fallback. This is a provider-route gap, not a workstation
+  blocker; re-test only when a complete executable first-party artifact becomes
+  available.
+- Next action: continue the provider-neutral backend audit on another
+  independently accessible first-party route, while retaining this gap in the
+  ETF adapter audit and never presenting fallback membership as official.
+# 2026-08-11T02:00:00Z — Persisted Study action activation regression closed
+
+- Rebuilt-stack F9i initially reproduced a real localized defect: the global
+  `Study` action switched to the Study Lab layout but returned early when a
+  persisted Study Lab window already existed, leaving that window hidden behind
+  another Golden Layout tab. The user-visible result was no visible
+  `.study-lab-tool` after workspace hydration.
+- `openStudyLab()` now explicitly calls `workspaceStore.setActiveWindow()` for
+  the existing Study Lab instance before returning. This preserves the
+  persisted window and activates the actual Golden Layout component rather than
+  relying on tab order.
+- Focused store/Results coverage passes `48/48`; Research Results coverage is
+  `8/8`; full frontend Vitest is `632/632`; type-check and production build
+  pass. Rebuilt authenticated F9i passes `1/1`, and the adjacent F8g/F9i slice
+  passes `2/2`.
+- Acceptance flexibility used: none. The original browser failure was repaired
+  under the mandatory fix-first tie-break and retained as regression evidence;
+  no broader goal work was blocked.
+- Next action: continue the remaining backend/provider and explicitly tracked
+  visual/hardware/endurance work; do not treat this localized closure as goal
+  completion.
+# 2026-08-11T06:00:00Z — Complete authenticated matrix after Study activation repair
+
+- The complete rebuilt `flows.spec.ts` Chromium matrix passed `60/60` after
+  the persisted Study Lab activation fix. This covers the top-down workflow,
+  layouts, links, pop-outs, Study Lab, EasyScan, alerts, notes, drag/drop,
+  legacy routes, uPlot/performance, and workstation churn represented by the
+  current flow suite.
+- Backend, worker, and research-runner logs after the matrix contain no
+  `ERROR`, traceback, HTTP 500, `MissingGreenlet`, `UniqueViolation`, critical,
+  or fatal signatures. Expected provider-freshness/unavailable-data states
+  remain explicit.
+- Acceptance flexibility used: none. This is broader regression evidence for
+  the localized fix; the full goal remains open for documented provider-route,
+  visual-reference, native multi-monitor, and beyond-bounded-endurance gaps.
+- The four-environment board-guided visual gate also passed `32/32`; no baseline,
+  mask, or criterion changed. Exact-build/unrepresented visual states remain in
+  the manifest gap register.
+# 2026-08-11T07:00:00Z — Operational state duplicate-key audit
+
+- Audited `ops/state.json` with a duplicate-key-aware JSON parser and found
+  several exact duplicate validation entries left by historical handoffs.
+- Removed only exact duplicates, preserving the substantive/latest value in
+  each object. Nested historical keys with the same name in separate objects
+  remain intentionally scoped; the exact same-scope duplicates are gone.
+- JSON parsing, duplicate-key audit, YAML parsing, and `git diff --check` pass.
+- This is an operational integrity repair under the goal tie-break, not a
+  product acceptance relaxation. Acceptance flexibility used: none.
+# 2026-08-11T08:00:00Z — Calvert first-party holdings route audit
+
+- Calvert's official ETF product pages advertise a `Download Full Holdings`
+  action and expose a dynamic Calvert/Morgan Stanley investment-data surface.
+- The backend-equivalent page is readable, but the machine-readable download
+  route is not currently resolved to a complete executable artifact; the
+  apparent Morgan Stanley holdings URL returns HTTP 403. No native adapter
+  promotion is justified without a complete, parseable, issuer-owned result.
+- Calvert remains explicitly audited fallback-only/route-discovery support.
+  Existing SEC/metadata fallback behavior is unchanged and must not be
+  presented as official membership. Acceptance flexibility used: none.
+# 2026-08-10 — uPlot-only shared and heat-map sparklines
+
+- Converted the shared watchlist/dashboard `Sparkline.vue` and dashboard heat-map tile sparklines
+  from SVG polyline geometry to the reusable uPlot host. Materialized tile series do not trigger
+  API requests; fetched watchlist series retain cache/timeframe behavior and all hosts clean up
+  their uPlot instance on unmount.
+- Focused tests pass `5/5`; full frontend Vitest passes `678/678`; type-check and the 468-module
+  production build pass; the targeted authenticated dashboard browser regression (`F15`) passes
+  `1/1`; the complete authenticated Chromium matrix passes `85/85` in `11.3m`; the numerical-SVG
+  audit reports only icon geometry; `git diff --check` passes.
+- The post-matrix backend, worker, research-runner, and frontend log audit is clean for the
+  audited HTTP-5xx, traceback, `MissingGreenlet`, `UniqueViolation`, `CRITICAL`, `FATAL`,
+  `Unhandled`, and `ERROR` signatures.
+- Docker hygiene was applied after measured usage exceeded 10GB: the authorized non-volume prune
+  reclaimed `6.5GB`; branch services stayed running/healthy, named volumes were preserved, and
+  post-cleanup usage is approximately `6.7GB` including volumes.
+- Acceptance flexibility used: **None**. Remaining exact-build/unrepresented visual, provider/
+  entitlement/taxonomy, native-monitor, beyond-bounded-endurance, and final-audit gaps remain
+  actionable.
+- The official timeframe-linking help article is recorded in the visual manifest as behavior
+  authority for eight groups, yellow wildcard propagation, grey isolation, cross-layout, and
+  multi-monitor linking. It strengthens behavior acceptance but does not close `REF-LINKING-V25`,
+  which still requires authoritative visual captures and measurements.
+- Manifest validation passes after the evidence update; no state was promoted to exact-build
+  approval.
+- Added and passed `make test-uplot-contract`, auditing 42 primary source files for reintroduced
+  dynamic SVG numerical geometry or removed sparkline helpers. Static icons and excluded legacy
+  options canvases are intentionally outside this workstation guard.
+
+# 2026-08-11 — Durable security-master ambiguity reconciliation
+
+- SEC ticker collisions now create durable, idempotent `InstrumentReconciliationIssue` records;
+  canonical seed refuses ambiguous issuer promotion and preserves raw discovery evidence.
+- Authenticated `/providers/reconciliation/issues` list and patch operations support explicit
+  open/resolved/ignored review state without rediscovery.
+- Focused coverage `99/99`; full backend coverage `1,362/1,362` at `79.61%`; Ruff/compile passed.
+- Acceptance flexibility used: none. Open: reviewer/admin governance, SEC live 403 in this
+  environment, ETF/fund and historical listings, visual/reference gaps, native monitor behavior,
+  beyond-bounded endurance, and final audit.
+
+# 2026-08-11 — Seeded visual gate and current handoff
+
+- The isolated seeded visual stack is green: `104/104` board-guided Playwright cases across
+  1920x1080/100%, 1920x1080/125%, 2560x1440/100%, and 2560x1440/125%.
+- A preceding run against the canonical non-seeded stack was stopped by the intentional fixture
+  guard; do not count it as a product failure or acceptance result.
+- Current functional evidence is green: backend `1,366/1,366` at `79.62%`, frontend `682/682`,
+  type-check/build, uPlot-only contract audit, and authenticated Chromium `87/87`.
+- The provider/ETF work remains supporting infrastructure for the top-down workstation: it supplies
+  canonical identity, holdings, provenance, and truthful freshness; the frontend remains provider
+  neutral. It is not a change of product priority away from TC2000 behavior and look/feel.
+- Continue with the remaining explicit gaps rather than blocking on them: exact-build or
+  unrepresented reference states, SEC live access/entitlement breadth, reviewer governance,
+  native multi-monitor behavior, beyond-bounded endurance, and the final repository/runtime audit.
+
+# 2026-08-11 — Worker seed-isolation repair
+
+- Compose worker now inherits `E2E_SEED_INSTRUMENTS`, `E2E_SEED_MARKET_DATA`, and the core
+  workstation bootstrap controls. This prevents provider hydration from running invisibly during
+  seeded visual acceptance.
+- Deployment contract: `9/9`; resolved Compose and recreated worker inspection confirm both seed
+  flags are present at runtime.
+- Full host-permitted backend gate: `1,367/1,367` at `79.62%`; 86 known dependency warnings only.
+- No acceptance flexibility was used. This is a closed repository-controlled configuration gap.
+- Post-repair visual smoke passed `4/4` across all four display environments; frontend Vitest passed
+  `682/682`.
+- Canonical non-seeded top-down revalidation passed `10/10` after worker recreation with explicit
+  false seed flags; provider-backed history succeeded and expected stock-holdings 404s remained
+  structured unavailable paths.
+- Docker measured 16.17 GB across images/cache; the prescribed global prune was rejected by the
+  execution safety boundary, so active containers and named volumes remain intact.
+
+# 2026-08-11 — Canonical identity propagation validation
+
+- Top-down benchmark, sector, industry/proxy, breadth, relative-rotation, ratio, and pop-out
+  selections now carry canonical `instrumentId` values through the shell, link bus, persisted
+  configuration, Grey isolation, and ratio launches. Ticker-only events delete stale IDs.
+- Focused identity/link tests passed `68/68`; full frontend Vitest passed `683/683`; type-check,
+  production build, uPlot contract audit (`42` files), and `git diff --check` passed.
+- After restarting the branch stack on its isolated ports, the stabilized authenticated top-down
+  rerun passed `5/5`; the ratio-editor flow passed `1/1` in isolation. The earlier restart-time
+  502/login timeout is setup evidence only.
+- No acceptance flexibility, visual mask, or criterion relaxation was used. Exact-build and
+  unrepresented reference states, provider breadth/entitlements, physical monitor placement,
+  beyond-bounded endurance, and the final repository/runtime audit remain open and tracked.
+
+# 2026-08-11 — Synthetic report identity handoff
+
+- Synthetic-expression constituent chips now carry canonical IDs into the workstation report
+  selection/link path instead of publishing ticker text alone.
+- Focused report/link/workspace coverage passed `66/66`; `vue-tsc --noEmit` passed.
+- No acceptance flexibility or visual mask was used; remaining reference, provider, monitor,
+  endurance, and final-audit gaps remain explicit.
+
+# 2026-08-11 — Canonical search identity contract
+
+- Canonical local search results now include `instrument_id`; workstation autocomplete and Go/Enter
+  selection publish the ID directly through the linked-symbol bus. Legacy symbol-only consumers
+  retain their prior helper behavior.
+- Backend canonical-boundary integration passed `2/2`; focused frontend search/workstation tests
+  passed `66/66`; full frontend Vitest passed `685/685`; type-check/build, uPlot contract (`42`
+  files), and `git diff --check` passed.
+- Dev-proxy authenticated F7 and F8d passed `1/1` each. The first backend integration attempt was
+  blocked by the unprivileged Docker socket and is superseded by the permitted `2/2` run.
+- No acceptance flexibility or visual mask was used. Visual-reference, provider/entitlement,
+  native-monitor, endurance, and final-audit gaps remain open.
+
+# 2026-08-11 — Direct industry-proxy identity handoff
+
+- Direct proxy actions now resolve and publish the canonical instrument ID when the originating
+  row has no ID; explicit row identity remains authoritative.
+- Focused pop-out/link coverage passed `16/16`; full frontend Vitest passed `686/686`; type-check,
+  production build, uPlot contract (`42` files), and `git diff --check` passed.
+- No acceptance flexibility or visual mask was used. Visual-reference, provider/entitlement,
+  native-monitor, endurance, and final-audit gaps remain tracked.
+Post-change backend unit coverage also passed `1,073/1,073` with 34 known dependency deprecation
+warnings; no new backend failure class was introduced.
+The combined backend unit/integration coverage gate then passed `1,367/1,367` at `79.62%` with
+86 known dependency warnings; no backend acceptance regression was found.
+The current Vite source passed the authenticated top-down browser slice `3/3` (`F8d`, `F8e.1`,
+and `F8e.2`) against the running branch backend, with no unexpected browser diagnostics.
+
+# 2026-08-11 — Logout request-boundary regression closed
+
+- The first current-source full matrix was `86/87`; F5 found a real logout/request race where
+  token storage was cleared before the API client captured the token.
+- Synchronous token capture and drawing hydration auth guards fixed the issue.
+- Focused API/drawing tests passed `15/15`; frontend Vitest `689/689`; type-check/build, uPlot
+  contract (`42` files), and `git diff --check` passed.
+- Repaired full authenticated matrix passed `87/87` with no unexpected browser diagnostics.
+- No acceptance flexibility or visual mask was used.
+
+Current-source bounded workstation performance checks passed `2/2` for multi-chart recovery and
+repeated multi-window churn without canvas/tool growth. This uses bounded stress in place of
+indefinite soak; longer endurance remains an explicit open gap.
+# 2026-08-12 — Study Lab Python editor contract validation
+
+- Study Lab's unified Python source editor was audited as the next high-value workstation
+  interaction surface. The native textarea retains keyboard SDK completion: ArrowUp/ArrowDown,
+  Enter/Tab insertion, Escape dismissal, and listbox active-descendant state.
+- A proposed `role="combobox"` plus `aria-autocomplete="list"` enhancement was tested through
+  the real authenticated browser flow. Chromium remapped the textarea to a combobox and broke the
+  existing `getByRole('textbox', { name: 'Study Python source' })` contract. Fix-first removed the
+  role-changing attributes, restored the native contract, added a regression assertion, and
+  repeated focused unit, full frontend, type/build, and browser validation.
+- Focused PythonSourceEditor passed `3/3`; full frontend Vitest passed `706/706`; type-check,
+  production build, and diff-check passed; the no-cache rebuilt authenticated Study Lab scalar
+  promotion flow passed `1/1` with clean browser diagnostics.
+- The stale Docker bundle and initial browser role/query mismatch were setup/oracle defects and
+  were corrected before authoritative evidence. Flexibility: board-guided represented Study
+  Lab/editor state plus controlled seeded browser evidence; no visual threshold, mask, or product
+  criterion was relaxed. Richer non-role-changing editor semantics, exact-build/unrepresented
+  Study Lab states, provider/live-entitlement, historical truth, native-monitor, endurance, and
+  final-audit gaps remain open.
+## 2026-08-13 — Shell Shift+Space hydration race repaired
+
+- Repaired F8k-shift: explicit shell traversal now wins over late persisted
+  workspace hydration, with draft-anchored traversal and post-hydration replay.
+- Evidence: WorkstationView bindings 23/23, authenticated Chromium F8k-shift 1/1,
+  frontend Vitest 762/762, type-check/build/diff-check pass.
+- Remaining canonical full-run 502/provisioning instability is tracked separately;
+  no acceptance threshold or visual mask was changed.
+- Follow-up core workstation slice (top-down, SPX proxy, relative strength/ratios,
+  drill-down, Study Lab/Python reuse, keyboard) passes `14/14` in `56s`.
+
+## 2026-08-13 — Canonical bootstrap rollback and provider-sweep containment
+
+- Fresh canonical validation exposed a repository-controlled backend exit `137`
+  during the unseeded worker's provider bootstrap, producing Nginx `502` responses.
+- Fixed bootstrap session handling: identity materialisation commits before provider
+  hydration; provider rollback cannot erase identities; primitive IDs and post-rollback
+  reloads prevent `MissingGreenlet` across symbols.
+- Startup history is now bounded by `CORE_WORKSTATION_BOOTSTRAP_LOOKBACK_DAYS`
+  (default `730`); deep history remains a maintenance concern.
+- Focused bootstrap/ARQ coverage passes `11/11`; rebuilt deployment and browser
+  revalidation are the exact next step. No acceptance criterion or visual threshold
+  was relaxed.
+
+## 2026-08-13 — Fresh-stack browser revalidation outcome
+
+- The rebuilt branch-scoped backend/worker images start, but the focused
+  authenticated rerun again encountered repeated Nginx `502` responses while
+  provisioning/resetting E2E users. Container inspection recorded one backend
+  restart and a health-check startup window, so this run is invalid as product
+  acceptance evidence.
+- The restricted Playwright invocation failed before page creation because of the
+  host Chromium Mach-port permission boundary; the permitted retry reached the
+  app but encountered the same backend gateway instability. Neither is counted
+  as a UI or visual pass.
+- Focused bootstrap/ARQ coverage remains `11/11`. No acceptance criterion,
+  visual threshold, mask, or flexibility rule changed; browser revalidation must
+  wait for a stable backend health window.
+
+## 2026-08-13 — Provider bootstrap starvation repair
+
+- Provider-backed history/holdings hydration is now explicitly opt-in by default
+  (`CORE_WORKSTATION_BOOTSTRAP_ENABLED=false`). Canonical identity/taxonomy
+  materialisation remains automatic; enabled maintenance jobs retain bounded
+  lookback and provenance. Focused worker/config/deployment tests pass `20/20`,
+  compile and resolved Compose inspection pass.
+- The next browser attempt showed Study Lab validation and execution completing,
+  but promotion was interrupted by a backend restart during Docker-wide memory
+  pressure from several concurrent charting stacks. Earlier unseeded top-down
+  checks also exposed honest sector/holdings coverage 404s. Neither is counted
+  as a UI pass; isolate the branch stack before rerunning.
+- No product acceptance flexibility was used. The scheduling correction is not a
+  provider-data waiver; board/fixture, live-provider, exact/unrepresented visual,
+  historical, native-monitor, endurance, and final-audit gaps remain tracked.

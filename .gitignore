@@ -27,6 +27,7 @@ backend/.env.dev
 # ── Testing & coverage ────────────────────────────────────────────────────────
 .pytest_cache/
 coverage.xml
+backend/coverage-combined.xml
 coverage_html/
 .coverage
 htmlcov/
