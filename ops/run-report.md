@@ -15,6 +15,10 @@
   critical, fatal, out-of-memory, or sandbox failure signature.
 - Host Docker cleanup is still an operational gap: `docker system df` reports 17.8 GB images,
   5.583 GB build cache, and 1.038 GB reclaimable volumes; global prune was safety-rejected.
+- Closure commits are local and clean: implementation `426a20f8` and operational record
+  `600caf41`. The exact elevated push was retried and rejected by the external private-repository
+  egress safeguard for this newly created payload. This is transport-only evidence; no workaround
+  was attempted and independent work may continue from the clean boundary.
 
 ## 2026-08-14 — Canonical matrix stability context completed
 
