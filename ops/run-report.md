@@ -1,5 +1,16 @@
 # Run Report
 
+## 2026-08-13 — Push recovery completed; implementation freeze lifted
+
+- After explicit user authorization, the exact elevated push command succeeded:
+  `rtk git push origin feat/tc2000-frontend-rework`.
+- Local `HEAD` and origin now match at `f1e46111f2d5b1ba87732bde5f6f0fc18c18fb5d`; the worktree
+  is clean and `git diff --check` passes. This closes the synchronization hold and is not product
+  acceptance evidence.
+- Future recovery is: obtain explicit authorization for the exact branch/destination, run the
+  narrow elevated Git command, verify matching hashes and clean status, then commit/push the separate
+  operational record. No workaround or indirect transport is needed.
+
 ## 2026-08-13 — Stale checkpoint metadata corrected
 
 - The goal audit found stale operational metadata: the top handoff/state entries still named the
