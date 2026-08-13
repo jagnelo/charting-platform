@@ -1,5 +1,29 @@
 # Active Handoff
 
+## 2026-08-13 — Equal-weight industry-ranking context
+
+- Closed the named `industry-ranking-snapshot` implementation context. The new canonical analysis
+  endpoint derives classified ETF industries from dated, known-at holdings and returns equal-weight
+  normalized performance for 1D/1W/1M/3M/6M/YTD/1Y, SMA/RSI/52-week technical cells, `/ Sector`
+  and `/ SPY` ratios, coverage, exclusions, freshness, provenance, and stable membership identity.
+  Aggregate warnings use `instrument_id: null`, never a fabricated canonical ID.
+- The Industries workstation now renders the dense ranking header and values while preserving
+  classification/proxy lineage, row selection, and horizontal overflow. Owned files are the ten
+  files recorded in task `tc2000-industry-ranking-snapshot-20260813`.
+- Validation: focused backend unit `18/18`; focused industry integration `1/1`; full backend units
+  `1119/1119`; frontend Vitest `773/773`; type-check; 474-module build; rebuilt authenticated
+  F8e.1/F8e.1a `2/2`; Ruff; compileall; and diff-check. The first browser attempt used a stale
+  frontend container and is setup-only; forced current-image rerun is authoritative. Acceptance
+  flexibility used: **None**.
+- Implementation commit `a33ad00d486e279fa952678b13669a5173c18e05` is complete locally. The push
+  was refused by the environment's external-egress safeguard, so `origin/feat/tc2000-frontend-rework`
+  remains at `da426e4a`; do not start another implementation context until the commit is pushed and
+  hashes are matched. Next action is explicit-authorized `git push origin feat/tc2000-frontend-rework`,
+  followed by the separate operational-record commit/push and final clean-boundary verification.
+- Remaining active-goal gaps are unchanged: exact/unrepresented V25 visual states, provider and
+  entitlement breadth, historical/GICS truth, native physical-monitor behavior, beyond-bounded
+  endurance, and final requirement audit.
+
 ## 2026-08-13 — Complete drill-down ranking-period context and harden ledger boundary
 
 - Closed the named `drilldown-ranking-periods` context. Proxy and constituent top-down rows now

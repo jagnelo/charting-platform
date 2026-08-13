@@ -1,4 +1,33 @@
 tasks:
+  - id: tc2000-industry-ranking-snapshot-20260813
+    title: Add equal-weight industry rankings to the top-down workstation
+    status: completed
+    priority: high
+    scope: >-
+      Derive dated ETF industry aggregates from canonical holdings, expose complete ranking and
+      technical cells through the analysis API, and render them in the Industries workstation
+      surface with provenance, coverage, ratios, and horizontal overflow.
+    definition_of_done:
+      - Industry snapshot returns seven ranking periods, technical fields, ratios, coverage, exclusions, freshness, and stable membership identity
+      - Aggregate warnings never fabricate a canonical instrument ID
+      - Industries UI renders ranking headers/values and retains selection, provenance, and wide-surface behavior
+      - Focused, complete backend, frontend, static, and rebuilt browser checks pass
+      - No visual or acceptance threshold is relaxed
+    validation:
+      - backend-industry-unit-18-of-18
+      - industry-integration-1-of-1
+      - backend-unit-1119-of-1119
+      - frontend-vitest-773-of-773
+      - frontend-typecheck-build-474-modules
+      - rebuilt-browser-F8e.1-F8e.1a-2-of-2
+      - ruff-compileall-diff-check
+    notes:
+      - >-
+        Implementation commit a33ad00d is complete locally. Push was refused by the environment's
+        external-egress safeguard and remains pending explicit authorization. Acceptance flexibility
+        used: none; the stale-image browser attempt was setup-only and the forced current-image
+        rerun is authoritative. Exact/unrepresented V25 visual, provider/entitlement, historical/
+        GICS, native-monitor, endurance, and final-audit gaps remain open.
   - id: tc2000-drilldown-ranking-periods-20260813
     title: Expose complete ranking periods in proxy and constituent drill-downs
     status: completed

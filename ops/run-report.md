@@ -1,5 +1,24 @@
 # Run Report
 
+## 2026-08-13 — Equal-weight industry ranking snapshot
+
+- Added the provider-neutral industry snapshot API and wired it into the Industries workstation
+  surface. Dated ETF holdings now produce transparent equal-weight synthetic rankings with all
+  seven periods, technical cells, sector/market ratios, coverage, freshness, exclusions, and
+  provenance. Aggregate warnings carry no fake instrument identity.
+- Validation passed: focused helper/API checks `18/18` and `1/1`; complete backend units `1119/1119`;
+  frontend Vitest `773/773`; type-check; production build with 474 modules; rebuilt authenticated
+  browser F8e.1/F8e.1a `2/2`; Ruff, compileall, and diff-check. A stale frontend container caused
+  the first browser attempt to miss the new header; that setup-only result was discarded after a
+  forced current-image recreation. No visual threshold, mask, baseline, or product criterion
+  changed; acceptance flexibility used: **None**.
+- Implementation commit `a33ad00d486e279fa952678b13669a5173c18e05` is local and reviewed. Push was
+  denied by the environment external-egress safeguard; origin remains at `da426e4a`. Operational
+  record must be committed separately only after explicit push authorization and matching-hash
+  verification. No later context should begin while this boundary is ahead/dirty.
+- Open gaps remain exact/unrepresented V25 visual states, provider/entitlement breadth, historical/
+  GICS truth, native monitor behavior, longer endurance, and final audit.
+
 ## 2026-08-13 — Complete drill-down ranking periods and enforce context ledger closure
 
 - Closed the named `drilldown-ranking-periods` changeset. Proxy and constituent top-down rows now
