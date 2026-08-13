@@ -19,10 +19,12 @@
       diff checks pass; rebuilt authenticated Study Lab validation/recovery flows pass `2/2`.
       Acceptance flexibility used: **None**; V25 reference, historical/GICS,
       provider, hardware, endurance, and final-audit gaps remain open.
-- [x] Review and contextually commit the accumulated work. Seven commits now separate Python
+- [x] Review and contextually commit the accumulated work. Eight commits now include five
+      substantive implementation/artifact commits plus three operational-record commits separating
+      Python
       validation, backend platform, generated-artifact hygiene, frontend workstation, and
       documentation/acceptance evidence. The default sandbox denied `.git/index.lock`, but the
-      permitted elevated Git boundary succeeded safely; all six commits are pushed and the branch
+      permitted elevated Git boundary succeeded safely; all eight commits are pushed and the branch
       is verified synchronized with origin.
 
 ### 2026-08-13 — Preserve ETF disclosure exclusions in constituent coverage
