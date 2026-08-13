@@ -1,5 +1,18 @@
 # Run Report
 
+## 2026-08-13 — No-accumulation workflow rule
+
+- Strengthened the canonical orchestration guide so completed changeset contexts cannot be carried
+  into later work as uncommitted or silently mixed edits. It now defines the
+  `committed_locally_pending_push` state, freezes implementation while a clean local commit awaits
+  remote synchronization, requires path ownership inventory for any dirty tree, and requires a
+  closure record with validation, commit, push result, hashes, status, and one next action.
+- `git diff --check` passed. The documentation commit is
+  `e3ea1a553354c01a43a8daaa8fc3879e17956c04`; the worktree is clean and the branch is six commits
+  ahead of origin because the existing external-egress safeguard still refuses private-repository
+  push. This operational entry is intentionally separate and must not be treated as synchronized
+  until the pending push is authorized and verified.
+
 ## 2026-08-13 — Equal-weight industry ranking snapshot
 
 - Added the provider-neutral industry snapshot API and wired it into the Industries workstation

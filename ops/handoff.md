@@ -1,5 +1,21 @@
 # Active Handoff
 
+## 2026-08-13 — No-accumulation workflow rule
+
+- Updated `docs/agent-orchestration.md` with an explicit synchronization exception and mandatory
+  closure checklist. A completed context must be committed locally even when push is unavailable;
+  the context is then marked `committed_locally_pending_push`, implementation work is frozen, and
+  only narrowly scoped operational-record edits may proceed until `HEAD == origin/<branch>` is
+  verified.
+- The rule now requires immediate inventory and path-to-context classification for any discovered
+  dirty tree, forbids broad staging/stash/reset/discard or metadata-only cleanup, and requires the
+  exact commit, push result, hashes, worktree state, and one next action before “next context” is
+  recorded. This directly prevents completed changesets from being silently mixed into later work.
+- Documentation commit `e3ea1a553354c01a43a8daaa8fc3879e17956c04` is clean locally but pending the
+  existing external-egress push authorization. No implementation context was started. The next
+  permitted action is to push the local stack in order, then commit/push this operational record
+  separately and verify matching hashes.
+
 ## 2026-08-13 — Equal-weight industry-ranking context
 
 - Closed the named `industry-ranking-snapshot` implementation context. The new canonical analysis
