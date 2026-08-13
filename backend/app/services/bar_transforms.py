@@ -20,6 +20,7 @@ Every function accepts a list of ORM bar objects (with .ts, .open, .high, .low,
 
 from __future__ import annotations
 
+import inspect
 from datetime import datetime
 from typing import Any
 
@@ -399,4 +400,10 @@ def apply_transform(bar_type: str, bars: list, params: dict | None = None) -> li
     resolved: dict = {}
     if params:
         resolved = {k: v for k, v in params.items() if v is not None}
-    return fn(bars, **resolved)
+    # The shared endpoint accepts the superset of transform controls so one
+    # settings surface can preserve a serializable configuration while the
+    # selected transform receives only its own parameters. Ignoring controls
+    # for another chart type prevents a stale Renko field from turning a
+    # Point & Figure/Kagi request into a server error.
+    accepted = set(inspect.signature(fn).parameters) - {"bars"}
+    return fn(bars, **{key: value for key, value in resolved.items() if key in accepted})

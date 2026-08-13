@@ -179,6 +179,24 @@ describe('useChartStore', () => {
     expect(api.get).not.toHaveBeenCalledWith('/ohlcv/SPY/D1', expect.anything())
   })
 
+  it('passes alternative-bar transform parameters and refetches when they change', async () => {
+    ;(api.get as ReturnType<typeof vi.fn>).mockImplementation((path: string) => {
+      if (path === '/instruments/SPY') return Promise.resolve({ id: 42, symbol: 'SPY', stats: { week52_high: 1 } }) as any
+      if (path === '/instrument-indicators/42') return Promise.resolve({ indicators: [] }) as any
+      if (path.startsWith('/ohlcv/SPY/D1/transformed')) return Promise.resolve([{ ts: '2026-01-02T00:00:00Z', open: 2, high: 3, low: 1, close: 3, volume: 10 }]) as any
+      return Promise.resolve([]) as any
+    })
+    const store = useChartStore()
+    await store.loadBars('SPY', 'D1', 'renko', true, { brick_size: 4 })
+    expect(api.get).toHaveBeenCalledWith('/ohlcv/SPY/D1/transformed', expect.objectContaining({
+      bar_type: 'renko', brick_size: 4, local_only: true,
+    }))
+    await store.loadBars('SPY', 'D1', 'renko', true, { brick_size: 8 })
+    expect(api.get).toHaveBeenCalledWith('/ohlcv/SPY/D1/transformed', expect.objectContaining({
+      bar_type: 'renko', brick_size: 8, local_only: true,
+    }))
+  })
+
   it('late indicator hydration cannot replace a user plot added during loading', async () => {
     const store = useChartStore()
     let releaseIndicators!: (value: { indicators: any[] }) => void

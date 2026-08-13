@@ -16,6 +16,13 @@ const SERVER_TRANSFORMED_TYPES = new Set<ChartBarType>([
   'point_figure',
 ])
 
+export interface ChartTransformParams {
+  brick_size?: number
+  reversal_pct?: number
+  box_size?: number
+  reversal?: number
+}
+
 function basketIdFromSymbol(sym: string): number | null {
   const match = sym.trim().match(/^BASKET:(\d+)$/i)
   return match ? Number(match[1]) : null
@@ -26,6 +33,7 @@ function createChartStore(storeId: string) {
     const symbol     = ref<string>('')
     const timeframe  = ref<Timeframe>('D1')
     const barType    = ref<ChartBarType>('candles')
+    const transformParams = ref<ChartTransformParams>({})
     const bars       = ref<OHLCVBar[]>([])
     const instrument = ref<Instrument | null>(null)
     const indicators = ref<IndicatorConfig[]>([])
@@ -125,16 +133,16 @@ function createChartStore(storeId: string) {
     async function fetchBarsPage(
       sym: string,
       tf: Timeframe,
-      opts: { before?: string; limit?: number; type?: ChartBarType; localOnly?: boolean } = {},
+      opts: { before?: string; limit?: number; type?: ChartBarType; localOnly?: boolean; transformParams?: ChartTransformParams } = {},
     ): Promise<OHLCVBar[]> {
       const type = opts.type ?? barType.value
-      const params: Record<string, any> = { adjusted: true }
+      const params: Record<string, any> = { adjusted: true, ...(opts.transformParams ?? {}) }
       if (opts.before) params.before = opts.before
       if (opts.limit) params.limit = opts.limit
 
       const encoded = encodeURIComponent(sym)
       const basketId = basketIdFromSymbol(sym)
-      const requestKey = JSON.stringify({ sym: sym.toUpperCase(), tf, type, adjusted: true, before: opts.before ?? null, limit: opts.limit ?? PAGE_SIZE, localOnly: Boolean(opts.localOnly), basketId })
+      const requestKey = JSON.stringify({ sym: sym.toUpperCase(), tf, type, transformParams: opts.transformParams ?? {}, adjusted: true, before: opts.before ?? null, limit: opts.limit ?? PAGE_SIZE, localOnly: Boolean(opts.localOnly), basketId })
       return dedupeOhlcvRequest(requestKey, async () => {
       if (opts.localOnly && !SERVER_TRANSFORMED_TYPES.has(type)) {
         const raw = await api.get<any[]>(`/ohlcv/local/${encoded}/${tf}`, {
@@ -164,12 +172,14 @@ function createChartStore(storeId: string) {
       })
     }
 
-    async function loadBars(sym = symbol.value, tf: Timeframe = timeframe.value, nextBarType: ChartBarType = barType.value, localOnly = false) {
+    async function loadBars(sym = symbol.value, tf: Timeframe = timeframe.value, nextBarType: ChartBarType = barType.value, localOnly = false, nextTransformParams: ChartTransformParams = transformParams.value) {
       if (!sym || !tf) return
       cancelPendingIndicatorSave()
       const generation = ++_loadGeneration
-      const isCurrent = () => generation === _loadGeneration && symbol.value === sym && timeframe.value === tf && barType.value === nextBarType
-      const sameSelection = symbol.value === sym && timeframe.value === tf && barType.value === nextBarType
+      const normalizedTransformParams = Object.fromEntries(Object.entries(nextTransformParams).filter(([, value]) => typeof value === 'number' && Number.isFinite(value))) as ChartTransformParams
+      const transformKey = JSON.stringify(normalizedTransformParams)
+      const isCurrent = () => generation === _loadGeneration && symbol.value === sym && timeframe.value === tf && barType.value === nextBarType && JSON.stringify(transformParams.value) === transformKey
+      const sameSelection = symbol.value === sym && timeframe.value === tf && barType.value === nextBarType && JSON.stringify(transformParams.value) === transformKey
       if (!sameSelection) {
         indicatorsDirty = false
         if (pendingIndicatorSaveSymbol !== sym) {
@@ -182,6 +192,7 @@ function createChartStore(storeId: string) {
       symbol.value = sym
       timeframe.value = tf
       barType.value = nextBarType
+      transformParams.value = normalizedTransformParams
       instrument.value = null
       const preserveIndicatorsDuringDrag = hasActiveAnalysisDrag()
       if (!preserveIndicatorsDuringDrag && !indicatorsDirty) indicators.value = []
@@ -195,7 +206,7 @@ function createChartStore(storeId: string) {
       localOnlyMode.value = Boolean(localOnly)
       if (basketId != null) {
         try {
-          const mapped = await fetchBarsPage(sym, tf, { type: nextBarType, localOnly })
+          const mapped = await fetchBarsPage(sym, tf, { type: nextBarType, localOnly, transformParams: normalizedTransformParams })
           if (!isCurrent()) return
           bars.value = mapped
           hasReachedStart.value = true
@@ -230,7 +241,7 @@ function createChartStore(storeId: string) {
       if (!preserveIndicatorsDuringDrag && !indicatorsDirty) indicators.value = loadedIndicators
 
       try {
-        const mapped = await fetchBarsPage(sym, tf, { type: nextBarType, localOnly })
+        const mapped = await fetchBarsPage(sym, tf, { type: nextBarType, localOnly, transformParams: normalizedTransformParams })
         if (!isCurrent()) return
         bars.value = mapped
         // A short initial page can mean either "brand-new listing" or "cache is
@@ -265,9 +276,10 @@ function createChartStore(storeId: string) {
       const sym = symbol.value
       const tf  = timeframe.value
       const type = barType.value
+      const currentTransformParams = transformParams.value
       const generation = _loadGeneration
       try {
-        const mapped = await fetchBarsPage(sym, tf, { before: oldestTs, localOnly: localOnlyMode.value })
+        const mapped = await fetchBarsPage(sym, tf, { before: oldestTs, localOnly: localOnlyMode.value, type, transformParams: currentTransformParams })
         if (!mapped.length) {
           if (!isFetchingHistory.value) hasReachedStart.value = true
           return
@@ -284,7 +296,7 @@ function createChartStore(storeId: string) {
 
     async function fetchLatestBars(): Promise<OHLCVBar[]> {
       if (!symbol.value || !timeframe.value) return []
-      return fetchBarsPage(symbol.value, timeframe.value, { localOnly: localOnlyMode.value })
+      return fetchBarsPage(symbol.value, timeframe.value, { localOnly: localOnlyMode.value, transformParams: transformParams.value })
     }
 
     function _mapBars(raw: any[]): OHLCVBar[] {
@@ -343,6 +355,8 @@ function createChartStore(storeId: string) {
     return {
       symbol, timeframe, bars, instrument, indicators, activeIndicators,
       barType,
+      transformParams,
+      localOnlyMode,
       isLoading, loading: isLoading, isLoadingMore, hasReachedStart, error, isFetchingHistory, uplotData,
       selectedIndicatorIndex, editRequestIndicatorIndex,
       loadBars, loadMoreBars, loadInstrument,

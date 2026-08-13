@@ -156,6 +156,41 @@ test.describe('Chart', () => {
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
+  test('F9c-transform — alternative chart settings control server transform parameters', async ({ page, browserDiagnostics }) => {
+    await page.goto('/chart/SPY')
+    const chart = page.locator('.chart-tool').filter({ has: page.getByTitle('Chart settings') }).first()
+    await expect(chart).toBeVisible({ timeout: 15_000 })
+    const settings = chart.getByTitle('Chart settings')
+    await settings.click()
+    const dialog = page.getByRole('dialog', { name: 'Chart Settings' })
+    const rendering = dialog.getByRole('combobox', { name: 'Primary rendering' })
+    await rendering.selectOption('renko')
+    const brickSize = dialog.getByRole('spinbutton', { name: 'Brick size' })
+    await brickSize.fill('12')
+    const request = page.waitForRequest(request => request.url().includes('/ohlcv/SPY/D1/transformed') && request.url().includes('bar_type=renko') && request.url().includes('brick_size=12'))
+    await brickSize.press('Tab')
+    await request
+    await expect(brickSize).toHaveValue('12')
+
+    await rendering.selectOption('point_figure')
+    const boxSize = dialog.getByRole('spinbutton', { name: 'Box size' })
+    const reversal = dialog.getByRole('spinbutton', { name: 'Reversal boxes' })
+    await boxSize.fill('5')
+    await reversal.fill('2')
+    const pointFigureRequest = page.waitForRequest(request => request.url().includes('/ohlcv/SPY/D1/transformed') && request.url().includes('bar_type=point_figure') && request.url().includes('box_size=5') && request.url().includes('reversal=2'))
+    await reversal.press('Tab')
+    await pointFigureRequest
+    await expect(boxSize).toHaveValue('5')
+    await expect(reversal).toHaveValue('2')
+
+    await boxSize.fill('')
+    await reversal.fill('')
+    const resetRequest = page.waitForRequest(request => request.url().includes('/ohlcv/SPY/D1/transformed') && request.url().includes('bar_type=point_figure') && !request.url().includes('box_size=') && !request.url().includes('reversal='))
+    await reversal.press('Tab')
+    await resetRequest
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
   test('F9c-keyboard — chart templates support keyboard opening and focus recovery', async ({ page, browserDiagnostics }) => {
     await page.goto('/chart/SPY')
     const chart = page.locator('.chart-tool').filter({ has: page.getByRole('button', { name: 'Chart templates' }) }).first()

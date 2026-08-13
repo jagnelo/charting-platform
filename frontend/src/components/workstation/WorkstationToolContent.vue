@@ -241,10 +241,8 @@
             <i :style="{ background: target.color }" />{{ target.symbol }} {{ target.percentChange == null ? '—' : `${target.percentChange >= 0 ? '+' : ''}${target.percentChange.toFixed(2)}%` }} ×
           </button>
         </div>
-        <div v-if="chartStore.isLoading" class="tool-state">Loading {{ activeSymbol }}…</div>
-        <div v-else-if="chartStore.error" class="tool-state tool-state--error">{{ chartStore.error }}</div>
         <UPlotChart
-          v-else-if="chartStore.symbol"
+          v-if="chartStore.symbol && !chartStore.error"
           :chart-type="chartBarType"
           :chart-settings="liveChartConfiguration"
           :workspace-link-group="localLinkGroup"
@@ -253,7 +251,9 @@
           :python-series="numericSeries"
           @configuration="applyChartConfiguration"
         />
-        <div v-else class="tool-state">Select a canonical instrument.</div>
+        <div v-if="chartStore.isLoading" class="tool-state chart-tool__status">Loading {{ activeSymbol }}…</div>
+        <div v-else-if="chartStore.error" class="tool-state tool-state--error chart-tool__status">{{ chartStore.error }}</div>
+        <div v-if="!chartStore.symbol" class="tool-state">Select a canonical instrument.</div>
       </div>
     </div>
     <div v-else-if="isIndustryTool && industries.length" class="industry-list">
@@ -1027,6 +1027,11 @@ const chartBarType = computed<ChartBarType>(() => {
     ? requested as ChartBarType
     : 'candles'
 })
+const chartTransformParams = computed(() => {
+  const configuration = props.tool.configuration
+  const number = (key: string) => typeof configuration[key] === 'number' && Number.isFinite(configuration[key]) ? configuration[key] as number : undefined
+  return { brick_size: number('brick_size'), reversal_pct: number('reversal_pct'), box_size: number('box_size'), reversal: number('reversal') }
+})
 const comparisonDraft = ref('')
 const comparisonTargets = ref<ComparisonTarget[]>([])
 let comparisonRequestSequence = 0
@@ -1265,7 +1270,7 @@ function handleRowAction(action: 'chart' | 'compare' | 'ratio' | 'note' | 'alert
   emit('rowAction', action, row)
 }
 
-watch([activeSymbol, activeTimeframe, syntheticExpression, chartBarType], async ([symbol, timeframe, expression, barType]) => {
+watch([activeSymbol, activeTimeframe, syntheticExpression, chartBarType, chartTransformParams], async ([symbol, timeframe, expression, barType, transformParams]) => {
   if (props.tool.tool_type !== 'chart' || (!symbol && !expression)) return
   const sequence = ++chartSelectionSequence
   let targetSymbol = symbol
@@ -1284,8 +1289,9 @@ watch([activeSymbol, activeTimeframe, syntheticExpression, chartBarType], async 
     timeframe as Timeframe,
     barType,
     true,
+    transformParams,
   )
-}, { immediate: true })
+}, { immediate: true, deep: true })
 
 watch([configuredPythonPlots, activeSymbol, activeTimeframe], () => { void loadPythonPlots() }, { deep: true, immediate: true })
 watch([configuredScanPlots, activeTimeframe], () => { void loadScanPlots() }, { deep: true, immediate: true })
@@ -2130,6 +2136,7 @@ const proxyCoverage = computed(() => industryProxySnapshot.value
 .chart-tool { display: flex; height: 100%; min-height: 0; background: #101419; }
 .chart-tool__drawing-toolbar { flex: 0 0 40px; max-height: 100%; box-sizing: border-box; overflow-x: hidden; overflow-y: auto; }
 .chart-tool__surface { position: relative; z-index: 2; min-width: 0; min-height: 0; flex: 1 1 auto; padding-top: 24px; box-sizing: border-box; }
+.chart-tool__status { position: absolute; inset: 24px 0 0; z-index: 4; background: rgba(7, 12, 16, 0.72); pointer-events: none; }
 .chart-tool__templates { position: absolute; top: 3px; right: 4px; z-index: 12; }
 .chart-tool__plots { position: absolute; top: 3px; left: 150px; z-index: 13; }
 .chart-tool__compare { position: absolute; top: 3px; left: 4px; z-index: 12; display: flex; align-items: center; gap: 3px; max-width: calc(100% - 290px); overflow: hidden; }

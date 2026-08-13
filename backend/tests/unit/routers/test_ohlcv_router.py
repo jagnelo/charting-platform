@@ -42,6 +42,25 @@ class TestOHLCVRouter:
             payload = response.json()
             assert all(set(("ts", "open", "high", "low", "close", "volume")).issubset(row) for row in payload)
 
+    def test_transformed_chart_ignores_parameters_for_other_types(self, client, auth_headers, instrument, monkeypatch):
+        bars = [
+            SimpleNamespace(
+                ts=datetime(2024, 1, 2, tzinfo=UTC), open=100, high=105, low=95,
+                close=104, volume=10, is_adjusted=True,
+            ),
+        ]
+
+        async def _raw(*_args, **_kwargs):
+            return bars
+
+        monkeypatch.setattr("app.routers.ohlcv.fetch_ohlcv_latest", _raw)
+        response = client.get(
+            f"/api/v1/ohlcv/{instrument.symbol}/{Timeframe.D1.value}/transformed",
+            params={"bar_type": "point_figure", "brick_size": 12, "local_only": "true"},
+            headers=auth_headers,
+        )
+        assert response.status_code == 200, response.text
+
     def test_no_provider_data_returns_404(self, client, auth_headers, instrument, monkeypatch):
         async def _raise_no_data(*_args, **_kwargs):
             raise ProviderNoDataError("no data")

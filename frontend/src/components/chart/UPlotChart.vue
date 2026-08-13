@@ -154,6 +154,16 @@
                 <option v-for="bt in CHART_BAR_TYPES" :key="bt.value" :value="bt.value">{{ bt.label }}</option>
               </select>
             </label>
+            <template v-if="effectiveChartType === 'renko'">
+              <label class="ed-field-row"><span>Brick size</span><input class="ed-input" type="number" min="0.0001" step="any" :value="chartTransformNumber('brick_size') ?? ''" placeholder="Auto" @change="setChartTransformNumber('brick_size', ($event.target as HTMLInputElement).value)" /></label>
+            </template>
+            <template v-else-if="effectiveChartType === 'kagi'">
+              <label class="ed-field-row"><span>Reversal %</span><input class="ed-input" type="number" min="0.01" step="0.1" :value="chartTransformNumber('reversal_pct') ?? ''" placeholder="1.0" @change="setChartTransformNumber('reversal_pct', ($event.target as HTMLInputElement).value)" /></label>
+            </template>
+            <template v-else-if="effectiveChartType === 'point_figure'">
+              <label class="ed-field-row"><span>Box size</span><input class="ed-input" type="number" min="0.0001" step="any" :value="chartTransformNumber('box_size') ?? ''" placeholder="Auto" @change="setChartTransformNumber('box_size', ($event.target as HTMLInputElement).value)" /></label>
+              <label class="ed-field-row"><span>Reversal boxes</span><input class="ed-input" type="number" min="1" step="1" :value="chartTransformNumber('reversal') ?? ''" placeholder="3" @change="setChartTransformNumber('reversal', ($event.target as HTMLInputElement).value)" /></label>
+            </template>
             <div class="ed-section-title">Y-Axis Projections</div>
             <label class="ed-checkbox-row">
               <input type="checkbox" :checked="showCurrentPriceProjection" class="ed-checkbox" @change="setBooleanChartSetting('current_price_projection', ($event.target as HTMLInputElement).checked)" />
@@ -302,6 +312,16 @@ function setBooleanChartSetting(key: 'current_price_projection' | 'high_low_proj
   if (key === 'current_price_projection') userSettingsStore.showCurrentPriceProjection = value
   if (key === 'high_low_projection') userSettingsStore.showHighLowProjection = value
   if (key === 'volume_profile') userSettingsStore.showApproxVolumeProfile = value
+}
+type ChartTransformParamKey = 'brick_size' | 'reversal_pct' | 'box_size' | 'reversal'
+function chartTransformNumber(key: ChartTransformParamKey): number | null {
+  const value = props.chartSettings?.[key]
+  return typeof value === 'number' && Number.isFinite(value) ? value : null
+}
+function setChartTransformNumber(key: ChartTransformParamKey, raw: string) {
+  const value = raw.trim() === '' ? undefined : Number(raw)
+  if (value !== undefined && (!Number.isFinite(value) || value <= 0)) return
+  if (props.chartSettings) emit('configuration', { [key]: value })
 }
 const overlaysEnabled    = computed(() => props.showOverlays)
 const overlayInteractionsEnabled = computed(() => overlaysEnabled.value && props.enableOverlayInteractions)
@@ -3229,6 +3249,15 @@ watch(effectiveChartType, async (type) => {
   await nextTick()
   initChart()
 })
+watch(() => [props.chartSettings?.brick_size, props.chartSettings?.reversal_pct, props.chartSettings?.box_size, props.chartSettings?.reversal], async () => {
+  if (!chartStore.symbol) return
+  await chartStore.loadBars(chartStore.symbol, chartStore.timeframe, chartStore.barType, chartStore.localOnlyMode, {
+    brick_size: chartTransformNumber('brick_size') ?? undefined,
+    reversal_pct: chartTransformNumber('reversal_pct') ?? undefined,
+    box_size: chartTransformNumber('box_size') ?? undefined,
+    reversal: chartTransformNumber('reversal') ?? undefined,
+  })
+}, { deep: true })
 watch(() => props.chartSettings?.log_scale, value => {
   if (typeof value !== 'boolean' || value === isLogScale.value) return
   isLogScale.value = value
