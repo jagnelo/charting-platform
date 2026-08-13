@@ -146,6 +146,21 @@ def test_runner_executes_prepared_universe_cells_without_network_access():
     }
 
 
+def test_runner_selects_one_named_output_from_a_multi_output_typed_adapter():
+    result = execute_job(
+        {
+            "source": "output.scalar('ignored', 1)\noutput.scalar('selected', 42)",
+            "output_contract": "scalar",
+            "output_name": "selected",
+            "dataset": {"datasets": [{"instrument_id": 1, "symbol": "SPY", "closes": [10, 11]}]},
+        }
+    )
+    assert result["status"] == "completed"
+    assert result["artifacts"]["batch_cells"]["value"]["cells"] == [
+        {"instrument_id": 1, "symbol": "SPY", "status": "completed", "value": 42.0},
+    ]
+
+
 def test_runner_batch_uses_one_outer_time_budget(monkeypatch):
     calls = []
 
@@ -561,8 +576,8 @@ def test_runner_does_not_expose_pandas_wrapper_internals():
         "dataset": {},
     })
     assert result["status"] == "failed"
-    assert result["diagnostics"][0]["code"] == "runtime_error"
-    assert "private wrapper attributes" in result["diagnostics"][0]["message"]
+    assert result["diagnostics"][0]["code"] == "forbidden_attribute"
+    assert "Private and dunder attributes" in result["diagnostics"][0]["message"]
 
 
 def test_runner_enforces_structured_output_row_limit(monkeypatch):
@@ -634,6 +649,31 @@ def test_runner_exposes_only_declared_market_symbol_and_structured_ta_series():
             "values": [None, 11.0, 13.0],
         },
     }
+
+
+def test_runner_exposes_canonical_indicator_facade_for_visual_conditions():
+    result = execute_job(
+        {
+            "source": "rsi = ta.indicator('rsi', {'period': 2}, 'rsi')\noutput.boolean('match', len(rsi) == 4 and rsi[-1] > 50)",
+            "dataset": {
+                "symbol": "SPY",
+                "timestamps": [
+                    "2026-01-01T00:00:00+00:00",
+                    "2026-01-02T00:00:00+00:00",
+                    "2026-01-03T00:00:00+00:00",
+                    "2026-01-04T00:00:00+00:00",
+                ],
+                "opens": [10, 11, 12, 13],
+                "highs": [11, 12, 13, 14],
+                "lows": [9, 10, 11, 12],
+                "closes": [10, 11, 12, 13],
+                "volumes": [100, 100, 100, 100],
+                "vwaps": [10, 11, 12, 13],
+            },
+        }
+    )
+    assert result["status"] == "completed"
+    assert result["artifacts"]["match"] == {"type": "boolean", "value": True}
 
 
 def test_runner_rejects_market_access_outside_the_prepared_dataset():

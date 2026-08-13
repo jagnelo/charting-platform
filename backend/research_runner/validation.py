@@ -7,7 +7,7 @@ application, provider adapters, configuration, or credentials.
 import ast
 from dataclasses import dataclass
 
-_ROOTS = {"market", "ta", "stats", "research", "output", "np", "pd", "scipy", "statsmodels"}
+_ROOTS = {"market", "ta", "stats", "research", "output", "parameters", "np", "pd", "scipy", "statsmodels"}
 _SAFE_BUILTINS = {"abs", "all", "any", "bool", "dict", "enumerate", "filter", "float", "int", "len", "list", "map", "max", "min", "range", "round", "set", "sorted", "str", "sum", "tuple", "zip"}
 _BANNED = (ast.Import, ast.ImportFrom, ast.Global, ast.Nonlocal, ast.Lambda, ast.ClassDef, ast.With, ast.AsyncWith, ast.Try, ast.Raise)
 _CALLS = {"eval", "exec", "compile", "open", "input", "__import__", "globals", "locals", "vars", "getattr", "setattr", "delattr", "help", "breakpoint"}
@@ -61,8 +61,8 @@ def validate_workstation_python(source: str) -> ValidationResult:
             diagnostics.append(CodeDiagnostic("forbidden_syntax", f"{type(node).__name__} is not available.", getattr(node, "lineno", 1), getattr(node, "col_offset", 0)))
         if isinstance(node, ast.Name) and node.id.startswith("__"):
             diagnostics.append(CodeDiagnostic("forbidden_name", "Dunder names are not available.", node.lineno, node.col_offset))
-        if isinstance(node, ast.Attribute) and node.attr.startswith("__"):
-            diagnostics.append(CodeDiagnostic("forbidden_attribute", "Dunder attributes are not available.", node.lineno, node.col_offset))
+        if isinstance(node, ast.Attribute) and node.attr.startswith("_"):
+            diagnostics.append(CodeDiagnostic("forbidden_attribute", "Private and dunder attributes are not available.", node.lineno, node.col_offset))
         if isinstance(node, ast.Attribute) and node.attr in _BANNED_ATTRIBUTES:
             diagnostics.append(CodeDiagnostic("forbidden_attribute", f"{node.attr} is not available in the isolated numerical facade.", node.lineno, node.col_offset))
         if isinstance(node, ast.Call):

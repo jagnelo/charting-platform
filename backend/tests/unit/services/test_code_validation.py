@@ -11,6 +11,26 @@ def test_validates_sdk_dependencies_without_execution():
     assert result.output_contracts == ("series",)
 
 
+def test_infers_lookback_from_canonical_indicator_mapping_and_market_change():
+    result = validate_workstation_python(
+        "rsi = ta.indicator('rsi', {'period': 14}, None)\n"
+        "change = market.percent_change(63)\n"
+        "output.boolean('match', bool(rsi and change is not None))"
+    )
+    assert result.valid
+    assert result.lookback_hint == 63
+
+
+def test_dynamic_indicator_parameters_do_not_claim_a_static_lookback():
+    result = validate_workstation_python(
+        "period = int(market.metadata().get('period') or 14)\n"
+        "series = ta.indicator('sma', {'period': period}, None)\n"
+        "output.series('value', series)"
+    )
+    assert result.valid
+    assert result.lookback_hint is None
+
+
 def test_collects_all_declared_output_contracts_without_executing_source():
     result = validate_workstation_python("output.scalar('n', 1)\noutput.boolean('qualifies', 1 > 0)\noutput.bar('ranking', ['A'], [1])\noutput.histogram('distribution', [1, 2])\noutput.range('band', [1], [2])\noutput.scatter('relationship', [1], [2])\noutput.heatmap('matrix', [[1]])\noutput.dashboard('overview', [{'artifact': 'n'}])")
     assert result.valid
@@ -77,6 +97,28 @@ def test_rejects_numpy_and_pandas_file_access():
     assert result.diagnostics[0].code == "forbidden_data_access"
 
 
+@pytest.mark.parametrize(
+    "source",
+    [
+        "values = np.array([1, 2])\nvalues.tofile('/tmp/secret.bin')",
+        "values = np.array([1, 2])\nvalues.dump('/tmp/secret.npy')",
+        "values = np.array([1, 2])\nvalues.setflags(write=True)",
+        "values = np.array([1, 2])\nvalues.resize(1)",
+        "values = np.array([1, 2])\nvalues.ctypes.data",
+    ],
+)
+def test_rejects_runner_only_numpy_and_wrapper_attributes_at_api_validation_boundary(source):
+    result = validate_workstation_python(source)
+    assert not result.valid
+    assert any(item.code == "forbidden_attribute" for item in result.diagnostics)
+
+
+def test_rejects_private_wrapper_attributes_at_api_validation_boundary():
+    result = validate_workstation_python("series = pd.Series([1, 2])\nseries._value")
+    assert not result.valid
+    assert result.diagnostics[0].code == "forbidden_attribute"
+
+
 def test_accepts_curated_scipy_namespace():
     result = validate_workstation_python(
         "score = scipy.stats.percentileofscore([1, 2, 3], 2)\noutput.scalar('percentile', score)"
@@ -99,6 +141,26 @@ def test_rejects_dunder_name_access_in_the_runner_validator():
     result = validate_runner("__builtins__['eval']('1 + 1')")
     assert not result.valid
     assert result.diagnostics[0].code == "forbidden_name"
+
+
+@pytest.mark.parametrize(
+    "source",
+    [
+        "values = np.array([1, 2])\nvalues.tofile('/tmp/secret.bin')",
+        "values = np.array([1, 2])\nvalues.setflags(write=True)",
+        "values = np.array([1, 2])\nvalues.ctypes.data",
+        "series = pd.Series([1, 2])\nseries._value",
+    ],
+)
+def test_api_and_isolated_runner_reject_the_same_sensitive_attributes(source):
+    from research_runner.validation import validate_workstation_python as validate_runner
+
+    api_result = validate_workstation_python(source)
+    runner_result = validate_runner(source)
+    assert not api_result.valid
+    assert not runner_result.valid
+    assert any(item.code == "forbidden_attribute" for item in api_result.diagnostics)
+    assert any(item.code == "forbidden_attribute" for item in runner_result.diagnostics)
 
 
 def test_accepts_curated_statsmodels_and_local_method_composition():
