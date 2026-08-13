@@ -2041,6 +2041,25 @@ test.describe('TC2000 workstation', () => {
     }
     const proxies = page.getByRole('region', { name: 'Verified proxy rankings' })
     await expect(proxies).toBeVisible({ timeout: 15_000 })
+    await expect(proxies.locator('.watchlist__header')).toContainText(/1D.*1W.*1M.*3M.*6M/)
+    for (const target of ['YTD', '1Y']) {
+      await expect.poll(async () => {
+        const scroll = proxies.locator('.watchlist__scroll')
+        const bounds = await scroll.evaluate(element => ({ max: element.scrollWidth - element.clientWidth }))
+        for (let left = 0; left <= bounds.max; left += 100) {
+          await scroll.evaluate((element, position) => {
+            element.scrollTo({ left: position, behavior: 'instant' })
+            element.dispatchEvent(new Event('scroll'))
+          }, left)
+          if ((await proxies.locator('.watchlist__header').innerText()).includes(target)) return true
+        }
+        return false
+      }, { timeout: 10_000, message: `proxy columns should expose ${target}` }).toBe(true)
+    }
+    await proxies.locator('.watchlist__scroll').evaluate(element => {
+      element.scrollTo({ left: 0, behavior: 'instant' })
+      element.dispatchEvent(new Event('scroll'))
+    })
     const proxySymbol = proxyPayload.proxies[0].symbol
     const proxyRow = proxies.locator('.watchlist__row').filter({ hasText: proxySymbol })
     await expect(proxyRow).toBeVisible()
@@ -2049,6 +2068,25 @@ test.describe('TC2000 workstation', () => {
 
     const constituents = page.getByRole('region', { name: 'Constituents' }).filter({ has: page.locator('.watchlist__row') }).last()
     await expect(constituents).toBeVisible({ timeout: 15_000 })
+    await expect(constituents.locator('.watchlist__header')).toContainText(/1D.*1W.*1M.*3M.*6M/)
+    for (const target of ['YTD', '1Y']) {
+      await expect.poll(async () => {
+        const scroll = constituents.locator('.watchlist__scroll')
+        const bounds = await scroll.evaluate(element => ({ max: element.scrollWidth - element.clientWidth }))
+        for (let left = 0; left <= bounds.max; left += 100) {
+          await scroll.evaluate((element, position) => {
+            element.scrollTo({ left: position, behavior: 'instant' })
+            element.dispatchEvent(new Event('scroll'))
+          }, left)
+          if ((await constituents.locator('.watchlist__header').innerText()).includes(target)) return true
+        }
+        return false
+      }, { timeout: 10_000, message: `constituent columns should expose ${target}` }).toBe(true)
+    }
+    await constituents.locator('.watchlist__scroll').evaluate(element => {
+      element.scrollTo({ left: 0, behavior: 'instant' })
+      element.dispatchEvent(new Event('scroll'))
+    })
     const nvda = constituents.locator('.watchlist__row').filter({ hasText: 'NVDA' })
     await expect(nvda).toBeVisible()
     // The constituent list is virtualized and receives a late technical
