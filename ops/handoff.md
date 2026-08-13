@@ -1,5 +1,24 @@
 # Active Handoff
 
+## 2026-08-13 — Canonical bootstrap post-repair runtime revalidation
+
+- Closed the named `canonical-bootstrap-runtime-revalidation` context. The rebuilt non-seeded
+  branch stack was started with canonical bootstrap enabled and a bounded 730-day lookback; the
+  worker and backend received matching seed/bootstrap settings, all services became healthy, and
+  migrations completed.
+- Focused authenticated Chromium coverage passes `15/15` in one worker, covering US Top Down
+  publication, SPX→SPY proxy behavior, SPY/RSP and sector ratios, live sector→industry→proxy→
+  constituent drill-down, swing-analysis/traversal, consecutive-close and configurable breakout
+  Study Lab studies, and watchlist freshness/error states. Backend/worker log audit found no
+  bootstrap failure, traceback, HTTP 5xx, MissingGreenlet, UniqueViolation, critical, or fatal
+  signature.
+- The startup/bootstrap repair is therefore runtime-revalidated. This does not claim the complete
+  authenticated matrix or final goal acceptance; exact/unrepresented V25 visual states,
+  provider/entitlement breadth, historical/GICS truth, native physical-monitor behavior,
+  beyond-bounded endurance, and the final requirement audit remain open.
+- No acceptance flexibility used for this context. Next context must begin only from the clean,
+  synchronized boundary and should select the next repository-controlled open requirement.
+
 ## 2026-08-13 — Add Strategy Lab MAE/MFE excursion distributions
 
 - Closed the named `strategy-lab-mae-mfe-excursions` implementation context. Backend trade

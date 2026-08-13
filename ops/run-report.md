@@ -1,5 +1,19 @@
 # Run Report
 
+## 2026-08-13 — Canonical bootstrap post-repair runtime revalidation
+
+- Rebuilt the branch-scoped non-seeded Compose stack with canonical workstation bootstrap enabled,
+  the bounded 730-day startup history window, and both E2E seed flags disabled. Backend, worker,
+  frontend, research-runner, Postgres, and Redis reached healthy/running state; migrations applied.
+- Container inspection confirmed the worker received `CORE_WORKSTATION_BOOTSTRAP_ENABLED=true`,
+  `CORE_WORKSTATION_BOOTSTRAP_LOOKBACK_DAYS=730`, `CORE_WORKSTATION_BOOTSTRAP_TIMEOUT_SECONDS=45`,
+  and seed flags false. The authenticated focused browser slice passes `15/15` and exercises
+  top-down, proxy, ratio, drill-down, Study Lab, traversal, and watchlist freshness/error paths.
+- Backend/worker logs were audited for bootstrap failures, tracebacks, HTTP 5xx, MissingGreenlet,
+  UniqueViolation, critical, and fatal signatures; none were present. Acceptance flexibility used:
+  **None**. This closes the pending post-repair operational evidence only; the complete goal and
+  its visual, provider, historical, monitor, endurance, and final-audit gaps remain open.
+
 ## 2026-08-13 — Add Strategy Lab MAE/MFE excursion distributions
 
 - Implemented bar-based MAE/MFE analytics for Strategy Lab trade distributions. The backend uses

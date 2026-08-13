@@ -1,5 +1,23 @@
 # Project TODO Memory
 
+### 2026-08-13 — Canonical bootstrap post-repair runtime revalidation
+
+- [x] Rebuilt the branch-scoped non-seeded stack with
+      `CORE_WORKSTATION_BOOTSTRAP_ENABLED=true`, `CORE_WORKSTATION_BOOTSTRAP_LOOKBACK_DAYS=730`,
+      and both E2E seed flags disabled. All six services became healthy/running, migrations
+      applied, and container inspection confirmed the worker received the same bootstrap contract.
+- [x] Revalidated the affected real-user paths against the rebuilt stack: authenticated top-down,
+      SPX proxy, SPY/RSP and sector ratios, live sector/industry/proxy/constituent drill-down,
+      swing-analysis traversal, consecutive-close and configurable-high/low Study Lab studies,
+      and watchlist freshness/error paths pass `15/15` in one serial Chromium worker. Backend and
+      worker logs contain no audited bootstrap failure, traceback, 5xx, MissingGreenlet,
+      UniqueViolation, critical, or fatal signature.
+- [ ] The prior startup bootstrap repair is now runtime-revalidated, but full authenticated-matrix
+      rerun and final acceptance audit remain open. Exact/unrepresented V25 visual states,
+      provider/entitlement breadth, historical/GICS truth, native physical-monitor behavior,
+      beyond-bounded endurance, and final requirement audit remain tracked. Acceptance flexibility
+      used: **None** for this operational/functional revalidation.
+
 ### 2026-08-13 — Add Strategy Lab MAE/MFE excursion distributions
 
 - [x] Added bar-based maximum adverse excursion (MAE) and maximum favorable excursion (MFE)
