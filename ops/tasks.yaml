@@ -1,4 +1,38 @@
 tasks:
+  - id: tc2000-canonical-matrix-stability-20260814
+    title: Rebuild the branch stack and close the canonical authenticated acceptance matrix
+    status: completed
+    priority: high
+    scope: >-
+      Rebuild the branch-scoped non-seeded Docker stack, execute the complete authenticated
+      Chromium flow matrix serially, classify transient gateway/provisioning failures, and repair
+      only deterministic repository-controlled static or runtime defects exposed by the context.
+    definition_of_done:
+      - Branch-scoped backend, worker, research-runner, and frontend images are rebuilt and healthy
+      - Complete non-seeded authenticated Chromium matrix passes without changing acceptance thresholds
+      - Transient provisioning failure is isolated and rerun before classification
+      - Repository-controlled Ruff findings are repaired and focused backend tests pass
+      - uPlot contract, visual acceptance policy, compile, and diff checks pass
+      - No visual, provider, freshness, sandbox, or acceptance criterion is relaxed
+    validation:
+      - rebuilt-non-seeded-stack-healthy
+      - discovery-authenticated-chromium-136-of-137
+      - isolated-F8n-timeframe-links-1-of-1
+      - authoritative-authenticated-chromium-137-of-137
+      - frontend-virtual-watchlist-64-of-64
+      - backend-python-conditions-provider-runtime-21-of-21
+      - backend-ruff-compileall
+      - uplot-contract-45-files
+      - visual-policy-26-assertions
+      - git-diff-check
+    notes:
+      - >-
+        The first warm run had one setup-only E2E user-provisioning 500 for F8n; the isolated
+        rerun passed and the authoritative rerun passed 137/137 in 6.8 minutes. Two existing Ruff
+        findings were fixed: ProviderEntitlementRevision is now exported from app.models and the
+        Python condition scalar union uses modern syntax. No acceptance flexibility was used.
+        Exact-build/unrepresented V25 visual, provider/entitlement breadth, historical/GICS,
+        native-monitor, endurance, Docker-cleanup, and final-audit gaps remain tracked.
   - id: tc2000-industry-ranking-snapshot-20260813
     title: Add equal-weight industry rankings to the top-down workstation
     status: completed

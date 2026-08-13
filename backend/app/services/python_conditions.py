@@ -81,7 +81,7 @@ def _params(raw: Any, *, path: str) -> dict[str, Any]:
     for key, value in raw.items():
         if not isinstance(key, str) or not key or key.startswith("_"):
             raise VisualConditionCompileError("invalid_parameters", "Indicator parameter names are invalid.", path=path)
-        if not isinstance(value, (str, int, float, bool)):
+        if not isinstance(value, str | int | float | bool):
             raise VisualConditionCompileError("invalid_parameters", "Indicator parameters must be scalar values.", path=path)
         if isinstance(value, float) and not math.isfinite(value):
             raise VisualConditionCompileError("invalid_parameters", "Indicator parameters must be finite.", path=path)

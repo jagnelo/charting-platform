@@ -1,5 +1,14 @@
 # Run Report
 
+## 2026-08-14 — Canonical matrix stability context completed
+
+- Rebuilt and migrated the non-seeded branch stack. The first full run was `136/137`; F8n failed
+  during E2E-user provisioning with HTTP 500 before the test body. Isolated F8n passed `1/1` in
+  `2.9s`, so the failure is retained as transient setup/gateway discovery evidence.
+- The authoritative serial rerun passed `137/137` in `6.8m`. No acceptance threshold, mask,
+  baseline, visual authority, provider rule, or product criterion changed. Remaining visual,
+  provider, historical, native-monitor, endurance, Docker, and final-audit gaps stay explicit.
+
 ## 2026-08-13 — Operational-only egress exception applied
 
 - The prior implementation stack is synchronized at `f1e46111`; only the separate context-opening

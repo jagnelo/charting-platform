@@ -1,5 +1,27 @@
 # Active Handoff
 
+## 2026-08-14 — Git transport recovery rule clarified
+
+- The previous egress safeguard was a transport-only failure, not an implementation or product
+  failure. The repository workflow now requires every context to be committed and isolated, but
+  explicitly permits clean, separately committed subsequent contexts while a pending push is
+  retried via the approved elevated Git path. Exact local/remote hashes remain recorded and no
+  feature files may be mixed across contexts.
+
+## 2026-08-14 — Canonical matrix stability context completed
+
+- Rebuilt the branch-scoped non-seeded stack with `E2E_SEED_INSTRUMENTS=false` and
+  `E2E_SEED_MARKET_DATA=false`; frontend, backend, worker, research-runner, PostgreSQL, and Redis
+  reached healthy/running state and migrations applied.
+- The first complete matrix reached `136/137` because F8n failed before its test body during E2E
+  user provisioning with HTTP 500. Isolated F8n then passed `1/1` in `2.9s`, proving the failure was
+  transient setup/gateway evidence rather than a deterministic product defect.
+- The authoritative serial rerun of `frontend/tests/e2e/flows.spec.ts` passed `137/137` in `6.8m`.
+  No product, visual, provider, or acceptance criterion was relaxed; the 136/137 run remains
+  discovery evidence only. The context is ready for scoped closure after static/log checks.
+- Remaining goal gaps are unchanged: unrepresented V25 references, provider/entitlement breadth,
+  historical/GICS truth, native monitor behavior, longer endurance, Docker cleanup, and final audit.
+
 ## 2026-08-13 — Operational-only egress exception applied
 
 - The implementation stack through `f1e46111` is synchronized with origin. The subsequent

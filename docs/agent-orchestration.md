@@ -332,18 +332,21 @@ failure must never be allowed to turn a completed context back into an uncommitt
 2. Mark the context `committed_locally_pending_push` in the handoff/state, including the exact
    commit, branch, remote hash, push command, and failure category. Do not describe it as
    synchronized.
-3. Freeze new implementation and repair contexts until the pending commit is pushed and
-   `HEAD == origin/<branch>` is verified. Only narrowly scoped operational-record edits needed
-   to preserve the handoff are permitted, and those edits must be separate, clearly labelled
-   commits; they must not absorb feature changes.
+3. Do not leave the context dirty, but do not block the goal solely because transport is
+   unavailable: after the context is committed locally, a clean, separately committed next
+   context may proceed while the pending push is retried through the approved elevated Git path.
+   Never mix the pending context with the next one, and preserve exact local/remote hashes in the
+   handoff. A product/implementation push rejection is an operational transport hold, not a
+   product failure or a reason to mark the goal blocked.
 4. If a worker discovers a dirty tree from an earlier context, stop immediately and inventory it:
    run `git status --short`, `git diff --name-status`, and `git diff --cached --name-status`, then
    map every path to its owning context. Finish and commit each self-contained context separately,
    or explicitly hand it off as unfinished. Never use `git add -A`, a stash, reset, discard, or a
    metadata-only commit to make the boundary appear clean.
 5. Once pushing is available, push locally committed contexts in dependency order, verify each
-   hash against its remote, then close the separate operational record. Only after the final clean,
-   matching-hash check may the implementation freeze be lifted.
+   hash against its remote, then close the separate operational record. The matching-hash check
+   remains required for synchronization and handoff, but it is not a prerequisite for starting
+   independently scoped work when every preceding context is clean and committed.
 
 This prevents both accumulation modes: completed work left uncommitted while unrelated work is
 added, and multiple completed contexts silently mixed into one later commit. A dirty tree is an
@@ -360,9 +363,11 @@ context. It must:
 
 - keep the operational checkpoint as a separate commit and never amend feature files into it;
 - record the exact pending SHA, remote SHA, and push failure in `ops/handoff.md`/`ops/state.json`;
-- attempt the checkpoint push again only with explicit authorization, without indirect workarounds;
-- commit the next implementation context separately, attempt its push, and stop accumulating further
-  implementation contexts if that implementation push is rejected.
+- attempt the checkpoint push again through the approved elevated Git path, without indirect
+  workarounds;
+- commit the next implementation context separately, attempt its push, and continue only with
+  clean, independently scoped commits if that implementation push is rejected. Never accumulate
+  dirty files or silently combine contexts.
 
 This exception exists because an operational-only egress refusal has no effect on product source
 integrity once the prior implementation commit is synchronized. It prevents a metadata transport

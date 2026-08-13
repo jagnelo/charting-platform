@@ -120,6 +120,7 @@ __all__ = [
     "InstrumentReconciliationIssue",
     "ProviderCapability",
     "ProviderEntitlement",
+    "ProviderEntitlementRevision",
     "ProviderPolicy",
     "ProviderHealthState",
     "ProviderRequestLog",
