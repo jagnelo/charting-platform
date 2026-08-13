@@ -1,5 +1,23 @@
 # Active Handoff
 
+## 2026-08-13 — Enforce explicit changeset closure and synchronized workflow state
+
+- Strengthened `docs/agent-orchestration.md` with a required named-context closure protocol:
+  scope ownership, focused validation, clean/diff inspection, reviewed scoped staging, a
+  self-contained implementation commit and push, a separate operational-record commit and push,
+  matching local/remote hash verification, and only then starting the next context.
+- Explicitly defined an intentionally dirty tree as valid only for the named active context with
+  every outstanding file and next action recorded; an unlabelled dirty tree is an operational
+  defect. No-op audits must also close cleanly without placeholder edits.
+- Corrected stale `ops/state.json` metadata and then committed the workflow implementation as
+  `9b8351c3 docs(ops): enforce changeset closure protocol`; that implementation commit is pushed.
+  This operational-record update is the required second checkpoint and will be pushed immediately
+  after this edit. No product acceptance criterion or flexibility rule changed.
+- Current next context remains the open TC2000 workstation/backend goal audit. Existing gaps are
+  unchanged: exact/unrepresented V25 states, provider/entitlement breadth, historical/GICS truth,
+  native physical-monitor behavior, beyond-bounded endurance, and final requirement audit.
+- Acceptance flexibility used: **None**.
+
 ## 2026-08-13 — Current-source goal audit and focused workstation revalidation
 
 - Re-read the controlling goal objective and section 14. The active single completion bar remains

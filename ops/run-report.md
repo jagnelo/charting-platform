@@ -1,5 +1,21 @@
 # Run Report
 
+## 2026-08-13 — Enforce explicit changeset closure and synchronized workflow state
+
+- Strengthened the canonical orchestration guide with a named changeset-closure sequence: scope
+  ownership, focused validation, reviewed scoped staging, implementation commit/push, separate
+  operational-record commit/push, matching local/remote hash checks, and clean status before the
+  next context.
+- Documented that an intentionally dirty tree is valid only while the named current context is
+  explicitly in progress with all outstanding files and the exact next action recorded; an
+  unlabelled dirty tree is an operational defect. No-op audits close with a clean tree as well.
+- Corrected `ops/state.json` from stale metadata and committed the workflow implementation as
+  `9b8351c3`; that commit is pushed. This operational-record update is the required second
+  checkpoint and will be pushed immediately after this edit. No product acceptance criterion or
+  flexibility rule changed.
+- Acceptance flexibility used: **None**. The TC2000 goal remains open with its existing visual,
+  provider/entitlement, historical/GICS, native-monitor, endurance, and final-audit gaps.
+
 ## 2026-08-13 — Current-source goal audit and focused workstation revalidation
 
 - Visual manifest validation passes.
