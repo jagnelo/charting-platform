@@ -9,8 +9,7 @@
   sequentially, then use the permitted narrow elevated Git boundary when the default sandbox is
   the cause. No destructive index workaround is permitted.
 - This is workflow guidance only; no product acceptance criterion was relaxed. The current branch
-  is clean and synchronized with origin at the prior checkpoint; this documentation change is the
-  next commit/push checkpoint.
+  is clean and synchronized with origin at the workflow-documentation checkpoint.
 
 ## 2026-08-13 — Private Python attribute boundary repair
 
