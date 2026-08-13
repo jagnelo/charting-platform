@@ -1,5 +1,21 @@
 # Project TODO Memory
 
+### 2026-08-13 — 125% browser-scale top-down journey
+
+- [x] Extended the existing 125% browser-scale robustness check beyond static containment. The
+      real visible XLK sector row is selected through the workstation, active-symbol publication
+      reaches XLK, the XLK/SPY ratio remains visible, the horizontal watchlist surface remains at
+      its left boundary, and fixed actionable controls remain inside the viewport.
+- [x] Focused F8z passes `1/1`; the broader top-down/zoom slice (F8d, F8e.1, F8e.swing-analysis,
+      F8z) passes `4/4`; full frontend Vitest passes `772/772`; type-check/build, uPlot contract
+      (45 files), and `git diff --check` pass.
+- [ ] The first browser run was setup-only because unprivileged Chromium hit the known macOS
+      Mach-port permission boundary. The elevated run exposed two oracle defects: a Node-side
+      `window` reference and an assertion that treated intentionally wide watchlist canvases as
+      fixed controls. Both were repaired and rerun successfully. Acceptance flexibility used:
+      **None**; exact/unrepresented V25, provider/entitlement, historical/GICS, native physical-
+      monitor, beyond-bounded endurance, and final requirement-audit gaps remain open.
+
 ### 2026-08-13 — Study Lab Python editor autocomplete semantics
 
 - [x] Closed the tracked editor accessibility gap without changing the native textarea contract.

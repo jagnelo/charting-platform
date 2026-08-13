@@ -3704,6 +3704,36 @@ tasks:
       aligned header scrolling, and added 100-column plus scroll-alignment regressions. Full
       frontend 658/658, type-check, and build pass. This is core workstation work; provider/data
       breadth and external visual-reference gaps remain explicitly tracked.
+  - id: tc2000-zoomed-topdown-journey-20260813
+    title: Extend 125% browser-scale robustness into a real top-down journey
+    status: completed
+    priority: high
+    scope: >-
+      Ensure the existing browser-scale robustness check exercises real sector selection and
+      ratio publication at 125% page scale, while distinguishing fixed-shell containment from
+      intentionally horizontally scrollable watchlist data canvases.
+    definition_of_done:
+      - 125% flow selects XLK through the visible sector watchlist and publishes active XLK
+      - XLK/SPY ratio output remains visible and the sector scroll surface remains stable
+      - Fixed actionable controls remain within the viewport without masking intentional wide rows
+      - Focused and broader authenticated browser checks, frontend gates, and static checks pass
+      - Any test-oracle defects are repaired and recorded rather than treated as product blockers
+    validation:
+      - focused-F8z-browser-1-of-1
+      - broader-topdown-zoom-browser-4-of-4
+      - frontend-vitest-772-of-772
+      - frontend-typecheck-build
+      - uplot-contract-45-files
+      - diff-check
+    notes:
+      - >-
+        Acceptance flexibility used: none. The first unprivileged browser attempt failed before
+        execution at the known macOS Mach-port boundary. The elevated run exposed and repaired a
+        Node/browser `window` oracle defect, then exposed and corrected an over-broad containment
+        assertion that treated intentional watchlist canvases as fixed controls. The passing
+        reruns are authoritative; exact/unrepresented V25, provider/entitlement, historical/GICS,
+        native-monitor, endurance, and final-audit gaps remain open.
+
   - id: tc2000-frontend-rework
     title: Replace the primary frontend with a TC2000 Version 25-style workstation and build its supporting backend/research platform
     branch: feat/tc2000-frontend-rework

@@ -1,5 +1,19 @@
 # Run Report
 
+## 2026-08-13 — 125% browser-scale top-down journey
+
+- Extended F8z from static containment into a real scaled workstation interaction. At 125% page
+  scale, the visible XLK sector row can be selected, active XLK is published, XLK/SPY remains
+  visible, the sector horizontal scroll surface stays stable, and fixed controls remain in view.
+- Focused F8z passes `1/1`; broader top-down/zoom browser coverage passes `4/4`; full frontend
+  Vitest passes `772/772`; type-check/build, uPlot contract (45 files), and diff-check pass.
+- The first browser launch was setup-only due to the known unprivileged macOS Mach-port boundary.
+  Two localized test-oracle defects were fixed during the elevated run: a Node-side `window`
+  reference and inclusion of intentional wide watchlist canvases in fixed-control containment.
+  No production code, visual baseline, threshold, mask, or acceptance criterion changed.
+- Acceptance flexibility used: **None**. Exact/unrepresented V25, provider/entitlement,
+  historical/GICS, native-monitor, endurance, and final-audit gaps remain open.
+
 ## 2026-08-13 — Study Lab Python editor autocomplete semantics
 
 - Added compatible autocomplete semantics to the unified Python editor without changing its

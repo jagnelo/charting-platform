@@ -1,5 +1,25 @@
 # Active Handoff
 
+## 2026-08-13 — 125% browser-scale top-down journey
+
+- Closed the named `zoomed-topdown-journey` context. The existing F8z browser-scale check now
+  performs a real user journey at 125% page scale: it selects XLK from the visible sector list,
+  verifies active-symbol publication and the XLK/SPY ratio, preserves the watchlist's intentional
+  horizontal scroll boundary, and checks fixed actionable controls for viewport containment.
+- Owned file: `frontend/tests/e2e/flows.spec.ts`. No production code or visual baseline changed.
+- Validation passed: focused F8z browser `1/1`; broader F8d/F8e.1/F8e.swing-analysis/F8z slice
+  `4/4`; full frontend Vitest `772/772`; type-check/build; uPlot contract (45 files); and
+  `git diff --check`, with clean browser diagnostics.
+- The initial unprivileged browser launch failed before execution at the known macOS Mach-port
+  permission boundary. The elevated run exposed a test-oracle `window` reference and then an
+  over-broad containment assertion that included intentionally wide watchlist canvases; both
+  were repaired and independently rerun. Acceptance flexibility used: **None**.
+- Implementation commit `e3ae21aa` is pushed to `origin/feat/tc2000-frontend-rework`; this is the
+  separate operational checkpoint. After it is committed and pushed, verify matching hashes and a
+  clean tree before selecting another context.
+- Remaining goal gaps: exact/unrepresented V25 states, provider/entitlement breadth, historical/
+  GICS truth, native physical-monitor behavior, beyond-bounded endurance, and final audit.
+
 ## 2026-08-13 — Study Lab Python editor autocomplete semantics
 
 - Closed the named `study-lab-editor-autocomplete-semantics` context. `PythonSourceEditor` now
