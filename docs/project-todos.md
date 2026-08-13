@@ -1,5 +1,12 @@
 # Project TODO Memory
 
+### 2026-08-13 — Finalize checkpoint metadata against actual HEAD
+
+- [x] Correct the final stale checkpoint field discovered by post-push verification: `ops/state.json`
+      now records `b578075e` as the actual latest commit and the branch remains clean and
+      synchronized. This confirms the closure protocol itself catches metadata drift before a new
+      context begins. No product acceptance flexibility used.
+
 ### 2026-08-13 — Enforce explicit changeset closure and synchronized workflow state
 
 - [x] Strengthen `docs/agent-orchestration.md` with a named changeset-closure protocol. Each

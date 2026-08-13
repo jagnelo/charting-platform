@@ -1,5 +1,14 @@
 # Active Handoff
 
+## 2026-08-13 — Finalize checkpoint metadata against actual HEAD
+
+- Final verification caught and repaired one stale operational field: `ops/state.json.last_commit`
+  now names the actual latest synchronized checkpoint `b578075e docs(ops): finalize synchronized
+  checkpoint`, and `git_checkpoint` records the full closure chain.
+- This is a workflow-record correction only. Product scope, acceptance thresholds, visual-reference
+  policy, and flexibility rules are unchanged; the TC2000 goal remains open with its documented
+  gaps. Acceptance flexibility used: **None**.
+
 ## 2026-08-13 — Enforce explicit changeset closure and synchronized workflow state
 
 - Strengthened `docs/agent-orchestration.md` with a required named-context closure protocol:
