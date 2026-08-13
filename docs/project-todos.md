@@ -18,6 +18,23 @@
       beyond-bounded endurance, and final requirement audit remain tracked. Acceptance flexibility
       used: **None** for this operational/functional revalidation.
 
+### 2026-08-13 — Complete authenticated matrix after canonical bootstrap rebuild
+
+- [x] Re-ran the complete authenticated `frontend/tests/e2e/flows.spec.ts` matrix against the
+      rebuilt non-seeded stack with one serial Chromium worker. All `136/136` tests passed in
+      `6.5m`, covering authentication, charting/templates/drawings, workspaces/pop-outs,
+      linking/timeframes/cross-window cursors, US top-down benchmark/sector/industry/proxy/
+      constituent analysis and ratios, Python/Study Lab/Results/promotions, scans/gauges,
+      alerts/notes, freshness/error/recovery, legacy compatibility, unsupported-domain absence,
+      and performance/containment.
+- [x] Post-run backend and worker logs contain no audited traceback, HTTP 5xx, MissingGreenlet,
+      UniqueViolation, IntegrityError, critical, fatal, or bootstrap failure signature. No test
+      skip, visual threshold, mask, product criterion, or acceptance boundary changed.
+- [ ] This closes the pending post-bootstrap browser gate, not the overall goal. Exact/unrepresented
+      V25 visual states, provider/entitlement breadth, historical/GICS truth, native physical-
+      monitor behavior, beyond-bounded endurance, and final requirement audit remain open.
+      Acceptance flexibility used: **None**.
+
 ### 2026-08-13 — Add Strategy Lab MAE/MFE excursion distributions
 
 - [x] Added bar-based maximum adverse excursion (MAE) and maximum favorable excursion (MFE)

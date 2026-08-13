@@ -19,6 +19,22 @@
 - No acceptance flexibility used for this context. Next context must begin only from the clean,
   synchronized boundary and should select the next repository-controlled open requirement.
 
+## 2026-08-13 — Complete authenticated matrix after canonical bootstrap rebuild
+
+- The required post-repair broad gate is now closed: the complete authenticated
+  `frontend/tests/e2e/flows.spec.ts` matrix passes `136/136` in `6.5m` with one serial Chromium
+  worker against the rebuilt non-seeded canonical-bootstrap stack. It covers the full current
+  workstation, top-down workflow, ratios, linking, pop-outs, Study Lab/Python, scans/gauges,
+  alerts/notes, freshness/recovery, legacy/excluded boundaries, and performance/containment.
+- Backend and worker logs were re-audited after the matrix; no traceback, 5xx, MissingGreenlet,
+  UniqueViolation, IntegrityError, critical, fatal, or bootstrap failure signature was found.
+  No skips or acceptance flexibility were used.
+- The complete goal remains open only for documented remaining work/evidence: exact or
+  unrepresented V25 visual states, provider/entitlement breadth, historical/GICS truth, native
+  physical-monitor behavior, beyond-bounded endurance, and final requirement-by-requirement audit.
+- Next context must start from the clean synchronized boundary and target the next open item;
+  do not treat this broad functional pass as visual or final-goal completion.
+
 ## 2026-08-13 — Add Strategy Lab MAE/MFE excursion distributions
 
 - Closed the named `strategy-lab-mae-mfe-excursions` implementation context. Backend trade

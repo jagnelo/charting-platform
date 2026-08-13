@@ -14,6 +14,20 @@
   **None**. This closes the pending post-repair operational evidence only; the complete goal and
   its visual, provider, historical, monitor, endurance, and final-audit gaps remain open.
 
+## 2026-08-13 — Complete authenticated matrix after canonical bootstrap rebuild
+
+- The complete rebuilt non-seeded authenticated Chromium matrix passes `136/136` in `6.5m` with
+  one serial worker. Coverage includes the full workstation and chart/template/drawing mechanics,
+  layouts/pop-outs/persistence, linking/timeframes/cursors, US top-down drill-down and ratios,
+  Python/Study Lab/Results and promotions, EasyScan/Gauges, alerts/notes, loading/stale/error/
+  recovery, legacy/excluded routes, and performance/containment.
+- A post-run backend/worker log scan found no traceback, HTTP 5xx, MissingGreenlet,
+  UniqueViolation, IntegrityError, critical, fatal, or bootstrap-failure signatures. The run had
+  no skips. Acceptance flexibility used: **None**.
+- This closes the pending broad runtime gate only. Exact/unrepresented V25 visual, provider/
+  entitlement, historical/GICS, native-monitor, beyond-bounded endurance, and final-audit gaps
+  remain explicitly open.
+
 ## 2026-08-13 — Add Strategy Lab MAE/MFE excursion distributions
 
 - Implemented bar-based MAE/MFE analytics for Strategy Lab trade distributions. The backend uses
