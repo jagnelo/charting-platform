@@ -2003,6 +2003,7 @@ test.describe('TC2000 workstation', () => {
     await expect(page.getByRole('combobox', { name: 'Active symbol' })).toHaveValue('XLK')
     const industries = page.locator('.industry-list')
     await expect(industries).toBeVisible({ timeout: 15_000 })
+    await expect(industries.locator('.industry-list__header')).toContainText(/1D.*1W.*1M.*3M.*6M.*YTD.*1Y/)
     const semiconductors = industries.locator('.industry-list__row').filter({ hasText: 'Semiconductors' })
     await expect(semiconductors).toBeVisible()
     await expect(semiconductors.locator('.industry-list__classification')).toHaveText('controlled_fixture')

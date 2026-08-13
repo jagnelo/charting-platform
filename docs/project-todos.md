@@ -1,5 +1,26 @@
 # Project TODO Memory
 
+### 2026-08-13 — Add equal-weight industry ranking to the top-down workstation
+
+- [x] Added the provider-neutral `GET /analysis/etf/{symbol}/industries/snapshot` contract. It
+      derives each classified ETF industry from the dated, known-at holding set, builds an
+      equal-weight normalized constituent series on intersecting observations only, and returns
+      1D, 1W, 1M, 3M, 6M, YTD, and 1Y performance, SMA/RSI/52-week technical cells, sector and
+      market ratios, coverage, freshness, exclusions, and a stable membership digest. Aggregate
+      warnings deliberately carry no fake canonical instrument ID.
+- [x] Wired the snapshot into the Industries surface. Rows now expose the dense ranking header
+      and metrics for all required periods plus `/ Sector`, `/ SPY`, RSI, and 52W position while
+      retaining classification provenance, proxy counts, selection, and horizontal overflow.
+- [x] Added direct aggregate-helper coverage, API regression assertions, store hydration coverage,
+      and browser assertions. Focused backend units pass `18/18`; focused industry integration
+      passes `1/1`; full frontend Vitest passes `773/773`; type-check/build, Ruff, compileall,
+      diff-check, and rebuilt authenticated F8e.1/F8e.1a browser checks pass `2/2`.
+- [ ] Acceptance flexibility used: **None**. The browser attempt against the stale frontend
+      container was discarded as setup-only and the forced current-image rerun is authoritative.
+      Exact/unrepresented V25 visual states, provider/entitlement breadth, historical/GICS truth,
+      native physical-monitor behavior, beyond-bounded endurance, and final requirement audit
+      remain open and tracked.
+
 ### 2026-08-13 — 125% browser-scale top-down journey
 
 - [x] Extended the existing 125% browser-scale robustness check beyond static containment. The

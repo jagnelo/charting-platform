@@ -1006,6 +1006,31 @@ describe('workspace store layout tabs', () => {
     expect(apiGet).toHaveBeenCalledWith('/analysis/etf/XLK/industries/Semiconductors/proxies/snapshot')
   })
 
+  it('loads and caches equal-weight industry rankings', async () => {
+    const store = useWorkspaceStore()
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/market-groups/etf/XLK/industries') {
+        return Promise.resolve({ etf_symbol: 'XLK', industries: [{ industry: 'Semiconductors' }] })
+      }
+      if (path === '/analysis/etf/XLK/industries/snapshot') {
+        return Promise.resolve({
+          etf_symbol: 'XLK',
+          market_benchmark: 'SPY',
+          composition_date: '2024-06-02',
+          known_at: null,
+          coverage: 1,
+          rows: [{ industry: 'Semiconductors', performance: { '1D': { value: 0.01 } } }],
+          exclusions: [],
+        })
+      }
+      return Promise.resolve([])
+    })
+
+    await store.loadETFIndustries('XLK')
+    await vi.waitFor(() => expect(store.industrySnapshots.XLK?.rows[0].industry).toBe('Semiconductors'))
+    expect(apiGet).toHaveBeenCalledWith('/analysis/etf/XLK/industries/snapshot', { market_benchmark: 'SPY' })
+  })
+
   it('keeps an industry selection while ETF hydration completes after the click', async () => {
     const holdings = deferred<unknown>()
     apiGet.mockImplementation((path: string) => {

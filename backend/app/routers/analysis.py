@@ -24,6 +24,8 @@ from app.models.user import User
 from app.models.workstation import MarketGroup, MarketGroupMember
 from app.routers.market_groups import (
     _holding_exclusion_code,
+    etf_industry_composition,
+    etf_industry_constituents,
     etf_industry_proxies,
     holdings_snapshot_source_filter,
 )
@@ -41,6 +43,8 @@ from app.schemas.analysis import (
     IndicatorBatchRequest,
     IndustryProxySnapshotOut,
     IndustryProxySnapshotRow,
+    IndustrySnapshotOut,
+    IndustrySnapshotRow,
     MarketGaugeOut,
     RelativeRotationOut,
     RelativeRotationRow,
@@ -61,6 +65,135 @@ _HOLDING_EXCLUSION_MESSAGES = {
     "unresolved_holding": "The holding has no resolved canonical equity instrument.",
     "non_equity_holding": "The holding is not a supported equity security.",
 }
+
+
+def _aggregate_series_cells(
+    values: list[tuple[datetime, float]], instrument_id: int | None
+) -> dict[str, AnalysisCell]:
+    """Calculate ranking periods for an equal-weight synthetic industry series."""
+
+    if not values:
+        warning = AnalysisWarning(code="no_bars", message="No aligned constituent bars are available.", instrument_id=instrument_id)
+        return {period: AnalysisCell(value=None, observation_time=None, warning=warning) for period in _PERIODS}
+    latest_timestamp, latest_value = values[-1]
+    current_year = [item for item in values if item[0].year == latest_timestamp.year]
+    cells: dict[str, AnalysisCell] = {}
+    for period, offset in _PERIODS.items():
+        base: float | None
+        if period == "YTD":
+            base = current_year[0][1] if len(current_year) >= 2 else None
+            code = "insufficient_ytd_history"
+            message = "YTD requires at least two aligned constituent observations in the current year."
+        else:
+            base = values[-offset - 1][1] if offset is not None and len(values) > offset else None
+            code = "insufficient_history"
+            message = f"{period} requires more aligned constituent history."
+        if base is None or base == 0:
+            cells[period] = AnalysisCell(
+                value=None,
+                observation_time=latest_timestamp,
+                warning=AnalysisWarning(code=code, message=message, instrument_id=instrument_id),
+            )
+        else:
+            cells[period] = AnalysisCell(value=latest_value / base - 1, observation_time=latest_timestamp)
+    return cells
+
+
+def _technical_cells_for_series(
+    values: list[tuple[datetime, float]], instrument_id: int | None
+) -> dict[str, AnalysisCell]:
+    """Return the same transparent technical fields used by group rankings."""
+
+    if not values:
+        warning = AnalysisWarning(code="no_bars", message="No aligned constituent bars are available.", instrument_id=instrument_id)
+        return {key: AnalysisCell(value=None, observation_time=None, warning=warning) for key in ("above_ma20", "above_ma50", "above_ma200", "rsi14", "position_52w")}
+    latest_timestamp, latest_value = values[-1]
+    closes = [value for _, value in values]
+    technical: dict[str, AnalysisCell] = {}
+    for period in (20, 50, 200):
+        key = f"above_ma{period}"
+        warning = None if len(closes) >= period else AnalysisWarning(
+            code="insufficient_history",
+            message=f"Price versus SMA({period}) requires {period} aligned constituent observations.",
+            instrument_id=instrument_id,
+        )
+        technical[key] = AnalysisCell(
+            value=(1.0 if latest_value > sum(closes[-period:]) / period else 0.0) if warning is None else None,
+            observation_time=latest_timestamp,
+            warning=warning,
+        )
+    if len(closes) >= 15:
+        changes = [closes[index] - closes[index - 1] for index in range(len(closes) - 13, len(closes))]
+        gain = _mean([max(change, 0.0) for change in changes])
+        loss = _mean([max(-change, 0.0) for change in changes])
+        technical["rsi14"] = AnalysisCell(
+            value=100.0 if loss == 0 else 100 - (100 / (1 + gain / loss)),
+            observation_time=latest_timestamp,
+        )
+    else:
+        technical["rsi14"] = AnalysisCell(
+            value=None,
+            observation_time=latest_timestamp,
+            warning=AnalysisWarning(code="insufficient_history", message="RSI(14) requires 15 aligned constituent observations.", instrument_id=instrument_id),
+        )
+    if len(closes) >= 252:
+        window = closes[-252:]
+        spread = max(window) - min(window)
+        technical["position_52w"] = AnalysisCell(
+            value=(latest_value - min(window)) / spread if spread else 1.0,
+            observation_time=latest_timestamp,
+        )
+    else:
+        technical["position_52w"] = AnalysisCell(
+            value=None,
+            observation_time=latest_timestamp,
+            warning=AnalysisWarning(code="insufficient_history", message="52-week position requires 252 aligned constituent observations.", instrument_id=instrument_id),
+        )
+    return technical
+
+
+def _normalised_bar_series(bars: list[OHLCVBar]) -> dict[datetime, float]:
+    """Build one non-forward-filled total-return proxy from a bar sequence."""
+
+    if not bars:
+        return {}
+    first = next((float(bar.close) for bar in bars if bar.close), None)
+    if first in (None, 0):
+        return {}
+    return {bar.ts: float(bar.close) / first for bar in bars if bar.close}
+
+
+def _equal_weight_series(
+    bars_by_id: dict[int, list[OHLCVBar]], instrument_ids: list[int]
+) -> list[tuple[datetime, float]]:
+    """Build an equal-weight industry proxy on intersecting observations only."""
+
+    series = [_normalised_bar_series(bars_by_id.get(instrument_id, [])) for instrument_id in instrument_ids]
+    series = [item for item in series if item]
+    if not series:
+        return []
+    timestamps = sorted(set.intersection(*(set(item) for item in series)))
+    return [(timestamp, _mean([item[timestamp] for item in series])) for timestamp in timestamps]
+
+
+def _ratio_cell(
+    values: list[tuple[datetime, float]], reference: dict[datetime, float], instrument_id: int | None
+) -> AnalysisCell:
+    if not values:
+        return AnalysisCell(
+            value=None,
+            observation_time=None,
+            warning=AnalysisWarning(code="no_bars", message="No aligned industry observations are available.", instrument_id=instrument_id),
+        )
+    timestamp, value = values[-1]
+    denominator = reference.get(timestamp)
+    if denominator in (None, 0):
+        return AnalysisCell(
+            value=None,
+            observation_time=timestamp,
+            warning=AnalysisWarning(code="unaligned_benchmark", message="No aligned benchmark observation is available.", instrument_id=instrument_id),
+        )
+    return AnalysisCell(value=value / denominator, observation_time=timestamp)
 
 
 @router.post("/indicator-batch", response_model=IndicatorBatchOut)
@@ -1066,6 +1199,120 @@ async def industry_proxy_snapshot(
         exclusions=exclusions,
         rows=rows,
         proxy_evidence=[item.model_dump(mode="json") for item in evidence.proxies],
+    )
+
+
+@router.get("/etf/{symbol}/industries/snapshot", response_model=IndustrySnapshotOut)
+async def industry_snapshot(
+    symbol: str,
+    market_benchmark: str = Query(default="SPY"),
+    as_of: datetime | None = Query(default=None),
+    timeframe: Timeframe = Timeframe.D1,
+    adjusted: bool = True,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Rank classified industries as equal-weight synthetic series.
+
+    Industry rows are derived from the selected ETF disclosure. They are not
+    official index constituents, and each response retains the composition
+    provenance and exact exclusions used to build the synthetic series.
+    """
+
+    etf = await _instrument(db, symbol)
+    market = await _instrument(db, market_benchmark)
+    composition = await etf_industry_composition(symbol=etf.symbol, as_of=as_of, _=current_user, db=db)
+    rows: list[IndustrySnapshotRow] = []
+    exclusions: list[AnalysisWarning] = []
+    all_instrument_ids: set[int] = {etf.id, market.id}
+    industry_members: list[tuple[object, list[int]]] = []
+    for industry in composition.industries:
+        constituents = await etf_industry_constituents(
+            symbol=etf.symbol, industry=industry.industry, as_of=as_of, _=current_user, db=db
+        )
+        ids = [item.id for item in constituents.constituents]
+        industry_members.append((industry, ids))
+        all_instrument_ids.update(ids)
+        exclusions.extend(
+            AnalysisWarning(code=code, message=f"Industry {industry.industry}: {code}.")
+            for code in constituents.exclusions
+        )
+    bars_by_id = _truncate_bars_at(
+        await _bars_by_instrument(db, list(all_instrument_ids), timeframe, adjusted), as_of
+    )
+    benchmark_series = _normalised_bar_series(bars_by_id.get(etf.id, []))
+    market_series = _normalised_bar_series(bars_by_id.get(market.id, []))
+    covered = 0
+    for industry, ids in industry_members:
+        series = _equal_weight_series(bars_by_id, ids)
+        if not series:
+            warning = AnalysisWarning(
+                code="no_bars",
+                message="No aligned constituent bars are available for this industry.",
+            )
+            exclusions.append(warning.model_copy(update={"message": f"{industry.industry}: {warning.message}"}))
+        else:
+            covered += 1
+        performance = _aggregate_series_cells(series, instrument_id=None)
+        technical = _technical_cells_for_series(series, instrument_id=None)
+        warnings = [
+            cell.warning
+            for cell in [*performance.values(), *technical.values()]
+            if cell.warning is not None
+        ]
+        last_timestamp, last_value = series[-1] if series else (None, None)
+        rows.append(
+            IndustrySnapshotRow(
+                industry=industry.industry,
+                constituent_count=industry.constituent_count,
+                resolved_count=industry.resolved_count,
+                coverage=len([item for item in ids if bars_by_id.get(item)]) / max(len(ids), 1),
+                last=AnalysisCell(value=last_value, observation_time=last_timestamp),
+                performance=performance,
+                relative_to_benchmark=_ratio_cell(series, benchmark_series, None),
+                relative_to_market=_ratio_cell(series, market_series, None),
+                technical=technical,
+                warnings=warnings,
+            )
+        )
+    freshness, freshness_detail = await _batch_freshness(
+        db, list(all_instrument_ids), timeframe, adjusted
+    )
+    return IndustrySnapshotOut(
+        group_key=f"industry:{etf.symbol}",
+        etf_symbol=etf.symbol,
+        market_benchmark=market.symbol,
+        timeframe=timeframe.value,
+        adjustment="split_adjusted" if adjusted else "raw",
+        as_of=max((row.last.observation_time for row in rows if row.last.observation_time), default=None),
+        composition_date=datetime.fromisoformat(composition.composition_date).date(),
+        known_at=composition.known_at,
+        membership_version=int(
+            hashlib.sha256(
+                json.dumps(
+                    {
+                        "composition_date": composition.composition_date,
+                        "known_at": _wire_datetime(composition.known_at),
+                        "industries": [(row.industry, ids) for row, ids in industry_members],
+                    },
+                    sort_keys=True,
+                    separators=(",", ":"),
+                ).encode()
+            ).hexdigest()[:12],
+            16,
+        ),
+        universe_provenance={
+            "membership_semantics": "etf_proxy_classified_industry_equal_weight",
+            "etf_symbol": etf.symbol,
+            "composition_date": composition.composition_date,
+            "known_at": _wire_datetime(composition.known_at),
+            "classification_systems": composition.classification_systems,
+        },
+        freshness=freshness,
+        freshness_detail=freshness_detail,
+        coverage=covered / max(len(industry_members), 1),
+        exclusions=exclusions,
+        rows=rows,
     )
 
 

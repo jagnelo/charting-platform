@@ -135,6 +135,39 @@ class IndustryProxySnapshotOut(GroupSnapshotOut):
     proxy_evidence: list[dict[str, object]] = Field(default_factory=list)
 
 
+class IndustrySnapshotRow(BaseModel):
+    """Equal-weight constituent aggregate for one classified ETF industry."""
+
+    industry: str
+    constituent_count: int
+    resolved_count: int
+    coverage: float = Field(ge=0, le=1)
+    last: AnalysisCell
+    performance: dict[str, AnalysisCell]
+    relative_to_benchmark: AnalysisCell | None = None
+    relative_to_market: AnalysisCell | None = None
+    technical: dict[str, AnalysisCell] = Field(default_factory=dict)
+    warnings: list[AnalysisWarning] = Field(default_factory=list)
+
+
+class IndustrySnapshotOut(AnalysisResponseMetadata):
+    """Top-down industry rankings derived from a dated ETF-proxy holding set."""
+
+    group_key: str
+    etf_symbol: str
+    market_benchmark: str
+    timeframe: str
+    adjustment: str
+    as_of: datetime | None = None
+    composition_date: date
+    known_at: datetime | None = None
+    membership_version: int
+    universe_provenance: dict[str, object] = Field(default_factory=dict)
+    coverage: float = Field(ge=0, le=1)
+    exclusions: list[AnalysisWarning] = Field(default_factory=list)
+    rows: list[IndustrySnapshotRow]
+
+
 class BreadthOut(AnalysisResponseMetadata):
     group_key: str
     timeframe: str

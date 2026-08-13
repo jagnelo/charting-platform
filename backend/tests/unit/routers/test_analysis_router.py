@@ -9,6 +9,7 @@ from app.models.etf_holdings import ETFHoldingsSnapshot
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.workstation import MarketGroup, MarketGroupMember
 from app.routers.analysis import (
+    _aggregate_series_cells,
     _calendar_year_cells,
     _gauge_exclusion_warnings,
     _group_members_at,
@@ -19,6 +20,7 @@ from app.routers.analysis import (
     _performance_cells,
     _rotation_state,
     _sample_aligned_points,
+    _technical_cells_for_series,
     _truncate_bars_at,
     _volume_ratio_50,
     _wire_datetime,
@@ -239,6 +241,25 @@ def test_analysis_helpers_preserve_utc_wire_format_and_empty_data_warnings():
     cells = _performance_cells([], instrument_id=7)
     assert set(cells) == {"1D", "1W", "1M", "3M", "6M", "YTD", "1Y"}
     assert all(cell.warning and cell.warning.code == "no_bars" for cell in cells.values())
+
+
+def test_industry_aggregate_helpers_return_complete_periods_and_transparent_technicals():
+    values = [
+        (datetime(2025, 12, 31, tzinfo=UTC), 100.0),
+        (datetime(2026, 1, 2, tzinfo=UTC), 101.0),
+        (datetime(2026, 1, 5, tzinfo=UTC), 102.0),
+    ]
+
+    performance = _aggregate_series_cells(values, instrument_id=None)
+    assert set(performance) == {"1D", "1W", "1M", "3M", "6M", "YTD", "1Y"}
+    assert performance["1D"].value == pytest.approx(102 / 101 - 1)
+    assert performance["YTD"].value == pytest.approx(102 / 101 - 1)
+    assert performance["1W"].warning is not None
+    assert performance["1W"].warning.instrument_id is None
+
+    technical = _technical_cells_for_series(values, instrument_id=None)
+    assert technical["rsi14"].warning is not None
+    assert technical["rsi14"].warning.instrument_id is None
 
 
 def test_market_gauge_normalizes_python_manifest_exclusion_lists():

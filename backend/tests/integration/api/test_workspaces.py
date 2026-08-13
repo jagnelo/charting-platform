@@ -1319,6 +1319,22 @@ class TestWorkspaces:
         assert ranked_payload["rows"][0]["relative_to_benchmark"]["value"] == 2
         assert ranked_payload["rows"][0]["relative_to_market"]["value"] == 4
 
+        industries_ranked = client.get(
+            "/api/v1/analysis/etf/XLK/industries/snapshot",
+            headers=auth_headers,
+            params={"market_benchmark": instrument.symbol},
+        )
+        assert industries_ranked.status_code == 200
+        industries_payload = industries_ranked.json()
+        assert industries_payload["group_key"] == "industry:XLK"
+        assert industries_payload["market_benchmark"] == instrument.symbol
+        assert industries_payload["rows"][0]["industry"] == "Semiconductors"
+        assert set(industries_payload["rows"][0]["performance"]) == {
+            "1D", "1W", "1M", "3M", "6M", "YTD", "1Y"
+        }
+        assert industries_payload["rows"][0]["relative_to_benchmark"]["value"] == 1
+        assert industries_payload["rows"][0]["relative_to_market"]["value"] == 1
+
         future_timestamp = datetime(2024, 6, 4, tzinfo=UTC)
         for item, close in ((source, "100"), (proxy, "300"), (instrument, "50")):
             price = Decimal(close)

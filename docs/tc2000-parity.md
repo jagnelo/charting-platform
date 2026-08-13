@@ -1,5 +1,22 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-13 — Equal-weight industry ranking surface
+
+The Industries tool now has a canonical batch snapshot for top-down ranking rather than exposing
+only holdings metadata. `GET /analysis/etf/{symbol}/industries/snapshot` derives each classified
+industry from the ETF's point-in-time disclosed holdings, computes an equal-weight normalized
+series without forward-filling gaps, and returns the seven required performance periods, SMA/RSI/
+52-week technical cells, `/ Sector` and `/ SPY` ratios, coverage, exclusions, freshness, provenance,
+and a stable membership digest. Aggregate warnings use no fabricated instrument identity.
+
+The workstation renders the dense industry header and values, preserves classification/proxy
+lineage and row selection, and keeps the wide surface horizontally scrollable. Direct helper and
+API regressions pass `18/18` and `1/1`; frontend Vitest passes `773/773`; type-check/build, Ruff,
+compileall, diff-check, and rebuilt authenticated F8e.1/F8e.1a pass `2/2`. No visual baseline,
+mask, threshold, or product boundary changed. Exact/unrepresented V25 states, provider and
+entitlement breadth, historical/GICS truth, native monitor behavior, longer endurance, and final
+audit gaps remain open.
+
 ## 2026-08-13 — Private unified-Python attribute safety evidence
 
 The API and isolated research-runner validators now reject private numerical-wrapper attributes at

@@ -257,6 +257,10 @@
       </div>
     </div>
     <div v-else-if="isIndustryTool && industries.length" class="industry-list">
+      <div class="industry-list__header" aria-label="Industry ranking columns">
+        <span>Industry</span><span>Coverage</span><span>Proxies</span>
+        <span v-for="column in industryRankingColumns" :key="column.key">{{ column.label }}</span>
+      </div>
       <button
         v-for="item in industryRows"
         :key="item.industry"
@@ -266,6 +270,7 @@
         @click="emit('selectIndustry', item.industry, industryETFContext)"
       >
         <strong>{{ item.industry }}</strong><span>{{ item.resolved_count }}/{{ item.constituent_count }}</span>
+        <span v-for="column in industryRankingColumns" :key="column.key" class="industry-list__metric" :title="item.warnings[column.key] ?? undefined">{{ displayIndustryValue(item, column.key) }}</span>
         <small
           class="industry-list__classification"
           :title="item.classificationDetail"
@@ -1418,6 +1423,7 @@ const holdings = computed(() => selectedETF.value ? workspaceStore.etfHoldings[s
 const constituentSnapshot = computed(() => selectedETF.value ? workspaceStore.etfConstituentSnapshots[selectedETF.value] : null)
 const industryComposition = computed(() => selectedETF.value ? workspaceStore.etfIndustries[selectedETF.value] : null)
 const industries = computed(() => industryComposition.value?.industries ?? [])
+const industrySnapshot = computed(() => selectedETF.value ? workspaceStore.industrySnapshots[selectedETF.value] : null)
 const selectedIndustry = computed(() => workspaceStore.selectedIndustry)
 const selectedIndustryProxy = computed(() => workspaceStore.selectedIndustryProxy)
 const industryProxyState = computed(() => selectedETF.value && selectedIndustry.value
@@ -1476,13 +1482,59 @@ const industryRows = computed(() => industries.value.map(item => ({
   name: `${item.resolved_count}/${item.constituent_count}`,
   classificationLabel: classificationLabel(item.classification_systems),
   classificationDetail: classificationDetail(item.classification_systems),
+  warnings: (() => {
+    const analysis = industrySnapshot.value?.rows.find(row => row.industry === item.industry)
+    const warnings: Record<string, string> = {}
+    for (const [period, cell] of Object.entries(analysis?.performance ?? {})) if (cell.warning?.message) warnings[`performance_${period.toLowerCase()}`] = cell.warning.message
+    if (analysis?.relative_to_benchmark?.warning?.message) warnings.relative_ratio = analysis.relative_to_benchmark.warning.message
+    if (analysis?.relative_to_market?.warning?.message) warnings.relative_spy = analysis.relative_to_market.warning.message
+    for (const [key, cell] of Object.entries(analysis?.technical ?? {})) if (cell.warning?.message) warnings[key] = cell.warning.message
+    return warnings
+  })(),
   values: {
     proxy_count: workspaceStore.industryProxies[`${selectedETF.value}:${item.industry}`]?.proxies.length ?? null,
     coverage: item.constituent_count ? item.resolved_count / item.constituent_count : null,
     as_of: holdings.value?.snapshot?.composition_date ?? 'unavailable',
     provenance: holdings.value?.snapshot?.source_provider ?? 'ETF holdings classification',
+    ...(() => {
+      const analysis = industrySnapshot.value?.rows.find(row => row.industry === item.industry)
+      return {
+        performance_1d: analysis?.performance['1D']?.value ?? null,
+        performance_1w: analysis?.performance['1W']?.value ?? null,
+        performance_1m: analysis?.performance['1M']?.value ?? null,
+        performance_3m: analysis?.performance['3M']?.value ?? null,
+        performance_6m: analysis?.performance['6M']?.value ?? null,
+        performance_ytd: analysis?.performance.YTD?.value ?? null,
+        performance_1y: analysis?.performance['1Y']?.value ?? null,
+        relative_ratio: analysis?.relative_to_benchmark?.value ?? null,
+        relative_spy: analysis?.relative_to_market?.value ?? null,
+        rsi14: analysis?.technical?.rsi14?.value ?? null,
+        position_52w: analysis?.technical?.position_52w?.value ?? null,
+      }
+    })(),
   },
 })))
+const industryRankingColumns: WatchlistColumn[] = [
+  { key: 'performance_1d', label: '1D', width: '52px' },
+  { key: 'performance_1w', label: '1W', width: '52px' },
+  { key: 'performance_1m', label: '1M', width: '52px' },
+  { key: 'performance_3m', label: '3M', width: '52px' },
+  { key: 'performance_6m', label: '6M', width: '52px' },
+  { key: 'performance_ytd', label: 'YTD', width: '52px' },
+  { key: 'performance_1y', label: '1Y', width: '52px' },
+  { key: 'relative_ratio', label: '/ Sector', width: '68px', format: 'number' },
+  { key: 'relative_spy', label: '/ SPY', width: '58px', format: 'number' },
+  { key: 'rsi14', label: 'RSI', width: '52px', format: 'number' },
+  { key: 'position_52w', label: '52W Pos', width: '68px' },
+]
+function displayIndustryValue(item: { values: Record<string, string | number | null> }, key: string) {
+  const value = item.values[key]
+  if (value == null) return '—'
+  if (typeof value !== 'number') return value
+  return key === 'rsi14' || key === 'position_52w' || key === 'relative_ratio' || key === 'relative_spy'
+    ? value.toFixed(2)
+    : `${(value * 100).toFixed(2)}%`
+}
 function classificationLabel(systems?: string[]) {
   const values = [...new Set((systems ?? []).filter(Boolean))]
   if (!values.length) return 'Unclassified'
@@ -1711,6 +1763,7 @@ const industryColumns: WatchlistColumn[] = [
   { key: 'symbol', label: 'Industry', width: 'minmax(120px, 1fr)' },
   { key: 'name', label: 'Coverage', width: '78px' },
   { key: 'proxy_count', label: 'Proxies', width: '58px' },
+  ...industryRankingColumns,
   { key: 'coverage', label: 'Coverage %', width: '72px', format: 'percent' },
   { key: 'as_of', label: 'As of', width: '74px' },
   { key: 'provenance', label: 'Provenance', width: '110px' },
@@ -2122,7 +2175,14 @@ const proxyCoverage = computed(() => industryProxySnapshot.value
 }
 .metrics b { color: #d2dce3; font-weight: 500; text-align: right; }
 .industry-list { height: 100%; overflow: auto; background: #11161b; font: 11px "Segoe UI", Arial, sans-serif; }
+.industry-list__header { display: flex; gap: 8px; min-width: 920px; padding: 5px 7px; border-bottom: 1px solid #34434e; color: #91a6b2; font-size: 10px; font-weight: 600; white-space: nowrap; }
+.industry-list__header span:first-child { min-width: 120px; flex: 1 1 auto; }
+.industry-list__header span:not(:first-child) { flex: 0 0 52px; text-align: right; }
+.industry-list__header span:nth-child(2) { flex-basis: 78px; }
+.industry-list__header span:nth-child(3) { flex-basis: 58px; }
 .industry-list__row { display: flex; width: 100%; justify-content: space-between; gap: 8px; padding: 7px; border: 0; border-bottom: 1px solid #20282f; background: transparent; color: #c7d0d8; text-align: left; cursor: pointer; }
+.industry-list__row { min-width: 920px; }
+.industry-list__metric { flex: 0 0 52px; overflow: hidden; text-align: right; text-overflow: ellipsis; white-space: nowrap; }
 .industry-list__row:hover, .industry-list__row--active { background: #1d4057; }
 .industry-list__classification { flex: 0 0 auto; max-width: 120px; overflow: hidden; color: #a9b7bf; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
 .industry-list__proxies { display: grid; gap: 3px; padding: 6px 7px; border-bottom: 1px solid #20282f; color: #8998a3; }

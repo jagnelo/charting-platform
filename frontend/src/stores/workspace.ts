@@ -275,6 +275,32 @@ export interface ETFIndustryProxyState {
   exclusions: string[]
 }
 
+export interface IndustrySnapshotState {
+  etf_symbol: string
+  market_benchmark: string
+  timeframe?: string
+  composition_date: string
+  known_at: string | null
+  membership_version?: number
+  universe_provenance?: Record<string, unknown>
+  coverage: number
+  rows: Array<{
+    industry: string
+    constituent_count: number
+    resolved_count: number
+    coverage: number
+    last: { value: number | null; observation_time?: string | null; warning?: { code: string; message: string } | null }
+    performance: Record<string, { value: number | null; observation_time?: string | null; warning?: { code: string; message: string } | null }>
+    relative_to_benchmark?: { value: number | null; warning?: { code: string; message: string } | null } | null
+    relative_to_market?: { value: number | null; warning?: { code: string; message: string } | null } | null
+    technical?: Record<string, { value: number | null; warning?: { code: string; message: string } | null }>
+    warnings?: Array<{ code: string; message: string }>
+  }>
+  exclusions: Array<{ code: string; message: string }>
+  freshness?: 'current' | 'delayed' | 'stale' | 'partial' | 'coverage_limited' | 'coverage-limited' | 'unavailable'
+  freshness_detail?: Record<string, number>
+}
+
 export interface IndustryProxySnapshotState {
   rows: Array<{
     instrument_id: number
@@ -396,6 +422,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   const industryConstituents = ref<Record<string, ETFIndustryConstituentsState | null>>({})
   const industryProxies = ref<Record<string, ETFIndustryProxyState | null>>({})
   const industryProxySnapshots = ref<Record<string, IndustryProxySnapshotState | null>>({})
+  const industrySnapshots = ref<Record<string, IndustrySnapshotState | null>>({})
+  const industrySnapshotErrors = ref<Record<string, string | null>>({})
   const technicals = ref<Record<string, TechnicalSnapshotState | null>>({})
   const marketAnalysisRefreshing = ref(false)
   const marketAnalysisRefreshedAt = ref<string | null>(null)
@@ -1228,6 +1256,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       const composition = await api.get<ETFIndustryCompositionState>(`/market-groups/etf/${encodeURIComponent(normalized)}/industries`)
       if (!isCurrentAnalysisRequest(requestKey, generation)) return null
       etfIndustries.value = { ...etfIndustries.value, [normalized]: composition }
+      void loadIndustrySnapshot(normalized)
       return composition
     } catch (cause: any) {
       if (!isCurrentAnalysisRequest(requestKey, generation)) return null
@@ -1236,6 +1265,27 @@ export const useWorkspaceStore = defineStore('workspace', () => {
         return null
       }
       error.value = cause?.message ?? `Unable to load ETF industries for ${normalized}`
+      return null
+    }
+  }
+
+  async function loadIndustrySnapshot(symbol: string) {
+    const normalized = symbol.trim().toUpperCase()
+    if (!normalized) return null
+    const requestKey = 'top-down:industry-snapshot'
+    const generation = beginAnalysisRequest(requestKey)
+    if (!documentIsVisible()) return null
+    industrySnapshotErrors.value = { ...industrySnapshotErrors.value, [normalized]: null }
+    try {
+      const snapshot = await api.get<IndustrySnapshotState>(`/analysis/etf/${encodeURIComponent(normalized)}/industries/snapshot`, { market_benchmark: 'SPY' })
+      if (!isCurrentAnalysisRequest(requestKey, generation)) return null
+      industrySnapshots.value = { ...industrySnapshots.value, [normalized]: snapshot }
+      return snapshot
+    } catch (cause: any) {
+      if (!isCurrentAnalysisRequest(requestKey, generation)) return null
+      const message = cause?.message ?? `Unable to rank industries for ${normalized}`
+      industrySnapshots.value = { ...industrySnapshots.value, [normalized]: null }
+      industrySnapshotErrors.value = { ...industrySnapshotErrors.value, [normalized]: message }
       return null
     }
   }
@@ -1853,6 +1903,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     industryConstituents,
     industryProxies,
     industryProxySnapshots,
+    industrySnapshots,
+    industrySnapshotErrors,
     technicals,
     constituentETF,
     selectedIndustry,
@@ -1882,6 +1934,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     loadETFHoldings,
     loadETFConstituentSnapshot,
     loadETFIndustries,
+    loadIndustrySnapshot,
     selectIndustry,
     loadIndustryProxies,
     loadIndustryProxySnapshot,
