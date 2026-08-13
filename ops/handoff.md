@@ -36,8 +36,8 @@
   commits covering Python validation, the backend platform, generated-artifact hygiene, the frontend
   workstation, and documentation/acceptance evidence. The default sandbox denied `.git/index.lock`,
   but the permitted elevated Git boundary succeeded without any destructive index workaround. The
-  nine commits are now pushed and verified synchronized with origin (five substantive
-  implementation/artifact commits plus four operational-record commits); the active product goal and its
+  The categorized implementation and operational-record commits are now pushed and verified
+  synchronized with origin; the active product goal and its
   documented gaps remain open.
 
 ## 2026-08-13 — Constituent batch exclusion disclosure repair
