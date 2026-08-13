@@ -191,6 +191,7 @@ import { isEditorTarget } from '@/lib/workstation/keyboard'
 import { candlestickPlugin }       from '@/lib/uplot/plugins/candlestick'
 import { ohlcBarsPlugin }          from '@/lib/uplot/plugins/ohlc-bars'
 import { baselinePlugin }          from '@/lib/uplot/plugins/baseline'
+import { alternativeBarsPlugin }   from '@/lib/uplot/plugins/alternative-bars'
 import { approxVolumeProfilePlugin } from '@/lib/uplot/plugins/approx-volume-profile'
 import { volumePlugin }            from '@/lib/uplot/plugins/volume'
 import { alertLinesPlugin }        from '@/lib/uplot/plugins/alert-lines'
@@ -1684,12 +1685,11 @@ async function initChart() {
     plugins.unshift(ohlcBarsPlugin({ upColor: '#26a69a', downColor: '#ef5350' }))
   } else if (effectiveChartType.value === 'baseline') {
     plugins.unshift(baselinePlugin())
+  } else if (effectiveChartType.value === 'renko' || effectiveChartType.value === 'kagi' || effectiveChartType.value === 'point_figure') {
+    plugins.unshift(alternativeBarsPlugin({ kind: effectiveChartType.value }))
   } else if (
     effectiveChartType.value === 'candles'
     || effectiveChartType.value === 'heikin_ashi'
-    || effectiveChartType.value === 'renko'
-    || effectiveChartType.value === 'kagi'
-    || effectiveChartType.value === 'point_figure'
   ) {
     plugins.unshift(candlestickPlugin({ upColor: '#26a69a', downColor: '#ef5350' }))
   }
