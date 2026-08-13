@@ -1,5 +1,14 @@
 # Run Report
 
+## 2026-08-13 — Canonical matrix stability context opened
+
+- After the successful push recovery, opened the named `canonical-matrix-stability` context at a
+  clean synchronized boundary. Scope is the complete non-seeded authenticated flow matrix and any
+  repository-controlled repairs it exposes; no implementation file is pre-owned yet.
+- The context addresses the documented stable-gateway follow-up for the earlier `127/134` discovery
+  run and isolated repairs. No acceptance threshold, visual mask, board authority, provider rule,
+  or product boundary is relaxed.
+
 ## 2026-08-13 — Push recovery completed; implementation freeze lifted
 
 - After explicit user authorization, the exact elevated push command succeeded:

@@ -1,5 +1,21 @@
 # Active Handoff
 
+## 2026-08-13 — Canonical matrix stability context opened
+
+- The prior push recovery is complete: local and origin both resolve to `91463e54`, and the
+  worktree is clean. The next named context is `canonical-matrix-stability`.
+- Scope: rebuild the branch-scoped non-seeded stack, run the complete authenticated
+  `frontend/tests/e2e/flows.spec.ts` matrix under the current gateway, classify any failures, and
+  repair only repository-controlled defects with focused and broader validation. Owned paths are
+  the affected frontend/backend/test files discovered by that run; no path is pre-owned until a
+  concrete failure is reproduced.
+- This context targets the documented stable-gateway follow-up (`127/134` discovery run and later
+  isolated repairs). It does not relax visual, provider, historical, monitor, endurance, or final
+  audit criteria. Any board/fixture/bounded-stress flexibility used will be recorded explicitly.
+- Exact next action: start/rebuild the branch stack with the canonical non-seeded settings, then run
+  the complete matrix serially. Close this context with scoped commit/push/hash verification before
+  selecting another context.
+
 ## 2026-08-13 — Push recovery completed; implementation freeze lifted
 
 - The user explicitly authorized the exact remote push after the repeated environment safeguard
