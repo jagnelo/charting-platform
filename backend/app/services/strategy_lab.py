@@ -1646,13 +1646,75 @@ def _histogram(values: list[float], *, bucket_count: int = 8) -> list[dict[str, 
     return rows
 
 
-def _trade_distributions(trades: list[NautilusTrade]) -> dict:
+def _trade_excursion_rows(
+    trades: list[NautilusTrade],
+    *,
+    bars_by_instrument: dict[int, list[OHLCVBar]],
+) -> list[dict[str, float | int | str | None]]:
+    """Calculate maximum adverse/favorable excursion from the bars held by each trade.
+
+    MAE/MFE are expressed as percentage moves from the actual adjusted entry price.
+    The entry and exit bars are included because a bar can contain the excursion that
+    triggered the order; rows without materialized bars are retained with null values
+    rather than being silently dropped.
+    """
+    rows: list[dict[str, float | int | str | None]] = []
+    for trade in trades:
+        entry_dt = _parse_iso_datetime(trade.entry_at)
+        exit_dt = _parse_iso_datetime(trade.exit_at)
+        bars = [
+            bar
+            for bar in bars_by_instrument.get(trade.instrument_id, [])
+            if entry_dt <= bar.ts.astimezone(UTC) <= exit_dt
+        ]
+        entry_price = float(trade.entry_price)
+        row: dict[str, float | int | str | None] = {
+            "instrument_id": trade.instrument_id,
+            "instrument_symbol": trade.instrument_symbol,
+            "entry_at": trade.entry_at,
+            "exit_at": trade.exit_at,
+            "side": trade.side,
+            "mae_pct": None,
+            "mfe_pct": None,
+            "mae_price": None,
+            "mfe_price": None,
+            "bars_available": len(bars),
+        }
+        if entry_price <= 0 or not bars:
+            rows.append(row)
+            continue
+
+        highs = [float(bar.high) for bar in bars]
+        lows = [float(bar.low) for bar in bars]
+        if str(trade.side).lower() == "short":
+            favorable_price = min(lows)
+            adverse_price = max(highs)
+            row["mfe_price"] = round(favorable_price, 6)
+            row["mae_price"] = round(adverse_price, 6)
+            row["mfe_pct"] = round((entry_price - favorable_price) / entry_price * 100.0, 6)
+            row["mae_pct"] = round((entry_price - adverse_price) / entry_price * 100.0, 6)
+        else:
+            favorable_price = max(highs)
+            adverse_price = min(lows)
+            row["mfe_price"] = round(favorable_price, 6)
+            row["mae_price"] = round(adverse_price, 6)
+            row["mfe_pct"] = round((favorable_price - entry_price) / entry_price * 100.0, 6)
+            row["mae_pct"] = round((adverse_price - entry_price) / entry_price * 100.0, 6)
+        rows.append(row)
+    return rows
+
+
+def _trade_distributions(
+    trades: list[NautilusTrade],
+    *,
+    bars_by_instrument: dict[int, list[OHLCVBar]] | None = None,
+) -> dict:
     if not trades:
         return {
             "holding_bars": [],
             "r_multiple": [],
             "pnl": [],
-            "mae_mfe": {},
+            "mae_mfe": {"sample_size": 0, "rows": [], "mae_histogram": [], "mfe_histogram": []},
             "holding_histogram": [],
             "r_histogram": [],
             "pnl_histogram": [],
@@ -1660,10 +1722,22 @@ def _trade_distributions(trades: list[NautilusTrade]) -> dict:
     holding = [float(trade.bars_held) for trade in trades]
     r_multiple = [round(trade.r_multiple, 4) for trade in trades]
     pnl_values = [round(trade.pnl, 4) for trade in trades]
+    excursion_rows = _trade_excursion_rows(
+        trades,
+        bars_by_instrument=bars_by_instrument or {},
+    )
+    mae_values = [float(row["mae_pct"]) for row in excursion_rows if row["mae_pct"] is not None]
+    mfe_values = [float(row["mfe_pct"]) for row in excursion_rows if row["mfe_pct"] is not None]
     return {
         "holding_bars": [trade.bars_held for trade in trades],
         "r_multiple": r_multiple,
         "pnl": pnl_values,
+        "mae_mfe": {
+            "sample_size": len(excursion_rows),
+            "rows": excursion_rows,
+            "mae_histogram": _histogram(mae_values),
+            "mfe_histogram": _histogram(mfe_values),
+        },
         "holding_histogram": _histogram(holding),
         "r_histogram": _histogram(r_multiple),
         "pnl_histogram": _histogram(pnl_values),
@@ -2601,7 +2675,10 @@ async def _run_rules_backtest(
         "drawdown_curve": _drawdown_curve(equity_curve),
         "monthly_returns": _monthly_returns(equity_curve),
         "quarterly_returns": _quarterly_returns(equity_curve),
-        "trade_distributions": _trade_distributions(trades),
+        "trade_distributions": _trade_distributions(
+            trades,
+            bars_by_instrument=bars_by_instrument,
+        ),
     }
     benchmark_comparison = _benchmark_comparison(equity_curve, benchmark)
 
@@ -3229,7 +3306,10 @@ async def _run_radar_signal_research(
         "drawdown_curve": _drawdown_curve(equity_curve),
         "monthly_returns": _monthly_returns(equity_curve),
         "quarterly_returns": _quarterly_returns(equity_curve),
-        "trade_distributions": _trade_distributions(trades),
+        "trade_distributions": _trade_distributions(
+            trades,
+            bars_by_instrument=bars_by_instrument,
+        ),
     }
     benchmark_comparison = _benchmark_comparison(equity_curve, benchmark)
 

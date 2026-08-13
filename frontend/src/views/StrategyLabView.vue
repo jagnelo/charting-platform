@@ -1434,6 +1434,10 @@
                     empty-label="No closed trade R multiples yet."
                   />
                 </div>
+                <div class="mini-panel mini-panel--wide" v-if="tradeDistributions.mae_mfe?.rows?.length">
+                  <div class="subsection-head"><h4>Trade excursions</h4></div>
+                  <ExcursionBars :rows="tradeDistributions.mae_mfe.rows" />
+                </div>
               </div>
 
               <div class="trade-table-wrap">
@@ -1567,6 +1571,7 @@ import SearchBar from '@/components/common/SearchBar.vue'
 import TagPicker from '@/components/common/TagPicker.vue'
 import TextPromptModal from '@/components/common/TextPromptModal.vue'
 import DistributionBars from '@/components/strategy/DistributionBars.vue'
+import ExcursionBars from '@/components/strategy/ExcursionBars.vue'
 import OptimizationLeaderboard from '@/components/strategy/OptimizationLeaderboard.vue'
 import PaperForwardMonitorPanel from '@/components/strategy/PaperForwardMonitorPanel.vue'
 import ReturnsHeatmap from '@/components/strategy/ReturnsHeatmap.vue'

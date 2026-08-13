@@ -1472,6 +1472,11 @@ class TestStrategyLabAPI:
         assert payload["result_summary"]["walk_forward"]["segment_count"] == 3
         assert payload["result_summary"]["analytics"]["drawdown_curve"] is not None
         assert payload["result_summary"]["optimization"]["leaderboard"] is not None
+        excursion = payload["result_summary"]["analytics"]["trade_distributions"]["mae_mfe"]
+        assert excursion["sample_size"] >= 0
+        assert isinstance(excursion["rows"], list)
+        assert isinstance(excursion["mae_histogram"], list)
+        assert isinstance(excursion["mfe_histogram"], list)
 
     def test_radar_source_run_replays_historical_detections(
         self, client, auth_headers, db, instrument, ohlcv_bars

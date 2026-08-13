@@ -13,6 +13,7 @@ from app.services.strategy_lab import (
     _extract_risk_and_exit_config,
     _queue_python_signal_research,
     _symbol_performance_snapshot,
+    _trade_distributions,
 )
 from app.services.strategy_lab_nautilus import NautilusOpenPosition, NautilusTrade
 
@@ -125,6 +126,92 @@ def _bar(instrument_id: int, ts: datetime, close: float) -> OHLCVBar:
         volume=Decimal("1000"),
         is_adjusted=True,
     )
+
+
+def test_trade_distributions_include_bar_based_mae_and_mfe():
+    trade = _trade("AAPL", "2026-01-01T00:00:00+00:00", "2026-01-03T00:00:00+00:00", 200.0)
+    bars = {
+        1: [
+            OHLCVBar(
+                instrument_id=1,
+                timeframe=Timeframe.D1,
+                ts=datetime(2026, 1, 1, tzinfo=UTC),
+                open=Decimal("100"), high=Decimal("103"), low=Decimal("99"), close=Decimal("101"),
+                volume=Decimal("1000"), is_adjusted=True,
+            ),
+            OHLCVBar(
+                instrument_id=1,
+                timeframe=Timeframe.D1,
+                ts=datetime(2026, 1, 2, tzinfo=UTC),
+                open=Decimal("101"), high=Decimal("106"), low=Decimal("98"), close=Decimal("104"),
+                volume=Decimal("1000"), is_adjusted=True,
+            ),
+            OHLCVBar(
+                instrument_id=1,
+                timeframe=Timeframe.D1,
+                ts=datetime(2026, 1, 3, tzinfo=UTC),
+                open=Decimal("104"), high=Decimal("105"), low=Decimal("102"), close=Decimal("102"),
+                volume=Decimal("1000"), is_adjusted=True,
+            ),
+        ]
+    }
+    distributions = _trade_distributions([trade], bars_by_instrument=bars)
+    excursion = distributions["mae_mfe"]
+    assert excursion["sample_size"] == 1
+    assert excursion["rows"][0]["mae_pct"] == -2.0
+    assert excursion["rows"][0]["mfe_pct"] == 6.0
+    assert excursion["mae_histogram"]
+    assert excursion["mfe_histogram"]
+
+
+def test_trade_distributions_preserve_unmaterialized_rows_and_use_short_semantics():
+    short_trade = NautilusTrade(
+        instrument_id=2,
+        instrument_symbol="TSLA",
+        side="short",
+        entry_at="2026-01-01T00:00:00+00:00",
+        exit_at="2026-01-02T00:00:00+00:00",
+        entry_price=100.0,
+        exit_price=96.0,
+        stop_price=103.0,
+        target_price=94.0,
+        quantity=1.0,
+        pnl=4.0,
+        pnl_pct=0.04,
+        r_multiple=0.4,
+        bars_held=2,
+        exit_reason="target",
+    )
+    distributions = _trade_distributions(
+        [short_trade],
+        bars_by_instrument={
+            2: [
+                OHLCVBar(
+                    instrument_id=2,
+                    timeframe=Timeframe.D1,
+                    ts=datetime(2026, 1, 1, tzinfo=UTC),
+                    open=Decimal("100"), high=Decimal("102"), low=Decimal("95"), close=Decimal("98"),
+                    volume=Decimal("1000"), is_adjusted=True,
+                ),
+                OHLCVBar(
+                    instrument_id=2,
+                    timeframe=Timeframe.D1,
+                    ts=datetime(2026, 1, 2, tzinfo=UTC),
+                    open=Decimal("98"), high=Decimal("101"), low=Decimal("96"), close=Decimal("96"),
+                    volume=Decimal("1000"), is_adjusted=True,
+                ),
+            ]
+        },
+    )
+    short_excursion = distributions["mae_mfe"]["rows"][0]
+    assert short_excursion["mae_pct"] == -2.0
+    assert short_excursion["mfe_pct"] == 5.0
+
+    unavailable = _trade("MSFT", "2026-01-01T00:00:00+00:00", "2026-01-02T00:00:00+00:00", 50.0)
+    unavailable_row = _trade_distributions([unavailable], bars_by_instrument={})["mae_mfe"]["rows"][0]
+    assert unavailable_row["bars_available"] == 0
+    assert unavailable_row["mae_pct"] is None
+    assert unavailable_row["mfe_pct"] is None
 
 
 def _open_position(
