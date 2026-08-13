@@ -198,7 +198,10 @@ this order:
    `ops/state.json`, and `ops/run-report.md` with the exact commit hash,
    validation evidence, remaining gaps, acceptance flexibility, and the next
    context. Commit and push this operational record as a separate small
-   checkpoint, then verify clean status and matching hashes again.
+   checkpoint, then verify clean status and matching hashes again. The state
+   files cannot contain the final SHA of the commit that contains them; record
+   the last known pre-record checkpoint and explicitly state that the enclosing
+   commit is verified externally with `git rev-parse`.
 7. Begin the next context only after the second verification. The first command
    for a new context must confirm the clean, synchronized boundary; if it does
    not, return to closure rather than adding more work.
@@ -225,8 +228,12 @@ this order:
   do not start a different context until that context is closed. An unlabelled
   dirty tree is always treated as an operational defect.
 - “No changes” is also a closure result: record the no-op audit and leave the
-  tree clean instead of creating placeholder edits or carrying a stale dirty
-  state forward.
+   tree clean instead of creating placeholder edits or carrying a stale dirty
+   state forward.
+- Never chase a self-referential state hash by making another commit solely to
+  update `last_commit` to the hash of the commit that contains that update. The
+  recorded prior checkpoint plus the post-push `HEAD`/origin comparison is the
+  durable, reproducible proof of closure.
 
 ### `.git/index.lock` recovery
 

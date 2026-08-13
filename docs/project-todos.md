@@ -1,11 +1,12 @@
 # Project TODO Memory
 
-### 2026-08-13 — Finalize checkpoint metadata against actual HEAD
+### 2026-08-13 — Finalize checkpoint metadata semantics
 
-- [x] Correct the final stale checkpoint field discovered by post-push verification: `ops/state.json`
-      now records `b578075e` as the actual latest commit and the branch remains clean and
-      synchronized. This confirms the closure protocol itself catches metadata drift before a new
-      context begins. No product acceptance flexibility used.
+- [x] Document the Git self-reference boundary: `ops/state.json` records the last known
+      pre-record checkpoint, while post-push `git status --short --branch` and matching
+      `git rev-parse HEAD`/origin hashes prove the enclosing operational-record commit. Do not
+      create an endless metadata-only commit loop trying to record a commit's own SHA. No product
+      acceptance flexibility used.
 
 ### 2026-08-13 — Enforce explicit changeset closure and synchronized workflow state
 

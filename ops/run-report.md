@@ -1,10 +1,11 @@
 # Run Report
 
-## 2026-08-13 — Finalize checkpoint metadata against actual HEAD
+## 2026-08-13 — Finalize checkpoint metadata semantics
 
-- Final verification found one stale operational field and corrected `ops/state.json.last_commit`
-  to the actual latest synchronized checkpoint `b578075e docs(ops): finalize synchronized
-  checkpoint`; the full closure chain is now recorded in `git_checkpoint`.
+- Final verification established the Git self-reference boundary: an operational record cannot
+  contain the final SHA of the commit that contains it. State therefore records the last known
+  pre-record checkpoint, while clean status and matching `HEAD`/origin hashes are the authoritative
+  post-push proof for the enclosing commit; no metadata-only commit loop is required.
 - This was a workflow-record correction only. No product acceptance threshold, visual-reference
   policy, or flexibility rule changed. Acceptance flexibility used: **None**.
 
