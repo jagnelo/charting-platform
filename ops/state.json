@@ -5,9 +5,9 @@
   "worker_session_started_at": "2026-07-28T21:40:33Z",
   "worker_soft_stop_at": null,
   "last_handoff_at": "2026-08-13T00:00:00Z",
-  "last_commit": "4d6d6c6c docs(workflow): enforce changeset git checkpoints",
+  "last_commit": "4c53bb77 docs(ops): record current workstation audit",
   "git_ready_to_commit": false,
-  "git_checkpoint": "Categorized implementation and operational-record commits are pushed, and origin/feat/tc2000-frontend-rework is synchronized at 4d6d6c6c. Workflow docs now require per-changeset commit/push checkpoints and document elevated Git recovery for sandbox-denied .git/index.lock creation.",
+  "git_checkpoint": "Categorized implementation and operational-record commits are pushed, and origin/feat/tc2000-frontend-rework is synchronized at 4c53bb77. Workflow docs require per-changeset commit/push checkpoints and document elevated Git recovery for sandbox-denied .git/index.lock creation.",
   "validation": {
     "current_source_goal_audit_20260813": "passed-with-open-goal-gaps: Visual manifest validates; frontend Vitest 770/770, type-check, and 471-module production build pass. Unprivileged Chromium startup failed before execution at the known macOS Mach-port permission boundary; permitted elevated authenticated workstation rerun passes 24/24 covering top-down drilldown, ratios, links/crosshairs/gestures, keyboard traversal, Python/EasyScan reuse, plot transfer, alerts, drawing menus, combo watchlists, and 125% containment. Recent backend logs show no audited traceback, critical/fatal, integrity, or 5xx signature. Acceptance flexibility used: none; exact/unrepresented V25, provider/entitlement, historical/GICS, native-monitor, endurance, and final-audit gaps remain open, 2026-08-13",
     "python_private_attribute_boundary_20260813": "passed-with-open-goal-gaps: API and isolated-runner validators now reject all private attributes consistently, including pandas wrapper internals, before execution. Focused Python security/research 112/112, code API integration 21/21, full backend unit 1116/1116, rebuilt backend/worker/research-runner healthy, authenticated Study Lab browser 2/2, service-log scan, Ruff, compileall, and diff checks pass. Acceptance flexibility used: none; exact/unrepresented V25, historical/GICS, provider, native-monitor, endurance, and final-audit gaps remain open, 2026-08-13",
