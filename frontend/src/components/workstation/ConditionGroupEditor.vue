@@ -7,7 +7,7 @@
         <option value="OR">Match any (OR)</option>
         <option value="NOT">Exclude (NOT)</option>
       </select>
-      <button v-if="canRemove" type="button" aria-label="Remove condition group" @click="emit('remove')">×</button>
+      <button v-if="canRemove" type="button" aria-label="Remove condition group" @click="emit('remove')"><WorkstationGlyph kind="delete" /></button>
     </header>
     <div class="condition-group__children">
       <template v-for="(child, index) in group.conditions" :key="index">
@@ -37,6 +37,7 @@
 <script setup lang="ts">
 import TechnicalConditionEditor from '@/components/common/TechnicalConditionEditor.vue'
 import { createDefaultTechnicalCondition, type TechnicalConditionDraft } from '@/lib/technicalConditions'
+import WorkstationGlyph from './WorkstationGlyph.vue'
 
 interface ConditionGroup {
   operator: 'AND' | 'OR' | 'NOT'

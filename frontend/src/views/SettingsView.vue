@@ -63,6 +63,7 @@
                 {{ isPanelOpen(group.provider, 'usage') ? 'Hide usage' : 'Show usage' }}
               </button>
               <button
+                v-if="authStore.user?.is_admin"
                 type="button"
                 class="provider-toggle"
                 :aria-expanded="isPanelOpen(group.provider, 'config')"
@@ -187,7 +188,7 @@
             </div>
           </div>
 
-          <div v-if="isPanelOpen(group.provider, 'config')" class="provider-panel">
+          <div v-if="authStore.user?.is_admin && isPanelOpen(group.provider, 'config')" class="provider-panel">
             <div class="provider-panel-head">
               <strong>Capability configuration</strong>
               <span>Expand this only when you need to tune routing and freshness behavior.</span>
@@ -251,15 +252,58 @@
         </div>
       </div>
     </section>
+
+    <section v-if="authStore.user?.is_admin" class="settings-section reconciliation-section">
+      <h3>Identity reconciliation review</h3>
+      <p class="hint">Ambiguous provider discoveries are held here until an administrator explicitly resolves or ignores them.</p>
+      <div v-if="reconciliationLoading" class="empty-hint">Loading review queue...</div>
+      <div v-else-if="reconciliationError" class="push-status err" role="alert">{{ reconciliationError }}</div>
+      <div v-else-if="!reconciliationIssues.length" class="empty-hint">No open identity issues.</div>
+      <div v-else class="reconciliation-list" role="list" aria-label="Identity reconciliation issues">
+        <article v-for="issue in reconciliationIssues" :key="issue.id" class="reconciliation-card" role="listitem">
+          <div class="reconciliation-card__head">
+            <strong>{{ issue.provider_symbol }}</strong>
+            <span>{{ issue.provider ?? 'Unknown provider' }} · {{ issue.issue_type }}</span>
+          </div>
+          <p class="reconciliation-card__meta">Observed {{ formatDateTime(issue.observed_at) }} · {{ issue.candidates.length }} candidates</p>
+          <ul class="reconciliation-candidates">
+            <li v-for="(candidate, index) in issue.candidates" :key="`${issue.id}-${index}`">
+              {{ candidate.name || 'Unnamed issuer' }}<span v-if="candidate.cik"> · CIK {{ candidate.cik }}</span><span v-if="candidate.exchange"> · {{ candidate.exchange }}</span>
+            </li>
+          </ul>
+          <div class="reconciliation-card__actions">
+            <button type="button" class="settings-btn" @click="reviewIssue(issue, 'resolved')">Mark resolved</button>
+            <button type="button" class="settings-btn settings-btn--muted" @click="reviewIssue(issue, 'ignored')">Ignore</button>
+          </div>
+        </article>
+      </div>
+    </section>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { api } from '@/lib/api'
+import { useAuthStore } from '@/stores/auth'
 import { usePresetsStore } from '@/stores/presets'
 import type { ProviderPolicyStatus, ProviderUsageBucket, ProviderUsageSummary } from '@/types'
 
+interface ReconciliationCandidate { name?: string; cik?: string; exchange?: string }
+interface ReconciliationIssue {
+  id: number
+  provider: string | null
+  provider_symbol: string
+  issue_type: string
+  status: 'open' | 'resolved' | 'ignored'
+  candidates: ReconciliationCandidate[]
+  payload: Record<string, unknown>
+  observed_at: string
+  resolved_at: string | null
+  resolution: Record<string, unknown> | null
+  resolved_by?: { id: number; username: string; display_name?: string | null } | null
+}
+
+const authStore = useAuthStore()
 const presetsStore = usePresetsStore()
 const oneSignalAppId = ref(localStorage.getItem('onesignal_app_id') ?? '')
 const apiBase = ref(localStorage.getItem('api_base') ?? '')
@@ -270,6 +314,9 @@ const providerUsage = ref<ProviderUsageSummary[]>([])
 const providersLoading = ref(false)
 const providerError = ref<string | null>(null)
 const providerPanels = ref<Record<string, { usage: boolean; config: boolean }>>({})
+const reconciliationIssues = ref<ReconciliationIssue[]>([])
+const reconciliationLoading = ref(false)
+const reconciliationError = ref<string | null>(null)
 
 const providerCards = computed(() => {
   const groups = new Map<string, ProviderPolicyStatus[]>()
@@ -472,9 +519,39 @@ async function patchPolicy(policy: ProviderPolicyStatus, patch: Record<string, u
   }
 }
 
+async function loadReconciliationIssues() {
+  if (!authStore.user?.is_admin) return
+  reconciliationLoading.value = true
+  reconciliationError.value = null
+  try {
+    const rows = await api.get<ReconciliationIssue[]>('/providers/reconciliation/issues?status=open&limit=200')
+    reconciliationIssues.value = rows.map((row) => ({
+      ...row,
+      candidates: Array.isArray(row.candidates) ? row.candidates : [],
+    }))
+  } catch (e: any) {
+    reconciliationError.value = e?.message ?? 'Failed to load reconciliation issues'
+  } finally {
+    reconciliationLoading.value = false
+  }
+}
+
+async function reviewIssue(issue: ReconciliationIssue, status: 'resolved' | 'ignored') {
+  reconciliationError.value = null
+  try {
+    await api.patch(`/providers/reconciliation/issues/${issue.id}`, {
+      status,
+      resolution: { action: status, reviewed_from: 'legacy-settings' },
+    })
+    await loadReconciliationIssues()
+  } catch (e: any) {
+    reconciliationError.value = e?.message ?? 'Failed to update reconciliation issue'
+  }
+}
+
 onMounted(async () => {
   presetsStore.loadPresets()
-  await loadProviderPolicies()
+  await Promise.all([loadProviderPolicies(), loadReconciliationIssues()])
 })
 </script>
 
@@ -510,6 +587,14 @@ onMounted(async () => {
   cursor: pointer;
   font-size: 12px;
 }
+.settings-btn--muted { border-color: #4a4a4a; color: #aaa; background: #222; }
+.reconciliation-list { display: grid; gap: 8px; }
+.reconciliation-card { border: 1px solid #3a2d22; background: #171311; padding: 10px; border-radius: 3px; }
+.reconciliation-card__head { display: flex; align-items: baseline; gap: 8px; color: #f0d0a0; }
+.reconciliation-card__head span,.reconciliation-card__meta { color: #927f6c; font-size: 11px; }
+.reconciliation-card__meta { margin: 5px 0; }
+.reconciliation-candidates { margin: 5px 0 10px; padding-left: 18px; color: #c4b7aa; font-size: 12px; line-height: 1.45; }
+.reconciliation-card__actions { display: flex; gap: 6px; }
 
 .push-status { margin-top: 8px; font-size: 12px; }
 .push-status.ok  { color: #66bb6a; }

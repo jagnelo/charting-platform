@@ -88,7 +88,7 @@ import {
 } from '@/lib/instruments'
 import { useRecentInstrumentsStore } from '@/stores/recentInstruments'
 
-interface SearchResult { symbol: string; name: string; exchange: string; type: string }
+interface SearchResult { symbol: string; name: string; exchange: string; type: string; instrument_id?: number | null }
 
 const props = withDefaults(defineProps<{
   placeholder?: string

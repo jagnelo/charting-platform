@@ -1,36 +1,36 @@
 <template>
-  <svg
-    viewBox="0 0 80 32"
-    width="80"
-    height="32"
+  <div
+    ref="host"
     class="sparkline"
-    :class="{ 'sparkline--loading': loading }"
-  >
-    <polyline
-      v-if="points"
-      :points="points"
-      fill="none"
-      :stroke="color"
-      stroke-width="1.5"
-      stroke-linejoin="round"
-      stroke-linecap="round"
-    />
-    <line v-else-if="!loading" x1="8" y1="16" x2="72" y2="16" stroke="#333" stroke-width="1" stroke-dasharray="3 3" />
-  </svg>
+    :style="{ width: `${width}px`, height: `${height}px` }"
+    :class="{ 'sparkline--loading': loading, 'sparkline--empty': !rawPts && !loading }"
+    aria-hidden="true"
+  />
 </template>
 
 <script setup lang="ts">
-import { ref, watch, computed } from 'vue'
+import { onBeforeUnmount, onMounted, ref, watch, computed, nextTick } from 'vue'
+import uPlot from 'uplot'
 import { sparkTf, useSparklines } from '@/composables/useSparklines'
 
-const props = defineProps<{ symbol: string }>()
+const props = withDefaults(defineProps<{
+  symbol?: string
+  /** Optional already-materialized series for dense tile/watchlist contexts. */
+  points?: number[] | null
+  width?: number
+  height?: number
+}>(), {
+  symbol: '',
+  width: 80,
+  height: 32,
+})
 
-const { load, pointsToSvg } = useSparklines()
+const { load } = useSparklines()
 
+const host = ref<HTMLElement | null>(null)
 const rawPts  = ref<number[] | null>(null)
 const loading = ref(false)
-
-const points = computed(() => rawPts.value ? pointsToSvg(rawPts.value) : null)
+let chart: uPlot | null = null
 
 const color = computed(() => {
   if (!rawPts.value || rawPts.value.length < 2) return '#555'
@@ -38,16 +38,58 @@ const color = computed(() => {
 })
 
 async function fetch() {
-  if (!props.symbol) return
+  if (props.points !== undefined) {
+    rawPts.value = props.points
+    loading.value = false
+    return
+  }
+  if (!props.symbol) {
+    rawPts.value = null
+    loading.value = false
+    return
+  }
   loading.value = true
   rawPts.value = await load(props.symbol)
   loading.value = false
 }
 
-watch([() => props.symbol, sparkTf], fetch, { immediate: true })
+function destroyChart() {
+  if (chart && typeof chart.destroy === 'function') chart.destroy()
+  chart = null
+}
+
+async function renderChart() {
+  await nextTick()
+  destroyChart()
+  const values = rawPts.value?.filter(Number.isFinite) ?? []
+  if (!host.value || values.length < 2) return
+
+  const x = values.map((_, index) => index)
+  chart = new uPlot({
+    width: props.width,
+    height: props.height,
+    padding: [1, 1, 1, 1],
+    scales: { x: { time: false }, y: { auto: true } },
+    axes: [],
+    legend: { show: false },
+    cursor: { show: false },
+    series: [
+      {},
+      { stroke: color.value, width: 1.5, points: { show: false } },
+    ],
+  }, [x, values], host.value)
+}
+
+watch([() => props.symbol, () => props.points, sparkTf], fetch, { immediate: true })
+watch([rawPts, color], renderChart, { flush: 'post' })
+onMounted(renderChart)
+onBeforeUnmount(destroyChart)
 </script>
 
 <style scoped>
 .sparkline { display: block; flex-shrink: 0; }
 .sparkline--loading { opacity: 0.3; }
+.sparkline--empty {
+  background: repeating-linear-gradient(to right, transparent 0 3px, #333 3px 5px) center / 64px 1px no-repeat;
+}
 </style>

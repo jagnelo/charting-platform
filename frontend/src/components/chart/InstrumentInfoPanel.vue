@@ -1,9 +1,9 @@
 <template>
-  <div v-if="instrument" class="info-section" :class="{ collapsed: !isOpen }">
-    <div class="section-header" @click="isOpen = !isOpen">
+  <section v-if="instrument" class="info-section" role="region" :aria-label="`${instrument.symbol} instrument report`" :class="{ collapsed: !isOpen }">
+    <div class="section-header" role="button" tabindex="0" :aria-expanded="isOpen" @click="toggleOpen" @keydown.enter.stop.prevent="toggleOpen" @keydown.space.stop.prevent="toggleOpen">
       <span class="section-title">{{ instrument.name }}</span>
       <span v-if="instrument.currency" class="info-currency">{{ instrument.currency }}</span>
-      <span class="section-chevron">{{ isOpen ? '▾' : '▸' }}</span>
+      <span class="section-chevron"><WorkstationGlyph :kind="isOpen ? 'chevron-down' : 'chevron-right'" /></span>
     </div>
 
     <Transition name="slide">
@@ -17,7 +17,7 @@
               v-for="c in instrument.synthetic_constituents"
               :key="c.ticker_alias"
               class="constituent-chip"
-              @click="emit('select', c.ticker_alias)"
+              @click="emit('select', c.ticker_alias, c.constituent_instrument_id)"
               :title="`Open ${c.ticker_alias}`"
             >{{ c.ticker_alias }}</span>
           </div>
@@ -27,8 +27,20 @@
         <template v-if="instrument.description">
           <div class="info-description" :class="{ 'info-description--expanded': descExpanded }">{{ instrument.description }}</div>
           <button v-if="instrument.description.length > 160" class="desc-more" @click="descExpanded = !descExpanded">
-            {{ descExpanded ? 'less ▴' : 'more ▾' }}
+            {{ descExpanded ? 'less' : 'more' }} <WorkstationGlyph :kind="descExpanded ? 'chevron-up' : 'chevron-down'" />
           </button>
+        </template>
+
+        <!-- Canonical venue identity. A symbol can have more than one listing;
+             retain each venue instead of flattening it to a provider label. -->
+        <template v-if="instrument.listings?.length">
+          <div class="info-label">Listings</div>
+          <div class="listing-row" v-for="listing in instrument.listings" :key="`${listing.ticker}:${listing.exchange?.mic ?? 'unknown'}`">
+            <span class="listing-ticker">{{ listing.ticker }}</span>
+            <span class="listing-venue">{{ listing.exchange?.mic || listing.exchange?.name || 'Venue unavailable' }}</span>
+            <span v-if="!listing.is_active" class="listing-status">inactive</span>
+            <span v-else-if="listing.is_primary" class="listing-status listing-status--primary">primary</span>
+          </div>
         </template>
 
         <!-- Day range -->
@@ -127,10 +139,11 @@
 
       </div>
     </Transition>
-  </div>
+  </section>
 </template>
 
 <script setup lang="ts">
+import WorkstationGlyph from '@/components/workstation/WorkstationGlyph.vue'
 import { ref, computed } from 'vue'
 import HoverTooltip from '@/components/common/HoverTooltip.vue'
 import ProvenanceHint from '@/components/common/ProvenanceHint.vue'
@@ -144,10 +157,11 @@ const props = defineProps<{
   sessionHighTime?: string | null
   sessionLowTime?: string | null
 }>()
-const emit = defineEmits<{ select: [symbol: string] }>()
+const emit = defineEmits<{ select: [symbol: string, instrumentId?: number | null] }>()
 
 const isOpen      = ref(true)
 const descExpanded = ref(false)
+function toggleOpen() { isOpen.value = !isOpen.value }
 
 const stats = computed(() => props.instrument?.stats ?? null)
 const eq    = computed(() => props.instrument?.equity_detail ?? null)
@@ -319,6 +333,42 @@ function rangeOccurrenceTitle(
   letter-spacing: 0.03em;
 }
 .desc-more:hover { color: #888; }
+
+/* Canonical listings */
+.listing-row {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+  padding: 2px 0;
+  border-bottom: 1px solid #111;
+}
+
+.listing-ticker {
+  min-width: 42px;
+  color: #bbb;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+}
+
+.listing-venue {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  color: #777;
+  font-size: 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.listing-status {
+  color: #b77b7b;
+  font-size: 8px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.listing-status--primary { color: #7797b7; }
 
 .info-constituents {
   display: flex;

@@ -31,6 +31,7 @@ class BrowserDiagnostics {
   consoleWarnings: string[] = []
   pageErrors: string[] = []
   requestFailures: string[] = []
+  unexpectedApi404Paths: string[] = []
   /**
    * The branch Compose stack intentionally starts without imported canonical market
    * data. These documented read contracts return a structured 404 that the UI renders
@@ -39,6 +40,7 @@ class BrowserDiagnostics {
    * remain fatal in browser acceptance.
    */
   expectedUnavailableApi404s = 0
+  expectedWatchlistLoadErrors = 0
   // Expression resolution is a handled validation/data-availability path. A
   // fresh stack can return 400 when the requested synthetic expression cannot
   // be materialized from the locally seeded observations.
@@ -50,9 +52,15 @@ class BrowserDiagnostics {
   // Logout clears the token before in-flight Vue Query requests finish. Those
   // documented auth-boundary responses are expected during the redirect only.
   expectedUnauthorizedResponses = 0
+  expectedAuthenticationPageErrors = 0
 
   allowExpectedUnauthorizedResponses(count = 20) {
     this.expectedUnauthorizedResponses += count
+    // The API client also rejects the in-flight request with a handled
+    // `Authentication required` error after the 401 response. Keep this
+    // diagnostic allowance separate from the response budget so one expected
+    // page error cannot mask unrelated auth failures.
+    this.expectedAuthenticationPageErrors += 1
   }
 
   attach(page: Page) {
@@ -79,8 +87,11 @@ class BrowserDiagnostics {
       }
       if (response.status() !== 404) return
       const path = new URL(response.url()).pathname
-      if (/^\/api\/v1\/(?:analysis\/(?:relative-strength|groups\/[^/]+\/(?:snapshot|relative-rotation)|instruments\/[^/]+\/technical)|coverage\/instruments\/[^/]+|etf-holdings\/[^/]+\/holdings|market-groups\/etf\/[^/]+\/industries|instruments\/[^/]+|ohlcv(?:\/local)?\/[^/]+\/[^/]+)$/.test(path)) {
+      if (/^\/api\/v1\/(?:analysis\/(?:relative-strength|groups\/[^/]+\/(?:snapshot|relative-rotation)|instruments\/[^/]+\/technical)|coverage\/instruments\/[^/]+|etf-holdings\/[^/]+\/(?:holdings|latest)|market-groups\/etf\/[^/]+\/industries|instruments\/[^/]+|ohlcv(?:\/local)?\/[^/]+\/[^/]+|watchlists(?:\/.*)?)$/.test(path)) {
         this.expectedUnavailableApi404s += 1
+        if (path === '/api/v1/watchlists') this.expectedWatchlistLoadErrors += 1
+      } else {
+        this.unexpectedApi404Paths.push(path)
       }
     })
     page.on('response', (response) => {
@@ -101,11 +112,13 @@ class BrowserDiagnostics {
         contentType: 'text/plain',
       })
     }
-    if (unexpectedConsoleErrors.length || this.pageErrors.length || this.requestFailures.length) {
+    const unexpectedPageErrors = this.filterExpectedPageErrors()
+    if (unexpectedConsoleErrors.length || unexpectedPageErrors.length || this.requestFailures.length || this.unexpectedApi404Paths.length) {
       const body = [
         unexpectedConsoleErrors.length ? `Console errors:\n${unexpectedConsoleErrors.join('\n')}` : '',
-        this.pageErrors.length ? `Page errors:\n${this.pageErrors.join('\n')}` : '',
+        unexpectedPageErrors.length ? `Page errors:\n${unexpectedPageErrors.join('\n')}` : '',
         this.requestFailures.length ? `Request failures:\n${this.requestFailures.join('\n')}` : '',
+        this.unexpectedApi404Paths.length ? `Unexpected API 404 paths:\n${this.unexpectedApi404Paths.join('\n')}` : '',
       ].filter(Boolean).join('\n\n')
       await testInfo.attach('browser-critical-issues.txt', {
         body,
@@ -120,17 +133,31 @@ class BrowserDiagnostics {
     // those responses before asserting that no unhandled browser errors exist.
     await this.page?.waitForTimeout(250)
     const unexpectedConsoleErrors = this.filterExpectedConsoleErrors()
+    const unexpectedPageErrors = this.filterExpectedPageErrors()
     expect(
       {
         consoleErrors: unexpectedConsoleErrors,
-        pageErrors: this.pageErrors,
+        pageErrors: unexpectedPageErrors,
         requestFailures: this.requestFailures,
+        unexpectedApi404Paths: this.unexpectedApi404Paths,
       },
       'unexpected browser console/page/request failures',
     ).toEqual({
       consoleErrors: [],
       pageErrors: [],
       requestFailures: [],
+      unexpectedApi404Paths: [],
+    })
+  }
+
+  private filterExpectedPageErrors() {
+    let expectedAuthenticationPageErrors = this.expectedAuthenticationPageErrors
+    return this.pageErrors.filter(error => {
+      if (/^Authentication required$/i.test(error) && expectedAuthenticationPageErrors > 0) {
+        expectedAuthenticationPageErrors -= 1
+        return false
+      }
+      return true
     })
   }
 
@@ -138,10 +165,15 @@ class BrowserDiagnostics {
     let expectedUnavailableApi404s = this.expectedUnavailableApi404s
     let expectedExpressionResolution400s = this.expectedExpressionResolution400s
     let expectedWorkspaceConflictResponses = this.expectedWorkspaceConflictResponses
+    let expectedWatchlistLoadErrors = this.expectedWatchlistLoadErrors
     return this.consoleErrors.filter(error => {
       if (error === 'Failed to load resource: the server responded with a status of 404 (Not Found)'
         && expectedUnavailableApi404s > 0) {
         expectedUnavailableApi404s -= 1
+        return false
+      }
+      if (/^Failed to load watchlists /i.test(error) && expectedWatchlistLoadErrors > 0) {
+        expectedWatchlistLoadErrors -= 1
         return false
       }
       if (error === 'Failed to load resource: the server responded with a status of 409 (Conflict)'
@@ -202,7 +234,11 @@ export class ChartPage {
 
   async goto(symbol?: string) {
     await this.page.goto(symbol ? `/chart/${symbol}` : '/chart')
-    await this.page.waitForLoadState('networkidle')
+    // The workstation intentionally keeps WebSocket/polling requests open, so
+    // network-idle is not a meaningful readiness signal here. Wait for the
+    // authenticated shell instead; individual flows then wait for the exact
+    // chart/tool state they exercise.
+    await this.page.locator('.workspace-layout-host').waitFor({ state: 'visible', timeout: 15_000 })
   }
 
   async search(symbol: string) {
@@ -305,17 +341,55 @@ export const test = base.extend<Fixtures>({
   radarPage:     async ({ page }, use) => use(new RadarPage(page)),
 
   loggedIn: async ({ page, request }, use, testInfo) => {
+    // Authentication also resets the isolated factory workspace. Under a busy
+    // local stack that one canonical reset can exceed Playwright's 30s default;
+    // keep the acceptance bounded but do not let a harness deadline interrupt
+    // an in-flight reset request and misreport it as a product failure.
+    testInfo.setTimeout(Math.max(testInfo.timeout, 60_000))
     const workerSuffix = testInfo.workerIndex ?? 0
     // Keep each flow's workspace isolated. A single shared account lets a prior
     // test's debounced snapshot race the next test and turns an otherwise handled
     // revision conflict into noisy browser diagnostics.
     const repeatSuffix = testInfo.repeatEachIndex ?? 0
-    const testSlug = `${testInfo.title.replace(/[^a-z0-9]+/gi, '_').slice(0, 12)}_${repeatSuffix}`
+    // Include a per-test nonce so a rerun cannot inherit a previous browser's
+    // delayed snapshot writer. The deterministic title remains in the slug for
+    // diagnostics, while the nonce guarantees isolated workspace revisions.
+    const testSlug = `${testInfo.title.replace(/[^a-z0-9]+/gi, '_').slice(0, 12)}_${repeatSuffix}_${Date.now().toString(36)}`
     const username = `${USER}_${workerSuffix}_${testSlug}`
     const email = EMAIL.replace('@', `+${workerSuffix}-${testSlug}@`)
     const lp = new LoginPage(page)
     await ensureUserExists(request, username, email, PASS)
     await lp.loginAs(username, PASS)
+    // The workstation intentionally polls and may keep requests in flight while
+    // it hydrates. Network-idle is therefore not a deterministic readiness
+    // signal; wait for the authenticated shell instead.
+    await page.locator('.workspace-layout-host').waitFor({ state: 'visible', timeout: 15_000 })
+    // Unmount the already-authenticated shell before resetting. Resetting a
+    // workspace while Golden Layout is mounted leaves its pending snapshot
+    // writer alive; that writer can legitimately race the reset revision and
+    // turn every subsequent tool interaction into conflict recovery.
+    const token = await page.evaluate(() => localStorage.getItem('access_token'))
+    await page.goto('about:blank')
+    const headers = token ? { Authorization: `Bearer ${token}` } : undefined
+    const workspaceResponse = await request.get('/api/v1/workspaces/default', { headers })
+    let resetResponse = { status: workspaceResponse.status(), reset: false }
+    if (workspaceResponse.ok()) {
+      const workspace = await workspaceResponse.json() as { id?: number; settings?: { factory_id?: string } }
+      if (typeof workspace.id === 'number' && workspace.settings?.factory_id === 'us-top-down') {
+        const reset = await request.post(`/api/v1/workspaces/${workspace.id}/reset-factory`, { headers })
+        resetResponse = { status: reset.status(), reset: reset.ok() }
+      }
+    }
+    if (!resetResponse.reset) {
+      throw new Error(`Failed to reset E2E factory workspace: ${resetResponse.status}`)
+    }
+    // The reset endpoint is intentionally called after login while the shell is
+    // already mounted. Reload once so the workstation hydrates the reset
+    // revision before Golden Layout starts emitting snapshots; otherwise the
+    // first legitimate layout/tool mutation races the reset and is forced into
+    // the user-facing conflict-recovery path.
+    await page.goto('/chart')
+    await page.waitForLoadState('domcontentloaded')
     await use()
   },
 })

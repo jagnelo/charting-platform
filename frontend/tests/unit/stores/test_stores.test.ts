@@ -11,6 +11,7 @@ import { useAlertsStore } from '@/stores/alerts'
 vi.mock('@/lib/api', () => ({
   api: {
     get:    vi.fn(),
+    put:    vi.fn(),
     post:   vi.fn(),
     patch:  vi.fn(),
     delete: vi.fn(),
@@ -154,6 +155,83 @@ describe('useChartStore', () => {
       expect.stringContaining('/ohlcv/AAPL'),
       expect.any(Object)
     )
+  })
+
+  it('workstation pagination stays on the local canonical OHLCV route', async () => {
+    ;(api.get as ReturnType<typeof vi.fn>).mockImplementation((path: string) => {
+      if (path === '/instruments/SPY') return Promise.resolve({ id: 42, symbol: 'SPY', stats: { week52_high: 1 } }) as any
+      if (path === '/instrument-indicators/42') return Promise.resolve({ indicators: [] }) as any
+      if (path.startsWith('/ohlcv/local/SPY/')) {
+        return Promise.resolve([
+          { ts: '2026-01-02T00:00:00Z', open: 2, high: 3, low: 1, close: 2, volume: 10 },
+        ]) as any
+      }
+      return Promise.resolve([]) as any
+    })
+    const store = useChartStore()
+    await store.loadBars('SPY', 'D1', 'candles', true)
+    await store.loadMoreBars()
+
+    expect(api.get).toHaveBeenCalledWith('/ohlcv/local/SPY/D1', expect.objectContaining({
+      before: '2026-01-02T00:00:00Z',
+      limit: 500,
+    }))
+    expect(api.get).not.toHaveBeenCalledWith('/ohlcv/SPY/D1', expect.anything())
+  })
+
+  it('late indicator hydration cannot replace a user plot added during loading', async () => {
+    const store = useChartStore()
+    let releaseIndicators!: (value: { indicators: any[] }) => void
+    vi.spyOn(api, 'get').mockImplementation((path: string) => {
+      if (path === '/instruments/SPY') return Promise.resolve({ id: 42, symbol: 'SPY' }) as any
+      if (path === '/instrument-indicators/42') return new Promise(resolve => { releaseIndicators = resolve }) as any
+      if (path.startsWith('/ohlcv/')) return Promise.resolve([{ ts: '2026-01-01T00:00:00Z', open: 1, high: 2, low: 1, close: 2, volume: 10 }]) as any
+      return Promise.resolve([]) as any
+    })
+    const loading = store.loadBars('SPY', 'D1')
+    await vi.waitFor(() => expect(releaseIndicators).toBeTypeOf('function'))
+    store.addIndicator({ type: 'rsi', params: { period: 14 }, style: { color: '#fff' }, pane: 'separate' })
+    releaseIndicators({ indicators: [] })
+    await loading
+    expect(store.indicators).toHaveLength(1)
+    expect(store.indicators[0].type).toBe('rsi')
+  })
+
+  it('cancels a debounced indicator write when navigation changes the instrument', async () => {
+    vi.useFakeTimers()
+    try {
+      ;(api.get as ReturnType<typeof vi.fn>).mockImplementation((path: string) => {
+        if (path === '/instruments/SPY') return Promise.resolve({ id: 1, symbol: 'SPY' }) as any
+        if (path === '/instruments/XLK') return Promise.resolve({ id: 2, symbol: 'XLK' }) as any
+        if (path.startsWith('/instrument-indicators/')) return Promise.resolve({ indicators: [] }) as any
+        if (path.startsWith('/ohlcv/')) return Promise.resolve([{ ts: '2026-01-01T00:00:00Z', open: 1, high: 2, low: 1, close: 2, volume: 10 }]) as any
+        return Promise.resolve([]) as any
+      })
+      const store = useChartStore()
+      await store.loadBars('SPY', 'D1')
+      store.addIndicator({ type: 'rsi', params: { period: 14 }, style: { color: '#fff' }, pane: 'separate' })
+      await Promise.resolve()
+      await store.loadBars('XLK', 'D1')
+      await vi.runAllTimersAsync()
+      const writes = (api.put as ReturnType<typeof vi.fn>).mock.calls
+      expect(writes.some(call => call[0] === '/instrument-indicators/1')).toBe(false)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('queues an indicator save requested before canonical instrument hydration', async () => {
+    const store = useChartStore()
+    store.indicators = [{ type: 'rsi', params: { period: 14 }, style: { color: '#fff' }, pane: 'separate' }] as any
+    store.instrument = null
+    await expect(store.saveIndicatorsForInstrument()).resolves.toBe(false)
+    expect(api.put).not.toHaveBeenCalled()
+
+    store.instrument = { id: 42, symbol: 'SPY' } as any
+    await expect(store.saveIndicatorsForInstrument()).resolves.toBe(true)
+    expect(api.put).toHaveBeenCalledWith('/instrument-indicators/42', {
+      indicators: [expect.objectContaining({ type: 'rsi' })],
+    })
   })
 
   it('loadBars can load synthetic basket OHLCV tokens', async () => {

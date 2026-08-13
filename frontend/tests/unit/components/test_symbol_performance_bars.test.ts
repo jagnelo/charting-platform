@@ -1,10 +1,13 @@
 import { mount } from '@vue/test-utils'
-import { describe, expect, it } from 'vitest'
+import { nextTick } from 'vue'
+import { describe, expect, it, vi } from 'vitest'
 
 import SymbolPerformanceBars from '@/components/strategy/SymbolPerformanceBars.vue'
+import uPlot from 'uplot'
 
 describe('SymbolPerformanceBars', () => {
   it('renders a symbol P&L outcome map and tooltip on hover', async () => {
+    vi.mocked(uPlot).mockClear()
     const wrapper = mount(SymbolPerformanceBars, {
       attachTo: document.body,
       props: {
@@ -75,6 +78,7 @@ describe('SymbolPerformanceBars', () => {
         ],
       },
     })
+    await nextTick()
 
     expect(wrapper.text()).not.toContain('2 symbols')
     expect(wrapper.text()).not.toContain('Best realized AAPL')
@@ -82,6 +86,8 @@ describe('SymbolPerformanceBars', () => {
     expect(wrapper.text()).toContain('LOSSES')
     expect(wrapper.text()).toContain('BREAKEVEN')
     expect(wrapper.text()).toContain('WINS')
+    expect(vi.mocked(uPlot)).toHaveBeenCalled()
+    expect(vi.mocked(uPlot).mock.calls.at(-1)?.[0].plugins).toHaveLength(1)
     expect(wrapper.findAll('[data-testid="symbol-pnl-point"]')).toHaveLength(3)
     const unrealizedPoint = wrapper
       .findAll('[data-testid="symbol-pnl-point"]')

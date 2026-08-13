@@ -40,12 +40,20 @@ export interface WorkspaceState {
   tabs: WorkspaceTabState[]
 }
 
+export interface WorkspaceSummary {
+  id: number
+  name: string
+  is_default: boolean
+  position: number
+  revision: number
+}
+
 /**
  * The browser-only tool registry deliberately contains only implemented, serializable
  * primary-workstation tools. It is not a substitute for a runtime component registry.
  */
 export interface OpenableToolDefinition {
-  tool_type: 'chart' | 'watchlist' | 'notes' | 'alerts' | 'scan' | 'gauge' | 'study_lab' | 'relative_rotation' | 'breadth' | 'technical_summary' | 'coverage' | 'report' | 'code_library'
+  tool_type: 'chart' | 'watchlist' | 'notes' | 'alerts' | 'scan' | 'gauge' | 'study_lab' | 'research_results' | 'relative_rotation' | 'breadth' | 'technical_summary' | 'coverage' | 'report' | 'code_library'
   title: string
   instance_prefix: string
   configuration?: Record<string, unknown>
@@ -59,6 +67,7 @@ export const OPENABLE_WORKSTATION_TOOLS: readonly OpenableToolDefinition[] = [
   { tool_type: 'scan', title: 'EasyScan', instance_prefix: 'easy-scan', configuration: { scope: 'saved-conditions' } },
   { tool_type: 'gauge', title: 'Market Gauge', instance_prefix: 'market-gauge', configuration: { scope: 'saved-scans' } },
   { tool_type: 'study_lab', title: 'Study Lab', instance_prefix: 'study-lab', configuration: { symbol: 'SPY' } },
+  { tool_type: 'research_results', title: 'Study Results', instance_prefix: 'research-results', configuration: {} },
   { tool_type: 'relative_rotation', title: 'Relative Rotation', instance_prefix: 'relative-rotation', configuration: { group_key: 'sp500-sectors', benchmark: 'SPY', timeframe: 'D1', sampling: 1, lookback: 20, tail_length: 10, adjusted: true } },
   { tool_type: 'breadth', title: 'Market Breadth', instance_prefix: 'breadth', configuration: { group_key: 'sp500-sectors' } },
   { tool_type: 'technical_summary', title: 'Technical Summary', instance_prefix: 'technical-summary', configuration: {} },
@@ -148,7 +157,7 @@ export interface GroupSnapshotState {
   membership_version?: number
   universe_provenance?: Record<string, unknown>
   coverage: number
-  freshness?: 'current' | 'stale' | 'partial' | 'unavailable'
+  freshness?: 'current' | 'delayed' | 'stale' | 'partial' | 'coverage_limited' | 'coverage-limited' | 'unavailable'
   freshness_detail?: Record<string, number>
   rows: GroupSnapshotRow[]
 }
@@ -170,7 +179,7 @@ export interface BreadthState {
   distance_from_ma?: Record<string, number | null>
   new_high_lookback?: number
   near_threshold?: number
-  freshness?: 'current' | 'stale' | 'partial' | 'unavailable'
+  freshness?: 'current' | 'delayed' | 'stale' | 'partial' | 'coverage_limited' | 'coverage-limited' | 'unavailable'
   freshness_detail?: Record<string, number>
 }
 
@@ -179,7 +188,7 @@ export interface BreadthHistoryState {
   timeframe?: string
   adjustment?: string
   points: Array<{ timestamp: string; above_ma: Record<string, number | null>; coverage: Record<string, number> }>
-  freshness?: 'current' | 'stale' | 'partial' | 'unavailable'
+  freshness?: 'current' | 'delayed' | 'stale' | 'partial' | 'coverage_limited' | 'coverage-limited' | 'unavailable'
   freshness_detail?: Record<string, number>
 }
 
@@ -222,16 +231,28 @@ export interface ETFIndustryCompositionState {
   provenance: string
   source_provider: string
   completeness_status: string
-  industries: Array<{ industry: string; constituent_count: number; resolved_count: number }>
+  industries: Array<{
+    industry: string
+    constituent_count: number
+    resolved_count: number
+    classification_systems?: string[]
+  }>
   exclusions: string[]
+  classification_systems?: string[]
+  classification_coverage?: number
 }
 
 export interface ETFIndustryConstituentsState {
   etf_symbol: string
   industry: string
   composition_date: string
+  known_at: string | null
+  provenance: string
+  source_provider: string
   constituents: MarketGroupInstrument[]
   exclusions: string[]
+  classification_systems?: string[]
+  classification_coverage?: number
 }
 
 export interface ETFIndustryProxyState {
@@ -256,6 +277,7 @@ export interface ETFIndustryProxyState {
 
 export interface IndustryProxySnapshotState {
   rows: Array<{
+    instrument_id: number
     symbol: string
     name: string
     performance: Record<string, { value: number | null; warning?: { code: string; message: string } | null }>
@@ -265,7 +287,7 @@ export interface IndustryProxySnapshotState {
   }>
   coverage: number
   exclusions: Array<{ code: string; message: string }>
-  freshness?: 'current' | 'stale' | 'partial' | 'unavailable'
+  freshness?: 'current' | 'delayed' | 'stale' | 'partial' | 'coverage_limited' | 'coverage-limited' | 'unavailable'
   freshness_detail?: Record<string, number>
 }
 
@@ -280,7 +302,7 @@ export interface TechnicalSnapshotState {
   position_52w: number | null
   volume_ratio_50: number | null
   warnings: Array<{ code: string; message: string }>
-  freshness?: 'current' | 'stale' | 'partial' | 'unavailable'
+  freshness?: 'current' | 'delayed' | 'stale' | 'partial' | 'coverage_limited' | 'coverage-limited' | 'unavailable'
   freshness_detail?: Record<string, number>
 }
 
@@ -328,6 +350,7 @@ function normalizeWorkstationTimeframe(value: string) {
 
 export const useWorkspaceStore = defineStore('workspace', () => {
   const workspace = ref<WorkspaceState | null>(null)
+  const workspaces = ref<WorkspaceSummary[]>([])
   const activeTabKey = ref<string>('us-top-down')
   const linkedSymbol = ref('SPY')
   /**
@@ -346,6 +369,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   // late chart/pop-out publication must not overwrite this before Grey
   // isolation captures the currently selected symbol.
   const latestWorkstationSymbol = ref('SPY')
+  const latestWorkstationInstrumentId = ref<number | null>(null)
   const wildcardSymbol = ref<LinkEvent>({ symbol: 'SPY', group: 'blue', sourceWindowKey: 'workstation' })
   const linkedTimestamp = ref<string | null>(null)
   const linkedTimestamps = ref<Partial<Record<LinkGroup, string | null>>>({})
@@ -358,8 +382,14 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   const isPersistenceLeader = ref(false)
   const marketGroups = ref<Record<string, MarketGroupState>>({})
   const groupSnapshots = ref<Record<string, GroupSnapshotState>>({})
+  const marketGroupErrors = ref<Record<string, string | null>>({})
+  const groupSnapshotErrors = ref<Record<string, string | null>>({})
   const breadth = ref<Record<string, BreadthState>>({})
   const breadthHistory = ref<Record<string, BreadthHistoryState>>({})
+  const breadthLoading = ref<Record<string, boolean>>({})
+  const breadthHistoryLoading = ref<Record<string, boolean>>({})
+  const breadthErrors = ref<Record<string, string | null>>({})
+  const breadthHistoryErrors = ref<Record<string, string | null>>({})
   const etfHoldings = ref<Record<string, ETFHoldingsPageState | null>>({})
   const etfConstituentSnapshots = ref<Record<string, ETFConstituentSnapshotState | null>>({})
   const etfIndustries = ref<Record<string, ETFIndustryCompositionState | null>>({})
@@ -379,6 +409,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   let snapshotSavePromise: Promise<void> | null = null
   let lastLocalWorkspaceMutationAt = 0
   const recentLinkGroupOverrides = new Map<string, { group: LinkGroup; symbol: string; at: number }>()
+  const recentActiveWindowOverrides = new Map<string, { windowKey: string; at: number }>()
   // A PUT may resolve after a newer local edit has already been made.  Never let
   // that older response replace the live reactive workspace with stale layout or
   // tool configuration.
@@ -388,6 +419,14 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   const windowId = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
     ? crypto.randomUUID()
     : `window-${Date.now()}-${Math.random().toString(36).slice(2)}`
+
+  // Visibility is checked at the request boundary as well as by Vue Query's
+  // interval coordinator. This closes the small race where a queued loader
+  // resumes after a tab becomes hidden and would otherwise start a new market
+  // analysis request despite the polling surface being suspended.
+  function documentIsVisible() {
+    return typeof document === 'undefined' || document.visibilityState !== 'hidden'
+  }
 
   function beginAnalysisRequest(key: string) {
     const generation = (analysisGenerations.get(key) ?? 0) + 1
@@ -472,6 +511,16 @@ export const useWorkspaceStore = defineStore('workspace', () => {
         if (!remoteTool) continue
         remoteTool.link_group = override.group
         remoteTool.configuration = { ...remoteTool.configuration, symbol: override.symbol }
+      }
+      for (const [tabKey, override] of recentActiveWindowOverrides) {
+        if (now - override.at >= 10_000) {
+          recentActiveWindowOverrides.delete(tabKey)
+          continue
+        }
+        const remoteTab = latest.tabs.find(tab => tab.stable_key === tabKey)
+        if (remoteTab?.windows.some(window => window.instance_key === override.windowKey)) {
+          remoteTab.active_window_key = override.windowKey
+        }
       }
       workspace.value = latest
       persistedWorkspace = cloneSerializable(latest)
@@ -610,7 +659,10 @@ export const useWorkspaceStore = defineStore('workspace', () => {
 
   function publishSymbol(event: LinkEvent) {
     if (event.group === 'grey') return
-    if (event.sourceWindowKey === 'workstation') latestWorkstationSymbol.value = event.symbol
+    if (event.sourceWindowKey === 'workstation') {
+      latestWorkstationSymbol.value = event.symbol
+      latestWorkstationInstrumentId.value = typeof event.instrumentId === 'number' ? event.instrumentId : null
+    }
     locallyPublishedSymbols.value = { ...locallyPublishedSymbols.value, [event.group]: event.symbol }
     applySharedSymbol(event)
     // Keep each concrete linked tool's serializable fallback current as the
@@ -622,8 +674,18 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       for (const tab of workspace.value.tabs) {
         for (const tool of tab.windows) {
           if (tool.link_group !== event.group) continue
-          if (tool.configuration.symbol === event.symbol) continue
-          tool.configuration = { ...tool.configuration, symbol: event.symbol }
+          const hasMatchingSymbol = tool.configuration.symbol === event.symbol
+          const hasMatchingInstrument = typeof event.instrumentId === 'number'
+            ? tool.configuration.instrument_id === event.instrumentId
+            : !('instrument_id' in tool.configuration)
+          if (hasMatchingSymbol && hasMatchingInstrument) continue
+          const configuration: Record<string, unknown> & { symbol: string } = {
+            ...tool.configuration,
+            symbol: event.symbol,
+          }
+          if (typeof event.instrumentId === 'number') configuration.instrument_id = event.instrumentId
+          else delete configuration.instrument_id
+          tool.configuration = configuration
           changed = true
         }
       }
@@ -696,8 +758,42 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     error.value = null
     try {
       workspace.value = await api.get<WorkspaceState>('/workspaces/default')
+      workspaces.value = [{
+        id: workspace.value.id,
+        name: workspace.value.name,
+        is_default: workspace.value.is_default,
+        position: workspace.value.position,
+        revision: workspace.value.revision,
+      }]
       persistedWorkspace = cloneSerializable(workspace.value)
       activeTabKey.value = workspace.value.tabs[0]?.stable_key ?? 'us-top-down'
+      // Persisted tool configuration is the durable source of the active
+      // symbol. Hydrate the shared blue link before tools mount so a reload
+      // restores the user's last workstation symbol (and ratio legs) rather
+      // than defaulting every linked surface back to SPY.
+      const savedSymbol = workspace.value.tabs
+        .flatMap(tab => tab.windows)
+        .find(window => window.link_group === 'blue' && typeof window.configuration?.symbol === 'string')
+        ?.configuration.symbol
+      if (typeof savedSymbol === 'string' && savedSymbol.trim()) {
+        const normalizedSymbol = savedSymbol.trim().toUpperCase()
+        const configuredInstrumentId = workspace.value.tabs
+          .flatMap(tab => tab.windows)
+          .find(window => window.link_group === 'blue' && typeof window.configuration?.symbol === 'string' && window.configuration.symbol.trim().toUpperCase() === normalizedSymbol)
+          ?.configuration?.instrument_id
+        const event: LinkEvent = {
+          symbol: normalizedSymbol,
+          ...(typeof configuredInstrumentId === 'number' ? { instrumentId: configuredInstrumentId } : {}),
+          group: 'blue',
+          sourceWindowKey: 'workstation',
+        }
+        linkedSymbol.value = normalizedSymbol
+        linkedSymbols.value = { ...linkedSymbols.value, blue: event }
+        locallyPublishedSymbols.value = { ...locallyPublishedSymbols.value, blue: normalizedSymbol }
+        latestWorkstationSymbol.value = normalizedSymbol
+        latestWorkstationInstrumentId.value = typeof configuredInstrumentId === 'number' ? configuredInstrumentId : null
+        wildcardSymbol.value = event
+      }
       const savedTimeframe = workspace.value.settings.linked_timeframe
       linkedTimeframe.value = typeof savedTimeframe === 'string' ? normalizeWorkstationTimeframe(savedTimeframe) : 'D1'
       const savedTimeframes = workspace.value.settings.linked_timeframes
@@ -713,6 +809,104 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     } finally {
       loading.value = false
     }
+  }
+
+  async function refreshWorkspaces() {
+    const rows = await api.get<WorkspaceState[]>('/workspaces')
+    if (!Array.isArray(rows)) return workspaces.value
+    workspaces.value = rows.map(({ id, name, is_default, position, revision }) => ({ id, name, is_default, position, revision }))
+      .sort((a, b) => a.position - b.position || a.id - b.id)
+    return workspaces.value
+  }
+
+  function invalidateQueuedSnapshot() {
+    // Workspace CRUD mutations (create/clone/rename/delete) are control-plane
+    // writes. A trailing Golden Layout snapshot captured before one of those
+    // writes must never be allowed to overwrite the newer name or resurrect a
+    // deleted workspace after the control request completes.
+    snapshotGeneration += 1
+    if (snapshotTimer) {
+      clearTimeout(snapshotTimer)
+      snapshotTimer = null
+    }
+  }
+
+  async function settleSnapshotBeforeWorkspaceMutation() {
+    invalidateQueuedSnapshot()
+    const pending = snapshotSavePromise
+    if (pending) await pending
+  }
+
+  async function switchWorkspace(workspaceId: number) {
+    if (!Number.isInteger(workspaceId) || workspace.value?.id === workspaceId) return workspace.value
+    loading.value = true
+    try {
+      const next = await api.get<WorkspaceState>(`/workspaces/${workspaceId}`)
+      workspace.value = next
+      persistedWorkspace = cloneSerializable(next)
+      activeTabKey.value = next.tabs[0]?.stable_key ?? 'us-top-down'
+      error.value = null
+      await refreshWorkspaces()
+      return next
+    } catch (cause: any) {
+      error.value = cause?.message ?? 'Unable to switch workspace'
+      return null
+    } finally { loading.value = false }
+  }
+
+  async function createWorkspace(name = 'New Workspace') {
+    const normalized = name.trim().replace(/\s+/g, ' ').slice(0, 120) || 'New Workspace'
+    try {
+      await settleSnapshotBeforeWorkspaceMutation()
+      const created = await api.post<WorkspaceState>('/workspaces', { name: normalized, is_default: false })
+      workspace.value = created
+      persistedWorkspace = cloneSerializable(created)
+      activeTabKey.value = created.tabs[0]?.stable_key ?? 'us-top-down'
+      error.value = null
+      await refreshWorkspaces()
+      return created
+    } catch (cause: any) { error.value = cause?.message ?? 'Unable to create workspace'; return null }
+  }
+
+  async function cloneWorkspace() {
+    if (!workspace.value) return null
+    try {
+      await settleSnapshotBeforeWorkspaceMutation()
+      const clone = await api.post<WorkspaceState>(`/workspaces/${workspace.value.id}/clone`, {})
+      workspace.value = clone
+      persistedWorkspace = cloneSerializable(clone)
+      activeTabKey.value = clone.tabs[0]?.stable_key ?? 'us-top-down'
+      error.value = null
+      await refreshWorkspaces()
+      return clone
+    } catch (cause: any) { error.value = cause?.message ?? 'Unable to clone workspace'; return null }
+  }
+
+  async function renameWorkspace(name: string) {
+    if (!workspace.value) return null
+    const normalized = name.trim().replace(/\s+/g, ' ').slice(0, 120)
+    if (!normalized) return null
+    try {
+      await settleSnapshotBeforeWorkspaceMutation()
+      const updated = await api.patch<WorkspaceState>(`/workspaces/${workspace.value.id}`, { name: normalized })
+      workspace.value = updated
+      persistedWorkspace = cloneSerializable(updated)
+      error.value = null
+      await refreshWorkspaces()
+      return updated
+    } catch (cause: any) { error.value = cause?.message ?? 'Unable to rename workspace'; return null }
+  }
+
+  async function deleteCurrentWorkspace() {
+    if (!workspace.value || workspace.value.is_default) return false
+    try {
+      await settleSnapshotBeforeWorkspaceMutation()
+      await api.delete(`/workspaces/${workspace.value.id}`)
+      const rows = await refreshWorkspaces()
+      const fallback = rows.find(item => item.is_default) ?? rows[0]
+      if (fallback) await switchWorkspace(fallback.id)
+      return true
+    } catch (cause: any) { error.value = cause?.message ?? 'Unable to delete workspace'; return false }
   }
 
   function snapshotPayload(current: WorkspaceState) {
@@ -753,9 +947,14 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   }
 
   /**
-   * Merge only independently changed window records. Dock structure, tab identity,
-   * settings, names and active-window changes are intentionally treated as conflicts:
-   * without a common structural editor they cannot be proven safe to combine.
+   * Merge independently changed window records and deterministic local layout
+   * edits. Golden Layout can emit several structurally equivalent snapshots while
+   * a tool is mounting or a tab is becoming active. Treating every concurrent
+   * layout/active-tab difference as unrecoverable would create a recovery copy for
+   * a normal single-window interaction. In that narrow case the current window's
+   * latest layout wins; identity, settings, and tab membership still require
+   * recovery because they cannot be safely inferred. Same-window record
+   * conflicts use the explicit current-window-wins tie-breaker below.
    */
   function mergeDisjointWindowChanges(
     baseline: WorkspaceState | null,
@@ -778,19 +977,42 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       const mergedTab = merged.tabs.find(tab => tab.stable_key === baseTab.stable_key)
       if (!localTab || !remoteTab || !mergedTab
         || localTab.name !== baseTab.name || remoteTab.name !== baseTab.name
-        || localTab.position !== baseTab.position || remoteTab.position !== baseTab.position
-        || localTab.active_window_key !== baseTab.active_window_key || remoteTab.active_window_key !== baseTab.active_window_key
-        || !sameJson(localTab.layout_config, baseTab.layout_config) || !sameJson(remoteTab.layout_config, baseTab.layout_config)
-        || localTab.windows.length !== baseTab.windows.length || remoteTab.windows.length !== baseTab.windows.length) return null
+        || localTab.position !== baseTab.position || remoteTab.position !== baseTab.position) return null
+      const localLayoutChanged = !sameJson(localTab.layout_config, baseTab.layout_config)
+      const localActiveWindowChanged = localTab.active_window_key !== baseTab.active_window_key
+      if (localLayoutChanged) mergedTab.layout_config = cloneSerializable(localTab.layout_config)
+      if (localActiveWindowChanged) mergedTab.active_window_key = localTab.active_window_key
       for (const baseWindow of baseTab.windows) {
         const localWindow = localTab.windows.find(window => window.instance_key === baseWindow.instance_key)
         const remoteWindow = remoteTab.windows.find(window => window.instance_key === baseWindow.instance_key)
         const mergedWindow = mergedTab.windows.find(window => window.instance_key === baseWindow.instance_key)
+        // A local tool-open and a remote layout snapshot can legitimately race.
+        // Additive windows are safe to merge by stable instance key; destructive
+        // removal remains a recovery-worthy conflict so an older snapshot cannot
+        // silently resurrect a user's explicit close.
         if (!localWindow || !remoteWindow || !mergedWindow) return null
         const localChanged = !sameJson(localWindow, baseWindow)
         const remoteChanged = !sameJson(remoteWindow, baseWindow)
-        if (localChanged && remoteChanged && !sameJson(localWindow, remoteWindow)) return null
+        // A single workstation window can publish several legitimate local
+        // mutations in one debounce interval (symbol/link hydration, Study Lab
+        // run metadata, and layout activation). If another snapshot advanced the
+        // same record before this write, prefer the current user's latest record;
+        // disjoint windows still merge with the remote state above. Structural
+        // identity changes remain guarded by the checks before this loop.
         if (localChanged) Object.assign(mergedWindow, cloneSerializable(localWindow))
+      }
+      const baseKeys = new Set(baseTab.windows.map(window => window.instance_key))
+      const localExtra = localTab.windows.filter(window => !baseKeys.has(window.instance_key))
+      const remoteExtra = remoteTab.windows.filter(window => !baseKeys.has(window.instance_key))
+      const mergedKeys = new Set(mergedTab.windows.map(window => window.instance_key))
+      // Keep remote additions, then append local-only additions in their local
+      // order. This is deterministic and preserves both users' newly opened
+      // tools without treating normal Add tool activity as an unrecoverable
+      // workspace identity conflict.
+      for (const window of [...remoteExtra, ...localExtra]) {
+        if (mergedKeys.has(window.instance_key)) continue
+        mergedTab.windows.push(cloneSerializable(window))
+        mergedKeys.add(window.instance_key)
       }
     }
     return merged
@@ -799,6 +1021,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   async function loadMarketGroup(stableKey: string) {
     const requestKey = `top-down:market-group:${stableKey}`
     const generation = beginAnalysisRequest(requestKey)
+    if (!documentIsVisible()) return null
+    marketGroupErrors.value = { ...marketGroupErrors.value, [stableKey]: null }
     try {
       const group = await api.get<MarketGroupState>(`/market-groups/${encodeURIComponent(stableKey)}`)
       if (!isCurrentAnalysisRequest(requestKey, generation)) return null
@@ -807,6 +1031,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     } catch (cause: any) {
       if (!isCurrentAnalysisRequest(requestKey, generation)) return null
       error.value = cause?.message ?? `Unable to load ${stableKey}`
+      marketGroupErrors.value = { ...marketGroupErrors.value, [stableKey]: error.value }
       return null
     }
   }
@@ -814,6 +1039,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   async function loadGroupSnapshot(stableKey: string, benchmark?: string, options: { timeframe?: string; adjusted?: boolean; as_of?: string; new_high_lookback?: number; near_threshold?: number } = {}) {
     const requestKey = `top-down:group-snapshot:${stableKey}`
     const generation = beginAnalysisRequest(requestKey)
+    if (!documentIsVisible()) return null
+    groupSnapshotErrors.value = { ...groupSnapshotErrors.value, [stableKey]: null }
     try {
       const params = {
         ...(benchmark ? { benchmark } : {}),
@@ -828,6 +1055,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     } catch (cause: any) {
       if (!isCurrentAnalysisRequest(requestKey, generation)) return null
       error.value = cause?.message ?? `Unable to calculate ${stableKey}`
+      groupSnapshotErrors.value = { ...groupSnapshotErrors.value, [stableKey]: error.value }
       return null
     }
   }
@@ -835,6 +1063,9 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   async function loadBreadth(stableKey: string, options: { timeframe?: string; adjusted?: boolean; as_of?: string; new_high_lookback?: number; near_threshold?: number } = {}) {
     const requestKey = `top-down:breadth:${stableKey}`
     const generation = beginAnalysisRequest(requestKey)
+    if (!documentIsVisible()) return null
+    breadthLoading.value = { ...breadthLoading.value, [stableKey]: true }
+    breadthErrors.value = { ...breadthErrors.value, [stableKey]: null }
     try {
       const params = {
         ...(options.timeframe ? { timeframe: options.timeframe } : {}),
@@ -851,14 +1082,21 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       return snapshot
     } catch (cause: any) {
       if (!isCurrentAnalysisRequest(requestKey, generation)) return null
-      error.value = cause?.message ?? `Unable to calculate breadth for ${stableKey}`
+      const message = cause?.message ?? `Unable to calculate breadth for ${stableKey}`
+      error.value = message
+      breadthErrors.value = { ...breadthErrors.value, [stableKey]: message }
       return null
+    } finally {
+      if (isCurrentAnalysisRequest(requestKey, generation)) breadthLoading.value = { ...breadthLoading.value, [stableKey]: false }
     }
   }
 
   async function loadBreadthHistory(stableKey: string, options: { timeframe?: string; adjusted?: boolean; as_of?: string; new_high_lookback?: number; near_threshold?: number } = {}) {
     const requestKey = `top-down:breadth-history:${stableKey}`
     const generation = beginAnalysisRequest(requestKey)
+    if (!documentIsVisible()) return null
+    breadthHistoryLoading.value = { ...breadthHistoryLoading.value, [stableKey]: true }
+    breadthHistoryErrors.value = { ...breadthHistoryErrors.value, [stableKey]: null }
     try {
       const params = {
         limit: 500,
@@ -874,8 +1112,12 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       return history
     } catch (cause: any) {
       if (!isCurrentAnalysisRequest(requestKey, generation)) return null
-      error.value = cause?.message ?? `Unable to calculate historical breadth for ${stableKey}`
+      const message = cause?.message ?? `Unable to calculate historical breadth for ${stableKey}`
+      error.value = message
+      breadthHistoryErrors.value = { ...breadthHistoryErrors.value, [stableKey]: message }
       return null
+    } finally {
+      if (isCurrentAnalysisRequest(requestKey, generation)) breadthHistoryLoading.value = { ...breadthHistoryLoading.value, [stableKey]: false }
     }
   }
 
@@ -914,6 +1156,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     if (!normalized) return null
     const requestKey = 'top-down:holdings'
     const generation = beginAnalysisRequest(requestKey)
+    if (!documentIsVisible()) return null
     try {
       const page = await api.get<ETFHoldingsPageState>(`/etf-holdings/${encodeURIComponent(normalized)}/holdings`, {
         limit: 500,
@@ -929,7 +1172,10 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       // shell load, linked-symbol watcher, and an explicit selection can all
       // request it). It must not erase an industry/proxy selection the user has
       // already made while those duplicate responses are arriving.
-      if (!sameETF) {
+      // An older request for another ETF may finish after the user has already
+      // selected an industry. It must not erase that visible drill-down state;
+      // a new sector selection clears it synchronously at the symbol boundary.
+      if (!sameETF && !selectedIndustry.value) {
         selectedIndustry.value = null
         selectedIndustryProxy.value = null
       }
@@ -952,6 +1198,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     const comparison = (benchmark ?? normalized).trim().toUpperCase()
     const requestKey = 'top-down:constituent-snapshot'
     const generation = beginAnalysisRequest(requestKey)
+    if (!documentIsVisible()) return null
     try {
       const snapshot = await api.get<ETFConstituentSnapshotState>(
         `/analysis/etf/${encodeURIComponent(normalized)}/constituents/snapshot`,
@@ -976,6 +1223,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     if (!normalized) return null
     const requestKey = 'top-down:industries'
     const generation = beginAnalysisRequest(requestKey)
+    if (!documentIsVisible()) return null
     try {
       const composition = await api.get<ETFIndustryCompositionState>(`/market-groups/etf/${encodeURIComponent(normalized)}/industries`)
       if (!isCurrentAnalysisRequest(requestKey, generation)) return null
@@ -996,10 +1244,16 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     const normalized = symbol.trim().toUpperCase()
     selectedIndustry.value = industry
     if (!normalized || !industry) return null
+    // Establish the selected ETF synchronously at the click boundary.  ETF
+    // holdings hydration can still be in flight; leaving the previous ETF here
+    // lets that late response clear the freshly selected industry before its
+    // proxy request finishes.
+    constituentETF.value = normalized
     const key = `${normalized}:${industry}`
     const requestKey = 'top-down:industry'
     const generation = beginAnalysisRequest(requestKey)
     selectedIndustryProxy.value = null
+    if (!documentIsVisible()) return null
     try {
       const constituents = await api.get<ETFIndustryConstituentsState>(
         `/market-groups/etf/${encodeURIComponent(normalized)}/industries/${encodeURIComponent(industry)}`,
@@ -1021,6 +1275,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     if (!normalized || !industry) return null
     const requestKey = 'top-down:industry-proxies'
     const generation = beginAnalysisRequest(requestKey)
+    if (!documentIsVisible()) return null
     try {
       const proxies = await api.get<ETFIndustryProxyState>(
         `/market-groups/etf/${encodeURIComponent(normalized)}/industries/${encodeURIComponent(industry)}/proxies`,
@@ -1042,6 +1297,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     if (!normalized || !industry) return null
     const requestKey = 'top-down:industry-proxy-snapshot'
     const generation = beginAnalysisRequest(requestKey)
+    if (!documentIsVisible()) return null
     try {
       const snapshot = await api.get<IndustryProxySnapshotState>(`/analysis/etf/${encodeURIComponent(normalized)}/industries/${encodeURIComponent(industry)}/proxies/snapshot`)
       if (!isCurrentAnalysisRequest(requestKey, generation)) return null
@@ -1059,11 +1315,24 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     selectedIndustryProxy.value = symbol?.trim().toUpperCase() || null
   }
 
+  function clearIndustrySelection() {
+    selectedIndustry.value = null
+    selectedIndustryProxy.value = null
+  }
+
+  function setConstituentETF(symbol: string) {
+    const normalized = symbol.trim().toUpperCase()
+    if (!normalized) return
+    constituentETF.value = normalized
+    clearIndustrySelection()
+  }
+
   async function loadTechnical(symbol: string) {
     const normalized = symbol.trim().toUpperCase()
     if (!normalized) return null
     const requestKey = 'top-down:technical'
     const generation = beginAnalysisRequest(requestKey)
+    if (!documentIsVisible()) return null
     try {
       const snapshot = await api.get<TechnicalSnapshotState>(`/analysis/instruments/${encodeURIComponent(normalized)}/technical`)
       if (!isCurrentAnalysisRequest(requestKey, generation)) return null
@@ -1099,6 +1368,15 @@ export const useWorkspaceStore = defineStore('workspace', () => {
         announceWorkspaceSnapshot(workspace.value)
       } catch (cause: any) {
         if (String(cause?.message ?? '').includes(' 409:')) {
+          // Always reconcile a revision conflict against the latest remote
+          // snapshot. Layout engines and tool edits can legitimately queue a
+          // newer local generation while the first PUT is in flight; abandoning
+          // the conflict in that case silently loses the edit and leaves the
+          // workspace permanently stale.
+          if (generation !== snapshotGeneration) {
+            scheduleSnapshot()
+            return
+          }
           try {
             const latest = await api.get<WorkspaceState>(`/workspaces/${current.id}`)
             const merged = mergeDisjointWindowChanges(persistedWorkspace, current, latest)
@@ -1134,10 +1412,16 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   }
 
   function scheduleSnapshot() {
-    if (snapshotTimer) clearTimeout(snapshotTimer)
     lastLocalWorkspaceMutationAt = Date.now()
     snapshotGeneration += 1
-    snapshotTimer = setTimeout(() => { void saveSnapshot() }, 350)
+    // Layout engines can report a burst of observational state changes while a
+    // tool is mounting or resizing. Keep one bounded trailing save instead of
+    // continually postponing persistence until the burst happens to stop.
+    if (snapshotTimer) return
+    snapshotTimer = setTimeout(() => {
+      snapshotTimer = null
+      void saveSnapshot()
+    }, 350)
   }
 
   function applyActiveLayout(layout: Record<string, unknown>, visibleToolKeys: string[]) {
@@ -1152,6 +1436,72 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     // recovery and prevents layout churn from deleting serialized state.
     void visibleToolKeys
     scheduleSnapshot()
+  }
+
+  function componentMatches(node: Record<string, unknown>, windowKey: string | null) {
+    if (!windowKey || node.type !== 'component') return false
+    const state = node.componentState
+    return Boolean(state && typeof state === 'object' && (state as Record<string, unknown>).instance_key === windowKey)
+  }
+
+  function findStack(node: Record<string, unknown>, windowKey: string | null): Record<string, unknown> | null {
+    if (node.type === 'stack' && (windowKey == null || containsComponent(node, windowKey))) return node
+    const content = node.content
+    if (!Array.isArray(content)) return null
+    for (const child of content) {
+      if (!child || typeof child !== 'object') continue
+      const found = findStack(child as Record<string, unknown>, windowKey)
+      if (found) return found
+    }
+    return null
+  }
+
+  function containsComponent(node: Record<string, unknown>, windowKey: string): boolean {
+    if (componentMatches(node, windowKey)) return true
+    const content = node.content
+    return Array.isArray(content) && content.some(child => Boolean(child && typeof child === 'object' && containsComponent(child as Record<string, unknown>, windowKey)))
+  }
+
+  function wrapComponentInStack(node: Record<string, unknown>, preferredWindowKey: string | null): Record<string, unknown> | null {
+    const content = node.content
+    if (!Array.isArray(content)) return null
+    for (let index = 0; index < content.length; index += 1) {
+      const child = content[index]
+      if (!child || typeof child !== 'object') continue
+      const childRecord = child as Record<string, unknown>
+      if (componentMatches(childRecord, preferredWindowKey) || (preferredWindowKey == null && childRecord.type === 'component')) {
+        const stack = { type: 'stack', content: [childRecord] }
+        content[index] = stack
+        return stack
+      }
+      const nested = wrapComponentInStack(childRecord, preferredWindowKey)
+      if (nested) return nested
+    }
+    return null
+  }
+
+  function ensureToolStack(layout: Record<string, unknown>, activeWindowKey: string | null) {
+    const root = layout.root as Record<string, unknown> | undefined
+    if (!root) {
+      layout.root = { type: 'stack', content: [] }
+      return layout.root as Record<string, unknown>
+    }
+    if (root.type === 'stack') return root
+    const activeStack = findStack(root, activeWindowKey)
+    if (activeStack) return activeStack
+    const existingStack = findStack(root, null)
+    if (existingStack) return existingStack
+    const wrappedActive = wrapComponentInStack(root, activeWindowKey)
+    if (wrappedActive) return wrappedActive
+    const wrappedFirst = wrapComponentInStack(root, null)
+    if (wrappedFirst) return wrappedFirst
+    if (Array.isArray(root.content)) {
+      const stack = { type: 'stack', content: [] as Record<string, unknown>[] }
+      root.content.push(stack)
+      return stack
+    }
+    layout.root = { type: 'stack', content: [root] }
+    return layout.root as Record<string, unknown>
   }
 
   function openTool(definition: OpenableToolDefinition) {
@@ -1184,19 +1534,24 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     const layout = normaliseGoldenLayoutConfig(
       JSON.parse(JSON.stringify(tab.layout_config)) as Record<string, unknown>,
     )
-    const root = layout.root as Record<string, unknown> | undefined
-    if (root && Array.isArray(root.content)) {
-      root.content.push(component)
-    } else if (root) {
-      layout.root = { type: 'row', content: [root, component] }
-    } else {
-      layout.root = { type: 'row', content: [component] }
-    }
+    const stack = ensureToolStack(layout, tab.active_window_key)
+    const content = Array.isArray(stack.content) ? stack.content : []
+    stack.content = [...content, component]
     tab.windows = [...tab.windows, window]
     tab.layout_config = layout
     tab.active_window_key = instanceKey
+    recentActiveWindowOverrides.set(tab.stable_key, { windowKey: instanceKey, at: Date.now() })
     scheduleSnapshot()
     return window
+  }
+
+  function setActiveWindow(windowKey: string) {
+    const tab = activeTab.value
+    if (!tab || !tab.windows.some(window => window.instance_key === windowKey) || tab.active_window_key === windowKey) return false
+    tab.active_window_key = windowKey
+    recentActiveWindowOverrides.set(tab.stable_key, { windowKey, at: Date.now() })
+    scheduleSnapshot()
+    return true
   }
 
   /**
@@ -1213,11 +1568,20 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     // cannot overwrite the isolated view through the global active-symbol state.
     if (group === 'grey') {
       const configuredSymbol = typeof tool.configuration.symbol === 'string' ? tool.configuration.symbol : null
+      const configuredInstrumentId = typeof tool.configuration.instrument_id === 'number'
+        ? tool.configuration.instrument_id
+        : tool.link_group === 'blue'
+          ? latestWorkstationInstrumentId.value
+          : linkedSymbols.value[tool.link_group]?.instrumentId
       const isolatedSymbol = displayedSymbol
         ? (tool.link_group === 'blue' ? latestWorkstationSymbol.value : displayedSymbol.trim().toUpperCase())
         : locallyPublishedSymbols.value[tool.link_group]
           || symbolForLinkGroup(tool.link_group, configuredSymbol)
-      tool.configuration = { ...tool.configuration, symbol: isolatedSymbol }
+      tool.configuration = {
+        ...tool.configuration,
+        symbol: isolatedSymbol,
+        ...(typeof configuredInstrumentId === 'number' ? { instrument_id: configuredInstrumentId } : {}),
+      }
       recentLinkGroupOverrides.set(windowKey, { group, symbol: isolatedSymbol, at: Date.now() })
     } else {
       const configuredSymbol = typeof tool.configuration.symbol === 'string' ? tool.configuration.symbol : 'SPY'
@@ -1274,11 +1638,13 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     const tool = activeTab.value?.windows.find(window => window.instance_key === windowKey)
     const normalized = symbol.trim().toUpperCase()
     if (!tool || !normalized) return false
-    tool.configuration = {
+    const configuration: Record<string, unknown> & { symbol: string } = {
       ...tool.configuration,
       symbol: normalized,
-      ...(typeof instrumentId === 'number' ? { instrument_id: instrumentId } : {}),
     }
+    if (typeof instrumentId === 'number') configuration.instrument_id = instrumentId
+    else delete configuration.instrument_id
+    tool.configuration = configuration
     if (tool.link_group !== 'grey') {
       publishSymbol({
         symbol: normalized,
@@ -1443,6 +1809,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       workspace.value = reset
       persistedWorkspace = cloneSerializable(reset)
       recentLinkGroupOverrides.clear()
+      recentActiveWindowOverrides.clear()
       lastLocalWorkspaceMutationAt = Date.now()
       activeTabKey.value = reset.tabs[0]?.stable_key ?? 'us-top-down'
       announceWorkspaceSnapshot(reset)
@@ -1456,6 +1823,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
 
   return {
     workspace,
+    workspaces,
     activeTab,
     activeTabKey,
     linkedSymbol,
@@ -1469,10 +1837,16 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     isPersistenceLeader,
     marketGroups,
     groupSnapshots,
+    marketGroupErrors,
+    groupSnapshotErrors,
     marketAnalysisRefreshing,
     marketAnalysisRefreshedAt,
     breadth,
     breadthHistory,
+    breadthLoading,
+    breadthHistoryLoading,
+    breadthErrors,
+    breadthHistoryErrors,
     etfHoldings,
     etfConstituentSnapshots,
     etfIndustries,
@@ -1494,6 +1868,12 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     timeframeLinkGroupForTool,
     publishTimeframe,
     loadDefault,
+    refreshWorkspaces,
+    switchWorkspace,
+    createWorkspace,
+    cloneWorkspace,
+    renameWorkspace,
+    deleteCurrentWorkspace,
     loadMarketGroup,
     loadGroupSnapshot,
     loadBreadth,
@@ -1506,11 +1886,14 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     loadIndustryProxies,
     loadIndustryProxySnapshot,
     selectIndustryProxy,
+    clearIndustrySelection,
+    setConstituentETF,
     loadTechnical,
     saveSnapshot,
     scheduleSnapshot,
     applyActiveLayout,
     openTool,
+    setActiveWindow,
     updateToolLinkGroup,
     updateToolStyle,
     updateToolTimeframe,

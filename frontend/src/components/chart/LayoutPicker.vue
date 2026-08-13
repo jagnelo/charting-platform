@@ -1,5 +1,5 @@
 <template>
-  <div class="layout-picker">
+  <div ref="root" class="layout-picker" @keydown.capture="handleKeydown">
     <!-- Preset layout buttons -->
     <button
       v-for="opt in presets"
@@ -18,7 +18,10 @@
       <button
         :class="['lp-btn', { active: isCustomActive }]"
         title="Custom grid layout"
-        @click="showGrid = !showGrid"
+        ref="gridTrigger"
+        :aria-expanded="showGrid"
+        aria-haspopup="menu"
+        @click="toggleGrid"
       >
         <svg viewBox="0 0 20 14" width="20" height="14" fill="currentColor">
           <rect x="1"  y="1"  width="5" height="5" rx="1" />
@@ -31,7 +34,7 @@
       </button>
 
       <Transition name="grid-popup">
-        <div v-if="showGrid" class="grid-popup" @mouseleave="hoverCell = null">
+        <div v-if="showGrid" class="grid-popup" role="menu" aria-label="Custom grid layout" :style="gridPopupStyle" @mouseleave="hoverCell = null">
           <div class="grid-cells">
             <template v-for="row in MAX_ROWS" :key="row">
               <div
@@ -67,8 +70,8 @@
     </button>
 
     <div class="profile-wrap">
-      <button class="lp-btn" title="Layout profiles" @click="showProfiles = !showProfiles">P</button>
-      <div v-if="showProfiles" class="profile-menu" @click.stop>
+      <button ref="profileTrigger" class="lp-btn" title="Layout profiles" aria-haspopup="menu" :aria-expanded="showProfiles" @click="toggleProfiles">P</button>
+      <div v-if="showProfiles" class="profile-menu" role="menu" aria-label="Layout profiles" :style="profileMenuStyle" @click.stop>
         <button class="profile-action" @click="saveProfile">Save current layout</button>
         <div class="profile-empty" v-if="!layoutStore.profiles.length">No saved profiles</div>
         <div v-for="profile in layoutStore.profiles" :key="profile.id" class="profile-row">
@@ -90,7 +93,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useLayoutStore } from '@/stores/layout'
 import type { PresetLayout } from '@/stores/layout'
 import TextPromptModal from '@/components/common/TextPromptModal.vue'
@@ -104,6 +107,11 @@ const showGrid  = ref(false)
 const showProfiles = ref(false)
 const showSaveProfileModal = ref(false)
 const hoverCell = ref<{ col: number; row: number } | null>(null)
+const gridTrigger = ref<HTMLButtonElement | null>(null)
+const profileTrigger = ref<HTMLButtonElement | null>(null)
+const root = ref<HTMLElement | null>(null)
+const gridPopupStyle = ref<Record<string, string>>({})
+const profileMenuStyle = ref<Record<string, string>>({})
 
 const isCustomActive = computed(() => /^\d+x\d+$/.test(layoutStore.layout))
 
@@ -113,16 +121,96 @@ function isCellLit(col: number, row: number): boolean {
 }
 
 function applyCustomGrid(cols: number, rows: number) {
-  showGrid.value  = false
-  hoverCell.value = null
+  closePopups(false)
   // Single cell = single panel preset
   if (cols === 1 && rows === 1) { layoutStore.setLayout('1'); return }
   layoutStore.setLayout(`${cols}x${rows}`)
 }
 
+function positionPopup(trigger: HTMLButtonElement | null, width: number, maxHeight: number): Record<string, string> {
+  const rect = trigger?.getBoundingClientRect()
+  if (!rect) return { position: 'fixed' }
+  const gutter = 8
+  const boundedWidth = Math.min(width, Math.max(120, window.innerWidth - gutter * 2))
+  const height = Math.min(maxHeight, Math.max(96, window.innerHeight - gutter * 2))
+  const left = Math.max(gutter, Math.min(rect.right - boundedWidth, window.innerWidth - boundedWidth - gutter))
+  const below = rect.bottom + 6
+  const above = rect.top - height - 6
+  const top = below + height <= window.innerHeight - gutter ? below : Math.max(gutter, above)
+  return { position: 'fixed', left: `${Math.round(left)}px`, top: `${Math.round(top)}px`, width: `${Math.round(boundedWidth)}px`, maxHeight: `${Math.round(height)}px` }
+}
+
+function positionOpenPopups() {
+  if (showGrid.value) gridPopupStyle.value = positionPopup(gridTrigger.value, 155, 150)
+  if (showProfiles.value) profileMenuStyle.value = positionPopup(profileTrigger.value, 190, 280)
+}
+
+function addViewportListeners() {
+  window.addEventListener('resize', positionOpenPopups)
+  window.addEventListener('scroll', positionOpenPopups, true)
+}
+
+function removeViewportListeners() {
+  window.removeEventListener('resize', positionOpenPopups)
+  window.removeEventListener('scroll', positionOpenPopups, true)
+}
+
+function closePopups(restoreFocus = true) {
+  const focusTarget = showGrid.value ? gridTrigger : profileTrigger
+  const wasOpen = showGrid.value || showProfiles.value
+  showGrid.value = false
+  showProfiles.value = false
+  hoverCell.value = null
+  removeViewportListeners()
+  removeDismissListener()
+  if (wasOpen && restoreFocus) {
+    void nextTick(() => focusTarget.value?.focus())
+  }
+}
+
+function dismissOnOutsidePointer(event: PointerEvent) {
+  const target = event.target as Node | null
+  if (target && !root.value?.contains(target)) closePopups()
+}
+
+function handleKeydown(event: KeyboardEvent) {
+  if (event.key === 'Escape' && (showGrid.value || showProfiles.value)) {
+    event.preventDefault()
+    closePopups()
+  }
+}
+
+function dismissOnEscape(event: KeyboardEvent) {
+  handleKeydown(event)
+}
+
+function addDismissListener() {
+  document.addEventListener('pointerdown', dismissOnOutsidePointer, true)
+  document.addEventListener('keydown', dismissOnEscape, true)
+}
+
+function removeDismissListener() {
+  document.removeEventListener('pointerdown', dismissOnOutsidePointer, true)
+  document.removeEventListener('keydown', dismissOnEscape, true)
+}
+
+function toggleGrid() {
+  showProfiles.value = false
+  showGrid.value = !showGrid.value
+  if (showGrid.value) void nextTick(() => { positionOpenPopups(); addViewportListeners(); addDismissListener() })
+  else { removeViewportListeners(); removeDismissListener() }
+}
+
+function toggleProfiles() {
+  showGrid.value = false
+  showProfiles.value = !showProfiles.value
+  if (showProfiles.value) void nextTick(() => { positionOpenPopups(); addViewportListeners(); addDismissListener() })
+  else { removeViewportListeners(); removeDismissListener() }
+}
+
 function saveProfile() {
   showSaveProfileModal.value = true
-  showProfiles.value = false
+  closePopups(false)
 }
 
 function confirmSaveProfile(name: string) {
@@ -132,8 +220,11 @@ function confirmSaveProfile(name: string) {
 
 function loadProfile(id: string) {
   layoutStore.loadProfile(id)
-  showProfiles.value = false
+  closePopups(false)
 }
+
+onMounted(() => positionOpenPopups())
+onBeforeUnmount(() => { removeViewportListeners(); removeDismissListener() })
 
 interface RectDef { x: number; y: number; width: number; height: number }
 
@@ -248,9 +339,6 @@ const presets: LayoutOption[] = [
 }
 
 .profile-menu {
-  position: absolute;
-  top: calc(100% + 6px);
-  right: 0;
   z-index: 300;
   width: 190px;
   padding: 4px;
@@ -258,6 +346,7 @@ const presets: LayoutOption[] = [
   border: 1px solid #2a2a2a;
   border-radius: 6px;
   box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+  overflow: auto;
 }
 
 .profile-action,
@@ -305,10 +394,6 @@ const presets: LayoutOption[] = [
 }
 
 .grid-popup {
-  position: absolute;
-  top: calc(100% + 6px);
-  left: 50%;
-  transform: translateX(-50%);
   background: #161616;
   border: 1px solid #2a2a2a;
   border-radius: 6px;
@@ -316,6 +401,7 @@ const presets: LayoutOption[] = [
   z-index: 300;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
   white-space: nowrap;
+  overflow: auto;
 }
 
 .grid-cells {

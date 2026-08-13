@@ -43,6 +43,8 @@ describe('MarketGaugeTool', () => {
     await wrapper.find('select').setValue('7')
     await flushPromises()
     expect(apiGet).toHaveBeenCalledWith('/analysis/gauges/7')
+    expect(wrapper.find('[role="region"][aria-label="Market Gauge"]').exists()).toBe(true)
+    expect(wrapper.find('.market-gauge__freshness[role="status"]').exists()).toBe(true)
     expect(wrapper.text()).toContain('50.0%')
     expect(wrapper.text()).toContain('Stale')
     expect(wrapper.text()).toContain('canonical_local_database')
@@ -53,6 +55,17 @@ describe('MarketGaugeTool', () => {
     await flushPromises()
     expect(apiGet.mock.calls.length).toBeGreaterThan(callsBeforeRefresh)
     expect(apiGet).toHaveBeenCalledWith('/analysis/gauges/7')
+  })
+
+  it('exposes empty and failed gauge states as status and alert regions', async () => {
+    apiGet.mockImplementation((path: string) => path === '/screeners' ? Promise.resolve([]) : Promise.reject(new Error('gauge unavailable')))
+    const wrapper = mountTool()
+    await flushPromises()
+    expect(wrapper.find('.market-gauge__state[role="status"]').text()).toContain('Choose a retained EasyScan result')
+
+    apiGet.mockImplementation((path: string) => path === '/screeners' ? Promise.reject(new Error('scan list unavailable')) : Promise.resolve(undefined))
+    await wrapper.find('button').trigger('click')
+    await vi.waitFor(() => expect(wrapper.find('.market-gauge__error[role="alert"]').text()).toContain('scan list unavailable'))
   })
 
   it('does not fetch a selected gauge while the document is hidden', async () => {
@@ -76,5 +89,37 @@ describe('MarketGaugeTool', () => {
     await flushPromises()
     await wrapper.find('select').setValue('7')
     await vi.waitFor(() => expect(wrapper.text()).toContain('Market gauge refresh returned no data'))
+  })
+
+  it.each([
+    ['coverage_limited', 'Coverage limited', 'coverage-limited'],
+    ['coverage-limited', 'Coverage limited', 'coverage-limited'],
+    ['delayed', 'Delayed', 'delayed'],
+  ])('normalizes %s freshness for the visible label and state styling', async (freshness, label, stateKey) => {
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/screeners') return Promise.resolve([{ id: 7, name: 'Coverage limited gauge' }])
+      return Promise.resolve({
+        matched_count: 0,
+        evaluated_count: 0,
+        universe_count: 10,
+        percentage: null,
+        run_at: null,
+        freshness,
+        data_provenance: 'canonical_local_database',
+        calculation_version: 'analysis-v1',
+        refreshed_at: '2026-08-03T10:01:00Z',
+        freshness_detail: { requested: 10, current: 0, stale: 0, other: 10 },
+        exclusions: [],
+      })
+    })
+
+    const wrapper = mountTool()
+    await flushPromises()
+    await wrapper.find('select').setValue('7')
+    await flushPromises()
+
+    const state = wrapper.find('.market-gauge__freshness')
+    expect(state.text()).toBe(label)
+    expect(state.attributes('data-freshness')).toBe(stateKey)
   })
 })

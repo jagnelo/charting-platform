@@ -14,7 +14,26 @@ function mount(component: typeof EasyScanTool, options: Parameters<typeof vueMou
 }
 
 describe('EasyScanTool', () => {
+  it('opens the advanced condition builder with semantic state and restores toggle focus', async () => {
+    apiGet.mockResolvedValue([])
+    const wrapper = mount(EasyScanTool, { attachTo: document.body })
+    await flushPromises()
+    const toggle = wrapper.get('button.easy-scan__advanced-toggle')
+    await toggle.trigger('click')
+    const advanced = wrapper.get('[role="region"][aria-label="Advanced technical condition builder"]')
+    expect(wrapper.get('[aria-label="Technical condition tree"]')).toBeTruthy()
+    expect(toggle.attributes('aria-expanded')).toBe('true')
+    expect(toggle.attributes('aria-controls')).toBe('easy-scan-advanced-conditions')
+    expect(document.activeElement).toBe(advanced.find('select, input, button').element)
+    await toggle.trigger('click')
+    expect(document.activeElement).toBe(toggle.element)
+    expect(toggle.attributes('aria-expanded')).toBe('false')
+    wrapper.unmount()
+  })
+
   it('creates and runs a saved Python condition through the queued scan API', async () => {
+    const invalidateQueries = vi.spyOn(QueryClient.prototype, 'invalidateQueries')
+    const setQueryData = vi.spyOn(QueryClient.prototype, 'setQueryData')
     apiGet.mockImplementation((path: string) => {
       if (path === '/workspaces/library/conditions') return Promise.resolve([])
       if (path === '/code/assets') {
@@ -46,6 +65,8 @@ describe('EasyScanTool', () => {
       timeframe: 'D1',
     })
     expect(apiPost).toHaveBeenCalledWith('/screeners/7/run', {})
+    expect(setQueryData).toHaveBeenCalledWith(['workstation', 'screeners'], expect.any(Function))
+    expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ['workstation', 'screeners'] })
     expect(wrapper.text()).toContain('1 matches')
     expect(wrapper.text()).toContain('1/1 evaluated')
     const alertButton = wrapper.findAll('button').find(button => button.text() === 'Alert')
@@ -54,6 +75,8 @@ describe('EasyScanTool', () => {
     await flushPromises()
     expect(apiPost).toHaveBeenCalledWith('/alerts/screener', { screener_id: 7, trigger_type: 'entered', repeat: true })
     expect(wrapper.text()).toContain('Alert active')
+    invalidateQueries.mockRestore()
+    setQueryData.mockRestore()
   })
 
   it('exposes cancellation for a queued isolated Python scan', async () => {
@@ -125,6 +148,38 @@ describe('EasyScanTool', () => {
     }))
   })
 
+  it('uses the immutable Python version returned by a visual save for the first scan run', async () => {
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/workspaces/library/conditions') return Promise.resolve([])
+      if (path === '/code/assets') return Promise.resolve([])
+      if (path === '/screeners') return Promise.resolve([])
+      if (path === '/screeners/17/results') return Promise.resolve([])
+      return Promise.resolve([])
+    })
+    apiPut.mockResolvedValue({
+      stable_key: 'visual-close',
+      name: 'Visual close',
+      version: 1,
+      payload: { condition: {}, python_code_version_id: 77 },
+    })
+    apiPost.mockImplementation((path: string) => {
+      if (path === '/screeners/from-python-condition/77') return Promise.resolve({ id: 17 })
+      if (path === '/screeners/17/run') return Promise.resolve({ matched_ids: [], result_data: { _status: 'completed', _coverage: { evaluated_count: 0, universe_count: 0, excluded: [] } }, error: null })
+      return Promise.resolve({})
+    })
+    const wrapper = mount(EasyScanTool)
+    await flushPromises()
+    await wrapper.get('input[aria-label="Condition name"]').setValue('Visual close')
+    await wrapper.get('input[aria-label="Condition threshold"]').setValue('100')
+    await wrapper.findAll('button').find(button => button.text() === 'Save')!.trigger('click')
+    await flushPromises()
+    await wrapper.findAll('button').find(button => button.text() === 'Run')!.trigger('click')
+    await flushPromises()
+    expect(apiPost).toHaveBeenCalledWith('/screeners/from-python-condition/77', {
+      name: 'Visual close Scan', universe_type: 'all', timeframe: 'D1',
+    })
+  })
+
   it('accepts a chart plot drop into the technical condition editor', async () => {
     apiGet.mockResolvedValue([])
     const wrapper = mount(EasyScanTool)
@@ -184,6 +239,43 @@ describe('EasyScanTool', () => {
     expect(apiPost).toHaveBeenCalledWith('/screeners/from-condition/close-test', {
       name: 'Basket scan', universe_type: 'basket', universe_basket_id: 44, timeframe: 'W1', schedule: '0 16 * * 1-5',
     })
+  })
+
+  it('reconciles a duplicate scan through the shared screeners query', async () => {
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/workspaces/library/conditions') return Promise.resolve([{ stable_key: 'duplicate', name: 'Duplicate', version: 1 }])
+      if (path === '/screeners') return Promise.resolve([{ id: 12, name: 'Duplicate Scan' }])
+      if (path === '/screeners/12/results') return Promise.resolve([{ matched_ids: [], result_data: { _status: 'completed' }, error: null }])
+      return Promise.resolve([])
+    })
+    apiPost.mockImplementation((path: string) => {
+      if (path === '/screeners/from-condition/duplicate') return Promise.reject(new Error('duplicate → 409: already exists'))
+      if (path === '/screeners/12/run') return Promise.resolve({ matched_ids: [], result_data: { _status: 'completed' }, error: null })
+      return Promise.resolve({})
+    })
+    const wrapper = mount(EasyScanTool)
+    await flushPromises()
+    await wrapper.get('select[aria-label="Saved condition"]').setValue('duplicate')
+    await wrapper.get('input[aria-label="Scan name"]').setValue('Duplicate Scan')
+    await wrapper.findAll('button').find(button => button.text() === 'Run')!.trigger('click')
+    await flushPromises()
+    // One fresh lookup reconciles the 409 and the second is the intentional
+    // post-create refresh shared with Market Gauge roots.
+    expect(apiGet.mock.calls.filter(([path]) => path === '/screeners')).toHaveLength(2)
+    expect(apiPost).toHaveBeenCalledWith('/screeners/12/run', {})
+    expect(wrapper.text()).toContain('0 matches')
+  })
+
+  it('deduplicates saved-condition hydration across linked EasyScan windows', async () => {
+    apiGet.mockReset()
+    apiGet.mockResolvedValue([])
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
+    const first = vueMount(EasyScanTool, { global: { plugins: [[VueQueryPlugin, { queryClient }]] } })
+    const second = vueMount(EasyScanTool, { global: { plugins: [[VueQueryPlugin, { queryClient }]] } })
+    await flushPromises()
+    expect(apiGet.mock.calls.filter(([path]) => path === '/workspaces/library/conditions')).toHaveLength(1)
+    expect(first.find('.easy-scan').exists()).toBe(true)
+    expect(second.find('.easy-scan').exists()).toBe(true)
   })
 
   it('retains and exposes recent scan results for review', async () => {

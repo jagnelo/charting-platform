@@ -5,7 +5,7 @@
       class="panel-toggle"
       :title="isPanelOpen ? 'Hide panel' : 'Show panel'"
       @click="isPanelOpen = !isPanelOpen"
-    >{{ isPanelOpen ? '›' : '‹' }}</button>
+    ><WorkstationGlyph :kind="isPanelOpen ? 'chevron-left' : 'chevron-right'" /></button>
 
     <div v-show="isPanelOpen" class="panel-body">
 
@@ -25,7 +25,7 @@
       <div class="section-header" @click="watchlistsOpen = !watchlistsOpen">
         <span class="section-title">Watchlists</span>
         <span class="section-count">{{ membership!.watchlists.length }}</span>
-        <span class="section-chevron">{{ watchlistsOpen ? '▾' : '▸' }}</span>
+        <span class="section-chevron"><WorkstationGlyph :kind="watchlistsOpen ? 'chevron-down' : 'chevron-right'" /></span>
       </div>
       <Transition name="slide">
         <div class="section-content" v-if="watchlistsOpen">
@@ -36,7 +36,7 @@
               class="list-row membership-row"
               @click="onWatchlistClick(wl.id)"
             >
-              <span class="mem-icon">☰</span>
+              <WorkstationGlyph kind="list" />
               <span class="row-name">{{ wl.name }}</span>
               <span v-if="wl.is_managed" class="mem-badge">managed</span>
             </div>
@@ -51,7 +51,7 @@
       <div class="section-header" @click="screenersOpen = !screenersOpen">
         <span class="section-title">Screeners</span>
         <span class="section-count">{{ activeScreeners.length }}</span>
-        <span class="section-chevron">{{ screenersOpen ? '▾' : '▸' }}</span>
+        <span class="section-chevron"><WorkstationGlyph :kind="screenersOpen ? 'chevron-down' : 'chevron-right'" /></span>
       </div>
       <Transition name="slide">
         <div class="section-content" v-if="screenersOpen">
@@ -62,7 +62,7 @@
               class="list-row membership-row"
               @click="onScreenerClick(sc.id)"
             >
-              <span class="mem-icon">⊞</span>
+              <WorkstationGlyph kind="scan" />
               <span class="row-name">{{ sc.name }}</span>
             </div>
             <div v-if="!activeScreeners.length" class="empty-hint">No active screener matches</div>
@@ -76,7 +76,7 @@
       <div class="section-header" @click="radarsOpen = !radarsOpen">
         <span class="section-title">Radar</span>
         <span class="section-count">{{ radarStore.chartDetections.length }}</span>
-        <span class="section-chevron">{{ radarsOpen ? '▾' : '▸' }}</span>
+        <span class="section-chevron"><WorkstationGlyph :kind="radarsOpen ? 'chevron-down' : 'chevron-right'" /></span>
       </div>
       <Transition name="slide">
         <div class="section-content" v-if="radarsOpen">
@@ -92,7 +92,7 @@
               @click="radarStore.toggleChartDetection(det.id)"
             >
               <span class="radar-sequence-tag">{{ formatRadarSequenceBadge(det) }}</span>
-              <span class="radar-toggle-indicator">{{ radarStore.isChartDetectionActive(det.id) ? '◉' : '○' }}</span>
+              <span class="radar-toggle-indicator"><WorkstationGlyph :kind="radarStore.isChartDetectionActive(det.id) ? 'visible' : 'hidden'" /></span>
               <span class="row-name radar-row-main">
                 <span class="radar-row-title">{{ formatRadarSetup(det.setup_type) }}</span>
                 <span class="radar-row-meta">
@@ -172,7 +172,7 @@
       <div class="section-header" @click="indicatorsOpen = !indicatorsOpen">
         <span class="section-title">Indicators</span>
         <span class="section-count">{{ chartStore.indicators.length }}</span>
-        <span class="section-chevron">{{ indicatorsOpen ? '▾' : '▸' }}</span>
+        <span class="section-chevron"><WorkstationGlyph :kind="indicatorsOpen ? 'chevron-down' : 'chevron-right'" /></span>
       </div>
 
       <Transition name="slide">
@@ -196,18 +196,18 @@
                   <span class="ind-drag-handle" title="Drag to reorder">⠿</span>
                   <span class="color-dot" :style="{ background: ind.style.color }" />
                   <span class="row-name">{{ displayName(ind) }}</span>
-                  <span v-if="ind.lockedTimeframes?.length" class="tf-lock-badge" title="Timeframe locked">🔒</span>
+                  <span v-if="ind.lockedTimeframes?.length" class="tf-lock-badge" title="Timeframe locked"><WorkstationGlyph kind="lock" /></span>
                   <div class="row-menu-wrap">
-                    <button class="row-btn row-menu-btn" @click.stop="toggleMenu(`ind-${i}`, $event)" title="More">⋯</button>
+                    <button class="row-btn row-menu-btn" @click.stop="toggleMenu(`ind-${i}`, $event)" title="More"><WorkstationGlyph kind="more" /></button>
                     <Teleport to="body">
                       <div v-if="menuOpenId === `ind-${i}`" class="row-dropdown row-dropdown--fixed" :style="rowMenuStyle" @click.stop>
-                        <button class="dd-item" @click.stop="openIndEditor(i); closeMenu()">⚙ Settings</button>
-                        <button class="dd-item" @click.stop="alertForIndicator(i); closeMenu()">🔔 Create alert</button>
+                        <button class="dd-item" @click.stop="openIndEditor(i); closeMenu()"><WorkstationGlyph kind="settings" /> Settings</button>
+                        <button class="dd-item" @click.stop="alertForIndicator(i); closeMenu()"><WorkstationGlyph kind="bell" /> Create alert</button>
                         <button class="dd-item" @click.stop="toggleIndProjection(i); closeMenu()">
-                          {{ ind.showYProjection ? '◉' : '○' }} Y projection
+                          <WorkstationGlyph :kind="ind.showYProjection ? 'visible' : 'hidden'" /> Y projection
                         </button>
                         <div class="dd-sep" />
-                        <button class="dd-item dd-item--danger" @click.stop="chartStore.removeIndicator(i); closeMenu()">✕ Remove</button>
+                        <button class="dd-item dd-item--danger" @click.stop="chartStore.removeIndicator(i); closeMenu()"><WorkstationGlyph kind="delete" /> Remove</button>
                       </div>
                     </Teleport>
                   </div>
@@ -237,8 +237,8 @@
               <option value="">— Preset —</option>
               <option v-for="p in presetsStore.presets" :key="p.id" :value="p.id">{{ p.name }}</option>
             </select>
-            <button class="preset-btn" @click="applyPreset" title="Apply preset">↓</button>
-            <button class="preset-btn" @click="saveAsPreset" title="Save as preset">✎</button>
+            <button class="preset-btn" @click="applyPreset" title="Apply preset"><WorkstationGlyph kind="apply" /></button>
+            <button class="preset-btn" @click="saveAsPreset" title="Save as preset"><WorkstationGlyph kind="edit" /></button>
           </div>
         </div>
       </Transition>
@@ -249,7 +249,7 @@
       <div class="section-header" @click="drawingsOpen = !drawingsOpen">
         <span class="section-title">Drawings</span>
         <span class="section-count">{{ drawStore.drawings.length }}</span>
-        <span class="section-chevron">{{ drawingsOpen ? '▾' : '▸' }}</span>
+        <span class="section-chevron"><WorkstationGlyph :kind="drawingsOpen ? 'chevron-down' : 'chevron-right'" /></span>
       </div>
 
       <Transition name="slide">
@@ -277,23 +277,23 @@
                   <span v-if="d.indicator_key" class="draw-pane-tag">{{ d.indicator_key.toUpperCase() }}</span>
                 </span>
                 <div class="row-menu-wrap">
-                  <button class="row-btn row-menu-btn" @click.stop="toggleMenu(`draw-${d.id}`, $event)" title="More">⋯</button>
+                  <button class="row-btn row-menu-btn" @click.stop="toggleMenu(`draw-${d.id}`, $event)" title="More"><WorkstationGlyph kind="more" /></button>
                   <Teleport to="body">
                     <div v-if="menuOpenId === `draw-${d.id}`" class="row-dropdown row-dropdown--fixed" :style="rowMenuStyle" @click.stop>
                       <button class="dd-item" @click.stop="toggleVisible(d); closeMenu()">
-                        {{ d.is_visible ? '👁 Hide' : '🚫 Show' }}
+                        <WorkstationGlyph :kind="d.is_visible ? 'visible' : 'hidden'" /> {{ d.is_visible ? 'Hide' : 'Show' }}
                       </button>
                       <button class="dd-item" @click.stop="toggleLock(d); closeMenu()">
-                        {{ d.is_locked ? '🔓 Unlock' : '🔒 Lock' }}
+                        <WorkstationGlyph :kind="d.is_locked ? 'unlock' : 'lock'" /> {{ d.is_locked ? 'Unlock' : 'Lock' }}
                       </button>
-                      <button class="dd-item" @click.stop="openDrawEditor(d); closeMenu()">⚙ Edit</button>
+                      <button class="dd-item" @click.stop="openDrawEditor(d); closeMenu()"><WorkstationGlyph kind="settings" /> Edit</button>
                       <template v-if="!['fibonacci_retracement','fibonacci_extension'].includes(d.drawing_type)">
                         <button class="dd-item" @click.stop="drawStore.toggleDrawingProjection(d.id); closeMenu()">
-                          {{ drawStore.getDrawingProjection(d.id) ? '◉' : '○' }} Y projection
+                          <WorkstationGlyph :kind="drawStore.getDrawingProjection(d.id) ? 'visible' : 'hidden'" /> Y projection
                         </button>
                       </template>
                       <div class="dd-sep" />
-                      <button class="dd-item dd-item--danger" @click.stop="drawStore.deleteDrawing(d.id); closeMenu()">✕ Delete</button>
+                      <button class="dd-item dd-item--danger" @click.stop="drawStore.deleteDrawing(d.id); closeMenu()"><WorkstationGlyph kind="delete" /> Delete</button>
                     </div>
                   </Teleport>
                 </div>
@@ -311,7 +311,7 @@
       <div class="section-header" @click="alertsOpen = !alertsOpen">
         <span class="section-title">Alerts</span>
         <span class="section-count">{{ instrumentAlerts.length }}</span>
-        <span class="section-chevron">{{ alertsOpen ? '▾' : '▸' }}</span>
+        <span class="section-chevron"><WorkstationGlyph :kind="alertsOpen ? 'chevron-down' : 'chevron-right'" /></span>
       </div>
 
       <Transition name="slide">
@@ -327,27 +327,27 @@
               @click.stop="alertsStore.selectAlert(a.id)"
               @dblclick.stop="openAlertEditor(a, null)"
             >
-              <span class="alert-icon">¤</span>
+              <span class="alert-icon"><WorkstationGlyph kind="currency" /></span>
               <span class="row-name">{{ a.condition.replace(/_/g,' ') }} {{ formatMoney(Number(a.threshold_price), a.instrument_currency) }}</span>
               <div class="row-menu-wrap">
-                <button class="row-btn row-menu-btn" @click.stop="toggleMenu(`palert-${a.id}`, $event)" title="More">⋯</button>
+                <button class="row-btn row-menu-btn" @click.stop="toggleMenu(`palert-${a.id}`, $event)" title="More"><WorkstationGlyph kind="more" /></button>
                 <Teleport to="body">
                   <div v-if="menuOpenId === `palert-${a.id}`" class="row-dropdown row-dropdown--fixed" :style="rowMenuStyle" @click.stop>
-                    <button class="dd-item" @click.stop="openAlertEditor(a, null); closeMenu()">⚙ Edit</button>
+                    <button class="dd-item" @click.stop="openAlertEditor(a, null); closeMenu()"><WorkstationGlyph kind="settings" /> Edit</button>
                     <button class="dd-item" @click.stop="alertsStore.updateAlert(a.id, { repeat: !a.repeat }); closeMenu()">
-                      {{ a.repeat ? '◉' : '○' }} Repeat
+                      <WorkstationGlyph :kind="a.repeat ? 'visible' : 'hidden'" /> Repeat
                     </button>
                     <button class="dd-item" v-if="a.status === 'active'"
-                            @click.stop="alertsStore.updateAlert(a.id, { status: 'paused' }); closeMenu()">⏸ Pause</button>
+                            @click.stop="alertsStore.updateAlert(a.id, { status: 'paused' }); closeMenu()"><WorkstationGlyph kind="pause" /> Pause</button>
                     <button class="dd-item" v-if="a.status === 'paused'"
-                            @click.stop="alertsStore.updateAlert(a.id, { status: 'active' }); closeMenu()">▶ Resume</button>
+                            @click.stop="alertsStore.updateAlert(a.id, { status: 'active' }); closeMenu()"><WorkstationGlyph kind="resume" /> Resume</button>
                     <button class="dd-item" v-if="a.status === 'triggered'"
-                            @click.stop="alertsStore.rearmAlert(a.id); closeMenu()">↺ Rearm</button>
+                            @click.stop="alertsStore.rearmAlert(a.id); closeMenu()"><WorkstationGlyph kind="repeat" /> Rearm</button>
                     <button class="dd-item" @click.stop="alertsStore.toggleAlertProjection(a.id); closeMenu()">
-                      {{ alertsStore.getAlertProjection(a.id) ? '◉' : '○' }} Y projection
+                      <WorkstationGlyph :kind="alertsStore.getAlertProjection(a.id) ? 'visible' : 'hidden'" /> Y projection
                     </button>
                     <div class="dd-sep" />
-                    <button class="dd-item dd-item--danger" @click.stop="alertsStore.deleteAlert(a.id); closeMenu()">✕ Delete</button>
+                    <button class="dd-item dd-item--danger" @click.stop="alertsStore.deleteAlert(a.id); closeMenu()"><WorkstationGlyph kind="delete" /> Delete</button>
                   </div>
                 </Teleport>
               </div>
@@ -362,24 +362,24 @@
               @click.stop="alertsStore.selectAlert(a.id)"
               @dblclick.stop="openAlertEditor(null, a)"
             >
-              <span class="alert-icon">≈</span>
+              <span class="alert-icon"><WorkstationGlyph kind="approx" /></span>
               <span class="row-name">{{ indAlertLabel(a) }}</span>
               <div class="row-menu-wrap">
-                <button class="row-btn row-menu-btn" @click.stop="toggleMenu(`ialert-${a.id}`, $event)" title="More">⋯</button>
+                <button class="row-btn row-menu-btn" @click.stop="toggleMenu(`ialert-${a.id}`, $event)" title="More"><WorkstationGlyph kind="more" /></button>
                 <Teleport to="body">
                   <div v-if="menuOpenId === `ialert-${a.id}`" class="row-dropdown row-dropdown--fixed" :style="rowMenuStyle" @click.stop>
-                    <button class="dd-item" @click.stop="openAlertEditor(null, a); closeMenu()">⚙ Edit</button>
+                    <button class="dd-item" @click.stop="openAlertEditor(null, a); closeMenu()"><WorkstationGlyph kind="settings" /> Edit</button>
                     <button class="dd-item" @click.stop="alertsStore.updateIndicatorAlert(a.id, { repeat: !a.repeat }); closeMenu()">
-                      {{ a.repeat ? '◉' : '○' }} Repeat
+                      <WorkstationGlyph :kind="a.repeat ? 'visible' : 'hidden'" /> Repeat
                     </button>
                     <button class="dd-item" v-if="a.status === 'active'"
-                            @click.stop="alertsStore.updateIndicatorAlert(a.id, { status: 'paused' }); closeMenu()">⏸ Pause</button>
+                            @click.stop="alertsStore.updateIndicatorAlert(a.id, { status: 'paused' }); closeMenu()"><WorkstationGlyph kind="pause" /> Pause</button>
                     <button class="dd-item" v-if="a.status === 'paused'"
-                            @click.stop="alertsStore.updateIndicatorAlert(a.id, { status: 'active' }); closeMenu()">▶ Resume</button>
+                            @click.stop="alertsStore.updateIndicatorAlert(a.id, { status: 'active' }); closeMenu()"><WorkstationGlyph kind="resume" /> Resume</button>
                     <button class="dd-item" v-if="a.status === 'triggered'"
-                            @click.stop="alertsStore.rearmIndicatorAlert(a.id); closeMenu()">↺ Rearm</button>
+                            @click.stop="alertsStore.rearmIndicatorAlert(a.id); closeMenu()"><WorkstationGlyph kind="repeat" /> Rearm</button>
                     <div class="dd-sep" />
-                    <button class="dd-item dd-item--danger" @click.stop="alertsStore.deleteIndicatorAlert(a.id); closeMenu()">✕ Delete</button>
+                    <button class="dd-item dd-item--danger" @click.stop="alertsStore.deleteIndicatorAlert(a.id); closeMenu()"><WorkstationGlyph kind="delete" /> Delete</button>
                   </div>
                 </Teleport>
               </div>
@@ -404,7 +404,7 @@
         <div class="editor-box">
           <div class="ed-header">
             <span>{{ editingInd?.type.toUpperCase() }} Settings</span>
-            <button class="ed-close" @click="closeIndEditor">✕</button>
+            <button class="ed-close" @click="closeIndEditor"><WorkstationGlyph kind="close" /></button>
           </div>
           <div class="ed-body" v-if="editingInd">
             <div class="ed-row">
@@ -510,7 +510,7 @@
         <div class="editor-box">
           <div class="ed-header">
             <span>{{ editingDraw ? drawingLabel(editingDraw) : '' }} Settings</span>
-            <button class="ed-close" @click="closeDrawEditor">✕</button>
+            <button class="ed-close" @click="closeDrawEditor"><WorkstationGlyph kind="close" /></button>
           </div>
           <div class="ed-body" v-if="editingDraw">
             <div class="ed-row">
@@ -603,6 +603,7 @@ import type { IndicatorParamDef } from '@/lib/indicators/catalog'
 import type { ChartDrawing, IndicatorAlert, PriceAlert, IndicatorConfig, IndicatorType } from '@/types'
 import { api } from '@/lib/api'
 import { VueDraggable } from 'vue-draggable-plus'
+import WorkstationGlyph from '@/components/workstation/WorkstationGlyph.vue'
 
 const props = defineProps<{ panelId: string; panelWidth?: number }>()
 const emit = defineEmits<{ selectSymbol: [symbol: string] }>()

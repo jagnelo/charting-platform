@@ -105,4 +105,77 @@ describe('InstrumentInfoPanel', () => {
     expect(text).toContain('apple.com')
     wrapper.unmount()
   })
+
+  it('renders every canonical listing with its exchange and lifecycle state', () => {
+    const wrapper = mount(InstrumentInfoPanel, {
+      props: {
+        instrument: {
+          id: 4,
+          symbol: 'DUAL',
+          name: 'Dual venue issuer',
+          currency: 'USD',
+          is_active: true,
+          listings: [
+            {
+              ticker: 'DUAL',
+              currency: 'USD',
+              is_primary: true,
+              is_active: true,
+              exchange: { id: 1, mic: 'XNAS', name: 'Nasdaq' },
+            },
+            {
+              ticker: 'DUAL',
+              currency: 'USD',
+              is_primary: false,
+              is_active: false,
+              exchange: { id: 2, mic: 'XNYS', name: 'New York Stock Exchange' },
+            },
+          ],
+        },
+      },
+    })
+
+    expect(wrapper.findAll('.listing-row')).toHaveLength(2)
+    expect(wrapper.text()).toContain('XNAS')
+    expect(wrapper.text()).toContain('XNYS')
+    expect(wrapper.text()).toContain('primary')
+    expect(wrapper.text()).toContain('inactive')
+    wrapper.unmount()
+  })
+
+  it('exposes the report as a keyboard-operable disclosure region', async () => {
+    const wrapper = mount(InstrumentInfoPanel, {
+      props: { instrument: { id: 3, symbol: 'SPY', name: 'SPDR S&P 500 ETF', currency: 'USD', is_active: true } },
+    })
+    const region = wrapper.get('[role="region"][aria-label="SPY instrument report"]')
+    const header = wrapper.get('.section-header[role="button"]')
+    expect(header.attributes('tabindex')).toBe('0')
+    expect(header.attributes('aria-expanded')).toBe('true')
+    await header.trigger('keydown', { key: 'Enter' })
+    expect(header.attributes('aria-expanded')).toBe('false')
+    await header.trigger('keydown', { key: ' ' })
+    expect(header.attributes('aria-expanded')).toBe('true')
+    expect(region.exists()).toBe(true)
+    wrapper.unmount()
+  })
+
+  it('publishes canonical identity when opening a synthetic constituent', async () => {
+    const wrapper = mount(InstrumentInfoPanel, {
+      props: {
+        instrument: {
+          id: 10,
+          symbol: 'XLK/SPY',
+          name: 'Technology relative strength',
+          is_active: true,
+          is_synthetic: true,
+          expression: 'XLK/SPY',
+          synthetic_constituents: [{ ticker_alias: 'XLK', constituent_instrument_id: 91 }],
+        },
+      },
+    })
+
+    await wrapper.get('.constituent-chip').trigger('click')
+    expect(wrapper.emitted('select')).toEqual([['XLK', 91]])
+    wrapper.unmount()
+  })
 })

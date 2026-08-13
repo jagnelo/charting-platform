@@ -50,14 +50,14 @@
         <span v-if="tile.alertCount" class="hm-alert-badge">{{ tile.alertCount }}</span>
 
         <span class="hm-sym">{{ tile.symbol }}</span>
-        <svg
+        <Sparkline
           v-if="showSparklines && tile.sparkline.length > 1 && tile.h > 52"
+          :symbol="tile.symbol"
+          :points="tile.sparkline"
+          :width="Math.max(20, Math.floor(tile.w * 0.84))"
+          :height="28"
           class="hm-spark"
-          viewBox="0 0 100 28"
-          preserveAspectRatio="none"
-        >
-          <polyline :points="sparkPoints(tile.sparkline)" fill="none" stroke="rgba(255,255,255,0.65)" stroke-width="1.6" vector-effect="non-scaling-stroke" />
-        </svg>
+        />
         <span v-if="tile.h > 44" class="hm-val">{{ formatMetricValue(tile.metricValue) }}</span>
       </router-link>
 
@@ -87,6 +87,7 @@ import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { api } from '@/lib/api'
 import { useAlertsStore } from '@/stores/alerts'
 import { useWatchlistStore } from '@/stores/watchlist'
+import Sparkline from '@/components/common/Sparkline.vue'
 import type { Timeframe, Watchlist } from '@/types'
 
 // ── Props / emits ─────────────────────────────────────────────────────────────
@@ -529,25 +530,6 @@ function tileStyle(tile: Tile): Record<string, string> {
   }
 }
 
-// ── Sparkline helpers ─────────────────────────────────────────────────────────
-function sparkPoints(data: number[]): string {
-  const values = data.filter(v => Number.isFinite(v))
-  if (values.length < 2) return ''
-  const min = Math.min(...values)
-  const max = Math.max(...values)
-  const range = max - min
-  const w = 100
-  const h = 28
-  const xStep = values.length > 1 ? w / (values.length - 1) : 0
-  return values
-    .map((v, i) => {
-      const x = i * xStep
-      const y = range <= 0 ? h / 2 : h - 3 - ((v - min) / range) * (h - 6)
-      return `${x.toFixed(2)},${y.toFixed(2)}`
-    })
-    .join(' ')
-}
-
 // ── Metric formatting ─────────────────────────────────────────────────────────
 function formatMetricValue(value: number | null): string {
   if (value === null) return '—'
@@ -780,10 +762,7 @@ onUnmounted(() => {
 .hm-spark {
   position: absolute;
   left: 8%;
-  right: 8%;
   bottom: 19px;
-  width: 84%;
-  height: 24px;
   overflow: hidden;
   pointer-events: none;
   opacity: 0.9;

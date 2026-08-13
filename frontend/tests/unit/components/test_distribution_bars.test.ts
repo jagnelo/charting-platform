@@ -1,10 +1,13 @@
 import { mount } from '@vue/test-utils'
-import { describe, expect, it } from 'vitest'
+import { nextTick } from 'vue'
+import { describe, expect, it, vi } from 'vitest'
 
 import DistributionBars from '@/components/strategy/DistributionBars.vue'
+import uPlot from 'uplot'
 
 describe('DistributionBars', () => {
   it('renders an R outcome map with trade dots and hover detail', async () => {
+    vi.mocked(uPlot).mockClear()
     const wrapper = mount(DistributionBars, {
       attachTo: document.body,
       props: {
@@ -30,6 +33,7 @@ describe('DistributionBars', () => {
         ],
       },
     })
+    await nextTick()
 
     expect(wrapper.text()).not.toContain('2 trades')
     expect(wrapper.text()).not.toContain('Avg 0.03R')
@@ -37,6 +41,8 @@ describe('DistributionBars', () => {
     expect(wrapper.text()).toContain('LOSSES')
     expect(wrapper.text()).toContain('BREAKEVEN')
     expect(wrapper.text()).toContain('WINS')
+    expect(vi.mocked(uPlot)).toHaveBeenCalled()
+    expect(vi.mocked(uPlot).mock.calls.at(-1)?.[0].plugins).toHaveLength(1)
     expect(wrapper.findAll('[data-testid="r-outcome-point"]')).toHaveLength(2)
 
     const firstPoint = wrapper.find('[data-testid="r-outcome-point"]')

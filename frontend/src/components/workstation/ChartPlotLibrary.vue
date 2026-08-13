@@ -1,9 +1,9 @@
 <template>
-  <section class="chart-plots" aria-label="Chart plot library">
-    <button type="button" aria-label="Chart plot library" @click="open = !open">Plots {{ chartStore.indicators.length }}</button>
-    <div v-if="open" class="chart-plots__menu">
-      <header><b>Chart plots</b><button type="button" aria-label="Close chart plot library" @click="open = false">×</button></header>
-      <select aria-label="Add indicator plot" :value="''" @change="add(($event.target as HTMLSelectElement).value)">
+  <section class="chart-plots" aria-label="Chart plot library" @pointerdown.stop @mousedown.stop @keydown.esc="closeToTrigger">
+    <button ref="toggleButton" type="button" aria-label="Chart plot library" :aria-expanded="open" aria-haspopup="menu" @click="toggleOpen" @keydown="handleTriggerKeydown">Plots {{ chartStore.indicators.length + (pythonPlots?.length ?? 0) + (scanPlots?.length ?? 0) }}</button>
+    <div v-if="open" ref="menuRoot" class="chart-plots__menu" role="menu" aria-label="Chart plot library menu" :style="menuStyle" @keydown="handleMenuKeydown">
+      <header><b>Chart plots</b><button type="button" aria-label="Close chart plot library" @click="closeToTrigger"><WorkstationGlyph kind="close" /></button></header>
+      <select ref="firstControl" aria-label="Add indicator plot" :value="''" @change="add(($event.target as HTMLSelectElement).value)">
         <option value="" disabled>Add indicator plot…</option>
         <option v-for="item in catalog" :key="item.type" :value="item.type">{{ item.pickerLabel }}</option>
       </select>
@@ -25,6 +25,15 @@
         <button v-if="selectedPythonVersion" type="button" @click="addPythonPlot">Add</button>
         <small v-if="pythonStatus">{{ pythonStatus }}</small>
       </section>
+      <section class="chart-plots__python chart-plots__scan" aria-label="EasyScan plot assets">
+        <button type="button" :disabled="scanLoading" @click="loadScanPlots">{{ scanLoading ? 'Loading…' : 'Load EasyScan plots' }}</button>
+        <select v-if="scanAssets.length" v-model="selectedScanAsset" aria-label="EasyScan plot asset">
+          <option value="">Add scan plot…</option>
+          <option v-for="asset in scanAssets" :key="`${asset.screenerId}:${asset.metric}`" :value="`${asset.screenerId}:${asset.metric}`">{{ asset.name }} · {{ asset.metric }}</option>
+        </select>
+        <button v-if="selectedScanAsset" type="button" @click="addScanPlot">Add</button>
+        <small v-if="scanStatus">{{ scanStatus }}</small>
+      </section>
       <div v-if="selectedPromotionIndex !== ''" class="chart-plots__promotion">
         <select v-model="promotionTarget" aria-label="Plot promotion target"><option value="condition">Condition</option><option value="scan">EasyScan</option><option value="filter">Watchlist filter</option><option value="alert">Indicator alert</option></select>
         <select v-if="promotionTarget === 'filter'" v-model="selectedFilterTarget" aria-label="Plot promotion watchlist"><option value="" disabled>Select watchlist…</option><option v-for="target in watchlistTargets" :key="target.instance_key" :value="target.instance_key">{{ target.title || target.instance_key }}</option></select>
@@ -35,26 +44,85 @@
       </div>
       <p v-if="promotionStatus" class="chart-plots__promotion-status" role="status">{{ promotionStatus }}</p>
       <p>Price history <small>active</small></p>
-      <p v-if="!chartStore.indicators.length">No indicator plots.</p>
-      <ol v-else><li v-for="(indicator, index) in chartStore.indicators" :key="`${indicator.type}:${index}`" :class="{ muted: indicator.hidden }" draggable="true" @dragstart="startDrag(index, $event)" @dragend="draggingIndex = null">
+      <p v-if="!chartStore.indicators.length && !pythonPlots?.length && !scanPlots?.length">No indicator or reusable plots.</p>
+      <ol v-else><li v-for="(plot, index) in (scanPlots ?? [])" :key="scanPlotKey(plot, index)" class="chart-plots__python-item chart-plots__scan-item" :class="{ muted: plot.hidden }">
+        <input :value="plot.color ?? '#4dd0e1'" :aria-label="`${plot.name} color`" type="color" @input="updateScanPlot(index, { color: ($event.target as HTMLInputElement).value })" /><span>{{ plot.name }} <small>EasyScan · {{ plot.metric }}</small></span>
+        <button type="button" :aria-label="`${plot.hidden ? 'Show' : 'Hide'} ${plot.name}`" @click="toggleScanPlot(index)"><WorkstationGlyph :kind="plot.hidden ? 'hidden' : 'visible'" /></button><button type="button" :aria-label="`Move ${plot.name} up`" :disabled="index === 0" @click="moveScanPlot(index, -1)"><WorkstationGlyph kind="move-up" /></button><button type="button" :aria-label="`Move ${plot.name} down`" :disabled="index === (scanPlots?.length ?? 0) - 1" @click="moveScanPlot(index, 1)"><WorkstationGlyph kind="move-down" /></button><button type="button" :aria-label="`Duplicate ${plot.name}`" @click="duplicateScanPlot(index)"><WorkstationGlyph kind="duplicate" /></button><button type="button" :aria-label="`Copy ${plot.name} to linked charts`" :disabled="!linkedTargets" @click="copyScanPlot(index, 'linked')"><WorkstationGlyph kind="copy-linked" /></button><button type="button" :aria-label="`Copy ${plot.name} to selected chart target`" :disabled="!copyTargetAvailable" @click="copyScanPlot(index, selectedCopyTarget)"><WorkstationGlyph kind="copy" /></button><button type="button" :aria-label="`Remove ${plot.name}`" @click="removeScanPlot(index)"><WorkstationGlyph kind="delete" /></button>
+      </li><li v-for="(plot, index) in (pythonPlots ?? [])" :key="pythonPlotKey(plot, index)" class="chart-plots__python-item" :class="{ muted: plot.hidden }" draggable="true" @dragstart="startPythonDrag(index, $event)" @dragend="endDrag">
+        <input :value="plot.color ?? '#ffb74d'" :aria-label="`${plot.name} color`" type="color" @input="updatePythonPlot(index, { color: ($event.target as HTMLInputElement).value })" /><span>{{ plot.name }} <small>Python</small></span>
+        <button type="button" :aria-label="`${plot.hidden ? 'Show' : 'Hide'} ${plot.name}`" @click="togglePythonPlot(index)"><WorkstationGlyph :kind="plot.hidden ? 'hidden' : 'visible'" /></button><button type="button" :aria-label="`Move ${plot.name} up`" :disabled="index === 0" @click="movePythonPlot(index, -1)"><WorkstationGlyph kind="move-up" /></button><button type="button" :aria-label="`Move ${plot.name} down`" :disabled="index === (pythonPlots?.length ?? 0) - 1" @click="movePythonPlot(index, 1)"><WorkstationGlyph kind="move-down" /></button><button type="button" :aria-label="`Duplicate ${plot.name}`" @click="duplicatePythonPlot(index)"><WorkstationGlyph kind="duplicate" /></button><button type="button" :aria-label="`Copy ${plot.name} to linked charts`" :disabled="!linkedTargets" @click="copyPythonPlot(index, 'linked')"><WorkstationGlyph kind="copy-linked" /></button><button type="button" :aria-label="`Copy ${plot.name} to selected chart target`" :disabled="!copyTargetAvailable" @click="copyPythonPlot(index, selectedCopyTarget)"><WorkstationGlyph kind="copy" /></button><button type="button" :aria-label="`Remove ${plot.name}`" @click="removePythonPlot(index)"><WorkstationGlyph kind="delete" /></button>
+      </li><li v-if="draggingPreview && !chartStore.indicators.some(indicator => indicator.type === draggingPreview!.type && JSON.stringify(indicator.params ?? {}) === JSON.stringify(draggingPreview!.params ?? {}))" class="chart-plots__drag-preview" draggable="true" @dragstart="startPreviewDrag($event)" @dragend="endDrag"><span>{{ indicatorDisplayName(draggingPreview) }}</span></li><li v-for="(indicator, index) in chartStore.indicators" :key="`${indicator.type}:${index}`" :class="{ muted: indicator.hidden }" draggable="true" @dragstart="startDrag(index, $event)" @dragend="endDrag">
         <input :value="indicator.style.color" :aria-label="`${label(indicator)} color`" type="color" @input="style(index, 'color', ($event.target as HTMLInputElement).value)" /><span>{{ label(indicator) }}</span>
         <input :value="indicator.style.lineWidth" :aria-label="`${label(indicator)} line width`" type="number" min="0.25" max="5" step="0.25" @change="style(index, 'lineWidth', Number(($event.target as HTMLInputElement).value))" />
-        <button type="button" :aria-label="`${indicator.hidden ? 'Show' : 'Hide'} ${label(indicator)}`" @click="toggle(index)">{{ indicator.hidden ? '○' : '●' }}</button><button type="button" :aria-label="`Move ${label(indicator)} up`" :disabled="index === 0" @click="move(index, -1)">↑</button><button type="button" :aria-label="`Move ${label(indicator)} down`" :disabled="index === chartStore.indicators.length - 1" @click="move(index, 1)">↓</button><button type="button" :aria-label="`Duplicate ${label(indicator)}`" @click="duplicate(index)">⧉</button><button type="button" :aria-label="`Copy ${label(indicator)} to linked charts`" :disabled="!linkedTargets" @click="copy(index, 'linked')">⇉</button><button type="button" :aria-label="`Copy ${label(indicator)} to selected chart target`" :disabled="!copyTargetAvailable" @click="copy(index, selectedCopyTarget)">→</button><button type="button" :aria-label="`Promote ${label(indicator)}`" @click="selectPromotion(index)">⇧</button><button type="button" :aria-label="`Delete ${label(indicator)}`" @click="chartStore.removeIndicator(index)">×</button>
+        <button type="button" :aria-label="`${indicator.hidden ? 'Show' : 'Hide'} ${label(indicator)}`" @click="toggle(index)"><WorkstationGlyph :kind="indicator.hidden ? 'hidden' : 'visible'" /></button><button type="button" :aria-label="`Move ${label(indicator)} up`" :disabled="index === 0" @click="move(index, -1)"><WorkstationGlyph kind="move-up" /></button><button type="button" :aria-label="`Move ${label(indicator)} down`" :disabled="index === chartStore.indicators.length - 1" @click="move(index, 1)"><WorkstationGlyph kind="move-down" /></button><button type="button" :aria-label="`Duplicate ${label(indicator)}`" @click="duplicate(index)"><WorkstationGlyph kind="duplicate" /></button><button type="button" :aria-label="`Copy ${label(indicator)} to linked charts`" :disabled="!linkedTargets" @click="copy(index, 'linked')"><WorkstationGlyph kind="copy-linked" /></button><button type="button" :aria-label="`Copy ${label(indicator)} to selected chart target`" :disabled="!copyTargetAvailable" @click="copy(index, selectedCopyTarget)"><WorkstationGlyph kind="copy" /></button><button type="button" :aria-label="`Promote ${label(indicator)}`" @click="selectPromotion(index)"><WorkstationGlyph kind="promote" /></button><button type="button" :aria-label="`Delete ${label(indicator)}`" @click="chartStore.removeIndicator(index)"><WorkstationGlyph kind="delete" /></button>
       </li></ol>
     </div>
   </section>
 </template>
 <script setup lang="ts">
-import { computed, inject, ref } from 'vue'
+import { computed, inject, nextTick, onBeforeUnmount, ref } from 'vue'
+import { useQueryClient } from '@tanstack/vue-query'
 import { usePanelStore } from '@/stores/chart'
 import { useWorkspaceStore } from '@/stores/workspace'
 import { cloneDefaultIndicator, INDICATOR_CATALOG, indicatorDisplayName } from '@/lib/indicators/catalog'
 import { api } from '@/lib/api'
 import type { IndicatorConfig, IndicatorType } from '@/types'
-import { createChartPlotDragPayload, writeChartPlotDrag } from '@/lib/workstation/plotDrag'
-const props = defineProps<{ sourceWindowKey: string; linkGroup: string; pythonPlots?: Array<{ code_version_id: number; name: string; color?: string; timeframe?: string }> }>()
-const emit = defineEmits<{ 'update:pythonPlots': [plots: Array<{ code_version_id: number; name: string; color?: string; timeframe?: string }>] }>()
+import { clearAnalysisDrag, createChartPlotDragPayload, createPythonPlotDragPayload, scheduleAnalysisDragCleanup, writeChartPlotDrag, writePythonPlotDrag } from '@/lib/workstation/plotDrag'
+import { fetchCodeAssets } from '@/lib/workstation/libraryQueries'
+import WorkstationGlyph from './WorkstationGlyph.vue'
+type PythonPlot = { code_version_id: number; name: string; color?: string; timeframe?: string; hidden?: boolean; instance_key?: string }
+type ScanPlot = { screener_id: number; name: string; metric: 'count' | 'percentage'; color?: string; hidden?: boolean; instance_key?: string }
+type ScanAsset = { screenerId: number; name: string; metric: 'count' | 'percentage'; points: number }
+const props = defineProps<{ sourceWindowKey: string; linkGroup: string; pythonPlots?: PythonPlot[]; scanPlots?: ScanPlot[] }>()
+const emit = defineEmits<{ 'update:python-plots': [plots: PythonPlot[]]; 'update:scan-plots': [plots: ScanPlot[]] }>()
 const chartStore = usePanelStore(inject<string>('panelId', 'chart')); const open = ref(false); const catalog = INDICATOR_CATALOG; const workspaceStore = useWorkspaceStore()
+const queryClient = useQueryClient()
+const toggleButton = ref<HTMLButtonElement | null>(null)
+const menuRoot = ref<HTMLElement | null>(null)
+const firstControl = ref<HTMLSelectElement | null>(null)
+const menuStyle = ref<Record<string, string>>({})
+function positionMenu() {
+  const rect = toggleButton.value?.getBoundingClientRect()
+  if (!rect) return
+  const gutter = 8
+  const width = Math.min(300, Math.max(180, window.innerWidth - gutter * 2))
+  const left = Math.max(gutter, Math.min(rect.left, window.innerWidth - width - gutter))
+  const menuHeight = Math.min(340, Math.max(120, window.innerHeight - gutter * 2))
+  const below = rect.bottom + 4
+  const above = rect.top - menuHeight - 4
+  const top = below + menuHeight <= window.innerHeight - gutter ? below : Math.max(gutter, above)
+  menuStyle.value = { position: 'fixed', left: `${Math.round(left)}px`, top: `${Math.round(top)}px`, width: `${Math.round(width)}px`, maxHeight: `${Math.round(menuHeight)}px` }
+}
+function toggleOpen() {
+  open.value = !open.value
+  if (open.value) void nextTick(() => {
+    positionMenu()
+    window.addEventListener('resize', positionMenu)
+    window.addEventListener('scroll', positionMenu, true)
+    firstControl.value?.focus()
+  })
+  else closeToTrigger()
+}
+function closeToTrigger() {
+  if (!open.value) return
+  open.value = false
+  window.removeEventListener('resize', positionMenu)
+  window.removeEventListener('scroll', positionMenu, true)
+  void nextTick(() => toggleButton.value?.focus())
+}
+function handleTriggerKeydown(event: KeyboardEvent) {
+  if (!['Enter', ' ', 'ArrowDown', 'ArrowUp'].includes(event.key)) return
+  event.preventDefault()
+  if (!open.value) toggleOpen()
+  else firstControl.value?.focus()
+}
+function handleMenuKeydown(event: KeyboardEvent) {
+  if (event.key === 'Escape') {
+    event.preventDefault()
+    event.stopPropagation()
+    closeToTrigger()
+  }
+}
 const selectedCopyTarget = ref('linked')
 const chartTargets = computed(() => (workspaceStore.activeTab?.windows ?? []).filter(window => ['chart', 'watchlist'].includes(window.tool_type) && window.instance_key !== props.sourceWindowKey))
 const watchlistTargets = computed(() => chartTargets.value.filter(window => window.tool_type === 'watchlist'))
@@ -73,13 +141,18 @@ const pythonAssets = ref<Array<{ versionId: number; name: string }>>([])
 const selectedPythonVersion = ref('')
 const pythonLoading = ref(false)
 const pythonStatus = ref('')
+const scanAssets = ref<ScanAsset[]>([])
+const selectedScanAsset = ref('')
+const scanLoading = ref(false)
+const scanStatus = ref('')
 const draggingIndex = ref<number | null>(null)
+const draggingPreview = ref<IndicatorConfig | null>(null)
 function label(indicator: IndicatorConfig) { return indicatorDisplayName(indicator) }
 async function loadPythonAssets() {
   pythonLoading.value = true; pythonStatus.value = ''
   try {
-    const assets = await api.get<Array<{ kind: string; name: string; versions: Array<{ id?: number; version_number: number }> }>>('/code/assets')
-    pythonAssets.value = assets.filter(asset => asset.kind === 'plot').flatMap(asset => asset.versions.slice(-1).flatMap(version => version.id ? [{ versionId: version.id, name: `${asset.name} v${version.version_number}` }] : []))
+    const assets = await fetchCodeAssets(queryClient)
+    pythonAssets.value = assets.filter(asset => asset.kind === 'plot' || asset.kind === 'study').flatMap(asset => asset.versions.slice(-1).flatMap(version => version.id && (version.output_contract === 'series' || asset.kind === 'plot') ? [{ versionId: version.id, name: `${asset.name} v${version.version_number}` }] : []))
     pythonStatus.value = pythonAssets.value.length ? `${pythonAssets.value.length} plot asset${pythonAssets.value.length === 1 ? '' : 's'} available` : 'No Python plot assets available'
   } catch (cause: any) { pythonStatus.value = cause?.message ?? 'Unable to load Python plot assets' }
   finally { pythonLoading.value = false }
@@ -89,18 +162,144 @@ function addPythonPlot() {
   const asset = pythonAssets.value.find(item => item.versionId === versionId)
   if (!asset || (props.pythonPlots ?? []).some(plot => plot.code_version_id === versionId)) return
   const colors = ['#ffb74d', '#81c784', '#ba68c8', '#f06292', '#4dd0e1']
-  const plot = { code_version_id: versionId, name: asset.name, color: colors[(props.pythonPlots ?? []).length % colors.length], timeframe: chartStore.timeframe }
-  emit('update:pythonPlots', [...(props.pythonPlots ?? []), plot])
+  const plot: PythonPlot = { code_version_id: versionId, name: asset.name, color: colors[(props.pythonPlots ?? []).length % colors.length], timeframe: chartStore.timeframe, instance_key: `${versionId}-${Date.now().toString(36)}` }
+  emit('update:python-plots', [...(props.pythonPlots ?? []), plot])
   selectedPythonVersion.value = ''
   pythonStatus.value = `Added ${asset.name}`
+}
+async function loadScanPlots() {
+  scanLoading.value = true
+  scanStatus.value = ''
+  try {
+    const screeners = await api.get<Array<{ id: number; name: string }>>('/screeners')
+    const assets = await Promise.all((screeners ?? []).map(async screener => {
+      const entries = await Promise.all((['percentage', 'count'] as const).map(async metric => {
+        const plot = await api.get<{ points?: Array<{ value?: number | null }> }>(`/screeners/${screener.id}/plot`, { metric })
+        const points = (plot?.points ?? []).filter(point => typeof point.value === 'number' && Number.isFinite(point.value)).length
+        return points ? { screenerId: screener.id, name: screener.name, metric, points } : null
+      }))
+      return entries.filter((entry): entry is ScanAsset => entry != null)
+    }))
+    scanAssets.value = assets.flat().filter((entry): entry is ScanAsset => entry != null)
+    scanStatus.value = scanAssets.value.length ? `${scanAssets.value.length} historical scan plot${scanAssets.value.length === 1 ? '' : 's'} available` : 'No retained scan history available'
+  } catch (cause: any) {
+    scanStatus.value = cause?.message ?? 'Unable to load EasyScan plots'
+  } finally {
+    scanLoading.value = false
+  }
+}
+function addScanPlot() {
+  const [id, metric] = selectedScanAsset.value.split(':')
+  const screenerId = Number(id)
+  const asset = scanAssets.value.find(item => item.screenerId === screenerId && item.metric === metric)
+  if (!asset || (props.scanPlots ?? []).some(plot => plot.screener_id === screenerId && plot.metric === asset.metric)) return
+  const colors = ['#4dd0e1', '#ffb74d', '#81c784', '#ba68c8', '#f06292']
+  const plot: ScanPlot = { screener_id: screenerId, name: asset.name, metric: asset.metric, color: colors[(props.scanPlots ?? []).length % colors.length], instance_key: `${screenerId}-${asset.metric}-${Date.now().toString(36)}` }
+  emit('update:scan-plots', [...(props.scanPlots ?? []), plot])
+  selectedScanAsset.value = ''
+  scanStatus.value = `Added ${asset.name} · ${asset.metric}`
+}
+function pythonPlotKey(plot: PythonPlot, index: number) {
+  return `python:${plot.instance_key ?? `${plot.code_version_id}:${index}`}`
+}
+function scanPlotKey(plot: ScanPlot, index: number) {
+  return `scan:${plot.instance_key ?? `${plot.screener_id}:${plot.metric}:${index}`}`
+}
+function updateScanPlot(index: number, changes: Partial<ScanPlot>) {
+  const plots = [...(props.scanPlots ?? [])]
+  if (!plots[index]) return
+  plots[index] = { ...plots[index], ...changes }
+  emit('update:scan-plots', plots)
+}
+function toggleScanPlot(index: number) {
+  const plot = props.scanPlots?.[index]
+  if (plot) updateScanPlot(index, { hidden: !plot.hidden })
+}
+function moveScanPlot(index: number, delta: number) {
+  const target = index + delta
+  const plots = [...(props.scanPlots ?? [])]
+  if (index < 0 || target < 0 || target >= plots.length) return
+  const [plot] = plots.splice(index, 1)
+  plots.splice(target, 0, plot)
+  emit('update:scan-plots', plots)
+}
+function duplicateScanPlot(index: number) {
+  const plot = props.scanPlots?.[index]
+  if (!plot) return
+  const plots = [...(props.scanPlots ?? [])]
+  plots.splice(index + 1, 0, { ...plot, instance_key: `${plot.screener_id}-${plot.metric}-${Date.now().toString(36)}`, hidden: false })
+  emit('update:scan-plots', plots)
+}
+function removeScanPlot(index: number) {
+  const plots = [...(props.scanPlots ?? [])]
+  if (!plots[index]) return
+  plots.splice(index, 1)
+  emit('update:scan-plots', plots)
+}
+function updatePythonPlot(index: number, changes: Partial<PythonPlot>) {
+  const plots = [...(props.pythonPlots ?? [])]
+  if (!plots[index]) return
+  plots[index] = { ...plots[index], ...changes }
+  emit('update:python-plots', plots)
+}
+function togglePythonPlot(index: number) {
+  const plot = props.pythonPlots?.[index]
+  if (plot) updatePythonPlot(index, { hidden: !plot.hidden })
+}
+function movePythonPlot(index: number, delta: number) {
+  const target = index + delta
+  const plots = [...(props.pythonPlots ?? [])]
+  if (index < 0 || target < 0 || target >= plots.length) return
+  const [plot] = plots.splice(index, 1)
+  plots.splice(target, 0, plot)
+  emit('update:python-plots', plots)
+}
+function duplicatePythonPlot(index: number) {
+  const plot = props.pythonPlots?.[index]
+  if (!plot) return
+  const plots = [...(props.pythonPlots ?? [])]
+  plots.splice(index + 1, 0, { ...plot, instance_key: `${plot.code_version_id}-${Date.now().toString(36)}`, hidden: false })
+  emit('update:python-plots', plots)
+}
+function removePythonPlot(index: number) {
+  const plots = [...(props.pythonPlots ?? [])]
+  if (!plots[index]) return
+  plots.splice(index, 1)
+  emit('update:python-plots', plots)
+}
+function startPythonDrag(index: number, event: DragEvent) {
+  const plot = props.pythonPlots?.[index]
+  if (!plot || !event.dataTransfer) return
+  const payload = createPythonPlotDragPayload(plot, chartStore.timeframe, props.sourceWindowKey)
+  if (payload && writePythonPlotDrag(event.dataTransfer, payload)) draggingIndex.value = index
 }
 function startDrag(index: number, event: DragEvent) {
   const item = chartStore.indicators[index]
   if (!item || !event.dataTransfer) return
   const payload = createChartPlotDragPayload(item, chartStore.timeframe, props.sourceWindowKey)
-  if (writeChartPlotDrag(event.dataTransfer, payload)) draggingIndex.value = index
+  if (writeChartPlotDrag(event.dataTransfer, payload)) {
+    draggingIndex.value = index
+    draggingPreview.value = { ...item, params: { ...item.params }, style: { ...item.style } }
+  }
 }
-function add(value: string) { if (INDICATOR_CATALOG.some(item => item.type === value)) chartStore.addIndicator(cloneDefaultIndicator(value as IndicatorType)) }
+function startPreviewDrag(event: DragEvent) {
+  const item = draggingPreview.value
+  if (!item || !event.dataTransfer) return
+  const payload = createChartPlotDragPayload(item, chartStore.timeframe, props.sourceWindowKey)
+  if (writeChartPlotDrag(event.dataTransfer, payload)) draggingIndex.value = 0
+}
+function endDrag() { draggingIndex.value = null; draggingPreview.value = null; scheduleAnalysisDragCleanup() }
+async function add(value: string) {
+  if (!INDICATOR_CATALOG.some(item => item.type === value)) return
+  chartStore.addIndicator(cloneDefaultIndicator(value as IndicatorType))
+  // Persist immediately because a real drag can activate another Golden Layout
+  // tool before the chart store's debounced one-second save fires.
+  await chartStore.saveIndicatorsForInstrument()
+  // Selecting a plot is an insertion action, not a request to keep a modal
+  // surface over the chart. Close the fixed menu so the next chart gesture
+  // (drawing, pan, crosshair, or zoom) reaches the uPlot surface immediately.
+  closeToTrigger()
+}
 function style(index: number, key: 'color' | 'lineWidth', value: string | number) { const item = chartStore.indicators[index]; if (item && (key !== 'lineWidth' || (Number.isFinite(value) && Number(value) > 0))) chartStore.updateIndicator(index, { ...item, style: { ...item.style, [key]: value } }) }
 function toggle(index: number) { const item = chartStore.indicators[index]; if (item) chartStore.updateIndicator(index, { ...item, hidden: !item.hidden }) }
 function duplicate(index: number) { const item = chartStore.indicators[index]; if (item) chartStore.indicators.splice(index + 1, 0, { ...item, params: { ...item.params }, style: { ...item.style }, lockedTimeframes: item.lockedTimeframes ? [...item.lockedTimeframes] : item.lockedTimeframes }) }
@@ -118,6 +317,36 @@ function copy(index: number, target: string) {
     } else {
       const plots = Array.isArray(window.configuration.indicators) ? window.configuration.indicators : []
       window.configuration.indicators = [...plots, { ...item, params: { ...item.params }, style: { ...item.style }, lockedTimeframes: item.lockedTimeframes ? [...item.lockedTimeframes] : item.lockedTimeframes }]
+    }
+  }
+  workspaceStore.scheduleSnapshot()
+}
+function copyPythonPlot(index: number, target: string) {
+  const plot = props.pythonPlots?.[index]
+  if (!plot) return
+  for (const window of workspaceStore.activeTab?.windows ?? []) {
+    if (window.instance_key === props.sourceWindowKey) continue
+    if (target === 'linked' ? window.tool_type !== 'chart' || window.link_group !== props.linkGroup : window.instance_key !== target) continue
+    if (window.tool_type === 'watchlist') {
+      const columns = Array.isArray(window.configuration.python_columns) ? window.configuration.python_columns : []
+      if (!columns.some((column: any) => column?.code_version_id === plot.code_version_id)) window.configuration.python_columns = [...columns, { code_version_id: plot.code_version_id, name: plot.name, timeframe: plot.timeframe ?? chartStore.timeframe }]
+    } else {
+      const plots = Array.isArray(window.configuration.python_plots) ? window.configuration.python_plots : []
+      if (!plots.some((candidate: any) => candidate?.code_version_id === plot.code_version_id && candidate?.instance_key === plot.instance_key)) window.configuration.python_plots = [...plots, { ...plot, hidden: false, instance_key: `${plot.code_version_id}-${Date.now().toString(36)}` }]
+    }
+  }
+  workspaceStore.scheduleSnapshot()
+}
+function copyScanPlot(index: number, target: string) {
+  const plot = props.scanPlots?.[index]
+  if (!plot) return
+  for (const window of workspaceStore.activeTab?.windows ?? []) {
+    if (window.instance_key === props.sourceWindowKey) continue
+    if (target === 'linked' ? window.tool_type !== 'chart' || window.link_group !== props.linkGroup : window.instance_key !== target) continue
+    if (window.tool_type !== 'chart') continue
+    const plots = Array.isArray(window.configuration.scan_plots) ? window.configuration.scan_plots : []
+    if (!plots.some((candidate: any) => candidate?.screener_id === plot.screener_id && candidate?.metric === plot.metric)) {
+      window.configuration.scan_plots = [...plots, { ...plot, hidden: false, instance_key: `${plot.screener_id}-${plot.metric}-${Date.now().toString(36)}` }]
     }
   }
   workspaceStore.scheduleSnapshot()
@@ -165,8 +394,12 @@ async function promoteSelected() {
     promotionStatus.value = cause?.message ?? 'Unable to promote plot'
   } finally { promotionBusy.value = false }
 }
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', positionMenu)
+  window.removeEventListener('scroll', positionMenu, true)
+})
 </script>
 <style scoped>
-.chart-plots{position:relative}.chart-plots button,.chart-plots select,.chart-plots input{border:1px solid #3a4954;background:#172027;color:#dce6ed;font:10px "Segoe UI",Arial,sans-serif}.chart-plots>button{height:18px;padding:0 5px;cursor:pointer}.chart-plots__menu{position:absolute;z-index:121;right:0;top:22px;display:grid;gap:4px;width:300px;max-height:340px;padding:6px;border:1px solid #4a5b67;background:#131a20;box-shadow:0 6px 16px #000b}.chart-plots__menu header{display:flex;align-items:center}.chart-plots__menu header button{margin-left:auto}.chart-plots select{min-width:0;padding:2px}.chart-plots p{margin:0;padding:3px 4px;color:#b4c3cd;border-top:1px solid #2d3942}.chart-plots p small{color:#8196a4}.chart-plots ol{display:grid;gap:2px;max-height:204px;margin:0;padding:0;overflow:auto;list-style:none}.chart-plots li{display:grid;grid-template-columns:18px minmax(0,1fr) 36px repeat(6,18px);align-items:center;gap:3px;padding:2px;border-top:1px solid #27323a}.chart-plots li span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.chart-plots li input[type=color]{width:17px;height:16px;padding:0}.chart-plots li input[type=number]{min-width:0;padding:1px}.chart-plots li button{height:17px;padding:0;cursor:pointer}.chart-plots li button:disabled{opacity:.35}.muted{opacity:.5}
+.chart-plots{position:relative}.chart-plots button,.chart-plots select,.chart-plots input{border:1px solid #3a4954;background:#172027;color:#dce6ed;font:10px "Segoe UI",Arial,sans-serif}.chart-plots>button{height:18px;padding:0 5px;cursor:pointer}.chart-plots__menu{z-index:121;display:grid;gap:4px;max-height:340px;padding:6px;border:1px solid #4a5b67;background:#131a20;box-shadow:0 6px 16px #000b}.chart-plots__menu header{display:flex;align-items:center}.chart-plots__menu header button{margin-left:auto}.chart-plots select{min-width:0;padding:2px}.chart-plots p{margin:0;padding:3px 4px;color:#b4c3cd;border-top:1px solid #2d3942}.chart-plots p small{color:#8196a4}.chart-plots ol{display:grid;gap:2px;max-height:204px;margin:0;padding:0;overflow:auto;list-style:none}.chart-plots li{display:grid;grid-template-columns:18px minmax(0,1fr) 36px repeat(6,18px);align-items:center;gap:3px;padding:2px;border-top:1px solid #27323a}.chart-plots li span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.chart-plots li input[type=color]{width:17px;height:16px;padding:0}.chart-plots li input[type=number]{min-width:0;padding:1px}.chart-plots li button{height:17px;padding:0;cursor:pointer}.chart-plots li button:disabled{opacity:.35}.muted{opacity:.5}
 .chart-plots__promotion{display:grid;grid-template-columns:72px 34px 62px minmax(60px,1fr) 36px;gap:3px}.chart-plots__promotion input,.chart-plots__promotion select{min-width:0}.chart-plots__promotion-status{margin:0;padding:2px 4px;color:#9ec6a0}
 </style>

@@ -1,5 +1,6 @@
 import { mount } from '@vue/test-utils'
-import { describe, expect, it, vi } from 'vitest'
+import { QueryClient, VueQueryPlugin } from '@tanstack/vue-query'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const { apiGet } = vi.hoisted(() => ({ apiGet: vi.fn() }))
 vi.mock('@/lib/api', () => ({ api: { get: apiGet } }))
@@ -7,9 +8,15 @@ vi.mock('@/lib/api', () => ({ api: { get: apiGet } }))
 import CoverageSummaryTool from '@/components/workstation/CoverageSummaryTool.vue'
 
 describe('CoverageSummaryTool', () => {
+  beforeEach(() => apiGet.mockReset())
+  function mountTool(options: Record<string, any>) {
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
+    return mount(CoverageSummaryTool, { ...options, global: { ...(options.global ?? {}), plugins: [[VueQueryPlugin, { queryClient }], ...((options.global?.plugins as any[]) ?? [])] } })
+  }
+
   it('checks a canonical OHLCV range and renders status plus missing slices', async () => {
-    apiGet.mockImplementation(async (path: string) => {
-      if (path.endsWith('/ohlcv')) {
+    apiGet.mockImplementation(async (path?: string) => {
+      if (path?.endsWith('/ohlcv')) {
         return {
           status: 'partial',
           covered_start: '2025-01-02T00:00:00Z',
@@ -24,8 +31,9 @@ describe('CoverageSummaryTool', () => {
         dataset_states: [{ dataset_type: 'ohlcv', dataset_key: 'D1', status: 'fresh' }],
       }
     })
-    const wrapper = mount(CoverageSummaryTool, { props: { symbol: 'SPY' } })
+    const wrapper = mountTool({ props: { symbol: 'SPY' } })
 
+    expect(wrapper.find('[role="region"][aria-label="SPY coverage"]').exists()).toBe(true)
     await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith('/coverage/instruments/SPY'))
     await vi.waitFor(() => expect(wrapper.text()).toContain('Canonical instrument'))
     await wrapper.get('[aria-label="Coverage start date"]').setValue('2025-01-01')
@@ -45,11 +53,12 @@ describe('CoverageSummaryTool', () => {
     expect(wrapper.text()).toContain('partial')
     expect(wrapper.text()).toContain('Missing slices (1)')
     expect(wrapper.text()).toContain('3/10/2025')
+    expect(wrapper.find('.coverage-summary__assessment[role="status"]').attributes('aria-live')).toBe('polite')
   })
 
   it('prevents reversed ranges and persists serializable controls', async () => {
     apiGet.mockResolvedValue({ local_coverage: {}, dataset_states: [] })
-    const wrapper = mount(CoverageSummaryTool, { props: { symbol: 'XLK', configuration: { coverage_timeframe: 'W1' } } })
+    const wrapper = mountTool({ props: { symbol: 'XLK', configuration: { coverage_timeframe: 'W1' } } })
 
     await vi.waitFor(() => expect(wrapper.text()).toContain('Canonical instrument'))
     await wrapper.get('[aria-label="Coverage start date"]').setValue('2026-02-01')
@@ -68,11 +77,22 @@ describe('CoverageSummaryTool', () => {
         { dataset_type: 'corporate_actions', dataset_key: '', status: 'failed' },
       ],
     })
-    const wrapper = mount(CoverageSummaryTool, { props: { symbol: 'SPY' } })
+    const wrapper = mountTool({ props: { symbol: 'SPY' } })
 
     await vi.waitFor(() => expect(wrapper.text()).toContain('ohlcv · D1: stale'))
     expect(wrapper.text()).toContain('corporate_actions: failed')
     expect(wrapper.find('.coverage-summary__dataset--stale').exists()).toBe(true)
     expect(wrapper.find('.coverage-summary__dataset--failed').exists()).toBe(true)
+    expect(wrapper.find('[role="region"][aria-label="SPY coverage"]').attributes('aria-busy')).toBe('false')
+  })
+
+  it('deduplicates canonical coverage hydration across linked windows', async () => {
+    apiGet.mockResolvedValue({ local_coverage: {}, dataset_states: [] })
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
+    const first = mount(CoverageSummaryTool, { props: { symbol: 'SPY' }, global: { plugins: [[VueQueryPlugin, { queryClient }]] } })
+    const second = mount(CoverageSummaryTool, { props: { symbol: 'SPY' }, global: { plugins: [[VueQueryPlugin, { queryClient }]] } })
+    await vi.waitFor(() => expect(first.text()).toContain('Canonical instrument'))
+    await vi.waitFor(() => expect(second.text()).toContain('Canonical instrument'))
+    expect(apiGet).toHaveBeenCalledTimes(1)
   })
 })

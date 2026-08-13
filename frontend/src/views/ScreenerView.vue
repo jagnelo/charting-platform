@@ -540,6 +540,11 @@ watch([browseSector, browseIndustry, browseCountry, browseExchange, browseCurren
 const browsePages = computed(() => Math.ceil(browseTotal.value / BROWSE_PAGE_SIZE))
 
 const screeners   = ref<Screener[]>([])
+// The legacy screener route can be interacted with immediately after
+// navigation. Keep a create/edit mutation behind the initial list hydration so
+// a late GET response cannot overwrite a newly created screener in the local
+// list (the same race is possible on a slow authenticated deployment).
+let initialScreenersLoad: Promise<void> | null = null
 const baskets     = ref<Basket[]>([])
 
 const draggableScreeners = computed({
@@ -730,6 +735,7 @@ function buildConditions(): any {
 
 async function saveScreener() {
   if (!canSaveDraft.value) return
+  if (initialScreenersLoad) await initialScreenersLoad
   const conditions = buildConditions()
   const payload = {
     name: draft.name,
@@ -935,12 +941,15 @@ watch(() => draft.universe_type, (type) => {
 
 onMounted(async () => {
   document.addEventListener('click', onDocClick, true)
-  const [loadedScreeners, loadedBaskets] = await Promise.all([
-    api.get<Screener[]>('/screeners'),
-    api.get<Basket[]>('/baskets').catch(() => []),
-  ])
-  screeners.value = loadedScreeners
-  baskets.value = loadedBaskets
+  initialScreenersLoad = (async () => {
+    const [loadedScreeners, loadedBaskets] = await Promise.all([
+      api.get<Screener[]>('/screeners'),
+      api.get<Basket[]>('/baskets').catch(() => []),
+    ])
+    screeners.value = loadedScreeners
+    baskets.value = loadedBaskets
+  })()
+  await initialScreenersLoad
   await Promise.all([
     watchlistStore.loadWatchlists(),
     screenerAlertsStore.loadAlerts(),

@@ -20,8 +20,7 @@ describe('StudyLabTool', () => {
     apiPost.mockReset()
   })
 
-  function mountTool(props: Record<string, unknown>) {
-    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
+  function mountTool(props: Record<string, unknown>, queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })) {
     return mount(StudyLabTool, { props, global: { plugins: [[VueQueryPlugin, { queryClient }]] } })
   }
 
@@ -46,6 +45,56 @@ describe('StudyLabTool', () => {
     await vi.waitFor(() => expect(wrapper.text()).toContain('Run #77'))
     expect(wrapper.text()).toContain('event_count')
     expect(apiGet).toHaveBeenCalledWith('/research/runs/77')
+  })
+
+  it('deduplicates concurrent persisted-run hydration across linked roots', async () => {
+    apiGet.mockImplementation((path: string) => path === '/research/runs/77'
+      ? Promise.resolve({ id: 77, status: 'completed', artifacts: [] })
+      : Promise.resolve(undefined))
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
+    const props = { activeSymbol: 'SPY', configuration: { study_run_id: 77 } }
+    const first = mountTool(props, queryClient)
+    const second = mountTool(props, queryClient)
+    await vi.waitFor(() => expect(first.text()).toContain('Run #77'))
+    await vi.waitFor(() => expect(second.text()).toContain('Run #77'))
+    expect(apiGet).toHaveBeenCalledTimes(1)
+    first.unmount()
+    second.unmount()
+  })
+
+  it('reuses the shared research-run cache populated by another workstation surface', async () => {
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
+    queryClient.setQueryData(['workstation', 'research-run', 77], { id: 77, status: 'completed', artifacts: [] })
+    apiGet.mockResolvedValue(undefined)
+    const wrapper = mountTool({ activeSymbol: 'SPY', configuration: { study_run_id: 77 } }, queryClient)
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Run #77'))
+    expect(apiGet).not.toHaveBeenCalledWith('/research/runs/77')
+    wrapper.unmount()
+  })
+
+  it('propagates cancel mutations to linked Study Lab roots through the shared run cache', async () => {
+    const running = { id: 101, status: 'running', code_version_id: 4, artifacts: [] }
+    const canceled = { ...running, status: 'canceled' }
+    let canceledRequested = false
+    apiGet.mockImplementation((path: string) => path === '/research/runs/101'
+      ? Promise.resolve(canceledRequested ? canceled : running)
+      : Promise.resolve(undefined))
+    apiPost.mockImplementation((path: string) => {
+      if (path === '/research/runs/101/cancel') { canceledRequested = true; return Promise.resolve(canceled) }
+      return Promise.resolve({})
+    })
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
+    const props = { activeSymbol: 'SPY', configuration: { study_run_id: 101 } }
+    const first = mountTool(props, queryClient)
+    const second = mountTool(props, queryClient)
+    await vi.waitFor(() => expect(first.text()).toContain('Run #101'))
+    await vi.waitFor(() => expect(second.text()).toContain('Run #101'))
+
+    await first.findAll('button').find(button => button.text() === 'Cancel')!.trigger('click')
+    await vi.waitFor(() => expect(second.text()).toContain('canceled'))
+    expect(queryClient.getQueryData(['workstation', 'research-run', 101])).toMatchObject({ id: 101, status: 'canceled' })
+    first.unmount()
+    second.unmount()
   })
 
   it('does not let late persisted hydration replace a newly started run', async () => {
@@ -75,25 +124,48 @@ describe('StudyLabTool', () => {
     wrapper.unmount()
   })
 
-  it('offers constrained SDK suggestions while retaining the plain Python editor', async () => {
+  it('uses the shared unified Python editor with SDK suggestions', async () => {
     const wrapper = mountTool({ activeSymbol: 'SPY' })
     const editor = wrapper.find('[aria-label="Study Python source"]')
     await editor.setValue('market.')
-    expect(wrapper.find('[aria-label="Python SDK suggestions"]').exists()).toBe(true)
+    expect(wrapper.find('.python-source-editor__toolbar').text()).toContain('unified market SDK')
+    expect(wrapper.find('[aria-label="Study Python source SDK suggestions"]').exists()).toBe(true)
     expect(wrapper.text()).toContain('market.close()')
-    await wrapper.find('[aria-label="Python SDK suggestions"] button').trigger('mousedown')
+    await wrapper.find('[aria-label="Study Python source SDK suggestions"] button').trigger('mousedown')
     expect((editor.element as HTMLTextAreaElement).value).toContain('market.close()')
     expect(wrapper.text()).toContain('SDK reference')
   })
 
   it('loads editable factory studies and switches back to custom Python on edit', async () => {
-    const wrapper = mountTool({ activeSymbol: 'SPY' })
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
+    const wrapper = mountTool({ activeSymbol: 'SPY' }, queryClient)
     const selector = wrapper.find('[aria-label="Factory study"]')
     await selector.setValue('negative_streak')
     expect(wrapper.find('[aria-label="Study name"]').element).toHaveProperty('value', 'Consecutive negative closes')
     expect((wrapper.find('[aria-label="Study Python source"]').element as HTMLTextAreaElement).value).toContain('current_negative_streak')
     await wrapper.find('[aria-label="Study Python source"]').setValue('output.scalar("custom", 1)')
     expect(selector.element).toHaveProperty('value', 'custom')
+  })
+
+  it('exposes bounded lookback controls for configurable participation and high-low studies', async () => {
+    const wrapper = mountTool({ activeSymbol: 'SPY' })
+    const selector = wrapper.find('[aria-label="Factory study"]')
+
+    await selector.setValue('high_low_breakouts')
+    const parameterSchema = wrapper.find('[aria-label="Study parameter schema"]')
+    expect((parameterSchema.element as HTMLTextAreaElement).value).toContain('"lookback"')
+    const lookback = wrapper.find('[aria-label="Study parameter lookback"]')
+    expect(lookback.element).toHaveProperty('value', '20')
+    expect(lookback.element.getAttribute('min')).toBe('2')
+    expect(lookback.element.getAttribute('max')).toBe('252')
+    expect((wrapper.find('[aria-label="Study Python source"]').element as HTMLTextAreaElement).value).toContain('parameters.get')
+
+    await lookback.setValue('50')
+    expect(lookback.element).toHaveProperty('value', '50')
+    await wrapper.find('[aria-label="Study Python source"]').setValue('output.scalar("custom", 1)')
+    expect((parameterSchema.element as HTMLTextAreaElement).value).toBe('')
+    await selector.setValue('moving_average_participation')
+    expect(wrapper.find('[aria-label="Study parameter lookback"]').exists()).toBe(true)
   })
 
   it('exposes the required occurrence, distribution, regime, seasonality, and relative-strength study starters', async () => {
@@ -177,6 +249,9 @@ describe('StudyLabTool', () => {
       run_config: { symbol: 'SPY', parameters: {}, timeframe: 'W1', benchmark: 'QQQ', adjustment: 'raw', session: 'all', start_date: '2024-01-01', end_date: '2024-02-01' },
       dataset_manifest: expect.objectContaining({ timeframe: 'W1', benchmark: 'QQQ', adjustment: 'raw', session: 'all', start_date: '2024-01-01', end_date: '2024-02-01' }),
     }))
+    expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({
+      initial_version: expect.objectContaining({ output_contract: 'study' }),
+    }))
     expect(wrapper.text()).toContain('Dataset: SPY · W1 · raw · all session · benchmark QQQ')
     expect(wrapper.text()).toContain('current_streak')
     expect(wrapper.text()).toContain('4')
@@ -191,8 +266,34 @@ describe('StudyLabTool', () => {
     expect(wrapper.find('.scatter-chart').exists()).toBe(true)
     expect(wrapper.find('.heatmap-chart').exists()).toBe(true)
     expect(wrapper.find('.dashboard-chart').exists()).toBe(true)
+    await wrapper.findAll('button').find(button => button.text() === 'Save plot: trend')!.trigger('click')
+    expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({
+      initial_version: expect.objectContaining({ output_contract: 'series', output_name: 'trend' }),
+    }))
     await wrapper.find('.study-lab-tool__events button').trigger('click')
     expect(wrapper.emitted('occurrence')?.[0]).toEqual([{ symbol: 'SPY', timestamp: '2026-01-02', kind: 'positive_close' }])
+  })
+
+  it('exposes structured metrics, tables, and occurrences as navigable result regions', async () => {
+    apiPost.mockImplementation((path: string) => {
+      if (path === '/code/validate') return Promise.resolve({ valid: true, diagnostics: [], dependencies: ['output'], lookback_hint: 1, output_contracts: ['scalar', 'table', 'events'] })
+      if (path === '/code/assets') return Promise.resolve({ versions: [{ id: 51 }] })
+      if (path === '/research/runs') return Promise.resolve({ id: 10, status: 'completed', artifacts: [
+        { id: 1, name: 'current', artifact_type: 'scalar', payload: { value: 4 } },
+        { id: 2, name: 'records', artifact_type: 'table', payload: { value: [{ length: 4 }] } },
+        { id: 3, name: 'events', artifact_type: 'events', payload: { value: [{ symbol: 'SPY', timestamp: '2026-01-02', kind: 'streak' }] } },
+      ] })
+      return Promise.resolve({})
+    })
+    const wrapper = mountTool({ activeSymbol: 'SPY' })
+    await wrapper.find('[aria-label="Study Python source"]').setValue('output.scalar("current", 4)')
+    await wrapper.find('button').trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Validated for isolated execution'))
+    await wrapper.findAll('button').find(button => button.text() === 'Run')!.trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Run #10'))
+    expect(wrapper.get('[aria-label="Study metrics"] [role="status"]').attributes('aria-label')).toBe('current metric')
+    expect(wrapper.get('[aria-label="records table result"] caption').text()).toBe('records table')
+    expect(wrapper.get('[aria-label="events occurrences"] [role="listitem"]').attributes('aria-label')).toBe('SPY 2026-01-02 streak')
   })
 
   it('renders schema-defined parameter controls and sends typed values to the immutable run', async () => {
@@ -270,12 +371,50 @@ describe('StudyLabTool', () => {
     await vi.waitFor(() => expect(wrapper.text()).toContain('Study run refresh returned no data'))
   })
 
+  it('gives failed runs explicit recovery guidance and preserves both rerun actions', async () => {
+    apiGet.mockResolvedValue(undefined)
+    apiPost.mockImplementation((path: string) => {
+      if (path === '/code/validate') return Promise.resolve({ valid: true, diagnostics: [], dependencies: ['output'], lookback_hint: null, output_contracts: ['scalar'] })
+      if (path === '/code/assets') return Promise.resolve({ versions: [{ id: 42 }] })
+      if (path === '/research/runs') return Promise.resolve({ id: 103, status: 'failed', diagnostics: [{ message: 'sandbox limit' }], artifacts: [] })
+      if (path === '/research/runs/103/rerun?snapshot=true') return Promise.resolve({ id: 104, status: 'queued', artifacts: [] })
+      if (path === '/research/runs/104/rerun?snapshot=false') return Promise.resolve({ id: 105, status: 'queued', artifacts: [] })
+      return Promise.resolve({})
+    })
+    const wrapper = mountTool({ activeSymbol: 'SPY' })
+    await wrapper.find('button').trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Validated for isolated execution'))
+    await wrapper.findAll('button')[1].trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Run #103'))
+    expect(wrapper.get('[data-status="failed"]').text()).toBe('Failed')
+    expect(wrapper.get('.study-lab-tool__run-guidance').text()).toContain('Inspect diagnostics and execution logs')
+    expect(wrapper.findAll('button').some(button => button.text() === 'Rerun snapshot')).toBe(true)
+    expect(wrapper.findAll('button').some(button => button.text() === 'Rerun latest')).toBe(true)
+  })
+
+  it('labels canceled runs as recoverable rather than leaving a raw terminal token', async () => {
+    apiGet.mockResolvedValue(undefined)
+    apiPost.mockImplementation((path: string) => {
+      if (path === '/code/validate') return Promise.resolve({ valid: true, diagnostics: [], dependencies: ['output'], lookback_hint: null, output_contracts: ['scalar'] })
+      if (path === '/code/assets') return Promise.resolve({ versions: [{ id: 43 }] })
+      if (path === '/research/runs') return Promise.resolve({ id: 106, status: 'canceled', artifacts: [] })
+      return Promise.resolve({})
+    })
+    const wrapper = mountTool({ activeSymbol: 'SPY' })
+    await wrapper.find('button').trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Validated for isolated execution'))
+    await wrapper.findAll('button')[1].trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Run #106'))
+    expect(wrapper.get('[data-status="canceled"]').text()).toBe('Canceled')
+    expect(wrapper.get('.study-lab-tool__run-guidance').text()).toContain('configuration is preserved')
+  })
+
   it('promotes a completed boolean study into a reusable scan and alert', async () => {
     apiPost.mockImplementation((path: string) => {
       if (path === '/code/validate') return Promise.resolve({ valid: true, diagnostics: [], dependencies: ['output'], lookback_hint: null, output_contracts: ['boolean'] })
-      if (path === '/code/assets') return Promise.resolve({ versions: [{ id: apiPost.mock.calls.filter(call => call[0] === '/code/assets').length === 1 ? 42 : 43 }] })
-      if (path === '/research/runs') return Promise.resolve({ id: 90, status: 'completed', artifacts: [{ id: 1, name: 'qualifies', artifact_type: 'boolean', payload: { value: true } }] })
-      if (path === '/screeners/from-python-condition/43') return Promise.resolve({ id: 77 })
+      if (path === '/code/assets') return Promise.resolve({ versions: [{ id: 42 }] })
+      if (path === '/research/runs') return Promise.resolve({ id: 90, code_version_id: 42, status: 'completed', artifacts: [{ id: 1, name: 'qualifies', artifact_type: 'boolean', payload: { value: true } }] })
+      if (path === '/screeners/from-python-condition/42') return Promise.resolve({ id: 77 })
       if (path === '/alerts/screener') return Promise.resolve({ id: 88 })
       if (path.startsWith('/strategy-lab/signals/from-code/')) return Promise.resolve({ id: 91 })
       return Promise.resolve({})
@@ -290,11 +429,8 @@ describe('StudyLabTool', () => {
     expect(wrapper.find('[aria-label="Promote study result"]').text()).toContain('Promote to scan')
     await wrapper.get('[aria-label="Promote study result"] button').trigger('click')
     await vi.waitFor(() => expect(wrapper.text()).toContain('Promoted to a reusable scan.'))
-    expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({
-      kind: 'condition',
-      initial_version: expect.objectContaining({ source: "output.boolean('qualifies', True)", output_contract: 'boolean' }),
-    }))
-    expect(apiPost).toHaveBeenCalledWith('/screeners/from-python-condition/43', expect.objectContaining({ name: 'Consecutive Positive Closes Scan', universe_type: 'all', timeframe: 'D1' }))
+    expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({ kind: 'study', initial_version: expect.objectContaining({ source: "output.boolean('qualifies', True)", output_contract: 'boolean' }) }))
+    expect(apiPost).toHaveBeenCalledWith('/screeners/from-python-condition/42', expect.objectContaining({ name: 'Consecutive Positive Closes Scan', universe_type: 'all', timeframe: 'D1' }))
 
     await wrapper.findAll('[aria-label="Promote study result"] button').find(button => button.text() === 'Promote to alert')!.trigger('click')
     await vi.waitFor(() => expect(wrapper.text()).toContain('Promoted to an active scan alert.'))
@@ -304,14 +440,14 @@ describe('StudyLabTool', () => {
     await wrapper.findAll('[aria-label="Promote study result"] button').find(button => button.text() === 'Save as Strategy signal')!.trigger('click')
     await vi.waitFor(() => expect(wrapper.text()).toContain('Saved as a reusable Strategy Lab signal.'))
     expect(wrapper.findAll('[aria-label="Promote study result"] button').find(button => button.text() === 'Save as Strategy signal')!.attributes('disabled')).toBeUndefined()
-    expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({ kind: 'signal', initial_version: expect.objectContaining({ output_contract: 'boolean' }) }))
+    expect(apiPost).toHaveBeenCalledWith('/strategy-lab/signals/from-code/42', {})
   })
 
   it('promotes a completed event study without coercing its event contract', async () => {
     apiPost.mockImplementation((path: string) => {
       if (path === '/code/validate') return Promise.resolve({ valid: true, diagnostics: [], dependencies: ['market', 'output'], lookback_hint: 1, output_contracts: ['events'] })
       if (path === '/code/assets') return Promise.resolve({ versions: [{ id: 144 }] })
-      if (path === '/research/runs') return Promise.resolve({ id: 145, status: 'completed', artifacts: [{ id: 1, name: 'signals', artifact_type: 'events', payload: { value: [{ symbol: 'SPY', timestamp: '2026-01-02', kind: 'signal' }] } }] })
+      if (path === '/research/runs') return Promise.resolve({ id: 145, code_version_id: 144, status: 'completed', artifacts: [{ id: 1, name: 'signals', artifact_type: 'events', payload: { value: [{ symbol: 'SPY', timestamp: '2026-01-02', kind: 'signal' }] } }] })
       if (path.startsWith('/strategy-lab/signals/from-code/')) return Promise.resolve({ id: 146 })
       return Promise.resolve({})
     })
@@ -325,7 +461,6 @@ describe('StudyLabTool', () => {
     expect(signalButton).toBeTruthy()
     await signalButton!.trigger('click')
     await vi.waitFor(() => expect(wrapper.text()).toContain('Saved as a reusable Strategy Lab signal.'))
-    expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({ kind: 'signal', initial_version: expect.objectContaining({ output_contract: 'events' }) }))
     expect(apiPost).toHaveBeenCalledWith('/strategy-lab/signals/from-code/144', {})
   })
 
@@ -339,7 +474,8 @@ describe('StudyLabTool', () => {
       if (path === '/research/runs/91/rerun?snapshot=false') return Promise.resolve({ id: 92, status: 'queued', artifacts: [] })
       return Promise.resolve({})
     })
-    const wrapper = mountTool({ activeSymbol: 'SPY' })
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
+    const wrapper = mountTool({ activeSymbol: 'SPY' }, queryClient)
     await wrapper.find('button').trigger('click')
     await vi.waitFor(() => expect(wrapper.text()).toContain('Validated for isolated execution'))
     await wrapper.findAll('button')[1].trigger('click')
@@ -350,6 +486,7 @@ describe('StudyLabTool', () => {
     await rerunSnapshot!.trigger('click')
     await vi.waitFor(() => expect(wrapper.text()).toContain('Run #91'))
     expect(apiPost).toHaveBeenCalledWith('/research/runs/90/rerun?snapshot=true', {})
+    expect(queryClient.getQueryData(['workstation', 'research-run', 91])).toMatchObject({ id: 91 })
     let rerunLatest = wrapper.findAll('button').find(button => button.text() === 'Rerun latest')
     await vi.waitFor(() => { rerunLatest = wrapper.findAll('button').find(button => button.text() === 'Rerun latest'); expect(rerunLatest).toBeDefined() })
     await rerunLatest!.trigger('click')

@@ -4,6 +4,20 @@
 const BASE = '/api/v1'
 export type ApiRequestOptions = { signal?: AbortSignal }
 
+export class ApiError extends Error {
+  readonly status: number
+  readonly method: string
+  readonly path: string
+
+  constructor(method: string, path: string, status: number, body: string) {
+    super(`API ${method} ${path} → ${status}: ${body}`)
+    this.name = 'ApiError'
+    this.status = status
+    this.method = method
+    this.path = path
+  }
+}
+
 export interface TokenPair {
   access_token: string
   refresh_token: string
@@ -69,7 +83,11 @@ async function request<T>(
     url += `?${qs}`
   }
 
-  const token = await getToken()
+  // Capture the token synchronously before the first await. Logout can clear
+  // storage while a request is being prepared; a request that started while
+  // authenticated must retain its authorization header instead of turning
+  // into a spurious post-logout 401.
+  const token = getToken()
   const headers: Record<string, string> = { 'Content-Type': 'application/json' }
   if (token) headers['Authorization'] = `Bearer ${token}`
 
@@ -88,7 +106,7 @@ async function request<T>(
 
   if (!res.ok) {
     const text = await res.text()
-    throw new Error(`API ${method} ${path} → ${res.status}: ${text}`)
+    throw new ApiError(method, path, res.status, text)
   }
 
   if (res.status === 204) return undefined as T

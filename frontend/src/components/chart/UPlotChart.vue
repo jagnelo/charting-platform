@@ -1,8 +1,9 @@
 <template>
-  <div class="chart-root" ref="rootRef">
+  <div class="chart-root" ref="rootRef" tabindex="0" role="region" aria-label="Chart workspace" @keydown.esc="handleChartEscape">
 
     <!-- Main price chart -->
     <div class="uplot-wrapper" ref="wrapperRef"
+          :data-drawing-count="renderableDrawings.length"
           :class="{ 'cursor-crosshair-wrapper': overlayInteractionsEnabled && (!!drawStore.activeToolType || drawStore.avwapDropActive) }">
       <canvas ref="drawingCanvasRef" class="drawing-canvas"
               :class="{ 'cursor-crosshair': overlayInteractionsEnabled && (!!drawStore.activeToolType || drawStore.avwapDropActive) }" />
@@ -25,24 +26,30 @@
       <div class="yaxis-btns">
         <button
           class="yaxis-btn"
+          type="button"
           :class="{ active: autoY }"
           @click="toggleAutoY"
           title="Auto scale (A)"
+          aria-label="Auto scale (A)"
+          :aria-pressed="autoY"
         >A</button>
         <button
           class="yaxis-btn"
+          type="button"
           :class="{ active: isLogScale }"
           @click="toggleLogScale"
           title="Log scale (L)"
+          aria-label="Log scale (L)"
+          :aria-pressed="isLogScale"
         >L</button>
       </div>
 
       <!-- Right-click context menu on price axis -->
       <div class="ctx-menu" v-if="ctxMenu.visible"
            :style="{ top: ctxMenu.y + 'px', right: '8px' }"
-           @mouseleave="ctxMenu.visible = false">
-        <button @click="toggleLogScale">{{ isLogScale ? '✓ ' : '' }}Log Scale</button>
-        <button @click="resetPriceScale">Reset Price Scale</button>
+           role="menu" aria-label="Price scale actions" @mouseleave="closePriceContextMenu" @keydown="handleContextMenuKeydown('price', $event)">
+        <button type="button" role="menuitem" tabindex="-1" @click="toggleLogScaleFromMenu">{{ isLogScale ? '✓ ' : '' }}Log Scale</button>
+        <button type="button" role="menuitem" tabindex="-1" @click="resetPriceScaleFromMenu">Reset Price Scale</button>
       </div>
 
 
@@ -53,7 +60,7 @@
       >
         <div class="event-popover-head">
           <strong>{{ eventPopover.event.symbol }} {{ eventLabel(eventPopover.event) }}</strong>
-          <button @click="eventPopover = null">x</button>
+        <button type="button" aria-label="Close event details" @click="eventPopover = null">x</button>
         </div>
         <div class="event-popover-date">{{ formatEventTime(eventPopover.event) }}</div>
         <div class="event-popover-grid">
@@ -68,9 +75,9 @@
     <!-- Drawing context menu (right-click on any drawing, main or sub-pane) -->
     <div class="ctx-menu" v-if="overlayInteractionsEnabled && drawCtxMenu.visible"
          :style="{ top: drawCtxMenu.y + 'px', left: drawCtxMenu.x + 'px' }"
-         @mouseleave="drawCtxMenu.visible = false">
-      <button @click="deleteSelectedDrawing">🗑 Delete Drawing</button>
-      <button @click="drawCtxMenu.visible = false; drawStore.selectDrawing(null)">Deselect</button>
+         role="menu" aria-label="Drawing actions" @mouseleave="closeDrawingContextMenu" @keydown="handleContextMenuKeydown('drawing', $event)">
+      <button type="button" role="menuitem" tabindex="-1" @click="deleteSelectedDrawing">🗑 Delete Drawing</button>
+      <button type="button" role="menuitem" tabindex="-1" @click="closeDrawingContextMenu(); drawStore.selectDrawing(null)">Deselect</button>
     </div>
 
     <!-- Sub-panes: one per separate-pane indicator -->
@@ -95,15 +102,15 @@
     </template>
 
     <!-- Go to latest button -->
-    <button v-if="!isAtLatest" class="go-to-latest" @click="goToLatest">
+    <button v-if="!isAtLatest" type="button" class="go-to-latest" aria-label="Go to latest bar" @click="goToLatest">
       → Latest
     </button>
 
     <!-- Keyboard shortcuts overlay -->
     <Transition name="fade">
-      <div class="shortcuts-overlay" v-if="showShortcuts" @click="showShortcuts = false">
+      <div v-if="showShortcuts" ref="shortcutsDialogRef" :id="`${chartControlId}-shortcuts`" class="shortcuts-overlay" role="dialog" aria-modal="true" :aria-labelledby="`${chartControlId}-shortcuts-title`" @click="closeShortcuts" @keydown.esc.prevent="closeShortcuts">
         <div class="shortcuts-box" @click.stop>
-          <div class="sc-title">Keyboard Shortcuts</div>
+          <div :id="`${chartControlId}-shortcuts-title`" class="sc-title">Keyboard Shortcuts</div>
           <div class="sc-row"><kbd>+</kbd><kbd>-</kbd> Zoom in / out</div>
           <div class="sc-row"><kbd>←</kbd><kbd>→</kbd> Pan 5 bars</div>
           <div class="sc-row"><kbd>Alt</kbd><kbd>R</kbd> Go to latest</div>
@@ -118,32 +125,32 @@
           <div class="sc-row sc-mouse"><b>Price axis drag</b> Zoom Y</div>
           <div class="sc-row sc-mouse"><b>Price axis dblclick</b> Reset Y</div>
           <div class="sc-row sc-mouse"><b>Price axis right-click</b> Menu</div>
-          <button class="sc-close" @click="showShortcuts = false">✕ Close</button>
+          <button type="button" class="sc-close" @click="closeShortcuts"><WorkstationGlyph kind="close" /> Close</button>
         </div>
       </div>
     </Transition>
 
     <!-- Help button -->
-    <button v-if="controlsEnabled" class="help-btn" @click="showShortcuts = !showShortcuts" title="Keyboard shortcuts">?</button>
+    <button v-if="controlsEnabled" ref="helpButtonRef" type="button" class="help-btn" @click="toggleShortcuts" title="Keyboard shortcuts" aria-label="Keyboard shortcuts" aria-haspopup="dialog" :aria-expanded="showShortcuts" :aria-controls="`${chartControlId}-shortcuts`">?</button>
 
     <!-- Chart settings button (cog) -->
-    <button v-if="controlsEnabled" class="settings-btn" @click="showChartSettings = !showChartSettings" title="Chart settings">⚙</button>
+    <button v-if="controlsEnabled" ref="settingsButtonRef" type="button" class="settings-btn" @click="toggleChartSettings" title="Chart settings" aria-label="Chart settings" aria-haspopup="dialog" :aria-expanded="showChartSettings" :aria-controls="`${chartControlId}-settings`"><WorkstationGlyph kind="settings" /></button>
   </div>
 
   <!-- Chart settings popup -->
   <Teleport to="body">
     <Transition name="fade">
-      <div class="editor-backdrop" v-if="showChartSettings" @click.self="showChartSettings = false">
+      <div v-if="showChartSettings" ref="settingsDialogRef" :id="`${chartControlId}-settings`" class="editor-backdrop" role="dialog" aria-modal="true" :aria-labelledby="`${chartControlId}-settings-title`" @click.self="closeChartSettings" @keydown.esc.prevent="closeChartSettings">
         <div class="editor-box">
           <div class="ed-header">
-            <span>Chart Settings</span>
-            <button class="ed-close" @click="showChartSettings = false">✕</button>
+            <span :id="`${chartControlId}-settings-title`">Chart Settings</span>
+            <button type="button" class="ed-close" aria-label="Close chart settings" @click="closeChartSettings"><WorkstationGlyph kind="close" /></button>
           </div>
           <div class="ed-body">
             <div class="ed-section-title">Chart Type</div>
             <label class="ed-field-row">
               <span>Primary rendering</span>
-              <select :value="effectiveChartType" class="ed-select" @change="setChartType(($event.target as HTMLSelectElement).value)">
+              <select ref="settingsFirstControl" :value="effectiveChartType" class="ed-select" @change="setChartType(($event.target as HTMLSelectElement).value)">
                 <option v-for="bt in CHART_BAR_TYPES" :key="bt.value" :value="bt.value">{{ bt.label }}</option>
               </select>
             </label>
@@ -168,7 +175,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted, onUnmounted, nextTick, computed, reactive, inject } from 'vue'
+import { ref, watch, onMounted, onUnmounted, nextTick, computed, reactive, inject, useId } from 'vue'
 import uPlot from 'uplot'
 import 'uplot/dist/uPlot.min.css'
 import { api } from '@/lib/api'
@@ -224,6 +231,7 @@ import type { DrawingPoint }   from '@/lib/drawings/types'
 import type { ChartComparisonSeries, ChartDrawing, ChartPythonSeries, DrawingType, IndicatorConfig, PriceAlert, Timeframe, ChartBarType, OHLCVBar } from '@/types'
 import { CHART_BAR_TYPES } from '@/types'
 import type { AnyDrawing }     from '@/lib/drawings/types'
+import WorkstationGlyph from '@/components/workstation/WorkstationGlyph.vue'
 
 const props = withDefaults(defineProps<{
   chartType?: ChartBarType
@@ -267,6 +275,7 @@ const PREFETCH_THRESHOLD = 80  // bar indices from left edge before prefetch fir
 
 // ── Stores & DOM refs ─────────────────────────────────────────────────────────
 const panelId            = inject<string>('panelId', 'main')
+const chartInstanceId    = useId()
 const chartStore         = usePanelStore(panelId)
 const layoutStore        = useLayoutStore()
 const drawStore          = useDrawingsStore()
@@ -456,11 +465,128 @@ function updateTooltip(u: uPlot, idx: number | null | undefined) {
 const isAtLatest        = ref(true)
 const showShortcuts     = ref(false)
 const showChartSettings = ref(false)
+const helpButtonRef     = ref<HTMLButtonElement | null>(null)
+const settingsButtonRef = ref<HTMLButtonElement | null>(null)
+const shortcutsDialogRef = ref<HTMLDivElement | null>(null)
+const settingsDialogRef = ref<HTMLDivElement | null>(null)
+const settingsFirstControl = ref<HTMLSelectElement | null>(null)
+const chartControlId    = computed(() => `chart-${String(panelId).replace(/[^a-zA-Z0-9_-]/g, '-')}-${chartInstanceId.replace(/[^a-zA-Z0-9_-]/g, '-')}`)
+let dialogFocusTimer: number | null = null
 const isLogScale        = ref(configuredBoolean('log_scale', false))
 const autoY             = ref(true)   // true = auto-fit Y to visible bars; false = manual lock
 const showCurrentPriceProjection = computed(() => configuredBoolean('current_price_projection', userSettingsStore.showCurrentPriceProjection))
 const showHighLowProjection = computed(() => configuredBoolean('high_low_projection', userSettingsStore.showHighLowProjection))
 const showApproxVolumeProfile = computed(() => configuredBoolean('volume_profile', userSettingsStore.showApproxVolumeProfile))
+
+watch(showChartSettings, (open) => {
+  if (open) void nextTick(() => settingsFirstControl.value?.focus())
+})
+
+function focusDialogControl(dialogRef: typeof shortcutsDialogRef) {
+  if (dialogFocusTimer != null) window.clearTimeout(dialogFocusTimer)
+  void nextTick(() => {
+    dialogFocusTimer = window.setTimeout(() => {
+      const first = dialogRef.value?.querySelector<HTMLElement>('button:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex="0"]')
+      first?.focus()
+    }, 200)
+  })
+}
+
+function toggleShortcuts() {
+  showChartSettings.value = false
+  showShortcuts.value = !showShortcuts.value
+  if (showShortcuts.value) focusDialogControl(shortcutsDialogRef)
+  else helpButtonRef.value?.focus()
+}
+
+function closeShortcuts() {
+  showShortcuts.value = false
+  void nextTick(() => helpButtonRef.value?.focus())
+}
+
+function toggleChartSettings() {
+  showShortcuts.value = false
+  showChartSettings.value = !showChartSettings.value
+  if (showChartSettings.value) focusDialogControl(settingsDialogRef)
+  else settingsButtonRef.value?.focus()
+}
+
+function closeChartSettings() {
+  showChartSettings.value = false
+  void nextTick(() => settingsButtonRef.value?.focus())
+}
+
+function contextMenuItems(kind: 'price' | 'drawing') {
+  const label = kind === 'price' ? 'Price scale actions' : 'Drawing actions'
+  return Array.from(rootRef.value?.querySelectorAll<HTMLButtonElement>(`.ctx-menu[aria-label="${label}"] [role="menuitem"]`) ?? []).filter(item => !item.disabled)
+}
+
+function focusContextMenuItem(kind: 'price' | 'drawing', index: number) {
+  const items = contextMenuItems(kind)
+  if (items.length) items[Math.max(0, Math.min(index, items.length - 1))]?.focus()
+}
+
+function openContextMenu(kind: 'price' | 'drawing') {
+  contextMenuSource.value = kind
+  void nextTick(() => focusContextMenuItem(kind, 0))
+}
+
+function closePriceContextMenu() {
+  ctxMenu.visible = false
+  if (contextMenuSource.value === 'price') {
+    contextMenuSource.value = null
+    void nextTick(() => rootRef.value?.focus())
+  }
+}
+
+function closeDrawingContextMenu() {
+  drawCtxMenu.visible = false
+  if (contextMenuSource.value === 'drawing') {
+    contextMenuSource.value = null
+    void nextTick(() => rootRef.value?.focus())
+  }
+}
+
+function toggleLogScaleFromMenu() {
+  toggleLogScale()
+  closePriceContextMenu()
+}
+
+function resetPriceScaleFromMenu() {
+  resetPriceScale()
+  closePriceContextMenu()
+}
+
+function handleChartEscape(event: KeyboardEvent) {
+  if (ctxMenu.visible) {
+    event.preventDefault()
+    closePriceContextMenu()
+  } else if (drawCtxMenu.visible) {
+    event.preventDefault()
+    closeDrawingContextMenu()
+  }
+}
+
+function handleContextMenuKeydown(kind: 'price' | 'drawing', event: KeyboardEvent) {
+  const items = contextMenuItems(kind)
+  const target = event.target instanceof HTMLButtonElement ? event.target : null
+  const current = target ? items.indexOf(target) : -1
+  if (!items.length) return
+  if (event.key === 'Escape') {
+    event.preventDefault()
+    kind === 'price' ? closePriceContextMenu() : closeDrawingContextMenu()
+  } else if (event.key === 'ArrowDown' || event.key === 'ArrowRight') {
+    event.preventDefault(); focusContextMenuItem(kind, (current + 1) % items.length)
+  } else if (event.key === 'ArrowUp' || event.key === 'ArrowLeft') {
+    event.preventDefault(); focusContextMenuItem(kind, (current - 1 + items.length) % items.length)
+  } else if (event.key === 'Home') {
+    event.preventDefault(); focusContextMenuItem(kind, 0)
+  } else if (event.key === 'End') {
+    event.preventDefault(); focusContextMenuItem(kind, items.length - 1)
+  } else if ((event.key === 'Enter' || event.key === ' ') && target) {
+    event.preventDefault(); target.click()
+  }
+}
 
 const barTimestamps = computed(() =>
   chartStore.bars.map(b => new Date(b.ts).getTime() / 1000)
@@ -686,6 +812,7 @@ function toggleAutoY() {
 }
 const ctxMenu        = reactive({ visible: false, y: 0 })
 const drawCtxMenu    = reactive({ visible: false, x: 0, y: 0 })
+const contextMenuSource = ref<'price' | 'drawing' | null>(null)
 
 function deleteSelectedDrawing() {
   drawCtxMenu.visible = false
@@ -1989,10 +2116,11 @@ function setupInteraction(u: uPlot) {
   const _overDblClickCleanup = () => u.over.removeEventListener('dblclick', onOverDblClick, true)
 
   const onContextMenu = (e: MouseEvent) => {
-    if (isOnYAxis(e.clientX)) {
+  if (isOnYAxis(e.clientX)) {
       e.preventDefault()
       ctxMenu.visible = true
       ctxMenu.y = e.clientY - (wrapperRef.value?.getBoundingClientRect().top ?? 0)
+      openContextMenu('price')
     } else {
       ctxMenu.visible = false
     }
@@ -2015,7 +2143,7 @@ function setupInteraction(u: uPlot) {
       case 'r': case 'R': if (e.altKey) { e.preventDefault(); goToLatest() } break
       case 'l': case 'L': toggleLogScale(); break
       case 'a': case 'A': toggleAutoY(); break
-      case '?':           showShortcuts.value = !showShortcuts.value; break
+      case '?':           e.preventDefault(); toggleShortcuts(); break
       case 'Delete': case 'Backspace':
         if (overlayInteractionsEnabled.value && drawStore.selectedId != null) {
           e.preventDefault()
@@ -2023,6 +2151,8 @@ function setupInteraction(u: uPlot) {
         }
         break
       case 'Escape':
+        if (showChartSettings.value) { e.preventDefault(); closeChartSettings(); break }
+        if (showShortcuts.value) { e.preventDefault(); closeShortcuts(); break }
         if (overlayInteractionsEnabled.value) {
           drawStore.selectDrawing(null)
           drawStore.setActiveTool(null)
@@ -2736,6 +2866,7 @@ function setupHitDetection(u: uPlot) {
       drawCtxMenu.visible = true
       drawCtxMenu.x = e.clientX - (rootRef.value?.getBoundingClientRect().left ?? 0)
       drawCtxMenu.y = e.clientY - (rootRef.value?.getBoundingClientRect().top  ?? 0)
+      openContextMenu('drawing')
     }
   })
 }

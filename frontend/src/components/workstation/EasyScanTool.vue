@@ -8,9 +8,9 @@
       <input v-model="value" aria-label="Condition threshold" inputmode="decimal" placeholder="Value" />
       <button type="button" :disabled="busy || !validCondition" @click="saveCondition">Save</button>
     </div>
-    <button type="button" class="easy-scan__advanced-toggle" @click="toggleAdvancedConditions">{{ advancedMode ? 'Use simple condition' : 'Build technical condition tree' }}</button>
-    <div v-if="advancedMode" class="easy-scan__advanced-drag-source" draggable="true" @dragstart="startConditionDrag">
-      <ConditionGroupEditor v-model="advancedGroup" class="easy-scan__advanced" aria-label="Advanced technical condition builder" />
+    <button ref="advancedToggle" type="button" class="easy-scan__advanced-toggle" aria-controls="easy-scan-advanced-conditions" :aria-expanded="advancedMode" @click="toggleAdvancedConditions">{{ advancedMode ? 'Use simple condition' : 'Build technical condition tree' }}</button>
+    <div v-if="advancedMode" id="easy-scan-advanced-conditions" ref="advancedRoot" class="easy-scan__advanced-drag-source" role="region" aria-label="Advanced technical condition builder" draggable="true" @dragstart="startConditionDrag">
+      <ConditionGroupEditor v-model="advancedGroup" class="easy-scan__advanced" aria-label="Technical condition tree" />
     </div>
     <div class="easy-scan__controls">
       <select v-model="selectedKey" :disabled="busy" aria-label="Saved condition">
@@ -52,15 +52,16 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useQueryClient } from '@tanstack/vue-query'
 import { api } from '@/lib/api'
 import ConditionGroupEditor from '@/components/workstation/ConditionGroupEditor.vue'
 import { createDefaultTechnicalCondition } from '@/lib/technicalConditions'
 import { CHART_PLOT_DRAG_MIME, createTechnicalConditionDragPayload, readChartPlotDrag, writeTechnicalConditionDrag, technicalConditionFromPlot } from '@/lib/workstation/plotDrag'
+import { fetchCodeAssets } from '@/lib/workstation/libraryQueries'
 import type { Timeframe } from '@/types'
 
-type ConditionAsset = { stable_key: string; name: string; version: number; payload: { condition?: Record<string, unknown> } }
+type ConditionAsset = { stable_key: string; name: string; version: number; payload: { condition?: Record<string, unknown>; python_code_version_id?: number } }
 type ScanResult = { id?: number; run_at?: string; matched_ids?: number[]; result_data?: Record<string, unknown>; error?: string | null }
 
 const props = withDefaults(defineProps<{ sourceWindowKey?: string }>(), { sourceWindowKey: 'easy-scan' })
@@ -94,6 +95,8 @@ const alertCreated = ref(false)
 const cancelRequested = ref(false)
 const plotDropActive = ref(false)
 const plotDropStatus = ref('')
+const advancedToggle = ref<HTMLButtonElement | null>(null)
+const advancedRoot = ref<HTMLElement | null>(null)
 const pythonResearchRunId = computed(() => {
   const value = result.value?.result_data?._python_research_run_id
   return Number.isInteger(value) ? value as number : null
@@ -111,11 +114,15 @@ const coverageText = computed(() => {
 async function load() {
   try {
     const [saved, assets] = await Promise.all([
-      api.get<ConditionAsset[]>('/workspaces/library/conditions'),
-      api.get<Array<{ kind: string; name: string; versions: Array<{ id: number; version_number: number; output_contract: string }> }>>('/code/assets'),
+      queryClient.fetchQuery<ConditionAsset[]>({
+        queryKey: ['workstation', 'library-items', 'condition'],
+        queryFn: () => api.get<ConditionAsset[]>('/workspaces/library/conditions'),
+        staleTime: 30_000,
+      }),
+      fetchCodeAssets(queryClient),
     ])
     conditions.value = saved
-    pythonConditions.value = assets.filter(asset => asset.kind === 'condition').flatMap(asset => asset.versions.filter(version => version.output_contract === 'boolean').slice(-1).map(version => ({ versionId: version.id, name: `${asset.name} v${version.version_number}` })))
+    pythonConditions.value = assets.filter(asset => asset.kind === 'condition').flatMap(asset => asset.versions.filter(version => version.id != null && version.output_contract === 'boolean').slice(-1).map(version => ({ versionId: version.id as number, name: `${asset.name} v${version.version_number}` })))
   }
   catch (cause: any) { error.value = cause?.message ?? 'Unable to load conditions' }
 }
@@ -124,6 +131,11 @@ function stableKey(name: string) {
 }
 function toggleAdvancedConditions() {
   advancedMode.value = !advancedMode.value
+  if (advancedMode.value) void nextTick(() => {
+    const firstControl = advancedRoot.value?.querySelector<HTMLElement>('select, input, button')
+    firstControl?.focus()
+  })
+  else void nextTick(() => advancedToggle.value?.focus())
 }
 function startConditionDrag(event: DragEvent) {
   if (!event.dataTransfer) return
@@ -164,7 +176,19 @@ async function saveCondition() {
     const index = conditions.value.findIndex(item => item.stable_key === saved.stable_key)
     if (index >= 0) conditions.value.splice(index, 1, saved); else conditions.value.push(saved)
     conditions.value.sort((left, right) => left.name.localeCompare(right.name))
+    queryClient.setQueryData<ConditionAsset[]>(['workstation', 'library-items', 'condition'], current => {
+      const next = (current ?? []).filter(item => item.stable_key !== saved.stable_key)
+      next.push(saved)
+      return next.sort((left, right) => left.name.localeCompare(right.name))
+    })
+    void queryClient.invalidateQueries({ queryKey: ['workstation', 'library-items', 'condition'] })
     selectedKey.value = saved.stable_key
+    // A visual save is compiled by the backend into the same immutable Python
+    // Boolean version used by every other programmable surface.  Select that
+    // version immediately so the first Run follows the isolated Python path.
+    if (Number.isInteger(saved.payload?.python_code_version_id)) {
+      selectedPythonVersion.value = String(saved.payload.python_code_version_id)
+    }
     scanName.value = `${saved.name} Scan`
   } catch (cause: any) { error.value = cause?.message ?? 'Unable to save condition' }
   finally { busy.value = false }
@@ -191,12 +215,30 @@ async function run() {
         : `/screeners/from-condition/${encodeURIComponent(selectedKey.value)}`, { name: scanName.value, ...universe })
     } catch (cause: any) {
       if (!String(cause?.message ?? '').includes('→ 409:')) throw cause
-      const existing = await api.get<Array<{ id: number; name: string }>>('/screeners')
+      const existing = await queryClient.fetchQuery<Array<{ id: number; name: string }>>({
+        queryKey: ['workstation', 'screeners'],
+        queryFn: async () => (await api.get<Array<{ id: number; name: string }>>('/screeners')) ?? [],
+        staleTime: 0,
+      })
       const found = existing.find(item => item.name.toLowerCase() === scanName.value.toLowerCase())
       if (!found) throw cause
       scan = found
     }
     scanId.value = scan.id
+    // Publish the canonical scan immediately. Several already-mounted Gauge and
+    // EasyScan tools can have overlapping list requests; a late response from
+    // before creation must not hide the scan the user just ran.
+    queryClient.setQueryData<Array<{ id: number; name: string }>>(['workstation', 'screeners'], current => {
+      const existing = current ?? []
+      const next = existing.filter(item => item.id !== scan.id)
+      next.push({ id: scan.id, name: scanName.value })
+      return next.sort((left, right) => left.name.localeCompare(right.name))
+    })
+    // Market Gauge and other tools share the saved-scan query. Invalidate it
+    // immediately so an already-mounted tab sees newly-created/reused scans
+    // without requiring a manual refresh or remount.
+    await queryClient.invalidateQueries({ queryKey: ['workstation', 'screeners'] })
+    await queryClient.refetchQueries({ queryKey: ['workstation', 'screeners'], type: 'all' })
     status.value = 'Evaluating canonical local data…'
     result.value = await api.post<ScanResult>(`/screeners/${scan.id}/run`, {})
     if (selectedPythonVersion.value) {
@@ -212,13 +254,18 @@ async function run() {
         if (retained[0]) result.value = retained[0]
       }
     }
+    await queryClient.invalidateQueries({ queryKey: ['workstation', 'screener-history', scan.id] })
     await loadResultHistory(scan.id)
   } catch (cause: any) { error.value = cause?.message ?? 'Unable to run scan' }
   finally { busy.value = false }
 }
 async function loadResultHistory(id: number) {
   try {
-    resultHistory.value = await api.get<ScanResult[]>(`/screeners/${id}/results`, { limit: 20 })
+    resultHistory.value = await queryClient.fetchQuery<ScanResult[]>({
+      queryKey: ['workstation', 'screener-history', id],
+      queryFn: async () => (await api.get<ScanResult[]>(`/screeners/${id}/results`, { limit: 20 })) ?? [],
+      staleTime: 5_000,
+    })
     const latest = resultHistory.value[0]
     if (latest) {
       result.value = latest
@@ -259,7 +306,7 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-.easy-scan { position: relative; display: grid; align-content: start; gap: 6px; height: 100%; overflow: auto; padding: 6px; background: #11161b; color: #c7d0d8; font: 10px "Segoe UI", Arial, sans-serif; }
+.easy-scan { position: relative; display: grid; align-content: start; gap: 6px; height: 100%; min-width: 0; overflow: auto; padding: 6px; background: #11161b; color: #c7d0d8; font: 10px "Segoe UI", Arial, sans-serif; container-type: inline-size; }
 .easy-scan--plot-drop-active { outline: 1px solid #69a9d2; outline-offset: -1px; }
 .easy-scan__plot-drop-hint { position: absolute; z-index: 4; inset: 3px 3px auto; margin: 0; padding: 4px 6px; border: 1px solid #69a9d2; background: #193040eF; color: #dcecf6; text-align: center; pointer-events: none; }
 .easy-scan__builder { display: grid; grid-template-columns: minmax(70px, 1fr) 56px 34px 58px 38px; gap: 3px; }
@@ -274,4 +321,8 @@ onBeforeUnmount(() => {
 input, select, button { min-width: 0; border: 1px solid #34434e; background: #172027; color: #d2dce3; font: inherit; }
 input { padding: 2px 4px; } button { cursor: pointer; } button:disabled { cursor: default; opacity: .5; }
 .easy-scan__state, .easy-scan__result, .easy-scan__error, .easy-scan__drop-status { margin: 2px 0; color: #8498a6; } .easy-scan__result { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }.easy-scan__result b { color: #78b9e4; } .easy-scan__error { color: #e99a9a; }.easy-scan__drop-status { color: #9ec6a0; }.easy-scan__history { display:flex; align-items:center; gap:3px; }.easy-scan__alert { display:flex; gap:3px; margin-top:4px; }.easy-scan__alert select,.easy-scan__alert button,.easy-scan__history select { border:1px solid #34434e; background:#172027; color:#d2dce3; font:inherit; }
+@container (max-width: 560px) {
+  .easy-scan__builder { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .easy-scan__controls { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
 </style>

@@ -69,7 +69,10 @@ test.describe('TC2000 workstation performance guards', () => {
     // before all configured browser-window cycles can complete.
     const configuredRounds = Number(process.env.TC2000_POP_OUT_CHURN_ROUNDS ?? 5)
     const requestedRounds = Number.isInteger(configuredRounds) && configuredRounds > 0 ? configuredRounds : 5
-    test.setTimeout(Math.max(60_000, Math.min(requestedRounds, 100) * 2_000 + 60_000))
+    // Keep the soak bounded for CI while allowing an explicitly requested
+    // long run to exercise substantially more lifecycle churn than the normal
+    // smoke/default setting. Indefinite endurance remains a separate gate.
+    test.setTimeout(Math.max(60_000, Math.min(requestedRounds, 500) * 2_500 + 120_000))
     await page.goto('/chart')
     await expect(page.locator('.tool-window').first()).toBeVisible({ timeout: 10_000 })
     await expect.poll(() => page.locator('canvas').count(), { timeout: 10_000 }).toBeGreaterThan(0)
@@ -92,9 +95,9 @@ test.describe('TC2000 workstation performance guards', () => {
     const sourceChartCount = await page.locator('.chart-tool').count()
     // Keep an explicit upper bound so CI cannot accidentally become unbounded, but allow
     // the acceptance job to exercise a genuine long-duration lifecycle soak rather than
-    // silently truncating every run to the old 20-round smoke limit.
+    // silently truncating every run to the short default smoke limit.
     const rounds = Number.isInteger(configuredRounds) && configuredRounds > 0
-      ? Math.min(configuredRounds, 100)
+      ? Math.min(configuredRounds, 500)
       : 5
     const memorySamples: number[] = []
     const readHeap = async () => page.evaluate(() => {

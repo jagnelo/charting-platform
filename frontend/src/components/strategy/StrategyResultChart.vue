@@ -3,7 +3,7 @@
     ref="rootRef"
     class="result-chart"
     :class="{ 'result-chart--hovering': !!tooltip }"
-    @mouseleave="hoverIndex = null; hoverX = null; hoverY = null"
+    @mouseleave="clearHover"
   >
     <div v-if="!series.length || !timeline.length" class="result-chart__empty">
       {{ emptyLabel }}
@@ -42,67 +42,14 @@
           </button>
         </div>
       </div>
-      <svg
-        ref="svgRef"
-        class="result-chart__svg"
+
+      <div
+        ref="chartHostRef"
+        class="result-chart__uplot"
         :style="{ height: `${Math.max(164, height)}px` }"
-        :viewBox="`0 0 ${svgWidth} ${height}`"
-        preserveAspectRatio="none"
         role="img"
         :aria-label="label"
-        @mousemove="handleMove"
-      >
-        <g class="result-chart__grid">
-          <line
-            v-for="tick in yTicks"
-            :key="tick.value"
-            :x1="chartPadding.left"
-            :x2="svgWidth - chartPadding.right"
-            :y1="tick.y"
-            :y2="tick.y"
-          />
-        </g>
-        <g class="result-chart__axes">
-          <text
-            v-for="tick in yTicks"
-            :key="`label-${tick.value}`"
-            :ref="registerAxisLabel"
-            :x="chartPadding.left - 8"
-            :y="tick.y + 3"
-            text-anchor="end"
-          >
-            {{ formatValue(tick.value) }}
-          </text>
-        </g>
-        <g v-if="hoverX != null" class="result-chart__crosshair">
-          <line :x1="hoverX" :x2="hoverX" :y1="chartPadding.top" :y2="height - chartPadding.bottom" />
-        </g>
-        <g v-for="item in renderedSeries" :key="item.label">
-          <polyline
-            class="result-chart__line"
-            :style="{ '--series-color': item.color }"
-            :points="item.points"
-          />
-          <circle
-            v-for="endpoint in item.endpoints"
-            :key="`${item.label}-${endpoint.kind}-${endpoint.ts}`"
-            class="result-chart__endpoint"
-            :class="`result-chart__endpoint--${endpoint.kind}`"
-            :style="{ '--series-color': item.color }"
-            :cx="endpoint.x"
-            :cy="endpoint.y"
-            r="2.7"
-          />
-          <circle
-            v-if="hoverIndex != null && item.hoverPoint"
-            class="result-chart__point"
-            :style="{ '--series-color': item.color }"
-            :cx="item.hoverPoint.x"
-            :cy="item.hoverPoint.y"
-            r="3.2"
-          />
-        </g>
-      </svg>
+      />
 
       <div
         v-if="tooltip"
@@ -125,11 +72,7 @@
       </div>
 
       <div v-if="showLegend" class="result-chart__legend">
-        <span
-          v-for="item in series"
-          :key="item.label"
-          class="result-chart__legend-item"
-        >
+        <span v-for="item in series" :key="item.label" class="result-chart__legend-item">
           <i :style="{ backgroundColor: item.color }" />
           {{ item.label }}
         </span>
@@ -139,7 +82,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import uPlot from 'uplot'
+import 'uplot/dist/uPlot.min.css'
 
 export interface StrategyResultChartPoint {
   ts: string
@@ -175,7 +120,6 @@ const props = withDefaults(defineProps<{
 })
 
 type RangeKey = 'all' | '1m' | '3m' | '6m' | '1y'
-
 interface RangeOption {
   key: RangeKey
   label: string
@@ -190,59 +134,42 @@ const RANGE_OPTIONS: RangeOption[] = [
   { key: '1y', label: '1Y', durationMs: 366 * 24 * 60 * 60 * 1000 },
 ]
 
-const svgWidth = ref(320)
-const height = computed(() => props.height)
-const basePadding = {
-  top: 10,
-  right: 2,
-  bottom: 18,
-}
-
 const rootRef = ref<HTMLElement | null>(null)
-const svgRef = ref<SVGSVGElement | null>(null)
-const hoverIndex = ref<number | null>(null)
-const hoverX = ref<number | null>(null)
-const hoverY = ref<number | null>(null)
+const chartHostRef = ref<HTMLDivElement | null>(null)
+const chart = ref<uPlot | null>(null)
 const selectedRangeKey = ref<RangeKey>('all')
 const windowEndTs = ref<number | null>(null)
+const tooltipX = ref<number | null>(null)
+const tooltip = ref<{
+  date: string
+  dense: boolean
+  items: Array<{ label: string; value: string; color: string; detail?: string | null }>
+} | null>(null)
 let resizeObserver: ResizeObserver | null = null
-let textMeasureContext: CanvasRenderingContext2D | null = null
-const axisLabelRefs = ref<SVGTextElement[]>([])
-const measuredAxisLabelWidth = ref(0)
 
+const height = computed(() => Math.max(164, props.height))
 const timeline = computed(() => {
   const entries = new Map<string, number>()
-  for (const series of props.series) {
-    for (const point of series.points) {
-      const tsValue = new Date(point.ts).getTime()
-      if (Number.isFinite(tsValue)) entries.set(point.ts, tsValue)
-    }
+  for (const item of props.series.flatMap(series => series.points)) {
+    const timestamp = new Date(item.ts).getTime()
+    if (Number.isFinite(timestamp)) entries.set(item.ts, timestamp)
   }
-  return Array.from(entries.entries())
-    .sort((a, b) => a[1] - b[1])
+  return [...entries.entries()]
+    .sort((left, right) => left[1] - right[1])
     .map(([ts, value]) => ({ ts, value }))
 })
-
 const timeExtent = computed(() => {
   if (!timeline.value.length) return { min: 0, max: 1 }
-  const values = timeline.value.map(item => item.value)
-  const min = Math.min(...values)
-  const max = Math.max(...values)
+  const min = timeline.value[0].value
+  const max = timeline.value[timeline.value.length - 1].value
   return { min, max: max === min ? min + 1 : max }
 })
-
-const totalSpanMs = computed(() => Math.max(0, timeExtent.value.max - timeExtent.value.min))
-
 const availableRangeOptions = computed(() => RANGE_OPTIONS)
-
 const activeRangeOption = computed(() => (
   availableRangeOptions.value.find(option => option.key === selectedRangeKey.value)
-  ?? availableRangeOptions.value[0]
   ?? RANGE_OPTIONS[0]
 ))
-
 const showRangeControls = computed(() => timeline.value.length > 1)
-
 const visibleTimeExtent = computed(() => {
   if (activeRangeOption.value.durationMs == null) return timeExtent.value
   const duration = activeRangeOption.value.durationMs
@@ -251,267 +178,43 @@ const visibleTimeExtent = computed(() => {
   const minEnd = Math.min(max, min + duration)
   const currentEnd = Math.min(max, Math.max(minEnd, windowEndTs.value ?? max))
   const currentStart = Math.max(min, currentEnd - duration)
-  return {
-    min: currentStart,
-    max: currentEnd === currentStart ? currentEnd + 1 : currentEnd,
-  }
+  return { min: currentStart, max: currentEnd === currentStart ? currentEnd + 1 : currentEnd }
 })
-
 const visibleTimeline = computed(() => {
-  const filtered = timeline.value.filter(item => (
+  const visible = timeline.value.filter(item => (
     item.value >= visibleTimeExtent.value.min && item.value <= visibleTimeExtent.value.max
   ))
-  if (filtered.length) return filtered
+  if (visible.length) return visible
   const fallback = [...timeline.value].reverse().find(item => item.value <= visibleTimeExtent.value.max)
   return fallback ? [fallback] : []
 })
-
-const visibleTsSet = computed(() => new Set(visibleTimeline.value.map(item => item.ts)))
-
 const visibleRangeLabel = computed(() => {
   const first = visibleTimeline.value[0]?.ts
   const last = visibleTimeline.value[visibleTimeline.value.length - 1]?.ts
   if (!first || !last) return 'Visible range'
   return `${formatRangeDate(first)} → ${formatRangeDate(last)}`
 })
+const canShiftBackward = computed(() => (
+  activeRangeOption.value.durationMs != null && visibleTimeExtent.value.min > timeExtent.value.min
+))
+const canShiftForward = computed(() => (
+  activeRangeOption.value.durationMs != null && visibleTimeExtent.value.max < timeExtent.value.max
+))
 
-const canShiftBackward = computed(() => {
-  if (activeRangeOption.value.durationMs == null) return false
-  return visibleTimeExtent.value.min > timeExtent.value.min
-})
-
-const canShiftForward = computed(() => {
-  if (activeRangeOption.value.durationMs == null) return false
-  return visibleTimeExtent.value.max < timeExtent.value.max
-})
-
-const valueExtent = computed(() => {
-  const values = props.series
-    .flatMap(series => series.points
-      .filter(point => visibleTsSet.value.has(point.ts))
-      .map(point => Number(point.value)))
-    .filter(Number.isFinite)
-  const fallbackValues = props.series
-    .flatMap(series => series.points.map(point => Number(point.value)))
-    .filter(Number.isFinite)
-  const inputValues = values.length ? values : fallbackValues
-  if (!inputValues.length) return { min: 0, max: 1 }
-  let min = Math.min(...inputValues)
-  let max = Math.max(...inputValues)
-  if (props.integerAxis) {
-    min = Math.floor(min)
-    max = Math.ceil(max)
-    if (min === max) {
-      return min === 0
-        ? { min: 0, max: 1 }
-        : { min: Math.min(0, min - 1), max: max + 1 }
-    }
-    return { min: Math.min(0, min), max }
-  }
-  if (min === max) {
-    const pad = min === 0 ? 1 : Math.abs(min) * 0.1
-    min -= pad
-    max += pad
-  } else {
-    const pad = (max - min) * 0.12
-    min -= pad
-    max += pad
-  }
-  return { min, max }
-})
-
-const chartPadding = computed(() => {
-  const yLabelValues: number[] = []
-  const { min, max } = valueExtent.value
-  for (let index = 0; index < 4; index += 1) {
-    const ratio = index / 3
-    yLabelValues.push(max - (max - min) * ratio)
-  }
-  const estimatedLabelWidth = Math.max(
-    0,
-    ...yLabelValues.map(value => measureTextWidth(formatValue(value))),
-  )
-  const maxLabelWidth = Math.max(estimatedLabelWidth, measuredAxisLabelWidth.value)
-  return {
-    top: basePadding.top,
-    right: basePadding.right,
-    bottom: basePadding.bottom,
-    left: Math.max(28, Math.ceil(maxLabelWidth + 18)),
-  }
-})
-
-const yTicks = computed(() => {
-  const ticks: Array<{ value: number; y: number }> = []
-  const { min, max } = valueExtent.value
-  if (props.integerAxis) {
-    const minInt = Math.floor(min)
-    const maxInt = Math.ceil(max)
-    const span = Math.max(1, maxInt - minInt)
-    const maxTickCount = 5
-    const step = Math.max(1, Math.ceil(span / Math.max(1, maxTickCount - 1)))
-    const tickValues: number[] = []
-    for (let value = minInt; value <= maxInt; value += step) {
-      tickValues.push(value)
-    }
-    if (tickValues[tickValues.length - 1] !== maxInt) tickValues.push(maxInt)
-    const valuesDescending = Array.from(new Set(tickValues)).sort((left, right) => right - left)
-    valuesDescending.forEach((value, index) => {
-      const ratio = valuesDescending.length === 1 ? 0.5 : index / (valuesDescending.length - 1)
-      ticks.push({
-        value,
-        y: lerp(chartPadding.value.top, height.value - chartPadding.value.bottom, ratio),
-      })
+const pointMaps = computed(() => props.series.map(series => (
+  new Map(series.points.map(point => [point.ts, point]))
+)))
+const chartData = computed<uPlot.AlignedData>(() => {
+  const x = timeline.value.map(item => item.value / 1000)
+  const values = props.series.map((series, seriesIndex) => {
+    const map = pointMaps.value[seriesIndex]
+    return timeline.value.map(item => {
+      const value = Number(map.get(item.ts)?.value)
+      return Number.isFinite(value) ? value : null
     })
-    return ticks
-  }
-  for (let index = 0; index < 4; index += 1) {
-    const ratio = index / 3
-    const value = max - (max - min) * ratio
-    ticks.push({ value, y: lerp(chartPadding.value.top, height.value - chartPadding.value.bottom, ratio) })
-  }
-  return ticks
-})
-
-const renderedSeries = computed(() => {
-  const allTimeline = visibleTimeline.value
-  const { min, max } = valueExtent.value
-
-  return props.series.map(series => {
-    const valueMap = new Map(series.points.map(point => [point.ts, Number(point.value)]))
-    const sourcePointMap = new Map(series.points.map(point => [point.ts, point]))
-    const chartPoints: Array<{
-      x: number
-      y: number
-      value: number
-      ts: string
-      detail?: string | null
-      marker?: string | null
-    }> = []
-    const polyline: string[] = []
-
-    allTimeline.forEach(({ ts, value: tsValue }) => {
-      const value = valueMap.get(ts)
-      if (!Number.isFinite(value)) return
-      const sourcePoint = sourcePointMap.get(ts)
-      const x = timeToX(tsValue)
-      const y = valueToY(value as number, min, max)
-      chartPoints.push({
-        x,
-        y,
-        value: value as number,
-        ts,
-        detail: sourcePoint?.detail ?? null,
-        marker: sourcePoint?.marker ?? null,
-      })
-      polyline.push(`${x.toFixed(2)},${y.toFixed(2)}`)
-    })
-
-    const currentHoverIndex = hoverIndex.value
-    const hoverPoint = currentHoverIndex == null
-      ? null
-      : chartPoints.find(point => point.ts === allTimeline[currentHoverIndex]?.ts) ?? null
-
-    const endpoints = chartPoints.length <= 1
-      ? chartPoints.map(point => ({
-          x: point.x,
-          y: point.y,
-          ts: point.ts,
-          kind: point.marker || 'point',
-        }))
-      : [
-          {
-            x: chartPoints[0].x,
-            y: chartPoints[0].y,
-            ts: chartPoints[0].ts,
-            kind: chartPoints[0].marker || 'entry',
-          },
-          {
-            x: chartPoints[chartPoints.length - 1].x,
-            y: chartPoints[chartPoints.length - 1].y,
-            ts: chartPoints[chartPoints.length - 1].ts,
-            kind: chartPoints[chartPoints.length - 1].marker || 'exit',
-          },
-        ]
-
-    return {
-      label: series.label,
-      color: series.color,
-      points: polyline.join(' '),
-      hoverPoint,
-      valueMap,
-      endpoints,
-    }
   })
+  return [x, ...values] as uPlot.AlignedData
 })
-
-const tooltip = computed(() => {
-  if (hoverIndex.value == null) return null
-  const ts = visibleTimeline.value[hoverIndex.value]?.ts
-  if (!ts) return null
-  const items = renderedSeries.value
-    .map(series => {
-      const value = series.valueMap.get(ts)
-      const detail = series.hoverPoint?.ts === ts ? series.hoverPoint.detail ?? null : null
-      const y = series.hoverPoint?.ts === ts ? series.hoverPoint.y : null
-      return value == null
-        ? null
-        : { label: series.label, value: formatValue(value), color: series.color, detail, y }
-    })
-    .filter((item): item is { label: string; value: string; color: string; detail: string | null; y: number | null } => item != null)
-
-  if (props.focusNearestSeries && items.length > 1 && hoverY.value != null) {
-    items.sort((left, right) => {
-      const leftDistance = left.y == null ? Number.POSITIVE_INFINITY : Math.abs(left.y - hoverY.value!)
-      const rightDistance = right.y == null ? Number.POSITIVE_INFINITY : Math.abs(right.y - hoverY.value!)
-      return leftDistance - rightDistance
-    })
-  }
-
-  return {
-    date: new Date(ts).toLocaleString('en-GB', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-    }),
-    dense: items.length >= 6,
-    items: items.map(({ label, value, color, detail }) => ({ label, value, color, detail })),
-  }
-})
-
-const hovercardStyle = computed(() => {
-  if (hoverX.value == null) return {}
-  const withinRightHalf = hoverX.value > svgWidth.value / 2
-  return withinRightHalf
-    ? {
-        right: `${chartPadding.value.right + 8}px`,
-        left: 'auto',
-      }
-    : {
-        left: `${chartPadding.value.left + 8}px`,
-        right: 'auto',
-      }
-})
-
-function valueToY(value: number, min: number, max: number) {
-  if (max === min) return (chartPadding.value.top + height.value - chartPadding.value.bottom) / 2
-  const ratio = (value - min) / (max - min)
-  return height.value - chartPadding.value.bottom - ratio * (height.value - chartPadding.value.top - chartPadding.value.bottom)
-}
-
-function timeToX(value: number) {
-  const { min, max } = visibleTimeExtent.value
-  if (max === min || visibleTimeline.value.length === 1) {
-    return (chartPadding.value.left + svgWidth.value - chartPadding.value.right) / 2
-  }
-  const ratio = (value - min) / (max - min)
-  return chartPadding.value.left + ratio * (svgWidth.value - chartPadding.value.left - chartPadding.value.right)
-}
-
-function lerp(start: number, end: number, ratio: number) {
-  return start + (end - start) * ratio
-}
 
 function formatValue(value: number) {
   if (!Number.isFinite(value)) return '—'
@@ -519,10 +222,7 @@ function formatValue(value: number) {
   if (props.percent) return `${value >= 0 ? '+' : ''}${value.toFixed(2)}%`
   if (props.currency) {
     return value.toLocaleString('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      maximumFractionDigits: 2,
-      minimumFractionDigits: 0,
+      style: 'currency', currency: 'USD', maximumFractionDigits: 2, minimumFractionDigits: 0,
     })
   }
   if (Math.abs(value) >= 1000) return value.toFixed(0)
@@ -531,23 +231,40 @@ function formatValue(value: number) {
 }
 
 function formatRangeDate(value: string) {
-  return new Date(value).toLocaleDateString('en-GB', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
+  return new Date(value).toLocaleDateString('en-GB', { year: 'numeric', month: '2-digit', day: '2-digit' })
+}
+
+function formatAxisDate(seconds: number) {
+  if (!Number.isFinite(seconds)) return ''
+  return new Date(seconds * 1000).toLocaleDateString(undefined, { month: 'short', year: '2-digit' })
+}
+
+function formatTooltipDate(ts?: string) {
+  if (!ts) return ''
+  return new Date(ts).toLocaleString('en-GB', {
+    year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit',
   })
 }
 
 function clearHover() {
-  hoverIndex.value = null
-  hoverX.value = null
-  hoverY.value = null
+  tooltip.value = null
+  tooltipX.value = null
+}
+
+function setVisibleScale() {
+  const instance = chart.value
+  if (!instance || typeof instance.setScale !== 'function') return
+  instance.setScale('x', {
+    min: visibleTimeExtent.value.min / 1000,
+    max: visibleTimeExtent.value.max / 1000,
+  })
 }
 
 function selectRange(key: RangeKey) {
   selectedRangeKey.value = key
   windowEndTs.value = timeExtent.value.max
   clearHover()
+  nextTick(setVisibleScale)
 }
 
 function shiftWindow(direction: -1 | 1) {
@@ -557,140 +274,136 @@ function shiftWindow(direction: -1 | 1) {
   const step = duration * 0.75
   const minEnd = Math.min(extent.max, extent.min + duration)
   const currentEnd = Math.min(extent.max, Math.max(minEnd, windowEndTs.value ?? extent.max))
-  const nextEnd = Math.min(extent.max, Math.max(minEnd, currentEnd + (direction * step)))
-  windowEndTs.value = nextEnd
+  windowEndTs.value = Math.min(extent.max, Math.max(minEnd, currentEnd + direction * step))
   clearHover()
+  nextTick(setVisibleScale)
 }
 
-function measureTextWidth(value: string) {
-  if (typeof document === 'undefined') {
-    return value.length * 8
+function updateTooltip(instance: uPlot) {
+  const index = instance.cursor.idx
+  if (index == null || index < 0 || index >= timeline.value.length) {
+    clearHover()
+    return
   }
-  if (typeof navigator !== 'undefined' && /jsdom/i.test(navigator.userAgent)) {
-    return value.length * 8
+  const timestamp = timeline.value[index]
+  if (!timestamp) {
+    clearHover()
+    return
   }
-  if (!textMeasureContext) {
-    try {
-      const canvas = document.createElement('canvas')
-      textMeasureContext = canvas.getContext('2d')
-    } catch {
-      textMeasureContext = null
+  const cursorTop = instance.cursor.top ?? 0
+  const items = props.series.map((series, seriesIndex) => {
+    const value = chartData.value[seriesIndex + 1]?.[index]
+    if (value == null || typeof value !== 'number' || !Number.isFinite(value)) return null
+    const point = pointMaps.value[seriesIndex].get(timestamp.ts)
+    const y = instance.valToPos(value, 'y')
+    return {
+      label: series.label,
+      value: formatValue(value),
+      color: series.color,
+      detail: point?.detail ?? null,
+      y,
     }
+  }).filter((item): item is { label: string; value: string; color: string; detail: string | null; y: number } => item != null)
+
+  if (props.focusNearestSeries && items.length > 1) {
+    items.sort((left, right) => Math.abs(left.y - cursorTop) - Math.abs(right.y - cursorTop))
   }
-  if (!textMeasureContext) {
-    return value.length * 8
+  tooltip.value = {
+    date: formatTooltipDate(timestamp.ts),
+    dense: items.length >= 6,
+    items: items.map(({ label, value, color, detail }) => ({ label, value, color, detail })),
   }
-  textMeasureContext.font = '8px JetBrains Mono, monospace'
-  return textMeasureContext.measureText(value).width
+  tooltipX.value = instance.cursor.left ?? null
 }
 
-function registerAxisLabel(element: Element | { $el?: Element | null } | null) {
-  const node = element instanceof Element
-    ? element
-    : element && '$el' in element
-      ? element.$el ?? null
-      : null
-  if (!(node instanceof SVGElement) || node.tagName.toLowerCase() !== 'text') return
-  const textNode = node as SVGTextElement
-  if (!axisLabelRefs.value.includes(textNode)) {
-    axisLabelRefs.value.push(textNode)
-  }
+function buildChart() {
+  const host = chartHostRef.value
+  if (!host || !timeline.value.length) return
+  if (chart.value && typeof chart.value.destroy === 'function') chart.value.destroy()
+  host.replaceChildren()
+  const width = Math.max(240, rootRef.value?.clientWidth ?? 320)
+  chart.value = new uPlot({
+    width,
+    height: height.value,
+    legend: { show: false },
+    cursor: { drag: { x: false, y: false } },
+    scales: {
+      x: { time: true, min: visibleTimeExtent.value.min / 1000, max: visibleTimeExtent.value.max / 1000 },
+      y: { auto: true },
+    },
+    axes: [
+      {
+        stroke: '#666', font: '10px monospace', size: 24, gap: 3,
+        grid: { stroke: '#171717', width: 1 }, ticks: { stroke: '#242424' },
+        values: (_instance, values) => values.map(value => formatAxisDate(Number(value))),
+      },
+      {
+        stroke: '#777', font: '10px monospace', size: 60, gap: 5,
+        grid: { stroke: '#171717', width: 1 }, ticks: { stroke: '#242424' },
+        values: (_instance, values) => values.map(value => formatValue(Number(value))),
+      },
+    ],
+    series: [
+      {},
+      ...props.series.map(series => ({ label: series.label, stroke: series.color, width: 1.6, points: { show: false } })),
+    ],
+    hooks: { setCursor: [updateTooltip] },
+  }, chartData.value, host)
 }
 
-async function syncAxisLabelWidth() {
-  await nextTick()
-  const nextWidth = axisLabelRefs.value.reduce((maxWidth, label) => {
-    try {
-      return Math.max(maxWidth, label.getBBox().width)
-    } catch {
-      return maxWidth
-    }
-  }, 0)
-  if (Math.abs(nextWidth - measuredAxisLabelWidth.value) > 0.5) {
-    measuredAxisLabelWidth.value = nextWidth
-  }
-  axisLabelRefs.value = []
+function resizeChart() {
+  if (!chart.value || !rootRef.value) return
+  chart.value.setSize({ width: Math.max(240, rootRef.value.clientWidth), height: height.value })
 }
 
-function handleMove(event: MouseEvent) {
-  if (!visibleTimeline.value.length) return
-  const target = event.currentTarget instanceof SVGSVGElement ? event.currentTarget : svgRef.value
-  if (!target) return
-  const rect = target.getBoundingClientRect()
-  const relativeX = Math.min(
-    svgWidth.value - chartPadding.value.right,
-    Math.max(chartPadding.value.left, ((event.clientX - rect.left) / Math.max(rect.width, 1)) * svgWidth.value),
-  )
-  const { min, max } = visibleTimeExtent.value
-  const hoverTime = max === min
-    ? visibleTimeline.value[0].value
-    : min + (
-        ((relativeX - chartPadding.value.left) / Math.max(svgWidth.value - chartPadding.value.left - chartPadding.value.right, 1))
-        * (max - min)
-      )
-  let index = 0
-  for (let cursor = 0; cursor < visibleTimeline.value.length; cursor += 1) {
-    if (visibleTimeline.value[cursor].value <= hoverTime) {
-      index = cursor
-      continue
-    }
-    break
+function destroyChart() {
+  if (chart.value && typeof chart.value.destroy === 'function') chart.value.destroy()
+  chart.value = null
+}
+
+function refreshChart() {
+  clearHover()
+  if (!timeline.value.length) {
+    destroyChart()
+    return
   }
-  hoverIndex.value = index
-  hoverX.value = relativeX
-  hoverY.value = ((event.clientY - rect.top) / Math.max(rect.height, 1)) * height.value
+  nextTick(buildChart)
 }
 
 onMounted(() => {
-  const syncWidth = () => {
-    const nextWidth = svgRef.value?.clientWidth || rootRef.value?.clientWidth || 320
-    svgWidth.value = Math.max(240, Math.round(nextWidth))
-  }
-  syncWidth()
-  void syncAxisLabelWidth()
-  if (typeof ResizeObserver !== 'undefined') {
-    resizeObserver = new ResizeObserver(() => {
-      syncWidth()
-      void syncAxisLabelWidth()
-    })
-    if (rootRef.value) resizeObserver.observe(rootRef.value)
-    if (svgRef.value) resizeObserver.observe(svgRef.value)
+  refreshChart()
+  if (typeof ResizeObserver !== 'undefined' && rootRef.value) {
+    resizeObserver = new ResizeObserver(resizeChart)
+    resizeObserver.observe(rootRef.value)
   }
 })
 
-onUnmounted(() => {
+onBeforeUnmount(() => {
   resizeObserver?.disconnect()
+  destroyChart()
 })
 
-watch(
-  [
-    visibleTimeline,
-    valueExtent,
-    svgWidth,
-    () => props.percent,
-    () => props.currency,
-  ],
-  () => {
-    void syncAxisLabelWidth()
-  },
-  { deep: true, immediate: true },
-)
+watch(() => props.series, refreshChart, { deep: true })
+watch([() => props.percent, () => props.currency, () => props.integerAxis, () => props.height], refreshChart)
+watch([timeExtent, availableRangeOptions], () => {
+  if (!availableRangeOptions.value.some(option => option.key === selectedRangeKey.value)) {
+    selectedRangeKey.value = availableRangeOptions.value[0]?.key ?? 'all'
+  }
+  if (selectedRangeKey.value === 'all' || windowEndTs.value == null) {
+    windowEndTs.value = timeExtent.value.max
+  } else {
+    windowEndTs.value = Math.min(timeExtent.value.max, Math.max(timeExtent.value.min, windowEndTs.value))
+  }
+  nextTick(setVisibleScale)
+}, { immediate: true })
 
-watch(
-  [timeExtent, availableRangeOptions],
-  () => {
-    if (!availableRangeOptions.value.some(option => option.key === selectedRangeKey.value)) {
-      selectedRangeKey.value = availableRangeOptions.value[0]?.key ?? 'all'
-    }
-    if (selectedRangeKey.value === 'all' || windowEndTs.value == null) {
-      windowEndTs.value = timeExtent.value.max
-    } else {
-      windowEndTs.value = Math.min(timeExtent.value.max, Math.max(timeExtent.value.min, windowEndTs.value))
-    }
-    clearHover()
-  },
-  { immediate: true, deep: true },
-)
+const hovercardStyle = computed(() => {
+  if (tooltipX.value == null) return {}
+  const width = rootRef.value?.clientWidth ?? 320
+  return tooltipX.value > width / 2
+    ? { right: '8px', left: 'auto' }
+    : { left: '8px', right: 'auto' }
+})
 </script>
 
 <style scoped>
@@ -698,218 +411,134 @@ watch(
   position: relative;
   min-height: 164px;
   overflow: visible;
-  z-index: 0;
-}
-
-.result-chart--hovering {
-  z-index: 40;
+  color: #b8c3cc;
+  font-family: 'JetBrains Mono', monospace;
 }
 
 .result-chart__controls {
-  position: relative;
-  z-index: 1;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
-  margin-bottom: 8px;
-  flex-wrap: wrap;
+  gap: 8px;
+  min-height: 24px;
+  margin-bottom: 2px;
+  font-size: 9px;
 }
 
 .result-chart__range-summary {
-  color: #707070;
-  font-size: 10px;
-  letter-spacing: 0.04em;
+  overflow: hidden;
+  color: #81909c;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .result-chart__range-actions {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
-  justify-content: flex-end;
+  display: flex;
+  flex: 0 0 auto;
+  gap: 2px;
 }
 
 .result-chart__range-button,
 .result-chart__range-shift {
-  border: 1px solid #242424;
-  background: #121212;
-  color: #8a8a8a;
-  border-radius: 999px;
-  font-size: 10px;
-  line-height: 1;
-  padding: 5px 9px;
-  min-height: 26px;
+  min-width: 24px;
+  padding: 2px 5px;
+  border: 1px solid #303b45;
+  background: #10161b;
+  color: #aab6bf;
   cursor: pointer;
-  transition: border-color 120ms ease, color 120ms ease, background 120ms ease;
-}
-
-.result-chart__range-shift {
-  min-width: 26px;
-  padding-inline: 0;
+  font: inherit;
 }
 
 .result-chart__range-button:hover,
-.result-chart__range-shift:hover {
-  border-color: #32587a;
-  color: #d7ebff;
-}
-
+.result-chart__range-shift:hover:not(:disabled),
 .result-chart__range-button--active {
-  border-color: #2f5f91;
-  background: #102133;
-  color: #84c4ff;
+  border-color: #4e9ac3;
+  background: #1c4053;
+  color: #e3f4ff;
 }
 
 .result-chart__range-button:disabled,
 .result-chart__range-shift:disabled {
-  opacity: 0.4;
   cursor: default;
+  opacity: 0.45;
 }
 
-.result-chart__svg {
+.result-chart__uplot {
+  position: relative;
+  min-height: 164px;
+  overflow: hidden;
+}
+
+.result-chart__uplot :deep(.uplot) {
   width: 100%;
-  display: block;
-  background: #0d0d0d;
-  border: 1px solid #1a1a1a;
-  border-radius: 18px;
+  height: 100%;
 }
 
-.result-chart__grid line,
-.result-chart__crosshair line {
-  stroke: #1d1d1d;
-  stroke-width: 1;
-}
-
-.result-chart__crosshair line {
-  stroke: #2e3f4f;
-  stroke-dasharray: 3 3;
-}
-
-.result-chart__axes text {
-  fill: #666;
-  font-size: 8px;
-  font-family: 'JetBrains Mono', monospace;
-}
-
-.result-chart__line {
-  fill: none;
-  stroke: var(--series-color);
-  stroke-width: 2.2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
-.result-chart__point {
-  fill: var(--series-color);
-  stroke: #0d0d0d;
-  stroke-width: 1.5;
-}
-
-.result-chart__endpoint {
-  fill: #0d0d0d;
-  stroke: var(--series-color);
-  stroke-width: 1.3;
-  opacity: 0.9;
+.result-chart__uplot :deep(.u-axis) {
+  color: #788894;
 }
 
 .result-chart__hovercard {
-  display: grid;
-  gap: 6px;
-  padding: 9px 10px;
-  border: 1px solid #1c1f24;
-  border-radius: 8px;
-  background: #0d1116;
-  color: #aaa;
-  font-size: 10px;
-  line-height: 1.35;
-  min-height: 48px;
-}
-
-.result-chart__hovercard--overlay {
   position: absolute;
-  top: 18px;
-  inline-size: fit-content;
-  min-inline-size: 160px;
-  max-inline-size: min(72vw, 680px);
-  max-height: min(72vh, 520px);
-  overflow: visible;
+  z-index: 3;
+  top: 30px;
+  min-width: 150px;
+  max-width: min(270px, calc(100% - 16px));
+  padding: 6px 8px;
+  border: 1px solid #385064;
+  background: rgba(10, 15, 20, 0.96);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
   pointer-events: none;
-  backdrop-filter: blur(4px);
-  background: color-mix(in srgb, #0d1116 92%, transparent);
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.24);
-  z-index: 50;
+  font-size: 10px;
 }
 
 .result-chart__hovercard-date {
-  color: #777;
+  margin-bottom: 4px;
+  color: #90a8b8;
 }
 
 .result-chart__hovercard-items {
   display: grid;
-  gap: 6px;
-}
-
-.result-chart__hovercard--dense {
-  min-inline-size: 280px;
-  max-inline-size: min(82vw, 920px);
-}
-
-.result-chart__hovercard-items--dense {
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  align-items: start;
-  gap: 10px 12px;
-}
-
-.result-chart__tooltip-item {
-  display: grid;
   gap: 2px;
 }
 
-.result-chart__tooltip b {
-  font-weight: 700;
+.result-chart__tooltip-item {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
 }
 
-.result-chart__tooltip small {
-  color: #8d8d8d;
-  font-size: 9px;
+.result-chart__tooltip-item small {
+  flex-basis: 100%;
+  color: #8495a1;
 }
 
 .result-chart__legend {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 8px;
+  gap: 8px;
+  margin-top: 4px;
+  color: #8d9ca7;
+  font-size: 9px;
 }
 
 .result-chart__legend-item {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  color: #8a8a8a;
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  gap: 4px;
 }
 
 .result-chart__legend-item i {
-  width: 8px;
-  height: 8px;
-  border-radius: 999px;
   display: inline-block;
+  width: 8px;
+  height: 2px;
 }
 
 .result-chart__empty {
+  display: grid;
   min-height: 164px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #666;
-  font-size: 12px;
-  text-align: center;
-  border: 1px solid #1a1a1a;
-  border-radius: 18px;
-  background: #0d0d0d;
-  padding: 12px;
+  place-items: center;
+  color: #72818c;
+  font-size: 10px;
 }
 </style>

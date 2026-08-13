@@ -1,7 +1,7 @@
 <template>
-  <section class="coverage-summary" aria-live="polite">
-    <p v-if="loading" class="coverage-summary__state">Loading local coverage…</p>
-    <p v-else-if="error" class="coverage-summary__state coverage-summary__state--error">{{ error }}</p>
+  <section class="coverage-summary" role="region" :aria-label="`${symbol} coverage`" :aria-busy="loading || rangeLoading">
+    <p v-if="loading" class="coverage-summary__state" role="status" aria-live="polite">Loading local coverage…</p>
+    <p v-else-if="error" class="coverage-summary__state coverage-summary__state--error" role="alert" aria-live="assertive">{{ error }}</p>
     <template v-else>
       <div class="coverage-summary__identity">
         <span>Canonical instrument</span><strong>{{ symbol }}</strong>
@@ -15,7 +15,7 @@
         <span>Dataset state</span>
         <ul>
           <li v-for="state in datasetStates" :key="`${state.dataset_type}:${state.dataset_key}`" :class="`coverage-summary__dataset--${state.status}`">
-            {{ state.dataset_type }}{{ state.dataset_key ? ` · ${state.dataset_key}` : '' }}: {{ state.status }}
+            <span :aria-label="`${state.dataset_type}${state.dataset_key ? ` · ${state.dataset_key}` : ''}: ${state.status}`">{{ state.dataset_type }}{{ state.dataset_key ? ` · ${state.dataset_key}` : '' }}: {{ state.status }}</span>
           </li>
         </ul>
       </div>
@@ -41,9 +41,9 @@
           <label class="coverage-summary__adjusted"><input v-model="rangeAdjusted" aria-label="Coverage split adjusted" type="checkbox" /> Adjusted</label>
           <button type="button" aria-label="Check OHLCV range" :disabled="rangeLoading || !rangeValid" @click="checkRange">{{ rangeLoading ? 'Checking…' : 'Check' }}</button>
         </div>
-        <p v-if="rangeValidationError" class="coverage-summary__range-message coverage-summary__range-message--error">{{ rangeValidationError }}</p>
-        <p v-else-if="rangeError" class="coverage-summary__range-message coverage-summary__range-message--error">{{ rangeError }}</p>
-        <div v-else-if="rangeAssessment" class="coverage-summary__assessment" :class="`coverage-summary__assessment--${rangeAssessment.status}`">
+        <p v-if="rangeValidationError" class="coverage-summary__range-message coverage-summary__range-message--error" role="alert" aria-live="assertive">{{ rangeValidationError }}</p>
+        <p v-else-if="rangeError" class="coverage-summary__range-message coverage-summary__range-message--error" role="alert" aria-live="assertive">{{ rangeError }}</p>
+        <div v-else-if="rangeAssessment" class="coverage-summary__assessment" role="status" aria-live="polite" :class="`coverage-summary__assessment--${rangeAssessment.status}`">
           <div><span>Status</span><strong>{{ rangeAssessment.status }}</strong></div>
           <div><span>Bars</span><strong>{{ rangeAssessment.bar_count.toLocaleString() }}</strong></div>
           <div><span>Covered</span><strong>{{ formatRange(rangeAssessment.covered_start, rangeAssessment.covered_end) }}</strong></div>
@@ -55,7 +55,7 @@
             </ul>
           </div>
         </div>
-        <p v-else class="coverage-summary__range-message">Choose a date range to inspect local readiness and missing slices.</p>
+        <p v-else class="coverage-summary__range-message" role="status" aria-live="polite">Choose a date range to inspect local readiness and missing slices.</p>
       </section>
       <p class="coverage-summary__note">Local canonical data only · source and freshness limitations remain explicit in each dataset state.</p>
     </template>
@@ -64,6 +64,7 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
+import { useQueryClient } from '@tanstack/vue-query'
 import { api } from '@/lib/api'
 
 interface CoverageRange { oldest: string | null; newest: string | null; bar_count: number }
@@ -72,6 +73,7 @@ interface OhlcvCoverageSlice { start: string; end: string }
 interface OhlcvCoverageAssessment { status: 'ready' | 'partial' | 'missing' | 'stale'; covered_start: string | null; covered_end: string | null; bar_count: number; missing_slices: OhlcvCoverageSlice[]; explanation: string }
 
 const props = defineProps<{ symbol: string; configuration?: Record<string, unknown> }>()
+const queryClient = useQueryClient()
 const emit = defineEmits<{ configuration: [configuration: Record<string, unknown>] }>()
 const loading = ref(false)
 const error = ref<string | null>(null)
@@ -108,10 +110,17 @@ watch(() => props.symbol, async symbol => {
   loading.value = true
   error.value = null
   try {
-    const response = await api.get<{
+    const response = await queryClient.fetchQuery<{
       local_coverage: Record<string, CoverageRange>
       dataset_states?: DatasetState[]
-    }>(`/coverage/instruments/${encodeURIComponent(symbol)}`)
+    }>({
+      queryKey: ['workstation', 'coverage', 'instrument', symbol.toUpperCase()],
+      queryFn: () => api.get<{
+        local_coverage: Record<string, CoverageRange>
+        dataset_states?: DatasetState[]
+      }>(`/coverage/instruments/${encodeURIComponent(symbol)}`),
+      staleTime: 30_000,
+    })
     if (id !== requestId) return
     coverage.value = response.local_coverage ?? {}
     datasetStates.value = (response.dataset_states ?? []).slice(0, 6)
@@ -155,12 +164,17 @@ async function checkRange() {
   rangeLoading.value = true
   rangeError.value = ''
   try {
-    const response = await api.get<OhlcvCoverageAssessment>(`/coverage/instruments/${encodeURIComponent(props.symbol)}/ohlcv`, {
+    const params = {
       timeframe: rangeTimeframe.value,
       start: toUtcBoundary(rangeStart.value, false),
       end: toUtcBoundary(rangeEnd.value, true),
       mode: rangeMode.value,
       adjusted: rangeAdjusted.value,
+    }
+    const response = await queryClient.fetchQuery<OhlcvCoverageAssessment>({
+      queryKey: ['workstation', 'coverage', 'ohlcv', props.symbol.toUpperCase(), params],
+      queryFn: () => api.get<OhlcvCoverageAssessment>(`/coverage/instruments/${encodeURIComponent(props.symbol)}/ohlcv`, params),
+      staleTime: 30_000,
     })
     if (id === rangeRequestId) rangeAssessment.value = response
   } catch (caught: any) {

@@ -1,0 +1,159 @@
+<template>
+  <div ref="root" class="python-source-editor">
+    <div class="python-source-editor__toolbar">
+      <span>Python · unified market SDK</span>
+      <button type="button" :aria-label="`Normalize ${ariaLabel}`" @click="normalize">Normalize</button>
+    </div>
+    <textarea
+      ref="editor"
+      :value="modelValue"
+      :aria-label="ariaLabel"
+      :aria-controls="showSuggestions && suggestions.length ? suggestionListId : undefined"
+      :aria-expanded="showSuggestions && suggestions.length ? 'true' : 'false'"
+      aria-haspopup="listbox"
+      :placeholder="placeholder"
+      :style="{ minHeight }"
+      spellcheck="false"
+      @input="updateValue(($event.target as HTMLTextAreaElement).value)"
+      @keydown="handleKeydown"
+      @keyup="updateSuggestions"
+      @focus="updateSuggestions"
+      @blur="hideSuggestions"
+    />
+    <div v-if="showSuggestions && suggestions.length" :id="suggestionListId" class="python-source-editor__suggestions" role="listbox" :aria-label="`${ariaLabel} SDK suggestions`" :aria-activedescendant="suggestionId(selectedSuggestionIndex)">
+      <button v-for="(suggestion, index) in suggestions" :id="suggestionId(index)" :key="suggestion.insert" type="button" role="option" :aria-selected="index === selectedSuggestionIndex" :class="{ 'python-source-editor__suggestion--selected': index === selectedSuggestionIndex }" @mousedown.prevent="insertSuggestion(suggestion.insert)">
+        <code>{{ suggestion.insert }}</code><small>{{ suggestion.signature }}</small>
+      </button>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+
+interface Suggestion {
+  prefix: string
+  insert: string
+  signature: string
+}
+
+const props = withDefaults(defineProps<{
+  modelValue: string
+  ariaLabel: string
+  placeholder?: string
+  minHeight?: string
+}>(), { placeholder: '', minHeight: '90px' })
+const emit = defineEmits<{ 'update:modelValue': [value: string] }>()
+
+const root = ref<HTMLElement | null>(null)
+const editor = ref<HTMLTextAreaElement | null>(null)
+const showSuggestions = ref(false)
+const editorPrefix = ref('')
+const selectedSuggestionIndex = ref(0)
+const suggestionListId = `python-source-suggestions-${typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`}`
+const suggestionsCatalog: Suggestion[] = [
+  { prefix: 'market', insert: 'market.close()', signature: 'series[float]' },
+  { prefix: 'market', insert: 'market.ohlcv()', signature: 'list[OHLCVRow]' },
+  { prefix: 'market', insert: 'market.benchmark_close()', signature: 'series[float]' },
+  { prefix: 'market', insert: 'market.metadata()', signature: 'dict[str, object]' },
+  { prefix: 'ta', insert: 'ta.sma(market.close(), 20)', signature: 'series, period' },
+  { prefix: 'ta', insert: 'ta.rsi(market.close(), 14)', signature: 'series, period' },
+  { prefix: 'ta', insert: 'ta.atr(market.close(), 14)', signature: 'series, period' },
+  { prefix: 'stats', insert: 'stats.positive_close_streaks(dataset)', signature: 'dataset' },
+  { prefix: 'stats', insert: 'stats.percentile(values, 0.9)', signature: 'values, probability' },
+  { prefix: 'research', insert: 'research.forward_returns(dataset, indices, [1, 5, 20])', signature: 'dataset, events, horizons' },
+  { prefix: 'research', insert: 'research.cross_sectional_rank(dataset, 20)', signature: 'dataset, lookback' },
+  { prefix: 'research', insert: 'research.breadth_snapshot(dataset, 20)', signature: 'dataset, period' },
+  { prefix: 'output', insert: "output.scalar('name', value)", signature: 'name, value' },
+  { prefix: 'output', insert: "output.series('name', values)", signature: 'name, values' },
+  { prefix: 'output', insert: "output.events('name', events)", signature: 'name, events' },
+]
+const suggestions = computed(() => {
+  const prefix = editorPrefix.value.toLowerCase()
+  if (!prefix) return suggestionsCatalog.slice(0, 8)
+  return suggestionsCatalog.filter(item => item.prefix === prefix || item.insert.toLowerCase().startsWith(prefix)).slice(0, 8)
+})
+function suggestionId(index: number) {
+  return `${props.ariaLabel.replace(/[^a-z0-9_-]+/gi, '-')}-suggestion-${index}`
+}
+
+watch(() => props.modelValue, value => {
+  if (editor.value && editor.value.value !== value) editor.value.value = value
+})
+
+function updateValue(value: string) {
+  emit('update:modelValue', value)
+  updateSuggestions()
+}
+function updateSuggestions() {
+  const target = editor.value
+  if (!target) return
+  const before = target.value.slice(0, target.selectionStart)
+  const match = before.match(/([A-Za-z_]+(?:\.[A-Za-z_]*)?)$/)
+  const nextPrefix = match?.[1] ?? ''
+  if (nextPrefix !== editorPrefix.value) selectedSuggestionIndex.value = 0
+  editorPrefix.value = nextPrefix
+  // The handler is only bound to editor focus/input/key events. Do not rely on
+  // document.activeElement here: detached pop-outs and component tests can have
+  // a different document focus owner while the editor is still interactive.
+  showSuggestions.value = true
+}
+function handleKeydown(event: KeyboardEvent) {
+  if (!showSuggestions.value || !suggestions.value.length) return
+  if (event.key === 'ArrowDown') {
+    event.preventDefault()
+    selectedSuggestionIndex.value = (selectedSuggestionIndex.value + 1) % suggestions.value.length
+  } else if (event.key === 'ArrowUp') {
+    event.preventDefault()
+    selectedSuggestionIndex.value = (selectedSuggestionIndex.value - 1 + suggestions.value.length) % suggestions.value.length
+  } else if (event.key === 'Enter' || event.key === 'Tab') {
+    event.preventDefault()
+    insertSuggestion(suggestions.value[selectedSuggestionIndex.value].insert)
+  } else if (event.key === 'Escape') {
+    event.preventDefault()
+    showSuggestions.value = false
+  }
+}
+function hideSuggestions() {
+  window.setTimeout(() => { showSuggestions.value = false }, 0)
+}
+function dismissOnOutsidePointer(event: PointerEvent) {
+  const target = event.target
+  if (target instanceof Node && !root.value?.contains(target)) showSuggestions.value = false
+}
+function insertSuggestion(insert: string) {
+  const target = editor.value
+  if (!target) return
+  const before = target.value.slice(0, target.selectionStart)
+  const after = target.value.slice(target.selectionEnd)
+  const match = before.match(/([A-Za-z_]+(?:\.[A-Za-z_]*)?)$/)
+  const start = match ? before.length - match[1].length : before.length
+  const value = `${before.slice(0, start)}${insert}${after}`
+  emit('update:modelValue', value)
+  showSuggestions.value = false
+  void nextTick(() => {
+    target.focus()
+    const position = start + insert.length
+    target.setSelectionRange(position, position)
+  })
+}
+function normalize() {
+  const normalized = props.modelValue.replace(/\r\n?/g, '\n').split('\n').map(line => line.replace(/[ \t]+$/g, '')).join('\n').replace(/^\n+|\n+$/g, '')
+  emit('update:modelValue', normalized ? `${normalized}\n` : '')
+}
+
+onMounted(() => document.addEventListener('pointerdown', dismissOnOutsidePointer, true))
+onBeforeUnmount(() => document.removeEventListener('pointerdown', dismissOnOutsidePointer, true))
+</script>
+
+<style scoped>
+.python-source-editor { position:relative; display:grid; gap:3px; min-width:0; }
+.python-source-editor__toolbar { display:flex; align-items:center; justify-content:space-between; color:#8195a3; font-size:9px; }
+.python-source-editor__toolbar button { border:1px solid #3a4954; background:#172027; color:#dce6ed; padding:2px 5px; font:inherit; cursor:pointer; }
+.python-source-editor textarea { width:100%; resize:vertical; box-sizing:border-box; border:1px solid #3a4954; background:#172027; color:#dce6ed; padding:4px 5px; font:10px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace; }
+.python-source-editor__suggestions { position:static; z-index:8; display:grid; max-height:120px; overflow:auto; border:1px solid #486274; background:#10171d; box-shadow:0 4px 12px #0008; }
+.python-source-editor__suggestions button { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:8px; align-items:baseline; width:100%; border:0; border-bottom:1px solid #283640; background:transparent; color:#dce6ed; padding:4px 6px; text-align:left; font:inherit; cursor:pointer; }
+.python-source-editor__suggestions button:hover,.python-source-editor__suggestions button:focus,.python-source-editor__suggestion--selected { background:#1d3543; }
+.python-source-editor__suggestions code { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#9ed0ed; }
+.python-source-editor__suggestions small { color:#8195a3; white-space:nowrap; }
+</style>

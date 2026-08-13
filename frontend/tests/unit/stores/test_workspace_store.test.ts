@@ -1,8 +1,8 @@
 import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { apiGet, apiPost, apiPut } = vi.hoisted(() => ({ apiGet: vi.fn(), apiPost: vi.fn(), apiPut: vi.fn() }))
-vi.mock('@/lib/api', () => ({ api: { get: apiGet, post: apiPost, put: apiPut } }))
+const { apiGet, apiPost, apiPut, apiPatch, apiDelete } = vi.hoisted(() => ({ apiGet: vi.fn(), apiPost: vi.fn(), apiPut: vi.fn(), apiPatch: vi.fn(), apiDelete: vi.fn() }))
+vi.mock('@/lib/api', () => ({ api: { get: apiGet, post: apiPost, put: apiPut, patch: apiPatch, delete: apiDelete } }))
 
 function deferred<T>() {
   let resolve!: (value: T) => void
@@ -18,6 +18,8 @@ describe('workspace store layout tabs', () => {
     apiPut.mockReset()
     apiPost.mockReset()
     apiGet.mockReset()
+    apiPatch.mockReset()
+    apiDelete.mockReset()
   })
 
   afterEach(() => vi.unstubAllGlobals())
@@ -39,6 +41,19 @@ describe('workspace store layout tabs', () => {
     expect(apiGet).toHaveBeenCalledWith('/analysis/groups/sp500-sectors/breadth/history', { limit: 500 })
     expect(store.marketAnalysisRefreshing).toBe(false)
     expect(store.marketAnalysisRefreshedAt).toEqual(expect.any(String))
+  })
+
+  it('does not start queued market-analysis loaders while the document is hidden', async () => {
+    Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'hidden' })
+    const store = useWorkspaceStore()
+
+    await store.refreshMarketAnalysis()
+    await store.loadTechnical('SPY')
+    await store.loadETFIndustries('XLK')
+
+    expect(apiGet).not.toHaveBeenCalled()
+    expect(store.marketAnalysisRefreshedAt).toBeNull()
+    Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'visible' })
   })
 
   it('publishes a leader-owned refresh event after a successful top-down refresh', async () => {
@@ -108,6 +123,25 @@ describe('workspace store layout tabs', () => {
     expect(apiGet).toHaveBeenCalledWith('/analysis/groups/sp500-sectors/snapshot', { benchmark: 'SPY', timeframe: 'W1', adjusted: false })
     expect(apiGet).toHaveBeenCalledWith('/analysis/groups/sp500-sectors/breadth', { timeframe: 'W1', adjusted: false })
     expect(apiGet).toHaveBeenCalledWith('/analysis/groups/sp500-sectors/breadth/history', { limit: 500, timeframe: 'W1', adjusted: false })
+  })
+
+  it('tracks breadth loading and errors independently for the workstation state surface', async () => {
+    const pending = deferred<unknown>()
+    apiGet.mockImplementation((path: string) => path.endsWith('/breadth') ? pending.promise : Promise.resolve({ points: [] }))
+    const store = useWorkspaceStore()
+
+    const request = store.loadBreadth('sp500-sectors')
+    await vi.waitFor(() => expect(store.breadthLoading['sp500-sectors']).toBe(true))
+    pending.resolve({ group_key: 'sp500-sectors', evaluated_count: 11 })
+    await request
+
+    expect(store.breadthLoading['sp500-sectors']).toBe(false)
+    expect(store.breadthErrors['sp500-sectors']).toBeNull()
+
+    apiGet.mockRejectedValueOnce(new Error('breadth provider unavailable'))
+    await store.loadBreadth('sp500-sectors')
+    expect(store.breadthLoading['sp500-sectors']).toBe(false)
+    expect(store.breadthErrors['sp500-sectors']).toBe('breadth provider unavailable')
   })
 
   it('ignores late shared-analysis snapshots after a newer timeframe request', async () => {
@@ -253,6 +287,30 @@ describe('workspace store layout tabs', () => {
 
     await vi.waitFor(() => expect(apiPut).toHaveBeenCalledTimes(2), { timeout: 1_500 })
     expect(store.workspace.tabs[0].windows[0].configuration.expression).toBe('=NVDA/XLK')
+  })
+
+  it('does not recover away a newly opened tool when an older snapshot conflicts', async () => {
+    let rejectOld!: (error: Error) => void
+    const store = useWorkspaceStore()
+    store.workspace = {
+      id: 10, user_id: 3, name: 'US Top Down', is_default: true, position: 0, revision: 4, schema_version: 1, settings: {},
+      tabs: [{
+        id: 20, stable_key: 'us-top-down', name: 'US Top Down', position: 0, active_window_key: 'chart', layout_config: {},
+        windows: [{ id: 30, instance_key: 'chart', tool_type: 'chart', title: 'Chart', link_group: 'blue', configuration: {}, style: {}, state_schema_version: 1, position: 0 }],
+      }],
+    }
+    apiPut.mockImplementationOnce(() => new Promise((_resolve, reject) => { rejectOld = reject }))
+      .mockImplementation(async (_path, payload) => ({ ...store.workspace, revision: 5, tabs: payload.tabs }))
+
+    store.scheduleSnapshot()
+    await vi.waitFor(() => expect(apiPut).toHaveBeenCalledTimes(1), { timeout: 1_000 })
+    const opened = store.openTool({ tool_type: 'watchlist', title: 'WatchList', instance_prefix: 'watchlist', configuration: { personal: true } })
+    rejectOld(new Error('API PUT /workspaces/10/snapshot → 409: conflict'))
+
+    await vi.waitFor(() => expect(apiPut).toHaveBeenCalledTimes(2), { timeout: 1_500 })
+    expect(apiPost).not.toHaveBeenCalled()
+    expect(store.workspace?.tabs[0].windows.some(window => window.instance_key === opened?.instance_key)).toBe(true)
+    expect(store.workspace?.tabs[0].active_window_key).toBe(opened?.instance_key)
   })
 
   it('persists layout geometry without deleting tools from an observational key list', async () => {
@@ -401,6 +459,27 @@ describe('workspace store layout tabs', () => {
     expect(store.symbolForLinkGroup('yellow')).toBe('XLK')
   })
 
+  it('keeps canonical instrument identity on shared links and removes stale ids on ticker-only navigation', () => {
+    const store = useWorkspaceStore()
+    store.workspace = {
+      id: 10, user_id: 3, name: 'US Top Down', is_default: true, position: 0, revision: 4, schema_version: 1, settings: {},
+      tabs: [{
+        id: 20, stable_key: 'us-top-down', name: 'US Top Down', position: 0, active_window_key: 'chart', layout_config: {},
+        windows: [{ id: 30, instance_key: 'chart', tool_type: 'chart', title: 'Chart', link_group: 'blue', configuration: { symbol: 'SPY' }, style: {}, state_schema_version: 1, position: 0 }],
+      }],
+    }
+
+    store.publishSymbol({ symbol: 'XLK', instrumentId: 42, group: 'blue', sourceWindowKey: 'workstation' })
+    expect(store.linkedSymbols.blue).toMatchObject({ symbol: 'XLK', instrumentId: 42 })
+    expect(store.activeTab?.windows[0].configuration).toMatchObject({ symbol: 'XLK', instrument_id: 42 })
+
+    store.publishSymbol({ symbol: 'XLE', group: 'blue', sourceWindowKey: 'workstation' })
+    expect(store.linkedSymbols.blue).toMatchObject({ symbol: 'XLE' })
+    expect(store.linkedSymbols.blue?.instrumentId).toBeUndefined()
+    expect(store.activeTab?.windows[0].configuration).toMatchObject({ symbol: 'XLE' })
+    expect(store.activeTab?.windows[0].configuration).not.toHaveProperty('instrument_id')
+  })
+
   it('resets a factory workspace only through the backend factory-reset endpoint', async () => {
     const store = useWorkspaceStore()
     store.workspace = {
@@ -413,6 +492,55 @@ describe('workspace store layout tabs', () => {
     await expect(store.resetFactoryWorkspace()).resolves.toBe(true)
     expect(apiPost).toHaveBeenCalledWith('/workspaces/10/reset-factory', {})
     expect(store.activeTabKey).toBe('us-top-down')
+  })
+
+  it('manages persisted workspaces through the workspace CRUD APIs', async () => {
+    const base = {
+      id: 10, user_id: 3, name: 'US Top Down', is_default: true, position: 0, revision: 4,
+      schema_version: 1, settings: {}, tabs: [],
+    }
+    const created = { ...base, id: 11, name: 'Research', is_default: false, position: 1 }
+    apiPost.mockResolvedValueOnce(created).mockResolvedValueOnce({ ...created, id: 12, name: 'Research Copy', position: 2 })
+    apiGet.mockResolvedValue([{ ...base }, { ...created }])
+    apiPatch.mockResolvedValue({ ...created, name: 'Morning Scan', revision: 5 })
+    apiDelete.mockResolvedValue(undefined)
+    const store = useWorkspaceStore()
+    store.workspace = base
+
+    await expect(store.createWorkspace(' Research ')).resolves.toMatchObject({ name: 'Research' })
+    await expect(store.cloneWorkspace()).resolves.toMatchObject({ name: 'Research Copy' })
+    await expect(store.renameWorkspace(' Morning Scan ')).resolves.toMatchObject({ name: 'Morning Scan' })
+    expect(apiPatch).toHaveBeenCalledWith('/workspaces/12', { name: 'Morning Scan' })
+    store.workspace = { ...store.workspace!, is_default: false }
+    apiGet.mockResolvedValue([{ ...base }])
+    await expect(store.deleteCurrentWorkspace()).resolves.toBe(true)
+    expect(apiDelete).toHaveBeenCalledWith('/workspaces/11')
+  })
+
+  it('settles a stale layout snapshot before renaming the active workspace', async () => {
+    const base = {
+      id: 10, user_id: 3, name: 'New Workspace', is_default: false, position: 1, revision: 4,
+      schema_version: 1, settings: {}, tabs: [],
+    }
+    const saved = { ...base, revision: 5 }
+    const renamed = { ...base, name: 'Morning Review', revision: 6 }
+    const pendingPut = deferred<typeof saved>()
+    apiPut.mockReturnValueOnce(pendingPut.promise)
+    apiPatch.mockResolvedValue(renamed)
+    const store = useWorkspaceStore()
+    store.workspace = base
+
+    // A layout observer has already started an older snapshot write.
+    const pendingSave = store.saveSnapshot()
+    await vi.waitFor(() => expect(apiPut).toHaveBeenCalledWith('/workspaces/10/snapshot', expect.any(Object)))
+    const rename = store.renameWorkspace(' Morning Review ')
+    await Promise.resolve()
+    expect(apiPatch).not.toHaveBeenCalled()
+
+    pendingPut.resolve(saved)
+    await pendingSave
+    await expect(rename).resolves.toMatchObject({ name: 'Morning Review' })
+    expect(apiPatch).toHaveBeenCalledWith('/workspaces/10', { name: 'Morning Review' })
   })
 
   it('publishes an occurrence timestamp and clears it for ordinary symbol navigation', () => {
@@ -523,6 +651,48 @@ describe('workspace store layout tabs', () => {
     expect(store.activeTab?.active_window_key).toBe(opened?.instance_key)
   })
 
+  it('adds new tools to an existing Golden Layout stack instead of creating narrow root columns', () => {
+    const store = useWorkspaceStore()
+    store.workspace = {
+      id: 10, user_id: 3, name: 'US Top Down', is_default: true, position: 0, revision: 4, schema_version: 1, settings: {},
+      tabs: [{
+        id: 20, stable_key: 'us-top-down', name: 'US Top Down', position: 0, active_window_key: 'benchmark-list',
+        layout_config: {
+          root: { type: 'row', content: [
+            { type: 'column', size: '22fr', content: [{ type: 'component', componentState: { instance_key: 'benchmark-list' } }] },
+            { type: 'column', size: '78fr', content: [{ type: 'stack', content: [{ type: 'component', componentState: { instance_key: 'primary-chart' } }] }] },
+          ] },
+        },
+        windows: [
+          { id: 30, instance_key: 'benchmark-list', tool_type: 'watchlist', title: 'Benchmarks', link_group: 'blue', configuration: {}, style: {}, state_schema_version: 1, position: 0 },
+          { id: 31, instance_key: 'primary-chart', tool_type: 'chart', title: 'Chart', link_group: 'blue', configuration: {}, style: {}, state_schema_version: 1, position: 1 },
+        ],
+      }],
+    }
+    const opened = store.openTool({ tool_type: 'watchlist', title: 'WatchList', instance_prefix: 'watchlist', configuration: { personal: true } })
+    const root = store.activeTab?.layout_config.root as { content: Array<Record<string, any>> }
+    expect(root.content).toHaveLength(2)
+    const stack = root.content[1].content[0] as { type: string; content: Array<Record<string, any>> }
+    expect(stack.type).toBe('stack')
+    expect(stack.content.at(-1)?.componentState.instance_key).toBe(opened?.instance_key)
+  })
+
+  it('persists active Golden Layout tab changes and rejects unknown window keys', () => {
+    const store = useWorkspaceStore()
+    store.workspace = {
+      id: 10, user_id: 3, name: 'Personal', is_default: false, position: 0, revision: 4, schema_version: 1, settings: {},
+      tabs: [{ id: 20, stable_key: 'personal', name: 'Personal', position: 0, active_window_key: 'chart', layout_config: {}, windows: [
+        { id: 30, instance_key: 'chart', tool_type: 'chart', title: 'Chart', link_group: 'blue', configuration: {}, style: {}, state_schema_version: 1, position: 0 },
+        { id: 31, instance_key: 'notes', tool_type: 'notes', title: 'Notes', link_group: 'blue', configuration: {}, style: {}, state_schema_version: 1, position: 1 },
+      ] }],
+    }
+
+    expect(store.setActiveWindow('missing')).toBe(false)
+    expect(store.setActiveWindow('notes')).toBe(true)
+    expect(store.activeTab?.active_window_key).toBe('notes')
+    expect(store.setActiveWindow('notes')).toBe(false)
+  })
+
   it('persists pop-out geometry only when it actually changes', () => {
     const store = useWorkspaceStore()
     store.workspace = {
@@ -539,7 +709,7 @@ describe('workspace store layout tabs', () => {
 
   it('exposes implemented analysis surfaces through the workstation tool registry', () => {
     expect(OPENABLE_WORKSTATION_TOOLS.map(tool => tool.tool_type)).toEqual(expect.arrayContaining([
-      'relative_rotation', 'breadth', 'technical_summary', 'coverage', 'report',
+      'relative_rotation', 'breadth', 'technical_summary', 'coverage', 'report', 'research_results',
     ]))
   })
 
@@ -589,6 +759,91 @@ describe('workspace store layout tabs', () => {
     expect(apiPut).toHaveBeenCalledTimes(2)
     expect(apiPut.mock.calls[1][1]).toEqual(expect.objectContaining({ base_revision: 5 }))
     expect(store.workspace?.revision).toBe(6)
+  })
+
+  it('keeps the local dock layout when concurrent Golden Layout snapshots race', async () => {
+    const store = useWorkspaceStore()
+    const baseline = {
+      id: 10, user_id: 3, name: 'Personal', is_default: false, position: 0, revision: 4, schema_version: 1, settings: {},
+      tabs: [{ id: 20, stable_key: 'personal', name: 'Personal', position: 0, active_window_key: 'chart', layout_config: { root: { type: 'row', content: [] } }, windows: [
+        { id: 30, instance_key: 'chart', tool_type: 'chart', title: 'Chart', link_group: 'blue', configuration: {}, style: {}, state_schema_version: 1, position: 0 },
+      ] }],
+    }
+    apiGet.mockResolvedValueOnce(baseline)
+    await store.loadDefault()
+    const localLayout = { root: { type: 'row', content: [{ type: 'stack', content: [] }] } }
+    store.workspace!.tabs[0].layout_config = localLayout
+    const remote = JSON.parse(JSON.stringify(baseline))
+    remote.revision = 5
+    remote.tabs[0].layout_config = { root: { type: 'column', content: [] } }
+    const saved = JSON.parse(JSON.stringify(remote))
+    saved.revision = 6
+    apiPut.mockRejectedValueOnce(new Error('API PUT /workspaces/10/snapshot → 409: conflict')).mockResolvedValueOnce(saved)
+    apiGet.mockResolvedValueOnce(remote)
+
+    await store.saveSnapshot()
+
+    expect(apiPost).not.toHaveBeenCalled()
+    expect(apiPut).toHaveBeenCalledTimes(2)
+    expect(apiPut.mock.calls[1][1]).toEqual(expect.objectContaining({
+      base_revision: 5,
+      tabs: [expect.objectContaining({ layout_config: localLayout })],
+    }))
+  })
+
+  it('merges locally opened tools with a concurrent remote layout snapshot', async () => {
+    const store = useWorkspaceStore()
+    const baseline = {
+      id: 10, user_id: 3, name: 'Personal', is_default: false, position: 0, revision: 4, schema_version: 1, settings: {},
+      tabs: [{ id: 20, stable_key: 'personal', name: 'Personal', position: 0, active_window_key: 'chart', layout_config: { root: { type: 'row', content: [] } }, windows: [
+        { id: 30, instance_key: 'chart', tool_type: 'chart', title: 'Chart', link_group: 'blue', configuration: {}, style: {}, state_schema_version: 1, position: 0 },
+      ] }],
+    }
+    apiGet.mockResolvedValueOnce(baseline)
+    await store.loadDefault()
+    const opened = store.openTool({ tool_type: 'watchlist', title: 'WatchList', instance_prefix: 'watchlist', configuration: { personal: true } })
+    expect(opened).toBeTruthy()
+    const remote = JSON.parse(JSON.stringify(baseline))
+    remote.revision = 5
+    remote.tabs[0].layout_config = { root: { type: 'column', content: [] } }
+    const saved = JSON.parse(JSON.stringify(remote))
+    saved.revision = 6
+    apiPut.mockRejectedValueOnce(new Error('API PUT /workspaces/10/snapshot → 409: conflict')).mockResolvedValueOnce(saved)
+    apiGet.mockResolvedValueOnce(remote)
+
+    await store.saveSnapshot()
+
+    expect(apiPost).not.toHaveBeenCalled()
+    expect(apiPut).toHaveBeenCalledTimes(2)
+    expect(apiPut.mock.calls[1][1]).toEqual(expect.objectContaining({
+      base_revision: 5,
+      tabs: [expect.objectContaining({
+        layout_config: baseline.tabs[0].layout_config,
+        windows: expect.arrayContaining([expect.objectContaining({ instance_key: opened!.instance_key })]),
+      })],
+    }))
+  })
+
+  it('hydrates the persisted blue-link symbol before the workstation mounts', async () => {
+    apiGet.mockResolvedValue({
+      id: 10, user_id: 3, name: 'US Top Down', is_default: true, position: 0, revision: 4, schema_version: 1,
+      settings: {},
+      tabs: [{
+        id: 20, stable_key: 'us-top-down', name: 'US Top Down', position: 0, active_window_key: 'ratio-chart',
+        layout_config: { root: { type: 'row', content: [] } },
+        windows: [
+          { id: 30, instance_key: 'chart', tool_type: 'chart', title: 'Chart', link_group: 'blue', configuration: { symbol: 'XLK', instrument_id: 77 }, style: {}, state_schema_version: 1, position: 0 },
+          { id: 31, instance_key: 'ratio-chart', tool_type: 'ratio', title: 'Relative Strength', link_group: 'blue', configuration: { symbol: 'XLK', ratio_benchmarks: ['SPY', 'XLE'] }, style: {}, state_schema_version: 1, position: 1 },
+        ],
+      }],
+    })
+    const store = useWorkspaceStore()
+
+    await store.loadDefault()
+
+    expect(store.linkedSymbol).toBe('XLK')
+    expect(store.symbolForLinkGroup('blue')).toBe('XLK')
+    expect(store.linkedSymbols.blue).toMatchObject({ symbol: 'XLK', instrumentId: 77 })
   })
 
   it('releases leadership when its owning window disconnects', () => {
@@ -741,7 +996,7 @@ describe('workspace store layout tabs', () => {
         return Promise.resolve({ etf_symbol: 'XLK', industry: 'Semiconductors', candidate_symbols: ['SMH'], proxies: [{ symbol: 'SMH' }], exclusions: [] })
       }
       if (path.includes('/analysis/etf/XLK/industries/Semiconductors/proxies/snapshot')) {
-        return Promise.resolve({ coverage: 1, rows: [{ symbol: 'SMH', name: 'Semiconductors', performance: { '1M': { value: 0.1 } }, technical: { rsi14: { value: 60 } }, relative_to_benchmark: { value: 1.2 }, relative_to_market: { value: 1.3 } }], exclusions: [] })
+        return Promise.resolve({ coverage: 1, rows: [{ instrument_id: 91, symbol: 'SMH', name: 'Semiconductors', performance: { '1M': { value: 0.1 } }, technical: { rsi14: { value: 60 } }, relative_to_benchmark: { value: 1.2 }, relative_to_market: { value: 1.3 } }], exclusions: [] })
       }
       return Promise.resolve([])
     })
@@ -749,5 +1004,31 @@ describe('workspace store layout tabs', () => {
     await store.loadIndustryProxies('XLK', 'Semiconductors')
     await vi.waitFor(() => expect(store.industryProxySnapshots['XLK:Semiconductors']?.rows[0].symbol).toBe('SMH'))
     expect(apiGet).toHaveBeenCalledWith('/analysis/etf/XLK/industries/Semiconductors/proxies/snapshot')
+  })
+
+  it('keeps an industry selection while ETF hydration completes after the click', async () => {
+    const holdings = deferred<unknown>()
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/etf-holdings/XLK/holdings') return holdings.promise
+      if (path === '/market-groups/etf/XLK/industries/Semiconductors') {
+        return Promise.resolve({ etf_symbol: 'XLK', industry: 'Semiconductors', constituents: [] })
+      }
+      if (path === '/market-groups/etf/XLK/industries/Semiconductors/proxies') {
+        return Promise.resolve({ etf_symbol: 'XLK', industry: 'Semiconductors', proxies: [{ symbol: 'SOXX' }] })
+      }
+      if (path === '/analysis/etf/XLK/industries/Semiconductors/proxies/snapshot') {
+        return Promise.resolve({ coverage: 1, rows: [{ symbol: 'SOXX' }], exclusions: [] })
+      }
+      return Promise.resolve({})
+    })
+    const store = useWorkspaceStore()
+    const hydration = store.loadETFHoldings('XLK')
+    await store.selectIndustry('XLK', 'Semiconductors')
+    holdings.resolve({ snapshot: { etf_symbol: 'XLK' }, holdings: [], total: 0 })
+    await hydration
+
+    expect(store.constituentETF).toBe('XLK')
+    expect(store.selectedIndustry).toBe('Semiconductors')
+    await vi.waitFor(() => expect(store.industryProxies['XLK:Semiconductors']?.proxies[0]?.symbol).toBe('SOXX'))
   })
 })

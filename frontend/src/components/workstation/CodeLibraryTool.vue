@@ -11,9 +11,17 @@
     <form v-if="creating" class="code-library-tool__create" aria-label="Create Python asset" @submit.prevent="createAsset">
       <input v-model.trim="newName" aria-label="New Python asset name" placeholder="Asset name" />
       <input v-model.trim="newStableKey" aria-label="New Python asset key" placeholder="stable-key" />
-      <select v-model="newKind" aria-label="New Python asset kind"><option value="study">Study</option><option value="plot">Plot</option><option value="column">Column</option><option value="condition">Condition</option><option value="signal">Signal</option></select>
-      <textarea v-model="newSource" aria-label="New Python asset source" spellcheck="false" />
-      <button type="submit" :disabled="creatingBusy || !newName || !newStableKey || !newSource.trim()">{{ creatingBusy ? 'Creating…' : 'Create asset' }}</button>
+      <select v-model="newKind" aria-label="New Python asset kind" @change="newValidation = null"><option value="study">Study</option><option value="plot">Plot</option><option value="column">Column</option><option value="condition">Condition</option><option value="signal">Signal</option></select>
+      <PythonSourceEditor v-model="newSource" ariaLabel="New Python asset source" @update:model-value="newValidation = null" />
+      <div class="code-library-tool__validation-actions">
+        <button type="button" :disabled="validatingNew || !newSource.trim()" @click="validateNewSource">{{ validatingNew ? 'Validating…' : 'Validate' }}</button>
+        <button type="submit" :disabled="creatingBusy || validatingNew || !newName || !newStableKey || !newSource.trim()">{{ creatingBusy ? 'Creating…' : 'Create asset' }}</button>
+      </div>
+      <div v-if="newValidation" class="code-library-tool__validation" :class="{ 'code-library-tool__validation--bad': !newValidation.valid }">
+        <strong>{{ newValidation.valid ? 'Validated' : 'Validation errors' }}</strong>
+        <pre v-if="newValidation.diagnostics.length">{{ formatDiagnostics(newValidation.diagnostics) }}</pre>
+        <small v-else>Outputs: {{ newValidation.output_contracts.join(', ') || 'none' }} · Dependencies: {{ newValidation.dependencies.join(', ') || 'none' }}</small>
+      </div>
     </form>
     <p v-if="error" class="code-library-tool__error">{{ error }}</p>
     <p v-else-if="loading && !assets.length" class="code-library-tool__notice">Loading user-owned assets…</p>
@@ -30,8 +38,16 @@
                 <option v-for="version in asset.versions" :key="version.version_number" :value="version.version_number">v{{ version.version_number }}</option>
               </select>
             </label>
-            <textarea :value="drafts[asset.id] ?? latestVersion(asset)?.source ?? ''" :aria-label="`Python source for ${asset.name}`" spellcheck="false" @input="setDraft(asset.id, ($event.target as HTMLTextAreaElement).value)" />
-            <button type="button" :disabled="savingVersion === asset.id || !drafts[asset.id]?.trim()" @click="saveVersion(asset)">{{ savingVersion === asset.id ? 'Saving…' : 'Save as new version' }}</button>
+            <PythonSourceEditor :model-value="drafts[asset.id] ?? latestVersion(asset)?.source ?? ''" :ariaLabel="`Python source for ${asset.name}`" @update:model-value="setDraft(asset.id, $event)" />
+            <div class="code-library-tool__validation-actions">
+              <button type="button" :disabled="validatingAsset === asset.id || !(drafts[asset.id] ?? latestVersion(asset)?.source ?? '').trim()" @click="validateVersionSource(asset)">{{ validatingAsset === asset.id ? 'Validating…' : 'Validate' }}</button>
+              <button type="button" :disabled="savingVersion === asset.id || validatingAsset === asset.id || !(drafts[asset.id] ?? latestVersion(asset)?.source ?? '').trim()" @click="saveVersion(asset)">{{ savingVersion === asset.id ? 'Saving…' : 'Save as new version' }}</button>
+            </div>
+            <div v-if="versionValidations[asset.id]" class="code-library-tool__validation" :class="{ 'code-library-tool__validation--bad': !versionValidations[asset.id].valid }">
+              <strong>{{ versionValidations[asset.id].valid ? 'Validated' : 'Validation errors' }}</strong>
+              <pre v-if="versionValidations[asset.id].diagnostics.length">{{ formatDiagnostics(versionValidations[asset.id].diagnostics) }}</pre>
+              <small v-else>Outputs: {{ versionValidations[asset.id].output_contracts.join(', ') || 'none' }} · Dependencies: {{ versionValidations[asset.id].dependencies.join(', ') || 'none' }}</small>
+            </div>
             <small>Saving creates an immutable version; existing versions are never edited.</small>
           </details>
         </div>
@@ -48,15 +64,25 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import { useQueryClient } from '@tanstack/vue-query'
 import { api } from '@/lib/api'
+import { invalidateCodeAssets } from '@/lib/workstation/libraryQueries'
+import PythonSourceEditor from './PythonSourceEditor.vue'
 
 interface CodeVersion {
   id?: number
   version_number: number
   source: string
   output_contract: string
+  output_name?: string | null
   parameter_schema: Record<string, unknown>
   default_parameters: Record<string, unknown>
+}
+interface ValidationResult {
+  valid: boolean
+  diagnostics: unknown[]
+  dependencies: string[]
+  output_contracts: string[]
 }
 interface CodeAsset {
   id: number
@@ -68,6 +94,7 @@ interface CodeAsset {
 }
 
 const assets = ref<CodeAsset[]>([])
+const queryClient = useQueryClient()
 const filter = ref('')
 const loading = ref(false)
 const error = ref('')
@@ -81,6 +108,10 @@ const newName = ref('')
 const newStableKey = ref('')
 const newKind = ref<'study' | 'plot' | 'column' | 'condition' | 'signal'>('study')
 const newSource = ref("output.scalar('value', 0)")
+const newValidation = ref<ValidationResult | null>(null)
+const validatingNew = ref(false)
+const versionValidations = ref<Record<number, ValidationResult>>({})
+const validatingAsset = ref<number | null>(null)
 const filteredAssets = computed(() => {
   const needle = filter.value.toLowerCase()
   return assets.value.filter(asset => !needle || `${asset.name} ${asset.kind} ${asset.stable_key}`.toLowerCase().includes(needle))
@@ -89,18 +120,75 @@ const filteredAssets = computed(() => {
 async function refresh() {
   loading.value = true
   error.value = ''
-  try { assets.value = await api.get<CodeAsset[]>('/code/assets') }
+  try { assets.value = await queryClient.fetchQuery<CodeAsset[]>({ queryKey: ['workstation', 'code-assets'], queryFn: async () => (await api.get<CodeAsset[]>('/code/assets')) ?? [], staleTime: 30_000 }) }
   catch (cause: any) { error.value = cause?.message ?? 'Unable to load Python assets' }
   finally { loading.value = false }
 }
 function newOutputContract() { return newKind.value === 'plot' ? 'series' : newKind.value === 'condition' || newKind.value === 'signal' ? 'boolean' : newKind.value === 'study' ? 'study' : 'scalar' }
+function reconcileOutputContract(validation: ValidationResult, declaredContract: string, outputName?: string | null): ValidationResult {
+  if (!validation.valid || declaredContract === 'study') return validation
+  const observed = validation.output_contracts ?? []
+  const compatible = outputName ? observed.includes(declaredContract) : observed.length === 1 && observed[0] === declaredContract
+  if (compatible) return validation
+  return {
+    ...validation,
+    valid: false,
+    diagnostics: [...validation.diagnostics, {
+      code: 'asset_output_contract_mismatch',
+      message: `Asset declares ${declaredContract}, but the source produces ${observed.join(', ') || 'no declared output'}.`,
+      line: 1,
+      column: 1,
+    }],
+  }
+}
+function formatDiagnostics(diagnostics: unknown[]) {
+  return diagnostics.map(item => {
+    if (!item || typeof item !== 'object') return String(item)
+    const value = item as Record<string, unknown>
+    const location = value.line != null ? `line ${value.line}:${value.column ?? 0}` : 'source'
+    return `${location} · ${value.message ?? value.code ?? 'Validation error'}`
+  }).join('\n')
+}
+async function validateSource(source: string): Promise<ValidationResult | null> {
+  try {
+    return await api.post<ValidationResult>('/code/validate', { source })
+  } catch (cause: any) {
+    error.value = cause?.message ?? 'Unable to validate Python source'
+    return null
+  }
+}
+async function validateNewSource() {
+  if (validatingNew.value || !newSource.value.trim()) return
+  validatingNew.value = true
+  error.value = ''
+  try {
+    const validation = await validateSource(newSource.value)
+    newValidation.value = validation ? reconcileOutputContract(validation, newOutputContract()) : null
+  }
+  finally { validatingNew.value = false }
+}
+async function validateVersionSource(asset: CodeAsset) {
+  const source = drafts.value[asset.id] ?? latestVersion(asset)?.source ?? ''
+  const base = asset.versions.find(item => item.version_number === selectedVersions.value[asset.id]) ?? latestVersion(asset)
+  if (validatingAsset.value === asset.id || !source.trim()) return
+  validatingAsset.value = asset.id
+  error.value = ''
+  try {
+    const result = await validateSource(source)
+    if (result && base) versionValidations.value = { ...versionValidations.value, [asset.id]: reconcileOutputContract(result, base.output_contract, base.output_name) }
+  } finally { validatingAsset.value = null }
+}
 async function createAsset() {
   if (creatingBusy.value || !newName.value || !newStableKey.value || !newSource.value.trim()) return
   creatingBusy.value = true; error.value = ''
   try {
+    const validation = newValidation.value?.valid ? newValidation.value : await validateSource(newSource.value).then(result => result ? reconcileOutputContract(result, newOutputContract()) : null)
+    newValidation.value = validation
+    if (!validation?.valid) return
     const asset = await api.post<CodeAsset>('/code/assets', { stable_key: newStableKey.value, name: newName.value, kind: newKind.value, initial_version: { source: newSource.value, output_contract: newOutputContract(), parameter_schema: {}, default_parameters: {} } })
+    await invalidateCodeAssets(queryClient)
     assets.value = [...assets.value, asset].sort((left, right) => left.name.localeCompare(right.name))
-    creating.value = false; newName.value = ''; newStableKey.value = ''; newKind.value = 'study'; newSource.value = "output.scalar('value', 0)"
+    creating.value = false; newName.value = ''; newStableKey.value = ''; newKind.value = 'study'; newSource.value = "output.scalar('value', 0)"; newValidation.value = null
   } catch (cause: any) { error.value = cause?.message ?? 'Unable to create Python asset' }
   finally { creatingBusy.value = false }
 }
@@ -125,7 +213,12 @@ function setSelectedVersion(asset: CodeAsset, versionNumber: number) {
   const version = asset.versions.find(item => item.version_number === versionNumber)
   if (version) drafts.value = { ...drafts.value, [asset.id]: version.source }
 }
-function setDraft(assetId: number, source: string) { drafts.value = { ...drafts.value, [assetId]: source } }
+function setDraft(assetId: number, source: string) {
+  drafts.value = { ...drafts.value, [assetId]: source }
+  const next = { ...versionValidations.value }
+  delete next[assetId]
+  versionValidations.value = next
+}
 async function saveVersion(asset: CodeAsset) {
   const source = drafts.value[asset.id]?.trim()
   const base = asset.versions.find(item => item.version_number === selectedVersions.value[asset.id]) ?? latestVersion(asset)
@@ -133,9 +226,16 @@ async function saveVersion(asset: CodeAsset) {
   savingVersion.value = asset.id
   error.value = ''
   try {
+    const validation = versionValidations.value[asset.id]?.valid
+      ? versionValidations.value[asset.id]
+      : await validateSource(source).then(result => result ? reconcileOutputContract(result, base.output_contract, base.output_name) : null)
+    if (validation) versionValidations.value = { ...versionValidations.value, [asset.id]: validation }
+    if (!validation?.valid) return
     const version = await api.post<CodeVersion>(`/code/assets/${asset.id}/versions`, { source, output_contract: base.output_contract, parameter_schema: base.parameter_schema, default_parameters: base.default_parameters })
+    await invalidateCodeAssets(queryClient)
     assets.value = assets.value.map(item => item.id === asset.id ? { ...item, versions: [...item.versions, version] } : item)
     selectedVersions.value = { ...selectedVersions.value, [asset.id]: version.version_number }
+    versionValidations.value = { ...versionValidations.value, [asset.id]: validation }
   } catch (cause: any) { error.value = cause?.message ?? 'Unable to create Python asset version' }
   finally { savingVersion.value = null }
 }
@@ -144,6 +244,7 @@ async function cloneAsset(asset: CodeAsset) {
   try {
     const suffix = Date.now().toString(36)
     const clone = await api.post<CodeAsset>(`/code/assets/${asset.id}/clone`, { stable_key: `${asset.stable_key}-copy-${suffix}`.slice(0, 80), name: `${asset.name} copy` })
+    await invalidateCodeAssets(queryClient)
     assets.value = [...assets.value, clone].sort((left, right) => left.name.localeCompare(right.name))
   } catch (cause: any) { error.value = cause?.message ?? 'Unable to clone Python asset' }
 }
@@ -151,6 +252,7 @@ async function toggleArchive(asset: CodeAsset) {
   error.value = ''
   try {
     const updated = await api.post<CodeAsset>(`/code/assets/${asset.id}/archive`, { is_archived: !asset.is_archived })
+    await invalidateCodeAssets(queryClient)
     assets.value = assets.value.map(item => item.id === updated.id ? updated : item)
   } catch (cause: any) { error.value = cause?.message ?? 'Unable to update asset archive state' }
 }
@@ -162,6 +264,7 @@ async function importAsset(event: Event) {
   try {
     const payload = JSON.parse(await file.text())
     const imported = await api.post<CodeAsset>('/code/assets/import', payload)
+    await invalidateCodeAssets(queryClient)
     assets.value = [...assets.value, imported].sort((left, right) => left.name.localeCompare(right.name))
   } catch (cause: any) { error.value = cause?.message ?? 'Unable to import Python asset' }
   finally { input.value = '' }
@@ -177,7 +280,12 @@ onMounted(() => { void refresh() })
 .code-library-tool__create { display:grid; grid-template-columns:minmax(80px,1fr) minmax(80px,1fr) auto; gap:4px; padding:4px; border:1px solid #3a4954; background:#0d1216; }
 .code-library-tool__create input, .code-library-tool__create select, .code-library-tool__create textarea { border:1px solid #3a4954; background:#172027; color:#dce6ed; font:inherit; padding:3px 5px; }
 .code-library-tool__create textarea { grid-column:1 / -1; min-height:58px; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; }
-.code-library-tool__create button { grid-column:1 / -1; }
+.code-library-tool__validation-actions { display:flex; gap:4px; flex-wrap:wrap; }
+.code-library-tool__create > .code-library-tool__validation-actions { grid-column:1 / -1; }
+.code-library-tool__validation { display:grid; gap:2px; border-left:2px solid #65bf8d; padding:3px 5px; color:#a9d9b8; background:#102018; }
+.code-library-tool__validation--bad { border-color:#d67f7f; color:#f1a5a5; background:#251719; }
+.code-library-tool__validation pre { margin:0; white-space:pre-wrap; font:9px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace; }
+.code-library-tool__validation small { color:#9cb0ba; }
 .code-library-tool__assets { overflow:auto; display:grid; align-content:start; gap:3px; }
 .code-library-tool__asset { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:6px; align-items:center; border:1px solid #293740; padding:5px; }
 .code-library-tool__asset--archived { opacity:.62; }

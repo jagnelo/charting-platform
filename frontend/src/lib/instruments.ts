@@ -12,6 +12,11 @@ export interface InstrumentInputState {
   value: string
 }
 
+export interface ResolvedInstrument {
+  symbol: string
+  id: number | null
+}
+
 function parseApiStatus(message: string): number | null {
   const match = message.match(/→\s*(\d{3})\s*:/)
   return match ? Number(match[1]) : null
@@ -74,20 +79,63 @@ export function getInstrumentInputHint(raw: string): string {
     : ''
 }
 
-export async function ensureKnownInstrumentSymbol(raw: string, feature = 'Instrument'): Promise<string> {
+export async function resolveKnownInstrument(
+  raw: string,
+  feature = 'Instrument',
+  options: { canonicalOnly?: boolean } = {},
+): Promise<ResolvedInstrument> {
+  const input = classifyInstrumentInput(raw)
+  if (input.kind === 'empty') return { symbol: '', id: null }
+  if (input.kind === 'pending_expression') throw new Error('Finish the expression to continue.')
+
+  try {
+    let symbol: string
+    if (input.kind === 'expression') {
+      const result = await api.post<{ symbol: string }>(
+        '/instruments/resolve-expression' + (options.canonicalOnly ? '?canonical_only=true' : ''),
+        { expression: input.value },
+      )
+      // Expression resolution intentionally preserves the established single
+      // POST contract. Synthetic IDs are surfaced by the instrument report
+      // when constituent chips are selected; ordinary symbol search uses the
+      // canonical GET below to carry identity without adding a second request
+      // to every expression editor.
+      return { symbol: result.symbol, id: null }
+    } else {
+      symbol = input.value
+    }
+
+    const instrument = await api.get<Instrument>(
+      `/instruments/${encodeURIComponent(symbol)}`,
+      options.canonicalOnly ? { canonical_only: true } : undefined,
+    )
+    return { symbol: instrument.symbol, id: typeof instrument.id === 'number' ? instrument.id : null }
+  } catch (error) {
+    throw buildLookupError(raw, error, feature)
+  }
+}
+
+export async function ensureKnownInstrumentSymbol(
+  raw: string,
+  feature = 'Instrument',
+  options: { canonicalOnly?: boolean } = {},
+): Promise<string> {
   const input = classifyInstrumentInput(raw)
   if (input.kind === 'empty') return ''
   if (input.kind === 'pending_expression') throw new Error('Finish the expression to continue.')
 
   try {
     if (input.kind === 'expression') {
-      const instrument = await api.post<{ symbol: string }>('/instruments/resolve-expression', {
-        expression: input.value,
-      })
+      const instrument = await api.post<{ symbol: string }>(
+        '/instruments/resolve-expression' + (options.canonicalOnly ? '?canonical_only=true' : ''),
+        { expression: input.value },
+      )
       return instrument.symbol
     }
-
-    const instrument = await api.get<Instrument>(`/instruments/${encodeURIComponent(input.value)}`)
+    const instrument = await api.get<Instrument>(
+      `/instruments/${encodeURIComponent(input.value)}`,
+      options.canonicalOnly ? { canonical_only: true } : undefined,
+    )
     return instrument.symbol
   } catch (error) {
     throw buildLookupError(raw, error, feature)

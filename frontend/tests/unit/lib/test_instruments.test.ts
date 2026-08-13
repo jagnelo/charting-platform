@@ -12,6 +12,7 @@ import {
   classifyInstrumentInput,
   ensureKnownInstrumentSymbol,
   formatInstrumentLookupError,
+  resolveKnownInstrument,
 } from '@/lib/instruments'
 
 describe('instrument helpers', () => {
@@ -37,5 +38,12 @@ describe('instrument helpers', () => {
     )
 
     expect(formatInstrumentLookupError('=DIA/MISS', error)).toBe('Could not resolve =DIA/MISS')
+  })
+
+  it('returns canonical identity alongside the normalized symbol', async () => {
+    vi.mocked(api.get).mockResolvedValue({ id: 42, symbol: 'NVDA' })
+    await expect(resolveKnownInstrument('nvda', 'Workstation symbol', { canonicalOnly: true }))
+      .resolves.toEqual({ symbol: 'NVDA', id: 42 })
+    expect(api.get).toHaveBeenCalledWith('/instruments/NVDA', { canonical_only: true })
   })
 })

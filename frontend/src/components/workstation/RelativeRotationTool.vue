@@ -1,9 +1,9 @@
 <template>
-  <section class="rotation-tool">
-    <header><strong>Relative Rotation · {{ benchmark }}</strong><div class="rotation-tool__controls"><label>Universe <select v-model="groupKey" aria-label="Rotation universe"><option value="sp500-sectors">S&amp;P 500 sectors</option><option value="us-benchmarks">US benchmarks</option></select></label><label>Benchmark <input v-model.trim="benchmark" aria-label="Rotation benchmark" /></label><label>Timeframe <select v-model="timeframe" aria-label="Rotation timeframe"><option value="D1">Daily</option><option value="W1">Weekly</option><option value="MN">Monthly</option></select></label><label>Sampling <input v-model.number="sampling" aria-label="Rotation sampling" type="number" min="1" max="30" /></label><label>Lookback <input v-model.number="lookback" aria-label="Rotation lookback" type="number" min="2" max="252" /></label><label>Tail <input v-model.number="tailLength" aria-label="Rotation tail length" type="number" min="1" max="100" /></label><label>As of <input v-model="asOf" aria-label="Rotation as of" type="date" /></label><label class="rotation-tool__adjusted"><input v-model="adjusted" aria-label="Rotation split adjusted" type="checkbox" /> Adjusted</label></div><small>Trend: ratio return over {{ lookback }} sampled observations · Momentum: change in that trend{{ asOf ? ` · As of ${asOf}` : '' }}{{ freshness ? ` · ${freshness}` : '' }}</small></header>
-    <p v-if="loading" class="rotation-tool__state">Calculating aligned local ratios…</p>
-    <p v-else-if="error" class="rotation-tool__state rotation-tool__state--error">{{ error }}</p>
-    <p v-else-if="!rows.length" class="rotation-tool__state">No sector rotation rows are available.</p>
+  <section class="rotation-tool" role="region" :aria-label="`Relative rotation vs ${benchmark}`" :aria-busy="loading">
+    <header><strong>Relative Rotation · {{ benchmark }}</strong><div class="rotation-tool__controls"><label>Universe <select v-model="groupKey" aria-label="Rotation universe"><option value="sp500-sectors">S&amp;P 500 sectors</option><option value="us-benchmarks">US benchmarks</option></select></label><label>Benchmark <input v-model.trim="benchmark" aria-label="Rotation benchmark" /></label><label>Timeframe <select v-model="timeframe" aria-label="Rotation timeframe"><option value="D1">Daily</option><option value="W1">Weekly</option><option value="MN">Monthly</option></select></label><label>Sampling <input v-model.number="sampling" aria-label="Rotation sampling" type="number" min="1" max="30" /></label><label>Lookback <input v-model.number="lookback" aria-label="Rotation lookback" type="number" min="2" max="252" /></label><label>Tail <input v-model.number="tailLength" aria-label="Rotation tail length" type="number" min="1" max="100" /></label><label>As of <input v-model="asOf" aria-label="Rotation as of" type="date" /></label><label class="rotation-tool__adjusted"><input v-model="adjusted" aria-label="Rotation split adjusted" type="checkbox" /> Adjusted</label></div><small>Trend: ratio return over {{ lookback }} sampled observations · Momentum: change in that trend{{ asOf ? ` · As of ${asOf}` : '' }}{{ freshness ? ` · ${formatWorkstationFreshness(freshness)}` : '' }}</small></header>
+    <p v-if="loading" class="rotation-tool__state" role="status" aria-live="polite">Calculating aligned local ratios…</p>
+    <p v-else-if="error" class="rotation-tool__state rotation-tool__state--error" role="alert" aria-live="assertive">{{ error }}</p>
+    <p v-else-if="!rows.length" class="rotation-tool__state" role="status" aria-live="polite">No sector rotation rows are available.</p>
     <template v-else>
       <div class="rotation-tool__plot-shell" @mousemove="onPlotMove" @mouseleave="hovered = null" @click="selectHovered">
         <div ref="plotHost" class="rotation-tool__plot" aria-label="Relative rotation trend and momentum plane" />
@@ -11,23 +11,34 @@
           <strong>{{ hovered.symbol }}</strong><span>{{ hovered.point.timestamp }}</span><span>Trend {{ percent(hovered.point.trend) }} · Momentum {{ percent(hovered.point.momentum) }}</span>
         </div>
       </div>
-      <div class="rotation-tool__table"><div class="rotation-tool__head"><button type="button" @click="setSort('symbol')">Sector{{ sortMark('symbol') }}</button><button type="button" @click="setSort('state')">State{{ sortMark('state') }}</button><button type="button" @click="setSort('trend')">Trend{{ sortMark('trend') }}</button><button type="button" @click="setSort('momentum')">Momentum{{ sortMark('momentum') }}</button><button type="button" @click="setSort('heading')">Heading{{ sortMark('heading') }}</button><button type="button" @click="setSort('distance')">Distance{{ sortMark('distance') }}</button><button type="button" @click="setSort('velocity')">Velocity{{ sortMark('velocity') }}</button><button type="button" @click="setSort('transition')">Transition{{ sortMark('transition') }}</button><button type="button" @click="setSort('time_in_state')">Time{{ sortMark('time_in_state') }}</button><button type="button" @click="setSort('coverage')">Coverage{{ sortMark('coverage') }}</button><button type="button" @click="setSort('tail')">Tail{{ sortMark('tail') }}</button></div><button v-for="row in sortedRows" :key="row.instrument_id" type="button" class="rotation-tool__row" @click="emit('select', row.symbol)"><strong>{{ row.symbol }}</strong><span :class="`rotation-tool__state-${row.state}`">{{ row.state ?? 'Unavailable' }}</span><span>{{ percent(row.trend) }}</span><span>{{ percent(row.momentum) }}</span><span>{{ row.heading == null ? '—' : `${row.heading.toFixed(0)}°` }}</span><span>{{ percent(row.distance) }}</span><span>{{ percent(row.velocity) }}</span><span>{{ row.transition ?? '—' }}</span><span>{{ row.time_in_state ?? '—' }}</span><span>{{ percent(row.coverage) }}</span><span>{{ row.tail.length }}</span></button></div>
+      <div class="rotation-tool__table"><div class="rotation-tool__head"><button type="button" @click="setSort('symbol')">Sector{{ sortMark('symbol') }}</button><button type="button" @click="setSort('state')">State{{ sortMark('state') }}</button><button type="button" @click="setSort('trend')">Trend{{ sortMark('trend') }}</button><button type="button" @click="setSort('momentum')">Momentum{{ sortMark('momentum') }}</button><button type="button" @click="setSort('heading')">Heading{{ sortMark('heading') }}</button><button type="button" @click="setSort('distance')">Distance{{ sortMark('distance') }}</button><button type="button" @click="setSort('velocity')">Velocity{{ sortMark('velocity') }}</button><button type="button" @click="setSort('transition')">Transition{{ sortMark('transition') }}</button><button type="button" @click="setSort('time_in_state')">Time{{ sortMark('time_in_state') }}</button><button type="button" @click="setSort('coverage')">Coverage{{ sortMark('coverage') }}</button><button type="button" @click="setSort('tail')">Tail{{ sortMark('tail') }}</button></div><button v-for="row in sortedRows" :key="row.instrument_id" type="button" class="rotation-tool__row" @click="emit('select', row.symbol, row.instrument_id)"><strong>{{ row.symbol }}</strong><span :class="`rotation-tool__state-${row.state}`">{{ row.state ?? 'Unavailable' }}</span><span v-if="row.warnings?.length" class="rotation-tool__warning" :title="row.warnings.map(warning => warning.message).join('\n')"><WorkstationGlyph kind="warning" /> {{ row.warnings.length }}</span><span v-else class="rotation-tool__warning-placeholder" aria-hidden="true" /><span>{{ percent(row.trend) }}</span><span>{{ percent(row.momentum) }}</span><span>{{ row.heading == null ? '—' : `${row.heading.toFixed(0)}°` }}</span><span>{{ percent(row.distance) }}</span><span>{{ percent(row.velocity) }}</span><span>{{ row.transition ?? '—' }}</span><span>{{ row.time_in_state ?? '—' }}</span><span>{{ percent(row.coverage) }}</span><span>{{ row.tail.length }}</span></button></div>
     </template>
   </section>
 </template>
 
+<style scoped>
+.rotation-tool__head,
+.rotation-tool__row { grid-template-columns: 54px 78px 34px repeat(7, minmax(58px, 1fr)) 64px 38px; }
+.rotation-tool__head::before { content: 'Warnings'; grid-column: 3; color: #9baab5; font-weight: 600; text-transform: uppercase; }
+.rotation-tool__warning { color: #e7bc68; }
+</style>
+
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { useQueryClient } from '@tanstack/vue-query'
 import uPlot from 'uplot'
 import 'uplot/dist/uPlot.min.css'
 import { api } from '@/lib/api'
+import { formatWorkstationFreshness } from '@/lib/workstation/freshness'
+import WorkstationGlyph from './WorkstationGlyph.vue'
 
 interface Tail { timestamp: string; trend: number; momentum: number }
-interface Row { instrument_id: number; symbol: string; state: string | null; trend: number | null; momentum: number | null; heading?: number | null; distance?: number | null; velocity?: number | null; transition?: string | null; time_in_state?: number | null; coverage: number; tail: Tail[] }
+interface Row { instrument_id: number; symbol: string; state: string | null; trend: number | null; momentum: number | null; heading?: number | null; distance?: number | null; velocity?: number | null; transition?: string | null; time_in_state?: number | null; coverage: number; tail: Tail[]; warnings?: Array<{ code: string; message: string }> }
 interface PlotPoint extends Tail { symbol: string; color: string; last: boolean }
 type SortKey = 'symbol' | 'state' | 'trend' | 'momentum' | 'heading' | 'distance' | 'velocity' | 'transition' | 'time_in_state' | 'coverage' | 'tail'
 const props = defineProps<{ configuration?: Record<string, unknown> }>()
-const emit = defineEmits<{ select: [symbol: string]; configuration: [configuration: Record<string, unknown>] }>()
+const queryClient = useQueryClient()
+const emit = defineEmits<{ select: [symbol: string, instrumentId?: number | null]; configuration: [configuration: Record<string, unknown>] }>()
 const rows = ref<Row[]>([]), loading = ref(true), error = ref(''), freshness = ref('')
 const configString = (key: string, fallback: string) => typeof props.configuration?.[key] === 'string' ? String(props.configuration[key]) : fallback
 const groupKey = ref(configString('group_key', 'sp500-sectors'))
@@ -90,7 +101,7 @@ function onPlotMove(event: MouseEvent) {
   }
 }
 function selectHovered() {
-  if (hovered.value) emit('select', hovered.value.symbol)
+  if (hovered.value) emit('select', hovered.value.symbol, rows.value.find(row => row.symbol === hovered.value?.symbol)?.instrument_id)
 }
 const colors: Record<string, string> = { leading: '#61c58c', weakening: '#e7bc68', improving: '#6dbbe6', lagging: '#df8181' }
 function drawPlot() {
@@ -163,7 +174,12 @@ async function load() {
   loading.value = true
   error.value = ''
   try {
-    const payload = await api.get<{ rows: Row[]; freshness?: string }>(`/analysis/groups/${encodeURIComponent(groupKey.value)}/relative-rotation`, { benchmark: benchmark.value.toUpperCase(), timeframe: timeframe.value, adjusted: adjusted.value, sampling: sampling.value, lookback: lookback.value, tail_length: tailLength.value, as_of: asOfTimestamp() })
+    const params = { benchmark: benchmark.value.toUpperCase(), timeframe: timeframe.value, adjusted: adjusted.value, sampling: sampling.value, lookback: lookback.value, tail_length: tailLength.value, as_of: asOfTimestamp() }
+    const payload = await queryClient.fetchQuery<{ rows: Row[]; freshness?: string }>({
+      queryKey: ['workstation', 'relative-rotation', groupKey.value, params],
+      queryFn: () => api.get<{ rows: Row[]; freshness?: string }>(`/analysis/groups/${encodeURIComponent(groupKey.value)}/relative-rotation`, params),
+      staleTime: 30_000,
+    })
     if (generation !== loadGeneration) return
     rows.value = payload.rows; freshness.value = payload.freshness ?? ''; await nextTick(); drawPlot()
   } catch (cause: any) {

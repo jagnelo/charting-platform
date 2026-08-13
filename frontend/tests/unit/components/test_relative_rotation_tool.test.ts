@@ -1,4 +1,5 @@
 import { mount } from '@vue/test-utils'
+import { QueryClient, VueQueryPlugin } from '@tanstack/vue-query'
 import { nextTick } from 'vue'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -22,12 +23,17 @@ describe('RelativeRotationTool', () => {
     resize = null
   })
 
+  function mountTool(options: Record<string, any> = {}, queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })) {
+    return mount(RelativeRotationTool, { ...options, global: { ...(options.global ?? {}), plugins: [[VueQueryPlugin, { queryClient }], ...((options.global?.plugins as any[]) ?? [])] } })
+  }
+
   it('resizes the existing uPlot instance instead of recreating it', async () => {
     vi.mocked(api.get).mockResolvedValue({
       freshness: 'current',
       rows: [{ instrument_id: 1, symbol: 'XLK', state: 'leading', trend: 0.1, momentum: 0.2, heading: 63, distance: 0.224, velocity: 0.02, transition: 'improving->leading', time_in_state: 3, coverage: 1, tail: [{ timestamp: '2026-01-01', trend: 0.1, momentum: 0.2 }] }],
     })
-    const wrapper = mount(RelativeRotationTool)
+    const wrapper = mountTool()
+    expect(wrapper.find('[role="region"][aria-label="Relative rotation vs SPY"]').exists()).toBe(true)
     await vi.waitFor(() => expect(api.get).toHaveBeenCalled())
     await vi.waitFor(async () => { await nextTick(); expect(wrapper.text()).toContain('XLK') })
     await nextTick()
@@ -44,7 +50,7 @@ describe('RelativeRotationTool', () => {
 
   it('persists and sends transparent rotation controls', async () => {
     vi.mocked(api.get).mockResolvedValue({ freshness: 'stale', rows: [] })
-    const wrapper = mount(RelativeRotationTool, { props: { configuration: { group_key: 'us-benchmarks', benchmark: 'QQQ', timeframe: 'W1', sampling: 3, lookback: 12, tail_length: 4, as_of: '2024-04-30', adjusted: false } } })
+    const wrapper = mountTool({ props: { configuration: { group_key: 'us-benchmarks', benchmark: 'QQQ', timeframe: 'W1', sampling: 3, lookback: 12, tail_length: 4, as_of: '2024-04-30', adjusted: false } } })
     await vi.waitFor(() => expect(api.get).toHaveBeenCalled())
     expect(api.get).toHaveBeenLastCalledWith('/analysis/groups/us-benchmarks/relative-rotation', { benchmark: 'QQQ', timeframe: 'W1', adjusted: false, sampling: 3, lookback: 12, tail_length: 4, as_of: '2024-04-30T23:59:59Z' })
     await wrapper.get('input[aria-label="Rotation benchmark"]').setValue('IWM')
@@ -56,7 +62,7 @@ describe('RelativeRotationTool', () => {
       { instrument_id: 1, symbol: 'XLK', state: 'leading', trend: 0.1, momentum: 0.1, distance: 0.14, coverage: 1, tail: [] },
       { instrument_id: 2, symbol: 'XLE', state: 'lagging', trend: -0.1, momentum: -0.1, distance: 0.14, coverage: 1, tail: [] },
     ] })
-    const wrapper = mount(RelativeRotationTool)
+    const wrapper = mountTool()
     await vi.waitFor(() => expect(wrapper.text()).toContain('XLK'))
     const sectorHeader = wrapper.findAll('.rotation-tool__head button').find(button => button.text().startsWith('Sector'))
     await sectorHeader?.trigger('click')
@@ -68,7 +74,7 @@ describe('RelativeRotationTool', () => {
     vi.mocked(api.get).mockResolvedValue({ freshness: 'current', rows: [
       { instrument_id: 1, symbol: 'XLK', state: 'leading', trend: 0.1, momentum: 0.2, distance: 0.22, coverage: 1, tail: [{ timestamp: '2026-01-02', trend: 0.1, momentum: 0.2 }] },
     ] })
-    const wrapper = mount(RelativeRotationTool)
+    const wrapper = mountTool()
     await vi.waitFor(() => expect(wrapper.text()).toContain('XLK'))
     await nextTick()
     resize?.()
@@ -76,6 +82,26 @@ describe('RelativeRotationTool', () => {
     await plot.trigger('mousemove', { clientX: 100, clientY: 100 })
     expect(wrapper.text()).toContain('2026-01-02')
     await plot.trigger('click')
-    expect(wrapper.emitted('select')).toEqual([['XLK']])
+    expect(wrapper.emitted('select')).toEqual([['XLK', 1]])
+  })
+
+  it('deduplicates identical rotation requests across linked windows', async () => {
+    vi.mocked(api.get).mockResolvedValue({ freshness: 'current', rows: [] })
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
+    const first = mountTool({}, queryClient)
+    const second = mountTool({}, queryClient)
+    await vi.waitFor(() => expect(first.text()).toContain('No sector rotation rows are available.'))
+    await vi.waitFor(() => expect(second.text()).toContain('No sector rotation rows are available.'))
+    expect(first.find('.rotation-tool__state[role="status"]').attributes('aria-live')).toBe('polite')
+    expect(api.get).toHaveBeenCalledTimes(1)
+  })
+
+  it('surfaces backend coverage and insufficient-history warnings on the row', async () => {
+    vi.mocked(api.get).mockResolvedValue({ freshness: 'coverage_limited', rows: [{ instrument_id: 1, symbol: 'XLK', state: null, trend: null, momentum: null, coverage: 0.2, tail: [], warnings: [{ code: 'insufficient_history', message: 'Relative rotation requires 41 sampled observations.' }] }] })
+    const wrapper = mountTool()
+    await vi.waitFor(() => expect(wrapper.get('.rotation-tool__warning').text()).toContain('1'))
+    expect(wrapper.get('.rotation-tool__warning .workstation-glyph--warning').exists()).toBe(true)
+    expect(wrapper.text()).toContain('Coverage limited')
+    expect(wrapper.get('.rotation-tool__row').get('[title*="requires 41"]').exists()).toBe(true)
   })
 })

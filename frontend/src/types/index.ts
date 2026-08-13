@@ -63,11 +63,26 @@ export interface InstrumentIdentifier {
   extra_data?: Record<string, unknown> | null
 }
 
+export interface Exchange {
+  id: number
+  mic: string
+  name: string
+  country_code?: string | null
+  timezone?: string | null
+  market_open?: string | null
+  market_close?: string | null
+  currency?: string | null
+}
+
 export interface InstrumentListing {
   ticker: string
   currency?: string | null
   is_primary: boolean
   is_active: boolean
+  effective_at?: string | null
+  known_at?: string | null
+  delisted_at?: string | null
+  exchange?: Exchange | null
 }
 
 export interface OptionDetail {
@@ -415,6 +430,8 @@ export interface ChartPythonSeries {
   color: string
   timestamps: string[]
   values: Array<number | null>
+  /** Numeric series can also originate from retained EasyScan history. */
+  source?: 'python' | 'scan'
 }
 
 export type RadarSetupType =

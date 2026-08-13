@@ -12,7 +12,8 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
-    "test:visual:approved": "cd ../backend && .venv/bin/python -m app.services.visual_manifest ../tests/visual/references/tc2000-v25/manifest.yaml --require-approved && cd ../frontend && RUN_APPROVED_VISUAL_PARITY=1 playwright test tests/e2e/tc2000_visual.spec.ts"
+    "test:visual:approved": "cd ../backend && .venv/bin/python -m app.services.visual_manifest ../tests/visual/references/tc2000-v25/manifest.yaml --require-approved && cd ../frontend && RUN_APPROVED_VISUAL_PARITY=1 playwright test tests/e2e/tc2000_visual.spec.ts",
+    "test:visual:board": "cd ../backend && .venv/bin/python -m app.services.visual_manifest ../tests/visual/references/tc2000-v25/manifest.yaml && cd ../frontend && E2E_SEED_MARKET_DATA=true RUN_BOARD_VISUAL_PARITY=1 playwright test tests/e2e/tc2000_visual.spec.ts"
   },
   "dependencies": {
     "@tanstack/vue-query": "^5.101.4",

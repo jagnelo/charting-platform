@@ -20,6 +20,26 @@ export interface WorkstationFreshnessState {
   label: string
 }
 
+/** Normalize backend freshness values to the workstation's hyphenated vocabulary. */
+export function normalizeWorkstationFreshness(value?: string | null): string {
+  return String(value ?? '').toLowerCase().replace(/_/g, '-')
+}
+
+/** Render backend freshness values consistently in dense tool metadata. */
+export function formatWorkstationFreshness(value?: string | null): string {
+  const normalized = normalizeWorkstationFreshness(value)
+  const labels: Record<string, string> = {
+    current: 'Current',
+    delayed: 'Delayed',
+    stale: 'Stale',
+    partial: 'Partial coverage',
+    'coverage-limited': 'Coverage limited',
+    fetching: 'Fetching',
+    unavailable: 'Unavailable',
+  }
+  return labels[normalized] ?? (normalized ? normalized.replace(/-/g, ' ').replace(/\b\w/g, character => character.toUpperCase()) : 'Unavailable')
+}
+
 /**
  * Convert canonical backend freshness into the small, honest status vocabulary
  * used by the dense workstation shell. `current` means current according to
@@ -29,7 +49,11 @@ export interface WorkstationFreshnessState {
  */
 export function workstationFreshness(input: WorkstationFreshnessInput): WorkstationFreshnessState {
   if (input.isLoading || input.isFetchingHistory) return { kind: 'fetching', label: input.isFetchingHistory ? 'Backfilling history' : 'Fetching' }
-  const freshness = String(input.freshness ?? '').toLowerCase()
+  // Backend analysis contracts historically use snake_case while the shell's
+  // CSS/state vocabulary uses the documented hyphenated form. Normalize both
+  // spellings at this boundary so coverage limits cannot be misreported as
+  // stale or unavailable data.
+  const freshness = normalizeWorkstationFreshness(input.freshness)
   if (freshness === 'delayed') return { kind: 'delayed', label: 'Delayed' }
   if (freshness === 'current') return { kind: 'current', label: 'Current · canonical' }
   if (freshness === 'stale') return { kind: 'stale', label: 'Stale · cached' }

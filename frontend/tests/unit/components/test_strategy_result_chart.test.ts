@@ -1,5 +1,50 @@
 import { mount } from '@vue/test-utils'
+import { nextTick } from 'vue'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
+interface MockChartInstance {
+  opts: any
+  data: any
+  target: HTMLElement
+  cursor: { idx: number | null; left: number | null; top: number | null }
+  destroyed: boolean
+  scales: Record<string, any>
+  triggerCursor: (idx: number | null, left?: number, top?: number) => void
+  setScale: (key: string, value: any) => void
+  setSize: (value: any) => void
+  destroy: () => void
+  valToPos: (value: number) => number
+}
+
+const { MockUPlot, instances } = vi.hoisted(() => {
+  const created: MockChartInstance[] = []
+  class MockUPlot {
+    opts: any
+    data: any
+    target: HTMLElement
+    cursor = { idx: null as number | null, left: null as number | null, top: null as number | null }
+    destroyed = false
+    scales: Record<string, any> = {}
+    constructor(opts: any, data: any, target: HTMLElement) {
+      this.opts = opts
+      this.data = data
+      this.target = target
+      target.innerHTML = '<canvas class="uplot-canvas"></canvas>'
+      created.push(this as unknown as MockChartInstance)
+    }
+    triggerCursor(idx: number | null, left = 100, top = 40) {
+      this.cursor = { idx, left, top }
+      for (const callback of this.opts.hooks?.setCursor ?? []) callback(this)
+    }
+    setScale(key: string, value: any) { this.scales[key] = value }
+    setSize(_value: any) {}
+    destroy() { this.destroyed = true }
+    valToPos(value: number) { return value }
+  }
+  return { MockUPlot, instances: created }
+})
+
+vi.mock('uplot', () => ({ default: MockUPlot }))
 
 import StrategyResultChart from '@/components/strategy/StrategyResultChart.vue'
 
@@ -10,6 +55,7 @@ class ResizeObserverMock {
 
 describe('StrategyResultChart', () => {
   beforeEach(() => {
+    instances.splice(0)
     vi.stubGlobal('ResizeObserver', ResizeObserverMock)
   })
 
@@ -17,203 +63,122 @@ describe('StrategyResultChart', () => {
     vi.unstubAllGlobals()
   })
 
-  it('renders the empty state when no series exist', () => {
+  it('renders the empty state without creating a numerical chart', () => {
     const wrapper = mount(StrategyResultChart, {
-      props: {
-        series: [],
-        label: 'Performance',
-        emptyLabel: 'Nothing here yet',
-      },
+      props: { series: [], label: 'Performance', emptyLabel: 'Nothing here yet' },
     })
 
     expect(wrapper.text()).toContain('Nothing here yet')
+    expect(instances).toHaveLength(0)
   })
 
-  it('shows all hovered dense-series items inside the chart, ordered by proximity', async () => {
+  it('renders numerical data through uPlot and preserves dense hover details', async () => {
     const wrapper = mount(StrategyResultChart, {
       props: {
         label: 'Position evolution',
         focusNearestSeries: true,
         currency: true,
         series: [
-          {
-            label: 'AAPL #1',
-            color: '#64b5f6',
-            points: [
-              { ts: '2026-01-01T00:00:00Z', value: 0, detail: 'Entry · AAPL', marker: 'entry' },
-              { ts: '2026-01-02T00:00:00Z', value: 125.55 },
-            ],
-          },
-          {
-            label: 'MSFT #1',
-            color: '#e0b35b',
-            points: [
-              { ts: '2026-01-01T00:00:00Z', value: 0, detail: 'Entry · MSFT', marker: 'entry' },
-              { ts: '2026-01-02T00:00:00Z', value: 250.1 },
-            ],
-          },
+          { label: 'AAPL #1', color: '#64b5f6', points: [
+            { ts: '2026-01-01T00:00:00Z', value: 0, detail: 'Entry · AAPL', marker: 'entry' },
+            { ts: '2026-01-02T00:00:00Z', value: 125.55 },
+          ] },
+          { label: 'MSFT #1', color: '#e0b35b', points: [
+            { ts: '2026-01-01T00:00:00Z', value: 0, detail: 'Entry · MSFT', marker: 'entry' },
+            { ts: '2026-01-02T00:00:00Z', value: 250.1 },
+          ] },
         ],
       },
       attachTo: document.body,
     })
-
-    Object.defineProperty(wrapper.find('svg').element, 'getBoundingClientRect', {
-      value: () => ({
-        left: 0,
-        top: 0,
-        width: 320,
-        height: 164,
-        right: 320,
-        bottom: 164,
-      }),
-    })
-
-    await wrapper.find('svg').trigger('mousemove', {
-      clientX: 310,
-      clientY: 125,
-    })
+    await nextTick()
+    expect(instances).toHaveLength(1)
+    instances[0].triggerCursor(1, 310, 125)
+    await nextTick()
 
     expect(wrapper.text()).toContain('AAPL #1')
     expect(wrapper.text()).toContain('MSFT #1')
     expect(wrapper.find('.result-chart__hovercard--overlay').exists()).toBe(true)
+    wrapper.unmount()
+    expect(instances[0].destroyed).toBe(true)
   })
 
-  it('spaces chart points by real elapsed time instead of equal point count', () => {
+  it('passes real elapsed timestamps to uPlot instead of equal point indexes', async () => {
+    mount(StrategyResultChart, {
+      props: {
+        label: 'Performance',
+        currency: true,
+        series: [{ label: 'Strategy', color: '#64b5f6', points: [
+          { ts: '2026-01-01T00:00:00Z', value: 100 },
+          { ts: '2026-01-02T00:00:00Z', value: 105 },
+          { ts: '2026-01-10T00:00:00Z', value: 120 },
+        ] }],
+      },
+    })
+    await nextTick()
+    const x = instances[0].data[0] as number[]
+    expect(x).toHaveLength(3)
+    expect(x[1] - x[0]).toBeLessThan(x[2] - x[1])
+  })
+
+  it('does not expose a future point when the cursor is on the first point', async () => {
     const wrapper = mount(StrategyResultChart, {
       props: {
         label: 'Performance',
         currency: true,
-        series: [
-          {
-            label: 'Strategy',
-            color: '#64b5f6',
-            points: [
-              { ts: '2026-01-01T00:00:00Z', value: 100 },
-              { ts: '2026-01-02T00:00:00Z', value: 105 },
-              { ts: '2026-01-10T00:00:00Z', value: 120 },
-            ],
-          },
-        ],
+        series: [{ label: 'Strategy', color: '#64b5f6', points: [
+          { ts: '2026-01-01T00:00:00Z', value: 100, detail: 'First' },
+          { ts: '2026-01-10T00:00:00Z', value: 120, detail: 'Second' },
+        ] }],
       },
     })
-
-    const polyline = wrapper.find('.result-chart__line')
-    const points = String(polyline.attributes('points'))
-      .split(' ')
-      .map(point => point.split(',').map(Number))
-
-    expect(points).toHaveLength(3)
-    const firstX = points[0][0]
-    const secondX = points[1][0]
-    const thirdX = points[2][0]
-
-    expect(secondX - firstX).toBeLessThan(thirdX - secondX)
-  })
-
-  it('does not snap hover selection to a future point to the right of the cursor', async () => {
-    const wrapper = mount(StrategyResultChart, {
-      props: {
-        label: 'Performance',
-        currency: true,
-        series: [
-          {
-            label: 'Strategy',
-            color: '#64b5f6',
-            points: [
-              { ts: '2026-01-01T00:00:00Z', value: 100, detail: 'First' },
-              { ts: '2026-01-10T00:00:00Z', value: 120, detail: 'Second' },
-            ],
-          },
-        ],
-      },
-      attachTo: document.body,
-    })
-
-    Object.defineProperty(wrapper.find('svg').element, 'getBoundingClientRect', {
-      value: () => ({
-        left: 0,
-        top: 0,
-        width: 320,
-        height: 164,
-        right: 320,
-        bottom: 164,
-      }),
-    })
-
-    await wrapper.find('svg').trigger('mousemove', {
-      clientX: 120,
-      clientY: 80,
-    })
-
+    await nextTick()
+    instances[0].triggerCursor(0)
+    await nextTick()
     expect(wrapper.text()).toContain('First')
     expect(wrapper.text()).not.toContain('Second')
   })
 
-  it('supports narrowing a long chart to a shorter visible period', async () => {
+  it('changes the uPlot x scale when narrowing to a shorter visible range', async () => {
     const wrapper = mount(StrategyResultChart, {
       props: {
         label: 'Performance',
         percent: true,
-        series: [
-          {
-            label: 'Strategy',
-            color: '#64b5f6',
-            points: [
-              { ts: '2025-01-01T00:00:00Z', value: 0 },
-              { ts: '2025-04-01T00:00:00Z', value: 2.5 },
-              { ts: '2025-07-01T00:00:00Z', value: 5.1 },
-              { ts: '2025-10-01T00:00:00Z', value: 7.8 },
-              { ts: '2026-01-01T00:00:00Z', value: 10.2 },
-            ],
-          },
-        ],
+        series: [{ label: 'Strategy', color: '#64b5f6', points: [
+          { ts: '2025-01-01T00:00:00Z', value: 0 },
+          { ts: '2025-04-01T00:00:00Z', value: 2.5 },
+          { ts: '2025-07-01T00:00:00Z', value: 5.1 },
+          { ts: '2025-10-01T00:00:00Z', value: 7.8 },
+          { ts: '2026-01-01T00:00:00Z', value: 10.2 },
+        ] }],
       },
     })
-
-    const fullPoints = String(wrapper.find('.result-chart__line').attributes('points'))
-      .split(' ')
-      .filter(Boolean)
-
-    expect(wrapper.text()).toContain('All')
-    expect(wrapper.findAll('.result-chart__range-button').length).toBeGreaterThan(1)
-
+    await nextTick()
+    const fullRange = instances[0].opts.scales.x
     const rangeButtons = wrapper.findAll('.result-chart__range-button')
     const threeMonthButton = rangeButtons.find(button => button.text() === '3M')
-
     expect(threeMonthButton).toBeDefined()
     await threeMonthButton!.trigger('click')
-
-    const zoomedPoints = String(wrapper.find('.result-chart__line').attributes('points'))
-      .split(' ')
-      .filter(Boolean)
-
-    expect(zoomedPoints.length).toBeLessThan(fullPoints.length)
+    await nextTick()
     expect(wrapper.text()).toContain('→')
+    expect(instances[0].scales.x.max - instances[0].scales.x.min)
+      .toBeLessThan(fullRange.max - fullRange.min)
   })
 
-  it('supports integer-only y-axis labels for count-based charts', () => {
-    const wrapper = mount(StrategyResultChart, {
+  it('formats integer-only y-axis values through the uPlot axis formatter', async () => {
+    mount(StrategyResultChart, {
       props: {
         label: 'Open positions',
         integerAxis: true,
-        series: [
-          {
-            label: 'Open positions',
-            color: '#e0b35b',
-            points: [
-              { ts: '2026-01-01T00:00:00Z', value: 0 },
-              { ts: '2026-01-02T00:00:00Z', value: 1 },
-              { ts: '2026-01-03T00:00:00Z', value: 2 },
-            ],
-          },
-        ],
+        series: [{ label: 'Open positions', color: '#e0b35b', points: [
+          { ts: '2026-01-01T00:00:00Z', value: 0 },
+          { ts: '2026-01-02T00:00:00Z', value: 1 },
+          { ts: '2026-01-03T00:00:00Z', value: 2 },
+        ] }],
       },
     })
-
-    const axisLabels = wrapper.findAll('.result-chart__axes text').map(label => label.text())
-    expect(axisLabels.length).toBeGreaterThan(0)
-    expect(axisLabels.every(label => /^-?\d+$/.test(label))).toBe(true)
-    expect(axisLabels).toContain('0')
-    expect(axisLabels).toContain('2')
+    await nextTick()
+    const values = instances[0].opts.axes[1].values(null, [0, 2, 2.4])
+    expect(values).toEqual(['0', '2', '2'])
   })
 })

@@ -40,10 +40,17 @@ describe('useSparklines', () => {
     await expect(loadMany(['AAPL', 'MSFT'])).resolves.toBeUndefined()
   })
 
-  it('converts points into svg coordinates', () => {
-    const { pointsToSvg } = useSparklines()
-    const svg = pointsToSvg([10, 15, 20])
-    expect(svg.split(' ')).toHaveLength(3)
-    expect(svg).toContain(',')
+  it('drops null and non-finite closes before caching a series', async () => {
+    ;(api.get as ReturnType<typeof vi.fn>).mockResolvedValueOnce([
+      { close: null },
+      { close: 10 },
+      { close: Number.NaN },
+      { close: 12 },
+      { close: Number.POSITIVE_INFINITY },
+    ])
+
+    const { load } = useSparklines()
+    await expect(load('SPARK-DATA-QUALITY')).resolves.toEqual([10, 12])
   })
+
 })

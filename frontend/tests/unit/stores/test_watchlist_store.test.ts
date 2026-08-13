@@ -52,6 +52,61 @@ describe('useWatchlistStore', () => {
     expect(store.watchlists.some(w => w.id === 2)).toBe(false)
   })
 
+  it('retains a load error without clearing existing watchlists', async () => {
+    const store = useWatchlistStore()
+    store.watchlists = [makeWatchlist()] as any
+    ;(api.get as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('API GET /watchlists → 503'))
+
+    await store.loadWatchlists()
+
+    expect(store.loadError).toContain('503')
+    expect(store.watchlists).toHaveLength(1)
+    expect(store.loading).toBe(false)
+  })
+
+  it('treats a duplicate-name create race as an idempotent create', async () => {
+    const store = useWatchlistStore()
+    const existing = { ...makeWatchlist(), id: 7, name: 'Shared list' }
+    ;(api.post as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error("API POST /watchlists → 409: already exists"))
+    ;(api.get as ReturnType<typeof vi.fn>).mockResolvedValueOnce([existing])
+
+    await expect(store.createWatchlist('Shared list')).resolves.toMatchObject({ id: 7, name: 'Shared list' })
+    expect(store.watchlists).toContainEqual(existing)
+  })
+
+  it('deduplicates concurrent creates for the same watchlist name', async () => {
+    const store = useWatchlistStore()
+    const created = { ...makeWatchlist(), id: 8, name: 'Concurrent list' }
+    let resolveCreate!: (value: typeof created) => void
+    ;(api.post as ReturnType<typeof vi.fn>).mockReturnValueOnce(new Promise(resolve => { resolveCreate = resolve }))
+
+    const first = store.createWatchlist('Concurrent list')
+    const second = store.createWatchlist('Concurrent list')
+    resolveCreate(created)
+
+    await expect(Promise.all([first, second])).resolves.toEqual([created, created])
+    expect(api.post).toHaveBeenCalledTimes(1)
+  })
+
+  it('deduplicates creates across separate Pinia store instances during virtual-root activation', async () => {
+    const firstPinia = createPinia()
+    setActivePinia(firstPinia)
+    const firstStore = useWatchlistStore()
+    const secondPinia = createPinia()
+    setActivePinia(secondPinia)
+    const secondStore = useWatchlistStore()
+    const created = { ...makeWatchlist(), id: 9, name: 'Cross-root list' }
+    let resolveCreate!: (value: typeof created) => void
+    ;(api.post as ReturnType<typeof vi.fn>).mockReturnValueOnce(new Promise(resolve => { resolveCreate = resolve }))
+
+    const first = firstStore.createWatchlist('Cross-root list')
+    const second = secondStore.createWatchlist('Cross-root list')
+    resolveCreate(created)
+
+    await expect(Promise.all([first, second])).resolves.toEqual([created, created])
+    expect(api.post).toHaveBeenCalledTimes(1)
+  })
+
   it('adds items, ignores conflicts, and removes items', async () => {
     const store = useWatchlistStore()
     store.watchlists = [makeWatchlist()] as any
@@ -63,10 +118,51 @@ describe('useWatchlistStore', () => {
     expect(store.watchlists[0].items).toHaveLength(2)
 
     ;(api.post as ReturnType<typeof vi.fn>).mockRejectedValueOnce({ status: 409 })
-    await expect(store.addItem(1, 20)).resolves.toBeNull()
+    await expect(store.addItem(1, 20)).resolves.toMatchObject({ instrument_id: 20, symbol: 'AAPL' })
 
     await store.removeItem(1, 2)
     expect(store.watchlists[0].items).toHaveLength(1)
+  })
+
+  it('uses one atomic transfer request and updates both local memberships', async () => {
+    const store = useWatchlistStore()
+    store.watchlists = [
+      makeWatchlist(),
+      { ...makeWatchlist(), id: 2, name: 'Destination', items: [] },
+    ] as any
+    const transferred = { id: 9, instrument_id: 10, symbol: 'NVDA', position: 0 }
+    ;(api.post as ReturnType<typeof vi.fn>).mockResolvedValueOnce(transferred)
+
+    await expect(store.transferItem(1, 1, 2, 'move')).resolves.toEqual(transferred)
+    expect(api.post).toHaveBeenCalledWith('/watchlists/2/items/transfer', {
+      source_watchlist_id: 1,
+      item_id: 1,
+      mode: 'move',
+    })
+    expect(store.watchlists[0].items).toHaveLength(0)
+    expect(store.watchlists[1].items).toEqual([transferred])
+  })
+
+  it('deduplicates concurrent item adds across separate Pinia store instances', async () => {
+    const firstPinia = createPinia()
+    setActivePinia(firstPinia)
+    const firstStore = useWatchlistStore()
+    const secondPinia = createPinia()
+    setActivePinia(secondPinia)
+    const secondStore = useWatchlistStore()
+    const firstList = { ...makeWatchlist(), items: [] }
+    firstStore.watchlists = [firstList] as any
+    secondStore.watchlists = [{ ...firstList }] as any
+    const created = { id: 22, instrument_id: 20, symbol: 'AAPL', position: 0 }
+    let resolveAdd!: (value: typeof created) => void
+    ;(api.post as ReturnType<typeof vi.fn>).mockReturnValueOnce(new Promise(resolve => { resolveAdd = resolve }))
+
+    const first = firstStore.addItem(1, 20)
+    const second = secondStore.addItem(1, 20)
+    resolveAdd(created)
+
+    await expect(Promise.all([first, second])).resolves.toEqual([created, created])
+    expect(api.post).toHaveBeenCalledTimes(1)
   })
 
   it('persists an item flag and updates the local canonical row', async () => {
@@ -81,7 +177,7 @@ describe('useWatchlistStore', () => {
 
   it('resolves symbols before adding by symbol and triggers an eager price fetch', async () => {
     const store = useWatchlistStore()
-    store.watchlists = [{ ...makeWatchlist(), items: [] }] as any
+    store.watchlists = [makeWatchlist()] as any
 
     ;(api.get as ReturnType<typeof vi.fn>)
       .mockResolvedValueOnce({ id: 33, symbol: 'MSFT' })
@@ -175,6 +271,44 @@ describe('useWatchlistStore', () => {
     }
   })
 
+  it('does not let an in-flight invalidation reload erase a local membership mutation', async () => {
+    const store = useWatchlistStore()
+    store.watchlists = [makeWatchlist()] as any
+    let resolveReload!: (value: unknown) => void
+    ;(api.get as ReturnType<typeof vi.fn>).mockReturnValueOnce(new Promise(resolve => { resolveReload = resolve }))
+    ;(api.post as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ id: 2, instrument_id: 20, symbol: 'AAPL', position: 0 })
+
+    const reload = store.loadWatchlists()
+    await store.addItem(1, 20)
+    resolveReload([{ ...makeWatchlist(), items: [] }])
+    await reload
+
+    expect(store.watchlists[0].items.map(item => item.symbol)).toEqual(['NVDA', 'AAPL'])
+  })
+
+  it('reconciles a post-mutation stale reload without dropping the local item', async () => {
+    const store = useWatchlistStore()
+    store.watchlists = [{ ...makeWatchlist(), items: [] }] as any
+    ;(api.post as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ id: 2, instrument_id: 20, symbol: 'AAPL', position: 0 })
+    ;(api.get as ReturnType<typeof vi.fn>).mockResolvedValueOnce([{ ...makeWatchlist(), items: [] }])
+
+    await store.addItem(1, 20)
+    await store.loadWatchlists()
+
+    expect(store.watchlists[0].items.map(item => item.symbol)).toEqual(['AAPL'])
+  })
+
+  it('keeps the last watchlists visible when a refresh fails transiently', async () => {
+    const store = useWatchlistStore()
+    store.watchlists = [makeWatchlist()] as any
+    ;(api.get as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('Failed to fetch'))
+
+    await store.loadWatchlists()
+
+    expect(store.watchlists).toHaveLength(1)
+    expect(store.watchlists[0]?.items[0]?.symbol).toBe('NVDA')
+  })
+
   it('falls back to storage events when BroadcastChannel is unavailable', async () => {
     const originalChannel = (globalThis as typeof globalThis & { BroadcastChannel?: unknown }).BroadcastChannel
     delete (globalThis as typeof globalThis & { BroadcastChannel?: unknown }).BroadcastChannel
@@ -230,5 +364,31 @@ describe('useWatchlistStore', () => {
     await store.fetchPrices(['aapl'], true)
     expect(store.priceMap.AAPL.prevClose).toBe(54)
     expect(store.priceMap.AAPL.pct).toBe(0)
+  })
+
+  it('supports local-only price hydration for workstation watchlists', async () => {
+    ;(api.get as ReturnType<typeof vi.fn>).mockResolvedValueOnce([
+      { open: 10, high: 11, low: 9, close: 10, volume: 100 },
+      { open: 10, high: 12, low: 9, close: 11, volume: 120 },
+    ])
+    const store = useWatchlistStore()
+    await store.fetchPrices(['spy'], false, true)
+    expect(api.get).toHaveBeenCalledWith('/ohlcv/local/SPY/D1', { limit: 31 })
+    expect(store.priceMap.SPY.close).toBe(11)
+  })
+
+  it('propagates local-only mode when adding a workstation watchlist symbol', async () => {
+    ;(api.get as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce({ id: 7, symbol: 'SPY' })
+      .mockResolvedValueOnce({ id: 7, symbol: 'SPY' })
+      .mockResolvedValueOnce([
+        { open: 10, high: 11, low: 9, close: 10, volume: 100 },
+        { open: 10, high: 12, low: 9, close: 11, volume: 120 },
+      ])
+    ;(api.post as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ id: 99, symbol: 'SPY' })
+    const store = useWatchlistStore()
+    await store.addBySymbol(42, 'spy', true)
+    expect(api.get).toHaveBeenCalledWith('/ohlcv/local/SPY/D1', { limit: 31 })
+    expect(api.get).not.toHaveBeenCalledWith('/ohlcv/SPY/D1', { limit: 31 })
   })
 })

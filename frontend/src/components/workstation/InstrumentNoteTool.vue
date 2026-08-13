@@ -1,18 +1,21 @@
 <template>
-  <section class="note-tool">
-    <div class="note-tool__status">{{ symbol }} · {{ status }}</div>
+  <section class="note-tool" role="region" :aria-label="`${symbol} notes`" :aria-busy="loading">
+    <div class="note-tool__status" :role="statusRole" :aria-live="statusRole === 'alert' ? 'assertive' : 'polite'" aria-atomic="true">{{ symbol }} · {{ status }}</div>
     <textarea v-model="content" :disabled="!instrumentId || loading" :placeholder="instrumentId ? 'Write a symbol note…' : 'Select a canonical instrument.'" aria-label="Instrument note" />
   </section>
 </template>
 
 <script setup lang="ts">
-import { onBeforeUnmount, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import { useQueryClient } from '@tanstack/vue-query'
 import { api } from '@/lib/api'
 
 const props = defineProps<{ instrumentId: number | null | undefined; symbol: string }>()
+const queryClient = useQueryClient()
 const content = ref('')
 const loading = ref(false)
 const status = ref('No note')
+const statusRole = computed(() => /unable|error|failed|unavailable/i.test(status.value) ? 'alert' : 'status')
 let saveTimer: ReturnType<typeof setTimeout> | null = null
 let loadedId: number | null = null
 let loadGeneration = 0
@@ -31,7 +34,11 @@ async function load() {
   status.value = 'Loading…'
   try {
     const instrumentId = props.instrumentId
-    const note = await api.get<{ content: string; updated_at: string } | null>(`/notes/instruments/${instrumentId}`)
+    const note = await queryClient.fetchQuery<{ content: string; updated_at: string } | null>({
+      queryKey: ['workstation', 'instrument-note', instrumentId],
+      queryFn: () => api.get<{ content: string; updated_at: string } | null>(`/notes/instruments/${instrumentId}`),
+      staleTime: 30_000,
+    })
     if (generation !== loadGeneration || props.instrumentId !== instrumentId) return
     content.value = note?.content ?? ''
     loadedId = instrumentId
@@ -53,6 +60,7 @@ watch(content, () => {
   saveTimer = setTimeout(async () => {
     try {
       const note = await api.put<{ updated_at: string }>(`/notes/instruments/${instrumentId}`, { content: draft })
+      queryClient.setQueryData(['workstation', 'instrument-note', instrumentId], { content: draft, updated_at: note.updated_at })
       if (props.instrumentId === instrumentId && loadedId === instrumentId) status.value = `Saved ${new Date(note.updated_at).toLocaleString()}`
     } catch (cause: any) {
       if (props.instrumentId === instrumentId) status.value = cause?.message ?? 'Unable to save note'

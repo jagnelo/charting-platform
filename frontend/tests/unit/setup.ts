@@ -6,6 +6,7 @@ vi.mock('uplot', () => ({
     destroy: vi.fn(),
     setData: vi.fn(),
     setSize: vi.fn(),
+    setScale: vi.fn(),
     setCursor: vi.fn(),
     valToPos: vi.fn().mockReturnValue(100),
     posToVal: vi.fn().mockReturnValue(150.0),

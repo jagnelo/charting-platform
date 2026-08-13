@@ -4,6 +4,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import { nextTick } from 'vue'
 
 import SettingsView from '@/views/SettingsView.vue'
+import { useAuthStore } from '@/stores/auth'
 
 vi.mock('@/lib/api', () => ({
   api: {
@@ -142,6 +143,7 @@ describe('SettingsView', () => {
       if (path === '/presets') return Promise.resolve([])
       if (path === '/providers/policies') return Promise.resolve(providerPolicies)
       if (path === '/providers/usage') return Promise.resolve(providerUsage)
+      if (path.startsWith('/providers/reconciliation/issues')) return Promise.resolve([])
       return Promise.resolve([])
     })
   })
@@ -169,9 +171,13 @@ describe('SettingsView', () => {
   })
 
   it('keeps capability controls inside a collapsed configuration pane', async () => {
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    const auth = useAuthStore()
+    auth.user = { id: 7, username: 'admin', email: 'admin@example.com', is_admin: true }
     const wrapper = mount(SettingsView, {
       global: {
-        plugins: [createPinia()],
+        plugins: [pinia],
       },
     })
 
@@ -187,5 +193,57 @@ describe('SettingsView', () => {
     expect(wrapper.text()).toContain('Tokens / min')
     expect(wrapper.text()).toContain('Fetch Option Chain')
     expect(wrapper.text()).toContain('Search Instruments')
+  })
+
+  it('does not expose provider configuration controls to regular users', async () => {
+    const wrapper = mount(SettingsView, {
+      global: { plugins: [createPinia()] },
+    })
+    await flushPromises()
+
+    expect(wrapper.text()).not.toContain('Show config')
+    expect(wrapper.text()).not.toContain('Capability configuration')
+  })
+
+  it('shows the reconciliation queue only to admins and attributes review actions', async () => {
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    const auth = useAuthStore()
+    auth.user = { id: 7, username: 'admin', email: 'admin@example.com', is_admin: true }
+    const issue = {
+      id: 19,
+      provider: 'edgar',
+      provider_symbol: 'ABC',
+      issue_type: 'ambiguous_ticker_issuer',
+      status: 'open' as const,
+      candidates: [{ name: 'ABC Holdings', cik: '1', exchange: 'NASDAQ' }],
+      payload: { symbol: 'ABC' },
+      observed_at: '2026-08-11T12:00:00Z',
+      resolved_at: null,
+      resolution: null,
+    }
+    ;(api.get as ReturnType<typeof vi.fn>).mockImplementation((path: string) => {
+      if (path === '/presets') return Promise.resolve([])
+      if (path === '/providers/policies') return Promise.resolve(providerPolicies)
+      if (path === '/providers/usage') return Promise.resolve(providerUsage)
+      if (path.startsWith('/providers/reconciliation/issues')) return Promise.resolve([issue])
+      return Promise.resolve([])
+    })
+    ;(api.patch as ReturnType<typeof vi.fn>).mockResolvedValue({ ok: true })
+
+    const wrapper = mount(SettingsView, {
+      global: { plugins: [pinia] },
+    })
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('Identity reconciliation review')
+    expect(wrapper.text()).toContain('ABC Holdings')
+    const resolveButton = wrapper.findAll('button').find((button) => button.text() === 'Mark resolved')
+    expect(resolveButton).toBeDefined()
+    await resolveButton!.trigger('click')
+    expect(api.patch).toHaveBeenCalledWith(
+      '/providers/reconciliation/issues/19',
+      expect.objectContaining({ status: 'resolved' }),
+    )
   })
 })

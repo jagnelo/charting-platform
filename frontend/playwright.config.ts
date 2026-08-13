@@ -1,5 +1,10 @@
 import { defineConfig, devices } from '@playwright/test'
 
+const configuredWorkers = Number(process.env.PLAYWRIGHT_WORKERS)
+const visualWorkerCount = Number.isInteger(configuredWorkers) && configuredWorkers > 0
+  ? configuredWorkers
+  : 1
+
 /**
  * E2E tests run against the full Docker Compose stack.
  * Set STACK_URL to the running frontend URL (default: http://localhost).
@@ -14,6 +19,11 @@ import { defineConfig, devices } from '@playwright/test'
 export default defineConfig({
   testDir: './tests/e2e',
   fullyParallel: false,       // run serially — tests share DB state
+  // The visual matrix is split into four projects, but all projects share the
+  // same authenticated account and backend workspace. Keep one worker by
+  // default so projects cannot race through persisted layout/freshness state;
+  // CI or isolated environments may opt into a higher value explicitly.
+  workers: visualWorkerCount,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
   timeout: 30_000,

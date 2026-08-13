@@ -5,8 +5,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const { goldenLayouts, MockGoldenLayout } = vi.hoisted(() => {
   const layouts: any[] = []
   class Layout {
-  callbacks = new Map<string, () => void>()
+  callbacks = new Map<string, (arg?: unknown) => void>()
   loaded: unknown = null
+  root: any = { contentItems: [] }
   destroyed = false
   sizes: Array<[number, number]> = []
   saved = { root: { type: 'row', content: [] as unknown[] } }
@@ -20,12 +21,27 @@ const { goldenLayouts, MockGoldenLayout } = vi.hoisted(() => {
     this.factory = factory
   }
 
-  on(name: string, callback: () => void) {
+  on(name: string, callback: (arg?: unknown) => void) {
     this.callbacks.set(name, callback)
   }
 
   loadLayout(layout: unknown) {
     this.loaded = layout
+    const parentItem: any = {
+      setActiveComponentItem: vi.fn(),
+      contentItems: [] as any[],
+      header: { tabs: [] as any[] },
+    }
+    const component: any = {
+      type: 'component',
+      config: { componentState: { instance_key: 'chart-1' } },
+      parentItem,
+    }
+    parentItem.contentItems = [component]
+    parentItem.header.tabs = [{ contentItem: component }]
+    this.root = {
+      contentItems: [component],
+    }
   }
 
   saveLayout() {
@@ -79,6 +95,8 @@ describe('WorkspaceLayoutHost', () => {
     expect(renderTool).toHaveBeenCalledWith(expect.objectContaining({ instance_key: 'chart-1' }), expect.any(Object))
     expect(rendered.rootHtmlElement.dataset.toolKey).toBe('chart-1')
 
+    await new Promise<void>(resolve => requestAnimationFrame(() => resolve()))
+    host.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true }))
     gl.saved = { root: { componentState: { instance_key: 'chart-1' } } }
     gl.callbacks.get('stateChanged')!()
     expect(wrapper.emitted('changed')?.[0]).toEqual([gl.saved, ['chart-1']])
@@ -100,6 +118,20 @@ describe('WorkspaceLayoutHost', () => {
     wrapper.unmount()
   })
 
+  it('reinstalls virtual roots when a complete workspace snapshot is replaced', async () => {
+    const layout = { root: { type: 'row', content: [] } } as any
+    const wrapper = mount(WorkspaceLayoutHost, {
+      props: { layout, reloadKey: 0, renderTool: () => h('div') },
+    })
+
+    await wrapper.setProps({ reloadKey: 1 })
+    await nextTick()
+
+    expect(goldenLayouts).toHaveLength(2)
+    expect(goldenLayouts[0].destroyed).toBe(true)
+    wrapper.unmount()
+  })
+
   it('fully tears down virtual roots and resize observation through the exposed destroy action', () => {
     const wrapper = mount(WorkspaceLayoutHost, { props: { layout: { root: { type: 'row', content: [] } } as any, renderTool: () => h('div') } })
     const layout = goldenLayouts[0]
@@ -107,6 +139,50 @@ describe('WorkspaceLayoutHost', () => {
     ;(wrapper.vm as any).destroy()
 
     expect(layout.destroyed).toBe(true)
+    wrapper.unmount()
+  })
+
+  it('activates a newly opened or restored tool after the layout is loaded', () => {
+    const wrapper = mount(WorkspaceLayoutHost, {
+      props: {
+        layout: { root: { type: 'row', content: [] } } as any,
+        activeWindowKey: 'chart-1',
+        renderTool: () => h('div'),
+      },
+    })
+    const component = goldenLayouts[0].root.contentItems[0]
+    expect(component.parentItem.setActiveComponentItem).toHaveBeenCalledWith(component, false, true)
+    wrapper.unmount()
+  })
+
+  it('does not reassert a component through a header that no longer owns it during a drag', async () => {
+    const wrapper = mount(WorkspaceLayoutHost, {
+      props: {
+        layout: { root: { type: 'row', content: [] } } as any,
+        activeWindowKey: 'chart-1',
+        renderTool: () => h('div'),
+      },
+    })
+    const component = goldenLayouts[0].root.contentItems[0]
+    const processActiveComponentChanged = vi.fn()
+    component.parentItem.header = {
+      tabs: [],
+      processActiveComponentChanged,
+    }
+    await new Promise<void>(resolve => requestAnimationFrame(() => resolve()))
+    expect(processActiveComponentChanged).not.toHaveBeenCalled()
+    wrapper.unmount()
+  })
+
+  it('publishes the active component key when a Golden Layout tab changes', async () => {
+    const wrapper = mount(WorkspaceLayoutHost, {
+      props: { layout: { root: { type: 'row', content: [] } } as any, renderTool: () => h('div') },
+    })
+    const gl = goldenLayouts[0]
+    await new Promise<void>(resolve => requestAnimationFrame(() => resolve()))
+    wrapper.find('.workspace-layout-host').element.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true }))
+    gl.callbacks.get('activeContentItemChanged')!({ config: { componentState: { instance_key: 'chart-2' } } })
+    expect(wrapper.emitted('active-window-changed')).toEqual([['chart-2']])
     wrapper.unmount()
   })
 })

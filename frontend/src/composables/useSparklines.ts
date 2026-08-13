@@ -21,7 +21,7 @@ export const sparkTf = ref<SparkTf>('1M')
 const cache: Record<string, number[] | null> = {}
 const inFlight: Record<string, Promise<number[] | null>> = {}
 
-interface OhlcvBar { close: number }
+interface OhlcvBar { close?: number | null }
 
 function tfToParams(tf: SparkTf): { ohlcvTf: string; start: string } {
   const now = new Date()
@@ -51,7 +51,10 @@ async function fetchSparkPoints(symbol: string, tf: SparkTf): Promise<number[] |
 
   const p = api.get<OhlcvBar[]>(`/ohlcv/${encodeURIComponent(symbol)}/${ohlcvTf}`, { start })
     .then(bars => {
-      const pts = bars.length >= 2 ? bars.map(b => b.close) : null
+      const values = bars
+        .map(bar => bar.close)
+        .filter((value): value is number => typeof value === 'number' && Number.isFinite(value))
+      const pts = values.length >= 2 ? values : null
       cache[key] = pts
       delete inFlight[key]
       return pts
@@ -79,19 +82,5 @@ export function useSparklines() {
     for (const key of Object.keys(cache)) delete cache[key]
   }
 
-  function pointsToSvg(pts: number[]): string {
-    const min = Math.min(...pts)
-    const max = Math.max(...pts)
-    const range = max - min || 1
-    const W = 78, H = 28
-    return pts
-      .map((v, i) => {
-        const x = 1 + (i / (pts.length - 1)) * W
-        const y = 1 + (1 - (v - min) / range) * H
-        return `${x.toFixed(1)},${y.toFixed(1)}`
-      })
-      .join(' ')
-  }
-
-  return { load, loadMany, invalidateAll, pointsToSvg }
+  return { load, loadMany, invalidateAll }
 }

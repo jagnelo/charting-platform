@@ -10,6 +10,10 @@
       label="Major US benchmarks"
       :timeframe="activeTimeframe"
       :rows="benchmarkRows"
+      :loading="workspaceStore.marketAnalysisRefreshing"
+      loading-label="Refreshing benchmark analysis…"
+      :error-message="benchmarkDataError"
+      :columns="benchmarkColumns"
       :selected="activeSymbol"
       :visible-column-keys="configuredColumnKeys"
       :filter-text="configuredFilterText"
@@ -49,6 +53,9 @@
       label="Relative to SPY"
       :timeframe="activeTimeframe"
       :rows="sectorRows"
+      :loading="workspaceStore.marketAnalysisRefreshing"
+      loading-label="Refreshing sector analysis…"
+      :error-message="sectorDataError"
       :selected="activeSymbol"
       :columns="sectorColumns"
       :visible-column-keys="configuredColumnKeys"
@@ -83,18 +90,18 @@
       @plot-drop="addPlotColumn"
       @condition-drop="addConditionColumn"
     />
-    <div v-else-if="tool.tool_type === 'watchlist' && tool.configuration.personal === true" class="personal-watchlist-tool">
+    <section v-else-if="tool.tool_type === 'watchlist' && tool.configuration.personal === true" class="personal-watchlist-tool" role="region" aria-label="Personal watchlists" :aria-busy="((watchlistStore.loading && !selectedPersonalWatchlist && !flaggedItemsSelected && !selectedCombo) || personalListBusy || personalWatchlistBusy) ? 'true' : 'false'">
       <div class="personal-watchlist-tool__controls">
         <label>WatchList
-          <select :value="flaggedItemsSelected ? 'flagged' : selectedComboKey ? `combo:${selectedComboKey}` : selectedPersonalWatchlistId == null ? '' : String(selectedPersonalWatchlistId)" aria-label="Personal watchlist" @change="selectPersonalWatchlist(($event.target as HTMLSelectElement).value)">
+            <select :value="flaggedItemsSelected ? 'flagged' : selectedComboKey ? `combo:${selectedComboKey}` : effectiveSelectedPersonalWatchlistId == null ? '' : String(effectiveSelectedPersonalWatchlistId)" aria-label="Personal watchlist" @change="selectPersonalWatchlist(($event.target as HTMLSelectElement).value)">
             <option value="flagged">Flagged Items</option>
             <option value="">Select a personal watchlist</option>
             <option v-for="watchlist in personalWatchlists" :key="watchlist.id" :value="String(watchlist.id)">{{ watchlist.name }}{{ watchlist.is_locked ? ' · Locked' : '' }}</option>
             <option v-for="combo in comboLists" :key="`combo:${combo.stable_key}`" :value="`combo:${combo.stable_key}`">Combo · {{ combo.name }}</option>
           </select>
         </label>
-        <input v-model="personalListNameDraft" aria-label="Personal watchlist name" placeholder="List name" :disabled="flaggedItemsSelected || Boolean(selectedCombo)" @keydown.enter.prevent="selectedPersonalWatchlist ? renamePersonalWatchlist() : createPersonalWatchlist()" />
-        <button type="button" :disabled="flaggedItemsSelected || Boolean(selectedCombo) || !personalListNameDraft.trim() || personalListBusy" @click="createPersonalWatchlist">New</button>
+        <input v-model="personalListNameDraft" aria-label="Personal watchlist name" placeholder="List name" :disabled="flaggedItemsSelected || Boolean(selectedCombo)" @input="markPersonalListNameEdited" @keydown.enter.prevent="selectedPersonalWatchlist ? renamePersonalWatchlist() : createPersonalWatchlist($event)" />
+        <button type="button" :disabled="flaggedItemsSelected || Boolean(selectedCombo)" @click="createPersonalWatchlist">New</button>
         <button type="button" :disabled="flaggedItemsSelected || Boolean(selectedCombo) || !selectedPersonalWatchlist || selectedPersonalWatchlist.is_locked || selectedPersonalWatchlist.is_managed || !personalListNameDraft.trim() || personalListBusy" @click="renamePersonalWatchlist">Rename</button>
         <button type="button" :disabled="flaggedItemsSelected || Boolean(selectedCombo) || !selectedPersonalWatchlist || personalListBusy" @click="copyPersonalWatchlist">Copy</button>
         <button type="button" :disabled="flaggedItemsSelected || Boolean(selectedCombo) || !selectedPersonalWatchlist || selectedPersonalWatchlist.is_locked || selectedPersonalWatchlist.is_managed || personalListBusy" @click="deletePersonalWatchlist">Delete</button>
@@ -106,6 +113,7 @@
         <span v-else-if="watchlistStore.loading">Loading watchlists…</span>
         <span v-else>No personal watchlists available.</span>
         <span v-if="personalWatchlistError" class="personal-watchlist-tool__error">{{ personalWatchlistError }}</span>
+        <span v-if="watchlistStore.loadError" class="personal-watchlist-tool__error" role="alert">{{ watchlistStore.loadError }}</span>
         <section class="combo-editor" aria-label="Combo list editor">
           <header>Combo list</header>
           <input v-model="comboNameDraft" aria-label="Combo list name" placeholder="Name" :disabled="flaggedItemsSelected" />
@@ -158,7 +166,7 @@
         @select="selectSymbol($event.symbol, $event.instrumentId)"
         @reorder="selectedPersonalWatchlist && emit('reorder', selectedPersonalWatchlist.id, $event)"
         @compare="emit('compare', $event)"
-        @row-action="handlePersonalRowAction"
+      @row-action="handlePersonalRowAction"
         @update:visible-column-keys="emit('columns', tool.instance_key, $event)"
         @update:filter-text="emit('filter', tool.instance_key, $event)"
         @update:condition-screener-id="emit('conditionFilter', tool.instance_key, $event)"
@@ -172,7 +180,7 @@
         @plot-drop="addPlotColumn"
         @condition-drop="addConditionColumn"
       />
-    </div>
+    </section>
     <VirtualWatchlistTool
       v-else-if="tool.tool_type === 'watchlist' && !isIndustryTool"
       :label="tool.title || 'WatchList'"
@@ -196,7 +204,7 @@
       :python-columns="configuredPythonColumns"
       :python-condition="configuredPythonCondition"
       :membership-targets="personalWatchlistTargets"
-      @select="tool.instance_key === 'industries' ? emit('selectIndustry', $event.symbol) : selectSymbol($event.symbol, $event.instrumentId)"
+      @select="tool.instance_key === 'industries' ? emit('selectIndustry', $event.symbol, industryETFContext) : selectSymbol($event.symbol, $event.instrumentId)"
       @compare="emit('compare', $event)"
       @row-action="handleRowAction"
       @update:visible-column-keys="emit('columns', tool.instance_key, $event)"
@@ -212,6 +220,9 @@
         @plot-drop="addPlotColumn"
         @condition-drop="addConditionColumn"
     />
+    <div v-else-if="tool.instance_key === 'ratio-chart'" class="analysis">
+      <RatioUPlot :symbol="ratioChartExpression?.numerator ?? activeSymbol" :benchmarks="ratioChartExpression ? [ratioChartExpression.denominator] : ratioBenchmarks" editable-benchmarks :timeframe="activeTimeframe" :as-of="typeof tool.configuration.as_of === 'string' ? tool.configuration.as_of : null" :linked-timestamp="workspaceStore.timestampForLinkGroup(localLinkGroup)" @cursor-timestamp="workspaceStore.publishTimestamp($event, localLinkGroup, tool.instance_key)" @configuration="emit('configuration', tool.instance_key, { ...tool.configuration, ...$event, auto_ratio: false })" />
+    </div>
     <div v-else-if="ratioExpression" class="analysis">
       <RatioUPlot :symbol="ratioExpression.numerator" :benchmarks="[ratioExpression.denominator]" :timeframe="activeTimeframe" :as-of="typeof tool.configuration.as_of === 'string' ? tool.configuration.as_of : null" :linked-timestamp="workspaceStore.timestampForLinkGroup(localLinkGroup)" @cursor-timestamp="workspaceStore.publishTimestamp($event, localLinkGroup, tool.instance_key)" @configuration="emit('configuration', tool.instance_key, { ...tool.configuration, ...$event })" />
     </div>
@@ -219,7 +230,10 @@
       <DrawingToolbar class="chart-tool__drawing-toolbar" />
         <div class="chart-tool__surface">
         <ChartTemplateControl class="chart-tool__templates" :configuration="liveChartConfiguration" :indicator-configs="chartStore.indicators" @apply="applyChartTemplate" />
-        <ChartPlotLibrary class="chart-tool__plots" :source-window-key="tool.instance_key" :link-group="localLinkGroup" :python-plots="configuredPythonPlots" @update:python-plots="updatePythonPlots" />
+        <!-- Use the literal kebab-case event contract so the virtual component
+             listener and typed emitter remain identical after template
+             compilation. -->
+        <ChartPlotLibrary class="chart-tool__plots" :source-window-key="tool.instance_key" :link-group="localLinkGroup" :python-plots="configuredPythonPlots" :scan-plots="configuredScanPlots" @update:python-plots="updatePythonPlots" @update:scan-plots="updateScanPlots" />
         <div class="chart-tool__compare" aria-label="Chart comparisons">
           <input v-model="comparisonDraft" aria-label="Comparison symbol" placeholder="Compare" @keydown.enter.prevent="addComparisonSymbol(comparisonDraft)" />
           <button type="button" title="Add comparison" @click="addComparisonSymbol(comparisonDraft)">＋</button>
@@ -236,7 +250,7 @@
           :workspace-link-group="localLinkGroup"
           :linked-timestamp="workspaceStore.timestampForLinkGroup(localLinkGroup)"
           :comparison-series="comparisonSeries"
-          :python-series="pythonSeries"
+          :python-series="numericSeries"
           @configuration="applyChartConfiguration"
         />
         <div v-else class="tool-state">Select a canonical instrument.</div>
@@ -244,14 +258,19 @@
     </div>
     <div v-else-if="isIndustryTool && industries.length" class="industry-list">
       <button
-        v-for="item in industries"
+        v-for="item in industryRows"
         :key="item.industry"
         type="button"
         :class="{ 'industry-list__row--active': item.industry === selectedIndustry }"
         class="industry-list__row"
-        @click="emit('selectIndustry', item.industry)"
+        @click="emit('selectIndustry', item.industry, industryETFContext)"
       >
         <strong>{{ item.industry }}</strong><span>{{ item.resolved_count }}/{{ item.constituent_count }}</span>
+        <small
+          class="industry-list__classification"
+          :title="item.classificationDetail"
+          :aria-label="`${item.industry} classification provenance`"
+        >{{ item.classificationLabel }}</small>
       </button>
       <div v-if="selectedIndustry" class="industry-list__proxies">
         <small v-if="!industryProxyState">Checking curated ETF proxies…</small>
@@ -281,7 +300,7 @@
             :python-columns="configuredPythonColumns"
             :python-condition="configuredPythonCondition"
             :membership-targets="personalWatchlistTargets"
-            @select="selectProxy($event.symbol)"
+            @select="selectProxy($event.symbol, $event.instrumentId)"
             @compare="emit('compare', $event)"
             @row-action="handleRowAction"
             @update:visible-column-keys="emit('columns', tool.instance_key, $event)"
@@ -300,55 +319,78 @@
           <small v-if="industryProxySnapshot?.exclusions.length" class="industry-list__proxy-warning">{{ industryProxySnapshot.exclusions.map(item => item.code).join(' · ') }}</small>
         </template>
       </div>
-      <small>{{ selectedETF }} holdings · point-in-time classification</small>
+      <small class="industry-list__provenance">
+        {{ selectedETF }} holdings · {{ industryClassificationSummary }}
+        <template v-if="industryComposition?.exclusions.length"> · {{ industryComposition.exclusions.length }} excluded</template>
+      </small>
     </div>
     <div v-else-if="isIndustryTool" class="tool-state">
-      No mapped ETF proxy for {{ selectedETF || activeSymbol }}. Curated industry mappings require holdings and classification evidence.
+      <template v-if="!selectedETF">
+        Select a sector to inspect its industries and verified ETF proxies.
+      </template>
+      <template v-else>
+        No mapped ETF proxy for {{ selectedETF }}. Curated industry mappings require holdings and classification evidence.
+      </template>
     </div>
-    <VirtualWatchlistTool
-      v-else-if="tool.instance_key === 'constituent-list'"
-      :label="constituentLabel"
-      :timeframe="activeTimeframe"
-      :rows="constituentRows"
-      :selected="activeSymbol"
-      :columns="constituentColumns"
-      :visible-column-keys="configuredColumnKeys"
-      :filter-text="configuredFilterText"
-      :condition-screener-id="configuredConditionScreenerId"
-      :condition-filter-mode="configuredConditionFilterMode"
-      :pinned-boolean-keys="configuredPinnedBooleanKeys"
-      :column-groups="configuredColumnGroups"
-      :stacked-column-keys="configuredStackedColumnKeys"
-      :indicator-columns="configuredIndicatorColumns"
-      :indicator-values="indicatorValues"
-      :indicator-warnings="indicatorWarnings"
-      :condition-columns="configuredConditionColumns"
-      :condition-values="conditionValues"
-      :drop-error="conditionDropError"
-      :python-columns="configuredPythonColumns"
-      :python-condition="configuredPythonCondition"
-      :membership-targets="personalWatchlistTargets"
-      @select="selectSymbol($event.symbol, $event.instrumentId)"
-      @compare="emit('compare', $event)"
-      @row-action="handleRowAction"
-      @update:visible-column-keys="emit('columns', tool.instance_key, $event)"
-      @update:filter-text="emit('filter', tool.instance_key, $event)"
-      @update:condition-screener-id="emit('conditionFilter', tool.instance_key, $event)"
-      @update:condition-filter-mode="emit('conditionFilterMode', tool.instance_key, $event)"
-      @update:pinned-boolean-keys="emit('pinnedBooleanKeys', tool.instance_key, $event)"
-      @update:column-groups="emit('columnGroups', tool.instance_key, $event)"
-      @update:stacked-column-keys="emit('stackedColumnKeys', tool.instance_key, $event)"
-      @update:column-overrides="emit('configuration', tool.instance_key, { ...tool.configuration, column_overrides: $event })"
-      @update:python-columns="emit('configuration', tool.instance_key, { ...tool.configuration, python_columns: $event })"
-      @update:python-condition="emit('configuration', tool.instance_key, { ...tool.configuration, python_condition: $event })"
-      @plot-drop="addPlotColumn"
-      @condition-drop="addConditionColumn"
-    />
-    <div v-else-if="tool.instance_key === 'ratio-chart'" class="analysis">
-      <RatioUPlot :symbol="activeSymbol" :benchmarks="ratioBenchmarks" :timeframe="activeTimeframe" :as-of="typeof tool.configuration.as_of === 'string' ? tool.configuration.as_of : null" :linked-timestamp="workspaceStore.timestampForLinkGroup(localLinkGroup)" @cursor-timestamp="workspaceStore.publishTimestamp($event, localLinkGroup, tool.instance_key)" @configuration="emit('configuration', tool.instance_key, { ...tool.configuration, ...$event })" />
+    <div v-else-if="tool.instance_key === 'constituent-list'" class="constituent-tool">
+      <VirtualWatchlistTool
+        :label="constituentLabel"
+        :timeframe="activeTimeframe"
+        :rows="constituentRows"
+        :selected="activeSymbol"
+        :columns="constituentColumns"
+        :visible-column-keys="configuredColumnKeys"
+        :filter-text="configuredFilterText"
+        :condition-screener-id="configuredConditionScreenerId"
+        :condition-filter-mode="configuredConditionFilterMode"
+        :pinned-boolean-keys="configuredPinnedBooleanKeys"
+        :column-groups="configuredColumnGroups"
+        :stacked-column-keys="configuredStackedColumnKeys"
+        :indicator-columns="configuredIndicatorColumns"
+        :indicator-values="indicatorValues"
+        :indicator-warnings="indicatorWarnings"
+        :condition-columns="configuredConditionColumns"
+        :condition-values="conditionValues"
+        :drop-error="conditionDropError"
+        :python-columns="configuredPythonColumns"
+        :python-condition="configuredPythonCondition"
+        :membership-targets="personalWatchlistTargets"
+        @select="selectSymbol($event.symbol, $event.instrumentId)"
+        @compare="emit('compare', $event)"
+        @row-action="handleRowAction"
+        @update:visible-column-keys="emit('columns', tool.instance_key, $event)"
+        @update:filter-text="emit('filter', tool.instance_key, $event)"
+        @update:condition-screener-id="emit('conditionFilter', tool.instance_key, $event)"
+        @update:condition-filter-mode="emit('conditionFilterMode', tool.instance_key, $event)"
+        @update:pinned-boolean-keys="emit('pinnedBooleanKeys', tool.instance_key, $event)"
+        @update:column-groups="emit('columnGroups', tool.instance_key, $event)"
+        @update:stacked-column-keys="emit('stackedColumnKeys', tool.instance_key, $event)"
+        @update:column-overrides="emit('configuration', tool.instance_key, { ...tool.configuration, column_overrides: $event })"
+        @update:python-columns="emit('configuration', tool.instance_key, { ...tool.configuration, python_columns: $event })"
+        @update:python-condition="emit('configuration', tool.instance_key, { ...tool.configuration, python_condition: $event })"
+        @plot-drop="addPlotColumn"
+        @condition-drop="addConditionColumn"
+      />
+      <small
+        v-if="constituentExclusionSummary"
+        class="constituent-tool__provenance"
+        role="status"
+        :title="constituentExclusionCodes.join(', ')"
+      >{{ constituentExclusionSummary }}</small>
     </div>
-    <div v-else-if="tool.instance_key === 'breadth-summary' || tool.tool_type === 'breadth'" class="breadth-tool">
-      <label class="breadth-tool__universe">Universe <select :value="breadthGroupKey" aria-label="Breadth universe" @change="setBreadthGroup(($event.target as HTMLSelectElement).value)"><option value="sp500-sectors">S&amp;P 500 sectors</option><option value="us-benchmarks">US benchmarks</option></select> Timeframe <select :value="breadthTimeframe" aria-label="Breadth timeframe" @change="setBreadthConfiguration({ timeframe: ($event.target as HTMLSelectElement).value })"><option value="D1">Daily</option><option value="W1">Weekly</option><option value="MN">Monthly</option></select> Lookback <input :value="breadthLookback" aria-label="Breadth new high low lookback" type="number" min="2" max="252" @change="setBreadthConfiguration({ new_high_lookback: Number(($event.target as HTMLInputElement).value) })" /> <label><input type="checkbox" :checked="breadthAdjusted" aria-label="Breadth split adjusted" @change="setBreadthConfiguration({ adjusted: ($event.target as HTMLInputElement).checked })" /> Adjusted</label></label>
+    <div v-else-if="tool.instance_key === 'breadth-summary' || tool.tool_type === 'breadth'" class="breadth-tool" role="region" :aria-label="`Breadth analysis for ${breadthGroupKey}`" :aria-busy="breadthBusy ? 'true' : 'false'">
+      <div class="breadth-tool__universe">
+        <span>Universe</span>
+        <select :value="breadthGroupKey" aria-label="Breadth universe" @change="setBreadthGroup(($event.target as HTMLSelectElement).value)"><option value="sp500-sectors">S&amp;P 500 sectors</option><option value="us-benchmarks">US benchmarks</option></select>
+        <span>Timeframe</span>
+        <select :value="breadthTimeframe" aria-label="Breadth timeframe" @change="setBreadthConfiguration({ timeframe: ($event.target as HTMLSelectElement).value })"><option value="D1">Daily</option><option value="W1">Weekly</option><option value="MN">Monthly</option></select>
+        <span>Lookback</span>
+        <input :value="breadthLookback" aria-label="Breadth new high low lookback" type="number" min="2" max="252" @change="setBreadthConfiguration({ new_high_lookback: Number(($event.target as HTMLInputElement).value) })" />
+        <label><input type="checkbox" :checked="breadthAdjusted" aria-label="Breadth split adjusted" @change="setBreadthConfiguration({ adjusted: ($event.target as HTMLInputElement).checked })" /> Adjusted</label>
+      </div>
+      <p v-if="breadthBusy" class="breadth-tool__status" role="status" aria-live="polite">Loading breadth analysis…</p>
+      <p v-else-if="breadthError" class="breadth-tool__status breadth-tool__status--error" role="alert" aria-live="assertive">{{ breadthError }}</p>
+      <p v-else-if="!breadth" class="breadth-tool__status" role="status" aria-live="polite">Breadth analysis is unavailable.</p>
       <div class="metrics">
         <template v-for="period in ['ma20', 'ma50', 'ma200']" :key="period">
           <span>Above {{ period.slice(2) }} MA</span>
@@ -366,12 +408,12 @@
       <small class="breadth-tool__coverage-detail">Metric coverage: {{ breadthMetricCoverage }}</small>
       <div v-if="breadthDrilldown" class="breadth-tool__drilldown" aria-label="Breadth member drilldown">
         <header><strong>{{ breadthDrilldown.state === 'above' ? 'Passing' : 'Failing' }} {{ breadthDrilldownLabel(breadthDrilldown.key) }} members</strong><span><button type="button" :class="{ 'breadth-tool__action--active': breadthDrilldown.state === 'above' }" @click="setBreadthDrilldown(breadthDrilldown.key, 'above')">Pass</button><button type="button" :class="{ 'breadth-tool__action--active': breadthDrilldown.state === 'below' }" @click="setBreadthDrilldown(breadthDrilldown.key, 'below')">Fail</button><button type="button" @click="breadthDrilldown = null">Close</button></span></header>
-        <button v-for="row in breadthDrilldownRows" :key="row.symbol" type="button" @click="emit('select', row.symbol)"><strong>{{ row.symbol }}</strong><span>{{ row.name }}</span></button>
+        <button v-for="row in breadthDrilldownRows" :key="row.symbol" type="button" @click="emit('select', row.symbol, row.instrumentId)"><strong>{{ row.symbol }}</strong><span>{{ row.name }}</span></button>
         <small v-if="!breadthDrilldownRows.length">No locally evaluated members are available.</small>
       </div>
       <BreadthHistoryUPlot :history="breadthHistory" />
     </div>
-    <RelativeRotationTool v-else-if="tool.instance_key === 'relative-rotation' || tool.tool_type === 'relative_rotation'" :configuration="tool.configuration" @select="selectSymbol($event)" @configuration="emit('configuration', tool.instance_key, $event)" />
+    <RelativeRotationTool v-else-if="tool.instance_key === 'relative-rotation' || tool.tool_type === 'relative_rotation'" :configuration="tool.configuration" @select="selectRotationSymbol" @configuration="emit('configuration', tool.instance_key, $event)" />
     <div v-else-if="tool.instance_key === 'technical-summary' || tool.tool_type === 'technical_summary'" class="metrics">
       <span>RSI(14)</span><b>{{ formatNumber(technical?.rsi14) }}</b>
       <span>20 / 50 / 200 MA</span><b>{{ technicalMAs }}</b>
@@ -380,8 +422,8 @@
     </div>
     <CoverageSummaryTool v-else-if="tool.instance_key === 'coverage-summary' || tool.tool_type === 'coverage'" :symbol="activeSymbol" :configuration="tool.configuration" @configuration="emit('configuration', tool.instance_key, $event)" />
     <InstrumentNoteTool v-else-if="tool.tool_type === 'notes'" :instrument-id="toolInstrument?.id ?? chartStore.instrument?.id" :symbol="activeSymbol" />
-    <InstrumentAlertsTool v-else-if="tool.tool_type === 'alerts'" :instrument-id="toolInstrument?.id ?? chartStore.instrument?.id" :symbol="activeSymbol" />
-    <InstrumentInfoPanel v-else-if="tool.tool_type === 'report'" class="instrument-report" :instrument="toolInstrument ?? chartStore.instrument" :current-price="currentPrice" :session-high="currentSessionHigh" :session-low="currentSessionLow" @select="selectSymbol($event)" />
+    <InstrumentAlertsTool v-else-if="tool.tool_type === 'alerts'" :instrument-id="toolInstrument?.id ?? chartStore.instrument?.id" :symbol="activeSymbol" :timeframe="activeTimeframe" />
+    <InstrumentInfoPanel v-else-if="tool.tool_type === 'report'" class="instrument-report" :instrument="toolInstrument ?? chartStore.instrument" :current-price="currentPrice" :session-high="currentSessionHigh" :session-low="currentSessionLow" @select="(symbol, instrumentId) => selectSymbol(symbol, instrumentId)" />
     <EasyScanTool v-else-if="tool.tool_type === 'scan'" :source-window-key="tool.instance_key" />
     <MarketGaugeTool v-else-if="tool.tool_type === 'gauge'" />
     <StudyLabTool v-else-if="tool.tool_type === 'study_lab'" :tool-key="tool.instance_key" :active-symbol="activeSymbol" :configuration="tool.configuration" @configuration="emit('configuration', tool.instance_key, $event)" @occurrence="emit('occurrence', $event.symbol, $event.timestamp)" />
@@ -392,9 +434,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, provide, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, provide, ref, watch } from 'vue'
 import { useQueryClient } from '@tanstack/vue-query'
 import { api } from '@/lib/api'
+import { fetchCanonicalInstrument } from '@/lib/workstation/instrumentQueries'
 import { dedupeOhlcvRequest } from '@/lib/workstation/ohlcvRequests'
 import UPlotChart from '@/components/chart/UPlotChart.vue'
 import DrawingToolbar from '@/components/chart/DrawingToolbar.vue'
@@ -427,16 +470,35 @@ import { ensureKnownInstrumentSymbol } from '@/lib/instruments'
 import { INDICATOR_BY_TYPE } from '@/lib/indicators/catalog'
 import { buildFlaggedWatchlistRows } from '@/lib/workstation/flagged-watchlist'
 import { buildComboWatchlistRows, type ComboListDefinition } from '@/lib/workstation/combo-lists'
-import { autoRatioExpression } from '@/lib/workstation/ratioExpression'
-import { indicatorColumnFromPlot, type ChartPlotDragPayload, type TechnicalConditionDragPayload } from '@/lib/workstation/plotDrag'
+import { autoRatioBenchmarks, autoRatioExpression } from '@/lib/workstation/ratioExpression'
+import { indicatorColumnFromPlot, pythonColumnFromPlot, type ChartAnalysisDragPayload, type ChartPlotDragPayload, type TechnicalConditionDragPayload } from '@/lib/workstation/plotDrag'
+import { formatWorkstationFreshness } from '@/lib/workstation/freshness'
 import { CHART_BAR_TYPES, type ChartBarType, type ChartComparisonSeries, type ChartPythonSeries, type IndicatorConfig, type OHLCVBar, type Timeframe } from '@/types'
+
+// Golden Layout can temporarily retain multiple virtual roots for one tool.
+// Keep the latest name-editor owner module-wide so a stale root cannot replay
+// an older draft after a newer visible root has received the user's input.
+let latestPersonalListDraft = ''
+const latestCreatedPersonalWatchlistId = ref<number | null>(null)
+let latestCreatedPersonalWatchlistTimer: ReturnType<typeof setTimeout> | null = null
+const pendingPersonalWatchlistSelections = new Map<string, number | string | null>()
+const pendingPersonalWatchlistSelectionTimers = new Map<string, ReturnType<typeof setTimeout>>()
+
+function fenceLatestPersonalWatchlistSelection(id: number | null) {
+  latestCreatedPersonalWatchlistId.value = id
+  if (latestCreatedPersonalWatchlistTimer !== null) clearTimeout(latestCreatedPersonalWatchlistTimer)
+  latestCreatedPersonalWatchlistTimer = id == null ? null : setTimeout(() => {
+    latestCreatedPersonalWatchlistId.value = null
+    latestCreatedPersonalWatchlistTimer = null
+  }, 30_000)
+}
 
 const props = defineProps<{
   tool: WorkspaceWindowState
   activeWindowKey?: string | null
   factoryLayout?: string | null
 }>()
-const emit = defineEmits<{ select: [symbol: string]; compare: [symbols: string[]]; reorder: [watchlistId: number, itemIds: number[]]; rowAction: [action: 'chart' | 'compare' | 'note' | 'alert' | 'copy', row: { symbol: string; instrumentId: number | null }]; occurrence: [symbol: string, timestamp: string]; selectIndustry: [industry: string]; selectProxy: [symbol: string]; columns: [windowKey: string, keys: string[]]; filter: [windowKey: string, value: string]; conditionFilter: [windowKey: string, screenerId: number | null]; conditionFilterMode: [windowKey: string, mode: 'active' | 'inactive' | 'off']; pinnedBooleanKeys: [windowKey: string, keys: string[]]; columnGroups: [windowKey: string, groups: Record<string, string>]; stackedColumnKeys: [windowKey: string, keys: string[]]; configuration: [windowKey: string, configuration: Record<string, unknown>]; timeframe: [value: string, group: LinkGroup]; float: [windowKey: string]; maximize: [windowKey: string]; close: [windowKey: string]; updateLinkGroup: [windowKey: string, group: LinkGroup, displayedSymbol?: string] }>()
+const emit = defineEmits<{ select: [symbol: string, instrumentId?: number | null]; compare: [symbols: string[]]; reorder: [watchlistId: number, itemIds: number[]]; rowAction: [action: 'chart' | 'compare' | 'ratio' | 'note' | 'alert' | 'copy', row: { symbol: string; instrumentId: number | null }]; occurrence: [symbol: string, timestamp: string]; selectIndustry: [industry: string, etf: string]; selectProxy: [symbol: string, instrumentId?: number | null]; columns: [windowKey: string, keys: string[]]; filter: [windowKey: string, value: string]; conditionFilter: [windowKey: string, screenerId: number | null]; conditionFilterMode: [windowKey: string, mode: 'active' | 'inactive' | 'off']; pinnedBooleanKeys: [windowKey: string, keys: string[]]; columnGroups: [windowKey: string, groups: Record<string, string>]; stackedColumnKeys: [windowKey: string, keys: string[]]; configuration: [windowKey: string, configuration: Record<string, unknown>]; timeframe: [value: string, group: LinkGroup]; float: [windowKey: string]; maximize: [windowKey: string]; close: [windowKey: string]; updateLinkGroup: [windowKey: string, group: LinkGroup, displayedSymbol?: string] }>()
 // uPlot already consumes a panel-scoped store through injection. Give every persisted
 // workstation chart its own stable store identity so red/grey/yellow charts cannot
 // accidentally render the shell's blue/default data.
@@ -474,7 +536,8 @@ const personalWatchlistTargets = computed(() => personalWatchlists.value.map(wat
   locked: watchlist.is_locked,
   instrumentIds: watchlist.items.map(item => item.instrument_id),
 })))
-const selectedPersonalWatchlist = computed<Watchlist | null>(() => personalWatchlists.value.find(watchlist => watchlist.id === selectedPersonalWatchlistId.value) ?? null)
+const effectiveSelectedPersonalWatchlistId = computed(() => latestCreatedPersonalWatchlistId.value ?? selectedPersonalWatchlistId.value)
+const selectedPersonalWatchlist = computed<Watchlist | null>(() => personalWatchlists.value.find(watchlist => watchlist.id === effectiveSelectedPersonalWatchlistId.value) ?? null)
 const personalWatchlistRows = computed(() => (selectedPersonalWatchlist.value?.items ?? []).map(item => ({
   itemId: item.id,
   sourceWatchlistId: selectedPersonalWatchlist.value?.id,
@@ -499,19 +562,57 @@ const personalWatchlistColumns: WatchlistColumn[] = [
 ]
 const personalSymbolDraft = ref('')
 const personalListNameDraft = ref('')
+// A user-entered name must win over a stale virtual-tool snapshot. Without an
+// edit fence, selecting/creating a list in one Golden Layout root could replay
+// an older selection into another root between the input and its New click.
+const personalListNameEditing = ref(false)
 const personalListBusy = ref(false)
 const personalWatchlistBusy = ref(false)
 const personalWatchlistError = ref('')
+// Workspace snapshots can echo an older watchlist_id while a local selection
+// is still being persisted. Keep that stale echo from snapping the visible
+// list back to a different tab during membership actions.
+let pendingWatchlistConfiguration: number | string | null | undefined
+let pendingWatchlistConfigurationTimer: ReturnType<typeof setTimeout> | null = null
+
+function markPersonalListNameEdited(event: Event) {
+  personalListNameEditing.value = true
+  const value = event.target instanceof HTMLInputElement ? event.target.value : personalListNameDraft.value
+  latestPersonalListDraft = value
+}
+
+function publishWatchlistConfiguration(watchlistId: number | string | null) {
+  if (pendingWatchlistConfigurationTimer !== null) clearTimeout(pendingWatchlistConfigurationTimer)
+  pendingWatchlistConfigurationTimer = null
+  pendingWatchlistConfiguration = watchlistId
+  const toolKey = props.tool.instance_key
+  const previousTimer = pendingPersonalWatchlistSelectionTimers.get(toolKey)
+  if (previousTimer) clearTimeout(previousTimer)
+  pendingPersonalWatchlistSelections.set(toolKey, watchlistId)
+  pendingPersonalWatchlistSelectionTimers.set(toolKey, setTimeout(() => {
+    pendingPersonalWatchlistSelections.delete(toolKey)
+    pendingPersonalWatchlistSelectionTimers.delete(toolKey)
+  }, 30_000))
+  emit('configuration', props.tool.instance_key, { ...props.tool.configuration, watchlist_id: watchlistId })
+}
 
 function selectPersonalWatchlist(raw: string) {
+  // An explicit user selection supersedes the create-intent fence.
   flaggedItemsSelected.value = raw === 'flagged'
   selectedComboKey.value = raw.startsWith('combo:') ? raw.slice(6) : null
   const id = Number(raw)
   selectedPersonalWatchlistId.value = Number.isInteger(id) && id > 0 ? id : null
+  // Persisted workspace snapshots can arrive after the native select event,
+  // especially while a Golden Layout root is being activated. Keep the
+  // explicitly selected list authoritative for the same bounded window used
+  // after creation; the shared pending-selection map below protects sibling
+  // virtual roots from replaying the older configuration.
+  fenceLatestPersonalWatchlistSelection(selectedPersonalWatchlistId.value)
+  personalListNameEditing.value = false
   personalListNameDraft.value = selectedPersonalWatchlist.value?.name ?? ''
   comboError.value = ''
   hydrateSelectedCombo()
-  emit('configuration', props.tool.instance_key, { ...props.tool.configuration, watchlist_id: flaggedItemsSelected.value ? 'flagged' : selectedComboKey.value ? `combo:${selectedComboKey.value}` : selectedPersonalWatchlistId.value })
+  publishWatchlistConfiguration(flaggedItemsSelected.value ? 'flagged' : selectedComboKey.value ? `combo:${selectedComboKey.value}` : selectedPersonalWatchlistId.value)
 }
 
 function hydrateSelectedCombo() {
@@ -524,7 +625,11 @@ function hydrateSelectedCombo() {
 
 async function loadComboLists() {
   try {
-    comboLists.value = await api.get<ComboListDefinition[]>('/workspaces/library/items', { kind: 'combo_list' })
+    comboLists.value = await queryClient.fetchQuery<ComboListDefinition[]>({
+      queryKey: ['workstation', 'library-items', 'combo_list'],
+      queryFn: async () => (await api.get<ComboListDefinition[]>('/workspaces/library/items', { kind: 'combo_list' })) ?? [],
+      staleTime: 30_000,
+    })
     hydrateSelectedCombo()
   } catch (cause: any) {
     comboError.value = cause?.message ?? 'Unable to load combo lists'
@@ -546,13 +651,17 @@ async function saveComboList() {
       payload: { union_watchlist_ids: union, intersection_watchlist_ids: intersection, exclude_watchlist_ids: exclude },
       dependency_metadata: { watchlist_ids: [...new Set([...union, ...intersection, ...exclude])] },
     })
+    await queryClient.invalidateQueries({ queryKey: ['workstation', 'library-items', 'combo_list'] })
     const index = comboLists.value.findIndex(item => item.stable_key === stableKey)
     if (index >= 0) comboLists.value[index] = saved
     else comboLists.value.push(saved)
+    // A newly-created personal-list selection fence must not keep the combo
+    // view pinned to that list after the combo is saved and selected.
+    fenceLatestPersonalWatchlistSelection(null)
     selectedComboKey.value = stableKey
     flaggedItemsSelected.value = false
     selectedPersonalWatchlistId.value = null
-    emit('configuration', props.tool.instance_key, { ...props.tool.configuration, watchlist_id: `combo:${stableKey}` })
+    publishWatchlistConfiguration(`combo:${stableKey}`)
   } catch (cause: any) {
     comboError.value = cause?.message ?? 'Unable to save combo list'
   } finally {
@@ -567,6 +676,7 @@ async function deleteComboList() {
   comboError.value = ''
   try {
     await api.delete(`/workspaces/library/items/combo_list/${encodeURIComponent(combo.stable_key)}`)
+    await queryClient.invalidateQueries({ queryKey: ['workstation', 'library-items', 'combo_list'] })
     comboLists.value = comboLists.value.filter(item => item.stable_key !== combo.stable_key)
     selectedComboKey.value = null
     comboNameDraft.value = ''
@@ -574,7 +684,7 @@ async function deleteComboList() {
     comboIntersectionIds.value = []
     comboExcludeIds.value = []
     selectedPersonalWatchlistId.value = personalWatchlists.value[0]?.id ?? null
-    emit('configuration', props.tool.instance_key, { ...props.tool.configuration, watchlist_id: selectedPersonalWatchlistId.value })
+    publishWatchlistConfiguration(selectedPersonalWatchlistId.value)
   } catch (cause: any) {
     comboError.value = cause?.message ?? 'Unable to delete combo list'
   } finally {
@@ -582,17 +692,44 @@ async function deleteComboList() {
   }
 }
 
-async function createPersonalWatchlist() {
-  const name = personalListNameDraft.value.trim()
-  if (!name || personalListBusy.value) return
+async function createPersonalWatchlist(event?: Event) {
+  // Do not gate the click on a virtual-root-local busy/ref snapshot. A stale
+  // root may retain that flag while its visible successor owns the current
+  // draft; the store's name-keyed request deduplication remains the operation
+  // guard, and the live input value below is authoritative.
   personalListBusy.value = true
+  // A click can arrive in the same task as the input's final v-model update
+  // when a virtual tool root is being activated. Read the committed draft,
+  // not the previous render's value, before issuing the create request.
+  await nextTick()
+  // Read the live control as well as the component ref. During a Golden Layout
+  // virtual-root handoff, the DOM button can outlive the closure that received
+  // it; the input value is still the user's current draft and must win over a
+  // stale closure snapshot.
+  const button = event?.currentTarget instanceof HTMLElement ? event.currentTarget : null
+  const liveInput = button?.closest('.personal-watchlist-tool')?.querySelector<HTMLInputElement>('input[aria-label="Personal watchlist name"]')
+  const name = (latestPersonalListDraft || liveInput?.value || personalListNameDraft.value).trim()
+  if (!name) {
+    personalListBusy.value = false
+    return
+  }
+  // Golden Layout may briefly leave a stale virtual root alive while a new
+  // watchlist tab is being activated. The module-wide draft above is the
+  // authoritative intent; any duplicate roots therefore submit the same
+  // name-keyed operation, which the store deduplicates safely.
   personalWatchlistError.value = ''
   try {
     const created = await watchlistStore.createWatchlist(name)
     if (!created) throw new Error('Unable to create personal watchlist')
+    // A stale virtual root can replay the same create after the first root has
+    // already committed it. Selecting the canonical returned row is safe even
+    // when it was found through the store's idempotent 409 recovery, and keeps
+    // every duplicate root converged on the same current draft.
+    fenceLatestPersonalWatchlistSelection(created.id)
     selectedPersonalWatchlistId.value = created.id
+    personalListNameEditing.value = false
     personalListNameDraft.value = created.name
-    emit('configuration', props.tool.instance_key, { ...props.tool.configuration, watchlist_id: created.id })
+    publishWatchlistConfiguration(created.id)
   } catch (cause: any) {
     personalWatchlistError.value = cause?.message ?? 'Unable to create personal watchlist'
   } finally {
@@ -610,6 +747,7 @@ async function renamePersonalWatchlist() {
     const renamed = await watchlistStore.renameWatchlist(watchlist.id, name)
     if (!renamed) throw new Error('Unable to rename personal watchlist')
     personalListNameDraft.value = renamed.name
+    personalListNameEditing.value = false
   } catch (cause: any) {
     personalWatchlistError.value = cause?.status === 409 ? 'Another window changed this watchlist; reload it before renaming.' : (cause?.message ?? 'Unable to rename personal watchlist')
   } finally {
@@ -627,7 +765,8 @@ async function copyPersonalWatchlist() {
     if (!copy) throw new Error('Unable to copy personal watchlist')
     selectedPersonalWatchlistId.value = copy.id
     personalListNameDraft.value = copy.name
-    emit('configuration', props.tool.instance_key, { ...props.tool.configuration, watchlist_id: copy.id })
+    personalListNameEditing.value = false
+    publishWatchlistConfiguration(copy.id)
   } catch (cause: any) {
     personalWatchlistError.value = cause?.message ?? 'Unable to copy personal watchlist'
   } finally {
@@ -648,7 +787,7 @@ async function deletePersonalWatchlist() {
     flaggedItemsSelected.value = false
     selectedPersonalWatchlistId.value = next?.id ?? null
     personalListNameDraft.value = next?.name ?? ''
-    emit('configuration', props.tool.instance_key, { ...props.tool.configuration, watchlist_id: selectedPersonalWatchlistId.value })
+    publishWatchlistConfiguration(selectedPersonalWatchlistId.value)
   } catch (cause: any) {
     personalWatchlistError.value = cause?.message ?? 'Unable to delete personal watchlist'
   } finally {
@@ -663,8 +802,16 @@ async function addPersonalSymbol() {
   personalWatchlistBusy.value = true
   personalWatchlistError.value = ''
   try {
-    const item = await watchlistStore.addBySymbol(watchlist.id, raw)
+    const item = await watchlistStore.addBySymbol(watchlist.id, raw, true)
     if (!item) throw new Error(`${raw.toUpperCase()} could not be added (it may already be in the list).`)
+    // A concurrent Golden Layout root can echo an older workspace selection
+    // while the item request is in flight. Reassert the list that accepted the
+    // mutation so the visible tool renders the newly added row immediately.
+    selectedPersonalWatchlistId.value = watchlist.id
+    flaggedItemsSelected.value = false
+    selectedComboKey.value = null
+    personalListNameDraft.value = watchlist.name
+    publishWatchlistConfiguration(watchlist.id)
     personalSymbolDraft.value = ''
   } catch (cause: any) {
     personalWatchlistError.value = cause?.message ?? 'Unable to add symbol'
@@ -673,26 +820,40 @@ async function addPersonalSymbol() {
   }
 }
 
-async function handleMembershipAction(action: 'copy-to-watchlist' | 'move-to-watchlist', row: { symbol: string; instrumentId: number | null; itemId?: number }, targetWatchlistId?: number) {
+async function handleMembershipAction(action: 'copy-to-watchlist' | 'move-to-watchlist', row: { symbol: string; instrumentId: number | null; itemId?: number; sourceWatchlistId?: number }, targetWatchlistId?: number, selectedRows: Array<{ symbol: string; instrumentId: number | null; itemId?: number; sourceWatchlistId?: number }> = [row]) {
   if (row.instrumentId == null || targetWatchlistId == null) return
   const target = personalWatchlists.value.find(watchlist => watchlist.id === targetWatchlistId)
   if (!target || target.is_locked || target.is_managed) {
     personalWatchlistError.value = 'Choose an unlocked personal watchlist as the destination.'
     return
   }
-  if (action === 'move-to-watchlist' && (!selectedPersonalWatchlist.value || selectedPersonalWatchlist.value.is_locked || selectedPersonalWatchlist.value.is_managed || selectedPersonalWatchlist.value.id === target.id)) return
-  personalWatchlistError.value = ''
-  const added = await watchlistStore.addItem(target.id, row.instrumentId)
-  if (!added) {
-    personalWatchlistError.value = `${row.symbol} is already in ${target.name}, or the destination rejected the change.`
+  const selected = selectedPersonalWatchlist.value
+  const sourceIds = selectedRows.map(item => item.sourceWatchlistId ?? selected?.id).filter((id): id is number => id != null)
+  const sourceId = sourceIds[0]
+  if (sourceIds.some(id => id !== sourceId)) {
+    personalWatchlistError.value = 'Selected rows must come from the same source watchlist.'
     return
   }
-  if (action === 'move-to-watchlist' && selectedPersonalWatchlist.value && row.itemId != null) {
-    await watchlistStore.removeItem(selectedPersonalWatchlist.value.id, row.itemId)
+  const source = sourceId == null ? null : personalWatchlists.value.find(watchlist => watchlist.id === sourceId)
+  if (action === 'move-to-watchlist' && (!source || source.is_locked || source.is_managed || source.id === target.id)) return
+  personalWatchlistError.value = ''
+  const itemIds = selectedRows.map(item => item.itemId).filter((id): id is number => id != null)
+  if (sourceId == null || itemIds.length !== selectedRows.length) {
+    personalWatchlistError.value = 'The source watchlist item is no longer available; reload the list and try again.'
+    return
+  }
+  const transferred = await watchlistStore.transferItems(
+    sourceId,
+    itemIds,
+    target.id,
+    action === 'move-to-watchlist' ? 'move' : 'copy',
+  )
+  if (transferred.length !== itemIds.length) {
+    personalWatchlistError.value = `${selectedRows.length} selected row${selectedRows.length === 1 ? '' : 's'} could not be ${action === 'move-to-watchlist' ? 'moved' : 'copied'} to ${target.name}.`
   }
 }
 
-function handlePersonalRowAction(action: 'chart' | 'compare' | 'note' | 'alert' | 'copy' | 'copy-to-watchlist' | 'move-to-watchlist' | 'flag' | 'remove', row: { symbol: string; instrumentId: number | null; itemId?: number; sourceWatchlistId?: number; flagged?: boolean }, targetWatchlistId?: number) {
+function handlePersonalRowAction(action: 'chart' | 'compare' | 'ratio' | 'note' | 'alert' | 'copy' | 'copy-to-watchlist' | 'move-to-watchlist' | 'flag' | 'remove', row: { symbol: string; instrumentId: number | null; itemId?: number; sourceWatchlistId?: number; flagged?: boolean }, targetWatchlistId?: number, selectedRows?: Array<{ symbol: string; instrumentId: number | null; itemId?: number; sourceWatchlistId?: number; flagged?: boolean }>) {
   if (action === 'flag' && row.itemId != null) {
     const sourceWatchlistId = row.sourceWatchlistId ?? selectedPersonalWatchlist.value?.id
     if (sourceWatchlistId == null) return
@@ -700,7 +861,7 @@ function handlePersonalRowAction(action: 'chart' | 'compare' | 'note' | 'alert' 
     return
   }
   if (action === 'copy-to-watchlist' || action === 'move-to-watchlist') {
-    void handleMembershipAction(action, row, targetWatchlistId)
+    void handleMembershipAction(action, row, targetWatchlistId, selectedRows?.length ? selectedRows : [row])
     return
   }
   if (action === 'remove' && selectedPersonalWatchlist.value && row.itemId != null) {
@@ -718,11 +879,11 @@ onMounted(async () => {
     selectedPersonalWatchlistId.value = personalWatchlists.value[0]?.id ?? null
     personalListNameDraft.value = personalWatchlists.value[0]?.name ?? ''
     if (selectedPersonalWatchlistId.value != null) {
-      emit('configuration', props.tool.instance_key, { ...props.tool.configuration, watchlist_id: selectedPersonalWatchlistId.value })
+      publishWatchlistConfiguration(selectedPersonalWatchlistId.value)
     }
   }
   const symbols = personalWatchlistRows.value.map(row => row.symbol).filter(symbol => !symbol.startsWith('#'))
-  if (symbols.length) await watchlistStore.fetchPrices(symbols)
+  if (symbols.length) await watchlistStore.fetchPrices(symbols, false, true)
   void loadIndicatorColumns([
     ...personalWatchlistRows.value,
     ...flaggedWatchlistRows.value,
@@ -746,6 +907,24 @@ onMounted(async () => {
 })
 
 watch(() => props.tool.configuration.watchlist_id, value => {
+  if (latestCreatedPersonalWatchlistId.value != null && value !== latestCreatedPersonalWatchlistId.value) return
+  const sharedPendingSelection = pendingPersonalWatchlistSelections.get(props.tool.instance_key)
+  if (sharedPendingSelection !== undefined && value !== sharedPendingSelection) return
+  if (pendingWatchlistConfiguration !== undefined) {
+    if (value !== pendingWatchlistConfiguration) return
+    // A workspace snapshot can acknowledge the latest local selection and then
+    // deliver an older in-flight snapshot. Keep the acknowledgement fence alive
+    // briefly so rapid list traversal cannot snap the visible rows back to that
+    // stale value. Keep the fence longer than a rapid multi-create sequence;
+    // snapshot acknowledgement and persistence can involve several queued
+    // writes and must not revert the latest local selection mid-operation.
+    if (pendingWatchlistConfigurationTimer === null) {
+      pendingWatchlistConfigurationTimer = setTimeout(() => {
+        pendingWatchlistConfiguration = undefined
+        pendingWatchlistConfigurationTimer = null
+      }, 30_000)
+    }
+  }
   flaggedItemsSelected.value = value === 'flagged'
   selectedComboKey.value = typeof value === 'string' && value.startsWith('combo:') ? value.slice(6) : null
   selectedPersonalWatchlistId.value = typeof value === 'number' ? value : null
@@ -754,15 +933,15 @@ watch(() => props.tool.configuration.watchlist_id, value => {
 
 watch(() => selectedPersonalWatchlist.value?.items.map(item => item.symbol).join(','), value => {
   const symbols = (value ?? '').split(',').filter(Boolean)
-  if (symbols.length) void watchlistStore.fetchPrices(symbols)
+  if (symbols.length) void watchlistStore.fetchPrices(symbols, false, true)
 })
 watch(() => flaggedWatchlistRows.value.map(row => row.symbol).join(','), value => {
   const symbols = (value ?? '').split(',').filter(Boolean)
-  if (symbols.length) void watchlistStore.fetchPrices(symbols)
+  if (symbols.length) void watchlistStore.fetchPrices(symbols, false, true)
 })
 watch(() => comboWatchlistRows.value.map(row => row.symbol).join(','), value => {
   const symbols = (value ?? '').split(',').filter(Boolean)
-  if (symbols.length) void watchlistStore.fetchPrices(symbols)
+  if (symbols.length) void watchlistStore.fetchPrices(symbols, false, true)
 })
 // A Golden Layout virtual component is mounted independently from its host render
 // cycle. Keep the latest serializable chart configuration locally so template changes
@@ -784,7 +963,7 @@ watch(activeSymbol, async symbol => {
   toolInstrument.value = null
   if (!symbol || props.tool.tool_type === 'chart') return
   try {
-    const loaded = await api.get<Instrument>(`/instruments/${encodeURIComponent(symbol)}`)
+    const loaded = await fetchCanonicalInstrument(queryClient, symbol)
     if (sequence === instrumentRequestSequence) toolInstrument.value = loaded
   } catch {
     if (sequence === instrumentRequestSequence) toolInstrument.value = null
@@ -823,6 +1002,14 @@ const ratioExpression = computed(() => {
   const match = expression.match(/^=([A-Z0-9.:-]+)\/([A-Z0-9.:-]+)$/)
   return match ? { numerator: match[1], denominator: match[2] } : null
 })
+const ratioChartExpression = computed(() => {
+  if (props.tool.instance_key !== 'ratio-chart' || props.tool.configuration.auto_ratio === true) return null
+  const expression = typeof props.tool.configuration.expression === 'string'
+    ? props.tool.configuration.expression.trim().toUpperCase()
+    : ''
+  const match = expression.match(/^=([A-Z0-9.:-]+)\/([A-Z0-9.:-]+)$/)
+  return match ? { numerator: match[1], denominator: match[2] } : null
+})
 const syntheticExpression = computed(() => {
   const expression = typeof props.tool.configuration.expression === 'string'
     ? props.tool.configuration.expression.trim()
@@ -849,13 +1036,29 @@ const configuredComparisonSymbols = computed(() => {
 const comparisonSeries = computed<ChartComparisonSeries[]>(() => {
   return buildNormalizedComparisonSeries(chartStore.bars, comparisonTargets.value)
 })
-const configuredPythonPlots = computed(() => {
-  const plots = props.tool.configuration.python_plots
-  if (!Array.isArray(plots)) return []
-  return plots.filter((plot): plot is { code_version_id: number; name: string; color?: string; timeframe?: string } => Boolean(plot) && typeof plot === 'object' && Number.isInteger((plot as Record<string, unknown>).code_version_id) && typeof (plot as Record<string, unknown>).name === 'string' && (typeof (plot as Record<string, unknown>).color === 'undefined' || typeof (plot as Record<string, unknown>).color === 'string') && (typeof (plot as Record<string, unknown>).timeframe === 'undefined' || typeof (plot as Record<string, unknown>).timeframe === 'string'))
-})
+type ConfiguredPythonPlot = { code_version_id: number; name: string; color?: string; timeframe?: string; hidden?: boolean; instance_key?: string }
+type ConfiguredScanPlot = { screener_id: number; name: string; metric: 'count' | 'percentage'; color?: string; hidden?: boolean; instance_key?: string }
+function parseConfiguredPythonPlots(value: unknown): ConfiguredPythonPlot[] {
+  if (!Array.isArray(value)) return []
+  return value.filter((plot): plot is ConfiguredPythonPlot => Boolean(plot) && typeof plot === 'object' && Number.isInteger((plot as Record<string, unknown>).code_version_id) && typeof (plot as Record<string, unknown>).name === 'string' && (typeof (plot as Record<string, unknown>).color === 'undefined' || typeof (plot as Record<string, unknown>).color === 'string') && (typeof (plot as Record<string, unknown>).timeframe === 'undefined' || typeof (plot as Record<string, unknown>).timeframe === 'string') && (typeof (plot as Record<string, unknown>).hidden === 'undefined' || typeof (plot as Record<string, unknown>).hidden === 'boolean') && (typeof (plot as Record<string, unknown>).instance_key === 'undefined' || typeof (plot as Record<string, unknown>).instance_key === 'string'))
+}
+function parseConfiguredScanPlots(value: unknown): ConfiguredScanPlot[] {
+  if (!Array.isArray(value)) return []
+  return value.filter((plot): plot is ConfiguredScanPlot => Boolean(plot) && typeof plot === 'object' && Number.isInteger((plot as Record<string, unknown>).screener_id) && typeof (plot as Record<string, unknown>).name === 'string' && ((plot as Record<string, unknown>).metric === 'count' || (plot as Record<string, unknown>).metric === 'percentage') && (typeof (plot as Record<string, unknown>).color === 'undefined' || typeof (plot as Record<string, unknown>).color === 'string') && (typeof (plot as Record<string, unknown>).hidden === 'undefined' || typeof (plot as Record<string, unknown>).hidden === 'boolean') && (typeof (plot as Record<string, unknown>).instance_key === 'undefined' || typeof (plot as Record<string, unknown>).instance_key === 'string'))
+}
+// Golden Layout keeps virtual tool instances mounted while the parent snapshot
+// is being persisted. Keep an optimistic serializable copy so a just-added
+// Python plot is visible immediately even if the parent emits a snapshot or
+// conflict response before Vue has delivered the mutated configuration prop.
+const localPythonPlots = ref<ConfiguredPythonPlot[]>(parseConfiguredPythonPlots(props.tool.configuration.python_plots))
+const configuredPythonPlots = computed(() => localPythonPlots.value)
 const pythonSeries = ref<ChartPythonSeries[]>([])
+const localScanPlots = ref<ConfiguredScanPlot[]>(parseConfiguredScanPlots(props.tool.configuration.scan_plots))
+const configuredScanPlots = computed(() => localScanPlots.value)
+const scanSeries = ref<ChartPythonSeries[]>([])
+const numericSeries = computed(() => [...pythonSeries.value, ...scanSeries.value])
 let pythonPlotRequestSequence = 0
+let scanPlotRequestSequence = 0
 const pythonPlotRunIds = new Set<number>()
 const comparisonLegend = computed(() => comparisonSeries.value.map(series => ({
   symbol: series.symbol,
@@ -869,7 +1072,11 @@ function selectSymbol(symbol: string, instrumentId?: number | null) {
   // The shell owns canonical data loading and auto-ratio orchestration. Publish
   // row selections through it as well as the local link-group mutation so every
   // watchlist interaction follows the same top-down path as symbol entry.
-  emit('select', symbol)
+  emit('select', symbol, instrumentId)
+}
+
+function selectRotationSymbol(symbol: string, instrumentId?: number | null) {
+  selectSymbol(symbol, instrumentId)
 }
 
 function setTimeframe(timeframe: string) {
@@ -902,12 +1109,18 @@ function persistComparisonSymbols() {
   })
 }
 
-function updatePythonPlots(plots: Array<{ code_version_id: number; name: string; color?: string; timeframe?: string }>) {
+function updatePythonPlots(plots: ConfiguredPythonPlot[]) {
+  localPythonPlots.value = parseConfiguredPythonPlots(plots)
   emit('configuration', props.tool.instance_key, { ...props.tool.configuration, python_plots: plots })
 }
 
+function updateScanPlots(plots: ConfiguredScanPlot[]) {
+  localScanPlots.value = parseConfiguredScanPlots(plots)
+  emit('configuration', props.tool.instance_key, { ...props.tool.configuration, scan_plots: plots })
+}
+
 async function loadPythonPlots() {
-  const plots = configuredPythonPlots.value
+  const plots = configuredPythonPlots.value.filter(plot => !plot.hidden)
   for (const runId of pythonPlotRunIds) void api.post(`/research/runs/${runId}/cancel`, {})
   pythonPlotRunIds.clear()
   if (props.tool.tool_type !== 'chart' || !plots.length || !activeSymbol.value) { pythonSeries.value = []; return }
@@ -946,6 +1159,23 @@ async function loadPythonPlots() {
   if (sequence === pythonPlotRequestSequence) pythonSeries.value = loaded.filter((item): item is ChartPythonSeries => item != null)
 }
 
+async function loadScanPlots() {
+  const sequence = ++scanPlotRequestSequence
+  const loaded = await Promise.all(configuredScanPlots.value.filter(plot => !plot.hidden).map(async plot => {
+    try {
+      const response = await api.get<{ points?: Array<{ timestamp: string; value?: number | null }> }>(`/screeners/${plot.screener_id}/plot`, { metric: plot.metric })
+      const points = response?.points ?? []
+      const timestamps = points.map(point => point.timestamp)
+      const values = points.map(point => point.value == null ? null : Number(point.value))
+      if (!timestamps.length || timestamps.length !== values.length || !values.some(value => value != null && Number.isFinite(value))) return null
+      return { codeVersionId: -plot.screener_id, label: `${plot.name} · ${plot.metric}`, color: plot.color ?? '#4dd0e1', timestamps, values, source: 'scan' as const } satisfies ChartPythonSeries
+    } catch {
+      return null
+    }
+  }))
+  if (sequence === scanPlotRequestSequence) scanSeries.value = loaded.filter(item => item != null) as ChartPythonSeries[]
+}
+
 async function loadComparisonBars() {
   const symbols = comparisonTargets.value.map(target => target.symbol)
   if (!symbols.length || !chartStore.symbol) return
@@ -954,7 +1184,7 @@ async function loadComparisonBars() {
   const loaded = await Promise.all(symbols.map(async symbol => {
     try {
       const limit = Math.max(chartStore.bars.length, 500)
-      const raw = await dedupeOhlcvRequest(`raw:${symbol.toUpperCase()}:${timeframe}:adjusted:${limit}`, () => api.get<any[]>(`/ohlcv/${encodeURIComponent(symbol)}/${timeframe}`, { limit, adjusted: true }))
+      const raw = await dedupeOhlcvRequest(`raw:local:${symbol.toUpperCase()}:${timeframe}:adjusted:${limit}`, () => api.get<any[]>(`/ohlcv/local/${encodeURIComponent(symbol)}/${timeframe}`, { limit }))
       return { symbol, bars: raw.map(bar => ({
         ...bar,
         ts: Number(bar.ts ?? bar.timestamp),
@@ -977,7 +1207,7 @@ async function addComparisonSymbol(raw: string) {
     return
   }
   try {
-    const canonical = await ensureKnownInstrumentSymbol(symbol, 'Comparison symbol')
+    const canonical = await ensureKnownInstrumentSymbol(symbol, 'Comparison symbol', { canonicalOnly: true })
     comparisonTargets.value.push({ symbol: canonical, label: canonical, color: comparisonColors[comparisonTargets.value.length % comparisonColors.length], bars: [] })
     comparisonDraft.value = ''
     persistComparisonSymbols()
@@ -1013,12 +1243,14 @@ function applyChartConfiguration(changes: Record<string, unknown>) {
   applyChartTemplate({ ...liveChartConfiguration.value, ...changes })
 }
 
-function selectProxy(symbol: string) {
-  selectSymbol(symbol)
-  emit('selectProxy', symbol)
+function selectProxy(symbol: string, instrumentId?: number | null) {
+  // A verified industry proxy is a comparison/drill-down target, not a new
+  // taxonomy root. Let the shell publish/load its price data while retaining
+  // the sector and industry context that owns the constituent list.
+  emit('selectProxy', symbol, instrumentId)
 }
 
-function handleRowAction(action: 'chart' | 'compare' | 'note' | 'alert' | 'copy' | 'copy-to-watchlist' | 'move-to-watchlist' | 'flag' | 'remove', row: { symbol: string; instrumentId: number | null; flagged?: boolean }, targetWatchlistId?: number) {
+function handleRowAction(action: 'chart' | 'compare' | 'ratio' | 'note' | 'alert' | 'copy' | 'copy-to-watchlist' | 'move-to-watchlist' | 'flag' | 'remove', row: { symbol: string; instrumentId: number | null; flagged?: boolean }, targetWatchlistId?: number) {
   if (action === 'flag') return
   if (action === 'copy-to-watchlist' || action === 'move-to-watchlist') {
     void handleMembershipAction(action, row, targetWatchlistId)
@@ -1034,7 +1266,7 @@ watch([activeSymbol, activeTimeframe, syntheticExpression, chartBarType], async 
   let targetSymbol = symbol
   if (expression) {
     try {
-      targetSymbol = await ensureKnownInstrumentSymbol(expression, 'Workstation expression')
+      targetSymbol = await ensureKnownInstrumentSymbol(expression, 'Workstation expression', { canonicalOnly: true })
     } catch (cause: any) {
       if (sequence === chartSelectionSequence) chartStore.error = cause?.message ?? 'Unable to resolve expression'
       return
@@ -1051,19 +1283,32 @@ watch([activeSymbol, activeTimeframe, syntheticExpression, chartBarType], async 
 }, { immediate: true })
 
 watch([configuredPythonPlots, activeSymbol, activeTimeframe], () => { void loadPythonPlots() }, { deep: true, immediate: true })
+watch([configuredScanPlots, activeTimeframe], () => { void loadScanPlots() }, { deep: true, immediate: true })
 
 onBeforeUnmount(() => {
+  if (pendingWatchlistConfigurationTimer !== null) clearTimeout(pendingWatchlistConfigurationTimer)
+  pendingWatchlistConfigurationTimer = null
+  pendingWatchlistConfiguration = undefined
   // A chart tool can own several isolated Python plot runs. Cancel known runs
   // when its dock/pop-out closes and invalidate both chart and plot generations
   // so late research responses cannot update a destroyed uPlot surface.
   chartSelectionSequence += 1
   pythonPlotRequestSequence += 1
+  scanPlotRequestSequence += 1
   for (const runId of pythonPlotRunIds) void api.post(`/research/runs/${runId}/cancel`, {})
   pythonPlotRunIds.clear()
 })
 
 watch(() => props.tool.configuration, configuration => {
   liveChartConfiguration.value = configuration
+}, { deep: true })
+
+watch(() => props.tool.configuration.python_plots, value => {
+  localPythonPlots.value = parseConfiguredPythonPlots(value)
+}, { deep: true })
+
+watch(() => props.tool.configuration.scan_plots, value => {
+  localScanPlots.value = parseConfiguredScanPlots(value)
 }, { deep: true })
 
 watch([configuredComparisonSymbols, activeTimeframe, () => chartStore.symbol], async ([symbols, timeframe, symbol], previous) => {
@@ -1126,7 +1371,7 @@ function snapshotWarnings(row: GroupSnapshotRow | undefined) {
 function snapshotLineage(snapshot: { coverage?: number; freshness?: string; data_provenance?: string } | null | undefined) {
   return {
     coverage: snapshot?.coverage ?? null,
-    freshness: snapshot?.freshness ?? 'unavailable',
+    freshness: formatWorkstationFreshness(snapshot?.freshness),
     provenance: snapshot?.data_provenance ?? 'unavailable',
   }
 }
@@ -1139,15 +1384,40 @@ const breadthAdjusted = computed(() => props.tool.configuration.adjusted !== fal
 const breadthLookback = computed(() => Math.min(252, Math.max(2, Number(props.tool.configuration.new_high_lookback ?? 20) || 20)))
 const breadth = computed(() => workspaceStore.breadth[breadthGroupKey.value])
 const breadthHistory = computed(() => workspaceStore.breadthHistory[breadthGroupKey.value])
+const breadthBusy = computed(() => workspaceStore.breadthLoading[breadthGroupKey.value] === true || workspaceStore.breadthHistoryLoading[breadthGroupKey.value] === true)
+const breadthError = computed(() => workspaceStore.breadthErrors[breadthGroupKey.value] ?? workspaceStore.breadthHistoryErrors[breadthGroupKey.value] ?? null)
 const technical = computed(() => workspaceStore.technicals[activeSymbol.value])
 const selectedETF = computed(() => workspaceStore.constituentETF ?? '')
-const ratioBenchmarks = computed(() => [...new Set([
-  selectedETF.value && selectedETF.value !== activeSymbol.value ? selectedETF.value : 'SPY',
-  'SPY',
-])])
+const sectorSymbols = computed(() => new Set(
+  (workspaceStore.marketGroups['sp500-sectors']?.members ?? [])
+    .map(member => member.instrument.symbol.trim().toUpperCase())
+    .filter(Boolean),
+))
+// During ETF hydration, the shared constituentETF can briefly describe the
+// previous symbol while the visible Industries tool already follows the newly
+// linked sector. Prefer that explicit sector link for row clicks; once the
+// active symbol is a stock/proxy, retain the selected ETF context.
+const industryETFContext = computed(() => {
+  const linked = activeSymbol.value.trim().toUpperCase()
+  return sectorSymbols.value.has(linked) ? linked : selectedETF.value
+})
+const ratioBenchmarks = computed(() => {
+  const configured = props.tool.configuration.ratio_benchmarks
+  if (Array.isArray(configured)) {
+    const normalized = [...new Set(configured.filter(value => typeof value === 'string').map(value => value.trim().toUpperCase()).filter(Boolean))]
+      .filter(value => value !== activeSymbol.value.trim().toUpperCase())
+    if (normalized.length) return normalized
+  }
+  return autoRatioBenchmarks(
+    activeSymbol.value,
+    (workspaceStore.marketGroups['sp500-sectors']?.members ?? []).map(member => member.instrument.symbol),
+    selectedETF.value,
+  )
+})
 const holdings = computed(() => selectedETF.value ? workspaceStore.etfHoldings[selectedETF.value] : null)
 const constituentSnapshot = computed(() => selectedETF.value ? workspaceStore.etfConstituentSnapshots[selectedETF.value] : null)
-const industries = computed(() => selectedETF.value ? workspaceStore.etfIndustries[selectedETF.value]?.industries ?? [] : [])
+const industryComposition = computed(() => selectedETF.value ? workspaceStore.etfIndustries[selectedETF.value] : null)
+const industries = computed(() => industryComposition.value?.industries ?? [])
 const selectedIndustry = computed(() => workspaceStore.selectedIndustry)
 const selectedIndustryProxy = computed(() => workspaceStore.selectedIndustryProxy)
 const industryProxyState = computed(() => selectedETF.value && selectedIndustry.value
@@ -1159,7 +1429,7 @@ const industryProxySnapshot = computed(() => selectedETF.value && selectedIndust
 const proxyRows = computed(() => (industryProxySnapshot.value?.rows ?? []).map(row => {
   const evidence = industryProxyState.value?.proxies.find(proxy => proxy.symbol === row.symbol)
   return {
-  instrumentId: null,
+  instrumentId: row.instrument_id,
   symbol: row.symbol,
   name: row.name,
   values: {
@@ -1187,18 +1457,63 @@ const constituents = computed(() => {
 })
 const industryRows = computed(() => industries.value.map(item => ({
   instrumentId: null,
+  industry: item.industry,
+  resolved_count: item.resolved_count,
+  constituent_count: item.constituent_count,
   symbol: item.industry,
   name: `${item.resolved_count}/${item.constituent_count}`,
+  classificationLabel: classificationLabel(item.classification_systems),
+  classificationDetail: classificationDetail(item.classification_systems),
   values: {
     proxy_count: workspaceStore.industryProxies[`${selectedETF.value}:${item.industry}`]?.proxies.length ?? null,
     coverage: item.constituent_count ? item.resolved_count / item.constituent_count : null,
-    freshness: holdings.value?.snapshot?.composition_date ?? 'unavailable',
+    as_of: holdings.value?.snapshot?.composition_date ?? 'unavailable',
     provenance: holdings.value?.snapshot?.source_provider ?? 'ETF holdings classification',
   },
 })))
+function classificationLabel(systems?: string[]) {
+  const values = [...new Set((systems ?? []).filter(Boolean))]
+  if (!values.length) return 'Unclassified'
+  if (values.length === 1 && values[0] === 'unknown') return 'Unknown source'
+  if (values.length === 1) return values[0]
+  return 'Mixed sources'
+}
+function classificationDetail(systems?: string[]) {
+  const values = [...new Set((systems ?? []).filter(Boolean))]
+  return values.length ? `Classification source: ${values.join(', ')}` : 'No source-labelled classification evidence'
+}
+const industryClassificationSummary = computed(() => {
+  const composition = industryComposition.value
+  if (!composition) return 'classification provenance unavailable'
+  const systems = [...new Set((composition.classification_systems ?? []).filter(Boolean))]
+  const coverage = composition.classification_coverage
+  const coverageLabel = coverage == null ? 'coverage unavailable' : `${(coverage * 100).toFixed(0)}% classified`
+  return `${systems.length ? systems.join(' + ') : 'unclassified'} · ${coverageLabel}`
+})
 const constituentLabel = computed(() => {
+  const industrySnapshot = selectedETF.value && selectedIndustry.value
+    ? workspaceStore.industryConstituents[`${selectedETF.value}:${selectedIndustry.value}`]
+    : null
+  if (industrySnapshot) {
+    const systems = (industrySnapshot.classification_systems ?? []).join(' + ') || 'unknown source'
+    const coverage = industrySnapshot.classification_coverage == null
+      ? 'coverage unavailable'
+      : `${(industrySnapshot.classification_coverage * 100).toFixed(0)}% classified`
+    const excluded = industrySnapshot.exclusions?.length ? ` · ${industrySnapshot.exclusions.length} excluded` : ''
+    return `${industrySnapshot.etf_symbol} · ${industrySnapshot.industry} constituents · ${industrySnapshot.composition_date} · ${industrySnapshot.source_provider} · ${systems} · ${coverage}${excluded}`
+  }
   if (!holdings.value) return 'No point-in-time ETF holdings snapshot'
-  return `${holdings.value.snapshot.etf_symbol} holdings · ${holdings.value.snapshot.composition_date}`
+  return `${holdings.value.snapshot.etf_symbol} holdings · ${holdings.value.snapshot.composition_date} · ${holdings.value.snapshot.source_provider}`
+})
+const constituentExclusionCodes = computed(() => {
+  const industrySnapshot = selectedETF.value && selectedIndustry.value
+    ? workspaceStore.industryConstituents[`${selectedETF.value}:${selectedIndustry.value}`]
+    : null
+  return [...new Set(industrySnapshot?.exclusions ?? [])]
+})
+const constituentExclusionSummary = computed(() => {
+  if (!constituentExclusionCodes.value.length) return ''
+  return `Excluded from constituent view: ${constituentExclusionCodes.value.join(' · ')}`
 })
 const benchmarkRows = computed(() => (workspaceStore.marketGroups['us-benchmarks']?.members ?? []).map(member => ({
   instrumentId: member.instrument.id,
@@ -1222,6 +1537,7 @@ const benchmarkRows = computed(() => (workspaceStore.marketGroups['us-benchmarks
   })(),
   warnings: snapshotWarnings(benchmarkSnapshot.value?.rows.find(item => item.instrument_id === member.instrument.id)),
 })))
+const benchmarkDataError = computed(() => workspaceStore.marketGroupErrors['us-benchmarks'] ?? workspaceStore.groupSnapshotErrors['us-benchmarks'] ?? '')
 const sectorRows = computed(() => (workspaceStore.marketGroups['sp500-sectors']?.members ?? []).map(member => ({
   instrumentId: member.instrument.id,
   symbol: member.instrument.symbol,
@@ -1249,6 +1565,7 @@ const sectorRows = computed(() => (workspaceStore.marketGroups['sp500-sectors']?
   })(),
   warnings: snapshotWarnings(workspaceStore.groupSnapshots['sp500-sectors']?.rows.find(item => item.instrument_id === member.instrument.id)),
 })))
+const sectorDataError = computed(() => workspaceStore.marketGroupErrors['sp500-sectors'] ?? workspaceStore.groupSnapshotErrors['sp500-sectors'] ?? '')
 const breadthRows = computed<WatchlistRow[]>(() => {
   const snapshot = workspaceStore.groupSnapshots[breadthGroupKey.value]
   return (workspaceStore.marketGroups[breadthGroupKey.value]?.members ?? []).map(member => {
@@ -1377,7 +1694,7 @@ const industryColumns: WatchlistColumn[] = [
   { key: 'name', label: 'Coverage', width: '78px' },
   { key: 'proxy_count', label: 'Proxies', width: '58px' },
   { key: 'coverage', label: 'Coverage %', width: '72px', format: 'percent' },
-  { key: 'freshness', label: 'Freshness', width: '74px' },
+  { key: 'as_of', label: 'As of', width: '74px' },
   { key: 'provenance', label: 'Provenance', width: '110px' },
 ]
 const constituentColumns: WatchlistColumn[] = [
@@ -1441,18 +1758,62 @@ const configuredColumnOverrides = computed(() => {
 const configuredPythonColumns = computed(() => Array.isArray(props.tool.configuration.python_columns)
   ? props.tool.configuration.python_columns.filter((column): column is { code_version_id: number; name: string; timeframe?: string } => Boolean(column) && typeof column === 'object' && Number.isInteger((column as Record<string, unknown>).code_version_id) && typeof (column as Record<string, unknown>).name === 'string' && (typeof (column as Record<string, unknown>).timeframe === 'undefined' || typeof (column as Record<string, unknown>).timeframe === 'string'))
   : [])
-const configuredIndicatorColumns = computed(() => Array.isArray(props.tool.configuration.indicator_columns)
-  ? props.tool.configuration.indicator_columns.filter((column): column is { key: string; name: string; indicator: string; params: Record<string, unknown>; timeframe: string; output?: string } => Boolean(column) && typeof column === 'object' && typeof (column as Record<string, unknown>).key === 'string' && typeof (column as Record<string, unknown>).name === 'string' && typeof (column as Record<string, unknown>).indicator === 'string' && typeof (column as Record<string, unknown>).params === 'object' && typeof (column as Record<string, unknown>).timeframe === 'string')
-  : [])
-const configuredConditionColumns = computed(() => Array.isArray(props.tool.configuration.condition_columns)
-  ? props.tool.configuration.condition_columns.filter((column): column is { key: string; name: string; screener_id: number; timeframe: string } => Boolean(column) && typeof column === 'object' && typeof (column as Record<string, unknown>).key === 'string' && typeof (column as Record<string, unknown>).name === 'string' && Number.isInteger((column as Record<string, unknown>).screener_id) && typeof (column as Record<string, unknown>).timeframe === 'string')
-  : [])
+type IndicatorColumnConfiguration = { key: string; name: string; indicator: string; params: Record<string, unknown>; timeframe: string; output?: string }
+const pendingIndicatorColumns = ref<IndicatorColumnConfiguration[]>([])
+const configuredIndicatorColumns = computed<IndicatorColumnConfiguration[]>(() => {
+  const persisted = Array.isArray(props.tool.configuration.indicator_columns)
+    ? props.tool.configuration.indicator_columns.filter((column): column is IndicatorColumnConfiguration => Boolean(column) && typeof column === 'object' && typeof (column as Record<string, unknown>).key === 'string' && typeof (column as Record<string, unknown>).name === 'string' && typeof (column as Record<string, unknown>).indicator === 'string' && typeof (column as Record<string, unknown>).params === 'object' && typeof (column as Record<string, unknown>).timeframe === 'string')
+    : []
+  const persistedKeys = new Set(persisted.map(column => column.key))
+  return [...persisted, ...pendingIndicatorColumns.value.filter(column => !persistedKeys.has(column.key))]
+})
+type ConditionColumnConfiguration = { key: string; name: string; screener_id: number; timeframe: string }
+// Keep a just-created condition column visible while the debounced workspace
+// snapshot crosses the parent/Golden Layout boundary.
+const pendingConditionColumns = ref<ConditionColumnConfiguration[]>([])
+const configuredConditionColumns = computed<ConditionColumnConfiguration[]>(() => {
+  const persisted = Array.isArray(props.tool.configuration.condition_columns)
+    ? props.tool.configuration.condition_columns.filter((column): column is ConditionColumnConfiguration => Boolean(column) && typeof column === 'object' && typeof (column as Record<string, unknown>).key === 'string' && typeof (column as Record<string, unknown>).name === 'string' && Number.isInteger((column as Record<string, unknown>).screener_id) && typeof (column as Record<string, unknown>).timeframe === 'string')
+    : []
+  const persistedKeys = new Set(persisted.map(column => column.key))
+  return [...persisted, ...pendingConditionColumns.value.filter(column => !persistedKeys.has(column.key))]
+})
 
-function addPlotColumn(payload: ChartPlotDragPayload) {
+function addPlotColumn(payload: ChartAnalysisDragPayload) {
+  if (payload.kind === 'python-plot') {
+    const column = pythonColumnFromPlot(payload)
+    const columns = Array.isArray(props.tool.configuration.python_columns) ? props.tool.configuration.python_columns : []
+    const hasColumn = columns.some(candidate => Boolean(candidate) && typeof candidate === 'object' && Number(candidate.code_version_id) === column.code_version_id)
+    const key = `python:${column.code_version_id}`
+    const configuredKeys = Array.isArray(props.tool.configuration.column_keys)
+      ? props.tool.configuration.column_keys.filter((candidate): candidate is string => typeof candidate === 'string')
+      : []
+    const nextKeys = configuredKeys.includes(key) ? configuredKeys : [...configuredKeys, key]
+    if (hasColumn && nextKeys.length === configuredKeys.length) return
+    emit('configuration', props.tool.instance_key, {
+      ...props.tool.configuration,
+      column_keys: nextKeys,
+      python_columns: hasColumn ? columns : [...columns, column],
+    })
+    return
+  }
+  if (payload.kind !== 'chart-plot') return
   const column = indicatorColumnFromPlot(payload)
   const columns = Array.isArray(props.tool.configuration.indicator_columns) ? props.tool.configuration.indicator_columns : []
-  if (columns.some(candidate => Boolean(candidate) && typeof candidate === 'object' && (candidate as Record<string, unknown>).key === column.key)) return
-  emit('configuration', props.tool.instance_key, { ...props.tool.configuration, indicator_columns: [...columns, column] })
+  const hasColumn = columns.some(candidate => Boolean(candidate) && typeof candidate === 'object' && (candidate as Record<string, unknown>).key === column.key)
+  const configuredKeys = Array.isArray(props.tool.configuration.column_keys)
+    ? props.tool.configuration.column_keys.filter((key): key is string => typeof key === 'string')
+    : []
+  // A configured column list is authoritative for a customized watchlist. A
+  // dropped plot must therefore both register the definition and make it
+  // visible; otherwise the definition exists but is silently hidden.
+  const nextKeys = configuredKeys.includes(column.key) ? configuredKeys : [...configuredKeys, column.key]
+  pendingIndicatorColumns.value = [...pendingIndicatorColumns.value.filter(existing => existing.key !== column.key), column]
+  emit('configuration', props.tool.instance_key, {
+    ...props.tool.configuration,
+    column_keys: nextKeys,
+    indicator_columns: hasColumn ? columns : [...columns, column],
+  })
 }
 const conditionValues = ref<Record<string, Record<string, boolean | null>>>({})
 const conditionDropError = ref('')
@@ -1488,23 +1849,35 @@ async function addConditionColumn(payload: TechnicalConditionDragPayload) {
       name, condition: payload.condition,
       dependency_metadata: { source: 'technical-condition-drag', timeframe: payload.timeframe },
     })
-    let scan: { id: number }
-    try {
+    const screenerName = `${name} Boolean`
+    const existing = await queryClient.fetchQuery<Array<{ id: number; name: string }>>({
+      queryKey: ['workstation', 'screeners'],
+      queryFn: async () => (await api.get<Array<{ id: number; name: string }>>('/screeners')) ?? [],
+      staleTime: 30_000,
+    })
+    let scan: { id: number } = existing.find(item => item.name.toLowerCase() === screenerName.toLowerCase()) ?? { id: 0 }
+    if (!scan.id) {
       scan = await api.post<{ id: number }>(`/screeners/from-condition/${encodeURIComponent(stableKey)}`, {
-        name: `${name} Boolean`, universe_type: 'all', timeframe: payload.timeframe,
+        name: screenerName, universe_type: 'all', timeframe: payload.timeframe,
       })
-    } catch (cause: any) {
-      if (!String(cause?.message ?? '').includes('→ 409:')) throw cause
-      const existing = await api.get<Array<{ id: number; name: string }>>('/screeners')
-      const found = existing.find(item => item.name.toLowerCase() === `${name} boolean`.toLowerCase())
-      if (!found) throw cause
-      scan = found
     }
     await api.post(`/screeners/${scan.id}/run`, {})
+    await queryClient.invalidateQueries({ queryKey: ['workstation', 'screeners'] })
+    const column: ConditionColumnConfiguration = { key, name, screener_id: scan.id, timeframe: payload.timeframe }
+    pendingConditionColumns.value = [...pendingConditionColumns.value.filter(existing => existing.key !== key), column]
     const columns = Array.isArray(props.tool.configuration.condition_columns) ? props.tool.configuration.condition_columns : []
-    emit('configuration', props.tool.instance_key, { ...props.tool.configuration, condition_columns: [...columns, { key, name, screener_id: scan.id, timeframe: payload.timeframe }] })
+    const configuredKeys = Array.isArray(props.tool.configuration.column_keys)
+      ? props.tool.configuration.column_keys.filter((candidate): candidate is string => typeof candidate === 'string')
+      : []
+    // A customized watchlist treats column_keys as the visible-column
+    // allow-list. Register the dropped condition there as well as in the
+    // column definition, otherwise the successful drag is persisted but the
+    // new Boolean header remains hidden until the user edits Columns.
+    const nextKeys = configuredKeys.includes(column.key) ? configuredKeys : [...configuredKeys, column.key]
+    emit('configuration', props.tool.instance_key, { ...props.tool.configuration, column_keys: nextKeys, condition_columns: [...columns, column] })
     void loadConditionColumns([...personalWatchlistRows.value, ...flaggedWatchlistRows.value, ...comboWatchlistRows.value, ...benchmarkRows.value, ...sectorRows.value, ...factoryWatchlistRows.value, ...proxyRows.value, ...constituentRows.value])
   } catch (cause: any) {
+    pendingConditionColumns.value = pendingConditionColumns.value.filter(column => column.key !== key)
     conditionDropError.value = `Unable to create ${name} Boolean column: ${cause?.message ?? 'unknown error'}`
   }
 }
@@ -1596,7 +1969,7 @@ const descriptions: Record<string, string> = {
   XLK: 'Technology', XLY: 'Consumer Discretionary', XLC: 'Communication Services', XLF: 'Financials', XLV: 'Health Care', XLI: 'Industrials', XLP: 'Consumer Staples', XLE: 'Energy', XLU: 'Utilities', XLRE: 'Real Estate', XLB: 'Materials',
   NVDA: 'NVIDIA', MSFT: 'Microsoft', AAPL: 'Apple', AVGO: 'Broadcom', CRM: 'Salesforce', ORCL: 'Oracle', AMD: 'AMD', ADBE: 'Adobe',
 }
-const freshnessLabel = (value?: string) => value ? ` · ${value}` : ''
+const freshnessLabel = (value?: string) => value ? ` · ${formatWorkstationFreshness(value)}` : ''
 const breadthCoverage = computed(() => breadth.value ? `${(breadth.value.coverage * 100).toFixed(0)}% · ${breadth.value.evaluated_count} symbols${freshnessLabel(breadth.value.freshness)}` : 'Unavailable')
 const breadthMetricCoverage = computed(() => {
   const detail = breadth.value?.coverage_detail
@@ -1672,22 +2045,29 @@ const proxyCoverage = computed(() => industryProxySnapshot.value
 
 <style scoped>
 .chart-tool { display: flex; height: 100%; min-height: 0; background: #101419; }
-.chart-tool__drawing-toolbar { flex: 0 0 44px; max-height: 100%; box-sizing: border-box; overflow-x: hidden; overflow-y: auto; }
-.chart-tool__surface { position: relative; min-width: 0; min-height: 0; flex: 1 1 auto; }
+.chart-tool__drawing-toolbar { flex: 0 0 40px; max-height: 100%; box-sizing: border-box; overflow-x: hidden; overflow-y: auto; }
+.chart-tool__surface { position: relative; z-index: 2; min-width: 0; min-height: 0; flex: 1 1 auto; padding-top: 24px; box-sizing: border-box; }
 .chart-tool__templates { position: absolute; top: 3px; right: 4px; z-index: 12; }
-.chart-tool__compare { position: absolute; top: 3px; left: 4px; z-index: 12; display: flex; align-items: center; gap: 3px; max-width: calc(100% - 120px); overflow: hidden; }
+.chart-tool__plots { position: absolute; top: 3px; left: 150px; z-index: 13; }
+.chart-tool__compare { position: absolute; top: 3px; left: 4px; z-index: 12; display: flex; align-items: center; gap: 3px; max-width: calc(100% - 290px); overflow: hidden; }
 .chart-tool__compare input { width: 72px; border: 1px solid #42515c; background: #11161b; color: #dce9f2; padding: 2px 4px; font: 10px "Segoe UI", Arial, sans-serif; }
 .chart-tool__compare > button { border: 1px solid #42515c; background: #1b252d; color: #b9c9d3; padding: 1px 4px; font: 10px "Segoe UI", Arial, sans-serif; cursor: pointer; white-space: nowrap; }
 .chart-tool__compare-chip { overflow: hidden; text-overflow: ellipsis; }
 .chart-tool__compare-chip i { display: inline-block; width: 7px; height: 7px; margin-right: 3px; border-radius: 50%; }
+@media (max-width: 520px) {
+  .chart-tool__surface { padding-top: 46px; }
+  .chart-tool__compare { top: 3px; left: 4px; right: 4px; max-width: none; }
+  .chart-tool__plots { top: 25px; left: 4px; }
+  .chart-tool__templates { top: 25px; right: 4px; }
+}
 .tool-state { display: grid; place-items: center; height: 100%; padding: 12px; color: #98a7b2; font: 11px "Segoe UI", Arial, sans-serif; text-align: center; }
 .tool-state--error { color: #ec8f8f; }
 .benchmark-surface { display: grid; grid-template-rows: auto minmax(0, 1fr); height: 100%; min-height: 0; }
 .benchmark-surface__identity { display: flex; align-items: baseline; gap: 9px; padding: 5px 7px; border-bottom: 1px solid #28343c; background: #121920; color: #91a2ad; font: 10px "Segoe UI", Arial, sans-serif; }
 .benchmark-surface__identity strong { color: #d7e4eb; font-size: 11px; }
 .benchmark-surface__identity span:first-of-type { color: #d2bc7a; }
-.personal-watchlist-tool { display: grid; grid-template-rows: auto minmax(0, 1fr); height: 100%; min-height: 0; background: #11161b; }
-.personal-watchlist-tool__controls { display: flex; align-items: center; gap: 8px; min-height: 28px; padding: 3px 7px; border-bottom: 1px solid #28343c; background: #121920; color: #91a2ad; font: 10px "Segoe UI", Arial, sans-serif; }
+.personal-watchlist-tool { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); height: 100%; min-height: 0; background: #11161b; }
+.personal-watchlist-tool__controls { display: flex; flex-wrap: wrap; align-content: flex-start; align-items: center; width: 100%; min-width: 0; max-width: 100%; min-height: 28px; max-height: 84px; overflow: auto; gap: 8px; padding: 3px 7px; border-bottom: 1px solid #28343c; background: #121920; color: #91a2ad; font: 10px "Segoe UI", Arial, sans-serif; }
 .personal-watchlist-tool__controls label { display: flex; align-items: center; gap: 5px; color: #d7e4eb; }
 .personal-watchlist-tool__controls select { max-width: 210px; border: 1px solid #42515c; background: #11161b; color: #dce9f2; font: inherit; }
 .personal-watchlist-tool__controls input, .personal-watchlist-tool__controls button { border: 1px solid #42515c; background: #11161b; color: #dce9f2; font: inherit; padding: 2px 5px; }
@@ -1696,22 +2076,32 @@ const proxyCoverage = computed(() => industryProxySnapshot.value
 .personal-watchlist-tool__controls button:disabled { cursor: default; opacity: .5; }
 .personal-watchlist-tool__controls span { color: #8498a6; }
 .personal-watchlist-tool__controls .personal-watchlist-tool__error { color: #e49a9a; }
-.combo-editor { display: flex; align-items: center; gap: 4px; padding-left: 4px; border-left: 1px solid #34434d; }
+.combo-editor { display: flex; flex: 1 0 100%; align-items: center; min-width: max-content; gap: 4px; padding: 3px 0 2px 4px; border-left: 1px solid #34434d; border-top: 1px solid #28343c; }
 .combo-editor header { color: #d7e4eb; }
 .combo-editor label { display: flex; align-items: center; gap: 2px; color: #8498a6; }
 .combo-editor select { width: 82px; min-height: 22px; }
 .combo-editor select[multiple] { height: 34px; }
 .combo-editor input { width: 78px; }
 .analysis { height: 100%; min-height: 0; }
-.breadth-tool { display:grid; grid-template-rows:auto auto auto auto minmax(0,1fr); height:100%; min-height:0; }.breadth-tool__universe { display:flex; gap:5px; align-items:center; padding:5px 7px 0; color:#9aabb6; font:10px "Segoe UI",Arial,sans-serif; }.breadth-tool__universe select,.breadth-tool__universe input { border:1px solid #34434e; background:#172027; color:#d2dce3; font:inherit; }.breadth-tool__universe input { width:42px; }.metrics { display: grid; grid-template-columns: 1fr auto; gap: 5px 10px; padding: 9px; color: #99aabb; font: 10px "Segoe UI", Arial, sans-serif; }.breadth-tool__coverage-detail { padding:0 7px 4px; color:#778994; font:9px "Segoe UI",Arial,sans-serif; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }.breadth-tool__actions { display:flex; gap:3px; justify-content:flex-end; }.breadth-tool__actions button,.breadth-tool__drilldown header button { border:1px solid #34434e; background:#172027; color:#b9c8d1; font:inherit; padding:1px 4px; cursor:pointer; }.breadth-tool__actions button:hover,.breadth-tool__action--active { background:#1d4057; color:#e5f1f7; }.breadth-tool__drilldown { min-height:0; max-height:150px; overflow:auto; border-top:1px solid #2b3841; border-bottom:1px solid #2b3841; background:#131a20; font:10px "Segoe UI",Arial,sans-serif; }.breadth-tool__drilldown header { display:flex; justify-content:space-between; align-items:center; padding:4px 7px; color:#9aabb6; position:sticky; top:0; background:#20282f; }.breadth-tool__drilldown > button { display:flex; gap:8px; width:100%; border:0; border-bottom:1px solid #20282f; background:transparent; color:#cad4db; padding:4px 7px; text-align:left; cursor:pointer; }.breadth-tool__drilldown > button:hover { background:#1d4057; }.breadth-tool__drilldown > button span { color:#81929e; }.breadth-tool__drilldown > small { display:block; padding:7px; color:#8497a4; }
+.breadth-tool { display:grid; grid-template-rows:auto auto auto auto minmax(0,1fr); height:100%; min-height:0; container-type:inline-size; }.breadth-tool__universe { display:flex; flex-wrap:wrap; gap:5px; align-items:center; padding:5px 7px 0; color:#9aabb6; font:10px "Segoe UI",Arial,sans-serif; min-width:0; }.breadth-tool__universe span { flex:0 0 auto; }.breadth-tool__universe select,.breadth-tool__universe input { border:1px solid #34434e; background:#172027; color:#d2dce3; font:inherit; min-width:0; max-width:100%; }.breadth-tool__universe select { flex:1 1 100px; }.breadth-tool__universe input { width:42px; flex:0 1 42px; }.breadth-tool__universe label { display:flex; flex:0 0 auto; align-items:center; gap:3px; white-space:nowrap; }.breadth-tool__status { margin:0; padding:5px 7px; color:#9aabb6; font:10px "Segoe UI",Arial,sans-serif; }.breadth-tool__status--error { color:#ff9b8a; }.metrics { display: grid; grid-template-columns: 1fr auto; gap: 5px 10px; padding: 9px; color: #99aabb; font: 10px "Segoe UI", Arial, sans-serif; }.breadth-tool__coverage-detail { padding:0 7px 4px; color:#778994; font:9px "Segoe UI",Arial,sans-serif; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }.breadth-tool__actions { display:flex; gap:3px; justify-content:flex-end; }.breadth-tool__actions button,.breadth-tool__drilldown header button { border:1px solid #34434e; background:#172027; color:#b9c8d1; font:inherit; padding:1px 4px; cursor:pointer; }.breadth-tool__actions button:hover,.breadth-tool__action--active { background:#1d4057; color:#e5f1f7; }.breadth-tool__drilldown { min-height:0; max-height:150px; overflow:auto; border-top:1px solid #2b3841; border-bottom:1px solid #2b3841; background:#131a20; font:10px "Segoe UI",Arial,sans-serif; }.breadth-tool__drilldown header { display:flex; justify-content:space-between; align-items:center; padding:4px 7px; color:#9aabb6; position:sticky; top:0; background:#20282f; }.breadth-tool__drilldown > button { display:flex; gap:8px; width:100%; border:0; border-bottom:1px solid #20282f; background:transparent; color:#cad4db; padding:4px 7px; text-align:left; cursor:pointer; }.breadth-tool__drilldown > button:hover { background:#1d4057; }.breadth-tool__drilldown > button span { color:#81929e; }.breadth-tool__drilldown > small { display:block; padding:7px; color:#8497a4; }
+@container (max-width: 560px) {
+  .breadth-tool__universe { flex-wrap:wrap; row-gap:4px; }
+  .breadth-tool__universe > select { flex:1 1 100px; }
+  .breadth-tool__universe > input { flex:0 1 42px; }
+  .breadth-tool__universe > label { flex:0 0 auto; }
+}
 .metrics b { color: #d2dce3; font-weight: 500; text-align: right; }
 .industry-list { height: 100%; overflow: auto; background: #11161b; font: 11px "Segoe UI", Arial, sans-serif; }
 .industry-list__row { display: flex; width: 100%; justify-content: space-between; gap: 8px; padding: 7px; border: 0; border-bottom: 1px solid #20282f; background: transparent; color: #c7d0d8; text-align: left; cursor: pointer; }
 .industry-list__row:hover, .industry-list__row--active { background: #1d4057; }
+.industry-list__classification { flex: 0 0 auto; max-width: 120px; overflow: hidden; color: #a9b7bf; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
 .industry-list__proxies { display: grid; gap: 3px; padding: 6px 7px; border-bottom: 1px solid #20282f; color: #8998a3; }
 .industry-list__proxy-table { height: 170px; border: 1px solid #34434e; }
+.constituent-tool { display: grid; grid-template-rows: minmax(0, 1fr) auto; height: 100%; min-height: 0; background: #11161b; }
+.constituent-tool__provenance { display: block; overflow: hidden; padding: 3px 7px; border-top: 1px solid #28343c; background: #121920; color: #d5ae72; font: 9px "Segoe UI", Arial, sans-serif; text-overflow: ellipsis; white-space: nowrap; }
 .instrument-report { height: 100%; overflow: auto; background: #11161b; }
 .industry-list__row strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .industry-list__row span, .industry-list small { color: #7d9db0; }
 .industry-list small { display: block; padding: 7px; line-height: 1.3; }
+.industry-list__provenance { border-top: 1px solid #20282f; color: #8ea4b0; }
 </style>

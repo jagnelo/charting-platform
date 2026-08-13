@@ -3,6 +3,7 @@ import { ref, computed, watch } from 'vue'
 import type { OHLCVBar, Timeframe, Instrument, IndicatorConfig, ChartBarType } from '@/types'
 import { api } from '@/lib/api'
 import { dedupeOhlcvRequest } from '@/lib/workstation/ohlcvRequests'
+import { hasActiveAnalysisDrag } from '@/lib/workstation/plotDrag'
 
 const PAGE_SIZE = 500  // must match backend PAGE_SIZE
 const SERVER_TRANSFORMED_TYPES = new Set<ChartBarType>([
@@ -33,12 +34,29 @@ function createChartStore(storeId: string) {
     const isLoadingMore  = ref(false)
     const hasReachedStart   = ref(false)
     const isFetchingHistory = ref(false)
+    // Workstation charts are local-canonical. Legacy charts may opt into the
+    // provider-hydrating route, so retain the mode across pagination/refreshes.
+    const localOnlyMode = ref(false)
     const selectedIndicatorIndex    = ref<number | null>(null)
     const editRequestIndicatorIndex = ref<number | null>(null)
 
     let _saveTimer:     ReturnType<typeof setTimeout>  | null = null
     let _coveragePoller: ReturnType<typeof setInterval> | null = null
     let _loadGeneration = 0
+    // A chart can finish its initial indicator request after the user has
+    // already added/edited a plot. Never let that late hydration replace the
+    // user's newer stack (this is especially important while a plot is being
+    // dragged into another workstation tool).
+    let indicatorsDirty = false
+    let pendingIndicatorSave = false
+    let pendingIndicatorSaveSymbol: string | null = null
+
+    function cancelPendingIndicatorSave() {
+      if (_saveTimer !== null) {
+        clearTimeout(_saveTimer)
+        _saveTimer = null
+      }
+    }
 
     const activeIndicators = computed(() =>
       indicators.value.filter(i =>
@@ -78,11 +96,26 @@ function createChartStore(storeId: string) {
       } catch { return [] }
     }
 
-    async function saveIndicatorsForInstrument() {
-      if (!instrument.value) return
+    async function saveIndicatorsForInstrument(): Promise<boolean> {
+      cancelPendingIndicatorSave()
+      const targetInstrument = instrument.value
+      if (!targetInstrument) {
+        pendingIndicatorSave = true
+        pendingIndicatorSaveSymbol = symbol.value || null
+        return false
+      }
+      pendingIndicatorSave = false
+      pendingIndicatorSaveSymbol = null
+      const payload = indicators.value.map(indicator => ({
+        ...indicator,
+        params: indicator.params ? { ...indicator.params } : indicator.params,
+        style: indicator.style ? { ...indicator.style } : indicator.style,
+        lockedTimeframes: indicator.lockedTimeframes ? [...indicator.lockedTimeframes] : indicator.lockedTimeframes,
+      }))
       try {
-        await api.put(`/instrument-indicators/${instrument.value.id}`, { indicators: indicators.value })
-      } catch { /* silent */ }
+        await api.put(`/instrument-indicators/${targetInstrument.id}`, { indicators: payload })
+        return true
+      } catch { /* silent */ return false }
     }
 
     function setBarType(type: ChartBarType) {
@@ -103,8 +136,11 @@ function createChartStore(storeId: string) {
       const basketId = basketIdFromSymbol(sym)
       const requestKey = JSON.stringify({ sym: sym.toUpperCase(), tf, type, adjusted: true, before: opts.before ?? null, limit: opts.limit ?? PAGE_SIZE, localOnly: Boolean(opts.localOnly), basketId })
       return dedupeOhlcvRequest(requestKey, async () => {
-      if (opts.localOnly) {
-        const raw = await api.get<any[]>(`/ohlcv/local/${encoded}/${tf}`, { limit: opts.limit ?? PAGE_SIZE })
+      if (opts.localOnly && !SERVER_TRANSFORMED_TYPES.has(type)) {
+        const raw = await api.get<any[]>(`/ohlcv/local/${encoded}/${tf}`, {
+          ...(opts.before ? { before: opts.before } : {}),
+          limit: opts.limit ?? PAGE_SIZE,
+        })
         return _mapBars(raw)
       }
       if (basketId != null) {
@@ -115,23 +151,40 @@ function createChartStore(storeId: string) {
         return _mapBars(raw)
       }
       const raw = SERVER_TRANSFORMED_TYPES.has(type)
-        ? await api.get<any[]>(`/ohlcv/${encoded}/${tf}/transformed`, { ...params, bar_type: type })
-        : await api.get<any[]>(`/ohlcv/${encoded}/${tf}`, params)
+        ? await api.get<any[]>(`/ohlcv/${encoded}/${tf}/transformed`, {
+          ...params,
+          ...(opts.localOnly ? { local_only: true } : {}),
+          bar_type: type,
+        })
+        : await api.get<any[]>(`/ohlcv/${encoded}/${tf}`, {
+          ...params,
+          ...(opts.localOnly ? { local_only: true } : {}),
+        })
       return _mapBars(raw)
       })
     }
 
     async function loadBars(sym = symbol.value, tf: Timeframe = timeframe.value, nextBarType: ChartBarType = barType.value, localOnly = false) {
       if (!sym || !tf) return
+      cancelPendingIndicatorSave()
       const generation = ++_loadGeneration
       const isCurrent = () => generation === _loadGeneration && symbol.value === sym && timeframe.value === tf && barType.value === nextBarType
+      const sameSelection = symbol.value === sym && timeframe.value === tf && barType.value === nextBarType
+      if (!sameSelection) {
+        indicatorsDirty = false
+        if (pendingIndicatorSaveSymbol !== sym) {
+          pendingIndicatorSave = false
+          pendingIndicatorSaveSymbol = null
+        }
+      }
       isLoading.value = true
       error.value = null
       symbol.value = sym
       timeframe.value = tf
       barType.value = nextBarType
       instrument.value = null
-      indicators.value = []
+      const preserveIndicatorsDuringDrag = hasActiveAnalysisDrag()
+      if (!preserveIndicatorsDuringDrag && !indicatorsDirty) indicators.value = []
       bars.value = []
       hasReachedStart.value = false
       isLoadingMore.value = false
@@ -139,9 +192,10 @@ function createChartStore(storeId: string) {
       isFetchingHistory.value = false
 
       const basketId = basketIdFromSymbol(sym)
+      localOnlyMode.value = Boolean(localOnly)
       if (basketId != null) {
         try {
-          const mapped = await fetchBarsPage(sym, tf, { type: nextBarType })
+          const mapped = await fetchBarsPage(sym, tf, { type: nextBarType, localOnly })
           if (!isCurrent()) return
           bars.value = mapped
           hasReachedStart.value = true
@@ -157,6 +211,14 @@ function createChartStore(storeId: string) {
       if (!isCurrent()) return
       instrument.value = loadedInstrument
 
+      // A user can insert a plot while this symbol's metadata is still
+      // hydrating. Flush that dirty stack now that the canonical instrument ID
+      // is available; otherwise the insertion would only exist in memory and
+      // disappear on the next symbol round-trip.
+      if (isCurrent() && (pendingIndicatorSaveSymbol === sym || (pendingIndicatorSaveSymbol == null && indicatorsDirty))) {
+        await saveIndicatorsForInstrument()
+      }
+
       if (!loadedInstrument) {
         error.value = `Instrument "${sym.toUpperCase()}" was not found.`
         isLoading.value = false
@@ -165,7 +227,7 @@ function createChartStore(storeId: string) {
 
       const loadedIndicators = await fetchIndicatorsForInstrument(loadedInstrument.id)
       if (!isCurrent()) return
-      indicators.value = loadedIndicators
+      if (!preserveIndicatorsDuringDrag && !indicatorsDirty) indicators.value = loadedIndicators
 
       try {
         const mapped = await fetchBarsPage(sym, tf, { type: nextBarType, localOnly })
@@ -205,7 +267,7 @@ function createChartStore(storeId: string) {
       const type = barType.value
       const generation = _loadGeneration
       try {
-        const mapped = await fetchBarsPage(sym, tf, { before: oldestTs })
+        const mapped = await fetchBarsPage(sym, tf, { before: oldestTs, localOnly: localOnlyMode.value })
         if (!mapped.length) {
           if (!isFetchingHistory.value) hasReachedStart.value = true
           return
@@ -222,7 +284,7 @@ function createChartStore(storeId: string) {
 
     async function fetchLatestBars(): Promise<OHLCVBar[]> {
       if (!symbol.value || !timeframe.value) return []
-      return fetchBarsPage(symbol.value, timeframe.value)
+      return fetchBarsPage(symbol.value, timeframe.value, { localOnly: localOnlyMode.value })
     }
 
     function _mapBars(raw: any[]): OHLCVBar[] {
@@ -237,11 +299,11 @@ function createChartStore(storeId: string) {
       }))
     }
 
-    function setIndicators(configs: IndicatorConfig[]) { indicators.value = configs }
-    function addIndicator(config: IndicatorConfig)     { indicators.value.push(config) }
-    function removeIndicator(index: number)            { indicators.value.splice(index, 1) }
-    function updateIndicator(index: number, config: IndicatorConfig) { indicators.value[index] = config }
-    function reorderIndicators(newOrder: IndicatorConfig[]) { indicators.value = newOrder }
+    function setIndicators(configs: IndicatorConfig[]) { indicatorsDirty = true; indicators.value = configs }
+    function addIndicator(config: IndicatorConfig)     { indicatorsDirty = true; indicators.value.push(config) }
+    function removeIndicator(index: number)            { indicatorsDirty = true; indicators.value.splice(index, 1) }
+    function updateIndicator(index: number, config: IndicatorConfig) { indicatorsDirty = true; indicators.value[index] = config }
+    function reorderIndicators(newOrder: IndicatorConfig[]) { indicatorsDirty = true; indicators.value = newOrder }
     function selectIndicator(i: number | null) { selectedIndicatorIndex.value = i }
     function requestEditIndicator(i: number | null) { editRequestIndicatorIndex.value = i }
 

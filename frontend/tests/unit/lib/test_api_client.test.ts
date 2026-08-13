@@ -3,7 +3,7 @@
  * request construction, and error handling.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { setTokens, clearTokens } from '@/lib/api'
+import { setTokens, clearTokens, ApiError } from '@/lib/api'
 
 // We re-import api after each test to get a fresh module state
 // In Vitest we can use vi.resetModules() for this
@@ -86,11 +86,40 @@ describe('api.get', () => {
     expect(url).toContain('name=test')
   })
 
+  it('captures the token before logout can clear storage during request preparation', async () => {
+    setTokens('session-token', 'refresh')
+    let resolveFetch!: (response: unknown) => void
+    ;(global.fetch as ReturnType<typeof vi.fn>).mockReturnValueOnce(new Promise(resolve => { resolveFetch = resolve }))
+    const { api } = await import('@/lib/api')
+    const request = api.get('/during-logout')
+    clearTokens()
+    resolveFetch({ ok: true, status: 200, json: () => Promise.resolve({ ok: true }), text: () => Promise.resolve('') })
+    await request
+
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/during-logout'),
+      expect.objectContaining({ headers: expect.objectContaining({ Authorization: 'Bearer session-token' }) }),
+    )
+  })
+
   it('throws on non-OK response', async () => {
     setTokens('tok', 'ref')
     mockFetchFail(404, 'Not found')
     const { api } = await import('@/lib/api')
     await expect(api.get('/missing')).rejects.toThrow('404')
+  })
+
+  it('exposes structured status and request context for recoverable conflicts', async () => {
+    setTokens('tok', 'ref')
+    mockFetchFail(409, 'Already exists')
+    const { api } = await import('@/lib/api')
+
+    await expect(api.post('/watchlists/1/items', { instrument_id: 2 })).rejects.toMatchObject({
+      name: 'ApiError',
+      status: 409,
+      method: 'POST',
+      path: '/watchlists/1/items',
+    } satisfies Partial<ApiError>)
   })
 })
 

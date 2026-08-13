@@ -34,6 +34,16 @@ export const useDrawingsStore = defineStore('drawings', () => {
   const renderableDrawings = computed<AnyDrawing[]>(() => renderableDrawingsFor(null))
 
   async function loadDrawings(instId: number, tf: Timeframe) {
+    // A chart tool can still finish its symbol hydration while logout is
+    // routing the application away. Do not start a protected request after
+    // the token has been cleared, and reset the cache so the next session
+    // cannot inherit the previous user's drawings.
+    if (!localStorage.getItem('access_token')) {
+      drawings.value = []
+      instrumentId.value = null
+      currentTimeframe.value = null
+      return
+    }
     // Skip fetch if we already have this instrument's drawings loaded
     if (instrumentId.value === instId) {
       currentTimeframe.value = tf
@@ -46,6 +56,10 @@ export const useDrawingsStore = defineStore('drawings', () => {
       // The creation timeframe is stored as metadata only.
       drawings.value = await api.get('/drawings', { instrument_id: instId })
     } catch (e) {
+      // Logout can invalidate an in-flight request after the fetch has been
+      // issued. That is an expected auth-boundary race, not a drawing failure
+      // and must not surface as a console error during redirect.
+      if (e instanceof Error && e.message === 'Authentication required') return
       console.error('Failed to load drawings', e)
     }
   }

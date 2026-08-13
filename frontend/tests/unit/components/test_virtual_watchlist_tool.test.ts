@@ -23,6 +23,65 @@ beforeEach(() => { apiGet.mockResolvedValue([]); apiPost.mockReset(); apiPut.moc
 afterEach(() => { apiGet.mockReset(); apiPost.mockReset(); apiPut.mockReset(); apiDelete.mockReset() })
 
 describe('VirtualWatchlistTool', () => {
+  it('opens column editors from the keyboard and restores trigger focus on Escape', async () => {
+    const wrapper = mount(VirtualWatchlistTool, { props: { label: 'Sectors', rows } , attachTo: document.body })
+    const columns = wrapper.get('button[aria-label="Columns"]')
+    await columns.trigger('keydown', { key: 'ArrowDown' })
+    const editor = wrapper.get('[role="dialog"][aria-label="Column editor"]')
+    expect(document.activeElement).toBe(editor.find('button, input, select').element)
+    await editor.trigger('keydown', { key: 'Escape' })
+    expect(wrapper.find('[aria-label="Column editor"]').exists()).toBe(false)
+    expect(document.activeElement).toBe(columns.element)
+
+    const sets = wrapper.get('button[aria-label="Column sets"]')
+    await sets.trigger('keydown', { key: 'ArrowDown' })
+    const setEditor = wrapper.get('[role="dialog"][aria-label="Saved column sets"]')
+    expect(document.activeElement).toBe(wrapper.get('[aria-label="Column set name"]').element)
+    await setEditor.trigger('keydown', { key: 'Escape' })
+    expect(wrapper.find('[aria-label="Saved column sets"]').exists()).toBe(false)
+    expect(document.activeElement).toBe(sets.element)
+    wrapper.unmount()
+  })
+
+  it('exposes an explicit busy state while preserving the virtualized list', () => {
+    const wrapper = mount(VirtualWatchlistTool, {
+      props: { label: 'Refreshing sectors', rows, loading: true, loadingLabel: 'Refreshing sector analysis…' },
+    })
+
+    expect(wrapper.find('.watchlist').attributes('aria-busy')).toBe('true')
+    expect(wrapper.get('[role="status"]').text()).toContain('Refreshing sector analysis')
+    expect(wrapper.findAll('.watchlist__row')).toHaveLength(3)
+  })
+
+  it('exposes a list-scoped data error without replacing available rows', () => {
+    const wrapper = mount(VirtualWatchlistTool, {
+      props: { label: 'Sectors', rows, errorMessage: 'Sector analysis unavailable; cached rows retained.' },
+    })
+
+    expect(wrapper.get('[role="alert"]').text()).toContain('cached rows retained')
+    expect(wrapper.findAll('.watchlist__row')).toHaveLength(3)
+  })
+
+  it('exposes a mounted-list active descendant and supports Home/End keyboard traversal', async () => {
+    const wrapper = mount(VirtualWatchlistTool, {
+      attachTo: document.body,
+      props: { label: 'Sectors', rows, selected: 'XLE' },
+    })
+    const listbox = wrapper.get('[role="listbox"]')
+    const activeOption = wrapper.get('[role="option"][aria-label="XLE Energy"]')
+    expect(listbox.attributes('aria-activedescendant')).toBe(activeOption.attributes('id'))
+    expect(activeOption.attributes('id')).toMatch(/^watchlist-[a-z0-9-]+-row-2$/)
+
+    await listbox.trigger('keydown', { key: 'Home' })
+    expect(wrapper.emitted('select')?.at(-1)?.[0]).toMatchObject({ symbol: 'XLE', instrumentId: 2 })
+    expect(listbox.attributes('aria-activedescendant')).toBe(wrapper.get('[role="option"][aria-label="XLE Energy"]').attributes('id'))
+
+    await listbox.trigger('keydown', { key: 'End' })
+    expect(wrapper.emitted('select')?.at(-1)?.[0]).toMatchObject({ symbol: 'XLV', instrumentId: 3 })
+    expect(listbox.attributes('aria-activedescendant')).toMatch(/-row-3$/)
+    wrapper.unmount()
+  })
+
   it('keeps a 10,000-row universe virtualized instead of creating one DOM row per instrument', () => {
     const largeRows = Array.from({ length: 10_000 }, (_, index) => ({
       instrumentId: index + 1,
@@ -36,6 +95,73 @@ describe('VirtualWatchlistTool', () => {
     expect(wrapper.find('.watchlist__controls b').text()).toBe('10000')
     expect(wrapper.findAll('.watchlist__row').length).toBeLessThan(100)
     expect(wrapper.find('.watchlist__scroll > div').attributes('style')).toContain('height:')
+  })
+
+  it('virtualizes wide column sets instead of creating one cell per column in every visible row', () => {
+    const columns = Array.from({ length: 100 }, (_, index) => ({
+      key: `metric_${index}`,
+      label: `Metric ${index}`,
+      width: '84px',
+      format: 'number' as const,
+    }))
+    const wrapper = mount(VirtualWatchlistTool, {
+      props: {
+        label: 'Wide universe',
+        rows,
+        columns,
+        visibleColumnKeys: columns.map(column => column.key),
+      },
+    })
+
+    expect(wrapper.find('.watchlist__header').attributes('style')).toContain('width:')
+    expect(wrapper.findAll('.watchlist__header > button').length).toBeLessThan(columns.length)
+    expect(wrapper.findAll('.watchlist__row span').length).toBeLessThan(columns.length)
+    expect(wrapper.find('.watchlist__scroll > div').attributes('style')).toContain('width:')
+  })
+
+  it('keeps the virtualized header aligned with horizontal list scrolling', async () => {
+    const columns = Array.from({ length: 20 }, (_, index) => ({ key: `metric_${index}`, label: `Metric ${index}`, width: '84px' }))
+    const wrapper = mount(VirtualWatchlistTool, {
+      props: { label: 'Scrollable columns', rows, columns, visibleColumnKeys: columns.map(column => column.key) },
+    })
+    const scroll = wrapper.find('.watchlist__scroll')
+    Object.defineProperty(scroll.element, 'scrollLeft', { configurable: true, value: 168, writable: true })
+    await scroll.trigger('scroll')
+    expect(wrapper.find('.watchlist__header').attributes('style')).toContain('translateX(-168px)')
+  })
+
+  it('deduplicates saved-screener hydration across virtual watchlist roots', async () => {
+    apiGet.mockImplementation(async (path: string) => path === '/screeners' ? [{ id: 91, name: 'Shared condition' }] : [])
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
+    const global = { plugins: [[VueQueryPlugin, { queryClient }]] }
+    const first = vueMount(VirtualWatchlistTool, { global, props: { label: 'First root', rows } })
+    const second = vueMount(VirtualWatchlistTool, { global, props: { label: 'Second root', rows } })
+
+    await vi.waitFor(() => expect(apiGet.mock.calls.filter(([path]) => path === '/screeners')).toHaveLength(1))
+    first.unmount()
+    second.unmount()
+  })
+
+  it('deduplicates saved-column-set hydration across virtual watchlist roots', async () => {
+    apiGet.mockImplementation(async (path: string, params?: { kind?: string }) => (
+      path === '/workspaces/library/items' && params?.kind === 'column_set'
+        ? [{ stable_key: 'shared', name: 'Shared columns', version: 1, payload: { configuration: {} } }]
+        : []
+    ))
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
+    const global = { plugins: [[VueQueryPlugin, { queryClient }]] }
+    const first = vueMount(VirtualWatchlistTool, { global, props: { label: 'First root', rows } })
+    const second = vueMount(VirtualWatchlistTool, { global, props: { label: 'Second root', rows } })
+    await first.get('button[aria-label="Column sets"]').trigger('click')
+    await second.get('button[aria-label="Column sets"]').trigger('click')
+
+    await vi.waitFor(() => {
+      expect(first.text()).toContain('Shared columns')
+      expect(second.text()).toContain('Shared columns')
+    })
+    expect(apiGet.mock.calls.filter(([path, params]) => path === '/workspaces/library/items' && params?.kind === 'column_set')).toHaveLength(1)
+    first.unmount()
+    second.unmount()
   })
 
   it('cancels an active Python batch when the canonical row universe changes', async () => {
@@ -171,6 +297,34 @@ describe('VirtualWatchlistTool', () => {
     expect(wrapper.emitted('select')?.[0]).toEqual([rows[1]])
   })
 
+  it('exposes virtualized row selection through listbox semantics', async () => {
+    const wrapper = mount(VirtualWatchlistTool, { props: { label: 'Sectors', rows, selected: 'XLE' } })
+    const listbox = wrapper.get('[role="listbox"]')
+    expect(listbox.attributes('aria-label')).toBe('Sectors symbols')
+    expect(listbox.attributes('aria-multiselectable')).toBe('true')
+    const options = wrapper.findAll('[role="option"]')
+    const technology = options.find(option => option.attributes('aria-label') === 'XLK Technology')!
+    const energy = options.find(option => option.attributes('aria-label') === 'XLE Energy')!
+    expect(technology.attributes('aria-selected')).toBe('false')
+    expect(energy.attributes('aria-selected')).toBe('true')
+
+    await technology.trigger('click')
+    expect(wrapper.emitted('select')?.at(-1)).toEqual([rows[0]])
+  })
+
+  it('preserves rendered row nodes across value-only refreshes', async () => {
+    const wrapper = mount(VirtualWatchlistTool, { props: { label: 'Live sectors', rows } })
+    const firstRow = wrapper.find('.watchlist__row').element
+    await wrapper.setProps({
+      rows: rows.map(row => ({
+        ...row,
+        values: { ...row.values, relative_1m: Number(row.values?.relative_1m ?? 0) + 0.01 },
+      })),
+    })
+
+    expect(wrapper.find('.watchlist__row').element).toBe(firstRow)
+  })
+
   it('supports personal-list drag ordering while preserving source item ids', async () => {
     const personalRows = rows.map((row, index) => ({ ...row, itemId: index + 10 }))
     const wrapper = mount(VirtualWatchlistTool, {
@@ -185,7 +339,7 @@ describe('VirtualWatchlistTool', () => {
   })
 
   it('accepts a serialized chart plot drop as a cross-tool event', async () => {
-    const wrapper = mount(VirtualWatchlistTool, { props: { label: 'Sectors', rows } })
+    const wrapper = mount(VirtualWatchlistTool, { props: { label: 'Sectors', rows, visibleColumnKeys: ['symbol'] } })
     const values = new Map<string, string>()
     const dataTransfer = {
       types: ['application/x-charting-platform-plot'],
@@ -202,7 +356,7 @@ describe('VirtualWatchlistTool', () => {
   })
 
   it('accepts a serialized technical condition drop for a Boolean column', async () => {
-    const wrapper = mount(VirtualWatchlistTool, { props: { label: 'Sectors', rows } })
+    const wrapper = mount(VirtualWatchlistTool, { props: { label: 'Sectors', rows, visibleColumnKeys: ['symbol'] } })
     const values = new Map<string, string>()
     const dataTransfer = {
       setData: (type: string, value: string) => values.set(type, value),
@@ -243,6 +397,37 @@ describe('VirtualWatchlistTool', () => {
     expect(wrapper.find('.watchlist__header').text()).toContain('Ticker')
   })
 
+  it('resizes a rendered column from its V25-style header separator and emits a pixel width', async () => {
+    const wrapper = mount(VirtualWatchlistTool, {
+      props: {
+        label: 'Sectors', rows,
+        columns: [
+          { key: 'symbol', label: 'Symbol', width: '72px' },
+          { key: 'name', label: 'Name', width: '120px' },
+        ],
+      },
+    })
+    const handle = wrapper.get('[aria-label="Resize Symbol column"]')
+    await handle.trigger('mousedown', { clientX: 100 })
+    window.dispatchEvent(new MouseEvent('mousemove', { clientX: 132 }))
+    window.dispatchEvent(new MouseEvent('mouseup', { clientX: 132 }))
+    expect(wrapper.emitted('update:columnOverrides')?.at(-1)).toEqual([{ symbol: { width: '80px' } }])
+    expect(handle.attributes('tabindex')).toBe('0')
+  })
+
+  it('keeps the dense header surface measurable so resize hit targets cannot collapse', async () => {
+    const wrapper = mount(VirtualWatchlistTool, {
+      props: {
+        label: 'Sectors',
+        columns: [{ key: 'symbol', label: 'Symbol', width: '54px' }],
+        rows: [{ symbol: 'SPY', name: 'SPDR S&P 500 ETF Trust', instrumentId: 1 }],
+      },
+    })
+    const header = wrapper.get('.watchlist__header')
+    expect(header.attributes('class')).toContain('watchlist__header')
+    expect(wrapper.get('[role="separator"]').attributes('tabindex')).toBe('0')
+  })
+
   it('supports drag-and-drop column ordering in the integrated editor', async () => {
     const wrapper = mount(VirtualWatchlistTool, {
       props: {
@@ -277,7 +462,8 @@ describe('VirtualWatchlistTool', () => {
 
     expect(wrapper.find('.watchlist__header').text()).toContain('RSI')
     expect(wrapper.text()).toContain('72.25')
-    expect(wrapper.text()).toContain('⚠ insufficient_history')
+    expect(wrapper.find('.workstation-glyph--warning').exists()).toBe(true)
+    expect(wrapper.find('.workstation-glyph--warning').attributes('title')).toBe('insufficient_history')
     await wrapper.findAll('.watchlist__header button').find(button => button.text().includes('RSI'))?.trigger('click')
     expect(wrapper.findAll('.watchlist__row')[0].text()).toContain('31.50')
   })
@@ -291,7 +477,8 @@ describe('VirtualWatchlistTool', () => {
       },
     })
 
-    expect(wrapper.text()).toContain('⚠ insufficient_history')
+    expect(wrapper.find('.workstation-glyph--warning').exists()).toBe(true)
+    expect(wrapper.find('.workstation-glyph--warning').attributes('title')).toBe('insufficient_history')
   })
 
   it('supports plain, ctrl/meta, and shift range selection without losing row activation', async () => {
@@ -323,6 +510,28 @@ describe('VirtualWatchlistTool', () => {
     expect(wrapper.emitted('compare')?.[0]?.[0]).toEqual(['XLE', 'XLK'])
   })
 
+  it('emits the selected canonical rows for batch membership actions only', async () => {
+    const selectedRows = rows.map((row, index) => ({ ...row, itemId: index + 10, sourceWatchlistId: 3 }))
+    const wrapper = mount(VirtualWatchlistTool, {
+      props: {
+        label: 'Personal', rows: selectedRows,
+        membershipTargets: [{ id: 7, name: 'Morning review' }], sourceWatchlistId: 3,
+      },
+    })
+    const selectRow = (wrapper.vm as unknown as { selectRow: (row: typeof selectedRows[number], event: MouseEvent) => void }).selectRow
+    selectRow(selectedRows[0], new MouseEvent('click'))
+    selectRow(selectedRows[1], new MouseEvent('click', { ctrlKey: true }))
+    await wrapper.findAll('.watchlist__row').find(row => row.text().includes('XLE'))?.trigger('contextmenu', { clientX: 20, clientY: 24 })
+    await wrapper.get('select[aria-label="Target watchlist"]').setValue('7')
+    const copy = wrapper.findAll('button[role="menuitem"]').find(button => button.text().includes('Copy 2 selected'))
+    expect(copy?.exists()).toBe(true)
+    await copy?.trigger('click')
+    expect(wrapper.emitted('row-action')?.at(-1)).toEqual([
+      'copy-to-watchlist', expect.objectContaining({ symbol: 'XLE' }), 7,
+      expect.arrayContaining([expect.objectContaining({ symbol: 'XLK' }), expect.objectContaining({ symbol: 'XLE' })]),
+    ])
+  })
+
   it('opens wired row actions from the desktop context menu', async () => {
     const wrapper = mount(VirtualWatchlistTool, { props: { label: 'Sectors', rows } })
     await wrapper.find('.watchlist__row').trigger('contextmenu', { clientX: 20, clientY: 24 })
@@ -330,6 +539,23 @@ describe('VirtualWatchlistTool', () => {
 
     await wrapper.get('button[role="menuitem"]').trigger('click')
     expect(wrapper.emitted('row-action')?.[0]).toEqual(['chart', rows[1]])
+  })
+
+  it('offers a direct relative-strength ratio action against the active symbol', async () => {
+    const wrapper = mount(VirtualWatchlistTool, { props: { label: 'Sectors', rows, selected: 'SPY' } })
+    await wrapper.find('.watchlist__row').trigger('contextmenu', { clientX: 20, clientY: 24 })
+    const ratio = wrapper.findAll('button[role="menuitem"]').find(button => button.text() === 'Open ratio vs active')
+    expect(ratio?.exists()).toBe(true)
+    expect(ratio?.attributes('disabled')).toBeUndefined()
+    await ratio?.trigger('click')
+    expect(wrapper.emitted('row-action')?.[0]).toEqual(['ratio', rows[1]])
+  })
+
+  it('disables the ratio action when the row is already the active symbol', async () => {
+    const wrapper = mount(VirtualWatchlistTool, { props: { label: 'Sectors', rows, selected: 'XLE' } })
+    await wrapper.find('.watchlist__row').trigger('contextmenu', { clientX: 20, clientY: 24 })
+    const ratio = wrapper.findAll('button[role="menuitem"]').find(button => button.text() === 'Open ratio vs active')
+    expect(ratio?.attributes('disabled')).toBeDefined()
   })
 
   it('offers copy and move membership actions with an explicit personal-list target', async () => {
@@ -359,6 +585,40 @@ describe('VirtualWatchlistTool', () => {
     await wrapper.get('select[aria-label="Target watchlist"]').setValue('7')
     await wrapper.findAll('button[role="menuitem"]').find(button => button.text() === 'Move to list')?.trigger('click')
     expect(wrapper.emitted('row-action')?.at(-1)).toEqual(['move-to-watchlist', expect.objectContaining({ itemId: 22 }), 7])
+  })
+
+  it('enables move from the row source identity when the current tool source is unavailable', async () => {
+    const wrapper = mount(VirtualWatchlistTool, {
+      props: {
+        label: 'Flagged Items',
+        rows: [{ ...rows[1], itemId: 23, sourceWatchlistId: 3 }],
+        membershipTargets: [{ id: 7, name: 'Morning review', instrumentIds: [] }],
+        sourceWatchlistId: null,
+        allowRemove: true,
+      },
+    })
+    await wrapper.find('.watchlist__row').trigger('contextmenu', { clientX: 20, clientY: 24 })
+    await wrapper.get('select[aria-label="Target watchlist"]').setValue('7')
+    const move = wrapper.findAll('button[role="menuitem"]').find(button => button.text() === 'Move to list')
+    expect(move?.attributes('disabled')).toBeUndefined()
+    await move?.trigger('click')
+    expect(wrapper.emitted('row-action')?.at(-1)).toEqual(['move-to-watchlist', expect.objectContaining({ sourceWatchlistId: 3 }), 7])
+  })
+
+  it('does not disable a valid target when the tool source prop is stale', async () => {
+    const wrapper = mount(VirtualWatchlistTool, {
+      props: {
+        label: 'Flagged Items',
+        rows: [{ ...rows[1], itemId: 24, sourceWatchlistId: 3 }],
+        membershipTargets: [{ id: 7, name: 'Morning review', instrumentIds: [] }],
+        sourceWatchlistId: 7,
+      },
+    })
+    await wrapper.find('.watchlist__row').trigger('contextmenu', { clientX: 20, clientY: 24 })
+    const target = wrapper.get('select[aria-label="Target watchlist"] option[value="7"]')
+    expect(target.attributes('disabled')).toBeUndefined()
+    await wrapper.get('select[aria-label="Target watchlist"]').setValue('7')
+    expect(wrapper.findAll('button[role="menuitem"]').find(button => button.text() === 'Copy to list')?.attributes('disabled')).toBeUndefined()
   })
 
   it('renders flagged aggregate rows and emits an explicit unflag action for their source item', async () => {
@@ -634,13 +894,14 @@ describe('VirtualWatchlistTool', () => {
       return Promise.resolve([])
     })
     apiPost.mockResolvedValue({ id: 8 })
-    const wrapper = mount(VirtualWatchlistTool, { props: { label: 'Sectors', rows } })
+    const wrapper = mount(VirtualWatchlistTool, { props: { label: 'Sectors', rows, visibleColumnKeys: ['symbol'] } })
     await wrapper.find('.watchlist__columns-button').trigger('click')
-    await vi.waitFor(() => expect(wrapper.find('select[aria-label="Python column asset"]').exists()).toBe(true))
+    await vi.waitFor(() => expect(wrapper.find('option[value="77"]').exists()).toBe(true))
     await wrapper.find('select[aria-label="Python column asset"]').setValue('77')
     await wrapper.findAll('.watchlist__python button')[0].trigger('click')
     await vi.waitFor(() => expect(wrapper.emitted('update:pythonColumns')?.at(-1)).toEqual([[{ code_version_id: 77, name: 'Last close v1', timeframe: 'D1' }]]))
-    await wrapper.setProps({ pythonColumns: [{ code_version_id: 77, name: 'Last close v1', timeframe: 'D1' }] })
+    expect(wrapper.emitted('update:visibleColumnKeys')?.at(-1)).toEqual([['symbol', 'python:77']])
+    await wrapper.setProps({ pythonColumns: [{ code_version_id: 77, name: 'Last close v1', timeframe: 'D1' }], visibleColumnKeys: ['symbol', 'python:77'] })
     await vi.waitFor(() => expect(wrapper.text()).toContain('9.5000'))
     expect(apiPost).toHaveBeenCalledWith('/research/runs', expect.objectContaining({ code_version_id: 77, run_config: { symbols: ['XLK', 'XLE', 'XLV'], timeframe: 'D1' } }))
   })
@@ -725,6 +986,25 @@ describe('VirtualWatchlistTool', () => {
     await wrapper.setProps({ rows: [{ ...rows[0], itemId: 41, flagged: true }] })
     await wrapper.find('.watchlist__row').trigger('contextmenu', { clientX: 20, clientY: 24 })
     expect(wrapper.findAll('button[role="menuitem"]').some(button => button.text() === 'Unflag')).toBe(true)
+  })
+
+  it('supports keyboard navigation and focus recovery for row context actions', async () => {
+    const wrapper = mount(VirtualWatchlistTool, {
+      attachTo: document.body,
+      props: { label: 'Momentum', rows, selected: 'XLK' },
+    })
+    const row = wrapper.find('.watchlist__row')
+    await row.trigger('contextmenu', { clientX: 20, clientY: 24 })
+    const items = wrapper.findAll('button[role="menuitem"]')
+    await vi.waitFor(() => expect(document.activeElement).toBe(items[0].element))
+    await items[0].trigger('keydown', { key: 'ArrowDown' })
+    expect(document.activeElement).toBe(items[1].element)
+    await items[1].trigger('keydown', { key: 'End' })
+    expect(document.activeElement).toBe(items[items.length - 1].element)
+    await items[items.length - 1].trigger('keydown', { key: 'Escape' })
+    expect(wrapper.find('[role="menu"]').exists()).toBe(false)
+    expect(document.activeElement).toBe(row.element)
+    wrapper.unmount()
   })
 
   it('shows a working cancellation control while a persisted Python column batch is running', async () => {
