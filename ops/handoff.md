@@ -1,5 +1,26 @@
 # Active Handoff
 
+## 2026-08-14 — Configurable alternative-bar mechanics context completed
+
+- Selected the next repository-controlled TC2000 parity gap after closing alternative rendering:
+  the backend already accepted Renko `brick_size`, Kagi `reversal_pct`, and Point & Figure
+  `box_size`/`reversal`, but the workstation exposed no controls and silently used server defaults.
+- Added typed transform parameters to the panel chart store and canonical transformed request
+  deduplication/pagination, surfaced type-specific controls in the uPlot settings dialog, and
+  included parameter changes in stale-request fencing. Focused store/chart/plugin tests pass
+  `47/47`; full frontend Vitest passes `778/778`; type-check and production build pass (475
+  modules); backend transformed-router tests pass `5/5`; Ruff, compileall, uPlot contract (45
+  files), visual policy (26 assertions), and diff-check pass.
+- The first browser attempt exposed and fixed two real issues: chart reloads destroyed the open
+  settings dialog, and the transform dispatcher forwarded stale parameters for another chart type.
+  The corrected focused slice passes `3/3`; the complete rebuilt non-seeded authenticated Chromium
+  matrix passes `138/138` in `6.8m`. The initial reset 500 was a host `DiskFullError`; only
+  reclaimable Docker build cache was removed (about 6.3 GB), no images/containers/volumes were
+  deleted, and the matrix was rerun successfully. No acceptance flexibility was used.
+- This context is ready for separate implementation/ops commits and push retry. Existing
+  exact/unrepresented V25 visual, provider/entitlement, historical/GICS, native-monitor,
+  endurance, Docker-cleanup, and final-audit gaps remain open.
+
 ## 2026-08-14 — Alternative uPlot bar rendering context completed
 
 - Repaired a repository-controlled chart defect: Renko, Kagi, and Point & Figure were advertised

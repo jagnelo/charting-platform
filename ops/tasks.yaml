@@ -1,4 +1,37 @@
 tasks:
+  - id: tc2000-chart-transform-controls-20260814
+    title: Expose configurable Renko, Kagi, and Point & Figure chart mechanics
+    status: completed
+    priority: high
+    scope: >-
+      Carry the backend's existing alternative-bar parameters through the canonical workstation
+      chart configuration, persisted tool state, local OHLCV request deduplication, pagination,
+      and the uPlot chart settings dialog without introducing another renderer or provider path.
+    definition_of_done:
+      - Renko brick size can be set, cleared back to automatic, persisted, and reloaded
+      - Kagi reversal percentage can be set, cleared back to its server default, persisted, and reloaded
+      - Point & Figure box size and reversal-box count can be set, cleared, persisted, and reloaded
+      - Parameter changes invalidate stale transformed requests and preserve local-only semantics
+      - Focused store/chart/plugin tests, type-check, build, and full frontend regression pass
+      - No acceptance threshold, visual mask, provider, or uPlot rule is relaxed
+    validation:
+      - frontend-transform-parameter-store-chart-47-of-47
+      - frontend-type-check-build-475-modules
+      - frontend-full-vitest-778-of-778
+      - backend-transformed-router-5-of-5
+      - rebuilt-authenticated-chromium-138-of-138
+      - focused-transform-error-conflict-browser-3-of-3
+      - scoped-build-cache-cleanup-disk-recovered
+      - git-diff-check
+    notes:
+      - >-
+        This closes a repository-controlled parity gap: the backend already supported the
+        parameters, but the workstation exposed no controls and silently used server defaults.
+        No acceptance flexibility was used. Exact-build/unrepresented V25 visual, provider/
+        entitlement breadth, historical/GICS, native-monitor, endurance, Docker-cleanup, and
+        final-audit gaps remain tracked. A first browser reset failed with host DiskFullError;
+        scoped build-cache pruning recovered capacity without deleting images, containers, or
+        volumes, and the authoritative rebuilt matrix passed 138/138.
   - id: tc2000-alternative-bar-rendering-20260814
     title: Render Renko, Kagi, and Point & Figure with their own uPlot geometry
     status: completed

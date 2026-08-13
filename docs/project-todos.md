@@ -1,5 +1,25 @@
 # Project TODO Memory
 
+### 2026-08-14 — Configurable alternative-bar mechanics
+
+- [x] Wired the existing backend Renko `brick_size`, Kagi `reversal_pct`, and Point & Figure
+      `box_size`/`reversal` parameters through the canonical workstation chart configuration,
+      local-only transformed requests, dedupe keys, pagination, and persisted chart settings.
+      The chart settings dialog now exposes type-specific controls with explicit automatic/default
+      reset behavior, while uPlot remains the sole numerical renderer.
+- [x] Focused store/chart/plugin coverage passes `47/47`; type-check and production build pass
+      (475 modules); no provider or acceptance rule changed.
+- [x] Full frontend Vitest passes `778/778`; type-check/build (475 modules), backend transformed
+      router tests `5/5`, Ruff, compileall, uPlot contract (45 files), visual policy (26 assertions),
+      and diff-check pass. The rebuilt non-seeded authenticated Chromium matrix passes `138/138`
+      in `6.8m`, including parameter changes, reset-to-default behavior, loading/error states, and
+      workspace conflict recovery.
+- [ ] No acceptance flexibility was used. A host `DiskFullError` during one reset attempt was
+      resolved with scoped build-cache cleanup only (`docker builder prune -af`, about 6.3 GB;
+      images, containers, and volumes preserved). Exact/unrepresented V25 visual, provider/
+      entitlement breadth, historical/GICS, native-monitor, longer-endurance, Docker-cleanup, and
+      final-audit gaps remain explicit.
+
 ### 2026-08-14 — Alternative uPlot bar rendering
 
 - [x] Corrected the chart host's Renko, Kagi, and Point & Figure paths. The backend already

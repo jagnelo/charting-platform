@@ -1,5 +1,19 @@
 # Run Report
 
+## 2026-08-14 — Configurable alternative-bar mechanics context completed
+
+- The existing server transform parameters are now carried through the workstation chart store,
+  local-only transformed requests, dedupe keys, pagination, and persisted chart settings. Renko,
+  Kagi, and Point & Figure each expose type-specific controls in the uPlot settings dialog.
+- Focused store/chart/plugin tests pass `47/47`; full frontend Vitest `778/778`; backend transformed
+  router `5/5`; type-check/build (475 modules), Ruff, compileall, uPlot contract (45 files), visual
+  policy (26 assertions), and diff-check pass. Rebuilt non-seeded authenticated Chromium passes
+  `138/138` in `6.8m`; focused transform/error/conflict slice passes `3/3`.
+- The first browser run found and fixed the chart reload/settings lifecycle defect and the backend
+  stale-parameter TypeError. A later reset 500 was exactly `DiskFullError`; scoped
+  `docker builder prune -af` reclaimed about 6.3 GB of build cache only, preserving all images,
+  containers, and volumes. The rerun passed. No acceptance flexibility was used.
+
 ## 2026-08-14 — Alternative uPlot bar rendering context completed
 
 - Corrected Renko/Kagi/Point & Figure rendering to use a dedicated uPlot plugin instead of the
