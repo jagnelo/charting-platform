@@ -9,10 +9,10 @@
 - Explicitly defined an intentionally dirty tree as valid only for the named active context with
   every outstanding file and next action recorded; an unlabelled dirty tree is an operational
   defect. No-op audits must also close cleanly without placeholder edits.
-- Corrected stale `ops/state.json` metadata and then committed the workflow implementation as
-  `9b8351c3 docs(ops): enforce changeset closure protocol`; that implementation commit is pushed.
-  This operational-record update is the required second checkpoint and will be pushed immediately
-  after this edit. No product acceptance criterion or flexibility rule changed.
+- Corrected stale `ops/state.json` metadata and committed the workflow implementation as
+  `9b8351c3 docs(ops): enforce changeset closure protocol`. The required operational-record
+  checkpoint `09362f42 docs(ops): checkpoint changeset closure` is also pushed; the branch is clean
+  and synchronized. No product acceptance criterion or flexibility rule changed.
 - Current next context remains the open TC2000 workstation/backend goal audit. Existing gaps are
   unchanged: exact/unrepresented V25 states, provider/entitlement breadth, historical/GICS truth,
   native physical-monitor behavior, beyond-bounded endurance, and final requirement audit.
