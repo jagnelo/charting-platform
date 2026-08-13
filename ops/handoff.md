@@ -1,5 +1,17 @@
 # Active Handoff
 
+## 2026-08-13 — Commit/push hygiene workflow correction
+
+- Updated `docs/agent-orchestration.md` with a mandatory changeset checkpoint rule: completed
+  contexts must be committed and pushed before moving to a new context, with clean-tree and
+  remote-hash verification.
+- Documented the safe `.git/index.lock` recovery path: verify real permissions/locks, retry Git
+  sequentially, then use the permitted narrow elevated Git boundary when the default sandbox is
+  the cause. No destructive index workaround is permitted.
+- This is workflow guidance only; no product acceptance criterion was relaxed. The current branch
+  is clean and synchronized with origin at the prior checkpoint; this documentation change is the
+  next commit/push checkpoint.
+
 ## 2026-08-13 — Private Python attribute boundary repair
 
 - Tightened both unified-Python validators so every private attribute (not only dunder names) is

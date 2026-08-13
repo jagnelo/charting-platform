@@ -167,6 +167,57 @@ Minimum expectation:
 
 The purpose is to make sudden session loss survivable.
 
+## Changeset commit and push hygiene
+
+A completed changeset context must not be carried into the next context as an
+uncommitted worktree. This is a repository-integrity rule, not an optional
+end-of-session convenience:
+
+- Before changing implementation context, inspect `git status --short --branch`,
+  `git diff --check`, and the staged/unstaged diff.
+- Once the current context is complete and its focused validation passes, make a
+  self-contained commit with a conventional message. Keep unrelated or still-
+  experimental edits out of that commit; either finish them in the same context
+  or record them explicitly in the handoff before starting a new one.
+- Push the commit immediately after the checkpoint whenever the remote is
+  available. Verify that `HEAD` and the remote branch resolve to the same hash
+  and that the worktree is clean.
+- Refresh `ops/handoff.md`, `ops/state.json`, and `ops/run-report.md` with the
+  commit/push result, validation evidence, and the exact next context. Do not
+  leave a stale statement that a commit or push is pending after it succeeds.
+- At minimum, perform this checkpoint after each substantial feature/fix,
+  before a risky or long-running validation, before handoff, and before moving
+  to a different changeset context. A dirty tree is acceptable only when the
+  current context is explicitly still in progress and the handoff identifies
+  every outstanding file and reason.
+
+### `.git/index.lock` recovery
+
+If Git reports `Unable to create .../.git/index.lock: Operation not permitted`,
+first verify that this is not a real repository problem:
+
+1. Check ownership and writability of `.git`, `.git/index`, and `.git/refs`, and
+   check for an actual stale lock. Never delete a lock blindly while another
+   Git process may be active.
+2. Retry the same Git operation sequentially (never run `git add` and `git
+   commit` in parallel). Do not use destructive index resets or broad cleanup.
+3. If repository permissions are normal and the failure is the Codex sandbox
+   boundary, rerun the required `git add`, `git commit`, and `git push` through
+   the permitted elevated Git execution boundary, requesting approval with a
+   narrow Git prefix when needed. This is the approved workaround for the
+   sandbox restriction; do not report the work as blocked merely because the
+   unprivileged attempt failed.
+4. Re-run `git status --short --branch`, `git diff --check`, and compare
+   `git rev-parse HEAD` with `git rev-parse origin/<branch>` after the operation.
+   Record any remaining external failure (authentication, network, remote hook,
+   or actual filesystem problem) in the handoff and keep the current changeset
+   context explicit.
+
+The worker must not move on to a new changeset while a completed context is
+waiting for a normal terminal commit. If the elevated retry genuinely fails,
+preserve a precise handoff and make the next action the first priority of the
+next worker.
+
 ## Worker self-preservation rule
 
 Every worker must self-monitor for signs that its current session or token budget may be nearing exhaustion.

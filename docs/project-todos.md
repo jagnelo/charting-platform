@@ -2,6 +2,12 @@
 
 ### 2026-08-13 — Close private unified-Python attribute validation gap
 
+- [x] Add mandatory per-changeset commit/push hygiene and `.git/index.lock` recovery to the
+      canonical agent workflow. Completed contexts must be committed, pushed, and verified clean
+      before the next context begins; sandbox-denied Git operations must use the permitted narrow
+      elevated Git boundary after checking real repository permissions. No product acceptance
+      flexibility used; this is an operational workflow correction.
+
 - [x] API and isolated-runner validation now rejects all private attributes consistently, including
       pandas wrapper internals, before execution. Focused security/research `112/112`, code API
       integration `21/21`, backend unit `1116/1116`, rebuilt backend/worker/research-runner health,

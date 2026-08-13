@@ -1,5 +1,14 @@
 # Run Report
 
+## 2026-08-13 — Commit/push hygiene workflow correction
+
+- Added mandatory per-changeset commit/push guidance and explicit `.git/index.lock` recovery to
+  `docs/agent-orchestration.md`.
+- The workflow now requires sequential Git operations, narrow elevated Git execution when the
+  Codex sandbox is the cause, clean-tree verification, and `HEAD`/origin hash comparison before
+  changing contexts or handing off.
+- Acceptance flexibility used: **None**. This is an operational workflow correction only.
+
 ## 2026-08-13 — Private Python attribute boundary repair
 
 - Unified API and isolated-runner validators now reject all private attributes consistently, not
