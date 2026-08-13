@@ -32,10 +32,11 @@
 - Acceptance flexibility used: **None**. No visual, data, product, or sandbox criterion was
   relaxed. Exact/unrepresented V25, historical/GICS, provider breadth, native-monitor, endurance,
   and final-audit gaps remain open.
-- The worktree remains intentionally dirty from the ongoing stint. Git staging/commit/push is still
-  not available in this Codex sandbox because creating `.git/index.lock` is denied; no destructive
-  workaround was attempted. The next normal-terminal checkpoint should stage the contextual
-  changes and commit/push them after reviewing the combined diff.
+- Git checkpoint completed locally: the accumulated work was reviewed and split into five contextual
+  commits covering Python validation, the backend platform, generated-artifact hygiene, the frontend
+  workstation, and documentation/acceptance evidence. The default sandbox denied `.git/index.lock`,
+  but the permitted elevated Git boundary succeeded without any destructive index workaround. Push
+  remains the next checkpoint; the active product goal and its documented gaps remain open.
 
 ## 2026-08-13 — Constituent batch exclusion disclosure repair
 

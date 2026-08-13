@@ -31,8 +31,9 @@
   slice `7/7`; Ruff, compileall, and diff checks pass.
 - Acceptance flexibility used: **None**. No visual threshold or product acceptance rule changed;
   historical/GICS, provider, visual-reference, hardware, endurance, and final-audit gaps remain.
-- Git checkpoint remains external: this sandbox cannot create `.git/index.lock`, so no staging,
-  commit, or push was claimed; no workaround or destructive index operation was attempted.
+- Git checkpoint is now created locally in five contextual commits. The default sandbox denied
+  `.git/index.lock`, while the permitted elevated Git boundary allowed safe sequential staging and
+  commits without a destructive index workaround. Push remains pending verification.
 
 ## 2026-08-13 — IronHorse fallback repair and live-source classification
 

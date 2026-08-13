@@ -19,8 +19,10 @@
       diff checks pass; rebuilt authenticated Study Lab validation/recovery flows pass `2/2`.
       Acceptance flexibility used: **None**; V25 reference, historical/GICS,
       provider, hardware, endurance, and final-audit gaps remain open.
-- [ ] Commit/push the accumulated contextual work from a normal terminal once the combined dirty
-      worktree diff has been reviewed; the Codex sandbox currently denies `.git/index.lock` writes.
+- [x] Review and contextually commit the accumulated work. Five commits now separate Python
+      validation, backend platform, generated-artifact hygiene, frontend workstation, and
+      documentation/acceptance evidence. The default sandbox denied `.git/index.lock`, but the
+      permitted elevated Git boundary succeeded safely; push remains the next checkpoint.
 
 ### 2026-08-13 — Preserve ETF disclosure exclusions in constituent coverage
 
