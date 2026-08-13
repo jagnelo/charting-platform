@@ -1,5 +1,17 @@
 # Run Report
 
+## 2026-08-13 — Current-source goal audit and focused workstation revalidation
+
+- Visual manifest validation passes.
+- Frontend unit suite passes `770/770`; type-check and 471-module production build pass.
+- Unprivileged browser startup failed before test execution due the known macOS Chromium
+  Mach-port permission boundary; it produced no product assertions.
+- Elevated authenticated workstation rerun passes `24/24` with clean application diagnostics,
+  covering top-down drilldown, ratios, linking/crosshairs/gestures, keyboard traversal, Python
+  reuse, plot transfer, alerts, drawing menus, combo watchlists, and browser-scale containment.
+- Acceptance flexibility used: **None**. Remaining visual-reference, provider/historical,
+  native-monitor, endurance, and final-audit gaps remain explicit.
+
 ## 2026-08-13 — Commit/push hygiene workflow correction
 
 - Added mandatory per-changeset commit/push guidance and explicit `.git/index.lock` recovery to

@@ -1,5 +1,20 @@
 # Project TODO Memory
 
+### 2026-08-13 — Current-source goal audit and focused workstation revalidation
+
+- [x] Re-read the controlling goal and section 14; no scope, product boundary, visual threshold,
+      mask, or acceptance rule was changed. The active single completion bar remains open.
+- [x] Visual manifest validation, frontend Vitest `770/770`, type-check, and the 471-module build
+      pass. Static audit found no new primary-menu dead control, implicit workstation yfinance
+      path, numerical SVG renderer, or untracked visual gap.
+- [x] The unprivileged browser launch failed before execution at the known macOS Chromium
+      Mach-port permission boundary. The permitted elevated authenticated rerun passes `24/24`
+      for top-down drilldown, ratios, linking/crosshairs/gestures, keyboard traversal, Python/
+      EasyScan reuse, plot transfer, alerts, drawing menus, combo watchlists, and 125% containment.
+- [ ] Continue the open goal gaps: exact/unrepresented V25 states, provider/entitlement breadth,
+      historical/GICS truth, native physical-monitor behavior, beyond-bounded endurance, and the
+      final requirement-by-requirement audit. Acceptance flexibility used: **None**.
+
 ### 2026-08-13 — Close private unified-Python attribute validation gap
 
 - [x] Add mandatory per-changeset commit/push hygiene and `.git/index.lock` recovery to the

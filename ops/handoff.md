@@ -1,5 +1,25 @@
 # Active Handoff
 
+## 2026-08-13 — Current-source goal audit and focused workstation revalidation
+
+- Re-read the controlling goal objective and section 14. The active single completion bar remains
+  open; no requirement was reduced or reinterpreted.
+- Current repository audit found no new dead primary-menu control, implicit yfinance path in the
+  workstation, numerical SVG renderer, or unrecorded visual gap. The visual manifest validates.
+- Frontend `npm test` passes `770/770`; `npm run type-check` and the 471-module production build
+  pass. The first browser command used an invalid Jest-only `--runInBand` Vitest option and is
+  discarded as invocation evidence.
+- The unprivileged focused browser launch failed before test execution at macOS Chromium's
+  `MachPortRendezvous` permission boundary. The permitted elevated rerun is authoritative and
+  passes `24/24`, covering top-down sector/industry/constituent analysis, SPY/RSP and sector
+  ratios, links/crosshairs/gestures, keyboard traversal, Python/EasyScan reuse, plot transfer,
+  alerts, drawing menus, combo watchlists, and 125% containment.
+- Recent backend logs contain normal 2xx workstation traffic and no audited traceback, critical,
+  fatal, integrity, or 5xx signature. Acceptance flexibility used: **None**. The board-guided
+  represented-state track and controlled seeded-data track remain documented policy evidence;
+  exact/unrepresented visual, provider/entitlement, historical/GICS, native-monitor, endurance,
+  and final-audit gaps remain open.
+
 ## 2026-08-13 — Commit/push hygiene workflow correction
 
 - Updated `docs/agent-orchestration.md` with a mandatory changeset checkpoint rule: completed
