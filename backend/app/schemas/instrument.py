@@ -68,6 +68,10 @@ class InstrumentListingOut(BaseModel):
     currency: str | None = None
     is_primary: bool
     is_active: bool
+    effective_at: datetime | None = None
+    known_at: datetime | None = None
+    delisted_at: datetime | None = None
+    exchange: ExchangeOut | None = None
 
 
 class OptionDetailOut(BaseModel):
@@ -130,6 +134,7 @@ class InstrumentSearchResult(BaseModel):
     exchange: str
     type: str
     is_synthetic: bool = False
+    instrument_id: int | None = None
 
 
 class InstrumentMembership(BaseModel):

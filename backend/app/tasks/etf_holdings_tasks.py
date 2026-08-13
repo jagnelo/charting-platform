@@ -43,3 +43,23 @@ async def backfill_sec_nport_holdings_task(ctx: dict) -> dict:
         )
         await db.commit()
         return summary
+
+
+async def reconcile_etf_holdings_classifications_task(ctx: dict) -> dict:
+    """Resume bounded free-source classification enrichment for ETF snapshots."""
+
+    if not getattr(settings, "ETF_HOLDINGS_CLASSIFICATION_REFRESH_ENABLED", False):
+        logger.info("ETF holdings classification refresh disabled; skipping")
+        return {"skipped": True, "reason": "classification refresh disabled"}
+
+    from app.database import AsyncSessionLocal
+    from app.services.etf_holdings_refresh import reconcile_all_etf_holdings_classifications
+
+    async with AsyncSessionLocal() as db:
+        summary = await reconcile_all_etf_holdings_classifications(
+            db,
+            max_profiles=settings.ETF_HOLDINGS_CLASSIFICATION_MAX_PROFILES,
+            max_enrichments_per_profile=settings.ETF_HOLDINGS_CLASSIFICATION_MAX_ENRICHMENTS_PER_PROFILE,
+        )
+        await db.commit()
+        return summary

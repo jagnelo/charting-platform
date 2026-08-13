@@ -148,7 +148,7 @@ async def _queue_python_signal_research(
         run_config["start_date"] = run.date_from.isoformat()
     if run.date_to:
         run_config["end_date"] = run.date_to.isoformat()
-    manifest = await _materialize_declared_dataset(db, {}, run_config)
+    manifest = await _materialize_declared_dataset(db, {}, run_config, lookback=code_version.lookback)
     research_run = ResearchRun(
         user_id=strategy.user_id,
         code_version_id=code_version.id,
@@ -187,7 +187,16 @@ async def _refresh_python_signal_research(db: AsyncSession, run: StrategyRun) ->
         return False
     if run.status in {StrategyRunStatus.COMPLETED.value, StrategyRunStatus.FAILED.value, StrategyRunStatus.CANCELED.value}:
         return True
-    research_run = (await db.execute(select(ResearchRun).where(ResearchRun.id == research_run_id))).scalar_one_or_none()
+    # collect_research_result mutates the artifact collection synchronously;
+    # eager-load it before handing the model to that helper so async sessions do
+    # not attempt an implicit lazy load outside greenlet context.
+    research_run = (
+        await db.execute(
+            select(ResearchRun)
+            .options(selectinload(ResearchRun.artifacts))
+            .where(ResearchRun.id == research_run_id)
+        )
+    ).scalar_one_or_none()
     if research_run is None:
         run.status = StrategyRunStatus.FAILED.value
         run.completed_at = datetime.now(UTC)

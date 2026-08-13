@@ -3,14 +3,17 @@ import math
 from datetime import UTC, date, datetime, time, timedelta
 from decimal import Decimal
 
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.asset_class import AssetClass, InstrumentType
 from app.models.data_source import DataSource
 from app.models.etf_holdings import ETFHolding, ETFHoldingsSnapshot, ETFProfile
+from app.models.exchange import Exchange
 from app.models.instrument import EquityDetail, Instrument
+from app.models.listing import InstrumentListing
 from app.models.ohlcv import OHLCVBar, Timeframe
+from app.models.provider_observation import DatasetStatus, InstrumentDatasetState
 
 
 async def seed_e2e_instruments(db: AsyncSession) -> None:
@@ -61,6 +64,43 @@ async def seed_e2e_instruments(db: AsyncSession) -> None:
             existing[symbol] = instrument
     await db.flush()
 
+    # Keep one canonical venue row in the controlled identity fixture so the
+    # authenticated workstation exercises the same exchange-aware listing
+    # contract used by production instrument reports.  This is deliberately
+    # labelled test data and never claims live venue coverage.
+    arca = await db.scalar(select(Exchange).where(Exchange.mic == "ARCX"))
+    if arca is None:
+        arca = Exchange(
+            mic="ARCX",
+            name="NYSE Arca",
+            country_code="US",
+            timezone="America/New_York",
+            market_open="09:30",
+            market_close="16:00",
+            currency="USD",
+        )
+        db.add(arca)
+        await db.flush()
+    spy_listing = await db.scalar(
+        select(InstrumentListing).where(
+            InstrumentListing.instrument_id == existing["SPY"].id,
+            InstrumentListing.ticker == "SPY",
+            InstrumentListing.exchange_id == arca.id,
+        )
+    )
+    if spy_listing is None:
+        db.add(
+            InstrumentListing(
+                instrument_id=existing["SPY"].id,
+                exchange_id=arca.id,
+                ticker="SPY",
+                currency="USD",
+                is_primary=True,
+                is_active=True,
+            )
+        )
+        await db.flush()
+
     for symbol in symbols[1:]:
         profile = await db.scalar(select(ETFProfile).where(ETFProfile.instrument_id == existing[symbol].id))
         if profile is None:
@@ -80,6 +120,26 @@ _E2E_MARKET_NAMES = {
     "AVGO": "Broadcom Inc.",
     "CRM": "Salesforce, Inc.",
     "ORCL": "Oracle Corporation",
+    "AMZN": "Amazon.com, Inc.",
+    "TSLA": "Tesla, Inc.",
+    "META": "Meta Platforms, Inc.",
+    "GOOGL": "Alphabet Inc.",
+    "JPM": "JPMorgan Chase & Co.",
+    "BAC": "Bank of America Corporation",
+    "LLY": "Eli Lilly and Company",
+    "UNH": "UnitedHealth Group Incorporated",
+    "CAT": "Caterpillar Inc.",
+    "GE": "GE Aerospace",
+    "PG": "The Procter & Gamble Company",
+    "COST": "Costco Wholesale Corporation",
+    "XOM": "Exxon Mobil Corporation",
+    "CVX": "Chevron Corporation",
+    "NEE": "NextEra Energy, Inc.",
+    "DUK": "Duke Energy Corporation",
+    "PLD": "Prologis, Inc.",
+    "AMT": "American Tower Corporation",
+    "LIN": "Linde plc",
+    "APD": "Air Products and Chemicals, Inc.",
     "SMH": "VanEck Semiconductor ETF",
     "SOXX": "iShares Semiconductor ETF",
 }
@@ -91,10 +151,40 @@ _E2E_INDUSTRIES = {
     "MSFT": "Systems Software",
     "CRM": "Systems Software",
     "ORCL": "Systems Software",
+    "AMZN": "Broadline Retail",
+    "TSLA": "Automobiles",
+    "META": "Interactive Media & Services",
+    "GOOGL": "Interactive Media & Services",
+    "JPM": "Diversified Banks",
+    "BAC": "Diversified Banks",
+    "LLY": "Pharmaceuticals",
+    "UNH": "Health Care Services",
+    "CAT": "Machinery",
+    "GE": "Aerospace & Defense",
+    "PG": "Household Products",
+    "COST": "Consumer Staples Distribution & Retail",
+    "XOM": "Integrated Oil & Gas",
+    "CVX": "Integrated Oil & Gas",
+    "NEE": "Electric Utilities",
+    "DUK": "Electric Utilities",
+    "PLD": "Industrial REITs",
+    "AMT": "Telecom Tower REITs",
+    "LIN": "Industrial Gases",
+    "APD": "Industrial Gases",
 }
 
 _E2E_HOLDINGS = {
     "XLK": ("NVDA", "MSFT", "AMD", "AVGO", "CRM", "ORCL"),
+    "XLY": ("AMZN", "TSLA"),
+    "XLC": ("META", "GOOGL"),
+    "XLF": ("JPM", "BAC"),
+    "XLV": ("LLY", "UNH"),
+    "XLI": ("CAT", "GE"),
+    "XLP": ("PG", "COST"),
+    "XLE": ("XOM", "CVX"),
+    "XLU": ("NEE", "DUK"),
+    "XLRE": ("PLD", "AMT"),
+    "XLB": ("LIN", "APD"),
     "SMH": ("NVDA", "AMD", "AVGO"),
     "SOXX": ("NVDA", "AMD", "AVGO"),
 }
@@ -144,7 +234,12 @@ async def seed_e2e_market_data(db: AsyncSession) -> None:
                     industry=industry,
                     country="US",
                     exchange_mic="XNAS",
-                    field_provenance={"seed": "e2e", "controlled_fixture": True},
+                    field_provenance={
+                        "seed": "e2e",
+                        "controlled_fixture": True,
+                        "sector": {"classification_system": "controlled_fixture"},
+                        "industry": {"classification_system": "controlled_fixture"},
+                    },
                 )
             )
         else:
@@ -153,6 +248,13 @@ async def seed_e2e_market_data(db: AsyncSession) -> None:
             # classifications without changing any production path.
             detail.sector = "Technology"
             detail.industry = industry
+            detail.field_provenance = {
+                **(detail.field_provenance or {}),
+                "seed": "e2e",
+                "controlled_fixture": True,
+                "sector": {"classification_system": "controlled_fixture"},
+                "industry": {"classification_system": "controlled_fixture"},
+            }
             detail.country = "US"
             detail.exchange_mic = "XNAS"
             detail.field_provenance = {
@@ -203,13 +305,19 @@ async def seed_e2e_market_data(db: AsyncSession) -> None:
         "XLB": 80.0, "NVDA": 480.0, "MSFT": 330.0, "AMD": 120.0, "AVGO": 900.0,
         "CRM": 240.0, "ORCL": 105.0, "SMH": 180.0, "SOXX": 210.0,
     }
+    # E2E market mode is an explicit controlled-fixture environment.  The
+    # database may be a reused developer volume containing canonical/provider
+    # bars at the same unique timestamps; remove only the adjusted daily bars
+    # for the fixture universe so the deterministic rows below can own the
+    # acceptance path.  This branch is unreachable in normal production mode.
+    await db.execute(
+        delete(OHLCVBar).where(
+            OHLCVBar.instrument_id.in_([instrument.id for instrument in instruments.values()]),
+            OHLCVBar.timeframe == Timeframe.D1,
+            OHLCVBar.is_adjusted.is_(True),
+        )
+    )
     for symbol, instrument in instruments.items():
-        if await db.scalar(
-            select(OHLCVBar.id)
-            .where(OHLCVBar.instrument_id == instrument.id, OHLCVBar.timeframe == Timeframe.D1)
-            .limit(1)
-        ) is not None:
-            continue
         base = base_prices.get(symbol, 100.0)
         slope = 0.00035 + (sum(ord(char) for char in symbol) % 7) * 0.00003
         bars: list[OHLCVBar] = []
@@ -241,6 +349,46 @@ async def seed_e2e_market_data(db: AsyncSession) -> None:
             previous = close
         db.add_all(bars)
     await db.flush()
+
+    # Keep the fixture's dataset-state contract in sync with the bars it writes.
+    # Analysis endpoints use this state for freshness; omitting it would make a
+    # fully populated controlled fixture report ``unavailable``.
+    fetched_at = datetime.now(UTC)
+    coverage_start = datetime.combine(trading_days[0], time(21, 0), tzinfo=UTC)
+    coverage_end = datetime.combine(trading_days[-1], time(21, 0), tzinfo=UTC)
+    for symbol, instrument in instruments.items():
+        state = await db.scalar(
+            select(InstrumentDatasetState).where(
+                InstrumentDatasetState.instrument_id == instrument.id,
+                InstrumentDatasetState.data_source_id == source.id,
+                InstrumentDatasetState.dataset_type == "ohlcv",
+                InstrumentDatasetState.dataset_key == "D1:adj",
+            )
+        )
+        if state is None:
+            state = InstrumentDatasetState(
+                instrument_id=instrument.id,
+                data_source_id=source.id,
+                dataset_type="ohlcv",
+                dataset_key="D1:adj",
+            )
+            db.add(state)
+        state.status = DatasetStatus.FRESH
+        state.observed_at = fetched_at
+        state.fetched_at = fetched_at
+        state.stale_after = fetched_at + timedelta(days=1)
+        state.coverage_start = coverage_start
+        state.coverage_end = coverage_end
+        state.version = max(state.version or 1, 1)
+        state.snapshot_hash = hashlib.sha256(
+            f"{symbol}:e2e:D1:adj:{coverage_start.isoformat()}:{coverage_end.isoformat()}".encode()
+        ).hexdigest()
+        state.extra_data = {
+            "seed": "e2e",
+            "controlled_fixture": True,
+            "bar_count": len(trading_days),
+            "adjusted": True,
+        }
 
     # Create controlled, point-in-time ETF-proxy holdings for sector and industry drilldown.
     etf_symbols = {"SPY", "RSP", "QQQ", "DIA", "IWM", "XLK", "XLY", "XLC", "XLF", "XLV", "XLI", "XLP", "XLE", "XLU", "XLRE", "XLB", "SMH", "SOXX"}

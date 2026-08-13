@@ -4,6 +4,8 @@ from types import SimpleNamespace
 from app.models.ohlcv import TIMEFRAME_SECONDS, Timeframe
 from app.services.market_data import (
     _historical_repair_start,
+    _is_positive_repair_slice,
+    _is_recoverable_provider_gap,
     _needs_fetch_for_range,
 )
 from app.services.ohlcv_coverage import (
@@ -11,6 +13,7 @@ from app.services.ohlcv_coverage import (
     assess_ohlcv_coverage,
     missing_range_slices,
 )
+from app.services.provider_runtime import ProviderNoDataError
 
 
 def test_historical_repair_start_is_bounded_to_the_missing_tail():
@@ -27,6 +30,21 @@ def test_cold_historical_repair_uses_minimum_bootstrap_window():
     start = _historical_repair_start(before, Timeframe.W1, 10)
 
     assert start == before - timedelta(seconds=TIMEFRAME_SECONDS[Timeframe.W1] * 20)
+
+
+def test_zero_width_calendar_gap_is_not_sent_to_a_provider():
+    session = datetime(2026, 1, 5, tzinfo=UTC)
+
+    assert _is_positive_repair_slice(session, session) is False
+    assert _is_positive_repair_slice(session, session + timedelta(days=1)) is True
+
+
+def test_cached_ranges_tolerate_expected_provider_availability_failures():
+    assert _is_recoverable_provider_gap(ProviderNoDataError("empty")) is True
+    assert _is_recoverable_provider_gap(
+        RuntimeError("No enabled providers available for capability 'price_history'")
+    ) is True
+    assert _is_recoverable_provider_gap(RuntimeError("unexpected programming failure")) is False
 
 
 def _bar(ts: datetime, timeframe: Timeframe = Timeframe.D1):

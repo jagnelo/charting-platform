@@ -46,11 +46,20 @@ def _validate_asset_contract(kind: str, body: CodeVersionCreate, validation) -> 
             status_code=422,
             detail={"code": "asset_output_contract_mismatch", "kind": kind, "allowed": sorted(allowed)},
         )
-    if body.output_contract != "study" and validation.output_contracts != (body.output_contract,):
+    if body.output_contract != "study" and body.output_name is None and validation.output_contracts != (body.output_contract,):
         raise HTTPException(
             status_code=422,
             detail={
                 "code": "declared_output_contract_mismatch",
+                "declared": body.output_contract,
+                "observed": list(validation.output_contracts),
+            },
+        )
+    if body.output_contract != "study" and body.output_name is not None and body.output_contract not in validation.output_contracts:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "selected_output_contract_mismatch",
                 "declared": body.output_contract,
                 "observed": list(validation.output_contracts),
             },
@@ -147,6 +156,7 @@ async def clone_asset(
             version_number=version.version_number,
             source=version.source,
             output_contract=version.output_contract,
+            output_name=version.output_name,
             parameter_schema=dict(version.parameter_schema or {}),
             default_parameters=dict(version.default_parameters or {}),
             sdk_version=version.sdk_version,
@@ -206,6 +216,7 @@ def _version_from_input(body: CodeVersionCreate, version_number: int, validation
         version_number=version_number,
         source=body.source,
         output_contract=body.output_contract,
+        output_name=body.output_name,
         parameter_schema=body.parameter_schema,
         default_parameters=body.default_parameters,
         dependencies=list(validation.dependencies),

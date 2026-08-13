@@ -34,7 +34,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
-      - "5432:5432"   # expose for pgAdmin / direct access — remove in production
+      - "${POSTGRES_HOST_PORT:-5432}:5432"   # expose for pgAdmin / direct access — remove in production
     networks: [charting]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
@@ -63,7 +63,7 @@ services:
       dockerfile: Dockerfile
     restart: unless-stopped
     ports:
-      - "8000:8000"
+      - "${BACKEND_HOST_PORT:-8000}:8000"
     environment:
       # Infrastructure — always Docker-internal hostnames in this context
       DATABASE_URL:      postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-chartingdb}
@@ -89,7 +89,7 @@ services:
       DEFAULT_DISCOVERY_PROVIDER: ${DEFAULT_DISCOVERY_PROVIDER:-alpaca}
       DEFAULT_OPTIONS_PROVIDER: ${DEFAULT_OPTIONS_PROVIDER:-yfinance}
       IDENTIFIER_PROVIDER_PRIORITY: ${IDENTIFIER_PROVIDER_PRIORITY:-["openfigi"]}
-      PROVIDER_CHAIN_SEEDS:      ${PROVIDER_CHAIN_SEEDS:-{"price_history":["alpaca","alpha_vantage","binance","fred"],"latest_price":["alpaca","alpha_vantage","binance","fred"],"universe_discovery":["alpaca","massive","alpha_vantage","binance","coingecko"],"instrument_events":["alpaca","edgar"],"instrument_metadata":["edgar","coingecko"],"instrument_search":["edgar","alpaca","massive","alpha_vantage","coingecko"],"option_chain":["yfinance"]}}
+      PROVIDER_CHAIN_SEEDS:      ${PROVIDER_CHAIN_SEEDS:-{"price_history":["alpaca","nasdaq","alpha_vantage","binance","fred"],"latest_price":["alpaca","nasdaq","alpha_vantage","binance","fred"],"universe_discovery":["alpaca","massive","alpha_vantage","binance","coingecko"],"instrument_events":["alpaca","edgar"],"instrument_metadata":["edgar","coingecko"],"instrument_search":["edgar","alpaca","massive","alpha_vantage","coingecko"],"option_chain":["yfinance"]}}
       OPENFIGI_API_KEY:        ${OPENFIGI_API_KEY:-}
       OPENFIGI_TIMEOUT_SECONDS: ${OPENFIGI_TIMEOUT_SECONDS:-10}
       MASSIVE_API_KEY:          ${MASSIVE_API_KEY:-}
@@ -120,6 +120,14 @@ services:
     networks: [charting]
     volumes:
       - ./backend/proxies.txt:/app/proxies.txt:ro
+      # Keep repository acceptance references available to manifest tests run
+      # inside the branch-scoped backend container.
+      - ./tests:/tests:ro
+      - ./docs:/docs:ro
+      - ./frontend:/frontend:ro
+      - ./docker-compose.yml:/docker-compose.yml:ro
+      - ./docker-compose.dev.yml:/docker-compose.dev.yml:ro
+      - ./ops:/ops:ro
       - research_jobs:/jobs
       - research_results:/results
 
@@ -135,6 +143,17 @@ services:
       DATABASE_URL_SYNC: postgresql+psycopg2://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-chartingdb}
       REDIS_URL:         redis://redis:6379/0
       APP_ENV:           production
+      E2E_SEED_INSTRUMENTS: ${E2E_SEED_INSTRUMENTS:-false}
+      E2E_SEED_MARKET_DATA: ${E2E_SEED_MARKET_DATA:-false}
+      # Provider-backed hydration is opt-in. The API still materialises the
+      # canonical identity/taxonomy synchronously; a cold sweep must never
+      # starve the workstation API during login or factory reset.
+      CORE_WORKSTATION_BOOTSTRAP_ENABLED: ${CORE_WORKSTATION_BOOTSTRAP_ENABLED:-false}
+      CORE_WORKSTATION_BOOTSTRAP_TIMEOUT_SECONDS: ${CORE_WORKSTATION_BOOTSTRAP_TIMEOUT_SECONDS:-45}
+      CORE_WORKSTATION_BOOTSTRAP_LOOKBACK_DAYS: ${CORE_WORKSTATION_BOOTSTRAP_LOOKBACK_DAYS:-730}
+      ETF_HOLDINGS_CLASSIFICATION_REFRESH_ENABLED: ${ETF_HOLDINGS_CLASSIFICATION_REFRESH_ENABLED:-false}
+      ETF_HOLDINGS_CLASSIFICATION_MAX_PROFILES: ${ETF_HOLDINGS_CLASSIFICATION_MAX_PROFILES:-50}
+      ETF_HOLDINGS_CLASSIFICATION_MAX_ENRICHMENTS_PER_PROFILE: ${ETF_HOLDINGS_CLASSIFICATION_MAX_ENRICHMENTS_PER_PROFILE:-32}
       SECRET_KEY:              ${SECRET_KEY:-change-me-insecure-default-do-not-use-in-production}
       ONESIGNAL_APP_ID:        ${ONESIGNAL_APP_ID:-}
       ONESIGNAL_REST_API_KEY:  ${ONESIGNAL_REST_API_KEY:-}
@@ -145,7 +164,7 @@ services:
       DEFAULT_DISCOVERY_PROVIDER: ${DEFAULT_DISCOVERY_PROVIDER:-alpaca}
       DEFAULT_OPTIONS_PROVIDER: ${DEFAULT_OPTIONS_PROVIDER:-yfinance}
       IDENTIFIER_PROVIDER_PRIORITY: ${IDENTIFIER_PROVIDER_PRIORITY:-["openfigi"]}
-      PROVIDER_CHAIN_SEEDS:      ${PROVIDER_CHAIN_SEEDS:-{"price_history":["alpaca","alpha_vantage","binance","fred"],"latest_price":["alpaca","alpha_vantage","binance","fred"],"universe_discovery":["alpaca","massive","alpha_vantage","binance","coingecko"],"instrument_events":["alpaca","edgar"],"instrument_metadata":["edgar","coingecko"],"instrument_search":["edgar","alpaca","massive","alpha_vantage","coingecko"],"option_chain":["yfinance"]}}
+      PROVIDER_CHAIN_SEEDS:      ${PROVIDER_CHAIN_SEEDS:-{"price_history":["alpaca","nasdaq","alpha_vantage","binance","fred"],"latest_price":["alpaca","nasdaq","alpha_vantage","binance","fred"],"universe_discovery":["alpaca","massive","alpha_vantage","binance","coingecko"],"instrument_events":["alpaca","edgar"],"instrument_metadata":["edgar","coingecko"],"instrument_search":["edgar","alpaca","massive","alpha_vantage","coingecko"],"option_chain":["yfinance"]}}
       OPENFIGI_API_KEY:        ${OPENFIGI_API_KEY:-}
       OPENFIGI_TIMEOUT_SECONDS: ${OPENFIGI_TIMEOUT_SECONDS:-10}
       MASSIVE_API_KEY:          ${MASSIVE_API_KEY:-}
@@ -209,6 +228,6 @@ services:
       dockerfile: Dockerfile
     restart: unless-stopped
     ports:
-      - "80:80"
+      - "${FRONTEND_HOST_PORT:-80}:80"
     depends_on: [backend]
     networks: [charting]

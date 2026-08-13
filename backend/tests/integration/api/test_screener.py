@@ -11,9 +11,76 @@ Condition tree format (new):
 """
 
 import json
+from datetime import UTC, datetime, timedelta
+
+from app.models.screener import ScreenerResult
 
 
 class TestScreenerCRUD:
+    def test_screener_history_can_be_consumed_as_a_numeric_plot(
+        self, client, auth_headers, screener, db
+    ):
+        base = datetime.now(UTC) - timedelta(days=1)
+        db.add_all(
+            [
+                ScreenerResult(
+                    screener_id=screener.id,
+                    run_at=base,
+                    matched_ids=[1, 2],
+                    result_data={
+                        "_coverage": {
+                            "universe_count": 4,
+                            "evaluated_count": 4,
+                            "excluded": [],
+                        }
+                    },
+                ),
+                ScreenerResult(
+                    screener_id=screener.id,
+                    run_at=base + timedelta(days=1),
+                    matched_ids=[1],
+                    result_data={
+                        "_coverage": {
+                            "universe_count": 4,
+                            "evaluated_count": 2,
+                            "excluded": [{"instrument_id": 4}],
+                        }
+                    },
+                ),
+            ]
+        )
+        db.commit()
+
+        percentage = client.get(
+            f"/api/v1/screeners/{screener.id}/plot",
+            headers=auth_headers,
+            params={"metric": "percentage"},
+        )
+        assert percentage.status_code == 200
+        payload = percentage.json()
+        assert payload["history_count"] == 2
+        assert [point["value"] for point in payload["points"]] == [50.0, 50.0]
+        assert payload["points"][1]["coverage"] == 0.5
+        assert payload["warning"] is None
+
+        count = client.get(
+            f"/api/v1/screeners/{screener.id}/plot",
+            headers=auth_headers,
+            params={"metric": "count"},
+        )
+        assert count.status_code == 200
+        assert [point["value"] for point in count.json()["points"]] == [2.0, 1.0]
+
+    def test_screener_history_plot_does_not_fabricate_empty_history(
+        self, client, auth_headers, screener
+    ):
+        response = client.get(
+            f"/api/v1/screeners/{screener.id}/plot", headers=auth_headers
+        )
+        assert response.status_code == 200
+        assert response.json()["points"] == []
+        assert "No retained scan history" in response.json()["warning"]
+
     def test_create_screener_from_saved_condition(self, client, auth_headers):
         condition = {
             "operator": "AND",
@@ -31,7 +98,9 @@ class TestScreenerCRUD:
             json={"name": "Saved condition scan", "universe_type": "all", "timeframe": "D1"},
         )
         assert created.status_code == 201
-        assert created.json()["conditions"] == condition
+        created_conditions = created.json()["conditions"]
+        assert created_conditions["type"] == "python_condition"
+        assert created_conditions["code_version_id"] == saved.json()["payload"]["python_code_version_id"]
 
     def test_python_condition_screener_queues_and_reconciles_batch_result(
         self, client, auth_headers, instrument, ohlcv_bars, tmp_path, monkeypatch
@@ -142,6 +211,37 @@ class TestScreenerCRUD:
             "trigger_type": "entered",
             "run_id": reconciled["id"],
         }
+
+    def test_python_condition_can_reference_a_single_output_study_version(
+        self, client, auth_headers, instrument
+    ):
+        asset = client.post(
+            "/api/v1/code/assets",
+            headers=auth_headers,
+            json={
+                "stable_key": "study-boolean-reuse",
+                "name": "Reusable study boolean",
+                "kind": "study",
+                "initial_version": {
+                    "source": "output.boolean('qualifies', True)",
+                    "output_contract": "boolean",
+                },
+            },
+        )
+        assert asset.status_code == 201
+        version_id = asset.json()["versions"][0]["id"]
+        created = client.post(
+            f"/api/v1/screeners/from-python-condition/{version_id}",
+            headers=auth_headers,
+            json={
+                "name": "Reusable study scan",
+                "universe_type": "custom",
+                "universe_instrument_ids": [instrument.id],
+                "timeframe": "D1",
+            },
+        )
+        assert created.status_code == 201
+        assert created.json()["conditions"] == {"type": "python_condition", "code_version_id": version_id}
 
     def test_create_screener(self, client, auth_headers):
         res = client.post(

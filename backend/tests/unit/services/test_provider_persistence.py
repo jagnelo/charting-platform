@@ -8,6 +8,7 @@ from sqlalchemy import select
 from app.models.data_source import DataSource
 from app.models.instrument import EquityDetail, Instrument
 from app.models.instrument_identity import InstrumentIdentifier
+from app.models.listing import InstrumentListing
 from app.models.provider_observation import (
     InstrumentIdentifierSnapshot,
     InstrumentProfileSnapshot,
@@ -20,6 +21,40 @@ from app.providers.base import IdentifierRecord, InstrumentProfile, ProviderSear
 from app.services import instrument_mastering, instrument_sync, market_data
 from app.services.provider_runtime import ProviderExecutionResult, ResolvedProvider
 from tests.unit.conftest import AsyncSessionAdapter
+
+
+@pytest.mark.asyncio
+async def test_profile_classification_system_is_retained_in_detail_provenance(
+    db, instrument, monkeypatch
+):
+    profile = InstrumentProfile(
+        provider="edgar",
+        symbol=instrument.symbol,
+        canonical_symbol=instrument.symbol,
+        name=instrument.name,
+        currency="USD",
+        quote_type="EQUITY",
+        exchange="NASDAQ",
+        extra={
+            "sector": "Semiconductors",
+            "industry": "Semiconductors",
+            "classification_system": "SEC_SIC",
+        },
+    )
+
+    async def _no_provider_scores(*_args, **_kwargs):
+        return []
+
+    monkeypatch.setattr(instrument_mastering, "resolve_provider_chain", _no_provider_scores)
+    await instrument_mastering.ingest_provider_profile(
+        AsyncSessionAdapter(db), profile, instrument=instrument
+    )
+    detail = db.execute(
+        select(EquityDetail).where(EquityDetail.instrument_id == instrument.id)
+    ).scalar_one()
+
+    assert detail.field_provenance["sector"]["classification_system"] == "SEC_SIC"
+    assert detail.field_provenance["industry"]["classification_system"] == "SEC_SIC"
 
 
 def _resolved_provider(
@@ -383,6 +418,126 @@ async def test_seed_universe_persists_discovery_snapshots(db, monkeypatch):
         == "Bitcoin"
     )
     assert len(snapshots) == 2
+
+
+@pytest.mark.asyncio
+async def test_seed_universe_does_not_reactivate_existing_canonical_instrument(
+    db, instrument, monkeypatch
+):
+    """A provider lifecycle observation must not overwrite canonical active state."""
+
+    async_db = AsyncSessionAdapter(db)
+    instrument.is_active = False
+    existing_listing = InstrumentListing(
+        instrument_id=instrument.id,
+        ticker="AAPL",
+        is_primary=True,
+        is_active=False,
+    )
+    db.add(existing_listing)
+    db.flush()
+
+    class _DiscoveryProvider:
+        def supported_discovery_types(self):
+            return ["EQUITY"]
+
+    alpha = _resolved_provider(
+        db,
+        provider_name="alpha_vantage",
+        capability=ProviderCapability.UNIVERSE_DISCOVERY,
+        provider=_DiscoveryProvider(),
+    )
+
+    async def _fake_resolve(*args, **kwargs):
+        return [alpha]
+
+    async def _fake_execute(*args, **kwargs):
+        return ProviderExecutionResult(
+            provider_name="alpha_vantage",
+            data_source=alpha.data_source,
+            policy=alpha.policy,
+            health=alpha.health,
+            result={
+                "total": 1,
+                "quotes": [
+                    {
+                        "symbol": "AAPL",
+                        "longName": "Apple Inc.",
+                        "currency": "USD",
+                        "exchange": "NASDAQ",
+                        "status": "delisted",
+                        "ipo_date": "1980-12-12",
+                        "delisting_date": "2026-07-31",
+                    }
+                ],
+            },
+        )
+
+    monkeypatch.setattr(instrument_sync, "resolve_provider_chain", _fake_resolve)
+    monkeypatch.setattr(instrument_sync, "execute_provider_call", _fake_execute)
+    monkeypatch.setattr(instrument_sync.settings, "INSTRUMENT_DISCOVERY_PAGE_DELAY_SECONDS", 0)
+
+    result = await instrument_sync.seed_universe(async_db)
+
+    assert result["updated"] == 1
+    assert db.execute(select(Instrument).where(Instrument.symbol == "AAPL")).scalar_one().is_active is False
+    assert db.execute(
+        select(InstrumentListing).where(InstrumentListing.instrument_id == instrument.id)
+    ).scalar_one().is_active is False
+
+
+@pytest.mark.asyncio
+async def test_seed_universe_does_not_promote_ambiguous_sec_ticker(db, monkeypatch):
+    async_db = AsyncSessionAdapter(db)
+
+    class _DiscoveryProvider:
+        def supported_discovery_types(self):
+            return ["EQUITY"]
+
+    edgar = _resolved_provider(
+        db,
+        provider_name="edgar",
+        capability=ProviderCapability.UNIVERSE_DISCOVERY,
+        provider=_DiscoveryProvider(),
+    )
+
+    async def _fake_resolve(*args, **kwargs):
+        return [edgar]
+
+    async def _fake_execute(*args, **kwargs):
+        return ProviderExecutionResult(
+            provider_name="edgar",
+            data_source=edgar.data_source,
+            policy=edgar.policy,
+            health=edgar.health,
+            result={
+                "total": 1,
+                "quotes": [
+                    {
+                        "symbol": "DUP",
+                        "longName": "Ambiguous Issuer",
+                        "currency": "USD",
+                        "exchange": "NYSE",
+                        "sec_cik": 1,
+                        "identity_ambiguity": [
+                            {"cik": 1, "name": "One Holdings", "exchange": "NYSE"},
+                            {"cik": 2, "name": "Two Holdings", "exchange": "OTC"},
+                        ],
+                    }
+                ],
+            },
+        )
+
+    monkeypatch.setattr(instrument_sync, "resolve_provider_chain", _fake_resolve)
+    monkeypatch.setattr(instrument_sync, "execute_provider_call", _fake_execute)
+    monkeypatch.setattr(instrument_sync.settings, "INSTRUMENT_DISCOVERY_PAGE_DELAY_SECONDS", 0)
+
+    result = await instrument_sync.seed_universe(async_db)
+
+    assert result["created"] == 0
+    assert db.execute(select(Instrument).where(Instrument.symbol == "DUP")).scalar_one_or_none() is None
+    snapshot = db.execute(select(UniverseDiscoverySnapshot)).scalar_one()
+    assert snapshot.payload["page"]["quotes"][0]["identity_ambiguity"]
 
 
 @pytest.mark.asyncio

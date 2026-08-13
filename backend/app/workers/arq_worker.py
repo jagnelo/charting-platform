@@ -82,6 +82,23 @@ async def task_refresh_instrument_data(ctx: dict, instrument_id: int, timeframe:
         return {"bars_fetched": len(bars)}
 
 
+async def task_bootstrap_core_workstation(ctx: dict):
+    """Hydrate the immutable US Top Down universe on a fresh deployment."""
+
+    from app.database import AsyncSessionLocal
+    from app.services.workstation_bootstrap import bootstrap_core_workstation_data
+
+    async with AsyncSessionLocal() as db:
+        result = await bootstrap_core_workstation_data(db)
+        logger.info(
+            "Core workstation bootstrap complete: history=%d holdings=%d skipped=%s",
+            sum(1 for item in (result.get("history") or {}).values() if item.get("status") in {"loaded", "ready"}),
+            sum(1 for item in (result.get("holdings") or {}).values() if item.get("status") in {"loaded", "ready"}),
+            result.get("skipped", False),
+        )
+        return result
+
+
 # ── Scheduled tasks (cron) ───────────────────────────────────────────────────
 
 
@@ -141,6 +158,45 @@ async def scheduled_etf_holdings_sec_backfill(ctx: dict):
     return await backfill_sec_nport_holdings_task(ctx)
 
 
+async def scheduled_etf_holdings_classification_refresh(ctx: dict):
+    from app.tasks.etf_holdings_tasks import reconcile_etf_holdings_classifications_task
+
+    return await reconcile_etf_holdings_classifications_task(ctx)
+
+
+async def scheduled_core_workstation_bootstrap(ctx: dict):
+    if not settings.CORE_WORKSTATION_BOOTSTRAP_ENABLED:
+        logger.info("Core workstation bootstrap disabled; skipping")
+        return {"skipped": True, "reason": "bootstrap disabled"}
+    return await task_bootstrap_core_workstation(ctx)
+
+
+async def worker_startup(ctx: dict):
+    """Queue the first hydration without blocking worker readiness.
+
+    Provider-backed history and holdings can each legitimately spend the configured
+    timeout on a cold source. Running that whole sweep inside ARQ's startup hook
+    leaves the worker unavailable (and causes restart loops) for the duration of
+    the sweep. Queue one idempotent job instead; ARQ can then execute it through
+    the normal worker lifecycle while accepting other work.
+    """
+
+    if not settings.CORE_WORKSTATION_BOOTSTRAP_ENABLED:
+        return
+    redis = ctx.get("redis")
+    if redis is None:
+        logger.warning("Core workstation bootstrap could not be queued: Redis is unavailable")
+        return
+    job = await redis.enqueue_job(
+        "task_bootstrap_core_workstation",
+        # Bump this id when bootstrap semantics change so a completed result
+        # from an older deployment cannot suppress the corrected sweep.
+        _job_id="core-workstation-bootstrap-startup-v4",
+        _expires=3600,
+    )
+    logger.info("Queued core workstation bootstrap at worker startup: job=%s", job)
+
+
 # ── Worker settings ───────────────────────────────────────────────────────────
 
 
@@ -150,12 +206,14 @@ class WorkerSettings:
         task_bulk_fetch_instrument,
         task_run_screener,
         task_refresh_instrument_data,
+        task_bootstrap_core_workstation,
         scheduled_weekly_seed,
         scheduled_daily_metadata_sync,
         scheduled_daily_id_bootstrap,
         scheduled_daily_history_refresh,
         scheduled_etf_holdings_refresh,
         scheduled_etf_holdings_sec_backfill,
+        scheduled_etf_holdings_classification_refresh,
     ]
     cron_jobs = (
         [
@@ -165,15 +223,20 @@ class WorkerSettings:
             cron(scheduled_daily_history_refresh, hour=5, minute=0),
             cron(scheduled_etf_holdings_refresh, weekday=6, hour=5, minute=0),
             cron(scheduled_etf_holdings_sec_backfill, weekday=6, hour=6, minute=0),
+            cron(scheduled_etf_holdings_classification_refresh, weekday=6, hour=7, minute=0),
+            cron(scheduled_core_workstation_bootstrap, hour=1, minute=0),
         ]
         if (
             settings.INSTRUMENT_SYNC_SCHEDULE_ENABLED
             or settings.MARKET_DATA_REFRESH_SCHEDULE_ENABLED
             or settings.ETF_HOLDINGS_REFRESH_ENABLED
             or settings.ETF_HOLDINGS_SEC_BACKFILL_ENABLED
+            or settings.ETF_HOLDINGS_CLASSIFICATION_REFRESH_ENABLED
+            or settings.CORE_WORKSTATION_BOOTSTRAP_ENABLED
         )
         else []
     )
+    on_startup = worker_startup
     max_jobs = 4
     job_timeout = 600  # 10 minutes max per job
     keep_result = 3600  # keep results for 1 hour

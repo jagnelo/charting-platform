@@ -332,6 +332,78 @@ def test_bootstrap_endpoint_seeds_known_eem_ishares_route_metadata(
     assert body["latest_snapshot"]["row_count"] == 1
 
 
+def test_bootstrap_endpoint_seeds_invesco_rsp_cusip_route_metadata(
+    client, auth_headers, monkeypatch
+):
+    async def fake_bootstrap_from_sec_filings(db, profile):
+        return None
+
+    async def fake_refresh_adapter_route(db, profile):
+        from app.services.etf_holdings import ingest_holdings_snapshot
+        from app.services.etf_holdings_adapters import CanonicalHoldingRow
+
+        assert profile.adapter_key == "invesco"
+        assert profile.issuer == "Invesco"
+        assert profile.provider_aliases["holdings_adapter"] == "invesco"
+        assert profile.provider_aliases["cusip"] == "46137V357"
+        return await ingest_holdings_snapshot(
+            db,
+            etf_instrument=profile.instrument,
+            rows=[
+                CanonicalHoldingRow(
+                    symbol="AAPL",
+                    name="Apple Inc.",
+                    weight=Decimal("0.01000000"),
+                    shares=Decimal("10"),
+                    market_value=Decimal("2000"),
+                    currency="USD",
+                    holding_type="equity",
+                    row_type="security",
+                ),
+            ],
+            composition_date=date(2026, 8, 8),
+            as_of_date=date(2026, 8, 8),
+            known_at=None,
+            provenance="issuer_self_snapshotted_holdings",
+            source_provider="invesco",
+            source_url=(
+                "https://dng-api.invesco.com/cache/v1/accounts/en_US/"
+                "shareclasses/46137V357/holdings/fund?idType=cusip&interval=monthly&productType=ETF"
+            ),
+            source_identifier="46137V357",
+            source_quality="self_snapshotted_holdings",
+            completeness_status="unknown",
+            parser_version="invesco-json-v1",
+            notes="Test bootstrap snapshot.",
+        )
+
+    monkeypatch.setattr(
+        "app.services.etf_holdings_refresh._refresh_adapter_route",
+        fake_refresh_adapter_route,
+    )
+    monkeypatch.setattr(
+        "app.services.etf_holdings_refresh._bootstrap_from_sec_filings",
+        fake_bootstrap_from_sec_filings,
+    )
+
+    response = client.post(
+        "/api/v1/etf-holdings/RSP/bootstrap",
+        headers=auth_headers,
+        json={"name": "Invesco S&P 500 Equal Weight ETF"},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["profile"]["symbol"] == "RSP"
+    assert body["profile"]["issuer"] == "Invesco"
+    assert body["profile"]["adapter_key"] == "invesco"
+    assert body["profile"]["provider_aliases"]["cusip"] == "46137V357"
+    assert body["probe"]["status"] == "ready"
+    assert body["probe"]["source_url"].endswith("shareclasses/46137V357/holdings/fund?idType=cusip&interval=monthly&productType=ETF")
+    assert body["refresh_succeeded"] is True
+    assert body["latest_snapshot"]["row_count"] == 1
+
+
 def test_bootstrap_endpoint_falls_back_to_sec_when_invesco_refresh_route_fails(
     client, auth_headers, monkeypatch
 ):
@@ -1510,7 +1582,9 @@ def test_admin_can_list_holdings_adapter_catalog(client, admin_headers):
 
     invesco = adapters["invesco"]
     assert invesco["live_tested_default_route"] is True
-    assert any("shareclasses/{symbol_upper}/holdings/fund" in template for template in invesco["url_templates"])
+    assert invesco["source_access"] == "issuer_public_json_catalog_cusip"
+    assert any("product/search" in template for template in invesco["url_templates"])
+    assert any("shareclasses/{cusip}/holdings/fund?idType=cusip" in template for template in invesco["url_templates"])
 
 
 def test_admin_can_discover_etf_profiles_from_issuer_feed(
@@ -2467,6 +2541,34 @@ def test_admin_can_probe_ready_spdr_symbol_route(client, admin_headers):
     assert body["required_identifiers"] == []
 
 
+def test_admin_probe_applies_curated_core_route_to_identity_only_profile(
+    client, admin_headers
+):
+    """Identity bootstrap profiles must resolve the reviewed SPDR route on probe."""
+
+    probe = client.post("/api/v1/etf-holdings/SPY/probe-adapter", headers=admin_headers)
+    assert probe.status_code == 200
+    body = probe.json()
+    assert body["adapter_key"] == "spdr"
+    assert body["status"] == "ready"
+    assert body["source_provider"] == "spdr"
+
+
+def test_admin_dated_refresh_returns_capability_conflict_for_unresolved_route(
+    client, admin_headers
+):
+    refresh = client.post(
+        "/api/v1/etf-holdings/MYST/refresh-date",
+        json={"requested_date": "2026-05-29"},
+        headers=admin_headers,
+    )
+    assert refresh.status_code == 409
+    detail = refresh.json()["detail"]
+    assert detail["code"] == "holdings_adapter_unresolved"
+    assert detail["symbol"] == "MYST"
+    assert "No configured free issuer adapter" in detail["message"]
+
+
 def test_profile_ticker_alone_does_not_guess_issuer_adapter(client, admin_headers):
     profile = client.patch(
         "/api/v1/etf-holdings/VOO/profile",
@@ -2513,7 +2615,12 @@ def test_admin_can_probe_invesco_as_ready_symbol_route(client, admin_headers):
     assert body["adapter_key"] == "invesco"
     assert body["source_provider"] == "invesco"
     assert body["status"] == "ready"
-    assert "shareclasses/QQQ/holdings/fund" in body["source_url"]
+    assert body["source_url"] == (
+        "https://dng-api.invesco.com/product/search?"
+        "fq=countryCode:%22US%22&fq=language:%22en_us%22&fq=accountType:%22ETF%22&"
+        "fq=contentType:%22Product%22&fq=shareClassStatus:%22open%22&"
+        "q=_suggest_:*&fl=ticker,cusip,isin,accountName,title,url&rows=2000&start=0"
+    )
     assert body["required_identifiers"] == []
 
 

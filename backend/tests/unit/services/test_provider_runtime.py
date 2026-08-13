@@ -11,6 +11,7 @@ from app.models.data_source import DataSource
 from app.models.provider_runtime import (
     ProviderCapability,
     ProviderEntitlement,
+    ProviderEntitlementRevision,
     ProviderHealthState,
     ProviderPolicy,
 )
@@ -58,6 +59,85 @@ async def test_provider_chain_excludes_non_free_entitlements(db):
     chain = await resolve_provider_chain(async_db, ProviderCapability.PRICE_HISTORY)
 
     assert all(item.provider_name != "alpaca" for item in chain)
+
+
+@pytest.mark.asyncio
+async def test_unreviewed_provider_entitlement_is_not_runtime_usable(db, monkeypatch):
+    async_db = AsyncSessionAdapter(db)
+    seeds = {name: value for name, value in settings.PROVIDER_ENTITLEMENT_SEEDS.items() if name != "alpaca"}
+    monkeypatch.setattr(settings, "PROVIDER_ENTITLEMENT_SEEDS", seeds)
+
+    await seed_provider_runtime(async_db)
+    data_source = db.execute(select(DataSource).where(DataSource.name == "alpaca")).scalar_one()
+    entitlement = db.execute(
+        select(ProviderEntitlement).where(
+            ProviderEntitlement.data_source_id == data_source.id,
+            ProviderEntitlement.capability == ProviderCapability.PRICE_HISTORY,
+        )
+    ).scalar_one()
+    assert entitlement.configured_plan == "unreviewed"
+    assert entitlement.is_free is False
+
+    chain = await resolve_provider_chain(async_db, ProviderCapability.PRICE_HISTORY)
+    assert all(item.provider_name != "alpaca" for item in chain)
+
+
+@pytest.mark.asyncio
+async def test_runtime_seeding_is_idempotent_for_entitlement_revisions(db):
+    async_db = AsyncSessionAdapter(db)
+    await seed_provider_runtime(async_db)
+    alpaca = db.execute(select(DataSource).where(DataSource.name == "alpaca")).scalar_one()
+    first_count = db.execute(
+        select(ProviderEntitlementRevision).where(
+            ProviderEntitlementRevision.data_source_id == alpaca.id,
+            ProviderEntitlementRevision.capability == ProviderCapability.PRICE_HISTORY,
+        )
+    ).scalars().all()
+    await seed_provider_runtime(async_db)
+    second_count = db.execute(
+        select(ProviderEntitlementRevision).where(
+            ProviderEntitlementRevision.data_source_id == alpaca.id,
+            ProviderEntitlementRevision.capability == ProviderCapability.PRICE_HISTORY,
+        )
+    ).scalars().all()
+    assert len(first_count) == len(second_count) == 1
+
+
+@pytest.mark.asyncio
+async def test_reviewed_entitlement_upgrade_creates_next_revision(db, monkeypatch):
+    async_db = AsyncSessionAdapter(db)
+    without_alpaca = {
+        name: value for name, value in settings.PROVIDER_ENTITLEMENT_SEEDS.items() if name != "alpaca"
+    }
+    monkeypatch.setattr(settings, "PROVIDER_ENTITLEMENT_SEEDS", without_alpaca)
+    await seed_provider_runtime(async_db)
+
+    monkeypatch.setattr(settings, "PROVIDER_ENTITLEMENT_SEEDS", dict(settings.PROVIDER_ENTITLEMENT_SEEDS, alpaca={
+        "configured_plan": "free-reviewed",
+        "is_free": True,
+        "authentication_required": True,
+    }))
+    await seed_provider_runtime(async_db)
+
+    alpaca = db.execute(select(DataSource).where(DataSource.name == "alpaca")).scalar_one()
+    entitlement = db.execute(
+        select(ProviderEntitlement).where(
+            ProviderEntitlement.data_source_id == alpaca.id,
+            ProviderEntitlement.capability == ProviderCapability.PRICE_HISTORY,
+        )
+    ).scalar_one()
+    revisions = db.execute(
+        select(ProviderEntitlementRevision)
+        .where(
+            ProviderEntitlementRevision.data_source_id == alpaca.id,
+            ProviderEntitlementRevision.capability == ProviderCapability.PRICE_HISTORY,
+        )
+        .order_by(ProviderEntitlementRevision.revision)
+    ).scalars().all()
+    assert entitlement.revision == 2
+    assert [row.revision for row in revisions] == [1, 2]
+    assert revisions[0].is_free is False
+    assert revisions[1].is_free is True
 
 
 @pytest.mark.asyncio

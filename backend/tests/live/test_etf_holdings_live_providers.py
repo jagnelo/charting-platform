@@ -44,6 +44,13 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "acuitas",
     "aot",
     "abrdn",
+    "acsi_funds",
+    "oakmark",
+    "oshares",
+    "range",
+    "academy",
+    "impact_shares",
+    "leverage_shares",
     "absolute_investment_advisers",
     "adaptive_investments",
     "affiliated_managers_group",
@@ -66,6 +73,8 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "myriad",
     "reckoner",
     "redbird",
+    "redwood",
+    "rex",
     "reflection",
     "nightview",
     "gladius",
@@ -84,7 +93,6 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "ameriprise",
     "columbia_threadneedle",
     "amplify",
-    "anfield",
     "angel_oak",
     "applied_finance",
     "aptus",
@@ -122,6 +130,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "ccm",
     "capital_group",
     "cary_street",
+    "fairlead",
     "colliers",
     "peakshares",
     "kingsbarn",
@@ -300,6 +309,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "split_rock",
     "ssc",
     "sterling_capital",
+    "sterling_fund",
     "strategas",
     "stf",
     "natixis",
@@ -340,11 +350,14 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "wahed",
     "warren",
     "water_island",
+    "altshares",
+    "keating",
     "wellington",
     "weitz",
     "wbi",
     "world_gold_council",
     "yorkville",
+    "truth_social",
     "yieldmax",
     "zacks",
 }
@@ -363,13 +376,26 @@ def _covers_live_provider(adapter_key: str):
 
     return decorate
 
-pytestmark = [
-    pytest.mark.live,
-    pytest.mark.skipif(
-        os.getenv("RUN_LIVE_ETF_HOLDINGS_TESTS") != "1",
-        reason="Set RUN_LIVE_ETF_HOLDINGS_TESTS=1 to run live issuer holdings checks.",
-    ),
-]
+pytestmark = [pytest.mark.live]
+
+# Keep the registry/coverage contracts executable in every backend test run.  Only the
+# network-bearing issuer probes are opt-in; placing the skip on the whole module used to
+# silently skip the very tests that prove a promoted adapter has a concrete live route.
+_NON_NETWORK_CONTRACT_TESTS = {
+    "test_live_provider_matrix_covers_every_registered_issuer_adapter",
+    "test_live_backed_providers_each_have_a_concrete_live_route_test",
+}
+
+
+@pytest.fixture(autouse=True)
+def _skip_network_probe_unless_enabled(request):
+    if (
+        request.node.originalname not in _NON_NETWORK_CONTRACT_TESTS
+        and os.getenv("RUN_LIVE_ETF_HOLDINGS_TESTS") != "1"
+    ):
+        pytest.skip(
+            "Set RUN_LIVE_ETF_HOLDINGS_TESTS=1 to run live issuer holdings checks."
+        )
 
 
 def test_live_provider_matrix_covers_every_registered_issuer_adapter():
@@ -406,6 +432,8 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
         ),
         ("dhandho", "WAGN", None, {}, 10),
         ("water_island", "ARB", None, {}, 30),
+        ("altshares", "ARB", None, {}, 30),
+        ("keating", "KEAT", None, {}, 20),
         ("canary", "HBR", None, {}, 1),
         ("optimize", "OPTZ", None, {}, 100),
         ("emles", "EOPS", None, {}, 1),
@@ -874,6 +902,13 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
             {},
             100,
         ),
+        ("spdr", "XBI", None, {}, 100),
+        ("spdr", "KRE", None, {}, 100),
+        ("spdr", "XRT", None, {}, 50),
+        ("spdr", "XME", None, {}, 30),
+        ("spdr", "XAR", None, {}, 20),
+        ("spdr", "XHB", None, {}, 30),
+        ("spdr", "XOP", None, {}, 50),
         (
             "ishares",
             "IVV",
@@ -895,6 +930,18 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
             {},
             100,
         ),
+        (
+            "ishares",
+            "SOXX",
+            None,
+            {},
+            30,
+        ),
+        ("ishares", "IBB", None, {}, 100),
+        ("ishares", "ITA", None, {}, 20),
+        ("ishares", "ITB", None, {}, 30),
+        ("vaneck", "OIH", None, {"product_slug": "oil-services-etf-oih"}, 20),
+        ("vaneck", "SLX", None, {"product_slug": "steel-etf-slx"}, 20),
         (
             "kraneshares",
             "KWEB",
@@ -1058,6 +1105,13 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
         ),
         (
             "cary_street",
+            "TACK",
+            None,
+            {},
+            5,
+        ),
+        (
+            "fairlead",
             "TACK",
             None,
             {},
@@ -1268,7 +1322,7 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
         ),
         (
             "invesco",
-            "QQQ",
+            "RSP",
             None,
             {},
             100,
@@ -1364,7 +1418,10 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
             "DEFI",
             None,
             {},
-            3,
+            # Current DEFI disclosure is a two-row crypto/cash portfolio;
+            # validate the complete disclosed snapshot rather than imposing
+            # an equity-count minimum that the issuer does not satisfy.
+            2,
         ),
         (
             "matthews",
@@ -1536,6 +1593,13 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
         ),
         (
             "yorkville",
+            "TSIC",
+            None,
+            {},
+            20,
+        ),
+        (
+            "truth_social",
             "TSIC",
             None,
             {},
@@ -1988,6 +2052,14 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
         ("gladius", "CMBO", None, {}, 6),
         ("shariaportfolio", "SPTE", None, {}, 50),
         ("sp_funds", "SPTE", None, {}, 50),
+        ("academy", "VETZ", None, {}, 10),
+        ("impact_shares", "NACP", None, {}, 10),
+        ("acsi_funds", "ACSI", None, {}, 20),
+        ("oakmark", "OAKM", None, {}, 10),
+        ("oakmark", "OAKI", None, {}, 10),
+        ("oshares", "OUSA", None, {}, 50),
+        ("range", "NUKZ", None, {}, 10),
+        ("range", "COAL", None, {}, 10),
     ],
 )
 async def test_live_issuer_direct_holdings_routes_return_parseable_rows(
@@ -2016,6 +2088,11 @@ async def test_live_issuer_direct_holdings_routes_return_parseable_rows(
         raise
 
     _assert_live_holdings_result(result, adapter_key=adapter_key, min_rows=min_rows)
+    if adapter_key == "ishares" and symbol in {"SOXX", "IBB", "ITA", "ITB"}:
+        assert result.legal_metadata["route_resolution"] == "issuer_public_json_api"
+        assert result.legal_metadata["composition_date"]
+    if adapter_key == "ishares" and symbol == "SOXX":
+        assert any(row.symbol == "NVDA" for row in result.rows)
 
 
 @pytest.mark.asyncio
@@ -2050,6 +2127,24 @@ async def test_live_issuer_product_pages_discover_parseable_holdings_files(
 
     _assert_live_holdings_result(result, adapter_key=adapter_key, min_rows=5)
     assert result.legal_metadata["route_resolution"] == expected_route_resolution
+
+
+@pytest.mark.asyncio
+@pytest.mark.slow
+@_covers_live_provider("leverage_shares")
+async def test_live_leverage_shares_symbol_scoped_holdings_csv():
+    adapter = get_holdings_adapter("leverage_shares")
+    assert adapter is not None
+
+    result = await adapter.fetch_latest(symbol="MPG")
+
+    _assert_live_holdings_result(result, adapter_key="leverage_shares", min_rows=5)
+    assert result.source_url.endswith("/MPG_Holdings.csv")
+    assert result.legal_metadata["route_resolution"] == "issuer_profile_metadata"
+    assert result.legal_metadata["source_access"] == (
+        "issuer_public_product_page_declared_complete_holdings_csv"
+    )
+    assert any(row.row_type == "cash" for row in result.rows)
 
 
 @pytest.mark.asyncio
@@ -2386,20 +2481,56 @@ async def test_live_toews_product_page_linked_holdings_csv():
 
 @pytest.mark.asyncio
 @pytest.mark.slow
-@_covers_live_provider("anfield")
-async def test_live_anfield_adfi_product_page_declared_holdings_csv():
-    adapter = get_holdings_adapter("anfield")
+@_covers_live_provider("redwood")
+async def test_live_redwood_leadershares_fund_scoped_holdings_csv():
+    adapter = get_holdings_adapter("redwood")
     assert adapter is not None
 
-    result = await adapter.fetch_latest(symbol="ADFI")
+    result = await adapter.fetch_latest(symbol="LSAT")
 
-    _assert_live_holdings_result(result, adapter_key="anfield", min_rows=3)
+    _assert_live_holdings_result(result, adapter_key="redwood", min_rows=10)
     assert result.legal_metadata["route_resolution"] == (
-        "anfield_adfi_product_page_declared_holdings_csv"
+        "redwood_leadershares_fund_scoped_holdings_download"
     )
     assert result.legal_metadata["composition_date"]
-    assert any(row.holding_type == "derivative" for row in result.rows)
-    assert any(row.row_type == "cash" for row in result.rows)
+    assert result.legal_metadata["source_format"] == "csv"
+    assert any(row.symbol == "FERG" for row in result.rows)
+
+
+@pytest.mark.asyncio
+@pytest.mark.slow
+@_covers_live_provider("rex")
+async def test_live_rex_shares_tslt_product_page_holdings_csv():
+    adapter = get_holdings_adapter("rex")
+    assert adapter is not None
+
+    result = await adapter.fetch_latest(symbol="TSLT")
+
+    _assert_live_holdings_result(result, adapter_key="rex", min_rows=5)
+    assert result.legal_metadata["route_resolution"] == (
+        "rex_product_page_complete_holdings_csv_form"
+    )
+    assert result.legal_metadata["source_format"] == "csv"
+    # The issuer's current CSV has no as-of/composition-date field; the absence
+    # is preserved rather than inferred from request time or page metadata.
+    assert result.legal_metadata.get("composition_date") is None
+
+
+@pytest.mark.asyncio
+@pytest.mark.slow
+@_covers_live_provider("sterling_fund")
+async def test_live_sterling_fund_management_scmc_publisher_holdings_pdf():
+    adapter = get_holdings_adapter("sterling_fund")
+    assert adapter is not None
+
+    result = await adapter.fetch_latest(symbol="SCMC")
+
+    _assert_live_holdings_result(result, adapter_key="sterling_fund", min_rows=100)
+    assert result.legal_metadata["route_resolution"] == (
+        "sterling_capital_publisher_current_holdings_pdf_for_sterling_fund_scmc"
+    )
+    assert result.legal_metadata["composition_date"]
+    assert result.legal_metadata["source_format"] == "pdf"
 
 
 @pytest.mark.asyncio

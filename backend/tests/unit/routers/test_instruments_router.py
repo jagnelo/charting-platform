@@ -1,3 +1,4 @@
+import asyncio
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
@@ -137,6 +138,48 @@ def test_search_exchange_prefers_active_primary_listing_mic(instrument_type):
 
 
 class TestInstrument52WStats:
+    @pytest.mark.asyncio
+    async def test_concurrent_refreshes_keep_one_stats_row(self, db, instrument):
+        async_db = AsyncSessionAdapter(db)
+        base = datetime.now(UTC) - timedelta(days=90)
+        db.add_all(
+            [
+                OHLCVBar(
+                    instrument_id=instrument.id,
+                    timeframe=Timeframe.D1,
+                    ts=base,
+                    open=Decimal("150"),
+                    high=Decimal("200"),
+                    low=Decimal("145"),
+                    close=Decimal("190"),
+                    volume=Decimal("1000"),
+                    is_adjusted=True,
+                ),
+                OHLCVBar(
+                    instrument_id=instrument.id,
+                    timeframe=Timeframe.D1,
+                    ts=base + timedelta(days=30),
+                    open=Decimal("140"),
+                    high=Decimal("142"),
+                    low=Decimal("120"),
+                    close=Decimal("130"),
+                    volume=Decimal("1000"),
+                    is_adjusted=True,
+                ),
+            ]
+        )
+        db.flush()
+
+        await asyncio.gather(
+            _ensure_52w_stats(instrument, async_db),
+            _ensure_52w_stats(instrument, async_db),
+        )
+
+        rows = db.query(InstrumentStats).filter(InstrumentStats.instrument_id == instrument.id).all()
+        assert len(rows) == 1
+        assert float(rows[0].week52_high) == 200.0
+        assert float(rows[0].week52_low) == 120.0
+
     @pytest.mark.asyncio
     async def test_refreshes_provider_sourced_52w_provenance_from_ohlcv(self, db, instrument):
         async_db = AsyncSessionAdapter(db)

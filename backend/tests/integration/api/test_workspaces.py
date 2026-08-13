@@ -61,6 +61,19 @@ class TestWorkspaces:
         ]
         tc_classic = next(tab for tab in workspace["tabs"] if tab["stable_key"] == "tc-classic")
         assert {window["tool_type"] for window in tc_classic["windows"]} >= {"chart", "watchlist", "notes"}
+        drill_down = next(tab for tab in workspace["tabs"] if tab["stable_key"] == "drill-down")
+        drill_keys = {window["instance_key"] for window in drill_down["windows"]}
+        assert {"selected-chart", "sector-comparison"} <= drill_keys
+        assert drill_down["layout_config"]["version"] == 8
+        drill_comparison = next(window for window in drill_down["windows"] if window["instance_key"] == "sector-comparison")
+        assert drill_comparison["configuration"]["comparison_symbols"] == ["RSP"]
+        drill_root = drill_down["layout_config"]["root"]
+        assert any(item.get("type") == "stack" and len(item.get("content", [])) == 2 for item in drill_root["content"])
+        sector_by_year = next(tab for tab in workspace["tabs"] if tab["stable_key"] == "sector-by-year")
+        assert {"selected-chart", "normalized-comparison"} <= {window["instance_key"] for window in sector_by_year["windows"]}
+        assert sector_by_year["layout_config"]["version"] == 8
+        normalized = next(window for window in sector_by_year["windows"] if window["instance_key"] == "normalized-comparison")
+        assert normalized["configuration"]["comparison_symbols"] == ["RSP"]
 
     def test_factory_reset_recreates_latest_factory_layout(self, client, auth_headers):
         workspace = client.get("/api/v1/workspaces/default", headers=auth_headers).json()
@@ -79,6 +92,8 @@ class TestWorkspaces:
         assert {
             window["configuration"]["timeframe"] for window in four_timeframe["windows"]
         } == {"M15", "D1", "W1", "MN"}
+        drill_down = next(tab for tab in reset["tabs"] if tab["stable_key"] == "drill-down")
+        assert {"selected-chart", "sector-comparison"} <= {window["instance_key"] for window in drill_down["windows"]}
 
     def test_snapshot_is_revision_checked(self, client, auth_headers):
         workspace = client.get("/api/v1/workspaces/default", headers=auth_headers).json()
@@ -209,6 +224,31 @@ class TestWorkspaces:
         assert second.status_code == 200
         assert second.json()["version"] == 2
 
+    def test_library_item_rename_returns_updated_timestamp(self, client, auth_headers):
+        payload = {
+            "kind": "chart_template",
+            "stable_key": "rename-me",
+            "name": "Original name",
+            "payload": {"configuration": {"bar_type": "line"}},
+            "dependency_metadata": {"contract": "workstation_chart_template_v1"},
+        }
+        created = client.put(
+            "/api/v1/workspaces/library/items/chart_template/rename-me",
+            headers=auth_headers,
+            json=payload,
+        )
+        assert created.status_code == 200
+        renamed = client.put(
+            "/api/v1/workspaces/library/items/chart_template/rename-me",
+            headers=auth_headers,
+            json={**payload, "name": "Renamed template"},
+        )
+        assert renamed.status_code == 200
+        assert renamed.json()["name"] == "Renamed template"
+        assert renamed.json()["stable_key"] == "rename-me"
+        assert renamed.json()["version"] == 2
+        assert renamed.json()["updated_at"]
+
     def test_combo_library_item_preserves_canonical_membership_sets(self, client, auth_headers):
         payload = {
             "kind": "combo_list",
@@ -289,6 +329,8 @@ class TestWorkspaces:
         assert first.status_code == 200
         assert first.json()["kind"] == "condition"
         assert first.json()["payload"]["condition"] == payload["condition"]
+        assert isinstance(first.json()["payload"]["python_code_version_id"], int)
+        assert "output.boolean('match'" in first.json()["payload"]["python_source"]
         assert first.json()["version"] == 1
 
         payload["name"] = "Close above 100 updated"
@@ -335,6 +377,16 @@ class TestWorkspaces:
                 instrument_id=instrument.id,
                 sector="Technology",
                 industry="Semiconductors",
+                field_provenance={
+                    "sector": {
+                        "classification_system": "provider_native",
+                        "observed_at": "2026-06-30T00:00:00+00:00",
+                    },
+                    "industry": {
+                        "classification_system": "provider_native",
+                        "observed_at": "2026-06-30T00:00:00+00:00",
+                    },
+                },
             )
         )
         db.flush()
@@ -363,14 +415,103 @@ class TestWorkspaces:
         payload = response.json()
         assert payload["composition_date"] == "2026-07-01"
         assert payload["industries"] == [
-            {"industry": "Semiconductors", "constituent_count": 1, "resolved_count": 1}
+            {
+                "industry": "Semiconductors",
+                "constituent_count": 1,
+                "resolved_count": 1,
+                "classification_systems": ["provider_native"],
+            }
         ]
+        assert payload["classification_systems"] == ["provider_native"]
+        assert payload["classification_coverage"] == 1
         constituents = client.get(
             "/api/v1/market-groups/etf/INDX/industries/Semiconductors",
             headers=auth_headers,
         )
         assert constituents.status_code == 200
         assert [item["id"] for item in constituents.json()["constituents"]] == [instrument.id]
+        assert constituents.json()["classification_systems"] == ["provider_native"]
+        assert constituents.json()["classification_coverage"] == 1
+
+    def test_etf_industry_exclusions_are_explicit_for_cash_derivative_and_unresolved_rows(
+        self, client, admin_headers, auth_headers, db, instrument, instrument_b
+    ):
+        from datetime import UTC, date, datetime
+
+        from app.models.etf_holdings import ETFHolding, ETFHoldingsSnapshot, ETFProfile
+        from app.models.instrument import EquityDetail, Instrument
+
+        detail = EquityDetail(
+            instrument_id=instrument.id,
+            industry="Semiconductors",
+            field_provenance={"industry": {"classification_system": "provider_native"}},
+        )
+        sector_only_detail = EquityDetail(
+            instrument_id=instrument_b.id,
+            sector="Information Technology",
+            field_provenance={"sector": {"classification_system": "provider_native"}},
+        )
+        db.add_all([detail, sector_only_detail])
+        cash = Instrument(
+            symbol="CASH-TEST",
+            name="Cash",
+            currency="USD",
+            instrument_type_id=instrument.instrument_type_id,
+            is_active=True,
+        )
+        derivative = Instrument(
+            symbol="DERIV-TEST",
+            name="Future contract",
+            currency="USD",
+            instrument_type_id=instrument.instrument_type_id,
+            is_active=True,
+        )
+        db.add_all([cash, derivative])
+        db.flush()
+        profile = ETFProfile(instrument_id=instrument.id)
+        db.add(profile)
+        db.flush()
+        snapshot = ETFHoldingsSnapshot(
+            etf_profile_id=profile.id,
+            composition_date=date(2026, 8, 12),
+            known_at=datetime(2026, 8, 13, tzinfo=UTC),
+            provenance="issuer_native",
+            source_provider="manual-test",
+            completeness_status="partial",
+            row_count=4,
+            resolved_count=3,
+            unresolved_count=1,
+            snapshot_hash="explicit-exclusions",
+        )
+        db.add(snapshot)
+        db.flush()
+        db.add_all(
+            [
+                ETFHolding(snapshot_id=snapshot.id, constituent_instrument_id=instrument.id, position=0, source_row_hash="equity-row", is_resolved=True, holding_type="equity", row_type="security"),
+                ETFHolding(snapshot_id=snapshot.id, constituent_instrument_id=instrument_b.id, position=1, source_row_hash="unclassified-equity-row", is_resolved=True, holding_type="equity", row_type="security"),
+                ETFHolding(snapshot_id=snapshot.id, constituent_instrument_id=cash.id, position=2, source_row_hash="cash-row", is_resolved=True, holding_type="cash", row_type="cash"),
+                ETFHolding(snapshot_id=snapshot.id, constituent_instrument_id=derivative.id, position=3, source_row_hash="derivative-row", is_resolved=True, holding_type="derivative", row_type="other"),
+                ETFHolding(snapshot_id=snapshot.id, constituent_instrument_id=None, position=4, source_row_hash="unresolved-row", is_resolved=False, holding_type="equity", row_type="security"),
+                ETFHolding(snapshot_id=snapshot.id, constituent_instrument_id=None, position=5, source_row_hash="inconsistent-resolved-row", is_resolved=True, holding_type="equity", row_type="security"),
+            ]
+        )
+        db.flush()
+        response = client.get(
+            f"/api/v1/market-groups/etf/{instrument.symbol}/industries",
+            headers=auth_headers,
+        )
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["classification_coverage"] == 0.5
+        assert payload["exclusions"] == ["cash_holding", "derivative_holding", "unclassified_constituent", "unresolved_holding"]
+        constituents = client.get(
+            f"/api/v1/market-groups/etf/{instrument.symbol}/industries/Semiconductors",
+            headers=auth_headers,
+        )
+        assert constituents.status_code == 200
+        assert [item["id"] for item in constituents.json()["constituents"]] == [instrument.id]
+        assert constituents.json()["classification_coverage"] == 0.5
+        assert constituents.json()["exclusions"] == payload["exclusions"]
 
     def test_relative_strength_uses_only_aligned_local_bars(
         self, client, auth_headers, db, instrument, instrument_b, ohlcv_bars
@@ -449,6 +590,60 @@ class TestWorkspaces:
         payload = response.json()
         assert payload["as_of"] == "2025-01-02T23:59:59Z"
         assert len(payload["points"]) == 2
+
+    def test_analysis_freshness_matches_adjusted_dataset_state(
+        self, client, auth_headers, db, instrument, instrument_b, ohlcv_bars
+    ):
+        """Analysis must not report unavailable when adjusted bars are fresh locally."""
+        from datetime import UTC, datetime, timedelta
+        from decimal import Decimal
+
+        from app.models.ohlcv import OHLCVBar, Timeframe
+        from app.models.provider_observation import DatasetStatus, InstrumentDatasetState
+
+        timestamp = datetime(2026, 1, 2, tzinfo=UTC)
+        db.add(
+            OHLCVBar(
+                instrument_id=instrument_b.id,
+                timeframe=Timeframe.D1,
+                ts=timestamp,
+                open=Decimal("100"),
+                high=Decimal("101"),
+                low=Decimal("99"),
+                close=Decimal("100"),
+                volume=Decimal("1"),
+                is_adjusted=True,
+            )
+        )
+        for current in (instrument, instrument_b):
+            db.add(
+                InstrumentDatasetState(
+                    instrument_id=current.id,
+                    data_source_id=None,
+                    dataset_type="ohlcv",
+                    dataset_key="D1:adj",
+                    status=DatasetStatus.FRESH,
+                    observed_at=timestamp,
+                    fetched_at=timestamp,
+                    stale_after=datetime.now(UTC) + timedelta(days=1),
+                )
+            )
+        db.flush()
+
+        response = client.get(
+            "/api/v1/analysis/relative-strength",
+            headers=auth_headers,
+            params={"symbol": instrument.symbol, "benchmark": instrument_b.symbol},
+        )
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["freshness"] == "current"
+        assert payload["freshness_detail"] == {
+            "requested": 2,
+            "current": 2,
+            "stale": 0,
+            "other": 0,
+        }
 
     def test_local_chart_route_never_needs_provider_fetch(
         self, client, auth_headers, instrument, ohlcv_bars
@@ -823,17 +1018,143 @@ class TestWorkspaces:
         assert payload["rows"][0]["symbol"] == instrument.symbol
         assert payload["rows"][0]["relative_to_benchmark"]["value"] == 1
 
+    def test_etf_constituent_snapshot_discloses_excluded_holdings_and_coverage(
+        self, client, auth_headers, db, instrument, instrument_type, ohlcv_bars
+    ):
+        """The constituent batch must not hide non-equity disclosure rows."""
+        from datetime import UTC, date, datetime
+
+        from app.models.etf_holdings import ETFHolding, ETFHoldingsSnapshot, ETFProfile
+        from app.models.instrument import Instrument
+
+        etf = Instrument(
+            symbol="MIXD",
+            name="Mixed Disclosure ETF",
+            currency="USD",
+            instrument_type_id=instrument_type.id,
+            is_active=True,
+        )
+        cash = Instrument(
+            symbol="CASH-MIXD",
+            name="Cash balance",
+            currency="USD",
+            instrument_type_id=instrument_type.id,
+            is_active=True,
+        )
+        db.add_all([etf, cash])
+        db.flush()
+        profile = ETFProfile(instrument_id=etf.id)
+        db.add(profile)
+        db.flush()
+        snapshot = ETFHoldingsSnapshot(
+            etf_profile_id=profile.id,
+            composition_date=date(2026, 8, 12),
+            known_at=datetime(2026, 8, 13, tzinfo=UTC),
+            provenance="issuer_native",
+            source_provider="mixed-disclosure-test",
+            completeness_status="partial",
+            row_count=3,
+            resolved_count=2,
+            unresolved_count=1,
+            snapshot_hash="mixed-disclosure-snapshot",
+        )
+        db.add(snapshot)
+        db.flush()
+        db.add_all([
+            ETFHolding(
+                snapshot_id=snapshot.id,
+                constituent_instrument_id=instrument.id,
+                position=0,
+                source_row_hash="mixed-equity",
+                is_resolved=True,
+                holding_type="equity",
+                row_type="security",
+            ),
+            ETFHolding(
+                snapshot_id=snapshot.id,
+                constituent_instrument_id=cash.id,
+                position=1,
+                source_row_hash="mixed-cash",
+                is_resolved=True,
+                holding_type="cash",
+                row_type="cash",
+            ),
+            ETFHolding(
+                snapshot_id=snapshot.id,
+                constituent_instrument_id=None,
+                position=2,
+                source_row_hash="mixed-unresolved",
+                is_resolved=False,
+                holding_type="equity",
+                row_type="security",
+            ),
+        ])
+        db.flush()
+
+        response = client.get(
+            "/api/v1/analysis/etf/MIXD/constituents/snapshot",
+            headers=auth_headers,
+            params={"benchmark": instrument.symbol},
+        )
+        assert response.status_code == 200
+        payload = response.json()
+        assert [row["symbol"] for row in payload["rows"]] == [instrument.symbol]
+        assert payload["coverage"] == 1 / 3
+        assert [item["code"] for item in payload["exclusions"]] == [
+            "cash_holding",
+            "unresolved_holding",
+        ]
+
     def test_industry_proxy_requires_curated_candidate_and_holdings_evidence(
         self, client, auth_headers, db, instrument, instrument_type
     ):
         from datetime import UTC, datetime
         from decimal import Decimal
 
+        from app.models.data_source import DataSource
         from app.models.etf_holdings import ETFHolding, ETFHoldingsSnapshot, ETFProfile
         from app.models.instrument import EquityDetail, Instrument
         from app.models.ohlcv import OHLCVBar, Timeframe
+        from app.models.provider_observation import InstrumentProfileSnapshot
 
-        db.add(EquityDetail(instrument_id=instrument.id, industry="Semiconductors"))
+        db.add(
+            EquityDetail(
+                instrument_id=instrument.id,
+                industry="Semiconductors",
+                field_provenance={
+                    "industry": {
+                        "classification_system": "provider_native",
+                        "observed_at": "2026-08-12T00:00:00+00:00",
+                    }
+                },
+            )
+        )
+        profile_source = DataSource(
+            name="historical-profile-fixture",
+            base_url="controlled://historical-profile",
+            description="Point-in-time classification fixture",
+            is_active=True,
+        )
+        db.add(profile_source)
+        db.flush()
+        db.add(
+            InstrumentProfileSnapshot(
+                instrument_id=instrument.id,
+                data_source_id=profile_source.id,
+                provider_symbol=instrument.symbol,
+                observed_at=datetime(2024, 5, 29, tzinfo=UTC),
+                fetched_at=datetime(2024, 5, 30, tzinfo=UTC),
+                profile_hash="historical-semis-profile",
+                payload={
+                    "provider": "historical-profile-fixture",
+                    "symbol": instrument.symbol,
+                    "extra": {
+                        "industry": "Semiconductors",
+                        "classification_system": "provider_native",
+                    },
+                },
+            )
+        )
         source = Instrument(
             symbol="XLK",
             name="Technology Select Sector SPDR Fund",
@@ -901,6 +1222,44 @@ class TestWorkspaces:
             ]
         )
         db.flush()
+        controlled_proxy_snapshot = ETFHoldingsSnapshot(
+            etf_profile_id=proxy_profile.id,
+            composition_date=datetime(2024, 6, 2, tzinfo=UTC).date(),
+            known_at=datetime(2024, 6, 3, tzinfo=UTC),
+            provenance="controlled_fixture",
+            source_provider="e2e_reference",
+            completeness_status="complete",
+            row_count=1,
+            resolved_count=1,
+            unresolved_count=0,
+            snapshot_hash="test-proxy-controlled",
+        )
+        db.add(controlled_proxy_snapshot)
+        db.flush()
+        db.add(
+            ETFHolding(
+                snapshot_id=controlled_proxy_snapshot.id,
+                constituent_instrument_id=instrument.id,
+                position=0,
+                source_row_hash="proxy-controlled-aapl",
+                is_resolved=True,
+            )
+        )
+        db.flush()
+
+        # The newer controlled browser fixture must not replace the latest
+        # canonical disclosure in normal (non-E2E) API reads.
+        composition = client.get(
+            "/api/v1/market-groups/etf/SMH/industries", headers=auth_headers
+        )
+        assert composition.status_code == 200
+        assert composition.json()["composition_date"] == "2024-05-29"
+        constituents = client.get(
+            "/api/v1/market-groups/etf/SMH/industries/Semiconductors",
+            headers=auth_headers,
+        )
+        assert constituents.status_code == 200
+        assert constituents.json()["composition_date"] == "2024-05-29"
 
         response = client.get(
             "/api/v1/market-groups/etf/XLK/industries/Semiconductors/proxies",
@@ -984,6 +1343,22 @@ class TestWorkspaces:
         )
         assert point_in_time.status_code == 200
         assert point_in_time.json()["rows"][0]["last"]["value"] == 200
+        historical_industries = client.get(
+            "/api/v1/market-groups/etf/SMH/industries",
+            headers=auth_headers,
+            params={"as_of": timestamp.isoformat()},
+        )
+        assert historical_industries.status_code == 200
+        historical_payload = historical_industries.json()
+        assert historical_payload["industries"] == [
+            {
+                "industry": "Semiconductors",
+                "constituent_count": 1,
+                "resolved_count": 1,
+                "classification_systems": ["provider_native"],
+            }
+        ]
+        assert historical_payload["classification_coverage"] == 1
 
     def test_instrument_notes_are_user_scoped_and_autosave_ready(
         self, client, auth_headers, instrument

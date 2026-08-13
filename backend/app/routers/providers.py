@@ -1,22 +1,37 @@
 from datetime import datetime
+from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.dependencies import get_current_user
+from app.auth.dependencies import get_current_user, require_admin
 from app.database import get_db
 from app.models.data_source import DataSource
-from app.models.provider_runtime import ProviderCapability, ProviderEntitlement, ProviderPolicy
+from app.models.instrument_reconciliation import InstrumentReconciliationIssue
+from app.models.provider_runtime import (
+    ProviderCapability,
+    ProviderEntitlement,
+    ProviderEntitlementRevision,
+    ProviderPolicy,
+)
 from app.models.user import User
+from app.services.instrument_reconciliation import (
+    list_reconciliation_issues,
+    resolve_reconciliation_issue,
+)
 from app.services.provider_maintenance import (
     list_stale_dataset_states,
     prune_provider_observations,
     reset_provider_health_state,
     summarize_provider_observations,
 )
-from app.services.provider_runtime import list_provider_status, seed_provider_runtime
+from app.services.provider_runtime import (
+    list_provider_status,
+    record_entitlement_revision,
+    seed_provider_runtime,
+)
 from app.services.provider_usage import summarize_provider_usage
 
 router = APIRouter(prefix="/providers", tags=["providers"])
@@ -48,6 +63,11 @@ class ProviderEntitlementUpdate(BaseModel):
     effective_at: datetime | None = None
     review_due_at: datetime | None = None
     live_probe_status: str | None = None
+
+
+class ReconciliationIssueUpdate(BaseModel):
+    status: Literal["open", "resolved", "ignored"]
+    resolution: dict | None = None
 
 
 @router.get("")
@@ -109,8 +129,59 @@ async def get_provider_entitlements(
             "effective_at": entitlement.effective_at,
             "review_due_at": entitlement.review_due_at,
             "live_probe_status": entitlement.live_probe_status,
+            "revision": entitlement.revision,
         }
         for entitlement, source in rows
+    ]
+
+
+@router.get("/entitlements/history/{provider_name}/{capability}")
+async def get_provider_entitlement_history(
+    provider_name: str,
+    capability: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    try:
+        capability_enum = ProviderCapability(capability)
+    except ValueError as exc:
+        raise HTTPException(400, f"Unknown provider capability '{capability}'") from exc
+    await seed_provider_runtime(db)
+    rows = (
+        await db.execute(
+            select(ProviderEntitlementRevision)
+            .join(DataSource, DataSource.id == ProviderEntitlementRevision.data_source_id)
+            .where(
+                DataSource.name == provider_name,
+                ProviderEntitlementRevision.capability == capability_enum,
+            )
+            .order_by(ProviderEntitlementRevision.revision.desc())
+        )
+    ).scalars().all()
+    if not rows:
+        raise HTTPException(404, f"No entitlement history found for '{provider_name}' / '{capability}'")
+    return [
+        {
+            "provider": provider_name,
+            "capability": row.capability.value,
+            "revision": row.revision,
+            "configured_plan": row.configured_plan,
+            "is_free": row.is_free,
+            "authentication_required": row.authentication_required,
+            "usage_terms": row.usage_terms,
+            "redistribution_allowed": row.redistribution_allowed,
+            "quota_policy": row.quota_policy,
+            "history_depth": row.history_depth,
+            "venue_coverage": row.venue_coverage,
+            "freshness_semantics": row.freshness_semantics,
+            "enabled_environments": row.enabled_environments,
+            "effective_at": row.effective_at,
+            "review_due_at": row.review_due_at,
+            "live_probe_status": row.live_probe_status,
+            "change_reason": row.change_reason,
+            "created_at": row.created_at,
+        }
+        for row in rows
     ]
 
 
@@ -120,7 +191,7 @@ async def update_provider_entitlement(
     capability: str,
     body: ProviderEntitlementUpdate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_admin),
 ):
     try:
         capability_enum = ProviderCapability(capability)
@@ -138,10 +209,16 @@ async def update_provider_entitlement(
     ).scalar_one_or_none()
     if entitlement is None:
         raise HTTPException(404, f"No entitlement found for '{provider_name}' / '{capability}'")
-    for field_name, value in body.model_dump(exclude_unset=True).items():
+    changes = body.model_dump(exclude_unset=True)
+    changed = any(getattr(entitlement, field_name) != value for field_name, value in changes.items())
+    for field_name, value in changes.items():
         setattr(entitlement, field_name, value)
+    if changed:
+        entitlement.revision = int(entitlement.revision or 1) + 1
+        await db.flush()
+        await record_entitlement_revision(db, entitlement, change_reason="api_patch")
     await db.flush()
-    return {"ok": True}
+    return {"ok": True, "revision": entitlement.revision}
 
 
 @router.get("/health")
@@ -195,13 +272,86 @@ async def get_stale_provider_datasets(
     return await list_stale_dataset_states(db, limit=limit)
 
 
+@router.get("/reconciliation/issues")
+async def get_reconciliation_issues(
+    status: Literal["open", "resolved", "ignored"] = "open",
+    limit: int = 200,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    """Return provider observations that require explicit identity review."""
+    issues = await list_reconciliation_issues(db, status=status, limit=limit)
+    return [
+        {
+            "id": issue.id,
+            "provider": issue.data_source.name if issue.data_source else None,
+            "provider_symbol": issue.provider_symbol,
+            "issue_type": issue.issue_type,
+            "fingerprint": issue.fingerprint,
+            "status": issue.status,
+            "candidates": issue.candidates,
+            "payload": issue.payload,
+            "observed_at": issue.observed_at,
+            "resolved_at": issue.resolved_at,
+            "resolution": issue.resolution,
+            "resolved_by": (
+                {
+                    "id": issue.resolved_by.id,
+                    "username": issue.resolved_by.username,
+                    "display_name": issue.resolved_by.display_name,
+                }
+                if issue.resolved_by
+                else None
+            ),
+        }
+        for issue in issues
+    ]
+
+
+@router.patch("/reconciliation/issues/{issue_id}")
+async def update_reconciliation_issue(
+    issue_id: int,
+    body: ReconciliationIssueUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    issue = (
+        await db.execute(
+            select(InstrumentReconciliationIssue).where(
+                InstrumentReconciliationIssue.id == issue_id
+            )
+        )
+    ).scalar_one_or_none()
+    if issue is None:
+        raise HTTPException(404, f"Reconciliation issue {issue_id} was not found")
+    await resolve_reconciliation_issue(
+        db,
+        issue,
+        status=body.status,
+        resolution=body.resolution,
+        resolved_by_user_id=current_user.id,
+    )
+    return {
+        "ok": True,
+        "id": issue.id,
+        "status": issue.status,
+        "resolved_at": issue.resolved_at,
+        "resolution": issue.resolution,
+        "resolved_by": {
+            "id": current_user.id,
+            "username": current_user.username,
+            "display_name": current_user.display_name,
+        } if issue.resolved_by_user_id else None,
+    }
+
+
 @router.patch("/policies/{provider_name}/{capability}")
 async def update_provider_policy(
     provider_name: str,
     capability: str,
     body: ProviderPolicyUpdate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_admin),
 ):
     await seed_provider_runtime(db)
     try:

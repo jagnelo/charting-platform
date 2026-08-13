@@ -182,6 +182,7 @@ class ETFIndustryOut(BaseModel):
     industry: str
     constituent_count: int
     resolved_count: int
+    classification_systems: list[str] = Field(default_factory=list)
 
 
 class ETFIndustryProxyOut(BaseModel):
@@ -217,6 +218,8 @@ class ETFIndustryCompositionOut(BaseModel):
     completeness_status: str
     industries: list[ETFIndustryOut] = Field(default_factory=list)
     exclusions: list[str] = Field(default_factory=list)
+    classification_systems: list[str] = Field(default_factory=list)
+    classification_coverage: float = Field(default=0, ge=0, le=1)
 
 
 class ETFIndustryConstituentsOut(BaseModel):
@@ -228,3 +231,5 @@ class ETFIndustryConstituentsOut(BaseModel):
     source_provider: str
     constituents: list[InstrumentReferenceOut] = Field(default_factory=list)
     exclusions: list[str] = Field(default_factory=list)
+    classification_systems: list[str] = Field(default_factory=list)
+    classification_coverage: float = Field(default=0, ge=0, le=1)

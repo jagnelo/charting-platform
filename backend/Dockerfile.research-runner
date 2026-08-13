@@ -1,6 +1,9 @@
 FROM python:3.12-slim
 WORKDIR /runner
 COPY research_runner ./research_runner
+# The isolated runner uses the same canonical indicator registry as the API,
+# without importing the application or its credentials/configuration.
+COPY app/services/indicators.py ./research_runner/canonical_indicators.py
 # Keep native numerical libraries inside the runner's explicit CPU budget. A
 # user program may still vectorise, but it must not fan out unbounded BLAS
 # threads inside a single isolated job.

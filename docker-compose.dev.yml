@@ -17,7 +17,7 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: chartingdb
     ports:
-      - "5432:5432"
+      - "${POSTGRES_HOST_PORT:-5432}:5432"
     volumes:
       - postgres_dev_data:/var/lib/postgresql/data
     healthcheck:
@@ -29,7 +29,7 @@ services:
   redis:
     image: redis:7-alpine
     ports:
-      - "6379:6379"
+      - "${REDIS_HOST_PORT:-6379}:6379"
     volumes:
       - redis_dev_data:/data
     command: redis-server --maxmemory 128mb --maxmemory-policy allkeys-lru

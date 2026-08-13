@@ -1,4 +1,30 @@
 class TestStrategyLabAPI:
+    def test_study_code_version_can_be_reused_as_strategy_signal(self, client, auth_headers):
+        asset_res = client.post(
+            "/api/v1/code/assets",
+            headers=auth_headers,
+            json={
+                "stable_key": "study-signal-reuse",
+                "name": "Reusable study signal",
+                "kind": "study",
+                "initial_version": {
+                    "source": "output.boolean('signal', True)",
+                    "output_contract": "boolean",
+                    "parameter_schema": {},
+                    "default_parameters": {},
+                },
+            },
+        )
+        assert asset_res.status_code == 201
+        version_id = asset_res.json()["versions"][0]["id"]
+        promotion_res = client.post(
+            f"/api/v1/strategy-lab/signals/from-code/{version_id}",
+            headers=auth_headers,
+            json={},
+        )
+        assert promotion_res.status_code == 201
+        assert promotion_res.json()["metadata"]["code_version_id"] == version_id
+
     def test_study_lab_signal_promotion_creates_strategy_definition_reference(
         self, client, auth_headers
     ):

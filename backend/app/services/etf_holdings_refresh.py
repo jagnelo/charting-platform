@@ -15,7 +15,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.config import settings
-from app.models.etf_holdings import ETFHoldingsAdapterState, ETFProfile
+from app.models.etf_holdings import (
+    ETFHolding,
+    ETFHoldingsAdapterState,
+    ETFHoldingsSnapshot,
+    ETFProfile,
+)
+from app.models.instrument import Instrument
 from app.providers.base import IdentifierRecord
 from app.services.etf_holdings import (
     ETF_HOLDINGS_INTERNAL_PROVIDER,
@@ -490,7 +496,12 @@ async def _bootstrap_from_sec_filings(
         backfill_sec_nport_holdings,
     )
 
-    latest = await get_latest_snapshot(db, profile.instrument_id, include_holdings=False)
+    latest = await get_latest_snapshot(
+        db,
+        profile.instrument_id,
+        include_holdings=False,
+        include_controlled_fixture=False,
+    )
     if latest is not None:
         probe = await probe_etf_holdings_adapter_route(db, profile)
         return ETFHoldingsBootstrapResult(
@@ -521,7 +532,12 @@ async def _bootstrap_from_sec_filings(
             failures.append(f"{label}: {exc}")
             continue
 
-        latest = await get_latest_snapshot(db, profile.instrument_id, include_holdings=False)
+        latest = await get_latest_snapshot(
+            db,
+            profile.instrument_id,
+            include_holdings=False,
+            include_controlled_fixture=False,
+        )
         if latest is not None:
             probe = await probe_etf_holdings_adapter_route(db, profile)
             return ETFHoldingsBootstrapResult(
@@ -564,6 +580,13 @@ async def refresh_all_known_etf_holdings(db: AsyncSession) -> dict:
     refreshed = 0
     failed = 0
     for profile in profiles:
+        # Profiles can predate a curated issuer route and retain an obsolete
+        # adapter key (for example SMH was once inferred as ARK). Reconcile
+        # canonical symbol-addressable route metadata before deciding whether
+        # the profile is unresolved, so scheduled refreshes converge the
+        # persisted security-master state instead of permanently preserving a
+        # stale provider choice.
+        _apply_known_route_metadata(profile)
         if not profile.adapter_key or profile.adapter_key == "unresolved":
             unresolved += 1
             await _record_skip(db, profile, "holdings_adapter_unresolved")
@@ -589,6 +612,122 @@ async def refresh_all_known_etf_holdings(db: AsyncSession) -> dict:
     }
 
 
+async def reconcile_all_etf_holdings_classifications(
+    db: AsyncSession,
+    *,
+    max_profiles: int = 50,
+    max_enrichments_per_profile: int = 32,
+) -> dict:
+    """Resume missing free-source constituent classifications in bounded batches."""
+
+    profiles = (
+        await db.execute(
+            select(ETFProfile)
+            .options(selectinload(ETFProfile.instrument))
+            .order_by(ETFProfile.id)
+        )
+    ).scalars().all()
+    processed = enriched = remaining = failed = 0
+    candidate_profiles = 0
+    for profile in profiles:
+        if profile.instrument is None:
+            continue
+        snapshot = (
+            await db.execute(
+                select(ETFHoldingsSnapshot)
+                .options(
+                    selectinload(ETFHoldingsSnapshot.rows)
+                    .selectinload(ETFHolding.constituent_instrument)
+                    .selectinload(Instrument.equity_detail)
+                )
+                .where(
+                    ETFHoldingsSnapshot.etf_profile_id == profile.id,
+                    ETFHoldingsSnapshot.provenance != "controlled_fixture",
+                    ETFHoldingsSnapshot.source_provider != "e2e_reference",
+                )
+                .order_by(
+                    ETFHoldingsSnapshot.composition_date.desc(),
+                    ETFHoldingsSnapshot.known_at.desc().nullslast(),
+                    ETFHoldingsSnapshot.id.desc(),
+                )
+                .limit(1)
+            )
+        ).scalar_one_or_none()
+        if snapshot is None:
+            continue
+        missing_before = sum(
+            1
+            for row in snapshot.rows
+            if row.constituent_instrument is not None
+            and (
+                row.constituent_instrument.equity_detail is None
+                or not (
+                    row.constituent_instrument.equity_detail.industry
+                    or row.constituent_instrument.equity_detail.sector
+                )
+            )
+        )
+        if missing_before == 0:
+            continue
+        if candidate_profiles >= max(0, max_profiles):
+            break
+        candidate_profiles += 1
+        before = sum(
+            1
+            for row in snapshot.rows
+            if row.constituent_instrument is not None
+            and row.constituent_instrument.equity_detail is not None
+            and (
+                row.constituent_instrument.equity_detail.industry
+                or row.constituent_instrument.equity_detail.sector
+            )
+        )
+        try:
+            await reconcile_snapshot_constituents(
+                db,
+                snapshot,
+                max_classification_enrichment=max_enrichments_per_profile,
+            )
+        except Exception as exc:  # noqa: BLE001 - isolate one profile's maintenance failure.
+            failed += 1
+            await _record_failure(db, profile, exc)
+            await db.flush()
+            continue
+        after = sum(
+            1
+            for row in snapshot.rows
+            if row.constituent_instrument is not None
+            and row.constituent_instrument.equity_detail is not None
+            and (
+                row.constituent_instrument.equity_detail.industry
+                or row.constituent_instrument.equity_detail.sector
+            )
+        )
+        processed += 1
+        enriched += max(0, after - before)
+        remaining += sum(
+            1
+            for row in snapshot.rows
+            if row.constituent_instrument is not None
+            and (
+                row.constituent_instrument.equity_detail is None
+                or not (
+                    row.constituent_instrument.equity_detail.industry
+                    or row.constituent_instrument.equity_detail.sector
+                )
+            )
+        )
+    await db.flush()
+    return {
+        "profiles": candidate_profiles,
+        "processed": processed,
+        "enriched": enriched,
+        "remaining": remaining,
+        "failed": failed,
+        "max_enrichments_per_profile": max_enrichments_per_profile,
+    }
+
+
 async def probe_etf_holdings_adapter_route(
     db: AsyncSession,
     profile: ETFProfile,
@@ -598,6 +737,12 @@ async def probe_etf_holdings_adapter_route(
     if profile.instrument is None:
         raise ValueError("ETF profile is missing its linked instrument.")
 
+    # Profiles created by the canonical identity bootstrap predate (or may not
+    # yet have materialised) the symbol-addressable issuer route metadata. Apply
+    # that reviewed metadata before probing so SPDR/Invesco/iShares core ETFs do
+    # not remain falsely unresolved merely because the profile row was created
+    # with identity-only fields.
+    _apply_known_route_metadata(profile)
     adapter_key = profile.adapter_key or "unresolved"
     adapter = get_holdings_adapter(adapter_key)
     if adapter is None:
@@ -645,35 +790,7 @@ async def bootstrap_etf_holdings_profile(
         instrument.name = preferred_name
 
     profile = await ensure_etf_profile(db, instrument)
-    route_metadata = known_etf_route_metadata(instrument.symbol)
-    if route_metadata:
-        issuer = route_metadata.get("issuer")
-        if issuer:
-            profile.issuer = issuer
-        seeded_aliases = route_metadata.get("provider_aliases")
-        if isinstance(seeded_aliases, dict):
-            profile.provider_aliases = {
-                **_aliases(profile),
-                **seeded_aliases,
-            }
-            profile.sec_cik = str(seeded_aliases.get("sec_cik") or profile.sec_cik or "").strip() or None
-            profile.sec_series_id = (
-                str(seeded_aliases.get("sec_series_id") or profile.sec_series_id or "").strip() or None
-            )
-            profile.sec_class_id = (
-                str(seeded_aliases.get("sec_class_id") or profile.sec_class_id or "").strip() or None
-            )
-        probe = infer_adapter_key(
-            issuer=profile.issuer,
-            fund_family=profile.fund_family,
-            name=profile.instrument.name,
-            product_url=profile.product_url,
-            provider_aliases=profile.provider_aliases,
-        )
-        if probe.status != "holdings_adapter_unresolved":
-            profile.adapter_key = probe.adapter_key
-            profile.adapter_status = probe.status
-            profile.adapter_confidence = probe.confidence
+    _apply_known_route_metadata(profile)
 
     if not profile.sec_cik:
         try:
@@ -683,9 +800,31 @@ async def bootstrap_etf_holdings_profile(
             # issuer-route bootstrap attempts when the SEC endpoint is unavailable.
             pass
 
-    latest_snapshot = await get_latest_snapshot(db, instrument.id, include_holdings=True)
+    latest_snapshot = await get_latest_snapshot(
+        db,
+        instrument.id,
+        include_holdings=True,
+        include_controlled_fixture=False,
+    )
     if latest_snapshot is not None:
-        latest_snapshot = await reconcile_snapshot_constituents(db, latest_snapshot)
+        # The public snapshot schema is intentionally read-only. Re-load the
+        # ORM record here so existing issuer snapshots can receive missing SEC
+        # classifications through the same bounded reconciliation path used by
+        # newly ingested snapshots.
+        execute = getattr(db, "execute", None)
+        if callable(execute):
+            statement = (
+                select(ETFHoldingsSnapshot)
+                .options(
+                    selectinload(ETFHoldingsSnapshot.rows).selectinload(
+                        ETFHolding.constituent_instrument
+                    ).selectinload(Instrument.equity_detail)
+                )
+                .where(ETFHoldingsSnapshot.id == latest_snapshot.id)
+            )
+            stored_snapshot = (await execute(statement)).scalar_one_or_none()
+            if stored_snapshot is not None:
+                await reconcile_snapshot_constituents(db, stored_snapshot)
         probe = await probe_etf_holdings_adapter_route(db, profile)
         if probe.status == "ready":
             profile.adapter_status = "success"
@@ -760,18 +899,14 @@ async def refresh_etf_holdings_for_date(
         raise ValueError("ETF profile is missing its linked instrument.")
     adapter = get_holdings_adapter(profile.adapter_key)
     if adapter is None:
-        raise ValueError(f"No ETF holdings adapter is registered for {profile.adapter_key}.")
+        raise ETFHoldingsRouteNotReadyError(
+            f"No ETF holdings adapter is registered for {profile.adapter_key}."
+        )
 
     aliases = _aliases(profile)
     identifiers = _string_aliases(profile)
     symbol = profile.instrument.symbol
-    issuer_product_id = _first_alias(
-        identifiers,
-        "issuer_product_id",
-        "fund_id",
-        "product_id",
-        "sec_series_id",
-    )
+    issuer_product_id = _issuer_product_identifier(identifiers)
     try:
         fetch_result = await adapter.fetch_for_date(
             symbol=symbol,
@@ -813,6 +948,11 @@ async def refresh_etf_holdings_for_date(
                 "artifact_identity_validation": artifact_identity_validation,
             },
             notes="Fetched through the ETF profile's dated issuer holdings adapter route.",
+            # Issuer artifacts already carry their canonical symbol/identifier
+            # evidence.  Do not fan out synchronously to optional metadata
+            # providers for every row; unresolved rows remain explicit and can
+            # be reconciled by a bounded background job later.
+            allow_provider_enrichment=False,
         )
     except Exception as exc:
         await _record_failure(db, profile, exc)
@@ -829,12 +969,91 @@ def _aliases(profile: ETFProfile) -> dict[str, Any]:
     return aliases if isinstance(aliases, dict) else {}
 
 
+def _apply_known_route_metadata(profile: ETFProfile) -> bool:
+    """Apply curated symbol-to-issuer routing to an existing ETF profile.
+
+    A profile may have been created before a curated route was added, or may
+    have been inferred from a weaker provider/name match. The explicit
+    ``holdings_adapter`` alias in canonical route metadata is stronger than
+    that historical inference and must win during both bootstrap and bulk
+    refresh. Returning whether metadata was found keeps callers simple while
+    leaving unresolved/unknown profiles untouched.
+    """
+
+    instrument = getattr(profile, "instrument", None)
+    symbol = str(getattr(instrument, "symbol", "") or "").strip().upper()
+    if not symbol:
+        return False
+
+    route_metadata = known_etf_route_metadata(symbol)
+    if not route_metadata:
+        return False
+
+    issuer = route_metadata.get("issuer")
+    if issuer:
+        profile.issuer = issuer
+
+    seeded_aliases = route_metadata.get("provider_aliases")
+    if isinstance(seeded_aliases, dict):
+        profile.provider_aliases = {
+            **_aliases(profile),
+            **seeded_aliases,
+        }
+        profile.sec_cik = str(
+            seeded_aliases.get("sec_cik") or getattr(profile, "sec_cik", None) or ""
+        ).strip() or None
+        profile.sec_series_id = str(
+            seeded_aliases.get("sec_series_id") or getattr(profile, "sec_series_id", None) or ""
+        ).strip() or None
+        profile.sec_class_id = str(
+            seeded_aliases.get("sec_class_id") or getattr(profile, "sec_class_id", None) or ""
+        ).strip() or None
+
+        explicit_adapter = str(seeded_aliases.get("holdings_adapter") or "").strip().lower()
+        if explicit_adapter and get_holdings_adapter(explicit_adapter) is not None:
+            profile.adapter_key = explicit_adapter
+            profile.adapter_status = "candidate"
+            profile.adapter_confidence = Decimal("0.9000")
+            return True
+
+    probe = infer_adapter_key(
+        issuer=getattr(profile, "issuer", None),
+        fund_family=getattr(profile, "fund_family", None),
+        name=getattr(instrument, "name", None) or symbol,
+        product_url=getattr(profile, "product_url", None),
+        provider_aliases=_aliases(profile),
+    )
+    if probe.status != "holdings_adapter_unresolved":
+        profile.adapter_key = probe.adapter_key
+        profile.adapter_status = probe.status
+        profile.adapter_confidence = probe.confidence
+    return True
+
+
 def _first_alias(aliases: dict[str, Any], *keys: str) -> str | None:
     for key in keys:
         value = aliases.get(key)
         if isinstance(value, str) and value.strip():
             return value.strip()
     return None
+
+
+def _issuer_product_identifier(identifiers: dict[str, Any]) -> str | None:
+    """Choose issuer route identity before weaker SEC series metadata.
+
+    Issuer-native routes such as VanEck require a product slug. SEC enrichment
+    can add ``sec_series_id`` later, so that value must not shadow an explicit
+    issuer route identifier when refreshing a profile.
+    """
+
+    return _first_alias(
+        identifiers,
+        "product_slug",
+        "issuer_product_id",
+        "fund_id",
+        "product_id",
+        "sec_series_id",
+    )
 
 
 def _string_aliases(profile: ETFProfile) -> dict[str, str]:
@@ -1147,13 +1366,7 @@ async def _refresh_adapter_route(db: AsyncSession, profile: ETFProfile):
 
     symbol = profile.instrument.symbol
     identifiers = _string_aliases(profile)
-    issuer_product_id = _first_alias(
-        identifiers,
-        "issuer_product_id",
-        "fund_id",
-        "product_id",
-        "sec_series_id",
-    )
+    issuer_product_id = _issuer_product_identifier(identifiers)
     probe = adapter.probe(symbol=symbol, name=profile.instrument.name, identifiers=identifiers)
     if probe.status != "ready":
         required = ", ".join(probe.required_identifiers) or "provider-specific route"
@@ -1223,6 +1436,10 @@ async def _refresh_adapter_route(db: AsyncSession, profile: ETFProfile):
             if result_metadata.get("route_resolution") == "sec_edgar_filing_fallback"
             else "Fetched through the ETF profile's issuer holdings adapter route."
         ),
+        # Keep refresh bounded and provider-neutral.  Constituent resolution
+        # uses canonical symbols/identifiers first; optional enrichment is a
+        # separate job, never part of the issuer download transaction.
+        allow_provider_enrichment=False,
     )
     profile.adapter_status = "success"
     profile.adapter_confidence = probe.confidence

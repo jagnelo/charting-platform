@@ -51,6 +51,23 @@ logger = logging.getLogger(__name__)
 _EPOCH = datetime(1970, 1, 1, tzinfo=UTC)
 
 
+def _e2e_fixture_bar_condition():
+    """Return the controlled-bar predicate used by seeded visual tests.
+
+    Seeded browser runs must be hermetic: a provider refresh must never mix
+    canonical/provider bars into the deterministic e2e_reference dataset.
+    Production and ordinary test runs retain the normal provider-neutral read
+    path when the flag is disabled.
+    """
+    return OHLCVBar.data_source_id == select(DataSource.id).where(
+        DataSource.name == "e2e_reference"
+    ).scalar_subquery()
+
+
+def _seeded_market_data() -> bool:
+    return bool(settings.E2E_SEED_MARKET_DATA)
+
+
 def _coverage_calendar(instrument: Instrument) -> str | None:
     """Use the local XNYS calendar only for explicitly USD instruments."""
     return "XNYS" if (instrument.currency or "").upper() == "USD" else None
@@ -98,6 +115,34 @@ def _historical_repair_start(
     anchor = _as_utc(oldest_cached or before)
     overlap_bars = max(1, missing_count) * 2
     return anchor - timedelta(seconds=TIMEFRAME_SECONDS[timeframe] * overlap_bars)
+
+
+def _is_positive_repair_slice(start: datetime, end: datetime) -> bool:
+    """Return whether a repair interval can contain an observable time range.
+
+    The exchange-calendar gap planner intentionally represents a single missing
+    session as ``(session, session)``.  That is useful for coverage reporting,
+    but it is not a provider request interval: a zero-width request can return
+    no rows and incorrectly exhaust the provider chain.  Provider ingestion
+    therefore skips these intervals and leaves the calendar gap eligible for a
+    later session-specific repair.
+    """
+    return _as_utc(end) > _as_utc(start)
+
+
+def _is_recoverable_provider_gap(exc: Exception) -> bool:
+    """Identify provider availability failures that may leave cached data usable.
+
+    A provider circuit can open between two repair slices (for example after a
+    transient public-endpoint failure).  The runtime historically surfaced
+    that state as ``RuntimeError`` rather than ``ProviderNoDataError``.  A
+    non-cold range should retain its valid cached bars and continue repairing
+    other slices; cold loads still re-raise below.
+    """
+    return isinstance(exc, ProviderNoDataError) or (
+        isinstance(exc, RuntimeError)
+        and str(exc).startswith("No enabled providers available for capability")
+    )
 
 
 async def _fresh_latest_price_from_cache(
@@ -524,6 +569,8 @@ async def fetch_ohlcv(
     start: datetime,
     end: datetime | None = None,
     adjusted: bool = True,
+    *,
+    allow_provider_fetch: bool = True,
 ) -> list[OHLCVBar]:
     # Synthetic instruments use computed OHLCV, not an external provider.
     if instrument.is_synthetic:
@@ -535,20 +582,31 @@ async def fetch_ohlcv(
     if end is None:
         end = datetime.now(UTC)
 
+    predicates = [
+        OHLCVBar.instrument_id == instrument.id,
+        OHLCVBar.timeframe == timeframe,
+        OHLCVBar.ts >= start,
+        OHLCVBar.ts <= end,
+        OHLCVBar.is_adjusted == adjusted,
+    ]
+    if _seeded_market_data():
+        predicates.append(_e2e_fixture_bar_condition())
     stmt = (
         select(OHLCVBar)
-        .where(
-            and_(
-                OHLCVBar.instrument_id == instrument.id,
-                OHLCVBar.timeframe == timeframe,
-                OHLCVBar.ts >= start,
-                OHLCVBar.ts <= end,
-                OHLCVBar.is_adjusted == adjusted,
-            )
-        )
+        .where(and_(*predicates))
         .order_by(OHLCVBar.ts)
     )
     cached = list((await db.execute(stmt)).scalars().all())
+
+    # A seeded visual run is intentionally local-only.  Returning the fixture
+    # range here prevents a cold or stale fixture from opening the provider
+    # chain and reintroducing nondeterministic bars.
+    if _seeded_market_data():
+        return cached
+
+    if not allow_provider_fetch:
+        cached.sort(key=lambda b: b.ts)
+        return cached
 
     calendar = _coverage_calendar(instrument)
     if _needs_fetch_for_range(cached, timeframe, start, end, calendar=calendar):
@@ -560,7 +618,7 @@ async def fetch_ohlcv(
             repair_slices = [(start, end)]
         new_bars: list[OHLCVBar] = []
         for repair_start, repair_end in repair_slices:
-            if repair_end < repair_start:
+            if not _is_positive_repair_slice(repair_start, repair_end):
                 continue
             try:
                 new_bars.extend(
@@ -568,9 +626,15 @@ async def fetch_ohlcv(
                         db, instrument, timeframe, repair_start, repair_end, adjusted
                     )
                 )
-            except ProviderNoDataError:
-                if not cached:
+            except Exception as exc:
+                if not _is_recoverable_provider_gap(exc) or not cached:
                     raise
+                logger.warning(
+                    "Skipping unavailable provider repair slice %s to %s: %s",
+                    repair_start,
+                    repair_end,
+                    exc,
+                )
         if new_bars:
             try:
                 await db.execute(
@@ -729,6 +793,8 @@ async def fetch_ohlcv_latest(
     timeframe: Timeframe,
     limit: int,
     adjusted: bool = True,
+    *,
+    allow_provider_fetch: bool = True,
 ) -> list[OHLCVBar]:
     """Return the most recent `limit` bars from the DB, refreshing from the configured provider if stale.
 
@@ -737,18 +803,27 @@ async def fetch_ohlcv_latest(
     if instrument.is_synthetic:
         bars = await recompute_synthetic_ohlcv(db, instrument, timeframe)
         return bars[-limit:] if len(bars) > limit else bars
+    predicates = [
+        OHLCVBar.instrument_id == instrument.id,
+        OHLCVBar.timeframe == timeframe,
+        OHLCVBar.is_adjusted == adjusted,
+    ]
+    if _seeded_market_data():
+        predicates.append(_e2e_fixture_bar_condition())
     stmt = (
         select(OHLCVBar)
-        .where(
-            OHLCVBar.instrument_id == instrument.id,
-            OHLCVBar.timeframe == timeframe,
-            OHLCVBar.is_adjusted == adjusted,
-        )
+        .where(and_(*predicates))
         .order_by(OHLCVBar.ts.desc())
         .limit(limit)
     )
     rows = list((await db.execute(stmt)).scalars().all())
     rows.sort(key=lambda b: b.ts)  # return chronological order
+
+    if _seeded_market_data():
+        return rows
+
+    if not allow_provider_fetch:
+        return rows
 
     if not rows:
         # DB is cold — fetch the full recent window from the configured provider.
@@ -854,6 +929,8 @@ async def fetch_ohlcv_page_before(
     before: datetime,
     limit: int,
     adjusted: bool = True,
+    *,
+    allow_provider_fetch: bool = True,
 ) -> list[OHLCVBar]:
     """
     Return up to `limit` bars strictly before `before`.
@@ -878,7 +955,10 @@ async def fetch_ohlcv_page_before(
             const_instr = await db.get(Instrument, c.constituent_instrument_id)
             if const_instr is not None and not const_instr.is_synthetic:
                 await db.refresh(const_instr, ["listings"])
-                await fetch_ohlcv_page_before(db, const_instr, timeframe, before, limit, adjusted)
+                await fetch_ohlcv_page_before(
+                    db, const_instr, timeframe, before, limit, adjusted,
+                    allow_provider_fetch=allow_provider_fetch,
+                )
 
         bars = await recompute_synthetic_ohlcv(db, instrument, timeframe)
         filtered = [b for b in bars if b.ts < before]
@@ -891,18 +971,29 @@ async def fetch_ohlcv_page_before(
     pagination works correctly even when the background bulk fetch hasn't
     finished writing all historical bars yet.
     """
+    predicates = [
+        OHLCVBar.instrument_id == instrument.id,
+        OHLCVBar.timeframe == timeframe,
+        OHLCVBar.is_adjusted == adjusted,
+        OHLCVBar.ts < before,
+    ]
+    if _seeded_market_data():
+        predicates.append(_e2e_fixture_bar_condition())
     stmt = (
         select(OHLCVBar)
-        .where(
-            OHLCVBar.instrument_id == instrument.id,
-            OHLCVBar.timeframe == timeframe,
-            OHLCVBar.is_adjusted == adjusted,
-            OHLCVBar.ts < before,
-        )
+        .where(and_(*predicates))
         .order_by(OHLCVBar.ts.desc())
         .limit(limit)
     )
     rows = list((await db.execute(stmt)).scalars().all())
+
+    if _seeded_market_data():
+        rows.sort(key=lambda b: b.ts)
+        return rows
+
+    if not allow_provider_fetch:
+        rows.sort(key=lambda b: b.ts)
+        return rows
 
     if len(rows) < limit:
         # DB doesn't have enough older bars — repair only the missing older tail,

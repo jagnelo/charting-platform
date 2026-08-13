@@ -47,7 +47,20 @@ class Settings(BaseSettings):
     INSTRUMENT_SYNC_SCHEDULE_ENABLED: bool = False
     MARKET_DATA_REFRESH_SCHEDULE_ENABLED: bool = False
     ETF_HOLDINGS_REFRESH_ENABLED: bool = False
+    ETF_HOLDINGS_CLASSIFICATION_REFRESH_ENABLED: bool = False
+    ETF_HOLDINGS_CLASSIFICATION_MAX_PROFILES: int = 50
+    ETF_HOLDINGS_CLASSIFICATION_MAX_ENRICHMENTS_PER_PROFILE: int = 32
     ETF_HOLDINGS_SEC_BACKFILL_ENABLED: bool = False
+    # A fresh deployment should hydrate the small immutable workstation
+    # universe through the normal canonical provider services.  The worker
+    # performs this asynchronously; API startup remains non-blocking.
+    # Identity bootstrap runs during API startup; provider-backed history and
+    # holdings hydration is an explicit maintenance operation. Keeping the
+    # latter opt-in prevents a cold provider sweep from competing with the
+    # authenticated workstation's first-load request budget.
+    CORE_WORKSTATION_BOOTSTRAP_ENABLED: bool = False
+    CORE_WORKSTATION_BOOTSTRAP_TIMEOUT_SECONDS: float = 45.0
+    CORE_WORKSTATION_BOOTSTRAP_LOOKBACK_DAYS: int = 730
     ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS: float = 20.0
     ETF_HOLDINGS_HTTP_USER_AGENT: str = (
         "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
@@ -75,14 +88,112 @@ class Settings(BaseSettings):
         # configurations are filtered by provider capability at runtime too.
         "instrument_search": ["edgar", "massive", "alpha_vantage"],
         "instrument_metadata": ["edgar"],
-        "price_history": ["alpaca", "alpha_vantage"],
-        "latest_price": ["alpaca", "alpha_vantage"],
+        "price_history": ["alpaca", "nasdaq", "alpha_vantage"],
+        "latest_price": ["alpaca", "nasdaq", "alpha_vantage"],
         "instrument_events": ["alpaca", "edgar"],
-        "universe_discovery": ["alpaca", "massive", "alpha_vantage"],
+        # SEC adds official US issuer/ticker/exchange evidence across venues;
+        # it does not replace authenticated or market-data discovery routes.
+        "universe_discovery": ["alpaca", "edgar", "massive", "alpha_vantage"],
     }
     PROVIDER_RATE_LIMIT_SEEDS: dict[str, dict[str, int]] = {}
     PROVIDER_FRESHNESS_SEEDS: dict[str, int] = {}
     PROVIDER_USAGE_PROFILE_SEEDS: dict[str, dict] = {}
+    # A capability is not usable merely because an adapter exists. These
+    # explicit defaults describe the free/public plans that the workstation
+    # may use; any provider omitted here remains unreviewed and disabled until
+    # an operator supplies an entitlement through the governance API.
+    PROVIDER_ENTITLEMENT_SEEDS: dict[str, dict] = {
+        "alpaca": {
+            "configured_plan": "free-iex",
+            "is_free": True,
+            "authentication_required": True,
+            "usage_terms": "Free IEX feed with plan/quota and redistribution restrictions; review before deployment.",
+            "history_depth": "Plan-dependent historical bars",
+            "venue_coverage": "IEX US equities; provider-defined universe",
+            "freshness_semantics": "Delayed/limited free feed",
+        },
+        "edgar": {
+            "configured_plan": "sec-public",
+            "is_free": True,
+            "authentication_required": False,
+            "usage_terms": "SEC public data subject to fair-access policy and user-agent identification.",
+            "history_depth": "SEC filing history",
+            "venue_coverage": "US issuers represented in SEC filings",
+            "freshness_semantics": "Filing publication time; not quote data",
+        },
+        "massive": {
+            "configured_plan": "free-reference",
+            "is_free": True,
+            "authentication_required": True,
+            "usage_terms": "Free reference/aggregate tier; confirm plan limits before production use.",
+            "history_depth": "Plan-dependent",
+            "venue_coverage": "Provider-supported US reference universe",
+            "freshness_semantics": "Plan-dependent delayed/EOD",
+        },
+        "alpha_vantage": {
+            "configured_plan": "free-key",
+            "is_free": True,
+            "authentication_required": True,
+            "usage_terms": "Free API key with documented quota limits.",
+            "history_depth": "Daily history subject to quota",
+            "venue_coverage": "Provider-supported US symbols",
+            "freshness_semantics": "EOD/delayed",
+        },
+        "nasdaq": {
+            "configured_plan": "public-eod",
+            "is_free": True,
+            "authentication_required": False,
+            "usage_terms": "Public endpoint; terms and availability require operational review.",
+            "history_depth": "Public EOD endpoint depth",
+            "venue_coverage": "NASDAQ-labelled public symbols; not canonical exchange universe",
+            "freshness_semantics": "EOD/delayed",
+        },
+        "openfigi": {
+            "configured_plan": "free-api",
+            "is_free": True,
+            "authentication_required": False,
+            "usage_terms": "Free mapping API subject to published rate limits.",
+            "history_depth": "Identifier mapping only",
+            "venue_coverage": "Global identifier mapping coverage",
+            "freshness_semantics": "Lookup response time",
+        },
+        "fred": {
+            "configured_plan": "free-api-key",
+            "is_free": True,
+            "authentication_required": True,
+            "usage_terms": "Free FRED API key subject to published rate limits.",
+            "history_depth": "Series-dependent macro history",
+            "venue_coverage": "FRED series",
+            "freshness_semantics": "Series publication/update time",
+        },
+        "binance": {
+            "configured_plan": "public-market-data",
+            "is_free": True,
+            "authentication_required": False,
+            "usage_terms": "Public market-data endpoints; exchange terms apply.",
+            "history_depth": "Exchange endpoint depth",
+            "venue_coverage": "Binance crypto markets",
+            "freshness_semantics": "Delayed/current endpoint response",
+        },
+        "coingecko": {
+            "configured_plan": "free-demo",
+            "is_free": True,
+            "authentication_required": False,
+            "usage_terms": "Free demo tier with published rate limits.",
+            "history_depth": "Plan-dependent crypto history",
+            "venue_coverage": "CoinGecko asset universe",
+            "freshness_semantics": "Delayed/current endpoint response",
+        },
+        "yfinance": {
+            "configured_plan": "legacy-explicit",
+            "is_free": True,
+            "authentication_required": False,
+            "usage_terms": "Personal-use legacy compatibility only; never an implicit workstation path.",
+            "history_depth": "Legacy adapter dependent",
+            "venue_coverage": "Legacy adapter dependent",
+            "freshness_semantics": "Unofficial/delayed",
+        },
+    }
     OPENFIGI_API_KEY: str = ""
     OPENFIGI_TIMEOUT_SECONDS: float = 10.0
     MASSIVE_API_KEY: str = ""
@@ -93,6 +204,10 @@ class Settings(BaseSettings):
     ALPACA_API_KEY: str = ""
     ALPACA_SECRET_KEY: str = ""
     ALPACA_DATA_FEED: str = "iex"  # "iex" (free) or "sip" (paid consolidated)
+    NASDAQ_USER_AGENT: str = (
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0 Safari/537.36"
+    )
     # FRED (Federal Reserve Economic Data) — rates, macro, forex series
     FRED_API_KEY: str = ""
     # CoinGecko — crypto universe discovery and metadata (free demo key)

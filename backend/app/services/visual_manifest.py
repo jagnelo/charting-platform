@@ -19,7 +19,9 @@ ALLOWED_STATES = {
     "approved",
     "superseded",
     "out_of_scope",
+    "board_covered",
 }
+ACCEPTANCE_POLICIES = {"approved", "approved_or_board_covered"}
 REQUIRED_ENVIRONMENTS = {
     "desktop-1080p-100": (1920, 1080, 100),
     "desktop-1080p-125": (1920, 1080, 125),
@@ -47,8 +49,8 @@ def validate_visual_manifest(manifest: dict[str, Any], *, require_approved: bool
         or not product.get("build")
     ):
         raise VisualManifestError("product generation 25 and exact build are required")
-    if manifest.get("reference_policy", {}).get("acceptance_requires") != "approved":
-        raise VisualManifestError("visual acceptance must require approved references")
+    if manifest.get("reference_policy", {}).get("acceptance_requires") not in ACCEPTANCE_POLICIES:
+        raise VisualManifestError("visual acceptance must declare a supported evidence policy")
 
     environments = {
         item.get("id"): item for item in manifest.get("environments", []) if isinstance(item, dict)
@@ -82,6 +84,13 @@ def validate_visual_manifest(manifest: dict[str, Any], *, require_approved: bool
             raise VisualManifestError(
                 f"{surface_id}: required states and reproduction recipe are required"
             )
+        required_state_ids = set(surface["required_states"])
+        board_covered = set(surface.get("board_covered_states", []))
+        board_gaps = set(surface.get("board_gap_states", required_state_ids))
+        if board_covered | board_gaps != required_state_ids or board_covered & board_gaps:
+            raise VisualManifestError(
+                f"{surface_id}: board coverage must partition required states into covered and gap states"
+            )
         state_entries = surface.get("state_entries")
         if state_entries is not None:
             if not isinstance(state_entries, list):
@@ -99,6 +108,21 @@ def validate_visual_manifest(manifest: dict[str, Any], *, require_approved: bool
                     raise VisualManifestError(
                         f"{surface_id}/{entry.get('id')}: state and review status must match"
                     )
+                if entry.get("state") == "required_missing" and not str(entry.get("interim_oracle") or "").strip():
+                    raise VisualManifestError(
+                        f"{surface_id}/{entry.get('id')}: required_missing states need an interim oracle"
+                    )
+                if entry.get("state") == "required_missing":
+                    baselines = entry.get("local_baselines")
+                    if (
+                        not isinstance(baselines, list)
+                        or len(baselines) < len(REQUIRED_ENVIRONMENTS)
+                        or len({item for item in baselines if isinstance(item, str) and item.strip()})
+                        != len(baselines)
+                    ):
+                        raise VisualManifestError(
+                            f"{surface_id}/{entry.get('id')}: required_missing states need one deterministic local baseline per required environment"
+                        )
                 if require_approved and entry.get("state") not in {"approved", "out_of_scope", "superseded"}:
                     raise VisualManifestError(
                         f"{surface_id}/{entry.get('id')}: visual acceptance is blocked by {entry.get('state')}"

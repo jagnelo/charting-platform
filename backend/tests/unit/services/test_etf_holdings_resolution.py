@@ -7,10 +7,11 @@ import pytest
 from sqlalchemy import select
 
 from app.models.etf_holdings import ETFHolding
-from app.models.instrument import Instrument
+from app.models.instrument import EquityDetail, Instrument
 from app.models.instrument_identity import InstrumentIdentifier, InstrumentIdentifierType
 from app.providers.base import IdentifierRecord, InstrumentProfile, ListingRecord
 from app.services.etf_holdings import (
+    _enrich_existing_constituent_classification,
     _holding_needs_reconcile,
     _resolve_or_create_constituent,
     ensure_etf_profile,
@@ -19,6 +20,7 @@ from app.services.etf_holdings import (
     reconcile_snapshot_constituents,
 )
 from app.services.etf_holdings_adapters import CanonicalHoldingRow
+from app.services.etf_holdings_refresh import reconcile_all_etf_holdings_classifications
 from app.services.instrument_mastering import ensure_instrument_type, register_identifier
 
 
@@ -72,6 +74,26 @@ class FakeMetadataProvider:
                 ),
             ],
             raw_payload={},
+        )
+
+
+class SectorOnlyMetadataProvider:
+    calls: list[str]
+
+    def __init__(self) -> None:
+        self.calls = []
+
+    def get_instrument_profile(self, symbol: str) -> InstrumentProfile:
+        self.calls.append(symbol)
+        return InstrumentProfile(
+            provider="provider-native",
+            symbol=symbol,
+            canonical_symbol=symbol,
+            name="Microsoft Corporation",
+            currency="USD",
+            quote_type="EQUITY",
+            exchange="NASDAQ",
+            extra={"sector": "Information Technology", "classification_system": "provider_native"},
         )
 
 
@@ -200,6 +222,89 @@ async def test_resolver_enriches_security_rows_through_provider_metadata(db, mon
 
 
 @pytest.mark.asyncio
+async def test_sector_only_metadata_never_promotes_to_industry_during_enrichment(db, monkeypatch):
+    async_db = AsyncSessionAdapter(db)
+    instrument_type_id = await ensure_instrument_type(async_db, "Equity", "Stock")
+    instrument = Instrument(
+        instrument_type_id=instrument_type_id,
+        symbol="MSFT",
+        name="Microsoft Corporation",
+        currency="USD",
+        is_active=True,
+    )
+    db.add(instrument)
+    db.flush()
+    detail = EquityDetail(
+        instrument_id=instrument.id,
+        sector="Information Technology",
+        field_provenance={"sector": {"classification_system": "provider_native"}},
+    )
+    db.add(detail)
+    db.flush()
+
+    provider = SectorOnlyMetadataProvider()
+    monkeypatch.setattr(
+        "app.services.etf_holdings.get_default_metadata_provider", lambda: provider
+    )
+
+    await _enrich_existing_constituent_classification(
+        async_db,
+        instrument,
+        reported_name="Microsoft Corporation",
+        source_provider="spdr",
+    )
+    db.refresh(detail)
+
+    assert provider.calls == ["MSFT"]
+    assert detail.industry is None
+    assert detail.sector == "Information Technology"
+    assert detail.field_provenance == {
+        "sector": {"classification_system": "provider_native"}
+    }
+
+    row = ETFHolding(
+        reported_symbol="MSFT",
+        reported_name="Microsoft Corporation",
+        row_type="security",
+        holding_type="equity",
+        constituent_instrument=instrument,
+        is_resolved=True,
+    )
+    assert _holding_needs_reconcile(row) is True
+
+
+@pytest.mark.asyncio
+async def test_resolver_can_skip_optional_provider_enrichment_for_bounded_ingestion(db, monkeypatch):
+    async_db = AsyncSessionAdapter(db)
+    monkeypatch.setattr("app.services.etf_holdings.settings.APP_ENV", "development")
+
+    def unexpected_provider_call():
+        raise AssertionError("bounded holdings ingestion must not fan out to metadata providers")
+
+    monkeypatch.setattr("app.services.etf_holdings.get_identifier_providers", unexpected_provider_call)
+    monkeypatch.setattr("app.services.etf_holdings.get_default_metadata_provider", unexpected_provider_call)
+
+    instrument, confidence, note = await _resolve_or_create_constituent(
+        async_db,
+        CanonicalHoldingRow(
+            symbol="BOUNDFAST",
+            name="Bounded Ingestion Corp",
+            currency="USD",
+            holding_type="equity",
+            row_type="security",
+        ),
+        source_provider="spdr",
+        allow_provider_enrichment=False,
+    )
+    db.flush()
+
+    assert instrument is not None
+    assert instrument.symbol == "BOUNDFAST"
+    assert confidence == Decimal("0.5000")
+    assert note is None
+
+
+@pytest.mark.asyncio
 async def test_resolver_collapses_duplicate_symbol_variants_via_stable_identifiers(db, monkeypatch):
     async_db = AsyncSessionAdapter(db)
     monkeypatch.setattr("app.services.etf_holdings.settings.APP_ENV", "development")
@@ -323,6 +428,30 @@ async def test_reconcile_snapshot_constituents_promotes_identifier_only_placehol
     assert promoted.name == "Texas Instruments Incorporated"
     assert snapshot.resolved_count == 1
     assert snapshot.unresolved_count == 0
+
+
+@pytest.mark.asyncio
+async def test_explicit_issuer_adapter_wins_over_stale_fund_family_inference(db):
+    async_db = AsyncSessionAdapter(db)
+
+    etf = await ensure_lightweight_etf_instrument(
+        async_db,
+        symbol="SMH",
+        name="VanEck Semiconductor ETF",
+    )
+    profile = await ensure_etf_profile(
+        async_db,
+        etf,
+        issuer="VanEck",
+        fund_family="ARK ETF Trust",
+        provider_aliases={
+            "holdings_adapter": "vaneck",
+            "product_slug": "semiconductor-etf-smh",
+        },
+    )
+
+    assert profile.adapter_key == "vaneck"
+    assert profile.adapter_status == "candidate"
 
 
 @pytest.mark.asyncio
@@ -795,3 +924,53 @@ async def test_reingesting_same_snapshot_reconciles_existing_placeholder_rows(db
     ).scalar_one()
     assert refreshed.symbol == "TXN"
     assert refreshed.name == "Texas Instruments Incorporated"
+
+
+@pytest.mark.asyncio
+async def test_classification_maintenance_is_bounded_per_profile(db, monkeypatch):
+    """The worker-facing maintenance contract processes a latest snapshot with a hard cap."""
+
+    async_db = AsyncSessionAdapter(db)
+    etf = await ensure_lightweight_etf_instrument(
+        async_db, symbol="XLK", name="Technology Select Sector SPDR"
+    )
+    await ensure_etf_profile(async_db, etf, issuer="State Street")
+    snapshot = await ingest_holdings_snapshot(
+        async_db,
+        etf_instrument=etf,
+        rows=[
+            CanonicalHoldingRow(
+                symbol="MAINTTEST",
+                name="Maintenance Test Security",
+                weight=Decimal("0.10"),
+                holding_type="equity",
+                row_type="security",
+            )
+        ],
+        composition_date=date(2026, 8, 12),
+        provenance="issuer_current_holdings",
+        source_provider="spdr",
+    )
+    db.flush()
+
+    calls = []
+
+    async def fake_reconcile(db_arg, snapshot_arg, *, max_classification_enrichment):
+        calls.append((db_arg, snapshot_arg.id, max_classification_enrichment))
+        return snapshot_arg
+
+    monkeypatch.setattr(
+        "app.services.etf_holdings_refresh.reconcile_snapshot_constituents",
+        fake_reconcile,
+    )
+
+    summary = await reconcile_all_etf_holdings_classifications(
+        async_db,
+        max_profiles=1,
+        max_enrichments_per_profile=7,
+    )
+
+    assert summary["profiles"] == 1
+    assert summary["processed"] == 1
+    assert summary["max_enrichments_per_profile"] == 7
+    assert calls == [(async_db, snapshot.id, 7)]

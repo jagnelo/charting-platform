@@ -165,7 +165,7 @@ def _parse_issuer_date(value: Any) -> date | None:
     text = _clean(value)
     if text is None:
         return None
-    for pattern in ("%m/%d/%Y", "%Y-%m-%d", "%m-%d-%Y"):
+    for pattern in ("%m/%d/%Y", "%m/%d/%y", "%Y-%m-%d", "%m-%d-%Y"):
         try:
             return datetime.strptime(text, pattern).date()
         except ValueError:
@@ -388,6 +388,7 @@ def _looks_like_holdings_header(row: list[Any]) -> bool:
             "percentage of fund",
             "percent of assets",
             "% net assets",
+            "% net of assets",
             "% of net assets",
             "portfolio weight %",
             "weighting",
@@ -412,8 +413,9 @@ def _looks_like_holdings_header(row: list[Any]) -> bool:
             "market value($)",
             "holding value",
             "market ($)",
-            "market value usd",
-            "marketvalue",
+                "market value usd",
+                "market value ($mm)",
+                "marketvalue",
             "market/notional value",
             "traded market value (base)",
             "notional value",
@@ -542,6 +544,7 @@ def parse_holdings_table(table_rows: list[list[Any]]) -> list[CanonicalHoldingRo
                 "exposure weight",
                 "etf weight",
                 "% net assets",
+                "% net of assets",
                 "% of net assets",
                 "portfolio weight %",
                 "weighting",
@@ -591,6 +594,7 @@ def parse_holdings_table(table_rows: list[list[Any]]) -> list[CanonicalHoldingRo
                     "market_value",
                     "market value ($)",
                     "market value($)",
+                    "market value ($mm)",
                     "holding value",
                     "market ($)",
                     "market value usd",
@@ -1648,10 +1652,13 @@ ETF_COM_BRAND_RECONCILIATION_NATIVE_ADAPTERS: frozenset[str] = frozenset(
         "avantis",
         "congress",
         "day_hagan",
+        "oakmark",
+        "range",
         "sp_funds",
         "touchstone",
         "tradr",
         "vident",
+        "leverage_shares",
     }
 )
 
@@ -1788,7 +1795,6 @@ STOCKANALYSIS_PROVIDER_FOURTH_CONTINUATION_ISSUER_HINTS: dict[str, list[str]] = 
 
 STOCKANALYSIS_PROVIDER_FIFTH_CONTINUATION_ISSUER_HINTS: dict[str, list[str]] = {
     "conductor_fund": ["conductor fund"],
-    "acsi_funds": ["acsi funds"],
     "first_manhattan": ["first manhattan"],
     "keating": ["keating"],
     "truth_social": ["truth social"],
@@ -3117,6 +3123,16 @@ ISHARES_PRODUCT_IDS_BY_SYMBOL: dict[str, str] = {
     "EEM": "239637",
     "IVV": "239726",
     "IWM": "239710",
+    # Official iShares product identifiers for curated industry proxies used
+    # by the US top-down taxonomy.  These identifiers are resolved from the
+    # issuer product pages, not inferred from ticker/name text.
+    "IBB": "239699",
+    "ITA": "239502",
+    "ITB": "239512",
+    # Official iShares product identifier for the Semiconductor ETF.  Keeping
+    # this explicit lets the industry drilldown use the issuer holdings API
+    # instead of the controlled SMH/SOXX fixture snapshots.
+    "SOXX": "239705",
 }
 
 KNOWN_ETF_PROVIDER_METADATA_BY_SYMBOL: dict[str, dict[str, Any]] = {
@@ -3127,6 +3143,18 @@ KNOWN_ETF_PROVIDER_METADATA_BY_SYMBOL: dict[str, dict[str, Any]] = {
             "sec_series_id": "S000101292",
             "sec_class_id": "C000271435",
             "sec_fund_tickers_symbol": "QQQ",
+        },
+    },
+    # Invesco's public catalog currently resolves RSP to this CUSIP.  Keeping
+    # the identifier on the canonical route metadata means the top-down
+    # SPY/RSP workflow can bootstrap directly through the issuer's stable
+    # CUSIP endpoint; the adapter still revalidates ticker-to-CUSIP resolution
+    # when no identifier is persisted.
+    "RSP": {
+        "issuer": "Invesco",
+        "provider_aliases": {
+            "cusip": "46137V357",
+            "holdings_adapter": "invesco",
         },
     },
     "EEM": {
@@ -3169,6 +3197,76 @@ KNOWN_ETF_PROVIDER_METADATA_BY_SYMBOL: dict[str, dict[str, Any]] = {
         },
     },
 }
+
+# Curated industry proxies use the same iShares product-data endpoint. Keep
+# the adapter identity beside the issuer product ID so canonical bootstrap can
+# resolve the native route without relying on a later issuer-name inference.
+for _ishares_symbol in ("SOXX", "IBB", "ITA", "ITB"):
+    KNOWN_ETF_PROVIDER_METADATA_BY_SYMBOL.setdefault(
+        _ishares_symbol,
+        {
+            "issuer": "iShares",
+            "provider_aliases": {
+                "holdings_adapter": "ishares",
+                "issuer_product_id": ISHARES_PRODUCT_IDS_BY_SYMBOL[_ishares_symbol],
+            },
+        },
+    )
+
+# The Select Sector SPDR family (plus SPY/DIA) shares the issuer's fund-scoped
+# daily workbook route. Keep this mapping explicit: ticker names alone are not
+# membership evidence, but they are sufficient to select the verified issuer
+# adapter whose response is independently identity-checked before persistence.
+for _spdr_symbol in (
+    "SPY",
+    "DIA",
+    "XLB",
+    "XLC",
+    "XLE",
+    "XLF",
+    "XLI",
+    "XLK",
+    "XLP",
+    "XLRE",
+    "XLU",
+    "XLV",
+    "XLY",
+    # Curated industry proxies using the same issuer workbook family.
+    "XBI",
+    "KRE",
+    "XRT",
+    "XME",
+    "XAR",
+    "XHB",
+    "XOP",
+):
+    KNOWN_ETF_PROVIDER_METADATA_BY_SYMBOL.setdefault(
+        _spdr_symbol,
+        {
+            "issuer": "State Street Global Advisors",
+            "provider_aliases": {"holdings_adapter": "spdr"},
+        },
+    )
+
+# VanEck's public workbook route is fund-scoped rather than ticker-scoped. Keep
+# the issuer product slugs in canonical metadata so industry drill-downs can
+# bootstrap the native route without relying on name matching or a fallback
+# provider.
+for _vaneck_symbol, _vaneck_product_slug in {
+    "SMH": "semiconductor-etf-smh",
+    "OIH": "oil-services-etf-oih",
+    "SLX": "steel-etf-slx",
+}.items():
+    KNOWN_ETF_PROVIDER_METADATA_BY_SYMBOL.setdefault(
+        _vaneck_symbol,
+        {
+            "issuer": "VanEck",
+            "provider_aliases": {
+                "holdings_adapter": "vaneck",
+                "product_slug": _vaneck_product_slug,
+            },
+        },
+    )
 
 
 def known_etf_route_metadata(symbol: str) -> dict[str, Any]:
@@ -3681,6 +3779,15 @@ class SpdrHoldingsAdapter(IssuerCsvHoldingsAdapter):
             if not any((name, source_ticker, identifier)):
                 continue
             holding_type, row_type = cls._classify_row(name=name, source_ticker=source_ticker)
+            # SPDR appends legal/disclaimer text below the holdings table. Those
+            # rows contain only a long name-like string and no ticker or stable
+            # identifier; treating them as securities both pollutes the snapshot
+            # and can overflow the canonical holding-name column. Keep genuine
+            # cash/derivative rows (which are classified separately) intact.
+            if len(name or "") > 300:
+                continue
+            if not source_ticker and not identifier and row_type != "cash":
+                continue
             row_symbol = source_ticker if row_type == "security" else None
             rows.append(
                 CanonicalHoldingRow(
@@ -4182,6 +4289,76 @@ class WellingtonHoldingsAdapter(VanguardHoldingsAdapter):
 
 
 class InvescoHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    _PRODUCT_CATALOG_URL = (
+        "https://dng-api.invesco.com/product/search?"
+        "fq=countryCode:%22US%22&fq=language:%22en_us%22&fq=accountType:%22ETF%22&"
+        "fq=contentType:%22Product%22&fq=shareClassStatus:%22open%22&"
+        "q=_suggest_:*&fl=ticker,cusip,isin,accountName,title,url&rows=2000&start=0"
+    )
+
+    def __init__(self, config: IssuerCsvAdapterConfig) -> None:
+        super().__init__(config)
+        self._cusip_cache: dict[str, str] = {}
+
+    @staticmethod
+    def _holdings_url(cusip: str) -> str:
+        return (
+            "https://dng-api.invesco.com/cache/v1/accounts/en_US/shareclasses/"
+            f"{cusip}/holdings/fund?idType=cusip&interval=monthly&productType=ETF"
+        )
+
+    async def _resolve_cusip(self, client: httpx.AsyncClient, symbol: str) -> str | None:
+        normalized_symbol = symbol.strip().upper()
+        if not normalized_symbol:
+            return None
+        cached = self._cusip_cache.get(normalized_symbol)
+        if cached:
+            return cached
+        response = await client.get(
+            self._PRODUCT_CATALOG_URL,
+            headers=_invesco_holdings_request_headers(),
+            follow_redirects=True,
+        )
+        response.raise_for_status()
+        payload = response.json()
+        docs = payload.get("response", {}).get("docs", []) if isinstance(payload, dict) else []
+        for document in docs if isinstance(docs, list) else []:
+            if not isinstance(document, dict):
+                continue
+            ticker = _clean(document.get("ticker"))
+            cusip = _clean(document.get("cusip"))
+            if ticker and cusip and ticker.upper() == normalized_symbol:
+                self._cusip_cache[normalized_symbol] = cusip
+                return cusip
+        return None
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name
+        cusip = _identifier(identifiers, "cusip")
+        if cusip:
+            return HoldingsAdapterProbe(
+                adapter_key=self.adapter_key,
+                confidence=Decimal("0.9500"),
+                status="ready",
+                reason="Invesco exposes a public CUSIP-addressed holdings JSON endpoint.",
+                source_url=self._holdings_url(cusip),
+                issuer_product_id=cusip,
+            )
+        normalized_symbol = symbol.strip().upper()
+        if normalized_symbol:
+            return HoldingsAdapterProbe(
+                adapter_key=self.adapter_key,
+                confidence=Decimal("0.9000"),
+                status="ready",
+                reason=(
+                    "Invesco's public product catalog resolves the ETF ticker to a CUSIP "
+                    "before the holdings request."
+                ),
+                source_url=self._PRODUCT_CATALOG_URL,
+                issuer_product_id=normalized_symbol,
+            )
+        return super().probe(symbol=symbol, name="", identifiers=identifiers)
+
     def resolve_source_url(
         self,
         *,
@@ -4190,15 +4367,15 @@ class InvescoHoldingsAdapter(IssuerCsvHoldingsAdapter):
         source_url: str | None = None,
         identifiers: dict[str, str] | None = None,
     ) -> str | None:
-        explicit = super().resolve_source_url(
-            symbol=symbol,
-            issuer_product_id=issuer_product_id,
-            source_url=source_url,
-            identifiers=identifiers,
-        )
+        identifiers = identifiers or {}
+        if source_url:
+            return source_url.strip()
+        explicit = _identifier(identifiers, *self.source_url_aliases)
         if explicit:
             return explicit
-        identifiers = identifiers or {}
+        cusip = _identifier(identifiers, "cusip")
+        if cusip:
+            return self._holdings_url(cusip)
         if _identifier(identifiers, *self.product_page_aliases):
             return None
         normalized_symbol = symbol.strip().upper()
@@ -4217,27 +4394,63 @@ class InvescoHoldingsAdapter(IssuerCsvHoldingsAdapter):
         source_url: str | None = None,
         identifiers: dict[str, str] | None = None,
     ) -> HoldingsFetchResult:
-        resolved_source_url = self.resolve_source_url(
-            symbol=symbol,
-            issuer_product_id=issuer_product_id,
-            source_url=source_url,
-            identifiers=identifiers,
-        )
-        if not resolved_source_url:
+        identifiers = identifiers or {}
+        explicit_source_url = source_url or _identifier(identifiers, *self.source_url_aliases)
+        cusip = _identifier(identifiers, "cusip")
+        # Older persisted route metadata used the ticker form, which Invesco's
+        # holdings resource rejects. Re-resolve those routes through the public
+        # catalog unless an explicit CUSIP has already been supplied.
+        if explicit_source_url and "idType=ticker" in explicit_source_url and not cusip:
+            explicit_source_url = None
+        # Preserve the generic issuer-product-page discovery contract for
+        # explicitly configured profiles.  The canonical Invesco path has no
+        # product URL and therefore continues through catalog→CUSIP below;
+        # custom/legacy profiles with a product page must not be forced onto
+        # the catalog route.
+        if (
+            not explicit_source_url
+            and not cusip
+            and _identifier(identifiers, *self.product_page_aliases)
+        ):
             return await super().fetch_latest(
                 symbol=symbol,
                 issuer_product_id=issuer_product_id,
-                source_url=source_url,
                 identifiers=identifiers,
             )
-        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
-            response = await client.get(
-                resolved_source_url,
-                headers=_invesco_holdings_request_headers(),
-                follow_redirects=True,
-            )
-        response.raise_for_status()
-        payload = response.json()
+        route_resolution = "issuer_profile_metadata"
+        try:
+            async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+                if explicit_source_url:
+                    resolved_source_url = explicit_source_url
+                else:
+                    if not cusip:
+                        cusip = await self._resolve_cusip(client, symbol)
+                    if not cusip:
+                        raise ValueError(f"Invesco product catalog has no CUSIP for {symbol}.")
+                    resolved_source_url = self._holdings_url(cusip)
+                    route_resolution = "issuer_public_json_catalog_cusip"
+                response = await client.get(
+                    resolved_source_url,
+                    headers=_invesco_holdings_request_headers(),
+                    follow_redirects=True,
+                )
+            response.raise_for_status()
+            payload = response.json()
+        except (httpx.HTTPError, requests.RequestException, ValueError) as route_error:
+            if self.config.supports_sec_filing_fallback:
+                sec_result = await self._fetch_latest_sec_filing_holdings(
+                    symbol=symbol,
+                    issuer_product_id=issuer_product_id,
+                    identifiers=identifiers,
+                )
+                if sec_result is not None:
+                    sec_result.legal_metadata = {
+                        **(sec_result.legal_metadata or {}),
+                        "issuer_route_failure": str(route_error),
+                        "issuer_route_fallback": "sec_edgar_filing",
+                    }
+                    return sec_result
+            raise
         holdings = payload.get("holdings") if isinstance(payload, dict) else None
         rows: list[CanonicalHoldingRow] = []
         for index, item in enumerate(holdings or [], start=1):
@@ -4267,13 +4480,13 @@ class InvescoHoldingsAdapter(IssuerCsvHoldingsAdapter):
             raw_text=response.text,
             raw_json=payload,
             source_url=resolved_source_url,
-            source_identifier=issuer_product_id or symbol.strip().upper(),
+            source_identifier=cusip or issuer_product_id or symbol.strip().upper(),
             legal_metadata={
                 "source_access": self.config.source_access,
                 "source_provider": self.source_provider,
                 "adapter_key": self.adapter_key,
                 "source_format": "json",
-                "route_resolution": "issuer_public_json_api",
+                "route_resolution": route_resolution,
                 "effective_date": payload.get("effectiveDate") if isinstance(payload, dict) else None,
                 "effective_business_date": (
                     payload.get("effectiveBusinessDate") if isinstance(payload, dict) else None
@@ -10928,9 +11141,10 @@ class GladiusHoldingsAdapter(IssuerCsvHoldingsAdapter):
     _ROUTES = {
         "CMBO": (
             "Wayfinder Dynamic U.S. Interest Rate ETF",
-            "https://www.wayfinderetfs.com/funds/CMBO",
+            "https://www.wayfinderetfs.com/CMBO.html",
         ),
     }
+    _HOLDINGS_CSV_TEMPLATE = "https://www.wayfinderetfs.com/assets/data/FilepointGladius.40G1.G1_ETF_Holdings.csv"
 
     def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
         del name
@@ -10979,28 +11193,44 @@ class GladiusHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 headers=_issuer_page_request_headers(accept="text/html,application/xhtml+xml,*/*"),
                 follow_redirects=True,
             )
-        response.raise_for_status()
-        rows, composition_date = self._parse_product_page(
-            response.text,
-            symbol=normalized_symbol,
-            expected_fund_name=expected_fund_name,
-        )
+            response.raise_for_status()
+            rows, composition_date = self._parse_product_page(
+                response.text,
+                symbol=normalized_symbol,
+                expected_fund_name=expected_fund_name,
+            )
+            route_resolution = "wayfinder_complete_fund_page_holdings_dataset"
+            raw_text = response.text
+            source_url_result = str(response.url)
+            if not rows:
+                holdings_response = await client.get(
+                    self._HOLDINGS_CSV_TEMPLATE,
+                    headers=_holdings_request_headers(accept="text/csv,application/csv,*/*"),
+                    follow_redirects=True,
+                )
+                holdings_response.raise_for_status()
+                rows, composition_date = self._parse_holdings_csv(
+                    holdings_response.text, symbol=normalized_symbol
+                )
+                raw_text = holdings_response.text
+                source_url_result = str(holdings_response.url)
+                route_resolution = "wayfinder_product_page_declared_daily_holdings_csv"
         if not rows:
             raise ValueError(
                 f"Gladius's official {normalized_symbol} fund page returned no complete portfolio rows."
             )
         return HoldingsFetchResult(
             rows=rows,
-            raw_text=response.text,
+            raw_text=raw_text,
             raw_json={"source_format": "issuer_server_rendered_fund_page", "row_count": len(rows)},
-            source_url=str(response.url),
+            source_url=source_url_result,
             source_identifier=normalized_symbol,
             legal_metadata={
                 "source_access": self.config.source_access,
                 "source_provider": self.source_provider,
                 "adapter_key": self.adapter_key,
                 "source_format": "html",
-                "route_resolution": "wayfinder_complete_fund_page_holdings_dataset",
+                "route_resolution": route_resolution,
                 "product_page_url": str(response.url),
                 "snapshot_provenance": "gladius_native_current_fund_page_holdings",
                 "composition_date": composition_date.isoformat() if composition_date else None,
@@ -11008,6 +11238,47 @@ class GladiusHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "terms_note": self.config.terms_note,
             },
         )
+
+    @staticmethod
+    def _parse_holdings_csv(raw_csv: str, *, symbol: str) -> tuple[list[CanonicalHoldingRow], date | None]:
+        table_rows = [row for row in csv.reader(StringIO(raw_csv.strip())) if any(_clean(cell) for cell in row)]
+        if not table_rows:
+            return [], None
+        header = table_rows[0]
+        expected = {"date", "account", "stockticker", "cusip", "securityname", "shares", "marketvalue", "weightings"}
+        if not expected.issubset({cell.strip().lower() for cell in header}):
+            return [], None
+        rows: list[CanonicalHoldingRow] = []
+        composition_date: date | None = None
+        for index, values in enumerate(table_rows[1:], start=1):
+            raw = _row_dict(header, values)
+            if (_clean(_first(raw, ["Account"])) or "").upper() != symbol:
+                continue
+            ticker = _clean(_first(raw, ["StockTicker"]))
+            name = _clean(_first(raw, ["SecurityName"]))
+            cusip = _clean(_first(raw, ["CUSIP"]))
+            if not any((ticker, name, cusip)):
+                continue
+            parsed_date = _parse_issuer_date(_first(raw, ["Date"]))
+            if parsed_date and (composition_date is None or parsed_date > composition_date):
+                composition_date = parsed_date
+            text = " ".join(value.upper() for value in (ticker, name, cusip) if value)
+            is_cash = any(token in text for token in ("CASH", "MONEY MARKET", "GOVERNMENT OBLIGATIONS"))
+            is_derivative = any(token in text for token in (" OPTION", " FUTURE", " SWAP", " FORWARD")) or bool(re.search(r"\b\d{6}[CP]\d{8}\b", text))
+            rows.append(CanonicalHoldingRow(
+                symbol=None if is_cash or is_derivative else ticker,
+                name=name,
+                cusip=cusip if _looks_like_cusip(cusip) else None,
+                shares=_decimal(_first(raw, ["Shares"])),
+                market_value=_decimal(_first(raw, ["MarketValue"])),
+                weight=_decimal(_first(raw, ["Weightings"])),
+                currency="USD" if is_cash else None,
+                holding_type="cash" if is_cash else "derivative" if is_derivative else "equity",
+                row_type="cash" if is_cash else "security",
+                source_row_id=f"gladius-{symbol}-{index}",
+                extra_data={key: value for key, value in raw.items() if value not in (None, "")},
+            ))
+        return rows, composition_date
 
     @staticmethod
     def _parse_product_page(
@@ -12656,6 +12927,11 @@ class PgimHoldingsAdapter(IssuerCsvHoldingsAdapter):
         r'(?P<symbol>[A-Z0-9.-]+)</a>\s*</td>',
         re.IGNORECASE,
     )
+    _CATALOG_SYMBOL_LINK_RE = re.compile(
+        r'<a\s+href="(?P<url>https://www\.pgim\.com/[^"<>]+)"[^>]*>'
+        r'\s*(?P<symbol>[A-Z0-9.-]+)\s*</a>',
+        re.IGNORECASE,
+    )
     _DAILY_HOLDINGS_DOCUMENT_RE = re.compile(
         r'<a\b(?=[^>]*\bdata-document-label="DAILY HOLDINGS")'
         r'(?=[^>]*\bpdfId=(?P<document_id>[A-F0-9]{32}))[^>]*>',
@@ -12761,7 +13037,15 @@ class PgimHoldingsAdapter(IssuerCsvHoldingsAdapter):
             headers=_issuer_page_request_headers(accept="text/html,*/*"),
         )
         response.raise_for_status()
-        for match in self._CATALOG_ENTRY_RE.finditer(response.text):
+        matches = list(self._CATALOG_ENTRY_RE.finditer(response.text))
+        for match in matches:
+            if match.group("symbol").upper() == symbol:
+                return match.group("url")
+        # The current catalog contains a mixture of old table markup and links
+        # with attributes around the ticker. Search the broader official-domain
+        # link shape only when the strict catalogue entries did not contain the
+        # requested symbol; never infer a product URL from a ticker alone.
+        for match in self._CATALOG_SYMBOL_LINK_RE.finditer(response.text):
             if match.group("symbol").upper() == symbol:
                 return match.group("url")
         raise ValueError(f"PGIM ETF catalog did not contain {symbol}.")
@@ -12831,12 +13115,37 @@ class PgimHoldingsAdapter(IssuerCsvHoldingsAdapter):
         cusip = next((token.upper() for token in prefix_tokens if _looks_like_cusip(token)), None)
         sedol = next((token.upper() for token in prefix_tokens if _looks_like_sedol(token)), None)
         identifiers = {value for value in (isin, cusip, sedol) if value}
-        descriptive_tokens = [token for token in prefix_tokens if token.upper() not in identifiers]
+        # Some PGIM PDF fonts extract an unrecognised CUSIP fragment with a
+        # literal plus sign (for example ``30730E+104``). It is an identifier
+        # fragment, not part of the security name, and must not survive into
+        # the canonical descriptive text.
+        descriptive_tokens = [
+            token
+            for token in prefix_tokens
+            if token.upper() not in identifiers and "+" not in token
+        ]
         normalized_type = security_type.lower()
         is_cash = normalized_type in {"currency", "net current assets"}
         ticker: str | None = None
         if security_type.lower() == "common stock" and descriptive_tokens:
-            ticker = descriptive_tokens.pop(0).upper()
+            # PDF text extraction can split a CUSIP containing a font-encoded
+            # plus sign (for example ``30730E+104``) into the descriptive
+            # prefix. Select the first ticker-shaped token instead of blindly
+            # taking the first token, keeping the company name intact.
+            ticker_index = next(
+                (
+                    index
+                    for index, token in enumerate(descriptive_tokens)
+                    if re.fullmatch(r"[A-Z][A-Z0-9.-]{0,9}", token.upper())
+                    and "+" not in token
+                    and not _looks_like_isin(token)
+                    and not _looks_like_cusip(token)
+                    and not _looks_like_sedol(token)
+                ),
+                None,
+            )
+            if ticker_index is not None:
+                ticker = descriptive_tokens.pop(ticker_index).upper()
         name = " ".join(descriptive_tokens).strip() or None
         if not name and security_type == "Net Current Assets":
             name = security_type
@@ -14816,7 +15125,7 @@ class IronHorseHoldingsAdapter(IssuerCsvHoldingsAdapter):
         source_url: str | None = None,
         identifiers: dict[str, str] | None = None,
     ) -> HoldingsFetchResult:
-        del issuer_product_id, source_url, identifiers
+        del issuer_product_id, source_url
         normalized_symbol = symbol.strip().upper()
         product_url = self._FUNDS.get(normalized_symbol)
         if product_url is None:
@@ -14838,10 +15147,27 @@ class IronHorseHoldingsAdapter(IssuerCsvHoldingsAdapter):
                     "Referer": product_url,
                 },
             )
-        holdings_response.raise_for_status()
-        rows, composition_date = self._parse_holdings_csv(holdings_response.text, symbol=normalized_symbol)
-        if not rows:
-            raise ValueError(f"IronHorse holdings CSV did not expose complete current rows for {normalized_symbol}.")
+        try:
+            holdings_response.raise_for_status()
+            rows, composition_date = self._parse_holdings_csv(
+                holdings_response.text, symbol=normalized_symbol
+            )
+            if not rows:
+                raise ValueError(
+                    f"IronHorse holdings CSV did not expose complete current rows for {normalized_symbol}."
+                )
+        except (httpx.HTTPError, ValueError) as route_error:
+            # The Conductor page can remain available while its download worker
+            # returns an empty 200 response. Treat that as a failed native route
+            # and use the independent SEC reconstruction when the profile has a
+            # CIK, preserving the route failure in provenance rather than
+            # claiming an empty provider file is a valid snapshot.
+            return await self._sec_fallback_after_route_error(
+                route_error,
+                symbol=normalized_symbol,
+                issuer_product_id=normalized_symbol,
+                identifiers=identifiers or {},
+            )
         return HoldingsFetchResult(
             rows=rows,
             raw_text=holdings_response.text,
@@ -26050,6 +26376,25 @@ class AlpsHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return "equity"
 
 
+class OSharesHoldingsAdapter(AlpsHoldingsAdapter):
+    """Fetch O'Shares ETFs now published through ALPS's public holdings service."""
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        return await super().fetch_latest(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers,
+        )
+
+
 class ClearSharesHoldingsAdapter(IssuerCsvHoldingsAdapter):
     def resolve_source_url(
         self,
@@ -34504,6 +34849,13 @@ class TappAlphaHoldingsAdapter(GoogleSheetsHoldingsAdapter):
 class TuttleHoldingsAdapter(GoogleSheetsHoldingsAdapter):
     """Fetch Tuttle-managed ETF holdings from public product-page Google CSV exports."""
 
+    PUBLIC_API_URL = (
+        "https://jdkfnvgkfwotjlyovbrk.supabase.co/functions/v1/fund-public-api"
+    )
+    # DRMP's current IncomeBlast product page is backed by the public fund API.
+    # Keep the older Google-Sheets route for products that still publish it.
+    PUBLIC_API_SYMBOLS = frozenset({"DRMP"})
+
     PRODUCT_PAGE_URLS: dict[str, str] = {
         "BITK": "https://www.incomeblastetfs.com/etf/bitk",
         "DRMP": "https://www.incomeblastetfs.com/etf/drmp",
@@ -34520,6 +34872,12 @@ class TuttleHoldingsAdapter(GoogleSheetsHoldingsAdapter):
         source_url: str | None = None,
         identifiers: dict[str, str] | None = None,
     ) -> HoldingsFetchResult:
+        normalized_symbol = symbol.strip().upper()
+        if normalized_symbol in self.PUBLIC_API_SYMBOLS:
+            return await self._fetch_public_api_holdings(
+                symbol=normalized_symbol,
+                issuer_product_id=issuer_product_id,
+            )
         return await self._fetch_google_sheets_holdings_csv(
             symbol=symbol,
             issuer_product_id=issuer_product_id,
@@ -34546,6 +34904,100 @@ class TuttleHoldingsAdapter(GoogleSheetsHoldingsAdapter):
             normalized_symbol,
             f"https://www.incomeblastetfs.com/etf/{normalized_symbol.lower()}",
         )
+
+    async def _fetch_public_api_holdings(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None,
+    ) -> HoldingsFetchResult:
+        resolved_source_url = f"{self.PUBLIC_API_URL}?{urlencode({'ticker': symbol, 'view': 'all'})}"
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(
+                resolved_source_url,
+                headers={
+                    **_holdings_request_headers(accept="application/json,*/*"),
+                    "Origin": "https://www.incomeblastetfs.com",
+                    "Referer": f"https://www.incomeblastetfs.com/etf/{symbol.lower()}",
+                },
+                follow_redirects=True,
+            )
+        response.raise_for_status()
+        payload = response.json()
+        rows, composition_date = self._parse_public_api_payload(payload, symbol=symbol)
+        if not rows:
+            raise ValueError(f"Tuttle public fund API returned no holdings rows for {symbol}.")
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response.text,
+            raw_json=payload,
+            source_url=str(response.url),
+            source_identifier=issuer_product_id or symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "json",
+                "route_resolution": "issuer_public_product_page_fund_api",
+                "snapshot_provenance": "tuttle_native_current_holdings_api",
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @classmethod
+    def _parse_public_api_payload(
+        cls,
+        payload: Any,
+        *,
+        symbol: str,
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+        holdings = payload.get("holdings") if isinstance(payload, dict) else None
+        if not isinstance(holdings, list):
+            return [], None
+        rows: list[CanonicalHoldingRow] = []
+        composition_date: date | None = None
+        for position, raw in enumerate(holdings, start=1):
+            if not isinstance(raw, dict):
+                continue
+            row_date = _parse_issuer_date(raw.get("as_of_date"))
+            if row_date and (composition_date is None or row_date > composition_date):
+                composition_date = row_date
+            raw_symbol = _clean(raw.get("security_ticker"))
+            name = _clean(raw.get("security_name"))
+            security_id = _clean(raw.get("security_id"))
+            row_type, holding_type = cls._classify_holding(symbol=raw_symbol, name=name)
+            clean_symbol = (
+                raw_symbol.upper()
+                if holding_type not in {"cash", "fixed_income", "option", "swap"}
+                and raw_symbol
+                and re.fullmatch(r"[A-Z][A-Z0-9.-]{0,11}", raw_symbol.upper())
+                else None
+            )
+            weight = _decimal(raw.get("weight"))
+            # IncomeBlast returns percentage points (for example 105.95),
+            # whereas canonical CSV weights are fractions of NAV.
+            if weight is not None and abs(weight) > Decimal("1"):
+                weight /= Decimal("100")
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=clean_symbol,
+                    name=name,
+                    cusip=security_id if _looks_like_cusip(security_id) else None,
+                    isin=security_id if security_id and re.fullmatch(r"[A-Z]{2}[A-Z0-9]{9}[0-9]", security_id) else None,
+                    weight=weight,
+                    shares=_decimal(raw.get("quantity")),
+                    market_value=_decimal(raw.get("market_value")),
+                    currency=_clean(raw.get("currency")),
+                    country=_clean(raw.get("country")),
+                    holding_type=holding_type,
+                    row_type=row_type,
+                    source_row_id=f"{symbol}:{position}:{security_id or raw_symbol or name or 'holding'}",
+                    extra_data={key: value for key, value in raw.items() if value not in (None, "")},
+                )
+            )
+        return rows, composition_date
 
     def source_request_headers(self, *, source_url: str) -> dict[str, str]:
         return {
@@ -56364,6 +56816,91 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="iShares/BlackRock public holdings files may be subject to issuer terms.",
     ),
+    "academy": IssuerCsvAdapterConfig(
+        adapter_key="academy",
+        source_provider="academy_etfs",
+        source_access="issuer_product_page_declared_complete_current_holdings_csv",
+        url_templates=(
+            "https://academyetfs.com/wp-content/uploads/data/"
+            "TidalFG_Holdings_{symbol_upper}.csv",
+        ),
+        product_page_templates=("https://academyetfs.com/",),
+        live_tested_default_route=True,
+        terms_note=(
+            "Academy ETFs' public product page and declared holdings CSV may be subject to issuer terms."
+        ),
+    ),
+    "keating": IssuerCsvAdapterConfig(
+        adapter_key="keating",
+        source_provider="keating",
+        source_access="issuer_public_fund_page_complete_current_holdings_table",
+        product_page_templates=("https://etfkeatinginvestment.com/",),
+        live_tested_default_route=True,
+        terms_note="Keating public KEAT holdings table may be subject to issuer terms.",
+    ),
+    "impact_shares": IssuerCsvAdapterConfig(
+        adapter_key="impact_shares",
+        source_provider="impact_shares",
+        source_access="issuer_product_page_declared_complete_current_holdings_csv",
+        url_templates=(
+            "https://impactetfs.org/wp-content/uploads/data/"
+            "TidalFG_Holdings_{symbol_upper}.csv",
+        ),
+        product_page_templates=("https://impactetfs.org/{symbol_lower}-etf/",),
+        live_tested_default_route=True,
+        terms_note=(
+            "Impact Shares public ETF product pages and declared holdings CSVs may be subject to issuer terms."
+        ),
+    ),
+    "acsi_funds": IssuerCsvAdapterConfig(
+        adapter_key="acsi_funds",
+        source_provider="acsi_funds",
+        source_access="issuer_official_daily_holdings_csv",
+        url_templates=(
+            "https://acsietf.com/wp-content/uploads/files/"
+            "TidalETF_Services.40ZZ.VA_Holdings_.csv",
+        ),
+        product_page_templates=("https://www.acsietf.com/",),
+        live_tested_default_route=True,
+        terms_note="ACSI Funds' public daily holdings CSV may be subject to issuer terms.",
+    ),
+    "oakmark": IssuerCsvAdapterConfig(
+        adapter_key="oakmark",
+        source_provider="oakmark",
+        source_access="issuer_public_symbol_scoped_holdings_csv",
+        url_templates=(
+            "https://oakmark.com/wp-content/uploads/etf_data/{symbol_lower}_holdings.csv",
+        ),
+        product_page_templates=("https://oakmark.com/etfs/{symbol_lower}/",),
+        live_tested_default_route=True,
+        terms_note="Oakmark public ETF holdings CSV exports may be subject to issuer terms.",
+    ),
+    "range": IssuerCsvAdapterConfig(
+        adapter_key="range",
+        source_provider="range_etfs",
+        source_access="issuer_public_fund_page_nuxt_complete_holdings_payload",
+        product_page_templates=(
+            "https://rangeetfs.com/coal/",
+            "https://rangeetfs.com/nukz/",
+        ),
+        live_tested_default_route=True,
+        terms_note=(
+            "Range ETFs' public COAL and NUKZ product-page holdings payloads may be subject to issuer terms."
+        ),
+    ),
+    "leverage_shares": IssuerCsvAdapterConfig(
+        adapter_key="leverage_shares",
+        source_provider="leverage_shares",
+        source_access="issuer_public_product_page_declared_complete_holdings_csv",
+        url_templates=(
+            "https://leverageshares.com/us/storage/holdings/{symbol_upper}_Holdings.csv",
+        ),
+        product_page_templates=("https://leverageshares.com/us/etfs/",),
+        live_tested_default_route=True,
+        terms_note=(
+            "Leverage Shares public U.S. ETF product pages and holdings CSVs may be subject to issuer terms."
+        ),
+    ),
     "spdr": IssuerCsvAdapterConfig(
         adapter_key="spdr",
         source_provider="spdr",
@@ -56383,9 +56920,17 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
     "invesco": IssuerCsvAdapterConfig(
         adapter_key="invesco",
         source_provider="invesco",
+        source_access="issuer_public_json_catalog_cusip",
+        # The ticker is resolved through the public product catalog before the
+        # holdings request, so the advertised route must not imply that the
+        # rejected ticker-addressed endpoint is the canonical path.
         url_templates=(
+            "https://dng-api.invesco.com/product/search?"
+            "fq=countryCode:%22US%22&fq=language:%22en_us%22&fq=accountType:%22ETF%22&"
+            "fq=contentType:%22Product%22&fq=shareClassStatus:%22open%22&"
+            "q=_suggest_:*&fl=ticker,cusip,isin,accountName,title,url&rows=2000&start=0",
             "https://dng-api.invesco.com/cache/v1/accounts/en_US/shareclasses/"
-            "{symbol_upper}/holdings/fund?idType=ticker&interval=monthly&productType=ETF",
+            "{cusip}/holdings/fund?idType=cusip&interval=monthly&productType=ETF",
         ),
         live_tested_default_route=True,
         terms_note="Invesco public product pages and holdings files may be subject to issuer terms.",
@@ -57260,6 +57805,7 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         product_page_templates=(
             "https://www.rexshares.com/{symbol_lower}/",
         ),
+        live_tested_default_route=True,
         terms_note="REX Shares public ETF product pages and downloadable holdings CSV files may be subject to issuer terms.",
     ),
     "groupe_bpce": IssuerCsvAdapterConfig(
@@ -57499,7 +58045,7 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         product_page_templates=(
             "https://sterlingcapital.com/investments/exchange-traded-funds/scmc/",
         ),
-        live_tested_default_route=False,
+        live_tested_default_route=True,
         terms_note=(
             "Sterling Fund Management's SCMC portfolio is published through Sterling Capital's "
             "public fund-scoped holdings PDF and may be subject to issuer terms."
@@ -58724,10 +59270,10 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         product_page_templates=(
             "https://regentsparkfunds.com/our-funds/anfield-dynamic-fixed-income-etf/",
         ),
-        live_tested_default_route=True,
+        live_tested_default_route=False,
         terms_note=(
-            "Anfield's public ADFI product page and complete current holdings CSV may be "
-            "subject to issuer terms."
+            "Anfield's former public ADFI product page and holdings CSV may be subject to "
+            "issuer terms; the route is currently unavailable and SEC fallback is conditional."
         ),
     ),
     "donoghue_forlines": IssuerCsvAdapterConfig(
@@ -58826,6 +59372,21 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="SS&C/ALPS public ETF product pages and holdings API proxy may be subject to issuer terms.",
     ),
+    "oshares": IssuerCsvAdapterConfig(
+        adapter_key="oshares",
+        source_provider="alps_funds",
+        source_access="issuer_public_hubspot_proxy_holdings_json",
+        url_templates=(
+            "https://www.alpsfunds.com/_hcms/api/getData"
+            "?api_url=https%3A%2F%2Fsecure.alpsinc.com%2FMarketingAPI%2Fapi%2Fv1"
+            "%2FHolding%2F{symbol_upper}%2FFull",
+        ),
+        product_page_templates=(
+            "https://www.alpsfunds.com/exchange-traded-funds/{symbol_lower}",
+        ),
+        live_tested_default_route=True,
+        terms_note="ALPS public O'Shares ETF product pages and holdings API proxy may be subject to issuer terms.",
+    ),
     "leuthold": IssuerCsvAdapterConfig(
         adapter_key="leuthold",
         source_provider="leuthold",
@@ -58868,6 +59429,18 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
     ),
     "yorkville": IssuerCsvAdapterConfig(
         adapter_key="yorkville",
+        source_provider="yorkville",
+        source_access="issuer_public_product_page_google_holdings_csv",
+        product_page_templates=(
+            "https://www.truthsocialfunds.com/etfs/{symbol_lower}",
+        ),
+        live_tested_default_route=True,
+        terms_note="Yorkville/Truth Social Funds public ETF product pages and Google Sheets holdings CSV exports may be subject to issuer terms.",
+    ),
+    # Truth Social is the public fund brand; Yorkville is the adviser/route
+    # identity. Keep both discovery keys on the verified native adapter.
+    "truth_social": IssuerCsvAdapterConfig(
+        adapter_key="truth_social",
         source_provider="yorkville",
         source_access="issuer_public_product_page_google_holdings_csv",
         product_page_templates=(
@@ -59250,6 +59823,17 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="AltShares public portfolio-of-investments reports may be subject to issuer terms.",
     ),
+    # AltShares is the public ETF brand; Water Island is its adviser identity.
+    # Keep both discovery keys on the same verified native route.
+    "altshares": IssuerCsvAdapterConfig(
+        adapter_key="altshares",
+        source_provider="water_island",
+        source_access="issuer_periodic_complete_portfolio_report_pdf",
+        url_templates=("https://altshares.s3.amazonaws.com/filings/Quarterly_Holdings-Fiscal_Q3.pdf",),
+        product_page_templates=("https://www.altsharesetfs.com/{symbol_lower}",),
+        live_tested_default_route=True,
+        terms_note="AltShares public portfolio-of-investments reports may be subject to issuer terms.",
+    ),
     "canary": IssuerCsvAdapterConfig(
         adapter_key="canary",
         source_provider="canary",
@@ -59339,6 +59923,17 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         product_page_templates=("https://www.fairleadfunds.com/tack",),
         live_tested_default_route=True,
         terms_note="Fairlead/Cary Street public ETF holdings data may be subject to issuer terms.",
+    ),
+    "fairlead": IssuerCsvAdapterConfig(
+        adapter_key="fairlead",
+        source_provider="fairlead",
+        source_access="issuer_product_page_verified_filepoint_holdings_json_alias",
+        product_page_templates=("https://www.fairleadfunds.com/tack",),
+        live_tested_default_route=True,
+        terms_note=(
+            "Fairlead's ETFDB discovery identity is an alias for the verified Cary Street "
+            "TACK issuer route; public holdings data may be subject to issuer terms."
+        ),
     ),
     "colliers": IssuerCsvAdapterConfig(
         adapter_key="colliers",
@@ -59544,7 +60139,7 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         source_provider="redwood",
         source_access="issuer_public_fund_scoped_complete_holdings_csv",
         product_page_templates=("https://www.leadersharesetfs.com/funds",),
-        live_tested_default_route=False,
+        live_tested_default_route=True,
         terms_note=(
             "Redwood's LeaderShares holdings downloads are issuer-published "
             "complete current holdings CSV files and may be subject to issuer terms."
@@ -60059,14 +60654,12 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
     "not_verified_us_etf_publisher": (
     ),
     "issuer_access_blocked": (
-        "aegon", "guinness_atkinson", "manulife",
-        "rex", "ridgeline", "sofi",
+        "aegon", "anfield", "guinness_atkinson", "manulife",
+        "ridgeline", "sofi",
         "thrivent", "westwood", "wisdomtree", "q3",
     ),
     "non_executable_public_source": (
         "epwa", "pacific_investments", "planrock",
-        "redwood",
-        "sterling_fund",
     ),
     "provider_not_a_portfolio_publisher": (
         "epiris", "eurazeo",
@@ -60074,8 +60667,8 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
         "rock_point",
     ),
     "needs_first_party_route_discovery": (
-        "academy", "acsi_funds", "advisors_asset_management", "alerian",
-        "alphaclone", "alphamark_advisors", "altshares",
+        "advisors_asset_management", "alerian",
+        "alphaclone", "alphamark_advisors",
         "amg_national", "amplius", "anydrus",
         "argent", "arin", "avos", "avory", "azimut", "baillie_gifford", "ballast",
         "ars", "bancreek", "beehive", "bridgeway", "brookstone",
@@ -60085,14 +60678,14 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
         "desjardins", "discipline_funds", "dvx_ventures", "ea_series_trust",
         "elements", "elm",
         "emirate_abu_dhabi", "esoterica",
-        "etf_managers_group", "even_herd", "everence", "fairlead",
+        "etf_managers_group", "even_herd", "everence",
         "falconx", "fcf_advisors", "formula_folio",
         "first_manhattan", "fitzgerald", "framework_digital_advisors", "freedom",
         "fpa", "genter_capital",
         "fundstrat", "gc_ferry_parent", "gotham",
         "granite_group_advisors", "guggenheim", "hexis",
-        "highland_capital", "hilton", "horizons", "hoya", "impact_shares", "jlens",
-        "keating", "knowledge_leaders", "leverage_shares",
+        "highland_capital", "hilton", "horizons", "hoya", "jlens",
+        "knowledge_leaders",
         "logiq", "long_pond", "lsv", "m2_financial", "m_d_sass",
         "madison_avenue", "matrix", "max",
         "mcelhenny_sheffield",
@@ -60100,19 +60693,19 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
         "merchant_investment_management", "merk", "meridian",
         "merlyn_ai", "mig_capital", "militia", "milliman", "moonvest",
         "new_age_alpha", "nestyield", "nicholas_wealth", "north_square",
-        "norris_perne_french", "oakmark", "oshares",
+        "norris_perne_french",
         "opus_capital_management", "pabrai", "panagram", "pathfinder",
         "parnassus_investments", "premise_capital", "pzena",
         "performance_trust",
         "portfolio_building_block", "putnam",
-        "quadratic", "range", "rareview_funds", "return_stacked",
+        "quadratic", "rareview_funds", "return_stacked",
         "riverfront", "robo_global", "rockefeller_capital",
         "river1", "roc", "saba_capital", "sammons_enterprises", "sapient",
         "saturna", "siren", "smi_funds", "suncoast",
         "segall_bryant_hamill", "sophus", "srh", "stance",
         "stratified", "strategy_shares", "subversive",
         "swedish_export_credit",
-        "towle", "trimtabs", "truth_social", "us_benchmark_series",
+        "towle", "trimtabs", "us_benchmark_series",
         "tweedy_browne", "vega_financial", "wellesley_asset_management",
         "vistashares", "worth_charting", "yoke",
     ),
@@ -60283,8 +60876,33 @@ class HorizonsReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """ETF.com-reconciled fallback adapter pending Horizons route discovery."""
 
 
-class LeverageSharesReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
-    """ETF.com-reconciled fallback adapter pending Leverage Shares route discovery."""
+class LeverageSharesHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch Leverage Shares U.S. ETF holdings from issuer-declared CSV files."""
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        normalized_symbol = symbol.strip().upper()
+        if not normalized_symbol:
+            raise ValueError("Leverage Shares holdings require an ETF symbol.")
+        resolved_url = source_url or self.resolve_source_url(
+            symbol=normalized_symbol,
+            issuer_product_id=issuer_product_id,
+            identifiers=identifiers,
+        )
+        if not resolved_url:
+            raise ValueError(f"Leverage Shares holdings route not found for {normalized_symbol}.")
+        return await super().fetch_latest(
+            symbol=normalized_symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=resolved_url,
+            identifiers=identifiers,
+        )
 
 
 class MeridianReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
@@ -60739,8 +61357,331 @@ class ConductorFundReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """StockAnalysis provider-table fallback adapter pending Conductor Fund discovery."""
 
 
-class AcsiFundsReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
-    """StockAnalysis provider-table fallback adapter pending ACSI Funds discovery."""
+class AcsiFundsHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch ACSI Funds' official daily ACSI holdings CSV."""
+
+    HOLDINGS_URL = (
+        "https://acsietf.com/wp-content/uploads/files/"
+        "TidalETF_Services.40ZZ.VA_Holdings_.csv"
+    )
+    _ISSUER_HOSTS = {"acsietf.com", "www.acsietf.com"}
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        normalized_symbol = symbol.strip().upper()
+        if normalized_symbol != "ACSI":
+            raise ValueError(
+                f"ACSI Funds' verified native holdings route is only available for ACSI, not {normalized_symbol}."
+            )
+        resolved_url = source_url or self.HOLDINGS_URL
+        parsed = urlparse(resolved_url)
+        if parsed.scheme != "https" or parsed.netloc.lower() not in self._ISSUER_HOSTS:
+            raise ValueError("ACSI Funds holdings route must remain on acsietf.com.")
+        result = await self._fetch_explicit_issuer_csv(
+            symbol=normalized_symbol,
+            issuer_product_id=issuer_product_id or normalized_symbol,
+            source_url=resolved_url,
+            identifiers=identifiers,
+            route_resolution="acsi_issuer_daily_holdings_csv",
+        )
+        # ACSI publishes the effective holdings date in every CSV row. Preserve
+        # that issuer-provided value as provenance rather than treating the
+        # fetch timestamp as the composition date.
+        dated_values: set[date] = set()
+        if result.raw_text:
+            for row in csv.DictReader(StringIO(result.raw_text)):
+                raw_date = next(
+                    (
+                        value
+                        for key, value in row.items()
+                        if key and key.strip().casefold() == "date"
+                    ),
+                    None,
+                )
+                parsed_date = _parse_issuer_date(raw_date)
+                if parsed_date is not None:
+                    dated_values.add(parsed_date)
+        if len(dated_values) == 1:
+            composition_date = next(iter(dated_values)).isoformat()
+            result.legal_metadata = {
+                **(result.legal_metadata or {}),
+                "composition_date": composition_date,
+                "as_of_date": composition_date,
+            }
+        elif len(dated_values) > 1:
+            result.legal_metadata = {
+                **(result.legal_metadata or {}),
+                "composition_date_warning": "issuer_csv_contains_multiple_dates",
+            }
+        return result
+
+
+class OakmarkHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch Oakmark's official symbol-scoped ETF holdings CSV exports."""
+
+    HOLDINGS_URL_TEMPLATE = (
+        "https://oakmark.com/wp-content/uploads/etf_data/{symbol_lower}_holdings.csv"
+    )
+    _ISSUER_HOSTS = {"oakmark.com", "www.oakmark.com"}
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        normalized_symbol = symbol.strip().upper()
+        resolved_url = source_url or self.HOLDINGS_URL_TEMPLATE.format(
+            symbol_lower=normalized_symbol.lower(),
+        )
+        parsed = urlparse(resolved_url)
+        if parsed.scheme != "https" or parsed.netloc.lower() not in self._ISSUER_HOSTS:
+            raise ValueError("Oakmark holdings routes must remain on oakmark.com.")
+
+        result = await self._fetch_explicit_issuer_csv(
+            symbol=normalized_symbol,
+            issuer_product_id=issuer_product_id or normalized_symbol,
+            source_url=resolved_url,
+            identifiers=identifiers,
+            route_resolution="oakmark_issuer_symbol_holdings_csv",
+        )
+        if not result.raw_text:
+            raise ValueError(f"Oakmark returned no holdings data for {normalized_symbol}.")
+
+        reader = csv.DictReader(StringIO(result.raw_text))
+        fieldnames = list(reader.fieldnames or [])
+        if not fieldnames or "etf_fund" not in {field.casefold() for field in fieldnames}:
+            raise ValueError(f"Oakmark holdings export has no fund identifier for {normalized_symbol}.")
+        fund_key = next(field for field in fieldnames if field.casefold() == "etf_fund")
+        filtered_rows: list[dict[str, str | None]] = []
+        dated_values: set[date] = set()
+        date_key = next(
+            (field for field in fieldnames if field.casefold() in {"as_of_date", "date"}),
+            None,
+        )
+        for row in reader:
+            if (row.get(fund_key) or "").strip().upper() != normalized_symbol:
+                continue
+            if date_key:
+                parsed_date = _parse_issuer_date(row.get(date_key))
+                if parsed_date is not None:
+                    dated_values.add(parsed_date)
+            normalized_row = dict(row)
+            normalized_row["Asset Class"] = (
+                "Cash"
+                if not (row.get("ticker") or "").strip()
+                and "other asset" in (row.get("issue_name") or "").casefold()
+                else "Equity"
+            )
+            filtered_rows.append(normalized_row)
+        if not filtered_rows:
+            raise ValueError(f"Oakmark returned no rows for {normalized_symbol}.")
+
+        normalized_headers = list(filtered_rows[0])
+        rows = parse_holdings_table(
+            [normalized_headers]
+            + [[row.get(header) for header in normalized_headers] for row in filtered_rows]
+        )
+        if not rows:
+            raise ValueError(f"Oakmark returned no parseable rows for {normalized_symbol}.")
+        result.rows = rows
+        if len(dated_values) == 1:
+            composition_date = next(iter(dated_values)).isoformat()
+            result.legal_metadata = {
+                **(result.legal_metadata or {}),
+                "composition_date": composition_date,
+                "as_of_date": composition_date,
+            }
+        elif len(dated_values) > 1:
+            result.legal_metadata = {
+                **(result.legal_metadata or {}),
+                "composition_date_warning": "issuer_csv_contains_multiple_dates",
+            }
+        return result
+
+
+class RangeHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch Range ETFs' complete holdings from its official Nuxt fund pages."""
+
+    PRODUCT_PAGE_SLUGS: dict[str, str] = {
+        "COAL": "coal",
+        "NUKZ": "nukz",
+    }
+    PRODUCT_PAGE_BASE = "https://rangeetfs.com"
+    _ISSUER_HOSTS = {"rangeetfs.com", "www.rangeetfs.com"}
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name
+        normalized_symbol = symbol.strip().upper()
+        has_sec_fallback = bool(_identifier(identifiers, "sec_cik", "cik"))
+        source_url = self.resolve_source_url(
+            symbol=normalized_symbol,
+            issuer_product_id=_identifier(identifiers, "issuer_product_id", "product_id"),
+            source_url=_identifier(identifiers, *self.source_url_aliases),
+            identifiers=identifiers,
+        )
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=(
+                Decimal("0.9500")
+                if source_url
+                else Decimal("0.3000")
+                if has_sec_fallback
+                else Decimal("0.0000")
+            ),
+            status="ready" if source_url or has_sec_fallback else "unsupported_symbol",
+            reason=(
+                "Range ETFs publishes complete dated holdings in its official fund-page payload."
+                if source_url
+                else "Range has no native route for this symbol; SEC EDGAR fallback is available."
+                if has_sec_fallback
+                else "Range's verified native route is limited to COAL and NUKZ."
+            ),
+            source_url=source_url,
+            issuer_product_id=normalized_symbol if source_url else None,
+        )
+
+    def resolve_source_url(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> str | None:
+        del identifiers
+        normalized_symbol = (issuer_product_id or symbol).strip().upper()
+        slug = self.PRODUCT_PAGE_SLUGS.get(normalized_symbol)
+        if slug is None:
+            return None
+        expected_url = f"{self.PRODUCT_PAGE_BASE}/{slug}"
+        if source_url:
+            parsed = urlparse(source_url.strip())
+            if parsed.scheme != "https" or parsed.netloc.lower() not in self._ISSUER_HOSTS:
+                return None
+            if parsed.path.rstrip("/").lower() != f"/{slug}":
+                return None
+            return source_url.strip()
+        return expected_url
+
+    def source_request_headers(self, *, source_url: str) -> dict[str, str]:
+        headers = _issuer_page_request_headers(accept="text/html,*/*")
+        headers["Referer"] = f"{self.PRODUCT_PAGE_BASE}/"
+        return headers
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        normalized_symbol = symbol.strip().upper()
+        resolved_source_url = self.resolve_source_url(
+            symbol=normalized_symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers,
+        )
+        if resolved_source_url is None:
+            raise ValueError(f"Range has no verified native holdings route for {normalized_symbol}.")
+
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(
+                resolved_source_url,
+                headers=self.source_request_headers(source_url=resolved_source_url),
+                follow_redirects=True,
+            )
+        response.raise_for_status()
+        rows, composition_date = self._parse_product_page(
+            response.text,
+            symbol=normalized_symbol,
+        )
+        if not rows:
+            raise ValueError(
+                f"Range's official product page did not expose holdings for {normalized_symbol}."
+            )
+        composition_value = composition_date.isoformat() if composition_date else None
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response.text,
+            raw_json={"source_format": "nuxt_hydration_json", "row_count": len(rows)},
+            source_url=str(response.url),
+            source_identifier=issuer_product_id or normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "nuxt_hydration_json",
+                "route_resolution": "range_fund_page_nuxt_complete_holdings_component",
+                "composition_date": composition_value,
+                "as_of_date": composition_value,
+                "source_quality": "issuer_reported_current_holdings",
+                "snapshot_provenance": "range_native_product_page_nuxt_hydration",
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @classmethod
+    def _parse_product_page(
+        cls,
+        raw_html: str,
+        *,
+        symbol: str,
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+        slug = cls.PRODUCT_PAGE_SLUGS.get(symbol.strip().upper())
+        if slug is None:
+            return [], None
+        component_id = f"rangeetfs-{slug}-HoldingsComponent-1"
+        hydrated_rows, composition_date = _extract_nuxt_hydration_holdings(
+            raw_html,
+            component_id=component_id,
+        )
+        if not hydrated_rows:
+            return [], composition_date
+        rows: list[CanonicalHoldingRow] = []
+        for position, source_row in enumerate(hydrated_rows, start=1):
+            ticker = _clean(source_row.get("ticker"))
+            name = _clean(source_row.get("description"))
+            figi = _clean(source_row.get("figi"))
+            if ticker is None and name is None and figi is None:
+                continue
+            is_cash = "cash" in " ".join(
+                value.lower() for value in (ticker, name) if value
+            )
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=ticker.upper() if ticker and not is_cash else None,
+                    name=name,
+                    weight=_decimal(source_row.get("percent_of_nav")),
+                    shares=_decimal(source_row.get("quantity")),
+                    market_value=_decimal(source_row.get("market_value")),
+                    holding_type="cash" if is_cash else "equity",
+                    row_type="cash" if is_cash else "security",
+                    source_row_id=(
+                        f"range-{symbol.strip().upper().lower()}-"
+                        f"{composition_date.isoformat() if composition_date else 'current'}-"
+                        f"{position}"
+                    ),
+                    extra_data={
+                        key: value
+                        for key, value in source_row.items()
+                        if key
+                        not in {"ticker", "description", "quantity", "market_value", "percent_of_nav"}
+                        and _clean(value) is not None
+                    },
+                )
+            )
+        return rows, composition_date
 
 
 class FirstManhattanReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
@@ -60751,6 +61692,131 @@ class KeatingReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """StockAnalysis provider-table fallback adapter pending Keating discovery."""
 
 
+class KeatingHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch KEAT's complete current holdings table from Keating's public fund page."""
+
+    PRODUCT_URLS = {
+        "KEAT": "https://etfkeatinginvestment.com/",
+    }
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name
+        normalized_symbol = symbol.strip().upper()
+        source_url = self.PRODUCT_URLS.get(normalized_symbol)
+        sec_cik = _identifier(identifiers, "sec_cik", "cik")
+        if not source_url and sec_cik:
+            return HoldingsAdapterProbe(
+                adapter_key=self.adapter_key,
+                confidence=Decimal("0.7800"),
+                status="ready",
+                reason="SEC filing fallback is available when no Keating product route matches the symbol.",
+                source_url=f"https://data.sec.gov/submissions/CIK{sec_cik.zfill(10)}.json",
+                issuer_product_id=normalized_symbol or None,
+            )
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9000"),
+            status="ready" if source_url else "needs_issuer_route",
+            reason=(
+                "Keating publishes KEAT's complete current holdings table on its public fund page."
+                if source_url
+                else "No public Keating product page is configured for this symbol."
+            ),
+            source_url=source_url,
+            issuer_product_id=normalized_symbol or None,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del issuer_product_id, identifiers
+        normalized_symbol = symbol.strip().upper()
+        if not normalized_symbol:
+            raise ValueError("Keating holdings require an ETF symbol.")
+        resolved_source_url = source_url or self.PRODUCT_URLS.get(normalized_symbol)
+        if not resolved_source_url:
+            raise ValueError(f"No public Keating ETF product page is configured for {normalized_symbol}.")
+        headers = _holdings_request_headers(accept="text/html,application/xhtml+xml,*/*")
+        try:
+            async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+                response = await client.get(
+                    resolved_source_url,
+                    headers=headers,
+                    follow_redirects=True,
+                )
+            response.raise_for_status()
+        except httpx.HTTPStatusError as exc:
+            if exc.response.status_code != 403:
+                raise
+            # Keating's public site currently rejects httpx's TLS/client
+            # fingerprint but serves the same public page to requests. This
+            # bounded issuer-specific fallback does not use credentials or a
+            # different data source.
+            response = await asyncio.to_thread(
+                requests.get,
+                resolved_source_url,
+                headers=headers,
+                timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS,
+                allow_redirects=True,
+            )
+            response.raise_for_status()
+        rows = parse_html_holdings_table_by_headers(
+            response.text,
+            required_headers={
+                "ticker",
+                "name",
+                "cusip",
+                "shares",
+                "price",
+                "market value ($mm)",
+                "% of net assets",
+                "effective_date",
+            },
+        )
+        if not rows:
+            raise ValueError(
+                f"Keating product page did not contain complete holdings rows for {normalized_symbol}."
+            )
+        composition_date = next(
+            (
+                datetime.strptime(str(value).strip(), "%m/%d/%Y").date()
+                for row in rows
+                for key, value in row.extra_data.items()
+                if key.strip().lower() == "effective_date"
+                and re.fullmatch(r"\d{2}/\d{2}/\d{4}", str(value).strip())
+            ),
+            None,
+        )
+        for index, row in enumerate(rows, start=1):
+            row.source_row_id = f"{normalized_symbol}:{composition_date.isoformat() if composition_date else 'current'}:{index}"
+            row.extra_data = {
+                **row.extra_data,
+                "source": "keating_public_fund_page_holdings_table",
+            }
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response.text,
+            raw_json={"source_format": "issuer_product_page_holdings_table", "row_count": len(rows)},
+            source_url=str(response.url),
+            source_identifier=normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "html",
+                "route_resolution": "keating_public_complete_current_holdings_table",
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+
 class TruthSocialReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """StockAnalysis provider-table fallback adapter pending Truth Social discovery."""
 
@@ -60759,8 +61825,42 @@ class AltSharesReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """StockAnalysis provider-table fallback adapter pending Altshares discovery."""
 
 
-class AcademyReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
-    """StockAnalysis provider-table fallback adapter pending Academy discovery."""
+class AcademyHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch Academy ETFs' page-declared current holdings CSV."""
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        return await super().fetch_latest(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers,
+        )
+
+
+class ImpactSharesHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch Impact Shares' page-declared current holdings CSV."""
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        return await super().fetch_latest(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers,
+        )
 
 
 class DisciplineFundsReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
@@ -60842,13 +61942,15 @@ class LogiqReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
 def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAdapter:
     adapter_types: dict[str, type[IssuerCsvHoldingsAdapter]] = {
         "aegon": AegonAuditedFallbackHoldingsAdapter,
-        "academy": AcademyReconciledFallbackHoldingsAdapter,
-        "acsi_funds": AcsiFundsReconciledFallbackHoldingsAdapter,
+        "academy": AcademyHoldingsAdapter,
+        "acsi_funds": AcsiFundsHoldingsAdapter,
+        "oakmark": OakmarkHoldingsAdapter,
+        "range": RangeHoldingsAdapter,
         "advisors_asset_management": AdvisorsAssetManagementReconciledFallbackHoldingsAdapter,
         "alerian": AlerianReconciledFallbackHoldingsAdapter,
         "alphaclone": AlphaCloneReconciledFallbackHoldingsAdapter,
         "alphamark_advisors": AlphaMarkAdvisorsReconciledFallbackHoldingsAdapter,
-        "altshares": AltSharesReconciledFallbackHoldingsAdapter,
+        "altshares": WaterIslandHoldingsAdapter,
         "amg_national": AmgNationalReconciledFallbackHoldingsAdapter,
         "amplius": AmpliusReconciledFallbackHoldingsAdapter,
         "american_beacon": AmericanBeaconHoldingsAdapter,
@@ -60895,7 +61997,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "eurazeo": EurazeoAuditedFallbackHoldingsAdapter,
         "even_herd": EvenHerdReconciledFallbackHoldingsAdapter,
         "everence": EverenceReconciledFallbackHoldingsAdapter,
-        "fairlead": FairleadReconciledFallbackHoldingsAdapter,
+        "fairlead": CaryStreetHoldingsAdapter,
         "falconx": FalconXReconciledFallbackHoldingsAdapter,
         "fcf_advisors": FcfAdvisorsReconciledFallbackHoldingsAdapter,
         "formula_folio": FormulaFolioReconciledFallbackHoldingsAdapter,
@@ -60916,12 +62018,12 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "hilton": HiltonReconciledFallbackHoldingsAdapter,
         "horizons": HorizonsReconciledFallbackHoldingsAdapter,
         "hoya": HoyaReconciledFallbackHoldingsAdapter,
-        "impact_shares": ImpactSharesReconciledFallbackHoldingsAdapter,
+        "impact_shares": ImpactSharesHoldingsAdapter,
         "jlens": JLensReconciledFallbackHoldingsAdapter,
-        "keating": KeatingReconciledFallbackHoldingsAdapter,
+        "keating": KeatingHoldingsAdapter,
         "knowledge_leaders": KnowledgeLeadersReconciledFallbackHoldingsAdapter,
         "kovitz": KovitzHoldingsAdapter,
-        "leverage_shares": LeverageSharesReconciledFallbackHoldingsAdapter,
+        "leverage_shares": LeverageSharesHoldingsAdapter,
         "logiq": LogiqReconciledFallbackHoldingsAdapter,
         "long_pond": LongPondReconciledFallbackHoldingsAdapter,
         "lsv": LsvReconciledFallbackHoldingsAdapter,
@@ -60949,9 +62051,8 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "nicholas_wealth": NicholasWealthReconciledFallbackHoldingsAdapter,
         "north_square": NorthSquareReconciledFallbackHoldingsAdapter,
         "norris_perne_french": NorrisPerneFrenchReconciledFallbackHoldingsAdapter,
-        "oakmark": OakmarkReconciledFallbackHoldingsAdapter,
         "orix": OrixAuditedFallbackHoldingsAdapter,
-        "oshares": OSharesReconciledFallbackHoldingsAdapter,
+        "oshares": OSharesHoldingsAdapter,
         "opus_capital_management": OpusCapitalManagementReconciledFallbackHoldingsAdapter,
         "pacific_investments": PacificInvestmentsAuditedFallbackHoldingsAdapter,
         "pabrai": PabraiReconciledFallbackHoldingsAdapter,
@@ -60966,7 +62067,6 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "pzena": PzenaReconciledFallbackHoldingsAdapter,
         "quadratic": QuadraticReconciledFallbackHoldingsAdapter,
         "q3": Q3AuditedFallbackHoldingsAdapter,
-        "range": RangeReconciledFallbackHoldingsAdapter,
         "rareview_funds": RareviewFundsReconciledFallbackHoldingsAdapter,
         "return_stacked": ReturnStackedReconciledFallbackHoldingsAdapter,
         "ridgeline": RidgelineAuditedFallbackHoldingsAdapter,
@@ -60998,7 +62098,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "touchstone": TouchstoneHoldingsAdapter,
         "tradr": TradrHoldingsAdapter,
         "trimtabs": TrimTabsReconciledFallbackHoldingsAdapter,
-        "truth_social": TruthSocialReconciledFallbackHoldingsAdapter,
+        "truth_social": YorkvilleHoldingsAdapter,
         "towle": TowleReconciledFallbackHoldingsAdapter,
         "tweedy_browne": TweedyBrowneReconciledFallbackHoldingsAdapter,
         "us_benchmark_series": UsBenchmarkSeriesReconciledFallbackHoldingsAdapter,

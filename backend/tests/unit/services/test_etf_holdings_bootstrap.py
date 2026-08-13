@@ -9,6 +9,8 @@ from app.models.instrument_identity import InstrumentIdentifier, InstrumentIdent
 from app.services.etf_holdings import ensure_lightweight_etf_instrument
 from app.services.etf_holdings_refresh import (
     ETFHoldingsBootstrapResult,
+    _apply_known_route_metadata,
+    _issuer_product_identifier,
     bootstrap_etf_holdings_profile,
 )
 from app.services.instrument_mastering import ensure_internal_identifier
@@ -76,6 +78,40 @@ class _SyncNestedContext:
 class FakeSyncBootstrapDB(FakeBootstrapDB):
     def begin_nested(self):
         return _SyncNestedContext(self)
+
+
+def test_curated_route_metadata_repairs_stale_adapter_key():
+    """A later issuer route must override an obsolete historical inference."""
+
+    profile = SimpleNamespace(
+        instrument=SimpleNamespace(symbol="SMH", name="VanEck Semiconductor ETF"),
+        issuer="VanEck",
+        fund_family=None,
+        product_url=None,
+        provider_aliases={"holdings_adapter": "vaneck"},
+        sec_cik="0001137360",
+        sec_series_id="S000034411",
+        sec_class_id="C000105869",
+        adapter_key="ark",
+        adapter_status="success",
+        adapter_confidence=0.78,
+    )
+
+    assert _apply_known_route_metadata(profile) is True
+    assert profile.adapter_key == "vaneck"
+    assert profile.provider_aliases["product_slug"] == "semiconductor-etf-smh"
+    assert profile.adapter_status == "candidate"
+
+
+def test_explicit_issuer_product_slug_precedes_sec_series_id():
+    """SEC enrichment must not shadow an issuer-native route identifier."""
+
+    assert _issuer_product_identifier(
+        {
+            "sec_series_id": "S000034411",
+            "product_slug": "semiconductor-etf-smh",
+        }
+    ) == "semiconductor-etf-smh"
 
 
 @pytest.mark.asyncio
@@ -187,7 +223,10 @@ async def test_bootstrap_uses_async_nested_transaction_for_ready_routes(monkeypa
     async def fake_ensure_etf_profile(db, instrument):
         return profile
 
-    async def fake_get_latest_snapshot(db, instrument_id, include_holdings=True):
+    async def fake_get_latest_snapshot(
+        db, instrument_id, include_holdings=True, include_controlled_fixture=True
+    ):
+        assert include_controlled_fixture is False
         return None
 
     async def fake_probe_etf_holdings_adapter_route(db, profile):
@@ -245,6 +284,62 @@ async def test_bootstrap_uses_async_nested_transaction_for_ready_routes(monkeypa
 
 
 @pytest.mark.asyncio
+async def test_bootstrap_accepts_existing_public_snapshot_schema(monkeypatch):
+    """A stored snapshot is already converted to the public schema by its loader."""
+    db = FakeBootstrapDB()
+    instrument = SimpleNamespace(id=101, symbol="XLK", name="Technology Select Sector SPDR Fund")
+    profile = SimpleNamespace(
+        instrument=instrument,
+        issuer=None,
+        fund_family=None,
+        product_url=None,
+        provider_aliases=None,
+        sec_cik="seeded",
+        sec_series_id=None,
+        sec_class_id=None,
+        adapter_key="spdr",
+        adapter_status="success",
+        adapter_confidence=0.95,
+    )
+    probe = SimpleNamespace(
+        adapter_key="spdr",
+        confidence=0.95,
+        status="ready",
+        reason="State Street's public workbook route is available.",
+    )
+
+    async def fake_ensure_lightweight_etf_instrument(db, symbol, name=None):
+        return instrument
+
+    async def fake_ensure_etf_profile(db, instrument):
+        return profile
+
+    async def fake_get_latest_snapshot(
+        db, instrument_id, include_holdings=True, include_controlled_fixture=True
+    ):
+        assert include_controlled_fixture is False
+        # This mirrors get_latest_snapshot's ETFHoldingsSnapshotOut contract;
+        # it intentionally has no ORM ``rows`` collection.
+        return SimpleNamespace(id=501, etf_symbol="XLK")
+
+    async def fake_probe_etf_holdings_adapter_route(db, profile):
+        return probe
+
+    monkeypatch.setattr("app.services.etf_holdings_refresh.ensure_lightweight_etf_instrument", fake_ensure_lightweight_etf_instrument)
+    monkeypatch.setattr("app.services.etf_holdings_refresh.ensure_etf_profile", fake_ensure_etf_profile)
+    monkeypatch.setattr("app.services.etf_holdings_refresh.known_etf_route_metadata", lambda symbol: None)
+    monkeypatch.setattr("app.services.etf_holdings_refresh.get_latest_snapshot", fake_get_latest_snapshot)
+    monkeypatch.setattr("app.services.etf_holdings_refresh.probe_etf_holdings_adapter_route", fake_probe_etf_holdings_adapter_route)
+
+    result = await bootstrap_etf_holdings_profile(db, symbol="XLK", name=instrument.name)
+
+    assert isinstance(result, ETFHoldingsBootstrapResult)
+    assert result.refresh_attempted is False
+    assert result.refresh_succeeded is True
+    assert result.probe.status == "ready"
+
+
+@pytest.mark.asyncio
 async def test_bootstrap_accepts_sync_nested_transaction_wrappers(monkeypatch):
     db = FakeSyncBootstrapDB()
     instrument = SimpleNamespace(id=101, symbol="NIKL", name="Sprott Nickel Miners ETF")
@@ -275,7 +370,10 @@ async def test_bootstrap_accepts_sync_nested_transaction_wrappers(monkeypatch):
     async def fake_ensure_etf_profile(db, instrument):
         return profile
 
-    async def fake_get_latest_snapshot(db, instrument_id, include_holdings=True):
+    async def fake_get_latest_snapshot(
+        db, instrument_id, include_holdings=True, include_controlled_fixture=True
+    ):
+        assert include_controlled_fixture is False
         return None
 
     async def fake_probe_etf_holdings_adapter_route(db, profile):

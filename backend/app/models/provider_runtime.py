@@ -84,7 +84,7 @@ class ProviderPolicy(Base, TimestampMixin):
 
 
 class ProviderEntitlement(Base, TimestampMixin):
-    """Versioned terms/capability evidence; separate from operational provider policy."""
+    """Current terms/capability evidence; immutable revisions are retained separately."""
 
     __tablename__ = "provider_entitlement"
 
@@ -108,12 +108,66 @@ class ProviderEntitlement(Base, TimestampMixin):
     effective_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     review_due_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     live_probe_status: Mapped[str] = mapped_column(String(32), nullable=False, default="not_run")
+    revision: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
 
     data_source: Mapped["DataSource"] = relationship(back_populates="provider_entitlements")
 
     __table_args__ = (
         UniqueConstraint(
             "data_source_id", "capability", name="uq_provider_entitlement_source_capability"
+        ),
+    )
+
+
+class ProviderEntitlementRevision(Base, TimestampMixin):
+    """Append-only snapshot of a provider capability entitlement.
+
+    The current ``ProviderEntitlement`` row is convenient for routing. This
+    table preserves every reviewed/configured version so historical runs can
+    explain which terms, quota, and freshness contract was in force.
+    """
+
+    __tablename__ = "provider_entitlement_revision"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    data_source_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("data_source.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    capability: Mapped[ProviderCapability] = mapped_column(
+        SAEnum(ProviderCapability), nullable=False, index=True
+    )
+    revision: Mapped[int] = mapped_column(Integer, nullable=False)
+    configured_plan: Mapped[str] = mapped_column(String(80), nullable=False)
+    is_free: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    authentication_required: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    usage_terms: Mapped[str | None] = mapped_column(Text, nullable=True)
+    redistribution_allowed: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    quota_policy: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+    history_depth: Mapped[str | None] = mapped_column(String(160), nullable=True)
+    venue_coverage: Mapped[str | None] = mapped_column(String(160), nullable=True)
+    freshness_semantics: Mapped[str | None] = mapped_column(String(160), nullable=True)
+    enabled_environments: Mapped[list] = mapped_column(JSON, nullable=False, default=list)
+    effective_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    review_due_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    live_probe_status: Mapped[str] = mapped_column(String(32), nullable=False)
+    change_reason: Mapped[str | None] = mapped_column(String(240), nullable=True)
+
+    entitlement_source: Mapped["DataSource"] = relationship(
+        back_populates="provider_entitlement_revisions"
+    )
+
+    __table_args__ = (
+        UniqueConstraint(
+            "data_source_id",
+            "capability",
+            "revision",
+            name="uq_provider_entitlement_revision_source_capability_revision",
+        ),
+        Index(
+            "ix_provider_entitlement_revision_lookup",
+            "data_source_id",
+            "capability",
+            "revision",
         ),
     )
 

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
 import math
 from collections import defaultdict
 from datetime import UTC, datetime
@@ -20,7 +22,11 @@ from app.models.provider_observation import DatasetStatus, InstrumentDatasetStat
 from app.models.screener import ScreenerDefinition, ScreenerResult
 from app.models.user import User
 from app.models.workstation import MarketGroup, MarketGroupMember
-from app.routers.market_groups import etf_industry_proxies
+from app.routers.market_groups import (
+    _holding_exclusion_code,
+    etf_industry_proxies,
+    holdings_snapshot_source_filter,
+)
 from app.schemas.analysis import (
     AnalysisCell,
     AnalysisPoint,
@@ -48,6 +54,13 @@ router = APIRouter(prefix="/analysis", tags=["analysis"])
 
 _PERIODS = {"1D": 1, "1W": 5, "1M": 21, "3M": 63, "6M": 126, "YTD": None, "1Y": 252}
 _CALENDAR_YEAR_LOOKBACK = 5
+
+_HOLDING_EXCLUSION_MESSAGES = {
+    "cash_holding": "Cash, collateral, or currency exposure is excluded from equity analysis.",
+    "derivative_holding": "Derivative exposure is excluded from equity analysis.",
+    "unresolved_holding": "The holding has no resolved canonical equity instrument.",
+    "non_equity_holding": "The holding is not a supported equity security.",
+}
 
 
 @router.post("/indicator-batch", response_model=IndicatorBatchOut)
@@ -123,10 +136,23 @@ async def indicator_batch(
     )
 
 
-def _is_known_at(value: datetime | None, as_of: datetime | None) -> bool:
-    """Return whether a versioned membership timestamp is usable at ``as_of``."""
-    if value is None or as_of is None:
+def _is_known_at(
+    value: datetime | None,
+    as_of: datetime | None,
+    *,
+    required: bool = False,
+) -> bool:
+    """Return whether a versioned timestamp is usable at ``as_of``.
+
+    A missing timestamp is tolerated for latest/current views, where legacy rows
+    remain readable.  An explicit point-in-time request can require the
+    timestamp: admitting an observation whose known-at boundary is absent would
+    make historical membership appear more certain than the data supports.
+    """
+    if as_of is None:
         return True
+    if value is None:
+        return not required
     if value.tzinfo is None and as_of.tzinfo is not None:
         value = value.replace(tzinfo=as_of.tzinfo)
     return value <= as_of
@@ -142,6 +168,10 @@ def _wire_datetime(value: datetime | None) -> str | None:
 
 def _group_members_at(group: MarketGroup, as_of: datetime | None) -> list[MarketGroupMember]:
     """Select a group's versioned members without admitting future membership."""
+    # Root groups created before lifecycle timestamps were introduced may have
+    # no group-level known_at.  Their members still carry the authoritative
+    # point-in-time boundary, so retain the static-root compatibility rule while
+    # requiring each member's known_at below.
     if not _is_known_at(group.effective_at, as_of) or not _is_known_at(group.known_at, as_of):
         raise HTTPException(
             404,
@@ -150,7 +180,8 @@ def _group_members_at(group: MarketGroup, as_of: datetime | None) -> list[Market
     return [
         member
         for member in group.members
-        if _is_known_at(member.effective_at, as_of) and _is_known_at(member.known_at, as_of)
+        if _is_known_at(member.effective_at, as_of)
+        and _is_known_at(member.known_at, as_of, required=as_of is not None)
     ]
 
 
@@ -191,6 +222,65 @@ def _group_provenance(group: MarketGroup, as_of: datetime | None) -> dict[str, o
         "membership_as_of": _wire_datetime(as_of),
         "membership_selection": "effective_at_and_known_at",
     }
+
+
+def _group_membership_version(
+    group: MarketGroup, members: list[MarketGroupMember]
+) -> int:
+    """Return a stable cache/version identity for the selected group universe.
+
+    A database primary key identifies the group row, not its evolving membership.
+    Include the lifecycle and verification fields that affect historical selection
+    so a changed membership cannot reuse a stale batch-analysis cache entry.
+    """
+    payload = {
+        "group": group.stable_key,
+        "group_effective_at": _wire_datetime(group.effective_at),
+        "group_known_at": _wire_datetime(group.known_at),
+        "members": [
+            {
+                "instrument_id": member.instrument_id,
+                "relationship_type": member.relationship_type,
+                "position": member.position,
+                "weight": member.weight,
+                "source": member.source,
+                "verification_state": member.verification_state,
+                "effective_at": _wire_datetime(member.effective_at),
+                "known_at": _wire_datetime(member.known_at),
+                "provenance": member.provenance or {},
+            }
+            for member in sorted(members, key=lambda item: (item.position, item.instrument_id))
+        ],
+    }
+    digest = hashlib.sha256(
+        json.dumps(payload, sort_keys=True, separators=(",", ":"), default=str).encode("utf-8")
+    ).digest()
+    return int.from_bytes(digest[:8], "big", signed=False) & ((1 << 63) - 1)
+
+
+def _gauge_exclusion_warnings(excluded: object) -> list[AnalysisWarning]:
+    """Normalize legacy keyed and Python-manifest list exclusions for gauges."""
+    if isinstance(excluded, dict):
+        return [
+            AnalysisWarning(
+                code=value.get("code", "excluded"),
+                message=value.get("message", "Excluded"),
+                instrument_id=int(key) if str(key).isdigit() else value.get("instrument_id"),
+            )
+            for key, value in excluded.items()
+            if isinstance(value, dict)
+        ]
+    if isinstance(excluded, list):
+        return [
+            AnalysisWarning(
+                code=str(value.get("code") or "excluded"),
+                message=str(value.get("message") or "Excluded"),
+                instrument_id=value.get("instrument_id") if isinstance(value.get("instrument_id"), int) else None,
+            )
+            for value in excluded
+            if isinstance(value, dict)
+        ]
+    return []
 
 
 @router.get("/gauges/{screener_id}", response_model=MarketGaugeOut)
@@ -237,15 +327,11 @@ async def market_gauge(
     excluded = coverage.get("excluded", {}) if isinstance(coverage, dict) else {}
     universe_count = int(coverage.get("universe_count", 0)) if isinstance(coverage, dict) else 0
     evaluated_count = int(coverage.get("evaluated_count", 0)) if isinstance(coverage, dict) else 0
-    warnings = [
-        AnalysisWarning(
-            code=value.get("code", "excluded"),
-            message=value.get("message", "Excluded"),
-            instrument_id=int(key),
-        )
-        for key, value in excluded.items()
-        if isinstance(value, dict) and key.isdigit()
-    ]
+    # The isolated batch manifest stores exclusions as a list of structured
+    # records, while the legacy in-process evaluator stores an instrument-keyed
+    # mapping.  Gauges consume both forms without turning a handled coverage
+    # limitation into HTTP 500.
+    warnings = _gauge_exclusion_warnings(excluded)
     return MarketGaugeOut(
         screener_id=screener.id,
         screener_name=screener.name,
@@ -296,6 +382,43 @@ def _cell(
 
 def _mean(values: list[float]) -> float:
     return sum(values) / len(values)
+
+
+def _volume_ratio_50(
+    bars: list[OHLCVBar], instrument_id: int
+) -> tuple[float | None, AnalysisWarning | None]:
+    """Calculate volume ratio without turning missing provider volume into a 500."""
+    if len(bars) < 51:
+        return (
+            None,
+            AnalysisWarning(
+                code="insufficient_history",
+                message="50-day volume ratio requires 51 bars.",
+                instrument_id=instrument_id,
+            ),
+        )
+    previous = [bar.volume for bar in bars[-51:-1]]
+    latest = bars[-1].volume
+    if latest is None or any(value is None for value in previous):
+        return (
+            None,
+            AnalysisWarning(
+                code="missing_volume",
+                message="Volume observations are incomplete for the 50-day ratio.",
+                instrument_id=instrument_id,
+            ),
+        )
+    average = _mean([float(value) for value in previous])
+    if average == 0:
+        return (
+            None,
+            AnalysisWarning(
+                code="zero_average_volume",
+                message="50-day average volume is zero.",
+                instrument_id=instrument_id,
+            ),
+        )
+    return float(latest) / average, None
 
 
 def _calendar_year_cells(
@@ -392,18 +515,28 @@ def _performance_cells(bars: list[OHLCVBar], instrument_id: int) -> dict[str, An
 
 
 async def _batch_freshness(
-    db: AsyncSession, instrument_ids: list[int], timeframe: Timeframe
+    db: AsyncSession,
+    instrument_ids: list[int],
+    timeframe: Timeframe,
+    adjusted: bool = True,
 ) -> tuple[str, dict[str, int]]:
-    """Summarise persisted OHLCV state without exposing providers or fallback order."""
+    """Summarise persisted OHLCV state without exposing providers or fallback order.
+
+    Dataset state keys include the adjustment mode (for example ``D1:adj``), while
+    older rows may use the legacy unqualified timeframe key.  Analysis responses
+    must inspect the state matching the requested adjustment instead of silently
+    reporting ``unavailable`` when bars are present.
+    """
     if not instrument_ids:
         return "unavailable", {"requested": 0, "current": 0, "stale": 0, "other": 0}
+    dataset_keys = [f"{timeframe.value}:{'adj' if adjusted else 'raw'}", timeframe.value]
     states = (
         (
             await db.execute(
                 select(InstrumentDatasetState).where(
                     InstrumentDatasetState.instrument_id.in_(instrument_ids),
                     InstrumentDatasetState.dataset_type == "ohlcv",
-                    InstrumentDatasetState.dataset_key == timeframe.value,
+                    InstrumentDatasetState.dataset_key.in_(dataset_keys),
                 )
             )
         )
@@ -477,7 +610,9 @@ async def instrument_technical_snapshot(
                 code="no_bars", message="No local bars are available.", instrument_id=instrument.id
             )
         )
-        freshness, freshness_detail = await _batch_freshness(db, [instrument.id], timeframe)
+        freshness, freshness_detail = await _batch_freshness(
+            db, [instrument.id], timeframe, adjusted
+        )
         return TechnicalSnapshotOut(
             symbol=instrument.symbol,
             timeframe=timeframe.value,
@@ -496,7 +631,9 @@ async def instrument_technical_snapshot(
         )
 
     closes = [float(bar.close) for bar in bars]
-    volumes = [float(bar.volume) for bar in bars]
+    volume_ratio_50, volume_warning = _volume_ratio_50(bars, instrument.id)
+    if volume_warning:
+        warnings.append(volume_warning)
     rsi14 = None
     if required(15, "RSI(14)"):
         changes = [
@@ -514,19 +651,9 @@ async def instrument_technical_snapshot(
         window = closes[-252:]
         span = max(window) - min(window)
         position_52w = (closes[-1] - min(window)) / span if span else 1.0
-    volume_ratio_50 = None
-    if required(51, "50-day volume ratio"):
-        average_volume = _mean(volumes[-51:-1])
-        volume_ratio_50 = volumes[-1] / average_volume if average_volume else None
-        if average_volume == 0:
-            warnings.append(
-                AnalysisWarning(
-                    code="zero_average_volume",
-                    message="50-day average volume is zero.",
-                    instrument_id=instrument.id,
-                )
-            )
-    freshness, freshness_detail = await _batch_freshness(db, [instrument.id], timeframe)
+    freshness, freshness_detail = await _batch_freshness(
+        db, [instrument.id], timeframe, adjusted
+    )
     return TechnicalSnapshotOut(
         symbol=instrument.symbol,
         timeframe=timeframe.value,
@@ -584,7 +711,9 @@ async def relative_strength(
                 message="Only intersecting timestamps were used; gaps were not forward-filled.",
             )
         )
-    freshness, freshness_detail = await _batch_freshness(db, [primary.id, comparator.id], timeframe)
+    freshness, freshness_detail = await _batch_freshness(
+        db, [primary.id, comparator.id], timeframe, adjusted
+    )
     return RelativeStrengthOut(
         symbol=primary.symbol,
         benchmark=comparator.symbol,
@@ -738,7 +867,7 @@ async def group_relative_rotation(
             )
         )
     freshness, freshness_detail = await _batch_freshness(
-        db, [*instrument_ids, benchmark_instrument.id], timeframe
+        db, [*instrument_ids, benchmark_instrument.id], timeframe, adjusted
     )
     return RelativeRotationOut(
         group_key=group.stable_key,
@@ -748,7 +877,7 @@ async def group_relative_rotation(
         lookback=lookback,
         tail_length=tail_length,
         sampling=sampling,
-        membership_version=group.id,
+        membership_version=_group_membership_version(group, members),
         universe_provenance=_group_provenance(group, as_of),
         as_of=as_of,
         freshness=freshness,
@@ -823,7 +952,7 @@ async def industry_proxy_snapshot(
             continue
         covered += 1
         closes = [float(bar.close) for bar in bars]
-        volumes = [float(bar.volume) for bar in bars]
+        volume_ratio_50, volume_warning = _volume_ratio_50(bars, instrument.id)
         performance = _performance_cells(bars, instrument.id)
         technical: dict[str, AnalysisCell] = {}
         for period in (20, 50, 200):
@@ -879,21 +1008,7 @@ async def industry_proxy_snapshot(
                     instrument_id=instrument.id,
                 ),
             )
-        if len(volumes) >= 51:
-            average_volume = _mean(volumes[-51:-1])
-            technical["volume_ratio_50"] = _cell(
-                volumes[-1] / average_volume if average_volume else None, latest
-            )
-        else:
-            technical["volume_ratio_50"] = _cell(
-                None,
-                latest,
-                AnalysisWarning(
-                    code="insufficient_history",
-                    message="50-day volume ratio requires 51 bars.",
-                    instrument_id=instrument.id,
-                ),
-            )
+        technical["volume_ratio_50"] = _cell(volume_ratio_50, latest, volume_warning)
 
         def ratio(reference: dict) -> AnalysisCell:
             reference_bar = reference.get(latest.ts)
@@ -924,7 +1039,7 @@ async def industry_proxy_snapshot(
             )
         )
     freshness, freshness_detail = await _batch_freshness(
-        db, [*(item.id for item in ordered), sector.id, market.id], timeframe
+        db, [*(item.id for item in ordered), sector.id, market.id], timeframe, adjusted
     )
     return IndustryProxySnapshotOut(
         group_key=f"industry-proxy:{sector.symbol}:{industry}",
@@ -978,7 +1093,7 @@ async def etf_constituent_snapshot(
     ).scalar_one_or_none()
     if profile is None:
         raise HTTPException(404, detail={"code": "etf_profile_not_found", "symbol": etf.symbol})
-    snapshot_query = (
+    snapshot_query = holdings_snapshot_source_filter(
         select(ETFHoldingsSnapshot)
         .options(selectinload(ETFHoldingsSnapshot.rows))
         .where(ETFHoldingsSnapshot.etf_profile_id == profile.id)
@@ -1002,10 +1117,23 @@ async def etf_constituent_snapshot(
         raise HTTPException(
             404, detail={"code": "etf_holdings_snapshot_not_found", "symbol": etf.symbol}
         )
+    # Preserve the full disclosure universe for denominator and exclusion
+    # reporting.  Filtering before this point made cash, derivatives, and
+    # unresolved rows disappear from the constituent response, which could
+    # overstate coverage and disagree with the industry/taxonomy endpoints.
+    disclosed_rows = sorted(snapshot.rows, key=lambda item: item.position)
     holdings = [
-        row
-        for row in snapshot.rows
-        if row.is_resolved and row.constituent_instrument_id is not None
+        row for row in disclosed_rows if _holding_exclusion_code(row) is None
+    ]
+    exclusions = [
+        AnalysisWarning(
+            code=code,
+            message=_HOLDING_EXCLUSION_MESSAGES.get(code, "Holding excluded from equity analysis."),
+            instrument_id=row.constituent_instrument_id,
+        )
+        for row in disclosed_rows
+        for code in [_holding_exclusion_code(row)]
+        if code is not None
     ]
     instrument_ids = [
         row.constituent_instrument_id for row in holdings if row.constituent_instrument_id
@@ -1031,7 +1159,6 @@ async def etf_constituent_snapshot(
     benchmark_bars = {bar.ts: bar for bar in bars_by_id.get(benchmark_instrument.id, [])}
     market_bars = {bar.ts: bar for bar in bars_by_id.get(market_instrument.id, [])} if market_instrument else {}
     rows: list[GroupSnapshotRow] = []
-    exclusions: list[AnalysisWarning] = []
     covered = 0
     for holding in sorted(holdings, key=lambda item: item.position):
         instrument = instruments.get(holding.constituent_instrument_id)
@@ -1063,7 +1190,8 @@ async def etf_constituent_snapshot(
             continue
         covered += 1
         performance = _performance_cells(bars, instrument.id)
-        closes, volumes = [float(bar.close) for bar in bars], [float(bar.volume) for bar in bars]
+        closes = [float(bar.close) for bar in bars]
+        volume_ratio_50, volume_warning = _volume_ratio_50(bars, instrument.id)
         technical: dict[str, AnalysisCell] = {}
         for period in (20, 50, 200):
             technical[f"above_ma{period}"] = _cell(
@@ -1118,21 +1246,7 @@ async def etf_constituent_snapshot(
                     instrument_id=instrument.id,
                 ),
             )
-        if len(volumes) >= 51:
-            average_volume = _mean(volumes[-51:-1])
-            technical["volume_ratio_50"] = _cell(
-                volumes[-1] / average_volume if average_volume else None, latest
-            )
-        else:
-            technical["volume_ratio_50"] = _cell(
-                None,
-                latest,
-                AnalysisWarning(
-                    code="insufficient_history",
-                    message="50-day volume ratio requires 51 bars.",
-                    instrument_id=instrument.id,
-                ),
-            )
+        technical["volume_ratio_50"] = _cell(volume_ratio_50, latest, volume_warning)
         benchmark_bar = benchmark_bars.get(latest.ts)
         relative = (
             _cell(float(latest.close / benchmark_bar.close), latest)
@@ -1176,7 +1290,7 @@ async def etf_constituent_snapshot(
             )
         )
     freshness, freshness_detail = await _batch_freshness(
-        db, [*instrument_ids, *comparison_ids], timeframe
+        db, [*instrument_ids, *comparison_ids], timeframe, adjusted
     )
     return ETFConstituentSnapshotOut(
         group_key=f"etf-proxy:{etf.symbol}",
@@ -1195,7 +1309,7 @@ async def etf_constituent_snapshot(
         },
         freshness=freshness,
         freshness_detail=freshness_detail,
-        coverage=covered / max(len(holdings), 1),
+        coverage=covered / max(len(disclosed_rows), 1),
         exclusions=exclusions,
         rows=rows,
         etf_symbol=etf.symbol,
@@ -1292,7 +1406,7 @@ async def group_snapshot(
         performance = _performance_cells(bars, instrument.id)
         calendar_year_performance = _calendar_year_cells(bars, instrument.id, calendar_years)
         closes = [float(bar.close) for bar in bars]
-        volumes = [float(bar.volume) for bar in bars]
+        volume_ratio_50, volume_warning = _volume_ratio_50(bars, instrument.id)
         technical: dict[str, AnalysisCell] = {}
         for period in (20, 50, 200):
             key = f"above_ma{period}"
@@ -1344,21 +1458,7 @@ async def group_snapshot(
                     instrument_id=instrument.id,
                 ),
             )
-        if len(volumes) >= 51:
-            average_volume = _mean(volumes[-51:-1])
-            technical["volume_ratio_50"] = _cell(
-                volumes[-1] / average_volume if average_volume else None, latest
-            )
-        else:
-            technical["volume_ratio_50"] = _cell(
-                None,
-                latest,
-                AnalysisWarning(
-                    code="insufficient_history",
-                    message="50-day volume ratio requires 51 bars.",
-                    instrument_id=instrument.id,
-                ),
-            )
+        technical["volume_ratio_50"] = _cell(volume_ratio_50, latest, volume_warning)
         relative: AnalysisCell | None = None
         if benchmark_instrument:
             benchmark_bar = benchmark_bars.get(latest.ts)
@@ -1386,7 +1486,9 @@ async def group_snapshot(
                 technical=technical,
             )
         )
-    freshness, freshness_detail = await _batch_freshness(db, instrument_ids, timeframe)
+    freshness, freshness_detail = await _batch_freshness(
+        db, instrument_ids, timeframe, adjusted
+    )
     return GroupSnapshotOut(
         group_key=group.stable_key,
         timeframe=timeframe.value,
@@ -1394,7 +1496,7 @@ async def group_snapshot(
             (row.last.observation_time for row in rows if row.last.observation_time), default=None
         ),
         adjustment="split_adjusted" if adjusted else "raw",
-        membership_version=group.id,
+        membership_version=_group_membership_version(group, members),
         universe_provenance=_group_provenance(group, as_of),
         freshness=freshness,
         freshness_detail=freshness_detail,
@@ -1521,14 +1623,14 @@ async def group_breadth(
                 )
             )
     freshness, freshness_detail = await _batch_freshness(
-        db, [member.instrument_id for member in members], timeframe
+        db, [member.instrument_id for member in members], timeframe, adjusted
     )
     return BreadthOut(
         group_key=group_key,
         timeframe=timeframe.value,
         adjustment="split_adjusted" if adjusted else "raw",
         as_of=latest_as_of,
-        membership_version=group.id,
+        membership_version=_group_membership_version(group, members),
         universe_provenance=_group_provenance(group, requested_as_of),
         freshness=freshness,
         freshness_detail=freshness_detail,
@@ -1636,13 +1738,13 @@ async def group_breadth_history(
         for timestamp, values in sorted(buckets.items())
     ][-limit:]
     freshness, freshness_detail = await _batch_freshness(
-        db, [member.instrument_id for member in members], timeframe
+        db, [member.instrument_id for member in members], timeframe, adjusted
     )
     return BreadthHistoryOut(
         group_key=group.stable_key,
         timeframe=timeframe.value,
         adjustment="split_adjusted" if adjusted else "raw",
-        membership_version=group.id,
+        membership_version=_group_membership_version(group, members),
         universe_provenance=_group_provenance(group, as_of),
         freshness=freshness,
         freshness_detail=freshness_detail,

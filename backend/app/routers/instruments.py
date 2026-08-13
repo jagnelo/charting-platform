@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import math
 from datetime import UTC, datetime, timedelta
@@ -51,6 +52,16 @@ from app.services.market_data import (
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/instruments", tags=["instruments"])
+
+# A symbol can be hydrated by several linked workstation tools at once.  Keep
+# the one-to-one stats row creation serialized inside a worker, while the
+# IntegrityError recovery below also handles requests landing on different
+# workers/processes.
+_52W_STATS_LOCKS: dict[int, asyncio.Lock] = {}
+
+
+def _52w_stats_lock(instrument_id: int) -> asyncio.Lock:
+    return _52W_STATS_LOCKS.setdefault(instrument_id, asyncio.Lock())
 
 
 def _search_result_priority(
@@ -118,6 +129,10 @@ def _instrument_search_exchange(instrument: Instrument) -> str:
 async def search_instruments(
     q: str = Query(..., min_length=1),
     types: str | None = Query(None),
+    canonical_only: bool = Query(
+        False,
+        description="Search only the local canonical security master; do not fan out to providers.",
+    ),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -146,25 +161,27 @@ async def search_instruments(
             name=i.name,
             exchange=_instrument_search_exchange(i),
             type=i.instrument_type.name if i.instrument_type else "",
+            instrument_id=i.id,
         )
         for i in local
     ]:
         if not _matches_search_type_filter(item.type, allowed_types):
             continue
         merged[item.symbol] = item
-    provider_results = await search_provider_instruments_async(db, q)
-    for r in provider_results:
-        symbol = r.get("symbol", "")
-        if not symbol or symbol in merged:
-            continue
-        if not _matches_search_type_filter(r.get("type", ""), allowed_types):
-            continue
-        merged[symbol] = InstrumentSearchResult(
-            symbol=symbol,
-            name=r.get("name", ""),
-            exchange=r.get("exchange", ""),
-            type=r.get("type", ""),
-        )
+    if not canonical_only:
+        provider_results = await search_provider_instruments_async(db, q)
+        for r in provider_results:
+            symbol = r.get("symbol", "")
+            if not symbol or symbol in merged:
+                continue
+            if not _matches_search_type_filter(r.get("type", ""), allowed_types):
+                continue
+            merged[symbol] = InstrumentSearchResult(
+                symbol=symbol,
+                name=r.get("name", ""),
+                exchange=r.get("exchange", ""),
+                type=r.get("type", ""),
+            )
     ranked = sorted(
         merged.values(),
         key=lambda item: _search_result_priority(
@@ -391,6 +408,10 @@ class ResolveExpressionOut(BaseModel):
 @router.post("/resolve-expression", response_model=ResolveExpressionOut)
 async def resolve_expression(
     body: ResolveExpressionBody,
+    canonical_only: bool = Query(
+        False,
+        description="Resolve only existing canonical constituents; do not discover providers.",
+    ),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -421,10 +442,12 @@ async def resolve_expression(
             )
         )
         inst = result.scalar_one_or_none()
-        if inst is None:
+        if inst is None and not canonical_only:
             inst = await _create_from_provider(ticker, db)
             if inst is None:
                 raise HTTPException(404, f"Constituent instrument '{ticker}' not found")
+        elif inst is None:
+            raise HTTPException(404, f"Constituent instrument '{ticker}' is not in the canonical security master")
         constituents[ticker] = inst
 
     # Return existing synthetic if already stored
@@ -910,7 +933,7 @@ async def get_instrument_provenance(
             selectinload(Instrument.stats),
             selectinload(Instrument.option_detail),
             selectinload(Instrument.identifiers),
-            selectinload(Instrument.listings),
+            selectinload(Instrument.listings).selectinload(InstrumentListing.exchange),
         )
         .where(Instrument.symbol == symbol.upper())
     )
@@ -994,6 +1017,23 @@ async def get_instrument_provenance(
                 "currency": row.currency,
                 "is_primary": row.is_primary,
                 "is_active": row.is_active,
+                "effective_at": row.effective_at,
+                "known_at": row.known_at,
+                "delisted_at": row.delisted_at,
+                "exchange": (
+                    {
+                        "id": row.exchange.id,
+                        "mic": row.exchange.mic,
+                        "name": row.exchange.name,
+                        "country_code": row.exchange.country_code,
+                        "timezone": row.exchange.timezone,
+                        "market_open": row.exchange.market_open,
+                        "market_close": row.exchange.market_close,
+                        "currency": row.exchange.currency,
+                    }
+                    if row.exchange
+                    else None
+                ),
             }
             for row in instrument.listings
         ],
@@ -1048,6 +1088,10 @@ async def get_instrument_provenance(
 async def get_instrument(
     symbol: str,
     background_tasks: BackgroundTasks,
+    canonical_only: bool = Query(
+        False,
+        description="Resolve only an existing local canonical instrument; do not discover via providers.",
+    ),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -1058,7 +1102,7 @@ async def get_instrument(
             selectinload(Instrument.instrument_type),
             selectinload(Instrument.stats),
             selectinload(Instrument.identifiers),
-            selectinload(Instrument.listings),
+            selectinload(Instrument.listings).selectinload(InstrumentListing.exchange),
             selectinload(Instrument.option_detail),
             selectinload(Instrument.synthetic_constituents),
         )
@@ -1066,12 +1110,14 @@ async def get_instrument(
     )
     instrument = result.scalar_one_or_none()
 
-    if instrument is None:
+    if instrument is None and not canonical_only:
         instrument = await _create_from_provider(symbol.upper(), db)
         if instrument is None:
             raise HTTPException(404, f"Instrument '{symbol}' not found")
         background_tasks.add_task(_enqueue_bulk_fetch, instrument.id)
         background_tasks.add_task(_sync_instrument_events, instrument.id)
+    elif instrument is None:
+        raise HTTPException(404, f"Instrument '{symbol}' is not in the canonical security master")
 
     # Existing canonical instruments are a read-only local-database path. Provider
     # metadata enrichment belongs to scheduled/backfill jobs; doing it here would
@@ -1153,7 +1199,7 @@ async def _reload_instrument_full(instrument_id: int, db: AsyncSession) -> Instr
             selectinload(Instrument.instrument_type),
             selectinload(Instrument.stats),
             selectinload(Instrument.identifiers),
-            selectinload(Instrument.listings),
+            selectinload(Instrument.listings).selectinload(InstrumentListing.exchange),
             selectinload(Instrument.option_detail),
             selectinload(Instrument.synthetic_constituents),
         )
@@ -1229,33 +1275,49 @@ async def _ensure_52w_stats(instrument: Instrument, db: AsyncSession) -> Instrum
         week52_high_time = high_row.week52_high_time
         week52_low_time = low_row.week52_low_time
 
-        fetched_at = datetime.now(UTC).isoformat()
-        stats = (
+        async with _52w_stats_lock(instrument.id):
+            fetched_at = datetime.now(UTC).isoformat()
+            stats = (
+                await db.execute(
+                    select(InstrumentStats).where(InstrumentStats.instrument_id == instrument.id)
+                )
+            ).scalar_one_or_none()
+            if stats is None:
+                stats = InstrumentStats(instrument_id=instrument.id)
+                db.add(stats)
+            stats.week52_high = week52_high
+            stats.week52_low = week52_low
+            field_provenance = dict(stats.field_provenance or {})
+            field_provenance["week52_high"] = {
+                "source": "internal_ohlcv_52w",
+                "fetched_at": fetched_at,
+                "observed_at": week52_high_time.date().isoformat() if week52_high_time else None,
+                "provider_symbol": instrument.symbol,
+            }
+            field_provenance["week52_low"] = {
+                "source": "internal_ohlcv_52w",
+                "fetched_at": fetched_at,
+                "observed_at": week52_low_time.date().isoformat() if week52_low_time else None,
+                "provider_symbol": instrument.symbol,
+            }
+            stats.field_provenance = field_provenance
+            await db.commit()
+            log.info("Computed 52w stats for %s: high=%.4f low=%.4f", symbol, week52_high, week52_low)
+    except IntegrityError as exc:
+        # A request handled by another worker may win the one-to-one insert
+        # between our SELECT and COMMIT.  The winning row is authoritative;
+        # recover it instead of turning linked-symbol hydration into HTTP 500.
+        await db.rollback()
+        existing = (
             await db.execute(
                 select(InstrumentStats).where(InstrumentStats.instrument_id == instrument.id)
             )
         ).scalar_one_or_none()
-        if stats is None:
-            stats = InstrumentStats(instrument_id=instrument.id)
-            db.add(stats)
-        stats.week52_high = week52_high
-        stats.week52_low = week52_low
-        field_provenance = dict(stats.field_provenance or {})
-        field_provenance["week52_high"] = {
-            "source": "internal_ohlcv_52w",
-            "fetched_at": fetched_at,
-            "observed_at": week52_high_time.date().isoformat() if week52_high_time else None,
-            "provider_symbol": instrument.symbol,
-        }
-        field_provenance["week52_low"] = {
-            "source": "internal_ohlcv_52w",
-            "fetched_at": fetched_at,
-            "observed_at": week52_low_time.date().isoformat() if week52_low_time else None,
-            "provider_symbol": instrument.symbol,
-        }
-        stats.field_provenance = field_provenance
-        await db.commit()
-        log.info("Computed 52w stats for %s: high=%.4f low=%.4f", symbol, week52_high, week52_low)
+        if existing is not None:
+            log.info("Reused concurrently-created 52w stats for %s", symbol)
+            return await _reload_instrument_full(instrument.id, db)
+        log.warning("Failed to persist 52w stats for %s after integrity conflict: %s", symbol, exc)
+        return instrument
     except Exception as exc:
         await db.rollback()
         log.warning("Failed to compute 52w stats for %s: %s", symbol, exc)

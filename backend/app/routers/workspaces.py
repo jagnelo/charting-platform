@@ -12,6 +12,7 @@ from sqlalchemy.orm import selectinload
 
 from app.auth.dependencies import get_current_user
 from app.database import get_db
+from app.models.research import CodeAsset, CodeVersion
 from app.models.user import User
 from app.models.workstation import Workspace, WorkspaceLibraryItem, WorkspaceTab, WorkspaceWindow
 from app.schemas.workstation import (
@@ -22,6 +23,7 @@ from app.schemas.workstation import (
     WorkspaceSnapshotWrite,
     WorkspaceUpdate,
 )
+from app.services.python_conditions import VisualConditionCompileError, compile_visual_condition
 
 router = APIRouter(prefix="/workspaces", tags=["workspaces"])
 FACTORY_WORKSPACE_VERSION = 8
@@ -36,7 +38,10 @@ class ConditionAssetWrite(BaseModel):
     dependency_metadata: dict = Field(default_factory=dict)
 
 
-def _factory_layout(windows: list[tuple[str, str, str, dict]], factory_id: str) -> dict:
+FactoryWindow = tuple[str, str, str] | tuple[str, str, str, dict]
+
+
+def _factory_layout(windows: list[FactoryWindow], factory_id: str) -> dict:
     """Return a serialisable Golden Layout virtual-component tree.
 
     The component state is deliberately only an instance key/type/title.  Runtime
@@ -44,8 +49,8 @@ def _factory_layout(windows: list[tuple[str, str, str, dict]], factory_id: str) 
     tool registry and are never persisted in a workspace snapshot.
     """
 
-    def component(item: tuple[str, str, str, dict]) -> dict:
-        instance_key, tool_type, title, _ = item
+    def component(item: FactoryWindow) -> dict:
+        instance_key, tool_type, title = item[:3]
         return {
             "type": "component",
             "componentType": "workstation-tool",
@@ -56,6 +61,9 @@ def _factory_layout(windows: list[tuple[str, str, str, dict]], factory_id: str) 
                 "title": title,
             },
         }
+
+    def by_key(key: str) -> FactoryWindow:
+        return next(item for item in windows if item[0] == key)
 
     if factory_id == "us-top-down":
         return {
@@ -98,6 +106,56 @@ def _factory_layout(windows: list[tuple[str, str, str, dict]], factory_id: str) 
                 "content": [
                     {"type": "column", "size": 50, "content": [component(windows[0]), component(windows[1])]},
                     {"type": "column", "size": 50, "content": [component(windows[2]), component(windows[3])]},
+                ],
+            },
+        }
+    if factory_id == "drill-down":
+        return {
+            "factory_id": factory_id,
+            "version": FACTORY_WORKSPACE_VERSION,
+            "root": {
+                "type": "row",
+                "content": [
+                    {
+                        "type": "column",
+                        "size": 24,
+                        "content": [component(by_key("sectors")), component(by_key("industries"))],
+                    },
+                    {
+                        "type": "column",
+                        "size": 24,
+                        "content": [component(by_key("components"))],
+                    },
+                    {
+                        "type": "stack",
+                        "size": 52,
+                        "content": [component(by_key("selected-chart")), component(by_key("sector-comparison"))],
+                    },
+                ],
+            },
+        }
+    if factory_id == "sector-by-year":
+        return {
+            "factory_id": factory_id,
+            "version": FACTORY_WORKSPACE_VERSION,
+            "root": {
+                "type": "row",
+                "content": [
+                    {
+                        "type": "column",
+                        "size": 24,
+                        "content": [component(by_key("sectors")), component(by_key("industries"))],
+                    },
+                    {
+                        "type": "column",
+                        "size": 24,
+                        "content": [component(by_key("components"))],
+                    },
+                    {
+                        "type": "column",
+                        "size": 52,
+                        "content": [component(by_key("selected-chart")), component(by_key("normalized-comparison"))],
+                    },
                 ],
             },
         }
@@ -193,7 +251,8 @@ def _factory_tabs() -> list[WorkspaceTab]:
                     ("sectors", "watchlist", "Sector Indexes"),
                     ("industries", "watchlist", "Industry Indexes"),
                     ("components", "watchlist", "Components"),
-                    ("chart", "chart", "Chart"),
+                    ("selected-chart", "chart", "Selected Symbol", {"symbol": "SPY", "timeframe": "D1"}),
+                    ("sector-comparison", "chart", "Sector Comparison", {"symbol": "SPY", "timeframe": "D1", "comparison_symbols": ["RSP"]}),
                 ],
             ),
             (
@@ -203,7 +262,8 @@ def _factory_tabs() -> list[WorkspaceTab]:
                     ("sectors", "watchlist", "Sector Indexes"),
                     ("industries", "watchlist", "Industry Indexes"),
                     ("components", "watchlist", "Components"),
-                    ("chart", "chart", "Chart"),
+                    ("selected-chart", "chart", "Selected Symbol", {"symbol": "SPY", "timeframe": "D1"}),
+                    ("normalized-comparison", "chart", "Normalized Comparison", {"symbol": "SPY", "timeframe": "D1", "comparison_symbols": ["RSP"]}),
                 ],
             ),
             ("one-chart", "1 Chart", [("chart", "chart", "Chart")]),
@@ -244,10 +304,11 @@ def _factory_tabs() -> list[WorkspaceTab]:
             "weekly": {"symbol": "SPY", "timeframe": "W1", "timeframe_link_group": "purple"},
             "monthly": {"symbol": "SPY", "timeframe": "MN", "timeframe_link_group": "orange"},
         } if stable_key == "four-timeframe" else {}
-        layout_windows = [
-            (instance_key, tool_type, title, timeframe_configurations.get(instance_key, {"symbol": "SPY"}))
-            for instance_key, tool_type, title in windows
-        ]
+        layout_windows: list[tuple[str, str, str, dict]] = []
+        for item in windows:
+            instance_key, tool_type, title = item[:3]
+            configuration = item[3] if len(item) == 4 else timeframe_configurations.get(instance_key, {"symbol": "SPY"})
+            layout_windows.append((instance_key, tool_type, title, configuration))
         factory_tab = WorkspaceTab(
             stable_key=stable_key,
             name=name,
@@ -255,14 +316,15 @@ def _factory_tabs() -> list[WorkspaceTab]:
             layout_config=_factory_layout(layout_windows, stable_key),
             active_window_key=windows[0][0],
         )
-        for window_position, (instance_key, tool_type, title) in enumerate(windows):
+        for window_position, (instance_key, tool_type, title, *configuration_override) in enumerate(windows):
+            configuration = configuration_override[0] if configuration_override else timeframe_configurations.get(instance_key, {"symbol": "SPY"})
             factory_tab.windows.append(
                 WorkspaceWindow(
                     instance_key=instance_key,
                     tool_type=tool_type,
                     title=title,
                     link_group="blue",
-                    configuration=timeframe_configurations.get(instance_key, {"symbol": "SPY"}),
+                    configuration=configuration,
                     style={},
                     position=window_position,
                 )
@@ -454,7 +516,19 @@ async def save_workspace_snapshot(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    workspace = await _load_workspace(db, workspace_id, current_user.id)
+    # Serialize writers for the optimistic revision check. Without a row lock,
+    # two concurrent snapshots can both observe the same revision, both clear
+    # the tab relationship, and then race to insert identical stable keys,
+    # turning a normal 409 conflict into a PostgreSQL unique-key 500.
+    workspace = (
+        await db.execute(
+            _workspace_query()
+            .where(Workspace.id == workspace_id, Workspace.user_id == current_user.id)
+            .with_for_update()
+        )
+    ).scalar_one_or_none()
+    if workspace is None:
+        raise HTTPException(status_code=404, detail="Workspace not found")
     if workspace.revision != body.base_revision:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -520,7 +594,17 @@ async def reset_factory_workspace(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    workspace = await _load_workspace(db, workspace_id, current_user.id)
+    # Reset is also a full tab replacement; serialize it with snapshot writers
+    # so a closing browser cannot race the factory rebuild into duplicate keys.
+    workspace = (
+        await db.execute(
+            _workspace_query()
+            .where(Workspace.id == workspace_id, Workspace.user_id == current_user.id)
+            .with_for_update()
+        )
+    ).scalar_one_or_none()
+    if workspace is None:
+        raise HTTPException(status_code=404, detail="Workspace not found")
     if workspace.settings.get("factory_id") != "us-top-down":
         raise HTTPException(status_code=409, detail={"code": "not_factory_workspace"})
     await _replace_tabs(db, workspace, _factory_tabs())
@@ -588,6 +672,10 @@ async def upsert_library_item(
         item.dependency_metadata = body.dependency_metadata
         item.version += 1
     await db.flush()
+    # `updated_at` is server-generated through an on-update expression. Refresh
+    # the row before Pydantic reads it so an in-place rename/update never causes
+    # async lazy IO during response serialization.
+    await db.refresh(item)
     return item
 
 
@@ -641,6 +729,59 @@ async def upsert_condition_asset(
     """Version a reusable condition with a stable identity for scans and filters."""
     if not body.condition:
         raise HTTPException(status_code=422, detail="Condition AST must not be empty")
+    try:
+        generated_source = compile_visual_condition(body.condition)
+    except VisualConditionCompileError as exc:
+        raise HTTPException(
+            status_code=422,
+            detail={"code": exc.code, "message": str(exc), "path": exc.path},
+        ) from exc
+
+    # Every condition authored by the visual editor receives an immutable
+    # Boolean CodeVersion.  Existing legacy condition records remain readable
+    # and executable through the compatibility evaluator; new saves never
+    # create a second condition language.
+    python_stable_key = f"visual-condition-{stable_key}"[:80]
+    python_asset = (
+        await db.execute(
+            select(CodeAsset).where(
+                CodeAsset.user_id == current_user.id,
+                CodeAsset.stable_key == python_stable_key,
+            )
+        )
+    ).scalar_one_or_none()
+    if python_asset is None:
+        python_asset = CodeAsset(
+            user_id=current_user.id,
+            stable_key=python_stable_key,
+            name=f"{body.name.strip()} (visual condition)",
+            kind="condition",
+        )
+        db.add(python_asset)
+        await db.flush()
+    elif python_asset.kind != "condition":
+        raise HTTPException(status_code=409, detail="Visual condition code asset key is already used by another asset kind")
+    next_version = (
+        await db.execute(
+            select(func.max(CodeVersion.version_number)).where(
+                CodeVersion.code_asset_id == python_asset.id
+            )
+        )
+    ).scalar_one() or 0
+    next_version += 1
+    python_version = CodeVersion(
+        code_asset_id=python_asset.id,
+        version_number=next_version,
+        source=generated_source,
+        output_contract="boolean",
+        parameter_schema={},
+        default_parameters={},
+        dependencies=["market", "np", "output", "ta"],
+        lookback=None,
+        diagnostics=[],
+    )
+    db.add(python_version)
+    await db.flush()
     item = (
         await db.execute(
             select(WorkspaceLibraryItem).where(
@@ -650,7 +791,12 @@ async def upsert_condition_asset(
             )
         )
     ).scalar_one_or_none()
-    payload = {"condition": body.condition, "description": body.description}
+    payload = {
+        "condition": body.condition,
+        "description": body.description,
+        "python_code_version_id": python_version.id,
+        "python_source": generated_source,
+    }
     if item is None:
         item = WorkspaceLibraryItem(
             user_id=current_user.id,
@@ -667,6 +813,10 @@ async def upsert_condition_asset(
         item.dependency_metadata = body.dependency_metadata
         item.version += 1
     await db.flush()
+    # Refresh server-generated timestamps before Pydantic reads the ORM object.
+    # Without this, async SQLAlchemy can attempt an implicit lazy load during
+    # response serialization and raise MissingGreenlet.
+    await db.refresh(item)
     return item
 
 

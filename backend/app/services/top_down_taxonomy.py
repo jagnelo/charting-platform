@@ -8,6 +8,7 @@ ETF holdings are only added by the dedicated holdings ingestion pipeline.
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -60,6 +61,79 @@ _INDUSTRY_PROXY_CANDIDATES: dict[str, tuple[str, ...]] = {
     "Metals & Mining": ("XME",),
     "Steel": ("SLX",),
 }
+
+# EDGAR exposes SIC descriptions as a sector-like field rather than the
+# platform's shorter industry names.  These aliases are deliberately narrow
+# and source-labelled; they prevent a verified semiconductor ETF from becoming
+# unusable merely because free metadata says "Semiconductors & Related Devices".
+_INDUSTRY_ALIASES: dict[str, str] = {
+    "semiconductors": "Semiconductors",
+    "semiconductors & related devices": "Semiconductors",
+}
+
+
+def canonical_industry_label(value: str | None) -> str | None:
+    """Normalize only reviewed provider classification aliases."""
+
+    if not value or not value.strip():
+        return None
+    text = " ".join(value.split())
+    return _INDUSTRY_ALIASES.get(text.casefold(), text)
+
+
+def source_classification_for_as_of(
+    *,
+    industry: str | None,
+    sector: str | None,
+    field_provenance: dict[str, Any] | None,
+    as_of: datetime | None = None,
+) -> tuple[str | None, str]:
+    """Return a source-labelled classification only when its evidence is eligible.
+
+    ``EquityDetail`` is a current canonical read model.  For an explicit historical
+    request, a current value without a field-level observation timestamp cannot be
+    treated as point-in-time truth, so it is excluded rather than backfilled into the
+    past.  The returned system is intentionally exposed to callers; SEC SIC is not
+    silently presented as GICS.
+    """
+
+    # This helper feeds the industry taxonomy. A sector label is a different
+    # classification level and must never be promoted into an industry just
+    # because the provider omitted the industry field.
+    label = canonical_industry_label(industry)
+    if not label:
+        return None, "unknown"
+    metadata = field_provenance or {}
+    evidence = metadata.get("industry") or {}
+    system = str(evidence.get("classification_system") or "unknown")
+    if as_of is not None:
+        observed_text = evidence.get("observed_at") or evidence.get("known_at")
+        if not observed_text:
+            return None, system
+        try:
+            observed_at = datetime.fromisoformat(str(observed_text).replace("Z", "+00:00"))
+        except ValueError:
+            return None, system
+        if observed_at.tzinfo is None:
+            observed_at = observed_at.replace(tzinfo=UTC)
+        if observed_at > as_of:
+            return None, system
+    return label, system
+
+
+def source_classification_from_profile_snapshot(
+    payload: dict[str, Any] | None,
+) -> tuple[str | None, str]:
+    """Read a historical provider profile snapshot without treating it as current state."""
+
+    metadata = payload or {}
+    extra = metadata.get("extra") or {}
+    # Historical snapshots use the same strict industry-level contract. A
+    # sector-only observation cannot establish industry membership.
+    label = canonical_industry_label(extra.get("industry") or metadata.get("industry"))
+    if not label:
+        return None, "unknown"
+    return label, str(extra.get("classification_system") or "provider_native")
 
 
 def industry_proxy_candidates(industry: str) -> tuple[str, ...]:

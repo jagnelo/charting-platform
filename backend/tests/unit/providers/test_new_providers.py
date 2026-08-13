@@ -74,7 +74,7 @@ class TestRegistryCapabilities:
         assert "instrument_metadata" in caps
         assert "instrument_events" in caps
         assert "price_history" not in caps
-        assert "universe_discovery" not in caps
+        assert "universe_discovery" in caps
 
     def test_alpaca_is_price_history_provider(self):
         provider = get_price_history_provider("alpaca")
@@ -563,6 +563,79 @@ class TestCoinGeckoCredentialWarning:
 
 
 class TestEdgarTickerMap:
+    def test_sec_exchange_directory_pages_all_reported_us_venues(self):
+        import app.providers.edgar as edgar_module
+
+        edgar_module._exchange_directory = []
+        edgar_module._exchange_directory_ts = 0.0
+        fake_response = {
+            "fields": ["cik", "name", "ticker", "exchange"],
+            "data": [
+                [320193, "Apple Inc.", "AAPL", "Nasdaq"],
+                [66740, "Berkshire Hathaway Inc.", "BRK-B", "NYSE"],
+                [1018724, "AMC Networks Inc.", "AMCX", "NYSE American"],
+            ],
+        }
+        mock_resp = MagicMock()
+        mock_resp.json.return_value = fake_response
+        mock_resp.raise_for_status.return_value = None
+
+        with patch("app.providers.edgar.httpx.get", return_value=mock_resp):
+            page = EdgarProvider().discover_universe_page("EQUITY", 0)
+
+        assert page["total"] == 3
+        assert [(row["symbol"], row["exchange"], row["sec_cik"]) for row in page["quotes"]] == [
+            ("AAPL", "Nasdaq", 320193),
+            ("AMCX", "NYSE American", 1018724),
+            ("BRK-B", "NYSE", 66740),
+        ]
+        assert EdgarProvider().discover_universe_page("ETF", 0) == {"total": 0, "quotes": []}
+
+    def test_sec_exchange_directory_accepts_object_rows_and_pages(self):
+        import app.providers.edgar as edgar_module
+
+        edgar_module._exchange_directory = []
+        edgar_module._exchange_directory_ts = 0.0
+        fake_response = {
+            "0": {"cik": "1", "name": "One Corp", "ticker": "ONE", "exchange": "OTC"},
+            "1": {"cik": "2", "name": "Two Corp", "ticker": "TWO", "exchange": "Cboe BZX"},
+        }
+        mock_resp = MagicMock()
+        mock_resp.json.return_value = fake_response
+        mock_resp.raise_for_status.return_value = None
+
+        with patch("app.providers.edgar.httpx.get", return_value=mock_resp):
+            first = EdgarProvider().discover_universe_page("EQUITY", 0)
+
+        assert first["total"] == 2
+        assert first["quotes"][0]["symbol"] == "ONE"
+        assert EdgarProvider().discover_universe_page("EQUITY", 250) == {"total": 2, "quotes": []}
+
+    def test_sec_exchange_directory_marks_distinct_issuers_with_same_ticker_ambiguous(self):
+        import app.providers.edgar as edgar_module
+
+        edgar_module._exchange_directory = []
+        edgar_module._exchange_directory_ts = 0.0
+        fake_response = {
+            "fields": ["cik", "name", "ticker", "exchange"],
+            "data": [
+                [1, "One Holdings", "DUP", "NYSE"],
+                [2, "Two Holdings", "DUP", "OTC"],
+                [3, "Three Holdings", "OK", "Nasdaq"],
+            ],
+        }
+        mock_resp = MagicMock()
+        mock_resp.json.return_value = fake_response
+        mock_resp.raise_for_status.return_value = None
+
+        with patch("app.providers.edgar.httpx.get", return_value=mock_resp):
+            page = EdgarProvider().discover_universe_page("EQUITY", 0)
+
+        duplicate_rows = [row for row in page["quotes"] if row["symbol"] == "DUP"]
+        assert len(duplicate_rows) == 2
+        assert all(len(row["identity_ambiguity"]) == 2 for row in duplicate_rows)
+        assert page["quotes"][-1]["symbol"] == "OK"
+
     def test_search_instruments_uses_cached_sec_directory(self):
         import app.providers.edgar as edgar_module
 

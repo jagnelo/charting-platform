@@ -23,6 +23,19 @@ import pandas as _pandas
 from research_runner.curated import SCIPY, STATSMODELS
 from research_runner.validation import validate_workstation_python
 
+try:  # The isolated image receives this file through Dockerfile.research-runner.
+    from research_runner.canonical_indicators import (
+        OHLCVSeries as _CanonicalOHLCVSeries,
+        compute_indicator as _compute_canonical_indicator,
+        normalize_indicator_params as _normalize_canonical_indicator_params,
+    )
+except ImportError:  # Local unit tests run from the application source tree.
+    from app.services.indicators import (
+        OHLCVSeries as _CanonicalOHLCVSeries,
+        compute_indicator as _compute_canonical_indicator,
+        normalize_indicator_params as _normalize_canonical_indicator_params,
+    )
+
 JOB_DIR = Path(os.environ.get("RESEARCH_JOB_DIR", "/jobs"))
 RESULT_DIR = Path(os.environ.get("RESEARCH_RESULT_DIR", "/results"))
 MAX_SECONDS = int(os.environ.get("RESEARCH_MAX_SECONDS", "15"))
@@ -164,6 +177,7 @@ def execute_job(
             datasets,
             str(job.get("output_contract") or ""),
             job,
+            output_name=str(job.get("output_name") or "") or None,
             progress_callback=progress_callback,
             cancellation_check=cancellation_check,
         )
@@ -190,7 +204,7 @@ def _execute_single(
         "parameters": parameters,
         "benchmark": dataset.get("benchmark_dataset"),
         "market": _Market(dataset),
-        "ta": _Ta(),
+        "ta": _Ta(dataset),
         "stats": _Stats(),
         "research": _Research(),
         "np": _NumpyFacade(),
@@ -249,6 +263,7 @@ def _execute_batch(
     datasets: list[object],
     output_contract: str,
     hash_input: dict,
+    output_name: str | None = None,
     *,
     progress_callback: Callable[[dict], None] | None = None,
     cancellation_check: Callable[[], bool] | None = None,
@@ -290,7 +305,12 @@ def _execute_batch(
                 message = diagnostics[0].get("message") if diagnostics and isinstance(diagnostics[0], dict) else "Batch cell failed"
                 cells.append({"instrument_id": instrument_id, "symbol": symbol, "status": "failed", "error": message})
                 continue
-            matches = [artifact for artifact in result.get("artifacts", {}).values() if isinstance(artifact, dict) and artifact.get("type") == output_contract]
+            matches = [
+                artifact for name, artifact in result.get("artifacts", {}).items()
+                if isinstance(artifact, dict)
+                and artifact.get("type") == output_contract
+                and (output_name is None or name == output_name)
+            ]
             if len(matches) != 1:
                 cells.append({"instrument_id": instrument_id, "symbol": symbol, "status": "failed", "error": f"Expected exactly one {output_contract} output."})
                 continue
@@ -870,6 +890,90 @@ class _Market:
             raise ValueError("Declared dataset has no instrument metadata")
         return dict(value)
 
+    def percent_change(self, lookback_or_period: int | str) -> float | None:
+        """Return the latest percentage change over bars or a named period.
+
+        The visual condition compiler uses this public helper so calendar and
+        bar-change conditions execute through the same isolated Python SDK.
+        The prepared dataset is the only source; no provider or hidden history
+        access is possible.
+        """
+        closes = self._series("closes")
+        timestamps = self.timestamps()
+        if len(closes) < 2:
+            return None
+        if isinstance(lookback_or_period, int) and not isinstance(lookback_or_period, bool):
+            index = len(closes) - 1 - lookback_or_period
+        else:
+            period = str(lookback_or_period)
+            if period == "1D":
+                seconds = 86_400
+            elif period == "1W":
+                seconds = 7 * 86_400
+            elif period == "1M":
+                seconds = 30 * 86_400
+            elif period == "3M":
+                seconds = 90 * 86_400
+            elif period == "6M":
+                seconds = 180 * 86_400
+            elif period == "1Y":
+                seconds = 365 * 86_400
+            elif period in {"MTD", "QTD", "YTD"}:
+                # The dataset timestamps are ISO strings; use the first bar in
+                # the relevant UTC calendar bucket without importing datetime
+                # into user code.
+                latest = timestamps[-1][:10]
+                year, month = (int(latest[:4]), int(latest[5:7]))
+                if period == "YTD":
+                    prefix = f"{year:04d}-01-"
+                elif period == "QTD":
+                    prefix = f"{year:04d}-{((month - 1) // 3) * 3 + 1:02d}-"
+                else:
+                    prefix = f"{year:04d}-{month:02d}-"
+                index = next((i for i, stamp in enumerate(timestamps) if str(stamp).startswith(prefix)), len(closes) - 1)
+            else:
+                return None
+            if "index" not in locals():
+                latest_timestamp = timestamps[-1]
+                # Parse only the epoch-independent ISO date portion in the
+                # host SDK; users never receive datetime or import access.
+                import datetime as _datetime
+                target = _datetime.datetime.fromisoformat(str(latest_timestamp).replace("Z", "+00:00")).timestamp() - seconds
+                index = next((i for i, stamp in enumerate(timestamps) if _datetime.datetime.fromisoformat(str(stamp).replace("Z", "+00:00")).timestamp() >= target), len(closes) - 1)
+        if index < 0 or index >= len(closes) or closes[index] == 0:
+            return None
+        return (float(closes[-1]) - float(closes[index])) / float(closes[index])
+
+    def week52_new_high(self) -> bool:
+        closes = self._series("closes")
+        if len(closes) < 2:
+            return False
+        window = closes[-253:-1] if len(closes) > 253 else closes[:-1]
+        return bool(window) and closes[-1] > max(window)
+
+    def week52_new_low(self) -> bool:
+        closes = self._series("closes")
+        if len(closes) < 2:
+            return False
+        window = closes[-253:-1] if len(closes) > 253 else closes[:-1]
+        return bool(window) and closes[-1] < min(window)
+
+    def pct_from_52w_high(self) -> float | None:
+        closes = self._series("closes")
+        if not closes:
+            return None
+        window = closes[-252:]
+        high = max(window)
+        return (float(closes[-1]) - float(high)) / float(high) if high else None
+
+    def pct_from_52w_low(self) -> float | None:
+        closes = self._series("closes")
+        if not closes:
+            return None
+        window = closes[-252:]
+        low = min(window)
+        return (float(closes[-1]) - float(low)) / float(low) if low else None
+
     def benchmark_close(self) -> list[float]:
         return self._benchmark_market().close()
 
@@ -956,7 +1060,49 @@ class _Market:
 
 
 class _Ta:
-    """Small vector-only technical-analysis subset for the isolated SDK."""
+    """Canonical indicator facade used by all Python programmable surfaces."""
+
+    def __init__(self, dataset: dict | None = None) -> None:
+        self._dataset = dataset or {}
+
+    def indicator(
+        self,
+        indicator_type: str,
+        params: dict | None = None,
+        output: str | None = None,
+    ) -> list[float | None]:
+        """Compute one named output using the canonical backend indicator registry."""
+        if not isinstance(indicator_type, str) or not indicator_type:
+            raise ValueError("indicator type must be a non-empty string")
+        opens = self._dataset.get("opens", [])
+        highs = self._dataset.get("highs", [])
+        lows = self._dataset.get("lows", [])
+        closes = self._dataset.get("closes", [])
+        volumes = self._dataset.get("volumes", [])
+        timestamps = self._dataset.get("timestamps", [])
+        if not all(isinstance(values, list) for values in (opens, highs, lows, closes, volumes, timestamps)):
+            raise ValueError("declared OHLCV data is incomplete")
+        if not (len(opens) == len(highs) == len(lows) == len(closes) == len(volumes) == len(timestamps)):
+            raise ValueError("declared OHLCV data is not aligned")
+        import datetime as _datetime
+        epoch = []
+        for stamp in timestamps:
+            epoch.append(int(_datetime.datetime.fromisoformat(str(stamp).replace("Z", "+00:00")).timestamp()))
+        data = _CanonicalOHLCVSeries(
+            timestamps=_numpy.asarray(epoch, dtype=_numpy.int64),
+            opens=_numpy.asarray(opens, dtype=float),
+            highs=_numpy.asarray(highs, dtype=float),
+            lows=_numpy.asarray(lows, dtype=float),
+            closes=_numpy.asarray(closes, dtype=float),
+            volumes=_numpy.asarray([0 if value is None else value for value in volumes], dtype=float),
+        )
+        normalized = _normalize_canonical_indicator_params(indicator_type, params or {})
+        values = _compute_canonical_indicator(indicator_type, data, normalized)
+        if not isinstance(values, dict) or not values:
+            raise ValueError(f"indicator {indicator_type!r} returned no outputs")
+        selected = output if isinstance(output, str) and output in values else next(iter(values))
+        raw = values[selected]
+        return [float(value) if _numpy.isfinite(value) else float("nan") for value in raw]
 
     @staticmethod
     def _period(period: int) -> int:

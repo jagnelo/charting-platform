@@ -546,6 +546,10 @@ async def _backfill_sec_holdings(
                         "form": filing.form,
                     },
                     notes=notes,
+                    # SEC reconstruction already has a dated, filing-scoped
+                    # identity. Keep each filing transaction bounded and
+                    # leave optional identifier enrichment to a separate job.
+                    allow_provider_enrichment=False,
                 )
                 state.snapshot_id = snapshot.id
                 state.status = "ingested"

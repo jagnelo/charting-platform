@@ -1,16 +1,22 @@
 from __future__ import annotations
 
 import asyncio
+from datetime import datetime
 
 from sqlalchemy import select
 
 from app.models.instrument import Instrument
 from app.models.workstation import MarketGroup, MarketGroupMember
+from app.services.etf_holdings_adapters import get_holdings_adapter, known_etf_route_metadata
 from app.services.top_down_taxonomy import (
     _BENCHMARKS,
+    _INDUSTRY_PROXY_CANDIDATES,
     _SECTORS,
+    canonical_industry_label,
     industry_proxy_candidates,
     seed_top_down_taxonomy,
+    source_classification_for_as_of,
+    source_classification_from_profile_snapshot,
 )
 
 
@@ -34,6 +40,113 @@ def test_industry_proxy_registry_is_explicit_and_does_not_infer_unknown_labels()
     assert industry_proxy_candidates("Semiconductors") == ("SOXX", "SMH")
     assert industry_proxy_candidates("semiconductors") == ()
     assert industry_proxy_candidates("Unclassified industry") == ()
+
+
+def test_every_curated_industry_proxy_has_a_canonical_issuer_route():
+    """Prevent a taxonomy candidate from silently falling back to name inference."""
+
+    expected_adapters = {
+        "SOXX": "ishares",
+        "SMH": "vaneck",
+        "XBI": "spdr",
+        "IBB": "ishares",
+        "KRE": "spdr",
+        "ITA": "ishares",
+        "XAR": "spdr",
+        "XHB": "spdr",
+        "ITB": "ishares",
+        "XRT": "spdr",
+        "OIH": "vaneck",
+        "XOP": "spdr",
+        "XME": "spdr",
+        "SLX": "vaneck",
+    }
+    candidates = {symbol for symbols in _INDUSTRY_PROXY_CANDIDATES.values() for symbol in symbols}
+    assert candidates == set(expected_adapters)
+    for symbol, adapter_key in expected_adapters.items():
+        metadata = known_etf_route_metadata(symbol)
+        assert metadata["provider_aliases"]["holdings_adapter"] == adapter_key
+        assert get_holdings_adapter(adapter_key) is not None
+
+
+def test_canonical_industry_label_accepts_only_reviewed_provider_aliases():
+    assert canonical_industry_label("Semiconductors") == "Semiconductors"
+    assert canonical_industry_label("Semiconductors & Related Devices") == "Semiconductors"
+    assert canonical_industry_label("Information Technology") == "Information Technology"
+    assert canonical_industry_label(None) is None
+
+
+def test_source_classification_preserves_system_and_rejects_future_historical_metadata():
+    provenance = {
+        "industry": {
+            "classification_system": "SEC_SIC",
+            "observed_at": "2026-08-10T12:00:00+00:00",
+        }
+    }
+
+    label, system = source_classification_for_as_of(
+        industry="Semiconductors & Related Devices",
+        sector=None,
+        field_provenance=provenance,
+        as_of=None,
+    )
+    assert (label, system) == ("Semiconductors", "SEC_SIC")
+
+    label, system = source_classification_for_as_of(
+        industry="Semiconductors & Related Devices",
+        sector=None,
+        field_provenance=provenance,
+        as_of=datetime.fromisoformat("2026-08-09T23:59:59+00:00"),
+    )
+    assert label is None
+    assert system == "SEC_SIC"
+
+
+def test_source_classification_requires_timestamp_for_point_in_time_reads():
+    label, system = source_classification_for_as_of(
+        industry="Semiconductors",
+        sector=None,
+        field_provenance={"industry": {"classification_system": "SEC_SIC"}},
+        as_of=datetime.fromisoformat("2026-08-09T23:59:59+00:00"),
+    )
+    assert label is None
+    assert system == "SEC_SIC"
+
+
+def test_source_classification_keeps_unknown_namespace_visible_for_current_reads():
+    label, system = source_classification_for_as_of(
+        industry="Unmapped Provider Label",
+        sector=None,
+        field_provenance={"industry": {"observed_at": "2026-08-09T23:59:59+00:00"}},
+        as_of=None,
+    )
+    assert (label, system) == ("Unmapped Provider Label", "unknown")
+
+
+def test_source_classification_never_promotes_sector_to_industry():
+    label, system = source_classification_for_as_of(
+        industry=None,
+        sector="Information Technology",
+        field_provenance={"sector": {"classification_system": "provider_native"}},
+        as_of=None,
+    )
+    assert label is None
+    assert system == "unknown"
+
+
+def test_profile_snapshot_classification_is_source_labelled():
+    assert source_classification_from_profile_snapshot(
+        {
+            "extra": {
+                "industry": "Semiconductors & Related Devices",
+                "classification_system": "SEC_SIC",
+            }
+        }
+    ) == ("Semiconductors", "SEC_SIC")
+    assert source_classification_from_profile_snapshot({}) == (None, "unknown")
+    assert source_classification_from_profile_snapshot(
+        {"extra": {"sector": "Information Technology", "classification_system": "provider_native"}}
+    ) == (None, "unknown")
 
 
 def test_seed_top_down_taxonomy_attaches_known_proxies_and_is_idempotent(db, instrument_type):

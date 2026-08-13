@@ -80,6 +80,7 @@ from app.services.etf_holdings_edgar import (
     list_sec_nport_backfill_jobs,
 )
 from app.services.etf_holdings_refresh import (
+    ETFHoldingsRouteNotReadyError,
     bootstrap_etf_holdings_profile,
     discover_etf_profiles_from_issuer_feed,
     discover_etf_profiles_from_sec_fund_tickers,
@@ -456,11 +457,36 @@ async def refresh_holdings_for_date(
 ):
     instrument = await ensure_lightweight_etf_instrument(db, symbol=symbol)
     profile = await ensure_etf_profile(db, instrument)
-    snapshot = await refresh_etf_holdings_for_date(
-        db,
-        profile,
-        requested_date=body.requested_date,
-    )
+    probe = await probe_etf_holdings_adapter_route(db, profile)
+    if probe.status != "ready":
+        await db.commit()
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": probe.status,
+                "symbol": instrument.symbol,
+                "adapter_key": probe.adapter_key,
+                "message": probe.reason or "No usable free holdings route is configured.",
+                "required_identifiers": probe.required_identifiers,
+            },
+        )
+    try:
+        snapshot = await refresh_etf_holdings_for_date(
+            db,
+            profile,
+            requested_date=body.requested_date,
+        )
+    except ETFHoldingsRouteNotReadyError as exc:
+        await db.commit()
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": "holdings_route_not_ready",
+                "symbol": instrument.symbol,
+                "adapter_key": profile.adapter_key,
+                "message": str(exc),
+            },
+        ) from exc
     await db.commit()
     return snapshot_to_out(snapshot, instrument=instrument)
 

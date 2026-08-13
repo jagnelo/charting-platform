@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -194,6 +194,26 @@ class ReorderItemsBody(BaseModel):
     ids: list[int]
 
 
+class TransferItemBody(BaseModel):
+    """Atomically copy or move one item between user-owned watchlists."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    source_watchlist_id: int
+    item_id: int
+    mode: str
+
+
+class TransferItemsBody(BaseModel):
+    """Atomically copy or move multiple items between user-owned watchlists."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    source_watchlist_id: int
+    item_ids: list[int]
+    mode: str
+
+
 @router.post("/{watchlist_id}/items/reorder")
 async def reorder_items(
     watchlist_id: int,
@@ -222,6 +242,159 @@ async def reorder_items(
         by_id[item_id].position = position
     await db.commit()
     return {"ok": True}
+
+
+@router.post("/{watchlist_id}/items/transfer", response_model=WatchlistItemRead)
+async def transfer_item(
+    watchlist_id: int,
+    body: TransferItemBody,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Copy or move a membership without exposing a partial two-request state."""
+    if body.mode not in {"copy", "move"}:
+        raise HTTPException(400, "mode must be 'copy' or 'move'")
+    if body.source_watchlist_id == watchlist_id:
+        raise HTTPException(400, "Source and destination watchlists must differ")
+
+    list_ids = sorted({body.source_watchlist_id, watchlist_id})
+    lists = (
+        await db.execute(
+            select(Watchlist)
+            .where(Watchlist.user_id == current_user.id, Watchlist.id.in_(list_ids))
+            .order_by(Watchlist.id)
+            .with_for_update()
+        )
+    ).scalars().all()
+    by_id = {watchlist.id: watchlist for watchlist in lists}
+    source = by_id.get(body.source_watchlist_id)
+    target = by_id.get(watchlist_id)
+    if source is None or target is None:
+        raise HTTPException(404, "Watchlist not found")
+    if target.is_locked or target.is_managed:
+        raise HTTPException(403, "Cannot manually add items to a locked or managed watchlist")
+    if body.mode == "move" and (source.is_locked or source.is_managed):
+        raise HTTPException(403, "Cannot move items from a locked or managed watchlist")
+
+    source_item = (
+        await db.execute(
+            select(WatchlistItem)
+            .where(
+                WatchlistItem.id == body.item_id,
+                WatchlistItem.watchlist_id == source.id,
+            )
+            .with_for_update()
+        )
+    ).scalar_one_or_none()
+    if source_item is None:
+        raise HTTPException(404, "Item not found")
+
+    existing = (
+        await db.execute(
+            select(WatchlistItem)
+            .where(
+                WatchlistItem.watchlist_id == target.id,
+                WatchlistItem.instrument_id == source_item.instrument_id,
+            )
+            .with_for_update()
+        )
+    ).scalar_one_or_none()
+    if existing is not None:
+        raise HTTPException(409, "Instrument already in destination watchlist")
+
+    max_position = (
+        await db.execute(
+            select(func.max(WatchlistItem.position)).where(
+                WatchlistItem.watchlist_id == target.id
+            )
+        )
+    ).scalar_one()
+    transferred = WatchlistItem(
+        watchlist_id=target.id,
+        instrument_id=source_item.instrument_id,
+        position=(max_position if max_position is not None else -1) + 1,
+        flagged=source_item.flagged,
+        notes=source_item.notes,
+    )
+    db.add(transferred)
+    if body.mode == "move":
+        await db.delete(source_item)
+    await db.flush()
+    instr = (
+        await db.execute(select(Instrument).where(Instrument.id == transferred.instrument_id))
+    ).scalar_one_or_none()
+    return _item_to_read(transferred, instr)
+
+
+@router.post("/{watchlist_id}/items/transfer-batch", response_model=list[WatchlistItemRead])
+async def transfer_items(
+    watchlist_id: int,
+    body: TransferItemsBody,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Atomically copy or move a selected set of memberships."""
+    if body.mode not in {"copy", "move"}:
+        raise HTTPException(400, "mode must be 'copy' or 'move'")
+    item_ids = list(dict.fromkeys(body.item_ids))
+    if not item_ids:
+        raise HTTPException(400, "item_ids must contain at least one item")
+    if body.source_watchlist_id == watchlist_id:
+        raise HTTPException(400, "Source and destination watchlists must differ")
+    list_ids = sorted({body.source_watchlist_id, watchlist_id})
+    lists = (
+        await db.execute(
+            select(Watchlist).where(Watchlist.user_id == current_user.id, Watchlist.id.in_(list_ids))
+            .order_by(Watchlist.id).with_for_update()
+        )
+    ).scalars().all()
+    by_id = {watchlist.id: watchlist for watchlist in lists}
+    source = by_id.get(body.source_watchlist_id)
+    target = by_id.get(watchlist_id)
+    if source is None or target is None:
+        raise HTTPException(404, "Watchlist not found")
+    if target.is_locked or target.is_managed:
+        raise HTTPException(403, "Cannot manually add items to a locked or managed watchlist")
+    if body.mode == "move" and (source.is_locked or source.is_managed):
+        raise HTTPException(403, "Cannot move items from a locked or managed watchlist")
+    source_items = (
+        await db.execute(
+            select(WatchlistItem).where(WatchlistItem.watchlist_id == source.id, WatchlistItem.id.in_(item_ids))
+            .order_by(WatchlistItem.position, WatchlistItem.id).with_for_update()
+        )
+    ).scalars().all()
+    if len(source_items) != len(item_ids):
+        raise HTTPException(404, "One or more source watchlist items were not found")
+    instrument_ids = [item.instrument_id for item in source_items]
+    existing = (
+        await db.execute(
+            select(WatchlistItem.instrument_id).where(
+                WatchlistItem.watchlist_id == target.id,
+                WatchlistItem.instrument_id.in_(instrument_ids),
+            ).with_for_update()
+        )
+    ).scalars().all()
+    if existing:
+        raise HTTPException(409, "One or more instruments are already in the destination watchlist")
+    max_position = (
+        await db.execute(select(func.max(WatchlistItem.position)).where(WatchlistItem.watchlist_id == target.id))
+    ).scalar_one()
+    next_position = (max_position if max_position is not None else -1) + 1
+    transferred: list[WatchlistItem] = []
+    for offset, source_item in enumerate(source_items):
+        item = WatchlistItem(
+            watchlist_id=target.id, instrument_id=source_item.instrument_id,
+            position=next_position + offset, flagged=source_item.flagged, notes=source_item.notes,
+        )
+        db.add(item)
+        transferred.append(item)
+    if body.mode == "move":
+        for source_item in source_items:
+            await db.delete(source_item)
+    await db.flush()
+    instruments = (await db.execute(select(Instrument).where(Instrument.id.in_(instrument_ids)))).scalars().all()
+    by_instrument_id = {instrument.id: instrument for instrument in instruments}
+    return [_item_to_read(item, by_instrument_id.get(item.instrument_id)) for item in transferred]
 
 
 @router.delete("/{watchlist_id}/items/{item_id}")

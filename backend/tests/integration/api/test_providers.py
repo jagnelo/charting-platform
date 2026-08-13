@@ -34,24 +34,24 @@ class TestProvidersApi:
         assert policies.json()
         assert health.json()
 
-    def test_patch_invalid_capability_rejected(self, client, auth_headers):
+    def test_patch_invalid_capability_rejected(self, client, admin_headers):
         res = client.patch(
             "/api/v1/providers/policies/yfinance/not-a-capability",
-            headers=auth_headers,
+            headers=admin_headers,
             json={"is_enabled": False},
         )
         assert res.status_code == 400
 
-    def test_patch_unknown_provider_rejected(self, client, auth_headers):
+    def test_patch_unknown_provider_rejected(self, client, admin_headers):
         res = client.patch(
             "/api/v1/providers/policies/nope/price_history",
-            headers=auth_headers,
+            headers=admin_headers,
             json={"is_enabled": False},
         )
         assert res.status_code == 404
 
-    def test_patch_existing_policy_updates_value(self, client, auth_headers):
-        policies = client.get("/api/v1/providers/policies", headers=auth_headers).json()
+    def test_patch_existing_policy_updates_value(self, client, admin_headers):
+        policies = client.get("/api/v1/providers/policies", headers=admin_headers).json()
         target = policies[0]
         provider = target["provider"]
         capability = target["capability"]
@@ -59,12 +59,12 @@ class TestProvidersApi:
 
         patch = client.patch(
             f"/api/v1/providers/policies/{provider}/{capability}",
-            headers=auth_headers,
+            headers=admin_headers,
             json={"base_priority": new_priority, "auto_weight_enabled": False},
         )
         assert patch.status_code == 200
 
-        refreshed = client.get("/api/v1/providers/policies", headers=auth_headers).json()
+        refreshed = client.get("/api/v1/providers/policies", headers=admin_headers).json()
         updated = next(
             row
             for row in refreshed

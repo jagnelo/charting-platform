@@ -40,7 +40,7 @@ from app.routers import (
 from app.services.alert_engine import run_alert_check
 from app.services.e2e_seed import seed_e2e_instruments, seed_e2e_market_data
 from app.services.provider_runtime import seed_provider_runtime
-from app.services.top_down_taxonomy import seed_top_down_taxonomy
+from app.services.workstation_bootstrap import ensure_core_workstation_identities
 
 logging.basicConfig(
     level=getattr(logging, settings.LOG_LEVEL.upper(), logging.INFO),
@@ -58,7 +58,11 @@ async def lifespan(app: FastAPI):
             await seed_e2e_instruments(db)
         if settings.E2E_SEED_MARKET_DATA:
             await seed_e2e_market_data(db)
-        await seed_top_down_taxonomy(db)
+        # The curated identity bootstrap is not market-data or holdings
+        # fixture data. It makes a clean deployment's immutable US Top Down
+        # layout immediately navigable while provider-backed bars and
+        # point-in-time holdings continue through their normal services.
+        await ensure_core_workstation_identities(db)
         await db.commit()
 
     logger.info(f"Starting alert scheduler (every {settings.ALERT_POLL_INTERVAL}s)")
@@ -125,4 +129,12 @@ app.include_router(notes.router, prefix=PREFIX)
 
 @app.get("/health")
 async def health():
-    return {"status": "ok", "version": "2.0.0"}
+    # Keep the deployment mode observable to acceptance harnesses.  In
+    # particular, board-visual tests must never mistake a persistent canonical
+    # database for the deterministic seeded dataset they were launched with.
+    return {
+        "status": "ok",
+        "version": "2.0.0",
+        "e2e_seed_instruments": settings.E2E_SEED_INSTRUMENTS,
+        "e2e_seed_market_data": settings.E2E_SEED_MARKET_DATA,
+    }

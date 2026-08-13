@@ -1,6 +1,14 @@
 from pathlib import Path
 
 
+def test_compose_host_ports_are_overrideable_for_isolated_acceptance_stacks():
+    compose = (Path(__file__).resolve().parents[3] / "docker-compose.yml").read_text()
+
+    assert '"${POSTGRES_HOST_PORT:-5432}:5432"' in compose
+    assert '"${BACKEND_HOST_PORT:-8000}:8000"' in compose
+    assert '"${FRONTEND_HOST_PORT:-80}:80"' in compose
+
+
 def test_research_runner_compose_contract_preserves_isolated_execution_boundary():
     """The service boundary is part of the Python sandbox, not optional deployment prose."""
     compose = (Path(__file__).resolve().parents[3] / "docker-compose.yml").read_text()
@@ -34,6 +42,17 @@ def test_backend_compose_contract_shares_research_job_protocol_volumes():
     assert "RESEARCH_RESULT_DIR: /results" in service
     assert "- research_jobs:/jobs" in service
     assert "- research_results:/results" in service
+
+
+def test_worker_compose_contract_inherits_seed_and_workstation_bootstrap_flags():
+    """Seed isolation must cover the worker, not only the HTTP backend."""
+    compose = (Path(__file__).resolve().parents[3] / "docker-compose.yml").read_text()
+    service = compose.split("  worker:\n", 1)[1].split("\n  # User code never runs", 1)[0]
+
+    assert "E2E_SEED_INSTRUMENTS: ${E2E_SEED_INSTRUMENTS:-false}" in service
+    assert "E2E_SEED_MARKET_DATA: ${E2E_SEED_MARKET_DATA:-false}" in service
+    assert "CORE_WORKSTATION_BOOTSTRAP_ENABLED: ${CORE_WORKSTATION_BOOTSTRAP_ENABLED:-false}" in service
+    assert "CORE_WORKSTATION_BOOTSTRAP_TIMEOUT_SECONDS: ${CORE_WORKSTATION_BOOTSTRAP_TIMEOUT_SECONDS:-45}" in service
 
 
 def test_research_runner_image_pins_curated_numerical_dependencies_and_thread_budget():

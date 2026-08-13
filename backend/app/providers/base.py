@@ -25,6 +25,9 @@ class ListingRecord:
     currency: str | None = None
     provider_instrument_type: str | None = None
     is_primary: bool = False
+    effective_at: datetime | None = None
+    known_at: datetime | None = None
+    delisted_at: datetime | None = None
     extra_data: dict[str, Any] | None = None
 
 

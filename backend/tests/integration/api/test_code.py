@@ -17,6 +17,24 @@ def test_code_validation_never_executes_source(client, auth_headers):
     }
 
 
+def test_code_validation_reports_generated_condition_lookback(client, auth_headers):
+    response = client.post(
+        "/api/v1/code/validate",
+        headers=auth_headers,
+        json={
+            "source": (
+                "series = ta.indicator('rsi', {'period': 14}, None)\n"
+                "change = market.percent_change(63)\n"
+                "output.boolean('match', bool(series and change is not None))"
+            )
+        },
+    )
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["valid"] is True
+    assert payload["lookback_hint"] == 63
+
+
 def test_code_assets_are_immutable_versions(client, auth_headers):
     created = client.post(
         "/api/v1/code/assets",
@@ -129,6 +147,40 @@ def test_code_asset_kind_and_declared_output_contract_must_match(client, auth_he
         },
     )
     assert valid_condition.status_code == 201
+
+    selected = client.post(
+        "/api/v1/code/assets",
+        headers=auth_headers,
+        json={
+            "stable_key": "selected-study-series",
+            "name": "Selected study series",
+            "kind": "plot",
+            "initial_version": {
+                "source": "output.scalar('sample', 1)\noutput.series('trend', [1, 2])",
+                "output_contract": "series",
+                "output_name": "trend",
+            },
+        },
+    )
+    assert selected.status_code == 201
+    assert selected.json()["versions"][0]["output_name"] == "trend"
+
+    invalid_selected = client.post(
+        "/api/v1/code/assets",
+        headers=auth_headers,
+        json={
+            "stable_key": "selected-study-invalid",
+            "name": "Selected study invalid",
+            "kind": "plot",
+            "initial_version": {
+                "source": "output.scalar('sample', 1)",
+                "output_contract": "series",
+                "output_name": "trend",
+            },
+        },
+    )
+    assert invalid_selected.status_code == 422
+    assert invalid_selected.json()["detail"]["code"] == "selected_output_contract_mismatch"
 
 
 def test_code_asset_rejects_defaults_that_violate_its_parameter_schema(client, auth_headers):
@@ -277,7 +329,16 @@ def test_research_runs_list_is_user_scoped_and_newest_first(
 
     assert listed.status_code == 200
     assert [run["id"] for run in listed.json()] == [second["id"]]
+    assert listed.json()[0]["artifact_count"] == 0
+    assert listed.json()[0]["artifacts"] == []
     assert second["id"] > first["id"]
+
+    detailed = client.get(
+        "/api/v1/research/runs?limit=1&include_artifacts=true", headers=auth_headers
+    )
+    assert detailed.status_code == 200
+    assert detailed.json()[0]["id"] == second["id"]
+    assert detailed.json()[0]["artifacts"] == []
 
 
 def test_research_rerun_snapshot_retains_manifest(client, auth_headers, tmp_path, monkeypatch):
@@ -647,11 +708,67 @@ def test_prepared_universe_batch_accepts_workstation_scale_and_rejects_only_abov
         headers=auth_headers,
         json={
             "code_version_id": asset["versions"][0]["id"],
-            "run_config": {"symbols": [f"OVER{i:05d}" for i in range(10001)]},
+            "run_config": {"symbols": [f"OVER{i:05d}" for i in range(25001)]},
         },
     )
     assert rejected.status_code == 422
-    assert rejected.json()["detail"] == {"code": "batch_universe_too_large", "maximum": 10000}
+    assert rejected.json()["detail"] == {"code": "batch_universe_too_large", "maximum": 25000}
+
+
+def test_research_materialization_expands_batch_history_for_code_lookback(
+    client, auth_headers, tmp_path, monkeypatch
+):
+    monkeypatch.setattr("app.services.research_jobs.settings.RESEARCH_JOB_DIR", str(tmp_path / "jobs"))
+    monkeypatch.setattr("app.services.research_jobs.settings.RESEARCH_RESULT_DIR", str(tmp_path / "results"))
+    asset = client.post(
+        "/api/v1/code/assets",
+        headers=auth_headers,
+        json={
+            "stable_key": "lookback-aware-batch-column",
+            "name": "Lookback-aware batch column",
+            "kind": "column",
+            "initial_version": {
+                "source": "series = ta.sma(market.close(), 600)\noutput.scalar('value', series[-1])",
+                "output_contract": "scalar",
+            },
+        },
+    ).json()
+    response = client.post(
+        "/api/v1/research/runs",
+        headers=auth_headers,
+        json={"code_version_id": asset["versions"][0]["id"], "run_config": {"symbols": ["MISSING"]}},
+    )
+    assert response.status_code == 202
+    assert response.json()["dataset_manifest"]["batch_history_limit"] == 601
+
+
+def test_research_materialization_rejects_unbounded_code_lookback(client, auth_headers, tmp_path, monkeypatch):
+    monkeypatch.setattr("app.services.research_jobs.settings.RESEARCH_JOB_DIR", str(tmp_path / "jobs"))
+    monkeypatch.setattr("app.services.research_jobs.settings.RESEARCH_RESULT_DIR", str(tmp_path / "results"))
+    asset = client.post(
+        "/api/v1/code/assets",
+        headers=auth_headers,
+        json={
+            "stable_key": "unbounded-lookback-column",
+            "name": "Unbounded lookback column",
+            "kind": "column",
+            "initial_version": {
+                "source": "series = ta.sma(market.close(), 5000)\noutput.scalar('value', series[-1])",
+                "output_contract": "scalar",
+            },
+        },
+    ).json()
+    response = client.post(
+        "/api/v1/research/runs",
+        headers=auth_headers,
+        json={"code_version_id": asset["versions"][0]["id"], "run_config": {"symbols": ["MISSING"]}},
+    )
+    assert response.status_code == 422
+    assert response.json()["detail"] == {
+        "code": "code_lookback_exceeds_dataset_limit",
+        "lookback": 5000,
+        "maximum": 4999,
+    }
 
 
 def test_batch_results_expose_runner_owned_durable_progress(client, auth_headers, tmp_path, monkeypatch):

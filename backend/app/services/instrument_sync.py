@@ -22,15 +22,16 @@ from app.models.asset_class import AssetClass, InstrumentType
 from app.models.instrument import EquityDetail, ForexDetail, FutureDetail, Instrument
 from app.models.instrument_stats import InstrumentStats
 from app.models.instrument_sync_run import InstrumentSyncRun
-from app.models.listing import InstrumentListing
 from app.models.provider_runtime import ProviderCapability
 from app.providers import provider_symbol_for_instrument
+from app.services.exchange_catalog import coerce_listing_lifecycle_at, upsert_instrument_listing
 from app.services.instrument_mastering import (
     ensure_external_identifier,
     ensure_internal_identifier,
     ingest_provider_profile,
     register_provider_symbol,
 )
+from app.services.instrument_reconciliation import record_discovery_ambiguities
 from app.services.provider_observations import store_universe_discovery_snapshot
 from app.services.provider_runtime import execute_provider_call, resolve_provider_chain
 
@@ -121,35 +122,57 @@ def _first_present(payload: dict, *keys: str):
     return None
 
 
+def _listing_evidence(
+    quote: dict,
+    *,
+    provider_name: str,
+    observed_at: datetime,
+) -> dict | None:
+    """Keep provider-reported listing lifecycle fields with their provenance.
+
+    Discovery feeds are observations, not authoritative point-in-time truth.  We
+    therefore retain the raw status/date values on the provider binding instead
+    of silently toggling the canonical instrument or listing state.
+    """
+
+    values = {
+        "status": quote.get("status"),
+        "ipo_date": quote.get("ipo_date"),
+        "delisting_date": quote.get("delisting_date"),
+    }
+    if not any(value not in (None, "") for value in values.values()):
+        return None
+    return {
+        **{key: value for key, value in values.items() if value not in (None, "")},
+        "source": provider_name,
+        "observed_at": observed_at.isoformat(),
+        "evidence_role": "provider_listing_observation",
+    }
+
+
 async def _upsert_listing(
     db: AsyncSession,
     instrument: Instrument,
     symbol: str,
     currency: str | None,
+    exchange_code: str | None,
+    *,
+    effective_at: datetime | None = None,
+    known_at: datetime | None = None,
+    delisted_at: datetime | None = None,
 ) -> None:
-    listing = (
-        await db.execute(
-            select(InstrumentListing).where(
-                InstrumentListing.instrument_id == instrument.id,
-                InstrumentListing.ticker == symbol,
-            )
-        )
-    ).scalar_one_or_none()
-
-    if listing is None:
-        db.add(
-            InstrumentListing(
-                instrument_id=instrument.id,
-                ticker=symbol,
-                currency=currency,
-                is_primary=True,
-                is_active=True,
-            )
-        )
-        return
-
-    listing.currency = currency or listing.currency
-    listing.is_active = True
+    await upsert_instrument_listing(
+        db,
+        instrument,
+        symbol,
+        exchange_code=exchange_code,
+        currency=currency,
+        is_primary=True,
+        reactivate_existing=False,
+        effective_at=effective_at,
+        known_at=known_at,
+        delisted_at=delisted_at,
+    )
 
 
 async def _upsert_stats(
@@ -278,6 +301,14 @@ async def seed_universe(db: AsyncSession) -> dict:
                     page=page,
                 )
                 quotes = page.get("quotes") or []
+                await record_discovery_ambiguities(
+                    db,
+                    data_source_id=execution.data_source.id,
+                    provider_symbol_rows=quotes,
+                    quote_type=quote_type,
+                    offset=offset,
+                    observed_at=datetime.now(UTC),
+                )
 
                 if total is None:
                     total = page.get("total", 0)
@@ -295,6 +326,17 @@ async def seed_universe(db: AsyncSession) -> dict:
                 for q in quotes:
                     symbol = (q.get("symbol") or "").strip()
                     if not symbol:
+                        continue
+
+                    # Preserve the raw discovery snapshot, but never merge
+                    # distinct issuers solely because their ticker matches.
+                    if q.get("identity_ambiguity"):
+                        logger.warning(
+                            "seed_universe: ambiguous issuer for %s via %s; "
+                            "retaining discovery snapshot without promotion",
+                            symbol,
+                            page_provider_name,
+                        )
                         continue
 
                     name = q.get("longName") or q.get("shortName") or q.get("displayName") or symbol
@@ -320,7 +362,11 @@ async def seed_universe(db: AsyncSession) -> dict:
                         if currency:
                             inst.currency = currency
                         inst.instrument_type_id = type_id
-                        inst.is_active = True
+                        # Discovery is evidence, not canonical lifecycle truth.  In
+                        # particular, a provider row may carry a delisted/inactive
+                        # status; never silently reactivate an existing instrument
+                        # merely because it was returned by a discovery page.  A
+                        # separate reconciliation decision must change is_active.
 
                     provenance = dict(inst.field_provenance or {})
                     provenance["symbol"] = {
@@ -342,7 +388,34 @@ async def seed_universe(db: AsyncSession) -> dict:
                         }
                     inst.field_provenance = provenance
 
-                    await _upsert_listing(db, inst, symbol, currency)
+                    await _upsert_listing(
+                        db,
+                        inst,
+                        symbol,
+                        currency,
+                        exchange,
+                        effective_at=coerce_listing_lifecycle_at(q.get("ipo_date")),
+                        known_at=fetched_at,
+                        delisted_at=coerce_listing_lifecycle_at(q.get("delisting_date")),
+                    )
+                    listing_evidence = _listing_evidence(
+                        q,
+                        provider_name=page_provider_name,
+                        observed_at=fetched_at,
+                    )
+                    if listing_evidence:
+                        provenance["listing_evidence"] = listing_evidence
+                        inst.field_provenance = provenance
+                    provider_extra_data: dict = {}
+                    if listing_evidence:
+                        provider_extra_data["listing_evidence"] = listing_evidence
+                    if q.get("sec_cik") is not None:
+                        provider_extra_data.update(
+                            {
+                                "sec_cik": q.get("sec_cik"),
+                                "exchange_evidence": "sec_company_tickers_exchange",
+                            }
+                        )
                     await register_provider_symbol(
                         db,
                         inst,
@@ -352,6 +425,11 @@ async def seed_universe(db: AsyncSession) -> dict:
                         provider_instrument_type=quote_type,
                         currency=currency,
                         is_primary=True,
+                        extra_data=provider_extra_data or None,
+                        reactivate_existing=False,
+                        effective_at=coerce_listing_lifecycle_at(q.get("ipo_date")),
+                        known_at=fetched_at,
+                        delisted_at=coerce_listing_lifecycle_at(q.get("delisting_date")),
                     )
                     await _upsert_stats(db, inst, q, source_provider=page_provider_name)
                     await ensure_internal_identifier(db, inst)

@@ -69,6 +69,23 @@ class ScreenerResultOut(BaseModel):
     error: str | None
 
 
+class ScreenerPlotPoint(BaseModel):
+    timestamp: datetime
+    value: float | None = None
+    matched_count: int = 0
+    evaluated_count: int = 0
+    coverage: float = 0.0
+
+
+class ScreenerPlotOut(BaseModel):
+    screener_id: int
+    screener_name: str
+    metric: str
+    points: list[ScreenerPlotPoint]
+    history_count: int
+    warning: str | None = None
+
+
 class ScreenerFromCondition(BaseModel):
     name: str
     description: str | None = None
@@ -191,9 +208,31 @@ async def create_screener_from_condition(
     ).scalar_one()
     if existing > 0:
         raise HTTPException(409, f"A screener named '{body.name}' already exists")
+    python_version_id = condition.payload.get("python_code_version_id")
+    if isinstance(python_version_id, int):
+        version = (
+            await db.execute(
+                select(CodeVersion)
+                .join(CodeAsset)
+                .where(
+                    CodeVersion.id == python_version_id,
+                    CodeAsset.user_id == current_user.id,
+                    CodeAsset.kind == "condition",
+                    CodeVersion.output_contract == "boolean",
+                )
+            )
+        ).scalar_one_or_none()
+        if version is None:
+            raise HTTPException(status_code=422, detail="Condition's Python version is unavailable")
+        conditions = {"type": "python_condition", "code_version_id": version.id}
+    else:
+        # Compatibility path for condition records created before the unified
+        # Python visual editor.  These records remain executable but are never
+        # produced by a new visual save.
+        conditions = condition_tree
     screener = ScreenerDefinition(
         **body.model_dump(exclude={"description"}),
-        conditions=condition_tree,
+        conditions=conditions,
         user_id=current_user.id,
         description=body.description or condition.payload.get("description"),
     )
@@ -217,7 +256,7 @@ async def create_screener_from_python_condition(
             .where(
                 CodeVersion.id == code_version_id,
                 CodeAsset.user_id == current_user.id,
-                CodeAsset.kind == "condition",
+                CodeAsset.kind.in_(["condition", "study"]),
                 CodeVersion.output_contract == "boolean",
             )
         )
@@ -332,6 +371,84 @@ async def get_screener_results(
     for result in values:
         await _collect_python_screener_result(db, result)
     return values
+
+
+@router.get("/{screener_id}/plot", response_model=ScreenerPlotOut)
+async def get_screener_plot(
+    screener_id: int,
+    metric: str = Query(default="percentage", pattern="^(count|percentage)$"),
+    limit: int = Query(default=500, ge=1, le=2_000),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Return a reusable numeric series from retained EasyScan history.
+
+    A plot is deliberately empty until the scan has recorded real result
+    snapshots.  This endpoint never re-runs a scan or fabricates historical
+    observations from the current result.
+    """
+    screener = await db.get(ScreenerDefinition, screener_id)
+    if screener is None or screener.user_id != current_user.id:
+        raise HTTPException(status_code=404, detail="Screener not found")
+
+    recent_results = (
+        await db.execute(
+            select(ScreenerResult)
+            .where(ScreenerResult.screener_id == screener_id)
+            .order_by(ScreenerResult.run_at.desc())
+            .limit(limit)
+        )
+    ).scalars().all()
+    # Fetch newest history within the bound, then restore chronological order
+    # for uPlot and consumers that calculate transitions between points.
+    results = list(reversed(recent_results))
+    points: list[ScreenerPlotPoint] = []
+    for result in results:
+        # Python-backed screeners may only have a queued result at first.  Reconcile
+        # it through the same durable path used by the results list before deciding
+        # whether a point is valid.
+        await _collect_python_screener_result(db, result)
+        result_data = result.result_data if isinstance(result.result_data, dict) else {}
+        coverage = result_data.get("_coverage")
+        if not isinstance(coverage, dict):
+            coverage = {}
+        try:
+            evaluated = max(0, int(coverage.get("evaluated_count", 0)))
+        except (TypeError, ValueError):
+            evaluated = 0
+        try:
+            universe = max(evaluated, int(coverage.get("universe_count", evaluated)))
+        except (TypeError, ValueError):
+            universe = evaluated
+        matched = len(result.matched_ids) if isinstance(result.matched_ids, list) else 0
+        valid = result.error is None and evaluated > 0
+        points.append(
+            ScreenerPlotPoint(
+                timestamp=result.run_at,
+                value=(
+                    float(matched)
+                    if metric == "count" and valid
+                    else (float(matched) / evaluated * 100.0 if valid else None)
+                ),
+                matched_count=matched,
+                evaluated_count=evaluated,
+                coverage=(evaluated / universe if universe else 0.0),
+            )
+        )
+
+    warning = None
+    if not points:
+        warning = "No retained scan history is available; run the EasyScan before adding a plot."
+    elif not any(point.value is not None for point in points):
+        warning = "Retained scan history has no complete evaluated observations."
+    return ScreenerPlotOut(
+        screener_id=screener.id,
+        screener_name=screener.name,
+        metric=metric,
+        points=points,
+        history_count=len(points),
+        warning=warning,
+    )
 
 
 @router.delete("/{screener_id}", status_code=204)

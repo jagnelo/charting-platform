@@ -26,6 +26,7 @@ class CodeValidationOut(BaseModel):
 class CodeVersionCreate(BaseModel):
     source: str = Field(min_length=1, max_length=500_000)
     output_contract: str = Field(pattern="^(scalar|series|boolean|events|study)$")
+    output_name: str | None = Field(default=None, min_length=1, max_length=128)
     parameter_schema: dict = Field(default_factory=dict)
     default_parameters: dict = Field(default_factory=dict)
 
@@ -60,6 +61,7 @@ class CodeVersionOut(BaseModel):
     version_number: int
     source: str
     output_contract: str
+    output_name: str | None
     parameter_schema: dict
     default_parameters: dict
     sdk_version: str
@@ -109,6 +111,7 @@ class ResearchRunOut(BaseModel):
     resource_usage: dict
     logs: str
     progress: dict = Field(default_factory=dict)
+    artifact_count: int = 0
     artifacts: list[ResearchArtifactOut] = Field(default_factory=list)
 
 

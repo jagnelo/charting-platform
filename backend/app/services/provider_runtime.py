@@ -18,6 +18,7 @@ from app.models.data_source import DataSource
 from app.models.provider_runtime import (
     ProviderCapability,
     ProviderEntitlement,
+    ProviderEntitlementRevision,
     ProviderHealthState,
     ProviderPolicy,
     ProviderRequestLog,
@@ -49,6 +50,63 @@ _DEFAULT_SCORE_CEILING = Decimal("100")
 _DEFAULT_LEARNED_WEIGHT = Decimal("0")
 _DEFAULT_EFFECTIVE_SCORE = Decimal("0")
 _DEFAULT_BASE_PRIORITY = 100
+
+_ENTITLEMENT_FIELDS = (
+    "configured_plan",
+    "is_free",
+    "authentication_required",
+    "usage_terms",
+    "redistribution_allowed",
+    "quota_policy",
+    "history_depth",
+    "venue_coverage",
+    "freshness_semantics",
+    "enabled_environments",
+    "effective_at",
+    "review_due_at",
+    "live_probe_status",
+)
+
+
+async def record_entitlement_revision(
+    db: AsyncSession,
+    entitlement: ProviderEntitlement,
+    *,
+    change_reason: str | None = None,
+) -> ProviderEntitlementRevision:
+    """Persist the current entitlement state once for its immutable revision."""
+    revision = int(entitlement.revision or 1)
+    existing = (
+        await db.execute(
+            select(ProviderEntitlementRevision).where(
+                ProviderEntitlementRevision.data_source_id == entitlement.data_source_id,
+                ProviderEntitlementRevision.capability == entitlement.capability,
+                ProviderEntitlementRevision.revision == revision,
+            )
+        )
+    ).scalar_one_or_none()
+    if existing is not None:
+        return existing
+
+    snapshot = ProviderEntitlementRevision(
+        data_source_id=entitlement.data_source_id,
+        capability=entitlement.capability,
+        revision=revision,
+        **{
+            field_name: (
+                dict(getattr(entitlement, field_name) or {})
+                if field_name == "quota_policy"
+                else list(getattr(entitlement, field_name) or [])
+                if field_name == "enabled_environments"
+                else getattr(entitlement, field_name)
+            )
+            for field_name in _ENTITLEMENT_FIELDS
+        },
+        change_reason=change_reason,
+    )
+    db.add(snapshot)
+    await db.flush()
+    return snapshot
 
 
 def _as_utc(value: datetime) -> datetime:
@@ -82,6 +140,39 @@ class ProviderNoDataError(LookupError):
 
 def _operation_family(operation: str) -> str:
     return operation.split(":", 1)[0].strip() or operation
+
+
+def _entitlement_seed(provider_name: str, capability: ProviderCapability) -> dict[str, Any]:
+    """Return the reviewed free-source declaration for one capability."""
+    raw = settings.PROVIDER_ENTITLEMENT_SEEDS.get(provider_name) or {}
+    if not isinstance(raw, dict):
+        return {}
+    base = {key: value for key, value in raw.items() if key != "capabilities"}
+    capability_overrides = raw.get("capabilities")
+    if isinstance(capability_overrides, dict):
+        override = capability_overrides.get(capability.value)
+        if isinstance(override, dict):
+            base.update(override)
+    return {
+        key: value
+        for key, value in base.items()
+        if key
+        in {
+            "configured_plan",
+            "is_free",
+            "authentication_required",
+            "usage_terms",
+            "redistribution_allowed",
+            "quota_policy",
+            "history_depth",
+            "venue_coverage",
+            "freshness_semantics",
+            "enabled_environments",
+            "effective_at",
+            "review_due_at",
+            "live_probe_status",
+        }
+    }
 
 
 def _usage_tracking_config(data_source: DataSource) -> dict[str, Any]:
@@ -292,6 +383,7 @@ async def seed_provider_runtime(db: AsyncSession) -> None:
         ]
         for provider_name in providers:
             data_source = await ensure_data_source(db, provider_name)
+            entitlement_seed = _entitlement_seed(provider_name, capability)
             policy = (
                 await db.execute(
                     select(ProviderPolicy).where(
@@ -331,15 +423,48 @@ async def seed_provider_runtime(db: AsyncSession) -> None:
                 )
             ).scalar_one_or_none()
             if entitlement is None:
-                db.add(
-                    ProviderEntitlement(
-                        data_source_id=data_source.id,
-                        capability=capability,
-                        configured_plan="unreviewed",
-                        is_free=True,
-                        live_probe_status="not_run",
-                    )
+                entitlement = ProviderEntitlement(
+                    data_source_id=data_source.id,
+                    capability=capability,
+                    configured_plan=str(entitlement_seed.get("configured_plan") or "unreviewed"),
+                    # Unknown terms must never become an implicitly usable
+                    # free source. Only an explicit entitlement seed opts a
+                    # capability into a runtime chain.
+                    is_free=bool(entitlement_seed.get("is_free", False)),
+                    authentication_required=bool(
+                        entitlement_seed.get("authentication_required", False)
+                    ),
+                    usage_terms=entitlement_seed.get("usage_terms"),
+                    redistribution_allowed=bool(
+                        entitlement_seed.get("redistribution_allowed", False)
+                    ),
+                    quota_policy=dict(entitlement_seed.get("quota_policy") or {}),
+                    history_depth=entitlement_seed.get("history_depth"),
+                    venue_coverage=entitlement_seed.get("venue_coverage"),
+                    freshness_semantics=entitlement_seed.get("freshness_semantics"),
+                    enabled_environments=list(entitlement_seed.get("enabled_environments") or []),
+                    effective_at=entitlement_seed.get("effective_at"),
+                    review_due_at=entitlement_seed.get("review_due_at"),
+                    live_probe_status=str(entitlement_seed.get("live_probe_status") or "not_run"),
                 )
+                db.add(entitlement)
+                await db.flush()
+            elif entitlement.configured_plan == "unreviewed" and entitlement_seed:
+                # Upgrade rows created by older builds without overwriting an
+                # operator-reviewed entitlement.
+                prior_values = {
+                    field_name: getattr(entitlement, field_name)
+                    for field_name in entitlement_seed
+                }
+                for field_name, value in entitlement_seed.items():
+                    setattr(entitlement, field_name, value)
+                if any(prior_values[field_name] != value for field_name, value in entitlement_seed.items()):
+                    entitlement.revision = int(entitlement.revision or 1) + 1
+            elif entitlement.revision is None or entitlement.revision < 1:
+                entitlement.revision = 1
+            if entitlement.revision is None or entitlement.revision < 1:
+                entitlement.revision = 1
+            await record_entitlement_revision(db, entitlement, change_reason="runtime_seed")
             _apply_policy_defaults(
                 policy,
                 provider_name=provider_name,

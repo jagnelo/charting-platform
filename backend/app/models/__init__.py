@@ -33,6 +33,7 @@ from app.models.instrument_identity import (
     InstrumentProviderSymbol,
 )
 from app.models.instrument_indicator_config import InstrumentIndicatorConfig
+from app.models.instrument_reconciliation import InstrumentReconciliationIssue
 from app.models.instrument_stats import InstrumentStats
 from app.models.instrument_sync_run import InstrumentSyncRun
 from app.models.listing import InstrumentListing
@@ -53,6 +54,7 @@ from app.models.provider_observation import (
 from app.models.provider_runtime import (
     ProviderCapability,
     ProviderEntitlement,
+    ProviderEntitlementRevision,
     ProviderHealthState,
     ProviderPolicy,
     ProviderRequestLog,
@@ -115,6 +117,7 @@ __all__ = [
     "InstrumentIndicatorConfig",
     "InstrumentProviderSymbol",
     "InstrumentProviderCapabilityStatus",
+    "InstrumentReconciliationIssue",
     "ProviderCapability",
     "ProviderEntitlement",
     "ProviderPolicy",

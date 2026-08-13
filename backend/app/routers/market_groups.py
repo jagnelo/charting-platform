@@ -8,9 +8,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.auth.dependencies import get_current_user
+from app.config import settings
 from app.database import get_db
 from app.models.etf_holdings import ETFHolding, ETFHoldingsSnapshot, ETFProfile
 from app.models.instrument import EquityDetail, Instrument
+from app.models.provider_observation import InstrumentProfileSnapshot
 from app.models.user import User
 from app.models.workstation import MarketGroup, MarketGroupMember, MarketGroupProxy
 from app.schemas.workstation import (
@@ -22,9 +24,85 @@ from app.schemas.workstation import (
     InstrumentReferenceOut,
     MarketGroupOut,
 )
-from app.services.top_down_taxonomy import industry_proxy_candidates, seed_top_down_taxonomy
+from app.services.top_down_taxonomy import (
+    industry_proxy_candidates,
+    seed_top_down_taxonomy,
+    source_classification_for_as_of,
+    source_classification_from_profile_snapshot,
+)
 
 router = APIRouter(prefix="/market-groups", tags=["market-groups"])
+
+
+def _holding_exclusion_code(row: ETFHolding) -> str | None:
+    """Return the explicit reason a holding cannot be an equity taxonomy member."""
+
+    holding_type = str(row.holding_type or "").strip().casefold()
+    row_type = str(row.row_type or "").strip().casefold()
+    if row_type == "cash" or holding_type in {"cash", "currency", "collateral"}:
+        return "cash_holding"
+    if holding_type in {"derivative", "derivatives", "option", "future", "swap"}:
+        return "derivative_holding"
+    # A resolved flag without a canonical instrument ID is internally
+    # inconsistent. Treat it as unresolved rather than allowing it into the
+    # coverage denominator where the constituent endpoint cannot return it.
+    if not row.is_resolved or row.constituent_instrument_id is None:
+        return "unresolved_holding"
+    if row_type != "security" or holding_type not in {"equity", "stock", "common_stock"}:
+        return "non_equity_holding"
+    return None
+
+
+async def _historical_profile_payloads(
+    db: AsyncSession,
+    instrument_ids: set[int],
+    as_of: datetime | None,
+) -> dict[int, dict]:
+    """Load the latest provider profile known by an explicit historical cutoff."""
+
+    if as_of is None or not instrument_ids:
+        return {}
+    snapshots = (
+        await db.execute(
+            select(InstrumentProfileSnapshot)
+            .where(
+                InstrumentProfileSnapshot.instrument_id.in_(instrument_ids),
+                InstrumentProfileSnapshot.observed_at <= as_of,
+            )
+            .order_by(
+                InstrumentProfileSnapshot.instrument_id,
+                InstrumentProfileSnapshot.observed_at.desc(),
+                InstrumentProfileSnapshot.id.desc(),
+            )
+        )
+    ).scalars().all()
+    result: dict[int, dict] = {}
+    for snapshot in snapshots:
+        result.setdefault(snapshot.instrument_id, snapshot.payload)
+    return result
+
+
+def holdings_snapshot_source_filter(statement):
+    """Keep controlled browser fixtures out of normal workstation reads.
+
+    E2E data is opt-in and deterministic.  When the backend is serving the
+    canonical free-source database, a fixture snapshot must not win merely
+    because it has a newer composition date than a real disclosure.
+    """
+    if settings.E2E_SEED_MARKET_DATA:
+        # Seeded browser acceptance must be deterministic even when it is run
+        # against a persistent database that already contains newer canonical
+        # disclosures.  Selecting the fixture source explicitly prevents a
+        # mixed canonical/fixture composition from silently changing the
+        # visual and drill-down oracle.
+        return statement.where(
+            ETFHoldingsSnapshot.provenance == "controlled_fixture",
+            ETFHoldingsSnapshot.source_provider == "e2e_reference",
+        )
+    return statement.where(
+        ETFHoldingsSnapshot.provenance != "controlled_fixture",
+        ETFHoldingsSnapshot.source_provider != "e2e_reference",
+    )
 
 
 def _holdings_snapshot_at(statement, as_of: datetime | None):
@@ -90,9 +168,11 @@ async def etf_industry_composition(
             404, detail={"code": "etf_profile_not_found", "symbol": instrument.symbol}
         )
 
-    statement = _holdings_snapshot_at(
-        select(ETFHoldingsSnapshot).where(ETFHoldingsSnapshot.etf_profile_id == profile.id),
-        as_of,
+    statement = holdings_snapshot_source_filter(
+        _holdings_snapshot_at(
+            select(ETFHoldingsSnapshot).where(ETFHoldingsSnapshot.etf_profile_id == profile.id),
+            as_of,
+        )
     )
     snapshot = (
         await db.execute(
@@ -110,22 +190,63 @@ async def etf_industry_composition(
 
     rows = (
         await db.execute(
-            select(ETFHolding, EquityDetail.industry)
+            select(ETFHolding, EquityDetail.industry, EquityDetail.sector, EquityDetail.field_provenance)
             .outerjoin(
                 EquityDetail, EquityDetail.instrument_id == ETFHolding.constituent_instrument_id
             )
             .where(ETFHolding.snapshot_id == snapshot.id)
         )
     ).all()
-    grouped: dict[str, list[ETFHolding]] = {}
+    historical_profiles = await _historical_profile_payloads(
+        db,
+        {
+            row.constituent_instrument_id
+            for row, *_ in rows
+            if row.is_resolved and row.constituent_instrument_id is not None
+        },
+        as_of,
+    )
+    grouped: dict[str, list[tuple[ETFHolding, str]]] = {}
     exclusions: list[str] = []
-    for row, industry in rows:
-        if not row.is_resolved:
-            exclusions.append("unresolved_holding")
-        elif not industry:
-            exclusions.append("unclassified_constituent")
+    classified_rows = 0
+    classification_systems_seen: set[str] = set()
+    for row, industry, sector, field_provenance in rows:
+        exclusion = _holding_exclusion_code(row)
+        if exclusion:
+            exclusions.append(exclusion)
         else:
-            grouped.setdefault(industry, []).append(row)
+            label, classification_system = source_classification_for_as_of(
+                industry=industry,
+                sector=sector,
+                field_provenance=field_provenance,
+                as_of=as_of,
+            )
+            if label is None and row.constituent_instrument_id in historical_profiles:
+                label, classification_system = source_classification_from_profile_snapshot(
+                    historical_profiles[row.constituent_instrument_id]
+                )
+            # Preserve an explicit unknown source when a provider supplies a
+            # label without a classification namespace. The frontend must not
+            # render that row as if it had no classification at all.
+            classification_systems_seen.add(classification_system)
+            if not label:
+                exclusions.append(
+                    "classification_not_known_at_as_of" if as_of is not None else "unclassified_constituent"
+                )
+                continue
+            classified_rows += 1
+            grouped.setdefault(label, []).append((row, classification_system))
+    industries = []
+    for label, items in sorted(grouped.items()):
+        systems = sorted({system for _, system in items})
+        industries.append(
+            ETFIndustryOut(
+                industry=label,
+                constituent_count=len(items),
+                resolved_count=sum(1 for row, _ in items if row.is_resolved),
+                classification_systems=systems,
+            )
+        )
     return ETFIndustryCompositionOut(
         etf_symbol=instrument.symbol,
         composition_date=snapshot.composition_date.isoformat(),
@@ -133,15 +254,14 @@ async def etf_industry_composition(
         provenance=snapshot.provenance,
         source_provider=snapshot.source_provider,
         completeness_status=snapshot.completeness_status,
-        industries=[
-            ETFIndustryOut(
-                industry=industry,
-                constituent_count=len(items),
-                resolved_count=sum(1 for item in items if item.is_resolved),
-            )
-            for industry, items in sorted(grouped.items())
-        ],
+        industries=industries,
         exclusions=sorted(set(exclusions)),
+        classification_systems=sorted(classification_systems_seen),
+        classification_coverage=classified_rows / sum(
+            1 for row, *_ in rows if _holding_exclusion_code(row) is None
+        )
+        if any(_holding_exclusion_code(row) is None for row, *_ in rows)
+        else 0,
     )
 
 
@@ -160,6 +280,8 @@ async def etf_industry_proxies(
     resolved constituents classified into the exact requested industry.
     """
     composition = await etf_industry_composition(symbol=symbol, as_of=as_of, _=_, db=db)
+    # Constituents are intentionally sourced from the same filtered taxonomy
+    # contract; cash/derivative/non-equity rows stay exclusions, never members.
     candidates = industry_proxy_candidates(industry)
     if not candidates:
         return ETFIndustryProxyListOut(
@@ -190,6 +312,12 @@ async def etf_industry_proxies(
             select(ETFHoldingsSnapshot).where(ETFHoldingsSnapshot.etf_profile_id == profile.id),
             as_of,
         )
+        # Controlled E2E holdings are a deliberate test-only source.  They must
+        # never leak into the canonical workstation when the backend is serving
+        # the free-source database, even if an older fixture snapshot is newer
+        # than an issuer disclosure.  The seeded browser suite opts in through
+        # the explicit setting and retains its deterministic proxy evidence.
+        statement = holdings_snapshot_source_filter(statement)
         snapshot = (
             await db.execute(
                 statement.order_by(
@@ -205,22 +333,56 @@ async def etf_industry_proxies(
         classifications = (
             (
                 await db.execute(
-                    select(EquityDetail.industry)
-                    .join(
+                    select(
                         ETFHolding,
-                        ETFHolding.constituent_instrument_id == EquityDetail.instrument_id,
+                        EquityDetail.instrument_id,
+                        EquityDetail.industry,
+                        EquityDetail.sector,
+                        EquityDetail.field_provenance,
                     )
-                    .where(
-                        ETFHolding.snapshot_id == snapshot.id,
-                        ETFHolding.is_resolved.is_(True),
+                    .outerjoin(
+                        EquityDetail,
+                        EquityDetail.instrument_id == ETFHolding.constituent_instrument_id,
                     )
+                    .where(ETFHolding.snapshot_id == snapshot.id)
                 )
             )
-            .scalars()
             .all()
         )
-        classified_count = sum(1 for value in classifications if value)
-        matching_count = sum(1 for value in classifications if value == industry)
+        classified_instrument_ids = {
+            instrument_id
+            for _row, instrument_id, *_ in classifications
+            if instrument_id is not None
+        }
+        historical_profiles = await _historical_profile_payloads(
+            db, classified_instrument_ids, as_of
+        )
+        classification_labels = [
+            (
+                source_classification_for_as_of(
+                    industry=industry_value,
+                    sector=sector_value,
+                    field_provenance=field_provenance,
+                    as_of=as_of,
+                )[0]
+                or (
+                    source_classification_from_profile_snapshot(
+                        historical_profiles.get(instrument_id)
+                    )[0]
+                    if instrument_id in historical_profiles
+                    else None
+                )
+            )
+            if _holding_exclusion_code(row) is None
+            else None
+            for row, instrument_id, industry_value, sector_value, field_provenance in classifications
+        ]
+        classified_count = sum(1 for value in classification_labels if value)
+        matching_count = sum(1 for value in classification_labels if value == industry)
+        for row, *_ in classifications:
+            exclusion = _holding_exclusion_code(row)
+            if exclusion and exclusion not in exclusions:
+                exclusions.append(f"candidate_{exclusion}:{candidate}")
         if not matching_count:
             exclusions.append(f"candidate_not_holdings_verified:{candidate}")
             continue
@@ -263,9 +425,11 @@ async def etf_industry_constituents(
     profile = (
         await db.execute(select(ETFProfile).where(ETFProfile.instrument_id == instrument.id))
     ).scalar_one()
-    snapshot_query = _holdings_snapshot_at(
-        select(ETFHoldingsSnapshot).where(ETFHoldingsSnapshot.etf_profile_id == profile.id),
-        as_of,
+    snapshot_query = holdings_snapshot_source_filter(
+        _holdings_snapshot_at(
+            select(ETFHoldingsSnapshot).where(ETFHoldingsSnapshot.etf_profile_id == profile.id),
+            as_of,
+        )
     )
     snapshot = (
         await db.execute(
@@ -276,23 +440,56 @@ async def etf_industry_constituents(
             ).limit(1)
         )
     ).scalar_one()
-    rows = (
-        (
-            await db.execute(
-                select(Instrument)
-                .join(ETFHolding, ETFHolding.constituent_instrument_id == Instrument.id)
-                .join(EquityDetail, EquityDetail.instrument_id == Instrument.id)
-                .where(
-                    ETFHolding.snapshot_id == snapshot.id,
-                    ETFHolding.is_resolved.is_(True),
-                    EquityDetail.industry == industry,
-                )
-                .order_by(ETFHolding.position, Instrument.symbol)
+    classified_rows = (
+        await db.execute(
+            select(
+                ETFHolding,
+                Instrument,
+                EquityDetail.industry,
+                EquityDetail.sector,
+                EquityDetail.field_provenance,
             )
+            .join(ETFHolding, ETFHolding.constituent_instrument_id == Instrument.id)
+            # Keep eligible holdings even when the canonical profile is not
+            # classified.  Dropping them with an inner join would inflate
+            # classification_coverage and hide the exact exclusion that the
+            # composition endpoint already discloses.
+            .outerjoin(EquityDetail, EquityDetail.instrument_id == Instrument.id)
+            .where(
+                ETFHolding.snapshot_id == snapshot.id,
+            )
+            .order_by(ETFHolding.position, Instrument.symbol)
         )
-        .scalars()
-        .all()
+    ).all()
+    historical_profiles = await _historical_profile_payloads(
+        db,
+        {instrument.id for row, instrument, *_ in classified_rows if _holding_exclusion_code(row) is None},
+        as_of,
     )
+    rows: list[Instrument] = []
+    systems: set[str] = set()
+    eligible_rows = 0
+    classified_rows_count = 0
+    for row, constituent, industry_value, sector_value, field_provenance in classified_rows:
+        if _holding_exclusion_code(row) is not None:
+            continue
+        eligible_rows += 1
+        label, system = source_classification_for_as_of(
+            industry=industry_value,
+            sector=sector_value,
+            field_provenance=field_provenance,
+            as_of=as_of,
+        )
+        if label is None and constituent.id in historical_profiles:
+            label, system = source_classification_from_profile_snapshot(
+                historical_profiles[constituent.id]
+            )
+        if system:
+            systems.add(system)
+        if label:
+            classified_rows_count += 1
+        if label == industry:
+            rows.append(constituent)
     return ETFIndustryConstituentsOut(
         etf_symbol=composition.etf_symbol,
         industry=industry,
@@ -302,6 +499,8 @@ async def etf_industry_constituents(
         source_provider=composition.source_provider,
         constituents=[InstrumentReferenceOut.model_validate(item) for item in rows],
         exclusions=composition.exclusions,
+        classification_systems=sorted(systems),
+        classification_coverage=classified_rows_count / eligible_rows if eligible_rows else 0,
     )
 
 

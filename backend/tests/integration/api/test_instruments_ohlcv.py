@@ -11,8 +11,10 @@ import numpy as np
 import pandas as pd
 
 from app.models.data_source import DataSource
+from app.models.exchange import Exchange
 from app.models.instrument import Instrument
 from app.models.instrument_identity import InstrumentProviderSymbol
+from app.models.listing import InstrumentListing
 from app.providers.base import InstrumentProfile, ListingRecord
 
 
@@ -63,11 +65,99 @@ class TestInstruments:
         # Even if creation fails (incomplete mock), we test the happy path
         assert res.status_code in (200, 201, 404)  # 404 acceptable if type lookup fails
 
-    def test_get_existing_instrument(self, client, auth_headers, instrument):
+    def test_get_existing_instrument_returns_exchange_aware_listings(
+        self, client, auth_headers, instrument, db
+    ):
+        exchange = Exchange(mic="XNAS", name="Nasdaq", country_code="US")
+        db.add(exchange)
+        db.flush()
+        db.add(
+            InstrumentListing(
+                instrument_id=instrument.id,
+                exchange_id=exchange.id,
+                ticker=instrument.symbol,
+                currency="USD",
+                is_primary=True,
+                is_active=True,
+            )
+        )
+        db.flush()
+
         res = client.get(f"/api/v1/instruments/{instrument.symbol}", headers=auth_headers)
         assert res.status_code == 200
         data = res.json()
         assert data["symbol"] == "AAPL"
+        assert data["listings"] == [
+            {
+                "ticker": "AAPL",
+                "currency": "USD",
+                "is_primary": True,
+                "is_active": True,
+                "effective_at": None,
+                "known_at": None,
+                "delisted_at": None,
+                "exchange": {
+                    "id": exchange.id,
+                    "mic": "XNAS",
+                    "name": "Nasdaq",
+                    "country_code": "US",
+                    "timezone": None,
+                    "market_open": None,
+                    "market_close": None,
+                    "currency": None,
+                },
+            }
+        ]
+
+        provenance_res = client.get(
+            f"/api/v1/instruments/{instrument.symbol}/provenance",
+            headers=auth_headers,
+        )
+        assert provenance_res.status_code == 200
+        provenance_listing = provenance_res.json()["listings"][0]
+        assert provenance_listing["ticker"] == "AAPL"
+        assert provenance_listing["exchange"] == {
+            "id": exchange.id,
+            "mic": "XNAS",
+            "name": "Nasdaq",
+            "country_code": "US",
+            "timezone": None,
+            "market_open": None,
+            "market_close": None,
+            "currency": None,
+        }
+
+    def test_provenance_listing_without_exchange_is_explicitly_null(
+        self, client, auth_headers, instrument, db
+    ):
+        db.add(
+            InstrumentListing(
+                instrument_id=instrument.id,
+                ticker=instrument.symbol,
+                currency="USD",
+                is_primary=True,
+                is_active=True,
+            )
+        )
+        db.flush()
+
+        response = client.get(
+            f"/api/v1/instruments/{instrument.symbol}/provenance",
+            headers=auth_headers,
+        )
+        assert response.status_code == 200
+        assert response.json()["listings"] == [
+            {
+                "ticker": "AAPL",
+                "currency": "USD",
+                "is_primary": True,
+                "is_active": True,
+                "effective_at": None,
+                "known_at": None,
+                "delisted_at": None,
+                "exchange": None,
+            }
+        ]
 
     @patch("app.routers.instruments.get_provider_profile_async")
     def test_existing_instrument_read_does_not_fan_out_to_provider_metadata(

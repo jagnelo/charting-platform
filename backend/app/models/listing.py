@@ -1,4 +1,6 @@
-from sqlalchemy import Boolean, ForeignKey, Integer, String
+from datetime import datetime
+
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -26,6 +28,9 @@ class InstrumentListing(Base, TimestampMixin):
     currency: Mapped[str] = mapped_column(String(3), nullable=True)  # ISO 4217
     is_primary: Mapped[bool] = mapped_column(Boolean, default=False)  # primary listing flag
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    effective_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    known_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    delisted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     instrument: Mapped["Instrument"] = relationship(back_populates="listings")
     exchange: Mapped["Exchange"] = relationship(back_populates="listings")

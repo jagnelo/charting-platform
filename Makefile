@@ -25,6 +25,8 @@
   dev dev-install dev-infra dev-infra-stop dev-backend dev-worker dev-frontend \
   test test-unit test-int test-backend test-fe test-e2e-install test-e2e test-e2e-headed \
   test-stack-up test-stack-down test-platform test-all test-backend-coverage \
+  test-uplot-contract \
+  test-visual-policy \
   lint lint-backend lint-frontend format \
   migrate migrate-new migrate-down \
   coverage clean ci
@@ -135,6 +137,16 @@ test-backend-coverage:
 test-fe:
 	@echo "▶  Frontend unit tests (Vitest)..."
 	cd frontend && npx vitest run --coverage
+	@$(MAKE) test-uplot-contract
+	@$(MAKE) test-visual-policy
+
+test-uplot-contract:
+	@echo "▶  Primary workstation uPlot numerical-renderer contract..."
+	python3 tests/visual/validate-uplot-renderer-contract.py
+
+test-visual-policy:
+	@echo "▶  Deterministic TC2000 visual acceptance policy..."
+	cd backend && .venv/bin/python ../tests/visual/validate-visual-acceptance-policy.py
 
 test-e2e-install:
 	@echo "▶  Ensuring Playwright Chromium is installed..."
@@ -152,8 +164,9 @@ test-stack-up:
 	@echo "▶  Starting branch-scoped full application stack for browser validation..."
 	@echo "   Branch  →  $(DEV_BRANCH_NAME)"
 	@echo "   Project →  $(STACK_COMPOSE_PROJECT)"
+	@echo "   Fixtures → instruments=$${E2E_SEED_INSTRUMENTS:-true}, market-data=$${E2E_SEED_MARKET_DATA:-false}"
 	@$(DEV_STACK_HELPER) stop-others docker-compose.yml stack
-	E2E_SEED_INSTRUMENTS=true COMPOSE_BAKE=true COMPOSE_PROJECT_NAME=$(STACK_COMPOSE_PROJECT) docker compose up -d --build --wait
+	E2E_SEED_INSTRUMENTS=$${E2E_SEED_INSTRUMENTS:-true} E2E_SEED_MARKET_DATA=$${E2E_SEED_MARKET_DATA:-false} COMPOSE_BAKE=true COMPOSE_PROJECT_NAME=$(STACK_COMPOSE_PROJECT) docker compose up -d --build --wait
 	@echo "▶  Applying migrations to the running stack..."
 	$(MAKE) migrate
 

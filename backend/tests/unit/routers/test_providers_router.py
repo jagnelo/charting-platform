@@ -15,9 +15,83 @@ class TestProvidersRouter:
         assert client.get("/api/v1/providers/observations/summary").status_code == 401
         assert client.get("/api/v1/providers/datasets/stale").status_code == 401
         assert client.get("/api/v1/providers/usage").status_code == 401
+        assert client.get("/api/v1/providers/reconciliation/issues").status_code == 401
 
-    def test_list_and_patch_policy(self, client, auth_headers):
-        res = client.get("/api/v1/providers/policies", headers=auth_headers)
+    def test_provider_governance_requires_admin(self, client, auth_headers):
+        assert (
+            client.get(
+                "/api/v1/providers/reconciliation/issues",
+                headers=auth_headers,
+            ).status_code
+            == 403
+        )
+        assert (
+            client.patch(
+                "/api/v1/providers/reconciliation/issues/1",
+                headers=auth_headers,
+                json={"status": "ignored"},
+            ).status_code
+            == 403
+        )
+        assert (
+            client.patch(
+                "/api/v1/providers/policies/alpaca/price_history",
+                headers=auth_headers,
+                json={"is_enabled": False},
+            ).status_code
+            == 403
+        )
+        assert (
+            client.patch(
+                "/api/v1/providers/entitlements/alpaca/price_history",
+                headers=auth_headers,
+                json={"is_free": False},
+            ).status_code
+            == 403
+        )
+
+    def test_reconciliation_issue_is_listed_and_resolvable(self, client, admin_headers, db):
+        from app.models.instrument_reconciliation import InstrumentReconciliationIssue
+
+        source = DataSource(name="edgar", is_active=True)
+        db.add(source)
+        db.flush()
+        issue = InstrumentReconciliationIssue(
+            data_source_id=source.id,
+            provider_symbol="ABC",
+            issue_type="ambiguous_ticker_issuer",
+            fingerprint="fingerprint-abc",
+            status="open",
+            candidates=[{"cik": "1", "name": "One"}, {"cik": "2", "name": "Two"}],
+            payload={"symbol": "ABC", "quote_type": "EQUITY"},
+            observed_at=datetime.now(UTC),
+        )
+        db.add(issue)
+        db.flush()
+
+        listed = client.get("/api/v1/providers/reconciliation/issues", headers=admin_headers)
+        assert listed.status_code == 200
+        assert listed.json()[0]["provider_symbol"] == "ABC"
+        assert listed.json()[0]["provider"] == "edgar"
+
+        updated = client.patch(
+            f"/api/v1/providers/reconciliation/issues/{issue.id}",
+            headers=admin_headers,
+            json={"status": "resolved", "resolution": {"canonical_cik": "1"}},
+        )
+        assert updated.status_code == 200
+        assert updated.json()["status"] == "resolved"
+        assert updated.json()["resolved_by"]["username"]
+
+        resolved = client.get(
+            "/api/v1/providers/reconciliation/issues?status=resolved", headers=admin_headers
+        )
+        assert resolved.status_code == 200
+        resolved_issue = next(row for row in resolved.json() if row["provider_symbol"] == "ABC")
+        assert resolved_issue["resolution"]["canonical_cik"] == "1"
+
+    def test_list_and_patch_policy(self, client, admin_headers):
+        res = client.get("/api/v1/providers/policies", headers=admin_headers)
         assert res.status_code == 200
         rows = res.json()
         assert rows
@@ -28,32 +102,32 @@ class TestProvidersRouter:
 
         invalid = client.patch(
             f"/api/v1/providers/policies/{provider}/nope",
-            headers=auth_headers,
+            headers=admin_headers,
             json={"is_enabled": False},
         )
         assert invalid.status_code == 400
 
         update = client.patch(
             f"/api/v1/providers/policies/{provider}/{capability}",
-            headers=auth_headers,
+            headers=admin_headers,
             json={"auto_weight_enabled": False},
         )
         assert update.status_code == 200
 
-        refreshed = client.get("/api/v1/providers/policies", headers=auth_headers).json()
+        refreshed = client.get("/api/v1/providers/policies", headers=admin_headers).json()
         changed = next(
             r for r in refreshed if r["provider"] == provider and r["capability"] == capability
         )
         assert changed["auto_weight_enabled"] is False
 
-    def test_entitlements_are_seeded_and_patchable(self, client, auth_headers):
-        rows = client.get("/api/v1/providers/entitlements", headers=auth_headers)
+    def test_entitlements_are_seeded_and_patchable(self, client, admin_headers):
+        rows = client.get("/api/v1/providers/entitlements", headers=admin_headers)
         assert rows.status_code == 200
         assert rows.json()
         target = rows.json()[0]
         updated = client.patch(
             f"/api/v1/providers/entitlements/{target['provider']}/{target['capability']}",
-            headers=auth_headers,
+            headers=admin_headers,
             json={
                 "configured_plan": "free-reviewed",
                 "freshness_semantics": "delayed",
@@ -62,7 +136,7 @@ class TestProvidersRouter:
             },
         )
         assert updated.status_code == 200
-        refreshed = client.get("/api/v1/providers/entitlements", headers=auth_headers).json()
+        refreshed = client.get("/api/v1/providers/entitlements", headers=admin_headers).json()
         changed = next(
             row
             for row in refreshed
@@ -72,6 +146,20 @@ class TestProvidersRouter:
         assert changed["freshness_semantics"] == "delayed"
         assert changed["effective_at"].startswith("2026-01-01T00:00:00")
         assert changed["review_due_at"].startswith("2030-01-01T00:00:00")
+        assert changed["revision"] == target["revision"] + 1
+
+        history = client.get(
+            f"/api/v1/providers/entitlements/history/{target['provider']}/{target['capability']}",
+            headers=admin_headers,
+        )
+        assert history.status_code == 200
+        revisions = history.json()
+        assert [row["revision"] for row in revisions] == sorted(
+            (row["revision"] for row in revisions), reverse=True
+        )
+        assert revisions[0]["revision"] == changed["revision"]
+        assert revisions[0]["change_reason"] == "api_patch"
+        assert revisions[-1]["revision"] == target["revision"]
 
     def test_observation_summary_and_prune(self, client, auth_headers, db, instrument):
         data_source = DataSource(name="yfinance", is_active=True)

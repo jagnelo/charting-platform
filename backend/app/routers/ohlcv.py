@@ -5,7 +5,9 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user
+from app.config import settings
 from app.database import get_db
+from app.models.data_source import DataSource
 from app.models.instrument import Instrument
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.user import User
@@ -27,6 +29,9 @@ async def get_local_ohlcv(
     timeframe: Timeframe,
     limit: int = Query(PAGE_SIZE, ge=1, le=5000),
     adjusted: bool = Query(True),
+    before: datetime | None = Query(
+        None, description="Return the local page strictly before this timestamp."
+    ),
     db: AsyncSession = Depends(get_db),
     _: User = Depends(get_current_user),
 ):
@@ -34,10 +39,25 @@ async def get_local_ohlcv(
     instrument = (await db.execute(select(Instrument).where(Instrument.symbol == symbol.upper()))).scalar_one_or_none()
     if instrument is None:
         raise HTTPException(404, f"Instrument '{symbol}' not found.")
+    predicates = [
+        OHLCVBar.instrument_id == instrument.id,
+        OHLCVBar.timeframe == timeframe,
+        OHLCVBar.is_adjusted.is_(adjusted),
+    ]
+    if before is not None:
+        if before.tzinfo is None:
+            before = before.replace(tzinfo=UTC)
+        predicates.append(OHLCVBar.ts < before)
+    if settings.E2E_SEED_MARKET_DATA:
+        predicates.append(
+            OHLCVBar.data_source_id
+            == select(DataSource.id)
+            .where(DataSource.name == "e2e_reference")
+            .scalar_subquery()
+        )
     bars = (
         await db.execute(
-            select(OHLCVBar)
-            .where(OHLCVBar.instrument_id == instrument.id, OHLCVBar.timeframe == timeframe, OHLCVBar.is_adjusted.is_(adjusted))
+            select(OHLCVBar).where(*predicates)
             .order_by(OHLCVBar.ts.desc())
             .limit(limit)
         )
@@ -63,6 +83,10 @@ async def get_ohlcv_transformed(
     ),
     limit: int | None = Query(None, ge=1),
     adjusted: bool = Query(True),
+    local_only: bool = Query(
+        False,
+        description="Read only the canonical local cache; never hydrate from providers.",
+    ),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -90,7 +114,8 @@ async def get_ohlcv_transformed(
             before = before.replace(tzinfo=UTC)
         try:
             raw_bars = await fetch_ohlcv_page_before(
-                db, instrument, timeframe, before, fetch_limit, adjusted
+                db, instrument, timeframe, before, fetch_limit, adjusted,
+                allow_provider_fetch=not local_only,
             )
         except ProviderNoDataError as exc:
             raise HTTPException(
@@ -102,14 +127,20 @@ async def get_ohlcv_transformed(
         if end and end.tzinfo is None:
             end = end.replace(tzinfo=UTC)
         try:
-            raw_bars = await fetch_ohlcv(db, instrument, timeframe, start, end, adjusted)
+            raw_bars = await fetch_ohlcv(
+                db, instrument, timeframe, start, end, adjusted,
+                allow_provider_fetch=not local_only,
+            )
         except ProviderNoDataError as exc:
             raise HTTPException(
                 404, f"No OHLCV data available for instrument '{symbol}' on {timeframe.value}."
             ) from exc
     else:
         try:
-            raw_bars = await fetch_ohlcv_latest(db, instrument, timeframe, fetch_limit, adjusted)
+            raw_bars = await fetch_ohlcv_latest(
+                db, instrument, timeframe, fetch_limit, adjusted,
+                allow_provider_fetch=not local_only,
+            )
         except ProviderNoDataError as exc:
             raise HTTPException(
                 404, f"No OHLCV data available for instrument '{symbol}' on {timeframe.value}."
@@ -143,6 +174,10 @@ async def get_ohlcv(
     ),
     limit: int | None = Query(None, ge=1, description="Cap the number of bars returned"),
     adjusted: bool = Query(True),
+    local_only: bool = Query(
+        False,
+        description="Read only the canonical local cache; never hydrate from providers.",
+    ),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -161,7 +196,8 @@ async def get_ohlcv(
             before = before.replace(tzinfo=UTC)
         try:
             bars = await fetch_ohlcv_page_before(
-                db, instrument, timeframe, before, PAGE_SIZE, adjusted
+                db, instrument, timeframe, before, PAGE_SIZE, adjusted,
+                allow_provider_fetch=not local_only,
             )
         except ProviderNoDataError as exc:
             raise HTTPException(
@@ -176,7 +212,10 @@ async def get_ohlcv(
         if end and end.tzinfo is None:
             end = end.replace(tzinfo=UTC)
         try:
-            bars = await fetch_ohlcv(db, instrument, timeframe, start, end, adjusted)
+            bars = await fetch_ohlcv(
+                db, instrument, timeframe, start, end, adjusted,
+                allow_provider_fetch=not local_only,
+            )
         except ProviderNoDataError as exc:
             raise HTTPException(
                 404, f"No OHLCV data available for instrument '{symbol}' on {timeframe.value}."
@@ -186,7 +225,10 @@ async def get_ohlcv(
     # Default: initial load — return the latest N bars (capped at PAGE_SIZE)
     page = min(limit, PAGE_SIZE) if limit else PAGE_SIZE
     try:
-        return await fetch_ohlcv_latest(db, instrument, timeframe, page, adjusted)
+        return await fetch_ohlcv_latest(
+            db, instrument, timeframe, page, adjusted,
+            allow_provider_fetch=not local_only,
+        )
     except ProviderNoDataError as exc:
         raise HTTPException(
             404, f"No OHLCV data available for instrument '{symbol}' on {timeframe.value}."

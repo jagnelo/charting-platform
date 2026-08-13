@@ -49,6 +49,7 @@ class CodeVersion(Base, TimestampMixin):
     version_number: Mapped[int] = mapped_column(Integer, nullable=False)
     source: Mapped[str] = mapped_column(Text, nullable=False)
     output_contract: Mapped[str] = mapped_column(String(32), nullable=False)
+    output_name: Mapped[str | None] = mapped_column(String(128), nullable=True)
     parameter_schema: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
     default_parameters: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
     sdk_version: Mapped[str] = mapped_column(String(32), nullable=False, default="1")

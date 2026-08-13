@@ -88,7 +88,7 @@ async def promote_code_signal(
             .where(
                 CodeVersion.id == code_version_id,
                 CodeAsset.user_id == current_user.id,
-                CodeAsset.kind == "signal",
+                CodeAsset.kind.in_(["signal", "study"]),
                 CodeAsset.is_archived.is_(False),
             )
             .options(selectinload(CodeVersion.asset))

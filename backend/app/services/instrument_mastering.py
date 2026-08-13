@@ -17,11 +17,11 @@ from app.models.instrument_identity import (
     InstrumentProviderSymbol,
 )
 from app.models.instrument_stats import InstrumentStats
-from app.models.listing import InstrumentListing
 from app.models.provider_observation import InstrumentProfileSnapshot
 from app.models.provider_runtime import ProviderCapability
 from app.providers import ensure_data_source, provider_symbol_for_instrument
 from app.providers.base import IdentifierRecord, InstrumentProfile
+from app.services.exchange_catalog import coerce_listing_lifecycle_at, upsert_instrument_listing
 from app.services.provider_observations import store_identifier_snapshot
 from app.services.provider_runtime import execute_provider_call, resolve_provider_chain
 
@@ -50,6 +50,7 @@ def _provenance_entry(
     selection_reason: str | None = None,
     quality_score: float | None = None,
     note: str | None = None,
+    classification_system: str | None = None,
 ) -> dict[str, Any]:
     entry: dict[str, Any] = {
         "source": source,
@@ -64,6 +65,8 @@ def _provenance_entry(
         entry["quality_score"] = quality_score
     if note:
         entry["note"] = note
+    if classification_system:
+        entry["classification_system"] = classification_system
     return entry
 
 
@@ -78,6 +81,7 @@ def _mark_field_provenance(
     selection_reason: str | None = None,
     quality_score: float | None = None,
     note: str | None = None,
+    classification_system: str | None = None,
 ) -> None:
     provenance = dict(getattr(target, "field_provenance", None) or {})
     provenance[field_name] = _provenance_entry(
@@ -88,6 +92,7 @@ def _mark_field_provenance(
         selection_reason=selection_reason,
         quality_score=quality_score,
         note=note,
+        classification_system=classification_system,
     )
     setattr(target, "field_provenance", provenance)
 
@@ -142,6 +147,13 @@ def build_profile_snapshot_payload(profile: InstrumentProfile) -> dict[str, Any]
                 "currency": listing.currency,
                 "provider_instrument_type": listing.provider_instrument_type,
                 "is_primary": listing.is_primary,
+                "effective_at": listing.effective_at.isoformat()
+                if listing.effective_at
+                else None,
+                "known_at": listing.known_at.isoformat() if listing.known_at else None,
+                "delisted_at": listing.delisted_at.isoformat()
+                if listing.delisted_at
+                else None,
                 "extra_data": listing.extra_data,
             }
             for listing in profile.listings
@@ -312,6 +324,7 @@ async def reconcile_instrument_profile(
                 "regular_market_price",
                 "current_price",
                 "previous_close",
+                "classification_system",
             ]
         },
     )
@@ -406,15 +419,30 @@ async def register_provider_symbol(
     currency: str | None = None,
     is_primary: bool = False,
     extra_data: dict[str, Any] | None = None,
+    reactivate_existing: bool = True,
+    effective_at: datetime | None = None,
+    known_at: datetime | None = None,
+    delisted_at: datetime | None = None,
 ) -> None:
     data_source = await ensure_data_source(db, provider_name)
+    provider_symbol_filters = [
+        InstrumentProviderSymbol.instrument_id == instrument.id,
+        InstrumentProviderSymbol.data_source_id == data_source.id,
+        InstrumentProviderSymbol.provider_symbol == provider_symbol,
+    ]
+    if provider_exchange_code is not None:
+        provider_symbol_filters.append(
+            InstrumentProviderSymbol.provider_exchange_code == provider_exchange_code
+        )
     existing = (
         await db.execute(
-            select(InstrumentProviderSymbol).where(
-                InstrumentProviderSymbol.instrument_id == instrument.id,
-                InstrumentProviderSymbol.data_source_id == data_source.id,
-                InstrumentProviderSymbol.provider_symbol == provider_symbol,
+            select(InstrumentProviderSymbol)
+            .where(*provider_symbol_filters)
+            .order_by(
+                InstrumentProviderSymbol.is_primary.desc(),
+                InstrumentProviderSymbol.id.desc(),
             )
+            .limit(1)
         )
     ).scalar_one_or_none()
     if existing is None:
@@ -429,7 +457,8 @@ async def register_provider_symbol(
     existing.provider_instrument_type = (
         provider_instrument_type or existing.provider_instrument_type
     )
-    existing.is_active = True
+    if reactivate_existing:
+        existing.is_active = True
     existing.is_primary = is_primary or existing.is_primary
     existing.extra_data = {
         **(existing.extra_data or {}),
@@ -437,28 +466,18 @@ async def register_provider_symbol(
         **(extra_data or {}),
     } or None
 
-    listing = (
-        await db.execute(
-            select(InstrumentListing).where(
-                InstrumentListing.instrument_id == instrument.id,
-                InstrumentListing.ticker == provider_symbol,
-            )
-        )
-    ).scalar_one_or_none()
-    if listing is None:
-        db.add(
-            InstrumentListing(
-                instrument_id=instrument.id,
-                ticker=provider_symbol,
-                currency=currency,
-                is_primary=is_primary,
-                is_active=True,
-            )
-        )
-    else:
-        listing.currency = currency or listing.currency
-        listing.is_active = True
-        listing.is_primary = is_primary or listing.is_primary
+    await upsert_instrument_listing(
+        db,
+        instrument,
+        provider_symbol,
+        exchange_code=provider_exchange_code,
+        currency=currency,
+        is_primary=is_primary,
+        reactivate_existing=reactivate_existing,
+        effective_at=effective_at,
+        known_at=known_at,
+        delisted_at=delisted_at,
+    )
 
 
 async def register_identifier(
@@ -769,6 +788,13 @@ async def apply_profile_to_instrument(
             currency=_normalize_currency_code(listing.currency) or normalized_currency,
             is_primary=listing.is_primary,
             extra_data=listing.extra_data,
+            effective_at=listing.effective_at
+            or coerce_listing_lifecycle_at((listing.extra_data or {}).get("effective_at")),
+            known_at=listing.known_at
+            or coerce_listing_lifecycle_at((listing.extra_data or {}).get("known_at"))
+            or fetched_at,
+            delisted_at=listing.delisted_at
+            or coerce_listing_lifecycle_at((listing.extra_data or {}).get("delisted_at")),
         )
 
     if not profile.listings:
@@ -833,6 +859,11 @@ async def apply_profile_to_instrument(
                     source=profile.provider,
                     fetched_at=fetched_at,
                     provider_symbol=profile.symbol,
+                    classification_system=(
+                        profile.extra.get("classification_system")
+                        if field_name in {"sector", "industry"}
+                        else None
+                    ),
                 )
 
     elif quote_type == "CURRENCY":

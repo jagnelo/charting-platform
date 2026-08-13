@@ -19,7 +19,7 @@ from app.models.etf_holdings import (
     ETFHoldingsSnapshot,
     ETFProfile,
 )
-from app.models.instrument import Instrument
+from app.models.instrument import EquityDetail, Instrument
 from app.models.instrument_identity import InstrumentIdentifier, InstrumentIdentifierType
 from app.providers import (
     ensure_data_source,
@@ -53,10 +53,15 @@ from app.schemas.etf_holdings import (
     ETFProfileOut,
     ETFUnresolvedHoldingOut,
 )
-from app.services.etf_holdings_adapters import CanonicalHoldingRow, infer_adapter_key
+from app.services.etf_holdings_adapters import (
+    CanonicalHoldingRow,
+    get_holdings_adapter,
+    infer_adapter_key,
+)
 from app.services.instrument_mastering import (
     ingest_provider_profile,
     register_identifier,
+    store_profile_snapshot,
 )
 
 ETF_HOLDINGS_INTERNAL_PROVIDER = "etf_holdings_internal"
@@ -64,6 +69,26 @@ ETF_HOLDINGS_INTERNAL_PROVIDER = "etf_holdings_internal"
 
 def _now() -> datetime:
     return datetime.now(UTC)
+
+
+def _visible_snapshot_conditions() -> list[Any]:
+    """Limit seeded browser reads to the deterministic holdings fixture.
+
+    The application database may retain canonical/provider snapshots from
+    earlier refreshes.  During a seeded visual run those rows must not win
+    latest-date selection or leak into derived lists.  Outside seeded runs the
+    normal provider-neutral visibility remains unchanged.
+    """
+    if not settings.E2E_SEED_MARKET_DATA:
+        return []
+    return [
+        ETFHoldingsSnapshot.provenance == "controlled_fixture",
+        ETFHoldingsSnapshot.source_provider == "e2e_reference",
+    ]
+
+
+def _apply_snapshot_visibility(statement):
+    return statement.where(*_visible_snapshot_conditions())
 
 
 def _hash_payload(payload: Any) -> str:
@@ -376,7 +401,93 @@ async def _provider_enriched_constituent_instrument(
                     source=source_provider,
                 ),
             )
+    # `ingest_provider_profile` stores the SEC SIC-derived classification on a
+    # newly materialised constituent. Existing identity-only instruments are
+    # handled by the bounded enrichment above.
     return instrument, Decimal("0.9000"), "Matched through provider-backed enrichment."
+
+
+async def _enrich_existing_constituent_classification(
+    db: AsyncSession,
+    instrument: Instrument,
+    *,
+    reported_name: str | None,
+    source_provider: str,
+) -> None:
+    """Fill missing issuer classification without changing canonical identity.
+
+    ETF issuer files provide membership, but commonly omit an industry.  When a
+    resolved constituent lacks one, use the configured free metadata provider
+    (SEC EDGAR by default) to persist its source-labelled classification.  This
+    is deliberately bounded to missing fields and never replaces an existing
+    classification or infers an industry from the security name.
+    """
+
+    detail = (
+        await db.execute(
+            select(EquityDetail).where(EquityDetail.instrument_id == instrument.id)
+        )
+    ).scalar_one_or_none()
+    # This enrichment exists to fill the industry field used by the
+    # top-down taxonomy.  A sector-only detail is not sufficient: treating it
+    # as complete would preserve the very sector->industry promotion bug this
+    # path is supposed to avoid.
+    if detail is not None and detail.industry:
+        return
+
+    symbol = _normalize_symbol(instrument.symbol)
+    if not symbol or _is_placeholder_symbol(symbol):
+        return
+    try:
+        profile = get_default_metadata_provider().get_instrument_profile(symbol)
+    except Exception:
+        return
+    if profile is None or not _constituent_quote_type_allowed(profile):
+        return
+    if reported_name and not _names_look_compatible(reported_name, profile.name):
+        return
+
+    industry = str(profile.extra.get("industry") or "").strip()
+    if not industry:
+        return
+    if detail is None:
+        detail = EquityDetail(instrument_id=instrument.id)
+        db.add(detail)
+    observed_at = _now().isoformat()
+    classification_system = profile.extra.get("classification_system") or "provider_native"
+    detail.industry = industry
+    field_provenance = {
+        **(detail.field_provenance or {}),
+        "industry": {
+            "source": profile.provider,
+            "observed_at": observed_at,
+            "selection_reason": "free metadata enrichment for ETF constituent classification",
+            "classification_system": classification_system,
+            "source_provider": source_provider,
+        },
+    }
+    sector = str(profile.extra.get("sector") or "").strip()
+    if sector and not detail.sector:
+        detail.sector = sector
+        field_provenance["sector"] = {
+            "source": profile.provider,
+            "observed_at": observed_at,
+            "selection_reason": "free metadata enrichment for ETF constituent classification",
+            "classification_system": classification_system,
+            "source_provider": source_provider,
+        }
+    detail.field_provenance = field_provenance
+    # Retain the immutable raw provider observation as well as the current
+    # flattened detail.  Historical reads can then select the latest profile
+    # known by their cutoff instead of treating today's metadata as timeless.
+    await store_profile_snapshot(
+        db,
+        instrument,
+        profile,
+        observed_at=datetime.fromisoformat(observed_at),
+        fetched_at=datetime.fromisoformat(observed_at),
+    )
+    await db.flush()
 
 
 async def _load_instrument_by_symbol_or_id(
@@ -440,19 +551,31 @@ async def ensure_etf_profile(
         if value is not None:
             setattr(profile, field, value)
 
-    probe = infer_adapter_key(
-        issuer=profile.issuer,
-        fund_family=profile.fund_family,
-        name=instrument.name,
-        product_url=profile.product_url,
-        provider_aliases=profile.provider_aliases,
-    )
-    if profile.adapter_key in (None, "", "unresolved") or probe.status != "holdings_adapter_unresolved":
-        profile.adapter_key = probe.adapter_key
-        profile.adapter_status = probe.status
-        profile.adapter_confidence = probe.confidence
-    elif profile.adapter_status in (None, "pending"):
-        profile.adapter_status = "unresolved"
+    explicit_adapter = str(
+        (profile.provider_aliases or {}).get("holdings_adapter") or ""
+    ).strip().lower()
+    if explicit_adapter and get_holdings_adapter(explicit_adapter) is not None:
+        # Curated issuer metadata is stronger than an older name/fund-family
+        # inference (for example, an SMH profile carrying an obsolete ARK
+        # classification). Preserve the explicit route on every hydration,
+        # including the ingest path used by scheduled refreshes.
+        profile.adapter_key = explicit_adapter
+        profile.adapter_status = "candidate"
+        profile.adapter_confidence = Decimal("0.9000")
+    else:
+        probe = infer_adapter_key(
+            issuer=profile.issuer,
+            fund_family=profile.fund_family,
+            name=instrument.name,
+            product_url=profile.product_url,
+            provider_aliases=profile.provider_aliases,
+        )
+        if profile.adapter_key in (None, "", "unresolved") or probe.status != "holdings_adapter_unresolved":
+            profile.adapter_key = probe.adapter_key
+            profile.adapter_status = probe.status
+            profile.adapter_confidence = probe.confidence
+        elif profile.adapter_status in (None, "pending"):
+            profile.adapter_status = "unresolved"
     return profile
 
 
@@ -561,6 +684,7 @@ async def _resolve_or_create_constituent(
     row: CanonicalHoldingRow,
     *,
     source_provider: str,
+    allow_provider_enrichment: bool = True,
 ) -> tuple[Instrument | None, Decimal | None, str | None]:
     if row.row_type != "security" or row.holding_type in {"cash", "currency", "collateral"}:
         return None, None, None
@@ -583,7 +707,14 @@ async def _resolve_or_create_constituent(
         if found is not None and not _names_look_compatible(row.name, found.name):
             found = None
         if found is not None:
-            if _is_placeholder_symbol(found.symbol):
+            if allow_provider_enrichment:
+                await _enrich_existing_constituent_classification(
+                    db,
+                    found,
+                    reported_name=row.name,
+                    source_provider=source_provider,
+                )
+            if allow_provider_enrichment and _is_placeholder_symbol(found.symbol):
                 promoted, promoted_confidence, promoted_note = (
                     await _provider_enriched_constituent_instrument(
                         db,
@@ -608,7 +739,14 @@ async def _resolve_or_create_constituent(
             )
         ).scalar_one_or_none()
         if found is not None:
-            if _is_placeholder_symbol(found.symbol):
+            if allow_provider_enrichment:
+                await _enrich_existing_constituent_classification(
+                    db,
+                    found,
+                    reported_name=row.name,
+                    source_provider=source_provider,
+                )
+            if allow_provider_enrichment and _is_placeholder_symbol(found.symbol):
                 promoted, promoted_confidence, promoted_note = (
                     await _provider_enriched_constituent_instrument(
                         db,
@@ -625,15 +763,16 @@ async def _resolve_or_create_constituent(
                     )
             return found, Decimal("0.8000"), "Matched by canonical symbol."
 
-    enriched_instrument, enriched_confidence, enriched_note = (
-        await _provider_enriched_constituent_instrument(
-            db,
-            row,
-            source_provider=source_provider,
+    if allow_provider_enrichment:
+        enriched_instrument, enriched_confidence, enriched_note = (
+            await _provider_enriched_constituent_instrument(
+                db,
+                row,
+                source_provider=source_provider,
+            )
         )
-    )
-    if enriched_instrument is not None:
-        return enriched_instrument, enriched_confidence, enriched_note
+        if enriched_instrument is not None:
+            return enriched_instrument, enriched_confidence, enriched_note
 
     if not symbol and not row.name:
         return None, None, "No symbol/name/identifier was available to resolve this holding."
@@ -682,7 +821,7 @@ async def _resolve_or_create_constituent(
                 ),
             )
 
-    if symbol and settings.APP_ENV != "test":
+    if allow_provider_enrichment and symbol and settings.APP_ENV != "test":
         for provider in get_identifier_providers():
             try:
                 for record in provider.fetch_stable_identifiers(symbol) or []:
@@ -704,6 +843,7 @@ async def _reconcile_existing_snapshot_rows(
     snapshot: ETFHoldingsSnapshot,
     canonical_rows: list[CanonicalHoldingRow],
     source_provider: str,
+    allow_provider_enrichment: bool = True,
 ) -> ETFHoldingsSnapshot:
     existing_rows = {row.source_row_hash: row for row in snapshot.rows}
     resolved = 0
@@ -723,12 +863,20 @@ async def _reconcile_existing_snapshot_rows(
             not existing.is_resolved
             or existing.constituent_instrument is None
             or _is_placeholder_symbol(existing.constituent_instrument.symbol)
+            or (
+                existing.constituent_instrument is not None
+                and (
+                    existing.constituent_instrument.equity_detail is None
+                    or not existing.constituent_instrument.equity_detail.industry
+                )
+            )
         )
         if needs_reconcile:
             instrument, confidence, note = await _resolve_or_create_constituent(
                 db,
                 canonical_row,
                 source_provider=source_provider,
+                allow_provider_enrichment=allow_provider_enrichment,
             )
             existing.constituent_instrument_id = instrument.id if instrument is not None else None
             existing.is_resolved = instrument is not None
@@ -790,6 +938,7 @@ async def ingest_holdings_snapshot(
     raw_payload_json: dict | None = None,
     legal_metadata: dict | None = None,
     notes: str | None = None,
+    allow_provider_enrichment: bool = True,
 ) -> ETFHoldingsSnapshot:
     profile = await ensure_etf_profile(db, etf_instrument, legal_metadata=legal_metadata)
     canonical_rows = [
@@ -855,7 +1004,7 @@ async def ingest_holdings_snapshot(
 
     existing = (
         await db.execute(
-            select(ETFHoldingsSnapshot)
+            _apply_snapshot_visibility(select(ETFHoldingsSnapshot))
             .options(selectinload(ETFHoldingsSnapshot.rows).selectinload(ETFHolding.constituent_instrument))
             .where(
                 ETFHoldingsSnapshot.etf_profile_id == profile.id,
@@ -872,6 +1021,7 @@ async def ingest_holdings_snapshot(
             snapshot=existing,
             canonical_rows=canonical_rows,
             source_provider=source_provider,
+            allow_provider_enrichment=allow_provider_enrichment,
         )
 
     snapshot = ETFHoldingsSnapshot(
@@ -904,7 +1054,10 @@ async def ingest_holdings_snapshot(
     unresolved = 0
     for idx, row in enumerate(canonical_rows, start=1):
         instrument, confidence, resolution_note = await _resolve_or_create_constituent(
-            db, row, source_provider=source_provider
+            db,
+            row,
+            source_provider=source_provider,
+            allow_provider_enrichment=allow_provider_enrichment,
         )
         is_resolved = instrument is not None
         if is_resolved:
@@ -969,6 +1122,9 @@ def _holding_needs_reconcile(row: ETFHolding) -> bool:
         return True
     if not _names_look_compatible(row.reported_name, row.constituent_instrument.name):
         return True
+    detail = row.constituent_instrument.equity_detail
+    if detail is None or not detail.industry:
+        return True
     if (
         not _normalize_holding_identifier_value(row.cusip)
         and not _normalize_holding_identifier_value(row.isin)
@@ -1003,16 +1159,34 @@ def _holding_to_canonical_row(row: ETFHolding) -> CanonicalHoldingRow:
 async def reconcile_snapshot_constituents(
     db: AsyncSession,
     snapshot: ETFHoldingsSnapshot,
+    *,
+    max_classification_enrichment: int = 32,
 ) -> ETFHoldingsSnapshot:
     resolved = 0
     unresolved = 0
     source_provider = snapshot.source_provider or ETF_HOLDINGS_INTERNAL_PROVIDER
+    classification_attempts = 0
 
     for row in snapshot.rows:
         row.cusip = _normalize_holding_identifier_value(row.cusip)
         row.isin = _normalize_holding_identifier_value(row.isin)
         row.sedol = _normalize_holding_identifier_value(row.sedol)
-        if _holding_needs_reconcile(row):
+        needs_reconcile = _holding_needs_reconcile(row)
+        missing_classification = bool(
+            row.constituent_instrument is not None
+            and (
+                row.constituent_instrument.equity_detail is None
+                or not row.constituent_instrument.equity_detail.industry
+            )
+        )
+        if missing_classification and classification_attempts >= max_classification_enrichment:
+            # Keep this snapshot usable and honest. A later scheduled pass can
+            # continue the bounded enrichment without making an interactive
+            # bootstrap fan out across hundreds of SEC submissions.
+            needs_reconcile = False
+        if needs_reconcile:
+            if missing_classification:
+                classification_attempts += 1
             instrument, confidence, note = await _resolve_or_create_constituent(
                 db,
                 _holding_to_canonical_row(row),
@@ -1124,6 +1298,7 @@ async def get_latest_snapshot(
     symbol_or_id: str | int,
     *,
     include_holdings: bool = True,
+    include_controlled_fixture: bool = True,
 ) -> ETFHoldingsSnapshotOut | None:
     instrument = await _load_instrument_by_symbol_or_id(db, symbol_or_id)
     if instrument is None:
@@ -1134,17 +1309,25 @@ async def get_latest_snapshot(
     options = [selectinload(ETFHoldingsSnapshot.etf_profile)]
     if include_holdings:
         options.append(selectinload(ETFHoldingsSnapshot.rows).selectinload(ETFHolding.constituent_instrument))
+    statement = (
+        _apply_snapshot_visibility(select(ETFHoldingsSnapshot))
+        .options(*options)
+        .where(ETFHoldingsSnapshot.etf_profile_id == profile.id)
+    )
+    if not include_controlled_fixture:
+        statement = statement.where(
+            or_(
+                ETFHoldingsSnapshot.provenance != "controlled_fixture",
+                ETFHoldingsSnapshot.source_provider != "e2e_reference",
+            )
+        )
     snapshot = (
         await db.execute(
-            select(ETFHoldingsSnapshot)
-            .options(*options)
-            .where(ETFHoldingsSnapshot.etf_profile_id == profile.id)
-            .order_by(
+            statement.order_by(
                 ETFHoldingsSnapshot.composition_date.desc(),
                 ETFHoldingsSnapshot.known_at.desc().nullslast(),
                 ETFHoldingsSnapshot.id.desc(),
-            )
-            .limit(1)
+            ).limit(1)
         )
     ).scalar_one_or_none()
     if snapshot is None:
@@ -1288,7 +1471,7 @@ async def _resolve_snapshot_entity(
     index: int = 0,
 ) -> ETFHoldingsSnapshot | None:
     stmt = (
-        select(ETFHoldingsSnapshot)
+        _apply_snapshot_visibility(select(ETFHoldingsSnapshot))
         .options(selectinload(ETFHoldingsSnapshot.rows).selectinload(ETFHolding.constituent_instrument))
         .where(ETFHoldingsSnapshot.etf_profile_id == profile_id)
     )
@@ -1348,8 +1531,8 @@ async def get_holdings_page(
     if profile is None:
         return None
 
-    snapshot_stmt = select(ETFHoldingsSnapshot).where(
-        ETFHoldingsSnapshot.etf_profile_id == profile.id
+    snapshot_stmt = _apply_snapshot_visibility(
+        select(ETFHoldingsSnapshot).where(ETFHoldingsSnapshot.etf_profile_id == profile.id)
     )
     if snapshot_id is not None:
         snapshot_stmt = snapshot_stmt.where(ETFHoldingsSnapshot.id == snapshot_id)
@@ -1379,7 +1562,9 @@ async def get_holdings_page(
             )
             if snapshot is None:
                 return None
-            snapshot_stmt = select(ETFHoldingsSnapshot).where(ETFHoldingsSnapshot.id == snapshot.id)
+            snapshot_stmt = _apply_snapshot_visibility(
+                select(ETFHoldingsSnapshot).where(ETFHoldingsSnapshot.id == snapshot.id)
+            )
     else:
         snapshot_stmt = snapshot_stmt.order_by(
             ETFHoldingsSnapshot.composition_date.desc(),
@@ -1707,7 +1892,7 @@ async def get_holdings_transition_timeline(
         return None
 
     stmt = (
-        select(ETFHoldingsSnapshot)
+        _apply_snapshot_visibility(select(ETFHoldingsSnapshot))
         .options(selectinload(ETFHoldingsSnapshot.rows).selectinload(ETFHolding.constituent_instrument))
         .where(ETFHoldingsSnapshot.etf_profile_id == profile.id)
         .order_by(ETFHoldingsSnapshot.composition_date.asc(), ETFHoldingsSnapshot.id.asc())
@@ -1914,6 +2099,7 @@ async def _expand_overlap_matrix_symbols(
         .join(ETFHoldingsSnapshot, ETFHoldingsSnapshot.etf_profile_id == ETFProfile.id)
         .options(selectinload(ETFProfile.instrument))
     )
+    stmt = stmt.where(*_visible_snapshot_conditions())
     if issuer:
         stmt = stmt.where(ETFProfile.issuer.ilike(f"%{issuer.strip()}%"))
     if fund_family:
@@ -2075,8 +2261,9 @@ async def list_available_dates(db: AsyncSession, symbol_or_id: str | int) -> lis
         return []
     rows = (
         await db.execute(
-            select(ETFHoldingsSnapshot)
-            .where(ETFHoldingsSnapshot.etf_profile_id == profile.id)
+            _apply_snapshot_visibility(
+                select(ETFHoldingsSnapshot).where(ETFHoldingsSnapshot.etf_profile_id == profile.id)
+            )
             .order_by(ETFHoldingsSnapshot.composition_date.desc())
         )
     ).scalars().all()
@@ -2111,7 +2298,7 @@ async def get_nearest_snapshot(
     if profile is None:
         return None
     stmt = (
-        select(ETFHoldingsSnapshot)
+        _apply_snapshot_visibility(select(ETFHoldingsSnapshot))
         .options(selectinload(ETFHoldingsSnapshot.rows).selectinload(ETFHolding.constituent_instrument))
         .where(ETFHoldingsSnapshot.etf_profile_id == profile.id)
     )
@@ -2154,7 +2341,7 @@ async def get_unresolved_holdings(
     if profile is None:
         return []
     stmt = (
-        select(ETFHolding, ETFHoldingsSnapshot)
+        _apply_snapshot_visibility(select(ETFHolding, ETFHoldingsSnapshot))
         .join(ETFHoldingsSnapshot, ETFHoldingsSnapshot.id == ETFHolding.snapshot_id)
         .where(
             ETFHoldingsSnapshot.etf_profile_id == profile.id,
@@ -2194,7 +2381,7 @@ async def get_constituent_timeline(
         return []
     rows = (
         await db.execute(
-            select(ETFHolding, ETFHoldingsSnapshot)
+            _apply_snapshot_visibility(select(ETFHolding, ETFHoldingsSnapshot))
             .join(ETFHoldingsSnapshot, ETFHoldingsSnapshot.id == ETFHolding.snapshot_id)
             .where(
                 ETFHoldingsSnapshot.etf_profile_id == profile.id,
@@ -2244,7 +2431,7 @@ async def get_weight_evolution(
         return None
 
     stmt = (
-        select(ETFHoldingsSnapshot)
+        _apply_snapshot_visibility(select(ETFHoldingsSnapshot))
         .options(selectinload(ETFHoldingsSnapshot.rows).selectinload(ETFHolding.constituent_instrument))
         .where(ETFHoldingsSnapshot.etf_profile_id == profile.id)
         .order_by(ETFHoldingsSnapshot.composition_date.asc(), ETFHoldingsSnapshot.id.asc())
@@ -2382,8 +2569,9 @@ async def coverage_summary(
             continue
         snapshots = (
             await db.execute(
-                select(ETFHoldingsSnapshot)
-                .where(ETFHoldingsSnapshot.etf_profile_id == profile.id)
+                _apply_snapshot_visibility(
+                    select(ETFHoldingsSnapshot).where(ETFHoldingsSnapshot.etf_profile_id == profile.id)
+                )
                 .order_by(ETFHoldingsSnapshot.composition_date.asc())
             )
         ).scalars().all()

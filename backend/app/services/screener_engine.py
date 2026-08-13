@@ -679,11 +679,16 @@ async def queue_python_screener_run(
         await db.execute(select(Instrument).where(Instrument.id.in_(instrument_ids)))
     ).scalars().all()
     symbols = [instrument.symbol for instrument in instruments]
-    manifest = await _materialize_declared_dataset(db, {}, {"symbols": symbols})
+    manifest = await _materialize_declared_dataset(
+        db,
+        {},
+        {"symbols": symbols, "timeframe": screener.timeframe.value, "session": "regular"},
+        lookback=version.lookback,
+    )
     run = ResearchRun(
         user_id=screener.user_id,
         code_version_id=version.id,
-        run_config={"symbols": symbols, "screener_id": screener.id},
+        run_config={"symbols": symbols, "screener_id": screener.id, "timeframe": screener.timeframe.value},
         dataset_manifest=manifest,
     )
     run.code_version = version
@@ -715,7 +720,17 @@ async def collect_python_screener_result(
     if not isinstance(run_id, int) or result_data.get("_status") in {"completed", "failed", "canceled"}:
         return False
 
-    run = (await db.execute(select(ResearchRun).where(ResearchRun.id == run_id))).scalar_one_or_none()
+    # Result collection appends runner artifacts synchronously. Eager-load the
+    # relationship here because an async SQLAlchemy session cannot perform a
+    # lazy load from that synchronous file-protocol helper (it raises
+    # MissingGreenlet and turns a handled scan refresh into HTTP 500).
+    run = (
+        await db.execute(
+            select(ResearchRun)
+            .options(selectinload(ResearchRun.artifacts))
+            .where(ResearchRun.id == run_id)
+        )
+    ).scalar_one_or_none()
     if run is None:
         result.result_data = {**result_data, "_status": "failed"}
         result.error = "Isolated Python scan run is unavailable"

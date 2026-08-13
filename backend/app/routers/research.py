@@ -28,8 +28,13 @@ router = APIRouter(prefix="/research", tags=["research"])
 # bounded independently from a single-instrument study: enough daily history for
 # normal column/condition lookbacks, but never an unbounded 10,000 × full-history
 # JSON payload handed to the isolated worker.
-MAX_BATCH_SYMBOLS = 10_000
+# The workstation's canonical US universe is already larger than 10,000
+# active listings. Keep batch materialisation bounded, but do not reject a
+# legitimate "All instruments" EasyScan merely because the current security
+# master has crossed the old 10k threshold.
+MAX_BATCH_SYMBOLS = 25_000
 BATCH_HISTORY_LIMIT = 500
+MAX_HISTORY_LIMIT = 5_000
 BATCH_QUERY_SIZE = 500
 RESEARCH_ADJUSTMENTS = {"split_adjusted": True, "raw": False}
 
@@ -148,6 +153,8 @@ def _bar_series(bars: list[OHLCVBar]) -> dict[str, list[float | None] | list[str
 
 
 def _instrument_metadata(instrument: Instrument) -> dict[str, object | None]:
+    equity = instrument.equity_detail
+    stats = instrument.stats
     return {
         "instrument_id": instrument.id,
         "symbol": instrument.symbol,
@@ -157,6 +164,21 @@ def _instrument_metadata(instrument: Instrument) -> dict[str, object | None]:
         "is_synthetic": instrument.is_synthetic,
         "primary_identifier_type": instrument.primary_identifier_type,
         "primary_identifier_value": instrument.primary_identifier_value,
+        # These are deliberately flattened into the prepared, read-only
+        # metadata object so visual Python conditions can compare the same
+        # supported fields as the legacy condition editor without opening a
+        # second data path in the sandbox.
+        "sector": equity.sector if equity else None,
+        "industry": equity.industry if equity else None,
+        "country": equity.country if equity else None,
+        "exchange_mic": equity.exchange_mic if equity else None,
+        "market_cap_tier": equity.market_cap_tier if equity else None,
+        "employees": equity.employees if equity else None,
+        "market_cap": float(stats.market_cap) if stats and stats.market_cap is not None else None,
+        "pe_ratio": float(stats.pe_ratio) if stats and stats.pe_ratio is not None else None,
+        "beta": float(stats.beta) if stats and stats.beta is not None else None,
+        "avg_volume_30d": float(stats.avg_volume_30d) if stats and stats.avg_volume_30d is not None else None,
+        "dividend_yield": float(stats.dividend_yield) if stats and stats.dividend_yield is not None else None,
     }
 
 
@@ -188,9 +210,9 @@ async def _load_instrument_bars(
 
 
 async def _materialize_instrument_dataset(
-    db: AsyncSession, instrument: Instrument, manifest: dict, options: dict
+    db: AsyncSession, instrument: Instrument, manifest: dict, options: dict, *, history_limit: int = MAX_HISTORY_LIMIT
 ) -> dict:
-    bars = await _load_instrument_bars(db, instrument, options, limit=5000)
+    bars = await _load_instrument_bars(db, instrument, options, limit=history_limit)
     return {
         **_dataset_manifest_fields(manifest, options),
         "symbol": instrument.symbol,
@@ -202,13 +224,17 @@ async def _materialize_instrument_dataset(
 
 
 async def _materialize_benchmark_dataset(
-    db: AsyncSession, options: dict
+    db: AsyncSession, options: dict, *, history_limit: int = MAX_HISTORY_LIMIT
 ) -> dict | None:
     benchmark = options["benchmark"]
     if not benchmark:
         return None
     instrument = (
-        await db.execute(select(Instrument).where(Instrument.symbol == benchmark))
+        await db.execute(
+            select(Instrument)
+            .options(selectinload(Instrument.equity_detail), selectinload(Instrument.stats))
+            .where(Instrument.symbol == benchmark)
+        )
     ).scalar_one_or_none()
     if instrument is None:
         return {
@@ -216,7 +242,7 @@ async def _materialize_benchmark_dataset(
             "symbol": benchmark,
             "reason": "benchmark_instrument_not_found",
         }
-    bars = await _load_instrument_bars(db, instrument, options, limit=5000)
+    bars = await _load_instrument_bars(db, instrument, options, limit=history_limit)
     if not bars:
         return {
             "status": "unavailable",
@@ -238,10 +264,21 @@ async def _materialize_benchmark_dataset(
     }
 
 
-async def _materialize_declared_dataset(db: AsyncSession, manifest: dict, run_config: dict) -> dict:
+async def _materialize_declared_dataset(
+    db: AsyncSession, manifest: dict, run_config: dict, *, lookback: int | None = None
+) -> dict:
     """Materialize only an explicitly declared canonical local dataset for the runner."""
     options = _dataset_options(run_config, manifest)
-    benchmark_dataset = await _materialize_benchmark_dataset(db, options)
+    if lookback is not None and (isinstance(lookback, bool) or not isinstance(lookback, int) or lookback < 1):
+        raise HTTPException(status_code=422, detail={"code": "invalid_code_lookback", "lookback": lookback})
+    if lookback is not None and lookback >= MAX_HISTORY_LIMIT:
+        raise HTTPException(
+            status_code=422,
+            detail={"code": "code_lookback_exceeds_dataset_limit", "lookback": lookback, "maximum": MAX_HISTORY_LIMIT - 1},
+        )
+    history_limit = max(BATCH_HISTORY_LIMIT, (lookback + 1) if lookback is not None else BATCH_HISTORY_LIMIT)
+    benchmark_history_limit = max(MAX_HISTORY_LIMIT if lookback is None else history_limit, history_limit)
+    benchmark_dataset = await _materialize_benchmark_dataset(db, options, history_limit=benchmark_history_limit)
     symbols = run_config.get("symbols")
     if isinstance(symbols, list):
         requested = list(dict.fromkeys(str(item).strip().upper() for item in symbols if str(item).strip()))
@@ -264,7 +301,9 @@ async def _materialize_declared_dataset(db: AsyncSession, manifest: dict, run_co
             instruments.extend(
                 (
                     await db.execute(
-                        select(Instrument).where(
+                        select(Instrument)
+                        .options(selectinload(Instrument.equity_detail), selectinload(Instrument.stats))
+                        .where(
                             Instrument.symbol.in_(requested[offset : offset + BATCH_QUERY_SIZE])
                         )
                     )
@@ -303,7 +342,7 @@ async def _materialize_declared_dataset(db: AsyncSession, manifest: dict, run_co
                 await db.execute(
                     select(OHLCVBar)
                     .join(ranked_bars, OHLCVBar.id == ranked_bars.c.bar_id)
-                    .where(ranked_bars.c.bar_rank <= BATCH_HISTORY_LIMIT)
+                    .where(ranked_bars.c.bar_rank <= history_limit)
                     .order_by(OHLCVBar.instrument_id, OHLCVBar.ts)
                 )
             ).scalars().all()
@@ -342,7 +381,7 @@ async def _materialize_declared_dataset(db: AsyncSession, manifest: dict, run_co
             **_dataset_manifest_fields(manifest, options),
             "datasets": datasets,
             "requested_symbols": requested,
-            "batch_history_limit": BATCH_HISTORY_LIMIT,
+            "batch_history_limit": history_limit,
             "exclusions": exclusions,
         }
         if benchmark_dataset is not None:
@@ -352,13 +391,19 @@ async def _materialize_declared_dataset(db: AsyncSession, manifest: dict, run_co
     if not symbol:
         return dict(manifest)
     instrument = (
-        await db.execute(select(Instrument).where(Instrument.symbol == symbol))
+        await db.execute(
+            select(Instrument)
+            .options(selectinload(Instrument.equity_detail), selectinload(Instrument.stats))
+            .where(Instrument.symbol == symbol)
+        )
     ).scalar_one_or_none()
     if instrument is None:
         raise HTTPException(
             status_code=422, detail={"code": "declared_instrument_not_found", "symbol": symbol}
         )
-    result = await _materialize_instrument_dataset(db, instrument, manifest, options)
+    result = await _materialize_instrument_dataset(
+        db, instrument, manifest, options, history_limit=benchmark_history_limit
+    )
     if benchmark_dataset is not None:
         result["benchmark_coverage"] = benchmark_dataset
         if benchmark_dataset.get("status") == "ready":
@@ -391,7 +436,7 @@ async def create_run(
         raise HTTPException(status_code=422, detail={"code": "parameter_validation_failed", "errors": parameter_errors})
     run_config["parameters"] = parameters
     dataset_manifest = await _materialize_declared_dataset(
-        db, body.dataset_manifest, run_config
+        db, body.dataset_manifest, run_config, lookback=version.lookback
     )
     run = ResearchRun(
         user_id=current_user.id,
@@ -418,6 +463,7 @@ async def create_run(
 @router.get("/runs", response_model=list[ResearchRunOut])
 async def list_runs(
     limit: int = 25,
+    include_artifacts: bool = False,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -440,7 +486,27 @@ async def list_runs(
         collect_research_result(run)
         run.progress = read_research_progress(run.id)
     await db.flush()
-    return runs
+    # Result payloads can contain large series/tables. The workstation list only
+    # needs status and artifact counts; full payloads remain available through
+    # /runs/{id}. Keep an explicit opt-in for older clients that need list payloads.
+    return [
+        {
+            "id": run.id,
+            "code_version_id": run.code_version_id,
+            "status": run.status,
+            "run_config": run.run_config if include_artifacts else {},
+            "dataset_manifest": run.dataset_manifest if include_artifacts else {},
+            "reproducibility_hash": run.reproducibility_hash,
+            "diagnostics": run.diagnostics if include_artifacts else [],
+            "warnings": run.warnings if include_artifacts else [],
+            "resource_usage": run.resource_usage if include_artifacts else {},
+            "logs": run.logs if include_artifacts else "",
+            "progress": run.progress if include_artifacts else {},
+            "artifact_count": len(run.artifacts),
+            "artifacts": run.artifacts if include_artifacts else [],
+        }
+        for run in runs
+    ]
 
 
 @router.get("/runs/{run_id}", response_model=ResearchRunOut)
@@ -504,7 +570,7 @@ async def rerun(
     """Queue a new immutable run using an exact snapshot or newly materialized local data."""
     source = (
         await db.execute(
-            select(ResearchRun).where(
+            select(ResearchRun).options(selectinload(ResearchRun.code_version)).where(
                 ResearchRun.id == run_id, ResearchRun.user_id == current_user.id
             )
         )
@@ -514,7 +580,7 @@ async def rerun(
     manifest = (
         dict(source.dataset_manifest)
         if snapshot
-        else await _materialize_declared_dataset(db, {}, dict(source.run_config))
+        else await _materialize_declared_dataset(db, {}, dict(source.run_config), lookback=source.code_version.lookback if source.code_version else None)
     )
     run = ResearchRun(
         user_id=current_user.id,

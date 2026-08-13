@@ -4,12 +4,15 @@ from decimal import Decimal
 import pytest
 from sqlalchemy import select
 
+from app.config import settings
 from app.models.etf_holdings import ETFHoldingsSnapshot
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.workstation import MarketGroup, MarketGroupMember
 from app.routers.analysis import (
     _calendar_year_cells,
+    _gauge_exclusion_warnings,
     _group_members_at,
+    _group_membership_version,
     _group_provenance,
     _is_known_at,
     _mean,
@@ -17,9 +20,10 @@ from app.routers.analysis import (
     _rotation_state,
     _sample_aligned_points,
     _truncate_bars_at,
+    _volume_ratio_50,
     _wire_datetime,
 )
-from app.routers.market_groups import _holdings_snapshot_at
+from app.routers.market_groups import _holdings_snapshot_at, holdings_snapshot_source_filter
 
 
 def _bar(instrument_id: int, year: int, month: int, close: str) -> OHLCVBar:
@@ -35,6 +39,17 @@ def _bar(instrument_id: int, year: int, month: int, close: str) -> OHLCVBar:
         volume=Decimal("100"),
         is_adjusted=True,
     )
+
+
+def test_volume_ratio_returns_structured_warning_for_missing_provider_volume():
+    bars = [_bar(7, 2026, 1, str(100 + index)) for index in range(51)]
+    bars[-1].volume = None
+
+    value, warning = _volume_ratio_50(bars, 7)
+
+    assert value is None
+    assert warning is not None
+    assert warning.code == "missing_volume"
 
 
 def test_calendar_year_cells_are_non_forward_filled_and_observed_at_year_end():
@@ -87,6 +102,29 @@ def test_point_in_time_membership_accepts_unknown_or_prior_versions_only():
     assert not _is_known_at(datetime(2024, 3, 11, tzinfo=UTC), as_of)
 
 
+def test_seeded_holdings_reads_are_explicitly_fixture_scoped(monkeypatch):
+    # The controlled mode must select the fixture source, not merely allow it
+    # alongside a newer canonical disclosure in a reused database volume.
+    monkeypatch.setattr(settings, "E2E_SEED_MARKET_DATA", True)
+    seeded_sql = str(
+        holdings_snapshot_source_filter(select(ETFHoldingsSnapshot)).compile(
+            compile_kwargs={"literal_binds": True}
+        )
+    )
+    assert "controlled_fixture" in seeded_sql
+    assert "e2e_reference" in seeded_sql
+
+    monkeypatch.setattr(settings, "E2E_SEED_MARKET_DATA", False)
+    canonical_sql = str(
+        holdings_snapshot_source_filter(select(ETFHoldingsSnapshot)).compile(
+            compile_kwargs={"literal_binds": True}
+        )
+    )
+    assert "controlled_fixture" in canonical_sql
+    assert "e2e_reference" in canonical_sql
+    assert "!=" in canonical_sql
+
+
 def test_point_in_time_membership_normalises_legacy_naive_timestamps():
     as_of = datetime(2024, 3, 10, tzinfo=UTC)
     assert _is_known_at(datetime(2024, 3, 9), as_of)
@@ -95,7 +133,12 @@ def test_point_in_time_membership_normalises_legacy_naive_timestamps():
 
 def test_group_members_and_bars_are_cut_at_the_requested_time():
     as_of = datetime(2024, 3, 10, tzinfo=UTC)
-    group = MarketGroup(stable_key="test", group_type="test", name="Test")
+    group = MarketGroup(
+        stable_key="test",
+        group_type="test",
+        name="Test",
+        known_at=datetime(2024, 1, 1, tzinfo=UTC),
+    )
     group.members = [
         MarketGroupMember(
             instrument_id=7,
@@ -123,6 +166,43 @@ def test_group_members_reject_a_group_unknown_at_the_requested_time():
     )
     with pytest.raises(Exception, match="market_group_not_known_at"):
         _group_members_at(group, datetime(2024, 3, 10, tzinfo=UTC))
+
+
+def test_group_members_exclude_rows_without_known_at_from_point_in_time_views():
+    as_of = datetime(2024, 3, 10, tzinfo=UTC)
+    group = MarketGroup(
+        stable_key="known-membership",
+        group_type="test",
+        name="Known membership",
+        known_at=datetime(2024, 1, 1, tzinfo=UTC),
+    )
+    group.members = [
+        MarketGroupMember(
+            instrument_id=7,
+            effective_at=datetime(2024, 1, 1, tzinfo=UTC),
+            known_at=datetime(2024, 1, 2, tzinfo=UTC),
+        ),
+        MarketGroupMember(
+            instrument_id=8,
+            effective_at=datetime(2024, 1, 1, tzinfo=UTC),
+            known_at=None,
+        ),
+    ]
+
+    assert [member.instrument_id for member in _group_members_at(group, as_of)] == [7]
+
+
+def test_group_membership_version_changes_when_selected_membership_changes():
+    group = MarketGroup(stable_key="versioned", group_type="test", name="Versioned")
+    first = MarketGroupMember(instrument_id=7, position=0, known_at=datetime(2024, 1, 1, tzinfo=UTC))
+    second = MarketGroupMember(instrument_id=8, position=1, known_at=datetime(2024, 1, 1, tzinfo=UTC))
+
+    original = _group_membership_version(group, [first])
+    changed = _group_membership_version(group, [first, second])
+    reordered = _group_membership_version(group, [second, first])
+
+    assert original != changed
+    assert changed == reordered
 
 
 def test_industry_snapshot_cutoff_requires_known_at_provenance():
@@ -159,6 +239,15 @@ def test_analysis_helpers_preserve_utc_wire_format_and_empty_data_warnings():
     cells = _performance_cells([], instrument_id=7)
     assert set(cells) == {"1D", "1W", "1M", "3M", "6M", "YTD", "1Y"}
     assert all(cell.warning and cell.warning.code == "no_bars" for cell in cells.values())
+
+
+def test_market_gauge_normalizes_python_manifest_exclusion_lists():
+    warnings = _gauge_exclusion_warnings(
+        [{"instrument_id": 7, "code": "declared_history_unavailable", "message": "No bars"}]
+    )
+    assert len(warnings) == 1
+    assert warnings[0].instrument_id == 7
+    assert warnings[0].code == "declared_history_unavailable"
 
 
 def test_calendar_year_cells_require_two_nonzero_observations():

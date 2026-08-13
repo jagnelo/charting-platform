@@ -32,6 +32,9 @@ class DataSource(Base, TimestampMixin):
     provider_entitlements: Mapped[list["ProviderEntitlement"]] = relationship(
         back_populates="data_source"
     )
+    provider_entitlement_revisions: Mapped[list["ProviderEntitlementRevision"]] = relationship(
+        back_populates="entitlement_source", cascade="all, delete-orphan"
+    )
     provider_health_states: Mapped[list["ProviderHealthState"]] = relationship(
         back_populates="data_source"
     )

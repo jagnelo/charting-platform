@@ -88,6 +88,109 @@ class TestWatchlistsCrud:
         )
         assert res.status_code == 409
 
+    def test_transfer_item_copy_and_move_are_atomic(
+        self, client, auth_headers, db, user, watchlist, instrument, instrument_b
+    ):
+        from app.models.watchlist import WatchlistItem
+
+        target = Watchlist(user_id=user.id, name="Destination", position=watchlist.position + 1)
+        db.add(target)
+        db.flush()
+        first = WatchlistItem(
+            watchlist_id=watchlist.id,
+            instrument_id=instrument.id,
+            position=0,
+            flagged=True,
+            notes="keep this annotation",
+        )
+        second = WatchlistItem(watchlist_id=watchlist.id, instrument_id=instrument_b.id, position=1)
+        db.add_all([first, second])
+        db.flush()
+
+        copied = client.post(
+            f"/api/v1/watchlists/{target.id}/items/transfer",
+            headers=auth_headers,
+            json={"source_watchlist_id": watchlist.id, "item_id": first.id, "mode": "copy"},
+        )
+        assert copied.status_code == 200
+        assert copied.json()["instrument_id"] == instrument.id
+        assert copied.json()["flagged"] is True
+        assert copied.json()["symbol"] == instrument.symbol
+
+        moved = client.post(
+            f"/api/v1/watchlists/{target.id}/items/transfer",
+            headers=auth_headers,
+            json={"source_watchlist_id": watchlist.id, "item_id": second.id, "mode": "move"},
+        )
+        assert moved.status_code == 200
+        assert moved.json()["instrument_id"] == instrument_b.id
+        assert db.get(WatchlistItem, second.id) is None
+        target_items = (
+            db.query(WatchlistItem)
+            .filter(WatchlistItem.watchlist_id == target.id)
+            .order_by(WatchlistItem.position)
+            .all()
+        )
+        assert [item.instrument_id for item in target_items] == [instrument.id, instrument_b.id]
+
+    def test_transfer_item_rejects_locked_destination_and_invalid_mode(
+        self, client, auth_headers, db, user, watchlist, instrument
+    ):
+        from app.models.watchlist import WatchlistItem
+
+        target = Watchlist(user_id=user.id, name="Locked destination", position=watchlist.position + 1, is_locked=True)
+        db.add(target)
+        db.flush()
+        item = WatchlistItem(watchlist_id=watchlist.id, instrument_id=instrument.id, position=0)
+        db.add(item)
+        db.flush()
+
+        locked = client.post(
+            f"/api/v1/watchlists/{target.id}/items/transfer",
+            headers=auth_headers,
+            json={"source_watchlist_id": watchlist.id, "item_id": item.id, "mode": "copy"},
+        )
+        assert locked.status_code == 403
+        invalid = client.post(
+            f"/api/v1/watchlists/{watchlist.id}/items/transfer",
+            headers=auth_headers,
+            json={"source_watchlist_id": target.id, "item_id": item.id, "mode": "merge"},
+        )
+        assert invalid.status_code == 400
+
+    def test_transfer_items_batch_is_atomic_and_preserves_order_and_metadata(
+        self, client, auth_headers, db, user, watchlist, instrument, instrument_b
+    ):
+        from app.models.watchlist import WatchlistItem
+
+        target = Watchlist(user_id=user.id, name="Batch destination", position=watchlist.position + 1)
+        db.add(target)
+        db.flush()
+        first = WatchlistItem(watchlist_id=watchlist.id, instrument_id=instrument.id, position=0, flagged=True, notes="first")
+        second = WatchlistItem(watchlist_id=watchlist.id, instrument_id=instrument_b.id, position=1, notes="second")
+        db.add_all([first, second])
+        db.flush()
+
+        copied = client.post(
+            f"/api/v1/watchlists/{target.id}/items/transfer-batch",
+            headers=auth_headers,
+            json={"source_watchlist_id": watchlist.id, "item_ids": [second.id, first.id], "mode": "copy"},
+        )
+        assert copied.status_code == 200
+        assert [item["instrument_id"] for item in copied.json()] == [instrument.id, instrument_b.id]
+        assert [item["flagged"] for item in copied.json()] == [True, False]
+        assert db.get(WatchlistItem, first.id) is not None
+        assert db.get(WatchlistItem, second.id) is not None
+
+        missing = client.post(
+            "/api/v1/watchlists/999999/items/transfer-batch",
+            headers=auth_headers,
+            json={"source_watchlist_id": watchlist.id, "item_ids": [first.id, second.id], "mode": "move"},
+        )
+        assert missing.status_code == 404
+        assert db.get(WatchlistItem, first.id) is not None
+        assert db.get(WatchlistItem, second.id) is not None
+
     def test_lock_prevents_manual_add_and_remove(
         self, client, auth_headers, db, watchlist, instrument_b
     ):
