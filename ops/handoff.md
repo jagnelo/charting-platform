@@ -1,5 +1,17 @@
 # Active Handoff
 
+## 2026-08-13 — Operational-only egress exception applied
+
+- The implementation stack through `f1e46111` is synchronized with origin. The subsequent
+  context-opening record `57c375cd` is a separate clean `docs(ops)` commit whose push was rejected
+  by the environment safeguard. This is an operational-only egress failure.
+- Applied the new workflow exception: because no implementation commit is pending and the worktree
+  is clean, the `canonical-matrix-stability` implementation context may proceed. The checkpoint
+  remains separately tracked and must be retried with explicit authorization; no feature changes
+  may be mixed into it.
+- If the next implementation commit's push is rejected, implementation contexts will freeze at that
+  commit until synchronization, preserving the stronger integrity boundary.
+
 ## 2026-08-13 — Canonical matrix stability context opened
 
 - The prior push recovery is complete: local and origin both resolve to `91463e54`, and the

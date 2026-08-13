@@ -4,10 +4,10 @@
   "active_worker": "Codex",
   "worker_session_started_at": "2026-07-28T21:40:33Z",
   "worker_soft_stop_at": null,
-  "last_handoff_at": "2026-08-13T20:27:00Z",
-  "last_commit": "91463e54 docs(ops): record push recovery",
+  "last_handoff_at": "2026-08-13T20:30:00Z",
+  "last_commit": "57c375cd docs(ops): open canonical matrix context",
   "git_ready_to_commit": true,
-  "git_checkpoint": "Explicitly authorized elevated push succeeded. Local HEAD and origin/feat/tc2000-frontend-rework both resolve to f1e46111f2d5b1ba87732bde5f6f0fc18c18fb5d; worktree is clean and git diff --check passes. Recovery is documented as exact user authorization, narrow elevated rtk git push, immediate hash/clean-tree verification, then separate operational-record commit/push. Implementation freeze is lifted and the next context may begin at this synchronized boundary.",
+  "git_checkpoint": "Implementation commits through f1e46111f2d5b1ba87732bde5f6f0fc18c18fb5d are synchronized with origin. Context-opening operational commit 57c375cd086a51573eadf72c7158d04ee72ac837 is clean locally but its push was rejected as a new operational payload. The operational-only egress exception now permits the named canonical-matrix-stability implementation context to proceed without mixing feature files into the pending docs(ops) commit. Retry the operational push with explicit authorization; if an implementation commit push is rejected, freeze implementation at that commit.",
   "next_context": "rebuild-stack-and-run-canonical-matrix",
   "active_context": "canonical-matrix-stability",
   "validation": {

@@ -1,5 +1,13 @@
 # Run Report
 
+## 2026-08-13 — Operational-only egress exception applied
+
+- The prior implementation stack is synchronized at `f1e46111`; only the separate context-opening
+  checkpoint `57c375cd` is locally ahead. Its push was rejected as a new operational payload.
+- Updated the orchestration guide to permit independent implementation when this exact condition is
+  true: clean tree, synchronized implementation commits, and only a separately labelled `docs(ops)`
+  checkpoint pending. The checkpoint remains retryable and cannot absorb feature changes.
+
 ## 2026-08-13 — Canonical matrix stability context opened
 
 - After the successful push recovery, opened the named `canonical-matrix-stability` context at a

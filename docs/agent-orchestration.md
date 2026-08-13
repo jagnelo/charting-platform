@@ -350,6 +350,24 @@ added, and multiple completed contexts silently mixed into one later commit. A d
 active-context defect; an ahead-of-remote clean tree is a synchronization hold, not permission to
 continue feature work.
 
+#### Operational-record egress exception
+
+The freeze above applies to implementation commits, not to an already-committed operational record
+whose push is independently rejected by an external egress safeguard. If all implementation commits
+from the previous context are already synchronized, the worktree is clean, and the only local
+ahead commit is a clearly labelled `docs(ops)` checkpoint, the worker may open the next implementation
+context. It must:
+
+- keep the operational checkpoint as a separate commit and never amend feature files into it;
+- record the exact pending SHA, remote SHA, and push failure in `ops/handoff.md`/`ops/state.json`;
+- attempt the checkpoint push again only with explicit authorization, without indirect workarounds;
+- commit the next implementation context separately, attempt its push, and stop accumulating further
+  implementation contexts if that implementation push is rejected.
+
+This exception exists because an operational-only egress refusal has no effect on product source
+integrity once the prior implementation commit is synchronized. It prevents a metadata transport
+failure from blocking independent goal work while preserving fine-grained implementation commits.
+
 ### Mandatory context-closure checklist
 
 Before writing “next context” anywhere, record a short closure entry containing:
