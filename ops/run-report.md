@@ -19,6 +19,18 @@
 - Open gaps remain exact/unrepresented V25 visual states, provider/entitlement breadth, historical/
   GICS truth, native monitor behavior, longer endurance, and final audit.
 
+## 2026-08-13 — Continuation audit and current browser matrix
+
+- Re-read the goal objective and confirmed no new context was started because implementation and
+  operational commits remain ahead of origin after the environment's repeated private-source
+  egress refusal. Local worktree remains clean.
+- Read-only validation passed: visual policy `26/26` assertions; uPlot contract audit `45` files;
+  branch service status running/healthy; recent backend/worker/research-runner logs clean of tracked
+  runtime-error signatures; complete authenticated Chromium `flows.spec.ts` `137/137` in `6.8m`.
+- Docker usage is `15.36GB` images, `2.738GB` volumes, and `5.219GB` build cache. The explicitly
+  requested broad prune was not executed because the environment rejected that destructive scope.
+  Acceptance flexibility used: **None**. This remains an operational permission gap.
+
 ## 2026-08-13 — Complete drill-down ranking periods and enforce context ledger closure
 
 - Closed the named `drilldown-ranking-periods` changeset. Proxy and constituent top-down rows now

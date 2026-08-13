@@ -28,6 +28,12 @@ tasks:
         used: none; the stale-image browser attempt was setup-only and the forced current-image
         rerun is authoritative. Exact/unrepresented V25 visual, provider/entitlement, historical/
         GICS, native-monitor, endurance, and final-audit gaps remain open.
+    follow_up_evidence:
+      - current-full-authenticated-browser-matrix-137-of-137
+      - visual-policy-26-assertions
+      - uplot-contract-45-files
+      - branch-service-log-scan-clean
+      - docker-prune-refused-as-destructive
   - id: tc2000-drilldown-ranking-periods-20260813
     title: Expose complete ranking periods in proxy and constituent drill-downs
     status: completed
