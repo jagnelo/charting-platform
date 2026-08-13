@@ -17,6 +17,7 @@ ROOT = Path(__file__).resolve().parents[2]
 SCAN_ROOTS = (
     ROOT / "frontend/src/components/workstation",
     ROOT / "frontend/src/components/strategy",
+    ROOT / "frontend/src/views/StrategyLabView.vue",
     ROOT / "frontend/src/components/common/Sparkline.vue",
     ROOT / "frontend/src/components/dashboard/DashboardHeatMapWidget.vue",
 )

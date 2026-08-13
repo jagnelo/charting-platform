@@ -5809,20 +5809,6 @@ function humanizeBarSpan(barCount: number, timeframe: string | null | undefined)
   border-radius: 10px;
 }
 
-.equity-chart polyline {
-  fill: none;
-  stroke: #62b2ea;
-  stroke-width: 2;
-}
-
-.equity-chart--benchmark polyline {
-  stroke: #d6a85a;
-}
-
-.equity-chart--drawdown polyline {
-  stroke: #dd7373;
-}
-
 .detail-list {
   list-style: none;
   display: grid;
