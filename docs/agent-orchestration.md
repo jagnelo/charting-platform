@@ -321,6 +321,49 @@ commit, or push is denied only by the Codex filesystem boundary, follow the
 `.git/index.lock` recovery procedure above immediately and record the result;
 do not accumulate additional work while waiting for Git recovery.
 
+### No-accumulation synchronization exception
+
+Remote synchronization is part of changeset closure, but a remote or execution-environment
+failure must never be allowed to turn a completed context back into an uncommitted context:
+
+1. If implementation and focused validation are complete, commit the context locally even when
+   `git push` is unavailable. A clean local commit is preferable to leaving completed files
+   unstaged or uncommitted.
+2. Mark the context `committed_locally_pending_push` in the handoff/state, including the exact
+   commit, branch, remote hash, push command, and failure category. Do not describe it as
+   synchronized.
+3. Freeze new implementation and repair contexts until the pending commit is pushed and
+   `HEAD == origin/<branch>` is verified. Only narrowly scoped operational-record edits needed
+   to preserve the handoff are permitted, and those edits must be separate, clearly labelled
+   commits; they must not absorb feature changes.
+4. If a worker discovers a dirty tree from an earlier context, stop immediately and inventory it:
+   run `git status --short`, `git diff --name-status`, and `git diff --cached --name-status`, then
+   map every path to its owning context. Finish and commit each self-contained context separately,
+   or explicitly hand it off as unfinished. Never use `git add -A`, a stash, reset, discard, or a
+   metadata-only commit to make the boundary appear clean.
+5. Once pushing is available, push locally committed contexts in dependency order, verify each
+   hash against its remote, then close the separate operational record. Only after the final clean,
+   matching-hash check may the implementation freeze be lifted.
+
+This prevents both accumulation modes: completed work left uncommitted while unrelated work is
+added, and multiple completed contexts silently mixed into one later commit. A dirty tree is an
+active-context defect; an ahead-of-remote clean tree is a synchronization hold, not permission to
+continue feature work.
+
+### Mandatory context-closure checklist
+
+Before writing “next context” anywhere, record a short closure entry containing:
+
+- context name and owned paths;
+- focused validation and any broader gates run;
+- staged path review and commit hash;
+- push result (`synchronized`, `committed_locally_pending_push`, or a precise failure);
+- `HEAD` and `origin/<branch>` hashes plus worktree status;
+- the one permitted next action.
+
+If any field is missing, the context is not closed and the worker must not begin another feature
+theme. This applies even when all tests pass and the only remaining issue is external push access.
+
 ## Worker self-preservation rule
 
 Every worker must self-monitor for signs that its current session or token budget may be nearing exhaustion.
