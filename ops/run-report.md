@@ -1,5 +1,23 @@
 # Run Report
 
+## 2026-08-13 — Study Lab Python editor autocomplete semantics
+
+- Added compatible autocomplete semantics to the unified Python editor without changing its
+  native textarea role/query contract. The editor now owns the active option via
+  `aria-activedescendant`, advertises `aria-autocomplete="list"`, and uses unique IDs for linked
+  or floated editor instances.
+- Validation: focused units `26/26`; full frontend Vitest `772/772`; type-check; 474-module
+  production build; uPlot contract for 45 primary files; diff-check; focused browser `1/1`; and
+  broader Study Lab/Python/Results browser coverage `10/10`.
+- The initial browser run inspected an old frontend container and was discarded as setup-only.
+  After a current-image rebuild, the browser assertions passed with clean diagnostics. No
+  acceptance flexibility was used and no visual baseline changed.
+- This closes the repository-controlled editor semantics gap only. Exact/unrepresented V25,
+  provider/entitlement, historical/GICS, native-monitor, endurance, and final-audit gaps remain.
+- The workflow documentation was strengthened with a mandatory context-transition guard so a
+  completed changeset cannot be carried into a later context as uncommitted work; dirty or
+  divergent boundaries must return to scoped closure and Git recovery before new work starts.
+
 ## 2026-08-13 — Canonical bootstrap post-repair runtime revalidation
 
 - Rebuilt the branch-scoped non-seeded Compose stack with canonical workstation bootstrap enabled,

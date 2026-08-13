@@ -1,5 +1,30 @@
 # Active Handoff
 
+## 2026-08-13 — Study Lab Python editor autocomplete semantics
+
+- Closed the named `study-lab-editor-autocomplete-semantics` context. `PythonSourceEditor` now
+  adds standard list-autocomplete semantics directly to its existing native textarea: explicit
+  `aria-autocomplete`, textbox-owned `aria-activedescendant`, retained `aria-controls` and
+  `aria-expanded`, and instance-unique suggestion/list IDs. The popup remains a listbox/options;
+  no role-changing combobox migration was introduced.
+- Owned files were `frontend/src/components/workstation/PythonSourceEditor.vue`, its unit test,
+  and the Study Lab browser flow in `frontend/tests/e2e/flows.spec.ts`.
+- Validation passed: focused editor/Study Lab units `26/26`; full frontend Vitest `772/772`;
+  type-check; 474-module build; uPlot contract (45 files); diff-check; focused browser `1/1`;
+  and broader Study Lab/Python/Results browser slice `10/10` with clean diagnostics.
+- The first browser attempt was discarded as stale-container setup evidence because the running
+  image did not contain the source change. Rebuilding the frontend image and rerunning produced
+  the authoritative browser results. No product criterion, visual threshold, or mask changed.
+- Implementation commit `9373e37a` is pushed to `origin/feat/tc2000-frontend-rework`; this
+  operational record is the separate follow-up checkpoint. After it is committed and pushed,
+  verify clean status plus matching local/remote hashes before selecting another context.
+- The canonical workflow now includes an explicit context-transition guard: the first command
+  of the next context must prove an empty worktree and matching local/remote hashes; any dirty or
+  divergent boundary returns to changeset closure before new implementation begins.
+- Remaining goal gaps: exact/unrepresented V25 Study Lab/editor visual states, provider/entitlement
+  breadth, historical/GICS truth, native physical-monitor behavior, beyond-bounded endurance, and
+  final requirement audit. Acceptance flexibility used: **None**.
+
 ## 2026-08-13 — Canonical bootstrap post-repair runtime revalidation
 
 - Closed the named `canonical-bootstrap-runtime-revalidation` context. The rebuilt non-seeded

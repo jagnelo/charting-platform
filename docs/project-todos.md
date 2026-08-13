@@ -1,5 +1,23 @@
 # Project TODO Memory
 
+### 2026-08-13 — Study Lab Python editor autocomplete semantics
+
+- [x] Closed the tracked editor accessibility gap without changing the native textarea contract.
+      The unified Python editor now exposes `aria-autocomplete="list"` and keeps the active
+      suggestion on the native textbox through `aria-activedescendant`, while the popup remains a
+      `listbox` of `option` controls. Suggestion/list IDs are instance-unique across linked and
+      floated editors.
+- [x] Focused editor/component coverage passes `26/26`; full frontend Vitest passes `772/772`;
+      type-check, 474-module production build, uPlot contract (45 files), and `git diff --check`
+      pass. The first browser attempt used a stale frontend container and observed the old markup;
+      after rebuilding the current image, the focused real-browser editor test passes `1/1` and
+      the broader Study Lab/Python/Results slice passes `10/10` with clean diagnostics.
+- [ ] The richer editor semantics are now repository-validated, but exact/unrepresented V25 Study
+      Lab/editor visuals, provider/entitlement breadth, historical/GICS truth, native physical-
+      monitor behavior, beyond-bounded endurance, and final requirement audit remain open.
+      Acceptance flexibility used: **None** for product criteria; stale-image setup evidence was
+      explicitly discarded and the current rebuilt image is authoritative.
+
 ### 2026-08-13 — Canonical bootstrap post-repair runtime revalidation
 
 - [x] Rebuilt the branch-scoped non-seeded stack with

@@ -262,6 +262,35 @@ waiting for a normal terminal commit. If the elevated retry genuinely fails,
 preserve a precise handoff and make the next action the first priority of the
 next worker.
 
+### Context-transition guard
+
+The first action after selecting any new context is a repository-boundary check,
+before opening or editing implementation files:
+
+```text
+git status --short --branch
+git diff --check
+git rev-parse HEAD
+git rev-parse origin/<branch>
+```
+
+The expected result is an empty worktree and matching local/remote commit hashes.
+If any file is dirty, or the hashes differ, the worker must not begin the new
+context. It must instead classify every changed path as belonging to the prior
+context, the proposed context, or an unrelated pre-existing change; finish or
+handoff the prior context; and run the changeset-closure protocol above. No
+blanket `git add -A`, stash, reset, discard, or broad cleanup may be used to make
+the boundary appear clean. A deliberately unfinished context must remain named
+in `ops/handoff.md` with its owned files and exact next action, and the next
+worker must resume that context rather than selecting a different one.
+
+This guard applies even when the previous tests already passed: passing tests do
+not make an unstaged or unpushed changeset complete. When a context is complete,
+commit and push it before starting another feature or repair theme. If staging,
+commit, or push is denied only by the Codex filesystem boundary, follow the
+`.git/index.lock` recovery procedure above immediately and record the result;
+do not accumulate additional work while waiting for Git recovery.
+
 ## Worker self-preservation rule
 
 Every worker must self-monitor for signs that its current session or token budget may be nearing exhaustion.
