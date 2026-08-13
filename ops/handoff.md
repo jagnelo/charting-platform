@@ -1,14 +1,25 @@
 # Active Handoff
 
+## 2026-08-13 — Stale checkpoint metadata corrected
+
+- The latest goal audit found stale operational metadata: the top handoff entry still named the
+  pre-refresh checkpoint while the clean local branch had advanced to `d5b488ab`. This was corrected
+  as a narrowly scoped operational repair; no application files were touched.
+- The authoritative boundary is clean with local `HEAD` `d5b488abaeb39d3e61dc355937edb1b7bcd31fae`
+  and origin `da426e4a1827d5f183d4b67bddd30da0ba0786a0`; the branch is nine commits ahead. The
+  implementation freeze remains in force.
+- The next permitted action remains the exact push after explicit authorization, followed by remote
+  hash verification and the separate operational-record closure.
+
 ## 2026-08-13 — Remote-reference refresh and unchanged synchronization hold
 
 - Reloaded the controlling goal and repeated the required boundary check before any implementation.
-  The worktree remains clean; local `HEAD` is `cd97e822f5a817e18138fe865bbe1c7606d3b552` and
+  The worktree remains clean; local `HEAD` is `d5b488abaeb39d3e61dc355937edb1b7bcd31fae` and
   `origin/feat/tc2000-frontend-rework` remains `da426e4a1827d5f183d4b67bddd30da0ba0786a0`.
 - The initial read-only fetch hit the sandbox `.git/FETCH_HEAD` permission boundary; the prescribed
   elevated fetch completed successfully and confirmed that origin has not advanced. No source or
   application files were changed, and no implementation context was started.
-- The branch is still eight clean commits ahead of origin. The previous exact push rejection remains
+- The branch is still nine clean commits ahead of origin. The previous exact push rejection remains
   the active synchronization hold. The next permitted action is explicit authorization for that
   exact push, followed by matching-hash verification and the separate operational-record closure.
 

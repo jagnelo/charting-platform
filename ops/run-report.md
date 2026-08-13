@@ -1,5 +1,14 @@
 # Run Report
 
+## 2026-08-13 — Stale checkpoint metadata corrected
+
+- The goal audit found stale operational metadata: the top handoff/state entries still named the
+  pre-refresh commit while the clean local branch was at `d5b488ab`. This was corrected as a
+  narrowly scoped operational repair; no application files were touched.
+- The authoritative boundary is local `HEAD` `d5b488abaeb39d3e61dc355937edb1b7bcd31fae`, origin
+  `da426e4a1827d5f183d4b67bddd30da0ba0786a0`, clean worktree, nine commits ahead. The push hold and
+  implementation freeze remain unchanged.
+
 ## 2026-08-13 — Remote-reference refresh and unchanged synchronization hold
 
 - Re-read the active goal objective and verified the repository boundary before implementation. The
