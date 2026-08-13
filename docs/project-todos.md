@@ -1,5 +1,24 @@
 # Project TODO Memory
 
+### 2026-08-14 — Alternative uPlot bar rendering
+
+- [x] Corrected the chart host's Renko, Kagi, and Point & Figure paths. The backend already
+      returned transformed OHLC rows, but the frontend incorrectly sent all three through the
+      candlestick renderer. `alternativeBarsPlugin` now draws Renko bricks, Kagi segments and
+      reversal connectors, and Point & Figure X/O marks while retaining uPlot as the only numerical
+      renderer.
+- [x] Focused plugin/template tests pass `14/14`; transformed OHLCV router tests pass `4/4`;
+      frontend type-check/build (475 modules), Ruff, compileall, uPlot contract (45 files), visual
+      policy (26 assertions), rebuilt service health, and corrected non-seeded browser slice `7/7`
+      pass.
+- [x] The complete authoritative non-seeded authenticated Chromium matrix against the rebuilt
+      renderer passes `137/137` in `6.8m` with one serial worker. Recent backend/worker/
+      research-runner logs contain no tracked traceback, 5xx, integrity, critical, fatal,
+      out-of-memory, or sandbox failure signature.
+- [ ] No acceptance flexibility was used for this repair. Exact/unrepresented V25 visual,
+      provider/entitlement breadth, historical/GICS, native-monitor, longer-endurance,
+      Docker-cleanup, and final-audit gaps remain explicit.
+
 ### 2026-08-13 — Add equal-weight industry ranking to the top-down workstation
 
 - [x] Added the provider-neutral `GET /analysis/etf/{symbol}/industries/snapshot` contract. It

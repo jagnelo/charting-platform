@@ -1,4 +1,39 @@
 tasks:
+  - id: tc2000-alternative-bar-rendering-20260814
+    title: Render Renko, Kagi, and Point & Figure with their own uPlot geometry
+    status: completed
+    priority: high
+    scope: >-
+      Correct the workstation chart host so server-transformed Renko, Kagi, and Point & Figure
+      data is rendered with its chart-specific visual grammar rather than the ordinary candlestick
+      renderer, while preserving uPlot as the sole numerical chart engine.
+    definition_of_done:
+      - Renko renders filled directional bricks without candle wicks
+      - Kagi renders directional segments and reversal connectors
+      - Point & Figure renders deterministic X/O column marks
+      - Backend transformed rows retain the canonical OHLCV response contract
+      - Focused frontend/backend tests, type/build, rebuilt services, browser, static, and visual-contract gates pass
+      - No acceptance threshold, visual mask, provider, or uPlot rule is relaxed
+    validation:
+      - frontend-alternative-plugin-template-14-of-14
+      - backend-transformed-ohlcv-router-4-of-4
+      - frontend-type-check-build-475-modules
+      - non-seeded-topdown-chart-browser-7-of-7
+      - non-seeded-full-authenticated-browser-137-of-137
+      - rebuilt-branch-services-healthy
+      - ruff-compileall-diff-check
+      - uplot-contract-45-files
+      - visual-policy-26-assertions
+      - backend-worker-research-runner-log-audit-clean
+    notes:
+      - >-
+        The first seeded focused command reached 34/37 but was setup-only against a non-seeded
+        rebuilt stack and failed the expected controlled-fixture provenance assertion. The corrected
+        non-seeded rerun passed 7/7 and is authoritative. The complete non-seeded authenticated
+        matrix then passed 137/137 in 6.8 minutes and the recent service-log audit was clean. No
+        acceptance flexibility was used.
+        Exact/unrepresented V25 visual, provider/entitlement breadth, historical/GICS, native-monitor,
+        endurance, Docker-cleanup, and final-audit gaps remain tracked.
   - id: tc2000-canonical-matrix-stability-20260814
     title: Rebuild the branch stack and close the canonical authenticated acceptance matrix
     status: completed

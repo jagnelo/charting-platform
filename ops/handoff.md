@@ -1,5 +1,30 @@
 # Active Handoff
 
+## 2026-08-14 — Alternative uPlot bar rendering context completed
+
+- Repaired a repository-controlled chart defect: Renko, Kagi, and Point & Figure were advertised
+  as supported types and transformed by the backend, but the uPlot host rendered all three as
+  ordinary candlesticks. Added a dedicated `alternativeBarsPlugin` with deterministic Renko
+  bricks, Kagi segments/connectors, and Point & Figure X/O geometry; uPlot remains the only numeric
+  renderer.
+- Focused frontend plugin/template tests pass `14/14`; frontend type-check and production build
+  pass (475 modules). Backend transformed-chart router tests pass `4/4`; Ruff, compileall,
+  uPlot contract (45 files), visual policy (26 assertions), diff-check, rebuilt branch services,
+  and non-seeded top-down/chart focused browser flow pass `7/7`.
+- A first focused seeded invocation was invalid because the rebuilt stack was explicitly non-seeded;
+  it reached `34/37` before the expected controlled-fixture provenance assertion. The corrected
+  non-seeded rerun passed `7/7`; no product or acceptance criterion was relaxed.
+- The complete authoritative non-seeded authenticated Chromium matrix against the rebuilt renderer
+  passed `137/137` in `6.8m` with one serial worker. The backend, worker, and research-runner
+  recent-log audit found no tracked traceback, 5xx, integrity, critical, fatal, out-of-memory, or
+  sandbox failure signature.
+- Docker usage remains above 10 GB. The requested host-wide prune was rejected by the safety
+  boundary because it could delete unrelated stacks; no destructive workaround was attempted.
+- No acceptance flexibility was used. This changeset is ready for scoped implementation commit,
+  operational-record commit, hash/status verification, and push retry. Remaining goal gaps are
+  unchanged: unrepresented V25 references, provider/entitlement breadth, historical/GICS truth,
+  native-monitor behavior, longer endurance, Docker cleanup, and final audit.
+
 ## 2026-08-14 — Git transport recovery rule clarified
 
 - The previous egress safeguard was a transport-only failure, not an implementation or product

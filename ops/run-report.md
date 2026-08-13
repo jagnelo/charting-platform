@@ -1,5 +1,21 @@
 # Run Report
 
+## 2026-08-14 — Alternative uPlot bar rendering context completed
+
+- Corrected Renko/Kagi/Point & Figure rendering to use a dedicated uPlot plugin instead of the
+  candlestick renderer, retaining server-provided transformed OHLC rows and the sole-uPlot rule.
+- Focused tests/gates: frontend plugin/template `14/14`, backend transformed router `4/4`, type-
+  check/build, Ruff, compileall, uPlot contract `45` files, visual policy `26` assertions,
+  diff-check, healthy rebuilt services, and corrected non-seeded browser slice `7/7`.
+- The initial seeded command was setup-only/mismatched against the explicitly non-seeded rebuilt
+  stack (`34/37`, controlled-fixture provenance assertion); it is discarded as product evidence.
+  No acceptance flexibility was used. The complete authoritative non-seeded authenticated
+  Chromium matrix against the rebuilt renderer passed `137/137` in `6.8m` with one serial worker.
+  The recent backend/worker/research-runner log audit found no tracked traceback, 5xx, integrity,
+  critical, fatal, out-of-memory, or sandbox failure signature.
+- Host Docker cleanup is still an operational gap: `docker system df` reports 17.8 GB images,
+  5.583 GB build cache, and 1.038 GB reclaimable volumes; global prune was safety-rejected.
+
 ## 2026-08-14 — Canonical matrix stability context completed
 
 - Rebuilt and migrated the non-seeded branch stack. The first full run was `136/137`; F8n failed
