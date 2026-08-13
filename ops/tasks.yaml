@@ -36,6 +36,7 @@ tasks:
       - docker-prune-refused-as-destructive
       - backend-integration-303-of-303
       - board-guided-visual-matrix-104-of-104-four-environments
+      - continuation-checkpoint-current-seeded-and-non-seeded-reruns
   - id: tc2000-drilldown-ranking-periods-20260813
     title: Expose complete ranking periods in proxy and constituent drill-downs
     status: completed

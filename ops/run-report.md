@@ -44,6 +44,18 @@
   not claim those gaps closed. No later context was started because local commits remain ahead of
   origin and push authorization is still unavailable.
 
+## 2026-08-13 — Continuation checkpoint
+
+- Revalidated the full backend integration (`303/303`), current non-seeded authenticated browser
+  matrix (`137/137`), and rebuilt four-environment seeded board-guided visual matrix (`104/104`).
+- The seeded visual run covered 1920×1080 and 2560×1440 at 100% and 125% display scale, including
+  screenshot, geometry, overlap, containment, and interaction assertions. No visual threshold,
+  mask, baseline, or product criterion changed.
+- Acceptance flexibility used: **board-guided visual authority plus controlled deterministic seeded
+  market data**. Exact-build/unrepresented V25, provider/live entitlement, historical/GICS, native
+  monitor, endurance, Docker cleanup, and final-audit gaps remain explicit. Local commits remain
+  clean but ahead of origin; push authorization is still the next boundary action.
+
 ## 2026-08-13 — Complete drill-down ranking periods and enforce context ledger closure
 
 - Closed the named `drilldown-ranking-periods` changeset. Proxy and constituent top-down rows now

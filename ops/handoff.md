@@ -59,6 +59,24 @@
 - The implementation/ops commits remain three commits ahead of origin; no new implementation
   context may begin until explicit push authorization and hash synchronization are available.
 
+## 2026-08-13 — Current continuation visual and integration checkpoint
+
+- Re-read the controlling goal and verified the worktree remains clean. The complete backend
+  integration suite passes `303/303`; the non-seeded authenticated workstation matrix passes
+  `137/137` in `6.8m`; and the rebuilt seeded board-guided visual matrix passes `104/104` in
+  `7.5m` across all four required display environments.
+- The visual run used `E2E_SEED_INSTRUMENTS=true` and `E2E_SEED_MARKET_DATA=true` deliberately.
+  Acceptance flexibility used: **board-guided visual authority plus controlled deterministic
+  seeded market data**. This validates represented states and the current local geometry/overlap
+  oracles; it does not close exact-build, unrepresented-state, or live-provider gaps.
+- No threshold, mask, baseline, or product boundary changed. Remaining gaps are the documented
+  V25 state/reference gaps (`REF-STATE-VARIANTS`, `REF-LINKING-V25`, `REF-STUDY-LAB-V25`,
+  `REF-ENV-TOKENS`, `REF-PERMISSION-REVIEW`), provider/entitlement breadth, historical/GICS truth,
+  native monitor behavior, beyond-bounded endurance, Docker cleanup, and final audit.
+- The local branch remains ahead of origin by four commits because the environment continues to
+  refuse private-repository push as sensitive egress. No new implementation context is started
+  until that boundary is explicitly authorized and synchronized.
+
 ## 2026-08-13 — Complete drill-down ranking-period context and harden ledger boundary
 
 - Closed the named `drilldown-ranking-periods` context. Proxy and constituent top-down rows now
