@@ -2220,6 +2220,30 @@ test.describe('TC2000 workstation', () => {
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
+  test('F8g-editor-a11y — Study Lab Python editor keeps native textbox semantics with list autocomplete', async ({ page, browserDiagnostics }) => {
+    await page.goto('/chart')
+    await expect(page.locator('.workspace-layout-host')).toBeVisible({ timeout: 10_000 })
+    await page.getByRole('button', { name: 'Study', exact: true }).click()
+
+    const study = page.locator('.study-lab-tool')
+    await expect(study).toBeVisible({ timeout: 10_000 })
+    const editor = study.getByRole('textbox', { name: 'Study Python source' })
+    await editor.fill('market.')
+    await expect(editor).toHaveAttribute('aria-autocomplete', 'list')
+    await expect(editor).toHaveAttribute('aria-expanded', 'true')
+    const listboxId = await editor.getAttribute('aria-controls')
+    const activeOptionId = await editor.getAttribute('aria-activedescendant')
+    expect(listboxId).toBeTruthy()
+    expect(activeOptionId).toBeTruthy()
+    await expect(study.locator(`#${listboxId}`)).toHaveRole('listbox')
+    await expect(study.locator(`#${activeOptionId}`)).toHaveRole('option')
+    await editor.press('ArrowDown')
+    const nextOptionId = await editor.getAttribute('aria-activedescendant')
+    expect(nextOptionId).toBeTruthy()
+    expect(nextOptionId).not.toBe(activeOptionId)
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
   test('F8o — Study Lab renders a structured event study with histogram, bars, table, and linked occurrences', async ({ page, browserDiagnostics }) => {
     test.setTimeout(120_000)
     await page.goto('/chart')

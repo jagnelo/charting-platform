@@ -10,6 +10,8 @@
       :aria-label="ariaLabel"
       :aria-controls="showSuggestions && suggestions.length ? suggestionListId : undefined"
       :aria-expanded="showSuggestions && suggestions.length ? 'true' : 'false'"
+      :aria-activedescendant="showSuggestions && suggestions.length ? suggestionId(selectedSuggestionIndex) : undefined"
+      aria-autocomplete="list"
       aria-haspopup="listbox"
       :placeholder="placeholder"
       :style="{ minHeight }"
@@ -20,7 +22,7 @@
       @focus="updateSuggestions"
       @blur="hideSuggestions"
     />
-    <div v-if="showSuggestions && suggestions.length" :id="suggestionListId" class="python-source-editor__suggestions" role="listbox" :aria-label="`${ariaLabel} SDK suggestions`" :aria-activedescendant="suggestionId(selectedSuggestionIndex)">
+    <div v-if="showSuggestions && suggestions.length" :id="suggestionListId" class="python-source-editor__suggestions" role="listbox" :aria-label="`${ariaLabel} SDK suggestions`">
       <button v-for="(suggestion, index) in suggestions" :id="suggestionId(index)" :key="suggestion.insert" type="button" role="option" :aria-selected="index === selectedSuggestionIndex" :class="{ 'python-source-editor__suggestion--selected': index === selectedSuggestionIndex }" @mousedown.prevent="insertSuggestion(suggestion.insert)">
         <code>{{ suggestion.insert }}</code><small>{{ suggestion.signature }}</small>
       </button>
@@ -50,7 +52,8 @@ const editor = ref<HTMLTextAreaElement | null>(null)
 const showSuggestions = ref(false)
 const editorPrefix = ref('')
 const selectedSuggestionIndex = ref(0)
-const suggestionListId = `python-source-suggestions-${typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`}`
+const instanceId = `python-source-editor-${typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`}`
+const suggestionListId = `${instanceId}-suggestions`
 const suggestionsCatalog: Suggestion[] = [
   { prefix: 'market', insert: 'market.close()', signature: 'series[float]' },
   { prefix: 'market', insert: 'market.ohlcv()', signature: 'list[OHLCVRow]' },
@@ -74,7 +77,7 @@ const suggestions = computed(() => {
   return suggestionsCatalog.filter(item => item.prefix === prefix || item.insert.toLowerCase().startsWith(prefix)).slice(0, 8)
 })
 function suggestionId(index: number) {
-  return `${props.ariaLabel.replace(/[^a-z0-9_-]+/gi, '-')}-suggestion-${index}`
+  return `${instanceId}-suggestion-${index}`
 }
 
 watch(() => props.modelValue, value => {
