@@ -3783,6 +3783,35 @@ test.describe('Dashboard', () => {
     expect(geometry.shell?.right ?? Number.POSITIVE_INFINITY).toBeLessThanOrEqual(geometry.viewportWidth + 1)
     expect(geometry.footer?.bottom ?? -1).toBeLessThanOrEqual(geometry.viewportHeight + 1)
     expect(geometry.headerOverlaps).toBe(0)
+
+    // Containment alone is not enough at the robustness scale: the dense
+    // workstation must remain actionable for the first top-down decision. Use
+    // the real sector row rather than a direct store/API shortcut, and ensure
+    // the active symbol, ratio output, and horizontal list surface all remain
+    // usable after the browser-level scale transform.
+    const sectorList = page.getByRole('region', { name: 'Relative to SPY' })
+    const xlk = sectorList.getByRole('option', { name: /XLK/ }).first()
+    await expect(xlk).toBeVisible({ timeout: 15_000 })
+    await xlk.click({ position: { x: 8, y: 14 } })
+    await expect(page.getByRole('combobox', { name: 'Active symbol' })).toHaveValue('XLK', { timeout: 15_000 })
+    await expect(page.locator('.ratio-chart:visible').last().locator('.ratio-chart__legend strong')).toContainText('XLK/SPY', { timeout: 20_000 })
+    await expect(sectorList.locator('.watchlist__scroll')).toHaveJSProperty('scrollLeft', 0)
+    const actionableGeometry = await page.evaluate(() => ({
+      viewportWidth: window.innerWidth,
+      viewportHeight: window.innerHeight,
+      items: Array.from(document.querySelectorAll<HTMLElement>('button, input, select')).filter(element => {
+      const rect = element.getBoundingClientRect()
+      // Watchlist rows intentionally expose a wider horizontal data canvas;
+      // their containment is governed by the watchlist scroll-surface checks.
+      // This assertion covers fixed shell/tool controls only.
+      return rect.width > 0 && rect.height > 0 && !element.closest('[aria-hidden="true"]') && !element.closest('.watchlist__scroll')
+      }).map(element => {
+        const rect = element.getBoundingClientRect()
+        return { left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom }
+      }),
+    }))
+    const offscreen = actionableGeometry.items.filter(item => item.left < -1 || item.right > actionableGeometry.viewportWidth + 1 || item.top < -1 || item.bottom > actionableGeometry.viewportHeight + 1)
+    expect(offscreen, `visible actionable controls outside viewport: ${JSON.stringify(offscreen)}`).toEqual([])
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
