@@ -31,9 +31,10 @@
   slice `7/7`; Ruff, compileall, and diff checks pass.
 - Acceptance flexibility used: **None**. No visual threshold or product acceptance rule changed;
   historical/GICS, provider, visual-reference, hardware, endurance, and final-audit gaps remain.
-- Git checkpoint is now created locally in five contextual commits. The default sandbox denied
-  `.git/index.lock`, while the permitted elevated Git boundary allowed safe sequential staging and
-  commits without a destructive index workaround. Push remains pending verification.
+- Git checkpoint is complete: six contextual commits are pushed and verified synchronized with
+  `origin/feat/tc2000-frontend-rework`. The default sandbox denied `.git/index.lock`, while the
+  permitted elevated Git boundary allowed safe sequential staging, commits, and push without a
+  destructive index workaround.
 
 ## 2026-08-13 — IronHorse fallback repair and live-source classification
 
