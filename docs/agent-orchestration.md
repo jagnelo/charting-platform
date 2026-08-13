@@ -284,6 +284,36 @@ the boundary appear clean. A deliberately unfinished context must remain named
 in `ops/handoff.md` with its owned files and exact next action, and the next
 worker must resume that context rather than selecting a different one.
 
+### Context ledger and completion boundary
+
+The active changeset context is a ledger item, not merely a label in chat. At
+the moment a context is selected, the worker must record its name, intent, and
+owned paths in `ops/handoff.md` (and, when it is a substantial unit, in
+`ops/tasks.yaml`). Every subsequent edit must belong to that ledger item. A
+file that is shared by two contexts must be finished and committed in the
+first context, or the work must be split into independently reviewable files;
+it must not be carried forward implicitly.
+
+The context remains **in progress** until its implementation and focused
+validation are complete. Passing tests, a working browser session, or a
+plausible diff does not make it complete while any owned path is unstaged,
+uncommitted, or unpushed. Before selecting, discussing, or implementing the
+next feature/repair theme, the worker must either:
+
+1. close the current context through the full changeset-closure protocol above;
+   or
+2. explicitly hand it off as unfinished, with every dirty path, the reason it
+   remains dirty, the last validation result, and one exact next action. The
+   next worker must resume that same context first.
+
+An unlabelled dirty tree, a stale `git_ready_to_commit` flag, or a handoff that
+says a commit/push is pending after it succeeded is an operational defect.
+The repair is to stop new implementation, classify every changed path, close
+the prior context with scoped staging, and refresh the operational record.
+Never use a broad add, stash, reset, discard, or metadata-only commit loop to
+hide accumulated work. This rule exists specifically to preserve fine-grained,
+self-contained, logically reviewable commits across long-running goals.
+
 This guard applies even when the previous tests already passed: passing tests do
 not make an unstaged or unpushed changeset complete. When a context is complete,
 commit and push it before starting another feature or repair theme. If staging,

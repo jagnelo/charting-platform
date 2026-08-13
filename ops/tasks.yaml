@@ -1,4 +1,32 @@
 tasks:
+  - id: tc2000-drilldown-ranking-periods-20260813
+    title: Expose complete ranking periods in proxy and constituent drill-downs
+    status: completed
+    priority: high
+    scope: >-
+      Carry the backend's 1D, 1W, 1M, 3M, 6M, YTD, and 1Y performance cells into the
+      industry-proxy and constituent VirtualWatchlistTool surfaces, preserving per-cell warnings
+      and horizontal virtualization.
+    definition_of_done:
+      - Proxy and constituent rows expose all seven required ranking periods
+      - Columns retain relative-strength, technical, coverage, freshness, and provenance fields
+      - Browser acceptance verifies intermediate virtualized columns and preserves row selection
+      - Frontend unit, type-check, production build, and diff checks pass
+      - No visual or acceptance threshold is relaxed
+    validation:
+      - focused-F8e.1-and-F8e.1a-2-of-2
+      - frontend-vitest-772-of-772
+      - frontend-typecheck-build
+      - uplot-source-contract-28-files
+      - git-diff-check
+    notes:
+      - >-
+        Implementation commit 5871ed0f was pushed and verified against origin with a clean tree.
+        The first browser attempts exposed only the known unprivileged Mach-port setup boundary
+        and a virtual-scroll test-oracle issue; the authoritative elevated rerun passed after the
+        oracle was made target-column aware. Acceptance flexibility used: none. Exact/unrepresented
+        V25 visual, provider/entitlement, historical/GICS, native-monitor, endurance, and final
+        audit gaps remain open.
   - id: tc2000-python-private-attribute-boundary-20260813
     title: Reject private wrapper attributes before isolated Python execution
     status: completed

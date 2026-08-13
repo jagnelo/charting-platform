@@ -1,5 +1,24 @@
 # Run Report
 
+## 2026-08-13 — Complete drill-down ranking periods and enforce context ledger closure
+
+- Closed the named `drilldown-ranking-periods` changeset. Proxy and constituent top-down rows now
+  expose the backend's complete 1D, 1W, 1M, 3M, 6M, YTD, and 1Y ranking periods with cell-level
+  warnings, while retaining relative-strength, technical, coverage, freshness, and provenance
+  fields. The browser flow checks the virtualized intermediate columns and returns to the first
+  slice before selecting symbols.
+- Focused F8e.1/F8e.1a passed `2/2`; frontend Vitest `772/772`; type-check; 474-module production
+  build; uPlot source contract `28` files; and diff-check passed. An unprivileged Chromium launch
+  was setup-only due to the known macOS Mach-port boundary. The elevated authoritative rerun
+  passed after fixing the test oracle's horizontal-column targeting. No acceptance flexibility was
+  used and no visual threshold, baseline, mask, or product boundary changed.
+- Implementation commit `5871ed0f` was pushed and hash-verified. The canonical orchestration guide
+  now explicitly treats each context as a ledger item: a completed context must be committed and
+  pushed before another context starts, while unfinished work must be explicitly handed off and
+  resumed rather than silently accumulated.
+- Exact/unrepresented V25 visual, provider/entitlement, historical/GICS, native-monitor,
+  beyond-bounded-endurance, and final-audit gaps remain open.
+
 ## 2026-08-13 — 125% browser-scale top-down journey
 
 - Extended F8z from static containment into a real scaled workstation interaction. At 125% page

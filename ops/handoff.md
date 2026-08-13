@@ -1,5 +1,29 @@
 # Active Handoff
 
+## 2026-08-13 — Complete drill-down ranking-period context and harden ledger boundary
+
+- Closed the named `drilldown-ranking-periods` context. Proxy and constituent top-down rows now
+  carry 1D, 1W, 1M, 3M, 6M, YTD, and 1Y performance values and per-cell warnings from the
+  existing backend batch response, alongside relative-strength, technical, coverage, freshness,
+  and provenance columns. The E2E flow verifies intermediate columns through the horizontal
+  virtualizer and resets the scroll before selecting rows.
+- Owned implementation files: `frontend/src/components/workstation/WorkstationToolContent.vue`
+  and `frontend/tests/e2e/flows.spec.ts`. Implementation commit `5871ed0f` is pushed and local
+  `HEAD` matches `origin/feat/tc2000-frontend-rework`; the worktree was clean at closure.
+- Validation: focused F8e.1/F8e.1a `2/2`; full frontend Vitest `772/772`; type-check; production
+  build (474 modules); uPlot source contract `28` files; and `git diff --check`. The initial
+  unprivileged browser launch failed before execution at the known macOS Mach-port boundary. The
+  elevated run found and repaired a test oracle that jumped past intermediate virtualized columns;
+  the authoritative rerun passed. Acceptance flexibility used: **None**.
+- Workflow documentation now makes the active context a required ledger item: no feature/repair
+  context may start while prior work is dirty, unlabelled, or pending push; unfinished work must
+  be resumed from an explicit handoff before anything else. The matching operational record is
+  pending as a separate commit.
+- Remaining active-goal gaps are unchanged: exact/unrepresented V25 visual states, provider and
+  entitlement breadth, historical/GICS truth, native physical-monitor behavior, beyond-bounded
+  endurance, and final requirement audit. Next context must start only after this operational
+  checkpoint has been committed, pushed, and hash-verified.
+
 ## 2026-08-13 — 125% browser-scale top-down journey
 
 - Closed the named `zoomed-topdown-journey` context. The existing F8z browser-scale check now
