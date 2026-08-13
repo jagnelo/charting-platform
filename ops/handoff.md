@@ -1,5 +1,24 @@
 # Active Handoff
 
+## 2026-08-13 — Remove stale Strategy Lab numerical-SVG residue
+
+- Audited the current Strategy Lab result surface against the uPlot-only renderer contract. All
+  numerical result charts are rendered by `StrategyResultChart`/uPlot, but `StrategyLabView.vue`
+  retained dead `.equity-chart polyline` selectors from the removed SVG implementation.
+- Removed those selectors and expanded `tests/visual/validate-uplot-renderer-contract.py` to audit
+  `frontend/src/views/StrategyLabView.vue` directly. The contract now audits 44 primary source
+  files and passes.
+- Focused Strategy Lab component/view tests pass `34/34`; full frontend Vitest passes `770/770`;
+  type-check and the 471-module production build pass; `git diff --check` passes.
+- The first focused Vitest invocation used repository-prefixed paths after changing into
+  `frontend/`, found no files, and is discarded as command-context setup evidence. The corrected
+  frontend-relative invocation is authoritative.
+- Implementation commit `f02bb3f9 fix(frontend): remove stale strategy chart svg styles` is pushed
+  and synchronized. This operational record is the next checkpoint before changing context.
+- Acceptance flexibility used: **None**. Exact/unrepresented V25 visual states, provider/
+  entitlement breadth, historical/GICS truth, native physical-monitor behavior, beyond-bounded
+  endurance, and the final requirement audit remain open.
+
 ## 2026-08-13 — Finalize checkpoint metadata semantics
 
 - Final verification established the Git self-reference boundary: an operational record cannot

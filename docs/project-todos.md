@@ -1,5 +1,20 @@
 # Project TODO Memory
 
+### 2026-08-13 — Remove stale Strategy Lab numerical-SVG residue
+
+- [x] Audited the current Strategy Lab result surface against the uPlot-only renderer contract.
+      `StrategyResultChart` already owns all numerical result charts, but the view retained dead
+      `.equity-chart polyline` CSS from the pre-uPlot implementation. Removed the unused selectors
+      and expanded `tests/visual/validate-uplot-renderer-contract.py` to audit the Strategy Lab view
+      itself, preventing that renderer residue from silently returning. This is a repository-
+      controlled cleanup; no acceptance flexibility used.
+
+- [x] Validate the cleanup: focused Strategy Lab tests `34/34`, full frontend Vitest `770/770`,
+      type-check, 471-module production build, uPlot contract, and `git diff --check` pass. The
+      initial path-context Vitest invocation found no files and is discarded as setup evidence;
+      the corrected frontend-relative invocation is authoritative. Implementation commit
+      `f02bb3f9` is pushed; operational evidence remains to be checkpointed before the next context.
+
 ### 2026-08-13 — Finalize checkpoint metadata semantics
 
 - [x] Document the Git self-reference boundary: `ops/state.json` records the last known
