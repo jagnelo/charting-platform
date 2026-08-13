@@ -1,5 +1,24 @@
 # Run Report
 
+## 2026-08-13 — Add Strategy Lab MAE/MFE excursion distributions
+
+- Implemented bar-based MAE/MFE analytics for Strategy Lab trade distributions. The backend uses
+  materialized adjusted OHLCV bars between entry and exit, includes both boundary bars, handles
+  long and short trades, reports histogram data, and preserves rows with `bars_available=0` and
+  null excursion values when history is missing. The frontend renders the result with uPlot via
+  the new `ExcursionBars` component and exposes an accessible empty state.
+- Validation: Strategy Lab units `10/10`; focused frontend `30/30`; exact Docker-backed API
+  integration `1/1`; full backend units `1118/1118`; full frontend Vitest `772/772`; type-check;
+  474-module production build; uPlot contract `45` primary files; Ruff; compileall; and diff-check.
+  An unprivileged Docker integration invocation failed before test setup at the macOS Docker
+  socket boundary; the elevated rerun passed and is the authoritative integration evidence.
+- Implementation commit `adf668d7` was pushed and verified against the matching origin hash with
+  a clean worktree. Operational docs are being closed in a separate checkpoint as required by
+  `docs/agent-orchestration.md`.
+- Acceptance flexibility used: **None**. This closes a repository-controlled analytics gap but
+  does not close the active goal's exact/unrepresented V25, provider/entitlement, historical/GICS,
+  physical-monitor, endurance, or final-audit gaps.
+
 ## 2026-08-13 — Remove stale Strategy Lab numerical-SVG residue
 
 - Removed dead `.equity-chart polyline` CSS from `StrategyLabView.vue`; the live numerical result

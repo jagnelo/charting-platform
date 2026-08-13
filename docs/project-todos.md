@@ -1,5 +1,24 @@
 # Project TODO Memory
 
+### 2026-08-13 — Add Strategy Lab MAE/MFE excursion distributions
+
+- [x] Added bar-based maximum adverse excursion (MAE) and maximum favorable excursion (MFE)
+      rows to Strategy Lab trade distributions. Calculations use the materialized adjusted OHLCV
+      bars held by each trade, include entry/exit bars, preserve long/short semantics, and retain
+      rows with explicit null values when bars are unavailable instead of silently changing the
+      sample.
+- [x] Added MAE/MFE histograms and a uPlot-only `ExcursionBars` result panel with sample count,
+      average excursions, accessible labeling, resize cleanup, and empty-state behavior.
+- [x] Validation: Strategy Lab units `10/10`; frontend focused component/view tests `30/30`; the
+      exact Docker-backed watchlist integration test `1/1`; full backend units `1118/1118`; full
+      frontend Vitest `772/772`; type-check; 474-module production build; uPlot contract (45
+      primary files); Ruff; compileall; and `git diff --check` pass. The unprivileged integration
+      attempt failed before setup at the Docker socket permission boundary and was superseded by
+      the elevated rerun. Implementation commit `adf668d7` is pushed and synchronized.
+- [ ] Continue the open goal gaps: exact/unrepresented V25 states, provider/entitlement breadth,
+      historical/GICS truth, native physical-monitor behavior, beyond-bounded endurance, and the
+      final requirement-by-requirement audit. Acceptance flexibility used: **None**.
+
 ### 2026-08-13 — Remove stale Strategy Lab numerical-SVG residue
 
 - [x] Audited the current Strategy Lab result surface against the uPlot-only renderer contract.

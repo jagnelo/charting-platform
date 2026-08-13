@@ -1,5 +1,29 @@
 # Active Handoff
 
+## 2026-08-13 — Add Strategy Lab MAE/MFE excursion distributions
+
+- Closed the named `strategy-lab-mae-mfe-excursions` implementation context. Backend trade
+  distributions now calculate MAE/MFE from the actual adjusted OHLCV bars held by each trade,
+  retain unavailable-bar rows with null values, support long/short semantics, and expose
+  histograms. The Strategy Lab view adds the uPlot-only `ExcursionBars` panel and its empty state.
+- Owned files were `backend/app/services/strategy_lab.py`, the Strategy Lab unit/integration tests,
+  `frontend/src/views/StrategyLabView.vue`, `frontend/src/components/strategy/ExcursionBars.vue`,
+  and its component test. No unrelated files were staged.
+- Validation passed: focused backend units `10/10`; focused frontend `30/30`; exact Docker-backed
+  API integration `1/1`; backend units `1118/1118`; frontend Vitest `772/772`; type-check;
+  474-module production build; uPlot contract (45 files); Ruff; compileall; and diff-check.
+  The first integration attempt was setup-only because the unprivileged process could not access
+  Docker's Unix socket; the permitted elevated rerun is authoritative. Existing third-party
+  deprecation warnings remain non-failing.
+- Implementation commit `adf668d7 feat(strategy): add trade excursion analytics` is pushed.
+  `HEAD` and `origin/feat/tc2000-frontend-rework` matched and the worktree was clean before this
+  operational record. This record is the required next checkpoint before changing context.
+- Acceptance flexibility used: **None**. The active goal remains open; exact/unrepresented V25
+  states, provider/entitlement breadth, historical/GICS truth, native physical-monitor behavior,
+  beyond-bounded endurance, and final requirement audit remain tracked.
+- Next context: choose the next repository-controlled gap only after verifying the clean,
+  synchronized boundary; do not begin work in a dirty tree.
+
 ## 2026-08-13 — Remove stale Strategy Lab numerical-SVG residue
 
 - Audited the current Strategy Lab result surface against the uPlot-only renderer contract. All
