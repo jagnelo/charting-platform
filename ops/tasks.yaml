@@ -34,6 +34,8 @@ tasks:
       - uplot-contract-45-files
       - branch-service-log-scan-clean
       - docker-prune-refused-as-destructive
+      - backend-integration-303-of-303
+      - board-guided-visual-matrix-104-of-104-four-environments
   - id: tc2000-drilldown-ranking-periods-20260813
     title: Expose complete ranking periods in proxy and constituent drill-downs
     status: completed

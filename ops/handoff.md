@@ -42,6 +42,23 @@
   exact/unrepresented V25 states, provider/entitlement breadth, historical/GICS truth, native
   monitor behavior, beyond-bounded endurance, Docker cleanup, and final requirement audit.
 
+## 2026-08-13 — Full backend and board-guided visual revalidation
+
+- Complete Docker-backed backend integration passed `303/303` with 54 known third-party pandas/
+  NumPy deprecation warnings. No test failures or coverage threshold was substituted.
+- Rebuilt the branch stack explicitly with `E2E_SEED_INSTRUMENTS=true` and
+  `E2E_SEED_MARKET_DATA=true` for the governed board-guided visual track. The full four-environment
+  `tc2000_visual.spec.ts` matrix passed `104/104` in `7.5m` across 1920×1080 and 2560×1440 at
+  100% and 125% display scale. Geometry/overlap and interaction assertions passed; no baseline,
+  threshold, or mask was changed.
+- Acceptance flexibility used: **board-guided visual authority plus controlled deterministic seeded
+  market data**. This is the required interim track, not exact-build or live-provider proof. The
+  corresponding gaps remain `REF-STATE-VARIANTS`, `REF-LINKING-V25`, `REF-STUDY-LAB-V25`,
+  `REF-ENV-TOKENS`, `REF-PERMISSION-REVIEW`, provider/entitlement breadth, historical/GICS truth,
+  native monitor behavior, beyond-bounded endurance, Docker cleanup, and final audit.
+- The implementation/ops commits remain three commits ahead of origin; no new implementation
+  context may begin until explicit push authorization and hash synchronization are available.
+
 ## 2026-08-13 — Complete drill-down ranking-period context and harden ledger boundary
 
 - Closed the named `drilldown-ranking-periods` context. Proxy and constituent top-down rows now

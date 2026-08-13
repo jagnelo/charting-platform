@@ -31,6 +31,19 @@
   requested broad prune was not executed because the environment rejected that destructive scope.
   Acceptance flexibility used: **None**. This remains an operational permission gap.
 
+## 2026-08-13 — Backend integration and four-environment visual matrix
+
+- Complete backend integration passed `303/303` with only 54 known third-party deprecation warnings.
+- Rebuilt the branch stack in explicit fixture mode (`E2E_SEED_INSTRUMENTS=true`,
+  `E2E_SEED_MARKET_DATA=true`) and ran the full board-guided visual matrix: `104/104` passed in
+  `7.5m` across 1920×1080/100%, 1920×1080/125%, 2560×1440/100%, and 2560×1440/125%. All
+  deterministic screenshot, geometry, containment, overlap, and interaction assertions passed;
+  no thresholds, masks, or baselines changed.
+- Acceptance flexibility used: **board-guided visual authority plus controlled deterministic seeded
+  market data**. This keeps exact-build/unrepresented visual and live-provider gaps open; it does
+  not claim those gaps closed. No later context was started because local commits remain ahead of
+  origin and push authorization is still unavailable.
+
 ## 2026-08-13 — Complete drill-down ranking periods and enforce context ledger closure
 
 - Closed the named `drilldown-ranking-periods` changeset. Proxy and constituent top-down rows now
