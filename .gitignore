@@ -42,6 +42,8 @@ frontend/coverage/
 frontend/playwright-report/
 frontend/test-results/
 *.tsbuildinfo
+.vite/
+test-results/
 
 # ── OS artefacts ──────────────────────────────────────────────────────────────
 .DS_Store
