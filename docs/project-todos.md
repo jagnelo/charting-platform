@@ -1,5 +1,20 @@
 # Project TODO Memory
 
+### 2026-08-13 — Enforce explicit changeset closure and synchronized workflow state
+
+- [x] Strengthen `docs/agent-orchestration.md` with a named changeset-closure protocol. Each
+      context must declare its owned files, pass focused validation, inspect and scope its staged
+      diff, create and push a self-contained implementation commit, then create and push the
+      operational-record checkpoint and verify matching local/remote hashes plus a clean tree
+      before another context starts.
+- [x] Define the only permitted dirty-tree state: the named current context is still in progress,
+      every outstanding file/reason is recorded in the handoff, and an exact next action exists.
+      Unlabelled dirty work is an operational defect; no-op audits also close cleanly without
+      placeholder edits.
+- [x] Correct stale `ops/state.json` checkpoint metadata to synchronized `191b8375`. No product
+      acceptance threshold or flexibility rule changed; the active TC2000 goal and its existing
+      gaps remain open. Acceptance flexibility used: **None**.
+
 ### 2026-08-13 — Current-source goal audit and focused workstation revalidation
 
 - [x] Re-read the controlling goal and section 14; no scope, product boundary, visual threshold,

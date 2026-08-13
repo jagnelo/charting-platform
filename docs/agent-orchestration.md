@@ -173,6 +173,36 @@ A completed changeset context must not be carried into the next context as an
 uncommitted worktree. This is a repository-integrity rule, not an optional
 end-of-session convenience:
 
+### Required changeset-closure protocol
+
+Treat each meaningful implementation or documentation unit as a named
+`changeset context`. Before starting another context, close the current one in
+this order:
+
+1. State the context's scope and the files it owns in the handoff. If a file is
+   shared with another unfinished context, stop and split or finish that work;
+   do not silently carry mixed edits forward.
+2. Run the focused validation for the context, then inspect `git status
+   --short --branch`, `git diff --check`, `git diff --stat`, and the complete
+   unstaged diff. Resolve or explicitly record every failure before staging.
+3. Stage only the files belonging to this context. Inspect
+   `git diff --cached --name-status` and `git diff --cached` before committing;
+   never use a broad add that can absorb another context's work without
+   reviewing it.
+4. Create one self-contained conventional commit for the completed context.
+   A context is not complete merely because its tests pass while its changes
+   remain unstaged or uncommitted.
+5. Push that commit immediately. Verify the local commit hash and
+   `origin/<branch>` hash are identical and verify a clean worktree.
+6. Only after the implementation commit is synchronized, update `ops/handoff.md`,
+   `ops/state.json`, and `ops/run-report.md` with the exact commit hash,
+   validation evidence, remaining gaps, acceptance flexibility, and the next
+   context. Commit and push this operational record as a separate small
+   checkpoint, then verify clean status and matching hashes again.
+7. Begin the next context only after the second verification. The first command
+   for a new context must confirm the clean, synchronized boundary; if it does
+   not, return to closure rather than adding more work.
+
 - Before changing implementation context, inspect `git status --short --branch`,
   `git diff --check`, and the staged/unstaged diff.
 - Once the current context is complete and its focused validation passes, make a
@@ -190,6 +220,13 @@ end-of-session convenience:
   to a different changeset context. A dirty tree is acceptable only when the
   current context is explicitly still in progress and the handoff identifies
   every outstanding file and reason.
+- If a context is intentionally still in progress, record its context name,
+  outstanding files, current validation, and exact next action in the handoff;
+  do not start a different context until that context is closed. An unlabelled
+  dirty tree is always treated as an operational defect.
+- “No changes” is also a closure result: record the no-op audit and leave the
+  tree clean instead of creating placeholder edits or carrying a stale dirty
+  state forward.
 
 ### `.git/index.lock` recovery
 
