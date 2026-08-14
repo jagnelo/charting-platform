@@ -1,5 +1,22 @@
 # Active Handoff
 
+## 2026-08-14 — Benchmark-family role participation checkpoint
+
+- Added `GET /analysis/benchmark-families/{family_key}/breadth` for independent cap/equal/value/
+  growth participation. It evaluates SMA participation, configurable near-52-week-high and
+  new-high predicates, trend, and cap-relative strength where aligned bars exist, preserving
+  point-in-time membership, provenance, coverage, exclusions, and role-local unavailable states.
+- The workstation now renders a dense role-aware participation strip with loading, partial,
+  warning, and unavailable states. Generic arbitrary-condition breadth remains a separate
+  completion requirement; fixed metrics are presets, not the boundary.
+- Validation: backend integration `9/9`, workspace-store `59/59`, full Vitest `830/830`,
+  type-check/build, Ruff/compile, diff-check, and rebuilt authenticated `F8s-breadth-family-ratio`
+  Chromium `1/1`. No acceptance flexibility used.
+- Implementation/docs commit: `fe9345f8` (clean locally). Exact elevated push was attempted once
+  and rejected before Git by the private-origin safeguard; no workaround or repeat.
+- Next context: historical role participation and family-wide ranking/rotation/dispersion, while
+  keeping all eight US family roots and every evidenced style leg on the completion bar.
+
 ## 2026-08-14 — Family dated coverage endpoint and workstation evidence strip
 
 - Added read-only `GET /analysis/benchmark-families/{family_key}/coverage` with independent

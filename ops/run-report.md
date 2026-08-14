@@ -1,5 +1,19 @@
 # Run Report
 
+## 2026-08-14 — Benchmark-family role participation checkpoint
+
+- Added the role-aware family breadth batch and workstation participation strip for cap/equal/
+  value/growth roles. Parameters, point-in-time lineage, coverage, exclusions, and no-fallback
+  semantics are preserved per role; cap-relative strength is emitted only with aligned bars.
+- Validation: backend integration `9/9`, workspace-store `59/59`, full frontend Vitest `830/830`,
+  `vue-tsc`, production build, Ruff, compileall, `git diff --check`, and rebuilt authenticated
+  Chromium `F8s-breadth-family-ratio` `1/1`. No acceptance flexibility used.
+- Commit `fe9345f8` is clean locally. Exact push to `origin/feat/tc2000-frontend-rework` was
+  attempted once and rejected before Git by the private-origin safeguard; no workaround/repeat.
+- Remaining: historical role breadth, arbitrary condition-driven studies and occurrence linking,
+  family-wide ranking/rotation/dispersion, complete eight-root population, and final V25 visual
+  and acceptance gates.
+
 ## 2026-08-14 — Family dated coverage endpoint and workstation evidence strip
 
 - Added `GET /analysis/benchmark-families/{family_key}/coverage`, independent role statuses, and
