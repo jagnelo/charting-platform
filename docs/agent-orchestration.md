@@ -262,6 +262,28 @@ repository is confirmed healthy, use the permitted `rtk git add`/`rtk git commit
 leaving completed work uncommitted. A failed unprivileged attempt is setup evidence, not a product
 defect and not a reason to block the active goal.
 
+### Codex execution rule
+
+The worker is responsible for performing this recovery; it must not hand a normal
+commit or push back to the user merely because the default sandbox cannot write
+`.git`. After the read-only checks above, request the narrow elevated Git boundary
+and run the operation itself, sequentially:
+
+```text
+rtk git add <reviewed-context-files>
+rtk git commit -m "<conventional message>"
+rtk git push origin <branch>
+```
+
+The worker must verify the result with `git status --short --branch`, `git
+rev-parse HEAD`, and `git rev-parse origin/<branch>`. If the elevated push is
+rejected by the environment's private-repository egress safeguard, this is a
+transport-only hold: keep the clean local commit, record the exact range and
+command in the operational files, and continue independent work. Do not retry
+through an indirect shell/API/plugin, do not leave files uncommitted, and do not
+mark the product goal blocked. A later continuation may retry the same exact
+payload through the approved elevated Git path after explicit authorization.
+
 The worker must not move on to a new changeset while a completed context is
 waiting for a normal terminal commit. If the elevated retry genuinely fails,
 preserve a precise handoff and make the next action the first priority of the
