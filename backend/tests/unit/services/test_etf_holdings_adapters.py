@@ -23622,3 +23622,98 @@ async def test_leverage_shares_uses_configured_symbol_csv_and_preserves_cash_row
     )
     assert result.legal_metadata["route_resolution"] == "issuer_profile_metadata"
     assert FakeAsyncClient.requested[0][0].endswith("/MPG_Holdings.csv")
+
+
+def test_alerian_is_native_and_has_explicit_symbol_route_metadata():
+    assert "alerian" not in FALLBACK_ISSUER_AUDITS
+    assert ISSUER_ADAPTER_CONFIGS["alerian"].live_tested_default_route is True
+    metadata = known_etf_route_metadata("AMLP")
+    assert metadata["issuer"] == "Alerian"
+    assert metadata["provider_aliases"]["holdings_adapter"] == "alerian"
+
+    adapter = get_holdings_adapter("alerian")
+    assert adapter is not None
+    probe = adapter.probe(symbol="ENFR", name="Alerian Energy Infrastructure ETF", identifiers={})
+    assert probe.status == "ready"
+    assert probe.source_url is not None
+    assert "Holding%2FENFR%2FFull" in probe.source_url
+
+
+@pytest.mark.asyncio
+async def test_alerian_public_proxy_parses_identity_date_and_cash_rows(monkeypatch):
+    adapter = get_holdings_adapter("alerian")
+    assert adapter is not None
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=json.dumps(
+                [
+                    {
+                        "fundsymbol": "ENFR",
+                        "holdingsymbol": "ET",
+                        "name": "Energy Transfer LP",
+                        "cusip": "29273V100",
+                        "isin": "US29273V1008",
+                        "sedol": "B0WHXD2",
+                        "weight": 0.0829,
+                        "shares": 2074663,
+                        "marketvalue": 43070003.88,
+                        "asofdate": "2026-08-13T05:00:00",
+                        "holdingtype": "Common Stock",
+                        "clientsector": "Pipeline Transportation | Natural Gas",
+                        "clientcountry": "United States",
+                        "industry": "Oil Gas & Consumable Fuels",
+                        "industrygroup": "Energy",
+                    },
+                    {
+                        "fundsymbol": "ENFR",
+                        "holdingsymbol": "",
+                        "name": "Cash Equivalent",
+                        "weight": -0.0007,
+                        "shares": -357865.23,
+                        "marketvalue": -357865.23,
+                        "asofdate": "2026-08-13T05:00:00",
+                        "holdingtype": "Cash Equivalent",
+                    },
+                ]
+            ),
+            content_type="application/json",
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="ENFR")
+
+    requested_url = FakeAsyncClient.requested[0][0]
+    assert requested_url.startswith("https://www.alpsfunds.com/_hcms/api/getData?")
+    assert "Holding%2FENFR%2FFull" in requested_url
+    assert result.rows[0].symbol == "ET"
+    assert result.rows[0].weight == Decimal("0.0829")
+    assert result.rows[0].market_value == Decimal("43070003.88")
+    assert result.rows[0].extra_data["industry"] == "Oil Gas & Consumable Fuels"
+    assert result.rows[1].symbol is None
+    assert result.rows[1].row_type == "cash"
+    assert result.legal_metadata["composition_date"] == "2026-08-13"
+    assert result.legal_metadata["route_resolution"] == (
+        "alps_public_hubspot_proxy_marketing_api_full_holdings"
+    )
+
+
+@pytest.mark.asyncio
+async def test_alerian_rejects_empty_or_mismatched_payload(monkeypatch):
+    adapter = get_holdings_adapter("alerian")
+    assert adapter is not None
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    FakeAsyncClient.queue = [FakeResponse(text="[]", content_type="application/json")]
+    with pytest.raises(ValueError, match="no holdings rows"):
+        await adapter.fetch_latest(symbol="AMLP")
+
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=json.dumps([{"fundsymbol": "ENFR", "holdingsymbol": "ET"}]),
+            content_type="application/json",
+        )
+    ]
+    with pytest.raises(ValueError, match="identity did not match"):
+        await adapter.fetch_latest(symbol="AMLP")

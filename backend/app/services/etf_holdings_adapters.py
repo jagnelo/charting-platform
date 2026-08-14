@@ -1633,6 +1633,7 @@ ETF_COM_BRAND_RECONCILIATION_ISSUER_HINTS: dict[str, list[str]] = {
 
 ETF_COM_BRAND_RECONCILIATION_NATIVE_ADAPTERS: frozenset[str] = frozenset(
     {
+        "alerian",
         "american_beacon",
         "avantis",
         "calvert",
@@ -3101,6 +3102,14 @@ ISHARES_PRODUCT_IDS_BY_SYMBOL: dict[str, str] = {
 }
 
 KNOWN_ETF_PROVIDER_METADATA_BY_SYMBOL: dict[str, dict[str, Any]] = {
+    "AMLP": {
+        "issuer": "Alerian",
+        "provider_aliases": {"holdings_adapter": "alerian"},
+    },
+    "ENFR": {
+        "issuer": "Alerian",
+        "provider_aliases": {"holdings_adapter": "alerian"},
+    },
     "QQQ": {
         "issuer": "Invesco",
         "provider_aliases": {
@@ -62678,6 +62687,18 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
             "issuer terms and the disclosed holdings date govern freshness."
         ),
     ),
+    "alerian": IssuerCsvAdapterConfig(
+        adapter_key="alerian",
+        source_provider="alerian",
+        source_access="issuer_public_hubspot_proxy_complete_json_holdings",
+        product_page_templates=(
+            "https://www.alpsfunds.com/exchange-traded-funds/{symbol_lower}",
+        ),
+        live_tested_default_route=True,
+        terms_note=(
+            "ALPS/Alerian public product pages and holdings proxy may be subject to issuer terms."
+        ),
+    ),
 }
 
 for _adapter_key in sorted(ETFDB_RECOGNITION_ONLY_ISSUER_HINTS):
@@ -62723,7 +62744,6 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
     ),
     "needs_first_party_route_discovery": (
         "advisors_asset_management",
-        "alerian",
         "alphaclone",
         "alphamark_advisors",
         "amg_national",
@@ -63196,8 +63216,159 @@ class WestwoodAuditedFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Audited fallback-only adapter for Westwood ETF identities."""
 
 
-class AlerianReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
-    """ETF.com-reconciled fallback adapter pending Alerian route discovery."""
+class AlerianHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch Alerian ETF holdings through the issuer's public HubSpot proxy.
+
+    The ALPS product page exposes a public ``getData`` proxy for the
+    authenticated Marketing API.  The direct API is not used because it
+    requires credentials; the proxy is an issuer-owned, unauthenticated route
+    and the response is identity/date validated before canonical persistence.
+    """
+
+    SUPPORTED_SYMBOLS = frozenset({"AMLP", "ENFR"})
+    PRODUCT_PAGE_TEMPLATE = "https://www.alpsfunds.com/exchange-traded-funds/{symbol_lower}"
+    PROXY_URL = "https://www.alpsfunds.com/_hcms/api/getData"
+    API_TEMPLATE = "https://secure.alpsinc.com/MarketingAPI/api/v1/Holding/{symbol_upper}/Full"
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        normalized_symbol = symbol.strip().upper()
+        if normalized_symbol not in self.SUPPORTED_SYMBOLS:
+            return super().probe(symbol=symbol, name=name, identifiers=identifiers)
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9700"),
+            status="ready",
+            reason=(
+                "ALPS publishes complete current Alerian holdings through its public "
+                "product-page proxy route."
+            ),
+            source_url=self._proxy_url(normalized_symbol),
+            issuer_product_id=normalized_symbol,
+        )
+
+    @classmethod
+    def _proxy_url(cls, symbol: str) -> str:
+        return f"{cls.PROXY_URL}?{urlencode({'api_url': cls.API_TEMPLATE.format(symbol_upper=symbol)})}"
+
+    @classmethod
+    def _product_page_url(cls, symbol: str) -> str:
+        return cls.PRODUCT_PAGE_TEMPLATE.format(symbol_lower=symbol.lower())
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        normalized_symbol = symbol.strip().upper()
+        if normalized_symbol not in self.SUPPORTED_SYMBOLS:
+            raise ValueError("Alerian's configured native route supports only AMLP and ENFR.")
+        if source_url is not None:
+            raise ValueError("Alerian holdings use the verified ALPS public proxy route.")
+
+        proxy_url = self._proxy_url(normalized_symbol)
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(
+                proxy_url,
+                headers=_issuer_page_request_headers(accept="application/json,*/*"),
+                follow_redirects=True,
+            )
+        response.raise_for_status()
+        payload = response.json()
+        if not isinstance(payload, list) or not payload:
+            raise ValueError(f"ALPS returned no holdings rows for {normalized_symbol}.")
+
+        rows: list[CanonicalHoldingRow] = []
+        composition_dates: set[date] = set()
+        for index, item in enumerate(payload):
+            if not isinstance(item, dict):
+                raise ValueError(f"ALPS returned a non-object holdings row for {normalized_symbol}.")
+            fund_symbol = _clean(item.get("fundsymbol"))
+            if fund_symbol is None or fund_symbol.upper() != normalized_symbol:
+                raise ValueError(
+                    f"ALPS holdings identity did not match requested ETF {normalized_symbol}."
+                )
+            as_of_date = self._parse_as_of_date(item.get("asofdate"))
+            if as_of_date is not None:
+                composition_dates.add(as_of_date)
+            raw_symbol = _clean(item.get("holdingsymbol") or item.get("identifiertodisplay"))
+            name = _clean(item.get("name"))
+            holding_type_text = (_clean(item.get("holdingtype")) or "").upper()
+            is_cash = not raw_symbol and (
+                "CASH" in holding_type_text or "CASH" in (name or "").upper()
+            )
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=None if is_cash else raw_symbol,
+                    name=name,
+                    cusip=_clean(item.get("cusip")),
+                    isin=_clean(item.get("isin")),
+                    sedol=_clean(item.get("sedol")),
+                    weight=_decimal(item.get("weight")),
+                    shares=_decimal(item.get("shares")),
+                    market_value=_decimal(item.get("marketvalue")),
+                    currency="USD",
+                    country=_clean(item.get("clientcountry")),
+                    holding_type="cash" if is_cash else "equity",
+                    row_type="cash" if is_cash else "security",
+                    source_row_id=f"{normalized_symbol}:{as_of_date or 'unknown'}:{index}",
+                    extra_data={
+                        key: value
+                        for key, value in {
+                            "holding_type": _clean(item.get("holdingtype")),
+                            "sector": _clean(item.get("clientsector")),
+                            "industry": _clean(item.get("industry")),
+                            "industry_group": _clean(item.get("industrygroup")),
+                        }.items()
+                        if value is not None
+                    },
+                )
+            )
+        if len(composition_dates) > 1:
+            raise ValueError(
+                f"ALPS holdings returned inconsistent as-of dates for {normalized_symbol}."
+            )
+        composition_date = next(iter(composition_dates), None)
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response.text,
+            raw_json=payload,
+            source_url=proxy_url,
+            source_identifier=normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "json",
+                "route_resolution": "alps_public_hubspot_proxy_marketing_api_full_holdings",
+                "snapshot_provenance": "alerian_native_issuer_json",
+                "product_page_url": self._product_page_url(normalized_symbol),
+                "api_route": self.API_TEMPLATE.format(symbol_upper=normalized_symbol),
+                "refresh_frequency": "daily_issuer_api",
+                "freshness_semantics": "issuer_disclosed_holdings_date",
+                **(
+                    {
+                        "composition_date": composition_date.isoformat(),
+                        "as_of_date": composition_date.isoformat(),
+                    }
+                    if composition_date
+                    else {}
+                ),
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @staticmethod
+    def _parse_as_of_date(value: Any) -> date | None:
+        text = _clean(value)
+        if text is None:
+            return None
+        try:
+            return datetime.fromisoformat(text.replace("Z", "+00:00")).date()
+        except ValueError:
+            return _parse_issuer_date(text)
 
 
 class AmericanBeaconReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
@@ -64521,7 +64692,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "oakmark": OakmarkHoldingsAdapter,
         "range": RangeHoldingsAdapter,
         "advisors_asset_management": AdvisorsAssetManagementReconciledFallbackHoldingsAdapter,
-        "alerian": AlerianReconciledFallbackHoldingsAdapter,
+        "alerian": AlerianHoldingsAdapter,
         "alphaclone": AlphaCloneReconciledFallbackHoldingsAdapter,
         "alphamark_advisors": AlphaMarkAdvisorsReconciledFallbackHoldingsAdapter,
         "altshares": WaterIslandHoldingsAdapter,
