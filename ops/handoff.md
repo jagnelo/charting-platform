@@ -1,5 +1,15 @@
 # Active Handoff
 
+## 2026-08-14 — Scoped Docker storage maintenance
+
+- Read-only `docker system df` showed about `10.8GB` total use, including `1.378GB` reclaimable
+  build cache. The safe scoped command `docker builder prune -af` reclaimed `4.644GB` without
+  removing active images, containers, or volumes.
+- Post-cleanup storage is about `9.4GB`; build cache is `0B`. All seven branch/related containers
+  remain running, with backend, Postgres, and Redis healthy. The broad host-wide
+  `docker system prune -af --volumes` remains intentionally unperformed because it can affect
+  unrelated stacks; this is an explicit operational gap, not a product blocker.
+
 ## 2026-08-14 — Alerian live-provider coverage and transport result
 
 - Added `alerian` to `LIVE_BACKED_ISSUER_ADAPTERS` and ENFR to the opt-in concrete route matrix.

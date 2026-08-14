@@ -4,7 +4,7 @@
   "active_worker": "Codex",
   "worker_session_started_at": "2026-07-28T21:40:33Z",
   "worker_soft_stop_at": null,
-  "last_handoff_at": "2026-08-14T08:57:52Z",
+  "last_handoff_at": "2026-08-14T09:05:00Z",
   "last_commit": "a03e1cdf test(etf): cover alerian live route",
   "git_ready_to_commit": true,
   "git_checkpoint": "Visual preflight implementation f7720659 and parity/operations checkpoint 3b57808e are cleanly committed locally. Exact elevated push for 91463e54..3b57808e was attempted once and rejected before Git by the private-origin egress safeguard because trusted authorization for this private payload and destination was unavailable. No workaround or repeat was used; transport does not block the goal or next context.",
@@ -12,6 +12,7 @@
   "active_context": "alerian-native-holdings",
   "context_status": "completed_clean_local_transport_hold_ready_for_next_context",
   "validation": {
+    "docker_scoped_storage_maintenance_20260814": "passed-with-open-goal-gaps: Read-only Docker audit found about 10.8GB total use and 1.378GB reclaimable build cache. Scoped docker builder prune -af reclaimed 4.644GB without removing active images, containers, or volumes. Post-cleanup usage is about 9.4GB with zero build cache; all seven containers remain running and backend/Postgres/Redis healthy. The broad host-wide docker system prune -af --volumes remains an explicit operational gap because it could affect unrelated stacks; no product criterion was relaxed, 2026-08-14",
     "alerian_native_holdings_20260814_d9124be6": "passed-with-open-goal-gaps: AMLP and ENFR now use a native ALPS public HubSpot proxy adapter with canonical identity/date/cash/provenance validation. Focused Alerian coverage 3/3; complete ETF adapter unit suite 489/489; Ruff, Python compilation, and diff checks pass. Exact push for 925391949542d24ba534ff5edebcada112947abd..d9124be605e78f17bff5d81815a439f8d591ef5f was rejected before Git by the private-origin safeguard; clean local commit retained. Acceptance flexibility used: none; broader provider breadth, historical holdings, exact/unrepresented V25, provider/entitlement, native-monitor, endurance, and final-audit gaps remain open, 2026-08-14",
     "alerian_ops_checkpoint_push_20260814_fbd3c707": "committed-locally-pending-push: Operational checkpoint fbd3c707 is clean locally. Exact push for d9124be605e78f17bff5d81815a439f8d591ef5f..fbd3c707d654abfb4dd071918a1fc86293e957eb was rejected before Git by the private-origin safeguard because trusted exact-payload authorization was unavailable. Remote remains 91463e54; transport-only and not a goal blocker, 2026-08-14",
     "alerian_live_provider_coverage_20260814_a03e1cdf": "passed-with-open-goal-gaps: Alerian is in the live-backed registry and ENFR has a concrete official ALPS opt-in route test. Registry contracts 2/2, official live route 1/1, full backend unit gate 1134/1134, Ruff and diff checks pass. Exact push for 47f5359a6ad516c0459c94d29b92e6313da3003d..a03e1cdf030957e87df30178ac529868fe3ce8b8 was rejected before Git by the private-origin safeguard; clean local commit retained. Acceptance flexibility used: none; broader provider and historical gaps remain open, 2026-08-14",

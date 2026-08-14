@@ -1,5 +1,14 @@
 # Run Report
 
+## 2026-08-14 — Scoped Docker storage maintenance
+
+- Docker audit found about `10.8GB` in use and `1.378GB` reclaimable build cache. Scoped
+  `docker builder prune -af` reclaimed `4.644GB`; no active images, containers, or volumes were
+  removed. Post-cleanup usage is about `9.4GB`, build cache `0B`, and all branch services remain
+  running/healthy.
+- The broad host-wide prune remains a documented operational gap because it could delete unrelated
+  local stacks. No product or acceptance criterion was relaxed.
+
 ## 2026-08-14 — Alerian live-provider coverage and transport result
 
 - Alerian is now in the live-backed provider registry with ENFR concrete opt-in coverage. Registry
