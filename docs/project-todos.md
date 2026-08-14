@@ -11428,3 +11428,16 @@ The current source also passes the focused authenticated top-down browser slice 
 - [ ] Broader conditional research families, exact/unrepresented Study Lab V25 visual evidence,
   provider/live-entitlement breadth, historical/GICS, native-monitor, endurance, and final-audit
   gaps remain open. No visual threshold, mask, product criterion, or acceptance flexibility changed.
+
+### 2026-08-14 — Study Lab research-helper integration
+
+- [x] Updated the factory Forward-return distribution starter to consume
+  `research.conditional_outcomes` and the Volatility regime starter to consume
+  `stats.rolling`/`stats.median`, removing duplicated user-facing implementations of those
+  calculations while preserving the existing typed artifacts and visual outputs.
+- [x] Added source-contract regression assertions. Focused Study Lab coverage passes `22/22`; full
+  frontend Vitest passes `818/818` at `80.90%` statements; authenticated Study Lab/Python/Results
+  browser coverage passes `12/12`; `make test-fe`, uPlot/visual-policy, type-check, and production
+  build pass. No visual threshold, mask, product criterion, or acceptance flexibility changed.
+- [ ] Exact/unrepresented Study Lab V25 visual evidence and broader research/provider/historical,
+  native-monitor, endurance, and final-audit gaps remain open.

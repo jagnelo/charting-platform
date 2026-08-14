@@ -1872,6 +1872,17 @@ key and focus retention after Escape); no product criterion or visual acceptance
 Exact-build/unrepresented visual, provider/live-entitlement breadth, physical-monitor, endurance,
 and final-audit gaps remain tracked.
 
+## 2026-08-14 — Study Lab research-helper integration
+
+Factory Study Lab starters now exercise the unified executable SDK instead of duplicating equivalent
+calculations: Forward-return distribution uses `research.conditional_outcomes`, while Volatility
+regime uses `stats.rolling` and `stats.median`. Existing artifact names and renderers are preserved,
+and focused source-contract assertions guard the integration. Study Lab tests pass `22/22`, the
+adjacent authenticated browser slice `12/12`, full frontend `818/818` at `80.90%`, and the
+type/build/uPlot/visual-policy gates pass. No visual threshold, mask, product criterion, or
+acceptance flexibility changed; exact/unrepresented Study Lab V25 and broader external gaps remain
+explicit.
+
 ### 2026-08-11 SEC ambiguous-ticker reconciliation guard
 
 The SEC discovery path now distinguishes safe same-issuer multi-venue listings from ambiguous

@@ -201,6 +201,14 @@ describe('StudyLabTool', () => {
     expect(seasonalitySource).toContain('average_day_of_week_return')
     expect(seasonalitySource).toContain("weekday_names = ['Sat', 'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri']")
     expect(seasonalitySource).not.toContain('lambda')
+    await selector.setValue('forward_return_distribution')
+    const forwardSource = (wrapper.find('[aria-label="Study Python source"]').element as HTMLTextAreaElement).value
+    expect(forwardSource).toContain('research.conditional_outcomes')
+    expect(forwardSource).not.toContain('research.forward_returns')
+    await selector.setValue('volatility_regime')
+    const volatilitySource = (wrapper.find('[aria-label="Study Python source"]').element as HTMLTextAreaElement).value
+    expect(volatilitySource).toContain("stats.rolling(returns, 20, 'std')")
+    expect(volatilitySource).toContain('stats.median(valid_volatility)')
   })
 
   it('requires an explicit universe before running aggregate factory studies', async () => {
