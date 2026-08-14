@@ -1685,6 +1685,108 @@ async def etf_constituent_snapshot(
 
 
 @router.get(
+    "/benchmark-families/{family_key}/constituents",
+    response_model=ETFConstituentSnapshotOut,
+)
+async def benchmark_family_constituents(
+    family_key: str,
+    role: str = Query(default="cap_weight", pattern="^(cap_weight|equal_weight|value|growth)$"),
+    market_benchmark: str | None = Query(default=None),
+    as_of: datetime | None = Query(default=None),
+    timeframe: Timeframe = Timeframe.D1,
+    adjusted: bool = True,
+    _: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Resolve a family leg into its source-labelled ETF-proxy holdings.
+
+    The response retains ETF-proxy membership semantics.  A missing style/equal
+    mapping or canonical identity is an explicit capability error, never a
+    substitution with the family cap proxy or SPY.
+    """
+
+    group = (
+        await db.execute(select(MarketGroup).where(MarketGroup.stable_key == family_key))
+    ).scalar_one_or_none()
+    if group is None or group.group_type != "benchmark_family":
+        raise HTTPException(
+            404,
+            detail={"code": "benchmark_family_not_found", "family_key": family_key},
+        )
+    provenance = dict(group.provenance or {})
+    proxy_mappings = provenance.get("proxy_mappings")
+    mapping = proxy_mappings.get(role) if isinstance(proxy_mappings, Mapping) else None
+    if not isinstance(mapping, Mapping) or not mapping.get("symbol"):
+        raise HTTPException(
+            404,
+            detail={
+                "code": "benchmark_mapping_unavailable",
+                "family_key": family_key,
+                "role": role,
+            },
+        )
+    symbol = str(mapping["symbol"]).upper()
+    instrument = (
+        await db.execute(select(Instrument).where(Instrument.symbol == symbol))
+    ).scalar_one_or_none()
+    if instrument is None:
+        raise HTTPException(
+            404,
+            detail={
+                "code": "benchmark_proxy_unavailable",
+                "family_key": family_key,
+                "role": role,
+                "symbol": symbol,
+            },
+        )
+    cap_mapping = proxy_mappings.get("cap_weight") if isinstance(proxy_mappings, Mapping) else None
+    cap_symbol = (
+        str(cap_mapping.get("symbol")).upper()
+        if isinstance(cap_mapping, Mapping) and cap_mapping.get("symbol")
+        else symbol
+    )
+    benchmark_symbol = cap_symbol if role != "cap_weight" else symbol
+    try:
+        snapshot = await etf_constituent_snapshot(
+            symbol=symbol,
+            benchmark=benchmark_symbol,
+            market_benchmark=market_benchmark,
+            as_of=as_of,
+            timeframe=timeframe,
+            adjusted=adjusted,
+            _=_,
+            db=db,
+        )
+    except HTTPException as error:
+        if error.status_code == 404:
+            detail = error.detail if isinstance(error.detail, Mapping) else {}
+            raise HTTPException(
+                404,
+                detail={
+                    "code": "benchmark_holdings_unavailable",
+                    "family_key": family_key,
+                    "role": role,
+                    "symbol": symbol,
+                    "cause": detail.get("code", "etf_holdings_unavailable"),
+                },
+            ) from error
+        raise
+    return snapshot.model_copy(
+        update={
+            "group_key": f"benchmark-family:{family_key}:{role}",
+            "universe_provenance": {
+                **snapshot.universe_provenance,
+                "family_key": family_key,
+                "mapping_role": role,
+                "mapping_label": mapping.get("label"),
+                "mapping_verification_state": mapping.get("verification_state"),
+                "family_official_index": (provenance.get("official_index") or {}).get("symbol"),
+            },
+        }
+    )
+
+
+@router.get(
     "/benchmark-families/{family_key}/overview",
     response_model=BenchmarkFamilyOverviewOut,
 )

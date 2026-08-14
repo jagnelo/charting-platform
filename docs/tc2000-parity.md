@@ -1,5 +1,20 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-14 — Family-leg constituent drill-down contract
+
+The family workflow now has a shared constituent route:
+`GET /analysis/benchmark-families/{family_key}/constituents?role=cap_weight|equal_weight|value|growth`.
+It resolves only the requested family mapping, selects the appropriate point-in-time ETF holdings
+snapshot, and returns the existing technical/member contract with family and mapping-role
+provenance. ETF-proxy membership remains labelled as such; the route does not imply official index
+membership.
+
+Missing mappings, canonical identities, or holdings snapshots return structured family capability
+errors. No role falls back to the family cap proxy, SPY, QQQ, or another family. This closes the
+backend route bridge for constituent drill-down, not provider population or browser wiring:
+historical holdings completeness, family ratios/breadth/rotation, populated UI drill-down, and
+exact visual/end-to-end acceptance remain open. No acceptance criterion was relaxed.
+
 ## 2026-08-14 — Point-in-time derived equal-weight family series
 
 Benchmark families that explicitly permit derived equal weighting now expose

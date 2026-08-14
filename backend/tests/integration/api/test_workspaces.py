@@ -489,6 +489,76 @@ class TestWorkspaces:
         assert mappings["equal_weight"]["symbol"] == "QQQE"
         assert mappings["equal_weight"]["label"] == "Nasdaq-100 equal-weight ETF proxy"
 
+    def test_benchmark_family_constituent_route_preserves_leg_and_proxy_errors(
+        self, client, auth_headers, db, instrument, instrument_type, ohlcv_bars
+    ):
+        from datetime import UTC, datetime
+
+        from app.models.etf_holdings import ETFHolding, ETFHoldingsSnapshot, ETFProfile
+        from app.models.instrument import Instrument
+
+        seeded = client.get("/api/v1/market-groups", headers=auth_headers)
+        assert seeded.status_code == 200
+        spy = Instrument(
+            symbol="SPY",
+            name="SPDR S&P 500 ETF Trust",
+            currency="USD",
+            instrument_type_id=instrument_type.id,
+            is_active=True,
+        )
+        db.add(spy)
+        db.flush()
+        profile = ETFProfile(instrument_id=spy.id, adapter_status="resolved")
+        db.add(profile)
+        db.flush()
+        snapshot = ETFHoldingsSnapshot(
+            etf_profile_id=profile.id,
+            composition_date=datetime(2024, 5, 30, tzinfo=UTC).date(),
+            known_at=datetime(2024, 5, 31, tzinfo=UTC),
+            provenance="issuer_native",
+            source_provider="issuer",
+            completeness_status="complete",
+            row_count=1,
+            resolved_count=1,
+            unresolved_count=0,
+            snapshot_hash="test-family-spy-snapshot",
+        )
+        db.add(snapshot)
+        db.flush()
+        db.add(
+            ETFHolding(
+                snapshot_id=snapshot.id,
+                constituent_instrument_id=instrument.id,
+                position=0,
+                reported_symbol=instrument.symbol,
+                reported_name=instrument.name,
+                source_row_hash="test-family-spy-aapl",
+                is_resolved=True,
+            )
+        )
+        db.flush()
+        response = client.get(
+            "/api/v1/analysis/benchmark-families/sp500/constituents",
+            headers=auth_headers,
+            params={"role": "cap_weight", "as_of": "2024-06-01T00:00:00Z"},
+        )
+        assert response.status_code == 200, response.text
+        payload = response.json()
+        assert payload["group_key"] == "benchmark-family:sp500:cap_weight"
+        assert payload["etf_symbol"] == "SPY"
+        assert payload["benchmark"] == "SPY"
+        assert payload["universe_provenance"]["mapping_role"] == "cap_weight"
+        assert payload["universe_provenance"]["membership_semantics"] == "etf_proxy_membership"
+        assert payload["rows"][0]["symbol"] == instrument.symbol
+
+        missing = client.get(
+            "/api/v1/analysis/benchmark-families/sp500/constituents",
+            headers=auth_headers,
+            params={"role": "value"},
+        )
+        assert missing.status_code == 404
+        assert missing.json()["detail"]["code"] == "benchmark_proxy_unavailable"
+
     def test_benchmark_family_derived_equal_weight_requires_constituent_membership(
         self, client, auth_headers, db, instrument, ohlcv_bars
     ):

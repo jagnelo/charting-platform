@@ -1,5 +1,19 @@
 # Project TODO Memory
 
+### 2026-08-14 — Family-leg constituent drill-down contract
+
+- [x] Added `GET /analysis/benchmark-families/{family_key}/constituents?role=...` for cap,
+      equal, value, and growth legs. It resolves the selected mapping, delegates to the existing
+      point-in-time ETF holdings snapshot, and relabels the result with family/role provenance.
+- [x] Missing mapping, canonical proxy, or holdings snapshot returns a structured family-specific
+      capability error. The route never falls back to the cap leg, SPY, QQQ, or another family;
+      ETF-proxy membership semantics remain explicit in the response.
+- [x] Validation passes: family constituent route plus overview/derived regressions `3/3`, Ruff,
+      and diff checks. Acceptance flexibility used: none.
+- [ ] Still open: provider-backed population for every family/style leg, historical holdings
+      completeness, browser drill-down wiring, family-wide ratios/breadth/rotation, and visual/
+      end-to-end acceptance.
+
 ### 2026-08-14 — Point-in-time derived equal-weight family series
 
 - [x] Added `GET /analysis/benchmark-families/{family_key}/derived-equal-weight`. It builds a
