@@ -1,5 +1,14 @@
 # Run Report
 
+## 2026-08-15 — Historical iShares family-leg matrix checkpoint
+
+- Opt-in live matrix passed `7/7` for iShares `IJR`, `IWB`, `IWD`, `IWF`, `IWN`, `IWO`, and `IWV`
+  at requested date 2026-06-30, with parseable rows and requested/composition-date metadata.
+- No acceptance flexibility used; official membership, complete rebalance continuity, canonical
+  bars, and browser population remain open. Implementation/docs commit: `d018066`.
+- The exact elevated push was attempted once and rejected before Git by the private-origin
+  safeguard. No workaround or repeat; operational checkpoint remains to be made.
+
 ## 2026-08-15 — Role-aware family dated backfill checkpoint
 
 - Added the admin family/date refresh operation for selected cap/equal/value/growth roles. Each
