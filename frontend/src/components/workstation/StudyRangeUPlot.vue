@@ -18,7 +18,7 @@ let chart: uPlot | null = null
 let observer: ResizeObserver | null = null
 function destroyChart() { chart?.destroy(); chart = null }
 
-function xValues() { return props.timestamps.map((timestamp, index) => { const parsed = Date.parse(timestamp); return Number.isFinite(parsed) ? parsed / 1000 : index }) }
+function xValues() { return props.timestamps.map(timestamp => Date.parse(timestamp) / 1000) }
 function data(): uPlot.AlignedData { return [xValues(), props.lower, props.upper, props.center?.length === props.lower.length ? props.center : props.lower.map(() => null)] }
 function drawBand(instance: uPlot) {
   const context = instance.ctx
@@ -31,7 +31,15 @@ function drawBand(instance: uPlot) {
   context.fill()
   context.restore()
 }
-function hasValidData() { return props.timestamps.length > 0 && props.timestamps.length === props.lower.length && props.lower.length === props.upper.length && props.lower.every(value => Number.isFinite(value)) && props.upper.every(value => Number.isFinite(value)) && (!props.center || props.center.length === props.lower.length && props.center.every(value => Number.isFinite(value))) }
+function hasValidData() {
+  return props.timestamps.length > 0
+    && props.timestamps.length === props.lower.length
+    && props.lower.length === props.upper.length
+    && props.timestamps.every(timestamp => Number.isFinite(Date.parse(timestamp)))
+    && props.lower.every(value => Number.isFinite(value))
+    && props.upper.every(value => Number.isFinite(value))
+    && (!props.center || props.center.length === props.lower.length && props.center.every(value => Number.isFinite(value)))
+}
 function draw() {
   valid.value = hasValidData()
   if (!valid.value || !host.value) { if (!valid.value) destroyChart(); return }
