@@ -27299,3 +27299,16 @@ in 4.6 minutes. No failure was suppressed or reclassified as product success.
   and destination was unavailable.
 - No workaround, alternate transport, rewrite, reset, stash, or repeat was used. Transport-only;
   the local branch remains clean and the product goal continues.
+
+- The family breadth panel now offers role-specific disclosed composition dates and propagates the
+  selected point-in-time through family overview, coverage, constituents, ratios, and generic
+  breadth current/history requests. Latest and historical ratio cache entries are distinct.
+- The unchanged browser acceptance caught a real missing `as_of` cache suffix; it was fixed before
+  the authoritative rerun and covered by a new store regression. Store `57/57`, full frontend
+  Vitest `828/828`, `vue-tsc`, production build, diff-check, ops parsing, and authenticated browser
+  `1/1` pass. No acceptance flexibility used.
+- Clean implementation/docs commit: `c24f22e3`. Exact elevated push was attempted once and rejected
+  before Git by the private-origin safeguard; no workaround or repeat. This is transport-only and
+  not a goal blocker.
+- Historical provider population, rebalance continuity, complete all-family analytics/browser
+  evidence, exact/unrepresented V25 visuals, and final-goal gates remain open and tracked.

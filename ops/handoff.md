@@ -28795,3 +28795,19 @@ indefinite soak; longer endurance remains an explicit open gap.
   was unavailable.
 - No workaround, alternate transport, rewrite, reset, stash, or repeat was used. This is
   transport-only and not a product-goal blocker; the local branch remains clean.
+
+- Added the dated family coverage selector to the Market Breadth workstation. It is populated only
+  from disclosed cap/equal/value/growth composition dates and carries the selected `as_of` through
+  overview, coverage, constituents, all-leg ratios, and generic breadth current/history requests.
+- A real cache-key defect was exposed by the unchanged browser acceptance after the first as-of
+  implementation: family ratios omitted `as_of` from the store key. The component/store keys were
+  repaired and a dedicated store regression added. Store `57/57`, full frontend `828/828`,
+  type-check/build, diff-check, and rebuilt authenticated Chromium `F8s-breadth-family-ratio`
+  `1/1` pass. No acceptance flexibility was used; the first unprivileged Mach-port launch failure
+  was environment-only and the elevated rerun passed unchanged.
+- Implementation/docs commit: `c24f22e3` (clean locally). The exact elevated push to
+  `origin/feat/tc2000-frontend-rework` was attempted once and rejected before Git by the
+  private-origin safeguard. No workaround, alternate transport, rewrite, reset, stash, or repeat.
+- Remaining goal gaps are explicit: historical snapshot/bar population and rebalance continuity for
+  all eight US families and evidenced style legs, family-wide breadth/rotation/ranking/dispersion,
+  complete browser population, exact/unrepresented V25 states, and final acceptance.
