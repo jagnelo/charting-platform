@@ -1,5 +1,15 @@
 # Active Handoff
 
+## 2026-08-14 — Visual preflight checkpoint transport result
+
+- The implementation (`f7720659`) and parity/operations checkpoint (`3b57808e`) are both cleanly
+  committed and isolated. The exact elevated push for `91463e54..3b57808e` was attempted once and
+  rejected before Git by the private-origin egress safeguard because trusted authorization for this
+  private payload and destination was unavailable.
+- No alternate transport, wrapper, rewrite, reset, stash, or repeat was used. The repository is
+  healthy and the worktree is clean; this remains a transport-only hold and does not block the
+  TC2000 goal or the next implementation context.
+
 ## 2026-08-14 — Visual fixture preflight repair
 
 - The board-guided Playwright suite now checks the requested seeded backend mode once per worker

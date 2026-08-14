@@ -1,5 +1,13 @@
 # Run Report
 
+## 2026-08-14 — Visual preflight checkpoint transport result
+
+- The isolated visual preflight implementation and parity/operations record are cleanly committed
+  as `f7720659` and `3b57808e`.
+- The exact elevated push for `91463e54..3b57808e` was attempted once and rejected before Git by
+  the private-origin egress safeguard. No alternate transport or repeat was used; transport-only
+  and the product goal continues from the clean local boundary.
+
 ## 2026-08-14 — Visual fixture preflight repair
 
 - Moved the seeded-backend preflight in `tc2000_visual.spec.ts` from every-test `beforeEach` to a
