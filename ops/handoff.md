@@ -20,6 +20,9 @@
   locally. The exact elevated push was attempted once and rejected before Git by the private-origin
   safeguard; origin remains `91463e54`. The four operational records are being checkpointed
   separately; no workaround, alternate transport, or repeat.
+- Operational checkpoint `a4c9ff73 chore(ops): record benchmark family overview checkpoint` is also
+  clean locally. Its exact elevated push was attempted once and rejected before Git by the same
+  private-origin safeguard; origin remains `91463e54`. Transport is the only unresolved boundary.
 
 ## 2026-08-14 — Benchmark-family taxonomy and selectable child universes
 
