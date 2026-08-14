@@ -1,5 +1,19 @@
 # Active Handoff
 
+## 2026-08-14 — Worker-owned Git push retry and transport-only result
+
+- The repository is healthy and clean at `HEAD` `d0f36f50`; no `.git/index.lock` exists and
+  origin remains `91463e54bbfb37dc5e130d3c912434bfc41594bd`. The exact outstanding range is
+  `91463e54..d0f36f50`.
+- Following the documented worker-owned recovery rule, retried the exact elevated command
+  `rtk git push origin HEAD:feat/tc2000-frontend-rework`. The environment rejected the action
+  before Git because trusted authorization for exporting this exact private-repository payload and
+  destination was unavailable.
+- This is not an index, repository, authentication, product, or goal failure. Do not retry through
+  an alternate shell, API, plugin, force push, rewrite, reset, stash, or other workaround. Keep
+  the completed commits separate and clean; a later continuation may retry this exact payload only
+  after the environment grants exact trusted authorization. Continue the product goal immediately.
+
 ## 2026-08-14 — Current attribution-validation push attempt
 
 - Verified the clean local boundary at `28c70cc4` with origin at `91463e54`; exact range is

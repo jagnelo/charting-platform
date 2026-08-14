@@ -1,5 +1,16 @@
 # Run Report
 
+## 2026-08-14 — Worker-owned Git push retry and transport-only result
+
+- Verified the repository boundary is healthy and clean at `d0f36f50`, with origin at `91463e54`;
+  the exact pending range is `91463e54..d0f36f50`.
+- Retried the exact elevated worker command `rtk git push origin HEAD:feat/tc2000-frontend-rework`.
+  The execution environment rejected it before Git because trusted authorization for this exact
+  private-repository payload and destination was unavailable.
+- No alternate transport, indirect execution, force push, rewrite, reset, stash, or workaround was
+  attempted. This is a transport-only hold; commits remain clean and separate, and the active goal
+  continues without waiting on remote synchronization.
+
 ## 2026-08-14 — Current attribution-validation push attempt
 
 - Clean local `HEAD` is `28c70cc4`; origin is `91463e54`; exact push range is
