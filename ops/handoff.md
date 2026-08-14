@@ -1,5 +1,14 @@
 # Active Handoff
 
+## 2026-08-14 — Study Lab integration Git closure
+
+- Implementation `ecc47ed7106239114ad865d39b7d6e82540c403c` and operational checkpoint `61fd6951`
+  are separate local commits. The repository is clean and `.git/index.lock` is absent.
+- The single exact elevated push for `91463e54bbfb37dc5e130d3c912434bfc41594bd..61fd6951` was
+  rejected before Git by the private-origin export safeguard because trusted authorization for
+  the local range was unavailable. No alternate transport, wrapper, rewrite, reset, stash, or
+  repeat is used. This is transport-only and does not block the product goal.
+
 ## 2026-08-14 — Study Lab research-helper integration (completed)
 
 - Context owner: Codex. Owned paths are `frontend/src/components/workstation/StudyLabTool.vue`,
