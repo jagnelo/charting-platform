@@ -69,6 +69,8 @@ tasks:
       - target-scope-and-cross-sectional-semantics
       - arbitrary-python-predicate-isolated-runner-parity
       - versioned-condition-asset-breadth-reference
+      - isolated-python-current-history-breadth-queue
+      - breadth-python-easyscan-promotion
     notes:
       - The first implementation slice is complete locally in d7c93cf4: versioned current-snapshot API, canonical group/ETF-proxy/explicit-symbol resolution, deterministic evaluator, and a compact workstation composer.
       - Existing fixed breadth tests remain valid preset coverage and cannot close this task.
@@ -80,6 +82,8 @@ tasks:
       - No visual threshold, mask, provider rule, or acceptance criterion was relaxed.
       - The current reusable-condition bridge accepts a user-owned immutable visual condition asset through `condition_asset_key` for current and historical generic breadth. It preserves the library version and generated unified-Python CodeVersion ID in the response and definition hash, but only maps the bounded supported visual subset; arbitrary Python still requires the isolated runner and the UI asset picker/tree remains open.
       - Focused validation for this slice: backend unit `25/25` with `--no-cov`, database-backed reusable-condition integration `1/1` through elevated testcontainers, Ruff, and diff checks. The narrow coverage invocation's `6.12%` total is an invocation-scope threshold failure, not a test failure; the repository-wide coverage gate remains the authoritative broader check.
+      - The isolated-Python bridge is now implemented for current and aligned historical breadth through `POST /analysis/breadth/python` plus `GET /analysis/breadth/python/runs/{run_id}`. It executes user-owned Boolean CodeVersions only in the research runner, preserves condition/membership/dataset identity, and exposes pass/eligible/coverage/member/exclusion outputs. The first compatible promotion proof is `/screeners/from-python-condition/{code_version_id}`; other promotion targets and the visual tree remain open.
+      - Focused evidence: runner/router/evaluator `113/113`, sandbox/job protocol `50/50`, database-backed current/history/Python queue/EasyScan integration `3/3`, Ruff, and diff checks. A first runner indentation defect and a missing seeded-bar fixture were repaired at their owning boundaries; no failure was suppressed and no acceptance flexibility used.
   - id: tc2000-study-lab-artifact-export-20260814
     title: Export typed artifacts directly from the active Study Lab run
     status: completed

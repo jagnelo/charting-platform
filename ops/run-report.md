@@ -1,5 +1,24 @@
 # Run Report
 
+## 2026-08-14 — Isolated-Python breadth predicates
+
+- Added the isolated execution bridge for arbitrary user Boolean breadth predicates. Current and
+  historical requests resolve canonical local membership, materialize declared data, enqueue a
+  user-owned CodeVersion, and expose structured results without executing source in FastAPI.
+- Historical runner mode evaluates aligned timestamp-truncated member datasets and excludes
+  missing timestamps. Boolean artifacts retain optional finite metrics and exclusion codes. The
+  existing EasyScan promotion route was exercised with the exact CodeVersion ID.
+- Validation: isolated runner/router/evaluator `113/113`; sandbox/job protocol `50/50`; elevated
+  database-backed current/history/Python queue/EasyScan integration `3/3`; Ruff and diff checks.
+  The initial indentation defect and missing seeded-bar fixture were repaired and covered; no
+  acceptance flexibility used.
+- Open: visual condition-tree authoring, occurrence/chart linking, remaining promotion targets,
+  ETF point-in-time browser evidence, and broader V25/provider/final-audit gaps.
+- Implementation commit `110b3979` is clean locally. The exact elevated push for the accumulated
+  range ending at that commit was attempted once and rejected before Git by the private-origin
+  safeguard; origin remains `91463e54`. This is transport-only and no workaround or repeat was
+  attempted.
+
 ## 2026-08-14 — Versioned condition-asset reuse in generic breadth
 
 - Implemented a bounded reusable-condition bridge for current and historical generic breadth.

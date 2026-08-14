@@ -1,5 +1,32 @@
 # Active Handoff
 
+## 2026-08-14 — Isolated-Python breadth execution bridge
+
+- Implemented the next active context: user-owned immutable Boolean CodeVersions can be queued
+  through `POST /analysis/breadth/python` for canonical group/ETF-proxy/explicit-symbol universes,
+  with current or aligned historical mode. `GET /analysis/breadth/python/runs/{run_id}` collects
+  pass/eligible counts, percentages, member rows, exclusions, progress, code/membership/dataset
+  metadata, and reproducibility identity.
+- The existing research runner remains the sole execution boundary. Historical mode truncates each
+  member (and aligned benchmark) at exact timestamps; absent bars become exclusions. Boolean
+  artifacts may carry finite metrics and exclusion codes. EasyScan promotion is exercised through
+  the existing immutable CodeVersion route.
+- Fix-first repairs: an initial runner indentation defect was caught by Ruff before acceptance;
+  an integration fixture omission was corrected after the first database run showed an empty
+  dataset. Regression evidence now passes runner/router/evaluator `113/113`, sandbox/job protocol
+  `50/50`, and current/history/Python queue/EasyScan integration `3/3`.
+- Acceptance flexibility used: **none**. Remaining gaps are the visual Python condition tree,
+  occurrence-to-chart linking, promotion into all compatible targets, and point-in-time ETF
+  browser evidence, plus the broader V25 visual/provider/final-audit gaps.
+- This context owns the backend runner/API/schema/tests and the three required ops/parity records.
+  Commit them separately from later UI work, attempt the exact push once, and leave the tree clean.
+- Implementation commit `110b3979 feat(analysis): execute python breadth predicates in isolation` is
+  clean locally. The exact elevated push for the accumulated range ending at `110b3979` was
+  attempted once; `origin/feat/tc2000-frontend-rework` remains at `91463e54` because the private
+  origin safeguard rejected the payload before Git. This is transport-only; no alternate transport,
+  rewrite, reset, stash, or repeat was used.
+- Next context: visual condition-tree authoring and breadth occurrence/promotion UI integration.
+
 ## 2026-08-14 — Versioned breadth condition-asset reuse
 
 - Implementation context: current and historical generic breadth now accept a user-owned
