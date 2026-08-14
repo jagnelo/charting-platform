@@ -1,4 +1,26 @@
 tasks:
+  - id: tc2000-docker-storage-maintenance-20260814
+    title: Reclaim audited Docker storage without disturbing the active branch stack
+    status: completed
+    priority: medium
+    scope: >-
+      Audit Docker usage above the goal threshold and remove only verified unused objects while
+      preserving active TC2000 services and named data volumes.
+    definition_of_done:
+      - Detailed Docker usage is recorded before cleanup
+      - Dangling images, explicitly stale Created containers, and unused build cache are removed
+      - Active branch services remain running and healthy afterward
+      - Post-cleanup usage is below the maintenance threshold or the remaining usage is explained
+      - No active data volume is removed and no product acceptance rule changes
+    validation:
+      - docker-system-df-before-and-after
+      - active-stack-health-after-cleanup
+      - git-diff-check
+    notes:
+      - >-
+        Broad prune was rejected by the destructive-action safeguard. Targeted cleanup reclaimed
+        about 5.98 GB; post-cleanup usage is approximately 8.55 GB and build cache is zero.
+        Acceptance flexibility used: none.
   - id: tc2000-wisdomtree-route-audit-20260814
     title: Re-probe WisdomTree holdings access without promoting an incomplete route
     status: completed

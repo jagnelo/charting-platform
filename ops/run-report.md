@@ -1,5 +1,14 @@
 # Run Report
 
+## 2026-08-14 — Targeted Docker storage maintenance
+
+- Before cleanup: Images `8.32 GB`, local volumes `3.208 GB`, build cache `3.002 GB`; detailed
+  audit identified dangling images and stale inactive containers while the branch stack remained
+  active.
+- Removed only dangling images, three explicit stale `Created` containers, and unused build cache;
+  reclaimed about `5.98 GB`. After cleanup: Images `5.341 GB`, local volumes `3.208 GB`, build
+  cache `0 B`; active branch services remain healthy. No active volume was removed.
+
 ## 2026-08-14 — Supporting-backend provider route audit
 
 - Focused no-network provider registry contract passes `2/2` under Python 3.12.

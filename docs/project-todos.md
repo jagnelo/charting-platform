@@ -1,5 +1,17 @@
 # Project TODO Memory
 
+### 2026-08-14 — Targeted Docker storage maintenance
+
+- [x] Docker usage exceeded the 10 GB maintenance threshold. The broad
+      `docker system prune -af --volumes` command was rejected by the destructive-action safeguard;
+      the safer equivalent was applied from a detailed audit: dangling images, three explicitly
+      identified stale `Created` containers, and unused build cache were removed.
+- [x] About `5.98 GB` was reclaimed. Post-cleanup usage is approximately `8.55 GB` with zero
+      build cache; the active TC2000 branch backend, worker, frontend, research runner, Postgres,
+      and Redis services remain running/healthy. No active data volume was removed.
+- [ ] Acceptance flexibility used: **none**. This is maintenance evidence only and does not
+      change product scope, visual authority, provider policy, or completion criteria.
+
 ### 2026-08-14 — Supporting-backend provider route audit
 
 - [x] The provider registry contract passes `2/2` under the repository-supported Python 3.12

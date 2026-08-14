@@ -1,5 +1,16 @@
 # Active Handoff
 
+## 2026-08-14 — Targeted Docker storage maintenance
+
+- Detailed audit found about 16.4 GB of Docker objects, above the maintenance threshold. The
+  broad `docker system prune -af --volumes` request was rejected as too destructive, so cleanup
+  was narrowed to audited dangling images, three stale `Created` containers from the inactive
+  `charting-platform` stack, and unused build cache.
+- About 5.98 GB was reclaimed. Current usage is approximately 8.55 GB with zero build cache.
+  The active branch services remain running/healthy and no active data volume was removed.
+- This is operational maintenance only; no product acceptance flexibility was used. Continue the
+  active TC2000 implementation context.
+
 ## 2026-08-14 — Supporting-backend provider route audit
 
 - Provider registry contract passes `2/2` under Python 3.12. WisdomTree's official DXJ page was
