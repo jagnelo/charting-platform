@@ -27058,6 +27058,17 @@ in 4.6 minutes. No failure was suppressed or reclassified as product success.
 - No workaround, alternate transport, rewrite, reset, stash, or repeat was used. Transport-only;
   the local branch remains clean and the product goal continues.
 
+# 2026-08-14 — Breadth predicate authoring expansion
+
+- Expanded the custom breadth UI to serialize trend-state, RSI, volume-ratio, and relative-strength
+  predicates with explicit parameters, while retaining the existing family/group/ETF universe,
+  benchmark, timeframe, adjustment, point-in-time, and Boolean composition contracts.
+- Validation passed: frontend Vitest `824/824`, type-check, production build, backend breadth units
+  `7/7`, Ruff, and focused Chromium `1/1`. A request-count oracle defect in the first browser run
+  was repaired before the passing rerun. Acceptance flexibility used: none.
+- Clean implementation/docs commit: `b0cd8519`. Provider-backed family population and richer
+  Python/target-series/promotion capabilities remain open.
+
 # 2026-08-14 — Family overview holdings readiness
 
 - Added role-level holdings readiness to benchmark-family overview responses. Mapped cap/equal/

@@ -28492,3 +28492,17 @@ indefinite soak; longer endurance remains an explicit open gap.
   was unavailable.
 - No workaround, alternate transport, rewrite, reset, stash, or repeated attempt was used. This
   is transport-only and not a product-goal blocker; the branch remains clean locally.
+
+## 2026-08-14 — Breadth predicate authoring expansion
+
+- The visible custom breadth composer now supports trend, RSI, volume-ratio, and explicit
+  relative-strength predicates in addition to moving-average, 52-week, and scalar comparison
+  conditions. Periods/lookbacks, operators, thresholds, direction, benchmark, family role,
+  timeframe, adjustment, point-in-time policy, and Boolean composition remain serialized.
+- Validation: frontend Vitest `824/824`, type-check, production build, backend breadth units `7/7`,
+  Ruff, and focused Chromium `F8s-breadth-family-ratio` `1/1`. The first browser run caught an
+  incorrect request-count oracle; it was corrected and the authoritative rerun passed. No
+  acceptance flexibility was used.
+- Implementation/docs commit: `b0cd8519` (clean locally). Remaining gaps are arbitrary Python in
+  the visible composer, richer target-series/cross-sectional scope, promotion wiring, and complete
+  provider-backed family population.
