@@ -9237,7 +9237,7 @@ to the explicit `direxion` holdings adapter and the official Direxion product pa
 uses Direxion's symbol-scoped public daily holdings CSV, preserves the source/provider and
 composition-date provenance, and is no longer dependent on issuer-name inference. The focused
 taxonomy/adapter regression and the opt-in live probe for QQQE passed; the complete relevant
-unit slice is `501/501`, with Ruff, compilation, and diff checks passing.
+unit slice is `509/509`, with Ruff, compilation, and diff checks passing.
 
 This closes QQQE route readiness, not historical completeness. Historical rebalance artifacts,
 point-in-time membership continuity, canonical bar population, and browser-visible QQQ/QQQE

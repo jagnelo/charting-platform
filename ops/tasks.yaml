@@ -122,7 +122,7 @@ tasks:
       - >-
         QQQE route evidence is now closed at the provider-routing layer: canonical `QQQE` metadata
         selects the explicit Direxion adapter and official product page, and an opt-in live probe
-        parsed the symbol-scoped public holdings export. Relevant unit coverage is `501/501`, with
+        parsed the symbol-scoped public holdings export. Relevant unit coverage is `509/509`, with
         Ruff/compile/diff passing. Historical rebalance continuity, point-in-time membership,
         bars, and populated browser QQQ/QQQE acceptance remain open; no acceptance flexibility was
         used.

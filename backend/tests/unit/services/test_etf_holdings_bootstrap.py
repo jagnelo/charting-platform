@@ -103,6 +103,33 @@ def test_curated_route_metadata_repairs_stale_adapter_key():
     assert profile.adapter_status == "candidate"
 
 
+def test_curated_qqqe_route_metadata_selects_direxion_adapter():
+    """The Nasdaq-100 equal leg must bootstrap through its explicit issuer route."""
+
+    profile = SimpleNamespace(
+        instrument=SimpleNamespace(symbol="QQQE", name="Direxion NASDAQ-100 Equal Weighted ETF"),
+        issuer=None,
+        fund_family=None,
+        product_url=None,
+        provider_aliases={},
+        sec_cik=None,
+        sec_series_id=None,
+        sec_class_id=None,
+        adapter_key="unresolved",
+        adapter_status="holdings_adapter_unresolved",
+        adapter_confidence=0,
+    )
+
+    assert _apply_known_route_metadata(profile) is True
+    assert profile.issuer == "Direxion"
+    assert profile.adapter_key == "direxion"
+    assert profile.adapter_status == "candidate"
+    assert profile.provider_aliases["holdings_adapter"] == "direxion"
+    assert profile.provider_aliases["issuer_product_url"].endswith(
+        "/nasdaq-100-equal-weighted-index-etf"
+    )
+
+
 def test_explicit_issuer_product_slug_precedes_sec_series_id():
     """SEC enrichment must not shadow an issuer-native route identifier."""
 
