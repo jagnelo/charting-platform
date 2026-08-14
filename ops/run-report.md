@@ -28,6 +28,13 @@
   private payload/destination was unavailable. No workaround, alternate transport, rewrite,
   reset, stash, or repeat was attempted; transport-only and the local worktree remains clean.
 
+## 2026-08-14 — Family issuer-route live matrix correction
+
+- The first 15-symbol live matrix caught stale iShares IDs for `IWD` and `IWN`; corrected them to
+  `239708` and `239712` and reran successfully at `15/15`.
+- This is current issuer-route evidence only. Historical membership/rebalance, canonical bars,
+  and populated browser family acceptance remain open; no acceptance flexibility was used.
+
 ## 2026-08-14 — Expanded US index-family vision documentation
 
 - Recorded the requested eight-family US analysis scope in the controlling product, parity, and
