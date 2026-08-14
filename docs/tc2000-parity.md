@@ -1,5 +1,18 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-14 — Conditional Study/Breadth uPlot family lifecycle
+
+- The conditional numerical renderer family now shares the same lifecycle contract: Study Series,
+  Histogram, Range, Bars, Breadth History, and Scatter wait for their host, release charts when
+  output becomes invalid/empty, and recreate safely on recovery. uPlot remains the sole numerical
+  renderer.
+- Family unit coverage `12/12`, full frontend Vitest `793/793`, type-check, 475-module build, uPlot
+  contract (`45` files), diff-check, and authenticated F8o `1/1` pass. No visual baseline, threshold,
+  mask, provider, or acceptance rule changed; flexibility used: none.
+- This closes a shared repository-controlled renderer lifecycle defect. Exact/unrepresented Study
+  Lab visuals, provider/entitlement, historical/GICS, native-monitor, endurance, Docker, and final-
+  audit gaps remain open.
+
 ## 2026-08-14 — Study Scatter conditional uPlot lifecycle
 
 - Study Lab scatter output now hydrates the conditional uPlot host before creating the chart,

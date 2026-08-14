@@ -1,4 +1,28 @@
 tasks:
+  - id: tc2000-conditional-uplot-family-20260814
+    title: Harden conditional Study and Breadth uPlot chart lifecycles
+    status: completed
+    priority: high
+    scope: >-
+      Apply the repaired conditional-host lifecycle consistently across Study Series, Histogram,
+      Range, Bars, Breadth History, and Scatter numerical surfaces.
+    definition_of_done:
+      - Every family member renders its initial chart after the conditional host mounts
+      - Invalid/empty data destroys stale charts and exposes the state surface
+      - Valid recovery creates a usable fresh chart without orphaned canvases
+      - Focused family, full frontend, type/build, uPlot, diff, and browser evidence pass
+      - No visual or acceptance criterion is silently relaxed
+    validation:
+      - conditional-uplot-family-12-of-12
+      - frontend-vitest-793-of-793
+      - frontend-type-check-build
+      - uplot-contract-45-files
+      - authenticated-f8o-1-of-1
+    notes:
+      - >-
+        Implementation `cf201a8c` completes the family after Scatter `2768f019`. Acceptance
+        flexibility used: none. Exact/unrepresented Study Lab, provider/entitlement,
+        historical/GICS, native-monitor, endurance, Docker, and final-audit gaps remain open.
   - id: tc2000-study-scatter-lifecycle-20260814
     title: Repair conditional Study Lab scatter uPlot lifecycle
     status: completed

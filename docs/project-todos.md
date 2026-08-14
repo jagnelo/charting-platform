@@ -1,5 +1,18 @@
 # Project TODO Memory
 
+### 2026-08-14 — Conditional Study/Breadth uPlot family lifecycle
+
+- [x] Hardened Study Series, Histogram, Range, Bars, Breadth History, and Scatter conditional
+      numerical surfaces: initial hosts are hydrated before uPlot creation, invalid/empty data
+      destroys stale charts, and valid recovery creates a fresh chart without orphaned canvases.
+- [x] Family regression coverage passes `12/12`; full frontend Vitest passes `793/793`; type-check,
+      475-module production build, uPlot contract (`45` audited files), diff-check, and authenticated
+      structured-study `F8o` browser acceptance pass `1/1`. Implementation commits: `2768f019` and
+      `cf201a8c`.
+- [ ] Acceptance flexibility used: **none**. Exact/unrepresented Study Lab visuals, provider/
+      entitlement breadth, historical/GICS truth, native-monitor, endurance, Docker global-prune,
+      and final-audit gaps remain explicit.
+
 ### 2026-08-14 — Study Scatter conditional uPlot lifecycle
 
 - [x] Study Lab scatter output now creates its initial uPlot only after the conditional host is

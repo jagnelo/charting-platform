@@ -1,5 +1,16 @@
 # Active Handoff
 
+## 2026-08-14 — Conditional Study/Breadth uPlot family lifecycle completed
+
+- Implementation `cf201a8c` hardens Study Series, Histogram, Range, Bars, and Breadth History to the
+  same conditional-host lifecycle already repaired in Scatter: initial host hydration, explicit
+  stale-chart destruction on invalid/empty output, and safe valid recovery.
+- Validation: family regression `12/12`; full frontend Vitest `793/793`; type-check; 475-module
+  build; uPlot contract (`45` files); diff-check; and authenticated structured-study F8o `1/1`.
+- Acceptance flexibility used: **none**. Exact/unrepresented Study Lab, provider/entitlement,
+  historical/GICS, native-monitor, endurance, Docker global-prune, and final-audit gaps remain
+  explicit. Implementation is a clean local commit; push transport remains separate.
+
 ## 2026-08-14 — Study Scatter conditional uPlot lifecycle completed
 
 - Implementation `2768f019` repairs Study Lab scatter lifecycle: initial valid data waits for the
