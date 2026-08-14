@@ -1,5 +1,16 @@
 # Project TODO Memory
 
+### 2026-08-14 — Close Alerian unsupported-symbol SEC fallback edge
+
+- [x] Corrected the unsupported-symbol branch of the Alerian probe: a non-`AMLP`/`ENFR` symbol
+      with a CIK now returns the explicit SEC EDGAR fallback URL, rather than inheriting the
+      generic ALPS product-page route that `fetch_latest` would reject.
+- [x] Focused Alerian checks pass `4/4`, complete ETF-adapter checks `490/490`, complete backend
+      unit gate `1135/1135`, Ruff, and diff checks pass. Follow-up implementation: `e15e2e6`.
+- [ ] Acceptance flexibility used: **none**. This closes the remaining repository-controlled edge
+      in the Alerian route boundary; broader provider, historical/GICS, visual, hardware,
+      endurance, Docker, and final-audit gaps remain explicitly tracked.
+
 ### 2026-08-14 — Constrain native Alerian route ownership
 
 - [x] Hardened the Alerian holdings adapter so its generic ALPS product-page template cannot

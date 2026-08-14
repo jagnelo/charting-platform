@@ -1,5 +1,12 @@
 # Run Report
 
+## 2026-08-14 — Alerian SEC fallback edge closed
+
+- Corrected unsupported-symbol probing so a CIK selects the explicit SEC EDGAR fallback rather
+  than the generic ALPS page route. Focused Alerian `4/4`, ETF-adapter `490/490`, backend unit
+  `1135/1135`, Ruff, and diff checks pass. Follow-up commit `e15e2e6`.
+- No acceptance flexibility or visual/data policy changed.
+
 ## 2026-08-14 — Alerian route-ownership hardening
 
 - Fixed a provider-selection defect where the Alerian adapter's generic ALPS page template could

@@ -1,5 +1,14 @@
 # Active Handoff
 
+## 2026-08-14 — Alerian SEC fallback edge closed
+
+- Unsupported Alerian symbols with a SEC CIK now return the explicit EDGAR fallback URL instead
+  of the generic ALPS product-page URL. This prevents a `ready` probe from selecting a route that
+  the adapter later rejects.
+- Focused Alerian `4/4`, ETF-adapter `490/490`, backend unit `1135/1135`, Ruff, and diff checks
+  pass. Follow-up commit: `e15e2e6006ded72b2c7f591e77d9180a224108c8`.
+- Acceptance flexibility used: none; remaining broader goal gaps are unchanged.
+
 ## 2026-08-14 — Alerian route-ownership hardening
 
 - The Alerian adapter no longer treats every ALPS-hosted product page as Alerian-native. The
