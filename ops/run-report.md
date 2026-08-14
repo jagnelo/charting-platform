@@ -1,5 +1,14 @@
 # Run Report
 
+## 2026-08-14 — StrategyResultChart malformed-value validation
+
+- Prevented runtime null/non-finite StrategyResultChart values from being coerced into misleading
+  zeros or mounting an all-invalid uPlot chart; malformed-only output now uses the empty state.
+- Focused tests `8/8`, full frontend Vitest `797/797`, type-check, 475-module build, uPlot contract
+  (`45` files), and diff-check pass. Implementation: `2fe2487c`.
+- Acceptance flexibility used: **none**; all remaining visual/provider/historical/monitor/endurance
+  and final-audit gaps remain tracked.
+
 ## 2026-08-14 — Current clean-boundary push attempt
 
 - Verified clean local `HEAD` `d09eaae7` and origin `91463e54`; the exact range is

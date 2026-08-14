@@ -1,5 +1,18 @@
 # Active Handoff
 
+## 2026-08-14 — StrategyResultChart malformed-value validation completed
+
+- Implementation `2fe2487c` hardens `StrategyResultChart` numerical input handling. Explicit nulls
+  remain uPlot gaps instead of becoming zero, non-finite runtime values are never sent to uPlot,
+  and an all-malformed result renders the existing empty state while destroying any stale chart.
+- Regression coverage proves both all-invalid suppression and null-gap preservation. Focused tests
+  `8/8`; full frontend Vitest `797/797`; type-check; 475-module production build; uPlot contract
+  (`45` files); and diff-check pass.
+- Acceptance flexibility used: **none**. No visual threshold, board authority, provider rule,
+  chart renderer, or product boundary changed. Exact/unrepresented V25, provider/entitlement,
+  historical/GICS, native-monitor, endurance, Docker global-prune, and final-audit gaps remain
+  explicit. The implementation is a clean local commit; push transport remains separate.
+
 ## 2026-08-14 — Current clean-boundary push attempt
 
 - After the Distribution Bars closure, verified clean `HEAD` `d09eaae7` and origin
