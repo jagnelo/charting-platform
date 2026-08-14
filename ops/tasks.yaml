@@ -20,6 +20,9 @@ tasks:
       - Fix-first localized repair; no failure was suppressed or reclassified.
       - Acceptance flexibility used: none.
       - Implementation/docs commit: d3a696c2; operational checkpoint remains separate.
+      - Operational checkpoint: cade5106. Exact push 91463e54..cade5106 was attempted once and
+        rejected before Git by the private-origin egress safeguard; transport-only, no workaround
+        or repeat.
   - id: tc2000-study-histogram-current-marker-20260814
     title: Refresh Study Lab histogram current marker when the observation changes
     status: completed

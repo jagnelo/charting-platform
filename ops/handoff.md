@@ -1,5 +1,17 @@
 # Active Handoff
 
+## 2026-08-14 — Study Lab SDK reference transport record
+
+- Implementation/docs `d3a696c2` and operational checkpoint `cade5106` are clean local commits.
+- Exact elevated command `rtk git push origin feat/tc2000-frontend-rework` for range
+  `91463e54..cade5106` was attempted once and rejected **before Git** by the private-origin
+  egress safeguard because trusted authorization for this private destination/payload was
+  unavailable. `.git/index.lock` is absent and repository/index health is confirmed.
+- No alternate transport, wrapper, indirect execution, force push, rewrite, reset, stash, or
+  repeated same-payload attempt is used. This is transport-only, never a product or goal blocker;
+  continue from the clean local boundary and retry only if the environment later accepts this
+  exact destination/range through the approved path.
+
 ## 2026-08-14 — Study Lab SDK reference duplicate-row repair (completed)
 
 - Context owner: Codex. Owned paths were `StudyLabTool.vue`, its component regression, and the

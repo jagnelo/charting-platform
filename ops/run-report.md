@@ -1,5 +1,12 @@
 # Run Report
 
+## 2026-08-14 — Study Lab SDK reference transport result
+
+- Implementation/docs `d3a696c2` and operational checkpoint `cade5106` are clean locally.
+- The exact elevated `rtk git push origin feat/tc2000-frontend-rework` for range
+  `91463e54..cade5106` was rejected before Git by the private-origin egress safeguard. No
+  workaround or repeat was used; this is transport-only and the goal continues locally.
+
 ## 2026-08-14 — Study Lab SDK reference duplicate-row repair
 
 - Removed the duplicate visible `stats` SDK reference row and added a regression requiring exactly
