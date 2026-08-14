@@ -33,8 +33,21 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
     'requires approved references or the accepted board-guided visual policy',
   )
 
+  test.beforeAll(async ({ browser }) => {
+    // A visual run must never execute 104 copies of the same setup failure when
+    // the stack was started with the wrong fixture mode. Use the worker-scoped
+    // browser to perform one authoritative preflight, then let each test focus
+    // on its own layout/state assertions.
+    const context = await browser.newContext()
+    const page = await context.newPage()
+    try {
+      await assertSeededBackend(page)
+    } finally {
+      await context.close()
+    }
+  })
+
   test.beforeEach(async ({ page }) => {
-    await assertSeededBackend(page)
     // Visual cases share the authenticated fixture user. Restore the immutable
     // factory before each capture so a preceding interaction (for example a
     // resized watchlist column or a floated tool) cannot contaminate a later
