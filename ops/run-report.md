@@ -1,5 +1,14 @@
 # Run Report
 
+## 2026-08-14 — Push egress safeguard re-confirmed
+
+- Clean local `HEAD` is `b571c925`; origin is `91463e54`; exact push range is
+  `91463e54..b571c925`.
+- Elevated `rtk git push origin feat/tc2000-frontend-rework` was rejected before Git by the
+  private-repository egress safety boundary. This is not an index, filesystem, authentication, or
+  product failure. No workaround or history rewrite was attempted; local changesets remain clean
+  and separate. Exact range/destination authorization is the only remaining transport action.
+
 ## 2026-08-14 — Alert and Market Gauge empty-state semantics
 
 - Implementation `e64ec9dd` adds polite atomic live-region semantics to empty alert and Market Gauge

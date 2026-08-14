@@ -1,5 +1,18 @@
 # Active Handoff
 
+## 2026-08-14 — Current push egress safeguard re-confirmed
+
+- The clean local branch is `b571c925`; origin remains `91463e54bbfb37dc5e130d3c912434bfc41594bd`.
+  The exact command `rtk git push origin feat/tc2000-frontend-rework` was attempted through the
+  elevated Git path and rejected by the execution safety boundary before Git started because this
+  would export the accumulated private-repository range `91463e54..b571c925`.
+- This is distinct from the resolved `.git/index.lock` sandbox issue: elevated `git add` and
+  `git commit` work, and the worktree is clean. No workaround, alternate transport, force push,
+  rewrite, or indirect execution was attempted.
+- The range is ready for a single exact user authorization when desired. Until then, keep the
+  local commits separate and continue independently scoped implementation from the clean boundary;
+  this transport safeguard is not a product or goal blocker.
+
 ## 2026-08-14 — Alert and Market Gauge empty-state context completed
 
 - Implementation commit `e64ec9dd` adds polite atomic status live regions to empty alert states and
