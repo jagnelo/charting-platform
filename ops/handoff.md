@@ -15,6 +15,10 @@
 - Next context: continue an independently scoped TC2000/backend gap from the clean local
   boundary. Retry this exact push only after the user/environment explicitly authorizes the same
   remote, branch, and commit range; do not use another transport or wrapper.
+- The separate operational checkpoint commit `fbd3c707` is also clean locally. Its exact push for
+  range `d9124be605e78f17bff5d81815a439f8d591ef5f..fbd3c707d654abfb4dd071918a1fc86293e957eb`
+  was requested once and rejected before Git for the same missing trusted exact-payload
+  authorization; the remote remains at `91463e54`.
 
 ## 2026-08-14 — Visual preflight checkpoint transport result
 

@@ -11,6 +11,9 @@
   to `origin/feat/tc2000-frontend-rework` was rejected before Git by the private-origin safeguard
   because trusted exact-payload authorization was unavailable. Clean local commit retained;
   transport-only, no retry/workaround.
+- The separate operational checkpoint `fbd3c707` is also clean locally; its exact push for
+  `d9124be605e78f17bff5d81815a439f8d591ef5f..fbd3c707d654abfb4dd071918a1fc86293e957eb`
+  was rejected before Git by the same safeguard. Remote remains at `91463e54`; no workaround.
 
 ## 2026-08-14 — Visual preflight checkpoint transport result
 
