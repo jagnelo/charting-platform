@@ -1,5 +1,18 @@
 # Active Handoff
 
+## 2026-08-14 — Westwood issuer route audit
+
+- Official Westwood MDST and WEEI pages advertise current holdings and CSV download controls,
+  but bounded direct requests to the product pages and WordPress/API variants returned HTTP 403
+  HTML. No complete executable issuer artifact was promoted; search-indexed and third-party data
+  remain discovery/fallback evidence only.
+- Westwood remains `issuer_access_blocked`, with SEC fallback eligibility and periodic re-test as
+  the next action. Added a regression guard so it cannot accidentally become native without a
+  directly validated issuer route. Focused fallback checks `5/5`; full ETF adapter units `485/485`;
+  Ruff and diff checks pass. Implementation commit: `23ce2ca1`.
+- Acceptance flexibility used: none. This external route gap does not block independent TC2000
+  workstation work.
+
 ## 2026-08-14 — Current exact push authorization result (0d3ec147)
 
 - Repository/index health is confirmed: there is no `.git/index.lock`, ownership and

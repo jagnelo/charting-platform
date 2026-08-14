@@ -1,5 +1,20 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-14 — Westwood issuer route audit and fallback guard
+
+- Re-tested the official Westwood product surfaces for MDST and WEEI after search-indexed
+  results exposed complete-looking holdings tables and a `Download CSV` control. Direct
+  backend-equivalent requests to the official product pages and WordPress/API variants returned
+  HTTP 403 HTML responses, so no complete executable issuer artifact was available for promotion.
+- Third-party tables, search-cache text, and SEC/other-provider data remain discovery or fallback
+  evidence; they do not satisfy the native issuer-route contract. Westwood therefore remains
+  `issuer_access_blocked` with SEC fallback eligibility and an explicit periodic re-test action.
+- Added `test_westwood_remains_explicitly_audited_fallback_only_after_official_route_403`; focused
+  fallback checks pass `5/5`, the complete ETF adapter unit suite passes `485/485`, Ruff and diff
+  checks pass. Implementation commit: `23ce2ca1`.
+- Acceptance flexibility used: none. This is an external access gap, not a product blocker; no
+  provider, provenance, membership, or acceptance rule was relaxed.
+
 ## 2026-08-14 — Top-down ratio acceptance-oracle isolation
 
 - The authenticated top-down ratio context-menu flow now resets the immutable factory workspace

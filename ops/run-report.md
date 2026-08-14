@@ -1,5 +1,14 @@
 # Run Report
 
+## 2026-08-14 — Westwood issuer route audit
+
+- Official Westwood MDST/WEEI product and WordPress/API probes returned HTTP 403 HTML despite
+  search-indexed pages advertising holdings/CSV controls. No executable complete issuer artifact
+  was found, so native promotion was correctly rejected.
+- The fallback regression slice passed `5/5`; the complete ETF adapter unit suite passed `485/485`;
+  Ruff and diff checks passed. Implementation commit `23ce2ca1` preserves the explicit
+  `issuer_access_blocked` classification and SEC fallback path. Acceptance flexibility used: none.
+
 ## 2026-08-14 — Current exact push authorization result (0d3ec147)
 
 - Clean repository/index checks pass: no `.git/index.lock`; local `HEAD` is `0d3ec147`;

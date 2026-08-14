@@ -1,4 +1,32 @@
 tasks:
+  - id: tc2000-westwood-route-audit-20260814
+    title: Re-audit Westwood issuer holdings routes and preserve fallback truth
+    status: completed
+    priority: high
+    scope: >-
+      Re-test Westwood's official MDST and WEEI product/WordPress routes for a directly
+      executable complete holdings artifact, and prevent search-indexed or third-party tables
+      from being promoted as a native issuer integration when the backend is denied access.
+    definition_of_done:
+      - Official MDST and WEEI product routes are probed with bounded backend-equivalent requests
+      - Complete issuer-owned CSV/JSON access is promoted only if directly executable and validated
+      - Westwood remains explicitly issuer_access_blocked when official routes return HTTP 403
+      - A regression test prevents accidental promotion and preserves SEC fallback eligibility
+      - Audit evidence, residual gap, and next action are recorded in operational/parity docs
+    validation:
+      - westwood-official-route-probes-403
+      - westwood-fallback-regression-5-of-5-focused
+      - etf-holdings-adapter-unit-485-of-485
+      - ruff-test-file
+      - git-diff-check
+    notes:
+      - >-
+        Official Westwood product pages advertise holdings and a CSV download, but direct
+        MDST/WEEI product and WordPress/API requests returned HTTP 403 HTML responses. Search
+        indexed tables and third-party reports are discovery evidence only and are not executable
+        issuer artifacts. The isolated test guard is committed as 23ce2ca1. Acceptance flexibility
+        used: none; Westwood remains an explicit external issuer-access gap and the next action is
+        a bounded periodic re-test or a newly exposed complete issuer route.
   - id: tc2000-topdown-ratio-action-oracle-20260814
     title: Isolate top-down ratio action state and require explicit stock sector ratios
     status: completed
