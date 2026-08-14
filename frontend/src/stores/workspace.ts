@@ -192,6 +192,34 @@ export interface BreadthHistoryState {
   freshness_detail?: Record<string, number>
 }
 
+export interface GenericBreadthState {
+  definition_version: number
+  definition_hash: string
+  universe: Record<string, unknown>
+  condition: Record<string, unknown>
+  timeframe: string
+  adjustment: string
+  as_of?: string | null
+  requested_count: number
+  eligible_count: number
+  pass_count: number
+  excluded_count: number
+  percentage: number | null
+  coverage: number
+  members: Array<{
+    instrument_id: number
+    symbol: string
+    name: string
+    value: boolean | null
+    metric: number | null
+    observation_time?: string | null
+    warning?: { code: string; message: string } | null
+  }>
+  exclusions: Array<{ code: string; message: string; instrument_id?: number | null }>
+  freshness?: string
+  freshness_detail?: Record<string, number>
+}
+
 export interface ETFHoldingState {
   constituent_instrument_id: number | null
   constituent_symbol: string | null
@@ -416,6 +444,9 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   const breadthHistoryLoading = ref<Record<string, boolean>>({})
   const breadthErrors = ref<Record<string, string | null>>({})
   const breadthHistoryErrors = ref<Record<string, string | null>>({})
+  const genericBreadth = ref<Record<string, GenericBreadthState>>({})
+  const genericBreadthLoading = ref<Record<string, boolean>>({})
+  const genericBreadthErrors = ref<Record<string, string | null>>({})
   const etfHoldings = ref<Record<string, ETFHoldingsPageState | null>>({})
   const etfConstituentSnapshots = ref<Record<string, ETFConstituentSnapshotState | null>>({})
   const etfIndustries = ref<Record<string, ETFIndustryCompositionState | null>>({})
@@ -1146,6 +1177,31 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       return null
     } finally {
       if (isCurrentAnalysisRequest(requestKey, generation)) breadthHistoryLoading.value = { ...breadthHistoryLoading.value, [stableKey]: false }
+    }
+  }
+
+  async function loadGenericBreadth(
+    definition: Record<string, unknown>,
+    cacheKey: string,
+  ) {
+    const requestKey = `top-down:generic-breadth:${cacheKey}`
+    const generation = beginAnalysisRequest(requestKey)
+    if (!documentIsVisible()) return null
+    genericBreadthLoading.value = { ...genericBreadthLoading.value, [cacheKey]: true }
+    genericBreadthErrors.value = { ...genericBreadthErrors.value, [cacheKey]: null }
+    try {
+      const result = await api.post<GenericBreadthState>('/analysis/breadth', definition)
+      if (!isCurrentAnalysisRequest(requestKey, generation)) return null
+      genericBreadth.value = { ...genericBreadth.value, [cacheKey]: result }
+      return result
+    } catch (cause: any) {
+      if (!isCurrentAnalysisRequest(requestKey, generation)) return null
+      const message = cause?.message ?? 'Unable to evaluate the breadth condition'
+      error.value = message
+      genericBreadthErrors.value = { ...genericBreadthErrors.value, [cacheKey]: message }
+      return null
+    } finally {
+      if (isCurrentAnalysisRequest(requestKey, generation)) genericBreadthLoading.value = { ...genericBreadthLoading.value, [cacheKey]: false }
     }
   }
 
@@ -1897,6 +1953,9 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     breadthHistoryLoading,
     breadthErrors,
     breadthHistoryErrors,
+    genericBreadth,
+    genericBreadthLoading,
+    genericBreadthErrors,
     etfHoldings,
     etfConstituentSnapshots,
     etfIndustries,
@@ -1930,6 +1989,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     loadGroupSnapshot,
     loadBreadth,
     loadBreadthHistory,
+    loadGenericBreadth,
     refreshMarketAnalysis,
     loadETFHoldings,
     loadETFConstituentSnapshot,

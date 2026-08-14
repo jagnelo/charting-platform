@@ -10001,6 +10001,19 @@ coverage, and exclusions. The current two-option group selector and hard-coded M
 near-high/low, new-high/low, and trend metrics remain useful presets but are explicitly
 insufficient for completion until arbitrary condition-driven breadth is available.
 
+Implementation checkpoint (2026-08-14): the first provider-neutral slice is now implemented. A
+versioned `POST /analysis/breadth` contract resolves canonical market groups, explicitly labelled
+ETF-holdings proxies, and explicit canonical symbols locally; the deterministic evaluator supports
+moving-average state (SMA/EMA), 52-week high/low distance, new highs/lows, trend, RSI, volume ratio,
+and relative-strength predicates. It returns a definition hash, membership/proxy provenance,
+per-member values, eligible/pass counts, coverage, freshness, and structured exclusions. The
+workstation breadth tool exposes a compact custom-condition composer for current-group and SPY
+holdings-proxy studies, including the required 200-day and within-1% examples. Focused evaluator
+tests, router regressions, API integration acceptance, frontend Vitest (819/819), type-check, and
+production build pass. This is an implementation checkpoint only: historical generic evaluation,
+point-in-time ETF fixture acceptance, unified-Python AST/research integration, independent uPlot
+study panes, and promotion targets remain open and are tracked below.
+
 Implementation requirements:
 
 - add a stable breadth-definition schema and versioned API family rather than adding one route

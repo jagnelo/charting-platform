@@ -1,6 +1,7 @@
 """Provider-neutral batch analysis response contracts."""
 
 from datetime import UTC, date, datetime
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -203,6 +204,70 @@ class BreadthHistoryOut(AnalysisResponseMetadata):
     membership_version: int
     universe_provenance: dict[str, object] = Field(default_factory=dict)
     points: list[BreadthHistoryPoint]
+    exclusions: list[AnalysisWarning] = Field(default_factory=list)
+
+
+class BreadthUniverseRequest(BaseModel):
+    """A provider-neutral universe selector for reusable breadth studies."""
+
+    kind: Literal["group", "etf_holdings", "symbols"]
+    key: str | None = Field(default=None, min_length=1, max_length=160)
+    symbols: list[str] = Field(default_factory=list, max_length=25_000)
+    point_in_time: bool = True
+
+
+class BreadthConditionRequest(BaseModel):
+    """One condition evaluated independently for every eligible member."""
+
+    kind: Literal[
+        "above_moving_average",
+        "within_52_week_high",
+        "new_high_low",
+        "trend",
+        "rsi",
+        "volume_ratio",
+        "relative_strength",
+    ]
+    params: dict[str, object] = Field(default_factory=dict)
+
+
+class BreadthDefinitionRequest(BaseModel):
+    version: int = Field(default=1, ge=1, le=1)
+    universe: BreadthUniverseRequest
+    condition: BreadthConditionRequest
+    timeframe: str = "D1"
+    adjusted: bool = True
+    as_of: datetime | None = None
+    benchmark: str | None = Field(default=None, max_length=80)
+
+
+class BreadthMemberResultOut(BaseModel):
+    instrument_id: int
+    symbol: str
+    name: str
+    value: bool | None = None
+    metric: float | None = None
+    observation_time: datetime | None = None
+    warning: AnalysisWarning | None = None
+
+
+class BreadthDefinitionOut(AnalysisResponseMetadata):
+    """Current snapshot for a reusable, condition-driven breadth definition."""
+
+    definition_version: int
+    definition_hash: str
+    universe: dict[str, object] = Field(default_factory=dict)
+    condition: dict[str, object] = Field(default_factory=dict)
+    timeframe: str
+    adjustment: str
+    as_of: datetime | None = None
+    requested_count: int = Field(ge=0)
+    eligible_count: int = Field(ge=0)
+    pass_count: int = Field(ge=0)
+    excluded_count: int = Field(ge=0)
+    percentage: float | None = Field(default=None, ge=0, le=1)
+    coverage: float = Field(ge=0, le=1)
+    members: list[BreadthMemberResultOut] = Field(default_factory=list)
     exclusions: list[AnalysisWarning] = Field(default_factory=list)
 
 

@@ -1059,6 +1059,63 @@ class TestWorkspaces:
         assert history.status_code == 200
         assert all(point["timestamp"] <= params["as_of"] for point in history.json()["points"])
 
+    def test_generic_breadth_accepts_a_reusable_condition_and_explicit_symbols(
+        self, client, auth_headers, db, instrument, ohlcv_bars
+    ):
+        from app.models.workstation import MarketGroup, MarketGroupMember
+
+        group = MarketGroup(
+            stable_key="generic-breadth-test", group_type="test", name="Generic breadth"
+        )
+        db.add(group)
+        db.flush()
+        db.add(MarketGroupMember(market_group_id=group.id, instrument_id=instrument.id, position=0))
+        db.flush()
+
+        response = client.post(
+            "/api/v1/analysis/breadth",
+            headers=auth_headers,
+            json={
+                "version": 1,
+                "universe": {"kind": "group", "key": group.stable_key},
+                "condition": {
+                    "kind": "above_moving_average",
+                    "params": {"period": 20, "average": "sma", "comparator": "above"},
+                },
+                "timeframe": "D1",
+                "adjusted": True,
+            },
+        )
+
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["definition_version"] == 1
+        assert len(payload["definition_hash"]) == 64
+        assert payload["universe"]["membership_semantics"] == "curated_group_members"
+        assert payload["requested_count"] == 1
+        assert payload["eligible_count"] == 1
+        assert payload["coverage"] == 1
+        assert payload["members"][0]["symbol"] == instrument.symbol
+        assert payload["members"][0]["value"] in {True, False}
+
+        explicit = client.post(
+            "/api/v1/analysis/breadth",
+            headers=auth_headers,
+            json={
+                "universe": {
+                    "kind": "symbols",
+                    "symbols": [instrument.symbol, "MISSING"],
+                },
+                "condition": {"kind": "above_moving_average", "params": {"period": 20}},
+            },
+        )
+        assert explicit.status_code == 200
+        explicit_payload = explicit.json()
+        assert explicit_payload["requested_count"] == 2
+        assert explicit_payload["excluded_count"] == 1
+        assert explicit_payload["coverage"] == 0.5
+        assert any(item["code"] == "instrument_not_found" for item in explicit_payload["exclusions"])
+
     def test_etf_constituent_snapshot_is_point_in_time_and_source_labelled(
         self, client, auth_headers, db, instrument, instrument_type, ohlcv_bars
     ):

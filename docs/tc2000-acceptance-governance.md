@@ -176,6 +176,14 @@ convenience presets and retain their current regression coverage. They cannot cl
 unless they execute through the generic definition contract. No visual threshold or acceptance
 flexibility is being relaxed by this expansion.
 
+Implementation checkpoint (2026-08-14): the generic current-snapshot contract is now present at
+`POST /analysis/breadth`, with local group, ETF-holdings-proxy, and explicit-symbol resolution;
+deterministic condition evaluation; stable definition/membership hashes; per-member results;
+coverage, freshness, and structured exclusions. The breadth tool exposes the first composer for
+the two representative condition forms. This evidence closes only the initial backend/UI slice;
+the historical, unified-Python, independent-uPlot, promotion, and full point-in-time ETF gates
+remain required and are not being silently treated as complete.
+
 ### 2026-08-11 bounded endurance evidence
 
 The governed two-popout churn guard was run with `TC2000_POP_OUT_CHURN_ROUNDS=100`. Both performance

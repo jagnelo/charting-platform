@@ -15,7 +15,7 @@ from sqlalchemy.orm import selectinload
 
 from app.auth.dependencies import get_current_user
 from app.database import get_db
-from app.models.etf_holdings import ETFHoldingsSnapshot, ETFProfile
+from app.models.etf_holdings import ETFHolding, ETFHoldingsSnapshot, ETFProfile
 from app.models.instrument import Instrument
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.provider_observation import DatasetStatus, InstrumentDatasetState
@@ -24,6 +24,7 @@ from app.models.user import User
 from app.models.workstation import MarketGroup, MarketGroupMember
 from app.routers.market_groups import (
     _holding_exclusion_code,
+    _holdings_snapshot_at,
     etf_industry_composition,
     etf_industry_constituents,
     etf_industry_proxies,
@@ -33,8 +34,11 @@ from app.schemas.analysis import (
     AnalysisCell,
     AnalysisPoint,
     AnalysisWarning,
+    BreadthDefinitionOut,
+    BreadthDefinitionRequest,
     BreadthHistoryOut,
     BreadthHistoryPoint,
+    BreadthMemberResultOut,
     BreadthOut,
     ETFConstituentSnapshotOut,
     GroupSnapshotOut,
@@ -52,6 +56,7 @@ from app.schemas.analysis import (
     RelativeStrengthOut,
     TechnicalSnapshotOut,
 )
+from app.services.breadth import BreadthMember, definition_hash, evaluate_breadth
 from app.services.indicators import OHLCVSeries, get_latest_value
 
 router = APIRouter(prefix="/analysis", tags=["analysis"])
@@ -2080,4 +2085,283 @@ async def group_breadth_history(
         freshness_detail=freshness_detail,
         points=points,
         exclusions=exclusions,
+    )
+
+
+_GENERIC_BREADTH_EXCLUSION_MESSAGES = {
+    "no_bars": "No local bars are available for this member.",
+    "invalid_close": "The member has a non-finite close observation.",
+    "invalid_average": "The requested average could not be calculated.",
+    "invalid_reference": "The requested reference value is invalid or zero.",
+    "insufficient_history": "The member does not have enough history for this condition.",
+    "missing_volume": "Volume observations are incomplete for this condition.",
+    "zero_average_volume": "The volume baseline is zero.",
+    "benchmark_required": "This condition requires a benchmark.",
+    "unsupported_condition": "The requested condition is not supported by this runtime.",
+    "invalid_condition_params": "The condition parameters are invalid.",
+}
+
+
+def _generic_breadth_warning(code: str, instrument_id: int | None = None) -> AnalysisWarning:
+    return AnalysisWarning(
+        code=code,
+        message=_GENERIC_BREADTH_EXCLUSION_MESSAGES.get(code, "The member was excluded."),
+        instrument_id=instrument_id,
+    )
+
+
+def _generic_membership_version(payload: object) -> int:
+    encoded = json.dumps(payload, sort_keys=True, default=str, separators=(",", ":"))
+    return int(hashlib.sha256(encoded.encode()).hexdigest()[:15], 16)
+
+
+@router.post("/breadth", response_model=BreadthDefinitionOut)
+async def evaluate_generic_breadth(
+    definition: BreadthDefinitionRequest,
+    _: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Evaluate one reusable condition across a canonical local universe.
+
+    This endpoint intentionally resolves only local canonical identities.  It
+    never fans out to a provider on a user request and labels ETF holdings as
+    proxy membership rather than implying official index constituents.
+    """
+
+    try:
+        timeframe = Timeframe(definition.timeframe)
+    except ValueError as exc:
+        raise HTTPException(
+            422,
+            detail={"code": "unsupported_timeframe", "timeframe": definition.timeframe},
+        ) from exc
+
+    universe_kind = definition.universe.kind
+    members: list[BreadthMember] = []
+    member_ids: list[int] = []
+    universe_warnings: list[AnalysisWarning] = []
+    universe_provenance: dict[str, object]
+    membership_version_payload: object
+
+    if universe_kind == "group":
+        if not definition.universe.key:
+            raise HTTPException(
+                422, detail={"code": "universe_key_required", "kind": universe_kind}
+            )
+        group = (
+            await db.execute(
+                select(MarketGroup)
+                .options(
+                    selectinload(MarketGroup.members).selectinload(MarketGroupMember.instrument)
+                )
+                .where(MarketGroup.stable_key == definition.universe.key)
+            )
+        ).scalar_one_or_none()
+        if group is None:
+            raise HTTPException(
+                404,
+                detail={"code": "market_group_not_found", "group_key": definition.universe.key},
+            )
+        selected_members = (
+            _group_members_at(group, definition.as_of)
+            if definition.universe.point_in_time
+            else list(group.members)
+        )
+        for member in selected_members:
+            if member.instrument is None:
+                universe_warnings.append(
+                    _generic_breadth_warning("unresolved_member", member.instrument_id)
+                )
+                continue
+            members.append(
+                BreadthMember(
+                    member.instrument_id, member.instrument.symbol, member.instrument.name
+                )
+            )
+            member_ids.append(member.instrument_id)
+        membership_version_payload = _group_membership_version(group, selected_members)
+        universe_provenance = {
+            **_group_provenance(
+                group, definition.as_of if definition.universe.point_in_time else None
+            ),
+            "kind": "market_group",
+            "stable_key": group.stable_key,
+            "membership_semantics": "curated_group_members",
+        }
+
+    elif universe_kind == "etf_holdings":
+        if not definition.universe.key:
+            raise HTTPException(
+                422, detail={"code": "universe_key_required", "kind": universe_kind}
+            )
+        etf = await _instrument(db, definition.universe.key)
+        profile = (
+            await db.execute(select(ETFProfile).where(ETFProfile.instrument_id == etf.id))
+        ).scalar_one_or_none()
+        if profile is None:
+            raise HTTPException(404, detail={"code": "etf_profile_not_found", "symbol": etf.symbol})
+        statement = holdings_snapshot_source_filter(
+            select(ETFHoldingsSnapshot).where(ETFHoldingsSnapshot.etf_profile_id == profile.id)
+        )
+        if definition.universe.point_in_time:
+            statement = _holdings_snapshot_at(statement, definition.as_of)
+        snapshot = (
+            await db.execute(
+                statement.options(
+                    selectinload(ETFHoldingsSnapshot.rows).selectinload(
+                        ETFHolding.constituent_instrument
+                    )
+                )
+                .order_by(
+                    ETFHoldingsSnapshot.composition_date.desc(),
+                    ETFHoldingsSnapshot.known_at.desc().nullslast(),
+                    ETFHoldingsSnapshot.id.desc(),
+                )
+                .limit(1)
+            )
+        ).scalar_one_or_none()
+        if snapshot is None:
+            raise HTTPException(
+                404,
+                detail={"code": "holdings_snapshot_not_found", "symbol": etf.symbol},
+            )
+        for holding in snapshot.rows:
+            if not holding.constituent_instrument_id or holding.constituent_instrument is None:
+                universe_warnings.append(_generic_breadth_warning("unresolved_member", None))
+                continue
+            if holding.holding_type != "equity" or holding.row_type != "security":
+                universe_warnings.append(
+                    AnalysisWarning(
+                        code="non_equity_holding",
+                        message="Non-equity ETF exposure is excluded from breadth.",
+                    )
+                )
+                continue
+            instrument = holding.constituent_instrument
+            members.append(BreadthMember(instrument.id, instrument.symbol, instrument.name))
+            member_ids.append(instrument.id)
+        membership_version_payload = {
+            "snapshot_id": snapshot.id,
+            "snapshot_hash": snapshot.snapshot_hash,
+            "instrument_ids": sorted(member_ids),
+        }
+        universe_provenance = {
+            "kind": "etf_holdings_proxy",
+            "etf_symbol": etf.symbol,
+            "membership_semantics": "etf_proxy_membership",
+            "composition_date": snapshot.composition_date.isoformat(),
+            "known_at": snapshot.known_at.isoformat() if snapshot.known_at else None,
+            "source_provider": snapshot.source_provider,
+            "provenance": snapshot.provenance,
+            "completeness_status": snapshot.completeness_status,
+            "snapshot_hash": snapshot.snapshot_hash,
+        }
+
+    else:
+        requested_symbols = list(
+            dict.fromkeys(
+                symbol.strip().upper() for symbol in definition.universe.symbols if symbol.strip()
+            )
+        )
+        if not requested_symbols:
+            raise HTTPException(422, detail={"code": "symbols_required", "kind": universe_kind})
+        instruments = (
+            (await db.execute(select(Instrument).where(Instrument.symbol.in_(requested_symbols))))
+            .scalars()
+            .all()
+        )
+        by_symbol = {instrument.symbol.upper(): instrument for instrument in instruments}
+        for symbol in requested_symbols:
+            instrument = by_symbol.get(symbol)
+            if instrument is None:
+                universe_warnings.append(
+                    AnalysisWarning(
+                        code="instrument_not_found",
+                        message=f"No canonical instrument exists for {symbol}.",
+                    )
+                )
+                continue
+            members.append(BreadthMember(instrument.id, instrument.symbol, instrument.name))
+            member_ids.append(instrument.id)
+        membership_version_payload = {
+            "symbols": requested_symbols,
+            "instrument_ids": sorted(member_ids),
+        }
+        universe_provenance = {
+            "kind": "explicit_symbols",
+            "membership_semantics": "canonical_local_instruments",
+            "requested_symbols": requested_symbols,
+        }
+
+    bars_by_id = _truncate_bars_at(
+        await _bars_by_instrument(db, member_ids, timeframe, definition.adjusted), definition.as_of
+    )
+    benchmark_bars = None
+    if definition.condition.kind == "relative_strength":
+        if not definition.benchmark:
+            raise HTTPException(422, detail={"code": "benchmark_required"})
+        benchmark = await _instrument(db, definition.benchmark)
+        benchmark_bars = _truncate_bars_at(
+            await _bars_by_instrument(db, [benchmark.id], timeframe, definition.adjusted),
+            definition.as_of,
+        ).get(benchmark.id, [])
+
+    condition = {"kind": definition.condition.kind, "params": definition.condition.params}
+    results, aggregate = evaluate_breadth(
+        members, bars_by_id, condition, benchmark_bars=benchmark_bars
+    )
+    warnings = list(universe_warnings)
+    member_outputs: list[BreadthMemberResultOut] = []
+    for result in results:
+        warning = (
+            _generic_breadth_warning(result.exclusion_code, result.instrument_id)
+            if result.exclusion_code
+            else None
+        )
+        if warning:
+            warnings.append(warning)
+        member_outputs.append(
+            BreadthMemberResultOut(
+                instrument_id=result.instrument_id,
+                symbol=result.symbol,
+                name=result.name,
+                value=result.value,
+                metric=result.metric,
+                observation_time=result.observation_time,
+                warning=warning,
+            )
+        )
+    membership_version = _generic_membership_version(membership_version_payload)
+    definition_payload = definition.model_dump(mode="json")
+    if definition.benchmark:
+        definition_payload["benchmark"] = definition.benchmark.upper()
+    freshness, freshness_detail = await _batch_freshness(
+        db, member_ids, timeframe, definition.adjusted
+    )
+    latest_as_of = max(
+        (result.observation_time for result in results if result.observation_time), default=None
+    )
+    return BreadthDefinitionOut(
+        definition_version=definition.version,
+        definition_hash=definition_hash(definition_payload, membership_version=membership_version),
+        universe={**universe_provenance, "membership_version": membership_version},
+        condition=condition,
+        timeframe=timeframe.value,
+        adjustment="split_adjusted" if definition.adjusted else "raw",
+        as_of=latest_as_of,
+        freshness=freshness,
+        freshness_detail=freshness_detail,
+        requested_count=int(aggregate["requested_count"]) + len(universe_warnings),
+        eligible_count=int(aggregate["eligible_count"]),
+        pass_count=int(aggregate["pass_count"]),
+        excluded_count=int(aggregate["excluded_count"]) + len(universe_warnings),
+        percentage=aggregate["percentage"],
+        coverage=(
+            int(aggregate["eligible_count"])
+            / (int(aggregate["requested_count"]) + len(universe_warnings))
+            if int(aggregate["requested_count"]) + len(universe_warnings)
+            else 0.0
+        ),
+        members=member_outputs,
+        exclusions=warnings,
     )

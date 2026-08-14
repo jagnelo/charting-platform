@@ -31,6 +31,16 @@ missing bars, and historical coverage must remain visibly labelled. This is an o
 parity gap, not an acceptance relaxation; no fixed-metric test or visual threshold is being
 treated as proof of the expanded contract.
 
+Implementation checkpoint (2026-08-14): `POST /analysis/breadth` and the shared deterministic
+evaluator now provide the first generic condition-driven path for canonical groups, labelled ETF
+holdings proxies, and explicit symbols. Supported predicates include SMA/EMA state, 52-week
+distance, new highs/lows, trend, RSI, volume ratio, and relative strength; responses carry stable
+definition hashes, membership/proxy provenance, per-member results, denominator/coverage,
+freshness, and exclusion warnings. The breadth tool exposes a compact composer for current-group
+and SPY-proxy studies. Backend focused and API integration tests, frontend 819/819, type-check, and
+production build pass. Historical generic evaluation, full point-in-time ETF acceptance, unified
+Python/research reuse, independent uPlot panes, and promotion targets remain open parity gaps.
+
 ## 2026-08-14 — Study Lab export and board-guided visual revalidation
 
 - Active Study Lab export now covers scalar, Boolean, and structured artifacts; authenticated

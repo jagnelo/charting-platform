@@ -1,0 +1,255 @@
+"""Provider-neutral, reusable cross-sectional breadth evaluation.
+
+The legacy breadth endpoint exposes a useful fixed panel.  This module is the
+small, deterministic engine underneath the broader workstation contract:
+evaluate one declared condition for every member of a declared universe and
+return an honest denominator, coverage, and exclusion ledger.  It deliberately
+accepts already-materialised local bars; provider access and universe
+resolution stay at the router/service boundary.
+"""
+
+from __future__ import annotations
+
+import hashlib
+import json
+import math
+from collections.abc import Mapping
+from dataclasses import dataclass
+from datetime import datetime
+from typing import Any
+
+
+@dataclass(frozen=True)
+class BreadthMember:
+    instrument_id: int
+    symbol: str
+    name: str
+
+
+@dataclass(frozen=True)
+class BreadthMemberResult:
+    instrument_id: int
+    symbol: str
+    name: str
+    value: bool | None
+    metric: float | None
+    observation_time: datetime | None
+    exclusion_code: str | None = None
+
+
+def normalized_definition(definition: Mapping[str, Any]) -> dict[str, Any]:
+    """Return a JSON-stable definition for hashing and cache identity."""
+
+    return json.loads(json.dumps(definition, sort_keys=True, separators=(",", ":"), default=str))
+
+
+def definition_hash(
+    definition: Mapping[str, Any],
+    *,
+    membership_version: int | str,
+    dataset_version: str = "local-v1",
+) -> str:
+    payload = {
+        "definition": normalized_definition(definition),
+        "membership_version": str(membership_version),
+        "dataset_version": dataset_version,
+    }
+    return hashlib.sha256(
+        json.dumps(payload, sort_keys=True, separators=(",", ":"), default=str).encode()
+    ).hexdigest()
+
+
+def _finite(value: Any) -> bool:
+    try:
+        return math.isfinite(float(value))
+    except (TypeError, ValueError):
+        return False
+
+
+def _close_values(bars: list[Any]) -> list[float] | None:
+    values = [float(getattr(bar, "close", math.nan)) for bar in bars]
+    return values if all(math.isfinite(value) for value in values) else None
+
+
+def _mean(values: list[float]) -> float:
+    return sum(values) / len(values)
+
+
+def _ema(values: list[float], period: int) -> float:
+    alpha = 2 / (period + 1)
+    current = _mean(values[:period])
+    for value in values[period:]:
+        current = (value * alpha) + (current * (1 - alpha))
+    return current
+
+
+def _comparison(metric: float, params: Mapping[str, Any]) -> bool:
+    comparator = str(params.get("comparator", "above")).lower()
+    threshold = float(params.get("threshold", 0.0))
+    if comparator in {"below", "lt", "<"}:
+        return metric < threshold
+    if comparator in {"at_or_below", "lte", "<="}:
+        return metric <= threshold
+    if comparator in {"at_or_above", "gte", ">="}:
+        return metric >= threshold
+    return metric > threshold
+
+
+def evaluate_condition(
+    bars: list[Any],
+    condition: Mapping[str, Any],
+    *,
+    benchmark_bars: list[Any] | None = None,
+) -> tuple[bool | None, float | None, str | None]:
+    """Evaluate a supported condition at the last available bar.
+
+    The returned metric is the transparent numeric quantity used for the
+    Boolean decision.  ``None`` is never coerced to false: it is an explicit
+    exclusion from the eligible denominator.
+    """
+
+    kind = str(condition.get("kind", "")).lower()
+    params = condition.get("params", condition)
+    if not isinstance(params, Mapping):
+        return None, None, "invalid_condition_params"
+    if not bars:
+        return None, None, "no_bars"
+    closes = _close_values(bars)
+    if closes is None:
+        return None, None, "invalid_close"
+    latest = closes[-1]
+    if not _finite(latest):
+        return None, None, "invalid_close"
+
+    if kind == "above_moving_average":
+        period = int(params.get("period", 200))
+        if period < 2 or period > 252 or len(closes) < period:
+            return None, None, "insufficient_history"
+        window = closes[-period:]
+        average_kind = str(params.get("average", "sma")).lower()
+        average = _ema(window, period) if average_kind == "ema" else _mean(window)
+        if not _finite(average) or average == 0:
+            return None, None, "invalid_average"
+        metric = latest / average - 1
+        comparator = str(params.get("comparator", "above")).lower()
+        return (latest > average if comparator == "above" else latest < average), metric, None
+
+    if kind == "within_52_week_high":
+        lookback = int(params.get("lookback", 252))
+        threshold = float(params.get("threshold", 0.01))
+        direction = str(params.get("direction", "high")).lower()
+        if lookback < 2 or lookback > 504 or len(closes) < lookback:
+            return None, None, "insufficient_history"
+        window = closes[-lookback:]
+        reference = max(window) if direction == "high" else min(window)
+        if not _finite(reference) or reference <= 0:
+            return None, None, "invalid_reference"
+        distance = (latest / reference) - 1
+        if direction == "low":
+            return latest <= reference * (1 + threshold), abs(distance), None
+        return latest >= reference * (1 - threshold), abs(distance), None
+
+    if kind == "new_high_low":
+        lookback = int(params.get("lookback", 20))
+        direction = str(params.get("direction", "high")).lower()
+        if lookback < 2 or lookback > 252 or len(closes) <= lookback:
+            return None, None, "insufficient_history"
+        previous = closes[-(lookback + 1) : -1]
+        reference = max(previous) if direction == "high" else min(previous)
+        metric = latest / reference - 1 if reference else math.nan
+        if not _finite(metric):
+            return None, None, "invalid_reference"
+        return (latest >= reference if direction == "high" else latest <= reference), metric, None
+
+    if kind == "trend":
+        fast = int(params.get("fast_period", 20))
+        slow = int(params.get("slow_period", 50))
+        if fast < 2 or slow <= fast or slow > 252 or len(closes) < slow:
+            return None, None, "insufficient_history"
+        fast_average = _mean(closes[-fast:])
+        slow_average = _mean(closes[-slow:])
+        metric = latest / slow_average - 1 if slow_average else math.nan
+        if not _finite(metric):
+            return None, None, "invalid_average"
+        direction = str(params.get("direction", "up")).lower()
+        value = latest > slow_average and fast_average > slow_average
+        return (value if direction in {"up", "uptrend", "above"} else not value), metric, None
+
+    if kind == "rsi":
+        period = int(params.get("period", 14))
+        if period < 2 or period > 252 or len(closes) <= period:
+            return None, None, "insufficient_history"
+        changes = [closes[index] - closes[index - 1] for index in range(1, len(closes))]
+        gains = [max(change, 0.0) for change in changes[-period:]]
+        losses = [max(-change, 0.0) for change in changes[-period:]]
+        average_loss = _mean(losses)
+        rsi = 100.0 if average_loss == 0 else 100 - (100 / (1 + (_mean(gains) / average_loss)))
+        return _comparison(rsi, params), rsi, None
+
+    if kind == "volume_ratio":
+        period = int(params.get("period", 50))
+        if period < 2 or period > 252 or len(bars) <= period:
+            return None, None, "insufficient_history"
+        volumes = [getattr(bar, "volume", None) for bar in bars]
+        if any(not _finite(value) for value in volumes[-(period + 1) :]):
+            return None, None, "missing_volume"
+        baseline = _mean([float(value) for value in volumes[-(period + 1) : -1]])
+        if baseline == 0:
+            return None, None, "zero_average_volume"
+        ratio = float(volumes[-1]) / baseline
+        return _comparison(ratio, params), ratio, None
+
+    if kind == "relative_strength":
+        lookback = int(params.get("lookback", 20))
+        if benchmark_bars is None:
+            return None, None, "benchmark_required"
+        benchmark_closes = _close_values(benchmark_bars)
+        if benchmark_closes is None or len(closes) <= lookback or len(benchmark_closes) <= lookback:
+            return None, None, "insufficient_history"
+        member_base, benchmark_base = closes[-lookback - 1], benchmark_closes[-lookback - 1]
+        if member_base == 0 or benchmark_base == 0:
+            return None, None, "invalid_reference"
+        metric = (latest / member_base - 1) - (benchmark_closes[-1] / benchmark_base - 1)
+        return _comparison(metric, params), metric, None
+
+    return None, None, "unsupported_condition"
+
+
+def evaluate_breadth(
+    members: list[BreadthMember],
+    bars_by_instrument: Mapping[int, list[Any]],
+    condition: Mapping[str, Any],
+    *,
+    benchmark_bars: list[Any] | None = None,
+) -> tuple[list[BreadthMemberResult], dict[str, int | float]]:
+    """Evaluate one condition across a universe and return aggregate metadata."""
+
+    results: list[BreadthMemberResult] = []
+    for member in members:
+        bars = list(bars_by_instrument.get(member.instrument_id, []))
+        value, metric, exclusion = evaluate_condition(
+            bars, condition, benchmark_bars=benchmark_bars
+        )
+        results.append(
+            BreadthMemberResult(
+                instrument_id=member.instrument_id,
+                symbol=member.symbol,
+                name=member.name,
+                value=value,
+                metric=metric,
+                observation_time=getattr(bars[-1], "ts", None) if bars else None,
+                exclusion_code=exclusion,
+            )
+        )
+    eligible = sum(result.value is not None for result in results)
+    passed = sum(result.value is True for result in results)
+    requested = len(results)
+    exclusions = sum(result.exclusion_code is not None for result in results)
+    return results, {
+        "requested_count": requested,
+        "eligible_count": eligible,
+        "pass_count": passed,
+        "excluded_count": exclusions,
+        "coverage": eligible / requested if requested else 0.0,
+        "percentage": passed / eligible if eligible else None,
+    }

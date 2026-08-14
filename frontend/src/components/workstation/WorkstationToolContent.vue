@@ -395,6 +395,29 @@
         <input :value="breadthLookback" aria-label="Breadth new high low lookback" type="number" min="2" max="252" @change="setBreadthConfiguration({ new_high_lookback: Number(($event.target as HTMLInputElement).value) })" />
         <label><input type="checkbox" :checked="breadthAdjusted" aria-label="Breadth split adjusted" @change="setBreadthConfiguration({ adjusted: ($event.target as HTMLInputElement).checked })" /> Adjusted</label>
       </div>
+      <div class="breadth-tool__custom" aria-label="Condition-driven breadth study">
+        <strong>Custom condition</strong>
+        <select :value="breadthCustomUniverseKind" aria-label="Custom breadth universe" @change="setBreadthConfiguration({ custom_universe_kind: ($event.target as HTMLSelectElement).value })">
+          <option value="group">Current group</option>
+          <option value="etf_holdings">SPY holdings proxy</option>
+        </select>
+        <select :value="breadthConditionKind" aria-label="Breadth condition" @change="setBreadthConfiguration({ breadth_condition: ($event.target as HTMLSelectElement).value })">
+          <option value="above_moving_average">Above moving average</option>
+          <option value="within_52_week_high">Within distance of 52-week high</option>
+        </select>
+        <template v-if="breadthConditionKind === 'above_moving_average'">
+          <label>Period <input :value="breadthConditionPeriod" aria-label="Breadth condition moving average period" type="number" min="2" max="252" @change="setBreadthConfiguration({ breadth_condition_period: Number(($event.target as HTMLInputElement).value) })" /></label>
+          <select :value="breadthConditionAverage" aria-label="Breadth condition average" @change="setBreadthConfiguration({ breadth_condition_average: ($event.target as HTMLSelectElement).value })"><option value="sma">SMA</option><option value="ema">EMA</option></select>
+        </template>
+        <template v-else>
+          <label>Threshold <input :value="breadthConditionThreshold" aria-label="Breadth condition high threshold" type="number" min="0.001" max="0.5" step="0.001" @change="setBreadthConfiguration({ breadth_condition_threshold: Number(($event.target as HTMLInputElement).value) })" /></label>
+          <label>Lookback <input :value="breadthConditionLookback" aria-label="Breadth condition high lookback" type="number" min="2" max="504" @change="setBreadthConfiguration({ breadth_condition_lookback: Number(($event.target as HTMLInputElement).value) })" /></label>
+        </template>
+        <button type="button" @click="runGenericBreadth">Evaluate</button>
+        <span v-if="genericBreadthLoading" role="status" aria-live="polite">Evaluating…</span>
+        <span v-else-if="genericBreadthError" class="breadth-tool__status--error" role="alert">{{ genericBreadthError }}</span>
+        <span v-else-if="genericBreadth" class="breadth-tool__custom-result"><b>{{ genericBreadthPercentage }}</b> · {{ genericBreadth.pass_count }}/{{ genericBreadth.eligible_count }} eligible · {{ genericBreadthCoverage }} coverage</span>
+      </div>
       <p v-if="breadthBusy" class="breadth-tool__status" role="status" aria-live="polite" aria-atomic="true">Loading breadth analysis…</p>
       <p v-else-if="breadthError" class="breadth-tool__status breadth-tool__status--error" role="alert" aria-live="assertive" aria-atomic="true">{{ breadthError }}</p>
       <p v-else-if="!breadth" class="breadth-tool__status" role="status" aria-live="polite" aria-atomic="true">Breadth analysis is unavailable.</p>
@@ -1455,6 +1478,34 @@ const breadth = computed(() => workspaceStore.breadth[breadthGroupKey.value])
 const breadthHistory = computed(() => workspaceStore.breadthHistory[breadthGroupKey.value])
 const breadthBusy = computed(() => workspaceStore.breadthLoading[breadthGroupKey.value] === true || workspaceStore.breadthHistoryLoading[breadthGroupKey.value] === true)
 const breadthError = computed(() => workspaceStore.breadthErrors[breadthGroupKey.value] ?? workspaceStore.breadthHistoryErrors[breadthGroupKey.value] ?? null)
+const breadthCustomUniverseKind = computed(() => props.tool.configuration.custom_universe_kind === 'etf_holdings' ? 'etf_holdings' : 'group')
+const breadthConditionKind = computed(() => props.tool.configuration.breadth_condition === 'within_52_week_high' ? 'within_52_week_high' : 'above_moving_average')
+const breadthConditionPeriod = computed(() => Math.min(252, Math.max(2, Number(props.tool.configuration.breadth_condition_period ?? 200) || 200)))
+const breadthConditionAverage = computed(() => props.tool.configuration.breadth_condition_average === 'ema' ? 'ema' : 'sma')
+const breadthConditionThreshold = computed(() => Math.min(0.5, Math.max(0.001, Number(props.tool.configuration.breadth_condition_threshold ?? 0.01) || 0.01)))
+const breadthConditionLookback = computed(() => Math.min(504, Math.max(2, Number(props.tool.configuration.breadth_condition_lookback ?? 252) || 252)))
+const genericBreadthDefinition = computed(() => ({
+  version: 1,
+  universe: {
+    kind: breadthCustomUniverseKind.value,
+    ...(breadthCustomUniverseKind.value === 'group' ? { key: breadthGroupKey.value } : { key: 'SPY' }),
+    point_in_time: true,
+  },
+  condition: breadthConditionKind.value === 'above_moving_average'
+    ? { kind: 'above_moving_average', params: { period: breadthConditionPeriod.value, average: breadthConditionAverage.value, comparator: 'above' } }
+    : { kind: 'within_52_week_high', params: { lookback: breadthConditionLookback.value, threshold: breadthConditionThreshold.value, direction: 'high' } },
+  timeframe: breadthTimeframe.value,
+  adjusted: breadthAdjusted.value,
+}))
+const genericBreadthKey = computed(() => JSON.stringify(genericBreadthDefinition.value))
+const genericBreadth = computed(() => workspaceStore.genericBreadth[genericBreadthKey.value])
+const genericBreadthLoading = computed(() => workspaceStore.genericBreadthLoading[genericBreadthKey.value] === true)
+const genericBreadthError = computed(() => workspaceStore.genericBreadthErrors[genericBreadthKey.value] ?? null)
+const genericBreadthPercentage = computed(() => genericBreadth.value?.percentage == null ? 'Unavailable' : `${(genericBreadth.value.percentage * 100).toFixed(1)}%`)
+const genericBreadthCoverage = computed(() => genericBreadth.value == null ? 'Unavailable' : `${(genericBreadth.value.coverage * 100).toFixed(1)}%`)
+async function runGenericBreadth() {
+  await workspaceStore.loadGenericBreadth(genericBreadthDefinition.value, genericBreadthKey.value)
+}
 const technical = computed(() => workspaceStore.technicals[activeSymbol.value])
 const selectedETF = computed(() => workspaceStore.constituentETF ?? '')
 const sectorSymbols = computed(() => new Set(
@@ -2231,7 +2282,7 @@ const proxyCoverage = computed(() => industryProxySnapshot.value
 .combo-editor select[multiple] { height: 34px; }
 .combo-editor input { width: 78px; }
 .analysis { height: 100%; min-height: 0; }
-.breadth-tool { display:grid; grid-template-rows:auto auto auto auto minmax(0,1fr); height:100%; min-height:0; container-type:inline-size; }.breadth-tool__universe { display:flex; flex-wrap:wrap; gap:5px; align-items:center; padding:5px 7px 0; color:#9aabb6; font:10px "Segoe UI",Arial,sans-serif; min-width:0; }.breadth-tool__universe span { flex:0 0 auto; }.breadth-tool__universe select,.breadth-tool__universe input { border:1px solid #34434e; background:#172027; color:#d2dce3; font:inherit; min-width:0; max-width:100%; }.breadth-tool__universe select { flex:1 1 100px; }.breadth-tool__universe input { width:42px; flex:0 1 42px; }.breadth-tool__universe label { display:flex; flex:0 0 auto; align-items:center; gap:3px; white-space:nowrap; }.breadth-tool__status { margin:0; padding:5px 7px; color:#9aabb6; font:10px "Segoe UI",Arial,sans-serif; }.breadth-tool__status--error { color:#ff9b8a; }.metrics { display: grid; grid-template-columns: 1fr auto; gap: 5px 10px; padding: 9px; color: #99aabb; font: 10px "Segoe UI", Arial, sans-serif; }.breadth-tool__coverage-detail { padding:0 7px 4px; color:#778994; font:9px "Segoe UI",Arial,sans-serif; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }.breadth-tool__actions { display:flex; gap:3px; justify-content:flex-end; }.breadth-tool__actions button,.breadth-tool__drilldown header button { border:1px solid #34434e; background:#172027; color:#b9c8d1; font:inherit; padding:1px 4px; cursor:pointer; }.breadth-tool__actions button:hover,.breadth-tool__action--active { background:#1d4057; color:#e5f1f7; }.breadth-tool__drilldown { min-height:0; max-height:150px; overflow:auto; border-top:1px solid #2b3841; border-bottom:1px solid #2b3841; background:#131a20; font:10px "Segoe UI",Arial,sans-serif; }.breadth-tool__drilldown header { display:flex; justify-content:space-between; align-items:center; padding:4px 7px; color:#9aabb6; position:sticky; top:0; background:#20282f; }.breadth-tool__drilldown > button { display:flex; gap:8px; width:100%; border:0; border-bottom:1px solid #20282f; background:transparent; color:#cad4db; padding:4px 7px; text-align:left; cursor:pointer; }.breadth-tool__drilldown > button:hover { background:#1d4057; }.breadth-tool__drilldown > button span { color:#81929e; }.breadth-tool__drilldown > small { display:block; padding:7px; color:#8497a4; }
+.breadth-tool { display:grid; grid-template-rows:auto auto auto auto minmax(0,1fr); height:100%; min-height:0; container-type:inline-size; }.breadth-tool__universe { display:flex; flex-wrap:wrap; gap:5px; align-items:center; padding:5px 7px 0; color:#9aabb6; font:10px "Segoe UI",Arial,sans-serif; min-width:0; }.breadth-tool__universe span { flex:0 0 auto; }.breadth-tool__universe select,.breadth-tool__universe input { border:1px solid #34434e; background:#172027; color:#d2dce3; font:inherit; min-width:0; max-width:100%; }.breadth-tool__universe select { flex:1 1 100px; }.breadth-tool__universe input { width:42px; flex:0 1 42px; }.breadth-tool__universe label { display:flex; flex:0 0 auto; align-items:center; gap:3px; white-space:nowrap; }.breadth-tool__custom { display:flex; flex-wrap:wrap; align-items:center; gap:4px; padding:5px 7px; border-top:1px solid #2b3841; color:#9aabb6; font:10px "Segoe UI",Arial,sans-serif; }.breadth-tool__custom select,.breadth-tool__custom input,.breadth-tool__custom button { border:1px solid #34434e; background:#172027; color:#d2dce3; font:inherit; min-width:0; }.breadth-tool__custom input { width:44px; }.breadth-tool__custom label { display:flex; align-items:center; gap:3px; }.breadth-tool__custom button { padding:2px 6px; cursor:pointer; }.breadth-tool__custom-result { color:#c3d2dc; white-space:nowrap; }.breadth-tool__status { margin:0; padding:5px 7px; color:#9aabb6; font:10px "Segoe UI",Arial,sans-serif; }.breadth-tool__status--error { color:#ff9b8a; }.metrics { display: grid; grid-template-columns: 1fr auto; gap: 5px 10px; padding: 9px; color: #99aabb; font: 10px "Segoe UI", Arial, sans-serif; }.breadth-tool__coverage-detail { padding:0 7px 4px; color:#778994; font:9px "Segoe UI",Arial,sans-serif; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }.breadth-tool__actions { display:flex; gap:3px; justify-content:flex-end; }.breadth-tool__actions button,.breadth-tool__drilldown header button { border:1px solid #34434e; background:#172027; color:#b9c8d1; font:inherit; padding:1px 4px; cursor:pointer; }.breadth-tool__actions button:hover,.breadth-tool__action--active { background:#1d4057; color:#e5f1f7; }.breadth-tool__drilldown { min-height:0; max-height:150px; overflow:auto; border-top:1px solid #2b3841; border-bottom:1px solid #2b3841; background:#131a20; font:10px "Segoe UI",Arial,sans-serif; }.breadth-tool__drilldown header { display:flex; justify-content:space-between; align-items:center; padding:4px 7px; color:#9aabb6; position:sticky; top:0; background:#20282f; }.breadth-tool__drilldown > button { display:flex; gap:8px; width:100%; border:0; border-bottom:1px solid #20282f; background:transparent; color:#cad4db; padding:4px 7px; text-align:left; cursor:pointer; }.breadth-tool__drilldown > button:hover { background:#1d4057; }.breadth-tool__drilldown > button span { color:#81929e; }.breadth-tool__drilldown > small { display:block; padding:7px; color:#8497a4; }
 @container (max-width: 560px) {
   .breadth-tool__universe { flex-wrap:wrap; row-gap:4px; }
   .breadth-tool__universe > select { flex:1 1 100px; }
