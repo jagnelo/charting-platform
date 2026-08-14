@@ -1,4 +1,27 @@
 tasks:
+  - id: tc2000-conditional-uplot-state-announcements-20260814
+    title: Announce conditional numerical empty states accessibly
+    status: completed
+    priority: high
+    scope: >-
+      Give all conditional Study/Breadth numerical surfaces consistent polite atomic status
+      semantics for empty or invalid output.
+    definition_of_done:
+      - Study Series, Histogram, Range, Bars, Scatter, and Breadth History expose status semantics
+      - Lifecycle regression asserts both cleanup and aria-live/atomic contracts
+      - Focused, full frontend, type/build, uPlot, diff, and browser evidence pass
+      - No visual or acceptance criterion is silently relaxed
+    validation:
+      - conditional-uplot-family-12-of-12
+      - frontend-vitest-793-of-793
+      - frontend-type-check-build
+      - uplot-contract-45-files
+      - authenticated-f8o-1-of-1
+    notes:
+      - >-
+        Implementation `1c4f1cd1` adds the shared status contract. Acceptance flexibility used:
+        none. Exact/unrepresented Study Lab, provider/entitlement, historical/GICS, native-monitor,
+        endurance, Docker, and final-audit gaps remain open.
   - id: tc2000-conditional-uplot-family-20260814
     title: Harden conditional Study and Breadth uPlot chart lifecycles
     status: completed

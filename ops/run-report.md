@@ -1,5 +1,14 @@
 # Run Report
 
+## 2026-08-14 — Conditional numerical-state announcements
+
+- Added explicit polite atomic status semantics to the conditional Study/Breadth numerical states;
+  the family regression now verifies both lifecycle cleanup and accessible status attributes.
+- Family `12/12`, full frontend Vitest `793/793`, type-check, 475-module build, uPlot contract for
+  `45` files, diff-check, and authenticated F8o `1/1` pass. Implementation: `1c4f1cd1`.
+- Acceptance flexibility used: **none**; no visual threshold, mask, provider, uPlot, or product
+  boundary changed. Remaining goal gaps are unchanged and explicit.
+
 ## 2026-08-14 — Conditional Study/Breadth uPlot family lifecycle
 
 - Hardened five sibling conditional numerical surfaces after the Scatter lifecycle repair. Hosts

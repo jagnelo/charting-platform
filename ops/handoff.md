@@ -1,5 +1,16 @@
 # Active Handoff
 
+## 2026-08-14 — Conditional numerical-state announcements completed
+
+- Implementation `1c4f1cd1` adds polite atomic status-live-region semantics to empty/invalid Study
+  Series, Histogram, Range, Bars, Scatter, and Breadth History surfaces and extends the family
+  regression assertions.
+- Validation: conditional family `12/12`; full frontend Vitest `793/793`; type-check; 475-module
+  build; uPlot contract (`45` files); diff-check; and authenticated F8o `1/1`.
+- Acceptance flexibility used: **none**. Exact/unrepresented Study Lab, provider/entitlement,
+  historical/GICS, native-monitor, endurance, Docker global-prune, and final-audit gaps remain
+  explicit. Implementation is a clean local commit; push transport remains separate.
+
 ## 2026-08-14 — Conditional Study/Breadth uPlot family lifecycle completed
 
 - Implementation `cf201a8c` hardens Study Series, Histogram, Range, Bars, and Breadth History to the

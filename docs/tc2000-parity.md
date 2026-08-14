@@ -1,5 +1,17 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-14 — Conditional numerical-state announcements
+
+- Empty/invalid conditional numerical surfaces now announce their status with `role=status`,
+  `aria-live=polite`, and atomic updates across Study Series, Histogram, Range, Bars, Scatter, and
+  Breadth History.
+- Family coverage `12/12`, full frontend Vitest `793/793`, type-check, 475-module build, uPlot
+  contract (`45` files), diff-check, and authenticated F8o `1/1` pass. No visual baseline, threshold,
+  mask, provider, or acceptance rule changed; flexibility used: none.
+- This closes a repository-controlled accessibility contract gap; exact/unrepresented Study Lab,
+  provider/entitlement, historical/GICS, native-monitor, endurance, Docker, and final-audit gaps
+  remain open.
+
 ## 2026-08-14 — Conditional Study/Breadth uPlot family lifecycle
 
 - The conditional numerical renderer family now shares the same lifecycle contract: Study Series,

@@ -1,5 +1,17 @@
 # Project TODO Memory
 
+### 2026-08-14 — Conditional numerical-state announcements
+
+- [x] Empty/invalid states for Study Series, Histogram, Range, Bars, Scatter, and Breadth History
+      now expose polite atomic status live regions, matching the workstation's existing loading,
+      freshness, and error announcement contract.
+- [x] Conditional-family regression remains `12/12`; full frontend Vitest `793/793`; type-check,
+      475-module production build, uPlot contract (`45` audited files), diff-check, and authenticated
+      F8o browser acceptance `1/1` pass. Implementation commit: `1c4f1cd1`.
+- [ ] Acceptance flexibility used: **none**. Exact/unrepresented Study Lab visuals, provider/
+      entitlement breadth, historical/GICS truth, native-monitor, endurance, Docker global-prune,
+      and final-audit gaps remain explicit.
+
 ### 2026-08-14 — Conditional Study/Breadth uPlot family lifecycle
 
 - [x] Hardened Study Series, Histogram, Range, Bars, Breadth History, and Scatter conditional
