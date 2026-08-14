@@ -23,6 +23,13 @@
 - Implementation/docs commit: `36cf4c54` (`feat(study-lab): add transparent 90/90 breadth study`).
 - The worktree is clean at this implementation boundary. The operational checkpoint and exact push
   transport result will be recorded separately before the next context begins.
+- Operational checkpoint: `514300cc` (`chore(ops): close 90/90 breadth context`). The exact elevated
+  command `rtk git push origin HEAD:feat/tc2000-frontend-rework` for local range
+  `91463e54..514300cc` was attempted once and rejected before Git by the private-origin egress
+  safeguard because trusted authorization for that exact payload and destination was unavailable.
+  `.git/index.lock` is absent and repository metadata is healthy. No alternate transport, wrapper,
+  rewrite, reset, stash, force push, or repeat is permitted; this remains transport-only and the
+  goal continues from the clean local boundary.
 - Acceptance flexibility used: none. `REF-STUDY-LAB-V25` remains the separately tracked
   original-surface visual-reference gap; no visual threshold, mask, product criterion, or browser
   acceptance rule was changed.
