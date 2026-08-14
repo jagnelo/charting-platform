@@ -1,4 +1,30 @@
 tasks:
+  - id: tc2000-radar-universe-batching-20260814
+    title: Batch Radar all-universe history and setup hydration
+    status: completed
+    priority: high
+    scope: >-
+      Remove the all-universe Radar N+1 database access pattern that kept the authenticated scan
+      busy for about 2m42s across 13,635 instruments and caused the real-user F17 acceptance path
+      to time out.
+    definition_of_done:
+      - History bars are loaded for the complete selected universe with one bounded indexed query
+      - Radar setup threads and detections are loaded with one eager query and grouped in memory
+      - Detection semantics and freshness/error behavior remain unchanged
+      - Focused engine/API, rebuilt-stack browser, backend coverage, and lint checks pass
+      - No UI timeout, visual threshold, mask, or acceptance criterion is relaxed
+    validation:
+      - radar-engine-unit-28-of-28
+      - radar-api-integration-10-of-10
+      - ruff-radar-engine
+      - rebuilt-stack-f17-1-of-1-in-7.9s
+      - backend-coverage-1424-of-1424-80.15-percent
+      - git-diff-check
+    notes:
+      - >-
+        Implementation commit `577b09f4`. The original failure was reproduced against the rebuilt
+        stack and fixed in the service; remaining exact/unrepresented V25 and external data gaps
+        are unchanged and remain tracked.
   - id: tc2000-study-dashboard-layout-validation-20260814
     title: Reject malformed Study Lab dashboard panel layouts
     status: completed

@@ -1,5 +1,20 @@
 # Project TODO Memory
 
+### 2026-08-14 — Radar all-universe scan batching
+
+- [x] Repaired the repository-controlled Radar latency regression exposed by the complete
+      authenticated browser audit. The all-universe D1 scan was issuing one history query and one
+      setup-thread query per instrument (13,635 instruments), taking about 2m42s and leaving the
+      workstation busy overlay visible beyond the browser contract. Bars are now hydrated with one
+      indexed window-function query and setup threads are loaded in one eager query, then grouped
+      in memory without changing detection semantics or UI timeouts.
+- [x] Focused Radar engine coverage passes `28/28`; Radar API integration passes `10/10`; Ruff
+      passes; rebuilt-stack F17 passes `1/1` in `7.9s`; complete backend coverage passes `1424/1424`
+      at `80.15%`; implementation commit: `577b09f4`.
+- [ ] Acceptance flexibility used: **none**. This is a repository-controlled performance repair;
+      exact/unrepresented V25 visual states, provider/entitlement breadth, historical/GICS truth,
+      native-monitor, endurance, Docker global-prune, and final-audit gaps remain open and tracked.
+
 ### 2026-08-14 — Study Lab dashboard artifact layout validation
 
 - [x] Centralized dashboard-panel validation for Study Lab and Research Results. A dashboard is

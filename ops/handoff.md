@@ -1,5 +1,19 @@
 # Active Handoff
 
+## 2026-08-14 — Radar all-universe scan batching repair
+
+- The complete browser audit exposed a real F17 failure: the Radar busy overlay remained visible
+  because `run_radar_scan` performed one bar query and one setup-thread query per instrument. The
+  seeded branch database contained 13,635 instruments; the scan took about 2m42s. This was fixed
+  in implementation commit `577b09f4` by batching the bounded history query with a partitioned
+  row-number window and eager-loading all setup threads/detections before in-memory grouping.
+- Validation is positive: Radar engine `28/28`, Radar API `10/10`, Ruff, rebuilt-stack F17 `1/1`
+  in `7.9s`, and backend coverage `1424/1424` at `80.15%`. No timeout, visual threshold, mask,
+  provider rule, or product criterion was relaxed; this is a fix-first repository change.
+- The full current authenticated matrix is being rerun against the rebuilt stack. The exact
+  elevated push remains subject to the environment's private-origin egress safeguard, but this
+  transport condition is not a goal blocker and does not justify withholding independent fixes.
+
 ## 2026-08-14 — Rebuilt-image Study Lab browser verification
 
 - The initial F8o result was setup-only because the running frontend image predated the dashboard

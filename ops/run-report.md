@@ -1,5 +1,18 @@
 # Run Report
 
+## 2026-08-14 — Radar all-universe scan batching repair
+
+- Reproduced the real-user F17 timeout on the rebuilt stack: all-universe D1 Radar hydration used
+  per-instrument history and setup-thread queries, leaving the busy overlay active for about
+  2m42s across 13,635 instruments.
+- Replaced the N+1 path with one bounded window-function bar query plus one eager setup-thread/
+  detection query and in-memory grouping. Focused engine tests pass `28/28`, API integration
+  passes `10/10`, Ruff passes, and rebuilt-stack F17 passes `1/1` in `7.9s`.
+- The complete backend gate passes `1424/1424` at `80.15%` coverage. Implementation commit is
+  `577b09f4`; no UI timeout, visual threshold, mask, or acceptance criterion changed.
+- Complete authenticated browser revalidation against the rebuilt stack remains in progress;
+  exact V25 and other documented external/reference gaps remain open.
+
 ## 2026-08-14 — Rebuilt-image Study Lab browser verification
 
 - The first F8o browser check for the dashboard-layout changes was discarded because it hit the
