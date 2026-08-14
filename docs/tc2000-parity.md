@@ -78,6 +78,13 @@ parses a dated NVDA row and verifies the product ID and query parameter. This im
 point-in-time evidence path for Russell/S&P ETF-proxy legs but does not by itself establish a
 complete historical rebalance series, official index membership, or populated browser acceptance.
 
+The dated refresh API now preserves issuer truth at persistence time: it stores the returned
+composition date, keeps the requested evaluation date as `as_of_date`, and rejects a provider
+response dated after the request. The focused IWV API regression proves a 2026-06-30 request can
+persist a returned 2026-06-27 snapshot while retaining both dates in the response and legal
+metadata. This removes a local point-in-time provenance defect; historical continuity and browser
+family acceptance remain open.
+
 ## 2026-08-14 — Family-leg relative-strength ratio contract
 
 Family role analysis now exposes `GET /analysis/benchmark-families/{family_key}/ratios`. A

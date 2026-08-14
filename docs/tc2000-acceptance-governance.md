@@ -216,6 +216,12 @@ derived output and remain in the gap ledger; they must not silently substitute S
 family, or a current-only snapshot. This broadens the required analysis perspectives and does not
 relax any visual, provenance, historical, or functional threshold.
 
+The dated holdings acceptance also distinguishes the requested evaluation date from the issuer's
+returned composition date. A provider may return the nearest earlier snapshot; persistence must
+retain that composition date, retain the requested date as `as_of_date`, reject future-dated
+responses, and expose both values in provenance. Rewriting the returned date to the request would
+invalidate point-in-time membership and is a failed acceptance case.
+
 ### Expanded condition-driven breadth gate
 
 The fixed Market Breadth panel is not sufficient evidence for the broader breadth requirement.

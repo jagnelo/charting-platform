@@ -9294,6 +9294,13 @@ verifies the parsed NVDA row, product ID, date query, and provenance. This is a 
 toward point-in-time family membership; it does not yet prove complete rebalance continuity,
 nearest-snapshot selection policy across every date, or official index membership.
 
+The dated refresh persistence boundary is now corrected as well: `refresh_etf_holdings_for_date`
+uses the issuer-returned `composition_date` when present, retains the user-requested date as
+`as_of_date`, and rejects an issuer response that claims a composition date after the requested
+date. The API regression proves an IWV request for 2026-06-30 stores a returned 2026-06-27
+composition snapshot without rewriting it to 2026-06-30. This closes a local provenance/data-
+integrity defect, not the broader historical family-population requirement.
+
 #### Current continuation — 2026-08-12 listing visibility and browser contract repair
 
 The exchange-aware listing API contract is now exercised through the real seeded workstation

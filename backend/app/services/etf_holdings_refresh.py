@@ -935,11 +935,19 @@ async def refresh_etf_holdings_for_date(
             or result_metadata.get("source_provider")
             or adapter.source_provider
         )
+        composition_date = _date_from_value(result_metadata.get("composition_date"))
+        if composition_date is None:
+            composition_date = requested_date
+        if composition_date > requested_date:
+            raise ValueError(
+                "Issuer dated holdings route returned a composition date after the requested "
+                f"date ({composition_date.isoformat()} > {requested_date.isoformat()})."
+            )
         snapshot = await ingest_holdings_snapshot(
             db,
             etf_instrument=profile.instrument,
             rows=fetch_result.rows,
-            composition_date=requested_date,
+            composition_date=composition_date,
             as_of_date=requested_date,
             known_at=datetime.now(UTC),
             provenance="issuer_self_snapshotted_holdings",

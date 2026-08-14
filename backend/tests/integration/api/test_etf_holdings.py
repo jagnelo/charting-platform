@@ -2033,6 +2033,89 @@ def test_admin_can_refresh_issuer_holdings_for_specific_date(
     assert dates.json()[0]["composition_date"] == "2026-05-29"
 
 
+def test_admin_dated_ishares_refresh_preserves_returned_composition_date(
+    client, admin_headers, auth_headers, monkeypatch
+):
+    payload = {
+        "componentsByNameMap": {
+            "holdings": {
+                "containersByNameMap": {
+                    "all": {
+                        "dataPointsByNameMap": {
+                            "ticker": {"value": ["NVDA"]},
+                            "issueName": {"value": ["NVIDIA CORP"]},
+                            "holdingPercent": {"value": ["1.25"]},
+                            "unitsHeld": {"value": ["10"]},
+                            "marketValue": {"value": ["1000"]},
+                            "assetClass": {"value": ["Equity"]},
+                            "asOfDate": {"value": "20260627"},
+                        }
+                    }
+                }
+            }
+        }
+    }
+    requested_urls = []
+
+    class FakeResponse:
+        text = json.dumps(payload)
+        content = text.encode()
+        headers = {"content-type": "application/json"}
+
+        def json(self):
+            return payload
+
+        def raise_for_status(self):
+            return None
+
+    class FakeClient:
+        def __init__(self, *args, **kwargs):
+            self.args = args
+            self.kwargs = kwargs
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *args):
+            return None
+
+        async def get(self, url, **kwargs):
+            requested_urls.append(url)
+            assert kwargs["follow_redirects"] is True
+            return FakeResponse()
+
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeClient)
+
+    profile = client.patch(
+        "/api/v1/etf-holdings/IWV/profile",
+        json={
+            "issuer": "iShares",
+            "provider_aliases": {"issuer_product_id": "239714"},
+        },
+        headers=admin_headers,
+    )
+    assert profile.status_code == 200
+    assert profile.json()["adapter_key"] == "ishares"
+
+    refresh = client.post(
+        "/api/v1/etf-holdings/IWV/refresh-date",
+        json={"requested_date": "2026-06-30"},
+        headers=admin_headers,
+    )
+    assert refresh.status_code == 200
+    body = refresh.json()
+    assert body["composition_date"] == "2026-06-27"
+    assert body["as_of_date"] == "2026-06-30"
+    assert body["source_provider"] == "ishares"
+    assert body["row_count"] == 1
+    assert body["holdings"][0]["reported_symbol"] == "NVDA"
+    assert "portfolioId=239714" in requested_urls[0]
+    assert "asOfDate=20260630" in requested_urls[0]
+    legal_metadata = body["extra_data"]["legal_metadata"]
+    assert legal_metadata["requested_holdings_date"] == "2026-06-30"
+    assert legal_metadata["composition_date"] == "2026-06-27"
+
+
 def test_issuer_adapter_can_discover_holdings_file_from_product_page(
     client, admin_headers, auth_headers, monkeypatch
 ):
