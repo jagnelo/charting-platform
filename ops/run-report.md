@@ -1,5 +1,22 @@
 # Run Report
 
+## 2026-08-14 — Generic breadth current-snapshot implementation checkpoint
+
+- Implemented and committed `d7c93cf4` (`feat(analysis): add condition-driven breadth studies`).
+- Added versioned `POST /analysis/breadth`, canonical local group/ETF-holdings-proxy/explicit-symbol
+  resolution, deterministic condition evaluation, stable definition/membership hashes, per-member
+  values, pass/eligible counts, coverage, freshness, and structured exclusions.
+- Supported condition forms in this slice: SMA/EMA moving-average state, 52-week high/low distance,
+  new highs/lows, trend, RSI, volume ratio, and relative strength. Added the compact workstation
+  custom-condition composer for current-group and SPY-proxy studies.
+- Validation: breadth service `4/4`; router unit breadth coverage `18/18`; Docker-backed generic
+  API `1/1`; frontend Vitest `819/819`; type-check; production build; Ruff; and diff checks.
+- No acceptance flexibility used. The unprivileged integration run was a setup-only Docker socket
+  denial; the approved elevated rerun passed and is the authoritative API evidence.
+- Still open: generic historical output, full point-in-time ETF representative acceptance,
+  unified-Python/Study Lab reuse, independent uPlot pane, promotion targets, and browser/end-to-end
+  acceptance. Exact private-origin push remains transport-only and is not a product blocker.
+
 ## 2026-08-14 — Breadth scope expansion documented
 
 - Broadened the controlling goal and plan from fixed breadth metrics to a generic,

@@ -20,11 +20,15 @@ tasks:
       - Generic breadth API, SDK, UI, uPlot-pane, promotion, and acceptance work is implemented and validated before goal completion
     validation:
       - controlling-goal-and-plan-documents-updated
-      - parity-gap-and-acceptance-ledger-updated
+      - generic-breadth-evaluator-and-api-implemented
+      - focused-evaluator-router-and-api-integration-tests
+      - frontend-custom-condition-composer
       - implementation-and-browser-acceptance-pending
     notes:
-      - This documentation context records a broadened requirement; it does not claim the generic engine is implemented.
-      - Existing fixed breadth tests remain valid preset coverage but cannot close this task.
+      - The first implementation slice is complete locally in d7c93cf4: versioned current-snapshot API, canonical group/ETF-proxy/explicit-symbol resolution, deterministic evaluator, and a compact workstation composer.
+      - Existing fixed breadth tests remain valid preset coverage and cannot close this task.
+      - Historical generic evaluation, full point-in-time ETF acceptance, unified-Python/research integration, independent uPlot panes, promotion targets, and representative browser acceptance remain open.
+      - Focused validation: breadth service 4/4, router unit suite 18/18, database-backed generic API 1/1, frontend Vitest 819/819, type-check, production build, Ruff, and diff checks.
       - No visual threshold, mask, provider rule, or acceptance criterion was relaxed.
   - id: tc2000-study-lab-artifact-export-20260814
     title: Export typed artifacts directly from the active Study Lab run

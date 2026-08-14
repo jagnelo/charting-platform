@@ -1,5 +1,31 @@
 # Active Handoff
 
+## 2026-08-14 — Generic breadth current-snapshot implementation checkpoint
+
+- Implementation commit `d7c93cf4` adds a versioned `POST /analysis/breadth` contract and shared
+  deterministic evaluator. It resolves canonical market groups, explicitly labelled ETF-holdings
+  proxies, and explicit symbols from the local database; it never performs request-time provider
+  fan-out. Conditions currently cover SMA/EMA state, 52-week high/low distance, new highs/lows,
+  trend, RSI, volume ratio, and relative strength.
+- The response includes definition/membership hashes, universe/proxy provenance, per-member values,
+  pass/eligible counts, coverage, freshness, and structured exclusions. The workstation breadth
+  tool now exposes a compact composer for current-group and SPY-proxy studies, including the
+  required 200-day and within-1% examples.
+- Validation passed: breadth service `4/4`; router breadth regressions `18/18`; Docker-backed
+  generic API integration `1/1`; frontend Vitest `819/819`; `npm run type-check`; `npm run build`;
+  Ruff; and `git diff --check`. The unprivileged integration attempt was blocked before database
+  setup by Docker socket permissions; the identical focused test passed via the approved elevated
+  path and is the authoritative API evidence.
+- No visual threshold, mask, provider rule, or acceptance criterion was relaxed. This is only the
+  first current-snapshot slice. Generic historical evaluation, full point-in-time ETF acceptance,
+  unified-Python/research reuse, independent uPlot panes, promotion targets, and representative
+  browser acceptance remain open.
+- Repository-side commit closure succeeded through the documented elevated Git path. Exact push
+  remains a transport operation to perform only when trusted private-origin authorization is
+  available; it must not be treated as a product blocker or used to justify a dirty tree.
+- Next context: add aligned historical generic evaluation and the unified-Python/Study Lab target,
+  then connect independent uPlot/column/filter/scan/gauge/alert/export promotion contracts.
+
 ## 2026-08-14 — Breadth requirement broadened to generic condition-driven studies
 
 - The active plan and goal now explicitly require breadth to be a reusable definition of
