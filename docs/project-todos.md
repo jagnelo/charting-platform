@@ -1,5 +1,16 @@
 # Project TODO Memory
 
+### 2026-08-14 — Git transport checkpoint after canonical matrix
+
+- [x] Operational commit `ae622879` records the verified `140/140` canonical matrix. The exact
+      elevated command `rtk git push origin feat/tc2000-frontend-rework` for local range
+      `91463e54..ae622879` was attempted and rejected before Git by the private-origin egress
+      safeguard. The worktree remains clean and the commits remain separately recoverable.
+- [ ] Acceptance flexibility used: **none**. This is transport state only, never a product or
+      goal blocker. Per `docs/agent-orchestration.md`, retry the same exact elevated command when
+      trusted destination/range authorization is available; do not use an alternate transport,
+      indirect shell/API/plugin, force push, rewrite, reset, stash, or leave completed work dirty.
+
 ### 2026-08-14 — Canonical full-matrix verification after F8k setup retry
 
 - [x] The complete non-seeded authenticated Chromium matrix now passes `140/140` in `7.1m`

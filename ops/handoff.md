@@ -1,5 +1,14 @@
 # Active Handoff
 
+## 2026-08-14 — Git transport checkpoint after canonical matrix
+
+- Operational checkpoint `ae622879` is committed locally and the worktree is clean. The exact
+  elevated push for `91463e54..ae622879` was rejected before Git by the private-origin egress
+  safeguard, with no repository/index/authentication failure.
+- This is a transport-only hold. The documented recovery is to retry that exact destination,
+  branch, and range through the approved elevated Git path once trusted authorization exists;
+  never work around it indirectly and never block independent implementation contexts.
+
 ## 2026-08-14 — Canonical full matrix after F8k setup retry
 
 - The complete non-seeded authenticated `flows.spec.ts` matrix passes `140/140` in `7.1m`

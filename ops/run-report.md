@@ -1,5 +1,12 @@
 # Run Report
 
+## 2026-08-14 — Git transport checkpoint after canonical matrix
+
+- `ae622879` is a clean local operational commit. The exact elevated command
+  `rtk git push origin feat/tc2000-frontend-rework` for range `91463e54..ae622879` was rejected
+  before Git by the private-origin egress safeguard. No workaround or indirect transport was
+  attempted; this does not alter or invalidate the `140/140` product verification.
+
 ## 2026-08-14 — Canonical full matrix after F8k setup retry
 
 - The authoritative non-seeded command
