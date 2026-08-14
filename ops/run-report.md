@@ -1,5 +1,13 @@
 # Run Report
 
+## 2026-08-14 — Auth-store router teardown race
+
+- Reproduced and repaired the only unhandled frontend-suite error: a storage logout listener
+  started Vue Router navigation without the test awaiting it, allowing a post-teardown `history`
+  lookup. The focused test now waits for `/login`.
+- Full frontend validation is clean: Vitest `817/817`, zero unhandled errors, TypeScript, build,
+  uPlot contract `45/45`, and visual policy `26/26`. Acceptance flexibility used: none.
+
 ## 2026-08-14 — Thrivent native holdings routes
 
 - Added a strict Thrivent issuer adapter for seven official ETF product pages and their complete

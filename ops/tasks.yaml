@@ -1,4 +1,29 @@
 tasks:
+  - id: tc2000-auth-store-router-teardown-20260814
+    title: Close the remote-logout router teardown race in frontend tests
+    status: completed
+    priority: medium
+    scope: >-
+      Make the storage-driven auth logout test await the router navigation it starts so Vue Router
+      cannot resume against a torn-down jsdom history object.
+    definition_of_done:
+      - The focused auth-store suite passes without unhandled asynchronous errors
+      - The complete frontend suite remains green with zero Vitest unhandled errors
+      - TypeScript, production build, uPlot contract, visual policy, and diff checks pass
+      - The repair is recorded as a localized test-oracle fix with no product acceptance relaxation
+    validation:
+      - auth-store-37-of-37-zero-unhandled-errors
+      - frontend-vitest-817-of-817-zero-unhandled-errors
+      - frontend-typecheck
+      - frontend-production-build
+      - uplot-contract-45-files
+      - visual-policy-26-assertions
+      - git-diff-check
+    notes:
+      - >-
+        The prior full suite had 817 passing tests but one post-teardown `history is not defined`
+        rejection from the storage logout listener. Awaiting the owned navigation closes the race;
+        no threshold, mask, product, or acceptance rule changed.
   - id: tc2000-thrivent-holdings-route-20260814
     title: Add native Thrivent ETF daily holdings routes
     status: completed

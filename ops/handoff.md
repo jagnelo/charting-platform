@@ -1,5 +1,14 @@
 # Active Handoff
 
+## 2026-08-14 — Auth-store router teardown race
+
+- The frontend suite exposed one unhandled post-teardown `ReferenceError: history is not defined`
+  after the storage-driven logout test. The test now awaits the router navigation owned by the
+  storage listener, preventing Vue Router from resuming after jsdom teardown.
+- Focused auth-store coverage passes `37/37`; complete frontend Vitest passes `817/817` with zero
+  unhandled errors; TypeScript, production build, uPlot contract `45/45`, visual policy `26/26`,
+  and diff checks pass. Implementation commit `27840500`. No acceptance flexibility used.
+
 ## 2026-08-14 — Thrivent native holdings routes
 
 - Replaced Thrivent's fallback-only adapter with `ThriventHoldingsAdapter`, using the complete
