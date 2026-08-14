@@ -1,5 +1,16 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-14 — Current-history distribution excludes current observation
+
+- Corrected the factory Study Lab source to compare the latest return against prior returns only.
+  The sample-size metric and histogram now describe historical observations, while the current
+  return is passed explicitly and remains highlighted.
+- Focused source-contract coverage passes `1/1`; Current versus history browser acceptance passes
+  `1/1`; adjacent Study Lab/Python/Results browser coverage passes `13/13`; frontend `818/818`,
+  type-check/build, uPlot contract, and visual policy remain green.
+- Acceptance flexibility used: **none**. `REF-STUDY-LAB-V25` remains an explicitly tracked visual
+  reference gap; no threshold, mask, product criterion, or functional acceptance rule changed.
+
 ## 2026-08-14 — Current-history Study Lab browser acceptance
 
 - Added a real authenticated browser path for the Current versus history factory study. The flow

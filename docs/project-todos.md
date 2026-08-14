@@ -1,5 +1,17 @@
 # Project TODO Memory
 
+### 2026-08-14 — Study Lab current-history exclusion correctness
+
+- [x] Corrected the Current versus history factory source so `returns[:-1]` is the historical
+      sample and `returns[-1]` is passed explicitly as the current observation. The histogram now
+      renders prior history while highlighting the latest return, avoiding self-comparison.
+- [x] Focused Study Lab source-contract coverage passes `1/1`; authenticated Current versus history
+      browser acceptance passes `1/1`; adjacent Study Lab/Python/Results browser slice passes
+      `13/13`; full frontend Vitest passes `818/818`; type-check/build, uPlot contract, visual
+      policy, and `git diff --check` pass.
+- [ ] Acceptance flexibility used: **none** for product, visual, or functional criteria.
+      `REF-STUDY-LAB-V25` remains the separately tracked original-surface visual-reference gap.
+
 ### 2026-08-14 — Current-history Study Lab browser acceptance and stale-bundle recovery
 
 - [x] Added the authenticated `F8p-current-history` regression for selecting, validating, running,
