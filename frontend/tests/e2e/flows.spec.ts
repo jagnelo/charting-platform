@@ -2089,6 +2089,15 @@ test.describe('TC2000 workstation', () => {
   test('F8e.2a — a sector row can launch its ratio against the active benchmark', async ({ page, browserDiagnostics }) => {
     test.setTimeout(90_000)
     await page.goto('/chart')
+    // This flow mutates the shared ratio window. Restore the immutable factory
+    // first so an earlier comparison/template test cannot leave a persisted
+    // custom ratio that masks the row-action contract.
+    const reset = page.getByTitle('Reset factory workspace').first()
+    if (await reset.count()) {
+      page.once('dialog', dialog => dialog.accept())
+      await reset.click()
+      await expect(page.getByRole('region', { name: 'Relative to SPY' })).toBeVisible({ timeout: 15_000 })
+    }
     const sectorList = page.locator('.watchlist[aria-label="Relative to SPY"]:visible').filter({ has: page.locator('.watchlist__row') }).last()
     const xlk = sectorList.getByRole('option', { name: /XLK/ }).first()
     await expect(xlk).toBeVisible({ timeout: 20_000 })
@@ -2229,7 +2238,11 @@ test.describe('TC2000 workstation', () => {
     await expect(page.getByRole('combobox', { name: 'Active symbol' })).toHaveValue('NVDA')
     const ratioLegend = page.locator('.ratio-chart__legend strong').first()
     await expect(ratioLegend).toBeVisible({ timeout: 15_000 })
-    await expect(ratioLegend).toContainText(new RegExp(`NVDA\\/(?:${proxySymbol}|XLK)`))
+    // The stock's primary relative-strength leg is the selected sector ETF,
+    // even when the preceding industry drilldown also exposed a verified
+    // industry proxy.  Keep the sector and market legs explicit so an
+    // industry-proxy-only ratio cannot silently satisfy the top-down contract.
+    await expect(ratioLegend).toContainText('NVDA/XLK')
     await expect(ratioLegend).toContainText('NVDA/SPY')
 
     const constituentScroll = constituents.locator('.watchlist__scroll')
