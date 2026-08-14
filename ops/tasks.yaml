@@ -1,4 +1,33 @@
 tasks:
+  - id: tc2000-unified-python-research-outcome-helpers-20260814
+    title: Add unified Python research outcome and regime helpers
+    status: completed
+    priority: high
+    scope: >-
+      Add deterministic conditional-outcome summaries and point-in-time regime classification to
+      the isolated research runner, then expose exactly those methods through editor completion
+      and the Study Lab reference.
+    definition_of_done:
+      - Helpers use declared finite data only and reject invalid horizons/lookbacks explicitly
+      - Backend tests cover nominal, edge, insufficient-history, and invalid-input behavior
+      - Frontend autocomplete/reference expose exactly the implemented research methods
+      - Focused and broader frontend/browser/backend gates pass
+      - No visual threshold, mask, product criterion, or acceptance flexibility changes
+    validation:
+      - focused-research-runner-75-of-75
+      - python-editor-and-study-lab-27-of-27
+      - adjacent-authenticated-study-python-results-12-of-12
+      - frontend-vitest-818-of-818
+      - frontend-coverage-80.90-percent-statements
+      - make-test-fe-uplot-and-visual-policy
+      - backend-unit-integration-1447-of-1447
+      - backend-coverage-80.17-percent
+      - frontend-type-check-and-production-build
+      - git-diff-check
+    notes:
+      - >-
+        Context closes missing plan-required research capabilities; broader external gaps remain
+        open. No flexibility changed.
   - id: tc2000-unified-python-stats-namespace-20260814
     title: Implement the plan-required unified Python stats namespace
     status: completed

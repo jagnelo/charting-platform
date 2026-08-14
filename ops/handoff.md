@@ -1,5 +1,27 @@
 # Active Handoff
 
+## 2026-08-14 — Unified Python research outcome helpers (completed)
+
+- Context owner: Codex. Owned paths are `backend/research_runner/runner.py`, focused runner
+  tests, `frontend/src/components/workstation/PythonSourceEditor.vue`, `StudyLabTool.vue`, their
+  tests, and corresponding docs/ops checkpoint records.
+- Intent: extend the single Python research namespace with deterministic conditional-outcome
+  summaries and point-in-time regime classification over declared datasets, without provider
+  access, look-ahead, I/O, or a second DSL.
+- Completed: added deterministic `research.conditional_outcomes` and `research.regimes` helpers
+  over declared data only, with explicit horizon/lookback/threshold and insufficient-history
+  contracts; editor completion and Study Lab reference expose the same methods.
+- Validation: focused runner `75/75`; editor/Study Lab `27/27`; adjacent authenticated browser
+  `12/12`; frontend `818/818` at `80.90%`; backend `1447/1447` at `80.17%`; `make test-fe`,
+  uPlot/visual-policy, type-check, and production build pass.
+- No visual threshold, mask, product criterion, or acceptance flexibility changed. REF-STUDY-LAB-V25
+  and broader research/provider/historical/monitor/endurance/final-audit gaps remain open.
+- Implementation/docs are committed locally as `ee0de098420aaea7fcc9e85f2b0bd587873a0b81`.
+- Next action: commit this operational checkpoint separately, verify a clean worktree, make the
+  single exact push attempt for the clean range, and continue the next independent goal context.
+- Next action: commit implementation/docs, commit the operational checkpoint separately, verify a
+  clean worktree, and continue the next independent goal context.
+
 ## 2026-08-14 — Unified Python stats Git closure
 
 - Implementation `c729d75d4edc4081b6cb3d29a49cf045466be10e` and operational checkpoint
