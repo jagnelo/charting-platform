@@ -158,6 +158,17 @@ describe('ResearchResultsTool', () => {
     expect(wrapper.find('.dashboard-chart').exists()).toBe(true)
   })
 
+  it('keeps malformed dashboard layouts in the structured fallback instead of leaking invalid grid spans', async () => {
+    apiGet.mockResolvedValue([{ id: 18, status: 'completed', code_version_id: 4, run_config: {}, dataset_manifest: {}, diagnostics: [], artifacts: [
+      { id: 9, name: 'unsafe_layout', artifact_type: 'dashboard', payload: { value: { panels: [{ artifact: 'sample', title: 'Sample', span: 99 }] } } },
+    ] }])
+    const wrapper = mountTool()
+    await flushPromises()
+
+    expect(wrapper.find('.dashboard-chart').exists()).toBe(false)
+    expect(wrapper.text()).toContain('"span": 99')
+  })
+
   it('renders structured diagnostics, warnings, logs, and resource usage for a persisted run', async () => {
     apiGet.mockResolvedValue([{ id: 15, status: 'failed', code_version_id: 4, run_config: {}, dataset_manifest: {}, diagnostics: [{ code: 'coverage', message: 'missing bars' }], warnings: [{ code: 'partial', message: 'one symbol excluded' }], logs: 'runner completed with exclusions', resource_usage: { wall_ms: 12 }, artifacts: [] }])
     const wrapper = mountTool()

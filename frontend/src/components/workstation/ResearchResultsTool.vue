@@ -68,6 +68,7 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useQuery, useQueryClient } from '@tanstack/vue-query'
 import { api } from '@/lib/api'
+import { normalizeStudyDashboardPanels } from '@/lib/workstation/studyArtifacts'
 import StudyBarsUPlot from './StudyBarsUPlot.vue'
 import StudyHistogramUPlot from './StudyHistogramUPlot.vue'
 import StudySeriesUPlot from './StudySeriesUPlot.vue'
@@ -222,11 +223,7 @@ function heatmapData(artifact: ResearchRunSummary['artifacts'][number]): { rows:
   return values.length && values.length === rows.length && values.every(row => row.length === columns.length) ? { rows, columns, values } : null
 }
 function dashboardData(artifact: ResearchRunSummary['artifacts'][number]): Array<{ artifact: string; title: string; span: number }> | null {
-  const value = artifact.payload.value
-  if (!value || typeof value !== 'object' || Array.isArray(value) || !Array.isArray((value as { panels?: unknown }).panels)) return null
-  const panels = (value as { panels: unknown[] }).panels
-  const normalized = panels.filter((panel): panel is { artifact: string; title: string; span: number } => Boolean(panel) && typeof panel === 'object' && typeof (panel as Record<string, unknown>).artifact === 'string' && typeof (panel as Record<string, unknown>).title === 'string' && typeof (panel as Record<string, unknown>).span === 'number')
-  return normalized.length === panels.length ? normalized : null
+  return normalizeStudyDashboardPanels(artifact.payload.value)
 }
 function eventRows(artifact: ResearchRunSummary['artifacts'][number]): Array<{ symbol: string; timestamp: string; kind?: string }> {
   const value = artifact.payload.value
