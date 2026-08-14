@@ -51,6 +51,14 @@ tasks:
         `4/4`, and Ruff pass; provider evidence, point-in-time membership, derived calculations,
         populated cap-available browser analytics, and full family breadth/rotation remain open.
         Acceptance flexibility used: none.
+      - >-
+        Derived equal-weight bridge implemented locally: `GET /analysis/benchmark-families/{family_key}/derived-equal-weight`
+        accepts only explicit point-in-time constituent membership rows, emits a normalized aligned
+        series with method/membership/coverage/freshness metadata, and returns structured
+        unavailable/not-allowed states without proxy or SPY/QQQ fallback. Positive and
+        unavailable/not-allowed integration `1/1`, family-focused integration `3/3`, and Ruff
+        pass. Provider holdings/rebalance evidence, family ratios/breadth/rotation, and browser
+        acceptance remain open; acceptance flexibility used: none.
   - id: tc2000-generic-condition-driven-breadth-20260814
     title: Broaden breadth from fixed metrics to reusable condition-driven cross-sectional studies
     status: in_progress

@@ -1,5 +1,21 @@
 # Run Report
 
+## 2026-08-14 — Point-in-time derived equal-weight family series
+
+- Added a family-level derived equal-weight endpoint that consumes only explicit constituent
+  membership rows and aligned local bars. It distinguishes disallowed derivation, missing
+  membership, missing bars, partial coverage, and successful series output.
+- The implementation preserves methodology, official index identity, membership version,
+  effective/known-at selection, adjustment, freshness, points, and exact exclusions; proxy rows
+  cannot inflate the denominator or become synthetic constituents.
+- Validation: positive/unavailable/not-allowed integration `1/1`, family-focused integration
+  `3/3`, Ruff, and diff checks pass. No acceptance flexibility used.
+- Open: provider-backed point-in-time holdings and rebalance weights, family ratios/breadth/
+  rotation, browser drill-down, and visual/end-to-end gates.
+- Implementation commit `fcee7e75` is clean locally. Its exact elevated push was attempted once
+  and rejected before Git by the private-origin safeguard; origin remains `91463e54`. No
+  workaround, alternate transport, or repeat was used; this is transport-only.
+
 ## 2026-08-14 — Benchmark-family overview analytics bridge
 
 - Added the provider-neutral family overview endpoint for S&P 500/400/600/1500, Russell

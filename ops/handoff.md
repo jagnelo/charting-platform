@@ -1,5 +1,24 @@
 # Active Handoff
 
+## 2026-08-14 — Point-in-time derived equal-weight family series
+
+- Added `GET /api/v1/analysis/benchmark-families/{family_key}/derived-equal-weight`. It derives a
+  normalized equal-start-weight series only from explicit point-in-time constituent membership;
+  family proxy mapping rows cannot silently become constituents.
+- Responses retain method, official index, membership version, effective/known-at provenance,
+  covered/member counts, coverage, adjustment, freshness, aligned points, and exclusions. A
+  disallowed family returns `derived_equal_weight_not_allowed`; an allowed family without
+  membership returns `derived_equal_membership_unavailable`; no SPY/QQQ substitution occurs.
+- Validation: positive plus unavailable/not-allowed integration `1/1`, focused family integration
+  `3/3`, Ruff, and diff checks. Acceptance flexibility used: **none**.
+- Remaining: provider-backed historical holdings, rebalance/weight snapshots, family-wide
+  cap/equal/style ratios and breadth/rotation, constituent browser drill-down, and final visual
+  acceptance.
+- Implementation commit `fcee7e75 feat(analysis): add point-in-time derived family series` is clean
+  locally. Its exact elevated push was attempted once and rejected before Git by the private-origin
+  safeguard; origin remains `91463e54`. Operational records are being committed separately; no
+  workaround, alternate transport, or repeat.
+
 ## 2026-08-14 — Benchmark-family overview analytics bridge
 
 - Implemented `GET /api/v1/analysis/benchmark-families/{family_key}/overview` for the eight
