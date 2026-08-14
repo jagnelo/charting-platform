@@ -10,6 +10,8 @@
   indirect execution, force push, rewrite, or alternate transport was attempted. The clean local
   commits remain the source of truth; retry only the same narrow command after explicit authorization
   for this exact range/destination. The active goal is not blocked by this transport hold.
+- Next exact action: begin a new repository-controlled gap only after confirming this clean local
+  boundary, and keep the push retry independent of implementation work.
 
 ## 2026-08-14 — Backend gate semantics and scoped Docker maintenance
 
