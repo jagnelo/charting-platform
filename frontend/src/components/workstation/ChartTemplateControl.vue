@@ -117,6 +117,7 @@ function cancelRename() {
 function toggleOpen() {
   open.value = !open.value
   if (open.value) void nextTick(() => {
+    void load()
     positionMenu()
     window.addEventListener('resize', positionMenu)
     window.addEventListener('scroll', positionMenu, true)

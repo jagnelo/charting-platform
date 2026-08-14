@@ -219,6 +219,32 @@ test.describe('Chart', () => {
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
+  test('F9c-template-comparison — chart templates restore their comparison set', async ({ page, browserDiagnostics }) => {
+    await page.goto('/chart/SPY')
+    const chart = page.locator('.chart-tool').filter({ has: page.getByTitle('Chart templates') }).first()
+    await expect(chart).toBeVisible({ timeout: 15_000 })
+    await chart.getByTitle('Chart templates').click()
+    const menu = chart.locator('.chart-template__menu:visible').last()
+    const templateName = `Comparison ${Date.now()}`
+    await menu.getByRole('combobox', { name: 'Chart bar type' }).selectOption('line')
+    await chart.getByRole('textbox', { name: 'Comparison symbol', exact: true }).fill('RSP')
+    await chart.getByTitle('Add comparison').click()
+    await expect(chart.getByTitle('Remove RSP')).toBeVisible()
+    await menu.getByRole('textbox', { name: 'Chart template name' }).fill(templateName)
+    const saveRequest = page.waitForRequest(request => request.url().includes('/workspaces/library/items/chart_template/') && request.method() === 'PUT')
+    await menu.getByRole('button', { name: 'Save', exact: true }).click()
+    const savePayload = (await saveRequest).postDataJSON() as { payload?: { configuration?: Record<string, unknown> } }
+    expect(savePayload.payload?.configuration?.comparison_symbols).toEqual(['RSP'])
+    const saved = menu.locator('.chart-template__apply').filter({ hasText: templateName })
+    await expect(saved).toBeVisible({ timeout: 15_000 })
+    await chart.getByTitle('Remove RSP').click()
+    await expect(chart.getByTitle('Remove RSP')).toHaveCount(0)
+    await expect(saved).toBeVisible({ timeout: 15_000 })
+    await saved.click()
+    await expect(chart.locator('.chart-tool__compare-chip').filter({ hasText: 'RSP' })).toHaveCount(1, { timeout: 15_000 })
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
   test('F9c-keyboard — chart templates support keyboard opening and focus recovery', async ({ page, browserDiagnostics }) => {
     await page.goto('/chart/SPY')
     const chart = page.locator('.chart-tool').filter({ has: page.getByRole('button', { name: 'Chart templates' }) }).first()

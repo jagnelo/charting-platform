@@ -229,7 +229,7 @@
     <div v-else-if="tool.tool_type === 'chart' && tool.instance_key !== 'ratio-chart'" class="chart-tool">
       <DrawingToolbar class="chart-tool__drawing-toolbar" />
         <div class="chart-tool__surface">
-        <ChartTemplateControl class="chart-tool__templates" :configuration="liveChartConfiguration" :indicator-configs="chartStore.indicators" @apply="applyChartTemplate" />
+        <ChartTemplateControl class="chart-tool__templates" :configuration="chartTemplateConfiguration" :indicator-configs="chartStore.indicators" @apply="applyChartTemplate" />
         <!-- Use the literal kebab-case event contract so the virtual component
              listener and typed emitter remain identical after template
              compilation. -->
@@ -953,6 +953,12 @@ watch(() => comboWatchlistRows.value.map(row => row.symbol).join(','), value => 
 // update its uPlot instance immediately, while the same object is persisted by the
 // parent workspace snapshot.
 const liveChartConfiguration = ref<Record<string, unknown>>(props.tool.configuration)
+const pendingTemplateConfiguration = ref<Record<string, unknown> | null>(null)
+const optimisticComparisonSymbols = ref<string[] | null>(null)
+const chartTemplateConfiguration = computed(() => ({
+  ...liveChartConfiguration.value,
+  comparison_symbols: optimisticComparisonSymbols.value ?? comparisonTargets.value.map(target => target.symbol),
+}))
 const activeSymbol = computed(() => workspaceStore.symbolForLinkGroup(
   localLinkGroup.value,
   typeof props.tool.configuration.symbol === 'string' ? props.tool.configuration.symbol : null,
@@ -1042,7 +1048,7 @@ let comparisonRequestSequence = 0
 let chartSelectionSequence = 0
 const comparisonColors = ['#ffb74d', '#64b5f6', '#81c784', '#ba68c8', '#f06292', '#4dd0e1']
 const configuredComparisonSymbols = computed(() => {
-  const symbols = props.tool.configuration.comparison_symbols
+  const symbols = optimisticComparisonSymbols.value ?? liveChartConfiguration.value.comparison_symbols
   return Array.isArray(symbols)
     ? symbols.filter((symbol): symbol is string => typeof symbol === 'string' && Boolean(symbol.trim())).map(symbol => symbol.trim().toUpperCase())
     : []
@@ -1074,12 +1080,16 @@ const numericSeries = computed(() => [...pythonSeries.value, ...scanSeries.value
 let pythonPlotRequestSequence = 0
 let scanPlotRequestSequence = 0
 const pythonPlotRunIds = new Set<number>()
-const comparisonLegend = computed(() => comparisonSeries.value.map(series => ({
-  symbol: series.symbol,
-  label: series.label,
-  color: series.color,
-  percentChange: series.percentChange,
-})))
+const comparisonLegend = computed(() => configuredComparisonSymbols.value.map((symbol, index) => {
+  const target = comparisonTargets.value.find(candidate => candidate.symbol === symbol)
+  const series = comparisonSeries.value.find(candidate => candidate.symbol === symbol)
+  return {
+    symbol,
+    label: target?.label ?? symbol,
+    color: target?.color ?? comparisonColors[index % comparisonColors.length],
+    percentChange: series?.percentChange ?? null,
+  }
+}))
 
 function selectSymbol(symbol: string, instrumentId?: number | null) {
   workspaceStore.selectToolSymbol(props.tool.instance_key, symbol, instrumentId)
@@ -1104,7 +1114,9 @@ function setTimeframeLinkGroup(group: LinkGroup) {
 function applyChartTemplate(configuration: Record<string, unknown>) {
   const indicators = templateIndicators(configuration.indicators)
   const identity = Object.fromEntries(Object.entries(props.tool.configuration)
-    .filter(([key]) => ['symbol', 'instrument_id', 'expression', 'comparison_symbols'].includes(key)))
+    // A template may intentionally restore its comparison set. Only the active
+    // instrument identity is protected from template application.
+    .filter(([key]) => ['symbol', 'instrument_id', 'expression'].includes(key)))
   const applied = { ...configuration, ...identity }
   if (indicators) {
     chartStore.setIndicators(indicators)
@@ -1113,14 +1125,33 @@ function applyChartTemplate(configuration: Record<string, unknown>) {
     void chartStore.saveIndicatorsForInstrument()
   }
   liveChartConfiguration.value = applied
+  pendingTemplateConfiguration.value = applied
+  const templateComparisons = Array.isArray(applied.comparison_symbols)
+    ? applied.comparison_symbols.filter((symbol): symbol is string => typeof symbol === 'string' && Boolean(symbol.trim())).map(symbol => symbol.trim().toUpperCase())
+    : []
+  optimisticComparisonSymbols.value = templateComparisons
+  liveChartConfiguration.value = { ...applied, comparison_symbols: templateComparisons }
+  comparisonTargets.value = templateComparisons.map((symbol, index) => ({
+    symbol,
+    label: symbol,
+    color: comparisonColors[index % comparisonColors.length],
+    bars: comparisonTargets.value.find(target => target.symbol === symbol)?.bars ?? [],
+  }))
+  if (templateComparisons.length) void loadComparisonBars()
   emit('configuration', props.tool.instance_key, applied)
 }
 
 function persistComparisonSymbols() {
-  emit('configuration', props.tool.instance_key, {
+  const configuration = {
     ...liveChartConfiguration.value,
     comparison_symbols: comparisonTargets.value.map(target => target.symbol),
-  })
+  }
+  // Keep the optimistic chart configuration in sync with the parent snapshot.
+  // Template saves read this object, so a comparison added immediately before
+  // saving must be included even while Golden Layout persistence is in flight.
+  liveChartConfiguration.value = configuration
+  optimisticComparisonSymbols.value = configuration.comparison_symbols as string[]
+  emit('configuration', props.tool.instance_key, configuration)
 }
 
 function updatePythonPlots(plots: ConfiguredPythonPlot[]) {
@@ -1320,6 +1351,21 @@ onBeforeUnmount(() => {
 })
 
 watch(() => props.tool.configuration, configuration => {
+  const pending = pendingTemplateConfiguration.value
+  if (pending && Object.prototype.hasOwnProperty.call(pending, 'comparison_symbols')) {
+    const incoming = Array.isArray(configuration.comparison_symbols) ? configuration.comparison_symbols : []
+    const expected = Array.isArray(pending.comparison_symbols) ? pending.comparison_symbols : []
+    if (JSON.stringify(incoming) === JSON.stringify(expected)) {
+      pendingTemplateConfiguration.value = null
+      optimisticComparisonSymbols.value = null
+    }
+    else {
+      liveChartConfiguration.value = { ...configuration, comparison_symbols: expected }
+      return
+    }
+  } else if (pending) {
+    pendingTemplateConfiguration.value = null
+  }
   liveChartConfiguration.value = configuration
 }, { deep: true })
 

@@ -91,6 +91,21 @@ describe('ChartTemplateControl', () => {
     }))
   })
 
+  it('restores saved comparison symbols instead of retaining the active chart comparisons', async () => {
+    apiGet.mockResolvedValueOnce([{
+      stable_key: 'relative-template', name: 'Relative template', version: 2,
+      payload: { configuration: { bar_type: 'line', comparison_symbols: ['RSP', 'XLK'] } },
+    }])
+    const wrapper = mount(ChartTemplateControl, {
+      props: { configuration: { symbol: 'SPY', comparison_symbols: ['QQQ'] } },
+    })
+    await vi.waitFor(() => expect(apiGet).toHaveBeenCalled())
+    await wrapper.get('button[aria-label="Chart templates"]').trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Relative template'))
+    await wrapper.get('.chart-template__apply').trigger('click')
+    expect(wrapper.emitted('apply')?.[0]).toEqual([{ bar_type: 'line', comparison_symbols: ['RSP', 'XLK'] }])
+  })
+
   it('renames a saved template in place while preserving its stable identity and configuration', async () => {
     apiGet.mockResolvedValueOnce([{
       stable_key: 'trend-20', name: 'Trend 20', version: 3,
