@@ -1,4 +1,36 @@
 tasks:
+  - id: tc2000-study-lab-historical-90-90-breadth-series-20260814
+    title: Add historical 90/90 breadth participation series and occurrences
+    status: completed
+    priority: high
+    scope: >-
+      Extend the transparent 90/90 Study Lab factory capability from a latest-observation
+      snapshot to aligned historical price/volume participation series over the declared
+      point-in-time universe. Emit current metrics, numeric series, qualification occurrences,
+      coverage, and explicit per-date/per-symbol exclusions without inferred volume, provider
+      fan-out, look-ahead, or survivorship shortcuts.
+    definition_of_done:
+      - The isolated runner exposes deterministic research.breadth_thrust_history over declared datasets
+      - Timestamp alignment, invalid rows, missing history, and zero baselines have explicit exclusion semantics
+      - The factory source renders price and volume participation series and links qualifying dates as occurrences
+      - SDK autocomplete/reference and focused source contracts expose exactly the supported helper
+      - Focused, adjacent browser, frontend, backend, type/build, uPlot, visual-policy, and diff gates pass
+      - No visual threshold, mask, product criterion, or acceptance flexibility changes
+    validation:
+      - focused-research-runner-and-factory-source-88-of-88
+      - focused-python-editor-study-lab-27-of-27
+      - authenticated-f8p-90-90-history-browser-1-of-1
+      - adjacent-study-python-results-browser-11-of-11
+      - frontend-vitest-818-of-818
+      - backend-unit-1153-of-1153-and-integration-303-of-303
+      - frontend-type-check-production-build
+      - ruff-uplot-visual-policy-diff-check
+    notes:
+      - REF-STUDY-LAB-V25 remains an original-surface visual gap; use existing board-guided dense composition only.
+      - Keep implementation/docs and operational checkpoint in separate commits; Git transport is not a goal blocker.
+      - First browser runs exposed missing aggregate timestamp and symbol materializer fields; both were corrected and the rebuilt focused flow passed without changing acceptance rules.
+      - Acceptance flexibility used: none.
+      - Implementation/docs commit: e0a5a305; operational checkpoint follows separately.
   - id: tc2000-study-lab-90-90-breadth-factory-20260814
     title: Add transparent 90/90-style breadth Study Lab factory study
     status: completed

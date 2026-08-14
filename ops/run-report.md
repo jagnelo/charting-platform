@@ -1,5 +1,27 @@
 # Run Report
 
+## 2026-08-14 — Study Lab historical 90/90 breadth series context started
+
+- Started the next independent repository-controlled gap from clean local boundary `8eec709c`.
+- Scope is the historical, aligned 90/90 breadth series and qualification-occurrence workflow over
+  declared universe data; no provider, visual, threshold, or acceptance relaxation is planned.
+- The private-origin Git transport safeguard remains documented as transport-only; it will not stop
+  implementation or be retried through alternate routes.
+
+## 2026-08-14 — Study Lab historical 90/90 breadth series validated
+
+- Added aligned historical 90/90 price/volume participation series, current qualification,
+  explicit exclusions, and linked qualification occurrences over declared universe data.
+- Fix-first validation caught two real aggregate materializer-shape defects in browser execution:
+  missing root timestamps, then missing aggregate symbol. The runner now derives both only from
+  declared instrument data; rebuilt focused acceptance passes `1/1`.
+- Validation: focused runner/factory `88/88`; editor/Study Lab `27/27`; adjacent browser `11/11`;
+  frontend `818/818`; backend unit `1153/1153` and integration `303/303`; type/build, Ruff,
+  uPlot, visual policy, and diff checks pass. No acceptance flexibility used.
+- Implementation/docs and operational checkpoint remain separate commits; exact push is attempted
+  once after closure and any private-origin rejection is recorded as transport-only.
+- Implementation/docs commit: `e0a5a305`; operational checkpoint follows separately.
+
 ## 2026-08-14 — Study Lab SDK reference alignment
 
 - Aligned the visible Study Lab SDK reference with the executable isolated-runtime contract and

@@ -1,5 +1,41 @@
 # Active Handoff
 
+## 2026-08-14 — Study Lab historical 90/90 breadth series context (completed)
+
+- Context owner: Codex. Owned paths are `backend/research_runner/runner.py`, focused runner and
+  factory-source tests, `frontend/src/components/workstation/StudyLabTool.vue`, its editor/tool
+  tests, authenticated Study Lab browser coverage, and the controlling parity/TODO/checkpoint
+  records.
+- Intent: extend the existing transparent 90/90 breadth factory study from a latest-observation
+  snapshot to a historical, point-in-time series over the declared universe. The result must
+  expose aligned price/volume participation series, qualification events, coverage, and explicit
+  exclusions without provider fan-out, inferred volume, look-ahead, or survivorship shortcuts.
+- Acceptance flexibility used: none. `REF-STUDY-LAB-V25` remains the separately tracked
+  original-surface visual-reference gap; no visual threshold, mask, product criterion, or browser
+  acceptance rule is being changed.
+- Git rule: this context starts from the clean local `8eec709c` boundary. Implementation/docs and
+  the operational checkpoint remain separate commits. Attempt the exact push once after closure;
+  if the private-origin safeguard rejects it before Git, record the exact range and continue.
+- Completed: `research.breadth_thrust_history` now derives a missing aggregate timestamp axis and
+  symbol only from declared instrument data, emits aligned price/volume series and qualification
+  indices, and supports linked occurrence dates. The factory starter, SDK/editor reference,
+  source contracts, fixture, and browser acceptance are wired to that contract.
+- Validation: focused runner/factory `88/88`; focused editor/Study Lab `27/27`; authenticated
+  `F8p-90-90-history` `1/1`; adjacent Study Lab/Python/Results `11/11`; frontend `818/818`;
+  backend unit `1153/1153` plus integration `303/303`; type-check/build; Ruff check/format;
+  uPlot contract; visual policy; and `git diff --check` pass.
+- Fix-first evidence: the first browser run failed with `Declared prepared universe and timestamps
+  are unavailable`; after deriving the axis it failed with a missing aggregate symbol. Both were
+  corrected at the runner boundary, rebuilt in the branch-scoped stack, and the final browser run
+  passed. No failure was suppressed or reclassified.
+- Acceptance flexibility used: none. `REF-STUDY-LAB-V25` remains the separately tracked
+  original-surface visual-reference gap; no visual threshold, mask, product criterion, or browser
+  acceptance rule changed.
+- Implementation/docs commit: `e0a5a305` (`feat(study-lab): add historical 90/90 breadth series`).
+  The implementation boundary is clean; only this operational checkpoint remains unstaged.
+- Next action: commit this operational record separately, attempt the exact push once, record the
+  transport result, verify the local worktree, and continue the overall goal.
+
 ## 2026-08-14 — Study Lab 90/90 breadth factory context (completed)
 
 - Context owner: Codex. Owned paths are `backend/research_runner/runner.py`, the focused runner
