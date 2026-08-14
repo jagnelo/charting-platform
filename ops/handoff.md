@@ -1,5 +1,22 @@
 # Active Handoff
 
+## 2026-08-14 — Workstation browser acceptance hardening context completed
+
+- Implementation/test commit `51e042fb` hardens the browser acceptance contract: inward zoom makes
+  the uPlot history gesture deterministic with persisted full-history views; transform reset
+  observes the blur-triggered request before clearing fields; and template restoration asserts
+  the rendered result when the intentional short-lived OHLCV dedupe cache serves the same series.
+- Seeded proxy provenance now accepts either an all-labelled controlled fixture or an all-canonical
+  free-source local snapshot, while mixed/unknown provenance remains a failure. This flexibility is
+  explicitly tracked and does not relax visual, provider-entitlement, or product criteria.
+- Validation: full seeded `flows.spec.ts` `137/140` before the final oracle correction; focused
+  transform/template browser tests `2/2` afterward; frontend Vitest `806/806`; type-check; 476-
+  module production build; and `git diff --check` pass. A corrected full 140-test rerun is the
+  next acceptance action, not a goal blocker.
+- This context is closed as a clean local commit. The repository still has the pre-existing
+  remote transport range; worker-owned elevated push remains the only approved synchronization
+  path and must not be handed off as a goal blocker.
+
 ## 2026-08-14 — Comparison timestamp-alignment context completed
 
 - Implementation `0333f11b` repairs normalized top-down comparisons that could miss valid history

@@ -1,5 +1,24 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-14 — Browser acceptance hardening and full seeded revalidation
+
+- Hardened the authenticated browser matrix around three false negatives: the uPlot gesture test
+  now zooms inward before history panning so persisted full-history views are deterministic; the
+  transform-reset request observer is installed before the blur-triggered field change; and the
+  template restoration test accepts the intentional short-lived OHLCV dedupe cache while the
+  dedicated transform test retains exact request-parameter coverage.
+- Seeded drill-down provenance now accepts either a fully labelled controlled fixture or a fully
+  canonical free-source snapshot already present in the local database; mixed or unknown provider
+  provenance still fails. This is an explicitly recorded seeded-data flexibility, not a visual,
+  provider-entitlement, or product capability waiver.
+- Full seeded `flows.spec.ts` reached `137/140` before the final template-oracle correction;
+  focused transform/template coverage then passed `2/2`; the full frontend suite passes `806/806`,
+  type-check passes, and the production build contains `476` modules. The corrected full matrix
+  remains to be rerun as a later acceptance checkpoint.
+- Implementation/test commit: `51e042fb`. No V25 visual thresholds, masks, uPlot renderer rules,
+  or board authority changed. Exact/unrepresented V25, provider/entitlement, historical/GICS,
+  native-monitor, endurance, Docker, and final-audit gaps remain explicit.
+
 ## 2026-08-14 — Comparison timestamp alignment
 
 - Top-down normalized comparisons now align bars through normalized epoch-second timestamp keys,

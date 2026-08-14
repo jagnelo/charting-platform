@@ -289,6 +289,16 @@ waiting for a normal terminal commit. If the elevated retry genuinely fails,
 preserve a precise handoff and make the next action the first priority of the
 next worker.
 
+Git handling is never a reason to stop the product goal. A worker that has
+completed and validated a context owns the complete recovery: perform the
+sequential elevated `add`/`commit`/`push` retry in the same continuation, keep
+the resulting commits isolated, and update the operational record immediately.
+Only an actual repository, authentication, or remote-hook failure may require
+an external decision; a sandbox index-lock denial or private-repository egress
+refusal is recorded as transport state and must not be represented as a goal
+blocker. The user must not be handed an instruction to finish ordinary Git
+staging or committing that the worker can perform through the approved path.
+
 ### External push-egress safeguard
 
 An elevated `git push` can be rejected before Git starts when the execution

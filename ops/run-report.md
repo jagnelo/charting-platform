@@ -1,5 +1,21 @@
 # Run Report
 
+## 2026-08-14 — Browser acceptance hardening context
+
+- Corrected three browser-oracle races without changing product behavior: persisted full-history
+  uPlot state now enters the gesture regression through an inward zoom; transform reset observes the
+  request before the field blur; and template restoration no longer requires a redundant network
+  request when the canonical 5-second OHLCV dedupe cache legitimately supplies the series.
+- Seeded proxy acceptance is provenance-strict but source-flexible: all rows must be either the
+  labelled controlled fixture or canonical free-source data already present locally; mixed/unknown
+  provenance fails. This is the only explicit acceptance flexibility used in this context.
+- Evidence: seeded full matrix `137/140` before the last oracle correction; focused transform and
+  template tests `2/2` after it; frontend Vitest `806/806`; `vue-tsc --noEmit`; 476-module build;
+  and `git diff --check`. Implementation/test commit: `51e042fb`.
+- Remaining action: rerun the corrected full 140-test matrix. All exact/unrepresented V25,
+  provider/entitlement, historical/GICS, native-monitor, endurance, Docker, and final-audit gaps
+  remain tracked; none was silently closed.
+
 ## 2026-08-14 — Comparison timestamp-alignment context
 
 - Normalized comparison series now align ISO primary bars with epoch-second/millisecond comparison

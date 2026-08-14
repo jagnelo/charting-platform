@@ -1,4 +1,30 @@
 tasks:
+  - id: tc2000-browser-acceptance-hardening-20260814
+    title: Harden workstation browser acceptance oracles
+    status: completed
+    priority: high
+    scope: >-
+      Close repository-controlled false negatives in the full TC2000 workstation browser matrix
+      without weakening product, provenance, uPlot, or visual acceptance contracts.
+    definition_of_done:
+      - Persisted full-history chart state enters the uPlot gesture path through deterministic inward zoom
+      - Transform reset observes the blur-triggered request before clearing fields
+      - Template restoration remains valid when the canonical OHLCV dedupe cache serves the same series
+      - Seeded proxy results reject mixed or unknown provenance and accept only all-fixture or all-canonical data
+      - Focused browser tests, full frontend Vitest, type-check, build, and diff-check pass
+      - Acceptance flexibility is explicitly recorded and no visual threshold or board authority changes
+    validation:
+      - seeded-flows-pre-correction-137-of-140
+      - transform-template-focused-2-of-2
+      - frontend-vitest-806-of-806
+      - frontend-type-check-build-476-modules
+      - git-diff-check
+    notes:
+      - >-
+        Implementation/test commit `51e042fb`. The corrected full 140-test rerun remains the next
+        acceptance checkpoint. Seeded proxy provenance flexibility is explicitly limited to an
+        all-labelled controlled fixture or an all-canonical free-source local snapshot; mixed or
+        unknown provenance remains a failure. No goal blocker was raised.
   - id: tc2000-comparison-timestamp-alignment-20260814
     title: Align ISO and epoch comparison bars
     status: completed
