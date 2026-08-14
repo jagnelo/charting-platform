@@ -18,6 +18,40 @@ authority for states it represents. Any family/style state absent or ambiguous o
 recorded as a named gap with an interim deterministic oracle; it is not silently accepted or
 masked.
 
+### Required US family perspective matrix
+
+The board-guided workstation must make the following perspectives first-class, not merely expose
+the eight roots in a selector. Each row is a reusable Version 25 analysis surface with the same
+dense tool-window, linked-chart, watchlist, ratio, breadth, Study Lab, and provenance mechanics:
+
+| root | cap/equal relationship | style relationships | breadth and other views |
+| --- | --- | --- | --- |
+| S&P 500 | cap proxy versus verified equal ETF/derived series, including SPY/RSP where evidenced | verified value and growth legs | all generic predicates, sector/industry/member participation, concentration, dispersion, rotation, drawdown, volatility, ranking, and ratios |
+| S&P MidCap 400 | cap proxy versus verified equal ETF/derived series | verified value and growth legs | same contract |
+| S&P SmallCap 600 | cap proxy versus verified equal ETF/derived series | verified value and growth legs | same contract |
+| S&P Composite 1500 | cap proxy versus verified equal ETF/derived series | verified value and growth legs | same contract |
+| Russell 1000 | cap proxy versus verified equal ETF/derived series | verified value and growth legs | same contract |
+| Russell 2000 | cap proxy versus verified equal ETF/derived series | verified value and growth legs | same contract |
+| Russell 3000 | cap proxy versus verified equal ETF/derived series | verified value and growth legs | same contract |
+| Nasdaq 100 | explicit cap/equal deconstruction, such as QQQ versus QQQE after evidence verification | any evidenced style leg, otherwise unavailable | same contract plus cross-check of cap/equal concentration and leadership |
+
+Candidate ETF symbols are discovery inputs rather than accepted relationships. Examples include
+SPY/RSP and SPYG/SPYV, MDY with MDYG/MDYV, SLY with SLYG/SLYV, IWB with IWF/IWD, IWM with
+IWO/IWN, IWV, and QQQ/QQQE. A candidate becomes selectable only after the canonical security
+master records issuer/source evidence, relationship role, holdings or derived-membership policy,
+effective/known-at dates, and bar/coverage status. If an equal, value, or growth leg does not
+meet that evidence bar, the UI must show `No verified mapped proxy` or a truthful unavailable or
+derived state. It must never substitute SPY, QQQ, another family, or a current-only snapshot.
+
+Every available root/leg is accepted through the same top-down path: root benchmark and technicals
+→ cap/equal/style comparison → sector and industry/proxy ranking → constituent drill-down. The
+same selected universe is then available to condition-driven breadth (including moving-average,
+52-week-high/low, volume, RSI, volatility, relative-strength, and arbitrary Python predicates),
+relative-strength ratios, participation/leadership, concentration/dispersion, drawdown/volatility,
+relative rotation, cross-family ranking, watchlists, scans, gauges, Study Lab artifacts, and
+exports. Family, role, native-versus-derived weighting, membership version, as-of/known-at policy,
+coverage, exclusions, freshness, and provenance must survive every transition and output.
+
 ## 2026-08-14 — QQQE route evidence
 
 QQQE now has explicit canonical route metadata for the Direxion adapter and its official
@@ -34,6 +68,15 @@ run exposed stale iShares identifiers for `IWD` and `IWN`; correcting them to `2
 `239712` respectively restored the complete `15/15` result. The failed run remains recorded as
 fix-first evidence. This validates current issuer retrieval, not historical membership or
 browser population.
+
+## 2026-08-14 — iShares historical as-of holdings route
+
+The BlackRock/iShares public product-data API accepts `asOfDate=YYYYMMDD`. The iShares adapter
+now requests that explicit date, preserves the requested and returned composition dates in
+provenance, and labels the route `issuer_public_json_api_as_of_date`. The focused IWV regression
+parses a dated NVDA row and verifies the product ID and query parameter. This improves the
+point-in-time evidence path for Russell/S&P ETF-proxy legs but does not by itself establish a
+complete historical rebalance series, official index membership, or populated browser acceptance.
 
 ## 2026-08-14 — Family-leg relative-strength ratio contract
 

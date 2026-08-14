@@ -23463,6 +23463,42 @@ async def test_ishares_adapter_fetches_blackrock_product_data_json(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_ishares_adapter_fetches_explicit_historical_as_of_snapshot(monkeypatch):
+    adapter = get_holdings_adapter("ishares")
+    assert adapter is not None
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=(
+                '{"componentsByNameMap":{"holdings":{"containersByNameMap":{"all":'
+                '{"dataPointsByNameMap":{'
+                '"asOfDate":{"value":20260630},'
+                '"ticker":{"value":["NVDA"]},'
+                '"issueName":{"value":["NVIDIA CORP"]},'
+                '"holdingPercent":{"value":[1.25]},'
+                '"unitsHeld":{"value":[10]},'
+                '"marketValue":{"value":[1000]},'
+                '"assetClass":{"value":["Equity"]}'
+                '}}}}}}'
+            ),
+            content_type="application/json",
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_for_date(symbol="IWV", requested_date=date(2026, 6, 30))
+
+    requested_url = FakeAsyncClient.requested[0][0]
+    assert "portfolioId=239714" in requested_url
+    assert "asOfDate=20260630" in requested_url
+    assert result.rows[0].symbol == "NVDA"
+    assert result.legal_metadata["route_resolution"] == "issuer_public_json_api_as_of_date"
+    assert result.legal_metadata["requested_holdings_date"] == "2026-06-30"
+    assert result.legal_metadata["composition_date"] == "2026-06-30"
+
+
+@pytest.mark.asyncio
 async def test_acsi_funds_official_daily_csv_route_is_native_and_symbol_scoped(monkeypatch):
     adapter = get_holdings_adapter("acsi_funds")
     assert adapter is not None

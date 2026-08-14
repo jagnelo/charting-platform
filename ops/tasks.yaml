@@ -23,6 +23,9 @@ tasks:
       - Family-level technicals, leadership/concentration, dispersion, relative rotation, drawdown/volatility, ranking, and member drill-down are covered
       - Value/growth legs, direct family-to-family ratios, and cross-family ranking use the same aligned, provenance-bearing analysis contract wherever mapped
       - Breadth predicates, history/occurrences, and promotion outputs work against each available family/style leg rather than only SPY sectors
+      - The acceptance matrix explicitly attempts S&P 500/400/600/1500, Russell 1000/2000/3000, and Nasdaq 100 as complete analysis perspectives, not only as selector labels
+      - Each family perspective follows benchmark technicals -> cap/equal/style comparison -> sectors -> industries/proxies -> constituents, with ratios, breadth, leadership, concentration/dispersion, rotation, ranking, drawdown, volatility, scans, gauges, Study Lab, and exports
+      - Discovery candidates such as SPY/RSP, SPYG/SPYV, MDY/MDYG/MDYV, SLY/SLYG/SLYV, IWB/IWF/IWD, IWM/IWO/IWN, IWV, and QQQ/QQQE remain unaccepted until issuer/source, relationship, membership/weight method, effective/known-at, bars, and coverage evidence is recorded
       - Free-source/provider gaps and absent style/equal proxies remain explicit rather than fabricated
     validation:
       - benchmark-family-taxonomy-and-provenance-contract
@@ -133,6 +136,12 @@ tasks:
         family legs passed live. Historical membership/rebalance, bars, and browser acceptance
         remain open; the failed first run is retained as fix-first evidence and no flexibility was
         used.
+      - >-
+        The iShares adapter now supports BlackRock's public `asOfDate=YYYYMMDD` product-data
+        route for explicit historical holdings snapshots. The focused IWV regression passes and
+        verifies requested/composition-date provenance plus parsed holdings. This is a route-level
+        point-in-time improvement only; complete rebalance continuity, official index membership,
+        and populated family browser acceptance remain open; no flexibility was used.
   - id: tc2000-generic-condition-driven-breadth-20260814
     title: Broaden breadth from fixed metrics to reusable condition-driven cross-sectional studies
     status: in_progress

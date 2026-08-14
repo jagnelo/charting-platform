@@ -195,6 +195,27 @@ coverage, and provenance. A current ETF snapshot cannot satisfy a historical fam
 an explicit current-snapshot/survivorship warning, and no relationship may be inferred from naming
 alone.
 
+#### Family/style acceptance fixture coverage
+
+The family matrix is evaluated as eight complete perspectives, not as a count of selector rows.
+For each of S&P 500, S&P MidCap 400, S&P SmallCap 600, S&P Composite 1500, Russell 1000,
+Russell 2000, Russell 3000, and Nasdaq 100, the acceptance run must attempt the cap proxy,
+equal-weight vehicle or derived equal series, and every evidenced value/growth sub-index or ETF.
+The same selected family/leg must feed technicals, parent/peer ratios, generic breadth,
+participation/leadership, concentration/dispersion, drawdown/volatility, relative rotation,
+cross-family ranking, and sector → industry/proxy → constituent drill-down. For Nasdaq 100,
+QQQ/QQQE is the explicit cap/equal fixture only after canonical identity, holdings, and
+relationship evidence pass.
+
+Candidate symbols such as SPY/RSP, SPYG/SPYV, MDY/MDYG/MDYV, SLY/SLYG/SLYV, IWB/IWF/IWD,
+IWM/IWO/IWN, IWV, and QQQ/QQQE are discovery inputs and test fixtures, not permission to infer a
+relationship. Each accepted leg must retain source/issuer evidence, role, membership or derived
+weight method, effective/known-at dates, bar coverage, adjustment, freshness, and exclusions.
+Absent or unverified legs must produce `No verified mapped proxy`, unavailable, or explicitly
+derived output and remain in the gap ledger; they must not silently substitute SPY, QQQ, another
+family, or a current-only snapshot. This broadens the required analysis perspectives and does not
+relax any visual, provenance, historical, or functional threshold.
+
 ### Expanded condition-driven breadth gate
 
 The fixed Market Breadth panel is not sufficient evidence for the broader breadth requirement.

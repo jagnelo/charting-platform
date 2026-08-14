@@ -9230,6 +9230,33 @@ with side-by-side breadth and cross-family comparisons. Provider mapping, histor
 membership/rebalance evidence, family-wide analytics, and populated browser drill-down are
 implementation gaps tracked below; this scope expansion is not an acceptance relaxation.
 
+The required family coverage is intentionally explicit so a resumed goal cannot collapse back to
+the original SPX/SPY-only interpretation:
+
+| family root | cap-weighted view | equal-weight/deconstruction view | value/growth view | required drill-down |
+| --- | --- | --- | --- | --- |
+| S&P 500 | official index when entitled plus a labelled tradable proxy | verified equal ETF or point-in-time derived equal series (the SPY/RSP pattern) | each evidenced value and growth sub-index/ETF | sectors, industries/proxies, constituents |
+| S&P MidCap 400 | official index when entitled plus a labelled tradable proxy | verified equal ETF or derived series when evidence permits | each evidenced value and growth sub-index/ETF | sectors, industries/proxies, constituents |
+| S&P SmallCap 600 | official index when entitled plus a labelled tradable proxy | verified equal ETF or derived series when evidence permits | each evidenced value and growth sub-index/ETF | sectors, industries/proxies, constituents |
+| S&P Composite 1500 | official index when entitled plus a labelled tradable proxy | verified equal ETF or derived series when evidence permits | each evidenced value and growth sub-index/ETF | sectors, industries/proxies, constituents |
+| Russell 1000 | official index when entitled plus a labelled tradable proxy | verified equal ETF or derived series when evidence permits | each evidenced value and growth sub-index/ETF | sectors, industries/proxies, constituents |
+| Russell 2000 | official index when entitled plus a labelled tradable proxy | verified equal ETF or derived series when evidence permits | each evidenced value and growth sub-index/ETF | sectors, industries/proxies, constituents |
+| Russell 3000 | official index when entitled plus a labelled tradable proxy | verified equal ETF or derived series when evidence permits | each evidenced value and growth sub-index/ETF | sectors, industries/proxies, constituents |
+| Nasdaq 100 | official index when entitled plus QQQ or another evidenced cap proxy | explicit cap/equal deconstruction such as QQQ/QQQE only after identity and holdings verification | any evidenced style leg; otherwise an explicit unavailable state | sectors, industries/proxies, constituents |
+
+The symbols shown in examples (including SPY/RSP, MDY/MDYG/MDYV, SLY/SLYG/SLYV,
+IWB/IWF/IWD, IWM/IWO/IWN, IWV, and QQQ/QQQE) are discovery candidates and regression
+fixtures only; they are not taxonomy facts until the security master records source,
+relationship evidence, effective/known-at dates, holdings semantics, and current/history
+availability. For each root and every evidenced leg, the workstation must provide the same
+analysis family: technicals and normalized comparisons; direct ratios to the parent, benchmark,
+and peer legs; configurable condition-driven breadth; participation/leadership;
+concentration/dispersion; drawdown/volatility; relative rotation; cross-family ranking; and
+sector/industry/proxy/constituent drill-down. Native ETF weights must remain distinct from a
+locally derived equal-weight series, and an absent or unverified leg must remain visible as
+`No verified mapped proxy`, unavailable, or derived with its limitations rather than silently
+using SPY, QQQ, a current-only snapshot, or a name-based relationship.
+
 #### Current continuation — 2026-08-14 QQQE/Direxion route evidence
 
 The Nasdaq-100 equal-weight leg now has canonical free-source route metadata: `QQQE` resolves
@@ -9256,6 +9283,16 @@ updated. The rerun passed all 15 newly mapped SPDR/iShares family legs (`SPYG`, 
 The failed first run and correction are retained as regression evidence. This closes current
 issuer-route readiness for those legs only; historical rebalance continuity, point-in-time
 membership, canonical bars, and populated family browser acceptance remain open.
+
+#### Current continuation — 2026-08-14 iShares historical as-of route
+
+The iShares BlackRock public product-data endpoint accepts an explicit `asOfDate=YYYYMMDD`
+query. The `IsharesHoldingsAdapter.fetch_for_date` path now uses that route, preserves both the
+requested holdings date and the returned composition date, and labels the result
+`issuer_public_json_api_as_of_date`. A deterministic regression exercises IWV on 2026-06-30 and
+verifies the parsed NVDA row, product ID, date query, and provenance. This is a concrete route
+toward point-in-time family membership; it does not yet prove complete rebalance continuity,
+nearest-snapshot selection policy across every date, or official index membership.
 
 #### Current continuation — 2026-08-12 listing visibility and browser contract repair
 

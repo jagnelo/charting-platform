@@ -3402,6 +3402,77 @@ class IsharesHoldingsAdapter(IssuerCsvHoldingsAdapter):
             },
         )
 
+    async def fetch_for_date(
+        self,
+        *,
+        symbol: str,
+        requested_date: date,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        """Fetch an iShares holdings snapshot for an explicit as-of date.
+
+        BlackRock's public product-data endpoint accepts ``asOfDate`` in
+        ``YYYYMMDD`` form. Keep the requested date in provenance and retain
+        the endpoint's returned composition date; the issuer may return the
+        nearest available snapshot rather than the requested session.
+        """
+
+        if source_url:
+            return await super().fetch_for_date(
+                symbol=symbol,
+                requested_date=requested_date,
+                issuer_product_id=issuer_product_id,
+                source_url=source_url,
+                identifiers=identifiers,
+            )
+
+        resolved_source_url = self.resolve_source_url(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            identifiers=identifiers or {},
+        )
+        if not resolved_source_url:
+            return await super().fetch_for_date(
+                symbol=symbol,
+                requested_date=requested_date,
+                issuer_product_id=issuer_product_id,
+                identifiers=identifiers,
+            )
+        parsed = urlparse(resolved_source_url)
+        query = parse_qs(parsed.query, keep_blank_values=True)
+        query["asOfDate"] = [requested_date.strftime("%Y%m%d")]
+        dated_source_url = urlunparse(
+            parsed._replace(query=urlencode(query, doseq=True))
+        )
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(
+                dated_source_url,
+                headers=_holdings_request_headers(accept="application/json,*/*"),
+                follow_redirects=True,
+            )
+        response.raise_for_status()
+        payload = response.json()
+        rows = self._parse_blackrock_holdings_payload(payload)
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response.text,
+            raw_json=payload,
+            source_url=dated_source_url,
+            source_identifier=symbol.strip().upper(),
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "terms_note": self.config.terms_note,
+                "route_resolution": "issuer_public_json_api_as_of_date",
+                "source_format": "json",
+                "requested_holdings_date": requested_date.isoformat(),
+                "composition_date": self._composition_date_from_payload(payload),
+            },
+        )
+
     def _normalized_identifiers(
         self,
         *,
