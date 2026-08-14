@@ -18,6 +18,7 @@ const host = ref<HTMLElement | null>(null)
 const valid = ref(false)
 let chart: uPlot | null = null
 let observer: ResizeObserver | null = null
+function destroyChart() { chart?.destroy(); chart = null }
 
 function data(): uPlot.AlignedData {
   const indices = props.bins.flatMap((_, index) => [index]).concat(props.bins.length)
@@ -51,10 +52,11 @@ function drawBars(instance: uPlot) {
   }
   context.restore()
 }
+function hasValidData() { return props.bins.length > 0 && props.bins.every(bin => Number.isFinite(bin.start) && Number.isFinite(bin.end) && Number.isFinite(bin.count) && bin.count >= 0) }
 
 function draw() {
-  valid.value = props.bins.length > 0 && props.bins.every(bin => Number.isFinite(bin.start) && Number.isFinite(bin.end) && Number.isFinite(bin.count) && bin.count >= 0)
-  if (!valid.value || !host.value) return
+  valid.value = hasValidData()
+  if (!valid.value || !host.value) { if (!valid.value) destroyChart(); return }
   const width = Math.max(180, host.value.clientWidth)
   const height = Math.max(120, host.value.clientHeight)
   if (chart) {
@@ -81,13 +83,15 @@ function draw() {
 
 function format(value: number) { return Number.isInteger(value) ? String(value) : value.toFixed(2) }
 
-watch(() => [props.bins, props.name], async () => { await nextTick(); draw() }, { deep: true })
-onMounted(() => {
+watch(() => [props.bins, props.name], async () => { valid.value = hasValidData(); await nextTick(); draw() }, { deep: true })
+onMounted(async () => {
   observer = new ResizeObserver(draw)
   if (root.value) observer.observe(root.value)
+  valid.value = hasValidData()
+  await nextTick()
   draw()
 })
-onBeforeUnmount(() => { observer?.disconnect(); chart?.destroy(); chart = null })
+onBeforeUnmount(() => { observer?.disconnect(); destroyChart() })
 </script>
 
 <style scoped>

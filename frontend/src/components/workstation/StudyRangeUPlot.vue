@@ -16,6 +16,7 @@ const host = ref<HTMLElement | null>(null)
 const valid = ref(false)
 let chart: uPlot | null = null
 let observer: ResizeObserver | null = null
+function destroyChart() { chart?.destroy(); chart = null }
 
 function xValues() { return props.timestamps.map((timestamp, index) => { const parsed = Date.parse(timestamp); return Number.isFinite(parsed) ? parsed / 1000 : index }) }
 function data(): uPlot.AlignedData { return [xValues(), props.lower, props.upper, props.center?.length === props.lower.length ? props.center : props.lower.map(() => null)] }
@@ -30,9 +31,10 @@ function drawBand(instance: uPlot) {
   context.fill()
   context.restore()
 }
+function hasValidData() { return props.timestamps.length > 0 && props.timestamps.length === props.lower.length && props.lower.length === props.upper.length && props.lower.every(value => Number.isFinite(value)) && props.upper.every(value => Number.isFinite(value)) && (!props.center || props.center.length === props.lower.length && props.center.every(value => Number.isFinite(value))) }
 function draw() {
-  valid.value = props.timestamps.length > 0 && props.timestamps.length === props.lower.length && props.lower.length === props.upper.length && props.lower.every(value => Number.isFinite(value)) && props.upper.every(value => Number.isFinite(value)) && (!props.center || props.center.length === props.lower.length && props.center.every(value => Number.isFinite(value)))
-  if (!valid.value || !host.value) return
+  valid.value = hasValidData()
+  if (!valid.value || !host.value) { if (!valid.value) destroyChart(); return }
   const width = Math.max(180, host.value.clientWidth)
   const height = Math.max(120, host.value.clientHeight)
   if (chart) { chart.setData(data()); chart.setSize({ width, height }); return }
@@ -49,9 +51,9 @@ function draw() {
     plugins: [{ hooks: { draw: [drawBand] } }],
   }, data(), host.value)
 }
-watch(() => [props.timestamps, props.lower, props.upper, props.center, props.name], async () => { await nextTick(); draw() }, { deep: true })
-onMounted(() => { observer = new ResizeObserver(draw); if (root.value) observer.observe(root.value); draw() })
-onBeforeUnmount(() => { observer?.disconnect(); chart?.destroy(); chart = null })
+watch(() => [props.timestamps, props.lower, props.upper, props.center, props.name], async () => { valid.value = hasValidData(); await nextTick(); draw() }, { deep: true })
+onMounted(async () => { observer = new ResizeObserver(draw); if (root.value) observer.observe(root.value); valid.value = hasValidData(); await nextTick(); draw() })
+onBeforeUnmount(() => { observer?.disconnect(); destroyChart() })
 </script>
 
 <style scoped>

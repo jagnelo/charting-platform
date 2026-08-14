@@ -16,6 +16,7 @@ const host = ref<HTMLElement | null>(null)
 const valid = ref(false)
 let chart: uPlot | null = null
 let observer: ResizeObserver | null = null
+function destroyChart() { chart?.destroy(); chart = null }
 
 function data(): uPlot.AlignedData {
   return [
@@ -23,9 +24,10 @@ function data(): uPlot.AlignedData {
     props.values,
   ]
 }
+function hasValidData() { return props.timestamps.length > 0 && props.timestamps.length === props.values.length }
 function draw() {
-  valid.value = props.timestamps.length > 0 && props.timestamps.length === props.values.length
-  if (!valid.value || !host.value) return
+  valid.value = hasValidData()
+  if (!valid.value || !host.value) { if (!valid.value) destroyChart(); return }
   const width = Math.max(180, host.value.clientWidth)
   const height = Math.max(100, host.value.clientHeight)
   if (chart) {
@@ -45,13 +47,15 @@ function draw() {
   }, data(), host.value)
 }
 
-watch(() => [props.timestamps, props.values, props.name], async () => { await nextTick(); draw() }, { deep: true })
-onMounted(() => {
+watch(() => [props.timestamps, props.values, props.name], async () => { valid.value = hasValidData(); await nextTick(); draw() }, { deep: true })
+onMounted(async () => {
   observer = new ResizeObserver(draw)
   if (root.value) observer.observe(root.value)
+  valid.value = hasValidData()
+  await nextTick()
   draw()
 })
-onBeforeUnmount(() => { observer?.disconnect(); chart?.destroy(); chart = null })
+onBeforeUnmount(() => { observer?.disconnect(); destroyChart() })
 </script>
 
 <style scoped>

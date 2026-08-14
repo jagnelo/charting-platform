@@ -1,0 +1,42 @@
+import { mount } from '@vue/test-utils'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import uPlot from 'uplot'
+import StudySeriesUPlot from '@/components/workstation/StudySeriesUPlot.vue'
+import StudyHistogramUPlot from '@/components/workstation/StudyHistogramUPlot.vue'
+import StudyRangeUPlot from '@/components/workstation/StudyRangeUPlot.vue'
+import StudyBarsUPlot from '@/components/workstation/StudyBarsUPlot.vue'
+import BreadthHistoryUPlot from '@/components/workstation/BreadthHistoryUPlot.vue'
+
+class ResizeObserverMock {
+  constructor(_callback: () => void) {}
+  observe() {}
+  disconnect() {}
+}
+vi.stubGlobal('ResizeObserver', ResizeObserverMock)
+
+const cases = [
+  { name: 'series', component: StudySeriesUPlot, valid: { name: 'Series', timestamps: ['2026-01-01', '2026-01-02'], values: [1, 2] }, invalid: { timestamps: [], values: [] } },
+  { name: 'histogram', component: StudyHistogramUPlot, valid: { name: 'Histogram', bins: [{ start: 0, end: 1, count: 2 }] }, invalid: { bins: [] } },
+  { name: 'range', component: StudyRangeUPlot, valid: { name: 'Range', timestamps: ['2026-01-01', '2026-01-02'], lower: [1, 2], upper: [2, 3] }, invalid: { timestamps: [], lower: [], upper: [] } },
+  { name: 'bars', component: StudyBarsUPlot, valid: { name: 'Bars', labels: ['A', 'B'], values: [1, -1] }, invalid: { labels: [], values: [] } },
+  { name: 'breadth history', component: BreadthHistoryUPlot, valid: { history: { group_key: 'sp500-sectors', points: [{ timestamp: '2026-01-01', above_ma: { ma20: 0.5, ma50: 0.4, ma200: 0.3 }, coverage: {} }] } }, invalid: { history: { group_key: 'sp500-sectors', points: [] } } },
+] as const
+
+describe('conditional uPlot lifecycle contracts', () => {
+  beforeEach(() => vi.mocked(uPlot).mockClear())
+
+  it.each(cases)('$name renders its initial conditional chart host', async ({ component, valid }) => {
+    const wrapper = mount(component, { props: valid as any })
+    await vi.waitFor(() => expect(vi.mocked(uPlot)).toHaveBeenCalledTimes(1))
+    expect(wrapper.element.querySelector('[class$="__host"]')).not.toBeNull()
+  })
+
+  it.each(cases)('$name destroys its chart when the conditional data disappears', async ({ component, valid, invalid }) => {
+    const wrapper = mount(component, { props: valid as any })
+    await vi.waitFor(() => expect(vi.mocked(uPlot)).toHaveBeenCalledTimes(1))
+    const chart = vi.mocked(uPlot).mock.results[0]?.value
+    await wrapper.setProps(invalid as any)
+    await vi.waitFor(() => expect(chart.destroy).toHaveBeenCalledTimes(1))
+    wrapper.unmount()
+  })
+})
