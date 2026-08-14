@@ -1,4 +1,30 @@
 tasks:
+  - id: tc2000-calvert-holdings-route-20260814
+    title: Add native Calvert daily holdings routes
+    status: completed
+    priority: high
+    scope: >-
+      Replace Calvert's fallback-only provider state with a strict symbol-scoped adapter for the
+      official Calvert daily holdings JSON feed, preserving product identity, composition date,
+      provenance, and honest freshness semantics.
+    definition_of_done:
+      - CVLC, CDEI, CVMC, CVIE, and CVSB resolve only to their verified Calvert product IDs
+      - Unknown Calvert symbols remain route-limited and retain SEC fallback eligibility
+      - The adapter parses complete daily JSON positions and preserves identifiers, weights, values, and cash rows
+      - Provenance records the exact product page, JSON route, daily cadence, and disclosed holdings date
+      - Unit, registry, opt-in live route, Ruff, format, and diff checks pass
+    validation:
+      - calvert-adapter-unit-484-of-484
+      - calvert-live-route-and-registry-contract-2-of-2
+      - official-calvert-daily-json-759-rows-cvlc
+      - ruff-check-and-format
+      - git-diff-check
+    notes:
+      - >-
+        The official product-data route is `.../product/EF/{id}/chart/etfTradeDateHoldingsCurrent.json`.
+        Calvert's edge rejects the repository-wide EDGAR/Chrome user-agent headers, so the adapter
+        sends only JSON content-negotiation headers; no browser spoofing or alternate source is used.
+        A transient DNS failure on one live rerun passed on the bounded retry. Acceptance flexibility used: none.
   - id: tc2000-auth-store-router-teardown-20260814
     title: Close the remote-logout router teardown race in frontend tests
     status: completed
@@ -4983,7 +5009,7 @@ tasks:
       - "2026-08-11 Workstation transient-menu parity fix: Workspace and Add Tool menus now use explicit accessible menu semantics, dismiss on outside pointer input and Escape through capture-order handling, and preserve editor/search keyboard ownership. Focused shell tests 13/13, full frontend Vitest 633/633, vue-tsc/build, rebuilt-stack focused browser 1/1, and corrected complete authenticated Chromium matrix 61/61 pass. The initial five failures were stale button-role test oracles and were corrected; acceptance flexibility used: none."
       - "2026-08-11 Active-symbol history: integrated the persisted recent-instrument store into the workstation shell with selectable/clearable ARIA menu semantics and outside/Escape dismissal. A real browser run exposed the unchanged-initial-SPY watcher edge case; successful explicit and industry-proxy selections now record history. Focused shell 14/14, full frontend Vitest 634/634, vue-tsc/build, rebuilt history browser 1/1, complete authenticated Chromium 62/62, and board-guided visual 32/32 pass. One reviewed stale 1080p/100 baseline was regenerated without mask/threshold changes. Board-guided visual track used; exact-build/unrepresented gaps remain open."
       - "2026-08-11 Academy follow-up fix-first validation: explicit Academy fetch entry point and native-vs-fallback unit expectation are corrected; adapter units 452/452, Docker-backed integration 285/285, and combined backend gate 1,277/1,277 at 79.43% pass. The Python live-probe DNS limitation remains open and explicit. Acceptance flexibility used: none."
-      - 2026-08-11 Calvert first-party route audit: official ETF pages advertise full holdings downloads, but the dynamic Calvert/Morgan Stanley data surface did not yield a complete executable artifact and the apparent holdings URL returned HTTP 403. Calvert remains audited fallback-only/route-discovery support; no acceptance flexibility.
+      - 2026-08-11 Calvert first-party route audit: the dynamic data surface returned HTTP 403 at that time. Superseded by the 2026-08-14 native daily JSON route promotion and live validation; no acceptance flexibility.
       - 2026-08-10 Issuer re-probe passed DFTT and reproduced ADFI HTTP 404; SEC fallback remains conditional on identifiers and the route gap is explicitly tracked, with no acceptance flexibility.
       - Indicator-batch responses include explicit-symbol universe provenance and requested/evaluated counts.
       - Indicator-column batch requests use the shared Vue Query cache so docked and popped-out tools deduplicate identical calculations.

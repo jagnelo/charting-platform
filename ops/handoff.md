@@ -1,5 +1,27 @@
 # Active Handoff
 
+## 2026-08-14 — Calvert implementation commit and push transport result
+
+- Calvert implementation context is cleanly committed as `facf5bf9` (`feat(etf): add native
+  Calvert holdings routes`), with focused unit/live evidence recorded below.
+- The exact elevated push `rtk git push origin feat/tc2000-frontend-rework` for local range
+  `91463e54..facf5bf9` was attempted once and rejected before Git by the private-origin egress
+  safeguard because trusted authorization for this exact payload and destination was unavailable.
+  This is transport-only; no wrapper, alternate transport, rewrite, reset, stash, or repeated
+  attempt is allowed. Keep the implementation commit intact and continue from the clean boundary.
+
+## 2026-08-14 — Native Calvert daily holdings route
+
+- Calvert's fallback-only adapter is now a strict `CalvertHoldingsAdapter` for CVLC, CDEI, CVMC,
+  CVIE, and CVSB. It resolves the official product IDs and daily JSON route, validates the response
+  ticker identity, parses complete positions, preserves cash/identifier fields, and exposes the
+  product page, composition date, daily cadence, and issuer-disclosed freshness semantics.
+- Focused adapter units pass `484/484`; the opt-in live provider matrix and Calvert route pass `2/2`;
+  official CVLC data returned `759` rows dated `2026-08-13`; Ruff, format, and diff checks pass.
+  One intervening DNS-only live failure was retried once and passed. Acceptance flexibility used: none.
+- This closes one concrete provider gap supporting ETF constituent drill-down. Broader issuer coverage,
+  exact/unrepresented V25 states, historical/GICS truth, native-monitor, endurance, and final-audit gaps remain open.
+
 ## 2026-08-14 — Exact push authorization result for current clean boundary
 
 - The repository is healthy and the worktree is clean at `a507f744`; `origin/feat/tc2000-frontend-rework`
@@ -26858,12 +26880,9 @@ flexibility was used; remaining documented external and visual gaps are unchange
 - Calvert's official ETF product pages advertise a `Download Full Holdings`
   action and expose a dynamic Calvert/Morgan Stanley investment-data surface.
 - The backend-equivalent page is readable, but the machine-readable download
-  route is not currently resolved to a complete executable artifact; the
-  apparent Morgan Stanley holdings URL returns HTTP 403. No native adapter
-  promotion is justified without a complete, parseable, issuer-owned result.
-- Calvert remains explicitly audited fallback-only/route-discovery support.
-  Existing SEC/metadata fallback behavior is unchanged and must not be
-  presented as official membership. Acceptance flexibility used: none.
+  route returned HTTP 403 during this historical audit. This record is superseded
+  by the 2026-08-14 native Calvert daily JSON route, which resolved a complete
+  parseable issuer-owned result and passed live validation. Acceptance flexibility used: none.
 # 2026-08-10 — uPlot-only shared and heat-map sparklines
 
 - Converted the shared watchlist/dashboard `Sparkline.vue` and dashboard heat-map tile sparklines

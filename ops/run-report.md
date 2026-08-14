@@ -4736,8 +4736,9 @@ official CSV route. Acceptance flexibility used: none.
 
 Calvert's official ETF pages advertise full-holdings downloads, but the backend-readable dynamic
 Calvert/Morgan Stanley surface did not yield a complete executable artifact; the apparent Morgan
-Stanley holdings URL returned HTTP 403. Calvert was not promoted and remains explicitly audited
-fallback-only/route-discovery support. Acceptance flexibility used: none.
+Stanley holdings URL returned HTTP 403 at the time. This historical audit is superseded by the
+2026-08-14 Calvert route promotion, which resolved the official daily JSON feed and passed live
+validation. Acceptance flexibility used: none.
 
 ## 2026-08-11T07:00:00Z — Operational state duplicate-key audit
 
@@ -26242,3 +26243,27 @@ in 4.6 minutes. No failure was suppressed or reclassified as product success.
   rewrite, reset, stash, or repeated attempt was used. Retry only after newly accepted
   trusted authorization for the same exact payload; continue independent implementation
   from the clean local boundary.
+# 2026-08-14 — Native Calvert daily holdings route
+
+- Promoted Calvert from fallback-only recognition to `CalvertHoldingsAdapter` for CVLC, CDEI,
+  CVMC, CVIE, and CVSB. The adapter uses the official symbol-scoped product-data JSON feed,
+  validates product identity, parses complete rows, and records product page, route, daily
+  cadence, composition date, and issuer-disclosed freshness semantics.
+- Validation: adapter units `484/484`; opt-in live registry plus Calvert route `2/2`; official
+  CVLC response `759` rows dated `2026-08-13`; Ruff check/format and `git diff --check` pass.
+  One live retry encountered DNS resolution before HTTP and passed on the bounded retry; it is
+  recorded as environment evidence, not hidden.
+- Acceptance flexibility: none. Remaining provider breadth, exact/unrepresented V25, historical/
+  GICS, native-monitor, endurance, and final-audit gaps remain open.
+# 2026-08-14 — Calvert implementation commit and push transport result
+
+- Calvert implementation is cleanly committed as `facf5bf9`.
+- The exact elevated push for `91463e54..facf5bf9` to
+  `git@github-personal:jagnelo/charting-platform.git`, branch
+  `feat/tc2000-frontend-rework`, was attempted once and rejected before Git by
+  the private-origin egress safeguard because trusted authorization for that
+  exact payload/destination was unavailable.
+- No workaround, alternate transport, rewrite, reset, stash, or repeated
+  attempt was used. This is transport-only and does not block the product goal;
+  the clean implementation commit remains available for a later trusted exact-
+  payload retry.
