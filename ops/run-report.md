@@ -27069,6 +27069,15 @@ in 4.6 minutes. No failure was suppressed or reclassified as product success.
 - Clean implementation/docs commit: `b0cd8519`. Provider-backed family population and richer
   Python/target-series/promotion capabilities remain open.
 
+# 2026-08-14 — Breadth predicate expansion push transport
+
+- The exact elevated push for clean commits `b0cd8519` and `bfe8a189` to
+  `origin/feat/tc2000-frontend-rework` was attempted once and rejected before Git by the
+  private-origin safeguard because trusted authorization for the exact accumulated private payload
+  and destination was unavailable.
+- No workaround, alternate transport, rewrite, reset, stash, or repeat was used. Transport-only;
+  the local branch remains clean and the product goal continues.
+
 # 2026-08-14 — Family overview holdings readiness
 
 - Added role-level holdings readiness to benchmark-family overview responses. Mapped cap/equal/

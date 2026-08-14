@@ -28506,3 +28506,12 @@ indefinite soak; longer endurance remains an explicit open gap.
 - Implementation/docs commit: `b0cd8519` (clean locally). Remaining gaps are arbitrary Python in
   the visible composer, richer target-series/cross-sectional scope, promotion wiring, and complete
   provider-backed family population.
+
+## 2026-08-14 — Breadth predicate expansion push transport
+
+- The exact elevated `rtk git push origin HEAD:feat/tc2000-frontend-rework` for clean commits
+  `b0cd8519` and `bfe8a189` was attempted once and rejected before Git by the private-origin
+  safeguard because trusted authorization for the exact accumulated private payload/destination
+  was unavailable.
+- No workaround, alternate transport, rewrite, reset, stash, or repeat was used. This is
+  transport-only and not a product-goal blocker; the local branch remains clean.
