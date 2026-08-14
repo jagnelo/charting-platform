@@ -502,3 +502,55 @@ def evaluate_breadth_history(
             }
         )
     return points[-max(1, min(limit, 5_000)) :]
+
+
+def detect_breadth_occurrences(points: list[Mapping[str, Any]]) -> list[dict[str, Any]]:
+    """Return deterministic member enter/exit events from historical breadth points.
+
+    An occurrence is emitted only when a member has two known Boolean observations
+    and changes state.  Initial observations and excluded/missing bars do not create
+    synthetic events, so a gap cannot be mistaken for a false-to-true transition.
+    """
+
+    previous: dict[int, bool | None] = {}
+    occurrences: list[dict[str, Any]] = []
+    for point in points:
+        timestamp = point.get("timestamp")
+        percentage = point.get("percentage")
+        pass_count = int(point.get("pass_count", 0))
+        eligible_count = int(point.get("eligible_count", 0))
+        for result in point.get("members", []):
+            if isinstance(result, Mapping):
+                instrument_id = int(result.get("instrument_id"))
+                current = result.get("value")
+                symbol = str(result.get("symbol", ""))
+                name = str(result.get("name", ""))
+                metric = result.get("metric")
+            else:
+                instrument_id = int(result.instrument_id)
+                current = result.value
+                symbol = str(result.symbol)
+                name = str(result.name)
+                metric = result.metric
+            prior = previous.get(instrument_id)
+            if prior is not None and current is not None and prior is not current:
+                kind = "member_entered" if current else "member_exited"
+                occurrences.append(
+                    {
+                        "occurrence_id": (
+                            f"{instrument_id}:{timestamp.isoformat() if timestamp else 'unknown'}:{kind}"
+                        ),
+                        "timestamp": timestamp,
+                        "kind": kind,
+                        "instrument_id": instrument_id,
+                        "symbol": symbol,
+                        "name": name,
+                        "value": bool(current),
+                        "metric": metric,
+                        "percentage": percentage,
+                        "pass_count": pass_count,
+                        "eligible_count": eligible_count,
+                    }
+                )
+            previous[instrument_id] = current
+    return occurrences

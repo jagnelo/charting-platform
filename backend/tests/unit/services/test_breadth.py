@@ -4,6 +4,7 @@ from types import SimpleNamespace
 from app.services.breadth import (
     BreadthMember,
     definition_hash,
+    detect_breadth_occurrences,
     evaluate_breadth,
     evaluate_breadth_history,
     evaluate_condition,
@@ -103,6 +104,29 @@ def test_history_does_not_forward_fill_a_member_missing_the_current_timestamp():
     by_symbol = {result.symbol: result for result in latest["members"]}
     assert by_symbol["A"].value is True
     assert by_symbol["B"].exclusion_code == "missing_bar_at_timestamp"
+
+
+def test_history_occurrences_report_only_known_member_state_transitions():
+    points = evaluate_breadth_history(
+        [BreadthMember(1, "A", "A")],
+        {1: _bars([100, 102, 100])},
+        {
+            "kind": "comparison",
+            "params": {"field": "close", "operator": ">", "threshold": 101},
+        },
+        limit=10,
+    )
+
+    occurrences = detect_breadth_occurrences(points)
+
+    assert [(item["kind"], item["symbol"]) for item in occurrences] == [
+        ("member_entered", "A"),
+        ("member_exited", "A"),
+    ]
+    assert occurrences[0]["value"] is True
+    assert occurrences[1]["value"] is False
+    assert occurrences[0]["pass_count"] == 1
+    assert occurrences[1]["pass_count"] == 0
 
 
 def test_composite_conditions_and_comparison_fields_are_reusable():

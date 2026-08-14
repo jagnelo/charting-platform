@@ -1,5 +1,17 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-15 — Generic breadth occurrence parity slice
+
+The generic historical breadth response now includes a deterministic occurrence stream derived from
+its member-level historical results. A member entering or exiting the selected predicate is emitted
+only after two known Boolean observations; initial values, missing bars, and exclusions do not
+create synthetic transitions. Each event retains timestamp, canonical instrument identity, symbol,
+metric, aggregate percentage, pass/eligible counts, and a stable occurrence ID.
+
+The workstation exposes the occurrence count beside the generic breadth uPlot history. This closes
+the backend occurrence contract for supported visual conditions, not occurrence browsing, click-to-
+chart timestamp publication, isolated-Python occurrence artifacts, or full Study Lab promotion.
+
 ## 2026-08-15 — Full US benchmark-family perspective matrix reaffirmed
 
 The completion bar now explicitly covers eight independently selectable US roots: S&P 500,

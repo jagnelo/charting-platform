@@ -1,5 +1,21 @@
 # Project TODO Memory
 
+### 2026-08-15 — Generic breadth historical occurrence contract
+
+- [x] Extended `POST /analysis/breadth/history` with deterministic member state-transition
+      occurrences derived from the same historical pass/fail results. `member_entered` and
+      `member_exited` events carry timestamp, instrument identity, metric, aggregate percentage,
+      pass count, eligible count, and a stable occurrence ID.
+- [x] Initial observations, missing bars, and excluded values do not fabricate transitions;
+      events require two known Boolean observations. Added service and API regressions, frontend
+      occurrence typing, and a visible history-occurrence count beside the generic breadth plot.
+      Service `8/8`, generic-history API `1/1`, family/generic integration `17/17`, full Vitest
+      `837/837`, type-check/build, Ruff, compileall, and diff checks pass. A first syntax failure
+      in the new helper was repaired before authoritative reruns; no acceptance flexibility used.
+- [ ] Still open: click an occurrence to publish its symbol/timestamp to linked uPlot charts,
+      expose occurrence browsing/filtering in the workstation, and provide equivalent occurrence
+      artifacts for isolated Python breadth runs and Study Lab promotion.
+
 ### 2026-08-15 — Expanded US benchmark-family and Nasdaq-100 decomposition scope
 
 - [ ] Treat S&P 500, S&P MidCap 400, S&P SmallCap 600, S&P Composite 1500, Russell 1000,

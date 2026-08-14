@@ -1,5 +1,15 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-08-15 — Generic breadth occurrence sub-gate
+
+For every supported generic breadth history definition, acceptance must verify that occurrences are
+derived from the same per-member historical results as the aggregate percentage. `member_entered`
+and `member_exited` events require two known Boolean observations and preserve canonical instrument
+identity, timestamp, metric, percentage, pass/eligible counts, and stable identity. Initial,
+missing-bar, and excluded observations must not create transitions. The current service/API fixture
+passes this contract; click-to-linked-chart browsing, isolated-Python occurrences, and Study Lab
+promotion remain explicit open gates.
+
 ## 2026-08-15 — Eight-root US analysis and Nasdaq-100 cap/equal gate
 
 The family acceptance matrix consists of S&P 500, S&P MidCap 400, S&P SmallCap 600, S&P

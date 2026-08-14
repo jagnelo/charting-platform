@@ -619,6 +619,19 @@ export interface GenericBreadthHistoryState {
     members: GenericBreadthState['members']
     exclusions: Array<{ code: string; message: string; instrument_id?: number | null }>
   }>
+  occurrences?: Array<{
+    occurrence_id: string
+    timestamp: string
+    kind: 'member_entered' | 'member_exited'
+    instrument_id: number
+    symbol: string
+    name: string
+    value: boolean
+    metric?: number | null
+    percentage?: number | null
+    pass_count: number
+    eligible_count: number
+  }>
   exclusions: Array<{ code: string; message: string; instrument_id?: number | null }>
   freshness?: string
   freshness_detail?: Record<string, number>

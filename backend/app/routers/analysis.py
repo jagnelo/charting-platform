@@ -62,6 +62,7 @@ from app.schemas.analysis import (
     BenchmarkFamilyTechnicalRoleOut,
     BenchmarkFamilyTechnicalsOut,
     BreadthConditionRequest,
+    BreadthDefinitionHistoryOccurrenceOut,
     BreadthDefinitionHistoryOut,
     BreadthDefinitionHistoryPointOut,
     BreadthDefinitionOut,
@@ -101,6 +102,7 @@ from app.schemas.analysis import (
 from app.services.breadth import (
     BreadthMember,
     definition_hash,
+    detect_breadth_occurrences,
     evaluate_breadth,
     evaluate_breadth_history,
 )
@@ -6125,6 +6127,7 @@ async def evaluate_generic_breadth_history(
         limit=definition.limit,
         benchmark_bars=benchmark_bars,
     )
+    occurrence_rows = detect_breadth_occurrences(raw_points)
     warnings = list(universe_warnings)
     points: list[BreadthDefinitionHistoryPointOut] = []
     for raw_point in raw_points:
@@ -6186,5 +6189,9 @@ async def evaluate_generic_breadth_history(
         freshness=freshness,
         freshness_detail=freshness_detail,
         points=points,
+        occurrences=[
+            BreadthDefinitionHistoryOccurrenceOut(**occurrence)
+            for occurrence in occurrence_rows
+        ],
         exclusions=warnings,
     )

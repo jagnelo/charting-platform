@@ -799,6 +799,22 @@ class BreadthDefinitionHistoryPointOut(BaseModel):
     exclusions: list[AnalysisWarning] = Field(default_factory=list)
 
 
+class BreadthDefinitionHistoryOccurrenceOut(BaseModel):
+    """A member state transition in a historical breadth definition."""
+
+    occurrence_id: str
+    timestamp: datetime
+    kind: Literal["member_entered", "member_exited"]
+    instrument_id: int
+    symbol: str
+    name: str
+    value: bool
+    metric: float | None = None
+    percentage: float | None = Field(default=None, ge=0, le=1)
+    pass_count: int = Field(ge=0)
+    eligible_count: int = Field(ge=0)
+
+
 class BreadthDefinitionHistoryOut(AnalysisResponseMetadata):
     """Aligned historical output for the same reusable breadth definition."""
 
@@ -813,6 +829,7 @@ class BreadthDefinitionHistoryOut(AnalysisResponseMetadata):
     adjustment: str
     as_of: datetime | None = None
     points: list[BreadthDefinitionHistoryPointOut] = Field(default_factory=list)
+    occurrences: list[BreadthDefinitionHistoryOccurrenceOut] = Field(default_factory=list)
     exclusions: list[AnalysisWarning] = Field(default_factory=list)
 
 

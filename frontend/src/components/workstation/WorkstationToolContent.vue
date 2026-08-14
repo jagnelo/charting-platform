@@ -620,6 +620,7 @@
         <small v-if="!genericBreadthMembers.length">No {{ genericBreadthMemberState === 'pass' ? 'passing' : 'failing' }} members are eligible.</small>
       </div>
       <GenericBreadthHistoryUPlot :history="genericBreadthHistory" />
+      <span v-if="genericBreadthHistory" class="breadth-tool__generic-history-events">History occurrences · {{ genericBreadthHistory.occurrences?.length ?? 0 }} member state changes</span>
       <p v-if="breadthBusy" class="breadth-tool__status" role="status" aria-live="polite" aria-atomic="true">Loading breadth analysis…</p>
       <p v-else-if="breadthError" class="breadth-tool__status breadth-tool__status--error" role="alert" aria-live="assertive" aria-atomic="true">{{ breadthError }}</p>
       <p v-else-if="!breadth" class="breadth-tool__status" role="status" aria-live="polite" aria-atomic="true">Breadth analysis is unavailable.</p>

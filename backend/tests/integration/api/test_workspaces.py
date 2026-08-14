@@ -2491,6 +2491,7 @@ class TestWorkspaces:
         assert payload["points"][-1]["eligible_count"] == 1
         assert payload["points"][-1]["coverage"] == 1
         assert payload["points"][-1]["members"][0]["value"] in {True, False}
+        assert isinstance(payload["occurrences"], list)
         assert payload["definition_hash"]
         assert payload["condition_asset_key"] == "breadth-history-sma"
         assert payload["condition_library_version"] == 1
