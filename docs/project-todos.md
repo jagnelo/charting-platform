@@ -11325,3 +11325,26 @@ The current source also passes the focused authenticated top-down browser slice 
       backend exit `137` caused Nginx `502` responses during provisioning. This
       is a fix-first operational repair, not external-gap evidence and not an
       acceptance relaxation.
+
+### 2026-08-14 — Canonical deployment revalidation after bootstrap repair
+
+- [x] Revalidated the current branch-scoped non-seeded deployment before acceptance: backend
+  `/health` reports `status=ok`, `e2e_seed_instruments=false`, and `e2e_seed_market_data=false`;
+  the frontend returns HTTP 200; PostgreSQL, Redis, backend, worker, frontend, and research-runner
+  containers are running under the isolated branch Compose project.
+- [x] Ran the complete authenticated Chromium workstation matrix against that deployment:
+  `140/140` passed in `7.0m` with one worker. This includes the top-down SPY/RSP/sector/industry/
+  proxy/constituent workflow, ratios, uPlot interactions, linking, docking/pop-outs, Python and
+  Study Lab, scans/gauges, alerts/notes, recovery, legacy compatibility, and constrained-width
+  paths. The previously observed F8e RSI plot-library failure did not reproduce on rerun and no
+  speculative product change was made.
+- [x] Frontend Vitest passes `817/817` across `101` files; the uPlot contract audits `45` primary
+  files; visual acceptance policy validation passes unchanged at `0.5%`/`1px`/`DeltaE2000 2`;
+  `vue-tsc`, production build, and `git diff --check` pass.
+- [x] Combined backend unit/integration coverage passes `1438/1438` with total coverage `80.17%`
+  against the required `75%` threshold. Only the known dependency deprecation warnings appear.
+- [ ] Continue the remaining exact-build/unrepresented visual references, broader provider/live-
+  entitlement and historical truth, native physical-monitor placement, beyond-bounded endurance,
+  and final audit. Board-guided represented-state evidence and the non-seeded canonical deployment
+  are acceptance evidence; no visual threshold, mask, product criterion, or provenance rule was
+  relaxed.

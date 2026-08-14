@@ -1,5 +1,25 @@
 # Active Handoff
 
+## 2026-08-14 — Canonical deployment revalidation closed
+
+- The branch-scoped non-seeded deployment is healthy: backend `/health` is `status=ok` with
+  `e2e_seed_instruments=false` and `e2e_seed_market_data=false`; frontend HTTP 200; backend,
+  frontend, worker, research-runner, PostgreSQL, and Redis are running in the isolated Compose
+  project.
+- Complete authenticated Chromium `flows.spec.ts` passed `140/140` in `7.0m`. No browser failure,
+  console regression, or overlap/containment defect was found. The earlier F8e RSI plot-library
+  observation was not reproducible; no speculative implementation change was made.
+- Frontend Vitest passed `817/817` across `101` files; uPlot contract `45` files; visual policy
+  `26` assertions; `vue-tsc`, production build, and diff-check passed.
+- Combined backend unit/integration coverage passed `1438/1438` at `80.17%`, above the required
+  `75%` threshold, with only known dependency deprecation warnings.
+- Acceptance flexibility: board-guided represented visual states and non-seeded canonical data;
+  exact/unrepresented visual, provider/live-entitlement, historical, native-monitor, longer
+  endurance, and final-audit gaps remain open. No threshold, mask, product, or provenance rule
+  was relaxed.
+- Next context: continue the next independent in-scope visual/backend gap from clean local
+  commit `2d0b691f`; Git export remains a separately recorded transport hold.
+
 ## 2026-08-14 — Current clean boundary and Git recovery result
 
 - The repository/index is healthy: branch `feat/tc2000-frontend-rework` is clean at

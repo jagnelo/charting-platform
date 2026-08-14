@@ -1,5 +1,20 @@
 # Run Report
 
+## 2026-08-14 — Canonical deployment revalidation closed
+
+- Verified the current non-seeded branch deployment: backend health OK with both E2E seed flags
+  false, frontend HTTP 200, and all six branch services running in the isolated Compose project.
+- Complete authenticated Chromium workstation matrix: `140/140` passed in `7.0m`.
+- Frontend: Vitest `817/817`; uPlot contract `45` audited files; visual policy `26` assertions;
+  type-check and production build passed. Backend: `1438/1438` unit/integration tests passed at
+  `80.17%` coverage against the `75%` requirement.
+- The earlier localized F8e RSI plot-library failure did not reproduce; it remains recorded as
+  transient evidence rather than converted into speculative product code.
+- Acceptance flexibility used: board-guided represented visual evidence and non-seeded canonical
+  data. Exact/unrepresented V25, provider/live-entitlement, historical, native-monitor,
+  beyond-bounded endurance, and final-audit gaps remain explicit. No threshold, mask, product, or
+  provenance rule changed.
+
 ## 2026-08-14 — DFTT route remains externally blocked
 
 ## 2026-08-14 — Current clean boundary and Git recovery result

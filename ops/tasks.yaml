@@ -1,4 +1,33 @@
 tasks:
+  - id: tc2000-canonical-deployment-revalidation-20260814
+    title: Revalidate the canonical workstation deployment after bootstrap repair
+    status: completed
+    priority: high
+    scope: >-
+      Revalidate the current branch-scoped non-seeded deployment and run the complete
+      authenticated workstation acceptance matrix after the bootstrap rollback and provider
+      scheduling repairs.
+    definition_of_done:
+      - Branch backend and frontend health are verified with seed flags false
+      - Complete authenticated Chromium workstation flows pass without hidden skips
+      - Frontend unit/uPlot/visual-policy, type-check, and production build gates pass
+      - Combined backend unit/integration coverage remains above the required threshold
+      - Any localized regression is repaired or explicitly recorded; remaining goal gaps stay visible
+    validation:
+      - backend-health-and-seed-flags
+      - authenticated-chromium-140-of-140
+      - frontend-vitest-817-of-817
+      - uplot-contract-45-files
+      - visual-policy-26-assertions
+      - frontend-type-check-and-production-build
+      - backend-1438-of-1438-at-80.17-percent
+      - git-diff-check
+    notes:
+      - >-
+        The earlier F8e RSI plot-library observation was not reproducible on the permitted
+        rerun; no speculative code change was made. Board-guided represented visual evidence,
+        non-seeded canonical data, and bounded operational checks remain explicitly scoped
+        flexibilities/gaps. Operational checkpoint follows in handoff/state/run-report.
   - id: tc2000-alerian-route-ownership-20260814
     title: Constrain native Alerian holdings route to verified symbols
     status: completed
