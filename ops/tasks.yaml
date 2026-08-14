@@ -1,4 +1,31 @@
 tasks:
+  - id: tc2000-chart-template-comparison-persistence-20260814
+    title: Restore saved comparison sets when applying chart templates
+    status: completed
+    priority: high
+    scope: >-
+      Ensure chart-template application restores its persisted comparison_symbols while protecting
+      the active instrument identity, showing configured chips during data hydration, fencing stale
+      parent workspace snapshots, and refreshing the template library on menu open.
+    definition_of_done:
+      - Saved templates serialize and restore their comparison symbols
+      - Active chart symbol and instrument identity remain unchanged
+      - Comparison chips are visible before normalized comparison bars finish loading
+      - Focused unit, full frontend, type/build, browser, and diff gates pass
+      - No visual threshold, mask, provider, uPlot, or acceptance rule is relaxed
+    validation:
+      - frontend-chart-template-control-9-of-9
+      - frontend-full-vitest-780-of-780
+      - frontend-type-check-build-475-modules
+      - rebuilt-authenticated-F9c-template-comparison-1-of-1
+      - git-diff-check
+    notes:
+      - >-
+        The first browser attempts used a stale running image and an incorrect menu timing/oracle
+        assumption. The branch frontend was rebuilt and force-recreated; the authoritative rerun
+        passed. Acceptance flexibility used: none. Remaining board/unrepresented V25, provider/
+        entitlement, historical/GICS, native-monitor, endurance, Docker-cleanup, and final-audit
+        gaps remain open.
   - id: tc2000-applied-chart-template-transform-mechanics-20260814
     title: Preserve transform parameters when applying chart templates
     status: completed

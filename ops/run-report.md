@@ -1,5 +1,20 @@
 # Run Report
 
+## 2026-08-14 — Chart-template comparison persistence context completed
+
+- Saved chart templates now restore `comparison_symbols`; active instrument identity remains
+  protected, configured comparison chips are visible before normalized bars finish loading, and
+  parent workspace snapshots cannot overwrite an optimistic template application.
+- Focused unit `9/9`, full frontend Vitest `780/780`, type-check, 475-module production build,
+  rebuilt authenticated Playwright `F9c-template-comparison` `1/1`, and `git diff --check` pass.
+- The initial browser attempt used an older running frontend image and an incorrect menu timing
+  assumption. Rebuilding/recreating the branch frontend and rerunning the same acceptance flow
+  passed. No acceptance flexibility, visual-mask change, or threshold change was used.
+- Remaining board/unrepresented V25, provider/entitlement, historical/GICS, native-monitor,
+  endurance, Docker-cleanup, and final-audit gaps remain tracked; this is not a completion claim
+  for the overall goal.
+- Implementation commit `e568ac83` is complete; the operational closure remains a separate commit.
+
 ## 2026-08-14 — Applied-template context push hold
 
 - Implementation `d3992fdf` and ops `51a1553b` are separate local commits with

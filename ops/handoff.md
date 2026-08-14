@@ -1,5 +1,28 @@
 # Active Handoff
 
+## 2026-08-14 — Chart-template comparison persistence context completed
+
+- Closed a repository-controlled workstation gap: chart templates now restore their saved
+  comparison symbols instead of retaining the active chart's comparison set. Configured
+  comparison chips render immediately from serialisable configuration while data hydrates,
+  parent snapshot races are fenced, and opening the template menu refreshes its library query.
+- Validation: focused ChartTemplateControl unit `9/9`; full frontend Vitest `780/780`; type-check;
+  475-module production build; rebuilt authenticated focused Playwright `F9c-template-comparison`
+  `1/1` with clean critical diagnostics; `git diff --check`.
+- Fix-first evidence: initial browser failures were caused by a stale frontend image and a menu
+  timing/oracle assumption; the branch image was rebuilt/recreated and the authoritative rerun
+  passed. No visual threshold, mask, provider rule, or acceptance criterion was relaxed.
+- Acceptance flexibility used: none. Board-guided visual authority remains interim for represented
+  states; exact-build/unrepresented V25, provider/entitlement, historical/GICS, native-monitor,
+  endurance, Docker-cleanup, and final-audit gaps remain explicitly open.
+- Owned paths: `frontend/src/components/workstation/ChartTemplateControl.vue`,
+  `frontend/src/components/workstation/WorkstationToolContent.vue`,
+  `frontend/tests/e2e/flows.spec.ts`, and
+  `frontend/tests/unit/components/test_chart_template_control.test.ts`.
+- Implementation commit `e568ac83` is complete and intentionally separate. Next action: commit
+  this operational record separately, verify clean hashes, and retry the exact elevated push. A
+  transport rejection must be recorded and must not block the next repository-controlled context.
+
 ## 2026-08-14 — Applied-template context push hold
 
 - Implementation commit `d3992fdf` and operational closure commit `51a1553b`
