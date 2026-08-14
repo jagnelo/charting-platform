@@ -1,5 +1,13 @@
 # Run Report
 
+## 2026-08-14 — Alerian live-provider coverage and transport result
+
+- Alerian is now in the live-backed provider registry with ENFR concrete opt-in coverage. Registry
+  contracts `2/2`, official ALPS live route `1/1`, Ruff, and diff checks pass. Test commit `a03e1cdf`.
+- No acceptance flexibility used. Exact push for `47f5359a6ad516c0459c94d29b92e6313da3003d..a03e1cdf030957e87df30178ac529868fe3ce8b8`
+  was rejected before Git by the private-origin safeguard; clean local commit retained and goal
+  continues.
+
 ## 2026-08-14 — Native Alerian holdings context and transport result
 
 - Promoted Alerian AMLP/ENFR to a native ALPS public-proxy holdings adapter with canonical

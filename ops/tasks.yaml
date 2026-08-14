@@ -1,4 +1,25 @@
 tasks:
+  - id: tc2000-alerian-live-coverage-20260814
+    title: Add concrete opt-in live coverage for native Alerian holdings
+    status: completed
+    priority: medium
+    scope: >-
+      Register the promoted Alerian adapter in the live-backed provider matrix and verify one
+      official ALPS route end to end without making normal test runs network-dependent.
+    definition_of_done:
+      - Alerian is included in the live-backed registry
+      - ENFR has a concrete opt-in official route case
+      - Non-network registry contracts and the opt-in live route pass
+      - Transport result and remaining breadth gaps are recorded
+    validation:
+      - live-provider-registry-2-of-2
+      - alerian-official-live-1-of-1
+      - ruff-live-test
+      - git-diff-check
+    notes:
+      - >-
+        Test commit a03e1cdf. The exact push was rejected before Git by the private-origin
+        safeguard; clean local commit retained and the product goal continues.
   - id: tc2000-alerian-native-holdings-20260814
     title: Add native Alerian holdings for ETF constituent drill-down
     status: completed
