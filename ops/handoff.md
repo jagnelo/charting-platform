@@ -1,5 +1,22 @@
 # Active Handoff
 
+## 2026-08-14 — Expanded US benchmark-family perspective scope checkpoint
+
+- Updated `docs/project-todos.md`, `docs/tc2000-parity.md`, and
+  `docs/tc2000-acceptance-governance.md` to make S&P 500/400/600/1500, Russell 1000/2000/3000,
+  and Nasdaq 100 eight first-class analysis roots. The scope now explicitly includes every
+  evidenced cap/equal/value/growth leg, Nasdaq-100 QQQ/QQQE-style cap/equal decomposition, and
+  shared technical, configurable breadth, ratio, ranking, rotation, concentration/dispersion,
+  drill-down, Study Lab, scan, gauge, plot, and export contracts.
+- Missing official, equal, value/growth, holdings, or historical evidence remains a named
+  unavailable/derived state; no SPY/QQQ/other-family/current-snapshot fallback is permitted.
+  This is a scope clarification, not acceptance flexibility. Provider population, historical
+  continuity, browser population, and final V25 visual gaps remain open.
+- Documentation commit: `670e5820 docs(scope): expand US benchmark family vision`; JSON/YAML
+  parsing and `git diff --check` pass. Worktree was clean before the operational update. Exact
+  push was attempted once and rejected before Git by the private-origin safeguard; no workaround
+  or repeat. Next context: implement/validate the next bounded family analytics slice.
+
 ## 2026-08-15 — Historical benchmark-family concentration checkpoint
 
 - Added `GET /analysis/benchmark-families/{family_key}/concentration/history`. At each observed

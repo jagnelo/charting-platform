@@ -1,5 +1,17 @@
 # Run Report
 
+## 2026-08-14 — Expanded US benchmark-family perspective scope checkpoint
+
+- Documented the requested complete US perspective matrix: S&P 500/400/600/1500, Russell
+  1000/2000/3000, and Nasdaq 100, with independently evidenced cap/equal/value/growth legs.
+- Explicitly added the Nasdaq-100 cap/equal acceptance requirement (QQQ versus QQQE or another
+  verified equal proxy), shared configurable breadth and companion analytics, and no-fallback
+  provenance/coverage semantics across all outputs. Selector presence alone is not acceptance.
+- Validation: `git diff --check`, JSON parse, and YAML parse pass. No acceptance flexibility used;
+  provider, historical, browser, and final V25 gaps remain tracked.
+- Git closure: documentation commit `670e5820` is clean locally. Exact push was attempted once
+  and rejected before Git by the private-origin safeguard; no workaround or repeat.
+
 ## 2026-08-15 — Historical benchmark-family concentration checkpoint
 
 - Added timestamp-safe family concentration history over all independent cap/equal/value/growth
