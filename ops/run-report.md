@@ -14,8 +14,10 @@
 - Acceptance flexibility used: **none**. Arbitrary Python execution remains isolated-runner
   work. The visual condition asset picker/tree, historical occurrences, point-in-time ETF browser
   acceptance, and promotion into compatible targets remain open and explicitly documented.
-- Implementation and ops records are still one dirty changeset until the focused diff is reviewed,
-  committed, and pushed/transport-recorded.
+- Implementation commit `4ebc57fe` is clean locally. The exact elevated push was attempted once
+  and rejected before Git by the private-origin safeguard for the accumulated 241-commit range;
+  no workaround or repeat was used. The transport result is operational only and does not block
+  the product goal.
 
 ## 2026-08-14 — Expanded US benchmark-family scope
 
