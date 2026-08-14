@@ -238,7 +238,8 @@ class BreadthConditionRequest(BaseModel):
 class BreadthDefinitionRequest(BaseModel):
     version: int = Field(default=1, ge=1, le=1)
     universe: BreadthUniverseRequest
-    condition: BreadthConditionRequest
+    condition: BreadthConditionRequest | None = None
+    condition_asset_key: str | None = Field(default=None, min_length=1, max_length=80)
     timeframe: str = "D1"
     adjusted: bool = True
     as_of: datetime | None = None
@@ -262,6 +263,9 @@ class BreadthDefinitionOut(AnalysisResponseMetadata):
     definition_hash: str
     universe: dict[str, object] = Field(default_factory=dict)
     condition: dict[str, object] = Field(default_factory=dict)
+    condition_asset_key: str | None = None
+    condition_library_version: int | None = None
+    python_code_version_id: int | None = None
     timeframe: str
     adjustment: str
     as_of: datetime | None = None
@@ -298,6 +302,9 @@ class BreadthDefinitionHistoryOut(AnalysisResponseMetadata):
     definition_hash: str
     universe: dict[str, object] = Field(default_factory=dict)
     condition: dict[str, object] = Field(default_factory=dict)
+    condition_asset_key: str | None = None
+    condition_library_version: int | None = None
+    python_code_version_id: int | None = None
     timeframe: str
     adjustment: str
     as_of: datetime | None = None

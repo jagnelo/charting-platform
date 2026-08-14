@@ -68,6 +68,7 @@ tasks:
       - latest-breadth-predicate-quantification-plan-expansion
       - target-scope-and-cross-sectional-semantics
       - arbitrary-python-predicate-isolated-runner-parity
+      - versioned-condition-asset-breadth-reference
     notes:
       - The first implementation slice is complete locally in d7c93cf4: versioned current-snapshot API, canonical group/ETF-proxy/explicit-symbol resolution, deterministic evaluator, and a compact workstation composer.
       - Existing fixed breadth tests remain valid preset coverage and cannot close this task.
@@ -77,6 +78,8 @@ tasks:
       - The active goal was broadened again to make “breadth around what?” explicit: users must be able to test price/return/volume/volatility/trend/relative-strength/metadata or derived Python fields against averages, thresholds, ranges, percentiles, highs/lows, benchmark/peer series, events, or other derived series, with reusable aggregate/history/member outputs.
       - The latest clarification makes breadth a quantifier over a user-authored predicate, not a fixed metric catalogue. Saved definitions must retain target scope (per-member versus cross-sectional), and the same predicate must drive aggregate, member, history/occurrence, and compatible promotion outputs. The visual condition tree, arbitrary isolated-Python predicates, and target promotion remain open implementation work.
       - No visual threshold, mask, provider rule, or acceptance criterion was relaxed.
+      - The current reusable-condition bridge accepts a user-owned immutable visual condition asset through `condition_asset_key` for current and historical generic breadth. It preserves the library version and generated unified-Python CodeVersion ID in the response and definition hash, but only maps the bounded supported visual subset; arbitrary Python still requires the isolated runner and the UI asset picker/tree remains open.
+      - Focused validation for this slice: backend unit `25/25` with `--no-cov`, database-backed reusable-condition integration `1/1` through elevated testcontainers, Ruff, and diff checks. The narrow coverage invocation's `6.12%` total is an invocation-scope threshold failure, not a test failure; the repository-wide coverage gate remains the authoritative broader check.
   - id: tc2000-study-lab-artifact-export-20260814
     title: Export typed artifacts directly from the active Study Lab run
     status: completed

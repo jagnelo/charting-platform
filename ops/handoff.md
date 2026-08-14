@@ -1,5 +1,26 @@
 # Active Handoff
 
+## 2026-08-14 — Versioned breadth condition-asset reuse
+
+- Implementation context: current and historical generic breadth now accept a user-owned
+  immutable `condition_asset_key` in addition to an inline supported condition. The resolver
+  enforces ownership/kind, maps the bounded saved visual AST into the canonical breadth shape,
+  and returns library version plus generated unified-Python CodeVersion ID in the response and
+  definition hash.
+- Validation: focused backend unit tests pass `25/25` with `--no-cov`; the database-backed
+  reusable-condition integration passes `1/1` through elevated testcontainers; Ruff and
+  `git diff --check` are required before closure. A normal narrow coverage invocation executes
+  all `25` tests but fails the repository-wide threshold at `6.12%`, which is expected for this
+  focused subset and is not being presented as the full backend coverage gate.
+- Acceptance flexibility used: **none**. This is a bounded reuse bridge only. Arbitrary Python
+  predicate execution remains isolated-runner work; the visual asset picker/tree, occurrence
+  linking, point-in-time ETF browser evidence, and promotion targets remain open and tracked.
+- Outstanding files for this context: backend schemas/router/integration test plus the three
+  documentation/ops records. Close and commit them together, then attempt the exact push once;
+  if the private-origin safeguard rejects it, record transport-only and keep the local tree clean.
+- Next context after closure: `generic-breadth-python-condition-and-promotion-20260814`, beginning
+  with isolated-runner arbitrary Python condition references and promotion contracts.
+
 ## 2026-08-14 — Expanded US benchmark-family scope
 
 - Broadened the active goal and section 14 to make S&P 500/400/600/1500, Russell 1000/2000/3000,

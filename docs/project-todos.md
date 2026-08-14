@@ -1,5 +1,23 @@
 # Project TODO Memory
 
+### 2026-08-14 — Reuse versioned condition assets in generic breadth
+
+- [x] Extended current and historical generic breadth definitions to accept either an inline
+      supported condition or a user-owned immutable `condition_asset_key`. The API resolves the
+      saved visual condition AST server-side, preserves the library version and generated unified
+      Python CodeVersion ID, and includes that identity in the reproducibility hash/result.
+- [x] Added the first reusable visual-condition bridge for nested groups and close-vs-SMA/EMA
+      predicates, with explicit conflict, missing-asset, and unsupported-asset errors. Arbitrary
+      Python is not executed in FastAPI; it remains isolated-runner work.
+- [x] Focused backend unit tests pass `25/25` with `--no-cov`; database-backed reusable-condition
+      integration passes `1/1` through the approved elevated testcontainers path. The ordinary
+      coverage run also executes all `25` tests but fails only the repository-wide threshold
+      because this narrow invocation imports little of the application (`6.12%` versus `55%`).
+- [ ] The visual condition-asset picker/tree, arbitrary Python predicate execution through the
+      isolated runner, historical occurrence linking, and promotion into uPlot/list/filter/scan/
+      gauge/alert/export targets remain open. Acceptance flexibility used: **none**; this is a
+      reusable-contract increment, not completion of generic breadth.
+
 ### 2026-08-14 — Study Lab metric and structured artifact export closure
 
 - [x] Extended the active Study Lab Export control to scalar, Boolean, and structured artifacts;

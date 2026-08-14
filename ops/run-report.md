@@ -1,5 +1,22 @@
 # Run Report
 
+## 2026-08-14 — Versioned condition-asset reuse in generic breadth
+
+- Implemented a bounded reusable-condition bridge for current and historical generic breadth.
+  Requests may reference a user-owned immutable `condition_asset_key`; the backend validates
+  ownership and condition kind, maps the supported visual AST into the canonical evaluator, and
+  carries the library version and generated unified-Python CodeVersion ID into the response and
+  reproducibility hash.
+- Validation: focused backend unit tests `25/25` with `--no-cov`; elevated database-backed
+  reusable-condition integration `1/1`; Ruff, JSON/YAML parsing, and `git diff --check` pass.
+  The ordinary narrow coverage invocation also ran all `25` tests but failed only its
+  repository-wide threshold (`6.12%` versus `55%`) because it is intentionally a small subset.
+- Acceptance flexibility used: **none**. Arbitrary Python execution remains isolated-runner
+  work. The visual condition asset picker/tree, historical occurrences, point-in-time ETF browser
+  acceptance, and promotion into compatible targets remain open and explicitly documented.
+- Implementation and ops records are still one dirty changeset until the focused diff is reviewed,
+  committed, and pushed/transport-recorded.
+
 ## 2026-08-14 — Expanded US benchmark-family scope
 
 - Updated the active goal, section 14 plan, parity matrix, acceptance governance, and task list to

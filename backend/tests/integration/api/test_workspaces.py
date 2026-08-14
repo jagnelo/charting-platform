@@ -1098,6 +1098,45 @@ class TestWorkspaces:
         assert payload["members"][0]["symbol"] == instrument.symbol
         assert payload["members"][0]["value"] in {True, False}
 
+        saved_condition = client.put(
+            "/api/v1/workspaces/library/conditions/breadth-sma",
+            headers=auth_headers,
+            json={
+                "name": "Breadth above SMA",
+                "condition": {
+                    "operator": "AND",
+                    "conditions": [
+                        {
+                            "type": "price_indicator",
+                            "field": "close",
+                            "indicator": "sma",
+                            "params": {"period": 20},
+                            "op": "gt",
+                        }
+                    ],
+                },
+            },
+        )
+        assert saved_condition.status_code == 200
+        saved_python_version = saved_condition.json()["payload"]["python_code_version_id"]
+        saved = client.post(
+            "/api/v1/analysis/breadth",
+            headers=auth_headers,
+            json={
+                "universe": {"kind": "symbols", "symbols": [instrument.symbol]},
+                "condition_asset_key": "breadth-sma",
+            },
+        )
+        assert saved.status_code == 200
+        saved_payload = saved.json()
+        assert saved_payload["condition_asset_key"] == "breadth-sma"
+        assert saved_payload["condition_library_version"] == 1
+        assert saved_payload["python_code_version_id"] == saved_python_version
+        assert saved_payload["condition"]["kind"] == "all"
+        assert saved_payload["condition"]["params"]["conditions"][0]["kind"] == (
+            "above_moving_average"
+        )
+
         explicit = client.post(
             "/api/v1/analysis/breadth",
             headers=auth_headers,
@@ -1167,15 +1206,29 @@ class TestWorkspaces:
         db.add(MarketGroupMember(market_group_id=group.id, instrument_id=instrument.id, position=0))
         db.flush()
 
+        saved_condition = client.put(
+            "/api/v1/workspaces/library/conditions/breadth-history-sma",
+            headers=auth_headers,
+            json={
+                "name": "Historical breadth above SMA",
+                "condition": {
+                    "type": "price_indicator",
+                    "field": "close",
+                    "indicator": "sma",
+                    "params": {"period": 20},
+                    "op": "gt",
+                },
+            },
+        )
+        assert saved_condition.status_code == 200
+        saved_python_version = saved_condition.json()["payload"]["python_code_version_id"]
+
         response = client.post(
             "/api/v1/analysis/breadth/history",
             headers=auth_headers,
             json={
                 "universe": {"kind": "group", "key": group.stable_key},
-                "condition": {
-                    "kind": "above_moving_average",
-                    "params": {"period": 20},
-                },
+                "condition_asset_key": "breadth-history-sma",
                 "timeframe": "D1",
                 "limit": 20,
             },
@@ -1188,6 +1241,9 @@ class TestWorkspaces:
         assert payload["points"][-1]["coverage"] == 1
         assert payload["points"][-1]["members"][0]["value"] in {True, False}
         assert payload["definition_hash"]
+        assert payload["condition_asset_key"] == "breadth-history-sma"
+        assert payload["condition_library_version"] == 1
+        assert payload["python_code_version_id"] == saved_python_version
 
     def test_etf_constituent_snapshot_is_point_in_time_and_source_labelled(
         self, client, auth_headers, db, instrument, instrument_type, ohlcv_bars

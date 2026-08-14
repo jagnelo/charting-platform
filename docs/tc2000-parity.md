@@ -1,5 +1,20 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-14 — Versioned condition reuse in generic breadth
+
+Generic breadth current and history requests now accept either an inline supported condition or a
+user-owned immutable visual condition asset. When `condition_asset_key` is supplied, the backend
+loads the matching condition library item for the authenticated user, maps the supported visual
+AST into the canonical breadth condition contract, and rejects inline/asset conflicts, missing
+assets, malformed payloads, and unsupported visual clauses with structured errors. The response
+and definition hash retain the condition asset key, library version, and generated unified Python
+CodeVersion ID, so reusing a saved condition is reproducible rather than a hidden copy/paste.
+
+This is deliberately a bounded bridge: FastAPI does not execute arbitrary user Python. The
+isolated runner, full visual condition-tree authoring, historical occurrence linking, and
+promotion into compatible charts, watchlists, filters, scans, gauges, alerts, and exports remain
+open acceptance items. No visual threshold, provider rule, or acceptance criterion was relaxed.
+
 ## 2026-08-14 — Expanded US benchmark-family and cap/equal/style scope
 
 The top-down workstation now has an explicit benchmark-family matrix beyond SPX/SPY. First-class
