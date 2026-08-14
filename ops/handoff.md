@@ -1,5 +1,15 @@
 # Active Handoff
 
+## 2026-08-14 — Current-range push retry recorded
+
+- Retried the exact elevated `rtk git push origin feat/tc2000-frontend-rework` for
+  `91463e54..2a4a55c3`; the environment again rejected it before Git because explicit authorization
+  for this newly accumulated private-repository range and destination is required.
+- No workaround, indirect execution, force push, or history rewrite was attempted. The branch
+  remains clean and the local commits are recoverable. This transport hold does not block the goal;
+  continue from the clean boundary and use the same narrow command once the exact range is
+  authorized.
+
 ## 2026-08-14 — Comparison-template parity documentation closure
 
 - Added the completed comparison-template context to the controlling `docs/project-todos.md` and

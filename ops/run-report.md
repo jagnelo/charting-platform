@@ -1,5 +1,11 @@
 # Run Report
 
+## 2026-08-14 — Current-range push retry recorded
+
+- Exact elevated push of clean range `91463e54..2a4a55c3` was retried and rejected before Git by
+  the external private-repository egress safeguard. No workaround or rewrite was attempted.
+- This is transport-only; application and parity work remain unblocked at clean local `HEAD`.
+
 ## 2026-08-14 — Comparison-template parity documentation closure
 
 - Controlling parity/TODO documentation now records the comparison-template correction, its
