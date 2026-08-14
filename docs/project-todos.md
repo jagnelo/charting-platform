@@ -1,5 +1,15 @@
 # Project TODO Memory
 
+### 2026-08-14 — Study histogram current-marker lifecycle
+
+- [x] Corrected `StudyHistogramUPlot` to include the typed `current` observation in its redraw
+      dependencies. Marker changes now redraw the existing uPlot instance without recreating it.
+- [x] Added lifecycle coverage proving a current-value change calls `setData` once and preserves
+      the original chart instance; frontend `819/819`, type-check/build, uPlot, visual-policy, and
+      diff checks pass.
+- [ ] Acceptance flexibility used: **none**. No visual threshold, mask, product criterion, or
+      browser acceptance rule changed; `REF-STUDY-LAB-V25` remains open.
+
 ### 2026-08-14 — Historical 90/90 current-versus-history distributions
 
 - [x] Extended the historical 90/90 Study Lab factory source with typed price-participation and

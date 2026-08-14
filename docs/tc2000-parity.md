@@ -1,5 +1,12 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-14 — Study histogram current-marker lifecycle
+
+- Fixed the Study Lab histogram lifecycle so changes to the current observation redraw the marker
+  in place instead of leaving a stale highlight or recreating the uPlot instance.
+- Focused conditional-uPlot lifecycle coverage passes `12/12`; full frontend `819/819`,
+  type-check/build, uPlot contract, visual policy, and diff checks pass. No acceptance flexibility.
+
 ## 2026-08-14 — Historical 90/90 current-versus-history distributions
 
 - The Historical 90/90 Study Lab factory now emits typed price and volume participation histograms

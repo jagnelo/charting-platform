@@ -83,7 +83,10 @@ function draw() {
 
 function format(value: number) { return Number.isInteger(value) ? String(value) : value.toFixed(2) }
 
-watch(() => [props.bins, props.name], async () => { valid.value = hasValidData(); await nextTick(); draw() }, { deep: true })
+// The current observation controls the highlighted marker independently of
+// the histogram bins. Keep the existing uPlot instance and redraw in place
+// when only that observation changes.
+watch(() => [props.bins, props.name, props.current], async () => { valid.value = hasValidData(); await nextTick(); draw() }, { deep: true })
 onMounted(async () => {
   observer = new ResizeObserver(draw)
   if (root.value) observer.observe(root.value)

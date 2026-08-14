@@ -51,4 +51,17 @@ describe('conditional uPlot lifecycle contracts', () => {
     expect(vi.mocked(uPlot)).not.toHaveBeenCalled()
     expect(wrapper.get('[role="status"]').text()).toContain('no aligned finite bounds')
   })
+
+  it('refreshes a histogram current marker without recreating its uPlot instance', async () => {
+    const wrapper = mount(StudyHistogramUPlot, {
+      props: { name: 'Histogram', bins: [{ start: 0, end: 1, count: 2 }], current: 0.25 },
+    })
+    await vi.waitFor(() => expect(vi.mocked(uPlot)).toHaveBeenCalledTimes(1))
+    const chart = vi.mocked(uPlot).mock.results[0]?.value
+    chart.setData.mockClear()
+    await wrapper.setProps({ current: 0.75 })
+    await vi.waitFor(() => expect(chart.setData).toHaveBeenCalledTimes(1))
+    expect(vi.mocked(uPlot)).toHaveBeenCalledTimes(1)
+    wrapper.unmount()
+  })
 })
