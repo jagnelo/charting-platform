@@ -1,13 +1,22 @@
 # Active Handoff
 
+## 2026-08-14 — Exact push authorization result for current clean boundary
+
+- The repository is healthy and the worktree is clean at `a507f744`; `origin/feat/tc2000-frontend-rework`
+  remains at `91463e54`, so the exact local range is `91463e54..a507f744`.
+- The required single elevated command, `rtk git push origin feat/tc2000-frontend-rework`,
+  was attempted for that exact remote, branch, and range. The execution boundary rejected it
+  before Git ran because trusted authorization for exporting this private-repository payload was
+  unavailable. This is a transport-only hold, not an index, repository, authentication, or
+  product failure.
+- Do not loop through wrappers, alternate shells/transports, APIs, force pushes, rewrites, resets,
+  or stashes. Keep the clean commits intact and continue the TC2000 goal. Retry only when the
+  same exact payload receives newly accepted trusted authorization.
+
 ## 2026-08-14 — Current clean boundary and push transport state
 
-- The current worktree is clean at `fade78be`; the branch is `120` commits ahead of
-  `origin/feat/tc2000-frontend-rework` (`91463e54..fade78be`). Implementation and operational
-  contexts remain isolated; no files are uncommitted.
-- The exact private-origin push remains subject to the already documented pre-Git trusted
-  authorization gate. No new push attempt or workaround is made without newly accepted
-  exact-payload authorization. This is transport-only and does not block the active product goal.
+- Superseded by the exact current-boundary record above. The worktree remains clean and all
+  implementation and operational contexts remain isolated; no files are uncommitted.
 
 ## 2026-08-14 — Auth-store router teardown race
 
