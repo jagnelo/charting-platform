@@ -7,7 +7,7 @@
   "last_handoff_at": "2026-08-14T15:55:00Z",
   "last_commit": "77416595 fix(workstation): standardize live region semantics",
   "git_ready_to_commit": false,
-  "git_checkpoint": "Shared live-region implementation 77416595 is complete and clean locally; the operational record is being committed separately. Origin remains 91463e54bbfb37dc5e130d3c912434bfc41594bd. Exact elevated push remains transport-only under the recorded egress safeguard and must not block the next context.",
+  "git_checkpoint": "Shared live-region implementation 77416595 and operational record f5639eb3 are committed locally with a clean worktree. Origin remains 91463e54bbfb37dc5e130d3c912434bfc41594bd. Exact elevated push remains transport-only under the recorded egress safeguard and must not block the next context.",
   "next_context": "select-next-repository-controlled-tc2000-gap-after-shared-live-region-semantics",
   "active_context": "shared-live-region-semantics",
   "context_status": "completed_clean_local_transport_hold_ready_for_next_context",
