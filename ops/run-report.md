@@ -1,5 +1,14 @@
 # Run Report
 
+## 2026-08-15 — Role-aware family dated backfill checkpoint
+
+- Added the admin family/date refresh operation for selected cap/equal/value/growth roles. Each
+  leg reports refreshed snapshot/composition evidence or explicit unavailable/failure status.
+- Combined focused adapter/bootstrap/taxonomy/family API validation passed `6/6`; Ruff, compileall,
+  and diff checks passed. No acceptance flexibility used. Implementation/docs commit: `e18da88`.
+- The required exact elevated push was attempted once and rejected before Git by the private-origin
+  safeguard. No workaround or repeat; transport-only. Operational checkpoint remains to be made.
+
 ## 2026-08-14 — Dated holdings composition provenance checkpoint
 
 - Corrected dated refresh persistence to preserve the issuer-returned composition date, retain the

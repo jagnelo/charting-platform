@@ -1,5 +1,21 @@
 # Active Handoff
 
+## 2026-08-15 — Role-aware benchmark-family dated backfill
+
+- Added admin-only `POST /etf-holdings/benchmark-family/{family_key}/refresh-date` with explicit
+  role selection for cap/equal/value/growth. It refreshes mapped legs independently and returns
+  snapshot/composition evidence plus explicit unavailable and failure entries; no cap/SPY/QQQ
+  substitution is possible.
+- The focused combined adapter/bootstrap/taxonomy/family API set passes `6/6`; family-specific
+  integration proves Russell 3000/IWV returns a dated snapshot while the unmapped value leg is
+  explicitly unavailable. Ruff, compileall, and diff checks pass. No acceptance flexibility used.
+- Implementation/docs commit: `e18da88` (`feat(holdings): add family dated backfill`).
+- Exact elevated push `rtk git push origin HEAD:feat/tc2000-frontend-rework` was attempted once
+  after this checkpoint and rejected before Git by the private-origin safeguard. No workaround,
+  alternate transport, rewrite, reset, stash, or repeat was used; transport-only.
+- Next: use this operation to populate verified family historical snapshots where free issuer
+  routes support them, then wire browser family drill-down/coverage acceptance.
+
 ## 2026-08-14 — Dated holdings composition provenance fix
 
 - Fixed `refresh_etf_holdings_for_date`: issuer-returned `composition_date` is now persisted,
