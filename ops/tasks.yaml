@@ -1,4 +1,28 @@
 tasks:
+  - id: tc2000-watchlist-freshness-state-semantics-20260814
+    title: Expose explicit watchlist freshness and warning states
+    status: completed
+    priority: high
+    scope: >-
+      Preserve canonical warning reasons in the dense virtualized watchlist while classifying cell
+      state for ordinary and stacked columns so stale, delayed, partial, fetching,
+      coverage-limited, unavailable, and generic warnings are visually and semantically distinct.
+    definition_of_done:
+      - warning cells expose a stable data-cell-state and state-specific CSS class
+      - displayed values and warning reasons remain available in cell titles
+      - stacked columns use the same state contract
+      - focused, full frontend, type/build, and diff gates pass
+      - no visual threshold, mask, provider, uPlot, or acceptance rule is relaxed
+    validation:
+      - virtual-watchlist-focused-65-of-65
+      - frontend-full-vitest-781-of-781
+      - frontend-type-check-build-475-modules
+      - git-diff-check
+    notes:
+      - >-
+        This closes a repository-controlled data-state semantics gap. Exact/unrepresented V25
+        pointer-state references, provider/entitlement breadth, historical/GICS truth,
+        native-monitor, endurance, Docker cleanup, and final-audit gaps remain open.
   - id: tc2000-backend-gate-and-docker-maintenance-20260814
     title: Separate integration coverage reporting from the combined backend gate
     status: completed

@@ -1,5 +1,18 @@
 # Project TODO Memory
 
+### 2026-08-14 — Watchlist freshness-state semantics
+
+- [x] Watchlist and stacked cells now expose explicit `data-cell-state` and tokenized classes for
+      stale, delayed, partial, fetching, coverage-limited, unavailable, and generic warning values;
+      ready and positive/negative/zero value styling remain intact.
+- [x] Cell titles retain both the displayed value and the canonical warning, so dense grids no
+      longer collapse all non-ready states into an indistinguishable warning icon.
+- [x] Focused VirtualWatchlistTool coverage passes `65/65`; full frontend Vitest passes `781/781`;
+      type-check, 475-module production build, and `git diff --check` pass.
+- [ ] Acceptance flexibility used: none. This closes a repository-controlled freshness/state
+      semantics gap but does not close exact V25 pointer-state references, provider/entitlement
+      breadth, historical/GICS truth, native-monitor, endurance, Docker cleanup, or final-audit gaps.
+
 ### 2026-08-14 — Backend gate semantics and scoped Docker maintenance
 
 - [x] Corrected `make test-int` so it reports integration-only coverage without applying the

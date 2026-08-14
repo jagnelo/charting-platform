@@ -1,5 +1,15 @@
 # Run Report
 
+## 2026-08-14 — Watchlist freshness-state context completed
+
+- `VirtualWatchlistTool` now exposes explicit warning-state semantics for stale, delayed, partial,
+  fetching, coverage-limited, unavailable, and generic warning cells, including stacked columns.
+- Focused `65/65`, full Vitest `781/781`, type-check, 475-module build, and diff-check pass. No
+  acceptance flexibility, visual threshold, mask, provider, or uPlot rule changed.
+- Implementation commit `8b894915` is separate; operational closure remains pending as its own
+  commit. Remaining exact/reference, provider, historical, hardware, endurance, Docker, and final
+  audit gaps remain tracked.
+
 ## 2026-08-14 — Current-range push safeguard recorded
 
 - Clean local commits `793398f2` and `e5b84a32` close the backend-gate context and its operational

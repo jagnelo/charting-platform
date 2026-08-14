@@ -1,5 +1,21 @@
 # Active Handoff
 
+## 2026-08-14 — Watchlist freshness-state context completed
+
+- Closed the repository-controlled watchlist state gap in implementation commit `8b894915`:
+  canonical cell warnings now map to explicit stale, delayed, partial, fetching,
+  coverage-limited, unavailable, and generic-warning states for both ordinary and stacked cells.
+  Cell titles retain the displayed value and warning reason.
+- Validation: focused VirtualWatchlistTool `65/65`; full frontend Vitest `781/781`; type-check;
+  475-module production build; and `git diff --check` pass. No visual threshold, mask, provider,
+  uPlot, or acceptance criterion changed.
+- Acceptance flexibility used: **none**. This closes a repository-controlled data-state gap;
+  exact/unrepresented V25 pointer states, provider/entitlement breadth, historical/GICS truth,
+  native monitor behavior, endurance, Docker cleanup, and final audit remain open.
+- The implementation context is complete and clean locally. Commit this operational record
+  separately, then retry the exact push only through the approved elevated path if explicitly
+  authorized; transport must not block the next context.
+
 ## 2026-08-14 — Current-range push safeguard recorded
 
 - Implementation `793398f2` and the separate operational record `e5b84a32` are committed locally;

@@ -1,5 +1,16 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-14 — Watchlist freshness-state semantics
+
+- Dense watchlist cells now classify canonical warnings as stale, delayed, partial, fetching,
+  coverage-limited, unavailable, or generic warning, with explicit state classes/data attributes
+  and state-specific colors. Stacked cells use the same contract.
+- Titles retain the rendered value plus warning reason. This is a behavior/data-state correction
+  supporting the TC2000-style grid; no provider-specific symbol or freshness claim was added.
+- Focused coverage `65/65`, full frontend Vitest `781/781`, type-check, 475-module build, and
+  diff-check pass. No acceptance flexibility or visual threshold/mask change was used; exact V25
+  pointer-state references and the other documented final gaps remain open.
+
 ## 2026-08-14 — Backend gate semantics and cleanup evidence
 
 - Corrected the integration-only Make target to report its `43.93%` coverage without falsely
