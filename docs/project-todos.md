@@ -11361,3 +11361,21 @@ The current source also passes the focused authenticated top-down browser slice 
 - [ ] Exact/unrepresented Study Lab visual evidence remains `REF-STUDY-LAB-V25`; provider/live-
   entitlement, historical/GICS, native-monitor, beyond-bounded endurance, and final-audit gaps
   remain open. No visual threshold, mask, product criterion, or acceptance flexibility changed.
+
+### 2026-08-14 — Unified Python SDK autocomplete contract
+
+- [x] Corrected the unified Python editor's completion catalog to match the isolated runtime's
+  actual supported SDK surface. It now exposes the complete prepared-dataset `market` and
+  `benchmark_*` accessors, supported `ta` helpers, `stats.positive_close_streaks`, all supported
+  `research` helpers, and every typed `output` artifact method. The previously advertised
+  unsupported `ta.atr` and `stats.percentile` entries were removed rather than presenting code
+  that validation/runtime could not execute.
+- [x] Prefix discovery, keyboard selection/insertion, live announcement, and linked-instance ID
+  coverage passes `5/5`; focused authenticated `F8g-editor-a11y` passes `1/1`; adjacent
+  Study Lab/Python/Results browser coverage passes `12/12`; full frontend Vitest passes `818/818`
+  with `80.89%` statement coverage; `make test-fe`, `vue-tsc`, and production build pass.
+- [ ] Exact/unrepresented Study Lab visual evidence remains `REF-STUDY-LAB-V25`; provider/live-
+  entitlement, historical/GICS, native-monitor, beyond-bounded endurance, and final-audit gaps
+  remain open. The unprivileged browser launch's Mach-port failure was retried through the
+  approved elevated boundary; no visual threshold, mask, product criterion, or acceptance
+  flexibility changed.

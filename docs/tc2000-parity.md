@@ -6052,3 +6052,13 @@ and active-descendant contract. Focused component coverage is `4/4`, focused aut
 coverage is `1/1`, and the adjacent Study Lab/Python/Results slice is `12/12`. This is a
 repository-controlled accessibility refinement; `REF-STUDY-LAB-V25` remains open for exact or
 unrepresented visual evidence and no acceptance threshold or mask changed.
+
+## 2026-08-14 — Unified Python SDK autocomplete contract
+
+The editor completion catalog now mirrors the supported isolated-runtime namespaces: prepared
+`market` and `benchmark_*` accessors, supported `ta` helpers, `stats.positive_close_streaks`,
+the four `research` helpers, and all typed `output` artifact methods. Unsupported suggestions
+(`ta.atr` and `stats.percentile`) were removed. Component coverage is `5/5`, authenticated
+editor coverage is `1/1`, adjacent Study Lab/Python/Results coverage is `12/12`, and the full
+frontend gate is `818/818` with `make test-fe`, type-check, and build green. This is a contract
+and discoverability correction; no visual threshold, mask, or acceptance flexibility changed.
