@@ -7,7 +7,8 @@
 - Combined focused adapter/bootstrap/taxonomy/family API validation passed `6/6`; Ruff, compileall,
   and diff checks passed. No acceptance flexibility used. Implementation/docs commit: `e18da88`.
 - The required exact elevated push was attempted once and rejected before Git by the private-origin
-  safeguard. No workaround or repeat; transport-only. Operational checkpoint remains to be made.
+  safeguard. No workaround or repeat; transport-only. Operational checkpoint `26fc021` is clean
+  locally and the next context can continue from this boundary.
 
 ## 2026-08-14 — Dated holdings composition provenance checkpoint
 

@@ -13,8 +13,10 @@
 - Exact elevated push `rtk git push origin HEAD:feat/tc2000-frontend-rework` was attempted once
   after this checkpoint and rejected before Git by the private-origin safeguard. No workaround,
   alternate transport, rewrite, reset, stash, or repeat was used; transport-only.
-- Next: use this operation to populate verified family historical snapshots where free issuer
-  routes support them, then wire browser family drill-down/coverage acceptance.
+- Operational checkpoint `26fc021` records this implementation hash, validation, and rejected push
+  result. The worktree is clean locally; next is to use the operation to populate verified family
+  historical snapshots where free issuer routes support them, then wire browser family
+  drill-down/coverage acceptance.
 
 ## 2026-08-14 — Dated holdings composition provenance fix
 

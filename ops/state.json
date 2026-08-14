@@ -7,7 +7,7 @@
   "last_handoff_at": "2026-08-15T00:45:00Z",
   "last_commit": "e18da88 feat(holdings): add family dated backfill",
   "git_ready_to_commit": true,
-  "git_checkpoint": "Implementation/docs commit e18da88 is clean locally. The exact elevated push rtk git push origin HEAD:feat/tc2000-frontend-rework was attempted once after the implementation checkpoint and rejected before Git by the private-origin safeguard because authorization for the accumulated private payload/destination was unavailable. No workaround, alternate transport, rewrite, reset, stash, or repeat; operational files are pending their separate checkpoint.",
+  "git_checkpoint": "Implementation/docs commit e18da88 and operational checkpoint 26fc021 are clean locally. The exact elevated push rtk git push origin HEAD:feat/tc2000-frontend-rework was attempted once after the implementation checkpoint and rejected before Git by the private-origin safeguard because authorization for the accumulated private payload/destination was unavailable. No workaround, alternate transport, rewrite, reset, stash, or repeat; next context starts from this clean local boundary.",
   "next_context": "benchmark-family-live-and-point-in-time-evidence-20260814",
   "active_context": "benchmark-family-live-and-point-in-time-evidence-20260814",
   "context_status": "family-dated-backfill-ready-for-ops-checkpoint",
