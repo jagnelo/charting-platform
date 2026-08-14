@@ -9611,3 +9611,37 @@ tasks:
         flexibility used. Rebuilt seeded four-environment board-guided visual matrix passed 104/104;
         this remains represented-state evidence only. Exact-build/unrepresented, provider/entitlement,
         monitor, endurance, and final-audit gaps remain open.
+
+  - id: tc2000-family-ratio-workstation-integration-20260814
+    title: Integrate benchmark-family relative-strength ratios into the primary workstation
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Connect the benchmark-family ratio API to the authenticated Market Breadth tool while
+      preserving explicit family/role/market identity, stable request caching, loading/error/no-data
+      semantics, and legacy fixture compatibility through the documented children endpoint.
+    definition_of_done:
+      - Family breadth shows selectable cap/equal/value/growth ratio legs and an explicit market benchmark
+      - Ratio rows expose identity, latest value, point count, coverage, and warnings/state
+      - Stale visibility/generation responses cannot overwrite another family or role selection
+      - Focused browser, full frontend, type-check, and production-build gates pass on a rebuilt stack
+      - Any test-oracle defect is fixed and recorded; no product or visual criterion is relaxed
+    validation:
+      - rebuilt-branch-stack-healthy
+      - F8s-breadth-family-ratio-1-of-1
+      - frontend-vitest-823-of-823
+      - frontend-typecheck
+      - frontend-production-build
+      - git-diff-check
+    notes:
+      - >-
+        Implemented the Market Breadth family-ratio panel and store loader, including the explicit
+        child-metadata hydration path when an older response lacks benchmark_families. The first
+        browser attempt exposed a real ambiguous selector matching both the family and custom breadth
+        controls; it was corrected to the exact labelled select and the authoritative rerun passed
+        1/1 against a freshly force-recreated branch stack. The response interception in that test
+        is labelled deterministic pre-family fixture evidence only; it is not a production fallback
+        and no acceptance flexibility was used. Provider-backed historical holdings/weights,
+        all-leg batch analytics, family-wide breadth/rotation/ranking, drill-down, exact/unrepresented
+        V25 visual states, and final-audit gaps remain open.

@@ -1,5 +1,22 @@
 # Active Handoff
 
+## 2026-08-14 — Family-ratio workstation integration
+
+- Integrated the existing benchmark-family ratio API into the authenticated Market Breadth tool.
+  Family selection now exposes role-aware cap/equal/value/growth legs, an explicit market benchmark,
+  ratio identity, latest value, aligned point count, coverage, and loading/error/no-data states.
+- The workspace store uses a stable family/role/market/timeframe/adjustment request key and protects
+  visibility/generation races. Missing family metadata is hydrated only from the explicit children
+  endpoint; no symbols are hard-coded and no SPY/QQQ fallback exists.
+- Validation: rebuilt branch stack healthy; focused Playwright F8s-breadth-family-ratio `1/1`; full
+  frontend Vitest `823/823`; `vue-tsc`; production build; and diff check. Initial browser failure
+  was an ambiguous test selector and was fixed before the authoritative rerun.
+- Interim evidence ledger: the focused browser test injects a deterministic family registry/ratio
+  response because the persisted fixture predates the family taxonomy. This is labelled fixture
+  setup evidence only; no visual, provenance, or acceptance criterion was relaxed.
+- Open: provider-backed historical memberships/weights, all-leg batch analytics, family breadth/
+  rotation/ranking, constituent drill-down, exact/unrepresented V25 states, and final audit.
+
 ## 2026-08-14 — Family-leg relative-strength ratio contract
 
 - Added `GET /api/v1/analysis/benchmark-families/{family_key}/ratios` with explicit cap/equal/

@@ -26986,3 +26986,16 @@ in 4.6 minutes. No failure was suppressed or reclassified as product success.
   attempt was used. This is transport-only and does not block the product goal;
   the clean implementation commit remains available for a later trusted exact-
   payload retry.
+
+# 2026-08-14 — Benchmark-family ratio workstation integration
+
+- Integrated the family-ratio API into the authenticated Market Breadth tool. The panel supports
+  explicit cap/equal/value/growth role selection and market benchmark selection, and exposes ratio
+  identity, latest value, aligned points, coverage, and loading/error/no-data states.
+- Rebuilt branch stack health was confirmed before browser validation. Focused F8s-breadth-family-
+  ratio passed `1/1`; full frontend Vitest passed `823/823`; type-check and production build passed.
+- The initial browser failure was a real ambiguous selector and was fixed before the authoritative
+  rerun. The test's deterministic family/ratio interception is labelled pre-family fixture evidence
+  only; no visual, provenance, product, or acceptance criterion was relaxed.
+- Remaining family provider/history, all-leg batch, breadth/rotation/ranking, drill-down, exact/
+  unrepresented V25, and final-audit gaps remain open.
