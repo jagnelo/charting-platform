@@ -11393,3 +11393,21 @@ The current source also passes the focused authenticated top-down browser slice 
 - [ ] `REF-STUDY-LAB-V25`, provider/live-entitlement, historical/GICS, native-monitor,
   beyond-bounded endurance, and final-audit gaps remain open. No visual threshold, mask, product
   criterion, or acceptance flexibility changed.
+
+### 2026-08-14 — Unified Python stats namespace
+
+- [x] Added the plan-required deterministic `stats` namespace to the isolated no-network Python
+  runner: finite-input mean, median, population standard deviation, percentile, deterministic
+  ordinal ranks, bounded rolling mean/median/std, Pearson correlation, linear regression, and
+  deterministic distributions. Empty inputs, invalid parameters, non-finite values, and length
+  mismatches return explicit contracts or diagnostics; no provider access, I/O, or network is
+  available to the helpers.
+- [x] Exposed exactly the executable stats surface through Python editor completion and the Study
+  Lab SDK reference. Runner coverage passes `71/71` focused tests; editor/Study Lab unit coverage
+  passes `27/27`; full frontend Vitest passes `818/818` at `80.91%` statements; the authenticated
+  Study Lab/Python/Results browser slice passes `12/12`; `make test-fe`, type-check, production
+  build, uPlot contract, and visual-policy checks pass; combined backend unit/integration coverage
+  passes `1443/1443` at `80.17%` against the required `75%` threshold.
+- [ ] The broader SDK families named in the controlling plan (`research` regimes, conditional
+  outcomes, richer structured studies, and exact/unrepresented Study Lab V25 visual evidence)
+  remain open. No visual threshold, mask, product criterion, or acceptance flexibility changed.

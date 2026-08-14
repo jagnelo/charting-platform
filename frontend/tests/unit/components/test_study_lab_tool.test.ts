@@ -135,8 +135,9 @@ describe('StudyLabTool', () => {
     expect((editor.element as HTMLTextAreaElement).value).toContain('market.close()')
     expect(wrapper.text()).toContain('SDK reference')
     expect(wrapper.text()).toContain('positive_close_streaks')
+    expect(wrapper.text()).toContain('percentile')
+    expect(wrapper.text()).toContain('distribution')
     expect(wrapper.text()).toContain('cross_sectional_rank')
-    expect(wrapper.text()).not.toContain('percentiles')
     expect(wrapper.text()).not.toContain('historical comparisons')
   })
 

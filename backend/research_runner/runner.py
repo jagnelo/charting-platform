@@ -571,6 +571,149 @@ class _Output:
 class _Stats:
     """Small deterministic SDK seed; it has no I/O or host references."""
 
+    @staticmethod
+    def _finite_values(value: object) -> list[float]:
+        materialized = _materialize(value)
+        if not isinstance(materialized, list | tuple):
+            raise ValueError("stats values must be a list")
+        values = [
+            float(item)
+            for item in materialized
+            if isinstance(item, int | float)
+            and not isinstance(item, bool)
+            and math.isfinite(float(item))
+        ]
+        if len(values) != len(materialized):
+            raise ValueError("stats values must contain only finite numbers")
+        return values
+
+    @staticmethod
+    def mean(values: object) -> float | None:
+        numeric = _Stats._finite_values(values)
+        return sum(numeric) / len(numeric) if numeric else None
+
+    @staticmethod
+    def median(values: object) -> float | None:
+        numeric = sorted(_Stats._finite_values(values))
+        if not numeric:
+            return None
+        middle = len(numeric) // 2
+        return numeric[middle] if len(numeric) % 2 else (numeric[middle - 1] + numeric[middle]) / 2
+
+    @staticmethod
+    def std(values: object) -> float | None:
+        numeric = _Stats._finite_values(values)
+        if not numeric:
+            return None
+        average = sum(numeric) / len(numeric)
+        return math.sqrt(sum((item - average) ** 2 for item in numeric) / len(numeric))
+
+    @staticmethod
+    def percentile(values: object, probability: float) -> float | None:
+        numeric = sorted(_Stats._finite_values(values))
+        if not isinstance(probability, int | float) or isinstance(probability, bool) or not math.isfinite(float(probability)) or not 0 <= float(probability) <= 1:
+            raise ValueError("stats percentile probability must be between 0 and 1")
+        if not numeric:
+            return None
+        position = float(probability) * (len(numeric) - 1)
+        lower = math.floor(position)
+        upper = math.ceil(position)
+        if lower == upper:
+            return numeric[lower]
+        fraction = position - lower
+        return numeric[lower] + ((numeric[upper] - numeric[lower]) * fraction)
+
+    @staticmethod
+    def ranks(values: object, descending: bool = True) -> list[int]:
+        numeric = _Stats._finite_values(values)
+        order = sorted(range(len(numeric)), key=lambda index: (-numeric[index], index) if descending else (numeric[index], index))
+        ranks = [0] * len(numeric)
+        for rank, index in enumerate(order, start=1):
+            ranks[index] = rank
+        return ranks
+
+    @staticmethod
+    def rolling(values: object, period: int, function: str = "mean") -> list[float | None]:
+        numeric = _Stats._finite_values(values)
+        if not isinstance(period, int) or isinstance(period, bool) or period <= 0:
+            raise ValueError("stats rolling period must be a positive integer")
+        if function not in {"mean", "median", "std"}:
+            raise ValueError("stats rolling function must be mean, median, or std")
+        result: list[float | None] = []
+        for index in range(len(numeric)):
+            if index + 1 < period:
+                result.append(None)
+                continue
+            window = numeric[index - period + 1 : index + 1]
+            if function == "mean":
+                result.append(sum(window) / period)
+            elif function == "median":
+                result.append(_Stats.median(window))
+            else:
+                result.append(_Stats.std(window))
+        return result
+
+    @staticmethod
+    def correlation(left: object, right: object) -> float | None:
+        x = _Stats._finite_values(left)
+        y = _Stats._finite_values(right)
+        if len(x) != len(y):
+            raise ValueError("stats correlation inputs must have the same length")
+        if len(x) < 2:
+            return None
+        x_mean, y_mean = sum(x) / len(x), sum(y) / len(y)
+        numerator = sum((a - x_mean) * (b - y_mean) for a, b in zip(x, y, strict=True))
+        x_variance = sum((a - x_mean) ** 2 for a in x)
+        y_variance = sum((b - y_mean) ** 2 for b in y)
+        denominator = math.sqrt(x_variance * y_variance)
+        return numerator / denominator if denominator else None
+
+    @staticmethod
+    def regression(x_values: object, y_values: object) -> dict[str, float | int | None]:
+        x = _Stats._finite_values(x_values)
+        y = _Stats._finite_values(y_values)
+        if len(x) != len(y):
+            raise ValueError("stats regression inputs must have the same length")
+        if len(x) < 2:
+            return {"slope": None, "intercept": None, "r_squared": None, "sample_size": len(x)}
+        x_mean, y_mean = sum(x) / len(x), sum(y) / len(y)
+        denominator = sum((item - x_mean) ** 2 for item in x)
+        if denominator == 0:
+            return {"slope": None, "intercept": None, "r_squared": None, "sample_size": len(x)}
+        slope = sum((a - x_mean) * (b - y_mean) for a, b in zip(x, y, strict=True)) / denominator
+        intercept = y_mean - (slope * x_mean)
+        residual = sum((actual - (slope * predicted + intercept)) ** 2 for predicted, actual in zip(x, y, strict=True))
+        total = sum((actual - y_mean) ** 2 for actual in y)
+        r_squared = 1.0 - residual / total if total else 1.0
+        return {"slope": slope, "intercept": intercept, "r_squared": r_squared, "sample_size": len(x)}
+
+    @staticmethod
+    def distribution(values: object, bins: int = 8, current: object = None) -> dict[str, object]:
+        numeric = _Stats._finite_values(values)
+        if not isinstance(bins, int) or isinstance(bins, bool) or not 1 <= bins <= 64:
+            raise ValueError("stats distribution bins must be an integer between 1 and 64")
+        if current is not None and (not isinstance(current, int | float) or isinstance(current, bool) or not math.isfinite(float(current))):
+            raise ValueError("stats distribution current value must be numeric")
+        if not numeric:
+            return {"bins": [], "sample_size": 0, "current": current}
+        minimum, maximum = min(numeric), max(numeric)
+        if minimum == maximum:
+            bucket_rows = [{"start": minimum, "end": maximum, "count": len(numeric)}]
+        else:
+            width = (maximum - minimum) / bins
+            counts = [0] * bins
+            for item in numeric:
+                counts[min(bins - 1, int((item - minimum) / width))] += 1
+            bucket_rows = [
+                {
+                    "start": minimum + (index * width),
+                    "end": maximum if index == bins - 1 else minimum + ((index + 1) * width),
+                    "count": count,
+                }
+                for index, count in enumerate(counts)
+            ]
+        return {"bins": bucket_rows, "sample_size": len(numeric), "min": minimum, "max": maximum, "current": current}
+
     def positive_close_streaks(self, dataset: dict) -> dict:
         closes = dataset.get("closes", [])
         timestamps = dataset.get("timestamps", [])

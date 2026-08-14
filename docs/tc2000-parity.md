@@ -6072,3 +6072,18 @@ and every typed output artifact. Focused Study Lab coverage is `22/22`, adjacent
 coverage is `12/12`, and the full frontend/uPlot/visual-policy gate remains green. This is an
 honesty/contract correction; the broader SDK expansion and `REF-STUDY-LAB-V25` visual gap remain
 open, with no acceptance flexibility changed.
+
+## 2026-08-14 — Unified Python stats namespace
+
+The isolated runner now implements the plan-required deterministic `stats` surface for descriptive
+statistics and open-ended studies: `mean`, `median`, `std`, `percentile`, `ranks`, `rolling`,
+`correlation`, `regression`, and `distribution`, alongside the existing positive-close streak
+helper. Inputs are finite and bounded, and invalid/empty/misaligned contracts are explicit. The
+editor completion catalog and Study Lab reference expose the same methods, so the one Python
+language no longer advertises helpers the runner cannot execute. Focused runner tests pass `71/71`,
+editor/Study Lab tests `27/27`, the authenticated adjacent browser slice `12/12`, full frontend
+Vitest `818/818`, combined backend coverage `1443/1443` at `80.17%`, and type/build/uPlot/
+visual-policy checks pass. This is a genuine backend capability addition; no visual threshold,
+mask, product criterion, or acceptance flexibility changed. `REF-STUDY-LAB-V25`, broader SDK and
+research families, provider/live-entitlement breadth, historical/GICS, native-monitor, endurance,
+and final-audit gaps remain explicitly tracked.

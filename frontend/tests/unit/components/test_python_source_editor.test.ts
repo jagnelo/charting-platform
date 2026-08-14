@@ -102,6 +102,16 @@ describe('PythonSourceEditor', () => {
     expect(wrapper.text()).toContain('ta.ema(market.close(), 20)')
     expect(wrapper.text()).not.toContain('ta.atr(')
 
+    await wrapper.setProps({ modelValue: 'stats.' })
+    ;(editor.element as HTMLTextAreaElement).setSelectionRange(6, 6)
+    await editor.trigger('keyup')
+    expect(wrapper.text()).toContain('stats.mean(values)')
+    expect(wrapper.text()).toContain('stats.percentile(values, 0.9)')
+    await wrapper.setProps({ modelValue: 'stats.d' })
+    ;(editor.element as HTMLTextAreaElement).setSelectionRange(8, 8)
+    await editor.trigger('keyup')
+    expect(wrapper.text()).toContain('stats.distribution(values, 8, current)')
+
     await wrapper.setProps({ modelValue: 'output.' })
     ;(editor.element as HTMLTextAreaElement).setSelectionRange(7, 7)
     await editor.trigger('keyup')

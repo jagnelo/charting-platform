@@ -129,6 +129,53 @@ def test_runner_computes_cross_sectional_rank_and_breadth_from_declared_bars():
     assert result["artifacts"]["percent_above"]["value"] == (2 / 3) * 100
 
 
+def test_runner_exposes_deterministic_stats_namespace_with_edge_contracts():
+    result = execute_job(
+        {
+            "source": (
+                "values = [1, 2, 3, 4]\n"
+                "output.table('summary', [{'mean': stats.mean(values), 'median': stats.median(values), 'std': stats.std(values), 'p90': stats.percentile(values, 0.9)}])\n"
+                "output.table('ranks', [{'value': value, 'rank': rank} for value, rank in zip(values, stats.ranks(values), strict=True)])\n"
+                "output.series('rolling', stats.rolling(values, 2))\n"
+                "output.scalar('correlation', stats.correlation(values, [2, 4, 6, 8]))\n"
+                "output.table('regression', [stats.regression(values, [2, 4, 6, 8])])\n"
+                "output.table('distribution', stats.distribution(values, 2))"
+            ),
+            "output_contract": "study",
+            "dataset": {"timestamps": ["2024-01-01T00:00:00+00:00"] * 4},
+        }
+    )
+    assert result["status"] == "completed"
+    assert result["artifacts"]["summary"]["value"] == [
+        {"mean": 2.5, "median": 2.5, "std": 1.118033988749895, "p90": 3.7}
+    ]
+    assert result["artifacts"]["ranks"]["value"] == [
+        {"value": 1, "rank": 4},
+        {"value": 2, "rank": 3},
+        {"value": 3, "rank": 2},
+        {"value": 4, "rank": 1},
+    ]
+    assert result["artifacts"]["rolling"]["value"]["values"] == [None, 1.5, 2.5, 3.5]
+    assert result["artifacts"]["correlation"]["value"] == 1.0
+    assert result["artifacts"]["regression"]["value"][0]["r_squared"] == 1.0
+    assert result["artifacts"]["distribution"]["value"]["sample_size"] == 4
+
+
+@pytest.mark.parametrize(
+    ("source", "message"),
+    [
+        ("output.scalar('x', stats.percentile([1, 2], 2))", "probability must be between 0 and 1"),
+        ("output.scalar('x', stats.rolling([1, 2], 0))", "period must be a positive integer"),
+        ("output.scalar('x', stats.correlation([1], [1, 2]))", "same length"),
+        ("output.scalar('x', stats.distribution([1, 2], 0))", "bins must be an integer"),
+    ],
+)
+def test_runner_stats_namespace_reports_invalid_contracts(source, message):
+    result = execute_job({"source": source, "dataset": {}})
+    assert result["status"] == "failed"
+    assert message in result["diagnostics"][0]["message"]
+
+
 def test_runner_emits_typed_boolean_artifacts():
     result = execute_job({"source": "output.boolean('qualifies', 2 > 1)", "dataset": {}})
     assert result["status"] == "completed"
