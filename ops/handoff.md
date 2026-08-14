@@ -1,5 +1,14 @@
 # Active Handoff
 
+## 2026-08-14 — Comparison-template parity documentation closure
+
+- Added the completed comparison-template context to the controlling `docs/project-todos.md` and
+  `docs/tc2000-parity.md`; documentation commit is `cc6a04b0` and remains separate from the
+  implementation and operational commits.
+- The worktree is currently clean at `cc6a04b0f753c12db51c5bc19d1e24f71f562f15`, origin remains
+  `91463e54bbfb37dc5e130d3c912434bfc41594bd` (21 commits ahead). The earlier exact push hold now
+  applies to this expanded range; no indirect push or rewrite is permitted.
+
 ## 2026-08-14 — Chart-template comparison context push hold
 
 - Implementation `e568ac83` and operational closure `653ea806` are separate, locally committed,

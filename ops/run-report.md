@@ -1,5 +1,13 @@
 # Run Report
 
+## 2026-08-14 — Comparison-template parity documentation closure
+
+- Controlling parity/TODO documentation now records the comparison-template correction, its
+  validation, and the explicit open-gap/transport status. Documentation commit: `cc6a04b0`.
+- Worktree is clean; local `HEAD` is `cc6a04b0f753c12db51c5bc19d1e24f71f562f15`, origin remains
+  `91463e54bbfb37dc5e130d3c912434bfc41594bd`, ahead by 21. The exact push hold is unchanged in
+  nature and must be retried only through the narrow elevated command after authorization.
+
 ## 2026-08-14 — Chart-template comparison context push hold
 
 - Implementation `e568ac83` and operational record `653ea806` are separate and locally committed;
