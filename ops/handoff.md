@@ -1,5 +1,24 @@
 # Active Handoff
 
+## 2026-08-15 — Historical benchmark-family concentration checkpoint
+
+- Added `GET /analysis/benchmark-families/{family_key}/concentration/history`. At each observed
+  member-bar timestamp it selects the latest holdings disclosure whose composition date and
+  `known_at` were already valid, then reports snapshot/membership identity, reported-weight
+  method, top-N weight, HHI, effective constituent count, distribution statistics, coverage, and
+  exclusions. No future snapshot or alternate role is used.
+- Added store/cache loading and workstation `point-in-time snapshots` history evidence. The
+  two-disclosure integration fixture proves the transition from the first snapshot to the later
+  snapshot only after its known-at boundary.
+- Validation: history integration `1/1`, current/history concentration `2/2`, family integration
+  `14/14`, store `65/65`, Vitest `837/837`, type/build, Ruff/compile, diff-check, and rebuilt
+  authenticated Chromium `F8s-breadth-family-ratio` `1/1`. No acceptance flexibility used; the
+  initial fixture was corrected because its disclosure post-dated all bars.
+- Implementation/docs commit: `6f0b19d7 feat(analysis): add historical family concentration`.
+  Worktree is clean locally. Exact push must be attempted once for this checkpoint and recorded.
+  Next context: derived-equal historical weighting, broader provider population, and historical
+  occurrence/visual coverage.
+
 ## 2026-08-15 — Benchmark-family concentration/dispersion checkpoint
 
 - Added `GET /analysis/benchmark-families/{family_key}/concentration`, reusing the existing

@@ -1,5 +1,19 @@
 # Run Report
 
+## 2026-08-15 — Historical benchmark-family concentration checkpoint
+
+- Added timestamp-safe family concentration history over all independent cap/equal/value/growth
+  roles. Snapshot selection requires composition and known-at evidence before the bar timestamp;
+  metrics retain snapshot/membership lineage, weights, top-N/HHI/effective count, dispersion,
+  coverage, and exclusions.
+- Added store cache and workstation history-point evidence. A two-disclosure regression proves
+  that later holdings do not leak into earlier history.
+- Validation: history integration `1/1`, current/history concentration `2/2`, family integration
+  `14/14`, store `65/65`, Vitest `837/837`, type/build, Ruff/compileall, diff-check, and Chromium
+  `F8s-breadth-family-ratio` `1/1`. No acceptance flexibility used.
+- Remaining: derived-equal historical weighting, complete provider-backed eight-family/style
+  population, and longer historical occurrence/visual acceptance.
+
 ## 2026-08-15 — Benchmark-family concentration/dispersion checkpoint
 
 - Added family-role concentration and cross-sectional dispersion over the canonical point-in-time
