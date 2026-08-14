@@ -1,5 +1,27 @@
 # Active Handoff
 
+## 2026-08-14 — Study Lab current-history distribution renderer (completed)
+
+- Context owner: Codex. Owned paths are `frontend/src/components/workstation/StudyLabTool.vue`,
+  its focused tests, and checkpoint docs.
+- Intent: make the Current versus history factory study emit an inspectable histogram and sample
+  size in addition to its current/mean/median/percentile/z-score table.
+- Acceptance flexibility used before implementation: `REF-STUDY-LAB-V25` original-surface interim
+  baseline and product-contract evidence; the board has no authoritative Study Lab capture. No
+  visual threshold, mask, product criterion, or acceptance rule is relaxed.
+- Completed: the Current versus history factory source now emits `historical_sample_size` and
+  `historical_return_distribution` with the current value highlighted, preserving the comparison
+  table and summary metrics.
+- Validation: focused Study Lab `22/22`; frontend `820/820`; authenticated Study Lab/Python/Results
+  browser `12/12`; `make test-fe`, uPlot/visual-policy, type-check, production build, and
+  `git diff --check` pass.
+- Acceptance flexibility used: `REF-STUDY-LAB-V25` original-surface interim baseline and
+  product-contract evidence; no authoritative Study Lab board capture exists. The gap remains
+  open; no visual threshold, mask, product criterion, or acceptance rule changed.
+- Implementation/docs are committed locally as `a2775509` (`feat(study-lab): render current history distribution`).
+- Next action: commit this operational checkpoint separately, verify
+  clean state, and continue the next independent goal context.
+
 ## 2026-08-14 — Unified Python generic streaks (completed)
 
 - Context owner: Codex. Owned paths are `backend/research_runner/runner.py`, focused runner

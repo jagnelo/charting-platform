@@ -1,4 +1,27 @@
 tasks:
+  - id: tc2000-study-lab-current-history-distribution-20260814
+    title: Render current-versus-history distribution in Study Lab
+    status: completed
+    priority: medium
+    scope: >-
+      Extend the Current versus history factory study with a histogram and explicit sample-size
+      metric while preserving the existing comparison statistics and typed output contract.
+    definition_of_done:
+      - Factory source emits a histogram using the current observation as the highlighted value
+      - Factory source emits an explicit historical sample-size metric
+      - Focused Study Lab tests cover source and factory selection
+      - Full frontend, type/build, browser, and static checks pass
+      - REF-STUDY-LAB-V25 interim flexibility is recorded; no threshold or product criterion changes
+    validation:
+      - focused-study-lab-22-of-22
+      - frontend-vitest-820-of-820
+      - adjacent-authenticated-study-python-results-12-of-12
+      - make-test-fe-uplot-visual-policy-type-check-build
+      - git-diff-check
+    notes:
+      - Original Study Lab surface has no authoritative board capture; local interim baseline remains open.
+      - Acceptance flexibility used: REF-STUDY-LAB-V25 interim baseline/product-contract evidence only; no threshold or product criterion changed.
+      - Implementation/docs commit: a2775509; operational checkpoint follows as a separate commit.
   - id: tc2000-study-lab-current-versus-history-comparison-20260814
     title: Add Study Lab current-versus-history comparison
     status: completed
