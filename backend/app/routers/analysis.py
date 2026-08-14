@@ -501,13 +501,30 @@ def _wire_datetime(value: datetime | None) -> str | None:
     return encoded.replace("+00:00", "Z")
 
 
-def _group_members_at(group: MarketGroup, as_of: datetime | None) -> list[MarketGroupMember]:
-    """Select a group's versioned members without admitting future membership."""
+def _group_members_at(
+    group: MarketGroup,
+    as_of: datetime | None,
+    *,
+    allow_late_registered_group: bool = False,
+) -> list[MarketGroupMember]:
+    """Select a group's versioned members without admitting future membership.
+
+    Curated benchmark-family roots can be registered after the historical member
+    rows they describe.  Derived historical views may explicitly opt into using
+    each member's effective/known-at boundary as the source of truth; ordinary
+    group snapshots retain the stricter group-lifecycle check.
+    """
     # Root groups created before lifecycle timestamps were introduced may have
     # no group-level known_at.  Their members still carry the authoritative
     # point-in-time boundary, so retain the static-root compatibility rule while
     # requiring each member's known_at below.
-    if not _is_known_at(group.effective_at, as_of) or not _is_known_at(group.known_at, as_of):
+    if (
+        not allow_late_registered_group
+        and (
+            not _is_known_at(group.effective_at, as_of)
+            or not _is_known_at(group.known_at, as_of)
+        )
+    ):
         raise HTTPException(
             404,
             detail={"code": "market_group_not_known_at", "group_key": group.stable_key},
@@ -2378,7 +2395,11 @@ async def benchmark_family_concentration_history(
     """
 
     family = (
-        await db.execute(select(MarketGroup).where(MarketGroup.stable_key == family_key))
+        await db.execute(
+            select(MarketGroup)
+            .options(selectinload(MarketGroup.members))
+            .where(MarketGroup.stable_key == family_key)
+        )
     ).scalar_one_or_none()
     if family is None or family.group_type != "benchmark_family":
         raise HTTPException(
@@ -2389,6 +2410,10 @@ async def benchmark_family_concentration_history(
     official = provenance.get("official_index")
     mappings = provenance.get("proxy_mappings")
     mappings = mappings if isinstance(mappings, Mapping) else {}
+    derived_equal_metadata = provenance.get("derived_equal_weight")
+    derived_equal_metadata = (
+        derived_equal_metadata if isinstance(derived_equal_metadata, Mapping) else {}
+    )
     roles: list[BenchmarkFamilyConcentrationHistoryRoleOut] = []
     exclusions: list[AnalysisWarning] = []
     freshness_ids: list[int] = []
@@ -2399,6 +2424,135 @@ async def benchmark_family_concentration_history(
         symbol = str(mapping.get("symbol")).upper() if mapping.get("symbol") else None
         label = str(mapping.get("label") or "No verified mapped proxy")
         verification_state = str(mapping.get("verification_state") or "not_verified")
+        if (
+            role == "equal_weight"
+            and not symbol
+            and derived_equal_metadata.get("allowed") is True
+        ):
+            # A derived equal leg has no ETF holdings snapshot.  Select the
+            # point-in-time group members at each bar instead, so membership
+            # changes cannot leak backwards into earlier concentration points.
+            constituent_relationships = {
+                "constituent",
+                "official_constituent",
+                "etf_proxy_constituent",
+            }
+            all_constituent_members = [
+                member
+                for member in family.members
+                if member.relationship_type in constituent_relationships
+            ]
+            member_ids = sorted({member.instrument_id for member in all_constituent_members})
+            freshness_ids.extend(member_ids)
+            bars_by_id = _truncate_bars_at(
+                await _bars_by_instrument(db, member_ids, timeframe, adjusted), as_of
+            )
+            series_by_id = {
+                instrument_id: _historical_return_series(bars)
+                for instrument_id, bars in bars_by_id.items()
+                if bars
+            }
+            timestamps = sorted(
+                {timestamp for series in series_by_id.values() for timestamp in series}
+            )[-limit:]
+            points: list[BenchmarkFamilyConcentrationHistoryPointOut] = []
+            role_exclusions: list[AnalysisWarning] = []
+            for timestamp in timestamps:
+                try:
+                    active_members = [
+                        member
+                        for member in _group_members_at(
+                            family, timestamp, allow_late_registered_group=True
+                        )
+                        if member.relationship_type in constituent_relationships
+                    ]
+                except HTTPException:
+                    active_members = []
+                active_ids = sorted({member.instrument_id for member in active_members})
+                if not active_ids:
+                    continue
+                returns = [
+                    float(series_by_id[instrument_id][timestamp][rank_period])
+                    for instrument_id in active_ids
+                    if instrument_id in series_by_id
+                    and timestamp in series_by_id[instrument_id]
+                    and series_by_id[instrument_id][timestamp].get(rank_period) is not None
+                ]
+                eligible_count = len(active_ids)
+                covered_count = len(returns)
+                hhi = 1 / eligible_count
+                effective_date_values = [
+                    member.effective_at.date()
+                    for member in active_members
+                    if member.effective_at is not None
+                ]
+                known_at_values = [
+                    member.known_at for member in active_members if member.known_at is not None
+                ]
+                point_warnings: list[AnalysisWarning] = []
+                if covered_count < eligible_count:
+                    point_warnings.append(
+                        AnalysisWarning(
+                            code="derived_equal_partial_bars",
+                            message=(
+                                "Members without an observed local bar were excluded from "
+                                "the concentration distribution at this timestamp."
+                            ),
+                        )
+                    )
+                points.append(
+                    BenchmarkFamilyConcentrationHistoryPointOut(
+                        timestamp=timestamp,
+                        snapshot_id=None,
+                        composition_date=(
+                            max(effective_date_values) if effective_date_values else None
+                        ),
+                        known_at=max(known_at_values) if known_at_values else None,
+                        membership_version=_group_membership_version(family, active_members),
+                        membership_semantics="point_in_time_group_membership",
+                        weight_method=str(
+                            derived_equal_metadata.get("method")
+                            or "equal_start_weight_point_in_time_membership"
+                        ),
+                        reported_weight_coverage=None,
+                        top_n_weight=min(top_n / eligible_count, 1.0),
+                        hhi=hhi,
+                        effective_constituents=float(eligible_count),
+                        eligible_count=eligible_count,
+                        covered_count=covered_count,
+                        excluded_count=0,
+                        coverage=covered_count / max(eligible_count, 1),
+                        warnings=point_warnings,
+                        **_distribution_stats(returns),
+                    )
+                )
+            if not points:
+                warning = AnalysisWarning(
+                    code="derived_equal_membership_unavailable",
+                    message=(
+                        f"No point-in-time derived equal-weight membership observations are "
+                        f"available for {family_key}."
+                    ),
+                )
+                role_exclusions.append(warning)
+                exclusions.append(warning)
+            roles.append(
+                BenchmarkFamilyConcentrationHistoryRoleOut(
+                    role=role,
+                    symbol=None,
+                    label=(
+                        f"{family.name} derived equal-weight"
+                        if label == "No verified mapped proxy"
+                        else label
+                    ),
+                    verification_state="derived_policy",
+                    available=bool(points),
+                    membership_semantics="point_in_time_group_membership",
+                    points=points,
+                    exclusions=role_exclusions,
+                )
+            )
+            continue
         if not symbol:
             warning = AnalysisWarning(
                 code="family_role_mapping_unavailable",
@@ -4365,7 +4519,7 @@ async def benchmark_family_derived_equal_weight(
             },
         )
 
-    members = _group_members_at(group, as_of)
+    members = _group_members_at(group, as_of, allow_late_registered_group=True)
     constituent_members = [
         member
         for member in members

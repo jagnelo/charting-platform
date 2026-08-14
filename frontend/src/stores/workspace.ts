@@ -377,12 +377,14 @@ export interface BenchmarkFamilyConcentrationHistoryState {
     label: string
     verification_state: string
     available: boolean
+    membership_semantics?: string | null
     points: Array<{
       timestamp: string
-      snapshot_id: number
-      composition_date: string
-      known_at: string
+      snapshot_id: number | null
+      composition_date: string | null
+      known_at: string | null
       membership_version: number
+      membership_semantics?: string | null
       weight_method: string
       reported_weight_coverage?: number | null
       top_n_weight?: number | null

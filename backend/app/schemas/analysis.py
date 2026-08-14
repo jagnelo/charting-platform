@@ -182,10 +182,11 @@ class BenchmarkFamilyConcentrationHistoryPointOut(BaseModel):
     """One point-in-time concentration observation for a family leg."""
 
     timestamp: datetime
-    snapshot_id: int
-    composition_date: date
-    known_at: datetime
+    snapshot_id: int | None = None
+    composition_date: date | None = None
+    known_at: datetime | None = None
     membership_version: int
+    membership_semantics: str | None = None
     weight_method: str = "unavailable"
     reported_weight_coverage: float | None = Field(default=None, ge=0, le=1)
     top_n_weight: float | None = None
@@ -215,6 +216,7 @@ class BenchmarkFamilyConcentrationHistoryRoleOut(BaseModel):
     label: str
     verification_state: str
     available: bool
+    membership_semantics: str | None = None
     points: list[BenchmarkFamilyConcentrationHistoryPointOut] = Field(default_factory=list)
     exclusions: list[AnalysisWarning] = Field(default_factory=list)
 

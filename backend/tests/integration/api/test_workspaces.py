@@ -876,6 +876,105 @@ class TestWorkspaces:
         assert {item["snapshot_id"] for item in cap["points"]} == {snapshot.id, later_snapshot.id}
         assert roles["equal_weight"]["available"] is False
 
+    def test_benchmark_family_concentration_history_supports_derived_equal_membership(
+        self, client, auth_headers, db, instrument, instrument_b, ohlcv_bars
+    ):
+        from datetime import UTC, datetime
+        from decimal import Decimal
+
+        from sqlalchemy import select
+
+        from app.models.ohlcv import OHLCVBar, Timeframe
+        from app.models.workstation import MarketGroup, MarketGroupMember
+
+        seeded = client.get("/api/v1/market-groups", headers=auth_headers)
+        assert seeded.status_code == 200
+        family = db.execute(
+            select(MarketGroup).where(MarketGroup.stable_key == "sp400")
+        ).scalar_one()
+        db.add_all(
+            [
+                MarketGroupMember(
+                    market_group_id=family.id,
+                    instrument_id=instrument.id,
+                    relationship_type="constituent",
+                    position=1,
+                    source="controlled_fixture",
+                    verification_state="point_in_time_verified",
+                    effective_at=datetime(2024, 1, 1, tzinfo=UTC),
+                    known_at=datetime(2024, 1, 2, tzinfo=UTC),
+                    provenance={"membership_semantics": "official_constituent"},
+                ),
+                MarketGroupMember(
+                    market_group_id=family.id,
+                    instrument_id=instrument_b.id,
+                    relationship_type="constituent",
+                    position=2,
+                    source="controlled_fixture",
+                    verification_state="point_in_time_verified",
+                    effective_at=datetime(2024, 3, 1, tzinfo=UTC),
+                    known_at=datetime(2024, 3, 2, tzinfo=UTC),
+                    provenance={"membership_semantics": "official_constituent"},
+                ),
+            ]
+        )
+        for index, bar in enumerate(ohlcv_bars):
+            close = Decimal(str(220 + index))
+            db.add(
+                OHLCVBar(
+                    instrument_id=instrument_b.id,
+                    timeframe=Timeframe.D1,
+                    ts=bar.ts,
+                    open=close,
+                    high=close,
+                    low=close,
+                    close=close,
+                    volume=Decimal("1"),
+                    is_adjusted=True,
+                )
+            )
+        db.flush()
+
+        response = client.get(
+            "/api/v1/analysis/benchmark-families/sp400/concentration/history",
+            headers=auth_headers,
+            params={"rank_period": "YTD", "top_n": 5, "limit": 500},
+        )
+        assert response.status_code == 200, response.text
+        payload = response.json()
+        roles = {role["role"]: role for role in payload["roles"]}
+        equal = roles["equal_weight"]
+        assert equal["available"] is True
+        assert equal["symbol"] is None
+        assert equal["verification_state"] == "derived_policy"
+        assert equal["membership_semantics"] == "point_in_time_group_membership"
+        assert equal["points"]
+        assert {point["snapshot_id"] for point in equal["points"]} == {None}
+        assert {point["membership_semantics"] for point in equal["points"]} == {
+            "point_in_time_group_membership"
+        }
+        before_rebalance = [
+            point
+            for point in equal["points"]
+            if point["timestamp"] < "2024-03-02T00:00:00+00:00"
+        ][-1]
+        after_rebalance = [
+            point
+            for point in equal["points"]
+            if point["timestamp"] >= "2024-03-02T00:00:00+00:00"
+        ][0]
+        assert before_rebalance["eligible_count"] == 1
+        assert before_rebalance["hhi"] == 1
+        assert before_rebalance["composition_date"] == "2024-01-01"
+        assert before_rebalance["known_at"].startswith("2024-01-02")
+        assert after_rebalance["eligible_count"] == 2
+        assert after_rebalance["hhi"] == 0.5
+        assert after_rebalance["composition_date"] == "2024-03-01"
+        assert after_rebalance["known_at"].startswith("2024-03-02")
+        assert equal["points"][-1]["weight_method"] == (
+            "equal_start_weight_point_in_time_membership_rebalanced_on_declared_schedule"
+        )
+
     def test_benchmark_family_ratios_align_selected_leg_to_cap_and_market(
         self, client, auth_headers, db, instrument_type
     ):
@@ -1413,6 +1512,8 @@ class TestWorkspaces:
     def test_benchmark_family_derived_equal_weight_requires_constituent_membership(
         self, client, auth_headers, db, instrument, ohlcv_bars
     ):
+        from datetime import UTC, datetime
+
         from sqlalchemy import select
 
         from app.models.workstation import MarketGroup, MarketGroupMember
@@ -1430,6 +1531,8 @@ class TestWorkspaces:
                 position=0,
                 source="controlled_fixture",
                 verification_state="proxy_verified",
+                effective_at=datetime(2024, 1, 1, tzinfo=UTC),
+                known_at=datetime(2024, 1, 2, tzinfo=UTC),
                 provenance={"membership_semantics": "etf_proxy_membership"},
             )
         )
@@ -1446,6 +1549,16 @@ class TestWorkspaces:
         assert len(available_payload["points"]) == len(ohlcv_bars)
         assert available_payload["universe_provenance"]["membership_semantics"] == (
             "point_in_time_constituent_derived_equal_weight"
+        )
+        historical = client.get(
+            "/api/v1/analysis/benchmark-families/sp1500/derived-equal-weight",
+            headers=auth_headers,
+            params={"as_of": "2024-01-03T00:00:00Z"},
+        )
+        assert historical.status_code == 200, historical.text
+        assert historical.json()["member_count"] == 1
+        assert historical.json()["universe_provenance"]["membership_as_of"].startswith(
+            "2024-01-03"
         )
 
         unavailable = client.get(

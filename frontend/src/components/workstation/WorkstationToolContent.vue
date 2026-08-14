@@ -554,7 +554,7 @@
         <span v-else class="breadth-tool__status">Concentration unavailable.</span>
         <span v-if="familyConcentrationHistoryLoading" role="status">Loading history…</span>
         <span v-else-if="familyConcentrationHistoryError" class="breadth-tool__status--error" role="alert">{{ familyConcentrationHistoryError }}</span>
-        <span v-else-if="familyConcentrationHistory" class="breadth-tool__family-concentration-history">History · {{ familyConcentrationHistoryPointCount }} points · point-in-time snapshots</span>
+        <span v-else-if="familyConcentrationHistory" class="breadth-tool__family-concentration-history">History · {{ familyConcentrationHistoryPointCount }} points · {{ familyConcentrationHistoryMode }}</span>
       </div>
       <div v-if="isBenchmarkFamily" class="breadth-tool__cross-family-ranking" aria-label="Cross-family ranking">
         <strong>US family ranking · {{ crossFamilyRanking?.rank_period ?? '1M' }}</strong>
@@ -1766,6 +1766,7 @@ const familyConcentrationHistoryKey = computed(() => `${breadthGroupKey.value}:$
 const familyConcentrationHistory = computed(() => workspaceStore.benchmarkFamilyConcentrationHistories[familyConcentrationHistoryKey.value])
 const familyConcentrationHistoryError = computed(() => workspaceStore.benchmarkFamilyConcentrationHistoryErrors[familyConcentrationHistoryKey.value] ?? null)
 const familyConcentrationHistoryPointCount = computed(() => Math.max(0, ...((familyConcentrationHistory.value?.roles ?? []).map(role => role.points.length))))
+const familyConcentrationHistoryMode = computed(() => familyConcentrationHistory.value?.roles.some(role => role.membership_semantics === 'point_in_time_group_membership') ? 'point-in-time member membership' : 'point-in-time snapshots')
 const familyConcentrationHistoryLoading = ref(false)
 const crossFamilyRankingKey = computed(() => `${breadthTimeframe.value}:${breadthAdjusted.value ? 'adj' : 'raw'}:${familyAsOf.value || 'latest'}:1M::`)
 const crossFamilyRanking = computed(() => workspaceStore.crossFamilyRankings[crossFamilyRankingKey.value])

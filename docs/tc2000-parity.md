@@ -25,6 +25,23 @@ unavailable, or derived state. It is never silently substituted. All eight roots
 verified leg must be exercised as real analysis perspectives; a selector-only check is not parity.
 This is a scope clarification, not an acceptance relaxation.
 
+## 2026-08-15 — Derived-equal historical concentration parity slice
+
+Families whose taxonomy explicitly permits derived equal weighting now receive historical
+concentration points even when no equal-weight ETF mapping exists. At each observed timestamp the
+route selects only constituent/official-constituent/ETF-proxy-constituent rows whose member-level
+effective and known-at boundaries are valid, then reports equal-weight top-N/HHI/effective-count,
+distribution, coverage, membership version, and `point_in_time_group_membership` semantics. These
+points deliberately carry no ETF holdings snapshot ID; native ETF history and derived group history
+remain distinguishable.
+
+The derived path explicitly permits a benchmark root registered after its historical member rows,
+while ordinary group snapshots still enforce the root lifecycle boundary. A regression proves a
+later-known member changes the derived universe only after its known-at timestamp. This closes the
+derived-equal historical concentration contract, not complete eight-root membership/rebalance
+population, native equal-weight history, historical breadth occurrences, or final browser/visual
+parity.
+
 ## 2026-08-15 — Historical family concentration/dispersion parity slice
 
 Family concentration now has a historical endpoint and workstation evidence path. At each observed
@@ -35,9 +52,10 @@ top-N/HHI/effective-count metrics, distribution statistics, coverage, and exclus
 SPY fixture regression proves a later disclosure does not become active before its known-at time.
 
 The current browser surface displays the bounded history-point count beside the current dense
-concentration strip. This closes the historical contract/presentation slice, not full data
-population: derived equal-weight history, complete S&P/Russell/Nasdaq role snapshots, longer
-history/occurrence visualization, and final all-root provider-backed parity remain open.
+concentration strip. This closes the reported-weight historical contract/presentation slice; the
+derived-equal historical contract is documented above. Complete S&P/Russell/Nasdaq role snapshots,
+rebalance continuity, longer history/occurrence visualization, and final all-root provider-backed
+parity remain open.
 
 ## 2026-08-14 — Family concentration and dispersion parity slice
 

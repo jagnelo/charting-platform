@@ -29,6 +29,26 @@
       historical-membership, visual-reference, and browser-population gaps remain explicit
       tracked work; this clarification does not relax any acceptance criterion.
 
+### 2026-08-15 — Point-in-time derived-equal historical concentration
+
+- [x] Extended `GET /analysis/benchmark-families/{family_key}/concentration/history` to use the
+      family’s explicitly allowed derived-equal policy when no verified equal ETF mapping exists.
+      Each point selects versioned constituent rows by member-level effective/known-at boundaries,
+      calculates equal-weight top-N/HHI/effective-count and dispersion, and labels the result as
+      `point_in_time_group_membership` with no fabricated ETF snapshot ID.
+- [x] Added an explicit late-registered benchmark-root policy: only this derived historical path
+      may ignore a taxonomy root’s current registration `known_at`; member-level boundaries remain
+      mandatory, while ordinary group snapshots retain the stricter lifecycle check.
+- [x] Regression coverage proves a second member becomes eligible only after its known-at boundary,
+      changes membership version/HHI from 1 to 0.5, and never receives a holdings snapshot ID.
+      Focused derived test `1/1`, concentration/derived subset `4/4`, benchmark-family subset `15/15`,
+      full Vitest `837/837`, type-check, Ruff, compileall, and diff checks pass. The first run exposed
+      the late-registered-root defect and it was repaired before the authoritative reruns; no
+      acceptance flexibility used.
+- [ ] Still open: complete provider-backed membership/rebalance history across all eight roots,
+      native equal-weight history, historical breadth predicates/occurrences, and full browser/
+      visual acceptance.
+
 ### 2026-08-15 — Historical family concentration and dispersion
 
 - [x] Added `GET /analysis/benchmark-families/{family_key}/concentration/history` with bounded
@@ -44,8 +64,9 @@
 - [x] Validation passes: focused history integration `1/1`, current/history concentration `2/2`,
       family integration `14/14`, store `65/65`, full Vitest `837/837`, type-check/build, Ruff,
       compilation, diff-check, rebuilt authenticated Chromium `F8s-breadth-family-ratio 1/1`.
-- [ ] Still open: historical derived-equal weighting, longer all-family/style population,
-      historical breadth predicates/occurrences, and full family-wide provider-backed acceptance.
+- [x] Derived-equal historical weighting is now covered by the dedicated point-in-time member
+      path above; the remaining population, occurrence, and full family acceptance gaps remain
+      tracked rather than hidden.
 
 ### 2026-08-14 — Family concentration and cross-sectional dispersion slice
 

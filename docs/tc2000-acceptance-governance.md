@@ -19,6 +19,17 @@ as-of policy, coverage, exclusions, freshness, and provenance. Missing evidence 
 family, or a current-only snapshot. This is an expansion of the acceptance scope, not a relaxed
 criterion; unresolved provider, historical, visual, and browser gaps stay in the gap ledger.
 
+## 2026-08-15 — Derived-equal historical concentration sub-gate
+
+For a family with `derived_equal_weight.allowed=true` and no verified equal ETF mapping, acceptance
+must call concentration history and verify member-level effective/known-at selection at each bar,
+equal-weight method disclosure, membership version, `point_in_time_group_membership` semantics,
+null holdings snapshot ID, coverage, and no future-member leakage. A taxonomy root’s later
+registration timestamp may not suppress historical member rows in this explicitly reconstructed
+path, but ordinary group snapshots may not bypass the stricter root lifecycle policy. The S&P
+MidCap-400 fixture proves the one-to-two-member transition and is now passing; complete provider
+population, declared rebalance schedules, and all-root browser/visual acceptance remain open.
+
 ## 2026-08-15 — Historical concentration/dispersion sub-gate
 
 Historical concentration acceptance must prove timestamp-safe disclosure selection. For each point,
@@ -26,8 +37,9 @@ the selected snapshot's composition date and `known_at` must precede the bar tim
 response preserves snapshot ID, membership version, weight method, top-N/HHI/effective count,
 distribution, coverage, and exclusions. A later disclosure must not alter earlier points. The
 current two-snapshot fixture and browser history evidence satisfy this contract for the represented
-SPY/RSP state; derived equal-weight history, complete eight-root/provider population, and broader
-historical occurrence/visual acceptance remain explicit open gates.
+SPY/RSP state, while the derived-equal member-level contract is covered by the dedicated sub-gate
+above. Complete eight-root/provider population and broader historical occurrence/visual acceptance
+remain explicit open gates.
 
 ## 2026-08-14 — Concentration/dispersion sub-gate
 
