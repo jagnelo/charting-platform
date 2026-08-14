@@ -1,5 +1,23 @@
 # Active Handoff
 
+## 2026-08-14 — Study Lab research-helper integration (completed)
+
+- Context owner: Codex. Owned paths are `frontend/src/components/workstation/StudyLabTool.vue`,
+  its focused tests, and corresponding docs/ops checkpoint records.
+- Intent: make factory Study Lab templates consume the newly executable unified `research` and
+  `stats` helpers rather than duplicating equivalent calculations in user-facing starter code.
+- Completed: Forward-return distribution now uses `research.conditional_outcomes`; Volatility regime
+  now uses `stats.rolling` and `stats.median`; source-contract tests prevent regression to the
+  duplicated calculations.
+- Validation: Study Lab `22/22`; adjacent authenticated browser `12/12`; frontend `818/818` at
+  `80.90%`; `make test-fe`, uPlot/visual-policy, type-check, and production build pass.
+- No visual threshold, mask, product criterion, or acceptance flexibility changed. Exact/
+  unrepresented Study Lab V25 and broader research/provider/historical/monitor/endurance/final-
+  audit gaps remain open.
+- Implementation/docs are committed locally as `ecc47ed7106239114ad865d39b7d6e82540c403c`.
+- Next action: commit the operational checkpoint separately, verify a clean worktree, and continue
+  the next independent goal context.
+
 ## 2026-08-14 — Research outcome helpers Git closure
 
 - Implementation `ee0de098420aaea7fcc9e85f2b0bd587873a0b81` and operational checkpoint `d9b54e91`

@@ -1,4 +1,25 @@
 tasks:
+  - id: tc2000-study-lab-research-helper-integration-20260814
+    title: Integrate unified research helpers into Study Lab factory starters
+    status: completed
+    priority: medium
+    scope: >-
+      Replace duplicated forward-return and volatility-regime starter calculations with the
+      executable unified research/stats helpers and prove the starter source contracts.
+    definition_of_done:
+      - Factory starters use only supported unified SDK methods for the migrated calculations
+      - Focused source-contract tests, full frontend, type/build, and browser gates pass
+      - No visual threshold, mask, product criterion, or acceptance flexibility changes
+    validation:
+      - study-lab-source-contract-22-of-22
+      - adjacent-authenticated-study-python-results-12-of-12
+      - frontend-vitest-818-of-818
+      - frontend-coverage-80.90-percent-statements
+      - make-test-fe-uplot-and-visual-policy
+      - frontend-type-check-and-production-build
+      - git-diff-check
+    notes:
+      - Context is integration hardening; broader Study Lab visual and research gaps remain open.
   - id: tc2000-unified-python-research-outcome-helpers-20260814
     title: Add unified Python research outcome and regime helpers
     status: completed
