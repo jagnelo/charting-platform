@@ -1,5 +1,13 @@
 # Run Report
 
+## 2026-08-14 — Supporting-backend provider route audit
+
+- Focused no-network provider registry contract passes `2/2` under Python 3.12.
+- WisdomTree official DXJ page evidence was rechecked; backend-compatible retrieval returned
+  Cloudflare HTTP 403 and did not expose a complete public holdings export. The adapter remains
+  fallback-only. No provider, membership, or acceptance rule changed; acceptance flexibility used:
+  none.
+
 ## 2026-08-14 — Exact push authorization hold
 
 - Clean local HEAD is `871e1dcd`. The exact elevated push for `91463e54..871e1dcd` was retried

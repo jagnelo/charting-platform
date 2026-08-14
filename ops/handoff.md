@@ -1,5 +1,16 @@
 # Active Handoff
 
+## 2026-08-14 — Supporting-backend provider route audit
+
+- Provider registry contract passes `2/2` under Python 3.12. WisdomTree's official DXJ page was
+  checked through browser-indexed content and a read-only backend-compatible request; the latter
+  returns Cloudflare HTTP 403. The visible page publishes only top-ten HTML in the indexed view,
+  while the all-holdings modal is dynamic and did not expose an executable complete file.
+- WisdomTree therefore remains explicitly SEC/fallback-only. No non-US/UCITS route, top-ten list,
+  or proxy data was promoted as official membership. Acceptance flexibility used: none.
+- Continue the TC2000 workstation/backend goal from the next independent context; this provider
+  access gap is tracked, not a goal blocker.
+
 ## 2026-08-14 — Exact push authorization hold
 
 - The worktree remains clean at `871e1dcd`. A retry explicitly naming the user's instruction and

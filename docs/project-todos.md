@@ -1,5 +1,18 @@
 # Project TODO Memory
 
+### 2026-08-14 — Supporting-backend provider route audit
+
+- [x] The provider registry contract passes `2/2` under the repository-supported Python 3.12
+      environment: every registered issuer remains represented and every native/live-backed
+      issuer remains tied to a concrete live-route test. No external live probes were enabled.
+- [x] Re-probed WisdomTree's official DXJ product page and export surface. Browser-indexed official
+      content exposes holdings, but backend-compatible requests receive Cloudflare HTTP 403; no
+      complete executable public holdings file was found. WisdomTree remains explicitly
+      fallback-only rather than being promoted on top-ten HTML or a non-US/UCITS route.
+- [ ] Acceptance flexibility used: **none**. This is an external provider-access gap, not a
+      TC2000 workstation blocker. Continue with other supporting-backend and workstation contexts;
+      retry WisdomTree only through independently executable issuer routes.
+
 ### 2026-08-14 — Exact push authorization hold
 
 - [x] The clean local branch is now at `871e1dcd`; the exact push for range

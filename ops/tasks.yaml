@@ -1,4 +1,27 @@
 tasks:
+  - id: tc2000-wisdomtree-route-audit-20260814
+    title: Re-probe WisdomTree holdings access without promoting an incomplete route
+    status: completed
+    priority: medium
+    scope: >-
+      Validate the WisdomTree native holdings route from the official DXJ product surface and
+      preserve an explicit fallback-only state when backend-compatible access is blocked.
+    definition_of_done:
+      - Provider registry contract passes under the supported Python runtime
+      - Official route and any complete export surface are checked read-only
+      - Top-ten HTML or non-US/UCITS evidence is not mistaken for complete US holdings
+      - Fallback-only state and next action are recorded without blocking workstation work
+      - No provider or acceptance rule is changed without executable complete evidence
+    validation:
+      - provider-registry-contract-2-of-2
+      - official-dxj-page-browser-evidence
+      - backend-curl-cloudflare-403
+      - git-diff-check
+    notes:
+      - >-
+        WisdomTree official DXJ content is visible to indexed browser retrieval, but backend
+        requests returned Cloudflare HTTP 403 and no complete public holdings export was exposed.
+        The adapter remains fallback-only. Acceptance flexibility used: none.
   - id: tc2000-canonical-full-matrix-after-f8k-retry-20260814
     title: Verify the complete canonical matrix after bounded F8k setup retry
     status: completed
