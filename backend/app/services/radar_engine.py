@@ -1,8 +1,9 @@
 import math
+from collections import defaultdict
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -210,22 +211,42 @@ def _clamp(value: float, low: float = 0.0, high: float = 1.0) -> float:
     return max(low, min(high, value))
 
 
-async def _load_bars(db: AsyncSession, instrument_id: int, timeframe: Timeframe) -> list[OHLCVBar]:
-    rows = (
-        (
-            await db.execute(
-                select(OHLCVBar)
-                .where(OHLCVBar.instrument_id == instrument_id, OHLCVBar.timeframe == timeframe)
-                .order_by(OHLCVBar.ts.desc())
-                .limit(RADAR_LOOKBACK_BARS)
+async def _load_bars_by_instrument(
+    db: AsyncSession,
+    instrument_ids: list[int],
+    timeframe: Timeframe,
+) -> dict[int, list[OHLCVBar]]:
+    """Load the bounded radar history for a universe in one indexed query."""
+    if not instrument_ids:
+        return {}
+    ranked = (
+        select(
+            OHLCVBar.id.label("bar_id"),
+            func.row_number()
+            .over(
+                partition_by=OHLCVBar.instrument_id,
+                order_by=OHLCVBar.ts.desc(),
             )
+            .label("bar_rank"),
         )
-        .scalars()
-        .all()
+        .where(
+            OHLCVBar.instrument_id.in_(instrument_ids),
+            OHLCVBar.timeframe == timeframe,
+        )
+        .subquery()
     )
-    rows = list(rows)
-    rows.reverse()
-    return rows
+    rows = (
+        await db.execute(
+            select(OHLCVBar)
+            .join(ranked, OHLCVBar.id == ranked.c.bar_id)
+            .where(ranked.c.bar_rank <= RADAR_LOOKBACK_BARS)
+            .order_by(OHLCVBar.instrument_id, OHLCVBar.ts)
+        )
+    ).scalars().all()
+    grouped: dict[int, list[OHLCVBar]] = defaultdict(list)
+    for row in rows:
+        grouped[row.instrument_id].append(row)
+    return dict(grouped)
 
 
 def _indicator_visual(
@@ -2360,36 +2381,42 @@ async def run_radar_scan(
             instrument_stmt = instrument_stmt.where(Instrument.id.in_(basket_member_ids))
 
         instruments = list((await db.execute(instrument_stmt)).scalars().all())
+        instrument_ids = [instrument.id for instrument in instruments]
+        bars_by_instrument = await _load_bars_by_instrument(db, instrument_ids, timeframe)
+        thread_rows = (
+            (
+                await db.execute(
+                    select(RadarSetupThread)
+                    .where(
+                        RadarSetupThread.instrument_id.in_(instrument_ids or [-1]),
+                        RadarSetupThread.timeframe == timeframe,
+                    )
+                    .options(selectinload(RadarSetupThread.detections))
+                    .order_by(
+                        RadarSetupThread.instrument_id,
+                        RadarSetupThread.last_seen_at.desc(),
+                        RadarSetupThread.id.desc(),
+                    )
+                )
+            )
+            .scalars()
+            .all()
+        )
+        threads_by_instrument: dict[int, list[RadarSetupThread]] = defaultdict(list)
+        for thread in thread_rows:
+            threads_by_instrument[thread.instrument_id].append(thread)
 
         detections: list[RadarDetection] = []
         evaluated = 0
         for instrument in instruments:
-            bars = await _load_bars(db, instrument.id, timeframe)
+            bars = bars_by_instrument.get(instrument.id, [])
             if not bars:
                 continue
             evaluated += 1
             instrument_run_detections: list[RadarDetection] = []
             observed_at = bars[-1].ts if bars[-1].ts.tzinfo else bars[-1].ts.replace(tzinfo=UTC)
             latest_close = float(bars[-1].close)
-            thread_rows = (
-                (
-                    await db.execute(
-                        select(RadarSetupThread)
-                        .where(
-                            RadarSetupThread.instrument_id == instrument.id,
-                            RadarSetupThread.timeframe == timeframe,
-                        )
-                        .options(selectinload(RadarSetupThread.detections))
-                        .order_by(
-                            RadarSetupThread.last_seen_at.desc(),
-                            RadarSetupThread.id.desc(),
-                        )
-                    )
-                )
-                .scalars()
-                .all()
-            )
-            instrument_threads = list(thread_rows)
+            instrument_threads = list(threads_by_instrument.get(instrument.id, []))
             matched_thread_ids: set[int] = set()
             for candidate in sorted(analyze_instrument(instrument, bars), key=_candidate_sort_key):
                 thread = _find_matching_thread(candidate, instrument_threads)
