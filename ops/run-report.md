@@ -1,5 +1,16 @@
 # Run Report
 
+## 2026-08-14 — Clean changeset closure and push transport hold
+
+- Closed the browser acceptance context in isolated commits: implementation/test `51e042fb`,
+  followed by operational/parity record `06b09a1f`. Worktree is clean and `git diff --check`
+  passes.
+- The exact elevated push `rtk git push origin HEAD:feat/tc2000-frontend-rework` was rejected
+  before Git by the private-repository egress safeguard for range `91463e54..06b09a1f`.
+- This is transport-only. No workaround, alternate transport, force push, history rewrite, reset,
+  or stash was used; the goal remains in progress and the clean local commits remain separately
+  recoverable.
+
 ## 2026-08-14 — Browser acceptance hardening context
 
 - Corrected three browser-oracle races without changing product behavior: persisted full-history

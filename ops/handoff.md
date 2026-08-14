@@ -1,5 +1,18 @@
 # Active Handoff
 
+## 2026-08-14 — Current clean boundary and push transport result
+
+- Implementation/test commit `51e042fb` and operational/parity commit `06b09a1f` are present as
+  separate, reviewed commits. The worktree is clean; `git diff --check` passes.
+- Exact elevated command attempted: `rtk git push origin HEAD:feat/tc2000-frontend-rework`.
+  The execution environment rejected it before Git because exact trusted authorization for the
+  private-repository payload and destination was unavailable. This is a transport-only state,
+  not a repository, authentication, product, or goal blocker.
+- Current exact range is `91463e54..06b09a1f`. No alternate shell/API/plugin, force push, rewrite,
+  reset, stash, or indirect workaround was attempted. The next push action is the same approved
+  elevated command after the environment grants exact authorization; independent goal work may
+  continue from this clean boundary.
+
 ## 2026-08-14 — Workstation browser acceptance hardening context completed
 
 - Implementation/test commit `51e042fb` hardens the browser acceptance contract: inward zoom makes
