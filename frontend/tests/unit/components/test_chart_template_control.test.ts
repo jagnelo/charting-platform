@@ -70,6 +70,27 @@ describe('ChartTemplateControl', () => {
     }])
   })
 
+  it('persists alternative-bar parameters and clears them when chart defaults are reset', async () => {
+    const wrapper = mount(ChartTemplateControl, {
+      props: { configuration: {
+        symbol: 'SPY', bar_type: 'point_figure', box_size: 5, reversal: 2,
+      } },
+    })
+    await vi.waitFor(() => expect(apiGet).toHaveBeenCalled())
+    await wrapper.get('button[aria-label="Chart templates"]').trigger('click')
+    await wrapper.get('[aria-label="Chart template name"]').setValue('Point figure template')
+    await wrapper.get('.chart-template__save button').trigger('click')
+    expect(apiPut.mock.calls[0][1].payload.configuration).toEqual(expect.objectContaining({
+      bar_type: 'point_figure', box_size: 5, reversal: 2,
+    }))
+
+    await wrapper.get('footer button').trigger('click')
+    expect(wrapper.emitted('apply')?.at(-1)?.[0]).toEqual(expect.objectContaining({
+      bar_type: 'candles', brick_size: undefined, reversal_pct: undefined,
+      box_size: undefined, reversal: undefined,
+    }))
+  })
+
   it('renames a saved template in place while preserving its stable identity and configuration', async () => {
     apiGet.mockResolvedValueOnce([{
       stable_key: 'trend-20', name: 'Trend 20', version: 3,

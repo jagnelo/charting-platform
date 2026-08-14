@@ -191,6 +191,28 @@ test.describe('Chart', () => {
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
+  test('F9c-template-transform — chart templates retain alternative transform mechanics and reset them', async ({ page, browserDiagnostics }) => {
+    await page.goto('/chart/SPY')
+    const chart = page.locator('.chart-tool').filter({ has: page.getByTitle('Chart templates') }).first()
+    await expect(chart).toBeVisible({ timeout: 15_000 })
+    await chart.getByTitle('Chart templates').click()
+    const menu = chart.locator('.chart-template__menu:visible').last()
+    await menu.getByRole('combobox', { name: 'Chart bar type' }).selectOption('point_figure')
+    await page.getByTitle('Chart settings').first().click()
+    const settings = page.getByRole('dialog', { name: 'Chart Settings' })
+    await settings.getByRole('spinbutton', { name: 'Box size' }).fill('5')
+    await settings.getByRole('spinbutton', { name: 'Reversal boxes' }).fill('2')
+    await settings.getByRole('spinbutton', { name: 'Reversal boxes' }).press('Tab')
+    await expect(settings.getByRole('spinbutton', { name: 'Box size' })).toHaveValue('5')
+    await page.locator('.editor-box .ed-close').click()
+    await menu.getByRole('textbox', { name: 'Chart template name' }).fill(`P&F ${Date.now()}`)
+    await menu.getByRole('button', { name: 'Save', exact: true }).click()
+    await expect(menu.locator('.chart-template__apply').first()).toBeVisible({ timeout: 15_000 })
+    await menu.locator('footer button').click()
+    await expect(menu.getByRole('combobox', { name: 'Chart bar type' })).toHaveValue('candles')
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
   test('F9c-keyboard — chart templates support keyboard opening and focus recovery', async ({ page, browserDiagnostics }) => {
     await page.goto('/chart/SPY')
     const chart = page.locator('.chart-tool').filter({ has: page.getByRole('button', { name: 'Chart templates' }) }).first()

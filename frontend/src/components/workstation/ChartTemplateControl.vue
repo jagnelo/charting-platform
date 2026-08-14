@@ -230,7 +230,18 @@ async function remove(item: TemplateItem) {
   finally { busy.value = false }
 }
 
-function reset() { currentBarType.value = 'candles'; emit('apply', { timeframe: 'D1', bar_type: 'candles', indicators: [] }) }
+function reset() {
+  currentBarType.value = 'candles'
+  emit('apply', {
+    timeframe: 'D1',
+    bar_type: 'candles',
+    brick_size: undefined,
+    reversal_pct: undefined,
+    box_size: undefined,
+    reversal: undefined,
+    indicators: [],
+  })
+}
 function exportItem(item: TemplateItem) {
   const blob = new Blob([JSON.stringify({ kind: 'chart_template', name: item.name, payload: item.payload }, null, 2)], { type: 'application/json' })
   const href = URL.createObjectURL(blob); const link = document.createElement('a')
