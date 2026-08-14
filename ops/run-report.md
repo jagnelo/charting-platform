@@ -13,6 +13,9 @@
   flexibility used; the only corrected issue was a real response-contract omission.
 - Remaining: historical concentration curves, rebalance-aware weights, provider-backed
   S&P/Russell/Nasdaq family population, and final V25 visual/acceptance gates.
+- Git closure: implementation/docs commit `4d295b26` and ops checkpoint are clean locally. The
+  exact push was attempted once and rejected before Git by the private-origin safeguard; no
+  workaround or repeat. This does not block product work.
 
 ## 2026-08-15 — Benchmark-family relative-rotation checkpoint
 

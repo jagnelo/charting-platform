@@ -15,9 +15,10 @@
   `F8s-breadth-family-ratio` `1/1`. The initial unavailable-role response defect was repaired
   (`coverage=0.0`) and rerun; no acceptance flexibility used.
 - Implementation/docs commit: `4d295b26 feat(analysis): add family concentration dispersion`.
-  Worktree is clean locally. Exact push must be attempted once for this checkpoint and recorded;
-  private-origin rejection is transport-only and not a goal blocker. Next context: historical
-  concentration/dispersion, rebalance-aware weights, and complete eight-root provider evidence.
+  Worktree is clean locally. Exact `rtk git push origin HEAD:feat/tc2000-frontend-rework` was
+  attempted once and rejected before Git by the private-origin safeguard; no workaround or
+  repeat. This is transport-only and not a goal blocker. Next context: historical concentration/
+  dispersion, rebalance-aware weights, and complete eight-root provider evidence.
 
 ## 2026-08-15 — Benchmark-family relative-rotation checkpoint
 
