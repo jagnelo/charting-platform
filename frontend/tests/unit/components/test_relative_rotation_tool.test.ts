@@ -60,6 +60,18 @@ describe('RelativeRotationTool', () => {
     await vi.waitFor(() => expect(wrapper.emitted('configuration')?.at(-1)?.[0]).toEqual(expect.objectContaining({ group_key: 'us-benchmarks', benchmark: 'IWM', timeframe: 'W1', sampling: 3, lookback: 12, tail_length: 4, as_of: '2024-04-30', adjusted: false })))
   })
 
+  it('uses the benchmark-family role rotation contract without borrowing SPY', async () => {
+    vi.mocked(api.get).mockResolvedValue({ freshness: 'coverage_limited', benchmark: 'MDY', roles: [
+      { role: 'cap_weight', instrument_id: 1, symbol: 'MDY', label: 'MDY', verification_state: 'verified', available: true, state: 'leading', trend: 0, momentum: 0, coverage: 1, tail: [] },
+      { role: 'equal_weight', instrument_id: null, symbol: null, label: 'No verified mapped proxy', verification_state: 'not_verified', available: false, state: null, trend: null, momentum: null, coverage: 0, tail: [], warnings: [{ code: 'role_mapping_unavailable', message: 'No equal proxy' }] },
+    ] })
+    const wrapper = mountTool({ props: { configuration: { group_key: 'sp400', benchmark: 'SPY' } } })
+    await vi.waitFor(() => expect(wrapper.text()).toContain('MDY'))
+    expect(wrapper.find('[role="region"][aria-label="Relative rotation vs MDY"]').exists()).toBe(true)
+    expect(api.get).toHaveBeenCalledWith('/analysis/benchmark-families/sp400/relative-rotation', expect.not.objectContaining({ benchmark: 'SPY' }))
+    expect(wrapper.text()).toContain('No verified mapped proxy')
+  })
+
   it('sorts the companion table from its headers', async () => {
     vi.mocked(api.get).mockResolvedValue({ freshness: 'current', rows: [
       { instrument_id: 1, symbol: 'XLK', state: 'leading', trend: 0.1, momentum: 0.1, distance: 0.14, coverage: 1, tail: [] },

@@ -1,5 +1,17 @@
 # Run Report
 
+## 2026-08-15 — Benchmark-family relative-rotation checkpoint
+
+- Added family-role relative rotation against each family cap proxy, with transparent state/tail
+  metrics, sampling/lookback controls, provenance/freshness, and no-fallback unavailable legs.
+- Extended the uPlot tool with S&P 500/400/600/1500, Russell 1000/2000/3000, and Nasdaq 100 family
+  choices. Generic rotation behavior remains green.
+- Validation: integration `3/3`, component `7/7`, frontend Vitest `835/835`, type/build,
+  Ruff/compileall, diff-check, family browser `1/1`, generic browser `1/1`. No flexibility used;
+  fixture/accessibility test defects were fixed and rerun.
+- Remaining: longer historical rotation, concentration/dispersion, provider-backed family
+  population, and final V25 visual/acceptance gates.
+
 ## 2026-08-14 — Historical cross-family ranking checkpoint
 
 - Added historical cross-family leadership curves with actual observed timestamps, rank-period

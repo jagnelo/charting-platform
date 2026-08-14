@@ -1,5 +1,20 @@
 # Active Handoff
 
+## 2026-08-15 — Benchmark-family relative-rotation checkpoint
+
+- Added `GET /analysis/benchmark-families/{family_key}/relative-rotation`, comparing cap/equal/
+  value/growth legs against each family’s own cap proxy with transparent aligned-ratio trend,
+  momentum, state, transition, heading, distance, velocity, time-in-state, tail, coverage, and
+  role-local unavailable semantics.
+- Extended the uPlot Relative Rotation tool with all eight family universes and resolved cap
+  benchmark labels. Generic sector/market-group rotation remains unchanged.
+- Validation: family rotation/ranking integration `3/3`, focused component `7/7`, full Vitest
+  `835/835`, type/build, Ruff/compile, diff-check, rebuilt family Chromium `1/1`, and generic
+  rotation Chromium `1/1`. A fixture as-of boundary and an accessibility-label mismatch were
+  repaired before authoritative reruns; no acceptance flexibility used.
+- Implementation is ready for checkpoint. Next context: longer rotation history, concentration/
+  dispersion, and complete evidence population across all eight roots.
+
 ## 2026-08-14 — Historical cross-family ranking checkpoint
 
 - Added `GET /analysis/benchmark-families/ranking/history` with bounded observed-timestamp

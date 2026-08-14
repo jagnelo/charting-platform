@@ -12486,3 +12486,24 @@ The current source also passes the focused authenticated top-down browser slice 
 - [ ] Still open: relative-rotation history/tails across every family, concentration/dispersion,
       condition-driven ranking inputs, and complete provider-backed population and browser evidence
       across all eight roots.
+
+### 2026-08-15 — Benchmark-family relative rotation
+
+- [x] Added `GET /analysis/benchmark-families/{family_key}/relative-rotation`, comparing each
+      evidenced cap/equal/value/growth leg against that family’s own cap proxy. The response uses
+      transparent aligned-ratio trend and momentum calculations, configurable sampling/lookback/
+      tail length, state, heading, distance, velocity, transition, time-in-state, coverage,
+      freshness, and role-local warnings. A missing cap proxy is a family capability error; a
+      missing style/equal leg remains unavailable and never borrows SPY, QQQ, or another family.
+- [x] Extended the uPlot Relative Rotation tool with all eight family universes. Family selection
+      routes to the family contract and displays the resolved cap benchmark (for example MDY for
+      S&P MidCap 400); generic sector/market-group rotation retains its existing benchmark input.
+- [x] Validation passes: family-role rotation integration plus ranking regressions `3/3`, focused
+      component `7/7`, full frontend Vitest `835/835`, `vue-tsc`, production build, Ruff,
+      compileall, `git diff --check`, rebuilt family Chromium `1/1`, and unchanged generic rotation
+      Chromium `1/1`. Initial fixture and accessibility-label defects were repaired before the
+      authoritative reruns; no product acceptance rule, visual threshold, mask, or provider rule
+      was relaxed.
+- [ ] Still open: historical rotation curves beyond bounded tails, concentration/dispersion,
+      condition-driven ranking inputs, and complete provider-backed population/browser evidence
+      across all eight roots.

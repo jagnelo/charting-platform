@@ -78,6 +78,46 @@ class RelativeRotationOut(AnalysisResponseMetadata):
     rows: list[RelativeRotationRow]
 
 
+class BenchmarkFamilyRotationRoleOut(BaseModel):
+    """Transparent relative-rotation state for one family cap/style leg."""
+
+    role: Literal["cap_weight", "equal_weight", "value", "growth"]
+    instrument_id: int | None = None
+    symbol: str | None = None
+    label: str
+    verification_state: str
+    available: bool
+    trend: float | None = None
+    momentum: float | None = None
+    state: str | None = None
+    heading: float | None = None
+    distance: float | None = None
+    velocity: float | None = None
+    transition: str | None = None
+    time_in_state: int | None = None
+    coverage: float = Field(ge=0, le=1)
+    tail: list[RelativeRotationTailPoint] = Field(default_factory=list)
+    warnings: list[AnalysisWarning] = Field(default_factory=list)
+
+
+class BenchmarkFamilyRotationOut(AnalysisResponseMetadata):
+    """Relative rotation of family cap/equal/value/growth legs against cap."""
+
+    family_key: str
+    benchmark: str
+    official_index_symbol: str
+    timeframe: str
+    adjustment: str
+    as_of: datetime | None = None
+    sampling: int = Field(default=1, ge=1, le=30)
+    lookback: int
+    tail_length: int
+    membership_version: int
+    universe_provenance: dict[str, object] = Field(default_factory=dict)
+    roles: list[BenchmarkFamilyRotationRoleOut] = Field(default_factory=list)
+    exclusions: list[AnalysisWarning] = Field(default_factory=list)
+
+
 class AnalysisCell(BaseModel):
     value: float | None = None
     observation_time: datetime | None = None

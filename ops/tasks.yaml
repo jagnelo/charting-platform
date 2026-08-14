@@ -367,6 +367,38 @@ tasks:
         oracle compared UTC strings lexicographically despite equivalent `Z` and `+00:00` forms;
         it was repaired to compare parsed instants before the passing rerun. No product criterion,
         visual threshold, mask, or provider rule changed.
+  - id: tc2000-benchmark-family-relative-rotation-20260815
+    title: Add benchmark-family cap/equal/style relative rotation
+    status: completed
+    priority: high
+    scope: >-
+      Extend the transparent Relative Rotation contract to all eight benchmark families. Compare
+      each evidenced cap/equal/value/growth leg against the family cap proxy with configurable
+      sampling/lookback/tail length, trend/momentum/state/transition metrics, coverage, freshness,
+      and explicit no-fallback role states. Wire family selection into the uPlot tool while keeping
+      generic sector/market-group rotation behavior unchanged.
+    definition_of_done:
+      - GET /analysis/benchmark-families/{family_key}/relative-rotation returns cap/equal/value/growth role states and tails
+      - Family rotations use the resolved family cap proxy and reject missing cap capability without SPY/QQQ substitution
+      - Missing equal/value/growth mappings remain visible unavailable states with provenance/warnings
+      - Sampling, lookback, tail length, timeframe, adjustment, and as_of are preserved
+      - Relative Rotation offers all eight family universes and displays the resolved cap benchmark
+      - Focused backend/component, full frontend, type/build, lint/compile, diff, and family/generic browser checks pass
+      - Longer historical rotation, concentration, dispersion, and complete provider-backed population remain open
+    validation:
+      - benchmark-family-rotation-ranking-integration-3-of-3
+      - relative-rotation-component-7-of-7
+      - frontend-vitest-835-of-835
+      - vue-tsc-and-production-build
+      - ruff-compileall-and-diff-check
+      - rebuilt-F8s-rotation-family-1-of-1
+      - rebuilt-F8s-rotation-generic-1-of-1
+    notes:
+      - >-
+        Implemented and validated on 2026-08-15. A first fixture used an as_of before the seeded
+        family's known-at boundary and was corrected to exercise the latest contract; a component
+        accessibility-label mismatch was repaired so the resolved cap benchmark is authoritative.
+        No product acceptance, visual threshold, mask, or provider rule was relaxed.
   - id: tc2000-generic-condition-driven-breadth-20260814
     title: Broaden breadth from fixed metrics to reusable condition-driven cross-sectional studies
     status: in_progress

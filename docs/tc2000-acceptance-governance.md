@@ -210,6 +210,18 @@ the current cross-family ranking and retain the same condition-editor interactio
 Relative-rotation tails, concentration, dispersion, and complete provider-backed population remain
 separate gates. No acceptance flexibility is used.
 
+#### Benchmark-family relative-rotation sub-gate
+
+For every configured family root, acceptance must call the family relative-rotation contract with
+declared timeframe, sampling, lookback, tail length, adjustment, and optional `as_of`. It must
+verify cap/equal/value/growth role identity, cap-relative aligned ratios, transparent trend and
+momentum, state/transition/time-in-state fields, tail timestamps, coverage, freshness, and explicit
+unavailable states. A family must use its own cap proxy; SPY, QQQ, another family, or a current-only
+substitute is not permitted. The uPlot tool must expose all eight family choices, resolve the cap
+benchmark in its region label, preserve the generic group rotation route, and keep missing style
+legs visible without covering controls. Longer historical tails, concentration, dispersion, and
+fully populated provider evidence remain separate gates. No acceptance flexibility is used.
+
 #### Dated holdings coverage sub-gate
 
 Before a family/leg can be presented as historically usable, acceptance must call

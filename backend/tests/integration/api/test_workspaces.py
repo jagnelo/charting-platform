@@ -1136,6 +1136,69 @@ class TestWorkspaces:
         )
         assert observed <= base + timedelta(days=35)
 
+    def test_benchmark_family_relative_rotation_returns_role_tails_without_fallback(
+        self, client, auth_headers, db, instrument_type
+    ):
+        from datetime import UTC, datetime, timedelta
+        from decimal import Decimal
+
+        from app.models.instrument import Instrument
+        from app.models.ohlcv import OHLCVBar, Timeframe
+
+        seeded = client.get("/api/v1/market-groups", headers=auth_headers)
+        assert seeded.status_code == 200
+        instruments = {}
+        for symbol in ("SPY", "RSP"):
+            instrument = Instrument(
+                symbol=symbol,
+                name=symbol,
+                currency="USD",
+                instrument_type_id=instrument_type.id,
+                is_active=True,
+            )
+            db.add(instrument)
+            db.flush()
+            instruments[symbol] = instrument
+        base = datetime(2024, 1, 1, tzinfo=UTC)
+        for index in range(35):
+            for symbol, value in (
+                ("SPY", 100 + index),
+                ("RSP", 100 + (2 * index)),
+            ):
+                close = Decimal(str(value))
+                db.add(
+                    OHLCVBar(
+                        instrument_id=instruments[symbol].id,
+                        timeframe=Timeframe.D1,
+                        ts=base + timedelta(days=index),
+                        open=close,
+                        high=close,
+                        low=close,
+                        close=close,
+                        volume=Decimal("1"),
+                        is_adjusted=True,
+                    )
+                )
+        db.flush()
+
+        response = client.get(
+            "/api/v1/analysis/benchmark-families/sp500/relative-rotation",
+            headers=auth_headers,
+            params={"lookback": 5, "tail_length": 3},
+        )
+        assert response.status_code == 200, response.text
+        payload = response.json()
+        roles = {role["role"]: role for role in payload["roles"]}
+        assert payload["benchmark"] == "SPY"
+        assert roles["cap_weight"]["available"] is True
+        assert roles["cap_weight"]["tail"][-1]["trend"] == 0
+        assert roles["equal_weight"]["available"] is True
+        assert len(roles["equal_weight"]["tail"]) == 3
+        assert roles["equal_weight"]["trend"] > 0
+        assert roles["equal_weight"]["state"] in {"leading", "weakening"}
+        assert roles["value"]["available"] is False
+        assert roles["value"]["warnings"][0]["code"] == "role_mapping_unavailable"
+
     def test_benchmark_family_derived_equal_weight_requires_constituent_membership(
         self, client, auth_headers, db, instrument, ohlcv_bars
     ):

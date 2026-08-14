@@ -421,6 +421,20 @@ RSI, or custom-condition interactions. This closes historical cross-family ranki
 relative-rotation tails, concentration/dispersion, provider-backed eight-root population, and
 unrepresented Version 25 visual states remain open.
 
+## 2026-08-15 — Benchmark-family relative-rotation parity slice
+
+Relative Rotation now accepts each of the eight benchmark-family roots as a universe. For a selected
+family it compares cap/equal/value/growth legs against the family’s resolved cap proxy, preserving
+transparent ratio trend/momentum semantics, sampled tails, state transitions, heading, distance,
+velocity, time-in-state, coverage, freshness, and role-local unavailable states. The tool resolves
+the returned cap benchmark rather than displaying a hard-coded SPY label, and keeps the generic
+sector/market-group route unchanged.
+
+The rebuilt browser matrix covers an S&P MidCap 400 family selection with an unavailable equal leg
+and verifies that the generic sector rotation flow still passes. This closes family-role rotation
+presentation and bounded-tail behavior only; longer historical rotation, concentration/dispersion,
+provider population, and unrepresented Version 25 visual states remain open.
+
 ## 2026-08-14 — Breadth scope expanded to condition-driven cross-sectional studies
 
 The breadth requirement is broader than the current fixed metric panel. The implemented panel

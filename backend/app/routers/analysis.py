@@ -51,6 +51,8 @@ from app.schemas.analysis import (
     BenchmarkFamilyRankingRoleOut,
     BenchmarkFamilyRatioOut,
     BenchmarkFamilyRatiosOut,
+    BenchmarkFamilyRotationOut,
+    BenchmarkFamilyRotationRoleOut,
     BenchmarkFamilyTechnicalRoleOut,
     BenchmarkFamilyTechnicalsOut,
     BreadthConditionRequest,
@@ -500,6 +502,64 @@ def _rotation_state(trend: float, momentum: float) -> str:
     if momentum >= 0:
         return "improving"
     return "lagging"
+
+
+def _rotation_metrics(
+    aligned: list[tuple[datetime, float]], sampling: int, lookback: int, tail_length: int
+) -> tuple[dict[str, object] | None, list[RelativeRotationTailPoint], list[AnalysisWarning]]:
+    """Calculate transparent relative-rotation metrics from an aligned ratio series."""
+
+    sampled = _sample_aligned_points(aligned, sampling)
+    warnings: list[AnalysisWarning] = []
+    coordinates: list[RelativeRotationTailPoint] = []
+    for index in range(lookback * 2, len(sampled)):
+        ratio = sampled[index][1]
+        prior_ratio = sampled[index - lookback][1]
+        prior_prior_ratio = sampled[index - lookback * 2][1]
+        if prior_ratio == 0 or prior_prior_ratio == 0:
+            continue
+        trend = ratio / prior_ratio - 1
+        previous_trend = prior_ratio / prior_prior_ratio - 1
+        coordinates.append(
+            RelativeRotationTailPoint(
+                timestamp=sampled[index][0], trend=trend, momentum=trend - previous_trend
+            )
+        )
+    if not coordinates:
+        return None, [], warnings
+    latest = coordinates[-1]
+    state = _rotation_state(latest.trend, latest.momentum)
+    coordinate_states = [_rotation_state(point.trend, point.momentum) for point in coordinates]
+    previous_state = coordinate_states[-2] if len(coordinate_states) > 1 else None
+    time_in_state = 0
+    for coordinate_state in reversed(coordinate_states):
+        if coordinate_state != state:
+            break
+        time_in_state += 1
+    previous = coordinates[-2] if len(coordinates) > 1 else None
+    velocity = (
+        math.hypot(latest.trend - previous.trend, latest.momentum - previous.momentum)
+        if previous is not None
+        else None
+    )
+    return (
+        {
+            "trend": latest.trend,
+            "momentum": latest.momentum,
+            "state": state,
+            "heading": math.degrees(math.atan2(latest.momentum, latest.trend)),
+            "distance": math.hypot(latest.trend, latest.momentum),
+            "velocity": velocity,
+            "transition": (
+                f"{previous_state}->{state}"
+                if previous_state and previous_state != state
+                else None
+            ),
+            "time_in_state": time_in_state,
+        },
+        coordinates[-tail_length:],
+        warnings,
+    )
 
 
 def _group_provenance(group: MarketGroup, as_of: datetime | None) -> dict[str, object]:
@@ -1010,6 +1070,197 @@ async def relative_strength(
         overlap_end=points[-1].timestamp if points else None,
         coverage=len(points) / maximum,
         warnings=warnings,
+    )
+
+
+@router.get(
+    "/benchmark-families/{family_key}/relative-rotation",
+    response_model=BenchmarkFamilyRotationOut,
+)
+async def benchmark_family_relative_rotation(
+    family_key: str,
+    timeframe: Timeframe = Timeframe.D1,
+    adjusted: bool = True,
+    as_of: datetime | None = Query(default=None),
+    sampling: int = Query(default=1, ge=1, le=30),
+    lookback: int = Query(default=20, ge=2, le=252),
+    tail_length: int = Query(default=10, ge=1, le=100),
+    _: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Compare each evidenced family leg with its own cap proxy using aligned ratios."""
+
+    group = (
+        await db.execute(
+            select(MarketGroup)
+            .options(selectinload(MarketGroup.members))
+            .where(
+                MarketGroup.stable_key == family_key,
+                MarketGroup.group_type == "benchmark_family",
+            )
+        )
+    ).scalar_one_or_none()
+    if group is None:
+        raise HTTPException(404, detail={"code": "benchmark_family_not_found", "family_key": family_key})
+    provenance = dict(group.provenance or {})
+    official = provenance.get("official_index")
+    mappings = provenance.get("proxy_mappings")
+    mappings = mappings if isinstance(mappings, Mapping) else {}
+    cap_mapping = mappings.get("cap_weight")
+    cap_mapping = cap_mapping if isinstance(cap_mapping, Mapping) else {}
+    cap_symbol = cap_mapping.get("symbol")
+    if not cap_symbol:
+        raise HTTPException(
+            409,
+            detail={"code": "family_cap_proxy_unavailable", "family_key": family_key},
+        )
+    try:
+        cap_instrument = await _instrument(db, str(cap_symbol))
+    except HTTPException as error:
+        if error.status_code == 404:
+            raise HTTPException(
+                409,
+                detail={"code": "family_cap_proxy_unavailable", "family_key": family_key},
+            ) from error
+        raise
+    role_names = ("cap_weight", "equal_weight", "value", "growth")
+    role_instruments: dict[str, Instrument] = {"cap_weight": cap_instrument}
+    exclusions: list[AnalysisWarning] = []
+    for role in role_names[1:]:
+        mapping = mappings.get(role)
+        mapping = mapping if isinstance(mapping, Mapping) else {}
+        symbol = mapping.get("symbol")
+        if not symbol:
+            continue
+        try:
+            role_instruments[role] = await _instrument(db, str(symbol))
+        except HTTPException as error:
+            if error.status_code != 404:
+                raise
+            exclusions.append(
+                AnalysisWarning(
+                    code="instrument_not_found",
+                    message=f"No canonical instrument exists for {family_key} {role}.",
+                )
+            )
+    instrument_ids = [instrument.id for instrument in role_instruments.values()]
+    bars_by_id = _truncate_bars_at(
+        await _bars_by_instrument(db, instrument_ids, timeframe, adjusted), as_of
+    )
+    benchmark_bars = bars_by_id.get(cap_instrument.id, [])
+    benchmark_by_timestamp = {bar.ts: bar for bar in benchmark_bars}
+    roles: list[BenchmarkFamilyRotationRoleOut] = []
+    for role in role_names:
+        mapping = mappings.get(role)
+        mapping = mapping if isinstance(mapping, Mapping) else {}
+        symbol = str(mapping.get("symbol")).upper() if mapping.get("symbol") else None
+        label = str(mapping.get("label") or "No verified mapped proxy")
+        verification_state = str(mapping.get("verification_state") or "not_verified")
+        instrument = role_instruments.get(role)
+        warnings: list[AnalysisWarning] = []
+        if instrument is None:
+            warnings.append(
+                AnalysisWarning(
+                    code="role_mapping_unavailable",
+                    message=f"No verified {role} proxy is available for {family_key}.",
+                )
+            )
+            roles.append(
+                BenchmarkFamilyRotationRoleOut(
+                    role=role,
+                    symbol=symbol,
+                    label=label,
+                    verification_state=verification_state,
+                    available=False,
+                    coverage=0,
+                    warnings=warnings,
+                )
+            )
+            continue
+        bars = bars_by_id.get(instrument.id, [])
+        aligned = [
+            (bar.ts, float(bar.close / benchmark_by_timestamp[bar.ts].close))
+            for bar in bars
+            if bar.ts in benchmark_by_timestamp and benchmark_by_timestamp[bar.ts].close != 0
+        ]
+        maximum = max(len(bars), len(benchmark_bars), 1)
+        if not aligned:
+            warnings.append(
+                AnalysisWarning(
+                    code="no_aligned_bars",
+                    message="No aligned ratio bars are available.",
+                    instrument_id=instrument.id,
+                )
+            )
+        elif len(aligned) < maximum:
+            warnings.append(
+                AnalysisWarning(
+                    code="partial_overlap",
+                    message="Only intersecting timestamps were used; gaps were not forward-filled.",
+                    instrument_id=instrument.id,
+                )
+            )
+        metrics, tail, metric_warnings = _rotation_metrics(
+            aligned, sampling, lookback, tail_length
+        )
+        if metrics is None:
+            warnings.append(
+                AnalysisWarning(
+                    code="insufficient_history",
+                    message=f"Relative rotation requires {lookback * 2 + 1} sampled observations.",
+                    instrument_id=instrument.id,
+                )
+            )
+            roles.append(
+                BenchmarkFamilyRotationRoleOut(
+                    role=role,
+                    instrument_id=instrument.id,
+                    symbol=symbol,
+                    label=label,
+                    verification_state=verification_state,
+                    available=False,
+                    coverage=len(aligned) / maximum,
+                    tail=tail,
+                    warnings=[*warnings, *metric_warnings],
+                )
+            )
+            continue
+        roles.append(
+            BenchmarkFamilyRotationRoleOut(
+                role=role,
+                instrument_id=instrument.id,
+                symbol=symbol,
+                label=label,
+                verification_state=verification_state,
+                available=True,
+                coverage=len(aligned) / maximum,
+                tail=tail,
+                warnings=[*warnings, *metric_warnings],
+                **metrics,
+            )
+        )
+    freshness, freshness_detail = await _batch_freshness(
+        db, instrument_ids, timeframe, adjusted
+    )
+    members = _group_members_at(group, as_of)
+    return BenchmarkFamilyRotationOut(
+        family_key=family_key,
+        benchmark=cap_instrument.symbol,
+        official_index_symbol=(
+            str(official.get("symbol") or "") if isinstance(official, Mapping) else ""
+        ),
+        timeframe=timeframe.value,
+        adjustment="split_adjusted" if adjusted else "raw",
+        as_of=as_of,
+        sampling=sampling,
+        lookback=lookback,
+        tail_length=tail_length,
+        membership_version=_group_membership_version(group, members),
+        universe_provenance=_group_provenance(group, as_of),
+        roles=roles,
+        exclusions=exclusions,
+        freshness=freshness,
+        freshness_detail=freshness_detail,
     )
 
 
