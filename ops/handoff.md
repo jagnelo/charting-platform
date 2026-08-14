@@ -1,5 +1,31 @@
 # Active Handoff
 
+## 2026-08-15 — Generic breadth occurrence browser checkpoint
+
+- Added a bounded, dense occurrence browser beneath the generic breadth history uPlot. It lists
+  newest member-entered/member-exited events with canonical instrument ID, timestamp, condition
+  transition, and aggregate percentage. Clicking an event emits the existing occurrence/link-bus
+  event and publishes the canonical symbol plus timestamp to linked charts.
+- Extended the workstation occurrence event signature with an optional canonical instrument ID
+  without changing Study Lab or Research Results callers. Added a focused authenticated browser
+  assertion proving the active symbol and linked chart timestamp update.
+- The first browser attempt found a real pointer-overlap defect: an unavailable generic-history
+  state intercepted the occurrence list, and the fixture's exact route did not match query
+  parameters. Added pointer-event/layering guards and wildcard fixture routes; rebuilt the
+  branch stack and reran the unchanged 'F8s-breadth-family-ratio' test: 1/1 passed.
+- Validation: full frontend Vitest 837/837, vue-tsc, production Docker build, focused backend
+  breadth service 8/8 and generic/family integration 17/17 with --no-cov, Ruff/compileall,
+  JSON/YAML parsing, and diff checks. The standalone service run also passed 8/8 but returned
+  non-zero only because the repository-wide coverage threshold cannot be met by that isolated
+  file; the authoritative no-cov focused gate passed.
+- Implementation/parity commit: ec9653ba feat(breadth): browse historical occurrences. Worktree
+  is clean locally. Exact push was attempted once and rejected before Git by the private-origin
+  safeguard; no workaround or repeat. This is transport-only and not a goal-wide blocker.
+- Next context: add occurrence filtering and equivalent artifacts for isolated Python breadth runs
+  and Study Lab promotion, then continue the eight-root provider/historical population and final
+  V25 browser/visual gates. The board remains the visual authority; unrepresented occurrence states
+  remain explicit gaps.
+
 ## 2026-08-14 — Generic breadth historical occurrence checkpoint
 
 - Extended `POST /analysis/breadth/history` with typed member-entered/member-exited occurrences

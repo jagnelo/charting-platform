@@ -1,5 +1,21 @@
 # Run Report
 
+## 2026-08-15 — Generic breadth occurrence browser checkpoint
+
+- Implemented the workstation occurrence browser for generic breadth history and connected clicks
+  to the existing symbol/timestamp occurrence bus. Canonical instrument IDs are carried through
+  the event path so linked uPlot charts navigate to the historical bar without a parallel
+  navigation mechanism.
+- Validation: focused authenticated Chromium 'F8s-breadth-family-ratio 1/1', full frontend
+  Vitest 837/837, vue-tsc, production Docker build, focused backend service 8/8, focused
+  generic/family integration 17/17 with --no-cov, Ruff, compileall, JSON/YAML, and diff checks.
+  The first browser attempt exposed and fixed pointer overlap plus a query-string fixture mismatch;
+  the unchanged oracle then passed. No acceptance flexibility or threshold change.
+- Git closure: implementation/docs commit ec9653ba is clean locally. Exact push was attempted
+  once and rejected before Git by the private-origin safeguard; no workaround or repeat. Remaining
+  gaps are occurrence filtering, isolated-Python/Study Lab promotion, provider/historical
+  population, and final V25 visual/reference coverage.
+
 ## 2026-08-14 — Generic breadth historical occurrence checkpoint
 
 - Implemented deterministic historical member state-transition events for the generic breadth
