@@ -28515,3 +28515,14 @@ indefinite soak; longer endurance remains an explicit open gap.
   was unavailable.
 - No workaround, alternate transport, rewrite, reset, stash, or repeat was used. This is
   transport-only and not a product-goal blocker; the local branch remains clean.
+
+## 2026-08-14 — Benchmark-family issuer routing
+
+- Added explicit free-source holdings route metadata for family/style proxies: SPDR `SPYV`,
+  `SPYG`, `MDY`, `MDYV`, `MDYG`, `SLYV`, `SLYG`, `SPTM`; and iShares product IDs for `IJR`,
+  `IWB`, `IWD`, `IWF`, `IWN`, `IWO`, `IWV`.
+- Focused taxonomy/provider-route tests passed `2/2`; Ruff, compile, diff-check, and ops parsing
+  passed. This is canonical routing evidence only; no live provider or historical completeness
+  claim was made. Acceptance flexibility used: none.
+- Implementation/docs commit: `d6c86311` (clean locally). QQQE/First Trust verification, live
+  retrieval, historical rebalances, and browser holdings population remain open.

@@ -27058,6 +27058,15 @@ in 4.6 minutes. No failure was suppressed or reclassified as product success.
 - No workaround, alternate transport, rewrite, reset, stash, or repeat was used. Transport-only;
   the local branch remains clean and the product goal continues.
 
+# 2026-08-14 — Benchmark-family issuer routing
+
+- Added canonical free-source route metadata for the family/style proxies through SPDR and iShares
+  product identities, covering the configured S&P and Russell cap/style legs.
+- Focused taxonomy/provider-route tests `2/2`, Ruff, Python compilation, diff-check, and YAML/JSON
+  parsing pass. Acceptance flexibility used: none.
+- Clean implementation/docs commit: `d6c86311`. Live retrieval, historical holdings/rebalances,
+  QQQE/First Trust verification, and browser population remain open.
+
 # 2026-08-14 — Breadth predicate authoring expansion
 
 - Expanded the custom breadth UI to serialize trend-state, RSI, volume-ratio, and relative-strength
