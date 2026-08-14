@@ -1,5 +1,14 @@
 # Active Handoff
 
+## 2026-08-14 — Research outcome helpers Git closure
+
+- Implementation `ee0de098420aaea7fcc9e85f2b0bd587873a0b81` and operational checkpoint `d9b54e91`
+  are separate local commits. The repository is clean and `.git/index.lock` is absent.
+- The single exact elevated push for `91463e54bbfb37dc5e130d3c912434bfc41594bd..d9b54e91` was
+  rejected before Git by the private-origin export safeguard because trusted authorization for
+  exporting the local range was unavailable. No alternate transport, wrapper, rewrite, reset,
+  stash, or repeat is used. This is transport-only and does not block the product goal.
+
 ## 2026-08-14 — Unified Python research outcome helpers (completed)
 
 - Context owner: Codex. Owned paths are `backend/research_runner/runner.py`, focused runner
