@@ -10,6 +10,14 @@
 - This is transport-only and not a product blocker. The operational records are being committed
   separately so the worktree does not remain dirty.
 
+## 2026-08-14 — Generic breadth operational checkpoint transport result
+
+- Operational checkpoint `bbd1b948` is clean locally and contains the final handoff/state/task
+  records for this changeset.
+- The exact push for the accumulated 230-commit range was attempted once and rejected before Git
+  by the private-origin safeguard. No alternate transport or repeat was used. Transport-only;
+  the local worktree remains clean.
+
 ## 2026-08-14 — Breadth definition axes and goal expansion
 
 - Broadened the active goal attachment and controlling repo documents so breadth is not a fixed
