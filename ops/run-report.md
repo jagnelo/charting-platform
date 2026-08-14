@@ -1,5 +1,20 @@
 # Run Report
 
+## 2026-08-14 — Benchmark-family taxonomy slice
+
+- Added the eight-family registry, explicit mapping metadata, child market groups, child-list API,
+  identity-only proxy bootstrap, and family-aware breadth universe options. No official index,
+  holdings, bar, listing, exchange, or provider fact is fabricated by the slice.
+- Validation passed: backend taxonomy/bootstrap `13/13`, API integration `2/2`, Ruff, frontend
+  `vue-tsc`, Vitest `821/821`, diff check, JSON parse, and YAML/visual-manifest parse.
+- Fix-first repairs included the incomplete taxonomy fixture, the intentionally unpopulated API
+  fixture assertion, and a YAML scalar syntax error. Acceptance flexibility used: **None**.
+- Remaining work is provider/evidence verification, point-in-time membership and holdings,
+  derived equal weighting, family-wide analytics and browser drill-down, and visual/final gates.
+- Implementation commit `0d0265c5` is clean locally. The exact elevated push was attempted once and
+  rejected before Git by the private-origin safeguard; origin remains `91463e54`. This is
+  transport-only and no workaround or repeat was attempted.
+
 ## 2026-08-14 — Expanded US benchmark/factor family scope
 
 - Updated the controlling project TODO, parity matrix, governance gate, and task ledger to make

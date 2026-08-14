@@ -1,5 +1,33 @@
 # Active Handoff
 
+## 2026-08-14 — Benchmark-family taxonomy and selectable child universes
+
+- Implemented the first slice of `tc2000-us-benchmark-family-expansion-20260814`: a JSON-safe
+  registry for S&P 500/400/600/1500, Russell 1000/2000/3000, and Nasdaq 100; child
+  `benchmark_family` groups beneath `us-benchmarks`; and
+  `GET /market-groups/us-benchmarks/children`.
+- Configured cap/equal/value/growth identities retain source URLs, mapping state, role, and
+  provenance. Missing mappings remain `No verified mapped proxy`. The identity bootstrap registers
+  only canonical identity records; it does not invent official index instruments, holdings, bars,
+  listings, exchange claims, or membership.
+- The breadth universe selector now offers the family children and uses the selected family's cap
+  proxy for benchmark-relative snapshots. Existing SPY/RSP defaults and root ordering remain
+  unchanged.
+- Fix-first repairs: the first taxonomy fixture omitted new family proxy identities; the test was
+  expanded. The API fixture intentionally lacked those identities; its assertion now proves no
+  fabricated child members or silent fallback. An unquoted YAML colon in the task note was caught
+  by the parser and converted to a folded scalar. No acceptance flexibility used.
+- Validation: taxonomy/bootstrap `13/13`; benchmark-family API integration `2/2`; Ruff;
+  `vue-tsc`; frontend Vitest `821/821`; `git diff --check`; JSON and YAML/manifest parsing.
+- Open: provider-backed mapping verification, point-in-time family membership/holdings, derived
+  equal-weight calculation, family-wide snapshots/ratios/rotation/breadth history, populated
+  browser drill-down, visual parity, and broader final acceptance. Next context:
+  `benchmark-family-analytics-and-provenance-evaluation-20260814`.
+- Implementation commit `0d0265c5 feat(analysis): add benchmark family taxonomy universes` is clean
+  locally. Its exact elevated push was attempted once and rejected before Git by the private-origin
+  safeguard; origin remains `91463e54`. No alternate transport, rewrite, reset, stash, or repeat
+  was used.
+
 ## 2026-08-14 — Expanded US benchmark/factor family scope
 
 - The active goal and controlling plan now explicitly require family-wide US analysis for S&P

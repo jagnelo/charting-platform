@@ -1,7 +1,7 @@
 tasks:
   - id: tc2000-us-benchmark-family-expansion-20260814
     title: Expand top-down and breadth analysis across US benchmark families and cap/equal/style variants
-    status: pending
+    status: in_progress
     priority: high
     scope: >-
       Make S&P 500/400/600/1500, Russell 1000/2000/3000, and Nasdaq 100 first-class versioned
@@ -35,6 +35,13 @@ tasks:
     notes:
       - This is a scope expansion of the active TC2000 goal, not a relaxation or a claim that all mappings currently exist.
       - Exact ETF symbols and style relationships remain evidence-backed data, not hard-coded assumptions; current and historical availability must be recorded by the canonical security master.
+      - >-
+        Taxonomy slice implemented locally: JSON-safe eight-family registry, benchmark-family child
+        groups, no-fabrication child endpoint, identity-only proxy bootstrap, and family-aware
+        breadth universe options. Focused taxonomy/bootstrap `13/13`, API integration `2/2`, Ruff,
+        frontend type-check, and Vitest `821/821` pass. Provider verification, point-in-time
+        membership/holdings, derived weights, family-wide analytics, and populated browser
+        acceptance remain open; acceptance flexibility used: none.
   - id: tc2000-generic-condition-driven-breadth-20260814
     title: Broaden breadth from fixed metrics to reusable condition-driven cross-sectional studies
     status: in_progress
