@@ -12,7 +12,9 @@
 - Validation: focused integration `2/2`, store `63/63`, full Vitest `834/834`, type/build,
   Ruff/compile, diff-check, and Chromium `1/1`. The first test run caught only an ISO timestamp
   assertion defect; it was fixed to compare parsed instants. No acceptance flexibility used.
-- Implementation is ready for checkpoint. Next context: relative-rotation history/tails,
+- Implementation/docs commit: `bdf15072 feat(analysis): add historical family ranking` (clean
+  locally). Exact elevated push was attempted once and rejected before Git by the private-origin
+  safeguard; no workaround or repeat. Next context: relative-rotation history/tails,
   concentration/dispersion, and complete evidence population across all eight roots.
 
 ## 2026-08-14 — Cross-family ranking and breadth layout repair checkpoint
