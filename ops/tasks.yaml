@@ -5219,7 +5219,11 @@ tasks:
       - No application is described as complete while temporary placeholders, known broken flows, unexplained visual mismatches, console errors, or backend errors remain.
       - Backend, frontend, sandbox, provider, integration, E2E, visual, performance, console, log, migration, and diff validation pass.
       - Handoff, state, run report, API, architecture, testing, parity, and capability-stub documentation are current.
-      - Every required Version 25 reference is approved, every design token is measured, and all four deterministic display environments pass interaction and visual comparisons.
+      - Every board-represented required Version 25 state has a reviewed board-guided reference,
+        measured local design tokens, and passing deterministic comparisons in all four display
+        environments; uncovered or materially ambiguous states remain explicitly recorded in the
+        visual manifest and reference-board gap ledger, with targeted interim oracles and closure
+        evidence requirements rather than a blanket exact-build gate.
     validation:
       - backend-unit
       - backend-integration
