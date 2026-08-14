@@ -1,5 +1,21 @@
 # Active Handoff
 
+## 2026-08-14 — Expanded US index-family vision documentation
+
+- Reaffirmed the active product scope as an eight-family matrix: S&P 500/400/600/1500,
+  Russell 1000/2000/3000, and Nasdaq 100. Each family inherits the same top-down, breadth,
+  ratio, ranking, rotation, concentration/dispersion, freshness/provenance, and member
+  drill-down contracts for every evidenced cap/equal/value/growth leg.
+- Explicitly documented QQQ/QQQE as the Nasdaq-100 cap/equal acceptance fixture only after
+  canonical identity, holdings, and relationship evidence is verified; absent evidence remains
+  unavailable/derived and cannot fall back to SPY, QQQ, another family, or a name-based guess.
+- Updated `docs/project-todos.md`, `docs/tc2000-parity.md`, `docs/tc2000-acceptance-governance.md`,
+  and the benchmark-family task notes. This is a scope clarification, not acceptance flexibility.
+- Validation: `git diff --check`, Ruby YAML/JSON parse of `ops/tasks.yaml` and `ops/state.json`.
+- Next: continue implementation/evidence work for provider-backed family population, historical
+  memberships/rebalances, family-wide analytics, and browser acceptance; QQQE/Direxion route
+  verification remains open.
+
 ## 2026-08-14 — All-leg family ratio composition
 
 - Extended `/analysis/benchmark-families/{family_key}/ratios` with an explicit `roles` selector

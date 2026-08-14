@@ -1,5 +1,17 @@
 # Run Report
 
+## 2026-08-14 — Expanded US index-family vision documentation
+
+- Recorded the requested eight-family US analysis scope in the controlling product, parity, and
+  acceptance documents: S&P 500/400/600/1500, Russell 1000/2000/3000, and Nasdaq 100.
+- The documentation now explicitly requires the same cap/equal/value/growth, top-down, breadth,
+  ratio, ranking, rotation, concentration/dispersion, provenance, freshness, and member-drilldown
+  behavior for every evidenced family leg, including the verified QQQ/QQQE cap/equal fixture.
+- Missing evidence remains a named unavailable/derived gap; no fallback or acceptance criterion
+  was relaxed. Validation passed `git diff --check` and Ruby YAML/JSON parsing.
+- Worktree remains intentionally uncommitted until the documentation changeset is checkpointed;
+  next work is provider/historical evidence and family-wide populated acceptance.
+
 ## 2026-08-14 — Family-leg relative-strength ratio contract
 
 - Added role-aware family ratios to the cap proxy and optional market benchmark. The calculation
