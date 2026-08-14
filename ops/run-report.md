@@ -1,5 +1,11 @@
 # Run Report
 
+## 2026-08-14 — Study Lab artifact export transport result
+
+- Implementation/docs `b0ecea52` and operational checkpoint `163a0191` are clean locally.
+- The exact elevated push for `91463e54..163a0191` was rejected before Git by the private-origin
+  egress safeguard. No workaround or repeat was used; transport-only and the goal continues.
+
 ## 2026-08-14 — Study Lab active-artifact export context
 
 - Added direct JSON export controls for active Study Lab non-scalar artifacts, with run identity,

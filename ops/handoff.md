@@ -1,5 +1,16 @@
 # Active Handoff
 
+## 2026-08-14 — Study Lab artifact export transport record
+
+- Implementation/docs `b0ecea52` and operational checkpoint `163a0191` are clean local commits.
+- Exact elevated `rtk git push origin feat/tc2000-frontend-rework` for range
+  `91463e54..163a0191` was attempted once and rejected **before Git** by the private-origin
+  egress safeguard because trusted authorization for this private destination/payload was
+  unavailable. `.git/index.lock` is absent and repository/index health is confirmed.
+- No alternate transport, wrapper, indirect execution, force push, rewrite, reset, stash, or
+  repeated same-payload attempt is used. This is transport-only and never a product or goal
+  blocker; continue from the clean local boundary.
+
 ## 2026-08-14 — Study Lab active-artifact export context (completed)
 
 - Context owner: Codex. Owned paths were `StudyLabTool.vue`, its component regression, and the

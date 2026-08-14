@@ -23,6 +23,9 @@ tasks:
         bounded URL double, while production code retains the native browser path.
       - Acceptance flexibility used: none; broader Study Lab visual-reference gaps remain open.
       - Implementation/docs commit: b0ecea52; operational checkpoint remains separate.
+      - Operational checkpoint: 163a0191. Exact push 91463e54..163a0191 was attempted once and
+        rejected before Git by the private-origin egress safeguard; transport-only, no workaround
+        or repeat.
   - id: tc2000-study-lab-sdk-reference-duplicate-20260814
     title: Remove duplicated Study Lab SDK reference row
     status: completed
