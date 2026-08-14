@@ -2530,7 +2530,12 @@ test.describe('TC2000 workstation', () => {
     await expect(study.locator('.study-lab-tool__run-status--completed')).toBeVisible({ timeout: 90_000 })
     await expect(study.locator('.study-series').first()).toBeVisible()
     await expect(study.locator('table').filter({ hasText: 'breadth_thrust_history' })).toBeVisible()
-    await expect(study.locator('.study-lab-tool__events').filter({ hasText: '90_90_breadth_thrust' })).toBeVisible()
+    const occurrence = study.locator('.study-lab-tool__events button').filter({ hasText: '90_90_breadth_thrust' }).first()
+    await expect(occurrence).toBeVisible()
+    const occurrenceTimestamp = await occurrence.locator('span').textContent()
+    expect(occurrenceTimestamp).toBeTruthy()
+    await occurrence.click()
+    await expect(page.locator('.chart-root[data-linked-timestamp]')).toHaveAttribute('data-linked-timestamp', occurrenceTimestamp!.trim())
     await browserDiagnostics.expectNoCriticalIssues()
   })
 

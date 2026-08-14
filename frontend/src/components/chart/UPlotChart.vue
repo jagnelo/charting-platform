@@ -1,5 +1,5 @@
 <template>
-  <div class="chart-root" ref="rootRef" tabindex="0" role="region" aria-label="Chart workspace" @keydown.esc="handleChartEscape">
+  <div class="chart-root" ref="rootRef" tabindex="0" role="region" aria-label="Chart workspace" :data-linked-timestamp="props.linkedTimestamp || undefined" @keydown.esc="handleChartEscape">
 
     <!-- Main price chart -->
     <div class="uplot-wrapper" ref="wrapperRef"

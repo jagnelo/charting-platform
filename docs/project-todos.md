@@ -1,5 +1,15 @@
 # Project TODO Memory
 
+### 2026-08-14 — Study Lab occurrence-to-chart timestamp acceptance
+
+- [x] Dated Study Lab occurrences now expose their linked timestamp on the uPlot chart and ratio
+      hosts while retaining the existing cursor-jump path. The state is serializable only as a
+      transient DOM contract and does not recreate charts or trigger a new market-data request.
+- [x] Added focused ratio lifecycle assertions and authenticated `F8p-90-90-history` coverage that
+      clicks a real qualifying occurrence and verifies the exact timestamp on the linked chart.
+- [ ] Acceptance flexibility used: **none**. This closes a functional acceptance hole only;
+      `REF-STUDY-LAB-V25` remains the separately tracked original-surface visual-reference gap.
+
 ### 2026-08-14 — Study Lab historical 90/90 breadth series
 
 - [x] Added `research.breadth_thrust_history(dataset, threshold=90)` to the isolated unified-

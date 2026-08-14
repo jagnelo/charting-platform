@@ -1,5 +1,5 @@
 <template>
-  <div ref="root" class="ratio-chart">
+  <div ref="root" class="ratio-chart" :data-linked-timestamp="props.linkedTimestamp || undefined">
     <div class="ratio-chart__legend">
       <strong>{{ ratioLabels }}</strong>
       <template v-if="editableBenchmarks">

@@ -1,5 +1,17 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-14 — Study Lab occurrence-to-chart timestamp linking
+
+- Dated Study Lab occurrences now publish through the existing symbol/timeframe link bus into
+  linked uPlot chart and ratio surfaces. Selecting a qualifying 90/90 occurrence moves the linked
+  chart cursor to the nearest canonical bar without recreating the chart or issuing a new data
+  request; the applied timestamp is exposed as deterministic host state for accessibility and
+  acceptance verification.
+- Authenticated `F8p-90-90-history` clicks a real occurrence and verifies the exact linked timestamp;
+  focused ratio lifecycle coverage also verifies timestamp consume/clear and no cursor echo.
+- Acceptance flexibility used: **none**. No visual threshold, mask, product criterion, or
+  reference-board rule changed. `REF-STUDY-LAB-V25` remains the open visual-reference gap.
+
 ## 2026-08-14 — Historical 90/90 breadth participation and occurrences
 
 - Added a unified-Python Study Lab factory starter for historical 90/90 breadth: aligned price-

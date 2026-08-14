@@ -163,9 +163,12 @@ describe('RatioUPlot', () => {
 
     const chart = vi.mocked(uPlot).mock.results.at(-1)?.value
     await wrapper.setProps({ linkedTimestamp: '2026-01-01T00:00:00Z' })
+    expect(wrapper.get('.ratio-chart').attributes('data-linked-timestamp')).toBe('2026-01-01T00:00:00Z')
     expect(chart.setCursor).toHaveBeenCalled()
     setCursor?.({ cursor: { idx: 0 }, data: [[1767225600]] } as unknown as uPlot)
     expect(wrapper.emitted('cursorTimestamp')).toHaveLength(1)
+    await wrapper.setProps({ linkedTimestamp: null })
+    expect(wrapper.get('.ratio-chart').attributes('data-linked-timestamp')).toBeUndefined()
   })
 
   it('hides uPlot’s duplicate legend so compact windows keep the warning row clear', async () => {
