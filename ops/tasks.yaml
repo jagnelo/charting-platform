@@ -1,4 +1,26 @@
 tasks:
+  - id: tc2000-alerian-route-ownership-20260814
+    title: Constrain native Alerian holdings route to verified symbols
+    status: completed
+    priority: high
+    scope: >-
+      Prevent the generic ALPS product-page template from advertising unrelated ALPS ETFs as
+      native Alerian holdings coverage while retaining shared SEC fallback eligibility.
+    definition_of_done:
+      - Native Alerian proxy coverage is limited to AMLP and ENFR
+      - Unsupported ALPS symbols return an explicit route-gap state without a CIK
+      - SEC fallback remains available when a CIK is present
+      - Focused, complete adapter, backend-unit, Ruff, and diff checks pass
+      - Remaining broader goal gaps and acceptance flexibility are recorded
+    validation:
+      - alerian-focused-4-of-4
+      - etf-holdings-adapter-unit-490-of-490
+      - backend-unit-1135-of-1135
+      - ruff-and-git-diff-check
+    notes:
+      - >-
+        Implementation commit 1ef52b7. This is a repository-controlled provider correctness fix;
+        no acceptance flexibility was used.
   - id: tc2000-alerian-live-coverage-20260814
     title: Add concrete opt-in live coverage for native Alerian holdings
     status: completed

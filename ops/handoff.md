@@ -1,5 +1,16 @@
 # Active Handoff
 
+## 2026-08-14 — Alerian route-ownership hardening
+
+- The Alerian adapter no longer treats every ALPS-hosted product page as Alerian-native. The
+  native proxy route is limited to verified `AMLP` and `ENFR`; other symbols require a verified
+  route or use the shared SEC fallback when a CIK is available.
+- Focused Alerian coverage passes `4/4`; the complete ETF-adapter suite passes `490/490`; the
+  complete backend unit suite passes `1135/1135`; Ruff and diff checks pass. Implementation:
+  `1ef52b7234cd9aef63f420c8c7ffb3a871e1d617`.
+- Acceptance flexibility used: none. This is a repository-controlled provider correctness fix;
+  the broader provider, historical/GICS, visual, monitor, endurance, and final-audit gaps remain.
+
 ## 2026-08-14 — Current Git export result
 
 - Repository/index health is normal: the worktree is clean at `2b7651266d5a81d0240a62b60f1b2d118367a374`,

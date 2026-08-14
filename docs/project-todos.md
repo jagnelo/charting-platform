@@ -1,5 +1,18 @@
 # Project TODO Memory
 
+### 2026-08-14 — Constrain native Alerian route ownership
+
+- [x] Hardened the Alerian holdings adapter so its generic ALPS product-page template cannot
+      advertise unrelated ALPS ETFs as native Alerian coverage. Only verified `AMLP` and `ENFR`
+      receive the native ALPS proxy route; unsupported symbols remain `needs_issuer_route` unless
+      a SEC CIK enables the shared EDGAR fallback.
+- [x] Added a regression proving `ACES` is not claimed by the Alerian adapter without SEC fallback
+      identifiers. Focused Alerian tests pass `4/4`, the complete ETF-adapter suite passes `490/490`,
+      the complete backend unit suite passes `1135/1135`, Ruff and `git diff --check` pass.
+- [ ] Acceptance flexibility used: **none**. This closes a repository-controlled provider-routing
+      defect; broader issuer breadth, historical/GICS truth, exact/unrepresented V25 states,
+      native-monitor, endurance, Docker, and final-audit gaps remain explicitly tracked.
+
 ### 2026-08-14 — Targeted Docker storage maintenance
 
 - [x] Docker usage exceeded the 10 GB maintenance threshold. The broad

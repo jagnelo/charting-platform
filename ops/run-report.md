@@ -1,5 +1,14 @@
 # Run Report
 
+## 2026-08-14 — Alerian route-ownership hardening
+
+- Fixed a provider-selection defect where the Alerian adapter's generic ALPS page template could
+  mark unrelated products ready. Native coverage is now limited to verified `AMLP`/`ENFR`, with
+  SEC fallback preserved when a CIK is present.
+- Validation: focused Alerian `4/4`, complete ETF-adapter `490/490`, complete backend unit
+  `1135/1135`, Ruff, and `git diff --check`. Implementation commit `1ef52b7`.
+- No acceptance flexibility or visual/data policy was changed.
+
 ## 2026-08-14 — Current Git export result
 
 - Clean local checkpoint: `2b7651266d5a81d0240a62b60f1b2d118367a374`; remote remains
