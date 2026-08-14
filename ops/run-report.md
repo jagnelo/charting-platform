@@ -7,6 +7,10 @@
   lookup. The focused test now waits for `/login`.
 - Full frontend validation is clean: Vitest `817/817`, zero unhandled errors, TypeScript, build,
   uPlot contract `45/45`, and visual policy `26/26`. Acceptance flexibility used: none.
+- Backend unit validation passes `1126/1126`; repository Ruff check and format validation pass
+  (`255` files). A default-cache `make lint` setup attempt failed only while resolving PyPI DNS
+  after recreating the disposable environment; rebuilding through the approved isolated cache
+  restored the environment and produced the passing authoritative result.
 
 ## 2026-08-14 — Thrivent native holdings routes
 

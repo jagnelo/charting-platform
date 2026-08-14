@@ -8,6 +8,10 @@
 - Focused auth-store coverage passes `37/37`; complete frontend Vitest passes `817/817` with zero
   unhandled errors; TypeScript, production build, uPlot contract `45/45`, visual policy `26/26`,
   and diff checks pass. Implementation commit `27840500`. No acceptance flexibility used.
+- Broader branch validation also passes: backend unit suite `1126/1126`, repository Ruff check and
+  format (`255` files), and frontend type-check. The first default-cache lint attempt was an
+  environment DNS/setup failure after disposable `.venv` recreation; the approved isolated-cache
+  environment was rebuilt and the authoritative checks passed.
 
 ## 2026-08-14 — Thrivent native holdings routes
 
