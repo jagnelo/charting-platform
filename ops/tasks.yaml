@@ -1,4 +1,28 @@
 tasks:
+  - id: tc2000-study-lab-current-versus-history-comparison-20260814
+  title: Add Study Lab current-versus-history comparison
+  status: completed
+    priority: high
+    scope: >-
+      Add deterministic research.historical_comparison over declared finite values, expose it in
+      the unified Python SDK, and provide a factory Study starter with current-position metrics.
+    definition_of_done:
+      - Helper reports explicit empty/current/degenerate-distribution contracts without look-ahead
+      - Backend runner tests cover nominal, empty, degenerate, and invalid-input behavior
+      - Editor/reference/factory starter expose exactly the implemented method
+      - Focused and broader frontend/browser/backend gates pass
+      - No visual threshold, mask, product criterion, or acceptance flexibility changes
+  validation:
+    - study-lab-current-history-runner-77-of-77
+    - study-lab-editor-and-tool-27-of-27
+    - frontend-vitest-818-of-818
+    - adjacent-authenticated-study-python-results-12-of-12
+    - backend-unit-integration-1449-of-1449-at-80.17-percent
+    - type-check-build-make-test-fe-uplot-visual-policy-pass
+  notes:
+      - Context closes a plan-required Study Lab comparison capability; broader visual/external gaps remain open.
+      - No visual threshold, mask, product criterion, or acceptance flexibility changed.
+      - Implementation/docs commit: 18223e96; operational checkpoint follows as a separate commit.
   - id: tc2000-study-lab-research-helper-integration-20260814
     title: Integrate unified research helpers into Study Lab factory starters
     status: completed

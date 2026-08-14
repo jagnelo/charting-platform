@@ -1,5 +1,24 @@
 # Active Handoff
 
+## 2026-08-14 — Study Lab current-versus-history comparison (completed)
+
+- Context owner: Codex. Owned paths were `backend/research_runner/runner.py`, focused runner
+  tests, `frontend/src/components/workstation/PythonSourceEditor.vue`, `StudyLabTool.vue`, their
+  tests, and corresponding docs/ops checkpoint records.
+- Completed: added deterministic `research.historical_comparison`, exposing current value,
+  distribution statistics, percentile/range position, z-score, and explicit empty/invalid/
+  degenerate contracts. Added the editor/reference surface and Current versus history starter.
+- Validation: focused runner `77/77`; editor/Study Lab `27/27`; frontend `818/818` at `80.90%`;
+  authenticated adjacent browser `12/12`; authoritative backend `1449/1449` at `80.17%`;
+  `make test-fe`, uPlot/visual-policy, type-check, production build, and `git diff --check` pass.
+- No visual threshold, mask, product criterion, or acceptance flexibility changed. Exact/
+  unrepresented Study Lab V25, provider/live-entitlement, historical/GICS, native-monitor,
+  endurance, and final-audit gaps remain open.
+- Implementation/docs are committed locally as `18223e96` (`feat(research): add current history comparison`).
+- Next action: commit this operational checkpoint separately, verify
+  clean state, make one exact push attempt, record the transport result, then continue the next
+  independent goal context.
+
 ## 2026-08-14 — Study Lab integration Git closure
 
 - Implementation `ecc47ed7106239114ad865d39b7d6e82540c403c` and operational checkpoint `61fd6951`
