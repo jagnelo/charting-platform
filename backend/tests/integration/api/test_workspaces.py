@@ -493,6 +493,7 @@ class TestWorkspaces:
         self, client, auth_headers, db, instrument, instrument_type, ohlcv_bars
     ):
         from datetime import UTC, datetime
+        from decimal import Decimal
 
         from app.models.etf_holdings import ETFHolding, ETFHoldingsSnapshot, ETFProfile
         from app.models.instrument import Instrument
@@ -532,6 +533,9 @@ class TestWorkspaces:
                 position=0,
                 reported_symbol=instrument.symbol,
                 reported_name=instrument.name,
+                weight=Decimal("0.25"),
+                shares=Decimal("12"),
+                market_value=Decimal("1234.50"),
                 source_row_hash="test-family-spy-aapl",
                 is_resolved=True,
             )
@@ -550,6 +554,10 @@ class TestWorkspaces:
         assert payload["universe_provenance"]["mapping_role"] == "cap_weight"
         assert payload["universe_provenance"]["membership_semantics"] == "etf_proxy_membership"
         assert payload["rows"][0]["symbol"] == instrument.symbol
+        assert payload["rows"][0]["position"] == 0
+        assert payload["rows"][0]["weight"] == "0.25000000"
+        assert payload["rows"][0]["shares"] == "12.00000000"
+        assert payload["rows"][0]["market_value"] == "1234.500000"
 
         missing = client.get(
             "/api/v1/analysis/benchmark-families/sp500/constituents",

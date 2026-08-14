@@ -1,6 +1,7 @@
 """Provider-neutral batch analysis response contracts."""
 
 from datetime import UTC, date, datetime
+from decimal import Decimal
 from typing import Literal
 
 from pydantic import BaseModel, Field
@@ -187,6 +188,18 @@ class BenchmarkFamilyRatiosOut(AnalysisResponseMetadata):
     exclusions: list[AnalysisWarning] = Field(default_factory=list)
 
 
+class ETFConstituentSnapshotRowOut(GroupSnapshotRow):
+    """Technical row plus disclosed point-in-time holding evidence."""
+
+    position: int
+    weight: Decimal | None = None
+    shares: Decimal | None = None
+    market_value: Decimal | None = None
+    holding_type: str
+    row_type: str
+    resolution_confidence: Decimal | None = None
+
+
 class ETFConstituentSnapshotOut(GroupSnapshotOut):
     """A point-in-time ETF-proxy constituent batch, never an official index universe."""
 
@@ -198,6 +211,7 @@ class ETFConstituentSnapshotOut(GroupSnapshotOut):
     provenance: str
     source_provider: str
     completeness_status: str
+    rows: list[ETFConstituentSnapshotRowOut] = Field(default_factory=list)
 
 
 class IndustryProxySnapshotRow(GroupSnapshotRow):

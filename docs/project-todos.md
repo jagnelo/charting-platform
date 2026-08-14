@@ -12066,3 +12066,16 @@ The current source also passes the focused authenticated top-down browser slice 
 - [ ] Still open: provider-backed population and historical holdings/weights for all families,
       value/growth/equal availability evidence, family-wide breadth/rotation/ranking/dispersion,
       populated drill-down, and full end-to-end acceptance across every available leg.
+
+### 2026-08-14 — Family constituent weighting evidence
+
+- [x] Extended the canonical ETF-proxy constituent response used by benchmark-family legs with
+      disclosed position, weight, shares, market value, holding/row type, and resolution-confidence
+      fields. These are the source snapshot's facts, not reconstructed index weights.
+- [x] Family constituent drill-down therefore preserves the evidence needed to audit cap/equal/style
+      composition alongside technicals and ratios, including rows with no bars and their explicit
+      exclusion state. Focused Docker-backed constituent/generic-breadth integration `2/2`, Ruff,
+      and diff checks pass; acceptance flexibility used: **none**.
+- [ ] Still open: independently verified provider/rebalance history, official-versus-ETF membership
+      distinction, complete family/style population, and full browser presentation of weighting
+      evidence.

@@ -56,6 +56,7 @@ from app.schemas.analysis import (
     BreadthPythonRunOut,
     BreadthPythonRunRequest,
     ETFConstituentSnapshotOut,
+    ETFConstituentSnapshotRowOut,
     GroupSnapshotOut,
     GroupSnapshotRow,
     IndicatorBatchOut,
@@ -1520,7 +1521,7 @@ async def etf_constituent_snapshot(
         if market_instrument
         else {}
     )
-    rows: list[GroupSnapshotRow] = []
+    rows: list[ETFConstituentSnapshotRowOut] = []
     covered = 0
     for holding in sorted(holdings, key=lambda item: item.position):
         instrument = instruments.get(holding.constituent_instrument_id)
@@ -1541,10 +1542,17 @@ async def etf_constituent_snapshot(
             )
             exclusions.append(warning)
             rows.append(
-                GroupSnapshotRow(
+                ETFConstituentSnapshotRowOut(
                     instrument_id=instrument.id,
                     symbol=instrument.symbol,
                     name=instrument.name,
+                    position=holding.position,
+                    weight=holding.weight,
+                    shares=holding.shares,
+                    market_value=holding.market_value,
+                    holding_type=holding.holding_type,
+                    row_type=holding.row_type,
+                    resolution_confidence=holding.resolution_confidence,
                     last=_cell(None, None, warning),
                     performance={period: _cell(None, None, warning) for period in _PERIODS},
                 )
@@ -1640,10 +1648,17 @@ async def etf_constituent_snapshot(
                 )
             )
         rows.append(
-            GroupSnapshotRow(
+            ETFConstituentSnapshotRowOut(
                 instrument_id=instrument.id,
                 symbol=instrument.symbol,
                 name=instrument.name,
+                position=holding.position,
+                weight=holding.weight,
+                shares=holding.shares,
+                market_value=holding.market_value,
+                holding_type=holding.holding_type,
+                row_type=holding.row_type,
+                resolution_confidence=holding.resolution_confidence,
                 last=_cell(float(latest.close), latest),
                 performance=performance,
                 relative_to_benchmark=relative,

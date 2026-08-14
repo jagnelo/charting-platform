@@ -84,6 +84,12 @@ tasks:
         type-check/build, Ruff, and diff checks pass. A first branch-placement defect was repaired
         and re-tested; acceptance flexibility used: none. Provider population and the complete
         family/style breadth matrix remain open.
+      - >-
+        Family/ETF constituent responses now preserve disclosed position, weight, shares, market
+        value, holding type, row type, and resolution confidence alongside technical rows, so
+        cap/equal/style composition can be audited without reconstructing weights. Focused
+        constituent/generic-breadth integration `2/2` and Ruff/diff checks pass; provider/rebalance
+        history, complete family population, and browser weighting presentation remain open.
   - id: tc2000-generic-condition-driven-breadth-20260814
     title: Broaden breadth from fixed metrics to reusable condition-driven cross-sectional studies
     status: in_progress

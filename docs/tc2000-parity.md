@@ -30,6 +30,16 @@ structured unavailable/exclusion states. No family role falls back to SPY, QQQ, 
 or a non-point-in-time membership snapshot. Focused current/history integration and Chromium
 coverage pass; provider population and the complete cross-family acceptance matrix remain open.
 
+## 2026-08-14 — Constituent weighting evidence
+
+Family and ETF-proxy constituent rows now retain the disclosed snapshot evidence needed for a
+cap/equal/style audit: position, weight, shares, market value, holding type, row type, and
+resolution confidence. The values are copied from the dated source snapshot; the API does not
+invent index weights or relabel ETF-proxy membership as official membership. Rows without bars
+remain visible with their explicit exclusion/warning state. This strengthens the backend evidence
+contract; provider/rebalance history, complete family population, and full browser presentation
+remain open.
+
 ## 2026-08-14 — Family-leg constituent drill-down contract
 
 The family workflow now has a shared constituent route:
