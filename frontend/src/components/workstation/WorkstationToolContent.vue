@@ -473,6 +473,7 @@ import CodeLibraryTool from './CodeLibraryTool.vue'
 import CoverageSummaryTool from './CoverageSummaryTool.vue'
 import { calendarYearKeys } from '@/lib/workstation/calendarYears'
 import { buildNormalizedComparisonSeries, type ComparisonTarget } from '@/lib/workstation/comparison'
+import { normalizeNumericSeries } from '@/lib/workstation/numericSeries'
 import { ensureKnownInstrumentSymbol } from '@/lib/instruments'
 import { INDICATOR_BY_TYPE } from '@/lib/indicators/catalog'
 import { buildFlaggedWatchlistRows } from '@/lib/workstation/flagged-watchlist'
@@ -1194,8 +1195,9 @@ async function loadPythonPlots() {
           const value = artifact?.payload?.value
           if (!value || typeof value !== 'object' || Array.isArray(value)) return null
           const candidate = value as { timestamps?: unknown; values?: unknown }
-          if (!Array.isArray(candidate.timestamps) || !candidate.timestamps.every(item => typeof item === 'string') || !Array.isArray(candidate.values) || candidate.timestamps.length !== candidate.values.length || !candidate.values.every(item => item == null || typeof item === 'number')) return null
-          return { codeVersionId: plot.code_version_id, label: plot.name, color: plot.color ?? '#ffb74d', timestamps: candidate.timestamps, values: candidate.values } satisfies ChartPythonSeries
+          const series = normalizeNumericSeries(candidate.timestamps, candidate.values)
+          if (!series) return null
+          return { codeVersionId: plot.code_version_id, label: plot.name, color: plot.color ?? '#ffb74d', ...series } satisfies ChartPythonSeries
         }
         await new Promise(resolve => window.setTimeout(resolve, 250))
       }
@@ -1212,10 +1214,9 @@ async function loadScanPlots() {
     try {
       const response = await api.get<{ points?: Array<{ timestamp: string; value?: number | null }> }>(`/screeners/${plot.screener_id}/plot`, { metric: plot.metric })
       const points = response?.points ?? []
-      const timestamps = points.map(point => point.timestamp)
-      const values = points.map(point => point.value == null ? null : Number(point.value))
-      if (!timestamps.length || timestamps.length !== values.length || !values.some(value => value != null && Number.isFinite(value))) return null
-      return { codeVersionId: -plot.screener_id, label: `${plot.name} · ${plot.metric}`, color: plot.color ?? '#4dd0e1', timestamps, values, source: 'scan' as const } satisfies ChartPythonSeries
+      const series = normalizeNumericSeries(points.map(point => point.timestamp), points.map(point => point.value))
+      if (!series) return null
+      return { codeVersionId: -plot.screener_id, label: `${plot.name} · ${plot.metric}`, color: plot.color ?? '#4dd0e1', ...series, source: 'scan' as const } satisfies ChartPythonSeries
     } catch {
       return null
     }
