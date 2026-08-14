@@ -28527,6 +28527,13 @@ indefinite soak; longer endurance remains an explicit open gap.
 - Implementation/docs commit: `d6c86311` (clean locally). QQQE/First Trust verification, live
   retrieval, historical rebalances, and browser holdings population remain open.
 
+## 2026-08-14 — Benchmark-family routing broader validation
+
+- Post-commit broader validation passed workstation bootstrap plus taxonomy units `14/14` and the
+  complete ETF holdings adapter unit file `490/490`. This confirms the added route metadata does
+  not regress the existing free-source adapter catalog. No live-provider or historical-completeness
+  claim was inferred from unit coverage; acceptance flexibility used: none.
+
 ## 2026-08-14 — Benchmark-family issuer routing push transport
 
 - The exact elevated `rtk git push origin HEAD:feat/tc2000-frontend-rework` for clean commits

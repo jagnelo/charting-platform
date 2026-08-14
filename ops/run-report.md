@@ -27067,6 +27067,12 @@ in 4.6 minutes. No failure was suppressed or reclassified as product success.
 - Clean implementation/docs commit: `d6c86311`. Live retrieval, historical holdings/rebalances,
   QQQE/First Trust verification, and browser population remain open.
 
+# 2026-08-14 — Benchmark-family routing broader validation
+
+- Post-commit validation passed workstation bootstrap/taxonomy units `14/14` and the complete ETF
+  holdings adapter unit suite `490/490`. This is regression evidence for the route catalog only;
+  live provider and historical completeness remain open. Acceptance flexibility used: none.
+
 # 2026-08-14 — Benchmark-family issuer routing push transport
 
 - The exact elevated push for clean commits `d6c86311` and `2fa6e686` to
