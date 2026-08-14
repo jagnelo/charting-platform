@@ -1,5 +1,15 @@
 # Run Report
 
+## 2026-08-14 — Backend gate semantics and scoped Docker maintenance
+
+- `make test-backend` passes `1121` unit and `303` integration tests after correcting the
+  integration-only coverage target to report rather than enforce the repository-wide threshold.
+- The authoritative combined gate passes `1424` tests at `80.15%` coverage; `make test-uplot-contract`,
+  `make test-visual-policy`, and `git diff --check` pass.
+- Scoped `docker builder prune -af` reclaimed `4.2GB`; the branch stack stayed healthy. The broad
+  cross-stack prune was safety-rejected, so the remaining Docker-cleanup gap is explicit rather
+  than silently ignored. No product or acceptance threshold was relaxed.
+
 ## 2026-08-14 — Post-comparison authenticated matrix completed
 
 - Rebuilt branch frontend acceptance: authenticated `flows.spec.ts` passes `140/140` in `7.1m`

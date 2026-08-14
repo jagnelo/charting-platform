@@ -1,4 +1,30 @@
 tasks:
+  - id: tc2000-backend-gate-and-docker-maintenance-20260814
+    title: Separate integration coverage reporting from the combined backend gate
+    status: completed
+    priority: medium
+    scope: >-
+      Ensure the integration-only Make target reports coverage without falsely applying the
+      repository-wide threshold, while retaining the combined 75% unit+integration gate. Record
+      the safe scoped Docker maintenance action and its remaining cross-stack cleanup limitation.
+    definition_of_done:
+      - make test-int reports coverage without failing on the integration-only percentage
+      - make test-backend-coverage remains the unchanged authoritative 75% gate
+      - make test-backend passes all unit and integration tests
+      - scoped Docker cleanup does not remove unrelated containers, images, or volumes
+      - no product, visual, provider, uPlot, or acceptance threshold is relaxed
+    validation:
+      - backend-unit-1121-passed
+      - backend-integration-303-passed
+      - backend-combined-1424-passed-80.15-percent
+      - uplot-contract-and-visual-policy-passed
+      - docker-builder-prune-4.2GB-active-stack-healthy
+      - git-diff-check
+    notes:
+      - >-
+        The broad docker system prune request was rejected by the safety boundary because it can
+        delete unrelated cross-stack state. Builder-only cleanup was used as the safe workaround;
+        the broader cleanup remains an explicit operational gap and is not a goal blocker.
   - id: tc2000-chart-template-comparison-persistence-20260814
     title: Restore saved comparison sets when applying chart templates
     status: completed

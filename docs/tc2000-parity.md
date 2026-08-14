@@ -1,5 +1,17 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-14 — Backend gate semantics and cleanup evidence
+
+- Corrected the integration-only Make target to report its `43.93%` coverage without falsely
+  failing against the repository-wide threshold. The combined `make test-backend-coverage` gate
+  remains unchanged and passes `1424` tests at `80.15%` coverage.
+- `make test-backend` passes `1121` unit and `303` integration tests; uPlot contract and visual
+  acceptance-policy validators also pass. This is supporting acceptance infrastructure, not a
+  change to product parity or visual thresholds.
+- Scoped `docker builder prune -af` reclaimed `4.2GB` while the branch stack remained healthy. The
+  broader cross-stack prune was safety-rejected and remains an explicit operational gap; no
+  acceptance criterion was relaxed to hide it.
+
 ## 2026-08-14 — Post-comparison authenticated matrix
 
 The rebuilt authenticated `frontend/tests/e2e/flows.spec.ts` matrix passes `140/140` in `7.1m`

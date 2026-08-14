@@ -1,5 +1,20 @@
 # Project TODO Memory
 
+### 2026-08-14 — Backend gate semantics and scoped Docker maintenance
+
+- [x] Corrected `make test-int` so it reports integration-only coverage without applying the
+      repository-wide threshold; `make test-backend-coverage` remains the authoritative combined
+      unit+integration gate at 75%.
+- [x] Validation passes: `make test-backend` (`1121` unit + `303` integration), combined
+      `make test-backend-coverage` (`1424` tests, `80.15%` coverage), `make test-uplot-contract`,
+      `make test-visual-policy`, and `git diff --check`.
+- [x] Applied the safe scoped Docker maintenance substitute `docker builder prune -af`, reclaiming
+      `4.2GB`; active services remained healthy. The broader `docker system prune -af --volumes`
+      request was rejected by the safety boundary because it can delete unrelated stack state.
+- [ ] Flexibility recorded: scoped builder-cache cleanup is accepted as operational evidence only;
+      no product, visual, provider, uPlot, or coverage acceptance criterion was relaxed. The
+      broader Docker cleanup remains a tracked operational gap.
+
 ### 2026-08-14 — Chart-template comparison persistence
 
 - [x] Chart-template application now restores its saved `comparison_symbols` while preserving

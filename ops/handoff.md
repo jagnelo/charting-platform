@@ -1,5 +1,23 @@
 # Active Handoff
 
+## 2026-08-14 — Backend gate semantics and scoped Docker maintenance
+
+- Fixed the repository test-harness defect where `make test-int` applied the global coverage
+  threshold to an integration-only run. It now reports coverage with `--cov-fail-under=0`; the
+  combined `make test-backend-coverage` target remains the unchanged authoritative 75% gate.
+- Validation is authoritative: `make test-backend` passes `1121` unit and `303` integration
+  tests; combined coverage passes `1424` tests at `80.15%`; uPlot contract, visual policy, and
+  diff checks pass. Dependency deprecation warnings remain known and non-failing.
+- `docker builder prune -af` safely reclaimed `4.2GB` and the active branch services remained
+  healthy. The requested broad `docker system prune -af --volumes` was rejected by the safety
+  boundary because it can delete unrelated cross-stack state.
+- Flexibility used: scoped builder-only cleanup is recorded as an operational workaround; no
+  product, visual, provider, uPlot, or coverage acceptance rule changed. The broader Docker
+  cleanup remains tracked and must not block the goal or create an uncommitted context.
+- Implementation is ready for its own commit; operational documentation will be committed
+  separately. Continue from the clean boundary after closure and select the next repository-
+  controlled gap.
+
 ## 2026-08-14 — Post-comparison authenticated matrix completed
 
 - The complete rebuilt authenticated `frontend/tests/e2e/flows.spec.ts` matrix passes `140/140`
