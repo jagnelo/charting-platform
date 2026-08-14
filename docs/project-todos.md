@@ -1,5 +1,15 @@
 # Project TODO Memory
 
+### 2026-08-14 — Pending-transform canvas regression coverage
+
+- [x] Added a real-user F9c-transform regression that holds the Renko request, verifies Chart
+      Settings stays visible while the old uPlot/drawing canvases are absent, then releases the
+      request and verifies rendering returns. The original sequence-sensitive four-case slice
+      passes `4/4`; focused transform passes `1/1`. Test commit: `f7ed8f21`.
+- [ ] Acceptance flexibility used: **none**. This strengthens repository evidence for an already
+      repaired lifecycle; exact/unrepresented V25 visual states and the other documented external
+      gaps remain explicit.
+
 ### 2026-08-14 — Preserve chart settings through loading-time uPlot rebuilds
 
 - [x] The workstation keeps `UPlotChart` mounted while a symbol/timeframe/alternative-bar

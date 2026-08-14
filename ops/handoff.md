@@ -1,5 +1,17 @@
 # Active Handoff
 
+## 2026-08-14 — Pending-transform regression coverage
+
+- Added test commit `f7ed8f21` to hold the Renko transform request and assert the exact transition:
+  Chart Settings remains visible, the old chart canvases are absent, and rendering returns after
+  the request is released.
+- Focused pending-transform coverage passes `1/1`; the original F9c/F9c-transform/
+  F9c-template-transform/F8r-breadth-narrow sequence passes `4/4`. No visual threshold, mask,
+  renderer, provider, or product criterion changed; acceptance flexibility used: none.
+- This test context is cleanly committed. The current branch remains ahead of origin only because
+  the private-repository egress safeguard rejects the exact push payload before Git; that
+  transport-only state does not block the active goal.
+
 ## 2026-08-14 — Current push transport result after lifecycle repair
 
 - The exact elevated command `rtk git push origin feat/tc2000-frontend-rework` was attempted for

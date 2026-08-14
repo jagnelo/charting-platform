@@ -1,4 +1,25 @@
 tasks:
+  - id: tc2000-pending-transform-regression-20260814
+    title: Prove settings and canvas behavior during pending transform requests
+    status: completed
+    priority: high
+    scope: >-
+      Add a real-user browser regression for the exact chart-loading transition that previously
+      closed Chart Settings and left lifecycle behavior under-specified.
+    definition_of_done:
+      - A held Renko request keeps Chart Settings and transform inputs visible
+      - The previous numerical/drawing canvas set is absent while the request is pending
+      - Releasing the request restores the expected chart rendering
+      - The sequence-sensitive chart/template/narrow-dock slice remains green
+    validation:
+      - pending-transform-f9c-1-of-1
+      - sequence-sensitive-four-case-4-of-4
+      - git-diff-check
+    notes:
+      - >-
+        Test commit `f7ed8f21`. No product, visual, provider, threshold, mask, or acceptance
+        flexibility changed; the regression is retained as direct evidence for the prior
+        repository-controlled lifecycle repair.
   - id: tc2000-chart-settings-loading-lifecycle-20260814
     title: Preserve chart settings while rebuilding loading-time uPlot data
     status: completed

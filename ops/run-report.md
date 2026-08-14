@@ -1,5 +1,12 @@
 # Run Report
 
+## 2026-08-14 — Pending-transform regression coverage
+
+- Added and passed the held-request F9c-transform browser regression (`1/1`), proving settings
+  persistence, zero canvases during loading, and chart restoration after release. The original
+  four-case sequence passes `4/4`.
+- No acceptance flexibility was used. Test commit: `f7ed8f21`.
+
 ## 2026-08-14 — Current push transport result after lifecycle repair
 
 - Exact elevated push for `91463e54..584e83b3` was rejected before Git by the private-repository
