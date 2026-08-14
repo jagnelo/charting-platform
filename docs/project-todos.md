@@ -9301,6 +9301,15 @@ date. The API regression proves an IWV request for 2026-06-30 stores a returned 
 composition snapshot without rewriting it to 2026-06-30. This closes a local provenance/data-
 integrity defect, not the broader historical family-population requirement.
 
+The backend now also exposes the bounded admin maintenance operation
+`POST /etf-holdings/benchmark-family/{family_key}/refresh-date`. It accepts a requested date and
+selected cap/equal/value/growth roles, refreshes each mapped leg independently, and returns
+refreshed snapshot IDs/composition dates plus explicit unavailable and failure entries. A missing
+style mapping is never treated as success or replaced with the cap proxy. The focused API fixture
+refreshes the Russell 3000 cap leg (IWV), reports its returned 2026-06-27 composition for a
+2026-06-30 request, and retains the value leg as unavailable. This is orchestration readiness for
+historical population, not evidence that all family legs have been populated.
+
 #### Current continuation — 2026-08-12 listing visibility and browser contract repair
 
 The exchange-aware listing API contract is now exercised through the real seeded workstation

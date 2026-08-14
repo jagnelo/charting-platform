@@ -222,6 +222,13 @@ retain that composition date, retain the requested date as `as_of_date`, reject 
 responses, and expose both values in provenance. Rewriting the returned date to the request would
 invalidate point-in-time membership and is a failed acceptance case.
 
+Family backfill acceptance additionally requires a bounded role-aware maintenance operation. A
+requested family/date/role set must return one result per requested role, with snapshot and
+composition evidence for refreshed legs and explicit unavailable or failure entries for the rest.
+The operation must continue independent legs after one failure, and a missing value/growth/equal
+mapping must never be represented as a cap-leg success. This proves orchestration semantics only;
+it does not close the requirement for complete historical population across all families.
+
 ### Expanded condition-driven breadth gate
 
 The fixed Market Breadth panel is not sufficient evidence for the broader breadth requirement.

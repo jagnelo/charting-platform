@@ -149,6 +149,14 @@ tasks:
         `3/3`, including an IWV request for 2026-06-30 returning a 2026-06-27 composition snapshot.
         This closes a local provenance/data-integrity defect only; historical continuity and family
         browser acceptance remain open; no flexibility was used.
+      - >-
+        Added the bounded admin family backfill route
+        `POST /etf-holdings/benchmark-family/{family_key}/refresh-date`. It accepts selected
+        cap/equal/value/growth roles, refreshes mapped legs independently, and returns refreshed
+        snapshot/composition evidence plus explicit unavailable/failure entries. Focused API
+        coverage proves Russell 3000/IWV refresh plus an unavailable value leg; this is
+        orchestration readiness only and does not close complete historical family population or
+        browser acceptance; no flexibility was used.
   - id: tc2000-generic-condition-driven-breadth-20260814
     title: Broaden breadth from fixed metrics to reusable condition-driven cross-sectional studies
     status: in_progress

@@ -2116,6 +2116,94 @@ def test_admin_dated_ishares_refresh_preserves_returned_composition_date(
     assert legal_metadata["composition_date"] == "2026-06-27"
 
 
+def test_admin_can_refresh_selected_benchmark_family_legs_for_date(
+    client, admin_headers, monkeypatch
+):
+    payload = {
+        "componentsByNameMap": {
+            "holdings": {
+                "containersByNameMap": {
+                    "all": {
+                        "dataPointsByNameMap": {
+                            "ticker": {"value": ["NVDA"]},
+                            "issueName": {"value": ["NVIDIA CORP"]},
+                            "holdingPercent": {"value": ["1.25"]},
+                            "unitsHeld": {"value": ["10"]},
+                            "marketValue": {"value": ["1000"]},
+                            "assetClass": {"value": ["Equity"]},
+                            "asOfDate": {"value": "20260627"},
+                        }
+                    }
+                }
+            }
+        }
+    }
+    requested_urls = []
+
+    class FakeResponse:
+        text = json.dumps(payload)
+        content = text.encode()
+        headers = {"content-type": "application/json"}
+
+        def json(self):
+            return payload
+
+        def raise_for_status(self):
+            return None
+
+    class FakeClient:
+        def __init__(self, *args, **kwargs):
+            self.args = args
+            self.kwargs = kwargs
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *args):
+            return None
+
+        async def get(self, url, **kwargs):
+            requested_urls.append(url)
+            assert kwargs["follow_redirects"] is True
+            return FakeResponse()
+
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeClient)
+
+    refresh = client.post(
+        "/api/v1/etf-holdings/benchmark-family/russell3000/refresh-date",
+        json={"requested_date": "2026-06-30", "roles": ["cap_weight", "value"]},
+        headers=admin_headers,
+    )
+    assert refresh.status_code == 200
+    body = refresh.json()
+    assert body["family_key"] == "russell3000"
+    assert body["requested_date"] == "2026-06-30"
+    assert body["roles"] == ["cap_weight", "value"]
+    assert body["refreshed"] == 1
+    assert body["unavailable"] == 1
+    assert body["failed"] == 0
+    assert body["legs"] == [
+        {
+            "role": "cap_weight",
+            "symbol": "IWV",
+            "status": "refreshed",
+            "snapshot_id": body["legs"][0]["snapshot_id"],
+            "composition_date": "2026-06-27",
+            "message": None,
+        },
+        {
+            "role": "value",
+            "symbol": None,
+            "status": "unavailable",
+            "snapshot_id": None,
+            "composition_date": None,
+            "message": "No verified mapped proxy is configured for this family role.",
+        },
+    ]
+    assert "portfolioId=239714" in requested_urls[0]
+    assert "asOfDate=20260630" in requested_urls[0]
+
+
 def test_issuer_adapter_can_discover_holdings_file_from_product_page(
     client, admin_headers, auth_headers, monkeypatch
 ):

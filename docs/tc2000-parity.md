@@ -85,6 +85,14 @@ persist a returned 2026-06-27 snapshot while retaining both dates in the respons
 metadata. This removes a local point-in-time provenance defect; historical continuity and browser
 family acceptance remain open.
 
+Historical family population now has an explicit admin maintenance contract at
+`POST /etf-holdings/benchmark-family/{family_key}/refresh-date`. It accepts selected family roles,
+refreshes each mapped leg independently, and returns snapshot/composition evidence alongside
+unavailable or failed legs. The route never substitutes a cap proxy for a missing style leg. The
+focused regression exercises Russell 3000/IWV and confirms a returned 2026-06-27 snapshot for a
+2026-06-30 request while retaining the missing value leg as unavailable. This is orchestration
+readiness only; complete historical population and browser acceptance remain open.
+
 ## 2026-08-14 — Family-leg relative-strength ratio contract
 
 Family role analysis now exposes `GET /analysis/benchmark-families/{family_key}/ratios`. A

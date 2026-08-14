@@ -497,6 +497,29 @@ class ETFHoldingsDatedRefreshRequest(BaseModel):
     requested_date: date
 
 
+class BenchmarkFamilyHoldingsDatedRefreshRequest(ETFHoldingsDatedRefreshRequest):
+    roles: list[str] = Field(default_factory=list)
+
+
+class BenchmarkFamilyHoldingsDatedRefreshLegOut(BaseModel):
+    role: str
+    symbol: str | None = None
+    status: str
+    snapshot_id: int | None = None
+    composition_date: date | None = None
+    message: str | None = None
+
+
+class BenchmarkFamilyHoldingsDatedRefreshSummary(BaseModel):
+    family_key: str
+    requested_date: date
+    roles: list[str]
+    refreshed: int
+    unavailable: int
+    failed: int
+    legs: list[BenchmarkFamilyHoldingsDatedRefreshLegOut] = Field(default_factory=list)
+
+
 class ETFHoldingsDiscoveryRequest(BaseModel):
     adapter_key: str
     source_url: str

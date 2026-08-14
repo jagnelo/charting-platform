@@ -42,6 +42,7 @@ from app.services.etf_holdings_adapters import (
     parse_xlsx_table,
 )
 from app.services.instrument_mastering import register_identifier
+from app.services.top_down_taxonomy import BENCHMARK_FAMILY_REGISTRY
 
 
 class ETFHoldingsRouteNotReadyError(ValueError):
@@ -979,6 +980,131 @@ async def refresh_etf_holdings_for_date(
     await _record_success(db, profile, snapshot=snapshot)
     await db.flush()
     return snapshot
+
+
+async def refresh_benchmark_family_holdings_for_date(
+    db: AsyncSession,
+    *,
+    family_key: str,
+    requested_date: date,
+    roles: list[str] | None = None,
+) -> dict[str, Any]:
+    """Refresh every selected mapped family leg for one historical date.
+
+    This is an administrative/backfill operation, not an interactive provider fan-out.  Each
+    role is reported independently so an unavailable style leg or one issuer failure cannot be
+    represented as a family-wide success or silently substituted with another proxy.
+    """
+
+    normalized_family_key = family_key.strip().lower()
+    family = next(
+        (
+            item
+            for item in BENCHMARK_FAMILY_REGISTRY
+            if str(item.get("logical_key", "")).strip().lower() == normalized_family_key
+        ),
+        None,
+    )
+    if family is None:
+        raise ValueError(f"Unknown benchmark family: {family_key}.")
+
+    supported_roles = ("cap_weight", "equal_weight", "value", "growth")
+    requested_roles = roles or list(supported_roles)
+    normalized_roles: list[str] = []
+    for role in requested_roles:
+        normalized_role = str(role).strip().lower()
+        if normalized_role not in supported_roles:
+            raise ValueError(
+                f"Unsupported benchmark family role {role!r}; expected one of "
+                f"{', '.join(supported_roles)}."
+            )
+        if normalized_role not in normalized_roles:
+            normalized_roles.append(normalized_role)
+
+    legs: list[dict[str, Any]] = []
+    refreshed = unavailable = failed = 0
+    for role in normalized_roles:
+        mapping = family.get(role) if isinstance(family.get(role), dict) else None
+        symbol = str(mapping.get("symbol")).strip().upper() if mapping and mapping.get("symbol") else None
+        if not symbol:
+            unavailable += 1
+            legs.append(
+                {
+                    "role": role,
+                    "symbol": None,
+                    "status": "unavailable",
+                    "message": "No verified mapped proxy is configured for this family role.",
+                }
+            )
+            continue
+
+        try:
+            instrument = await ensure_lightweight_etf_instrument(
+                db,
+                symbol=symbol,
+                name=str(mapping.get("label") or symbol),
+            )
+            profile = await ensure_etf_profile(db, instrument)
+            _apply_known_route_metadata(profile)
+            probe = await probe_etf_holdings_adapter_route(db, profile)
+            if probe.status != "ready":
+                unavailable += 1
+                legs.append(
+                    {
+                        "role": role,
+                        "symbol": symbol,
+                        "status": "route_not_ready",
+                        "message": probe.reason or "No usable free holdings route is configured.",
+                    }
+                )
+                continue
+            snapshot = await refresh_etf_holdings_for_date(
+                db,
+                profile,
+                requested_date=requested_date,
+            )
+        except ETFHoldingsRouteNotReadyError as exc:
+            unavailable += 1
+            legs.append(
+                {
+                    "role": role,
+                    "symbol": symbol,
+                    "status": "route_not_ready",
+                    "message": str(exc),
+                }
+            )
+        except Exception as exc:  # noqa: BLE001 - isolate one family leg's backfill failure.
+            failed += 1
+            legs.append(
+                {
+                    "role": role,
+                    "symbol": symbol,
+                    "status": "failed",
+                    "message": str(exc) or "Dated family holdings refresh failed.",
+                }
+            )
+        else:
+            refreshed += 1
+            legs.append(
+                {
+                    "role": role,
+                    "symbol": symbol,
+                    "status": "refreshed",
+                    "snapshot_id": snapshot.id,
+                    "composition_date": snapshot.composition_date,
+                }
+            )
+
+    await db.flush()
+    return {
+        "family_key": normalized_family_key,
+        "requested_date": requested_date,
+        "roles": normalized_roles,
+        "refreshed": refreshed,
+        "unavailable": unavailable,
+        "failed": failed,
+        "legs": legs,
+    }
 
 
 def _aliases(profile: ETFProfile) -> dict[str, Any]:

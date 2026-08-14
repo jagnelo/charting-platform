@@ -10,6 +10,8 @@ from app.models.etf_holdings import ETFHoldingsAdapterState
 from app.models.user import User
 from app.schemas.basket import BasketOut
 from app.schemas.etf_holdings import (
+    BenchmarkFamilyHoldingsDatedRefreshRequest,
+    BenchmarkFamilyHoldingsDatedRefreshSummary,
     ETFConstituentTimelinePoint,
     ETFHoldingsAdapterCatalogOut,
     ETFHoldingsAdapterProbeOut,
@@ -86,11 +88,36 @@ from app.services.etf_holdings_refresh import (
     discover_etf_profiles_from_sec_fund_tickers,
     probe_etf_holdings_adapter_route,
     refresh_all_known_etf_holdings,
+    refresh_benchmark_family_holdings_for_date,
     refresh_etf_holdings_for_date,
 )
 from app.services.etf_holdings_sec import parse_sec_legacy_holdings_xml, parse_sec_nport_xml
 
 router = APIRouter(prefix="/etf-holdings", tags=["etf-holdings"])
+
+
+@router.post(
+    "/benchmark-family/{family_key}/refresh-date",
+    response_model=BenchmarkFamilyHoldingsDatedRefreshSummary,
+)
+async def refresh_benchmark_family_for_date(
+    family_key: str,
+    body: BenchmarkFamilyHoldingsDatedRefreshRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    try:
+        summary = await refresh_benchmark_family_holdings_for_date(
+            db,
+            family_key=family_key,
+            requested_date=body.requested_date,
+            roles=body.roles,
+        )
+    except ValueError as exc:
+        await db.rollback()
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    await db.commit()
+    return summary
 
 
 @router.get("", response_model=list[ETFProfileOut])
