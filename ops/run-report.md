@@ -35,6 +35,9 @@
 - Operational checkpoint `a96910c6` is clean locally. Its exact elevated push was likewise rejected
   before Git by the private-origin safeguard; origin remains `91463e54`. The context is closed
   locally and no indirect transport was attempted.
+- The follow-up benchmark operational record `7796c12b` is also clean locally; its exact push was
+  rejected before Git by the same safeguard. This remains a transport-only hold, with no repeat or
+  alternate transport.
 
 ## 2026-08-14 — Versioned condition-asset reuse in generic breadth
 

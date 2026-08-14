@@ -50,6 +50,10 @@
 - Operational checkpoint `a96910c6 chore(ops): record isolated Python breadth checkpoint` is also
   clean locally. Its exact elevated push was rejected before Git by the same safeguard; origin
   remains `91463e54`. The completed context is closed locally and the next context may begin.
+- The benchmark-scope operational record `7796c12b` is clean locally. Its exact elevated push was
+  attempted once and rejected before Git by the private-origin safeguard; origin remains
+  `91463e54`. Do not retry or use an alternate transport without newly accepted exact-payload
+  authorization.
 - Next context: visual condition-tree authoring and breadth occurrence/promotion UI integration.
 
 ## 2026-08-14 — Versioned breadth condition-asset reuse
