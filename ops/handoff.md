@@ -1,5 +1,15 @@
 # Active Handoff
 
+## 2026-08-14 — Unified Python stats Git closure
+
+- Implementation `c729d75d4edc4081b6cb3d29a49cf045466be10e` and operational checkpoint
+  `5208cfc6` are separate local commits. The repository is clean and `.git/index.lock` is absent.
+- The single exact elevated push for `91463e54bbfb37dc5e130d3c912434bfc41594bd..5208cfc6` was
+  rejected before Git by the private-origin export safeguard because trusted authorization for
+  exporting the 170-commit local range was unavailable. No alternate transport, wrapper,
+  rewrite, reset, stash, or repeat is used. This is transport-only and does not block the product
+  goal; continue from the clean local boundary.
+
 ## 2026-08-14 — Unified Python stats namespace (completed)
 
 - Context owner: Codex. Owned paths are `backend/research_runner/runner.py`, its focused runner
