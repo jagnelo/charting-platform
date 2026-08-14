@@ -22,6 +22,7 @@ tasks:
       - Git transport is operational only and must not block the goal.
       - Acceptance flexibility used: none.
       - Implementation/docs commit: b7f71c81; operational checkpoint remains separate.
+      - Exact push 91463e54..738514ff was attempted once and rejected before Git by the private-origin egress safeguard; transport-only, no workaround or repeat.
   - id: tc2000-study-lab-historical-90-90-distribution-20260814
     title: Add current-versus-history distributions to the 90/90 Study Lab
     status: completed

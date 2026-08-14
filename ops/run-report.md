@@ -14,6 +14,13 @@
 - Implementation/docs commit: `b7f71c81`; operational checkpoint follows separately and exact push
   is attempted once after closure.
 
+## 2026-08-14 — Histogram marker Git transport result
+
+- Implementation/docs `b7f71c81` and operational checkpoint `738514ff` are clean locally.
+- Exact push for `91463e54..738514ff` was attempted once and rejected before Git by the
+  private-origin egress safeguard. No workaround or repeat was used; transport-only and not a
+  goal blocker.
+
 ## 2026-08-14 — Historical 90/90 distribution visuals context started
 
 - Started from clean local `96c2d1a0` to add explicit current-versus-history price and volume

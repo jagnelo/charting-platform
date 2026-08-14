@@ -19,6 +19,11 @@
 - Acceptance flexibility used: none. `REF-STUDY-LAB-V25` remains open.
 - Implementation/docs commit: `b7f71c81` (`fix(study-lab): refresh histogram current marker`).
   Operational checkpoint remains separate and the exact push will be attempted once after closure.
+- Exact push result: `rtk git push origin feat/tc2000-frontend-rework` for clean range
+  `91463e54..738514ff` was attempted once and rejected before Git by the private-origin egress
+  safeguard because trusted authorization for this private payload/destination was unavailable.
+  `.git/index.lock` is absent; no alternate transport, wrapper, rewrite, reset, stash, force push,
+  or repeat was used. Transport-only; continue from the clean local boundary.
 - Next action: continue the next independent workstation/backend gap.
 
 ## 2026-08-14 — Historical 90/90 distribution visuals context (completed)
