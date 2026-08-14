@@ -1,5 +1,22 @@
 # Active Handoff
 
+## 2026-08-14 — Bounded historical family refresh range
+
+- Added `POST /etf-holdings/benchmark-family/{family_key}/refresh-range` with a maximum of 64
+  dates. It de-duplicates and orders requested dates, delegates each date to the existing
+  role-isolated cap/equal/value/growth refresh operation, and returns one dated run per normalized
+  date with independent refreshed/unavailable/failed outcomes.
+- Focused adjacent benchmark-family integration passes `2/2` against the real range wrapper and
+  existing single-date operation. Ruff, compileall, YAML/JSON parsing, and diff checks pass. No
+  acceptance flexibility used; complete official membership/rebalance continuity remains open.
+- Implementation/docs commit: `5d06775a` (`feat(holdings): add benchmark family refresh range`).
+  Exact elevated `rtk git push origin HEAD:feat/tc2000-frontend-rework` was attempted once after
+  this checkpoint and rejected before Git by the private-origin safeguard due unavailable
+  authorization for the accumulated private payload/destination. No workaround, alternate
+  transport, rewrite, reset, stash, or repeat was used. Worktree is clean locally; next is to use
+  the range operation for supported historical dates and extend all-family analytics/browser
+  acceptance.
+
 ## 2026-08-14 — Benchmark-family browser drill-down slice
 
 - Added frontend store contracts/loaders for `GET /analysis/benchmark-families/{family_key}/overview`

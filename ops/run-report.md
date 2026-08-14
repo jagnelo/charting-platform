@@ -1,5 +1,14 @@
 # Run Report
 
+## 2026-08-14 — Bounded historical family refresh range
+
+- Added the bounded role-aware family range endpoint for up to 64 dates. Dates are normalized and
+  each date retains independent cap/equal/value/growth results and requested/composition evidence.
+- Adjacent integration tests pass `2/2`; Ruff, compileall, YAML/JSON parsing, and diff checks pass.
+  No acceptance flexibility used; complete official membership/rebalance continuity remains open.
+- Commit `5d06775a`; exact push attempted once and rejected before Git by the private-origin
+  safeguard. No workaround/repeat; local worktree clean.
+
 ## 2026-08-14 — Benchmark-family browser drill-down slice
 
 - Added provider-neutral overview and role-specific constituent loaders to the workstation store;
