@@ -21,4 +21,23 @@ describe('workstation normalized comparisons', () => {
     expect(result[0].values).toEqual([null])
     expect(result[0].percentChange).toBeNull()
   })
+
+  it('aligns ISO primary bars with epoch comparison timestamps', () => {
+    const result = buildNormalizedComparisonSeries(
+      [bar('2026-01-01T00:00:00Z', 100), bar('2026-01-02T00:00:00Z', 110)] as any,
+      [{ symbol: 'RSP', label: 'RSP', color: '#f00', bars: [bar(1767225600, 50), bar(1767312000, 55)] as any }],
+    )
+    expect(result[0].values[0]).toBe(100)
+    expect(result[0].values[1]).toBeCloseTo(110)
+    expect(result[0].percentChange).toBe(10)
+  })
+
+  it('does not align malformed timestamps to an unrelated bar', () => {
+    const result = buildNormalizedComparisonSeries(
+      [bar('not-a-date', 100)] as any,
+      [{ symbol: 'RSP', label: 'RSP', color: '#f00', bars: [bar(1, 50)] as any }],
+    )
+    expect(result[0].values).toEqual([null])
+    expect(result[0].percentChange).toBeNull()
+  })
 })

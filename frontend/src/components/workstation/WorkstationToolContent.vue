@@ -1235,7 +1235,7 @@ async function loadComparisonBars() {
       const raw = await dedupeOhlcvRequest(`raw:local:${symbol.toUpperCase()}:${timeframe}:adjusted:${limit}`, () => api.get<any[]>(`/ohlcv/local/${encodeURIComponent(symbol)}/${timeframe}`, { limit }))
       return { symbol, bars: raw.map(bar => ({
         ...bar,
-        ts: Number(bar.ts ?? bar.timestamp),
+        ts: String(bar.ts ?? bar.timestamp ?? ''),
         open: Number(bar.open), high: Number(bar.high), low: Number(bar.low), close: Number(bar.close),
         volume: bar.volume == null ? undefined : Number(bar.volume),
         vwap: bar.vwap == null ? undefined : Number(bar.vwap),
