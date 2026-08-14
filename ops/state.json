@@ -7,7 +7,7 @@
   "last_handoff_at": "2026-08-14T23:55:00Z",
   "last_commit": "f8847fba chore(ops): record family route correction",
   "git_ready_to_commit": true,
-  "git_checkpoint": "Implementation/docs commit b227a9f is clean locally. The exact elevated push rtk git push origin HEAD:feat/tc2000-frontend-rework was attempted once after that checkpoint and rejected before Git by the private-origin safeguard because authorization for the accumulated private payload/destination was unavailable. No workaround, alternate transport, rewrite, reset, stash, or repeat; operational files are pending their separate checkpoint.",
+  "git_checkpoint": "Implementation/docs commit b227a9f and operational checkpoint 3a6f71d are clean locally. The exact elevated push rtk git push origin HEAD:feat/tc2000-frontend-rework was attempted once after the implementation checkpoint and rejected before Git by the private-origin safeguard because authorization for the accumulated private payload/destination was unavailable. No workaround, alternate transport, rewrite, reset, stash, or repeat; the next context starts from this clean local boundary.",
   "next_context": "benchmark-family-live-and-point-in-time-evidence-20260814",
   "active_context": "benchmark-family-live-and-point-in-time-evidence-20260814",
   "context_status": "historical-ishares-as-of-route-and-family-scope-ready-for-checkpoint",

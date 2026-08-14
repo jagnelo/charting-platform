@@ -13,9 +13,10 @@
   compileall, `git diff --check`, and Ruby YAML/JSON parsing pass. No acceptance flexibility used.
 - Open: complete historical rebalance/membership continuity, official-index membership evidence,
   canonical family bars, family-wide populated analytics, browser acceptance, and final goal audit.
-- Implementation/docs commit `b227a9f` is clean locally. The required exact elevated push was
-  attempted once and rejected before Git by the private-origin safeguard; no workaround or repeat
-  was used. Operational files are the only pending checkpoint changes.
+- Implementation/docs commit `b227a9f` and operational checkpoint `3a6f71d` are clean locally. The
+  required exact elevated push was attempted once and rejected before Git by the private-origin
+  safeguard; no workaround or repeat was used. The next context starts from this clean local
+  boundary.
 
 
 ## 2026-08-14 — QQQE route push transport

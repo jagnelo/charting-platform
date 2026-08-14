@@ -36,8 +36,9 @@
   Authorization for the accumulated private payload/destination was unavailable. No workaround,
   alternate transport, rewrite, reset, stash, or repeat was used; this is transport-only and not a
   goal blocker.
-- The operational files below are the only remaining dirty files and must be committed as a
-  separate checkpoint before the next context.
+- Operational checkpoint `3a6f71d` recorded the implementation hash, validation, and rejected push
+  result. The worktree is clean locally; the next context can continue without carrying an
+  unlabelled changeset.
 
 
 ## 2026-08-14 — QQQE/Direxion route evidence
