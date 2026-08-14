@@ -10,6 +10,9 @@
   was falsely marked complete.
 - Validation: `git diff --check`, JSON parse, and YAML/manifest parse pass. Implementation,
   source evidence, and browser acceptance remain open under the pending benchmark-family task.
+- Documentation commit `4ad40356` is clean locally. The exact elevated push was attempted once and
+  rejected before Git by the private-origin safeguard; origin remains `91463e54`. No workaround or
+  repeat was attempted.
 
 ## 2026-08-14 — Isolated-Python breadth predicates
 

@@ -17,6 +17,10 @@
 - Validation for the documentation update: `git diff --check`, `jq -e . ops/state.json`, and Ruby
   YAML parsing of `ops/tasks.yaml` plus the V25 visual manifest pass. Next context is the actual
   benchmark taxonomy/provenance implementation.
+- Documentation implementation commit `4ad40356 docs(plan): expand US benchmark family analysis
+  scope` is clean locally. Its exact elevated push was attempted once and rejected before Git by
+  the private-origin safeguard; origin remains `91463e54`. This is transport-only and does not
+  change the pending implementation scope.
 
 ## 2026-08-14 — Isolated-Python breadth execution bridge
 
