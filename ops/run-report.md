@@ -1,5 +1,13 @@
 # Run Report
 
+## 2026-08-14 — QQQE route push transport
+
+- The exact elevated push for clean commits `4609601b` and `404a73da` was attempted once and
+  rejected before Git by the private-origin safeguard because authorization for the accumulated
+  private payload/destination was unavailable.
+- No workaround, alternate transport, rewrite, reset, stash, or repeat was attempted. Transport
+  is the only unresolved boundary; the local worktree remains clean.
+
 ## 2026-08-14 — QQQE/Direxion route evidence
 
 - Added `QQQE` canonical route metadata for the explicit Direxion adapter and official product

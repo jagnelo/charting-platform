@@ -13,6 +13,10 @@
 - Remaining: historical rebalance continuity, point-in-time membership, canonical QQQE bars,
   and populated browser QQQ/QQQE cap/equal acceptance. Official source reference:
   `https://www.direxion.com/product/nasdaq-100-equal-weighted-index-etf`.
+- Git: implementation `4609601b` and operational checkpoint `404a73da` are clean locally. The
+  required exact elevated push was attempted once and rejected before Git by the private-origin
+  safeguard because authorization for the accumulated private payload/destination was unavailable.
+  No workaround, alternate transport, rewrite, reset, stash, or repeat was attempted.
 
 ## 2026-08-14 — Expanded US index-family vision documentation
 
