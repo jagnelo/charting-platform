@@ -1,5 +1,13 @@
 # Run Report
 
+## 2026-08-14 — Current clean-boundary push attempt
+
+- Verified clean local `HEAD` `d09eaae7` and origin `91463e54`; the exact range is
+  `91463e54..d09eaae7`.
+- The elevated branch push was rejected before Git by the private-repository egress safeguard for
+  that exact payload and destination. No workaround or history rewrite was attempted. This remains
+  a transport-only hold and does not block independent implementation.
+
 ## 2026-08-14 — Distribution Bars uPlot resize lifecycle
 
 - Rebound `DistributionBars`' ResizeObserver to its conditional host, closing the empty→valid
