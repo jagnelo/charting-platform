@@ -1,4 +1,29 @@
 tasks:
+  - id: tc2000-study-range-timestamp-validation-20260814
+    title: Reject malformed Study Range timestamps before uPlot
+    status: completed
+    priority: high
+    scope: >-
+      Prevent Study Lab range output from converting malformed timestamps into synthetic index
+      coordinates that could misrepresent the time axis.
+    definition_of_done:
+      - Range output requires aligned finite bounds and parseable timestamps
+      - Malformed range output exposes the existing explicit unavailable state
+      - Existing charts are destroyed when a valid range becomes malformed
+      - Focused, full frontend, type/build, uPlot, and diff checks pass
+      - No visual or acceptance criterion is silently relaxed
+    validation:
+      - conditional-uplot-lifecycle-11-of-11
+      - frontend-vitest-800-of-800
+      - frontend-type-check-build
+      - uplot-contract-45-files
+      - git-diff-check
+    notes:
+      - >-
+        Implementation `3f03b33a` removes the fallback index coordinate and validates every
+        timestamp before numerical rendering. Acceptance flexibility used: none. Exact/
+        unrepresented Study Lab, provider/entitlement, historical/GICS, native-monitor,
+        endurance, Docker, and final-audit gaps remain open.
   - id: tc2000-conditional-uplot-data-validation-20260814
     title: Reject malformed conditional numerical data before uPlot
     status: completed

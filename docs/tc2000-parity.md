@@ -1,5 +1,18 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-14 — Study Range rejects malformed timestamps
+
+- Study Lab range output now rejects malformed timestamps before uPlot instead of silently
+  replacing them with synthetic array-index x coordinates. Valid range data continues to use
+  epoch-second timestamps for the time axis; invalid output retains the explicit unavailable
+  state and destroys any stale chart instance.
+- Focused conditional-uPlot lifecycle coverage passes `11/11`; full frontend Vitest passes
+  `800/800`; `vue-tsc --noEmit`, the 475-module production build, uPlot contract (`45` files),
+  and `git diff --check` pass. Implementation: `3f03b33a`.
+- No acceptance flexibility, visual threshold, mask, provider substitution, or renderer rule was
+  used. Exact/unrepresented V25 Study Lab states, provider/entitlement, historical/GICS,
+  native-monitor, endurance, Docker, and final-audit gaps remain explicit.
+
 ## 2026-08-14 — Conditional numerical-data validation
 
 - Study Series and Breadth History now reject malformed timestamps and non-finite numerical payloads

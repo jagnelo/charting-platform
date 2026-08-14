@@ -1,5 +1,18 @@
 # Active Handoff
 
+## 2026-08-14 — Study Range malformed-timestamp context completed
+
+- Implementation `3f03b33a` closes a repository-controlled numerical integrity gap in
+  `StudyRangeUPlot`: malformed timestamps can no longer become synthetic index coordinates before
+  uPlot. The explicit unavailable state and stale-chart destruction path remain authoritative.
+- Focused conditional-uPlot lifecycle coverage passes `11/11`; full frontend Vitest `800/800`;
+  type-check; 475-module production build; uPlot contract (`45` files); and `git diff --check`.
+- Acceptance flexibility used: **none**. No visual threshold, board authority, mask, provider
+  rule, or uPlot exception changed. Exact/unrepresented Study Lab, provider/entitlement,
+  historical/GICS, native-monitor, endurance, Docker, and final-audit gaps remain tracked.
+- This implementation context is closed as a clean local commit. The next context may begin after
+  the separate operational record below is committed; remote push remains a transport-only hold.
+
 ## 2026-08-14 — Worker-owned Git push retry and transport-only result
 
 - The repository is healthy and clean at `HEAD` `d0f36f50`; no `.git/index.lock` exists and

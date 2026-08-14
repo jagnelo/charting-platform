@@ -1,5 +1,16 @@
 # Run Report
 
+## 2026-08-14 — Study Range malformed-timestamp context
+
+- `StudyRangeUPlot` now requires parseable timestamps alongside aligned finite bounds and no longer
+  substitutes array indices for invalid time values. The focused regression proves malformed data
+  never creates uPlot and uses the existing unavailable status.
+- Focused conditional-uPlot lifecycle tests `11/11`; full frontend Vitest `800/800`; type-check;
+  475-module production build; uPlot contract (`45` files); and diff-check pass. Implementation:
+  `3f03b33a`.
+- Acceptance flexibility used: **none**; exact/unrepresented V25, provider/entitlement,
+  historical/GICS, native-monitor, endurance, Docker, and final-audit gaps remain explicit.
+
 ## 2026-08-14 — Worker-owned Git push retry and transport-only result
 
 - Verified the repository boundary is healthy and clean at `d0f36f50`, with origin at `91463e54`;
