@@ -1,5 +1,12 @@
 # Run Report
 
+## 2026-08-14 — Exact push authorization hold
+
+- Clean local HEAD is `871e1dcd`. The exact elevated push for `91463e54..871e1dcd` was retried
+  after explicit user instruction and rejected before Git by the private-origin egress safeguard.
+  This is external transport authorization state; it does not invalidate any implementation or
+  test result and no workaround was attempted.
+
 ## 2026-08-14 — Git transport checkpoint after canonical matrix
 
 - `ae622879` is a clean local operational commit. The exact elevated command

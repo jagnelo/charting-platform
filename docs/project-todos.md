@@ -1,5 +1,16 @@
 # Project TODO Memory
 
+### 2026-08-14 — Exact push authorization hold
+
+- [x] The clean local branch is now at `871e1dcd`; the exact push for range
+      `91463e54..871e1dcd` was retried with the user's explicit instruction and still rejected
+      before Git because the environment requires trusted authorization for that exact private
+      destination/payload. This confirms the remaining issue is external egress authorization,
+      not `.git/index.lock`, repository permissions, credentials, or branch state.
+- [ ] Acceptance flexibility used: **none**. Do not retry via an indirect route or turn this
+      transport hold into a goal blocker. Continue implementation from the clean local branch;
+      when exact authorization is granted, push the same branch/range and verify remote parity.
+
 ### 2026-08-14 — Git transport checkpoint after canonical matrix
 
 - [x] Operational commit `ae622879` records the verified `140/140` canonical matrix. The exact

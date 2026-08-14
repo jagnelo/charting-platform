@@ -1,5 +1,14 @@
 # Active Handoff
 
+## 2026-08-14 — Exact push authorization hold
+
+- The worktree remains clean at `871e1dcd`. A retry explicitly naming the user's instruction and
+  exact range `91463e54..871e1dcd` was rejected before Git by the environment's private-origin
+  egress safeguard. Repository/index health and elevated local commit capability are confirmed.
+- No indirect transport, API/plugin workaround, force push, rewrite, reset, or stash is permitted.
+  Continue the TC2000 implementation normally; once trusted authorization for this exact remote,
+  branch, and range exists, retry and verify `HEAD` equals `origin/feat/tc2000-frontend-rework`.
+
 ## 2026-08-14 — Git transport checkpoint after canonical matrix
 
 - Operational checkpoint `ae622879` is committed locally and the worktree is clean. The exact
