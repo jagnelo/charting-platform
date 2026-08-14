@@ -2485,12 +2485,18 @@ test.describe('TC2000 workstation', () => {
     await study.getByRole('button', { name: 'Run', exact: true }).click()
     await expect(study.locator('.study-lab-tool__run-status--completed')).toBeVisible({ timeout: 90_000 })
 
-    const exportButton = study.getByRole('button', { name: 'Export completed_streaks' })
-    await expect(exportButton).toBeVisible()
-    const downloadPromise = page.waitForEvent('download')
-    await exportButton.click()
-    const download = await downloadPromise
-    expect(download.suggestedFilename()).toMatch(/^study-run-\d+-completed_streaks\.json$/)
+    const metricExportButton = study.getByRole('button', { name: 'Export current_streak' })
+    await expect(metricExportButton).toBeVisible()
+    const metricDownloadPromise = page.waitForEvent('download')
+    await metricExportButton.click()
+    const metricDownload = await metricDownloadPromise
+    expect(metricDownload.suggestedFilename()).toMatch(/^study-run-\d+-current_streak\.json$/)
+    const artifactExportButton = study.getByRole('button', { name: 'Export completed_streaks' })
+    await expect(artifactExportButton).toBeVisible()
+    const artifactDownloadPromise = page.waitForEvent('download')
+    await artifactExportButton.click()
+    const artifactDownload = await artifactDownloadPromise
+    expect(artifactDownload.suggestedFilename()).toMatch(/^study-run-\d+-completed_streaks\.json$/)
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
