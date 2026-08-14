@@ -1,4 +1,28 @@
 tasks:
+  - id: tc2000-canonical-f8k-provisioning-resilience-20260814
+    title: Harden canonical E2E setup against transient registration 5xx responses
+    status: completed
+    priority: high
+    scope: >-
+      Investigate the one non-seeded F8k full-matrix failure, distinguish setup transport failure
+      from product behavior, and add bounded retry handling that cannot hide persistent errors.
+    definition_of_done:
+      - Original failure is recorded with reproduction and log evidence
+      - Registration retries only 500/502/503/504 responses with a bounded attempt budget
+      - Persistent failures retain the final status/body and still fail the test
+      - Isolated F8k and nearest pop-out/linking sequence pass
+      - TypeScript and diff-check pass; no acceptance criterion is relaxed
+    validation:
+      - canonical-functional-matrix-139-of-140-one-setup-only-failure
+      - isolated-canonical-f8k-1-of-1
+      - nearest-popout-linking-sequence-17-of-17
+      - frontend-type-check
+      - git-diff-check
+    notes:
+      - >-
+        Implementation commit `1f524a66`. Owner: E2E harness/branch-stack setup. Residual risk:
+        an external proxy/backend outage can still fail after the three-attempt budget; that is
+        intentionally visible rather than masked. Acceptance flexibility used: none.
   - id: tc2000-frontend-repository-gate-20260814
     title: Run frontend unit, uPlot, and visual-policy gates after backend cleanup
     status: completed

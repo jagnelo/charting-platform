@@ -1,5 +1,17 @@
 # Active Handoff
 
+## 2026-08-14 — Canonical F8k provisioning resilience
+
+- The non-seeded full workstation matrix reached `139/140`; F8k failed before its interaction
+  because E2E user registration returned HTTP 500. Backend/frontend logs showed no matching
+  application error or restart, direct registration returned 201, and isolated F8k plus the
+  nearest 17-test pop-out/linking sequence passed.
+- `frontend/tests/e2e/helpers.ts` now retries only transient registration 5xx statuses twice with
+  bounded backoff and preserves the final response/body for persistent errors. Commit `1f524a66`;
+  TypeScript and focused browser checks pass. No acceptance flexibility used.
+- Residual risk is explicitly limited to a genuine external proxy/backend outage exceeding the
+  setup retry budget; the goal remains active and independent work continues.
+
 ## 2026-08-14 — Frontend repository gate after backend cleanup
 
 - `make test-fe` passes: frontend Vitest coverage `817/817`, uPlot numerical renderer contract

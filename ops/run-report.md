@@ -1,5 +1,15 @@
 # Run Report
 
+## 2026-08-14 — Canonical F8k provisioning resilience
+
+- Non-seeded functional E2E completed `139 passed / 1 failed` from 140; the sole failure was an
+  HTTP 500 while provisioning the F8k user, before product interaction. Container restart count
+  was zero, no matching backend exception was logged, direct registration succeeded, isolated F8k
+  passed `1/1`, and the nearest sequence passed `17/17`.
+- Added bounded retry for only transient registration 5xx responses in commit `1f524a66`; final
+  persistent failure status/body remains reported. Type-check and diff-check pass. No threshold,
+  mask, provider, or acceptance rule changed.
+
 ## 2026-08-14 — Frontend repository gate after backend cleanup
 
 - `make test-fe` passes with Vitest `817/817`, the uPlot renderer contract auditing 45 files, and

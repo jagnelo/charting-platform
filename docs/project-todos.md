@@ -1,5 +1,20 @@
 # Project TODO Memory
 
+### 2026-08-14 — Canonical F8k provisioning resilience
+
+- [x] The non-seeded canonical workstation matrix exposed one F8k setup failure where E2E user
+      registration returned a transient HTTP 500 before the product interaction began. Backend and
+      proxy logs showed no corresponding application exception or restart; direct registration,
+      an isolated F8k rerun, and the nearest 17-test pop-out/linking sequence all passed. The E2E
+      helper now retries only 500/502/503/504 registration responses twice with bounded backoff,
+      preserving the final response on persistent failure. Implementation commit: `1f524a66`.
+- [x] Canonical functional evidence: the original full matrix completed `139/140` with the one
+      setup-only observation; isolated F8k passes `1/1`, nearest sequence passes `17/17`, and
+      TypeScript checking passes. No product, visual, data, or acceptance criterion was relaxed.
+- [ ] Acceptance flexibility used: **none**. Residual risk is limited to external stack/proxy
+      instability during E2E setup; the overall completion bar and documented visual/provider/
+      historical/hardware/endurance/final-audit gaps remain open.
+
 ### 2026-08-14 — Frontend repository gate after backend cleanup
 
 - [x] The repository frontend gate passes: Vitest coverage run `817/817`; the primary uPlot
