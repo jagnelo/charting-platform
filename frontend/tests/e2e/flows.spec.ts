@@ -1305,7 +1305,10 @@ test.describe('TC2000 workstation', () => {
     })
     await page.goto('/chart')
     await ohlcvResponse
-    await expect(page.locator('.chart-tool .tool-state--error')).toContainText(/Request failed|unavailable|observations/i, { timeout: 10_000 })
+    const errorState = page.locator('.chart-tool .tool-state--error')
+    await expect(errorState).toHaveAttribute('role', 'alert')
+    await expect(errorState).toHaveAttribute('aria-live', 'assertive')
+    await expect(errorState).toContainText(/Request failed|unavailable|observations/i, { timeout: 10_000 })
     await expect(page.locator('.chart-tool canvas')).toHaveCount(0)
     await browserDiagnostics.expectNoCriticalIssues()
   })
@@ -1321,7 +1324,10 @@ test.describe('TC2000 workstation', () => {
       })
     })
     await page.goto('/chart')
-    await expect(page.locator('.chart-tool .tool-state').filter({ hasText: /Loading SPY/i })).toBeVisible({ timeout: 5_000 })
+    const loadingState = page.locator('.chart-tool .tool-state').filter({ hasText: /Loading SPY/i })
+    await expect(loadingState).toHaveAttribute('role', 'status')
+    await expect(loadingState).toHaveAttribute('aria-live', 'polite')
+    await expect(loadingState).toBeVisible({ timeout: 5_000 })
     await ohlcvResponse
     await expect(page.locator('.chart-tool .tool-state--error')).toBeVisible({ timeout: 10_000 })
     await browserDiagnostics.expectNoCriticalIssues()

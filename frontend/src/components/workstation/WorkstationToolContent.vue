@@ -251,9 +251,9 @@
           :python-series="numericSeries"
           @configuration="applyChartConfiguration"
         />
-        <div v-if="chartStore.isLoading" class="tool-state chart-tool__status">Loading {{ activeSymbol }}…</div>
-        <div v-else-if="chartStore.error" class="tool-state tool-state--error chart-tool__status">{{ chartStore.error }}</div>
-        <div v-if="!chartStore.symbol" class="tool-state">Select a canonical instrument.</div>
+        <div v-if="chartStore.isLoading" class="tool-state chart-tool__status" role="status" aria-live="polite" aria-atomic="true">Loading {{ activeSymbol }}…</div>
+        <div v-else-if="chartStore.error" class="tool-state tool-state--error chart-tool__status" role="alert" aria-live="assertive" aria-atomic="true">{{ chartStore.error }}</div>
+        <div v-if="!chartStore.symbol" class="tool-state" role="status" aria-live="polite">Select a canonical instrument.</div>
       </div>
     </div>
     <div v-else-if="isIndustryTool && industries.length" class="industry-list">
