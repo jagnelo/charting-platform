@@ -28,6 +28,8 @@ tasks:
         or repeat.
       - Authenticated rebuilt-stack `F8p-export` passes 1/1 in 4.9s and verifies the downloaded
         completed_streaks JSON filename with clean browser diagnostics.
+      - Exact push 91463e54..0f55f8e1 was attempted once and rejected before Git by the private-
+        origin egress safeguard; transport-only, no workaround or repeat.
   - id: tc2000-study-lab-sdk-reference-duplicate-20260814
     title: Remove duplicated Study Lab SDK reference row
     status: completed

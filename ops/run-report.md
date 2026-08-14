@@ -1,5 +1,11 @@
 # Run Report
 
+## 2026-08-14 — Study Lab artifact export browser transport result
+
+- Browser implementation/docs `06ae5236` and operational checkpoint `0f55f8e1` are clean locally.
+- Exact push for `91463e54..0f55f8e1` was rejected before Git by the private-origin egress
+  safeguard. No workaround or repeat; transport-only and the goal continues.
+
 ## 2026-08-14 — Study Lab artifact export browser checkpoint
 
 - Rebuilt authenticated Chromium `F8p-export` passed `1/1` in 4.9s, downloaded the active

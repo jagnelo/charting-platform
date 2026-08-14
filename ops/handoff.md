@@ -1,5 +1,14 @@
 # Active Handoff
 
+## 2026-08-14 — Study Lab artifact export browser transport record
+
+- Browser implementation/docs `06ae5236` and operational checkpoint `0f55f8e1` are clean local
+  commits; the rebuilt authenticated `F8p-export` flow passed `1/1`.
+- Exact elevated `rtk git push origin feat/tc2000-frontend-rework` for range
+  `91463e54..0f55f8e1` was attempted once and rejected before Git by the private-origin egress
+  safeguard. No alternate transport, wrapper, rewrite, reset, stash, force push, or repeat was
+  used; this remains transport-only and does not block the goal.
+
 ## 2026-08-14 — Study Lab artifact export browser checkpoint (completed)
 
 - Added authenticated `F8p-export` coverage for the active Study Lab Export control. Against the
