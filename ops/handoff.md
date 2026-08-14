@@ -1,5 +1,43 @@
 # Active Handoff
 
+## 2026-08-14 — Breadth definition axes and goal expansion
+
+- The active goal attachment and repository plan were broadened to make “breadth around what?”
+  an explicit authoring contract. A definition independently selects a canonical universe, the
+  measured field/derived series, target/operator, timeframe/lookback/session/adjustment/as-of
+  alignment, and nested AND/OR/NOT composition. Required target families include averages,
+  thresholds, ranges, percentiles, highs/lows, benchmark/peer ratios, events, and derived
+  series over price/return/volume/volatility/trend/relative-strength/metadata or Python data.
+- Required outputs remain aggregate current/history, per-member pass/fail, drill-down,
+  occurrences/state changes, denominator, coverage, exclusions, provenance, and reproducibility.
+  Reuse/promotion into Study Lab, uPlot, columns/filters, scans, gauges, alerts, and exports must
+  preserve condition, membership, dataset, and as-of versions.
+- The current implementation slice remains intentionally incomplete against that expanded
+  contract: arbitrary Python combinations, full point-in-time ETF browser evidence,
+  passing/failing chart-linked drill-down, and all reuse/promotion targets are still open.
+- Validation after the expansion: frontend Vitest `821/821`. Existing focused evidence remains
+  breadth service `5/5`, router `18/18`, API/history integration `2/2`, runner/factory `89/89`,
+  generic uPlot lifecycle `14/14`, type-check, production build, Ruff, and diff checks.
+- Acceptance flexibility used: none. This is a requirements expansion, not a relaxation. The
+  board-guided visual track, exact/unrepresented visual gaps, provider/entitlement gaps,
+  historical taxonomy, native-monitor, endurance, and final-audit gaps remain explicit.
+- Implementation/docs context is committed locally as `fe49dcd4` (`feat(analysis): add historical
+  generic breadth studies`). The exact push was attempted once and rejected before Git by the
+  private-origin safeguard for the accumulated 229-commit range; no workaround or repeat.
+- Operational records are the only remaining dirty context. Commit them separately, verify a clean
+  tree, and begin the next context only from that boundary.
+
+## 2026-08-14 — Generic breadth implementation/docs transport result
+
+- `fe49dcd4` is the self-contained implementation/docs commit for historical generic breadth,
+  no-forward-fill evaluation, isolated Python/Study Lab starters, dedicated uPlot history, and
+  the broadened “breadth around what?” plan language.
+- The required exact `rtk git push origin feat/tc2000-frontend-rework` was attempted once after
+  commit and rejected before Git by the private-origin egress safeguard. The repository/index is
+  healthy; no alternate transport, wrapper, rewrite, reset, stash, force push, or repeat was used.
+- This is transport-only and does not block implementation. The operational checkpoint below must
+  be committed separately before the next implementation context.
+
 ## 2026-08-14 — Generic breadth checkpoint transport result
 
 - Product commit `d7c93cf4` and operational checkpoint `ae03275c` are clean locally.

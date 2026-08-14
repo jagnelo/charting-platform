@@ -1,5 +1,36 @@
 # Run Report
 
+## 2026-08-14 — Generic breadth implementation/docs transport result
+
+- Historical generic breadth, isolated Python/Study Lab integration, dedicated uPlot history, and
+  the broadened “breadth around what?” plan language are committed locally as `fe49dcd4`.
+- The required exact `rtk git push origin feat/tc2000-frontend-rework` was attempted once and
+  rejected before Git by the private-origin safeguard for the accumulated 229-commit range.
+  No alternate transport, wrapper, rewrite, reset, stash, force push, or repeat was used.
+- This is transport-only and not a product blocker. The operational records are being committed
+  separately so the worktree does not remain dirty.
+
+## 2026-08-14 — Breadth definition axes and goal expansion
+
+- Broadened the active goal attachment and controlling repo documents so breadth is not a fixed
+  metric menu. The definition now explicitly selects universe, measured field/derived series,
+  target/operator, alignment/as-of policy, and nested Boolean composition.
+- The expanded target vocabulary covers price/return/volume/volatility/trend/relative-strength/
+  metadata or Python fields against averages, thresholds, ranges, percentiles, highs/lows,
+  benchmark/peer ratios, events, and derived series. The same immutable definition must retain
+  provenance, coverage, exclusions, membership/dataset versions, and reusable current/history/
+  member outputs across Study Lab, uPlot, columns/filters, scans, gauges, alerts, and exports
+  where each output contract permits.
+- Validation: frontend Vitest `821/821` passed after the documentation/goal expansion. Existing
+  implementation evidence remains breadth service `5/5`, router `18/18`, API/history integration
+  `2/2`, runner/factory `89/89`, generic uPlot lifecycle `14/14`, type-check, production build,
+  Ruff, and diff checks.
+- Acceptance flexibility used: none. Open gaps remain arbitrary Python combinations, complete
+  point-in-time ETF browser evidence, chart-linked member drill-down, full promotion/reuse,
+  exact/unrepresented V25 visuals, provider/entitlement breadth, historical taxonomy,
+  native-monitor, endurance, and final audit.
+
+
 ## 2026-08-14 — Generic breadth checkpoint transport result
 
 - Product commit `d7c93cf4` and operational checkpoint `ae03275c` are clean locally.
