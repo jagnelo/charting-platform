@@ -1,5 +1,17 @@
 # Active Handoff
 
+## 2026-08-14 — Study Lab current-history exclusion transport record
+
+- Implementation/docs `975bbba7` and operational checkpoint `42a988ff` are cleanly committed. The
+  exact elevated push for `91463e54..42a988ff` to `origin/feat/tc2000-frontend-rework` was attempted
+  once and rejected before Git by the private-origin egress safeguard because trusted authorization
+  for that exact payload and destination was unavailable.
+- `.git/index.lock` is absent and repository metadata is healthy. No alternate transport, wrapper,
+  rewrite, reset, stash, force push, or repeat was used. This is transport-only; continue the goal
+  from the clean local boundary and retry only when the same exact payload receives trusted execution
+  authorization.
+- Next context: continue with the next independent workstation/backend gap.
+
 ## 2026-08-14 — Study Lab current-history exclusion correctness (completed)
 
 - Context owner: Codex. Owned paths are `frontend/src/components/workstation/StudyLabTool.vue`,
