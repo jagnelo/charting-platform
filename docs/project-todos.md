@@ -1,5 +1,18 @@
 # Project TODO Memory
 
+### 2026-08-14 — Alert and Market Gauge empty-state semantics
+
+- [x] Empty alert and Market Gauge states now expose polite, atomic live regions so canonical
+      instrument selection, no-alert, and retained-scan prompts are announced consistently with
+      their loading/error siblings.
+- [x] Focused component coverage passes `17/17`; full frontend Vitest passes `781/781`; type-check,
+      475-module production build, and `git diff --check` pass. Implementation commit: `e64ec9dd`.
+- [x] Rebuilt authenticated browser coverage passes `3/3` in `12.1s` for the narrow alert dock and
+      Market Gauge flows. The initial unprivileged run failed before page creation at the known
+      macOS Chromium Mach-port permission boundary; elevated rerun passed.
+- [ ] Acceptance flexibility used: none. No visual threshold, mask, provider, or uPlot rule changed;
+      exact V25 status styling remains tracked under `REF-STATE-VARIANTS`.
+
 ### 2026-08-14 — Chart loading/error live-region semantics
 
 - [x] Chart loading, provider-error, and no-symbol states now expose explicit accessible status

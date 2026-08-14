@@ -1,5 +1,15 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-14 — Alert and Market Gauge empty-state semantics
+
+- Empty alert and Market Gauge prompts now expose polite, atomic status live regions, completing the
+  semantic pairing with their loading and error states without changing visible layout or data flow.
+- Focused components `17/17`, full frontend Vitest `781/781`, type-check, 475-module build, and
+  diff-check pass. Rebuilt authenticated F8r/F8w browser coverage passes `3/3` in `12.1s`.
+- The initial browser attempt failed before page creation at the known macOS Chromium Mach-port
+  permission boundary; the elevated rerun is authoritative. No acceptance flexibility or visual
+  threshold/mask/provider/uPlot rule changed. Exact V25 status styling remains `REF-STATE-VARIANTS`.
+
 ## 2026-08-14 — Chart loading/error live-region semantics
 
 - Chart loading, provider-error, and no-symbol states now announce their state through explicit

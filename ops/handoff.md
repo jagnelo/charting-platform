@@ -1,5 +1,19 @@
 # Active Handoff
 
+## 2026-08-14 — Alert and Market Gauge empty-state context completed
+
+- Implementation commit `e64ec9dd` adds polite atomic status live regions to empty alert states and
+  the Market Gauge retained-scan prompt; focused unit assertions cover both contracts.
+- Validation: focused components `17/17`; full frontend Vitest `781/781`; type-check; 475-module
+  build; and diff-check pass. Rebuilt authenticated F8r/F8w browser slice passes `3/3` in `12.1s`.
+- The first browser attempt failed before page creation at the known macOS Chromium Mach-port
+  permission boundary. The elevated rerun passed and is authoritative; this is setup evidence,
+  not a product failure.
+- Acceptance flexibility used: **none**. No visual threshold, mask, provider, uPlot, or product
+  criterion changed. Exact V25 status styling remains `REF-STATE-VARIANTS`.
+- Implementation is committed and clean locally. Continue through the sequential elevated Git path;
+  the external push-egress hold remains transport-only and must not block the next gap.
+
 ## 2026-08-14 — Chart loading/error live-region context completed
 
 - Implementation commit `b417c161` adds explicit `role=status`/polite live-region semantics for

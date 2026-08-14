@@ -1,5 +1,15 @@
 # Run Report
 
+## 2026-08-14 — Alert and Market Gauge empty-state semantics
+
+- Implementation `e64ec9dd` adds polite atomic live-region semantics to empty alert and Market Gauge
+  states and extends focused assertions.
+- Focused components `17/17`, full Vitest `781/781`, type-check, 475-module build, and diff-check
+  pass. Rebuilt authenticated F8r/F8w browser slice passes `3/3` in `12.1s`.
+- The initial browser run was blocked before page creation by the macOS Chromium Mach-port boundary;
+  the elevated rerun passed. No acceptance flexibility, visual threshold, provider, or uPlot rule
+  changed; exact V25 state styling remains the documented `REF-STATE-VARIANTS` gap.
+
 ## 2026-08-14 — Chart loading/error live-region semantics
 
 - Implementation `b417c161` adds accessible live-region semantics to chart loading, provider-error,

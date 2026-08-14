@@ -1,4 +1,28 @@
 tasks:
+  - id: tc2000-alert-gauge-empty-state-semantics-20260814
+    title: Announce empty alert and Market Gauge states
+    status: completed
+    priority: medium
+    scope: >-
+      Normalize dynamic empty-state announcements for alerts and Market Gauge so selection and
+      no-data prompts use the same polite atomic status contract as loading states.
+    definition_of_done:
+      - empty alert prompts expose polite atomic status semantics
+      - the retained EasyScan prompt exposes polite atomic status semantics
+      - focused unit assertions cover both tools
+      - full frontend, type/build, browser, and diff gates pass
+      - no visual threshold, mask, provider, uPlot, or acceptance rule is relaxed
+    validation:
+      - focused-alert-gauge-17-of-17
+      - frontend-full-vitest-781-of-781
+      - frontend-type-check-build-475-modules
+      - rebuilt-authenticated-F8r-F8w-3-of-3-12.1s
+      - git-diff-check
+    notes:
+      - >-
+        The initial browser run failed before page creation at the known macOS Chromium Mach-port
+        permission boundary; the elevated rerun passed and is authoritative. Exact V25 status
+        styling remains REF-STATE-VARIANTS. Acceptance flexibility used: none.
   - id: tc2000-chart-state-live-region-semantics-20260814
     title: Announce chart loading and provider-error states
     status: completed
