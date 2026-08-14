@@ -15,9 +15,10 @@
   authenticated Chromium `F8s-breadth-family-ratio` `1/1`. No acceptance flexibility used; the
   initial fixture was corrected because its disclosure post-dated all bars.
 - Implementation/docs commit: `6f0b19d7 feat(analysis): add historical family concentration`.
-  Worktree is clean locally. Exact push must be attempted once for this checkpoint and recorded.
-  Next context: derived-equal historical weighting, broader provider population, and historical
-  occurrence/visual coverage.
+  Worktree is clean locally. Exact `rtk git push origin HEAD:feat/tc2000-frontend-rework` was
+  attempted once and rejected before Git by the private-origin safeguard; no workaround or
+  repeat. This is transport-only. Next context: derived-equal historical weighting, broader
+  provider population, and historical occurrence/visual coverage.
 
 ## 2026-08-15 — Benchmark-family concentration/dispersion checkpoint
 

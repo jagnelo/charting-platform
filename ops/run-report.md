@@ -13,6 +13,9 @@
   `F8s-breadth-family-ratio` `1/1`. No acceptance flexibility used.
 - Remaining: derived-equal historical weighting, complete provider-backed eight-family/style
   population, and longer historical occurrence/visual acceptance.
+- Git closure: implementation/docs commit `6f0b19d7` and the ops checkpoint are clean locally.
+  The exact push was attempted once and rejected before Git by the private-origin safeguard; no
+  workaround or repeat. Transport-only, not a product blocker.
 
 ## 2026-08-15 — Benchmark-family concentration/dispersion checkpoint
 
