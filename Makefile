@@ -118,8 +118,12 @@ test-unit:
 
 test-int:
 	@echo "▶  Backend integration tests (testcontainers)..."
+	# Integration-only coverage is intentionally reported but cannot satisfy the
+	# repository-wide threshold by itself. The combined test-backend-coverage
+	# target remains the authoritative 75% unit+integration coverage gate.
 	cd backend && $(BACKEND_ENV) uv run pytest tests/integration \
 	  --cov=app --cov-report=term-missing --cov-report=html:coverage_html \
+	  --cov-fail-under=0 \
 	  --no-header -q
 
 test-backend: test-unit test-int
