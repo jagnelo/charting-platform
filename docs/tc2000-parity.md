@@ -1,5 +1,21 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-14 — Historical 90/90 breadth participation and occurrences
+
+- Added a unified-Python Study Lab factory starter for historical 90/90 breadth: aligned price-
+  advancing and volume-advancing percentage series, current qualification, sample/coverage
+  metrics, detail/exclusion tables, and linked qualification occurrences. The isolated runner
+  derives a missing aggregate axis/symbol only from declared instrument data and records explicit
+  timestamp/data exclusions.
+- Focused runner/factory coverage passes `88/88`; authenticated `F8p-90-90-history` passes `1/1`;
+  adjacent Study Lab/Python/Results browser coverage passes `11/11`; frontend Vitest passes
+  `818/818`; backend unit/integration passes `1153/1153` and `303/303`; type-check/build, Ruff,
+  uPlot, visual policy, and diff checks pass.
+- The first browser run failed on the real missing aggregate-axis contract and the correction was
+  rebuilt and rerun successfully. Acceptance flexibility used: **none**. `REF-STUDY-LAB-V25`
+  remains the tracked original-surface visual gap; no threshold, mask, product, or acceptance
+  rule changed.
+
 ## 2026-08-14 — Current-history distribution excludes current observation
 
 - Corrected the factory Study Lab source to compare the latest return against prior returns only.

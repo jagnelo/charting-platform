@@ -192,6 +192,117 @@ def test_runner_rejects_invalid_ninety_ninety_threshold():
     assert "threshold must be between 0 and 100" in result["diagnostics"][0]["message"]
 
 
+def test_runner_computes_historical_ninety_ninety_series_and_occurrences():
+    timestamps = ["2026-01-01", "2026-01-02", "2026-01-03"]
+    result = execute_job(
+        {
+            "source": (
+                "breadth = research.breadth_thrust_history(dataset, 90)\n"
+                "output.series('price', breadth['price_percentages'])\n"
+                "output.series('volume', breadth['volume_percentages'])\n"
+                "output.boolean('current', breadth['qualifies'])\n"
+                "output.events('events', research.occurrences(dataset, breadth['qualifying_indices'], 'thrust'))\n"
+                "output.table('rows', breadth['rows'])\n"
+                "output.table('exclusions', breadth['exclusions'])"
+            ),
+            "output_contract": "study",
+            "dataset": {
+                "symbol": "SPY",
+                "timestamps": timestamps,
+                "datasets": [
+                    {
+                        "instrument_id": 1,
+                        "symbol": "SPY",
+                        "timestamps": timestamps,
+                        "closes": [100, 101, 102],
+                        "volumes": [1000, 1100, 1200],
+                    },
+                    {
+                        "instrument_id": 2,
+                        "symbol": "XLK",
+                        "timestamps": timestamps,
+                        "closes": [100, 101, 100],
+                        "volumes": [1000, 1100, 1000],
+                    },
+                ],
+            },
+        }
+    )
+    assert result["status"] == "completed"
+    assert result["artifacts"]["price"]["value"]["values"] == [None, 100.0, 50.0]
+    assert result["artifacts"]["volume"]["value"]["values"] == [None, 100.0, 50.0]
+    assert result["artifacts"]["current"]["value"] is False
+    assert result["artifacts"]["events"]["value"] == [
+        {"symbol": "SPY", "timestamp": "2026-01-02", "kind": "thrust", "event_index": 1}
+    ]
+    assert result["artifacts"]["rows"]["value"][-1]["coverage"] == 2
+
+
+def test_runner_excludes_historical_timestamp_mismatch_and_zero_volume():
+    result = execute_job(
+        {
+            "source": "breadth = research.breadth_thrust_history(dataset, 90)\noutput.table('exclusions', breadth['exclusions'])",
+            "output_contract": "study",
+            "dataset": {
+                "symbol": "SPY",
+                "timestamps": ["2026-01-01", "2026-01-02"],
+                "datasets": [
+                    {
+                        "symbol": "SPY",
+                        "timestamps": ["2026-01-01", "2026-01-03"],
+                        "closes": [100, 101],
+                        "volumes": [1000, 1100],
+                    },
+                    {
+                        "symbol": "XLK",
+                        "timestamps": ["2026-01-01", "2026-01-02"],
+                        "closes": [100, 101],
+                        "volumes": [0, 1100],
+                    },
+                ],
+            },
+        }
+    )
+    assert result["status"] == "completed"
+    assert result["artifacts"]["exclusions"]["value"] == [
+        {"timestamp": "2026-01-02", "symbol": "SPY", "index": 1, "code": "timestamp_mismatch"},
+        {"timestamp": "2026-01-02", "symbol": "XLK", "index": 1, "code": "zero_previous_volume"},
+    ]
+
+
+def test_runner_derives_aggregate_timestamp_axis_from_declared_instrument_data():
+    timestamps = ["2026-01-01", "2026-01-02"]
+    result = execute_job(
+        {
+            "source": (
+                "breadth = research.breadth_thrust_history(dataset, 90)\n"
+                "output.series('price', breadth['price_percentages'])\n"
+                "output.events('events', research.occurrences(dataset, breadth['qualifying_indices'], 'thrust'))"
+            ),
+            "output_contract": "study",
+            "dataset": {
+                "datasets": [
+                    {
+                        "symbol": "SPY",
+                        "timestamps": timestamps,
+                        "closes": [100, 101],
+                        "volumes": [1000, 1100],
+                    },
+                    {
+                        "symbol": "XLK",
+                        "timestamps": timestamps,
+                        "closes": [100, 101],
+                        "volumes": [1000, 1100],
+                    },
+                ],
+            },
+        }
+    )
+    assert result["status"] == "completed"
+    assert result["artifacts"]["price"]["value"]["timestamps"] == timestamps
+    assert result["artifacts"]["events"]["value"][0]["timestamp"] == "2026-01-02"
+
+
 def test_runner_exposes_deterministic_stats_namespace_with_edge_contracts():
     result = execute_job(
         {

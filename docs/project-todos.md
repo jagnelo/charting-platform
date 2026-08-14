@@ -1,5 +1,23 @@
 # Project TODO Memory
 
+### 2026-08-14 — Study Lab historical 90/90 breadth series
+
+- [x] Added `research.breadth_thrust_history(dataset, threshold=90)` to the isolated unified-
+      Python runtime. It calculates aligned historical price and volume participation over the
+      declared universe, returns current/sample metrics, qualification flags, numeric series,
+      qualification indices, detail rows, and explicit timestamp/data exclusions.
+- [x] Added the Historical 90/90 factory starter, SDK autocomplete/reference, source contracts,
+      aggregate fixture coverage, authenticated `F8p-90-90-history` acceptance, and adjacent
+      Study Lab/Python/Results regression. Occurrence dates publish back to the linked chart using
+      the canonical declared timestamp axis.
+- [x] The first browser execution exposed a real materializer contract defect: aggregate runs had
+      per-instrument timestamps but no root timestamp or symbol. The runner now derives both only
+      from declared instrument data, and focused regression coverage proves the exact shape. The
+      corrected focused browser flow passes `1/1`; no failure was suppressed or reclassified.
+- [ ] Acceptance flexibility used: **none**. `REF-STUDY-LAB-V25` remains the separately tracked
+      original-surface visual-reference gap; no visual threshold, mask, product criterion, or
+      browser acceptance rule changed.
+
 ### 2026-08-14 — Study Lab transparent 90/90 breadth thrust
 
 - [x] Added `research.breadth_thrust(dataset, threshold=90)` to the isolated unified-Python

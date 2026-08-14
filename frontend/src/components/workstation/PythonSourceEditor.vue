@@ -104,6 +104,7 @@ const suggestionsCatalog: Suggestion[] = [
   { prefix: 'research', insert: 'research.cross_sectional_rank(dataset, 20)', signature: 'dataset, lookback' },
   { prefix: 'research', insert: 'research.breadth_snapshot(dataset, 20)', signature: 'dataset, period' },
   { prefix: 'research', insert: 'research.breadth_thrust(dataset, 90)', signature: 'dataset, threshold?' },
+  { prefix: 'research', insert: 'research.breadth_thrust_history(dataset, 90)', signature: 'dataset, threshold?' },
   { prefix: 'research', insert: "research.occurrences(dataset, indices, 'event')", signature: 'dataset, indices, kind' },
   { prefix: 'output', insert: "output.scalar('name', value)", signature: 'name, value' },
   { prefix: 'output', insert: "output.boolean('name', value)", signature: 'name, bool' },

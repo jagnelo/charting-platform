@@ -2513,6 +2513,27 @@ test.describe('TC2000 workstation', () => {
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
+  test('F8p-90-90-history — Study Lab renders historical participation and qualifying occurrences', async ({ page, browserDiagnostics }) => {
+    test.setTimeout(120_000)
+    await page.goto('/chart')
+    await expect(page.locator('.workspace-layout-host')).toBeVisible({ timeout: 10_000 })
+    await page.getByRole('button', { name: 'Study', exact: true }).click()
+
+    const study = page.locator('.study-lab-tool')
+    await expect(study).toBeVisible({ timeout: 10_000 })
+    await study.getByRole('combobox', { name: 'Factory study' }).selectOption('breadth_thrust_history_90_90')
+    await expect(study.getByRole('textbox', { name: 'Study Python source' })).toHaveValue(/research\.breadth_thrust_history\(dataset, 90\)/)
+    await study.getByRole('textbox', { name: 'Study universe' }).fill('SPY, XLK, XLE')
+    await study.getByRole('button', { name: 'Validate' }).click()
+    await expect(study).toContainText('Validated for isolated execution', { timeout: 10_000 })
+    await study.getByRole('button', { name: 'Run', exact: true }).click()
+    await expect(study.locator('.study-lab-tool__run-status--completed')).toBeVisible({ timeout: 90_000 })
+    await expect(study.locator('.study-series').first()).toBeVisible()
+    await expect(study.locator('table').filter({ hasText: 'breadth_thrust_history' })).toBeVisible()
+    await expect(study.locator('.study-lab-tool__events').filter({ hasText: '90_90_breadth_thrust' })).toBeVisible()
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
   test('F8p-high-low — Study Lab exposes and runs a configurable new-high/new-low lookback', async ({ page, browserDiagnostics }) => {
     test.setTimeout(120_000)
     await page.goto('/chart')

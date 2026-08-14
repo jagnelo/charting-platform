@@ -1301,6 +1301,187 @@ class _Research:
             "exclusions": exclusions,
         }
 
+    def breadth_thrust_history(self, dataset: dict, threshold: float = 90.0) -> dict:
+        """Measure aligned historical price/volume participation for a declared universe."""
+        if (
+            not isinstance(threshold, int | float)
+            or isinstance(threshold, bool)
+            or not math.isfinite(float(threshold))
+            or not 0 <= float(threshold) <= 100
+        ):
+            raise ValueError("breadth thrust threshold must be between 0 and 100")
+        datasets = dataset.get("datasets")
+        timestamps = dataset.get("timestamps")
+        if not isinstance(datasets, list):
+            raise ValueError("Declared prepared universe and timestamps are unavailable")
+        if not isinstance(timestamps, list):
+            for item in datasets:
+                candidate = item.get("timestamps") if isinstance(item, dict) else None
+                if isinstance(candidate, list) and candidate:
+                    timestamps = candidate
+                    # The aggregate materializer may omit a root axis while every
+                    # declared instrument carries the same canonical session axis.
+                    # Materialize that validated axis for typed series/events below.
+                    dataset["timestamps"] = timestamps
+                    break
+        if not isinstance(timestamps, list):
+            raise ValueError("Declared prepared universe and timestamps are unavailable")
+        if not str(dataset.get("symbol") or "").strip():
+            for item in datasets:
+                candidate_symbol = (
+                    str(item.get("symbol") or "").upper() if isinstance(item, dict) else ""
+                )
+                if candidate_symbol:
+                    dataset["symbol"] = candidate_symbol
+                    break
+        threshold_value = float(threshold)
+        price_percentages: list[float | None] = [None] * len(timestamps)
+        volume_percentages: list[float | None] = [None] * len(timestamps)
+        rows: list[dict] = []
+        exclusions: list[dict] = []
+        qualifying_indices: list[int] = []
+        for index in range(1, len(timestamps)):
+            timestamp = timestamps[index]
+            if not isinstance(timestamp, str) or not timestamp:
+                exclusions.append({"index": index, "code": "invalid_timestamp"})
+                continue
+            valid_rows: list[dict] = []
+            for item in datasets:
+                if not isinstance(item, dict):
+                    exclusions.append(
+                        {"timestamp": timestamp, "index": index, "code": "invalid_dataset_row"}
+                    )
+                    continue
+                symbol = str(item.get("symbol") or "").upper()
+                closes = item.get("closes")
+                volumes = item.get("volumes")
+                item_timestamps = item.get("timestamps")
+                if not symbol:
+                    exclusions.append(
+                        {"timestamp": timestamp, "index": index, "code": "missing_symbol"}
+                    )
+                    continue
+                if (
+                    isinstance(item_timestamps, list)
+                    and index < len(item_timestamps)
+                    and item_timestamps[index] != timestamp
+                ):
+                    exclusions.append(
+                        {
+                            "timestamp": timestamp,
+                            "symbol": symbol,
+                            "index": index,
+                            "code": "timestamp_mismatch",
+                        }
+                    )
+                    continue
+                if not isinstance(closes, list) or index >= len(closes) or index - 1 >= len(closes):
+                    exclusions.append(
+                        {
+                            "timestamp": timestamp,
+                            "symbol": symbol,
+                            "index": index,
+                            "code": "insufficient_close_history",
+                        }
+                    )
+                    continue
+                if (
+                    not isinstance(volumes, list)
+                    or index >= len(volumes)
+                    or index - 1 >= len(volumes)
+                ):
+                    exclusions.append(
+                        {
+                            "timestamp": timestamp,
+                            "symbol": symbol,
+                            "index": index,
+                            "code": "insufficient_volume_history",
+                        }
+                    )
+                    continue
+                values = (closes[index - 1], closes[index], volumes[index - 1], volumes[index])
+                if not all(
+                    isinstance(value, int | float)
+                    and not isinstance(value, bool)
+                    and math.isfinite(float(value))
+                    for value in values
+                ):
+                    exclusions.append(
+                        {
+                            "timestamp": timestamp,
+                            "symbol": symbol,
+                            "index": index,
+                            "code": "invalid_close_or_volume",
+                        }
+                    )
+                    continue
+                if float(closes[index - 1]) == 0:
+                    exclusions.append(
+                        {
+                            "timestamp": timestamp,
+                            "symbol": symbol,
+                            "index": index,
+                            "code": "zero_previous_close",
+                        }
+                    )
+                    continue
+                if float(volumes[index - 1]) == 0:
+                    exclusions.append(
+                        {
+                            "timestamp": timestamp,
+                            "symbol": symbol,
+                            "index": index,
+                            "code": "zero_previous_volume",
+                        }
+                    )
+                    continue
+                valid_rows.append(
+                    {
+                        "symbol": symbol,
+                        "instrument_id": item.get("instrument_id"),
+                        "price_advancing": float(closes[index]) > float(closes[index - 1]),
+                        "volume_advancing": float(volumes[index]) > float(volumes[index - 1]),
+                    }
+                )
+            coverage = len(valid_rows)
+            price_advancing = sum(1 for row in valid_rows if row["price_advancing"])
+            volume_advancing = sum(1 for row in valid_rows if row["volume_advancing"])
+            price_percent = (price_advancing / coverage) * 100 if coverage else None
+            volume_percent = (volume_advancing / coverage) * 100 if coverage else None
+            qualifies = bool(
+                price_percent is not None
+                and volume_percent is not None
+                and price_percent >= threshold_value
+                and volume_percent >= threshold_value
+            )
+            price_percentages[index] = price_percent
+            volume_percentages[index] = volume_percent
+            row = {
+                "timestamp": timestamp,
+                "index": index,
+                "coverage": coverage,
+                "price_advancing_count": price_advancing,
+                "volume_advancing_count": volume_advancing,
+                "percent_price_advancing": price_percent,
+                "percent_volume_advancing": volume_percent,
+                "qualifies": qualifies,
+            }
+            rows.append(row)
+            if qualifies:
+                qualifying_indices.append(index)
+        current = rows[-1] if rows else None
+        return {
+            "threshold": threshold_value,
+            "sample_size": len(rows),
+            "coverage": current["coverage"] if current else 0,
+            "qualifies": bool(current and current["qualifies"]),
+            "price_percentages": price_percentages,
+            "volume_percentages": volume_percentages,
+            "qualifying_indices": qualifying_indices,
+            "rows": rows,
+            "exclusions": exclusions,
+        }
+
     def forward_returns(
         self, dataset: dict, event_indices: object, horizons: object = (1, 5, 20)
     ) -> list[dict]:
