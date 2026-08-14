@@ -220,6 +220,37 @@ def test_runner_research_outcome_helpers_report_invalid_contracts(source, messag
     assert message in result["diagnostics"][0]["message"]
 
 
+def test_runner_places_current_value_within_historical_distribution():
+    result = execute_job(
+        {
+            "source": (
+                "comparison = research.historical_comparison([1, 2, 3, 4], 3)\n"
+                "empty = research.historical_comparison([])\n"
+                "flat = research.historical_comparison([5, 5], 5)\n"
+                "output.table('comparison', [comparison])\n"
+                "output.table('empty', [empty])\n"
+                "output.table('flat', [flat])"
+            ),
+            "output_contract": "study",
+            "dataset": {},
+        }
+    )
+    assert result["status"] == "completed"
+    comparison = result["artifacts"]["comparison"]["value"][0]
+    assert comparison["sample_size"] == 4
+    assert comparison["percentile_rank"] == 75.0
+    assert comparison["range_position"] == (2 / 3)
+    assert comparison["z_score"] is not None
+    assert result["artifacts"]["empty"]["value"][0]["sample_size"] == 0
+    assert result["artifacts"]["flat"]["value"][0]["z_score"] is None
+
+
+def test_runner_historical_comparison_rejects_non_numeric_current_value():
+    result = execute_job({"source": "output.table('x', [research.historical_comparison([1, 2], 'now')])", "dataset": {}})
+    assert result["status"] == "failed"
+    assert "current value must be numeric" in result["diagnostics"][0]["message"]
+
+
 def test_runner_emits_typed_boolean_artifacts():
     result = execute_job({"source": "output.boolean('qualifies', 2 > 1)", "dataset": {}})
     assert result["status"] == "completed"

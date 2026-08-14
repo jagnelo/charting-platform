@@ -45,7 +45,7 @@
       <span><b>market</b>: close/open/high/low/volume/vwap/ohlcv, timestamps, sessions, metadata, percent_change, 52-week, benchmark_* accessors, universe</span>
       <span><b>ta</b>: indicator, sma, ema, rsi</span>
       <span><b>stats</b>: positive_close_streaks, mean, median, std, percentile, ranks, rolling, correlation, regression, distribution</span>
-      <span><b>research</b>: forward_returns, conditional_outcomes, regimes, occurrences, cross_sectional_rank, breadth_snapshot</span>
+      <span><b>research</b>: forward_returns, conditional_outcomes, regimes, historical_comparison, occurrences, cross_sectional_rank, breadth_snapshot</span>
       <span><b>output</b>: scalar, boolean, series, table, events, bar, histogram, range, scatter, heatmap, dashboard</span>
     </details>
     <section v-if="validation" class="study-lab-tool__validation" :role="validation.valid ? 'status' : 'alert'" :aria-live="validation.valid ? 'polite' : 'assertive'" aria-atomic="true" :class="{ 'study-lab-tool__validation--bad': !validation.valid }">
@@ -131,6 +131,7 @@ const relativeStrengthRegimeSource = "closes = market.close()\nbenchmark = marke
 const crossSectionalRankSource = "rows = research.cross_sectional_rank(dataset, 20)\noutput.table('cross_sectional_rank', rows)\noutput.bar('trailing_20_day_return', [row['symbol'] for row in rows], [row['return'] for row in rows])\noutput.scalar('ranked_symbols', len(rows))"
 const breadthParticipationSource = "breadth = research.breadth_snapshot(dataset, 20)\noutput.scalar('breadth_coverage', breadth['coverage'])\noutput.scalar('above_20_day_average', breadth['above_count'])\noutput.scalar('percent_above_20_day_average', breadth['percent_above'] if breadth['percent_above'] is not None else 0)\noutput.boolean('breadth_thrust', breadth['percent_above'] is not None and breadth['percent_above'] >= 90)\noutput.table('breadth_members', breadth['rows'])"
 const relativeStrengthHistorySource = "closes = market.close()\nbenchmark = market.benchmark_close()\nratio = [value / base if base else None for value, base in zip(closes, benchmark)]\noutput.series('relative_strength_ratio', ratio)\noutput.scalar('latest_relative_strength', ratio[-1] if ratio else None)"
+const currentHistorySource = "closes = market.close()\nreturns = [(closes[index] / closes[index - 1]) - 1 for index in range(1, len(closes)) if closes[index - 1]]\ncomparison = research.historical_comparison(returns)\noutput.scalar('current_return', comparison['current'] if comparison['current'] is not None else 0)\noutput.scalar('historical_mean_return', comparison['mean'] if comparison['mean'] is not None else 0)\noutput.scalar('historical_median_return', comparison['median'] if comparison['median'] is not None else 0)\noutput.scalar('historical_percentile_rank', comparison['percentile_rank'] if comparison['percentile_rank'] is not None else 0)\noutput.scalar('historical_z_score', comparison['z_score'] if comparison['z_score'] is not None else 0)\noutput.table('current_vs_history', [comparison])"
 const source = ref(positiveStreakSource)
 const lookbackParameterSchema = JSON.stringify({ properties: { lookback: { type: 'integer', default: 20, minimum: 2, maximum: 252 } } })
 const factoryStudyTemplates = [
@@ -146,6 +147,7 @@ const factoryStudyTemplates = [
   { key: 'cross_sectional_rank', name: 'Cross-sectional ranking', source: crossSectionalRankSource, requiresUniverse: true },
   { key: 'breadth_participation', name: 'Breadth participation', source: breadthParticipationSource, requiresUniverse: true },
   { key: 'relative_strength_history', name: 'Relative-strength history', source: relativeStrengthHistorySource },
+  { key: 'current_history_comparison', name: 'Current versus history', source: currentHistorySource },
 ]
 const timeframeOptions = [
   { value: 'D1', label: 'Daily' },

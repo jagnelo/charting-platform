@@ -6112,3 +6112,17 @@ type/build/uPlot/visual-policy checks pass. This is a genuine research capabilit
 visual threshold, mask, product criterion, or acceptance flexibility changed. Broader research,
 provider/live-entitlement, historical/GICS, native-monitor, endurance, and final-audit gaps remain
 tracked.
+
+## 2026-08-14 — Study Lab current-versus-history comparison
+
+Study Lab now has a deterministic `research.historical_comparison` starter that places the current
+observation inside a declared historical distribution. The runner returns sample size, current
+value, mean/median/std, percentile rank, min/max, z-score, and range position, including explicit
+empty, invalid, non-finite, and degenerate-distribution contracts. The same method is exposed by
+the unified Python editor and visible SDK reference. Focused runner coverage is `77/77`, focused
+editor/Study Lab coverage `27/27`, full frontend `818/818`, authenticated adjacent browser
+coverage `12/12`, and authoritative backend coverage `1449/1449` at `80.17%`; type/build,
+uPlot, visual-policy, and `make test-fe` remain green. This closes a plan-required comparison
+capability without changing visual thresholds, masks, product criteria, or acceptance flexibility.
+Exact/unrepresented Study Lab V25 visual evidence and broader provider, historical/GICS,
+native-monitor, endurance, and final-audit gaps remain explicitly tracked.

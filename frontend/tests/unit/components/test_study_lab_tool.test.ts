@@ -140,6 +140,7 @@ describe('StudyLabTool', () => {
     expect(wrapper.text()).toContain('cross_sectional_rank')
     expect(wrapper.text()).toContain('conditional_outcomes')
     expect(wrapper.text()).toContain('regimes')
+    expect(wrapper.text()).toContain('historical_comparison')
     expect(wrapper.text()).not.toContain('historical comparisons')
   })
 
@@ -190,12 +191,15 @@ describe('StudyLabTool', () => {
       { value: 'relative_strength_regime', label: 'Relative-strength regime changes' },
       { value: 'cross_sectional_rank', label: 'Cross-sectional ranking' },
       { value: 'breadth_participation', label: 'Breadth participation' },
+      { value: 'current_history_comparison', label: 'Current versus history' },
     ]))
 
-    for (const value of ['forward_return_distribution', 'event_frequency', 'high_low_breakouts', 'volatility_regime', 'seasonality', 'relative_strength_regime']) {
+    for (const value of ['forward_return_distribution', 'event_frequency', 'high_low_breakouts', 'volatility_regime', 'seasonality', 'relative_strength_regime', 'current_history_comparison']) {
       await selector.setValue(value)
       expect((wrapper.find('[aria-label="Study Python source"]').element as HTMLTextAreaElement).value.length).toBeGreaterThan(80)
     }
+    await selector.setValue('current_history_comparison')
+    expect((wrapper.find('[aria-label="Study Python source"]').element as HTMLTextAreaElement).value).toContain('research.historical_comparison')
     await selector.setValue('seasonality')
     const seasonalitySource = (wrapper.find('[aria-label="Study Python source"]').element as HTMLTextAreaElement).value
     expect(seasonalitySource).toContain('average_day_of_week_return')

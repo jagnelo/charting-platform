@@ -99,6 +99,7 @@ const suggestionsCatalog: Suggestion[] = [
   { prefix: 'research', insert: 'research.forward_returns(dataset, indices, [1, 5, 20])', signature: 'dataset, events, horizons' },
   { prefix: 'research', insert: 'research.conditional_outcomes(dataset, indices, [1, 5, 20])', signature: 'dataset, events, horizons' },
   { prefix: 'research', insert: 'research.regimes(dataset, 20, 0.05)', signature: 'dataset, lookback, threshold?' },
+  { prefix: 'research', insert: 'research.historical_comparison(values, current)', signature: 'values, current?' },
   { prefix: 'research', insert: 'research.cross_sectional_rank(dataset, 20)', signature: 'dataset, lookback' },
   { prefix: 'research', insert: 'research.breadth_snapshot(dataset, 20)', signature: 'dataset, period' },
   { prefix: 'research', insert: "research.occurrences(dataset, indices, 'event')", signature: 'dataset, indices, kind' },

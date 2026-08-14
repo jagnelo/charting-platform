@@ -11441,3 +11441,16 @@ The current source also passes the focused authenticated top-down browser slice 
   build pass. No visual threshold, mask, product criterion, or acceptance flexibility changed.
 - [ ] Exact/unrepresented Study Lab V25 visual evidence and broader research/provider/historical,
   native-monitor, endurance, and final-audit gaps remain open.
+
+### 2026-08-14 — Study Lab current-versus-history comparison
+
+- [x] Added deterministic `research.historical_comparison` over declared finite values, returning
+  sample size, current value, mean/median/std, percentile rank, min/max, z-score, and range
+  position, with explicit empty, non-finite, non-numeric, and degenerate-distribution contracts.
+- [x] Exposed it through editor autocomplete, the Study Lab SDK reference, and a `Current versus
+  history` factory starter. Focused runner `77/77`; editor/Study Lab `27/27`; frontend `818/818`
+  at `80.90%`; browser `12/12`; backend `1449/1449` at `80.17%`; `make test-fe`, uPlot,
+  visual-policy, type-check, and build pass.
+- [ ] Exact/unrepresented Study Lab V25 visual evidence and broader research/provider/historical,
+  native-monitor, endurance, and final-audit gaps remain open. No visual threshold, mask, product
+  criterion, or acceptance flexibility changed.

@@ -1048,6 +1048,48 @@ class _Research:
             "rows": rows,
         }
 
+    def historical_comparison(self, values: object, current: object = None) -> dict[str, object]:
+        """Place a current value within a declared historical numeric distribution."""
+        numeric = _Stats._finite_values(values)
+        if current is not None:
+            if not isinstance(current, int | float) or isinstance(current, bool) or not math.isfinite(float(current)):
+                raise ValueError("historical comparison current value must be numeric")
+            current_value = float(current)
+        elif numeric:
+            current_value = numeric[-1]
+        else:
+            current_value = None
+        if not numeric:
+            return {
+                "sample_size": 0,
+                "current": current_value,
+                "mean": None,
+                "median": None,
+                "std": None,
+                "percentile_rank": None,
+                "min": None,
+                "max": None,
+                "z_score": None,
+                "range_position": None,
+            }
+        minimum, maximum = min(numeric), max(numeric)
+        average = _Stats.mean(numeric)
+        deviation = _Stats.std(numeric)
+        percentile_rank = (sum(1 for value in numeric if value <= current_value) / len(numeric)) * 100 if current_value is not None else None
+        range_position = ((current_value - minimum) / (maximum - minimum)) if current_value is not None and maximum != minimum else 1.0 if current_value is not None else None
+        return {
+            "sample_size": len(numeric),
+            "current": current_value,
+            "mean": average,
+            "median": _Stats.median(numeric),
+            "std": deviation,
+            "percentile_rank": percentile_rank,
+            "min": minimum,
+            "max": maximum,
+            "z_score": ((current_value - average) / deviation) if current_value is not None and average is not None and deviation else None,
+            "range_position": range_position,
+        }
+
 
 class _Market:
     """Prepared-dataset market namespace; it can never retrieve undeclared data."""
