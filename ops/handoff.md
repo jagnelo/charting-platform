@@ -28468,3 +28468,18 @@ indefinite soak; longer endurance remains an explicit open gap.
   rejected before Git by the private-origin safeguard because trusted authorization for the exact
   private payload/destination was unavailable. No workaround, alternate transport, rewrite, reset,
   stash, or repeated attempt was used. This remains transport-only and does not block the goal.
+
+## 2026-08-14 — Family overview holdings readiness
+
+- Benchmark-family overview mappings now expose the difference between a canonical proxy identity
+  and usable ETF holdings evidence: snapshot ID, composition date, known-at timestamp, provider,
+  completeness, row/resolution counts, and reported total weight for every cap/equal/value/growth
+  role.
+- Focused Docker-backed overview/constituent integration passed `2/2`; Ruff, compile, frontend
+  type-check, diff-check, and YAML/JSON parsing passed. The first unprivileged test invocation was
+  a Docker-socket permission setup failure; the elevated rerun passed. No acceptance flexibility
+  was used.
+- Implementation/docs commit: `ffd3b725` (clean locally). Provider-backed family population,
+  historical rebalance/taxonomy evidence, and browser presentation of holdings readiness remain
+  open. Exact push is attempted once after this checkpoint and any safeguard response is recorded
+  separately; no workaround or repeat.

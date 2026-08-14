@@ -27057,3 +27057,15 @@ in 4.6 minutes. No failure was suppressed or reclassified as product success.
   payload/destination was unavailable.
 - No workaround, alternate transport, rewrite, reset, stash, or repeat was used. Transport-only;
   the local branch remains clean and the product goal continues.
+
+# 2026-08-14 — Family overview holdings readiness
+
+- Added role-level holdings readiness to benchmark-family overview responses. Mapped cap/equal/
+  value/growth legs now report holdings snapshot identity, composition/known-at timestamps, source,
+  completeness, row/resolution counts, and reported total weight separately from canonical proxy
+  availability.
+- Focused Docker-backed overview/constituent integration passed `2/2`; Ruff, compile, frontend
+  type-check, diff-check, and YAML/JSON parsing passed. An initial unprivileged Docker invocation
+  failed only at environment socket setup; elevated rerun passed. Acceptance flexibility used: none.
+- Clean implementation/docs commit: `ffd3b725`. Provider-backed population, historical rebalance/
+  taxonomy evidence, and browser holdings-readiness presentation remain open.
