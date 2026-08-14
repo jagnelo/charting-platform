@@ -1,5 +1,15 @@
 # Active Handoff
 
+## 2026-08-14 — Revalidation checkpoint transport result
+
+- Canonical revalidation evidence is cleanly committed as `671bd8d54ce3a8ce60c2c01daad34c0694ab6c40`.
+- The exact elevated push for `91463e54bbfb37dc5e130d3c912434bfc41594bd..671bd8d54ce3a8ce60c2c01daad34c0694ab6c40`
+  to `origin/feat/tc2000-frontend-rework` was attempted once and rejected before Git by the
+  private-origin egress safeguard because trusted authorization for this exact payload/destination
+  was unavailable.
+- No workaround, alternate transport, rewrite, reset, stash, or repeat was used. The worktree
+  remains clean; this is transport-only and not a product blocker.
+
 ## 2026-08-14 — Canonical deployment revalidation closed
 
 - The branch-scoped non-seeded deployment is healthy: backend `/health` is `status=ok` with

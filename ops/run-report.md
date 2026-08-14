@@ -1,5 +1,12 @@
 # Run Report
 
+## 2026-08-14 — Revalidation checkpoint transport result
+
+- Canonical deployment revalidation is committed locally as `671bd8d5`; the worktree is clean.
+- The exact elevated push for `91463e54..671bd8d5` was rejected before Git by the private-origin
+  egress safeguard. No alternate transport or repeat was attempted. Remote synchronization remains
+  a transport hold only; product work continues from the clean local commit.
+
 ## 2026-08-14 — Canonical deployment revalidation closed
 
 - Verified the current non-seeded branch deployment: backend health OK with both E2E seed flags
