@@ -1,5 +1,17 @@
 # Run Report
 
+## 2026-08-14 — Applied chart-template transform mechanics context completed
+
+- Applied saved chart templates now use the live chart configuration when
+  deriving transformed OHLCV parameters; the chart-type watcher preserves those
+  parameters during transitions.
+- Full frontend Vitest `779/779`, type-check, build `475` modules, focused
+  browser `1/1` in 4.5s, and diff-check pass.
+- Initial browser failures were corrected test-oracle races/locator ambiguity;
+  no acceptance flexibility was used and no visual threshold/mask changed.
+- Remaining exact/unrepresented V25, provider/entitlement, historical/GICS,
+  native-monitor, endurance, Docker-cleanup, and final-audit gaps remain tracked.
+
 ## 2026-08-14 — Git push egress safeguard recorded
 
 - Verified normal repository writeability and absence of a stale index lock.

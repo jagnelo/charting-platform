@@ -1,4 +1,29 @@
 tasks:
+  - id: tc2000-applied-chart-template-transform-mechanics-20260814
+    title: Preserve transform parameters when applying chart templates
+    status: completed
+    priority: high
+    scope: >-
+      Ensure applying a persisted Renko, Kagi, or Point & Figure template reads the live
+      serialisable chart configuration and carries its transform parameters through the chart
+      type watcher and transformed OHLCV load.
+    definition_of_done:
+      - Applied templates request their saved bar type and all saved transform parameters
+      - Chart-type transitions retain the active transform parameters
+      - Focused unit, full frontend, type/build, browser, and diff gates pass
+      - No acceptance threshold, visual mask, provider, or uPlot rule is relaxed
+    validation:
+      - frontend-template-store-44-of-44
+      - frontend-full-vitest-779-of-779
+      - frontend-type-check-build-475-modules
+      - corrected-focused-template-browser-1-of-1
+      - git-diff-check
+    notes:
+      - >-
+        Two initial browser failures were repaired test-oracle defects: an eager request was
+        observed after it had fired, and a broad persisted-template locator selected an older
+        template. The corrected run is authoritative. Remaining board-guided flexibility and
+        uncovered V25/provider/historical/native-monitor/endurance/final-audit gaps remain open.
   - id: tc2000-chart-template-transform-mechanics-20260814
     title: Preserve alternative-bar mechanics through chart templates and reset
     status: completed

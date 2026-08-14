@@ -1,5 +1,29 @@
 # Active Handoff
 
+## 2026-08-14 — Applied chart-template transform mechanics context completed
+
+- Closed a repository-controlled chart-template gap: template application updated
+  the local bar type but transform parameters were read from the stale persisted
+  prop snapshot, and the chart-type watcher dropped parameters during a type
+  transition. Both paths now read the live serialisable configuration and carry
+  all Renko/Kagi/Point & Figure parameters through `loadBars`.
+- Added a browser assertion that saves a Point & Figure template, resets to
+  Candles, reapplies the exact saved template, and observes the transformed
+  request with `bar_type=point_figure`, `box_size=5`, and `reversal=2`.
+- Focused unit/store coverage passes `44/44`; full frontend Vitest passes
+  `779/779`; type-check and 475-module production build pass; corrected focused
+  Playwright flow passes `1/1` in 4.5s; diff-check passes.
+- Two initial browser failures were test-oracle defects, not product failures:
+  the request observer was armed after an eager request, and a broad `/P&F/`
+  locator selected a previous persisted template. Both were fixed and the
+  corrected run is authoritative. No acceptance threshold, visual mask, or
+  product criterion was relaxed. Board-guided visual evidence remains the
+  explicit interim basis for represented states; uncovered V25, provider,
+  historical, native-monitor, endurance, and final-audit gaps remain open.
+- Owned paths: `frontend/src/components/chart/UPlotChart.vue`,
+  `frontend/src/components/workstation/WorkstationToolContent.vue`, and
+  `frontend/tests/e2e/flows.spec.ts`.
+
 ## 2026-08-14 — Git push egress safeguard recorded
 
 - Repository integrity is verified: `.git`, `index`, and `refs` are writable, no
