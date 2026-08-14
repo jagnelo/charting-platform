@@ -129,6 +129,47 @@ def test_runner_computes_cross_sectional_rank_and_breadth_from_declared_bars():
     assert result["artifacts"]["percent_above"]["value"] == (2 / 3) * 100
 
 
+def test_runner_computes_generic_breadth_snapshot_and_history_from_one_condition():
+    timestamps = ["2026-01-01", "2026-01-02", "2026-01-03"]
+    result = execute_job(
+        {
+            "source": (
+                "condition = {'kind': 'above_moving_average', 'params': {'period': 2}}\n"
+                "snapshot = research.breadth_condition(dataset, condition)\n"
+                "history = research.breadth_condition(dataset, condition, True)\n"
+                "output.scalar('snapshot_percentage', snapshot['percentage'])\n"
+                "output.scalar('history_sample_size', history['sample_size'])\n"
+                "output.series('history_percentage', [point['percentage'] for point in history['points']])\n"
+                "output.table('current_rows', snapshot['rows'])"
+            ),
+            "output_contract": "study",
+            "dataset": {
+                "timestamps": timestamps,
+                "datasets": [
+                    {
+                        "instrument_id": 1,
+                        "symbol": "SPY",
+                        "timestamps": timestamps,
+                        "closes": [100, 101, 102],
+                    },
+                    {
+                        "instrument_id": 2,
+                        "symbol": "XLK",
+                        "timestamps": timestamps,
+                        "closes": [100, 99, 98],
+                    },
+                ],
+            },
+        }
+    )
+
+    assert result["status"] == "completed"
+    assert result["artifacts"]["snapshot_percentage"]["value"] == 0.5
+    assert result["artifacts"]["history_sample_size"]["value"] == 3
+    assert result["artifacts"]["history_percentage"]["value"]["values"] == [None, 0.5, 0.5]
+    assert result["artifacts"]["current_rows"]["value"][-1]["value"] is False
+
+
 def test_runner_computes_transparent_ninety_ninety_breadth_and_exclusions():
     result = execute_job(
         {

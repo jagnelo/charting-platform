@@ -1114,7 +1114,46 @@ class TestWorkspaces:
         assert explicit_payload["requested_count"] == 2
         assert explicit_payload["excluded_count"] == 1
         assert explicit_payload["coverage"] == 0.5
-        assert any(item["code"] == "instrument_not_found" for item in explicit_payload["exclusions"])
+        assert any(
+            item["code"] == "instrument_not_found" for item in explicit_payload["exclusions"]
+        )
+
+    def test_generic_breadth_history_uses_the_same_condition_without_forward_fill(
+        self, client, auth_headers, db, instrument, ohlcv_bars
+    ):
+        from app.models.workstation import MarketGroup, MarketGroupMember
+
+        group = MarketGroup(
+            stable_key="generic-breadth-history-test",
+            group_type="test",
+            name="Generic breadth history",
+        )
+        db.add(group)
+        db.flush()
+        db.add(MarketGroupMember(market_group_id=group.id, instrument_id=instrument.id, position=0))
+        db.flush()
+
+        response = client.post(
+            "/api/v1/analysis/breadth/history",
+            headers=auth_headers,
+            json={
+                "universe": {"kind": "group", "key": group.stable_key},
+                "condition": {
+                    "kind": "above_moving_average",
+                    "params": {"period": 20},
+                },
+                "timeframe": "D1",
+                "limit": 20,
+            },
+        )
+
+        assert response.status_code == 200
+        payload = response.json()
+        assert len(payload["points"]) == 20
+        assert payload["points"][-1]["eligible_count"] == 1
+        assert payload["points"][-1]["coverage"] == 1
+        assert payload["points"][-1]["members"][0]["value"] in {True, False}
+        assert payload["definition_hash"]
 
     def test_etf_constituent_snapshot_is_point_in_time_and_source_labelled(
         self, client, auth_headers, db, instrument, instrument_type, ohlcv_bars

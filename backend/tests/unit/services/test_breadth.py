@@ -5,6 +5,7 @@ from app.services.breadth import (
     BreadthMember,
     definition_hash,
     evaluate_breadth,
+    evaluate_breadth_history,
     evaluate_condition,
 )
 
@@ -82,3 +83,23 @@ def test_definition_hash_changes_with_condition_or_membership_version():
 
     assert first != changed_condition
     assert first != changed_membership
+
+
+def test_history_does_not_forward_fill_a_member_missing_the_current_timestamp():
+    first = _bars([100, 101, 102])
+    second = _bars([100, 101])
+    second[-1].ts = first[-1].ts - timedelta(days=1)
+    points = evaluate_breadth_history(
+        [BreadthMember(1, "A", "A"), BreadthMember(2, "B", "B")],
+        {1: first, 2: second},
+        {"kind": "above_moving_average", "params": {"period": 2}},
+        limit=10,
+    )
+
+    latest = points[-1]
+    assert latest["timestamp"] == first[-1].ts
+    assert latest["eligible_count"] == 1
+    assert latest["coverage"] == 0.5
+    by_symbol = {result.symbol: result for result in latest["members"]}
+    assert by_symbol["A"].value is True
+    assert by_symbol["B"].exclusion_code == "missing_bar_at_timestamp"

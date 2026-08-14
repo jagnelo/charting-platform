@@ -7,6 +7,7 @@ import StudyHistogramUPlot from '@/components/workstation/StudyHistogramUPlot.vu
 import StudyRangeUPlot from '@/components/workstation/StudyRangeUPlot.vue'
 import StudyBarsUPlot from '@/components/workstation/StudyBarsUPlot.vue'
 import BreadthHistoryUPlot from '@/components/workstation/BreadthHistoryUPlot.vue'
+import GenericBreadthHistoryUPlot from '@/components/workstation/GenericBreadthHistoryUPlot.vue'
 
 class ResizeObserverMock {
   constructor(_callback: () => void) {}
@@ -21,6 +22,7 @@ const cases = [
   { name: 'range', component: StudyRangeUPlot, valid: { name: 'Range', timestamps: ['2026-01-01', '2026-01-02'], lower: [1, 2], upper: [2, 3] }, invalid: { timestamps: ['not-a-date'], lower: [1], upper: [2] } },
   { name: 'bars', component: StudyBarsUPlot, valid: { name: 'Bars', labels: ['A', 'B'], values: [1, -1] }, invalid: { labels: [], values: [] } },
   { name: 'breadth history', component: BreadthHistoryUPlot, valid: { history: { group_key: 'sp500-sectors', points: [{ timestamp: '2026-01-01', above_ma: { ma20: 0.5, ma50: 0.4, ma200: 0.3 }, coverage: {} }] } }, invalid: { history: { group_key: 'sp500-sectors', points: [{ timestamp: 'not-a-date', above_ma: { ma20: Number.NaN, ma50: 0.4, ma200: 0.3 }, coverage: {} }] } } },
+  { name: 'generic breadth history', component: GenericBreadthHistoryUPlot, valid: { history: { definition_version: 1, definition_hash: 'hash', universe: {}, condition: {}, timeframe: 'D1', adjustment: 'split_adjusted', points: [{ timestamp: '2026-01-01', requested_count: 2, eligible_count: 2, pass_count: 1, excluded_count: 0, percentage: 0.5, coverage: 1, members: [], exclusions: [] }] } }, invalid: { history: { definition_version: 1, definition_hash: 'hash', universe: {}, condition: {}, timeframe: 'D1', adjustment: 'split_adjusted', points: [{ timestamp: 'not-a-date', requested_count: 2, eligible_count: 0, pass_count: 0, excluded_count: 2, percentage: Number.NaN, coverage: 0, members: [], exclusions: [] }] } } },
 ] as const
 
 describe('conditional uPlot lifecycle contracts', () => {

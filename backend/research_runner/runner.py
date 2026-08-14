@@ -1135,6 +1135,260 @@ class _PandasFacade:
 class _Research:
     """Deterministic, point-in-time study helpers over the prepared dataset."""
 
+    @staticmethod
+    def _breadth_condition_result(
+        item: dict, condition: dict, index: int | None = None, benchmark_item: dict | None = None
+    ) -> tuple[bool | None, float | None, str | None]:
+        """Evaluate one declared condition over one prepared member."""
+        params = condition.get("params", condition)
+        if not isinstance(params, dict):
+            return None, None, "invalid_condition_params"
+        closes = item.get("closes")
+        volumes = item.get("volumes")
+        if not isinstance(closes, list) or not closes:
+            return None, None, "no_bars"
+        if index is None:
+            index = len(closes) - 1
+        if index < 0 or index >= len(closes):
+            return None, None, "no_bars"
+        values = closes[: index + 1]
+        latest = values[-1]
+        if (
+            not isinstance(latest, int | float)
+            or isinstance(latest, bool)
+            or not math.isfinite(float(latest))
+        ):
+            return None, None, "invalid_close"
+        kind = str(condition.get("kind") or "").lower()
+
+        def finite_window(window: list[object]) -> bool:
+            return all(
+                isinstance(value, int | float)
+                and not isinstance(value, bool)
+                and math.isfinite(float(value))
+                for value in window
+            )
+
+        if kind == "above_moving_average":
+            period = int(params.get("period", 200))
+            if period < 2 or len(values) < period:
+                return None, None, "insufficient_history"
+            window = values[-period:]
+            if not finite_window(window):
+                return None, None, "invalid_close"
+            average_kind = str(params.get("average", "sma")).lower()
+            if average_kind == "ema":
+                alpha = 2 / (period + 1)
+                average = sum(float(value) for value in window) / period
+                for value in window[period:]:
+                    average = (float(value) * alpha) + (average * (1 - alpha))
+            else:
+                average = sum(float(value) for value in window) / period
+            if average == 0:
+                return None, None, "invalid_average"
+            metric = float(latest) / average - 1
+            comparator = str(params.get("comparator", "above")).lower()
+            return (
+                (float(latest) > average if comparator == "above" else float(latest) < average),
+                metric,
+                None,
+            )
+
+        if kind == "within_52_week_high":
+            lookback = int(params.get("lookback", 252))
+            threshold = float(params.get("threshold", 0.01))
+            direction = str(params.get("direction", "high")).lower()
+            if lookback < 2 or len(values) < lookback:
+                return None, None, "insufficient_history"
+            window = values[-lookback:]
+            if not finite_window(window):
+                return None, None, "invalid_close"
+            reference = (
+                max(float(value) for value in window)
+                if direction == "high"
+                else min(float(value) for value in window)
+            )
+            if reference <= 0:
+                return None, None, "invalid_reference"
+            distance = abs(float(latest) / reference - 1)
+            return (
+                (
+                    float(latest) >= reference * (1 - threshold)
+                    if direction == "high"
+                    else float(latest) <= reference * (1 + threshold)
+                ),
+                distance,
+                None,
+            )
+
+        if kind == "new_high_low":
+            lookback = int(params.get("lookback", 20))
+            direction = str(params.get("direction", "high")).lower()
+            if lookback < 2 or len(values) <= lookback:
+                return None, None, "insufficient_history"
+            previous = values[-lookback - 1 : -1]
+            if not finite_window(previous):
+                return None, None, "invalid_close"
+            reference = (
+                max(float(value) for value in previous)
+                if direction == "high"
+                else min(float(value) for value in previous)
+            )
+            metric = float(latest) / reference - 1 if reference else math.nan
+            if not math.isfinite(metric):
+                return None, None, "invalid_reference"
+            return (
+                (float(latest) >= reference if direction == "high" else float(latest) <= reference),
+                metric,
+                None,
+            )
+
+        if kind == "volume_ratio":
+            period = int(params.get("period", 50))
+            if not isinstance(volumes, list) or len(volumes) <= index or index + 1 < period:
+                return None, None, "insufficient_history"
+            window = volumes[index - period : index + 1]
+            if not finite_window(window):
+                return None, None, "missing_volume"
+            baseline = sum(float(value) for value in window[:-1]) / period
+            if baseline == 0:
+                return None, None, "zero_average_volume"
+            ratio = float(window[-1]) / baseline
+            threshold = float(params.get("threshold", 0.0))
+            comparator = str(params.get("comparator", "above")).lower()
+            return (ratio < threshold if comparator == "below" else ratio > threshold), ratio, None
+
+        if kind == "relative_strength":
+            lookback = int(params.get("lookback", 20))
+            benchmark_closes = (
+                benchmark_item.get("closes") if isinstance(benchmark_item, dict) else None
+            )
+            if (
+                not isinstance(benchmark_closes, list)
+                or index >= len(benchmark_closes)
+                or len(values) <= lookback
+                or index < lookback
+            ):
+                return None, None, "insufficient_history"
+            member_base = values[-lookback - 1]
+            benchmark_values = benchmark_closes[: index + 1]
+            benchmark_base = benchmark_values[-lookback - 1]
+            if (
+                not finite_window([member_base, latest, benchmark_base, benchmark_values[-1]])
+                or member_base == 0
+                or benchmark_base == 0
+            ):
+                return None, None, "invalid_reference"
+            metric = (float(latest) / float(member_base) - 1) - (
+                float(benchmark_values[-1]) / float(benchmark_base) - 1
+            )
+            threshold = float(params.get("threshold", 0.0))
+            comparator = str(params.get("comparator", "above")).lower()
+            return (
+                (metric < threshold if comparator == "below" else metric > threshold),
+                metric,
+                None,
+            )
+
+        return None, None, "unsupported_condition"
+
+    def breadth_condition(self, dataset: dict, condition: dict, history: bool = False) -> dict:
+        """Evaluate one reusable condition across a declared universe.
+
+        The helper is intentionally data-only.  It accepts the same condition
+        shape as the workstation API and returns explicit eligible/pass counts,
+        member rows, exclusions, and (when requested) aligned history without
+        forward-filling missing member timestamps.
+        """
+        if not isinstance(condition, dict) or not isinstance(condition.get("kind"), str):
+            raise ValueError("breadth condition must contain a kind")
+        datasets = dataset.get("datasets")
+        if not isinstance(datasets, list):
+            raise ValueError("Declared prepared universe is unavailable")
+        benchmark_item = dataset.get("benchmark_dataset")
+        if not isinstance(benchmark_item, dict):
+            benchmark_item = None
+
+        def evaluate_at(index: int, timestamp: str | None = None) -> dict:
+            rows: list[dict] = []
+            exclusions: list[dict] = []
+            for item in datasets:
+                if not isinstance(item, dict):
+                    exclusions.append({"code": "invalid_dataset_row"})
+                    continue
+                symbol = str(item.get("symbol") or "").upper()
+                item_timestamps = item.get("timestamps")
+                if timestamp is not None and isinstance(item_timestamps, list):
+                    if index >= len(item_timestamps) or item_timestamps[index] != timestamp:
+                        exclusions.append(
+                            {
+                                "symbol": symbol,
+                                "timestamp": timestamp,
+                                "code": "missing_bar_at_timestamp",
+                            }
+                        )
+                        continue
+                value, metric, exclusion = self._breadth_condition_result(
+                    item, condition, index, benchmark_item
+                )
+                row = {
+                    "symbol": symbol,
+                    "instrument_id": item.get("instrument_id"),
+                    "value": value,
+                    "metric": metric,
+                    "timestamp": timestamp,
+                }
+                if exclusion:
+                    row["exclusion"] = exclusion
+                    exclusions.append({"symbol": symbol, "timestamp": timestamp, "code": exclusion})
+                rows.append(row)
+            eligible = sum(row["value"] is not None for row in rows)
+            passed = sum(row["value"] is True for row in rows)
+            return {
+                "timestamp": timestamp,
+                "requested_count": len(rows),
+                "eligible_count": eligible,
+                "pass_count": passed,
+                "excluded_count": len(rows) - eligible,
+                "percentage": passed / eligible if eligible else None,
+                "coverage": eligible / len(rows) if rows else 0,
+                "rows": rows,
+                "exclusions": exclusions,
+            }
+
+        if not history:
+            return evaluate_at(
+                max(
+                    (len(item.get("closes", [])) for item in datasets if isinstance(item, dict)),
+                    default=0,
+                )
+                - 1
+            )
+        timestamps = dataset.get("timestamps")
+        if not isinstance(timestamps, list):
+            timestamps = next(
+                (
+                    item.get("timestamps")
+                    for item in datasets
+                    if isinstance(item, dict) and isinstance(item.get("timestamps"), list)
+                ),
+                [],
+            )
+        if not timestamps:
+            raise ValueError("Declared prepared universe and timestamps are unavailable")
+        points = [
+            evaluate_at(index, timestamp)
+            for index, timestamp in enumerate(timestamps)
+            if isinstance(timestamp, str) and timestamp
+        ]
+        return {
+            "condition": condition,
+            "timestamps": [point["timestamp"] for point in points],
+            "points": points,
+            "current": points[-1] if points else None,
+            "sample_size": len(points),
+        }
+
     def cross_sectional_rank(self, dataset: dict, lookback: int = 20) -> list[dict]:
         """Rank a declared universe by trailing price return without external access."""
         if not isinstance(lookback, int) or isinstance(lookback, bool) or lookback <= 0:

@@ -184,6 +184,32 @@ the two representative condition forms. This evidence closes only the initial ba
 the historical, unified-Python, independent-uPlot, promotion, and full point-in-time ETF gates
 remain required and are not being silently treated as complete.
 
+Implementation checkpoint 2 (2026-08-14): aligned historical generic breadth and isolated Python
+reuse are now implemented. The API and runner use the same condition definition, expose per-date
+denominators/coverage/exclusions, and never forward-fill a member absent at a timestamp; the
+workstation renders the history with uPlot and Study Lab includes two representative factory
+starters. This does not close the gate: ETF point-in-time browser evidence, arbitrary Python
+combination parity, and promotion/reuse acceptance remain mandatory.
+
+#### Breadth “around what?” acceptance rule
+
+Acceptance must verify that the user can choose what is being measured and what it is being tested
+against, rather than only choosing among fixed breadth labels. The saved definition must expose:
+
+- the canonical universe and point-in-time membership policy;
+- the measured field or derived Python series;
+- the target/relationship and operator (average, threshold, range, percentile, prior high/low,
+  benchmark/peer ratio, event, or derived series);
+- timeframe, lookback, session, adjustment, timestamp alignment, and as-of/known-at policy;
+- nested AND/OR/NOT composition with clause-level diagnostics.
+
+The acceptance fixtures must include both `close > SMA(close, 200)` and “within 1% of the rolling
+252-session high” over the same explicitly labelled SPY ETF-proxy universe, plus at least one
+relative-strength or volume/volatility relationship. Each fixture must show aggregate history,
+per-member pass/fail, denominator/coverage, exact exclusions, provenance, and current-versus-
+historical semantics. A fixed metric route or selector that cannot express the target relationship
+does not satisfy this gate, even if its aggregate percentage is numerically correct.
+
 ### 2026-08-11 bounded endurance evidence
 
 The governed two-popout churn guard was run with `TC2000_POP_OUT_CHURN_ROUNDS=100`. Both performance

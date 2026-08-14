@@ -10014,6 +10014,17 @@ production build pass. This is an implementation checkpoint only: historical gen
 point-in-time ETF fixture acceptance, unified-Python AST/research integration, independent uPlot
 study panes, and promotion targets remain open and are tracked below.
 
+Implementation checkpoint 2 (2026-08-14): generic breadth now has aligned historical output at
+`POST /analysis/breadth/history` using the same condition engine. Members without an actual bar at
+the requested timestamp are excluded with `missing_bar_at_timestamp`; no historical percentage is
+forward-filled. The isolated Python runner exposes `research.breadth_condition(dataset, condition,
+history?)`, and Study Lab now includes factory starters for above-average participation and within-
+1%-of-52-week-high participation. The workstation renders the generic historical percentage in a
+dedicated uPlot surface. Historical evaluator/API tests, runner/factory tests, uPlot lifecycle
+tests (14/14), frontend Vitest (821/821), type-check, production build, Ruff, and diff checks pass.
+Full ETF point-in-time browser acceptance, arbitrary Python combinations, and reuse/promotion into
+columns, filters, scans, gauges, alerts, and exports remain open.
+
 Implementation requirements:
 
 - add a stable breadth-definition schema and versioned API family rather than adding one route
@@ -10027,6 +10038,39 @@ Implementation requirements:
 - test the generic engine, the two representative studies, visual-condition/Python parity,
   historical membership, partial coverage, missing bars, cache identity, drill-down, promotion,
   and uPlot rendering in focused, integration, browser, and end-to-end suites.
+
+##### Breadth definition axes and reuse contract
+
+The authoring surface must answer the user's question “breadth around what?” explicitly. Do not
+model breadth as a selector over a fixed list of precomputed metrics. A saved definition selects
+each of the following independently:
+
+- **Universe:** official index when entitled, clearly labelled ETF-proxy holdings, benchmark,
+  sector, industry, related group, watchlist/combo, basket, scan result, or explicit canonical
+  symbols, with effective/known-at and membership-version semantics;
+- **Measured field:** adjusted or raw price, return, volume, volatility, trend state, relative
+  strength/ratio, metadata, event state, or a derived numeric/Boolean Python series;
+- **Target and operator:** moving average or EMA, absolute/percentage threshold, distance/range,
+  percentile, prior high/low, benchmark/peer series, event occurrence, or another derived series;
+- **Window and alignment:** timeframe, lookback, session, adjustment, date range, as-of/known-at
+  policy, and timestamp alignment rule;
+- **Composition:** explicit AND/OR/NOT groups, nested clauses, and reusable parameter values.
+
+The definition editor must make those axes visible in the saved UI and return clause-level
+diagnostics. Representative fixtures include `close > SMA(close, 200)`, within 1% of a rolling
+252-session high, configurable new-high/new-low windows, volume/volatility thresholds, trend/RSI
+states, and member-versus-sector/benchmark ratios. All of them must execute through the same
+versioned definition contract; bespoke endpoints or hidden selector-specific semantics do not
+count.
+
+The aggregate is only one view of the study. Each result must provide the current pass/fail state
+of every member, passing/failing drill-down, aligned historical percentages, state transitions or
+occurrences, denominator/coverage, exclusions with reasons, and provenance. The immutable
+definition may be reused as a Study Lab artifact, uPlot series/pane, watchlist column/filter,
+EasyScan condition, Market Gauge, alert, or export when the declared output contract supports it.
+Promotion and export must retain the condition version, universe membership version, dataset
+manifest, as-of policy, and coverage/exclusion record; no target may silently replace a historical
+point-in-time universe with a current snapshot.
 
 The relative-rotation uPlot plane draws each member's color-coded sampled tail as a connected
 trail before drawing its current/retained points and labels the four transparent state

@@ -121,6 +121,8 @@ def test_all_named_factory_sources_execute_against_a_prepared_fixture():
         "breadthParticipationSource",
         "breadthThrustSource",
         "breadthThrustHistorySource",
+        "genericBreadthSource",
+        "genericHighBreadthSource",
     }
     for name, source in _source_constants().items():
         run_dataset = (

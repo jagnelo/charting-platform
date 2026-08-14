@@ -253,3 +253,96 @@ def evaluate_breadth(
         "coverage": eligible / requested if requested else 0.0,
         "percentage": passed / eligible if eligible else None,
     }
+
+
+def evaluate_breadth_history(
+    members: list[BreadthMember],
+    bars_by_instrument: Mapping[int, list[Any]],
+    condition: Mapping[str, Any],
+    *,
+    limit: int = 500,
+    benchmark_bars: list[Any] | None = None,
+) -> list[dict[str, Any]]:
+    """Evaluate one condition on aligned observed timestamps.
+
+    A member is eligible at ``timestamp`` only when it has an actual bar at
+    that timestamp.  Earlier bars are used for lookback calculations, but a
+    missing current bar is never forward-filled into a historical breadth
+    percentage.  This is the key distinction between a historical study and a
+    current snapshot repeatedly sampled from a changing universe.
+    """
+
+    timestamps = sorted(
+        {
+            getattr(bar, "ts", None)
+            for bars in bars_by_instrument.values()
+            for bar in bars
+            if getattr(bar, "ts", None) is not None
+        }
+    )
+    if not timestamps:
+        return []
+    points: list[dict[str, Any]] = []
+    for timestamp in timestamps:
+        member_results: list[BreadthMemberResult] = []
+        for member in members:
+            member_bars = list(bars_by_instrument.get(member.instrument_id, []))
+            observed = [bar for bar in member_bars if getattr(bar, "ts", None) <= timestamp]
+            has_current_bar = bool(observed and getattr(observed[-1], "ts", None) == timestamp)
+            if not has_current_bar:
+                exclusion = "missing_bar_at_timestamp" if observed else "no_bars"
+                member_results.append(
+                    BreadthMemberResult(
+                        instrument_id=member.instrument_id,
+                        symbol=member.symbol,
+                        name=member.name,
+                        value=None,
+                        metric=None,
+                        observation_time=None,
+                        exclusion_code=exclusion,
+                    )
+                )
+                continue
+            benchmark_at_timestamp = benchmark_bars
+            if benchmark_bars is not None:
+                benchmark_observed = [
+                    bar for bar in benchmark_bars if getattr(bar, "ts", None) <= timestamp
+                ]
+                if (
+                    not benchmark_observed
+                    or getattr(benchmark_observed[-1], "ts", None) != timestamp
+                ):
+                    benchmark_at_timestamp = []
+            value, metric, exclusion = evaluate_condition(
+                observed,
+                condition,
+                benchmark_bars=benchmark_at_timestamp,
+            )
+            if exclusion == "benchmark_required" and benchmark_bars is not None:
+                exclusion = "benchmark_missing_at_timestamp"
+            member_results.append(
+                BreadthMemberResult(
+                    instrument_id=member.instrument_id,
+                    symbol=member.symbol,
+                    name=member.name,
+                    value=value,
+                    metric=metric,
+                    observation_time=timestamp if value is not None else None,
+                    exclusion_code=exclusion,
+                )
+            )
+        eligible = sum(result.value is not None for result in member_results)
+        passed = sum(result.value is True for result in member_results)
+        points.append(
+            {
+                "timestamp": timestamp,
+                "requested_count": len(member_results),
+                "eligible_count": eligible,
+                "pass_count": passed,
+                "excluded_count": len(member_results) - eligible,
+                "coverage": eligible / len(member_results) if member_results else 0.0,
+                "percentage": passed / eligible if eligible else None,
+                "members": member_results,
+            }
+        )
+    return points[-max(1, min(limit, 5_000)) :]

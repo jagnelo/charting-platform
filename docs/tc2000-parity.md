@@ -41,6 +41,16 @@ and SPY-proxy studies. Backend focused and API integration tests, frontend 819/8
 production build pass. Historical generic evaluation, full point-in-time ETF acceptance, unified
 Python/research reuse, independent uPlot panes, and promotion targets remain open parity gaps.
 
+Implementation checkpoint 2 (2026-08-14): the generic path now supports aligned historical
+`POST /analysis/breadth/history` output with the same definition hash and condition semantics;
+members missing a bar at a timestamp are explicitly excluded rather than forward-filled. The
+isolated runner exposes `research.breadth_condition(dataset, condition, history?)`, Study Lab has
+factory starters for above-average and within-1%-of-52-week-high participation, and the workstation
+renders the generic percentage history through a dedicated uPlot component. Runner/factory, API,
+uPlot lifecycle, frontend 821/821, type/build, Ruff, and diff checks pass. Full ETF point-in-time
+browser evidence, arbitrary Python combinations, and promotion into other workstation targets
+remain open.
+
 ## 2026-08-14 — Study Lab export and board-guided visual revalidation
 
 - Active Study Lab export now covers scalar, Boolean, and structured artifacts; authenticated
@@ -6304,3 +6314,20 @@ rule changed.
 - The factory starter, editor completion, SDK reference, focused source/runner contracts, and
   authenticated `F8p-90-90` browser acceptance are implemented. The original Study Lab surface
   remains under `REF-STUDY-LAB-V25`; no visual or acceptance threshold was relaxed.
+
+## 2026-08-14 — Breadth authoring scope expanded beyond fixed metrics
+
+The breadth surface is now governed as a general cross-sectional study authoring contract. The
+user selects the universe, measured field, target/operator, alignment policy, and Boolean
+composition independently, so “breadth” can mean (for example) the percentage of SPY-proxy
+members above a 200-session average, within 1% of a rolling 52-week high, in a volume/volatility
+state, or outperforming a benchmark/sector ratio. The UI and API must preserve these semantics in
+the saved definition instead of hiding them behind metric-specific selectors.
+
+The same immutable definition must expose aggregate history, per-member pass/fail state,
+passing/failing drill-down, exclusions, coverage, provenance, point-in-time membership, and
+reproducibility metadata. Where output contracts permit, it must be reusable as Study Lab output,
+an independent uPlot pane/plot, a watchlist column/filter, EasyScan condition, Market Gauge,
+alert, or export. The existing fixed metrics remain presets only. This is a requirements
+expansion; the current historical slice does not yet close arbitrary Python composition, full
+promotion targets, or representative ETF point-in-time browser acceptance.

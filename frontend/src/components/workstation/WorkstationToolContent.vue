@@ -418,6 +418,7 @@
         <span v-else-if="genericBreadthError" class="breadth-tool__status--error" role="alert">{{ genericBreadthError }}</span>
         <span v-else-if="genericBreadth" class="breadth-tool__custom-result"><b>{{ genericBreadthPercentage }}</b> · {{ genericBreadth.pass_count }}/{{ genericBreadth.eligible_count }} eligible · {{ genericBreadthCoverage }} coverage</span>
       </div>
+      <GenericBreadthHistoryUPlot :history="genericBreadthHistory" />
       <p v-if="breadthBusy" class="breadth-tool__status" role="status" aria-live="polite" aria-atomic="true">Loading breadth analysis…</p>
       <p v-else-if="breadthError" class="breadth-tool__status breadth-tool__status--error" role="alert" aria-live="assertive" aria-atomic="true">{{ breadthError }}</p>
       <p v-else-if="!breadth" class="breadth-tool__status" role="status" aria-live="polite" aria-atomic="true">Breadth analysis is unavailable.</p>
@@ -489,6 +490,7 @@ import MarketGaugeTool from './MarketGaugeTool.vue'
 import StudyLabTool from './StudyLabTool.vue'
 import UnknownToolRecovery from './UnknownToolRecovery.vue'
 import BreadthHistoryUPlot from './BreadthHistoryUPlot.vue'
+import GenericBreadthHistoryUPlot from './GenericBreadthHistoryUPlot.vue'
 import RelativeRotationTool from './RelativeRotationTool.vue'
 import InstrumentInfoPanel from '@/components/chart/InstrumentInfoPanel.vue'
 import ResearchResultsTool from './ResearchResultsTool.vue'
@@ -1499,12 +1501,16 @@ const genericBreadthDefinition = computed(() => ({
 }))
 const genericBreadthKey = computed(() => JSON.stringify(genericBreadthDefinition.value))
 const genericBreadth = computed(() => workspaceStore.genericBreadth[genericBreadthKey.value])
-const genericBreadthLoading = computed(() => workspaceStore.genericBreadthLoading[genericBreadthKey.value] === true)
-const genericBreadthError = computed(() => workspaceStore.genericBreadthErrors[genericBreadthKey.value] ?? null)
+const genericBreadthHistory = computed(() => workspaceStore.genericBreadthHistory[genericBreadthKey.value])
+const genericBreadthLoading = computed(() => workspaceStore.genericBreadthLoading[genericBreadthKey.value] === true || workspaceStore.genericBreadthHistoryLoading[genericBreadthKey.value] === true)
+const genericBreadthError = computed(() => workspaceStore.genericBreadthErrors[genericBreadthKey.value] ?? workspaceStore.genericBreadthHistoryErrors[genericBreadthKey.value] ?? null)
 const genericBreadthPercentage = computed(() => genericBreadth.value?.percentage == null ? 'Unavailable' : `${(genericBreadth.value.percentage * 100).toFixed(1)}%`)
 const genericBreadthCoverage = computed(() => genericBreadth.value == null ? 'Unavailable' : `${(genericBreadth.value.coverage * 100).toFixed(1)}%`)
 async function runGenericBreadth() {
-  await workspaceStore.loadGenericBreadth(genericBreadthDefinition.value, genericBreadthKey.value)
+  await Promise.all([
+    workspaceStore.loadGenericBreadth(genericBreadthDefinition.value, genericBreadthKey.value),
+    workspaceStore.loadGenericBreadthHistory(genericBreadthDefinition.value, genericBreadthKey.value),
+  ])
 }
 const technical = computed(() => workspaceStore.technicals[activeSymbol.value])
 const selectedETF = computed(() => workspaceStore.constituentETF ?? '')

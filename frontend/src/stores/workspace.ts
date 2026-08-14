@@ -220,6 +220,30 @@ export interface GenericBreadthState {
   freshness_detail?: Record<string, number>
 }
 
+export interface GenericBreadthHistoryState {
+  definition_version: number
+  definition_hash: string
+  universe: Record<string, unknown>
+  condition: Record<string, unknown>
+  timeframe: string
+  adjustment: string
+  as_of?: string | null
+  points: Array<{
+    timestamp: string
+    requested_count: number
+    eligible_count: number
+    pass_count: number
+    excluded_count: number
+    percentage: number | null
+    coverage: number
+    members: GenericBreadthState['members']
+    exclusions: Array<{ code: string; message: string; instrument_id?: number | null }>
+  }>
+  exclusions: Array<{ code: string; message: string; instrument_id?: number | null }>
+  freshness?: string
+  freshness_detail?: Record<string, number>
+}
+
 export interface ETFHoldingState {
   constituent_instrument_id: number | null
   constituent_symbol: string | null
@@ -447,6 +471,9 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   const genericBreadth = ref<Record<string, GenericBreadthState>>({})
   const genericBreadthLoading = ref<Record<string, boolean>>({})
   const genericBreadthErrors = ref<Record<string, string | null>>({})
+  const genericBreadthHistory = ref<Record<string, GenericBreadthHistoryState>>({})
+  const genericBreadthHistoryLoading = ref<Record<string, boolean>>({})
+  const genericBreadthHistoryErrors = ref<Record<string, string | null>>({})
   const etfHoldings = ref<Record<string, ETFHoldingsPageState | null>>({})
   const etfConstituentSnapshots = ref<Record<string, ETFConstituentSnapshotState | null>>({})
   const etfIndustries = ref<Record<string, ETFIndustryCompositionState | null>>({})
@@ -1205,6 +1232,31 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     }
   }
 
+  async function loadGenericBreadthHistory(
+    definition: Record<string, unknown>,
+    cacheKey: string,
+  ) {
+    const requestKey = `top-down:generic-breadth-history:${cacheKey}`
+    const generation = beginAnalysisRequest(requestKey)
+    if (!documentIsVisible()) return null
+    genericBreadthHistoryLoading.value = { ...genericBreadthHistoryLoading.value, [cacheKey]: true }
+    genericBreadthHistoryErrors.value = { ...genericBreadthHistoryErrors.value, [cacheKey]: null }
+    try {
+      const result = await api.post<GenericBreadthHistoryState>('/analysis/breadth/history', { ...definition, limit: 500 })
+      if (!isCurrentAnalysisRequest(requestKey, generation)) return null
+      genericBreadthHistory.value = { ...genericBreadthHistory.value, [cacheKey]: result }
+      return result
+    } catch (cause: any) {
+      if (!isCurrentAnalysisRequest(requestKey, generation)) return null
+      const message = cause?.message ?? 'Unable to evaluate historical breadth'
+      error.value = message
+      genericBreadthHistoryErrors.value = { ...genericBreadthHistoryErrors.value, [cacheKey]: message }
+      return null
+    } finally {
+      if (isCurrentAnalysisRequest(requestKey, generation)) genericBreadthHistoryLoading.value = { ...genericBreadthHistoryLoading.value, [cacheKey]: false }
+    }
+  }
+
   /**
    * Refresh the shared US top-down inputs in one deduplicated batch. The shell and
    * pop-outs call this method instead of fanning out one request per watchlist cell.
@@ -1956,6 +2008,9 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     genericBreadth,
     genericBreadthLoading,
     genericBreadthErrors,
+    genericBreadthHistory,
+    genericBreadthHistoryLoading,
+    genericBreadthHistoryErrors,
     etfHoldings,
     etfConstituentSnapshots,
     etfIndustries,
@@ -1990,6 +2045,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     loadBreadth,
     loadBreadthHistory,
     loadGenericBreadth,
+    loadGenericBreadthHistory,
     refreshMarketAnalysis,
     loadETFHoldings,
     loadETFConstituentSnapshot,

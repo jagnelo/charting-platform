@@ -271,6 +271,36 @@ class BreadthDefinitionOut(AnalysisResponseMetadata):
     exclusions: list[AnalysisWarning] = Field(default_factory=list)
 
 
+class BreadthHistoryRequest(BreadthDefinitionRequest):
+    limit: int = Field(default=500, ge=1, le=5_000)
+
+
+class BreadthDefinitionHistoryPointOut(BaseModel):
+    timestamp: datetime
+    requested_count: int = Field(ge=0)
+    eligible_count: int = Field(ge=0)
+    pass_count: int = Field(ge=0)
+    excluded_count: int = Field(ge=0)
+    percentage: float | None = Field(default=None, ge=0, le=1)
+    coverage: float = Field(ge=0, le=1)
+    members: list[BreadthMemberResultOut] = Field(default_factory=list)
+    exclusions: list[AnalysisWarning] = Field(default_factory=list)
+
+
+class BreadthDefinitionHistoryOut(AnalysisResponseMetadata):
+    """Aligned historical output for the same reusable breadth definition."""
+
+    definition_version: int
+    definition_hash: str
+    universe: dict[str, object] = Field(default_factory=dict)
+    condition: dict[str, object] = Field(default_factory=dict)
+    timeframe: str
+    adjustment: str
+    as_of: datetime | None = None
+    points: list[BreadthDefinitionHistoryPointOut] = Field(default_factory=list)
+    exclusions: list[AnalysisWarning] = Field(default_factory=list)
+
+
 class IndicatorBatchRequest(BaseModel):
     symbols: list[str] = Field(min_length=1, max_length=10_000)
     indicator: str = Field(min_length=1, max_length=64)
