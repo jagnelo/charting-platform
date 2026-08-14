@@ -1,5 +1,13 @@
 # Run Report
 
+## 2026-08-14 — Current attribution-validation push attempt
+
+- Clean local `HEAD` is `28c70cc4`; origin is `91463e54`; exact push range is
+  `91463e54..28c70cc4`.
+- The elevated branch push was rejected before Git by the private-repository egress safeguard for
+  the exact private payload/destination. No workaround or history rewrite was attempted. This is
+  transport-only and does not block independent implementation.
+
 ## 2026-08-14 — Strategy attribution malformed-input validation
 
 - Rejected null `r_multiple` trades and malformed Symbol Performance numeric rows before they can
