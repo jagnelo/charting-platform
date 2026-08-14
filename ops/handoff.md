@@ -1,5 +1,20 @@
 # Active Handoff
 
+## 2026-08-14 — Benchmark-family role-ranking checkpoint
+
+- Added `GET /analysis/benchmark-families/{family_key}/ranking` with transparent 1D/1W/1M/3M/6M/
+  YTD/1Y return cells, configurable rank period, cap-relative spreads, rank order, freshness,
+  and explicit role-local unavailable states.
+- Added store caching and dense workstation ranking beside current/historical participation. The
+  rebuilt authenticated `F8s-breadth-family-ratio` browser oracle asserts the visible role rank.
+- Validation: focused family participation/history/ranking integration `3/3`, store `61/61`, full
+  Vitest `832/832`, type/build, Ruff/compile, diff-check, and Chromium `1/1`. No acceptance
+  flexibility used.
+- Implementation/docs commit: `3ae3de1c` (clean locally). Exact elevated push was attempted once
+  and rejected before Git by the private-origin safeguard; no workaround or repeat.
+- Next context: historical/cross-family ranking and relative rotation, then concentration/
+  dispersion and complete evidence population across all eight roots.
+
 ## 2026-08-14 — Historical benchmark-family participation checkpoint
 
 - Added `GET /analysis/benchmark-families/{family_key}/breadth/history` with independent

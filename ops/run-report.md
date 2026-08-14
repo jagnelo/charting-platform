@@ -1,5 +1,18 @@
 # Run Report
 
+## 2026-08-14 — Benchmark-family role-ranking checkpoint
+
+- Added provider-neutral role ranking for mapped cap/equal/value/growth legs, including transparent
+  return periods, rank period, cap-relative spreads, warnings, and no-fallback semantics. Rendered
+  rank and 1M delta in the family workstation strip.
+- Validation: focused family integration `3/3`, workspace-store `61/61`, full frontend Vitest
+  `832/832`, type/build, Ruff, compileall, diff-check, and rebuilt authenticated browser `1/1`.
+  No acceptance flexibility used.
+- Commit `3ae3de1c` is clean locally. Exact push was attempted once and rejected before Git by the
+  private-origin safeguard; no workaround/repeat.
+- Remaining: historical/cross-family ranking, relative rotation, concentration/dispersion,
+  complete provider-backed family population, and final V25 visual/acceptance gates.
+
 ## 2026-08-14 — Historical benchmark-family participation checkpoint
 
 - Added the historical family-role breadth endpoint and workstation loader for aligned SMA20/50/
