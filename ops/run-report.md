@@ -1,5 +1,14 @@
 # Run Report
 
+## 2026-08-14 — Chart-template alternative mechanics context completed
+
+- Chart-template reset now removes all alternative transform parameters while preserving the
+  existing symbol identity rule; saved templates retain those fields through the existing full
+  configuration serialization.
+- Focused template/store tests `44/44`; full frontend Vitest `779/779`; type-check/build (475
+  modules); focused browser `1/1`; complete rebuilt non-seeded authenticated Chromium `139/139` in
+  `7.2m`; recent service logs clean; diff-check passed. No acceptance flexibility was used.
+
 ## 2026-08-14 — Configurable alternative-bar mechanics context completed
 
 - The existing server transform parameters are now carried through the workstation chart store,

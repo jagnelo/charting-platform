@@ -1,5 +1,20 @@
 # Active Handoff
 
+## 2026-08-14 — Chart-template alternative mechanics context completed
+
+- Closed the template parity gap after the transform-controls context: saved chart templates already
+  carried the full serializable configuration, but the reset action omitted Renko `brick_size`,
+  Kagi `reversal_pct`, and Point & Figure `box_size`/`reversal`, leaving stale mechanics behind.
+  Reset now explicitly clears all four fields while returning to Candles/D1; template and browser
+  coverage prove Point & Figure parameters survive save and reset.
+- Focused template/store tests pass `44/44`; full frontend Vitest passes `779/779`; type-check and
+  production build pass (475 modules); focused template browser acceptance passes `1/1`; the
+  complete rebuilt non-seeded authenticated Chromium matrix passes `139/139` in `7.2m`; recent
+  backend/worker/research-runner logs contain no audited runtime-error signature; diff-check passes.
+- No acceptance flexibility was used. This context is ready for separate implementation and
+  operational commits. Remaining exact/unrepresented V25 visual, provider/entitlement,
+  historical/GICS, native-monitor, endurance, Docker-cleanup, and final-audit gaps remain open.
+
 ## 2026-08-14 — Configurable alternative-bar mechanics context completed
 
 - Selected the next repository-controlled TC2000 parity gap after closing alternative rendering:

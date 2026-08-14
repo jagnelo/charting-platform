@@ -1,4 +1,29 @@
 tasks:
+  - id: tc2000-chart-template-transform-mechanics-20260814
+    title: Preserve alternative-bar mechanics through chart templates and reset
+    status: completed
+    priority: high
+    scope: >-
+      Ensure saved chart templates retain Renko/Kagi/Point & Figure transform parameters and that
+      the chart-default reset removes all such fields rather than leaving stale mechanics behind.
+    definition_of_done:
+      - Template serialization preserves alternative transform parameters
+      - Reset returns to Candles/D1 and clears brick_size, reversal_pct, box_size, and reversal
+      - Focused, full frontend, type/build, browser, and matrix gates pass
+      - No acceptance threshold, visual mask, provider, or uPlot rule is relaxed
+    validation:
+      - frontend-template-store-44-of-44
+      - frontend-full-vitest-779-of-779
+      - frontend-type-check-build-475-modules
+      - focused-template-browser-1-of-1
+      - rebuilt-authenticated-chromium-139-of-139
+      - service-log-audit-clean
+      - git-diff-check
+    notes:
+      - >-
+        No acceptance flexibility was used. Exact/unrepresented V25 visual, provider/entitlement
+        breadth, historical/GICS, native-monitor, endurance, Docker-cleanup, and final-audit gaps
+        remain tracked.
   - id: tc2000-chart-transform-controls-20260814
     title: Expose configurable Renko, Kagi, and Point & Figure chart mechanics
     status: completed

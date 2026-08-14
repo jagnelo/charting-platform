@@ -1,5 +1,17 @@
 # Project TODO Memory
 
+### 2026-08-14 — Chart-template alternative mechanics
+
+- [x] Chart-template save/apply retains Renko/Kagi/Point & Figure parameters through the existing
+      serializable configuration contract, and reset now explicitly clears `brick_size`,
+      `reversal_pct`, `box_size`, and `reversal` along with returning to Candles/D1.
+- [x] Template/store tests pass `44/44`; full frontend Vitest `779/779`; type-check/build (475
+      modules); focused browser acceptance `1/1`; rebuilt non-seeded authenticated Chromium
+      `139/139` in `7.2m`; service logs and diff-check pass.
+- [ ] No acceptance flexibility was used. Exact/unrepresented V25 visual, provider/entitlement
+      breadth, historical/GICS, native-monitor, longer-endurance, Docker-cleanup, and final-audit
+      gaps remain explicit.
+
 ### 2026-08-14 — Configurable alternative-bar mechanics
 
 - [x] Wired the existing backend Renko `brick_size`, Kagi `reversal_pct`, and Point & Figure
