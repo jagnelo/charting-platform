@@ -1,5 +1,14 @@
 # Project TODO Memory
 
+### 2026-08-14 — Docker storage maintenance
+
+- [x] Docker exceeded the objective's 10GB maintenance threshold (`24.06GB` total, `19.29GB`
+      reclaimable). The safer scoped cleanup removed unused build cache and images, reclaiming
+      `19.08GB`; the branch stack remained running and backend/Postgres/Redis remained healthy.
+- [ ] The exact global `docker system prune -af --volumes` command was safety-rejected because it
+      can delete unrelated project volumes. This remains an explicit operational gap; no product,
+      visual, provider, uPlot, coverage, or acceptance criterion was relaxed.
+
 ### 2026-08-14 — Study Lab validation live-region polarity
 
 - [x] Invalid Study Lab validation now uses an assertive live region while valid validation remains

@@ -1,4 +1,27 @@
 tasks:
+  - id: tc2000-docker-storage-maintenance-20260814
+    title: Reduce Docker storage without deleting unrelated volumes
+    status: completed
+    priority: medium
+    scope: >-
+      Apply the objective's periodic Docker maintenance when storage exceeds 10GB, using the
+      safest available cleanup while preserving the active branch services and their volumes.
+    definition_of_done:
+      - initial Docker usage and reclaimable space are recorded
+      - unused build cache and images are removed
+      - branch services remain running after cleanup
+      - backend, Postgres, and Redis health remain healthy
+      - any broader cleanup limitation remains explicit and does not alter product acceptance
+    validation:
+      - docker-scoped-cleanup-reclaimed-19.08GB
+      - branch-stack-running-after-cleanup
+      - backend-postgres-redis-healthy
+      - docker-post-cleanup-images-4.98GB-build-cache-0B
+    notes:
+      - >-
+        The exact docker system prune -af --volumes command was safety-rejected because it can
+        delete unrelated cross-project volumes. Builder/image cleanup was the documented safer
+        substitute. Acceptance flexibility used: scoped Docker cleanup substitution.
   - id: tc2000-study-validation-live-region-polarity-20260814
     title: Announce Study Lab validation failures assertively
     status: completed

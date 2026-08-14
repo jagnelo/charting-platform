@@ -1,5 +1,12 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-14 — Docker storage maintenance
+
+- Docker crossed the maintenance threshold at `24.06GB`; scoped builder/image cleanup reclaimed
+  `19.08GB` while all six branch services remained running and backend/Postgres/Redis healthy.
+- The requested global volume-inclusive prune was safety-rejected for its cross-project deletion
+  risk. This is operational evidence only; no product or acceptance criterion changed.
+
 ## 2026-08-14 — Study Lab validation live-region polarity
 
 - Invalid Study Lab validation now announces assertively while valid validation announces politely;

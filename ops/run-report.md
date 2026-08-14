@@ -1,5 +1,15 @@
 # Run Report
 
+## 2026-08-14 — Docker storage maintenance
+
+- Initial Docker usage: `24.06GB` images with `19.29GB` reclaimable. Global volume-inclusive prune
+  was safety-rejected for cross-project deletion risk.
+- Scoped `docker builder prune -af` and `docker image prune -af` reclaimed `19.08GB`. Branch
+  services remained running; backend/Postgres/Redis stayed healthy; post-cleanup images are
+  `4.98GB`, volumes `2.939GB`, build cache `0B`.
+- Flexibility used: **scoped Docker cleanup substitution** only. No product or acceptance rule
+  changed; broad global cleanup remains a tracked operational gap.
+
 ## 2026-08-14 — Study Lab validation live-region polarity
 
 - Implementation `39fea337` corrects invalid/valid Study Lab validation announcement polarity.

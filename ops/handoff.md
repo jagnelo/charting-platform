@@ -1,5 +1,17 @@
 # Active Handoff
 
+## 2026-08-14 — Docker maintenance context completed
+
+- Before cleanup Docker reported `24.06GB` total and `19.29GB` reclaimable. The exact global
+  `docker system prune -af --volumes` was rejected by the safety boundary because it can delete
+  unrelated project volumes.
+- Safe substitute completed: `docker builder prune -af` plus `docker image prune -af`, reclaiming
+  `19.08GB`. Branch services remain running; backend, Postgres, and Redis are healthy; storage is
+  now `4.98GB` images, `2.939GB` volumes, and zero build cache.
+- Acceptance flexibility used: **scoped Docker cleanup substitution**. This is operational only;
+  no product, visual, provider, uPlot, coverage, or acceptance rule changed. The broad-prune gap
+  remains explicit and does not block the goal.
+
 ## 2026-08-14 — Study Lab validation live-region polarity context completed
 
 - Implementation commit `39fea337` binds Study Lab validation `aria-live` to its outcome: assertive
