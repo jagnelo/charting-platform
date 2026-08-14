@@ -8,6 +8,9 @@
   now being committed separately so the next attempt can use a clean exact payload.
 - No product criterion or acceptance flexibility changed; this remains transport-only and does
   not block the active TC2000 goal.
+- Once the operational checkpoint was committed, the clean exact range
+  `91463e54..57988476` was attempted once and rejected before Git by the same private-origin
+  egress safeguard. The local worktree remains clean; this is transport-only, not a goal block.
 
 ## 2026-08-14 — Python editor live-status refinement
 

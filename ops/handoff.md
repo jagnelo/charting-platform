@@ -11,6 +11,11 @@
 - The operational record is now being closed as its own commit so the next exact push attempt has
   a clean worktree. No alternate transport, wrapper, reset, stash, rewrite, or repeated payload
   attempt is being used. The product goal remains active and is not blocked by Git transport.
+- After that clean closure, the exact elevated push for
+  `91463e54bbfb37dc5e130d3c912434bfc41594bd..57988476cf6ba79a1960a19b807bb9a8b729f5ae`
+  was attempted once and rejected before Git because trusted private-origin export authorization
+  was unavailable. Local commits remain intact and clean; do not retry this payload through an
+  indirect route. Continue the product goal from this clean boundary.
 
 ## 2026-08-14 — Python editor live-status refinement
 
