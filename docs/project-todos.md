@@ -1,5 +1,19 @@
 # Project TODO Memory
 
+### 2026-08-14 — Canonical full-matrix verification after F8k setup retry
+
+- [x] The complete non-seeded authenticated Chromium matrix now passes `140/140` in `7.1m`
+      with one serial worker after the bounded registration retry from implementation commit
+      `1f524a66`. F8k executes its real disconnected-pop-out interaction; no test was skipped,
+      shortened, or reclassified.
+- [x] This broader rerun confirms the isolated `1/1` and nearest-sequence `17/17` evidence and
+      closes the transient setup investigation. The final persistent registration response/body
+      remains surfaced by the helper, so the retry cannot hide a real outage.
+- [ ] Acceptance flexibility used: **none**. This is a clean functional checkpoint only; exact
+      V25/unrepresented visual states, provider/entitlement breadth, historical/GICS truth,
+      native-monitor behavior, longer endurance, Docker maintenance, and final audit remain
+      open and tracked. The goal continues immediately from this committed boundary.
+
 ### 2026-08-14 — Canonical F8k provisioning resilience
 
 - [x] The non-seeded canonical workstation matrix exposed one F8k setup failure where E2E user

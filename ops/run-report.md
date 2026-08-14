@@ -1,5 +1,15 @@
 # Run Report
 
+## 2026-08-14 — Canonical full matrix after F8k setup retry
+
+- The authoritative non-seeded command
+  `E2E_SEED_INSTRUMENTS=false E2E_SEED_MARKET_DATA=false npm run test:e2e -- --project=chromium tests/e2e/flows.spec.ts --workers=1`
+  completed `140 passed / 0 failed` in `7.1m`.
+- F8k reached its product interaction and completed disconnected-pop-out restoration. The
+  earlier 500 was setup-only; bounded retries remain restricted to transient registration 5xx
+  responses and preserve persistent diagnostics. No visual threshold, mask, provenance rule,
+  provider rule, or acceptance criterion changed. Acceptance flexibility used: none.
+
 ## 2026-08-14 — Canonical F8k provisioning resilience
 
 - Non-seeded functional E2E completed `139 passed / 1 failed` from 140; the sole failure was an

@@ -1,5 +1,19 @@
 # Active Handoff
 
+## 2026-08-14 — Canonical full matrix after F8k setup retry
+
+- The complete non-seeded authenticated `flows.spec.ts` matrix passes `140/140` in `7.1m`
+  with one serial Chromium worker after implementation commit `1f524a66`. F8k now reaches and
+  completes the real disconnected-pop-out recovery interaction; no case was skipped or
+  reclassified.
+- This confirms the original `139/140` result was a transient E2E registration setup failure.
+  The helper's three-attempt bounded retry still returns the final status/body on persistence,
+  so it cannot hide an actual backend/proxy outage. Acceptance flexibility used: none.
+- The result is a clean functional checkpoint. Continue the active TC2000 goal from the next
+  board-guided/backend gap; exact/unrepresented V25 visual states and other tracked external
+  gaps remain open. Keep this operational record as its own commit and do not mix the next
+  implementation context into it.
+
 ## 2026-08-14 — Canonical F8k provisioning resilience
 
 - The non-seeded full workstation matrix reached `139/140`; F8k failed before its interaction

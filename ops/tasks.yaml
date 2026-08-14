@@ -1,4 +1,29 @@
 tasks:
+  - id: tc2000-canonical-full-matrix-after-f8k-retry-20260814
+    title: Verify the complete canonical matrix after bounded F8k setup retry
+    status: completed
+    priority: high
+    scope: >-
+      Rerun the complete non-seeded authenticated workstation matrix after the registration
+      harness repair and confirm the previously setup-only failure is not a product regression.
+    definition_of_done:
+      - Complete canonical flows.spec.ts matrix passes 140/140 with one serial worker
+      - F8k executes its real disconnected-pop-out interaction rather than failing in setup
+      - No tests are skipped, shortened, reclassified, or acceptance criteria relaxed
+      - Persistent registration failures still preserve final status/body diagnostics
+      - Clean worktree and diff-check are recorded in a separate operational checkpoint
+    validation:
+      - canonical-flows-matrix-140-of-140
+      - f8k-bounded-retry-isolated-1-of-1
+      - nearest-popout-linking-sequence-17-of-17
+      - frontend-type-check
+      - git-diff-check
+    notes:
+      - >-
+        Full non-seeded command completed 140/140 in 7.1m. This closes the transient setup
+        investigation; external setup instability beyond the bounded retry budget remains a
+        visible diagnostic condition, not a product acceptance waiver. Implementation commit
+        `1f524a66`; acceptance flexibility used: none.
   - id: tc2000-canonical-f8k-provisioning-resilience-20260814
     title: Harden canonical E2E setup against transient registration 5xx responses
     status: completed
