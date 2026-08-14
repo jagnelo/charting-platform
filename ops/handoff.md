@@ -28419,3 +28419,25 @@ indefinite soak; longer endurance remains an explicit open gap.
 - No product acceptance flexibility was used. The scheduling correction is not a
   provider-data waiver; board/fixture, live-provider, exact/unrepresented visual,
   historical, native-monitor, endurance, and final-audit gaps remain tracked.
+
+## 2026-08-14 — Benchmark-family style-leg breadth universe
+
+- The active goal objective now explicitly covers S&P 500/400/600/1500, Russell 1000/2000/3000,
+  and Nasdaq 100 as first-class families with independent cap/equal/value/growth legs, a verified
+  Nasdaq QQQ-versus-QQQE-style cap/equal fixture, and shared top-down/breadth/ratio/rotation/
+  ranking/concentration/dispersion/drill-down contracts. Missing mappings remain visible gaps and
+  never trigger fallback.
+- Generic breadth accepts `universe.kind=benchmark_family` plus an explicit role. The selected
+  mapping resolves through the point-in-time ETF-proxy holdings snapshot and carries family/proxy,
+  mapping verification, composition/known-at, source, completeness, snapshot hash, and membership
+  semantics into current and historical responses. The composer exposes `Selected family leg` for
+  an active family root.
+- Validation: focused Docker-backed integration `4/4`; focused authenticated Chromium `1/1`; full
+  frontend Vitest `824/824`; type-check; production build; Ruff; diff-check; YAML/JSON parsing.
+  The first focused test exposed a real branch-placement defect; it was fixed and the authoritative
+  rerun passed. Acceptance flexibility used: **none**.
+- Implementation/docs commit: `1a9dad87` (clean locally). Exact elevated push remains subject to
+  the private-origin safeguard and is recorded separately after the operational checkpoint.
+- Next context: provider-backed family mappings and point-in-time holdings/weight evidence, then
+  family-wide breadth/rotation/ranking/dispersion and populated browser drill-down. Exact or
+  unrepresented V25 visual states, native multi-monitor, endurance, and final audit remain open.

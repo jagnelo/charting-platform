@@ -27015,3 +27015,20 @@ in 4.6 minutes. No failure was suppressed or reclassified as product success.
 - Implementation `70ed0156` and operational checkpoint `4e86e3f6` are clean locally. The exact
   elevated push was rejected before Git by the private-origin safeguard; origin remains `91463e54`.
   No workaround, alternate transport, rewrite, reset, stash, or repeated attempt was made.
+
+# 2026-08-14 — Benchmark-family style-leg breadth universe
+
+- Added `benchmark_family` generic breadth resolution with explicit cap/equal/value/growth roles,
+  point-in-time ETF-proxy holdings snapshots, family/proxy/mapping/provenance metadata, and
+  labelled exclusions. The workstation custom composer now offers `Selected family leg` for an
+  active benchmark-family root.
+- The controlling goal objective and parity/project/task records now explicitly state the full
+  S&P/Russell/Nasdaq family matrix, Nasdaq QQQ-versus-QQQE-style cap/equal acceptance when verified,
+  and shared top-down/breadth/rotation/ranking/drill-down contracts. Missing mappings are tracked,
+  not filled by fallback.
+- Validation: Docker-backed integration `4/4`; authenticated Chromium `1/1`; frontend Vitest
+  `824/824`; type-check/build; Ruff; diff-check; YAML/JSON parse. A first test run caught and
+  repaired a real branch-placement defect before the passing rerun. Acceptance flexibility: none.
+- Clean implementation/docs commit: `1a9dad87`; exact push remains transport-pending under the
+  private-origin safeguard. Remaining family provider/history/weights, full breadth/rotation/
+  ranking/dispersion, populated drill-down, and final-goal gaps remain open.
