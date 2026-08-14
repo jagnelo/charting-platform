@@ -1,5 +1,15 @@
 # Run Report
 
+## 2026-08-14 — SoFi SFY quarterly holdings route
+
+- Added the audited issuer-linked SoFi SFY PDF adapter and removed SoFi from the
+  `issuer_access_blocked` fallback audit. The verified artifact yields `503` rows dated
+  `2025-11-30`; weights are calculated from disclosed net assets and non-equity fund rows are
+  classified explicitly.
+- Focused unit parser/probe/fetch coverage passes `3/3`; provider registry contract passes `2/2`;
+  Ruff and format checks pass. The route's legal metadata states quarterly cadence and
+  `periodic_archive_not_current_daily_feed`. Acceptance flexibility used: none.
+
 ## 2026-08-14 — Targeted Docker storage maintenance
 
 - Before cleanup: Images `8.32 GB`, local volumes `3.208 GB`, build cache `3.002 GB`; detailed

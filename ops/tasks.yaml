@@ -1,4 +1,30 @@
 tasks:
+  - id: tc2000-sofi-quarterly-holdings-route-20260814
+    title: Add the audited SoFi SFY quarterly holdings archive route
+    status: completed
+    priority: high
+    scope: >-
+      Replace SoFi's recognition-only fallback for SFY with the verified issuer-linked public
+      quarterly Schedule of Investments PDF route, while preserving explicit periodic/archive
+      freshness semantics and symbol scoping.
+    definition_of_done:
+      - SFY resolves to a concrete SoFi adapter and no longer carries the issuer-access-blocked audit
+      - PDF parsing returns complete rows, composition date, weights, and fund/cash classification
+      - Fetch metadata exposes source, route, composition date, quarterly cadence, and archive freshness
+      - Unsupported SoFi symbols remain unavailable for the native route and retain SEC fallback capability
+      - Unit, provider-registry, Ruff, and format checks pass without changing visual or acceptance thresholds
+    validation:
+      - sofi-unit-parser-probe-fetch-3-of-3
+      - live-provider-registry-contract-2-of-2
+      - sofi-official-pdf-503-rows-2025-11-30
+      - ruff-check-and-format
+      - git-diff-check
+    notes:
+      - >-
+        The official SoFi product page is WAF-protected for backend clients, so the adapter uses
+        its publicly linked CloudFront quarterly PDF. This is deliberately labelled
+        periodic_archive_not_current_daily_feed; no real-time or daily freshness claim is made.
+        Acceptance flexibility used: none.
   - id: tc2000-docker-storage-maintenance-20260814
     title: Reclaim audited Docker storage without disturbing the active branch stack
     status: completed

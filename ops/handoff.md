@@ -1,5 +1,16 @@
 # Active Handoff
 
+## 2026-08-14 — SoFi SFY quarterly holdings route
+
+- Replaced the recognition-only SoFi fallback with a symbol-scoped `SofiHoldingsAdapter` for SFY.
+  It parses the official linked CloudFront Schedule of Investments PDF, preserving composition
+  date, computed weights, fund classification, and source-row IDs.
+- The route is explicitly periodic/archive data (`2025-11-30` in the verified artifact), not a
+  current daily feed. Unsupported SoFi symbols still return `needs_issuer_route` and may use SEC
+  fallback. No acceptance flexibility was used.
+- Implementation commit `041921b1`. Focused parser/probe/fetch tests `3/3`, provider registry
+  contract `2/2`, Ruff check, and format check pass. Continue with the next TC2000 backend gap.
+
 ## 2026-08-14 — Push authorization no-loop checkpoint
 
 - Repository/index health is confirmed: worktree clean at `1b37c051`, no
