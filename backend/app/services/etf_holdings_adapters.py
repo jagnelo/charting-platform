@@ -63233,7 +63233,24 @@ class AlerianHoldingsAdapter(IssuerCsvHoldingsAdapter):
     def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
         normalized_symbol = symbol.strip().upper()
         if normalized_symbol not in self.SUPPORTED_SYMBOLS:
-            return super().probe(symbol=symbol, name=name, identifiers=identifiers)
+            # ALPS hosts many non-Alerian products. The generic product-page
+            # template must not make those identities look like native Alerian
+            # coverage merely because their page lives on alpsfunds.com. Keep
+            # the shared SEC fallback available when a CIK is present, but make
+            # the missing Alerian route explicit otherwise.
+            if _identifier(identifiers, "sec_cik", "cik"):
+                return super().probe(symbol=symbol, name=name, identifiers=identifiers)
+            return HoldingsAdapterProbe(
+                adapter_key=self.adapter_key,
+                confidence=Decimal("0.6500"),
+                status="needs_issuer_route",
+                reason=(
+                    "The verified native Alerian route supports AMLP and ENFR only; "
+                    "an ALPS-hosted product page does not establish Alerian ownership."
+                ),
+                issuer_product_id=normalized_symbol or None,
+                required_identifiers=["sec_cik"],
+            )
         return HoldingsAdapterProbe(
             adapter_key=self.adapter_key,
             confidence=Decimal("0.9700"),

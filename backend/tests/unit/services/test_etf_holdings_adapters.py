@@ -23639,6 +23639,17 @@ def test_alerian_is_native_and_has_explicit_symbol_route_metadata():
     assert "Holding%2FENFR%2FFull" in probe.source_url
 
 
+def test_alerian_does_not_claim_other_alps_products_without_sec_fallback():
+    adapter = get_holdings_adapter("alerian")
+    assert adapter is not None
+
+    probe = adapter.probe(symbol="ACES", name="ALPS Clean Energy ETF", identifiers={})
+
+    assert probe.status == "needs_issuer_route"
+    assert probe.required_identifiers == ["sec_cik"]
+    assert "does not establish Alerian ownership" in probe.reason
+
+
 @pytest.mark.asyncio
 async def test_alerian_public_proxy_parses_identity_date_and_cash_rows(monkeypatch):
     adapter = get_holdings_adapter("alerian")
