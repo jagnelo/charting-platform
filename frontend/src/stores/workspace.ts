@@ -286,6 +286,30 @@ export interface BenchmarkFamilyBreadthHistoryState {
   freshness_detail?: Record<string, number>
 }
 
+export interface BenchmarkFamilyRankingState {
+  family_key: string
+  official_index_symbol: string
+  benchmark?: string | null
+  timeframe: string
+  adjustment: string
+  as_of?: string | null
+  rank_period: string
+  roles: Array<{
+    role: BenchmarkFamilyBreadthRoleState['role']
+    symbol?: string | null
+    label: string
+    verification_state: string
+    available: boolean
+    rank?: number | null
+    performance: Record<string, number | null>
+    relative_performance: Record<string, number | null>
+    warnings: Array<{ code: string; message: string; instrument_id?: number | null }>
+  }>
+  exclusions: Array<{ code: string; message: string; instrument_id?: number | null }>
+  freshness?: string
+  freshness_detail?: Record<string, number>
+}
+
 export interface BenchmarkFamilyMappingState {
   role: 'cap_weight' | 'equal_weight' | 'value' | 'growth'
   symbol: string | null
@@ -689,6 +713,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   const benchmarkFamilyBreadthErrors = ref<Record<string, string | null>>({})
   const benchmarkFamilyBreadthHistories = ref<Record<string, BenchmarkFamilyBreadthHistoryState | null>>({})
   const benchmarkFamilyBreadthHistoryErrors = ref<Record<string, string | null>>({})
+  const benchmarkFamilyRankings = ref<Record<string, BenchmarkFamilyRankingState | null>>({})
+  const benchmarkFamilyRankingErrors = ref<Record<string, string | null>>({})
   const benchmarkFamilyOverviews = ref<Record<string, BenchmarkFamilyOverviewState | null>>({})
   const benchmarkFamilyOverviewErrors = ref<Record<string, string | null>>({})
   const benchmarkFamilyCoverages = ref<Record<string, BenchmarkFamilyCoverageState | null>>({})
@@ -1533,6 +1559,40 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       const message = cause?.message ?? `Unable to load ${normalizedFamily} family breadth history`
       benchmarkFamilyBreadthHistoryErrors.value = { ...benchmarkFamilyBreadthHistoryErrors.value, [cacheKey]: message }
       benchmarkFamilyBreadthHistories.value = { ...benchmarkFamilyBreadthHistories.value, [cacheKey]: null }
+      return null
+    }
+  }
+
+  async function loadBenchmarkFamilyRanking(
+    familyKey: string,
+    options: { timeframe?: string; adjusted?: boolean; as_of?: string; rank_period?: string } = {},
+  ) {
+    const normalizedFamily = familyKey.trim()
+    if (!normalizedFamily) return null
+    const rankPeriod = options.rank_period ?? '1M'
+    const cacheKey = `${normalizedFamily}:${options.timeframe ?? 'D1'}:${options.adjusted !== false ? 'adj' : 'raw'}:${options.as_of ?? 'latest'}:${rankPeriod}`
+    const requestKey = `top-down:family-ranking:${cacheKey}`
+    const generation = beginAnalysisRequest(requestKey)
+    if (!documentIsVisible()) return null
+    benchmarkFamilyRankingErrors.value = { ...benchmarkFamilyRankingErrors.value, [cacheKey]: null }
+    try {
+      const result = await api.get<BenchmarkFamilyRankingState>(
+        `/analysis/benchmark-families/${encodeURIComponent(normalizedFamily)}/ranking`,
+        {
+          rank_period: rankPeriod,
+          ...(options.timeframe ? { timeframe: options.timeframe } : {}),
+          ...(typeof options.adjusted === 'boolean' ? { adjusted: options.adjusted } : {}),
+          ...(options.as_of ? { as_of: options.as_of } : {}),
+        },
+      )
+      if (!isCurrentAnalysisRequest(requestKey, generation)) return null
+      benchmarkFamilyRankings.value = { ...benchmarkFamilyRankings.value, [cacheKey]: result }
+      return result
+    } catch (cause: any) {
+      if (!isCurrentAnalysisRequest(requestKey, generation)) return null
+      const message = cause?.message ?? `Unable to rank ${normalizedFamily} family roles`
+      benchmarkFamilyRankingErrors.value = { ...benchmarkFamilyRankingErrors.value, [cacheKey]: message }
+      benchmarkFamilyRankings.value = { ...benchmarkFamilyRankings.value, [cacheKey]: null }
       return null
     }
   }
@@ -2493,6 +2553,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     benchmarkFamilyBreadthErrors,
     benchmarkFamilyBreadthHistories,
     benchmarkFamilyBreadthHistoryErrors,
+    benchmarkFamilyRankings,
+    benchmarkFamilyRankingErrors,
     benchmarkFamilyOverviews,
     benchmarkFamilyOverviewErrors,
     benchmarkFamilyCoverages,
@@ -2550,6 +2612,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     loadBenchmarkFamilyTechnicals,
     loadBenchmarkFamilyBreadth,
     loadBenchmarkFamilyBreadthHistory,
+    loadBenchmarkFamilyRanking,
     loadBenchmarkFamilyOverview,
     loadBenchmarkFamilyCoverage,
     loadBenchmarkFamilyConstituents,

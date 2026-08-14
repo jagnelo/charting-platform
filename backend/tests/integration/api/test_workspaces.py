@@ -953,6 +953,65 @@ class TestWorkspaces:
         }
         assert payload["limit"] == 30
 
+    def test_benchmark_family_ranking_preserves_cap_relative_role_performance(
+        self, client, auth_headers, db, instrument_type
+    ):
+        from datetime import UTC, datetime, timedelta
+        from decimal import Decimal
+
+        from app.models.instrument import Instrument
+        from app.models.ohlcv import OHLCVBar, Timeframe
+
+        seeded = client.get("/api/v1/market-groups", headers=auth_headers)
+        assert seeded.status_code == 200
+        symbols = ("SPY", "RSP")
+        instruments = {}
+        for symbol in symbols:
+            item = Instrument(
+                symbol=symbol,
+                name=symbol,
+                currency="USD",
+                instrument_type_id=instrument_type.id,
+                is_active=True,
+            )
+            db.add(item)
+            db.flush()
+            instruments[symbol] = item
+        base = datetime(2024, 1, 1, tzinfo=UTC)
+        for index in range(30):
+            for symbol, value in (("SPY", 100 + index), ("RSP", 100 + (2 * index))):
+                close = Decimal(str(value))
+                db.add(
+                    OHLCVBar(
+                        instrument_id=instruments[symbol].id,
+                        timeframe=Timeframe.D1,
+                        ts=base + timedelta(days=index),
+                        open=close,
+                        high=close,
+                        low=close,
+                        close=close,
+                        volume=Decimal("1"),
+                        is_adjusted=True,
+                    )
+                )
+        db.flush()
+
+        response = client.get(
+            "/api/v1/analysis/benchmark-families/sp500/ranking",
+            headers=auth_headers,
+            params={"rank_period": "1M"},
+        )
+        assert response.status_code == 200, response.text
+        payload = response.json()
+        roles = {role["role"]: role for role in payload["roles"]}
+        assert roles["cap_weight"]["available"] is True
+        assert roles["equal_weight"]["available"] is True
+        assert roles["equal_weight"]["rank"] == 1
+        assert roles["cap_weight"]["rank"] == 2
+        assert roles["equal_weight"]["relative_performance"]["1M"] > 0
+        assert roles["value"]["available"] is False
+        assert payload["benchmark"] == "SPY"
+
     def test_benchmark_family_derived_equal_weight_requires_constituent_membership(
         self, client, auth_headers, db, instrument, ohlcv_bars
     ):

@@ -461,6 +461,34 @@ class BenchmarkFamilyBreadthHistoryOut(AnalysisResponseMetadata):
     exclusions: list[AnalysisWarning] = Field(default_factory=list)
 
 
+class BenchmarkFamilyRankingRoleOut(BaseModel):
+    """Transparent performance/rank cells for one benchmark-family role."""
+
+    role: Literal["cap_weight", "equal_weight", "value", "growth"]
+    symbol: str | None = None
+    label: str
+    verification_state: str
+    available: bool
+    rank: int | None = None
+    performance: dict[str, float | None] = Field(default_factory=dict)
+    relative_performance: dict[str, float | None] = Field(default_factory=dict)
+    warnings: list[AnalysisWarning] = Field(default_factory=list)
+
+
+class BenchmarkFamilyRankingOut(AnalysisResponseMetadata):
+    """Role ranking against the family cap proxy without hidden substitutions."""
+
+    family_key: str
+    official_index_symbol: str
+    benchmark: str | None = None
+    timeframe: str
+    adjustment: str
+    as_of: datetime | None = None
+    rank_period: str
+    roles: list[BenchmarkFamilyRankingRoleOut] = Field(default_factory=list)
+    exclusions: list[AnalysisWarning] = Field(default_factory=list)
+
+
 class BreadthUniverseRequest(BaseModel):
     """A provider-neutral universe selector for reusable breadth studies."""
 

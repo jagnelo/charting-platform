@@ -261,6 +261,26 @@ describe('workspace store layout tabs', () => {
     expect(store.benchmarkFamilyBreadthHistories['sp500:W1:raw:2026-06-27T23:59:59Z:30']?.roles[0]?.symbol).toBe('RSP')
   })
 
+  it('loads family role ranking with an explicit period cache identity', async () => {
+    apiGet.mockResolvedValue({
+      family_key: 'sp500',
+      official_index_symbol: 'SPX',
+      benchmark: 'SPY',
+      timeframe: 'D1',
+      adjustment: 'split_adjusted',
+      rank_period: '1M',
+      roles: [{ role: 'equal_weight', symbol: 'RSP', label: 'RSP', verification_state: 'verified', available: true, rank: 1, performance: { '1M': 0.12 }, relative_performance: { '1M': 0.03 }, warnings: [] }],
+      exclusions: [],
+    })
+    const store = useWorkspaceStore()
+
+    const result = await store.loadBenchmarkFamilyRanking('sp500', { rank_period: '1M' })
+
+    expect(apiGet).toHaveBeenCalledWith('/analysis/benchmark-families/sp500/ranking', { rank_period: '1M' })
+    expect(result?.roles[0]?.rank).toBe(1)
+    expect(store.benchmarkFamilyRankings['sp500:D1:adj:latest:1M']?.roles[0]?.performance['1M']).toBe(0.12)
+  })
+
   it('loads a family overview with independent mapping readiness and stable lineage cache', async () => {
     apiGet.mockResolvedValue({
       family_key: 'sp500',

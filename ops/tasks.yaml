@@ -274,6 +274,37 @@ tasks:
         generic breadth 404s after the new requests were added; explicit current/history fixtures
         were added and the unchanged acceptance passed. No product acceptance criterion was
         relaxed. Remaining breadth/history and family analytics gaps stay tracked.
+  - id: tc2000-family-role-ranking-20260814
+    title: Add benchmark-family role performance ranking and cap-relative leadership
+    status: completed
+    priority: high
+    scope: >-
+      Add a transparent ranking batch for mapped cap/equal/value/growth roles using aligned local
+      bars. Return 1D/1W/1M/3M/6M/YTD/1Y performance, configurable rank period, cap-relative
+      spreads, provenance/freshness, and explicit role-local unavailable states. Render the rank
+      and 1M relative delta in the dense workstation family strip without silently substituting
+      SPY, QQQ, another family, or a current-only value.
+    definition_of_done:
+      - GET /analysis/benchmark-families/{family_key}/ranking returns independent role cells and rank order
+      - Performance periods include 1D, 1W, 1M, 3M, 6M, YTD, and 1Y with insufficient-history warnings
+      - Cap-relative spreads use aligned local bars and retain no-forward-fill semantics
+      - Missing mappings/instruments/bars remain explicit role-local unavailable states
+      - Store cache identity includes rank period and as_of lineage
+      - Workstation renders role rank and cap-relative delta; browser oracle asserts the visible rank
+      - Focused backend, store, full frontend, type/build, lint/compile, and rebuilt browser checks pass
+      - Historical/cross-family ranking, rotation, concentration, dispersion, and full population remain open
+    validation:
+      - benchmark-family-participation-history-ranking-integration-3-of-3
+      - workspace-store-61-of-61
+      - frontend-vitest-832-of-832
+      - vue-tsc-and-production-build
+      - ruff-compileall-and-diff-check
+      - rebuilt-F8s-breadth-family-ratio-1-of-1
+    notes:
+      - >-
+        Implemented and validated on 2026-08-14 with no acceptance flexibility. This closes the
+        current role leadership sub-gate only; historical/cross-family ranking and rotation remain
+        tracked by the parent benchmark-family and generic breadth tasks.
   - id: tc2000-generic-condition-driven-breadth-20260814
     title: Broaden breadth from fixed metrics to reusable condition-driven cross-sectional studies
     status: in_progress

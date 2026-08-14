@@ -179,6 +179,14 @@ This sub-gate validates historical SMA participation only; it does not close his
 near-high/new-high/trend/relative-strength studies, arbitrary condition history, occurrence
 linking, ranking, rotation, or complete family population. No acceptance flexibility is used.
 
+#### Family role-ranking sub-gate
+
+The family run must request a declared rank period and verify independent cap/equal/value/growth
+return cells, rank order, and cap-relative spreads. The UI must show the role order without hiding
+unavailable mappings or inventing a benchmark. This sub-gate covers current leadership ranking
+only; historical ranking, cross-family ranking, relative rotation, concentration, and dispersion
+remain separate gates. No acceptance flexibility is used.
+
 #### Dated holdings coverage sub-gate
 
 Before a family/leg can be presented as historically usable, acceptance must call

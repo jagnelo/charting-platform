@@ -47,6 +47,8 @@ from app.schemas.analysis import (
     BenchmarkFamilyDerivedEqualWeightOut,
     BenchmarkFamilyMappingOut,
     BenchmarkFamilyOverviewOut,
+    BenchmarkFamilyRankingOut,
+    BenchmarkFamilyRankingRoleOut,
     BenchmarkFamilyRatioOut,
     BenchmarkFamilyRatiosOut,
     BenchmarkFamilyTechnicalRoleOut,
@@ -2998,6 +3000,149 @@ async def benchmark_family_breadth_history(
         limit=limit,
         roles=roles,
         exclusions=exclusions,
+        freshness=freshness,
+        freshness_detail=freshness_detail,
+    )
+
+
+@router.get(
+    "/benchmark-families/{family_key}/ranking",
+    response_model=BenchmarkFamilyRankingOut,
+)
+async def benchmark_family_ranking(
+    family_key: str,
+    timeframe: Timeframe = Timeframe.D1,
+    adjusted: bool = True,
+    rank_period: str = Query(default="1M", pattern="^(1D|1W|1M|3M|6M|YTD|1Y)$"),
+    as_of: datetime | None = Query(default=None),
+    _: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Rank mapped family roles by transparent local performance cells."""
+
+    family = (
+        await db.execute(select(MarketGroup).where(MarketGroup.stable_key == family_key))
+    ).scalar_one_or_none()
+    if family is None or family.group_type != "benchmark_family":
+        raise HTTPException(
+            404,
+            detail={"code": "benchmark_family_not_found", "family_key": family_key},
+        )
+    provenance = dict(family.provenance or {})
+    official = provenance.get("official_index")
+    mappings = provenance.get("proxy_mappings")
+    if not isinstance(official, Mapping) or not isinstance(mappings, Mapping):
+        raise HTTPException(
+            422,
+            detail={"code": "benchmark_family_metadata_missing", "family_key": family_key},
+        )
+
+    cap_mapping = mappings.get("cap_weight")
+    benchmark_symbol = (
+        str(cap_mapping.get("symbol")).upper()
+        if isinstance(cap_mapping, Mapping) and cap_mapping.get("symbol")
+        else None
+    )
+    instrument_by_role: dict[str, Instrument] = {}
+    warnings: list[AnalysisWarning] = []
+    for role in ("cap_weight", "equal_weight", "value", "growth"):
+        mapping = mappings.get(role)
+        if not isinstance(mapping, Mapping) or not mapping.get("symbol"):
+            continue
+        try:
+            instrument_by_role[role] = await _instrument(db, str(mapping["symbol"]))
+        except HTTPException as error:
+            if error.status_code != 404:
+                raise
+            warnings.append(
+                AnalysisWarning(
+                    code="instrument_not_found",
+                    message=f"No canonical instrument is available for the {role} leg.",
+                )
+            )
+    bars_by_id = _truncate_bars_at(
+        await _bars_by_instrument(
+            db, [instrument.id for instrument in instrument_by_role.values()], timeframe, adjusted
+        ),
+        as_of,
+    )
+    role_cells: dict[str, dict[str, AnalysisCell]] = {}
+    rows: list[BenchmarkFamilyRankingRoleOut] = []
+    for role in ("cap_weight", "equal_weight", "value", "growth"):
+        mapping = mappings.get(role)
+        mapping = mapping if isinstance(mapping, Mapping) else {}
+        symbol = str(mapping.get("symbol")).upper() if mapping.get("symbol") else None
+        label = str(mapping.get("label") or "No verified mapped proxy")
+        verification_state = str(mapping.get("verification_state") or "not_verified")
+        instrument = instrument_by_role.get(role)
+        if instrument is None:
+            rows.append(
+                BenchmarkFamilyRankingRoleOut(
+                    role=role,
+                    symbol=symbol,
+                    label=label,
+                    verification_state=verification_state,
+                    available=False,
+                    warnings=[
+                        AnalysisWarning(
+                            code="family_role_unavailable",
+                            message="The mapped role has no canonical instrument or bars.",
+                        )
+                    ],
+                )
+            )
+            continue
+        values = [
+            (bar.ts, float(bar.close))
+            for bar in bars_by_id.get(instrument.id, [])
+            if bar.close is not None
+        ]
+        cells = _aggregate_series_cells(values, instrument.id)
+        role_cells[role] = cells
+        rows.append(
+            BenchmarkFamilyRankingRoleOut(
+                role=role,
+                symbol=symbol,
+                label=label,
+                verification_state=verification_state,
+                available=bool(values),
+                performance={period: cell.value for period, cell in cells.items()},
+                warnings=[cell.warning for cell in cells.values() if cell.warning is not None],
+            )
+        )
+    cap_cells = role_cells.get("cap_weight", {})
+    for row in rows:
+        cells = role_cells.get(row.role, {})
+        row.relative_performance = {
+            period: (
+                cell.value - cap_cells[period].value
+                if cell.value is not None
+                and cap_cells.get(period) is not None
+                and cap_cells[period].value is not None
+                else None
+            )
+            for period, cell in cells.items()
+        }
+    ranked = sorted(
+        (row for row in rows if row.available and row.performance.get(rank_period) is not None),
+        key=lambda row: float(row.performance[rank_period]),  # type: ignore[arg-type]
+        reverse=True,
+    )
+    for rank, row in enumerate(ranked, start=1):
+        row.rank = rank
+    freshness, freshness_detail = await _batch_freshness(
+        db, [instrument.id for instrument in instrument_by_role.values()], timeframe, adjusted
+    )
+    return BenchmarkFamilyRankingOut(
+        family_key=family_key,
+        official_index_symbol=str(official.get("symbol") or ""),
+        benchmark=benchmark_symbol,
+        timeframe=timeframe.value,
+        adjustment="split_adjusted" if adjusted else "raw",
+        as_of=as_of,
+        rank_period=rank_period,
+        roles=rows,
+        exclusions=warnings,
         freshness=freshness,
         freshness_detail=freshness_detail,
     )

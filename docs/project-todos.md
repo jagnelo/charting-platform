@@ -12426,3 +12426,19 @@ The current source also passes the focused authenticated top-down browser slice 
 - [ ] Still open: historical near-high/new-high/trend/relative-strength series, arbitrary
       condition-driven history and occurrence linking, role/family ranking and rotation, and
       complete historical membership/bar population across all eight roots.
+
+### 2026-08-14 — Benchmark-family role ranking
+
+- [x] Added `GET /analysis/benchmark-families/{family_key}/ranking` with transparent 1D/1W/1M/
+      3M/6M/YTD/1Y returns, configurable rank period, cap-relative spreads, rank order, and
+      role-local warnings/unavailable states. No alternate family or SPY/QQQ substitution is
+      possible when a mapped leg lacks canonical bars.
+- [x] The workstation renders a compact role-ranking strip beside current and historical
+      participation, making cap/equal/value/growth leadership immediately comparable without a
+      route change. Cache identity includes family, timeframe, adjustment, as-of, and rank period.
+- [x] Validation passes: family participation/history/ranking integration `3/3`; workspace-store
+      `61/61`; full frontend Vitest `832/832`; `vue-tsc`, production build, Ruff, compileall,
+      diff-check, and rebuilt authenticated `F8s-breadth-family-ratio` Chromium `1/1`. No
+      acceptance rule was relaxed.
+- [ ] Still open: cross-family ranking, historical ranking series, relative rotation tails,
+      concentration/dispersion, and complete provider-backed population across all eight roots.
