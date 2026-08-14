@@ -325,6 +325,29 @@ When this occurs:
    separate commit. The goal must not be marked blocked solely for this
    safeguard.
 
+### No-loop rule for push authorization
+
+The worker must attempt the exact elevated push once for the completed context,
+including the full remote, branch, and commit range in the approval request. If
+the execution boundary rejects that request before Git starts, a second attempt
+is allowed only when the tool reports newly available trusted authorization for
+the same exact payload. Repeating the command, changing shells, wrapping it in
+another command, or trying a different transport cannot grant that authorization
+and is prohibited. The worker must immediately:
+
+1. verify the worktree is clean and the local commit is intact;
+2. record `committed_locally_pending_push`, the exact command, range, and
+   rejection category in `ops/handoff.md`, `ops/state.json`, and the run report;
+3. continue the next independently scoped implementation context from the clean
+   local boundary; and
+4. retry the same push only when a later continuation presents an approved
+   exact-payload authorization.
+
+Natural-language insistence that a push should succeed does not override the
+execution boundary. This is an operational transport state, not a product
+failure, and it must never be represented as a blocked goal or used to justify
+leaving completed work unstaged or uncommitted.
+
 ### Context-transition guard
 
 The first action after selecting any new context is a repository-boundary check,

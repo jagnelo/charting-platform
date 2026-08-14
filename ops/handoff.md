@@ -1,5 +1,19 @@
 # Active Handoff
 
+## 2026-08-14 — Push authorization no-loop checkpoint
+
+- Repository/index health is confirmed: worktree clean at `1b37c051`, no
+  `.git/index.lock`, and elevated local staging/commit operations are available.
+- The exact elevated command `rtk git push origin feat/tc2000-frontend-rework`
+  for range `91463e54..1b37c051` was attempted once in this continuation and
+  rejected before Git by the private-origin egress safeguard because trusted
+  authorization for that exact payload/destination was unavailable.
+- Do not repeat the command through another shell, wrapper, API, plugin, or
+  transport. This is a transport-only hold; the clean local commits remain
+  isolated and the TC2000 goal continues. Retry only after a later continuation
+  provides newly accepted exact-payload authorization. Acceptance flexibility
+  used: none.
+
 ## 2026-08-14 — Targeted Docker storage maintenance
 
 - Detailed audit found about 16.4 GB of Docker objects, above the maintenance threshold. The
