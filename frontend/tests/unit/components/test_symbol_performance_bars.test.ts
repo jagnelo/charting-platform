@@ -5,6 +5,17 @@ import { describe, expect, it, vi } from 'vitest'
 import SymbolPerformanceBars from '@/components/strategy/SymbolPerformanceBars.vue'
 import uPlot from 'uplot'
 
+class ResizeObserverMock {
+  static instances: ResizeObserverMock[] = []
+  observed: Element | null = null
+  constructor(private readonly callback: ResizeObserverCallback) {
+    ResizeObserverMock.instances.push(this)
+  }
+  observe(element: Element) { this.observed = element }
+  disconnect() { this.observed = null }
+  trigger() { this.callback([], this as unknown as ResizeObserver) }
+}
+
 describe('SymbolPerformanceBars', () => {
   it('renders a symbol P&L outcome map and tooltip on hover', async () => {
     vi.mocked(uPlot).mockClear()
@@ -104,5 +115,36 @@ describe('SymbolPerformanceBars', () => {
     expect(document.body.textContent).toContain('+2.50% · +$250.00 unrealized')
     expect(document.body.textContent).toContain('+$1,500.45 marked value')
     expect(document.body.textContent).toContain('Take Profit')
+  })
+
+  it('attaches resize handling when data changes from empty to valid', async () => {
+    vi.mocked(uPlot).mockClear()
+    ResizeObserverMock.instances.splice(0)
+    vi.stubGlobal('ResizeObserver', ResizeObserverMock)
+    const wrapper = mount(SymbolPerformanceBars, { props: { rows: [] } })
+    expect(ResizeObserverMock.instances.at(-1)?.observed).toBeNull()
+
+    await wrapper.setProps({ rows: [{ symbol: 'AAPL', net_pnl: 12, realized_pnl: 12 }] })
+    await nextTick()
+    await nextTick()
+
+    const observer = ResizeObserverMock.instances.at(-1)
+    const chart = vi.mocked(uPlot).mock.results.at(-1)?.value as { setSize: ReturnType<typeof vi.fn> }
+    expect(observer?.observed).toBeInstanceOf(HTMLElement)
+    chart.setSize.mockClear()
+    observer?.trigger()
+    expect(chart.setSize).toHaveBeenCalledWith({ width: 640, height: 220 })
+
+    await wrapper.setProps({ rows: [] })
+    await nextTick()
+    await nextTick()
+    expect(observer?.observed).toBeNull()
+
+    await wrapper.setProps({ rows: [{ symbol: 'MSFT', net_pnl: -8, realized_pnl: -8 }] })
+    await nextTick()
+    await nextTick()
+    expect(observer?.observed).toBeInstanceOf(HTMLElement)
+    wrapper.unmount()
+    vi.unstubAllGlobals()
   })
 })

@@ -98,6 +98,7 @@ const hoveredSymbol = ref<string | null>(null)
 const chart = ref<uPlot | null>(null)
 const pointPositions = ref<Record<string, { left: number; top: number }>>({})
 let resizeObserver: ResizeObserver | null = null
+let observedHost: HTMLDivElement | null = null
 
 const sortedRows = computed(() => [...props.rows]
   .filter(row => row?.symbol)
@@ -271,15 +272,36 @@ function positionTooltip(anchor: Element | null) {
   tooltipStyle.value = { left: `${preferRight ? anchorRect.right + gap : Math.max(padding, Math.min(fallbackLeft, window.innerWidth - tooltipRect.width - padding))}px`, top: `${Math.max(padding, Math.min(anchorRect.top + anchorRect.height / 2 - tooltipRect.height / 2, window.innerHeight - tooltipRect.height - padding))}px` }
 }
 
+function resizeChart() {
+  if (chart.value && typeof chart.value.setSize === 'function') {
+    chart.value.setSize({ width: Math.max(280, hostRef.value?.clientWidth || 640), height: 220 })
+  }
+  updatePointPositions()
+}
+
+function syncResizeObserver() {
+  if (!resizeObserver) return
+  const host = hostRef.value
+  if (host === observedHost) return
+  resizeObserver.disconnect()
+  observedHost = host
+  if (host) resizeObserver.observe(host)
+}
+
 onMounted(() => {
   refreshChart(); window.addEventListener('scroll', hideTooltip, true); window.addEventListener('resize', hideTooltip)
-  if (typeof ResizeObserver !== 'undefined' && hostRef.value) {
-    resizeObserver = new ResizeObserver(() => { if (chart.value && typeof chart.value.setSize === 'function') chart.value.setSize({ width: Math.max(280, hostRef.value?.clientWidth || 640), height: 220 }); updatePointPositions() })
-    resizeObserver.observe(hostRef.value)
+  if (typeof ResizeObserver !== 'undefined') {
+    resizeObserver = new ResizeObserver(resizeChart)
+    syncResizeObserver()
   }
 })
-onBeforeUnmount(() => { resizeObserver?.disconnect(); window.removeEventListener('scroll', hideTooltip, true); window.removeEventListener('resize', hideTooltip); destroyChart() })
+onBeforeUnmount(() => {
+  resizeObserver?.disconnect()
+  observedHost = null
+  window.removeEventListener('scroll', hideTooltip, true); window.removeEventListener('resize', hideTooltip); destroyChart()
+})
 watch([sortedRows, () => props.events], refreshChart, { deep: true })
+watch(hostRef, syncResizeObserver, { flush: 'post' })
 </script>
 
 <style scoped>
