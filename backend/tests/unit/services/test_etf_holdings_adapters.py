@@ -23649,6 +23649,15 @@ def test_alerian_does_not_claim_other_alps_products_without_sec_fallback():
     assert probe.required_identifiers == ["sec_cik"]
     assert "does not establish Alerian ownership" in probe.reason
 
+    sec_probe = adapter.probe(
+        symbol="ACES",
+        name="ALPS Clean Energy ETF",
+        identifiers={"sec_cik": "123456789"},
+    )
+    assert sec_probe.status == "ready"
+    assert sec_probe.source_url == "https://data.sec.gov/submissions/CIK0123456789.json"
+    assert "SEC EDGAR holdings fallback" in sec_probe.reason
+
 
 @pytest.mark.asyncio
 async def test_alerian_public_proxy_parses_identity_date_and_cash_rows(monkeypatch):

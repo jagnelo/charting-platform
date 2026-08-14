@@ -63238,8 +63238,20 @@ class AlerianHoldingsAdapter(IssuerCsvHoldingsAdapter):
             # coverage merely because their page lives on alpsfunds.com. Keep
             # the shared SEC fallback available when a CIK is present, but make
             # the missing Alerian route explicit otherwise.
-            if _identifier(identifiers, "sec_cik", "cik"):
-                return super().probe(symbol=symbol, name=name, identifiers=identifiers)
+            sec_cik = _identifier(identifiers, "sec_cik", "cik")
+            if sec_cik:
+                normalized_cik = sec_cik.strip().zfill(10)
+                return HoldingsAdapterProbe(
+                    adapter_key=self.adapter_key,
+                    confidence=Decimal("0.7800"),
+                    status="ready",
+                    reason=(
+                        "No native Alerian route is verified for this symbol; the shared "
+                        "SEC EDGAR holdings fallback is available through its CIK."
+                    ),
+                    source_url=f"https://data.sec.gov/submissions/CIK{normalized_cik}.json",
+                    issuer_product_id=normalized_symbol or None,
+                )
             return HoldingsAdapterProbe(
                 adapter_key=self.adapter_key,
                 confidence=Decimal("0.6500"),
