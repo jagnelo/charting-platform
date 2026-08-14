@@ -1,5 +1,19 @@
 # Run Report
 
+## 2026-08-15 — Benchmark-family concentration/dispersion checkpoint
+
+- Added family-role concentration and cross-sectional dispersion over the canonical point-in-time
+  constituent path, including reported-weight coverage, top-N weight, HHI, effective constituent
+  count, return distribution, member rows, exclusions, and freshness/provenance.
+- Wired the dense family breadth strip, stable store cache identity, unit/browser fixtures, and
+  explicit unavailable/zero-coverage rendering. The first browser run served a stale stack bundle;
+  force-rebuilding the branch stack and rerunning the unchanged oracle passed.
+- Validation: backend family integration `13/13`, store `64/64`, Vitest `836/836`, type/build,
+  Ruff/compileall, diff-check, and Chromium `F8s-breadth-family-ratio` `1/1`. No acceptance
+  flexibility used; the only corrected issue was a real response-contract omission.
+- Remaining: historical concentration curves, rebalance-aware weights, provider-backed
+  S&P/Russell/Nasdaq family population, and final V25 visual/acceptance gates.
+
 ## 2026-08-15 — Benchmark-family relative-rotation checkpoint
 
 - Added family-role relative rotation against each family cap proxy, with transparent state/tail

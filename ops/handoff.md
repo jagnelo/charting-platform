@@ -1,5 +1,24 @@
 # Active Handoff
 
+## 2026-08-15 — Benchmark-family concentration/dispersion checkpoint
+
+- Added `GET /analysis/benchmark-families/{family_key}/concentration`, reusing the existing
+  point-in-time constituent snapshot for independent cap/equal/value/growth roles. It reports
+  reported-weight coverage, top-N weight, HHI, effective constituent count, selected-period
+  return distribution, top members, coverage, exclusions, freshness, and provenance without role
+  fallback.
+- Added the workstation store loader/cache and dense family breadth concentration strip. The
+  SPY/RSP browser fixture verifies top-N/HHI/effective-count/dispersion/coverage presentation;
+  unavailable roles remain explicit zero-coverage states.
+- Validation: backend family integration `13/13`, concentration store `64/64`, full frontend
+  Vitest `836/836`, type-check/build, Ruff/compile, diff-check, rebuilt authenticated Chromium
+  `F8s-breadth-family-ratio` `1/1`. The initial unavailable-role response defect was repaired
+  (`coverage=0.0`) and rerun; no acceptance flexibility used.
+- Implementation/docs commit: `4d295b26 feat(analysis): add family concentration dispersion`.
+  Worktree is clean locally. Exact push must be attempted once for this checkpoint and recorded;
+  private-origin rejection is transport-only and not a goal blocker. Next context: historical
+  concentration/dispersion, rebalance-aware weights, and complete eight-root provider evidence.
+
 ## 2026-08-15 — Benchmark-family relative-rotation checkpoint
 
 - Added `GET /analysis/benchmark-families/{family_key}/relative-rotation`, comparing cap/equal/
