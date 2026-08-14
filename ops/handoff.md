@@ -1,5 +1,13 @@
 # Active Handoff
 
+## 2026-08-14 — Rebuilt-image Study Lab browser verification
+
+- The initial F8o result was setup-only because the running frontend image predated the dashboard
+  validator. After a no-cache frontend rebuild and frontend-only force recreate, the authoritative
+  real-user F8o structured event-study flow passes `1/1` against the current source image.
+- Backend, Postgres, and Redis were left running and healthy. No visual threshold, mask, provider
+  rule, or acceptance flexibility changed.
+
 ## 2026-08-14 — Study Lab dashboard artifact layout validation
 
 - Shared `normalizeStudyDashboardPanels` validation between Study Lab and Research Results. It

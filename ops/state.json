@@ -4,7 +4,7 @@
   "active_worker": "Codex",
   "worker_session_started_at": "2026-07-28T21:40:33Z",
   "worker_soft_stop_at": null,
-  "last_handoff_at": "2026-08-14T06:19:00Z",
+  "last_handoff_at": "2026-08-14T06:23:00Z",
   "last_commit": "d7767d0c fix(study): validate dashboard panel layouts",
   "git_ready_to_commit": false,
   "git_checkpoint": "Worker-owned elevated Git recovery is documented in docs/agent-orchestration.md and proven by local commits. Clean implementation checkpoint HEAD d7767d0c with origin 91463e54 remains a transport-only pending-push range after the exact elevated push was rejected before Git by the private-repository egress safeguard. No workaround was attempted; this hold must not block the goal or next context.",
@@ -12,6 +12,7 @@
   "active_context": "study-dashboard-layout-validation",
   "context_status": "completed_clean_local_transport_hold_ready_for_next_context",
   "validation": {
+    "rebuilt_image_study_dashboard_browser_20260814": "passed-with-open-goal-gaps: The initial F8o run was discarded as stale-image setup evidence; after no-cache frontend rebuild and frontend-only force recreate, the authoritative authenticated F8o structured-study flow passes 1/1. Acceptance flexibility used: none; exact/unrepresented V25, provider/entitlement, historical/GICS, native-monitor, endurance, Docker, and final-audit gaps remain open, 2026-08-14",
     "study_dashboard_layout_validation_20260814": "passed-with-open-goal-gaps: Shared Study Lab/Research Results dashboard validation rejects empty names/titles, empty layouts, non-finite/non-integer spans, and spans outside 1..12; malformed layouts use the structured fallback. Focused coverage 43/43; full frontend Vitest 817/817; type-check; 477-module build; authenticated F8o 1/1; and diff-check pass. Acceptance flexibility used: none; exact/unrepresented V25, provider/entitlement, historical/GICS, native-monitor, endurance, Docker, and final-audit gaps remain open, 2026-08-14",
     "pending_transform_regression_20260814": "passed-with-open-goal-gaps: Held-request F9c-transform browser regression proves Chart Settings remains visible while prior uPlot/drawing canvases are absent and rendering returns after release. Focused test 1/1 and original four-case sequence 4/4 pass. Acceptance flexibility used: none; exact/unrepresented V25 and other documented external gaps remain open, 2026-08-14",
     "chart_settings_loading_lifecycle_20260814": "passed-with-open-goal-gaps: UPlotChart remains mounted during loading so chart settings and transform controls survive; numerical/drawing/sub-pane canvases are destroyed and recreated around valid bars. Original four-case sequence passes 4/4, isolated transform regressions 2/2, focused board loading/Study visuals 8/8, full seeded authenticated flows 138/140 executed with two canonical-only skips, frontend Vitest 806/806, type-check, 476-module build, and diff-check pass. Acceptance flexibility used: none; exact/unrepresented V25, provider/entitlement, historical/GICS, native-monitor, endurance, Docker, and final-audit gaps remain open, 2026-08-14",

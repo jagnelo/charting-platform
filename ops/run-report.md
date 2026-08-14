@@ -1,5 +1,13 @@
 # Run Report
 
+## 2026-08-14 — Rebuilt-image Study Lab browser verification
+
+- The first F8o browser check for the dashboard-layout changes was discarded because it hit the
+  previously running frontend image. The frontend was rebuilt from current source with the
+  477-module production build and only that branch container was force-recreated.
+- The authoritative rebuilt-image authenticated F8o structured-study flow passes `1/1`. Backend,
+  Postgres, and Redis remained healthy; no product, visual, or acceptance criterion changed.
+
 ## 2026-08-14 — Study Lab dashboard artifact layout validation
 
 - Centralized dashboard-panel validation now rejects empty/invalid artifact names, titles, and
