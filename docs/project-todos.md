@@ -9257,6 +9257,34 @@ locally derived equal-weight series, and an absent or unverified leg must remain
 `No verified mapped proxy`, unavailable, or derived with its limitations rather than silently
 using SPY, QQQ, a current-only snapshot, or a name-based relationship.
 
+#### Scope lock — 2026-08-14 US family perspectives are part of the single completion bar
+
+This is a locked product-vision requirement for the active TC2000 workstation goal, not an
+optional extension after the SPY workflow. A resumed worker must continue from this matrix even
+when a family currently has no free-source proxy or historical membership evidence. The required
+roots are S&P 500, S&P MidCap 400, S&P SmallCap 600, S&P Composite 1500, Russell 1000, Russell
+2000, Russell 3000, and Nasdaq 100. Nasdaq 100 additionally requires an evidence-backed
+cap-weighted versus equal-weight deconstruction (QQQ/QQQE is a candidate relationship, never an
+assumed fact).
+
+For every root, the same benchmark-to-sector-to-industry/proxy-to-constituent drill-down and the
+same technical, configurable condition-driven breadth, relative-strength ratio, normalized
+comparison, participation/leadership, concentration/dispersion, drawdown/volatility,
+relative-rotation, ranking, watchlist, scan, gauge, Study Lab, and export surfaces are required.
+Each root independently exposes its cap-weighted leg, an issuer-backed or explicitly derived
+equal-weight leg when available, and every source-backed value/growth sub-index or ETF that exists.
+“If available” means the registry may truthfully show `No verified mapped proxy`, unavailable, or
+derived with methodology and coverage; it never permits a silent substitution, name-based
+relationship, current-only membership snapshot, or SPY/QQQ fallback.
+
+Acceptance must exercise the roots and mapped legs as analysis perspectives, not merely assert
+that they appear in a selector. Official-versus-proxy semantics, role, weighting method,
+membership/rebalance version, effective/known-at dates, adjustment, coverage, exclusions,
+freshness, and source provenance must survive every comparison, breadth result, ratio,
+drill-down, and Study Lab artifact. Missing or unrepresented visual states remain named
+acceptance gaps; this scope lock relaxes no visual, data-integrity, provider, or historical-truth
+criterion.
+
 #### Current continuation — 2026-08-14 QQQE/Direxion route evidence
 
 The Nasdaq-100 equal-weight leg now has canonical free-source route metadata: `QQQE` resolves

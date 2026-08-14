@@ -20,6 +20,11 @@ masked.
 
 ### Required US family perspective matrix
 
+This matrix is a completion requirement for the active goal. It is not satisfied by a family
+selector, a symbol-search result, or a single SPY-backed demonstration. The eight roots and every
+verified cap/equal/value/growth leg must be traversable through the same workstation interactions,
+with an explicit unavailable or derived state wherever evidence is absent.
+
 The board-guided workstation must make the following perspectives first-class, not merely expose
 the eight roots in a selector. Each row is a reusable Version 25 analysis surface with the same
 dense tool-window, linked-chart, watchlist, ratio, breadth, Study Lab, and provenance mechanics:
