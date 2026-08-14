@@ -416,6 +416,10 @@
         <select :value="breadthConditionKind" aria-label="Breadth condition" @change="setBreadthConfiguration({ breadth_condition: ($event.target as HTMLSelectElement).value })">
           <option value="above_moving_average">Above moving average</option>
           <option value="within_52_week_high">Within distance of 52-week high</option>
+          <option value="trend">Trend state</option>
+          <option value="rsi">RSI threshold</option>
+          <option value="volume_ratio">Volume ratio threshold</option>
+          <option value="relative_strength">Relative strength threshold</option>
           <option value="comparison">Compare a measured field</option>
         </select>
         <template v-if="breadthConditionKind === 'above_moving_average'">
@@ -425,6 +429,26 @@
         <template v-else-if="breadthConditionKind === 'within_52_week_high'">
           <label>Threshold <input :value="breadthConditionThreshold" aria-label="Breadth condition high threshold" type="number" min="0.001" max="0.5" step="0.001" @change="setBreadthConfiguration({ breadth_condition_threshold: Number(($event.target as HTMLInputElement).value) })" /></label>
           <label>Lookback <input :value="breadthConditionLookback" aria-label="Breadth condition high lookback" type="number" min="2" max="504" @change="setBreadthConfiguration({ breadth_condition_lookback: Number(($event.target as HTMLInputElement).value) })" /></label>
+        </template>
+        <template v-else-if="breadthConditionKind === 'trend'">
+          <label>Fast <input :value="breadthConditionFastPeriod" aria-label="Breadth trend fast period" type="number" min="2" max="100" @change="setBreadthConfiguration({ breadth_condition_fast_period: Number(($event.target as HTMLInputElement).value) })" /></label>
+          <label>Slow <input :value="breadthConditionSlowPeriod" aria-label="Breadth trend slow period" type="number" min="3" max="252" @change="setBreadthConfiguration({ breadth_condition_slow_period: Number(($event.target as HTMLInputElement).value) })" /></label>
+          <select :value="breadthConditionDirection" aria-label="Breadth trend direction" @change="setBreadthConfiguration({ breadth_condition_direction: ($event.target as HTMLSelectElement).value })"><option value="up">Uptrend</option><option value="down">Downtrend</option></select>
+        </template>
+        <template v-else-if="breadthConditionKind === 'rsi'">
+          <label>Period <input :value="breadthConditionRsiPeriod" aria-label="Breadth RSI period" type="number" min="2" max="252" @change="setBreadthConfiguration({ breadth_condition_rsi_period: Number(($event.target as HTMLInputElement).value) })" /></label>
+          <select :value="breadthComparisonOperator" aria-label="Breadth RSI operator" @change="setBreadthConfiguration({ breadth_comparison_operator: ($event.target as HTMLSelectElement).value })"><option value="gte">At or above</option><option value="lte">At or below</option><option value="gt">Above</option><option value="lt">Below</option></select>
+          <label>Target <input :value="breadthComparisonThreshold" aria-label="Breadth RSI target" type="number" min="0" max="100" step="0.1" @change="setBreadthConfiguration({ breadth_comparison_threshold: Number(($event.target as HTMLInputElement).value) })" /></label>
+        </template>
+        <template v-else-if="breadthConditionKind === 'volume_ratio'">
+          <label>Period <input :value="breadthConditionVolumePeriod" aria-label="Breadth volume ratio period" type="number" min="2" max="252" @change="setBreadthConfiguration({ breadth_condition_volume_period: Number(($event.target as HTMLInputElement).value) })" /></label>
+          <select :value="breadthComparisonOperator" aria-label="Breadth volume ratio operator" @change="setBreadthConfiguration({ breadth_comparison_operator: ($event.target as HTMLSelectElement).value })"><option value="gte">At or above</option><option value="lte">At or below</option><option value="gt">Above</option><option value="lt">Below</option></select>
+          <label>Target <input :value="breadthComparisonThreshold" aria-label="Breadth volume ratio target" type="number" min="0" step="0.1" @change="setBreadthConfiguration({ breadth_comparison_threshold: Number(($event.target as HTMLInputElement).value) })" /></label>
+        </template>
+        <template v-else-if="breadthConditionKind === 'relative_strength'">
+          <label>Lookback <input :value="breadthConditionLookback" aria-label="Breadth relative strength lookback" type="number" min="2" max="252" @change="setBreadthConfiguration({ breadth_condition_lookback: Number(($event.target as HTMLInputElement).value) })" /></label>
+          <select :value="breadthComparisonOperator" aria-label="Breadth relative strength operator" @change="setBreadthConfiguration({ breadth_comparison_operator: ($event.target as HTMLSelectElement).value })"><option value="gte">At or above</option><option value="lte">At or below</option><option value="gt">Above</option><option value="lt">Below</option></select>
+          <label>Target <input :value="breadthComparisonThreshold" aria-label="Breadth relative strength target" type="number" step="0.001" @change="setBreadthConfiguration({ breadth_comparison_threshold: Number(($event.target as HTMLInputElement).value) })" /></label>
         </template>
         <template v-if="breadthConditionKind === 'comparison'">
           <select :value="breadthComparisonField" aria-label="Breadth measured field" @change="setBreadthConfiguration({ breadth_comparison_field: ($event.target as HTMLSelectElement).value })">
@@ -439,6 +463,8 @@
           <select :value="breadthComparisonOperator" aria-label="Breadth target operator" @change="setBreadthConfiguration({ breadth_comparison_operator: ($event.target as HTMLSelectElement).value })">
             <option value="gte">At or above</option>
             <option value="lte">At or below</option>
+            <option value="gt">Above</option>
+            <option value="lt">Below</option>
             <option value="eq">Equal to</option>
           </select>
           <label>Target <input :value="breadthComparisonThreshold" aria-label="Breadth target threshold" type="number" step="0.001" @change="setBreadthConfiguration({ breadth_comparison_threshold: Number(($event.target as HTMLInputElement).value) })" /></label>
@@ -450,6 +476,9 @@
             <option value="close">Close</option>
             <option value="volume">Volume</option>
             <option value="rsi">RSI</option>
+            <option value="volume_ratio">Volume ratio</option>
+            <option value="distance_to_52w_high">Distance to 52-week high</option>
+            <option value="relative_strength">Relative strength</option>
           </select>
           <label>Target <input :value="breadthSecondaryThreshold" aria-label="Breadth second target threshold" type="number" step="0.001" @change="setBreadthConfiguration({ breadth_secondary_threshold: Number(($event.target as HTMLInputElement).value) })" /></label>
         </template>
@@ -1570,24 +1599,29 @@ const breadthCustomUniverseKind = computed(() => {
 const breadthComposition = computed(() => props.tool.configuration.breadth_condition_composition === 'all' ? 'all' : 'single')
 const breadthConditionKind = computed(() => {
   const candidate = String(props.tool.configuration.breadth_condition ?? 'above_moving_average')
-  return ['above_moving_average', 'within_52_week_high', 'comparison'].includes(candidate) ? candidate : 'above_moving_average'
+  return ['above_moving_average', 'within_52_week_high', 'trend', 'rsi', 'volume_ratio', 'relative_strength', 'comparison'].includes(candidate) ? candidate : 'above_moving_average'
 })
 const breadthConditionPeriod = computed(() => Math.min(252, Math.max(2, Number(props.tool.configuration.breadth_condition_period ?? 200) || 200)))
 const breadthConditionAverage = computed(() => props.tool.configuration.breadth_condition_average === 'ema' ? 'ema' : 'sma')
 const breadthConditionThreshold = computed(() => Math.min(0.5, Math.max(0.001, Number(props.tool.configuration.breadth_condition_threshold ?? 0.01) || 0.01)))
 const breadthConditionLookback = computed(() => Math.min(504, Math.max(2, Number(props.tool.configuration.breadth_condition_lookback ?? 252) || 252)))
+const breadthConditionRsiPeriod = computed(() => Math.min(252, Math.max(2, Number(props.tool.configuration.breadth_condition_rsi_period ?? 14) || 14)))
+const breadthConditionVolumePeriod = computed(() => Math.min(252, Math.max(2, Number(props.tool.configuration.breadth_condition_volume_period ?? 20) || 20)))
+const breadthConditionFastPeriod = computed(() => Math.min(100, Math.max(2, Number(props.tool.configuration.breadth_condition_fast_period ?? 20) || 20)))
+const breadthConditionSlowPeriod = computed(() => Math.min(252, Math.max(3, Number(props.tool.configuration.breadth_condition_slow_period ?? 50) || 50)))
+const breadthConditionDirection = computed(() => props.tool.configuration.breadth_condition_direction === 'down' ? 'down' : 'up')
 const breadthComparisonField = computed(() => {
   const candidate = String(props.tool.configuration.breadth_comparison_field ?? 'close')
   return ['close', 'return', 'volume', 'rsi', 'distance_to_52w_high', 'distance_to_52w_low', 'relative_strength'].includes(candidate) ? candidate : 'close'
 })
 const breadthComparisonOperator = computed(() => {
   const candidate = String(props.tool.configuration.breadth_comparison_operator ?? 'gte')
-  return ['gte', 'lte', 'eq'].includes(candidate) ? candidate : 'gte'
+  return ['gte', 'lte', 'gt', 'lt', 'eq'].includes(candidate) ? candidate : 'gte'
 })
 const breadthComparisonThreshold = computed(() => Number.isFinite(Number(props.tool.configuration.breadth_comparison_threshold)) ? Number(props.tool.configuration.breadth_comparison_threshold) : 0)
 const breadthSecondaryField = computed(() => {
   const candidate = String(props.tool.configuration.breadth_secondary_field ?? 'return')
-  return ['close', 'return', 'volume', 'rsi'].includes(candidate) ? candidate : 'return'
+  return ['close', 'return', 'volume', 'rsi', 'volume_ratio', 'distance_to_52w_high', 'relative_strength'].includes(candidate) ? candidate : 'return'
 })
 const breadthSecondaryThreshold = computed(() => Number.isFinite(Number(props.tool.configuration.breadth_secondary_threshold)) ? Number(props.tool.configuration.breadth_secondary_threshold) : 0)
 const breadthBenchmark = computed(() => {
@@ -1621,6 +1655,18 @@ function primaryBreadthCondition() {
   }
   if (breadthConditionKind.value === 'within_52_week_high') {
     return { kind: 'within_52_week_high', params: { lookback: breadthConditionLookback.value, threshold: breadthConditionThreshold.value, direction: 'high' } }
+  }
+  if (breadthConditionKind.value === 'trend') {
+    return { kind: 'trend', params: { fast_period: breadthConditionFastPeriod.value, slow_period: breadthConditionSlowPeriod.value, direction: breadthConditionDirection.value } }
+  }
+  if (breadthConditionKind.value === 'rsi') {
+    return { kind: 'rsi', params: { period: breadthConditionRsiPeriod.value, operator: breadthComparisonOperator.value, threshold: breadthComparisonThreshold.value } }
+  }
+  if (breadthConditionKind.value === 'volume_ratio') {
+    return { kind: 'volume_ratio', params: { period: breadthConditionVolumePeriod.value, operator: breadthComparisonOperator.value, threshold: breadthComparisonThreshold.value } }
+  }
+  if (breadthConditionKind.value === 'relative_strength') {
+    return { kind: 'relative_strength', params: { lookback: breadthConditionLookback.value, operator: breadthComparisonOperator.value, threshold: breadthComparisonThreshold.value } }
   }
   return { kind: 'above_moving_average', params: { period: breadthConditionPeriod.value, average: breadthConditionAverage.value, comparator: 'above' } }
 }

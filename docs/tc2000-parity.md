@@ -6602,3 +6602,23 @@ attempt was an environment permission failure and was rerun successfully with el
 This closes only the response-level readiness contract. Provider-backed population, historical
 rebalance evidence, point-in-time taxonomy snapshots, and the visual/browser rendering of these
 fields remain open. Acceptance flexibility used: **none**.
+
+## 2026-08-14 — Breadth predicate authoring expansion
+
+The visible custom breadth composer now exposes the backend's broader predicate vocabulary instead
+of making moving-average and 52-week proximity the practical boundary. It supports trend direction
+with fast/slow periods, RSI thresholds, volume-ratio thresholds, explicit relative-strength
+thresholds/lookbacks, and the existing measured-field comparisons. The saved request still carries
+the selected family/group/ETF-proxy universe, role, benchmark, timeframe, adjustment, point-in-time
+policy, and Boolean composition, so the aggregate, member drill-down, and history use the same
+definition.
+
+Browser acceptance selected a benchmark-family leg, evaluated RSI and volume-ratio predicates, and
+asserted their exact serialized parameters (`F8s-breadth-family-ratio`, `1/1`). Frontend Vitest
+`824/824`, type-check, production build, backend breadth units `7/7`, and Ruff pass. The first
+browser assertion used the wrong request-count assumption and was corrected before the authoritative
+rerun; no product or acceptance criterion was relaxed.
+
+Remaining gaps are arbitrary Python predicates in the visible composer, richer target-series and
+cross-sectional target-scope controls, promotion to every compatible target, and provider-backed
+family data population.

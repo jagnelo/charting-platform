@@ -12095,3 +12095,19 @@ The current source also passes the focused authenticated top-down browser slice 
 - [ ] Still open: provider-backed population and historical rebalance coverage for every S&P,
       Russell, and Nasdaq family leg, point-in-time taxonomy snapshots, and browser presentation of
       the holdings-readiness fields. Acceptance flexibility used: **none**.
+
+### 2026-08-14 — Breadth predicate authoring expansion
+
+- [x] Expanded the workstation's custom breadth authoring controls beyond moving-average/high and
+      generic scalar comparisons. Users can now author explicit trend-state, RSI threshold, volume
+      ratio threshold, and relative-strength threshold predicates, with periods/lookbacks,
+      operators, targets, directions, benchmark, timeframe, adjustment, universe, and Boolean
+      composition retained in the serialized definition sent to the existing generic breadth API.
+- [x] Added browser acceptance that selects a benchmark-family leg and verifies RSI and volume-ratio
+      definitions are posted with the selected point-in-time universe and exact predicate parameters.
+      Full frontend Vitest `824/824`, type-check, production build, backend breadth unit tests `7/7`,
+      Ruff, and focused Chromium `1/1` pass. The first browser run exposed an incorrect request-count
+      oracle and was repaired before the passing rerun; acceptance flexibility used: **none**.
+- [ ] Still open: arbitrary Python predicate authoring in the visible composer, richer target-series
+      and cross-sectional target scope controls, promotion to every compatible target, and full
+      family/provider-backed browser data population.

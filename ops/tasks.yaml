@@ -97,6 +97,15 @@ tasks:
         overview/constituent integration `2/2`, Ruff, and diff checks. It does not fabricate missing
         evidence or close provider population, historical taxonomy, or browser presentation gaps;
         acceptance flexibility used: none.
+      - >-
+        The visible breadth composer now exposes trend, RSI, volume-ratio, and relative-strength
+        predicates with their periods/lookbacks, operators, thresholds, direction, benchmark, and
+        existing Boolean composition. Browser `F8s-breadth-family-ratio` verifies exact RSI and
+        volume-ratio payloads for a benchmark-family leg; frontend `824/824`, type/build, backend
+        breadth units `7/7`, Ruff, and focused Chromium `1/1` pass. The first request-count oracle
+        was corrected before the passing rerun; acceptance flexibility used: none. Arbitrary
+        Python-in-composer, target-series/cross-sectional scope, promotion, and provider population
+        remain open.
   - id: tc2000-generic-condition-driven-breadth-20260814
     title: Broaden breadth from fixed metrics to reusable condition-driven cross-sectional studies
     status: in_progress
