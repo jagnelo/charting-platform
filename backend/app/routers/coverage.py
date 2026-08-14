@@ -47,18 +47,22 @@ async def instrument_ohlcv_coverage(
         raise HTTPException(404, detail={"code": "instrument_not_found", "symbol": symbol.upper()})
 
     bars = (
-        await db.execute(
-            select(OHLCVBar)
-            .where(
-                OHLCVBar.instrument_id == instrument.id,
-                OHLCVBar.timeframe == timeframe,
-                OHLCVBar.is_adjusted.is_(adjusted),
-                OHLCVBar.ts >= start,
-                OHLCVBar.ts <= end,
+        (
+            await db.execute(
+                select(OHLCVBar)
+                .where(
+                    OHLCVBar.instrument_id == instrument.id,
+                    OHLCVBar.timeframe == timeframe,
+                    OHLCVBar.is_adjusted.is_(adjusted),
+                    OHLCVBar.ts >= start,
+                    OHLCVBar.ts <= end,
+                )
+                .order_by(OHLCVBar.ts)
             )
-            .order_by(OHLCVBar.ts)
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     assessment = assess_ohlcv_coverage(
         bars,
         timeframe,
@@ -80,7 +84,9 @@ async def instrument_ohlcv_coverage(
         covered_start=assessment.covered_start,
         covered_end=assessment.covered_end,
         bar_count=assessment.bar_count,
-        missing_slices=[{"start": gap_start, "end": gap_end} for gap_start, gap_end in assessment.missing_slices],
+        missing_slices=[
+            {"start": gap_start, "end": gap_end} for gap_start, gap_end in assessment.missing_slices
+        ],
         explanation=assessment.explanation,
     )
 

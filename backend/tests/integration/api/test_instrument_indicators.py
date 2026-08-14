@@ -2,7 +2,9 @@
 
 
 class TestInstrumentIndicators:
-    def test_indicator_configuration_round_trip_is_user_scoped(self, client, auth_headers, instrument):
+    def test_indicator_configuration_round_trip_is_user_scoped(
+        self, client, auth_headers, instrument
+    ):
         created = client.put(
             f"/api/v1/instrument-indicators/{instrument.id}",
             headers=auth_headers,

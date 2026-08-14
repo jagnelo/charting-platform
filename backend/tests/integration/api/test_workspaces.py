@@ -28,7 +28,11 @@ class TestWorkspaces:
         assert "relative-rotation" in {
             window["instance_key"] for window in workspace["tabs"][0]["windows"]
         }
-        rotation = next(window for window in workspace["tabs"][0]["windows"] if window["instance_key"] == "relative-rotation")
+        rotation = next(
+            window
+            for window in workspace["tabs"][0]["windows"]
+            if window["instance_key"] == "relative-rotation"
+        )
         assert rotation["configuration"] == {
             "group_key": "sp500-sectors",
             "benchmark": "SPY",
@@ -44,35 +48,62 @@ class TestWorkspaces:
             "four-timeframe",
             "study-lab",
         }
-        four_timeframe = next(tab for tab in workspace["tabs"] if tab["stable_key"] == "four-timeframe")
+        four_timeframe = next(
+            tab for tab in workspace["tabs"] if tab["stable_key"] == "four-timeframe"
+        )
         configurations = {
             window["instance_key"]: window["configuration"] for window in four_timeframe["windows"]
         }
         assert {key: value["timeframe"] for key, value in configurations.items()} == {
-            "m15": "M15", "daily": "D1", "weekly": "W1", "monthly": "MN",
+            "m15": "M15",
+            "daily": "D1",
+            "weekly": "W1",
+            "monthly": "MN",
         }
         assert {value["timeframe_link_group"] for value in configurations.values()} == {
-            "red", "green", "purple", "orange",
+            "red",
+            "green",
+            "purple",
+            "orange",
         }
         assert {window["link_group"] for window in four_timeframe["windows"]} == {"blue"}
         assert four_timeframe["layout_config"]["root"]["type"] == "row"
-        assert [column["type"] for column in four_timeframe["layout_config"]["root"]["content"]] == [
-            "column", "column"
-        ]
+        assert [
+            column["type"] for column in four_timeframe["layout_config"]["root"]["content"]
+        ] == ["column", "column"]
         tc_classic = next(tab for tab in workspace["tabs"] if tab["stable_key"] == "tc-classic")
-        assert {window["tool_type"] for window in tc_classic["windows"]} >= {"chart", "watchlist", "notes"}
+        assert {window["tool_type"] for window in tc_classic["windows"]} >= {
+            "chart",
+            "watchlist",
+            "notes",
+        }
         drill_down = next(tab for tab in workspace["tabs"] if tab["stable_key"] == "drill-down")
         drill_keys = {window["instance_key"] for window in drill_down["windows"]}
         assert {"selected-chart", "sector-comparison"} <= drill_keys
         assert drill_down["layout_config"]["version"] == 8
-        drill_comparison = next(window for window in drill_down["windows"] if window["instance_key"] == "sector-comparison")
+        drill_comparison = next(
+            window
+            for window in drill_down["windows"]
+            if window["instance_key"] == "sector-comparison"
+        )
         assert drill_comparison["configuration"]["comparison_symbols"] == ["RSP"]
         drill_root = drill_down["layout_config"]["root"]
-        assert any(item.get("type") == "stack" and len(item.get("content", [])) == 2 for item in drill_root["content"])
-        sector_by_year = next(tab for tab in workspace["tabs"] if tab["stable_key"] == "sector-by-year")
-        assert {"selected-chart", "normalized-comparison"} <= {window["instance_key"] for window in sector_by_year["windows"]}
+        assert any(
+            item.get("type") == "stack" and len(item.get("content", [])) == 2
+            for item in drill_root["content"]
+        )
+        sector_by_year = next(
+            tab for tab in workspace["tabs"] if tab["stable_key"] == "sector-by-year"
+        )
+        assert {"selected-chart", "normalized-comparison"} <= {
+            window["instance_key"] for window in sector_by_year["windows"]
+        }
         assert sector_by_year["layout_config"]["version"] == 8
-        normalized = next(window for window in sector_by_year["windows"] if window["instance_key"] == "normalized-comparison")
+        normalized = next(
+            window
+            for window in sector_by_year["windows"]
+            if window["instance_key"] == "normalized-comparison"
+        )
         assert normalized["configuration"]["comparison_symbols"] == ["RSP"]
 
     def test_factory_reset_recreates_latest_factory_layout(self, client, auth_headers):
@@ -87,13 +118,22 @@ class TestWorkspaces:
         assert reset["revision"] == workspace["revision"] + 1
         assert reset["settings"]["factory_version"] == 8
         top_down = next(tab for tab in reset["tabs"] if tab["stable_key"] == "us-top-down")
-        assert [column["size"] for column in top_down["layout_config"]["root"]["content"]] == [22, 23, 55]
+        assert [column["size"] for column in top_down["layout_config"]["root"]["content"]] == [
+            22,
+            23,
+            55,
+        ]
         four_timeframe = next(tab for tab in reset["tabs"] if tab["stable_key"] == "four-timeframe")
-        assert {
-            window["configuration"]["timeframe"] for window in four_timeframe["windows"]
-        } == {"M15", "D1", "W1", "MN"}
+        assert {window["configuration"]["timeframe"] for window in four_timeframe["windows"]} == {
+            "M15",
+            "D1",
+            "W1",
+            "MN",
+        }
         drill_down = next(tab for tab in reset["tabs"] if tab["stable_key"] == "drill-down")
-        assert {"selected-chart", "sector-comparison"} <= {window["instance_key"] for window in drill_down["windows"]}
+        assert {"selected-chart", "sector-comparison"} <= {
+            window["instance_key"] for window in drill_down["windows"]
+        }
 
     def test_snapshot_is_revision_checked(self, client, auth_headers):
         workspace = client.get("/api/v1/workspaces/default", headers=auth_headers).json()
@@ -135,7 +175,9 @@ class TestWorkspaces:
         assert stale.status_code == 409
         assert stale.json()["detail"]["code"] == "workspace_revision_conflict"
 
-    def test_snapshot_can_replace_factory_tabs_with_the_same_stable_keys(self, client, auth_headers):
+    def test_snapshot_can_replace_factory_tabs_with_the_same_stable_keys(
+        self, client, auth_headers
+    ):
         workspace = client.get("/api/v1/workspaces/default", headers=auth_headers).json()
         payload = {
             "base_revision": workspace["revision"],
@@ -198,7 +240,9 @@ class TestWorkspaces:
 
         assert resolved.status_code == 200
         assert resolved.json()["id"] == default["id"]
-        assert db.query(Workspace).filter_by(user_id=default["user_id"], is_default=True).count() == 1
+        assert (
+            db.query(Workspace).filter_by(user_id=default["user_id"], is_default=True).count() == 1
+        )
 
     def test_library_item_is_versioned(self, client, auth_headers):
         payload = {
@@ -304,10 +348,13 @@ class TestWorkspaces:
             headers=auth_headers,
         )
         assert deleted.status_code == 204
-        assert client.delete(
-            "/api/v1/workspaces/library/items/chart_template/delete-me",
-            headers=auth_headers,
-        ).status_code == 404
+        assert (
+            client.delete(
+                "/api/v1/workspaces/library/items/chart_template/delete-me",
+                headers=auth_headers,
+            ).status_code
+            == 404
+        )
 
     def test_condition_assets_are_versioned_and_user_isolated(self, client, auth_headers):
         payload = {
@@ -487,12 +534,60 @@ class TestWorkspaces:
         db.flush()
         db.add_all(
             [
-                ETFHolding(snapshot_id=snapshot.id, constituent_instrument_id=instrument.id, position=0, source_row_hash="equity-row", is_resolved=True, holding_type="equity", row_type="security"),
-                ETFHolding(snapshot_id=snapshot.id, constituent_instrument_id=instrument_b.id, position=1, source_row_hash="unclassified-equity-row", is_resolved=True, holding_type="equity", row_type="security"),
-                ETFHolding(snapshot_id=snapshot.id, constituent_instrument_id=cash.id, position=2, source_row_hash="cash-row", is_resolved=True, holding_type="cash", row_type="cash"),
-                ETFHolding(snapshot_id=snapshot.id, constituent_instrument_id=derivative.id, position=3, source_row_hash="derivative-row", is_resolved=True, holding_type="derivative", row_type="other"),
-                ETFHolding(snapshot_id=snapshot.id, constituent_instrument_id=None, position=4, source_row_hash="unresolved-row", is_resolved=False, holding_type="equity", row_type="security"),
-                ETFHolding(snapshot_id=snapshot.id, constituent_instrument_id=None, position=5, source_row_hash="inconsistent-resolved-row", is_resolved=True, holding_type="equity", row_type="security"),
+                ETFHolding(
+                    snapshot_id=snapshot.id,
+                    constituent_instrument_id=instrument.id,
+                    position=0,
+                    source_row_hash="equity-row",
+                    is_resolved=True,
+                    holding_type="equity",
+                    row_type="security",
+                ),
+                ETFHolding(
+                    snapshot_id=snapshot.id,
+                    constituent_instrument_id=instrument_b.id,
+                    position=1,
+                    source_row_hash="unclassified-equity-row",
+                    is_resolved=True,
+                    holding_type="equity",
+                    row_type="security",
+                ),
+                ETFHolding(
+                    snapshot_id=snapshot.id,
+                    constituent_instrument_id=cash.id,
+                    position=2,
+                    source_row_hash="cash-row",
+                    is_resolved=True,
+                    holding_type="cash",
+                    row_type="cash",
+                ),
+                ETFHolding(
+                    snapshot_id=snapshot.id,
+                    constituent_instrument_id=derivative.id,
+                    position=3,
+                    source_row_hash="derivative-row",
+                    is_resolved=True,
+                    holding_type="derivative",
+                    row_type="other",
+                ),
+                ETFHolding(
+                    snapshot_id=snapshot.id,
+                    constituent_instrument_id=None,
+                    position=4,
+                    source_row_hash="unresolved-row",
+                    is_resolved=False,
+                    holding_type="equity",
+                    row_type="security",
+                ),
+                ETFHolding(
+                    snapshot_id=snapshot.id,
+                    constituent_instrument_id=None,
+                    position=5,
+                    source_row_hash="inconsistent-resolved-row",
+                    is_resolved=True,
+                    holding_type="equity",
+                    row_type="security",
+                ),
             ]
         )
         db.flush()
@@ -503,7 +598,12 @@ class TestWorkspaces:
         assert response.status_code == 200
         payload = response.json()
         assert payload["classification_coverage"] == 0.5
-        assert payload["exclusions"] == ["cash_holding", "derivative_holding", "unclassified_constituent", "unresolved_holding"]
+        assert payload["exclusions"] == [
+            "cash_holding",
+            "derivative_holding",
+            "unclassified_constituent",
+            "unresolved_holding",
+        ]
         constituents = client.get(
             f"/api/v1/market-groups/etf/{instrument.symbol}/industries/Semiconductors",
             headers=auth_headers,
@@ -793,7 +893,12 @@ class TestWorkspaces:
         rotation = client.get(
             "/api/v1/analysis/groups/breadth-history-test/relative-rotation",
             headers=auth_headers,
-            params={"benchmark": instrument.symbol, "sampling": 2, "lookback": 20, "tail_length": 3},
+            params={
+                "benchmark": instrument.symbol,
+                "sampling": 2,
+                "lookback": 20,
+                "tail_length": 3,
+            },
         )
         assert rotation.status_code == 200
         row = rotation.json()["rows"][0]
@@ -813,7 +918,9 @@ class TestWorkspaces:
         from app.models.workstation import MarketGroup, MarketGroupMember
 
         group = MarketGroup(
-            stable_key="point-in-time-rotation-test", group_type="test", name="Point-in-time rotation"
+            stable_key="point-in-time-rotation-test",
+            group_type="test",
+            name="Point-in-time rotation",
         )
         db.add(group)
         db.flush()
@@ -859,8 +966,7 @@ class TestWorkspaces:
         )
         assert payload["rows"]
         assert all(
-            point["timestamp"] <= "2024-04-30T23:59:59Z"
-            for point in payload["rows"][0]["tail"]
+            point["timestamp"] <= "2024-04-30T23:59:59Z" for point in payload["rows"][0]["tail"]
         )
 
     def test_group_snapshot_and_breadth_apply_the_same_point_in_time_cutoff(
@@ -1060,35 +1166,37 @@ class TestWorkspaces:
         )
         db.add(snapshot)
         db.flush()
-        db.add_all([
-            ETFHolding(
-                snapshot_id=snapshot.id,
-                constituent_instrument_id=instrument.id,
-                position=0,
-                source_row_hash="mixed-equity",
-                is_resolved=True,
-                holding_type="equity",
-                row_type="security",
-            ),
-            ETFHolding(
-                snapshot_id=snapshot.id,
-                constituent_instrument_id=cash.id,
-                position=1,
-                source_row_hash="mixed-cash",
-                is_resolved=True,
-                holding_type="cash",
-                row_type="cash",
-            ),
-            ETFHolding(
-                snapshot_id=snapshot.id,
-                constituent_instrument_id=None,
-                position=2,
-                source_row_hash="mixed-unresolved",
-                is_resolved=False,
-                holding_type="equity",
-                row_type="security",
-            ),
-        ])
+        db.add_all(
+            [
+                ETFHolding(
+                    snapshot_id=snapshot.id,
+                    constituent_instrument_id=instrument.id,
+                    position=0,
+                    source_row_hash="mixed-equity",
+                    is_resolved=True,
+                    holding_type="equity",
+                    row_type="security",
+                ),
+                ETFHolding(
+                    snapshot_id=snapshot.id,
+                    constituent_instrument_id=cash.id,
+                    position=1,
+                    source_row_hash="mixed-cash",
+                    is_resolved=True,
+                    holding_type="cash",
+                    row_type="cash",
+                ),
+                ETFHolding(
+                    snapshot_id=snapshot.id,
+                    constituent_instrument_id=None,
+                    position=2,
+                    source_row_hash="mixed-unresolved",
+                    is_resolved=False,
+                    holding_type="equity",
+                    row_type="security",
+                ),
+            ]
+        )
         db.flush()
 
         response = client.get(
@@ -1249,9 +1357,7 @@ class TestWorkspaces:
 
         # The newer controlled browser fixture must not replace the latest
         # canonical disclosure in normal (non-E2E) API reads.
-        composition = client.get(
-            "/api/v1/market-groups/etf/SMH/industries", headers=auth_headers
-        )
+        composition = client.get("/api/v1/market-groups/etf/SMH/industries", headers=auth_headers)
         assert composition.status_code == 200
         assert composition.json()["composition_date"] == "2024-05-29"
         constituents = client.get(
@@ -1330,7 +1436,13 @@ class TestWorkspaces:
         assert industries_payload["market_benchmark"] == instrument.symbol
         assert industries_payload["rows"][0]["industry"] == "Semiconductors"
         assert set(industries_payload["rows"][0]["performance"]) == {
-            "1D", "1W", "1M", "3M", "6M", "YTD", "1Y"
+            "1D",
+            "1W",
+            "1M",
+            "3M",
+            "6M",
+            "YTD",
+            "1Y",
         }
         assert industries_payload["rows"][0]["relative_to_benchmark"]["value"] == 1
         assert industries_payload["rows"][0]["relative_to_market"]["value"] == 1

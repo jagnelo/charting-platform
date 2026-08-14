@@ -414,13 +414,35 @@ class TestMassiveReferenceProvider:
             mock_settings.MARKETDATA_API_KEY = ""
             provider = MassiveProvider()
             assert provider.search_instruments("AAPL") == []
-            assert provider.discover_universe_page("CRYPTOCURRENCY", 0) == {"total": 0, "quotes": []}
+            assert provider.discover_universe_page("CRYPTOCURRENCY", 0) == {
+                "total": 0,
+                "quotes": [],
+            }
 
     def test_search_and_discovery_parse_reference_rows(self):
         response = MagicMock()
         response.json.side_effect = [
-            {"results": [{"ticker": "AAPL", "name": "Apple Inc.", "primary_exchange": "XNAS", "type": "CS"}]},
-            {"results": [{"ticker": "AAPL", "name": "Apple Inc.", "primary_exchange": "XNAS", "type": "CS"}], "next_url": "https://api.massive.com/v3/reference/tickers?cursor=abc"},
+            {
+                "results": [
+                    {
+                        "ticker": "AAPL",
+                        "name": "Apple Inc.",
+                        "primary_exchange": "XNAS",
+                        "type": "CS",
+                    }
+                ]
+            },
+            {
+                "results": [
+                    {
+                        "ticker": "AAPL",
+                        "name": "Apple Inc.",
+                        "primary_exchange": "XNAS",
+                        "type": "CS",
+                    }
+                ],
+                "next_url": "https://api.massive.com/v3/reference/tickers?cursor=abc",
+            },
             {"results": []},
         ]
         response.raise_for_status.return_value = None
@@ -454,8 +476,20 @@ class TestAlphaVantageProvider:
         response = MagicMock()
         response.json.return_value = {
             "Time Series (Daily)": {
-                "2024-01-03": {"1. open": "101", "2. high": "103", "3. low": "100", "4. close": "102", "5. volume": "1000"},
-                "2024-01-02": {"1. open": "99", "2. high": "100", "3. low": "98", "4. close": "99", "5. volume": "900"},
+                "2024-01-03": {
+                    "1. open": "101",
+                    "2. high": "103",
+                    "3. low": "100",
+                    "4. close": "102",
+                    "5. volume": "1000",
+                },
+                "2024-01-02": {
+                    "1. open": "99",
+                    "2. high": "100",
+                    "3. low": "98",
+                    "4. close": "99",
+                    "5. volume": "900",
+                },
             }
         }
         response.raise_for_status.return_value = None
@@ -465,7 +499,10 @@ class TestAlphaVantageProvider:
         ):
             mock_settings.ALPHA_VANTAGE_API_KEY = "key"
             bars = AlphaVantageProvider().fetch_ohlcv(
-                "AAPL", Timeframe.D1, datetime(2024, 1, 2, tzinfo=UTC), datetime(2024, 1, 4, tzinfo=UTC)
+                "AAPL",
+                Timeframe.D1,
+                datetime(2024, 1, 2, tzinfo=UTC),
+                datetime(2024, 1, 4, tzinfo=UTC),
             )
         assert [bar.close for bar in bars] == [99.0, 102.0]
 

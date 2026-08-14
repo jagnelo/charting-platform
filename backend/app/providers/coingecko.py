@@ -40,6 +40,8 @@ _COIN_LIST_SLEEP = 1.0  # polite delay between coin-list fetch and first use
 _coin_list: dict[str, list[dict]] = {}
 _coin_list_ts: float = 0.0
 _coin_list_all: list[dict] = []  # ordered list for discovery pagination
+
+
 class CoinGeckoProvider:
     name = "coingecko"
     base_url = "https://api.coingecko.com"

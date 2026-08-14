@@ -127,7 +127,9 @@ async def _queue_python_signal_research(
     code_version_id = snapshot.get("code_version_id")
     if not isinstance(code_version_id, int):
         raise ValueError("Python Strategy Lab signals must reference an immutable code version")
-    code_version = (await db.execute(select(CodeVersion).where(CodeVersion.id == code_version_id))).scalar_one_or_none()
+    code_version = (
+        await db.execute(select(CodeVersion).where(CodeVersion.id == code_version_id))
+    ).scalar_one_or_none()
     if code_version is None or code_version.output_contract not in {"boolean", "events"}:
         raise ValueError("Python Strategy Lab signal code version is unavailable or unsupported")
 
@@ -140,7 +142,11 @@ async def _queue_python_signal_research(
         **(run.universe_config or {}),
         **(version.benchmark_config or {}),
         **(run.benchmark_config or {}),
-        "parameters": {**(code_version.default_parameters or {}), **(version.default_parameters or {}), **(run.parameter_values or {})},
+        "parameters": {
+            **(code_version.default_parameters or {}),
+            **(version.default_parameters or {}),
+            **(run.parameter_values or {}),
+        },
     }
     if run.timeframe:
         run_config["timeframe"] = run.timeframe
@@ -148,7 +154,9 @@ async def _queue_python_signal_research(
         run_config["start_date"] = run.date_from.isoformat()
     if run.date_to:
         run_config["end_date"] = run.date_to.isoformat()
-    manifest = await _materialize_declared_dataset(db, {}, run_config, lookback=code_version.lookback)
+    manifest = await _materialize_declared_dataset(
+        db, {}, run_config, lookback=code_version.lookback
+    )
     research_run = ResearchRun(
         user_id=strategy.user_id,
         code_version_id=code_version.id,
@@ -183,9 +191,15 @@ async def _queue_python_signal_research(
 async def _refresh_python_signal_research(db: AsyncSession, run: StrategyRun) -> bool:
     summary = run.result_summary if isinstance(run.result_summary, dict) else {}
     research_run_id = summary.get("research_run_id")
-    if summary.get("result_kind") != "python_signal_research" or not isinstance(research_run_id, int):
+    if summary.get("result_kind") != "python_signal_research" or not isinstance(
+        research_run_id, int
+    ):
         return False
-    if run.status in {StrategyRunStatus.COMPLETED.value, StrategyRunStatus.FAILED.value, StrategyRunStatus.CANCELED.value}:
+    if run.status in {
+        StrategyRunStatus.COMPLETED.value,
+        StrategyRunStatus.FAILED.value,
+        StrategyRunStatus.CANCELED.value,
+    }:
         return True
     # collect_research_result mutates the artifact collection synchronously;
     # eager-load it before handing the model to that helper so async sessions do
@@ -209,7 +223,14 @@ async def _refresh_python_signal_research(db: AsyncSession, run: StrategyRun) ->
     run.completed_at = datetime.now(UTC)
     run.warning_log = list(research_run.warnings or []) + list(research_run.diagnostics or [])
     if research_run.status == "failed":
-        run.error_log = next((item.get("message") for item in research_run.diagnostics if isinstance(item, dict) and item.get("message")), "Python signal research failed")
+        run.error_log = next(
+            (
+                item.get("message")
+                for item in research_run.diagnostics
+                if isinstance(item, dict) and item.get("message")
+            ),
+            "Python signal research failed",
+        )
     run.result_summary = {
         **summary,
         "status": research_run.status,
@@ -322,7 +343,9 @@ def _coerce_commission_settings(execution_assumptions: dict[str, Any]) -> tuple[
         else "fixed_round_trip"
     )
     commission_value = float(
-        execution_assumptions.get("commission_value", execution_assumptions.get("commission_per_trade", 0))
+        execution_assumptions.get(
+            "commission_value", execution_assumptions.get("commission_per_trade", 0)
+        )
         or 0
     )
     return commission_model, max(commission_value, 0.0)
@@ -346,7 +369,9 @@ def _coerce_int(value: Any, default: int) -> int:
         return default
 
 
-def _apply_parameter_values(definition: dict[str, Any], parameter_values: dict[str, Any]) -> dict[str, Any]:
+def _apply_parameter_values(
+    definition: dict[str, Any], parameter_values: dict[str, Any]
+) -> dict[str, Any]:
     if not parameter_values:
         return definition
     updated = copy.deepcopy(definition)
@@ -417,7 +442,9 @@ def _instrument_coverage_note(
         if ipo_date is not None and available_from.date() >= ipo_date >= date_from.date():
             notes.append(f"Coverage begins after IPO ({ipo_date.isoformat()}).")
         else:
-            notes.append("Coverage begins after the requested start; earlier local history may be missing.")
+            notes.append(
+                "Coverage begins after the requested start; earlier local history may be missing."
+            )
     if date_to is not None and available_to < date_to:
         notes.append("Coverage ends before the requested end.")
     if requested_bars > 0 and requested_bars < 3:
@@ -481,15 +508,12 @@ async def _build_universe_coverage_summary(
         for row in full_rows
     }
 
-    requested_stmt = (
-        select(
-            OHLCVBar.instrument_id,
-            func.count(OHLCVBar.id),
-            func.min(OHLCVBar.ts),
-            func.max(OHLCVBar.ts),
-        )
-        .where(OHLCVBar.timeframe == timeframe, OHLCVBar.instrument_id.in_(instrument_ids))
-    )
+    requested_stmt = select(
+        OHLCVBar.instrument_id,
+        func.count(OHLCVBar.id),
+        func.min(OHLCVBar.ts),
+        func.max(OHLCVBar.ts),
+    ).where(OHLCVBar.timeframe == timeframe, OHLCVBar.instrument_id.in_(instrument_ids))
     if date_from is not None:
         requested_stmt = requested_stmt.where(OHLCVBar.ts >= date_from)
     if date_to is not None:
@@ -560,13 +584,16 @@ async def _build_universe_coverage_summary(
                 "requested_status": requested_status,
                 "note": note,
                 "ipo_date": instrument.equity_detail.ipo_date.isoformat()
-                if instrument.equity_detail is not None and instrument.equity_detail.ipo_date is not None
+                if instrument.equity_detail is not None
+                and instrument.equity_detail.ipo_date is not None
                 else None,
             }
         )
 
     instruments_with_data = sum(1 for row in instrument_summaries if row["total_bars"] > 0)
-    instruments_with_requested_data = sum(1 for row in instrument_summaries if row["requested_bars"] > 0)
+    instruments_with_requested_data = sum(
+        1 for row in instrument_summaries if row["requested_bars"] > 0
+    )
     instruments_with_full_requested_coverage = sum(
         1 for row in instrument_summaries if row["requested_status"] == "full"
     )
@@ -715,9 +742,7 @@ async def preview_strategy_coverage(
     instrument_rows: list[Instrument] = []
     if source_type == "radar" and not explicit_universe:
         preview_mode = "signal_derived"
-        preview_note = (
-            "Radar outputs are signal-derived, so universe coverage cannot be previewed before a run unless you narrow it to explicit symbols, a watchlist, or a screener snapshot."
-        )
+        preview_note = "Radar outputs are signal-derived, so universe coverage cannot be previewed before a run unless you narrow it to explicit symbols, a watchlist, or a screener snapshot."
     elif explicit_universe:
         if _is_dynamic_etf_holdings_universe(effective_universe):
             instrument_rows, _dynamic_universe = await _resolve_dynamic_etf_universe(
@@ -730,10 +755,14 @@ async def preview_strategy_coverage(
             instrument_rows = await _resolve_universe_instruments(db, effective_universe, warnings)
         if not instrument_rows:
             preview_mode = "empty"
-            preview_note = warnings[0] if warnings else "No instruments resolved from the current universe."
+            preview_note = (
+                warnings[0] if warnings else "No instruments resolved from the current universe."
+            )
     else:
         preview_mode = "empty"
-        preview_note = "Choose symbols, a watchlist, or a screener result to preview universe coverage."
+        preview_note = (
+            "Choose symbols, a watchlist, or a screener result to preview universe coverage."
+        )
 
     universe = await _build_universe_coverage_summary(
         db,
@@ -796,7 +825,9 @@ async def _run_platform_foundation(
         date_from=run.date_from,
         date_to=run.date_to,
         preview_mode="resolved" if instrument_ids else "empty",
-        preview_note=None if instrument_ids else "No instruments resolved from the current universe config.",
+        preview_note=None
+        if instrument_ids
+        else "No instruments resolved from the current universe config.",
     )
 
     if not instrument_ids:
@@ -969,7 +1000,11 @@ async def _resolve_universe_instruments(
         stmt = instrument_stmt().where(Instrument.id.in_(holding_ids))
         instrument_rows = list((await db.execute(stmt)).scalars().all())
         instrument_by_id = {row.id: row for row in instrument_rows}
-        return [instrument_by_id[instrument_id] for instrument_id in holding_ids if instrument_id in instrument_by_id]
+        return [
+            instrument_by_id[instrument_id]
+            for instrument_id in holding_ids
+            if instrument_id in instrument_by_id
+        ]
 
     if watchlist_id is not None:
         watchlist = await db.get(Watchlist, int(watchlist_id))
@@ -1015,7 +1050,9 @@ async def _resolve_universe_instruments(
         return list((await db.execute(stmt)).scalars().all())
 
     if instrument_ids:
-        stmt = instrument_stmt().where(Instrument.id.in_(instrument_ids)).order_by(Instrument.symbol)
+        stmt = (
+            instrument_stmt().where(Instrument.id.in_(instrument_ids)).order_by(Instrument.symbol)
+        )
         return list((await db.execute(stmt)).scalars().all())
 
     if symbols:
@@ -1066,7 +1103,9 @@ async def _resolve_dynamic_etf_universe(
         etf_symbol = str(etf_holdings_config.get("symbol") or "").strip().upper()
         etf_profile_id = etf_holdings_config.get("profile_id")
         etf_instrument_id = etf_holdings_config.get("instrument_id")
-        profile_stmt = select(ETFProfile).join(Instrument, ETFProfile.instrument_id == Instrument.id)
+        profile_stmt = select(ETFProfile).join(
+            Instrument, ETFProfile.instrument_id == Instrument.id
+        )
         basket_profile_id = None
         basket_universe_id = None
         if etf_profile_id is not None:
@@ -1105,7 +1144,9 @@ async def _resolve_dynamic_etf_universe(
         )
     etf_snapshots = tuple((await db.execute(snapshot_stmt)).scalars().all())
     if not etf_snapshots:
-        warnings.append("Dynamic ETF holdings universe has no snapshots available for the run window.")
+        warnings.append(
+            "Dynamic ETF holdings universe has no snapshots available for the run window."
+        )
         return [], None
 
     instrument_ids: list[int] = []
@@ -1144,7 +1185,9 @@ async def _resolve_dynamic_etf_universe(
     if non_security_count:
         warnings.append("Dynamic ETF holdings universe excludes non-security rows.")
     if not instrument_ids:
-        warnings.append("Dynamic ETF holdings universe did not resolve to any testable instruments.")
+        warnings.append(
+            "Dynamic ETF holdings universe did not resolve to any testable instruments."
+        )
         return [], None
 
     stmt = (
@@ -1191,7 +1234,9 @@ async def _resolve_dynamic_basket_snapshot_universe(
         )
     basket_snapshots = tuple((await db.execute(snapshot_stmt)).scalars().all())
     if not basket_snapshots:
-        warnings.append(f"Basket '{basket.name}' has no composition snapshots for dynamic simulation.")
+        warnings.append(
+            f"Basket '{basket.name}' has no composition snapshots for dynamic simulation."
+        )
         return [], None
 
     instrument_ids: list[int] = []
@@ -1214,7 +1259,9 @@ async def _resolve_dynamic_basket_snapshot_universe(
             )
         )
     if not instrument_ids:
-        warnings.append(f"Basket '{basket.name}' snapshots did not resolve to any testable instruments.")
+        warnings.append(
+            f"Basket '{basket.name}' snapshots did not resolve to any testable instruments."
+        )
         return [], None
 
     stmt = (
@@ -1321,8 +1368,12 @@ def _extract_risk_and_exit_config(definition: dict[str, Any]) -> dict[str, Any]:
         "take_profit_rr": _coerce_float(take_profit_rr, 0),
         "max_bars_in_trade": _coerce_int(max_bars_in_trade, 0),
         "exit_logic": str(exits.get("logic") or exits.get("exit_logic") or "all").lower(),
-        "exit_conditions": list(exits.get("conditions", [])) if isinstance(exits.get("conditions"), list) else [],
-        "exit_condition_tree": exits.get("condition_tree") if isinstance(exits.get("condition_tree"), dict) else None,
+        "exit_conditions": list(exits.get("conditions", []))
+        if isinstance(exits.get("conditions"), list)
+        else [],
+        "exit_condition_tree": exits.get("condition_tree")
+        if isinstance(exits.get("condition_tree"), dict)
+        else None,
     }
 
 
@@ -1379,14 +1430,18 @@ def _snapshot_known_on_or_before(snapshot: DynamicUniverseSnapshot, requested_da
     known_at = snapshot.known_at
     if known_at.tzinfo is None:
         known_at = known_at.replace(tzinfo=UTC)
-    return known_at.astimezone(UTC) <= datetime.combine(requested_date, datetime.min.time(), tzinfo=UTC)
+    return known_at.astimezone(UTC) <= datetime.combine(
+        requested_date, datetime.min.time(), tzinfo=UTC
+    )
 
 
 def _snapshot_member_ids(snapshot: DynamicUniverseSnapshot) -> set[int]:
     return set(snapshot.member_ids)
 
 
-def _dynamic_member_ids_for_date(dynamic_universe: DynamicETFUniverse, requested_date: date) -> set[int]:
+def _dynamic_member_ids_for_date(
+    dynamic_universe: DynamicETFUniverse, requested_date: date
+) -> set[int]:
     usable_snapshots = [
         snapshot
         for snapshot in dynamic_universe.snapshots
@@ -1524,7 +1579,9 @@ def _annotate_dynamic_universe_execution_log(
 ) -> list[dict[str, Any]]:
     if dynamic_universe is None:
         return execution_log
-    instrument_id_by_symbol = {instrument.symbol.upper(): instrument.id for instrument in instrument_rows}
+    instrument_id_by_symbol = {
+        instrument.symbol.upper(): instrument.id for instrument in instrument_rows
+    }
     run_end_date = run_end.astimezone(UTC).date() if run_end is not None else None
     annotated: list[dict[str, Any]] = []
     for event in execution_log:
@@ -1894,9 +1951,9 @@ def _build_dense_portfolio_history(
             }
         )
 
-    if equity_curve[0]["ts"] != fallback_ts and _parse_iso_datetime(fallback_ts) < _parse_iso_datetime(
-        str(equity_curve[0]["ts"])
-    ):
+    if equity_curve[0]["ts"] != fallback_ts and _parse_iso_datetime(
+        fallback_ts
+    ) < _parse_iso_datetime(str(equity_curve[0]["ts"])):
         baseline = {"ts": fallback_ts, "equity": round(initial_capital, 4)}
         equity_curve.insert(0, baseline)
         portfolio_timeline.insert(
@@ -2007,7 +2064,11 @@ def _build_position_timelines(
 
     for position in sorted(
         open_positions,
-        key=lambda item: (_parse_iso_datetime(item.entry_at), item.instrument_symbol, item.current_at),
+        key=lambda item: (
+            _parse_iso_datetime(item.entry_at),
+            item.instrument_symbol,
+            item.current_at,
+        ),
     ):
         symbol_counts[position.instrument_symbol] += 1
         entry_dt = _parse_iso_datetime(position.entry_at)
@@ -2030,7 +2091,9 @@ def _build_position_timelines(
 
         for bar in in_window:
             close_price = float(bar.close)
-            pnl_value = (close_price - float(position.entry_price)) * float(position.quantity) * direction
+            pnl_value = (
+                (close_price - float(position.entry_price)) * float(position.quantity) * direction
+            )
             points.append(
                 {
                     "ts": bar.ts.astimezone(UTC).isoformat(),
@@ -2102,12 +2165,8 @@ def _apply_portfolio_constraints(
     active_positions: list[dict[str, Any]] = []
     peak_concurrent = 0
 
-    candidates: list[dict[str, Any]] = [
-        {"kind": "trade", "item": trade}
-        for trade in trades
-    ] + [
-        {"kind": "open_position", "item": position}
-        for position in open_positions
+    candidates: list[dict[str, Any]] = [{"kind": "trade", "item": trade} for trade in trades] + [
+        {"kind": "open_position", "item": position} for position in open_positions
     ]
 
     for candidate in sorted(
@@ -2128,9 +2187,7 @@ def _apply_portfolio_constraints(
         ]
 
         notional = abs(float(item.quantity) * float(item.entry_price))
-        risk_amount = abs(float(item.entry_price) - float(item.stop_price)) * float(
-            item.quantity
-        )
+        risk_amount = abs(float(item.entry_price) - float(item.stop_price)) * float(item.quantity)
         risk_pct = (risk_amount / initial_capital * 100.0) if initial_capital > 0 else 0.0
         allocation_pct = (notional / initial_capital * 100.0) if initial_capital > 0 else 0.0
         reserved_notional = sum(float(position["notional"]) for position in active_positions)
@@ -2410,7 +2467,9 @@ async def _run_rules_backtest(
     if run.test_mode == "paper_forward":
         return await _run_rules_paper_forward(db, strategy=strategy, version=version, run=run)
 
-    definition = _apply_parameter_values(dict(version.definition_snapshot or {}), run.parameter_values or {})
+    definition = _apply_parameter_values(
+        dict(version.definition_snapshot or {}), run.parameter_values or {}
+    )
     effective_universe = dict(version.universe_config or {})
     effective_universe.update(run.universe_config or {})
     warnings: list[str] = []
@@ -2439,7 +2498,9 @@ async def _run_rules_backtest(
         date_from=run.date_from,
         date_to=run.date_to,
         preview_mode="resolved" if instrument_rows else "empty",
-        preview_note=None if instrument_rows else "No instruments resolved from the current universe.",
+        preview_note=None
+        if instrument_rows
+        else "No instruments resolved from the current universe.",
     )
 
     initial_capital = float(run.execution_assumptions.get("initial_capital", 100000))
@@ -2449,7 +2510,9 @@ async def _run_rules_backtest(
         0.0 if "slippage_bps" in run.execution_assumptions else 5.0,
     )
     commission_model, commission_value = _coerce_commission_settings(run.execution_assumptions)
-    close_open_positions_at_end = run.execution_assumptions.get("close_open_positions_at_end") is True
+    close_open_positions_at_end = (
+        run.execution_assumptions.get("close_open_positions_at_end") is True
+    )
     dynamic_universe_policy = _dynamic_universe_exit_policy(run=run, version=version)
     max_concurrent_positions = int(
         run.execution_assumptions.get("max_concurrent_positions")
@@ -2487,12 +2550,20 @@ async def _run_rules_backtest(
     exit_logic = str(risk_and_exits["exit_logic"] or "all").lower()
     exit_conditions = list(risk_and_exits["exit_conditions"])
     exit_condition_tree = risk_and_exits["exit_condition_tree"]
-    condition_types = _condition_types_used(conditions, condition_tree if isinstance(condition_tree, dict) else None)
-    condition_types |= _condition_types_used(exit_conditions, exit_condition_tree if isinstance(exit_condition_tree, dict) else None)
+    condition_types = _condition_types_used(
+        conditions, condition_tree if isinstance(condition_tree, dict) else None
+    )
+    condition_types |= _condition_types_used(
+        exit_conditions, exit_condition_tree if isinstance(exit_condition_tree, dict) else None
+    )
     requires_daily_aux = "performance" in condition_types and timeframe != Timeframe.D1
-    requires_weekly_aux = bool(
-        {"week52_new_high", "week52_new_low", "pct_from_52w_high", "pct_from_52w_low"} & condition_types
-    ) and timeframe != Timeframe.W1
+    requires_weekly_aux = (
+        bool(
+            {"week52_new_high", "week52_new_low", "pct_from_52w_high", "pct_from_52w_low"}
+            & condition_types
+        )
+        and timeframe != Timeframe.W1
+    )
 
     if not conditions:
         warnings.append("No entry conditions were defined; no trades can be simulated.")
@@ -2559,7 +2630,9 @@ async def _run_rules_backtest(
             condition_tree=condition_tree if isinstance(condition_tree, dict) else None,
             exit_logic=exit_logic,
             exit_conditions=exit_conditions,
-            exit_condition_tree=exit_condition_tree if isinstance(exit_condition_tree, dict) else None,
+            exit_condition_tree=exit_condition_tree
+            if isinstance(exit_condition_tree, dict)
+            else None,
             signal_events=None,
             stop_model=stop_model,
             stop_loss_pct=stop_loss_pct,
@@ -2758,7 +2831,8 @@ async def _run_rules_backtest(
             "max_concurrent_positions": max_concurrent_positions,
             "max_portfolio_risk_pct": max_portfolio_risk_pct,
             "max_symbol_allocation_pct": max_symbol_allocation_pct,
-            "custom_exit_condition_count": len(_iter_condition_nodes(exit_condition_tree)) + len(exit_conditions),
+            "custom_exit_condition_count": len(_iter_condition_nodes(exit_condition_tree))
+            + len(exit_conditions),
         },
         "dynamic_universe": {
             "kind": dynamic_universe.kind,
@@ -3023,7 +3097,9 @@ async def _run_radar_signal_research(
     version: StrategyVersion,
     run: StrategyRun,
 ) -> dict:
-    definition = _apply_parameter_values(dict(version.definition_snapshot or {}), run.parameter_values or {})
+    definition = _apply_parameter_values(
+        dict(version.definition_snapshot or {}), run.parameter_values or {}
+    )
     effective_universe = dict(version.universe_config or {})
     effective_universe.update(run.universe_config or {})
     warnings: list[str] = []
@@ -3100,7 +3176,9 @@ async def _run_radar_signal_research(
         0.0 if "slippage_bps" in run.execution_assumptions else 5.0,
     )
     commission_model, commission_value = _coerce_commission_settings(run.execution_assumptions)
-    close_open_positions_at_end = run.execution_assumptions.get("close_open_positions_at_end") is True
+    close_open_positions_at_end = (
+        run.execution_assumptions.get("close_open_positions_at_end") is True
+    )
     risk_and_exits = _extract_risk_and_exit_config(definition)
     stop_loss_pct = float(risk_and_exits["stop_loss_pct"])
     stop_model = str(risk_and_exits["stop_model"])
@@ -3223,7 +3301,9 @@ async def _run_radar_signal_research(
             condition_tree=None,
             exit_logic=exit_logic,
             exit_conditions=exit_conditions,
-            exit_condition_tree=exit_condition_tree if isinstance(exit_condition_tree, dict) else None,
+            exit_condition_tree=exit_condition_tree
+            if isinstance(exit_condition_tree, dict)
+            else None,
             stop_model=stop_model,
             stop_loss_pct=stop_loss_pct,
             stop_atr_period=stop_atr_period,
@@ -3401,7 +3481,8 @@ async def _run_radar_signal_research(
             "max_concurrent_positions": max_concurrent_positions,
             "max_portfolio_risk_pct": max_portfolio_risk_pct,
             "max_symbol_allocation_pct": max_symbol_allocation_pct,
-            "custom_exit_condition_count": len(_iter_condition_nodes(exit_condition_tree)) + len(exit_conditions),
+            "custom_exit_condition_count": len(_iter_condition_nodes(exit_condition_tree))
+            + len(exit_conditions),
         },
         "equity_curve": equity_curve,
         "analytics": analytics,
@@ -3478,15 +3559,9 @@ async def _maybe_run_parameter_sweep(
     if not config.get("enabled"):
         return None
     risk_and_exits = _extract_risk_and_exit_config(definition)
-    stop_values = config.get("stop_loss_pct_values") or [
-        risk_and_exits["stop_loss_pct"]
-    ]
-    target_values = config.get("take_profit_rr_values") or [
-        risk_and_exits["take_profit_rr"]
-    ]
-    bar_values = config.get("max_bars_in_trade_values") or [
-        risk_and_exits["max_bars_in_trade"]
-    ]
+    stop_values = config.get("stop_loss_pct_values") or [risk_and_exits["stop_loss_pct"]]
+    target_values = config.get("take_profit_rr_values") or [risk_and_exits["take_profit_rr"]]
+    bar_values = config.get("max_bars_in_trade_values") or [risk_and_exits["max_bars_in_trade"]]
     combos: list[dict] = []
     for stop_loss_pct in stop_values[:6]:
         for take_profit_rr in target_values[:6]:
@@ -3515,9 +3590,13 @@ async def _maybe_run_parameter_sweep(
         exit_condition_tree if isinstance(exit_condition_tree, dict) else None,
     )
     requires_daily_aux = "performance" in condition_types and timeframe != Timeframe.D1
-    requires_weekly_aux = bool(
-        {"week52_new_high", "week52_new_low", "pct_from_52w_high", "pct_from_52w_low"} & condition_types
-    ) and timeframe != Timeframe.W1
+    requires_weekly_aux = (
+        bool(
+            {"week52_new_high", "week52_new_low", "pct_from_52w_high", "pct_from_52w_low"}
+            & condition_types
+        )
+        and timeframe != Timeframe.W1
+    )
     capital_slice = initial_capital / max(len(instrument_rows), 1)
     for combo in combos[:20]:
         combo_trades: list[NautilusTrade] = []
@@ -3563,7 +3642,9 @@ async def _maybe_run_parameter_sweep(
                 condition_tree=condition_tree if isinstance(condition_tree, dict) else None,
                 exit_logic=exit_logic,
                 exit_conditions=exit_conditions,
-                exit_condition_tree=exit_condition_tree if isinstance(exit_condition_tree, dict) else None,
+                exit_condition_tree=exit_condition_tree
+                if isinstance(exit_condition_tree, dict)
+                else None,
                 signal_events=None,
                 stop_model=str(risk_and_exits["stop_model"]),
                 stop_loss_pct=combo["stop_loss_pct"],
@@ -3583,9 +3664,7 @@ async def _maybe_run_parameter_sweep(
                 break_even_rr=float(risk_and_exits["break_even_rr"]),
                 trailing_stop_rr=float(risk_and_exits["trailing_stop_rr"]),
                 hard_trailing_stop_pct=float(risk_and_exits["hard_trailing_stop_pct"]),
-                hard_trailing_activation_pct=float(
-                    risk_and_exits["hard_trailing_activation_pct"]
-                ),
+                hard_trailing_activation_pct=float(risk_and_exits["hard_trailing_activation_pct"]),
                 pyramiding_max_entries=int(risk_and_exits["pyramiding_max_entries"]),
                 daily_bars=daily_bars,
                 weekly_bars=weekly_bars,
@@ -3627,7 +3706,9 @@ def _symbol_performance_snapshot(
         symbol_open_positions = open_grouped.get(symbol, [])
         wins = [trade for trade in symbol_trades if trade.pnl > 0]
         realized_pnl = round(sum(trade.pnl for trade in symbol_trades), 4)
-        unrealized_pnl = round(sum(position.unrealized_pnl for position in symbol_open_positions), 4)
+        unrealized_pnl = round(
+            sum(position.unrealized_pnl for position in symbol_open_positions), 4
+        )
         total_pnl = round(realized_pnl + unrealized_pnl, 4)
         snapshot.append(
             {
@@ -3769,7 +3850,9 @@ async def _build_benchmark_summary(
                         else None
                     )
                 ),
-                "marker": "entry" if index == 0 else ("open_at_end" if index == len(curve) - 1 else None),
+                "marker": "entry"
+                if index == 0
+                else ("open_at_end" if index == len(curve) - 1 else None),
             }
             for index, row in enumerate(curve)
         ],

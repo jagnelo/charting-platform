@@ -234,7 +234,9 @@ async def bootstrap_core_workstation_data(db: AsyncSession) -> dict:
     # remains the responsibility of scheduled/provider maintenance jobs; the
     # startup sweep only hydrates the recent workstation window needed to make
     # the default layout usable without monopolising the API host.
-    history_start = datetime.now(UTC) - timedelta(days=settings.CORE_WORKSTATION_BOOTSTRAP_LOOKBACK_DAYS)
+    history_start = datetime.now(UTC) - timedelta(
+        days=settings.CORE_WORKSTATION_BOOTSTRAP_LOOKBACK_DAYS
+    )
 
     for symbol in symbols:
         instrument_id = instrument_ids[symbol]

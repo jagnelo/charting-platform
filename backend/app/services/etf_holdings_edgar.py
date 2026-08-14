@@ -593,19 +593,21 @@ async def list_sec_nport_backfill_jobs(
     limit: int = 25,
 ) -> list[ETFHoldingsBackfillJob]:
     rows = (
-        await db.execute(
-            select(ETFHoldingsBackfillJob)
-            .options(selectinload(ETFHoldingsBackfillJob.filings))
-            .where(
-                ETFHoldingsBackfillJob.etf_profile_id == profile.id,
-                ETFHoldingsBackfillJob.job_type.in_(
-                    ["sec_nport_recent", "sec_legacy_recent"]
-                ),
+        (
+            await db.execute(
+                select(ETFHoldingsBackfillJob)
+                .options(selectinload(ETFHoldingsBackfillJob.filings))
+                .where(
+                    ETFHoldingsBackfillJob.etf_profile_id == profile.id,
+                    ETFHoldingsBackfillJob.job_type.in_(["sec_nport_recent", "sec_legacy_recent"]),
+                )
+                .order_by(ETFHoldingsBackfillJob.started_at.desc())
+                .limit(limit)
             )
-            .order_by(ETFHoldingsBackfillJob.started_at.desc())
-            .limit(limit)
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     return list(rows)
 
 

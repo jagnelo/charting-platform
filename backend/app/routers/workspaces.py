@@ -104,8 +104,16 @@ def _factory_layout(windows: list[FactoryWindow], factory_id: str) -> dict:
             "root": {
                 "type": "row",
                 "content": [
-                    {"type": "column", "size": 50, "content": [component(windows[0]), component(windows[1])]},
-                    {"type": "column", "size": 50, "content": [component(windows[2]), component(windows[3])]},
+                    {
+                        "type": "column",
+                        "size": 50,
+                        "content": [component(windows[0]), component(windows[1])],
+                    },
+                    {
+                        "type": "column",
+                        "size": 50,
+                        "content": [component(windows[2]), component(windows[3])],
+                    },
                 ],
             },
         }
@@ -129,7 +137,10 @@ def _factory_layout(windows: list[FactoryWindow], factory_id: str) -> dict:
                     {
                         "type": "stack",
                         "size": 52,
-                        "content": [component(by_key("selected-chart")), component(by_key("sector-comparison"))],
+                        "content": [
+                            component(by_key("selected-chart")),
+                            component(by_key("sector-comparison")),
+                        ],
                     },
                 ],
             },
@@ -154,7 +165,10 @@ def _factory_layout(windows: list[FactoryWindow], factory_id: str) -> dict:
                     {
                         "type": "column",
                         "size": 52,
-                        "content": [component(by_key("selected-chart")), component(by_key("normalized-comparison"))],
+                        "content": [
+                            component(by_key("selected-chart")),
+                            component(by_key("normalized-comparison")),
+                        ],
                     },
                 ],
             },
@@ -251,8 +265,18 @@ def _factory_tabs() -> list[WorkspaceTab]:
                     ("sectors", "watchlist", "Sector Indexes"),
                     ("industries", "watchlist", "Industry Indexes"),
                     ("components", "watchlist", "Components"),
-                    ("selected-chart", "chart", "Selected Symbol", {"symbol": "SPY", "timeframe": "D1"}),
-                    ("sector-comparison", "chart", "Sector Comparison", {"symbol": "SPY", "timeframe": "D1", "comparison_symbols": ["RSP"]}),
+                    (
+                        "selected-chart",
+                        "chart",
+                        "Selected Symbol",
+                        {"symbol": "SPY", "timeframe": "D1"},
+                    ),
+                    (
+                        "sector-comparison",
+                        "chart",
+                        "Sector Comparison",
+                        {"symbol": "SPY", "timeframe": "D1", "comparison_symbols": ["RSP"]},
+                    ),
                 ],
             ),
             (
@@ -262,8 +286,18 @@ def _factory_tabs() -> list[WorkspaceTab]:
                     ("sectors", "watchlist", "Sector Indexes"),
                     ("industries", "watchlist", "Industry Indexes"),
                     ("components", "watchlist", "Components"),
-                    ("selected-chart", "chart", "Selected Symbol", {"symbol": "SPY", "timeframe": "D1"}),
-                    ("normalized-comparison", "chart", "Normalized Comparison", {"symbol": "SPY", "timeframe": "D1", "comparison_symbols": ["RSP"]}),
+                    (
+                        "selected-chart",
+                        "chart",
+                        "Selected Symbol",
+                        {"symbol": "SPY", "timeframe": "D1"},
+                    ),
+                    (
+                        "normalized-comparison",
+                        "chart",
+                        "Normalized Comparison",
+                        {"symbol": "SPY", "timeframe": "D1", "comparison_symbols": ["RSP"]},
+                    ),
                 ],
             ),
             ("one-chart", "1 Chart", [("chart", "chart", "Chart")]),
@@ -298,16 +332,24 @@ def _factory_tabs() -> list[WorkspaceTab]:
         ],
         start=1,
     ):
-        timeframe_configurations = {
-            "m15": {"symbol": "SPY", "timeframe": "M15", "timeframe_link_group": "red"},
-            "daily": {"symbol": "SPY", "timeframe": "D1", "timeframe_link_group": "green"},
-            "weekly": {"symbol": "SPY", "timeframe": "W1", "timeframe_link_group": "purple"},
-            "monthly": {"symbol": "SPY", "timeframe": "MN", "timeframe_link_group": "orange"},
-        } if stable_key == "four-timeframe" else {}
+        timeframe_configurations = (
+            {
+                "m15": {"symbol": "SPY", "timeframe": "M15", "timeframe_link_group": "red"},
+                "daily": {"symbol": "SPY", "timeframe": "D1", "timeframe_link_group": "green"},
+                "weekly": {"symbol": "SPY", "timeframe": "W1", "timeframe_link_group": "purple"},
+                "monthly": {"symbol": "SPY", "timeframe": "MN", "timeframe_link_group": "orange"},
+            }
+            if stable_key == "four-timeframe"
+            else {}
+        )
         layout_windows: list[tuple[str, str, str, dict]] = []
         for item in windows:
             instance_key, tool_type, title = item[:3]
-            configuration = item[3] if len(item) == 4 else timeframe_configurations.get(instance_key, {"symbol": "SPY"})
+            configuration = (
+                item[3]
+                if len(item) == 4
+                else timeframe_configurations.get(instance_key, {"symbol": "SPY"})
+            )
             layout_windows.append((instance_key, tool_type, title, configuration))
         factory_tab = WorkspaceTab(
             stable_key=stable_key,
@@ -316,8 +358,14 @@ def _factory_tabs() -> list[WorkspaceTab]:
             layout_config=_factory_layout(layout_windows, stable_key),
             active_window_key=windows[0][0],
         )
-        for window_position, (instance_key, tool_type, title, *configuration_override) in enumerate(windows):
-            configuration = configuration_override[0] if configuration_override else timeframe_configurations.get(instance_key, {"symbol": "SPY"})
+        for window_position, (instance_key, tool_type, title, *configuration_override) in enumerate(
+            windows
+        ):
+            configuration = (
+                configuration_override[0]
+                if configuration_override
+                else timeframe_configurations.get(instance_key, {"symbol": "SPY"})
+            )
             factory_tab.windows.append(
                 WorkspaceWindow(
                     instance_key=instance_key,
@@ -354,12 +402,17 @@ async def _load_workspace(db: AsyncSession, workspace_id: int, user_id: int) -> 
 
 async def _ensure_default_workspace(db: AsyncSession, user: User) -> Workspace:
     defaults = (
-        await db.execute(
-            _workspace_query()
-            .where(Workspace.user_id == user.id, Workspace.is_default.is_(True))
-            .order_by(Workspace.position, Workspace.created_at)
+        (
+            await db.execute(
+                _workspace_query()
+                .where(Workspace.user_id == user.id, Workspace.is_default.is_(True))
+                .order_by(Workspace.position, Workspace.created_at)
+            )
         )
-    ).scalars().unique().all()
+        .scalars()
+        .unique()
+        .all()
+    )
     if defaults:
         # Older snapshots or concurrent first-load requests can have left more than
         # one default. Keep the deterministic first workspace and repair the rest so
@@ -760,7 +813,10 @@ async def upsert_condition_asset(
         db.add(python_asset)
         await db.flush()
     elif python_asset.kind != "condition":
-        raise HTTPException(status_code=409, detail="Visual condition code asset key is already used by another asset kind")
+        raise HTTPException(
+            status_code=409,
+            detail="Visual condition code asset key is already used by another asset kind",
+        )
     next_version = (
         await db.execute(
             select(func.max(CodeVersion.version_number)).where(

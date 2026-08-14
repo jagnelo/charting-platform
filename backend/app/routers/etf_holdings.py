@@ -191,7 +191,9 @@ async def paged_holdings(
     date_: date | None = Query(None, alias="date"),
     point_in_time: bool = Query(True),
     q: str | None = Query(None),
-    sort: str = Query("position", pattern="^(position|weight|market_value|shares|symbol|name|resolved)$"),
+    sort: str = Query(
+        "position", pattern="^(position|weight|market_value|shares|symbol|name|resolved)$"
+    ),
     direction: str = Query("asc", pattern="^(asc|desc)$"),
     limit: int = Query(100, ge=1, le=500),
     offset: int = Query(0, ge=0),
@@ -500,12 +502,16 @@ async def holdings_adapter_state(
     instrument = await ensure_lightweight_etf_instrument(db, symbol=symbol)
     profile = await ensure_etf_profile(db, instrument)
     states = (
-        await db.execute(
-            select(ETFHoldingsAdapterState)
-            .where(ETFHoldingsAdapterState.etf_profile_id == profile.id)
-            .order_by(ETFHoldingsAdapterState.adapter_key)
+        (
+            await db.execute(
+                select(ETFHoldingsAdapterState)
+                .where(ETFHoldingsAdapterState.etf_profile_id == profile.id)
+                .order_by(ETFHoldingsAdapterState.adapter_key)
+            )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     return states
 
 

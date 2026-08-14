@@ -138,7 +138,12 @@ class TestWatchlistsCrud:
     ):
         from app.models.watchlist import WatchlistItem
 
-        target = Watchlist(user_id=user.id, name="Locked destination", position=watchlist.position + 1, is_locked=True)
+        target = Watchlist(
+            user_id=user.id,
+            name="Locked destination",
+            position=watchlist.position + 1,
+            is_locked=True,
+        )
         db.add(target)
         db.flush()
         item = WatchlistItem(watchlist_id=watchlist.id, instrument_id=instrument.id, position=0)
@@ -163,18 +168,32 @@ class TestWatchlistsCrud:
     ):
         from app.models.watchlist import WatchlistItem
 
-        target = Watchlist(user_id=user.id, name="Batch destination", position=watchlist.position + 1)
+        target = Watchlist(
+            user_id=user.id, name="Batch destination", position=watchlist.position + 1
+        )
         db.add(target)
         db.flush()
-        first = WatchlistItem(watchlist_id=watchlist.id, instrument_id=instrument.id, position=0, flagged=True, notes="first")
-        second = WatchlistItem(watchlist_id=watchlist.id, instrument_id=instrument_b.id, position=1, notes="second")
+        first = WatchlistItem(
+            watchlist_id=watchlist.id,
+            instrument_id=instrument.id,
+            position=0,
+            flagged=True,
+            notes="first",
+        )
+        second = WatchlistItem(
+            watchlist_id=watchlist.id, instrument_id=instrument_b.id, position=1, notes="second"
+        )
         db.add_all([first, second])
         db.flush()
 
         copied = client.post(
             f"/api/v1/watchlists/{target.id}/items/transfer-batch",
             headers=auth_headers,
-            json={"source_watchlist_id": watchlist.id, "item_ids": [second.id, first.id], "mode": "copy"},
+            json={
+                "source_watchlist_id": watchlist.id,
+                "item_ids": [second.id, first.id],
+                "mode": "copy",
+            },
         )
         assert copied.status_code == 200
         assert [item["instrument_id"] for item in copied.json()] == [instrument.id, instrument_b.id]
@@ -185,7 +204,11 @@ class TestWatchlistsCrud:
         missing = client.post(
             "/api/v1/watchlists/999999/items/transfer-batch",
             headers=auth_headers,
-            json={"source_watchlist_id": watchlist.id, "item_ids": [first.id, second.id], "mode": "move"},
+            json={
+                "source_watchlist_id": watchlist.id,
+                "item_ids": [first.id, second.id],
+                "mode": "move",
+            },
         )
         assert missing.status_code == 404
         assert db.get(WatchlistItem, first.id) is not None

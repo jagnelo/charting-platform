@@ -59,9 +59,10 @@ def _e2e_fixture_bar_condition():
     Production and ordinary test runs retain the normal provider-neutral read
     path when the flag is disabled.
     """
-    return OHLCVBar.data_source_id == select(DataSource.id).where(
-        DataSource.name == "e2e_reference"
-    ).scalar_subquery()
+    return (
+        OHLCVBar.data_source_id
+        == select(DataSource.id).where(DataSource.name == "e2e_reference").scalar_subquery()
+    )
 
 
 def _seeded_market_data() -> bool:
@@ -591,11 +592,7 @@ async def fetch_ohlcv(
     ]
     if _seeded_market_data():
         predicates.append(_e2e_fixture_bar_condition())
-    stmt = (
-        select(OHLCVBar)
-        .where(and_(*predicates))
-        .order_by(OHLCVBar.ts)
-    )
+    stmt = select(OHLCVBar).where(and_(*predicates)).order_by(OHLCVBar.ts)
     cached = list((await db.execute(stmt)).scalars().all())
 
     # A seeded visual run is intentionally local-only.  Returning the fixture
@@ -810,12 +807,7 @@ async def fetch_ohlcv_latest(
     ]
     if _seeded_market_data():
         predicates.append(_e2e_fixture_bar_condition())
-    stmt = (
-        select(OHLCVBar)
-        .where(and_(*predicates))
-        .order_by(OHLCVBar.ts.desc())
-        .limit(limit)
-    )
+    stmt = select(OHLCVBar).where(and_(*predicates)).order_by(OHLCVBar.ts.desc()).limit(limit)
     rows = list((await db.execute(stmt)).scalars().all())
     rows.sort(key=lambda b: b.ts)  # return chronological order
 
@@ -956,7 +948,12 @@ async def fetch_ohlcv_page_before(
             if const_instr is not None and not const_instr.is_synthetic:
                 await db.refresh(const_instr, ["listings"])
                 await fetch_ohlcv_page_before(
-                    db, const_instr, timeframe, before, limit, adjusted,
+                    db,
+                    const_instr,
+                    timeframe,
+                    before,
+                    limit,
+                    adjusted,
                     allow_provider_fetch=allow_provider_fetch,
                 )
 
@@ -979,12 +976,7 @@ async def fetch_ohlcv_page_before(
     ]
     if _seeded_market_data():
         predicates.append(_e2e_fixture_bar_condition())
-    stmt = (
-        select(OHLCVBar)
-        .where(and_(*predicates))
-        .order_by(OHLCVBar.ts.desc())
-        .limit(limit)
-    )
+    stmt = select(OHLCVBar).where(and_(*predicates)).order_by(OHLCVBar.ts.desc()).limit(limit)
     rows = list((await db.execute(stmt)).scalars().all())
 
     if _seeded_market_data():
@@ -1001,9 +993,7 @@ async def fetch_ohlcv_page_before(
         # the entire epoch for a bounded pagination page.
         oldest_cached = min((row.ts for row in rows), default=None)
         missing_count = max(limit - len(rows), 1)
-        repair_start = _historical_repair_start(
-            before, timeframe, missing_count, oldest_cached
-        )
+        repair_start = _historical_repair_start(before, timeframe, missing_count, oldest_cached)
         repair_end = _as_utc(oldest_cached) - timedelta(seconds=1) if oldest_cached else before
         try:
             fetched = await _fetch_provider(

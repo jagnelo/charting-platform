@@ -64,7 +64,10 @@ def test_approved_reference_requires_full_capture_evidence():
     }
     validate_visual_manifest(manifest, require_approved=True)
 
-    incomplete = {**manifest, "surfaces": [{**manifest["surfaces"][0], "review": {"status": "approved"}}]}
+    incomplete = {
+        **manifest,
+        "surfaces": [{**manifest["surfaces"][0], "review": {"status": "approved"}}],
+    }
     with pytest.raises(VisualManifestError, match="reviewer"):
         validate_visual_manifest(incomplete, require_approved=True)
 
@@ -72,7 +75,9 @@ def test_approved_reference_requires_full_capture_evidence():
 def test_state_entries_must_cover_each_required_surface_state():
     manifest = load_visual_manifest(MANIFEST)
     for surface in manifest["surfaces"]:
-        assert {entry["id"] for entry in surface["state_entries"]} == set(surface["required_states"])
+        assert {entry["id"] for entry in surface["state_entries"]} == set(
+            surface["required_states"]
+        )
     with pytest.raises(VisualManifestError, match="state_entries"):
         broken = load_visual_manifest(MANIFEST)
         broken["surfaces"][0]["state_entries"] = broken["surfaces"][0]["state_entries"][:-1]
@@ -104,9 +109,7 @@ def test_manifest_gap_ids_are_documented_and_attached_to_required_surfaces():
     for gap_id in expected_gap_ids:
         assert gap_id in board_doc
     referenced_gap_ids = {
-        gap_id
-        for surface in manifest["surfaces"]
-        for gap_id in surface.get("gap_ids", [])
+        gap_id for surface in manifest["surfaces"] for gap_id in surface.get("gap_ids", [])
     }
     assert referenced_gap_ids == expected_gap_ids
     for surface in manifest["surfaces"]:
@@ -123,8 +126,12 @@ def test_manifest_partitions_board_covered_states_and_remaining_gaps():
         assert covered.isdisjoint(gaps)
         assert covered | gaps == required
         entries = {entry["id"]: entry for entry in surface["state_entries"]}
-        assert {key for key, entry in entries.items() if entry["state"] == "board_covered"} == covered
-        assert {key for key, entry in entries.items() if entry["state"] == "required_missing"} == gaps
+        assert {
+            key for key, entry in entries.items() if entry["state"] == "board_covered"
+        } == covered
+        assert {
+            key for key, entry in entries.items() if entry["state"] == "required_missing"
+        } == gaps
 
 
 def test_visual_gap_entries_record_interim_oracles_and_known_local_baselines():
@@ -134,13 +141,25 @@ def test_visual_gap_entries_record_interim_oracles_and_known_local_baselines():
         for surface in manifest["surfaces"]
         for entry in surface["state_entries"]
     }
-    assert entries[("chart-window", "loading")]["interim_oracle"] == "F8i-b functional loading assertion"
+    assert (
+        entries[("chart-window", "loading")]["interim_oracle"]
+        == "F8i-b functional loading assertion"
+    )
     assert len(entries[("chart-window", "loading")]["local_baselines"]) == 4
-    assert entries[("workspace-docking", "blocked_popout")]["interim_oracle"] == "F8k-a behavioral recovery assertion"
+    assert (
+        entries[("workspace-docking", "blocked_popout")]["interim_oracle"]
+        == "F8k-a behavioral recovery assertion"
+    )
     assert len(entries[("workspace-docking", "blocked_popout")]["local_baselines"]) == 4
-    assert entries[("chart-window", "error")]["interim_oracle"] == "F8i-a functional provider-error assertion plus deterministic four-environment visual baseline"
+    assert (
+        entries[("chart-window", "error")]["interim_oracle"]
+        == "F8i-a functional provider-error assertion plus deterministic four-environment visual baseline"
+    )
     assert len(entries[("chart-window", "error")]["local_baselines"]) == 4
-    assert entries[("watchlist-column-filter", "partial_coverage")]["interim_oracle"] == "F8i-d functional partial-coverage assertion"
+    assert (
+        entries[("watchlist-column-filter", "partial_coverage")]["interim_oracle"]
+        == "F8i-d functional partial-coverage assertion"
+    )
 
 
 def test_required_missing_state_without_interim_oracle_is_rejected():
@@ -153,7 +172,9 @@ def test_required_missing_state_without_interim_oracle_is_rejected():
 def test_required_missing_state_without_four_environment_baselines_is_rejected():
     broken = load_visual_manifest(MANIFEST)
     broken["surfaces"][-1]["state_entries"][0]["local_baselines"] = ["only-one-baseline"]
-    with pytest.raises(VisualManifestError, match="one deterministic local baseline per required environment"):
+    with pytest.raises(
+        VisualManifestError, match="one deterministic local baseline per required environment"
+    ):
         validate_visual_manifest(broken)
 
 
@@ -165,5 +186,7 @@ def test_required_missing_state_with_duplicate_baselines_is_rejected():
         "third-baseline",
         "fourth-baseline",
     ]
-    with pytest.raises(VisualManifestError, match="one deterministic local baseline per required environment"):
+    with pytest.raises(
+        VisualManifestError, match="one deterministic local baseline per required environment"
+    ):
         validate_visual_manifest(broken)

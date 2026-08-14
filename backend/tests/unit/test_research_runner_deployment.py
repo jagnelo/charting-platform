@@ -51,8 +51,14 @@ def test_worker_compose_contract_inherits_seed_and_workstation_bootstrap_flags()
 
     assert "E2E_SEED_INSTRUMENTS: ${E2E_SEED_INSTRUMENTS:-false}" in service
     assert "E2E_SEED_MARKET_DATA: ${E2E_SEED_MARKET_DATA:-false}" in service
-    assert "CORE_WORKSTATION_BOOTSTRAP_ENABLED: ${CORE_WORKSTATION_BOOTSTRAP_ENABLED:-false}" in service
-    assert "CORE_WORKSTATION_BOOTSTRAP_TIMEOUT_SECONDS: ${CORE_WORKSTATION_BOOTSTRAP_TIMEOUT_SECONDS:-45}" in service
+    assert (
+        "CORE_WORKSTATION_BOOTSTRAP_ENABLED: ${CORE_WORKSTATION_BOOTSTRAP_ENABLED:-false}"
+        in service
+    )
+    assert (
+        "CORE_WORKSTATION_BOOTSTRAP_TIMEOUT_SECONDS: ${CORE_WORKSTATION_BOOTSTRAP_TIMEOUT_SECONDS:-45}"
+        in service
+    )
 
 
 def test_research_runner_image_pins_curated_numerical_dependencies_and_thread_budget():
@@ -82,7 +88,9 @@ def test_research_runner_seccomp_profile_denies_namespace_escape_and_process_cre
 
 
 def test_live_resource_probe_is_bounded_and_requires_expected_failure_modes():
-    probe = (Path(__file__).resolve().parents[3] / "ops" / "probe-research-runner-resources.sh").read_text()
+    probe = (
+        Path(__file__).resolve().parents[3] / "ops" / "probe-research-runner-resources.sh"
+    ).read_text()
 
     assert "memory=805306368" in probe
     assert "nano_cpus=1000000000" in probe
@@ -100,7 +108,9 @@ def test_live_resource_probe_is_bounded_and_requires_expected_failure_modes():
 
 
 def test_live_recovery_probe_is_bounded_and_verifies_orphan_cleanup():
-    probe = (Path(__file__).resolve().parents[3] / "ops" / "probe-research-runner-recovery.sh").read_text()
+    probe = (
+        Path(__file__).resolve().parents[3] / "ops" / "probe-research-runner-recovery.sh"
+    ).read_text()
 
     assert "isolated research runner" in probe
     assert "100000000" in probe
@@ -114,7 +124,9 @@ def test_live_recovery_probe_is_bounded_and_verifies_orphan_cleanup():
 
 
 def test_live_sustained_probe_overlaps_cancellation_and_success_without_leaking_sentinels():
-    probe = (Path(__file__).resolve().parents[3] / "ops" / "probe-research-runner-sustained.sh").read_text()
+    probe = (
+        Path(__file__).resolve().parents[3] / "ops" / "probe-research-runner-sustained.sh"
+    ).read_text()
 
     assert "TC2000_RUNNER_STRESS_ROUNDS" in probe
     assert "600" in probe

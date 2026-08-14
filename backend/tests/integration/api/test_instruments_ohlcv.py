@@ -164,7 +164,9 @@ class TestInstruments:
         self, provider_profile, client, auth_headers, instrument
     ):
         """Ordinary workstation hydration must use the canonical local database only."""
-        provider_profile.side_effect = AssertionError("provider metadata must be scheduled, not request-triggered")
+        provider_profile.side_effect = AssertionError(
+            "provider metadata must be scheduled, not request-triggered"
+        )
         res = client.get(f"/api/v1/instruments/{instrument.symbol}", headers=auth_headers)
         assert res.status_code == 200
         provider_profile.assert_not_called()

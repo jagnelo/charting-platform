@@ -41,9 +41,12 @@ def test_zero_width_calendar_gap_is_not_sent_to_a_provider():
 
 def test_cached_ranges_tolerate_expected_provider_availability_failures():
     assert _is_recoverable_provider_gap(ProviderNoDataError("empty")) is True
-    assert _is_recoverable_provider_gap(
-        RuntimeError("No enabled providers available for capability 'price_history'")
-    ) is True
+    assert (
+        _is_recoverable_provider_gap(
+            RuntimeError("No enabled providers available for capability 'price_history'")
+        )
+        is True
+    )
     assert _is_recoverable_provider_gap(RuntimeError("unexpected programming failure")) is False
 
 

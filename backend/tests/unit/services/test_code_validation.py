@@ -4,7 +4,9 @@ from app.services.code_validation import validate_workstation_python
 
 
 def test_validates_sdk_dependencies_without_execution():
-    result = validate_workstation_python("series = ta.sma(market.close('SPY'), 20)\noutput.series('trend', series)")
+    result = validate_workstation_python(
+        "series = ta.sma(market.close('SPY'), 20)\noutput.series('trend', series)"
+    )
     assert result.valid
     assert result.dependencies == ("market", "output", "ta")
     assert result.lookback_hint == 20
@@ -32,9 +34,20 @@ def test_dynamic_indicator_parameters_do_not_claim_a_static_lookback():
 
 
 def test_collects_all_declared_output_contracts_without_executing_source():
-    result = validate_workstation_python("output.scalar('n', 1)\noutput.boolean('qualifies', 1 > 0)\noutput.bar('ranking', ['A'], [1])\noutput.histogram('distribution', [1, 2])\noutput.range('band', [1], [2])\noutput.scatter('relationship', [1], [2])\noutput.heatmap('matrix', [[1]])\noutput.dashboard('overview', [{'artifact': 'n'}])")
+    result = validate_workstation_python(
+        "output.scalar('n', 1)\noutput.boolean('qualifies', 1 > 0)\noutput.bar('ranking', ['A'], [1])\noutput.histogram('distribution', [1, 2])\noutput.range('band', [1], [2])\noutput.scatter('relationship', [1], [2])\noutput.heatmap('matrix', [[1]])\noutput.dashboard('overview', [{'artifact': 'n'}])"
+    )
     assert result.valid
-    assert result.output_contracts == ("bar", "boolean", "dashboard", "heatmap", "histogram", "range", "scalar", "scatter")
+    assert result.output_contracts == (
+        "bar",
+        "boolean",
+        "dashboard",
+        "heatmap",
+        "histogram",
+        "range",
+        "scalar",
+        "scatter",
+    )
 
 
 def test_rejects_imports_and_dynamic_execution_with_source_positions():
@@ -64,7 +77,9 @@ def test_rejects_imports_and_dynamic_execution_with_source_positions():
         ("type('Escape', (), {})", "unapproved_namespace"),
     ],
 )
-def test_rejects_filesystem_network_process_reflection_and_dynamic_type_access(source, expected_code):
+def test_rejects_filesystem_network_process_reflection_and_dynamic_type_access(
+    source, expected_code
+):
     result = validate_workstation_python(source)
     assert not result.valid
     assert any(item.code == expected_code for item in result.diagnostics)
@@ -88,7 +103,9 @@ def test_rejects_dunder_escape_attempts():
 def test_rejects_object_graph_introspection_paths(source):
     result = validate_workstation_python(source)
     assert not result.valid
-    assert any(item.code in {"forbidden_name", "forbidden_attribute"} for item in result.diagnostics)
+    assert any(
+        item.code in {"forbidden_name", "forbidden_attribute"} for item in result.diagnostics
+    )
 
 
 def test_rejects_numpy_and_pandas_file_access():

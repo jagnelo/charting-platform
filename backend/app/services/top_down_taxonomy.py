@@ -148,8 +148,7 @@ async def seed_top_down_taxonomy(db: AsyncSession) -> None:
     proxy nature.  It is not an assertion of official S&P constituent ownership.
     """
     existing = {
-        group.stable_key: group
-        for group in (await db.execute(select(MarketGroup))).scalars()
+        group.stable_key: group for group in (await db.execute(select(MarketGroup))).scalars()
     }
     observed_at = datetime.now(UTC)
     roots = {
@@ -187,7 +186,7 @@ async def seed_top_down_taxonomy(db: AsyncSession) -> None:
             existing[stable_key].provenance = {
                 **(existing[stable_key].provenance or {}),
                 **taxonomy_provenance,
-    }
+            }
     await db.flush()
 
     # Do not touch the relationship collection here.  Startup runs in an

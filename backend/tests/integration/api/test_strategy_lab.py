@@ -414,9 +414,10 @@ class TestStrategyLabAPI:
         assert payload["universe"]["requested_fits_collective_range"] is False
         assert payload["universe"]["collective_coverage_from"].startswith("2024-02-15")
         assert payload["universe"]["limiting_instruments"][0]["symbol"] == "MSFT"
-        assert "earlier local history may be missing" in (
-            payload["universe"]["limiting_instruments"][0]["note"] or ""
-        ).lower()
+        assert (
+            "earlier local history may be missing"
+            in (payload["universe"]["limiting_instruments"][0]["note"] or "").lower()
+        )
         assert payload["benchmark"]["symbol"] == "SPY"
         assert payload["benchmark"]["requested_status"] == "partial"
         assert payload["benchmark"]["requested_first_bar_at"].startswith("2024-03-01")
@@ -673,12 +674,11 @@ class TestStrategyLabAPI:
         )
         assert run_res.status_code == 201
         summary = run_res.json()["result_summary"]
-        assert set(summary["universe"]["resolved_symbols"]) == {instrument.symbol, instrument_b.symbol}
-        entries = [
-            event
-            for event in summary["execution_log"]
-            if event["event_type"] == "entry"
-        ]
+        assert set(summary["universe"]["resolved_symbols"]) == {
+            instrument.symbol,
+            instrument_b.symbol,
+        }
+        entries = [event for event in summary["execution_log"] if event["event_type"] == "entry"]
         assert {event["symbol"] for event in entries} == {instrument.symbol, instrument_b.symbol}
         assert {
             event["universe_snapshot_composition_date"]
@@ -843,7 +843,9 @@ class TestStrategyLabAPI:
             position["instrument_symbol"] != instrument.symbol
             for position in summary["open_positions"]
         )
-        assert summary["execution_assumptions"]["dynamic_universe_exit_policy"] == "close_on_removal"
+        assert (
+            summary["execution_assumptions"]["dynamic_universe_exit_policy"] == "close_on_removal"
+        )
         assert summary["dynamic_universe"]["snapshot_count"] == 2
 
     def test_strategy_run_can_use_dynamic_etf_derived_basket_universe(
@@ -977,11 +979,7 @@ class TestStrategyLabAPI:
         )
         assert run_res.status_code == 201
         summary = run_res.json()["result_summary"]
-        entries = [
-            event
-            for event in summary["execution_log"]
-            if event["event_type"] == "entry"
-        ]
+        entries = [event for event in summary["execution_log"] if event["event_type"] == "entry"]
         assert {event["symbol"] for event in entries} == {instrument.symbol, instrument_b.symbol}
         assert {
             event["universe_snapshot_composition_date"]
@@ -1053,9 +1051,13 @@ class TestStrategyLabAPI:
             .all()
         )
         snapshots[0].composition_date = ohlcv_bars[0].ts.date()
-        snapshots[0].known_at = datetime.combine(snapshots[0].composition_date, datetime.min.time(), tzinfo=UTC)
+        snapshots[0].known_at = datetime.combine(
+            snapshots[0].composition_date, datetime.min.time(), tzinfo=UTC
+        )
         snapshots[1].composition_date = ohlcv_bars[len(ohlcv_bars) // 2].ts.date()
-        snapshots[1].known_at = datetime.combine(snapshots[1].composition_date, datetime.min.time(), tzinfo=UTC)
+        snapshots[1].known_at = datetime.combine(
+            snapshots[1].composition_date, datetime.min.time(), tzinfo=UTC
+        )
         db.commit()
 
         create_res = client.post(
@@ -1115,19 +1117,12 @@ class TestStrategyLabAPI:
         )
         assert run_res.status_code == 201
         summary = run_res.json()["result_summary"]
-        entries = [
-            event
-            for event in summary["execution_log"]
-            if event["event_type"] == "entry"
-        ]
+        entries = [event for event in summary["execution_log"] if event["event_type"] == "entry"]
         assert {event["symbol"] for event in entries} == {instrument.symbol, instrument_b.symbol}
         assert summary["dynamic_universe"]["kind"] == "basket"
         assert summary["dynamic_universe"]["basket_id"] == basket_id
         assert summary["dynamic_universe"]["snapshot_count"] == 2
-        assert {
-            event["universe_snapshot_source_type"]
-            for event in entries
-        } == {"manual"}
+        assert {event["universe_snapshot_source_type"] for event in entries} == {"manual"}
 
     def test_delete_definition_removes_strategy(self, client, auth_headers):
         create_res = client.post(
@@ -1344,8 +1339,18 @@ class TestStrategyLabAPI:
                         "direction": "long",
                         "entry_logic": "all",
                         "conditions": [
-                            {"type": "fundamental_filter", "field": "sector", "op": "eq", "value": "Technology"},
-                            {"type": "stats_filter", "field": "market_cap", "op": "gt", "value": 1000000},
+                            {
+                                "type": "fundamental_filter",
+                                "field": "sector",
+                                "op": "eq",
+                                "value": "Technology",
+                            },
+                            {
+                                "type": "stats_filter",
+                                "field": "market_cap",
+                                "op": "gt",
+                                "value": 1000000,
+                            },
                             {"type": "performance", "period": "1M", "op": "gt", "value": -1.0},
                         ],
                         "risk": {

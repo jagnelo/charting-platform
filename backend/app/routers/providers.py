@@ -148,18 +148,24 @@ async def get_provider_entitlement_history(
         raise HTTPException(400, f"Unknown provider capability '{capability}'") from exc
     await seed_provider_runtime(db)
     rows = (
-        await db.execute(
-            select(ProviderEntitlementRevision)
-            .join(DataSource, DataSource.id == ProviderEntitlementRevision.data_source_id)
-            .where(
-                DataSource.name == provider_name,
-                ProviderEntitlementRevision.capability == capability_enum,
+        (
+            await db.execute(
+                select(ProviderEntitlementRevision)
+                .join(DataSource, DataSource.id == ProviderEntitlementRevision.data_source_id)
+                .where(
+                    DataSource.name == provider_name,
+                    ProviderEntitlementRevision.capability == capability_enum,
+                )
+                .order_by(ProviderEntitlementRevision.revision.desc())
             )
-            .order_by(ProviderEntitlementRevision.revision.desc())
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     if not rows:
-        raise HTTPException(404, f"No entitlement history found for '{provider_name}' / '{capability}'")
+        raise HTTPException(
+            404, f"No entitlement history found for '{provider_name}' / '{capability}'"
+        )
     return [
         {
             "provider": provider_name,
@@ -210,7 +216,9 @@ async def update_provider_entitlement(
     if entitlement is None:
         raise HTTPException(404, f"No entitlement found for '{provider_name}' / '{capability}'")
     changes = body.model_dump(exclude_unset=True)
-    changed = any(getattr(entitlement, field_name) != value for field_name, value in changes.items())
+    changed = any(
+        getattr(entitlement, field_name) != value for field_name, value in changes.items()
+    )
     for field_name, value in changes.items():
         setattr(entitlement, field_name, value)
     if changed:
@@ -341,7 +349,9 @@ async def update_reconciliation_issue(
             "id": current_user.id,
             "username": current_user.username,
             "display_name": current_user.display_name,
-        } if issue.resolved_by_user_id else None,
+        }
+        if issue.resolved_by_user_id
+        else None,
     }
 
 

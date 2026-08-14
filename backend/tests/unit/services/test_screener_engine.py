@@ -54,6 +54,7 @@ class TestIndicatorCacheFlush:
 
         assert await _flush_indicator_cache(Session()) is None
 
+
 # ── _compare — pure operator dispatch ─────────────────────────────────────────
 
 

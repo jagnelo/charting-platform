@@ -44,9 +44,7 @@ def disable_live_constituent_enrichment(monkeypatch):
     monkeypatch.setattr("app.services.etf_holdings.settings.APP_ENV", "test")
 
 
-def test_admin_can_refresh_ark_provider_route(
-    client, admin_headers, auth_headers, monkeypatch
-):
+def test_admin_can_refresh_ark_provider_route(client, admin_headers, auth_headers, monkeypatch):
     raw_csv = "\n".join(
         [
             "Fund Ticker,Fund Name,Ticker,Name,Weight (%),Shares,Market Value,Currency",
@@ -187,9 +185,7 @@ def test_bootstrap_endpoint_can_materialize_and_fetch_first_snapshot(
     assert latest.json()["row_count"] == 2
 
 
-def test_bootstrap_endpoint_seeds_known_ishares_route_metadata(
-    client, auth_headers, monkeypatch
-):
+def test_bootstrap_endpoint_seeds_known_ishares_route_metadata(client, auth_headers, monkeypatch):
     async def fake_bootstrap_from_sec_filings(db, profile):
         return None
 
@@ -399,7 +395,9 @@ def test_bootstrap_endpoint_seeds_invesco_rsp_cusip_route_metadata(
     assert body["profile"]["adapter_key"] == "invesco"
     assert body["profile"]["provider_aliases"]["cusip"] == "46137V357"
     assert body["probe"]["status"] == "ready"
-    assert body["probe"]["source_url"].endswith("shareclasses/46137V357/holdings/fund?idType=cusip&interval=monthly&productType=ETF")
+    assert body["probe"]["source_url"].endswith(
+        "shareclasses/46137V357/holdings/fund?idType=cusip&interval=monthly&productType=ETF"
+    )
     assert body["refresh_succeeded"] is True
     assert body["latest_snapshot"]["row_count"] == 1
 
@@ -458,6 +456,7 @@ def test_bootstrap_endpoint_falls_back_to_sec_when_invesco_refresh_route_fails(
         "app.services.etf_holdings_refresh._bootstrap_from_sec_filings",
         fake_sec_fallback,
     )
+
     async def fake_refresh_adapter_route(*args, **kwargs):
         raise ValueError("Issuer route intentionally failed in test.")
 
@@ -465,8 +464,10 @@ def test_bootstrap_endpoint_falls_back_to_sec_when_invesco_refresh_route_fails(
         "app.services.etf_holdings_refresh._refresh_adapter_route",
         fake_refresh_adapter_route,
     )
+
     async def fake_enrich(*args, **kwargs):
         return False
+
     monkeypatch.setattr(
         "app.services.etf_holdings_refresh.enrich_etf_profile_from_sec_fund_tickers",
         fake_enrich,
@@ -566,9 +567,7 @@ def test_bootstrap_endpoint_overrides_stale_known_standard_etf_metadata(
     assert body["profile"]["sec_cik"] == "0000930667"
 
 
-def test_bootstrap_endpoint_persists_profile_when_no_route_can_be_resolved(
-    client, auth_headers
-):
+def test_bootstrap_endpoint_persists_profile_when_no_route_can_be_resolved(client, auth_headers):
     response = client.post(
         "/api/v1/etf-holdings/MYST/bootstrap",
         headers=auth_headers,
@@ -659,9 +658,7 @@ def test_holdings_page_supports_server_side_paging_sorting_and_search(
     assert search_body["holdings"][0]["reported_symbol"] == "MSFT"
 
 
-def test_holdings_diff_reports_added_removed_and_changed_rows(
-    client, admin_headers, auth_headers
-):
+def test_holdings_diff_reports_added_removed_and_changed_rows(client, admin_headers, auth_headers):
     first = client.post(
         "/api/v1/etf-holdings/DIFF/ingest",
         json={
@@ -748,9 +745,7 @@ def test_holdings_diff_reports_added_removed_and_changed_rows(
     assert rows["AAPL"]["weight_delta"] == "0.02000000"
 
 
-def test_weight_evolution_reports_top_historical_weight_movers(
-    client, admin_headers, auth_headers
-):
+def test_weight_evolution_reports_top_historical_weight_movers(client, admin_headers, auth_headers):
     snapshots = [
         (
             "2026-05-01",
@@ -808,7 +803,9 @@ def test_weight_evolution_reports_top_historical_weight_movers(
 
     latest = client.get("/api/v1/etf-holdings/EVOL/latest", headers=auth_headers)
     assert latest.status_code == 200
-    aapl_holding = next(row for row in latest.json()["holdings"] if row["reported_symbol"] == "AAPL")
+    aapl_holding = next(
+        row for row in latest.json()["holdings"] if row["reported_symbol"] == "AAPL"
+    )
     timeline = client.get(
         f"/api/v1/etf-holdings/EVOL/constituents/{aapl_holding['constituent_instrument_id']}/timeline",
         headers=auth_headers,
@@ -825,9 +822,7 @@ def test_weight_evolution_reports_top_historical_weight_movers(
     assert points[2]["weight_delta_from_previous"] == "0.02000000"
 
 
-def test_transition_timeline_reports_adjacent_snapshot_churn(
-    client, admin_headers, auth_headers
-):
+def test_transition_timeline_reports_adjacent_snapshot_churn(client, admin_headers, auth_headers):
     snapshots = [
         (
             "2026-05-01",
@@ -906,9 +901,7 @@ def test_transition_timeline_reports_adjacent_snapshot_churn(
     assert latest_body["transitions"][0]["right_snapshot"]["composition_date"] == "2026-06-01"
 
 
-def test_overlap_summary_compares_constituents_across_etfs(
-    client, admin_headers, auth_headers
-):
+def test_overlap_summary_compares_constituents_across_etfs(client, admin_headers, auth_headers):
     spy = client.post(
         "/api/v1/etf-holdings/OVLA/ingest",
         json={
@@ -978,9 +971,7 @@ def test_overlap_summary_compares_constituents_across_etfs(
     assert pair["top_shared"][0]["min_weight"] == "0.07000000"
 
 
-def test_overlap_matrix_summarizes_many_etf_relationships(
-    client, admin_headers, auth_headers
-):
+def test_overlap_matrix_summarizes_many_etf_relationships(client, admin_headers, auth_headers):
     payloads = {
         "OMXA": [
             {"symbol": "AAPL", "name": "Apple Inc.", "weight": "0.07000000"},
@@ -1132,9 +1123,7 @@ def test_admin_can_refresh_spdr_provider_xlsx_route(
         text = ""
         content = raw_workbook
         headers = {
-            "content-type": (
-                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            )
+            "content-type": ("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
         }
 
         def raise_for_status(self):
@@ -1282,9 +1271,7 @@ def test_admin_can_refresh_spdr_product_page_discovered_zip_route(
     assert validation["matched"][0]["value"] == "SPY"
 
 
-def test_refresh_failure_records_rate_limit_adapter_state(
-    client, admin_headers, monkeypatch
-):
+def test_refresh_failure_records_rate_limit_adapter_state(client, admin_headers, monkeypatch):
     request = httpx.Request("GET", "https://issuer.example/rate-holdings.csv")
     response = httpx.Response(429, request=request)
     calls = {"count": 0}
@@ -1418,8 +1405,7 @@ def test_refresh_failure_records_malformed_holdings_adapter_state(
         "/api/v1/etf-holdings/ARKX/profile",
         json={
             "issuer": "ARK Invest",
-            "provider_aliases": {
-            },
+            "provider_aliases": {},
         },
         headers=admin_headers,
     )
@@ -1510,7 +1496,9 @@ def test_admin_can_refresh_issuer_adapter_route_without_direct_holdings_url(
     assert body["source_url"] == requested_urls[0]
     assert body["parser_version"] == "ark-csv-v1"
     assert body["row_count"] == 2
-    assert body["extra_data"]["legal_metadata"]["artifact_identity_validation"]["status"] == "matched"
+    assert (
+        body["extra_data"]["legal_metadata"]["artifact_identity_validation"]["status"] == "matched"
+    )
 
 
 def test_admin_can_probe_ready_issuer_adapter_route(client, admin_headers):
@@ -1584,7 +1572,10 @@ def test_admin_can_list_holdings_adapter_catalog(client, admin_headers):
     assert invesco["live_tested_default_route"] is True
     assert invesco["source_access"] == "issuer_public_json_catalog_cusip"
     assert any("product/search" in template for template in invesco["url_templates"])
-    assert any("shareclasses/{cusip}/holdings/fund?idType=cusip" in template for template in invesco["url_templates"])
+    assert any(
+        "shareclasses/{cusip}/holdings/fund?idType=cusip" in template
+        for template in invesco["url_templates"]
+    )
 
 
 def test_admin_can_discover_etf_profiles_from_issuer_feed(
@@ -2210,7 +2201,9 @@ def test_issuer_adapter_discovers_holdings_file_from_product_page_data_attribute
     assert body["source_provider"] == "spdr"
     assert body["source_url"] == holdings_url
     assert body["row_count"] == 2
-    assert body["extra_data"]["legal_metadata"]["route_resolution"] == "issuer_product_page_discovery"
+    assert (
+        body["extra_data"]["legal_metadata"]["route_resolution"] == "issuer_product_page_discovery"
+    )
     assert body["extra_data"]["legal_metadata"]["source_format"] == "xlsx"
 
 
@@ -2474,9 +2467,7 @@ def test_issuer_adapter_refresh_rejects_inferred_artifact_identity_mismatch(
     assert latest.status_code == 404
 
 
-def test_issuer_adapter_without_route_metadata_is_skipped_as_needing_route(
-    client, admin_headers
-):
+def test_issuer_adapter_without_route_metadata_is_skipped_as_needing_route(client, admin_headers):
     profile = client.patch(
         "/api/v1/etf-holdings/WTST/profile",
         json={"issuer": "WisdomTree"},
@@ -2493,9 +2484,7 @@ def test_issuer_adapter_without_route_metadata_is_skipped_as_needing_route(
     assert body["failed"] == 0
 
 
-def test_profile_product_url_domain_routes_adapter_without_name_guessing(
-    client, admin_headers
-):
+def test_profile_product_url_domain_routes_adapter_without_name_guessing(client, admin_headers):
     profile = client.patch(
         "/api/v1/etf-holdings/DOMAIN/profile",
         json={
@@ -2541,9 +2530,7 @@ def test_admin_can_probe_ready_spdr_symbol_route(client, admin_headers):
     assert body["required_identifiers"] == []
 
 
-def test_admin_probe_applies_curated_core_route_to_identity_only_profile(
-    client, admin_headers
-):
+def test_admin_probe_applies_curated_core_route_to_identity_only_profile(client, admin_headers):
     """Identity bootstrap profiles must resolve the reviewed SPDR route on probe."""
 
     probe = client.post("/api/v1/etf-holdings/SPY/probe-adapter", headers=admin_headers)
@@ -2771,7 +2758,7 @@ def test_csv_ingestion_normalizes_broader_issuer_schema_variants(
     raw_csv = "\n".join(
         [
             "Name of Issuer,Security Identifier,% of Fund,Shares/Par Value,Market Value ($),Local Currency,Country,Exchange",
-            "Apple Inc.,037833100,6.2%,\"1,250\",\"$240,000\",USD,United States,NASDAQ",
+            'Apple Inc.,037833100,6.2%,"1,250","$240,000",USD,United States,NASDAQ',
             "US Dollar,CASH,0.5%,,,USD,United States,",
             "Disclaimer,,,,,,,",
         ]
@@ -3056,7 +3043,9 @@ def test_sec_legacy_ingestion_reconstructs_split_identity_html_rows(
     assert body["holdings"][0]["shares"] == "125.00000000"
     assert body["holdings"][0]["market_value"] == "24000.000000"
     assert body["holdings"][0]["weight"] == "0.06250000"
-    assert body["holdings"][1]["reported_name"] == "Microsoft Corporation Common Stock CUSIP 594918104"
+    assert (
+        body["holdings"][1]["reported_name"] == "Microsoft Corporation Common Stock CUSIP 594918104"
+    )
     assert body["holdings"][1]["cusip"] == "594918104"
 
     latest = client.get("/api/v1/etf-holdings/VCR/latest", headers=auth_headers)

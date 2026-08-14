@@ -38,7 +38,9 @@ class TestWatchlistsRouter:
     ):
         db.add_all(
             [
-                WatchlistItem(watchlist_id=watchlist.id, instrument_id=instrument.id, position=0, flagged=True),
+                WatchlistItem(
+                    watchlist_id=watchlist.id, instrument_id=instrument.id, position=0, flagged=True
+                ),
                 WatchlistItem(
                     watchlist_id=watchlist.id,
                     instrument_id=instrument_b.id,

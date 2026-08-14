@@ -12,7 +12,9 @@ class TestInstrumentNotes:
         response = client.get(f"/api/v1/notes/instruments/{instrument.id}")
         assert response.status_code == 401
 
-    def test_notes_round_trip_is_scoped_to_canonical_instrument(self, client, auth_headers, instrument):
+    def test_notes_round_trip_is_scoped_to_canonical_instrument(
+        self, client, auth_headers, instrument
+    ):
         created = client.put(
             f"/api/v1/notes/instruments/{instrument.id}",
             headers=auth_headers,

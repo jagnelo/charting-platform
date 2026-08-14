@@ -35,7 +35,20 @@ _ASSET_CONTRACTS = {
     "condition": {"boolean"},
     "signal": {"boolean", "events"},
     # Study Lab is intentionally the only polymorphic/artifact-producing surface.
-    "study": {"scalar", "series", "boolean", "events", "table", "bar", "histogram", "range", "scatter", "heatmap", "dashboard", "study"},
+    "study": {
+        "scalar",
+        "series",
+        "boolean",
+        "events",
+        "table",
+        "bar",
+        "histogram",
+        "range",
+        "scatter",
+        "heatmap",
+        "dashboard",
+        "study",
+    },
 }
 
 
@@ -44,9 +57,17 @@ def _validate_asset_contract(kind: str, body: CodeVersionCreate, validation) -> 
     if body.output_contract not in allowed:
         raise HTTPException(
             status_code=422,
-            detail={"code": "asset_output_contract_mismatch", "kind": kind, "allowed": sorted(allowed)},
+            detail={
+                "code": "asset_output_contract_mismatch",
+                "kind": kind,
+                "allowed": sorted(allowed),
+            },
         )
-    if body.output_contract != "study" and body.output_name is None and validation.output_contracts != (body.output_contract,):
+    if (
+        body.output_contract != "study"
+        and body.output_name is None
+        and validation.output_contracts != (body.output_contract,)
+    ):
         raise HTTPException(
             status_code=422,
             detail={
@@ -55,7 +76,11 @@ def _validate_asset_contract(kind: str, body: CodeVersionCreate, validation) -> 
                 "observed": list(validation.output_contracts),
             },
         )
-    if body.output_contract != "study" and body.output_name is not None and body.output_contract not in validation.output_contracts:
+    if (
+        body.output_contract != "study"
+        and body.output_name is not None
+        and body.output_contract not in validation.output_contracts
+    ):
         raise HTTPException(
             status_code=422,
             detail={
@@ -69,7 +94,9 @@ def _validate_asset_contract(kind: str, body: CodeVersionCreate, validation) -> 
 def _validate_parameter_contract(body: CodeVersionCreate) -> None:
     errors = validate_parameter_values(body.parameter_schema, body.default_parameters)
     if errors:
-        raise HTTPException(status_code=422, detail={"code": "parameter_validation_failed", "errors": errors})
+        raise HTTPException(
+            status_code=422, detail={"code": "parameter_validation_failed", "errors": errors}
+        )
 
 
 def _asset_query():
@@ -89,7 +116,9 @@ async def validate_code(body: CodeValidationRequest, _: User = Depends(get_curre
 
 
 @router.get("/assets", response_model=list[CodeAssetOut])
-async def list_assets(db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)):
+async def list_assets(
+    db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)
+):
     result = await db.execute(
         _asset_query().where(CodeAsset.user_id == current_user.id).order_by(CodeAsset.name)
     )
@@ -98,14 +127,25 @@ async def list_assets(db: AsyncSession = Depends(get_db), current_user: User = D
 
 @router.post("/assets/import", response_model=CodeAssetOut, status_code=status.HTTP_201_CREATED)
 async def import_asset(
-    body: CodeAssetImport, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)
+    body: CodeAssetImport,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     """Import a complete immutable asset export after validating every version."""
-    asset = CodeAsset(user_id=current_user.id, stable_key=body.stable_key, name=body.name.strip(), kind=body.kind)
+    asset = CodeAsset(
+        user_id=current_user.id, stable_key=body.stable_key, name=body.name.strip(), kind=body.kind
+    )
     for number, version_body in enumerate(body.versions, start=1):
         validation = validate_workstation_python(version_body.source)
         if not validation.valid:
-            raise HTTPException(status_code=422, detail={"code": "code_validation_failed", "version_number": number, "diagnostics": [item.__dict__ for item in validation.diagnostics]})
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "code": "code_validation_failed",
+                    "version_number": number,
+                    "diagnostics": [item.__dict__ for item in validation.diagnostics],
+                },
+            )
         _validate_asset_contract(body.kind, version_body, validation)
         _validate_parameter_contract(version_body)
         asset.versions.append(_version_from_input(version_body, number, validation))
@@ -121,14 +161,24 @@ async def import_asset(
 
 @router.post("/assets", response_model=CodeAssetOut, status_code=status.HTTP_201_CREATED)
 async def create_asset(
-    body: CodeAssetCreate, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)
+    body: CodeAssetCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     validation = validate_workstation_python(body.initial_version.source)
     if not validation.valid:
-        raise HTTPException(status_code=422, detail={"code": "code_validation_failed", "diagnostics": [item.__dict__ for item in validation.diagnostics]})
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "code_validation_failed",
+                "diagnostics": [item.__dict__ for item in validation.diagnostics],
+            },
+        )
     _validate_asset_contract(body.kind, body.initial_version, validation)
     _validate_parameter_contract(body.initial_version)
-    asset = CodeAsset(user_id=current_user.id, stable_key=body.stable_key, name=body.name.strip(), kind=body.kind)
+    asset = CodeAsset(
+        user_id=current_user.id, stable_key=body.stable_key, name=body.name.strip(), kind=body.kind
+    )
     asset.versions.append(_version_from_input(body.initial_version, 1, validation))
     db.add(asset)
     try:
@@ -140,17 +190,25 @@ async def create_asset(
     return (await db.execute(_asset_query().where(CodeAsset.id == asset.id))).scalar_one()
 
 
-@router.post("/assets/{asset_id}/clone", response_model=CodeAssetOut, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/assets/{asset_id}/clone", response_model=CodeAssetOut, status_code=status.HTTP_201_CREATED
+)
 async def clone_asset(
     asset_id: int,
     body: CodeAssetCloneRequest,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    asset = (await db.execute(_asset_query().where(CodeAsset.id == asset_id, CodeAsset.user_id == current_user.id))).scalar_one_or_none()
+    asset = (
+        await db.execute(
+            _asset_query().where(CodeAsset.id == asset_id, CodeAsset.user_id == current_user.id)
+        )
+    ).scalar_one_or_none()
     if asset is None:
         raise HTTPException(status_code=404, detail="Code asset not found")
-    clone = CodeAsset(user_id=current_user.id, stable_key=body.stable_key, name=body.name.strip(), kind=asset.kind)
+    clone = CodeAsset(
+        user_id=current_user.id, stable_key=body.stable_key, name=body.name.strip(), kind=asset.kind
+    )
     clone.versions.extend(
         CodeVersion(
             version_number=version.version_number,
@@ -184,7 +242,11 @@ async def archive_asset(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    asset = (await db.execute(_asset_query().where(CodeAsset.id == asset_id, CodeAsset.user_id == current_user.id))).scalar_one_or_none()
+    asset = (
+        await db.execute(
+            _asset_query().where(CodeAsset.id == asset_id, CodeAsset.user_id == current_user.id)
+        )
+    ).scalar_one_or_none()
     if asset is None:
         raise HTTPException(status_code=404, detail="Code asset not found")
     asset.is_archived = body.is_archived
@@ -192,19 +254,42 @@ async def archive_asset(
     return asset
 
 
-@router.post("/assets/{asset_id}/versions", response_model=CodeVersionOut, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/assets/{asset_id}/versions",
+    response_model=CodeVersionOut,
+    status_code=status.HTTP_201_CREATED,
+)
 async def create_version(
-    asset_id: int, body: CodeVersionCreate, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)
+    asset_id: int,
+    body: CodeVersionCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
-    asset = (await db.execute(_asset_query().where(CodeAsset.id == asset_id, CodeAsset.user_id == current_user.id))).scalar_one_or_none()
+    asset = (
+        await db.execute(
+            _asset_query().where(CodeAsset.id == asset_id, CodeAsset.user_id == current_user.id)
+        )
+    ).scalar_one_or_none()
     if asset is None:
         raise HTTPException(status_code=404, detail="Code asset not found")
     validation = validate_workstation_python(body.source)
     if not validation.valid:
-        raise HTTPException(status_code=422, detail={"code": "code_validation_failed", "diagnostics": [item.__dict__ for item in validation.diagnostics]})
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "code_validation_failed",
+                "diagnostics": [item.__dict__ for item in validation.diagnostics],
+            },
+        )
     _validate_asset_contract(asset.kind, body, validation)
     _validate_parameter_contract(body)
-    next_version = (await db.execute(select(func.max(CodeVersion.version_number)).where(CodeVersion.code_asset_id == asset.id))).scalar_one() or 0
+    next_version = (
+        await db.execute(
+            select(func.max(CodeVersion.version_number)).where(
+                CodeVersion.code_asset_id == asset.id
+            )
+        )
+    ).scalar_one() or 0
     version = _version_from_input(body, next_version + 1, validation)
     asset.versions.append(version)
     await db.flush()

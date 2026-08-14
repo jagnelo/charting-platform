@@ -147,13 +147,9 @@ def build_profile_snapshot_payload(profile: InstrumentProfile) -> dict[str, Any]
                 "currency": listing.currency,
                 "provider_instrument_type": listing.provider_instrument_type,
                 "is_primary": listing.is_primary,
-                "effective_at": listing.effective_at.isoformat()
-                if listing.effective_at
-                else None,
+                "effective_at": listing.effective_at.isoformat() if listing.effective_at else None,
                 "known_at": listing.known_at.isoformat() if listing.known_at else None,
-                "delisted_at": listing.delisted_at.isoformat()
-                if listing.delisted_at
-                else None,
+                "delisted_at": listing.delisted_at.isoformat() if listing.delisted_at else None,
                 "extra_data": listing.extra_data,
             }
             for listing in profile.listings
@@ -562,19 +558,19 @@ async def ensure_internal_identifier(
 ) -> None:
     internal_value = f"instrument:{instrument.id}"
     existing_rows = (
-        await db.execute(
-            select(InstrumentIdentifier).where(
-                InstrumentIdentifier.instrument_id == instrument.id,
-                InstrumentIdentifier.identifier_type == InstrumentIdentifierType.INTERNAL,
+        (
+            await db.execute(
+                select(InstrumentIdentifier).where(
+                    InstrumentIdentifier.instrument_id == instrument.id,
+                    InstrumentIdentifier.identifier_type == InstrumentIdentifierType.INTERNAL,
+                )
             )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     existing = next(
-        (
-            row
-            for row in existing_rows
-            if row.identifier_value == internal_value
-        ),
+        (row for row in existing_rows if row.identifier_value == internal_value),
         existing_rows[0] if existing_rows else None,
     )
     if existing is None:

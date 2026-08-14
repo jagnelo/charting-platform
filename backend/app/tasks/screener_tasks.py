@@ -15,24 +15,35 @@ from app.services.screener_engine import (
 
 
 async def _run_screener_or_queue(db, screener):
-    if isinstance(screener.conditions, dict) and screener.conditions.get("type") == "python_condition":
+    if (
+        isinstance(screener.conditions, dict)
+        and screener.conditions.get("type") == "python_condition"
+    ):
         return await queue_python_screener_run(db, screener)
     return await run_screener(db, screener)
 
 
 async def _collect_pending_python_results(db, screener):
-    if not isinstance(screener.conditions, dict) or screener.conditions.get("type") != "python_condition":
+    if (
+        not isinstance(screener.conditions, dict)
+        or screener.conditions.get("type") != "python_condition"
+    ):
         return
     results = (
-        await db.execute(
-            select(ScreenerResult)
-            .where(ScreenerResult.screener_id == screener.id)
-            .order_by(ScreenerResult.run_at.desc())
-            .limit(10)
+        (
+            await db.execute(
+                select(ScreenerResult)
+                .where(ScreenerResult.screener_id == screener.id)
+                .order_by(ScreenerResult.run_at.desc())
+                .limit(10)
+            )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     for result in results:
         await collect_python_screener_result(db, result)
+
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +65,9 @@ async def run_screener_task(ctx: dict, screener_id: int, user_id: int) -> dict:
         if screener is None:
             return {"error": f"Screener {screener_id} not found"}
         result = await _run_screener_or_queue(db, screener)
-        coverage = result.result_data.get("_coverage", {}) if isinstance(result.result_data, dict) else {}
+        coverage = (
+            result.result_data.get("_coverage", {}) if isinstance(result.result_data, dict) else {}
+        )
         return {
             "screener_id": screener_id,
             "matched": len(result.matched_ids),
@@ -97,9 +110,7 @@ async def run_all_scheduled_screeners(ctx: dict) -> dict:
                             )
                         )
                     ).scalar_one()
-                    cron = croniter(
-                        screener.schedule, latest_run or datetime(2000, 1, 1)
-                    )
+                    cron = croniter(screener.schedule, latest_run or datetime(2000, 1, 1))
                     if cron.get_next(datetime) <= datetime.now(UTC):
                         await _run_screener_or_queue(db, screener)
                         ran += 1

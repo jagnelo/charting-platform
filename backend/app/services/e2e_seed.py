@@ -48,7 +48,9 @@ async def seed_e2e_instruments(db: AsyncSession) -> None:
     symbols = tuple(names)
     existing = {
         instrument.symbol.upper(): instrument
-        for instrument in (await db.execute(select(Instrument).where(Instrument.symbol.in_(symbols)))).scalars()
+        for instrument in (
+            await db.execute(select(Instrument).where(Instrument.symbol.in_(symbols)))
+        ).scalars()
     }
     for symbol, name in names.items():
         if symbol not in existing:
@@ -102,15 +104,19 @@ async def seed_e2e_instruments(db: AsyncSession) -> None:
         await db.flush()
 
     for symbol in symbols[1:]:
-        profile = await db.scalar(select(ETFProfile).where(ETFProfile.instrument_id == existing[symbol].id))
+        profile = await db.scalar(
+            select(ETFProfile).where(ETFProfile.instrument_id == existing[symbol].id)
+        )
         if profile is None:
-            db.add(ETFProfile(
-                instrument_id=existing[symbol].id,
-                issuer="reference-only",
-                fund_family="E2E reference identity",
-                adapter_status="unresolved",
-                extra_data={"seed": "e2e", "identity_only": True},
-            ))
+            db.add(
+                ETFProfile(
+                    instrument_id=existing[symbol].id,
+                    issuer="reference-only",
+                    fund_family="E2E reference identity",
+                    adapter_status="unresolved",
+                    extra_data={"seed": "e2e", "identity_only": True},
+                )
+            )
 
 
 _E2E_MARKET_NAMES = {
@@ -225,7 +231,9 @@ async def seed_e2e_market_data(db: AsyncSession) -> None:
 
     for symbol, industry in _E2E_INDUSTRIES.items():
         instrument = existing[symbol]
-        detail = await db.scalar(select(EquityDetail).where(EquityDetail.instrument_id == instrument.id))
+        detail = await db.scalar(
+            select(EquityDetail).where(EquityDetail.instrument_id == instrument.id)
+        )
         if detail is None:
             db.add(
                 EquityDetail(
@@ -277,8 +285,22 @@ async def seed_e2e_market_data(db: AsyncSession) -> None:
         await db.flush()
 
     all_symbols = [
-        "SPY", "RSP", "QQQ", "DIA", "IWM",
-        "XLK", "XLY", "XLC", "XLF", "XLV", "XLI", "XLP", "XLE", "XLU", "XLRE", "XLB",
+        "SPY",
+        "RSP",
+        "QQQ",
+        "DIA",
+        "IWM",
+        "XLK",
+        "XLY",
+        "XLC",
+        "XLF",
+        "XLV",
+        "XLI",
+        "XLP",
+        "XLE",
+        "XLU",
+        "XLRE",
+        "XLB",
         *tuple(_E2E_MARKET_NAMES),
     ]
     instruments = {
@@ -299,11 +321,30 @@ async def seed_e2e_market_data(db: AsyncSession) -> None:
         cursor += timedelta(days=1)
 
     base_prices = {
-        "SPY": 420.0, "RSP": 150.0, "QQQ": 360.0, "DIA": 380.0, "IWM": 190.0,
-        "XLK": 175.0, "XLY": 170.0, "XLC": 70.0, "XLF": 38.0, "XLV": 130.0,
-        "XLI": 100.0, "XLP": 75.0, "XLE": 85.0, "XLU": 65.0, "XLRE": 40.0,
-        "XLB": 80.0, "NVDA": 480.0, "MSFT": 330.0, "AMD": 120.0, "AVGO": 900.0,
-        "CRM": 240.0, "ORCL": 105.0, "SMH": 180.0, "SOXX": 210.0,
+        "SPY": 420.0,
+        "RSP": 150.0,
+        "QQQ": 360.0,
+        "DIA": 380.0,
+        "IWM": 190.0,
+        "XLK": 175.0,
+        "XLY": 170.0,
+        "XLC": 70.0,
+        "XLF": 38.0,
+        "XLV": 130.0,
+        "XLI": 100.0,
+        "XLP": 75.0,
+        "XLE": 85.0,
+        "XLU": 65.0,
+        "XLRE": 40.0,
+        "XLB": 80.0,
+        "NVDA": 480.0,
+        "MSFT": 330.0,
+        "AMD": 120.0,
+        "AVGO": 900.0,
+        "CRM": 240.0,
+        "ORCL": 105.0,
+        "SMH": 180.0,
+        "SOXX": 210.0,
     }
     # E2E market mode is an explicit controlled-fixture environment.  The
     # database may be a reused developer volume containing canonical/provider
@@ -391,13 +432,34 @@ async def seed_e2e_market_data(db: AsyncSession) -> None:
         }
 
     # Create controlled, point-in-time ETF-proxy holdings for sector and industry drilldown.
-    etf_symbols = {"SPY", "RSP", "QQQ", "DIA", "IWM", "XLK", "XLY", "XLC", "XLF", "XLV", "XLI", "XLP", "XLE", "XLU", "XLRE", "XLB", "SMH", "SOXX"}
+    etf_symbols = {
+        "SPY",
+        "RSP",
+        "QQQ",
+        "DIA",
+        "IWM",
+        "XLK",
+        "XLY",
+        "XLC",
+        "XLF",
+        "XLV",
+        "XLI",
+        "XLP",
+        "XLE",
+        "XLU",
+        "XLRE",
+        "XLB",
+        "SMH",
+        "SOXX",
+    }
     profiles: dict[str, ETFProfile] = {}
     for symbol in etf_symbols:
         instrument = instruments.get(symbol)
         if instrument is None:
             continue
-        profile = await db.scalar(select(ETFProfile).where(ETFProfile.instrument_id == instrument.id))
+        profile = await db.scalar(
+            select(ETFProfile).where(ETFProfile.instrument_id == instrument.id)
+        )
         if profile is None:
             profile = ETFProfile(
                 instrument_id=instrument.id,
@@ -414,15 +476,23 @@ async def seed_e2e_market_data(db: AsyncSession) -> None:
     known_at = datetime(2026, 1, 3, tzinfo=UTC)
     for etf_symbol, holding_symbols in _E2E_HOLDINGS.items():
         profile = profiles.get(etf_symbol)
-        if profile is None or await db.scalar(
-            select(ETFHoldingsSnapshot.id).where(
-                ETFHoldingsSnapshot.etf_profile_id == profile.id,
-                ETFHoldingsSnapshot.composition_date == composition_date,
-                ETFHoldingsSnapshot.source_provider == "e2e_reference",
-            ).limit(1)
-        ) is not None:
+        if (
+            profile is None
+            or await db.scalar(
+                select(ETFHoldingsSnapshot.id)
+                .where(
+                    ETFHoldingsSnapshot.etf_profile_id == profile.id,
+                    ETFHoldingsSnapshot.composition_date == composition_date,
+                    ETFHoldingsSnapshot.source_provider == "e2e_reference",
+                )
+                .limit(1)
+            )
+            is not None
+        ):
             continue
-        digest = hashlib.sha256(f"{etf_symbol}:e2e:{composition_date.isoformat()}".encode()).hexdigest()
+        digest = hashlib.sha256(
+            f"{etf_symbol}:e2e:{composition_date.isoformat()}".encode()
+        ).hexdigest()
         snapshot = ETFHoldingsSnapshot(
             etf_profile_id=profile.id,
             composition_date=composition_date,
@@ -488,9 +558,7 @@ async def _get_or_create_asset_class(db: AsyncSession) -> AssetClass:
     return asset_class
 
 
-async def _get_or_create_instrument_type(
-    db: AsyncSession, asset_class_id: int
-) -> InstrumentType:
+async def _get_or_create_instrument_type(db: AsyncSession, asset_class_id: int) -> InstrumentType:
     existing = await db.scalar(
         select(InstrumentType).where(
             InstrumentType.name == "Stock",

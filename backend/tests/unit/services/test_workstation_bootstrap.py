@@ -59,15 +59,12 @@ def test_core_workstation_identity_bootstrap_is_idempotent_and_not_fixture_data(
     assert {binding.extra_data["identity_bootstrap"] for binding in bindings} == {
         CORE_WORKSTATION_REGISTRY
     }
-    assert {binding.extra_data["exchange_claim"] for binding in bindings} == {
-        "not asserted"
-    }
+    assert {binding.extra_data["exchange_claim"] for binding in bindings} == {"not asserted"}
 
     profiles = db.execute(select(ETFProfile)).scalars().all()
     assert len(profiles) == len(expected) - 1  # NVDA is the only equity in the registry.
     assert all(
-        profile.legal_metadata["holdings_membership_status"] == "not_loaded"
-        for profile in profiles
+        profile.legal_metadata["holdings_membership_status"] == "not_loaded" for profile in profiles
     )
 
     groups = db.execute(select(MarketGroup)).scalars().all()
@@ -78,7 +75,9 @@ def test_core_workstation_identity_bootstrap_is_idempotent_and_not_fixture_data(
 
 def test_core_workstation_bootstrap_tolerates_venue_distinct_provider_symbols(db):
     facade = _AsyncSessionFacade(db)
-    ensure_core_workstation_identities_result = asyncio.run(ensure_core_workstation_identities(facade))
+    ensure_core_workstation_identities_result = asyncio.run(
+        ensure_core_workstation_identities(facade)
+    )
     assert ensure_core_workstation_identities_result["created"] == len(CORE_WORKSTATION_INSTRUMENTS)
 
     spy = db.execute(select(Instrument).where(Instrument.symbol == "SPY")).scalar_one()
@@ -97,13 +96,17 @@ def test_core_workstation_bootstrap_tolerates_venue_distinct_provider_symbols(db
 
     rerun = asyncio.run(ensure_core_workstation_identities(facade))
     assert rerun["created"] == 0
-    rows = db.execute(
-        select(InstrumentProviderSymbol).where(
-            InstrumentProviderSymbol.instrument_id == spy.id,
-            InstrumentProviderSymbol.data_source_id == nasdaq.id,
-            InstrumentProviderSymbol.provider_symbol == "SPY",
+    rows = (
+        db.execute(
+            select(InstrumentProviderSymbol).where(
+                InstrumentProviderSymbol.instrument_id == spy.id,
+                InstrumentProviderSymbol.data_source_id == nasdaq.id,
+                InstrumentProviderSymbol.provider_symbol == "SPY",
+            )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     assert len(rows) == 2
 
 
@@ -132,5 +135,10 @@ def test_core_workstation_data_reloads_instrument_after_provider_rollback(db, mo
     result = asyncio.run(bootstrap.bootstrap_core_workstation_data(facade))
     assert set(result["history"]) == {symbol for symbol, _, _ in CORE_WORKSTATION_INSTRUMENTS}
     assert calls == [CORE_WORKSTATION_INSTRUMENTS[0][0]], result
-    assert result["history"][CORE_WORKSTATION_INSTRUMENTS[1][0]]["status"] in {"ready", "loaded", "unavailable", "error"}
+    assert result["history"][CORE_WORKSTATION_INSTRUMENTS[1][0]]["status"] in {
+        "ready",
+        "loaded",
+        "unavailable",
+        "error",
+    }
     assert result["history"][calls[0]]["status"] == "error"

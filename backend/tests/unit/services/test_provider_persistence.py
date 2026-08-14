@@ -480,10 +480,18 @@ async def test_seed_universe_does_not_reactivate_existing_canonical_instrument(
     result = await instrument_sync.seed_universe(async_db)
 
     assert result["updated"] == 1
-    assert db.execute(select(Instrument).where(Instrument.symbol == "AAPL")).scalar_one().is_active is False
-    assert db.execute(
-        select(InstrumentListing).where(InstrumentListing.instrument_id == instrument.id)
-    ).scalar_one().is_active is False
+    assert (
+        db.execute(select(Instrument).where(Instrument.symbol == "AAPL")).scalar_one().is_active
+        is False
+    )
+    assert (
+        db.execute(
+            select(InstrumentListing).where(InstrumentListing.instrument_id == instrument.id)
+        )
+        .scalar_one()
+        .is_active
+        is False
+    )
 
 
 @pytest.mark.asyncio
@@ -535,7 +543,10 @@ async def test_seed_universe_does_not_promote_ambiguous_sec_ticker(db, monkeypat
     result = await instrument_sync.seed_universe(async_db)
 
     assert result["created"] == 0
-    assert db.execute(select(Instrument).where(Instrument.symbol == "DUP")).scalar_one_or_none() is None
+    assert (
+        db.execute(select(Instrument).where(Instrument.symbol == "DUP")).scalar_one_or_none()
+        is None
+    )
     snapshot = db.execute(select(UniverseDiscoverySnapshot)).scalar_one()
     assert snapshot.payload["page"]["quotes"][0]["identity_ambiguity"]
 

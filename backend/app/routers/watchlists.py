@@ -228,13 +228,17 @@ async def reorder_items(
     if len(body.ids) != len(set(body.ids)):
         raise HTTPException(400, "Item IDs must be unique")
     items = (
-        await db.execute(
-            select(WatchlistItem).where(
-                WatchlistItem.watchlist_id == watchlist_id,
-                WatchlistItem.id.in_(body.ids),
+        (
+            await db.execute(
+                select(WatchlistItem).where(
+                    WatchlistItem.watchlist_id == watchlist_id,
+                    WatchlistItem.id.in_(body.ids),
+                )
             )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     if {item.id for item in items} != set(body.ids):
         raise HTTPException(400, "Item IDs must contain every item in the watchlist")
     by_id = {item.id: item for item in items}
@@ -259,13 +263,17 @@ async def transfer_item(
 
     list_ids = sorted({body.source_watchlist_id, watchlist_id})
     lists = (
-        await db.execute(
-            select(Watchlist)
-            .where(Watchlist.user_id == current_user.id, Watchlist.id.in_(list_ids))
-            .order_by(Watchlist.id)
-            .with_for_update()
+        (
+            await db.execute(
+                select(Watchlist)
+                .where(Watchlist.user_id == current_user.id, Watchlist.id.in_(list_ids))
+                .order_by(Watchlist.id)
+                .with_for_update()
+            )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     by_id = {watchlist.id: watchlist for watchlist in lists}
     source = by_id.get(body.source_watchlist_id)
     target = by_id.get(watchlist_id)
@@ -304,9 +312,7 @@ async def transfer_item(
 
     max_position = (
         await db.execute(
-            select(func.max(WatchlistItem.position)).where(
-                WatchlistItem.watchlist_id == target.id
-            )
+            select(func.max(WatchlistItem.position)).where(WatchlistItem.watchlist_id == target.id)
         )
     ).scalar_one()
     transferred = WatchlistItem(
@@ -343,11 +349,17 @@ async def transfer_items(
         raise HTTPException(400, "Source and destination watchlists must differ")
     list_ids = sorted({body.source_watchlist_id, watchlist_id})
     lists = (
-        await db.execute(
-            select(Watchlist).where(Watchlist.user_id == current_user.id, Watchlist.id.in_(list_ids))
-            .order_by(Watchlist.id).with_for_update()
+        (
+            await db.execute(
+                select(Watchlist)
+                .where(Watchlist.user_id == current_user.id, Watchlist.id.in_(list_ids))
+                .order_by(Watchlist.id)
+                .with_for_update()
+            )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     by_id = {watchlist.id: watchlist for watchlist in lists}
     source = by_id.get(body.source_watchlist_id)
     target = by_id.get(watchlist_id)
@@ -358,33 +370,50 @@ async def transfer_items(
     if body.mode == "move" and (source.is_locked or source.is_managed):
         raise HTTPException(403, "Cannot move items from a locked or managed watchlist")
     source_items = (
-        await db.execute(
-            select(WatchlistItem).where(WatchlistItem.watchlist_id == source.id, WatchlistItem.id.in_(item_ids))
-            .order_by(WatchlistItem.position, WatchlistItem.id).with_for_update()
+        (
+            await db.execute(
+                select(WatchlistItem)
+                .where(WatchlistItem.watchlist_id == source.id, WatchlistItem.id.in_(item_ids))
+                .order_by(WatchlistItem.position, WatchlistItem.id)
+                .with_for_update()
+            )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     if len(source_items) != len(item_ids):
         raise HTTPException(404, "One or more source watchlist items were not found")
     instrument_ids = [item.instrument_id for item in source_items]
     existing = (
-        await db.execute(
-            select(WatchlistItem.instrument_id).where(
-                WatchlistItem.watchlist_id == target.id,
-                WatchlistItem.instrument_id.in_(instrument_ids),
-            ).with_for_update()
+        (
+            await db.execute(
+                select(WatchlistItem.instrument_id)
+                .where(
+                    WatchlistItem.watchlist_id == target.id,
+                    WatchlistItem.instrument_id.in_(instrument_ids),
+                )
+                .with_for_update()
+            )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     if existing:
         raise HTTPException(409, "One or more instruments are already in the destination watchlist")
     max_position = (
-        await db.execute(select(func.max(WatchlistItem.position)).where(WatchlistItem.watchlist_id == target.id))
+        await db.execute(
+            select(func.max(WatchlistItem.position)).where(WatchlistItem.watchlist_id == target.id)
+        )
     ).scalar_one()
     next_position = (max_position if max_position is not None else -1) + 1
     transferred: list[WatchlistItem] = []
     for offset, source_item in enumerate(source_items):
         item = WatchlistItem(
-            watchlist_id=target.id, instrument_id=source_item.instrument_id,
-            position=next_position + offset, flagged=source_item.flagged, notes=source_item.notes,
+            watchlist_id=target.id,
+            instrument_id=source_item.instrument_id,
+            position=next_position + offset,
+            flagged=source_item.flagged,
+            notes=source_item.notes,
         )
         db.add(item)
         transferred.append(item)
@@ -392,7 +421,11 @@ async def transfer_items(
         for source_item in source_items:
             await db.delete(source_item)
     await db.flush()
-    instruments = (await db.execute(select(Instrument).where(Instrument.id.in_(instrument_ids)))).scalars().all()
+    instruments = (
+        (await db.execute(select(Instrument).where(Instrument.id.in_(instrument_ids))))
+        .scalars()
+        .all()
+    )
     by_instrument_id = {instrument.id: instrument for instrument in instruments}
     return [_item_to_read(item, by_instrument_id.get(item.instrument_id)) for item in transferred]
 

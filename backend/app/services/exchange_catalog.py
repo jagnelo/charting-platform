@@ -31,7 +31,10 @@ class ExchangeDefinition:
 
 
 _DEFINITIONS: dict[str, ExchangeDefinition] = {
-    "XNAS": ExchangeDefinition("XNAS", "Nasdaq",),
+    "XNAS": ExchangeDefinition(
+        "XNAS",
+        "Nasdaq",
+    ),
     "XNYS": ExchangeDefinition("XNYS", "New York Stock Exchange"),
     "ARCX": ExchangeDefinition("ARCX", "NYSE Arca"),
     "XASE": ExchangeDefinition("XASE", "NYSE American"),
@@ -137,13 +140,17 @@ async def upsert_instrument_listing(
 
     exchange = await ensure_exchange(db, exchange_code)
     rows = (
-        await db.execute(
-            select(InstrumentListing).where(
-                InstrumentListing.instrument_id == instrument.id,
-                InstrumentListing.ticker == ticker,
+        (
+            await db.execute(
+                select(InstrumentListing).where(
+                    InstrumentListing.instrument_id == instrument.id,
+                    InstrumentListing.ticker == ticker,
+                )
             )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     listing = next(
         (row for row in rows if row.exchange_id == (exchange.id if exchange else None)),
         None,

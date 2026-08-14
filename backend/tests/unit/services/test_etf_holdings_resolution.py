@@ -243,9 +243,7 @@ async def test_sector_only_metadata_never_promotes_to_industry_during_enrichment
     db.flush()
 
     provider = SectorOnlyMetadataProvider()
-    monkeypatch.setattr(
-        "app.services.etf_holdings.get_default_metadata_provider", lambda: provider
-    )
+    monkeypatch.setattr("app.services.etf_holdings.get_default_metadata_provider", lambda: provider)
 
     await _enrich_existing_constituent_classification(
         async_db,
@@ -258,9 +256,7 @@ async def test_sector_only_metadata_never_promotes_to_industry_during_enrichment
     assert provider.calls == ["MSFT"]
     assert detail.industry is None
     assert detail.sector == "Information Technology"
-    assert detail.field_provenance == {
-        "sector": {"classification_system": "provider_native"}
-    }
+    assert detail.field_provenance == {"sector": {"classification_system": "provider_native"}}
 
     row = ETFHolding(
         reported_symbol="MSFT",
@@ -274,15 +270,21 @@ async def test_sector_only_metadata_never_promotes_to_industry_during_enrichment
 
 
 @pytest.mark.asyncio
-async def test_resolver_can_skip_optional_provider_enrichment_for_bounded_ingestion(db, monkeypatch):
+async def test_resolver_can_skip_optional_provider_enrichment_for_bounded_ingestion(
+    db, monkeypatch
+):
     async_db = AsyncSessionAdapter(db)
     monkeypatch.setattr("app.services.etf_holdings.settings.APP_ENV", "development")
 
     def unexpected_provider_call():
         raise AssertionError("bounded holdings ingestion must not fan out to metadata providers")
 
-    monkeypatch.setattr("app.services.etf_holdings.get_identifier_providers", unexpected_provider_call)
-    monkeypatch.setattr("app.services.etf_holdings.get_default_metadata_provider", unexpected_provider_call)
+    monkeypatch.setattr(
+        "app.services.etf_holdings.get_identifier_providers", unexpected_provider_call
+    )
+    monkeypatch.setattr(
+        "app.services.etf_holdings.get_default_metadata_provider", unexpected_provider_call
+    )
 
     instrument, confidence, note = await _resolve_or_create_constituent(
         async_db,
@@ -374,7 +376,9 @@ async def test_resolver_collapses_duplicate_symbol_variants_via_stable_identifie
 
 
 @pytest.mark.asyncio
-async def test_reconcile_snapshot_constituents_promotes_identifier_only_placeholders(db, monkeypatch):
+async def test_reconcile_snapshot_constituents_promotes_identifier_only_placeholders(
+    db, monkeypatch
+):
     async_db = AsyncSessionAdapter(db)
     monkeypatch.setattr("app.services.etf_holdings.settings.APP_ENV", "test")
 
@@ -793,7 +797,9 @@ async def test_resolver_materializes_real_symbol_from_cusip_only_rows(db, monkey
 
 
 @pytest.mark.asyncio
-async def test_resolver_promotes_existing_placeholder_when_identifier_profile_resolves(db, monkeypatch):
+async def test_resolver_promotes_existing_placeholder_when_identifier_profile_resolves(
+    db, monkeypatch
+):
     async_db = AsyncSessionAdapter(db)
     monkeypatch.setattr("app.services.etf_holdings.settings.APP_ENV", "development")
     monkeypatch.setattr(

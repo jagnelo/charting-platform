@@ -36,7 +36,9 @@ async def get_local_ohlcv(
     _: User = Depends(get_current_user),
 ):
     """Canonical local read path; never triggers provider fan-out."""
-    instrument = (await db.execute(select(Instrument).where(Instrument.symbol == symbol.upper()))).scalar_one_or_none()
+    instrument = (
+        await db.execute(select(Instrument).where(Instrument.symbol == symbol.upper()))
+    ).scalar_one_or_none()
     if instrument is None:
         raise HTTPException(404, f"Instrument '{symbol}' not found.")
     predicates = [
@@ -51,17 +53,17 @@ async def get_local_ohlcv(
     if settings.E2E_SEED_MARKET_DATA:
         predicates.append(
             OHLCVBar.data_source_id
-            == select(DataSource.id)
-            .where(DataSource.name == "e2e_reference")
-            .scalar_subquery()
+            == select(DataSource.id).where(DataSource.name == "e2e_reference").scalar_subquery()
         )
     bars = (
-        await db.execute(
-            select(OHLCVBar).where(*predicates)
-            .order_by(OHLCVBar.ts.desc())
-            .limit(limit)
+        (
+            await db.execute(
+                select(OHLCVBar).where(*predicates).order_by(OHLCVBar.ts.desc()).limit(limit)
+            )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     return list(reversed(bars))
 
 
@@ -114,7 +116,12 @@ async def get_ohlcv_transformed(
             before = before.replace(tzinfo=UTC)
         try:
             raw_bars = await fetch_ohlcv_page_before(
-                db, instrument, timeframe, before, fetch_limit, adjusted,
+                db,
+                instrument,
+                timeframe,
+                before,
+                fetch_limit,
+                adjusted,
                 allow_provider_fetch=not local_only,
             )
         except ProviderNoDataError as exc:
@@ -128,7 +135,12 @@ async def get_ohlcv_transformed(
             end = end.replace(tzinfo=UTC)
         try:
             raw_bars = await fetch_ohlcv(
-                db, instrument, timeframe, start, end, adjusted,
+                db,
+                instrument,
+                timeframe,
+                start,
+                end,
+                adjusted,
                 allow_provider_fetch=not local_only,
             )
         except ProviderNoDataError as exc:
@@ -138,7 +150,11 @@ async def get_ohlcv_transformed(
     else:
         try:
             raw_bars = await fetch_ohlcv_latest(
-                db, instrument, timeframe, fetch_limit, adjusted,
+                db,
+                instrument,
+                timeframe,
+                fetch_limit,
+                adjusted,
                 allow_provider_fetch=not local_only,
             )
         except ProviderNoDataError as exc:
@@ -196,7 +212,12 @@ async def get_ohlcv(
             before = before.replace(tzinfo=UTC)
         try:
             bars = await fetch_ohlcv_page_before(
-                db, instrument, timeframe, before, PAGE_SIZE, adjusted,
+                db,
+                instrument,
+                timeframe,
+                before,
+                PAGE_SIZE,
+                adjusted,
                 allow_provider_fetch=not local_only,
             )
         except ProviderNoDataError as exc:
@@ -213,7 +234,12 @@ async def get_ohlcv(
             end = end.replace(tzinfo=UTC)
         try:
             bars = await fetch_ohlcv(
-                db, instrument, timeframe, start, end, adjusted,
+                db,
+                instrument,
+                timeframe,
+                start,
+                end,
+                adjusted,
                 allow_provider_fetch=not local_only,
             )
         except ProviderNoDataError as exc:
@@ -226,7 +252,11 @@ async def get_ohlcv(
     page = min(limit, PAGE_SIZE) if limit else PAGE_SIZE
     try:
         return await fetch_ohlcv_latest(
-            db, instrument, timeframe, page, adjusted,
+            db,
+            instrument,
+            timeframe,
+            page,
+            adjusted,
             allow_provider_fetch=not local_only,
         )
     except ProviderNoDataError as exc:

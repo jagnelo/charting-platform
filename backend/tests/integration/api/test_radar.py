@@ -77,9 +77,7 @@ class TestRadarAPI:
         assert "outcome_status" in detections[0]
         assert "bars_since_signal" in detections[0]
 
-    def test_run_can_use_basket_universe(
-        self, client, auth_headers, db, instrument, instrument_b
-    ):
+    def test_run_can_use_basket_universe(self, client, auth_headers, db, instrument, instrument_b):
         _seed_radar_bars(db, instrument, [95, 100, 95, 100, 95, 100] * 20 + [98, 97, 96, 97, 98])
         _seed_radar_bars(
             db,

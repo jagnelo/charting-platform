@@ -54,8 +54,10 @@ async def test_python_signal_strategy_queues_immutable_isolated_research(monkeyp
         default_parameters={"lookback": 20},
     )
     db = _ResearchQueueDB(code_version)
+
     async def materialize(*_args, **_kwargs):
         return {"symbols": ["SPY"], "datasets": []}
+
     monkeypatch.setattr("app.routers.research._materialize_declared_dataset", materialize)
     queued = []
     monkeypatch.setattr("app.services.strategy_lab.enqueue_research_run", queued.append)
@@ -136,22 +138,34 @@ def test_trade_distributions_include_bar_based_mae_and_mfe():
                 instrument_id=1,
                 timeframe=Timeframe.D1,
                 ts=datetime(2026, 1, 1, tzinfo=UTC),
-                open=Decimal("100"), high=Decimal("103"), low=Decimal("99"), close=Decimal("101"),
-                volume=Decimal("1000"), is_adjusted=True,
+                open=Decimal("100"),
+                high=Decimal("103"),
+                low=Decimal("99"),
+                close=Decimal("101"),
+                volume=Decimal("1000"),
+                is_adjusted=True,
             ),
             OHLCVBar(
                 instrument_id=1,
                 timeframe=Timeframe.D1,
                 ts=datetime(2026, 1, 2, tzinfo=UTC),
-                open=Decimal("101"), high=Decimal("106"), low=Decimal("98"), close=Decimal("104"),
-                volume=Decimal("1000"), is_adjusted=True,
+                open=Decimal("101"),
+                high=Decimal("106"),
+                low=Decimal("98"),
+                close=Decimal("104"),
+                volume=Decimal("1000"),
+                is_adjusted=True,
             ),
             OHLCVBar(
                 instrument_id=1,
                 timeframe=Timeframe.D1,
                 ts=datetime(2026, 1, 3, tzinfo=UTC),
-                open=Decimal("104"), high=Decimal("105"), low=Decimal("102"), close=Decimal("102"),
-                volume=Decimal("1000"), is_adjusted=True,
+                open=Decimal("104"),
+                high=Decimal("105"),
+                low=Decimal("102"),
+                close=Decimal("102"),
+                volume=Decimal("1000"),
+                is_adjusted=True,
             ),
         ]
     }
@@ -190,15 +204,23 @@ def test_trade_distributions_preserve_unmaterialized_rows_and_use_short_semantic
                     instrument_id=2,
                     timeframe=Timeframe.D1,
                     ts=datetime(2026, 1, 1, tzinfo=UTC),
-                    open=Decimal("100"), high=Decimal("102"), low=Decimal("95"), close=Decimal("98"),
-                    volume=Decimal("1000"), is_adjusted=True,
+                    open=Decimal("100"),
+                    high=Decimal("102"),
+                    low=Decimal("95"),
+                    close=Decimal("98"),
+                    volume=Decimal("1000"),
+                    is_adjusted=True,
                 ),
                 OHLCVBar(
                     instrument_id=2,
                     timeframe=Timeframe.D1,
                     ts=datetime(2026, 1, 2, tzinfo=UTC),
-                    open=Decimal("98"), high=Decimal("101"), low=Decimal("96"), close=Decimal("96"),
-                    volume=Decimal("1000"), is_adjusted=True,
+                    open=Decimal("98"),
+                    high=Decimal("101"),
+                    low=Decimal("96"),
+                    close=Decimal("96"),
+                    volume=Decimal("1000"),
+                    is_adjusted=True,
                 ),
             ]
         },
@@ -208,7 +230,9 @@ def test_trade_distributions_preserve_unmaterialized_rows_and_use_short_semantic
     assert short_excursion["mfe_pct"] == 5.0
 
     unavailable = _trade("MSFT", "2026-01-01T00:00:00+00:00", "2026-01-02T00:00:00+00:00", 50.0)
-    unavailable_row = _trade_distributions([unavailable], bars_by_instrument={})["mae_mfe"]["rows"][0]
+    unavailable_row = _trade_distributions([unavailable], bars_by_instrument={})["mae_mfe"]["rows"][
+        0
+    ]
     assert unavailable_row["bars_available"] == 0
     assert unavailable_row["mae_pct"] is None
     assert unavailable_row["mfe_pct"] is None
@@ -415,7 +439,7 @@ async def test_build_benchmark_summary_returns_buy_and_hold_artifacts(monkeypatc
     ]
 
     async def fake_resolve(_db, _config, _warnings):
-        return [type('InstrumentRow', (), {'id': 1, 'symbol': 'SPY', 'equity_detail': None})()]
+        return [type("InstrumentRow", (), {"id": 1, "symbol": "SPY", "equity_detail": None})()]
 
     async def fake_load_bars(db, *, instrument_id, timeframe, date_from, date_to):
         assert instrument_id == 1
@@ -436,13 +460,15 @@ async def test_build_benchmark_summary_returns_buy_and_hold_artifacts(monkeypatc
             "requested_fits_range": True,
         }
 
-    monkeypatch.setattr('app.services.strategy_lab._resolve_universe_instruments', fake_resolve)
-    monkeypatch.setattr('app.services.strategy_lab._load_bars_for_strategy', fake_load_bars)
-    monkeypatch.setattr('app.services.strategy_lab._build_benchmark_coverage_summary', fake_benchmark_coverage)
+    monkeypatch.setattr("app.services.strategy_lab._resolve_universe_instruments", fake_resolve)
+    monkeypatch.setattr("app.services.strategy_lab._load_bars_for_strategy", fake_load_bars)
+    monkeypatch.setattr(
+        "app.services.strategy_lab._build_benchmark_coverage_summary", fake_benchmark_coverage
+    )
 
     summary = await _build_benchmark_summary(
         object(),
-        benchmark_symbol='SPY',
+        benchmark_symbol="SPY",
         timeframe=Timeframe.D1,
         date_from=bars[0].ts,
         date_to=bars[-1].ts,

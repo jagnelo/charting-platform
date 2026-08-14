@@ -5,7 +5,14 @@ from pathlib import Path
 from app.services.code_validation import validate_workstation_python
 from research_runner.runner import execute_job
 
-FRONTEND_STUDY_LAB = Path(__file__).resolve().parents[4] / "frontend" / "src" / "components" / "workstation" / "StudyLabTool.vue"
+FRONTEND_STUDY_LAB = (
+    Path(__file__).resolve().parents[4]
+    / "frontend"
+    / "src"
+    / "components"
+    / "workstation"
+    / "StudyLabTool.vue"
+)
 
 
 def _source_constant(name: str) -> str:
@@ -44,17 +51,25 @@ def test_seasonality_factory_source_matches_the_actual_sandbox_policy():
 
 def test_seasonality_factory_source_executes_all_calendar_outputs_in_the_runner():
     source = _source_constant("seasonalitySource")
-    result = execute_job({
-        "source": source,
-        "dataset": {
-            "symbol": "SPY",
-            "timestamps": [
-                "2026-01-01", "2026-01-02", "2026-01-03", "2026-01-04",
-                "2026-01-05", "2026-01-06", "2026-01-07", "2026-01-08",
-            ],
-            "closes": [100, 101, 102, 101, 103, 104, 105, 106],
-        },
-    })
+    result = execute_job(
+        {
+            "source": source,
+            "dataset": {
+                "symbol": "SPY",
+                "timestamps": [
+                    "2026-01-01",
+                    "2026-01-02",
+                    "2026-01-03",
+                    "2026-01-04",
+                    "2026-01-05",
+                    "2026-01-06",
+                    "2026-01-07",
+                    "2026-01-08",
+                ],
+                "closes": [100, 101, 102, 101, 103, 104, 105, 106],
+            },
+        }
+    )
 
     assert result["status"] == "completed"
     assert result["artifacts"]["average_monthly_return"]["type"] == "bar"
@@ -70,17 +85,36 @@ def test_all_named_factory_sources_execute_against_a_prepared_fixture():
         "symbol": "SPY",
         "timestamps": timestamps,
         "closes": closes,
-        "benchmark_dataset": {"symbol": "SPY", "status": "ready", "closes": [200 + day for day in range(30)], "timestamps": timestamps},
+        "benchmark_dataset": {
+            "symbol": "SPY",
+            "status": "ready",
+            "closes": [200 + day for day in range(30)],
+            "timestamps": timestamps,
+        },
         "datasets": [
             {"instrument_id": 1, "symbol": "SPY", "closes": closes, "timestamps": timestamps},
-            {"instrument_id": 2, "symbol": "XLK", "closes": [90 + day * 2 for day in range(30)], "timestamps": timestamps},
-            {"instrument_id": 3, "symbol": "XLE", "closes": [120 + day for day in range(30)], "timestamps": timestamps},
+            {
+                "instrument_id": 2,
+                "symbol": "XLK",
+                "closes": [90 + day * 2 for day in range(30)],
+                "timestamps": timestamps,
+            },
+            {
+                "instrument_id": 3,
+                "symbol": "XLE",
+                "closes": [120 + day for day in range(30)],
+                "timestamps": timestamps,
+            },
         ],
     }
 
     aggregate_sources = {"crossSectionalRankSource", "breadthParticipationSource"}
     for name, source in _source_constants().items():
-        run_dataset = dataset if name in aggregate_sources else {key: value for key, value in dataset.items() if key != "datasets"}
+        run_dataset = (
+            dataset
+            if name in aggregate_sources
+            else {key: value for key, value in dataset.items() if key != "datasets"}
+        )
         job = {"source": source, "dataset": run_dataset}
         if name in aggregate_sources:
             job["output_contract"] = "study"

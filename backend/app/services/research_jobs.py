@@ -55,11 +55,13 @@ def collect_research_result(run: ResearchRun) -> bool:
     run.resource_usage = result.get("resource_usage", {})
     run.reproducibility_hash = result.get("reproducibility_hash")
     for name, artifact in result.get("artifacts", {}).items():
-        run.artifacts.append(ResearchArtifact(
-            artifact_type=str(artifact.get("type", "unknown")),
-            name=name,
-            payload=artifact,
-        ))
+        run.artifacts.append(
+            ResearchArtifact(
+                artifact_type=str(artifact.get("type", "unknown")),
+                name=name,
+                payload=artifact,
+            )
+        )
     path.rename(path.with_suffix(".collected"))
     return True
 

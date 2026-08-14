@@ -236,13 +236,17 @@ async def _load_bars_by_instrument(
         .subquery()
     )
     rows = (
-        await db.execute(
-            select(OHLCVBar)
-            .join(ranked, OHLCVBar.id == ranked.c.bar_id)
-            .where(ranked.c.bar_rank <= RADAR_LOOKBACK_BARS)
-            .order_by(OHLCVBar.instrument_id, OHLCVBar.ts)
+        (
+            await db.execute(
+                select(OHLCVBar)
+                .join(ranked, OHLCVBar.id == ranked.c.bar_id)
+                .where(ranked.c.bar_rank <= RADAR_LOOKBACK_BARS)
+                .order_by(OHLCVBar.instrument_id, OHLCVBar.ts)
+            )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     grouped: dict[int, list[OHLCVBar]] = defaultdict(list)
     for row in rows:
         grouped[row.instrument_id].append(row)

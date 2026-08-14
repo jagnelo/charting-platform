@@ -104,7 +104,8 @@ async def _fire_price_alert(db, alert, current_price):
         alert.last_notification_id = notif_id
     await db.commit()
 
-    await ws_manager.broadcast_to_user(alert.user_id,
+    await ws_manager.broadcast_to_user(
+        alert.user_id,
         {
             "type": "alert_triggered",
             "kind": "price",
@@ -115,7 +116,7 @@ async def _fire_price_alert(db, alert, current_price):
             "threshold": float(alert.threshold_price),
             "current_price": current_price,
             "triggered_at": now.isoformat(),
-        }
+        },
     )
 
 
@@ -138,7 +139,8 @@ async def _fire_indicator_alert(db, alert, current_val, current_b=None):
         alert.last_notification_id = notif_id
     await db.commit()
 
-    await ws_manager.broadcast_to_user(alert.user_id,
+    await ws_manager.broadcast_to_user(
+        alert.user_id,
         {
             "type": "alert_triggered",
             "kind": "indicator",
@@ -149,7 +151,7 @@ async def _fire_indicator_alert(db, alert, current_val, current_b=None):
             "condition": condition,
             "current_value": current_val,
             "triggered_at": now.isoformat(),
-        }
+        },
     )
 
 

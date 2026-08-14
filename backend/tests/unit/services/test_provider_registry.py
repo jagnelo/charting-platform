@@ -19,7 +19,9 @@ def test_backend_env_example_keeps_yfinance_out_of_new_workstation_chains():
     lines = Path(__file__).parents[3].joinpath(".env.example").read_text().splitlines()
     seed_line = next(line for line in lines if line.startswith("PROVIDER_CHAIN_SEEDS="))
     seeds = json.loads(seed_line.split("=", 1)[1])
-    identifier_line = next(line for line in lines if line.startswith("IDENTIFIER_PROVIDER_PRIORITY="))
+    identifier_line = next(
+        line for line in lines if line.startswith("IDENTIFIER_PROVIDER_PRIORITY=")
+    )
     assert json.loads(identifier_line.split("=", 1)[1]) == ["openfigi"]
     assert seeds["option_chain"] == ["yfinance"]
     assert "alpaca" not in seeds["instrument_search"]
@@ -28,7 +30,10 @@ def test_backend_env_example_keeps_yfinance_out_of_new_workstation_chains():
         for capability, providers in seeds.items()
         if capability != "option_chain"
     )
-    assert next(line for line in lines if line.startswith("ENABLE_LEGACY_YFINANCE_FALLBACK=")) == "ENABLE_LEGACY_YFINANCE_FALLBACK=false"
+    assert (
+        next(line for line in lines if line.startswith("ENABLE_LEGACY_YFINANCE_FALLBACK="))
+        == "ENABLE_LEGACY_YFINANCE_FALLBACK=false"
+    )
 
 
 class TestProviderRegistry:

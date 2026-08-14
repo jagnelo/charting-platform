@@ -74,9 +74,7 @@ class TestScreenerCRUD:
     def test_screener_history_plot_does_not_fabricate_empty_history(
         self, client, auth_headers, screener
     ):
-        response = client.get(
-            f"/api/v1/screeners/{screener.id}/plot", headers=auth_headers
-        )
+        response = client.get(f"/api/v1/screeners/{screener.id}/plot", headers=auth_headers)
         assert response.status_code == 200
         assert response.json()["points"] == []
         assert "No retained scan history" in response.json()["warning"]
@@ -100,7 +98,10 @@ class TestScreenerCRUD:
         assert created.status_code == 201
         created_conditions = created.json()["conditions"]
         assert created_conditions["type"] == "python_condition"
-        assert created_conditions["code_version_id"] == saved.json()["payload"]["python_code_version_id"]
+        assert (
+            created_conditions["code_version_id"]
+            == saved.json()["payload"]["python_code_version_id"]
+        )
 
     def test_python_condition_screener_queues_and_reconciles_batch_result(
         self, client, auth_headers, instrument, ohlcv_bars, tmp_path, monkeypatch
@@ -148,9 +149,7 @@ class TestScreenerCRUD:
         )
         assert alert.status_code == 201
 
-        queued = client.post(
-            f"/api/v1/screeners/{screener['id']}/run", headers=auth_headers
-        )
+        queued = client.post(f"/api/v1/screeners/{screener['id']}/run", headers=auth_headers)
         assert queued.status_code == 200
         queued_result = queued.json()
         assert queued_result["result_data"]["_status"] == "queued"
@@ -241,7 +240,10 @@ class TestScreenerCRUD:
             },
         )
         assert created.status_code == 201
-        assert created.json()["conditions"] == {"type": "python_condition", "code_version_id": version_id}
+        assert created.json()["conditions"] == {
+            "type": "python_condition",
+            "code_version_id": version_id,
+        }
 
     def test_create_screener(self, client, auth_headers):
         res = client.post(
@@ -382,7 +384,9 @@ class TestScreenerAlertCRUD:
             == 404
         )
         assert (
-            client.delete(f"/api/v1/alerts/screener/{alert['id']}", headers=auth_headers).status_code
+            client.delete(
+                f"/api/v1/alerts/screener/{alert['id']}", headers=auth_headers
+            ).status_code
             == 200
         )
         assert client.get("/api/v1/alerts/screener", headers=auth_headers).json() == []

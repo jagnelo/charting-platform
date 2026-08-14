@@ -73,8 +73,15 @@ def _aggregate_series_cells(
     """Calculate ranking periods for an equal-weight synthetic industry series."""
 
     if not values:
-        warning = AnalysisWarning(code="no_bars", message="No aligned constituent bars are available.", instrument_id=instrument_id)
-        return {period: AnalysisCell(value=None, observation_time=None, warning=warning) for period in _PERIODS}
+        warning = AnalysisWarning(
+            code="no_bars",
+            message="No aligned constituent bars are available.",
+            instrument_id=instrument_id,
+        )
+        return {
+            period: AnalysisCell(value=None, observation_time=None, warning=warning)
+            for period in _PERIODS
+        }
     latest_timestamp, latest_value = values[-1]
     current_year = [item for item in values if item[0].year == latest_timestamp.year]
     cells: dict[str, AnalysisCell] = {}
@@ -83,7 +90,9 @@ def _aggregate_series_cells(
         if period == "YTD":
             base = current_year[0][1] if len(current_year) >= 2 else None
             code = "insufficient_ytd_history"
-            message = "YTD requires at least two aligned constituent observations in the current year."
+            message = (
+                "YTD requires at least two aligned constituent observations in the current year."
+            )
         else:
             base = values[-offset - 1][1] if offset is not None and len(values) > offset else None
             code = "insufficient_history"
@@ -95,7 +104,9 @@ def _aggregate_series_cells(
                 warning=AnalysisWarning(code=code, message=message, instrument_id=instrument_id),
             )
         else:
-            cells[period] = AnalysisCell(value=latest_value / base - 1, observation_time=latest_timestamp)
+            cells[period] = AnalysisCell(
+                value=latest_value / base - 1, observation_time=latest_timestamp
+            )
     return cells
 
 
@@ -105,25 +116,40 @@ def _technical_cells_for_series(
     """Return the same transparent technical fields used by group rankings."""
 
     if not values:
-        warning = AnalysisWarning(code="no_bars", message="No aligned constituent bars are available.", instrument_id=instrument_id)
-        return {key: AnalysisCell(value=None, observation_time=None, warning=warning) for key in ("above_ma20", "above_ma50", "above_ma200", "rsi14", "position_52w")}
+        warning = AnalysisWarning(
+            code="no_bars",
+            message="No aligned constituent bars are available.",
+            instrument_id=instrument_id,
+        )
+        return {
+            key: AnalysisCell(value=None, observation_time=None, warning=warning)
+            for key in ("above_ma20", "above_ma50", "above_ma200", "rsi14", "position_52w")
+        }
     latest_timestamp, latest_value = values[-1]
     closes = [value for _, value in values]
     technical: dict[str, AnalysisCell] = {}
     for period in (20, 50, 200):
         key = f"above_ma{period}"
-        warning = None if len(closes) >= period else AnalysisWarning(
-            code="insufficient_history",
-            message=f"Price versus SMA({period}) requires {period} aligned constituent observations.",
-            instrument_id=instrument_id,
+        warning = (
+            None
+            if len(closes) >= period
+            else AnalysisWarning(
+                code="insufficient_history",
+                message=f"Price versus SMA({period}) requires {period} aligned constituent observations.",
+                instrument_id=instrument_id,
+            )
         )
         technical[key] = AnalysisCell(
-            value=(1.0 if latest_value > sum(closes[-period:]) / period else 0.0) if warning is None else None,
+            value=(1.0 if latest_value > sum(closes[-period:]) / period else 0.0)
+            if warning is None
+            else None,
             observation_time=latest_timestamp,
             warning=warning,
         )
     if len(closes) >= 15:
-        changes = [closes[index] - closes[index - 1] for index in range(len(closes) - 13, len(closes))]
+        changes = [
+            closes[index] - closes[index - 1] for index in range(len(closes) - 13, len(closes))
+        ]
         gain = _mean([max(change, 0.0) for change in changes])
         loss = _mean([max(-change, 0.0) for change in changes])
         technical["rsi14"] = AnalysisCell(
@@ -134,7 +160,11 @@ def _technical_cells_for_series(
         technical["rsi14"] = AnalysisCell(
             value=None,
             observation_time=latest_timestamp,
-            warning=AnalysisWarning(code="insufficient_history", message="RSI(14) requires 15 aligned constituent observations.", instrument_id=instrument_id),
+            warning=AnalysisWarning(
+                code="insufficient_history",
+                message="RSI(14) requires 15 aligned constituent observations.",
+                instrument_id=instrument_id,
+            ),
         )
     if len(closes) >= 252:
         window = closes[-252:]
@@ -147,7 +177,11 @@ def _technical_cells_for_series(
         technical["position_52w"] = AnalysisCell(
             value=None,
             observation_time=latest_timestamp,
-            warning=AnalysisWarning(code="insufficient_history", message="52-week position requires 252 aligned constituent observations.", instrument_id=instrument_id),
+            warning=AnalysisWarning(
+                code="insufficient_history",
+                message="52-week position requires 252 aligned constituent observations.",
+                instrument_id=instrument_id,
+            ),
         )
     return technical
 
@@ -168,7 +202,10 @@ def _equal_weight_series(
 ) -> list[tuple[datetime, float]]:
     """Build an equal-weight industry proxy on intersecting observations only."""
 
-    series = [_normalised_bar_series(bars_by_id.get(instrument_id, [])) for instrument_id in instrument_ids]
+    series = [
+        _normalised_bar_series(bars_by_id.get(instrument_id, []))
+        for instrument_id in instrument_ids
+    ]
     series = [item for item in series if item]
     if not series:
         return []
@@ -177,13 +214,19 @@ def _equal_weight_series(
 
 
 def _ratio_cell(
-    values: list[tuple[datetime, float]], reference: dict[datetime, float], instrument_id: int | None
+    values: list[tuple[datetime, float]],
+    reference: dict[datetime, float],
+    instrument_id: int | None,
 ) -> AnalysisCell:
     if not values:
         return AnalysisCell(
             value=None,
             observation_time=None,
-            warning=AnalysisWarning(code="no_bars", message="No aligned industry observations are available.", instrument_id=instrument_id),
+            warning=AnalysisWarning(
+                code="no_bars",
+                message="No aligned industry observations are available.",
+                instrument_id=instrument_id,
+            ),
         )
     timestamp, value = values[-1]
     denominator = reference.get(timestamp)
@@ -191,7 +234,11 @@ def _ratio_cell(
         return AnalysisCell(
             value=None,
             observation_time=timestamp,
-            warning=AnalysisWarning(code="unaligned_benchmark", message="No aligned benchmark observation is available.", instrument_id=instrument_id),
+            warning=AnalysisWarning(
+                code="unaligned_benchmark",
+                message="No aligned benchmark observation is available.",
+                instrument_id=instrument_id,
+            ),
         )
     return AnalysisCell(value=value / denominator, observation_time=timestamp)
 
@@ -206,8 +253,12 @@ async def indicator_batch(
     try:
         timeframe = Timeframe(body.timeframe)
     except ValueError as exc:
-        raise HTTPException(422, detail={"code": "invalid_timeframe", "timeframe": body.timeframe}) from exc
-    symbols = list(dict.fromkeys(symbol.upper().strip() for symbol in body.symbols if symbol.strip()))
+        raise HTTPException(
+            422, detail={"code": "invalid_timeframe", "timeframe": body.timeframe}
+        ) from exc
+    symbols = list(
+        dict.fromkeys(symbol.upper().strip() for symbol in body.symbols if symbol.strip())
+    )
     if not symbols:
         raise HTTPException(422, detail={"code": "empty_symbols"})
     instruments = {
@@ -224,21 +275,48 @@ async def indicator_batch(
     for symbol in symbols:
         instrument = instruments.get(symbol)
         if instrument is None:
-            warning = AnalysisWarning(code="instrument_not_found", message="No canonical instrument exists.", instrument_id=None)
-            values[symbol] = {"value": None, "observation_time": None, "warning": warning.model_dump()}
+            warning = AnalysisWarning(
+                code="instrument_not_found",
+                message="No canonical instrument exists.",
+                instrument_id=None,
+            )
+            values[symbol] = {
+                "value": None,
+                "observation_time": None,
+                "warning": warning.model_dump(),
+            }
             exclusions.append(warning)
             continue
         bars = bars_by_id.get(instrument.id, [])[-500:]
         if not bars:
-            warning = AnalysisWarning(code="no_bars", message="No canonical bars are available.", instrument_id=instrument.id)
-            values[symbol] = {"value": None, "observation_time": None, "warning": warning.model_dump()}
+            warning = AnalysisWarning(
+                code="no_bars",
+                message="No canonical bars are available.",
+                instrument_id=instrument.id,
+            )
+            values[symbol] = {
+                "value": None,
+                "observation_time": None,
+                "warning": warning.model_dump(),
+            }
             exclusions.append(warning)
             continue
         try:
-            value = get_latest_value(body.indicator, OHLCVSeries.from_orm_bars(bars), body.params, str(body.params.get("output")) if body.params.get("output") else None)
+            value = get_latest_value(
+                body.indicator,
+                OHLCVSeries.from_orm_bars(bars),
+                body.params,
+                str(body.params.get("output")) if body.params.get("output") else None,
+            )
         except (KeyError, IndexError) as exc:
-            warning = AnalysisWarning(code="unknown_indicator", message=str(exc), instrument_id=instrument.id)
-            values[symbol] = {"value": None, "observation_time": bars[-1].ts, "warning": warning.model_dump()}
+            warning = AnalysisWarning(
+                code="unknown_indicator", message=str(exc), instrument_id=instrument.id
+            )
+            values[symbol] = {
+                "value": None,
+                "observation_time": bars[-1].ts,
+                "warning": warning.model_dump(),
+            }
             exclusions.append(warning)
             continue
         warning = None
@@ -357,9 +435,7 @@ def _group_provenance(group: MarketGroup, as_of: datetime | None) -> dict[str, o
     }
 
 
-def _group_membership_version(
-    group: MarketGroup, members: list[MarketGroupMember]
-) -> int:
+def _group_membership_version(group: MarketGroup, members: list[MarketGroupMember]) -> int:
     """Return a stable cache/version identity for the selected group universe.
 
     A database primary key identifies the group row, not its evolving membership.
@@ -408,7 +484,9 @@ def _gauge_exclusion_warnings(excluded: object) -> list[AnalysisWarning]:
             AnalysisWarning(
                 code=str(value.get("code") or "excluded"),
                 message=str(value.get("message") or "Excluded"),
-                instrument_id=value.get("instrument_id") if isinstance(value.get("instrument_id"), int) else None,
+                instrument_id=value.get("instrument_id")
+                if isinstance(value.get("instrument_id"), int)
+                else None,
             )
             for value in excluded
             if isinstance(value, dict)
@@ -615,9 +693,7 @@ def _performance_cells(bars: list[OHLCVBar], instrument_id: int) -> dict[str, An
                     ),
                 )
             else:
-                cells[period] = _cell(
-                    float(latest.close / current_year_bars[0].close - 1), latest
-                )
+                cells[period] = _cell(float(latest.close / current_year_bars[0].close - 1), latest)
             continue
         assert offset is not None
         if len(bars) <= offset:
@@ -784,9 +860,7 @@ async def instrument_technical_snapshot(
         window = closes[-252:]
         span = max(window) - min(window)
         position_52w = (closes[-1] - min(window)) / span if span else 1.0
-    freshness, freshness_detail = await _batch_freshness(
-        db, [instrument.id], timeframe, adjusted
-    )
+    freshness, freshness_detail = await _batch_freshness(db, [instrument.id], timeframe, adjusted)
     return TechnicalSnapshotOut(
         symbol=instrument.symbol,
         timeframe=timeframe.value,
@@ -992,7 +1066,9 @@ async def group_relative_rotation(
                 heading=math.degrees(math.atan2(latest.momentum, latest.trend)),
                 distance=math.hypot(latest.trend, latest.momentum),
                 velocity=velocity,
-                transition=f"{previous_state}->{state}" if previous_state and previous_state != state else None,
+                transition=f"{previous_state}->{state}"
+                if previous_state and previous_state != state
+                else None,
                 time_in_state=time_in_state,
                 coverage=len(aligned) / maximum,
                 tail=coordinates[-tail_length:],
@@ -1221,7 +1297,9 @@ async def industry_snapshot(
 
     etf = await _instrument(db, symbol)
     market = await _instrument(db, market_benchmark)
-    composition = await etf_industry_composition(symbol=etf.symbol, as_of=as_of, _=current_user, db=db)
+    composition = await etf_industry_composition(
+        symbol=etf.symbol, as_of=as_of, _=current_user, db=db
+    )
     rows: list[IndustrySnapshotRow] = []
     exclusions: list[AnalysisWarning] = []
     all_instrument_ids: set[int] = {etf.id, market.id}
@@ -1250,7 +1328,9 @@ async def industry_snapshot(
                 code="no_bars",
                 message="No aligned constituent bars are available for this industry.",
             )
-            exclusions.append(warning.model_copy(update={"message": f"{industry.industry}: {warning.message}"}))
+            exclusions.append(
+                warning.model_copy(update={"message": f"{industry.industry}: {warning.message}"})
+            )
         else:
             covered += 1
         performance = _aggregate_series_cells(series, instrument_id=None)
@@ -1284,7 +1364,9 @@ async def industry_snapshot(
         market_benchmark=market.symbol,
         timeframe=timeframe.value,
         adjustment="split_adjusted" if adjusted else "raw",
-        as_of=max((row.last.observation_time for row in rows if row.last.observation_time), default=None),
+        as_of=max(
+            (row.last.observation_time for row in rows if row.last.observation_time), default=None
+        ),
         composition_date=datetime.fromisoformat(composition.composition_date).date(),
         known_at=composition.known_at,
         membership_version=int(
@@ -1369,9 +1451,7 @@ async def etf_constituent_snapshot(
     # unresolved rows disappear from the constituent response, which could
     # overstate coverage and disagree with the industry/taxonomy endpoints.
     disclosed_rows = sorted(snapshot.rows, key=lambda item: item.position)
-    holdings = [
-        row for row in disclosed_rows if _holding_exclusion_code(row) is None
-    ]
+    holdings = [row for row in disclosed_rows if _holding_exclusion_code(row) is None]
     exclusions = [
         AnalysisWarning(
             code=code,
@@ -1404,7 +1484,11 @@ async def etf_constituent_snapshot(
     # historical holdings set could still be ranked using future bars.
     bars_by_id = _truncate_bars_at(bars_by_id, as_of)
     benchmark_bars = {bar.ts: bar for bar in bars_by_id.get(benchmark_instrument.id, [])}
-    market_bars = {bar.ts: bar for bar in bars_by_id.get(market_instrument.id, [])} if market_instrument else {}
+    market_bars = (
+        {bar.ts: bar for bar in bars_by_id.get(market_instrument.id, [])}
+        if market_instrument
+        else {}
+    )
     rows: list[GroupSnapshotRow] = []
     covered = 0
     for holding in sorted(holdings, key=lambda item: item.position):
@@ -1542,7 +1626,8 @@ async def etf_constituent_snapshot(
     return ETFConstituentSnapshotOut(
         group_key=f"etf-proxy:{etf.symbol}",
         timeframe=timeframe.value,
-        as_of=as_of or max(
+        as_of=as_of
+        or max(
             (row.last.observation_time for row in rows if row.last.observation_time), default=None
         ),
         adjustment="split_adjusted" if adjusted else "raw",
@@ -1612,9 +1697,7 @@ async def group_snapshot(
         (bar.ts.year for bars in bars_by_id.values() for bar in bars),
         default=datetime.now(UTC).year,
     )
-    calendar_years = list(
-        range(latest_year - _CALENDAR_YEAR_LOOKBACK + 1, latest_year + 1)
-    )
+    calendar_years = list(range(latest_year - _CALENDAR_YEAR_LOOKBACK + 1, latest_year + 1))
     rows: list[GroupSnapshotRow] = []
     exclusions: list[AnalysisWarning] = []
     covered = 0
@@ -1733,9 +1816,7 @@ async def group_snapshot(
                 technical=technical,
             )
         )
-    freshness, freshness_detail = await _batch_freshness(
-        db, instrument_ids, timeframe, adjusted
-    )
+    freshness, freshness_detail = await _batch_freshness(db, instrument_ids, timeframe, adjusted)
     return GroupSnapshotOut(
         group_key=group.stable_key,
         timeframe=timeframe.value,
@@ -1776,7 +1857,9 @@ async def group_breadth(
     requested_as_of = as_of
     members = _group_members_at(group, requested_as_of)
     bars_by_id = _truncate_bars_at(
-        await _bars_by_instrument(db, [member.instrument_id for member in members], timeframe, adjusted),
+        await _bars_by_instrument(
+            db, [member.instrument_id for member in members], timeframe, adjusted
+        ),
         requested_as_of,
     )
     counts = {20: 0, 50: 0, 200: 0}
@@ -1829,7 +1912,7 @@ async def group_breadth(
             metrics["near_52w_low"] = None
         if len(bars) > new_high_lookback:
             close = float(bars[-1].close)
-            previous = [float(bar.close) for bar in bars[-(new_high_lookback + 1):-1]]
+            previous = [float(bar.close) for bar in bars[-(new_high_lookback + 1) : -1]]
             if previous:
                 new_eligible += 1
                 new_high = close >= max(previous)
@@ -1884,10 +1967,7 @@ async def group_breadth(
         evaluated_count=len(members),
         coverage=sum(1 for bars in bars_by_id.values() if bars) / max(len(members), 1),
         coverage_detail={
-            **{
-                f"ma{period}": eligible[period] / max(len(members), 1)
-                for period in eligible
-            },
+            **{f"ma{period}": eligible[period] / max(len(members), 1) for period in eligible},
             "near_52w": near_eligible / max(len(members), 1),
             "new_high_low": new_eligible / max(len(members), 1),
             "trend": trend_eligible / max(len(members), 1),
@@ -1913,7 +1993,8 @@ async def group_breadth(
         },
         distance_from_ma={
             f"ma{period}": distance_totals[period] / distance_eligible[period]
-            if distance_eligible[period] else None
+            if distance_eligible[period]
+            else None
             for period in distance_totals
         },
         new_high_lookback=new_high_lookback,
@@ -1947,7 +2028,9 @@ async def group_breadth_history(
     buckets: dict = {}
     exclusions: list[AnalysisWarning] = []
     bars_by_id = _truncate_bars_at(
-        await _bars_by_instrument(db, [member.instrument_id for member in members], timeframe, adjusted),
+        await _bars_by_instrument(
+            db, [member.instrument_id for member in members], timeframe, adjusted
+        ),
         as_of,
     )
     for member in members:

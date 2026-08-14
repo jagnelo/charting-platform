@@ -453,12 +453,14 @@ async def seed_provider_runtime(db: AsyncSession) -> None:
                 # Upgrade rows created by older builds without overwriting an
                 # operator-reviewed entitlement.
                 prior_values = {
-                    field_name: getattr(entitlement, field_name)
-                    for field_name in entitlement_seed
+                    field_name: getattr(entitlement, field_name) for field_name in entitlement_seed
                 }
                 for field_name, value in entitlement_seed.items():
                     setattr(entitlement, field_name, value)
-                if any(prior_values[field_name] != value for field_name, value in entitlement_seed.items()):
+                if any(
+                    prior_values[field_name] != value
+                    for field_name, value in entitlement_seed.items()
+                ):
                     entitlement.revision = int(entitlement.revision or 1) + 1
             elif entitlement.revision is None or entitlement.revision < 1:
                 entitlement.revision = 1

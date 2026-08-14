@@ -106,12 +106,15 @@ def test_curated_route_metadata_repairs_stale_adapter_key():
 def test_explicit_issuer_product_slug_precedes_sec_series_id():
     """SEC enrichment must not shadow an issuer-native route identifier."""
 
-    assert _issuer_product_identifier(
-        {
-            "sec_series_id": "S000034411",
-            "product_slug": "semiconductor-etf-smh",
-        }
-    ) == "semiconductor-etf-smh"
+    assert (
+        _issuer_product_identifier(
+            {
+                "sec_series_id": "S000034411",
+                "product_slug": "semiconductor-etf-smh",
+            }
+        )
+        == "semiconductor-etf-smh"
+    )
 
 
 @pytest.mark.asyncio
@@ -187,7 +190,9 @@ async def test_ensure_internal_identifier_repairs_duplicate_internal_rows(db, in
     assert len(active) == 1
     assert active[0].identifier_value == f"instrument:{instrument.id}"
     assert active[0].is_primary is True
-    assert any("__superseded__" in row.identifier_value for row in identifiers if row.id != active[0].id)
+    assert any(
+        "__superseded__" in row.identifier_value for row in identifiers if row.id != active[0].id
+    )
     assert instrument.primary_identifier_type == InstrumentIdentifierType.INTERNAL.value
     assert instrument.primary_identifier_value == f"instrument:{instrument.id}"
 
@@ -274,7 +279,9 @@ async def test_bootstrap_uses_async_nested_transaction_for_ready_routes(monkeypa
         fake_bootstrap_from_sec_filings,
     )
 
-    result = await bootstrap_etf_holdings_profile(db, symbol="NIKL", name="Sprott Nickel Miners ETF")
+    result = await bootstrap_etf_holdings_profile(
+        db, symbol="NIKL", name="Sprott Nickel Miners ETF"
+    )
 
     assert isinstance(result, ETFHoldingsBootstrapResult)
     assert result.refresh_attempted is True
@@ -325,11 +332,23 @@ async def test_bootstrap_accepts_existing_public_snapshot_schema(monkeypatch):
     async def fake_probe_etf_holdings_adapter_route(db, profile):
         return probe
 
-    monkeypatch.setattr("app.services.etf_holdings_refresh.ensure_lightweight_etf_instrument", fake_ensure_lightweight_etf_instrument)
-    monkeypatch.setattr("app.services.etf_holdings_refresh.ensure_etf_profile", fake_ensure_etf_profile)
-    monkeypatch.setattr("app.services.etf_holdings_refresh.known_etf_route_metadata", lambda symbol: None)
-    monkeypatch.setattr("app.services.etf_holdings_refresh.get_latest_snapshot", fake_get_latest_snapshot)
-    monkeypatch.setattr("app.services.etf_holdings_refresh.probe_etf_holdings_adapter_route", fake_probe_etf_holdings_adapter_route)
+    monkeypatch.setattr(
+        "app.services.etf_holdings_refresh.ensure_lightweight_etf_instrument",
+        fake_ensure_lightweight_etf_instrument,
+    )
+    monkeypatch.setattr(
+        "app.services.etf_holdings_refresh.ensure_etf_profile", fake_ensure_etf_profile
+    )
+    monkeypatch.setattr(
+        "app.services.etf_holdings_refresh.known_etf_route_metadata", lambda symbol: None
+    )
+    monkeypatch.setattr(
+        "app.services.etf_holdings_refresh.get_latest_snapshot", fake_get_latest_snapshot
+    )
+    monkeypatch.setattr(
+        "app.services.etf_holdings_refresh.probe_etf_holdings_adapter_route",
+        fake_probe_etf_holdings_adapter_route,
+    )
 
     result = await bootstrap_etf_holdings_profile(db, symbol="XLK", name=instrument.name)
 
@@ -421,7 +440,9 @@ async def test_bootstrap_accepts_sync_nested_transaction_wrappers(monkeypatch):
         fake_bootstrap_from_sec_filings,
     )
 
-    result = await bootstrap_etf_holdings_profile(db, symbol="NIKL", name="Sprott Nickel Miners ETF")
+    result = await bootstrap_etf_holdings_profile(
+        db, symbol="NIKL", name="Sprott Nickel Miners ETF"
+    )
 
     assert isinstance(result, ETFHoldingsBootstrapResult)
     assert result.refresh_attempted is True

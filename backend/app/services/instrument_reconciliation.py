@@ -90,7 +90,10 @@ async def list_reconciliation_issues(
             selectinload(InstrumentReconciliationIssue.resolved_by),
         )
         .where(InstrumentReconciliationIssue.status == status)
-        .order_by(InstrumentReconciliationIssue.observed_at.desc(), InstrumentReconciliationIssue.id.desc())
+        .order_by(
+            InstrumentReconciliationIssue.observed_at.desc(),
+            InstrumentReconciliationIssue.id.desc(),
+        )
         .limit(safe_limit)
     )
     return list(result.scalars().all())

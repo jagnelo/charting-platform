@@ -115,7 +115,10 @@ def test_code_asset_kind_and_declared_output_contract_must_match(client, auth_he
             "stable_key": "bad-column-contract",
             "name": "Bad column contract",
             "kind": "column",
-            "initial_version": {"source": "output.series('trend', [1])", "output_contract": "series"},
+            "initial_version": {
+                "source": "output.series('trend', [1])",
+                "output_contract": "series",
+            },
         },
     )
     assert wrong_kind.status_code == 422
@@ -128,12 +131,17 @@ def test_code_asset_kind_and_declared_output_contract_must_match(client, auth_he
             "stable_key": "bad-source-contract",
             "name": "Bad source contract",
             "kind": "column",
-            "initial_version": {"source": "output.series('trend', [1])", "output_contract": "scalar"},
+            "initial_version": {
+                "source": "output.series('trend', [1])",
+                "output_contract": "scalar",
+            },
         },
     )
     assert wrong_source.status_code == 422
     assert wrong_source.json()["detail"] == {
-        "code": "declared_output_contract_mismatch", "declared": "scalar", "observed": ["series"],
+        "code": "declared_output_contract_mismatch",
+        "declared": "scalar",
+        "observed": ["series"],
     }
 
     valid_condition = client.post(
@@ -143,7 +151,10 @@ def test_code_asset_kind_and_declared_output_contract_must_match(client, auth_he
             "stable_key": "qualified-condition",
             "name": "Qualified condition",
             "kind": "condition",
-            "initial_version": {"source": "output.boolean('qualifies', 2 > 1)", "output_contract": "boolean"},
+            "initial_version": {
+                "source": "output.boolean('qualifies', 2 > 1)",
+                "output_contract": "boolean",
+            },
         },
     )
     assert valid_condition.status_code == 201
@@ -238,9 +249,15 @@ def test_research_run_is_queued_for_isolated_runner(client, auth_headers, tmp_pa
     assert canceled.json()["status"] == "canceled"
 
 
-def test_research_run_job_preserves_json_parameters_for_isolated_runner(client, auth_headers, tmp_path, monkeypatch):
-    monkeypatch.setattr("app.services.research_jobs.settings.RESEARCH_JOB_DIR", str(tmp_path / "jobs"))
-    monkeypatch.setattr("app.services.research_jobs.settings.RESEARCH_RESULT_DIR", str(tmp_path / "results"))
+def test_research_run_job_preserves_json_parameters_for_isolated_runner(
+    client, auth_headers, tmp_path, monkeypatch
+):
+    monkeypatch.setattr(
+        "app.services.research_jobs.settings.RESEARCH_JOB_DIR", str(tmp_path / "jobs")
+    )
+    monkeypatch.setattr(
+        "app.services.research_jobs.settings.RESEARCH_RESULT_DIR", str(tmp_path / "results")
+    )
     asset = client.post(
         "/api/v1/code/assets",
         headers=auth_headers,
@@ -248,22 +265,34 @@ def test_research_run_job_preserves_json_parameters_for_isolated_runner(client, 
             "stable_key": "parameter-study",
             "name": "Parameter study",
             "kind": "study",
-            "initial_version": {"source": "output.scalar('threshold', parameters['threshold'])", "output_contract": "study"},
+            "initial_version": {
+                "source": "output.scalar('threshold', parameters['threshold'])",
+                "output_contract": "study",
+            },
         },
     ).json()
     run = client.post(
         "/api/v1/research/runs",
         headers=auth_headers,
-        json={"code_version_id": asset["versions"][0]["id"], "run_config": {"parameters": {"threshold": 42}}},
+        json={
+            "code_version_id": asset["versions"][0]["id"],
+            "run_config": {"parameters": {"threshold": 42}},
+        },
     )
     assert run.status_code == 202
     job = json.loads((tmp_path / "jobs" / f"{run.json()['id']}.json").read_text())
     assert job["parameters"] == {"threshold": 42}
 
 
-def test_research_run_merges_defaults_and_rejects_schema_invalid_parameters(client, auth_headers, tmp_path, monkeypatch):
-    monkeypatch.setattr("app.services.research_jobs.settings.RESEARCH_JOB_DIR", str(tmp_path / "jobs"))
-    monkeypatch.setattr("app.services.research_jobs.settings.RESEARCH_RESULT_DIR", str(tmp_path / "results"))
+def test_research_run_merges_defaults_and_rejects_schema_invalid_parameters(
+    client, auth_headers, tmp_path, monkeypatch
+):
+    monkeypatch.setattr(
+        "app.services.research_jobs.settings.RESEARCH_JOB_DIR", str(tmp_path / "jobs")
+    )
+    monkeypatch.setattr(
+        "app.services.research_jobs.settings.RESEARCH_RESULT_DIR", str(tmp_path / "results")
+    )
     asset = client.post(
         "/api/v1/code/assets",
         headers=auth_headers,
@@ -274,7 +303,10 @@ def test_research_run_merges_defaults_and_rejects_schema_invalid_parameters(clie
             "initial_version": {
                 "source": "output.scalar('lookback', parameters['lookback'])",
                 "output_contract": "study",
-                "parameter_schema": {"properties": {"lookback": {"type": "integer", "minimum": 1}}, "additionalProperties": False},
+                "parameter_schema": {
+                    "properties": {"lookback": {"type": "integer", "minimum": 1}},
+                    "additionalProperties": False,
+                },
                 "default_parameters": {"lookback": 20},
             },
         },
@@ -289,7 +321,10 @@ def test_research_run_merges_defaults_and_rejects_schema_invalid_parameters(clie
     invalid = client.post(
         "/api/v1/research/runs",
         headers=auth_headers,
-        json={"code_version_id": asset["versions"][0]["id"], "run_config": {"parameters": {"lookback": 0}}},
+        json={
+            "code_version_id": asset["versions"][0]["id"],
+            "run_config": {"parameters": {"lookback": 0}},
+        },
     )
     assert invalid.status_code == 422
     assert invalid.json()["detail"]["code"] == "parameter_validation_failed"
@@ -489,7 +524,9 @@ def test_research_run_materializes_structured_study_universe_with_exclusions(
     manifest = response.json()["dataset_manifest"]
     assert manifest["requested_symbols"] == [instrument.symbol, "NOT_A_CANONICAL_SYMBOL"]
     assert [item["symbol"] for item in manifest["datasets"]] == [instrument.symbol]
-    assert manifest["exclusions"] == [{"symbol": "NOT_A_CANONICAL_SYMBOL", "code": "declared_instrument_not_found"}]
+    assert manifest["exclusions"] == [
+        {"symbol": "NOT_A_CANONICAL_SYMBOL", "code": "declared_instrument_not_found"}
+    ]
 
 
 def test_research_run_honors_study_dataset_controls_and_records_them(
@@ -592,12 +629,18 @@ def test_research_run_honors_study_dataset_controls_and_records_them(
     regular_response = client.post(
         "/api/v1/research/runs",
         headers=auth_headers,
-        json={"code_version_id": asset["versions"][0]["id"], "run_config": {**session_range, "session": "regular"}},
+        json={
+            "code_version_id": asset["versions"][0]["id"],
+            "run_config": {**session_range, "session": "regular"},
+        },
     )
     all_response = client.post(
         "/api/v1/research/runs",
         headers=auth_headers,
-        json={"code_version_id": asset["versions"][0]["id"], "run_config": {**session_range, "session": "all"}},
+        json={
+            "code_version_id": asset["versions"][0]["id"],
+            "run_config": {**session_range, "session": "all"},
+        },
     )
     assert regular_response.status_code == 202
     assert all_response.status_code == 202
@@ -605,9 +648,7 @@ def test_research_run_honors_study_dataset_controls_and_records_them(
     assert len(all_response.json()["dataset_manifest"]["timestamps"]) == 2
 
 
-def test_research_run_rejects_unsupported_study_dataset_controls(
-    client, auth_headers, instrument
-):
+def test_research_run_rejects_unsupported_study_dataset_controls(client, auth_headers, instrument):
     asset = client.post(
         "/api/v1/code/assets",
         headers=auth_headers,
@@ -626,7 +667,11 @@ def test_research_run_rejects_unsupported_study_dataset_controls(
         headers=auth_headers,
         json={
             "code_version_id": asset["versions"][0]["id"],
-            "run_config": {"symbol": instrument.symbol, "timeframe": "D1", "adjustment": "total_return"},
+            "run_config": {
+                "symbol": instrument.symbol,
+                "timeframe": "D1",
+                "adjustment": "total_return",
+            },
         },
     )
     assert response.status_code == 422
@@ -636,8 +681,12 @@ def test_research_run_rejects_unsupported_study_dataset_controls(
 def test_column_batch_run_materializes_declared_universe_and_returns_typed_cells(
     client, auth_headers, tmp_path, monkeypatch, instrument, ohlcv_bars
 ):
-    monkeypatch.setattr("app.services.research_jobs.settings.RESEARCH_JOB_DIR", str(tmp_path / "jobs"))
-    monkeypatch.setattr("app.services.research_jobs.settings.RESEARCH_RESULT_DIR", str(tmp_path / "results"))
+    monkeypatch.setattr(
+        "app.services.research_jobs.settings.RESEARCH_JOB_DIR", str(tmp_path / "jobs")
+    )
+    monkeypatch.setattr(
+        "app.services.research_jobs.settings.RESEARCH_RESULT_DIR", str(tmp_path / "results")
+    )
     asset = client.post(
         "/api/v1/code/assets",
         headers=auth_headers,
@@ -654,12 +703,19 @@ def test_column_batch_run_materializes_declared_universe_and_returns_typed_cells
     run = client.post(
         "/api/v1/research/runs",
         headers=auth_headers,
-        json={"code_version_id": asset["versions"][0]["id"], "run_config": {"symbols": [instrument.symbol, "MISSING"]}},
+        json={
+            "code_version_id": asset["versions"][0]["id"],
+            "run_config": {"symbols": [instrument.symbol, "MISSING"]},
+        },
     )
     assert run.status_code == 202
     payload = run.json()
-    assert [item["symbol"] for item in payload["dataset_manifest"]["datasets"]] == [instrument.symbol]
-    assert payload["dataset_manifest"]["exclusions"] == [{"symbol": "MISSING", "code": "declared_instrument_not_found"}]
+    assert [item["symbol"] for item in payload["dataset_manifest"]["datasets"]] == [
+        instrument.symbol
+    ]
+    assert payload["dataset_manifest"]["exclusions"] == [
+        {"symbol": "MISSING", "code": "declared_instrument_not_found"}
+    ]
 
     result_dir = tmp_path / "results"
     result_dir.mkdir()
@@ -670,14 +726,26 @@ def test_column_batch_run_materializes_declared_universe_and_returns_typed_cells
     cells = client.get(f"/api/v1/research/runs/{payload['id']}/batch-results", headers=auth_headers)
     assert cells.status_code == 200
     assert cells.json()["output_contract"] == "scalar"
-    assert cells.json()["cells"] == [{"instrument_id": instrument.id, "symbol": instrument.symbol, "status": "completed", "value": 12.5, "error": None}]
+    assert cells.json()["cells"] == [
+        {
+            "instrument_id": instrument.id,
+            "symbol": instrument.symbol,
+            "status": "completed",
+            "value": 12.5,
+            "error": None,
+        }
+    ]
 
 
 def test_prepared_universe_batch_accepts_workstation_scale_and_rejects_only_above_ten_thousand(
     client, auth_headers, tmp_path, monkeypatch
 ):
-    monkeypatch.setattr("app.services.research_jobs.settings.RESEARCH_JOB_DIR", str(tmp_path / "jobs"))
-    monkeypatch.setattr("app.services.research_jobs.settings.RESEARCH_RESULT_DIR", str(tmp_path / "results"))
+    monkeypatch.setattr(
+        "app.services.research_jobs.settings.RESEARCH_JOB_DIR", str(tmp_path / "jobs")
+    )
+    monkeypatch.setattr(
+        "app.services.research_jobs.settings.RESEARCH_RESULT_DIR", str(tmp_path / "results")
+    )
     asset = client.post(
         "/api/v1/code/assets",
         headers=auth_headers,
@@ -718,8 +786,12 @@ def test_prepared_universe_batch_accepts_workstation_scale_and_rejects_only_abov
 def test_research_materialization_expands_batch_history_for_code_lookback(
     client, auth_headers, tmp_path, monkeypatch
 ):
-    monkeypatch.setattr("app.services.research_jobs.settings.RESEARCH_JOB_DIR", str(tmp_path / "jobs"))
-    monkeypatch.setattr("app.services.research_jobs.settings.RESEARCH_RESULT_DIR", str(tmp_path / "results"))
+    monkeypatch.setattr(
+        "app.services.research_jobs.settings.RESEARCH_JOB_DIR", str(tmp_path / "jobs")
+    )
+    monkeypatch.setattr(
+        "app.services.research_jobs.settings.RESEARCH_RESULT_DIR", str(tmp_path / "results")
+    )
     asset = client.post(
         "/api/v1/code/assets",
         headers=auth_headers,
@@ -736,15 +808,24 @@ def test_research_materialization_expands_batch_history_for_code_lookback(
     response = client.post(
         "/api/v1/research/runs",
         headers=auth_headers,
-        json={"code_version_id": asset["versions"][0]["id"], "run_config": {"symbols": ["MISSING"]}},
+        json={
+            "code_version_id": asset["versions"][0]["id"],
+            "run_config": {"symbols": ["MISSING"]},
+        },
     )
     assert response.status_code == 202
     assert response.json()["dataset_manifest"]["batch_history_limit"] == 601
 
 
-def test_research_materialization_rejects_unbounded_code_lookback(client, auth_headers, tmp_path, monkeypatch):
-    monkeypatch.setattr("app.services.research_jobs.settings.RESEARCH_JOB_DIR", str(tmp_path / "jobs"))
-    monkeypatch.setattr("app.services.research_jobs.settings.RESEARCH_RESULT_DIR", str(tmp_path / "results"))
+def test_research_materialization_rejects_unbounded_code_lookback(
+    client, auth_headers, tmp_path, monkeypatch
+):
+    monkeypatch.setattr(
+        "app.services.research_jobs.settings.RESEARCH_JOB_DIR", str(tmp_path / "jobs")
+    )
+    monkeypatch.setattr(
+        "app.services.research_jobs.settings.RESEARCH_RESULT_DIR", str(tmp_path / "results")
+    )
     asset = client.post(
         "/api/v1/code/assets",
         headers=auth_headers,
@@ -761,7 +842,10 @@ def test_research_materialization_rejects_unbounded_code_lookback(client, auth_h
     response = client.post(
         "/api/v1/research/runs",
         headers=auth_headers,
-        json={"code_version_id": asset["versions"][0]["id"], "run_config": {"symbols": ["MISSING"]}},
+        json={
+            "code_version_id": asset["versions"][0]["id"],
+            "run_config": {"symbols": ["MISSING"]},
+        },
     )
     assert response.status_code == 422
     assert response.json()["detail"] == {
@@ -771,9 +855,15 @@ def test_research_materialization_rejects_unbounded_code_lookback(client, auth_h
     }
 
 
-def test_batch_results_expose_runner_owned_durable_progress(client, auth_headers, tmp_path, monkeypatch):
-    monkeypatch.setattr("app.services.research_jobs.settings.RESEARCH_JOB_DIR", str(tmp_path / "jobs"))
-    monkeypatch.setattr("app.services.research_jobs.settings.RESEARCH_RESULT_DIR", str(tmp_path / "results"))
+def test_batch_results_expose_runner_owned_durable_progress(
+    client, auth_headers, tmp_path, monkeypatch
+):
+    monkeypatch.setattr(
+        "app.services.research_jobs.settings.RESEARCH_JOB_DIR", str(tmp_path / "jobs")
+    )
+    monkeypatch.setattr(
+        "app.services.research_jobs.settings.RESEARCH_RESULT_DIR", str(tmp_path / "results")
+    )
     asset = client.post(
         "/api/v1/code/assets",
         headers=auth_headers,
@@ -781,13 +871,19 @@ def test_batch_results_expose_runner_owned_durable_progress(client, auth_headers
             "stable_key": "progress-column",
             "name": "Progress column",
             "kind": "column",
-            "initial_version": {"source": "output.scalar('constant', 1)", "output_contract": "scalar"},
+            "initial_version": {
+                "source": "output.scalar('constant', 1)",
+                "output_contract": "scalar",
+            },
         },
     ).json()
     run = client.post(
         "/api/v1/research/runs",
         headers=auth_headers,
-        json={"code_version_id": asset["versions"][0]["id"], "run_config": {"symbols": ["MISSING"]}},
+        json={
+            "code_version_id": asset["versions"][0]["id"],
+            "run_config": {"symbols": ["MISSING"]},
+        },
     ).json()
     result_dir = tmp_path / "results"
     result_dir.mkdir()
@@ -796,4 +892,8 @@ def test_batch_results_expose_runner_owned_durable_progress(client, auth_headers
     )
     response = client.get(f"/api/v1/research/runs/{run['id']}/batch-results", headers=auth_headers)
     assert response.status_code == 200
-    assert response.json()["progress"] == {"completed_cells": 150, "total_cells": 1000, "status": "running"}
+    assert response.json()["progress"] == {
+        "completed_cells": 150,
+        "total_cells": 1000,
+        "status": "running",
+    }

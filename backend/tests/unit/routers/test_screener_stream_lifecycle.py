@@ -25,7 +25,8 @@ def test_stream_route_owns_a_dedicated_session_with_explicit_body_cleanup():
     assert get_auth_session_factory in {
         dependency.call
         for dependency in next(
-            dependency for dependency in route.dependant.dependencies
+            dependency
+            for dependency in route.dependant.dependencies
             if dependency.call is get_current_user_detached
         ).dependencies
     }

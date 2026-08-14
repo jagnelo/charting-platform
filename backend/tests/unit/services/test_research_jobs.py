@@ -23,7 +23,9 @@ def test_enqueue_prepares_both_shared_volumes_and_job_file(tmp_path, monkeypatch
         id=7,
         dataset_manifest={"symbol": "SPY"},
         run_config={"parameters": {"lookback": 20}},
-        code_version=SimpleNamespace(source="output.scalar('value', 1)", output_contract="scalar", output_name=None),
+        code_version=SimpleNamespace(
+            source="output.scalar('value', 1)", output_contract="scalar", output_name=None
+        ),
     )
 
     research_jobs.enqueue_research_run(run)

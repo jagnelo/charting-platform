@@ -50,7 +50,9 @@ def _observed_fixed_holiday(year: int, month: int, day: int) -> date:
 def _easter_sunday(year: int) -> date:
     """Anonymous Gregorian computus, sufficient for Good Friday."""
     century, remainder = divmod(year, 100)
-    moon = (19 * (year % 19) + century - century // 4 - (century - (century + 8) // 25 + 1) // 3 + 15) % 30
+    moon = (
+        19 * (year % 19) + century - century // 4 - (century - (century + 8) // 25 + 1) // 3 + 15
+    ) % 30
     weekday = (32 + 2 * (century % 4) + 2 * (remainder // 4) - moon - remainder % 4) % 7
     adjustment = moon + weekday - 7 * ((year % 19 + 11 * moon + 22 * weekday) // 451) + 114
     month, day = divmod(adjustment, 31)
@@ -111,17 +113,29 @@ def _calendar_missing_slices(
 ) -> list[tuple[datetime, datetime]]:
     if calendar != "XNYS" or timeframe != Timeframe.D1:
         return []
-    missing = sorted(_xnys_session_days(start.date(), end.date()) - {value.date() for value in ordered})
+    missing = sorted(
+        _xnys_session_days(start.date(), end.date()) - {value.date() for value in ordered}
+    )
     if not missing:
         return []
     slices: list[tuple[datetime, datetime]] = []
     first = previous = missing[0]
     for current in missing[1:]:
         if current != previous + timedelta(days=1):
-            slices.append((datetime.combine(first, datetime.min.time(), tzinfo=UTC), datetime.combine(previous, datetime.min.time(), tzinfo=UTC)))
+            slices.append(
+                (
+                    datetime.combine(first, datetime.min.time(), tzinfo=UTC),
+                    datetime.combine(previous, datetime.min.time(), tzinfo=UTC),
+                )
+            )
             first = current
         previous = current
-    slices.append((datetime.combine(first, datetime.min.time(), tzinfo=UTC), datetime.combine(previous, datetime.min.time(), tzinfo=UTC)))
+    slices.append(
+        (
+            datetime.combine(first, datetime.min.time(), tzinfo=UTC),
+            datetime.combine(previous, datetime.min.time(), tzinfo=UTC),
+        )
+    )
     return slices
 
 
@@ -213,7 +227,9 @@ def assess_ohlcv_coverage(
 
     if mode == "latest" and freshness_seconds is not None:
         observed_now = _as_utc(now or datetime.now(UTC))
-        if covered_end is not None and covered_end < observed_now - timedelta(seconds=freshness_seconds):
+        if covered_end is not None and covered_end < observed_now - timedelta(
+            seconds=freshness_seconds
+        ):
             return OhlcvCoverageAssessment(
                 status=CoverageStatus.STALE,
                 covered_start=covered_start,

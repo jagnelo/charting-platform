@@ -56,7 +56,10 @@ async def task_run_screener(ctx: dict, screener_id: int):
         if screener is None:
             logger.warning(f"run_screener: screener {screener_id} not found")
             return
-        if isinstance(screener.conditions, dict) and screener.conditions.get("type") == "python_condition":
+        if (
+            isinstance(screener.conditions, dict)
+            and screener.conditions.get("type") == "python_condition"
+        ):
             result = await queue_python_screener_run(db, screener)
         else:
             result = await run_screener(db, screener)
@@ -92,8 +95,16 @@ async def task_bootstrap_core_workstation(ctx: dict):
         result = await bootstrap_core_workstation_data(db)
         logger.info(
             "Core workstation bootstrap complete: history=%d holdings=%d skipped=%s",
-            sum(1 for item in (result.get("history") or {}).values() if item.get("status") in {"loaded", "ready"}),
-            sum(1 for item in (result.get("holdings") or {}).values() if item.get("status") in {"loaded", "ready"}),
+            sum(
+                1
+                for item in (result.get("history") or {}).values()
+                if item.get("status") in {"loaded", "ready"}
+            ),
+            sum(
+                1
+                for item in (result.get("holdings") or {}).values()
+                if item.get("status") in {"loaded", "ready"}
+            ),
             result.get("skipped", False),
         )
         return result

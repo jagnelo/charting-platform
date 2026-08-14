@@ -37,7 +37,11 @@ class MassiveProvider:
         return settings.MASSIVE_API_KEY or settings.MARKETDATA_API_KEY
 
     def _params(self, **values: Any) -> dict[str, Any]:
-        return {key: value for key, value in {"apiKey": self._api_key(), **values}.items() if value is not None}
+        return {
+            key: value
+            for key, value in {"apiKey": self._api_key(), **values}.items()
+            if value is not None
+        }
 
     def _get(self, params: dict[str, Any]) -> dict[str, Any] | None:
         if not self._api_key():

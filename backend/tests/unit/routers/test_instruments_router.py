@@ -175,7 +175,9 @@ class TestInstrument52WStats:
             _ensure_52w_stats(instrument, async_db),
         )
 
-        rows = db.query(InstrumentStats).filter(InstrumentStats.instrument_id == instrument.id).all()
+        rows = (
+            db.query(InstrumentStats).filter(InstrumentStats.instrument_id == instrument.id).all()
+        )
         assert len(rows) == 1
         assert float(rows[0].week52_high) == 200.0
         assert float(rows[0].week52_low) == 120.0

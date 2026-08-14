@@ -71,7 +71,9 @@ async def get_current_user_detached(
             raise ValueError("wrong token type")
         user_id = int(payload["sub"])
     except (JWTError, ValueError, KeyError):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired token")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired token"
+        )
 
     db = session_factory()
     is_active = False
@@ -92,7 +94,9 @@ async def get_current_user_detached(
         await close_session_safely(db)
 
     if user is None or not is_active:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found or inactive")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found or inactive"
+        )
     return user
 
 

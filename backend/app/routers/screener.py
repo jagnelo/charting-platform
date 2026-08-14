@@ -242,7 +242,9 @@ async def create_screener_from_condition(
     return screener
 
 
-@router.post("/from-python-condition/{code_version_id}", response_model=ScreenerOut, status_code=201)
+@router.post(
+    "/from-python-condition/{code_version_id}", response_model=ScreenerOut, status_code=201
+)
 async def create_screener_from_python_condition(
     code_version_id: int,
     body: ScreenerFromPythonCondition,
@@ -265,7 +267,9 @@ async def create_screener_from_python_condition(
         raise HTTPException(404, "Boolean Python condition version not found")
     existing = (
         await db.execute(
-            select(func.count()).select_from(ScreenerDefinition).where(
+            select(func.count())
+            .select_from(ScreenerDefinition)
+            .where(
                 ScreenerDefinition.user_id == current_user.id,
                 func.lower(ScreenerDefinition.name) == body.name.lower(),
             )
@@ -285,7 +289,9 @@ async def create_screener_from_python_condition(
     return screener
 
 
-async def _queue_python_screener_run(db: AsyncSession, screener: ScreenerDefinition) -> ScreenerResult:
+async def _queue_python_screener_run(
+    db: AsyncSession, screener: ScreenerDefinition
+) -> ScreenerResult:
     """Materialize a screener universe and queue it in the isolated Boolean runner."""
     from app.services.screener_engine import queue_python_screener_run
 
@@ -392,13 +398,17 @@ async def get_screener_plot(
         raise HTTPException(status_code=404, detail="Screener not found")
 
     recent_results = (
-        await db.execute(
-            select(ScreenerResult)
-            .where(ScreenerResult.screener_id == screener_id)
-            .order_by(ScreenerResult.run_at.desc())
-            .limit(limit)
+        (
+            await db.execute(
+                select(ScreenerResult)
+                .where(ScreenerResult.screener_id == screener_id)
+                .order_by(ScreenerResult.run_at.desc())
+                .limit(limit)
+            )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     # Fetch newest history within the bound, then restore chronological order
     # for uPlot and consumers that calculate transitions between points.
     results = list(reversed(recent_results))

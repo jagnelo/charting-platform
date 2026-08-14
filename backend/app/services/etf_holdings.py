@@ -308,7 +308,8 @@ async def _provider_enriched_constituent_instrument(
             existing_instrument is not None
             and profile.canonical_symbol
             and not _is_placeholder_symbol(existing_instrument.symbol)
-            and _normalize_symbol(existing_instrument.symbol) != _normalize_symbol(profile.canonical_symbol)
+            and _normalize_symbol(existing_instrument.symbol)
+            != _normalize_symbol(profile.canonical_symbol)
         ):
             instrument = existing_instrument
 
@@ -331,7 +332,11 @@ async def _provider_enriched_constituent_instrument(
                         source=source_provider,
                     ),
                 )
-        return instrument, Decimal("0.9400"), "Matched through stable identifier profile enrichment."
+        return (
+            instrument,
+            Decimal("0.9400"),
+            "Matched through stable identifier profile enrichment.",
+        )
 
     symbol = _normalize_symbol(row.symbol)
     if not symbol:
@@ -347,7 +352,9 @@ async def _provider_enriched_constituent_instrument(
     matched_existing = await _find_instrument_for_identifier_records(db, extra_identifiers)
     if matched_existing is not None:
         for record in extra_identifiers:
-            await register_identifier(db, matched_existing, record.source or source_provider, record)
+            await register_identifier(
+                db, matched_existing, record.source or source_provider, record
+            )
         for identifier_type, value in [
             ("isin", row.isin),
             ("cusip", row.cusip),
@@ -424,9 +431,7 @@ async def _enrich_existing_constituent_classification(
     """
 
     detail = (
-        await db.execute(
-            select(EquityDetail).where(EquityDetail.instrument_id == instrument.id)
-        )
+        await db.execute(select(EquityDetail).where(EquityDetail.instrument_id == instrument.id))
     ).scalar_one_or_none()
     # This enrichment exists to fill the industry field used by the
     # top-down taxonomy.  A sector-only detail is not sufficient: treating it
@@ -497,15 +502,11 @@ async def _load_instrument_by_symbol_or_id(
         return await db.get(Instrument, int(symbol_or_id))
     symbol = str(symbol_or_id).strip().upper()
     return (
-        await db.execute(
-            select(Instrument).where(func.upper(Instrument.symbol) == symbol).limit(1)
-        )
+        await db.execute(select(Instrument).where(func.upper(Instrument.symbol) == symbol).limit(1))
     ).scalar_one_or_none()
 
 
-async def get_etf_profile_for_instrument(
-    db: AsyncSession, instrument_id: int
-) -> ETFProfile | None:
+async def get_etf_profile_for_instrument(db: AsyncSession, instrument_id: int) -> ETFProfile | None:
     return (
         await db.execute(
             select(ETFProfile)
@@ -551,9 +552,9 @@ async def ensure_etf_profile(
         if value is not None:
             setattr(profile, field, value)
 
-    explicit_adapter = str(
-        (profile.provider_aliases or {}).get("holdings_adapter") or ""
-    ).strip().lower()
+    explicit_adapter = (
+        str((profile.provider_aliases or {}).get("holdings_adapter") or "").strip().lower()
+    )
     if explicit_adapter and get_holdings_adapter(explicit_adapter) is not None:
         # Curated issuer metadata is stronger than an older name/fund-family
         # inference (for example, an SMH profile carrying an obsolete ARK
@@ -570,7 +571,10 @@ async def ensure_etf_profile(
             product_url=profile.product_url,
             provider_aliases=profile.provider_aliases,
         )
-        if profile.adapter_key in (None, "", "unresolved") or probe.status != "holdings_adapter_unresolved":
+        if (
+            profile.adapter_key in (None, "", "unresolved")
+            or probe.status != "holdings_adapter_unresolved"
+        ):
             profile.adapter_key = probe.adapter_key
             profile.adapter_status = probe.status
             profile.adapter_confidence = probe.confidence
@@ -715,13 +719,15 @@ async def _resolve_or_create_constituent(
                     source_provider=source_provider,
                 )
             if allow_provider_enrichment and _is_placeholder_symbol(found.symbol):
-                promoted, promoted_confidence, promoted_note = (
-                    await _provider_enriched_constituent_instrument(
-                        db,
-                        row,
-                        source_provider=source_provider,
-                        existing_instrument=found,
-                    )
+                (
+                    promoted,
+                    promoted_confidence,
+                    promoted_note,
+                ) = await _provider_enriched_constituent_instrument(
+                    db,
+                    row,
+                    source_provider=source_provider,
+                    existing_instrument=found,
                 )
                 if promoted is not None:
                     return (
@@ -747,13 +753,15 @@ async def _resolve_or_create_constituent(
                     source_provider=source_provider,
                 )
             if allow_provider_enrichment and _is_placeholder_symbol(found.symbol):
-                promoted, promoted_confidence, promoted_note = (
-                    await _provider_enriched_constituent_instrument(
-                        db,
-                        row,
-                        source_provider=source_provider,
-                        existing_instrument=found,
-                    )
+                (
+                    promoted,
+                    promoted_confidence,
+                    promoted_note,
+                ) = await _provider_enriched_constituent_instrument(
+                    db,
+                    row,
+                    source_provider=source_provider,
+                    existing_instrument=found,
                 )
                 if promoted is not None:
                     return (
@@ -764,12 +772,14 @@ async def _resolve_or_create_constituent(
             return found, Decimal("0.8000"), "Matched by canonical symbol."
 
     if allow_provider_enrichment:
-        enriched_instrument, enriched_confidence, enriched_note = (
-            await _provider_enriched_constituent_instrument(
-                db,
-                row,
-                source_provider=source_provider,
-            )
+        (
+            enriched_instrument,
+            enriched_confidence,
+            enriched_note,
+        ) = await _provider_enriched_constituent_instrument(
+            db,
+            row,
+            source_provider=source_provider,
         )
         if enriched_instrument is not None:
             return enriched_instrument, enriched_confidence, enriched_note
@@ -1005,7 +1015,11 @@ async def ingest_holdings_snapshot(
     existing = (
         await db.execute(
             _apply_snapshot_visibility(select(ETFHoldingsSnapshot))
-            .options(selectinload(ETFHoldingsSnapshot.rows).selectinload(ETFHolding.constituent_instrument))
+            .options(
+                selectinload(ETFHoldingsSnapshot.rows).selectinload(
+                    ETFHolding.constituent_instrument
+                )
+            )
             .where(
                 ETFHoldingsSnapshot.etf_profile_id == profile.id,
                 ETFHoldingsSnapshot.composition_date == composition_date,
@@ -1308,7 +1322,9 @@ async def get_latest_snapshot(
         return None
     options = [selectinload(ETFHoldingsSnapshot.etf_profile)]
     if include_holdings:
-        options.append(selectinload(ETFHoldingsSnapshot.rows).selectinload(ETFHolding.constituent_instrument))
+        options.append(
+            selectinload(ETFHoldingsSnapshot.rows).selectinload(ETFHolding.constituent_instrument)
+        )
     statement = (
         _apply_snapshot_visibility(select(ETFHoldingsSnapshot))
         .options(*options)
@@ -1351,7 +1367,9 @@ def snapshot_to_out(
                 constituent_symbol=row.constituent_instrument.symbol
                 if row.constituent_instrument
                 else None,
-                constituent_name=row.constituent_instrument.name if row.constituent_instrument else None,
+                constituent_name=row.constituent_instrument.name
+                if row.constituent_instrument
+                else None,
                 position=row.position,
                 reported_symbol=row.reported_symbol,
                 reported_name=row.reported_name,
@@ -1407,7 +1425,9 @@ def holding_to_out(row: ETFHolding) -> ETFHoldingOut:
         id=row.id,
         snapshot_id=row.snapshot_id,
         constituent_instrument_id=row.constituent_instrument_id,
-        constituent_symbol=row.constituent_instrument.symbol if row.constituent_instrument else None,
+        constituent_symbol=row.constituent_instrument.symbol
+        if row.constituent_instrument
+        else None,
         constituent_name=row.constituent_instrument.name if row.constituent_instrument else None,
         position=row.position,
         reported_symbol=row.reported_symbol,
@@ -1472,7 +1492,9 @@ async def _resolve_snapshot_entity(
 ) -> ETFHoldingsSnapshot | None:
     stmt = (
         _apply_snapshot_visibility(select(ETFHoldingsSnapshot))
-        .options(selectinload(ETFHoldingsSnapshot.rows).selectinload(ETFHolding.constituent_instrument))
+        .options(
+            selectinload(ETFHoldingsSnapshot.rows).selectinload(ETFHolding.constituent_instrument)
+        )
         .where(ETFHoldingsSnapshot.etf_profile_id == profile_id)
     )
     if snapshot_id is not None:
@@ -1856,7 +1878,9 @@ def _build_holdings_diff(
 
     return ETFHoldingsDiffOut(
         left_snapshot=snapshot_to_out(left_snapshot, instrument=instrument, include_holdings=False),
-        right_snapshot=snapshot_to_out(right_snapshot, instrument=instrument, include_holdings=False),
+        right_snapshot=snapshot_to_out(
+            right_snapshot, instrument=instrument, include_holdings=False
+        ),
         total_rows=len(diff_rows),
         added=added,
         removed=removed,
@@ -1893,7 +1917,9 @@ async def get_holdings_transition_timeline(
 
     stmt = (
         _apply_snapshot_visibility(select(ETFHoldingsSnapshot))
-        .options(selectinload(ETFHoldingsSnapshot.rows).selectinload(ETFHolding.constituent_instrument))
+        .options(
+            selectinload(ETFHoldingsSnapshot.rows).selectinload(ETFHolding.constituent_instrument)
+        )
         .where(ETFHoldingsSnapshot.etf_profile_id == profile.id)
         .order_by(ETFHoldingsSnapshot.composition_date.asc(), ETFHoldingsSnapshot.id.asc())
     )
@@ -2116,8 +2142,11 @@ async def _expand_overlap_matrix_symbols(
             )
         )
     profiles = (
-        await db.execute(stmt.order_by(Instrument.symbol.asc()).limit(limit))
-    ).scalars().unique().all()
+        (await db.execute(stmt.order_by(Instrument.symbol.asc()).limit(limit)))
+        .scalars()
+        .unique()
+        .all()
+    )
 
     seen = set(symbols)
     for profile in profiles:
@@ -2225,7 +2254,9 @@ async def get_holdings_overlap_matrix(
                 max_overlap=max(overlaps) if overlaps else Decimal("0"),
                 min_overlap=min(overlaps) if overlaps else Decimal("0"),
                 closest_peer=closest.column_symbol if closest is not None else None,
-                most_distinct_peer=most_distinct.column_symbol if most_distinct is not None else None,
+                most_distinct_peer=most_distinct.column_symbol
+                if most_distinct is not None
+                else None,
                 cells=cells_by_symbol[symbol],
             )
         )
@@ -2252,7 +2283,9 @@ async def get_holdings_overlap_matrix(
     )
 
 
-async def list_available_dates(db: AsyncSession, symbol_or_id: str | int) -> list[ETFHoldingsDateOut]:
+async def list_available_dates(
+    db: AsyncSession, symbol_or_id: str | int
+) -> list[ETFHoldingsDateOut]:
     instrument = await _load_instrument_by_symbol_or_id(db, symbol_or_id)
     if instrument is None:
         return []
@@ -2260,13 +2293,18 @@ async def list_available_dates(db: AsyncSession, symbol_or_id: str | int) -> lis
     if profile is None:
         return []
     rows = (
-        await db.execute(
-            _apply_snapshot_visibility(
-                select(ETFHoldingsSnapshot).where(ETFHoldingsSnapshot.etf_profile_id == profile.id)
+        (
+            await db.execute(
+                _apply_snapshot_visibility(
+                    select(ETFHoldingsSnapshot).where(
+                        ETFHoldingsSnapshot.etf_profile_id == profile.id
+                    )
+                ).order_by(ETFHoldingsSnapshot.composition_date.desc())
             )
-            .order_by(ETFHoldingsSnapshot.composition_date.desc())
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     return [
         ETFHoldingsDateOut(
             snapshot_id=row.id,
@@ -2299,7 +2337,9 @@ async def get_nearest_snapshot(
         return None
     stmt = (
         _apply_snapshot_visibility(select(ETFHoldingsSnapshot))
-        .options(selectinload(ETFHoldingsSnapshot.rows).selectinload(ETFHolding.constituent_instrument))
+        .options(
+            selectinload(ETFHoldingsSnapshot.rows).selectinload(ETFHolding.constituent_instrument)
+        )
         .where(ETFHoldingsSnapshot.etf_profile_id == profile.id)
     )
     if point_in_time:
@@ -2432,7 +2472,9 @@ async def get_weight_evolution(
 
     stmt = (
         _apply_snapshot_visibility(select(ETFHoldingsSnapshot))
-        .options(selectinload(ETFHoldingsSnapshot.rows).selectinload(ETFHolding.constituent_instrument))
+        .options(
+            selectinload(ETFHoldingsSnapshot.rows).selectinload(ETFHolding.constituent_instrument)
+        )
         .where(ETFHoldingsSnapshot.etf_profile_id == profile.id)
         .order_by(ETFHoldingsSnapshot.composition_date.asc(), ETFHoldingsSnapshot.id.asc())
     )
@@ -2568,13 +2610,18 @@ async def coverage_summary(
             )
             continue
         snapshots = (
-            await db.execute(
-                _apply_snapshot_visibility(
-                    select(ETFHoldingsSnapshot).where(ETFHoldingsSnapshot.etf_profile_id == profile.id)
+            (
+                await db.execute(
+                    _apply_snapshot_visibility(
+                        select(ETFHoldingsSnapshot).where(
+                            ETFHoldingsSnapshot.etf_profile_id == profile.id
+                        )
+                    ).order_by(ETFHoldingsSnapshot.composition_date.asc())
                 )
-                .order_by(ETFHoldingsSnapshot.composition_date.asc())
             )
-        ).scalars().all()
+            .scalars()
+            .all()
+        )
         if not snapshots:
             rows.append(
                 ETFHoldingsCoverageRow(

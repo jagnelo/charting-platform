@@ -239,9 +239,7 @@ class ETFHoldingsAdapterState(Base, TimestampMixin):
     data_source: Mapped["DataSource | None"] = relationship()
 
     __table_args__ = (
-        UniqueConstraint(
-            "etf_profile_id", "adapter_key", name="uq_etf_holdings_adapter_state"
-        ),
+        UniqueConstraint("etf_profile_id", "adapter_key", name="uq_etf_holdings_adapter_state"),
     )
 
 
@@ -318,7 +316,9 @@ class ETFHoldingsBackfillFiling(Base, TimestampMixin):
     )
     primary_document: Mapped[str | None] = mapped_column(String(260), nullable=True)
     filing_url: Mapped[str | None] = mapped_column(String(800), nullable=True)
-    status: Mapped[str] = mapped_column(String(40), nullable=False, default="discovered", index=True)
+    status: Mapped[str] = mapped_column(
+        String(40), nullable=False, default="discovered", index=True
+    )
     failure_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
     ingested_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     extra_data: Mapped[dict | None] = mapped_column(JSON, nullable=True)

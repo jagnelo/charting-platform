@@ -12,7 +12,11 @@ def test_parameter_validation_supports_defaults_style_schema_constraints():
     }
     assert validate_parameter_values(schema, {"lookback": 20, "mode": "close"}) == []
     errors = validate_parameter_values(schema, {"lookback": 0, "mode": "high", "extra": True})
-    assert {error["code"] for error in errors} == {"parameter_minimum", "parameter_enum", "parameter_unknown"}
+    assert {error["code"] for error in errors} == {
+        "parameter_minimum",
+        "parameter_enum",
+        "parameter_unknown",
+    }
 
 
 def test_parameter_validation_rejects_non_object_values():

@@ -31,7 +31,9 @@ class Basket(Base, TimestampMixin):
     )
     name: Mapped[str] = mapped_column(String(180), nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
-    source_type: Mapped[str] = mapped_column(String(40), nullable=False, default="manual", index=True)
+    source_type: Mapped[str] = mapped_column(
+        String(40), nullable=False, default="manual", index=True
+    )
     weighting_scheme: Mapped[str] = mapped_column(
         String(40), nullable=False, default="custom", index=True
     )
@@ -118,7 +120,9 @@ class BasketSnapshot(Base, TimestampMixin):
         Integer, ForeignKey("basket.id", ondelete="CASCADE"), nullable=False, index=True
     )
     composition_date: Mapped[date] = mapped_column(Date, nullable=False, index=True)
-    known_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True, index=True)
+    known_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True, index=True
+    )
     source_type: Mapped[str] = mapped_column(String(40), nullable=False, default="manual")
     source_snapshot_id: Mapped[int | None] = mapped_column(
         Integer,

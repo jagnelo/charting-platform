@@ -376,6 +376,7 @@ def _covers_live_provider(adapter_key: str):
 
     return decorate
 
+
 pytestmark = [pytest.mark.live]
 
 # Keep the registry/coverage contracts executable in every backend test run.  Only the
@@ -393,9 +394,7 @@ def _skip_network_probe_unless_enabled(request):
         request.node.originalname not in _NON_NETWORK_CONTRACT_TESTS
         and os.getenv("RUN_LIVE_ETF_HOLDINGS_TESTS") != "1"
     ):
-        pytest.skip(
-            "Set RUN_LIVE_ETF_HOLDINGS_TESTS=1 to run live issuer holdings checks."
-        )
+        pytest.skip("Set RUN_LIVE_ETF_HOLDINGS_TESTS=1 to run live issuer holdings checks.")
 
 
 def test_live_provider_matrix_covers_every_registered_issuer_adapter():
@@ -2081,8 +2080,7 @@ async def test_live_issuer_direct_holdings_routes_return_parseable_rows(
     except ValueError as exc:
         if (
             adapter_key == "zacks"
-            and "closed the backend connection without a response after retries"
-            in str(exc)
+            and "closed the backend connection without a response after retries" in str(exc)
         ):
             pytest.skip(str(exc))
         raise
@@ -2232,9 +2230,7 @@ async def test_live_columbia_threadneedle_cusip_holdings_export():
         adapter_key="columbia_threadneedle",
         min_rows=100,
     )
-    assert result.legal_metadata["route_resolution"] == (
-        "columbia_threadneedle_cusip_holdings_csv"
-    )
+    assert result.legal_metadata["route_resolution"] == ("columbia_threadneedle_cusip_holdings_csv")
     assert result.legal_metadata["composition_date"]
     assert any(row.cusip for row in result.rows)
 
@@ -2249,9 +2245,7 @@ async def test_live_1251_capital_owned_fm_investments_holdings_api():
     result = await adapter.fetch_latest(symbol="UTWO")
 
     _assert_live_holdings_result(result, adapter_key="1251_capital", min_rows=2)
-    assert result.legal_metadata["route_resolution"] == (
-        "1251_capital_fm_investments_holdings_api"
-    )
+    assert result.legal_metadata["route_resolution"] == ("1251_capital_fm_investments_holdings_api")
     assert any(row.cusip for row in result.rows)
 
 
@@ -2278,9 +2272,7 @@ async def test_live_hypatia_public_fund_scoped_holdings_api():
     result = await adapter.fetch_latest(symbol="WCEO")
 
     _assert_live_holdings_result(result, adapter_key="hypatia", min_rows=20)
-    assert result.legal_metadata["route_resolution"] == (
-        "hypatia_public_fund_scoped_holdings_api"
-    )
+    assert result.legal_metadata["route_resolution"] == ("hypatia_public_fund_scoped_holdings_api")
     assert any(row.cusip for row in result.rows)
 
 
@@ -2339,9 +2331,7 @@ async def test_live_ershares_ssnc_full_holdings_api():
     result = await adapter.fetch_latest(symbol="XOVR")
 
     _assert_live_holdings_result(result, adapter_key="ershares", min_rows=20)
-    assert result.legal_metadata["route_resolution"] == (
-        "ershares_public_ssnc_full_holdings_api"
-    )
+    assert result.legal_metadata["route_resolution"] == ("ershares_public_ssnc_full_holdings_api")
     assert result.legal_metadata["composition_date"]
     assert any(row.cusip for row in result.rows)
 
@@ -2356,9 +2346,7 @@ async def test_live_kovitz_filepoint_complete_holdings_json():
     result = await adapter.fetch_latest(symbol="EQTY")
 
     _assert_live_holdings_result(result, adapter_key="kovitz", min_rows=20)
-    assert result.legal_metadata["route_resolution"] == (
-        "kovitz_filepoint_complete_holdings_json"
-    )
+    assert result.legal_metadata["route_resolution"] == ("kovitz_filepoint_complete_holdings_json")
     assert result.legal_metadata["composition_date"]
     assert any(row.cusip for row in result.rows)
 
@@ -2684,7 +2672,9 @@ async def test_live_tidal_sponsor_fund_scoped_daily_holdings_csv():
     assert adapter is not None
     result = await adapter.fetch_latest(symbol="IINC")
     _assert_live_holdings_result(result, adapter_key="tidal", min_rows=100)
-    assert result.legal_metadata["route_resolution"] == "tidal_sponsor_fund_scoped_daily_holdings_csv"
+    assert (
+        result.legal_metadata["route_resolution"] == "tidal_sponsor_fund_scoped_daily_holdings_csv"
+    )
     assert result.legal_metadata["composition_date"]
 
 
@@ -2747,7 +2737,10 @@ async def test_live_envestnet_product_page_linked_full_holdings_xls():
     assert adapter is not None
     result = await adapter.fetch_latest(symbol="APMU")
     _assert_live_holdings_result(result, adapter_key="envestnet", min_rows=100)
-    assert result.legal_metadata["route_resolution"] == "envestnet_product_page_linked_full_holdings_xls"
+    assert (
+        result.legal_metadata["route_resolution"]
+        == "envestnet_product_page_linked_full_holdings_xls"
+    )
     assert result.legal_metadata["composition_date"]
 
 
@@ -2797,7 +2790,10 @@ async def test_live_wealthtrust_public_wltg_complete_holdings_table():
     assert adapter is not None
     result = await adapter.fetch_latest(symbol="WLTG")
     _assert_live_holdings_result(result, adapter_key="wealthtrust", min_rows=20)
-    assert result.legal_metadata["route_resolution"] == "wealthtrust_public_wltg_complete_holdings_table"
+    assert (
+        result.legal_metadata["route_resolution"]
+        == "wealthtrust_public_wltg_complete_holdings_table"
+    )
     assert any(row.symbol == "AAPL" for row in result.rows)
     assert any(row.row_type == "cash" for row in result.rows)
 
@@ -2847,7 +2843,10 @@ async def test_live_tremblant_toga_page_verified_filepoint_holdings_csv():
     assert adapter is not None
     result = await adapter.fetch_latest(symbol="TOGA")
     _assert_live_holdings_result(result, adapter_key="tremblant", min_rows=20)
-    assert result.legal_metadata["route_resolution"] == "issuer_product_page_verified_filepoint_holdings_csv"
+    assert (
+        result.legal_metadata["route_resolution"]
+        == "issuer_product_page_verified_filepoint_holdings_csv"
+    )
     assert result.legal_metadata["source_format"] == "csv"
     assert result.legal_metadata["composition_date"]
 
@@ -3012,8 +3011,6 @@ async def test_live_sovereign_sovf_product_page_linked_holdings_workbook():
     assert any(row.cusip for row in result.rows)
 
 
-
-
 @pytest.mark.asyncio
 @pytest.mark.slow
 @_covers_live_provider("eldridge")
@@ -3072,9 +3069,7 @@ def test_live_backed_providers_each_have_a_concrete_live_route_test():
         adapter_key
         for value in globals().values()
         if callable(value)
-        and isinstance(
-            adapter_key := getattr(value, "_live_provider_adapter_key", None), str
-        )
+        and isinstance(adapter_key := getattr(value, "_live_provider_adapter_key", None), str)
     }
     assert parametrized | bespoke == LIVE_BACKED_ISSUER_ADAPTERS
 

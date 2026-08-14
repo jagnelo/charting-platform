@@ -447,7 +447,9 @@ async def resolve_expression(
             if inst is None:
                 raise HTTPException(404, f"Constituent instrument '{ticker}' not found")
         elif inst is None:
-            raise HTTPException(404, f"Constituent instrument '{ticker}' is not in the canonical security master")
+            raise HTTPException(
+                404, f"Constituent instrument '{ticker}' is not in the canonical security master"
+            )
         constituents[ticker] = inst
 
     # Return existing synthetic if already stored
@@ -1302,7 +1304,9 @@ async def _ensure_52w_stats(instrument: Instrument, db: AsyncSession) -> Instrum
             }
             stats.field_provenance = field_provenance
             await db.commit()
-            log.info("Computed 52w stats for %s: high=%.4f low=%.4f", symbol, week52_high, week52_low)
+            log.info(
+                "Computed 52w stats for %s: high=%.4f low=%.4f", symbol, week52_high, week52_low
+            )
     except IntegrityError as exc:
         # A request handled by another worker may win the one-to-one insert
         # between our SELECT and COMMIT.  The winning row is authoritative;

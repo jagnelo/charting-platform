@@ -230,7 +230,9 @@ class StrategyLabNautilusStrategy(Strategy):
         self._indicator_cache: dict[tuple[str, int], Any] = {}
         self._previous_values: list[tuple[float | None, float | None]] | None = None
         self._previous_indicator_values: dict[tuple[str, int], float] = {}
-        self._shared_indicator_series_cache: dict[tuple[str, tuple[tuple[str, str], ...], int], dict[str, np.ndarray]] = {}
+        self._shared_indicator_series_cache: dict[
+            tuple[str, tuple[tuple[str, str], ...], int], dict[str, np.ndarray]
+        ] = {}
         self._bar_snapshots: list[dict[str, float]] = []
         self.active_position_id: str | None = None
         self.position_plans: dict[str, dict[str, float | int | str]] = {}
@@ -653,7 +655,11 @@ class StrategyLabNautilusStrategy(Strategy):
         if reason is None and self._should_exit_by_conditions(bar):
             reason = "condition_exit"
 
-        if reason is None and self.config.max_bars_in_trade > 0 and bars_elapsed >= self.config.max_bars_in_trade:
+        if (
+            reason is None
+            and self.config.max_bars_in_trade > 0
+            and bars_elapsed >= self.config.max_bars_in_trade
+        ):
             reason = "time_exit"
 
         if reason is None:
@@ -983,7 +989,9 @@ class StrategyLabNautilusStrategy(Strategy):
         if condition_type == "stats_filter":
             field = str(condition.get("field") or "")
             actual = (self.config.instrument_context or {}).get("stats", {}).get(field)
-            return self._compare_numeric(operator, self._numeric(actual), self._numeric(condition.get("value")))
+            return self._compare_numeric(
+                operator, self._numeric(actual), self._numeric(condition.get("value"))
+            )
 
         if condition_type == "fundamental_filter":
             field = str(condition.get("field") or "")
@@ -993,7 +1001,9 @@ class StrategyLabNautilusStrategy(Strategy):
             if isinstance(actual, str):
                 expected = str(condition.get("value") or "")
                 return self._compare_text(operator, actual, expected)
-            return self._compare_numeric(operator, self._numeric(actual), self._numeric(condition.get("value")))
+            return self._compare_numeric(
+                operator, self._numeric(actual), self._numeric(condition.get("value"))
+            )
 
         return False
 
@@ -1069,7 +1079,9 @@ class StrategyLabNautilusStrategy(Strategy):
             highs=np.array([float(row["high"]) for row in self._bar_snapshots], dtype=np.float64),
             lows=np.array([float(row["low"]) for row in self._bar_snapshots], dtype=np.float64),
             closes=np.array([float(row["close"]) for row in self._bar_snapshots], dtype=np.float64),
-            volumes=np.array([float(row["volume"]) for row in self._bar_snapshots], dtype=np.float64),
+            volumes=np.array(
+                [float(row["volume"]) for row in self._bar_snapshots], dtype=np.float64
+            ),
         )
 
     def _default_indicator_output(self, indicator: str) -> str | None:
@@ -1249,7 +1261,9 @@ def run_single_instrument_nautilus_backtest(
         if normalized_commission_model == "fixed_per_order":
             return normalized_commission_value * 2.0
         if normalized_commission_model == "percent_of_notional":
-            return (abs(entry_notional) + abs(exit_notional)) * (normalized_commission_value / 100.0)
+            return (abs(entry_notional) + abs(exit_notional)) * (
+                normalized_commission_value / 100.0
+            )
         return normalized_commission_value
 
     strategy = StrategyLabNautilusStrategy(
@@ -1356,7 +1370,9 @@ def run_single_instrument_nautilus_backtest(
                 pnl = (adjusted_exit - adjusted_entry) * quantity - trade_commission
             else:
                 pnl = (adjusted_entry - adjusted_exit) * quantity - trade_commission
-            risk_unit = abs(adjusted_entry - initial_stop_price) * quantity if initial_stop_price else 0.0
+            risk_unit = (
+                abs(adjusted_entry - initial_stop_price) * quantity if initial_stop_price else 0.0
+            )
             pnl_pct = (pnl / capital_base * 100.0) if capital_base > 0 else 0.0
             entry_ts = int(payload["ts_opened"])
             exit_ts = int(payload["ts_closed"])
@@ -1430,7 +1446,9 @@ def run_single_instrument_nautilus_backtest(
                 unrealized_pnl = (adjusted_mark - adjusted_entry) * quantity - trade_commission
             else:
                 unrealized_pnl = (adjusted_entry - adjusted_mark) * quantity - trade_commission
-            risk_unit = abs(adjusted_entry - initial_stop_price) * quantity if initial_stop_price else 0.0
+            risk_unit = (
+                abs(adjusted_entry - initial_stop_price) * quantity if initial_stop_price else 0.0
+            )
             pnl_pct = (unrealized_pnl / capital_base * 100.0) if capital_base > 0 else 0.0
             entry_ts = int(payload["ts_opened"])
             entry_index = ts_index_map.get(entry_ts, 0)

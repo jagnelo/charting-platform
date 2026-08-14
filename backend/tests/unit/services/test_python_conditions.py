@@ -24,7 +24,7 @@ def test_visual_price_and_indicator_conditions_compile_to_one_boolean_python_sou
     result = validate_workstation_python(source)
     assert result.valid
     assert result.output_contracts == ("boolean",)
-    assert "ta.indicator(\"rsi\"" in source
+    assert 'ta.indicator("rsi"' in source
     assert "output.boolean('match'" in source
 
 
@@ -58,8 +58,14 @@ def test_visual_cross_and_nested_logical_conditions_are_compiled_without_legacy_
     ("condition", "code"),
     [
         ({"operator": "NOT", "conditions": []}, "invalid_group"),
-        ({"operator": "AND", "conditions": [{"type": "not_a_real_condition"}]}, "unsupported_condition"),
-        ({"operator": "AND", "conditions": [{"type": "price_threshold", "value": float("nan")}]}, "invalid_value"),
+        (
+            {"operator": "AND", "conditions": [{"type": "not_a_real_condition"}]},
+            "unsupported_condition",
+        ),
+        (
+            {"operator": "AND", "conditions": [{"type": "price_threshold", "value": float("nan")}]},
+            "invalid_value",
+        ),
     ],
 )
 def test_visual_condition_compiler_rejects_ambiguous_or_unsafe_nodes(condition, code):
@@ -73,7 +79,12 @@ def test_visual_metadata_conditions_use_prepared_market_metadata():
         {
             "operator": "AND",
             "conditions": [
-                {"type": "fundamental_filter", "field": "sector", "op": "eq", "value": "Technology"},
+                {
+                    "type": "fundamental_filter",
+                    "field": "sector",
+                    "op": "eq",
+                    "value": "Technology",
+                },
                 {"type": "stats_filter", "field": "market_cap", "op": "gt", "value": 1_000_000},
             ],
         }

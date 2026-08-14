@@ -51,7 +51,9 @@ async def save_instrument_note(
         )
     ).scalar_one_or_none()
     if note is None:
-        note = InstrumentNote(user_id=current_user.id, instrument_id=instrument_id, content=body.content)
+        note = InstrumentNote(
+            user_id=current_user.id, instrument_id=instrument_id, content=body.content
+        )
         db.add(note)
     else:
         note.content = body.content

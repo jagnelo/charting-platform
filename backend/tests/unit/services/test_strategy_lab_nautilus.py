@@ -151,7 +151,12 @@ def test_nautilus_backtest_supports_multiple_commission_models():
         commission_value=0.1,
     )
 
-    assert no_fee.open_positions and round_trip_fee.open_positions and per_order_fee.open_positions and percent_fee.open_positions
+    assert (
+        no_fee.open_positions
+        and round_trip_fee.open_positions
+        and per_order_fee.open_positions
+        and percent_fee.open_positions
+    )
 
     no_fee_trade = no_fee.open_positions[0]
     round_trip_trade = round_trip_fee.open_positions[0]
@@ -165,7 +170,13 @@ def test_nautilus_backtest_supports_multiple_commission_models():
         abs(no_fee_trade.entry_price * no_fee_trade.quantity)
         + abs(no_fee_trade.current_price * no_fee_trade.quantity)
     ) * 0.001
-    assert abs((no_fee_trade.unrealized_pnl - percent_trade.unrealized_pnl) - expected_percent_commission) < 0.01
+    assert (
+        abs(
+            (no_fee_trade.unrealized_pnl - percent_trade.unrealized_pnl)
+            - expected_percent_commission
+        )
+        < 0.01
+    )
 
 
 def test_nautilus_backtest_replays_signal_events():
@@ -396,15 +407,14 @@ def test_nautilus_backtest_supports_atr_stop_model():
         is_active=True,
     )
     start = datetime(2024, 1, 1, tzinfo=UTC)
-    bars = [
-        _bar(start + timedelta(days=index), 100.0, 102.0, 98.0, 100.0)
-        for index in range(15)
-    ]
-    bars.extend([
-        _bar(start + timedelta(days=15), 100.0, 101.0, 99.0, 100.0),
-        _bar(start + timedelta(days=16), 100.0, 101.0, 93.0, 94.0),
-        _bar(start + timedelta(days=17), 94.0, 95.0, 92.0, 93.0),
-    ])
+    bars = [_bar(start + timedelta(days=index), 100.0, 102.0, 98.0, 100.0) for index in range(15)]
+    bars.extend(
+        [
+            _bar(start + timedelta(days=15), 100.0, 101.0, 99.0, 100.0),
+            _bar(start + timedelta(days=16), 100.0, 101.0, 93.0, 94.0),
+            _bar(start + timedelta(days=17), 94.0, 95.0, 92.0, 93.0),
+        ]
+    )
 
     result = run_single_instrument_nautilus_backtest(
         instrument=instrument,

@@ -61,10 +61,16 @@ async def test_listing_persistence_links_canonical_exchange_and_preserves_distin
     await upsert_instrument_listing(async_db, instrument, "DUAL", exchange_code="NASDAQ")
     await async_db.flush()
 
-    listings = db.execute(
-        select(InstrumentListing).where(InstrumentListing.instrument_id == instrument.id)
-    ).scalars().all()
-    exchanges = db.execute(select(Exchange).where(Exchange.mic.in_(["XNAS", "XNYS"]))).scalars().all()
+    listings = (
+        db.execute(
+            select(InstrumentListing).where(InstrumentListing.instrument_id == instrument.id)
+        )
+        .scalars()
+        .all()
+    )
+    exchanges = (
+        db.execute(select(Exchange).where(Exchange.mic.in_(["XNAS", "XNYS"]))).scalars().all()
+    )
     assert {(row.ticker, row.exchange_id) for row in listings} == {
         ("DUAL", next(item.id for item in exchanges if item.mic == "XNAS")),
         ("DUAL", next(item.id for item in exchanges if item.mic == "XNYS")),
@@ -94,6 +100,7 @@ async def test_listing_persistence_retains_lifecycle_timestamps(db, instrument):
     listing = db.execute(
         select(InstrumentListing).where(InstrumentListing.instrument_id == instrument.id)
     ).scalar_one()
+
     def as_utc(value):
         return value if value.tzinfo is not None else value.replace(tzinfo=UTC)
 

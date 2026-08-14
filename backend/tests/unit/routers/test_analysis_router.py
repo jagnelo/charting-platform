@@ -88,9 +88,7 @@ def test_ytd_uses_current_calendar_year_start_not_252_bar_offset():
 
 
 def test_period_return_reports_zero_base_price_instead_of_dividing():
-    cells = _performance_cells(
-        [_bar(7, 2026, 1, "0"), _bar(7, 2026, 2, "10")], instrument_id=7
-    )
+    cells = _performance_cells([_bar(7, 2026, 1, "0"), _bar(7, 2026, 2, "10")], instrument_id=7)
 
     assert cells["1D"].value is None
     assert cells["1D"].warning is not None
@@ -196,8 +194,12 @@ def test_group_members_exclude_rows_without_known_at_from_point_in_time_views():
 
 def test_group_membership_version_changes_when_selected_membership_changes():
     group = MarketGroup(stable_key="versioned", group_type="test", name="Versioned")
-    first = MarketGroupMember(instrument_id=7, position=0, known_at=datetime(2024, 1, 1, tzinfo=UTC))
-    second = MarketGroupMember(instrument_id=8, position=1, known_at=datetime(2024, 1, 1, tzinfo=UTC))
+    first = MarketGroupMember(
+        instrument_id=7, position=0, known_at=datetime(2024, 1, 1, tzinfo=UTC)
+    )
+    second = MarketGroupMember(
+        instrument_id=8, position=1, known_at=datetime(2024, 1, 1, tzinfo=UTC)
+    )
 
     original = _group_membership_version(group, [first])
     changed = _group_membership_version(group, [first, second])

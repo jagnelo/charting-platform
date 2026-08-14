@@ -73,7 +73,9 @@ class NasdaqProvider:
             "Referer": "https://www.nasdaq.com/",
         }
 
-    def _rows(self, symbol: str, asset_class: str, start: datetime, end: datetime) -> list[dict[str, Any]]:
+    def _rows(
+        self, symbol: str, asset_class: str, start: datetime, end: datetime
+    ) -> list[dict[str, Any]]:
         """Fetch all bounded pages for one Nasdaq asset class."""
         rows: list[dict[str, Any]] = []
         # Nasdaq's public route can omit the newest ETF session when

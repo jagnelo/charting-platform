@@ -77,14 +77,18 @@ def _parse_discovery_response(source_url: str, response) -> list:
     headers = getattr(response, "headers", None)
     if headers is not None:
         content_type = str(headers.get("content-type", "")).lower()
-    source_format = "zip" if (
-        source_url.lower().endswith(".zip") or "zip" in content_type
-    ) else "xlsx" if (
-        source_url.lower().endswith((".xlsx", ".xlsm"))
-        or "spreadsheetml" in content_type
-        or "excel" in content_type
-        or (isinstance(raw_content, bytes) and raw_content.startswith(b"PK"))
-    ) else "csv"
+    source_format = (
+        "zip"
+        if (source_url.lower().endswith(".zip") or "zip" in content_type)
+        else "xlsx"
+        if (
+            source_url.lower().endswith((".xlsx", ".xlsm"))
+            or "spreadsheetml" in content_type
+            or "excel" in content_type
+            or (isinstance(raw_content, bytes) and raw_content.startswith(b"PK"))
+        )
+        else "csv"
+    )
 
     if source_format == "zip":
         if not isinstance(raw_content, bytes):
@@ -311,7 +315,9 @@ async def discover_etf_profiles_from_issuer_feed(
             ("composite_figi", row.composite_figi),
             ("figi", row.share_class_figi),
         ]:
-            await _register_optional_identifier(db, instrument, identifier_type, value, adapter.source_provider)
+            await _register_optional_identifier(
+                db, instrument, identifier_type, value, adapter.source_provider
+            )
         created += 1 if existing_profile is None else 0
         updated += 0 if existing_profile is None else 1
         symbols.append(instrument.symbol)
@@ -360,7 +366,9 @@ async def discover_etf_profiles_from_sec_fund_tickers(
         )
         existing_profile = await get_etf_profile_for_instrument(db, instrument.id)
         existing_aliases = (existing_profile.provider_aliases or {}) if existing_profile else {}
-        existing_legal_metadata = (existing_profile.legal_metadata or {}) if existing_profile else {}
+        existing_legal_metadata = (
+            (existing_profile.legal_metadata or {}) if existing_profile else {}
+        )
         profile = await ensure_etf_profile(
             db,
             instrument,
@@ -434,11 +442,7 @@ async def enrich_etf_profile_from_sec_fund_tickers(
     response.raise_for_status()
 
     target_row = next(
-        (
-            row
-            for row in _parse_sec_fund_ticker_rows(response.json())
-            if row["symbol"] == symbol
-        ),
+        (row for row in _parse_sec_fund_ticker_rows(response.json()) if row["symbol"] == symbol),
         None,
     )
     if target_row is None:
@@ -573,8 +577,10 @@ async def refresh_all_known_etf_holdings(db: AsyncSession) -> dict:
     """Refresh ETF holdings for profiles whose free-source route is configured."""
 
     profiles = (
-        await db.execute(select(ETFProfile).options(selectinload(ETFProfile.instrument)))
-    ).scalars().all()
+        (await db.execute(select(ETFProfile).options(selectinload(ETFProfile.instrument))))
+        .scalars()
+        .all()
+    )
     unresolved = 0
     skipped = 0
     refreshed = 0
@@ -621,12 +627,16 @@ async def reconcile_all_etf_holdings_classifications(
     """Resume missing free-source constituent classifications in bounded batches."""
 
     profiles = (
-        await db.execute(
-            select(ETFProfile)
-            .options(selectinload(ETFProfile.instrument))
-            .order_by(ETFProfile.id)
+        (
+            await db.execute(
+                select(ETFProfile)
+                .options(selectinload(ETFProfile.instrument))
+                .order_by(ETFProfile.id)
+            )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     processed = enriched = remaining = failed = 0
     candidate_profiles = 0
     for profile in profiles:
@@ -784,8 +794,7 @@ async def bootstrap_etf_holdings_profile(
     )
     preferred_name = (name or "").strip()
     if preferred_name and (
-        not instrument.name
-        or instrument.name.strip().upper() == instrument.symbol.strip().upper()
+        not instrument.name or instrument.name.strip().upper() == instrument.symbol.strip().upper()
     ):
         instrument.name = preferred_name
 
@@ -816,9 +825,9 @@ async def bootstrap_etf_holdings_profile(
             statement = (
                 select(ETFHoldingsSnapshot)
                 .options(
-                    selectinload(ETFHoldingsSnapshot.rows).selectinload(
-                        ETFHolding.constituent_instrument
-                    ).selectinload(Instrument.equity_detail)
+                    selectinload(ETFHoldingsSnapshot.rows)
+                    .selectinload(ETFHolding.constituent_instrument)
+                    .selectinload(Instrument.equity_detail)
                 )
                 .where(ETFHoldingsSnapshot.id == latest_snapshot.id)
             )
@@ -999,15 +1008,22 @@ def _apply_known_route_metadata(profile: ETFProfile) -> bool:
             **_aliases(profile),
             **seeded_aliases,
         }
-        profile.sec_cik = str(
-            seeded_aliases.get("sec_cik") or getattr(profile, "sec_cik", None) or ""
-        ).strip() or None
-        profile.sec_series_id = str(
-            seeded_aliases.get("sec_series_id") or getattr(profile, "sec_series_id", None) or ""
-        ).strip() or None
-        profile.sec_class_id = str(
-            seeded_aliases.get("sec_class_id") or getattr(profile, "sec_class_id", None) or ""
-        ).strip() or None
+        profile.sec_cik = (
+            str(seeded_aliases.get("sec_cik") or getattr(profile, "sec_cik", None) or "").strip()
+            or None
+        )
+        profile.sec_series_id = (
+            str(
+                seeded_aliases.get("sec_series_id") or getattr(profile, "sec_series_id", None) or ""
+            ).strip()
+            or None
+        )
+        profile.sec_class_id = (
+            str(
+                seeded_aliases.get("sec_class_id") or getattr(profile, "sec_class_id", None) or ""
+            ).strip()
+            or None
+        )
 
         explicit_adapter = str(seeded_aliases.get("holdings_adapter") or "").strip().lower()
         if explicit_adapter and get_holdings_adapter(explicit_adapter) is not None:
@@ -1219,9 +1235,9 @@ def _profile_identity_expectations(profile: ETFProfile) -> list[dict[str, str]]:
     if profile.instrument is None:
         return []
     expectations = [{"type": "profile_symbol", "value": profile.instrument.symbol}]
-    if profile.instrument.name and _normalize_identity_text(profile.instrument.name) != _normalize_identity_text(
-        profile.instrument.symbol
-    ):
+    if profile.instrument.name and _normalize_identity_text(
+        profile.instrument.name
+    ) != _normalize_identity_text(profile.instrument.symbol):
         expectations.append({"type": "profile_name", "value": profile.instrument.name})
     return expectations
 
@@ -1244,12 +1260,16 @@ def _validate_extracted_artifact_identity(
         None,
     )
     symbol_identities = [
-        item for item in extracted if item["type"] in {"artifact_symbol", "artifact_cusip", "artifact_isin"}
+        item
+        for item in extracted
+        if item["type"] in {"artifact_symbol", "artifact_cusip", "artifact_isin"}
     ]
     name_identities = [item for item in extracted if item["type"] == "artifact_name"]
     if symbol_expectation is not None and symbol_identities:
         matched = [
-            item for item in symbol_identities if _identity_matches(item["value"], symbol_expectation["value"])
+            item
+            for item in symbol_identities
+            if _identity_matches(item["value"], symbol_expectation["value"])
         ]
         if matched:
             return {
@@ -1269,7 +1289,9 @@ def _validate_extracted_artifact_identity(
         }
     if name_expectation is not None and name_identities:
         matched = [
-            item for item in name_identities if _identity_matches(item["value"], name_expectation["value"])
+            item
+            for item in name_identities
+            if _identity_matches(item["value"], name_expectation["value"])
         ]
         if matched:
             return {
@@ -1296,7 +1318,9 @@ def _validate_artifact_identity(
 ) -> dict[str, Any]:
     expectations = _artifact_identity_expectations(profile)
     extracted = _extract_artifact_identities(raw_text)
-    required = bool(expectations) or _bool_alias(_aliases(profile), "require_artifact_identity_match")
+    required = bool(expectations) or _bool_alias(
+        _aliases(profile), "require_artifact_identity_match"
+    )
     if not raw_text:
         status = "missing_raw_artifact" if required else "unverified"
         return {
@@ -1407,7 +1431,9 @@ async def _refresh_adapter_route(db: AsyncSession, profile: ETFProfile):
         composition_date=composition_date,
         as_of_date=as_of_date,
         known_at=datetime.now(UTC),
-        provenance=str(result_metadata.get("snapshot_provenance") or "issuer_self_snapshotted_holdings"),
+        provenance=str(
+            result_metadata.get("snapshot_provenance") or "issuer_self_snapshotted_holdings"
+        ),
         source_provider=str(source_provider),
         source_url=fetch_result.source_url,
         source_identifier=fetch_result.source_identifier or issuer_product_id,
@@ -1418,8 +1444,7 @@ async def _refresh_adapter_route(db: AsyncSession, profile: ETFProfile):
             or "unknown"
         ),
         parser_version=str(
-            result_metadata.get("parser_version")
-            or f"{adapter.adapter_key}-{source_format}-v1"
+            result_metadata.get("parser_version") or f"{adapter.adapter_key}-{source_format}-v1"
         ),
         raw_payload_text=fetch_result.raw_text,
         raw_payload_json=fetch_result.raw_json,

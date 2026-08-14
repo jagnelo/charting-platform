@@ -133,7 +133,9 @@ async def _flush_indicator_cache(db: AsyncSession) -> dict[str, str] | None:
     try:
         await db.commit()
     except Exception:
-        logger.warning("Screener indicator-cache commit failed; continuing without cache", exc_info=True)
+        logger.warning(
+            "Screener indicator-cache commit failed; continuing without cache", exc_info=True
+        )
         try:
             await db.rollback()
         except Exception:
@@ -668,7 +670,9 @@ async def queue_python_screener_run(
     if condition.get("type") != "python_condition" or not isinstance(code_version_id, int):
         raise ValueError("Screener does not reference an immutable Python condition version")
 
-    version = (await db.execute(select(CodeVersion).where(CodeVersion.id == code_version_id))).scalar_one_or_none()
+    version = (
+        await db.execute(select(CodeVersion).where(CodeVersion.id == code_version_id))
+    ).scalar_one_or_none()
     if version is None or version.output_contract != "boolean":
         raise ValueError("Python screener condition version is unavailable or not Boolean")
 
@@ -676,8 +680,10 @@ async def queue_python_screener_run(
 
     instrument_ids = await _get_universe(db, screener)
     instruments = (
-        await db.execute(select(Instrument).where(Instrument.id.in_(instrument_ids)))
-    ).scalars().all()
+        (await db.execute(select(Instrument).where(Instrument.id.in_(instrument_ids))))
+        .scalars()
+        .all()
+    )
     symbols = [instrument.symbol for instrument in instruments]
     manifest = await _materialize_declared_dataset(
         db,
@@ -688,7 +694,11 @@ async def queue_python_screener_run(
     run = ResearchRun(
         user_id=screener.user_id,
         code_version_id=version.id,
-        run_config={"symbols": symbols, "screener_id": screener.id, "timeframe": screener.timeframe.value},
+        run_config={
+            "symbols": symbols,
+            "screener_id": screener.id,
+            "timeframe": screener.timeframe.value,
+        },
         dataset_manifest=manifest,
     )
     run.code_version = version
@@ -717,7 +727,11 @@ async def collect_python_screener_result(
     """Reconcile one queued Python scan and fire post-run hooks once complete."""
     result_data = result.result_data if isinstance(result.result_data, dict) else {}
     run_id = result_data.get("_python_research_run_id")
-    if not isinstance(run_id, int) or result_data.get("_status") in {"completed", "failed", "canceled"}:
+    if not isinstance(run_id, int) or result_data.get("_status") in {
+        "completed",
+        "failed",
+        "canceled",
+    }:
         return False
 
     # Result collection appends runner artifacts synchronously. Eager-load the
@@ -746,7 +760,11 @@ async def collect_python_screener_result(
         return True
 
     artifact = next(
-        (item for item in run.artifacts if item.artifact_type == "batch" and item.name == "batch_cells"),
+        (
+            item
+            for item in run.artifacts
+            if item.artifact_type == "batch" and item.name == "batch_cells"
+        ),
         None,
     )
     cells = artifact.payload.get("value", {}).get("cells", []) if artifact else []
@@ -769,7 +787,11 @@ async def collect_python_screener_result(
         },
     }
     result.error = next(
-        (item.get("message") for item in run.diagnostics if isinstance(item, dict) and item.get("message")),
+        (
+            item.get("message")
+            for item in run.diagnostics
+            if isinstance(item, dict) and item.get("message")
+        ),
         None,
     )
     await db.commit()

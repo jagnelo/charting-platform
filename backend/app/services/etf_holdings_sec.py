@@ -51,7 +51,9 @@ def parse_sec_nport_xml(raw_xml: str) -> tuple[date | None, list[CanonicalHoldin
         isin = _identifier_text(node, "isin") or _first_text(node, ["isin"])
         sedol = _identifier_text(node, "sedol") or _first_text(node, ["sedol"])
         symbol = _first_text(node, ["ticker", "tickerSymbol", "symbol"])
-        asset_type = (_first_text(node, ["assetCat", "assetCategory", "securityType"]) or "equity").lower()
+        asset_type = (
+            _first_text(node, ["assetCat", "assetCategory", "securityType"]) or "equity"
+        ).lower()
         row_type = "cash" if asset_type in {"cash", "currency"} else "security"
         weight = _decimal(_first_text(node, ["pctVal", "percentageValue", "weight"]))
         if weight is not None and weight > 1:
@@ -96,25 +98,26 @@ def _parse_sec_nport_xhtml(raw_html: str) -> tuple[date | None, list[CanonicalHo
         parser = _HTMLTableParser()
         parser.feed(section)
         label_map = _nport_html_label_map(parser.tables)
-        name = (
-            _first_nport_value(
-                label_map,
-                "a. name of issuer",
-                "c. title of the issue or description of the investment",
-            )
-            or _first_nport_value(label_map, "title of the issue or description of the investment")
-        )
+        name = _first_nport_value(
+            label_map,
+            "a. name of issuer",
+            "c. title of the issue or description of the investment",
+        ) or _first_nport_value(label_map, "title of the issue or description of the investment")
         cusip = _first_nport_value(label_map, "d. cusip", "cusip")
         isin = _first_nport_value(label_map, "isin")
         sedol = _first_nport_value(label_map, "sedol")
         symbol = _first_nport_value(label_map, "ticker", "ticker symbol", "symbol")
         shares = _decimal(_first_nport_value(label_map, "balance"))
         market_value = _decimal(_first_nport_value(label_map, "value"))
-        weight = _decimal(_first_nport_value(label_map, "percentage value compared to net assets of the fund"))
+        weight = _decimal(
+            _first_nport_value(label_map, "percentage value compared to net assets of the fund")
+        )
         if weight is not None and weight > 1:
             weight = weight / Decimal("100")
         currency = _normalize_nport_currency(
-            _first_nport_value(label_map, "currency. indicate the currency in which the investment is denominated")
+            _first_nport_value(
+                label_map, "currency. indicate the currency in which the investment is denominated"
+            )
             or _first_nport_value(label_map, "currency")
         )
         holding_type = (
@@ -184,8 +187,7 @@ def parse_sec_legacy_holdings_xml(raw_xml: str) -> tuple[date | None, list[Canon
         if not any([name, cusip, symbol]) or not any([market_value, shares]):
             continue
         asset_type = (
-            _first_text(node, ["securityType", "assetCategory", "assetCat", "type"])
-            or "equity"
+            _first_text(node, ["securityType", "assetCategory", "assetCat", "type"]) or "equity"
         ).lower()
         row_type = "cash" if asset_type in {"cash", "currency"} else "security"
         weight = _decimal(
@@ -259,7 +261,9 @@ class _HTMLTableParser(HTMLParser):
                 self._current_row.append(" ".join(self._current_cell).strip())
             self._current_cell = None
         elif normalized == "tr" and self._current_row is not None:
-            if self._current_table is not None and any(_clean(value) for value in self._current_row):
+            if self._current_table is not None and any(
+                _clean(value) for value in self._current_row
+            ):
                 self._current_table.append(self._current_row)
             self._current_row = None
         elif normalized == "table" and self._current_table is not None:
@@ -379,8 +383,10 @@ def _parse_legacy_table_rows(table_rows: list[list[str]]) -> list[CanonicalHoldi
         )
         market_value_key, market_value_text = market_value_item or (None, None)
         market_value = _decimal(market_value_text)
-        if market_value is not None and market_value_key and _value_header_is_thousands(
-            market_value_key
+        if (
+            market_value is not None
+            and market_value_key
+            and _value_header_is_thousands(market_value_key)
         ):
             market_value *= Decimal("1000")
         shares = _decimal(
@@ -402,20 +408,23 @@ def _parse_legacy_table_rows(table_rows: list[list[str]]) -> list[CanonicalHoldi
             pending_identity = raw
             continue
         if not has_identity and has_position and pending_identity is not None:
-            raw = {**pending_identity, **{key: value for key, value in raw.items() if _clean(value)}}
+            raw = {
+                **pending_identity,
+                **{key: value for key, value in raw.items() if _clean(value)},
+            }
             name = _first_table_value(
-            raw,
-            [
-                "issuer",
-                "issuer name",
-                "name",
-                "security",
-                "security name",
-                "description",
-                "name of issuer",
-                "title of issue",
-            ],
-        )
+                raw,
+                [
+                    "issuer",
+                    "issuer name",
+                    "name",
+                    "security",
+                    "security name",
+                    "description",
+                    "name of issuer",
+                    "title of issue",
+                ],
+            )
             symbol = _first_table_value(raw, ["ticker", "ticker symbol", "symbol"])
             cusip = _first_table_value(raw, ["cusip", "cusip number"]) or _extract_cusip(name)
         pending_identity = None
@@ -487,9 +496,7 @@ def _first_date_like_text(raw_text: str) -> str | None:
     if match:
         return match.group(0).replace("/", "-")
     match = re.search(
-        r"\b("
-        + "|".join(_MONTHS)
-        + r")\s+([0-3]?\d),\s*((?:19|20)\d{2})\b",
+        r"\b(" + "|".join(_MONTHS) + r")\s+([0-3]?\d),\s*((?:19|20)\d{2})\b",
         raw_text,
         flags=re.IGNORECASE,
     )

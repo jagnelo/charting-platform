@@ -55,8 +55,18 @@ def test_runner_executes_declared_event_signals_across_prepared_universe_cells()
             "output_contract": "events",
             "dataset": {
                 "datasets": [
-                    {"instrument_id": 1, "symbol": "SPY", "timestamps": ["2024-01-01T00:00:00+00:00", "2024-01-02T00:00:00+00:00"], "closes": [100, 101]},
-                    {"instrument_id": 2, "symbol": "XLK", "timestamps": ["2024-01-01T00:00:00+00:00", "2024-01-02T00:00:00+00:00"], "closes": [200, 202]},
+                    {
+                        "instrument_id": 1,
+                        "symbol": "SPY",
+                        "timestamps": ["2024-01-01T00:00:00+00:00", "2024-01-02T00:00:00+00:00"],
+                        "closes": [100, 101],
+                    },
+                    {
+                        "instrument_id": 2,
+                        "symbol": "XLK",
+                        "timestamps": ["2024-01-01T00:00:00+00:00", "2024-01-02T00:00:00+00:00"],
+                        "closes": [200, 202],
+                    },
                 ],
             },
         }
@@ -78,14 +88,19 @@ def test_runner_executes_structured_study_over_a_prepared_universe():
         {
             "source": "rows = [{'symbol': item['symbol'], 'last': item['closes'][-1]} for item in market.universe()]\noutput.table('ranking', rows)\noutput.histogram('distribution', [row['last'] for row in rows], 2)\noutput.events('events', [{'symbol': row['symbol'], 'timestamp': '2024-01-02T00:00:00+00:00', 'kind': 'selected'} for row in rows])",
             "output_contract": "study",
-            "dataset": {"datasets": [
-                {"instrument_id": 1, "symbol": "SPY", "closes": [100, 101]},
-                {"instrument_id": 2, "symbol": "XLK", "closes": [200, 205]},
-            ]},
+            "dataset": {
+                "datasets": [
+                    {"instrument_id": 1, "symbol": "SPY", "closes": [100, 101]},
+                    {"instrument_id": 2, "symbol": "XLK", "closes": [200, 205]},
+                ]
+            },
         }
     )
     assert result["status"] == "completed"
-    assert result["artifacts"]["ranking"]["value"] == [{"symbol": "SPY", "last": 101}, {"symbol": "XLK", "last": 205}]
+    assert result["artifacts"]["ranking"]["value"] == [
+        {"symbol": "SPY", "last": 101},
+        {"symbol": "XLK", "last": 205},
+    ]
     assert result["artifacts"]["distribution"]["value"]["sample_size"] == 2
     assert len(result["artifacts"]["events"]["value"]) == 2
 
@@ -95,15 +110,21 @@ def test_runner_computes_cross_sectional_rank_and_breadth_from_declared_bars():
         {
             "source": "ranking = research.cross_sectional_rank(dataset, 2)\nbreadth = research.breadth_snapshot(dataset, 2)\noutput.table('ranking', ranking)\noutput.bar('returns', [row['symbol'] for row in ranking], [row['return'] for row in ranking])\noutput.scalar('above', breadth['above_count'])\noutput.scalar('percent_above', breadth['percent_above'])",
             "output_contract": "study",
-            "dataset": {"datasets": [
-                {"instrument_id": 1, "symbol": "SPY", "closes": [100, 101, 104]},
-                {"instrument_id": 2, "symbol": "XLK", "closes": [100, 99, 98]},
-                {"instrument_id": 3, "symbol": "XLE", "closes": [100, 101, 102]},
-            ]},
+            "dataset": {
+                "datasets": [
+                    {"instrument_id": 1, "symbol": "SPY", "closes": [100, 101, 104]},
+                    {"instrument_id": 2, "symbol": "XLK", "closes": [100, 99, 98]},
+                    {"instrument_id": 3, "symbol": "XLE", "closes": [100, 101, 102]},
+                ]
+            },
         }
     )
     assert result["status"] == "completed"
-    assert [row["symbol"] for row in result["artifacts"]["ranking"]["value"]] == ["SPY", "XLE", "XLK"]
+    assert [row["symbol"] for row in result["artifacts"]["ranking"]["value"]] == [
+        "SPY",
+        "XLE",
+        "XLK",
+    ]
     assert result["artifacts"]["above"]["value"] == 2
     assert result["artifacts"]["percent_above"]["value"] == (2 / 3) * 100
 
@@ -130,19 +151,23 @@ def test_runner_executes_prepared_universe_cells_without_network_access():
         {
             "source": "output.scalar('last_close', market.close()[-1])",
             "output_contract": "scalar",
-            "dataset": {"datasets": [
-                {"instrument_id": 1, "symbol": "SPY", "closes": [10, 11]},
-                {"instrument_id": 2, "symbol": "XLK", "closes": [20, 22]},
-            ]},
+            "dataset": {
+                "datasets": [
+                    {"instrument_id": 1, "symbol": "SPY", "closes": [10, 11]},
+                    {"instrument_id": 2, "symbol": "XLK", "closes": [20, 22]},
+                ]
+            },
         }
     )
     assert result["status"] == "completed"
     assert result["artifacts"]["batch_cells"] == {
         "type": "batch",
-        "value": {"cells": [
-            {"instrument_id": 1, "symbol": "SPY", "status": "completed", "value": 11.0},
-            {"instrument_id": 2, "symbol": "XLK", "status": "completed", "value": 22.0},
-        ]},
+        "value": {
+            "cells": [
+                {"instrument_id": 1, "symbol": "SPY", "status": "completed", "value": 11.0},
+                {"instrument_id": 2, "symbol": "XLK", "status": "completed", "value": 22.0},
+            ]
+        },
     }
 
 
@@ -173,10 +198,12 @@ def test_runner_batch_uses_one_outer_time_budget(monkeypatch):
         {
             "source": "output.scalar('value', 1)",
             "output_contract": "scalar",
-            "dataset": {"datasets": [
-                {"instrument_id": 1, "symbol": "SPY", "closes": [1]},
-                {"instrument_id": 2, "symbol": "XLK", "closes": [1]},
-            ]},
+            "dataset": {
+                "datasets": [
+                    {"instrument_id": 1, "symbol": "SPY", "closes": [1]},
+                    {"instrument_id": 2, "symbol": "XLK", "closes": [1]},
+                ]
+            },
         }
     )
     assert result["status"] == "completed"
@@ -190,10 +217,12 @@ def test_runner_batch_reports_durable_progress_and_honors_cancellation():
         {
             "source": "output.boolean('qualifies', True)",
             "output_contract": "boolean",
-            "dataset": {"datasets": [
-                {"instrument_id": 1, "symbol": "SPY", "closes": [1]},
-                {"instrument_id": 2, "symbol": "XLK", "closes": [1]},
-            ]},
+            "dataset": {
+                "datasets": [
+                    {"instrument_id": 1, "symbol": "SPY", "closes": [1]},
+                    {"instrument_id": 2, "symbol": "XLK", "closes": [1]},
+                ]
+            },
         },
         progress_callback=progress.append,
         cancellation_check=lambda: len(progress) > 0,
@@ -254,8 +283,12 @@ def test_runner_exposes_benchmark_through_market_namespace():
                     "status": "ready",
                     "symbol": "SPY",
                     "timestamps": ["2026-01-01", "2026-01-02"],
-                    "opens": [100, 101], "highs": [102, 103], "lows": [99, 100],
-                    "closes": [100, 101], "volumes": [1000, 1200], "vwaps": [100.5, 101.5],
+                    "opens": [100, 101],
+                    "highs": [102, 103],
+                    "lows": [99, 100],
+                    "closes": [100, 101],
+                    "volumes": [1000, 1200],
+                    "vwaps": [100.5, 101.5],
                     "metadata": {"name": "SPY"},
                 },
             },
@@ -270,7 +303,11 @@ def test_runner_reports_unavailable_benchmark_explicitly():
     result = execute_job(
         {
             "source": "output.scalar('benchmark_last', market.benchmark_close()[-1])",
-            "dataset": {"symbol": "AAPL", "closes": [10], "benchmark_dataset": {"status": "unavailable"}},
+            "dataset": {
+                "symbol": "AAPL",
+                "closes": [10],
+                "benchmark_dataset": {"status": "unavailable"},
+            },
         }
     )
     assert result["status"] == "failed"
@@ -299,8 +336,26 @@ def test_runner_exposes_declared_ohlcv_fields_through_market_namespace():
     assert result["artifacts"]["volume"]["value"] == 1200.0
     assert result["artifacts"]["name"]["value"] == "SPY"
     assert result["artifacts"]["rows"]["value"] == [
-        {"timestamp": "2026-01-01", "session": "regular", "open": 10, "high": 12, "low": 9, "close": 11, "volume": 1000, "vwap": 10.5},
-        {"timestamp": "2026-01-02", "session": "regular", "open": 11, "high": 13, "low": 10, "close": 12, "volume": 1200, "vwap": 11.5},
+        {
+            "timestamp": "2026-01-01",
+            "session": "regular",
+            "open": 10,
+            "high": 12,
+            "low": 9,
+            "close": 11,
+            "volume": 1000,
+            "vwap": 10.5,
+        },
+        {
+            "timestamp": "2026-01-02",
+            "session": "regular",
+            "open": 11,
+            "high": 13,
+            "low": 10,
+            "close": 12,
+            "volume": 1200,
+            "vwap": 11.5,
+        },
     ]
 
 
@@ -381,7 +436,10 @@ def test_runner_emits_typed_scatter_points_for_study_relationships():
 
 def test_runner_emits_typed_heatmap_matrix_for_study_relationships():
     result = execute_job(
-        {"source": "output.heatmap('matrix', [[1, 2], [3, 4]], ['A', 'B'], ['X', 'Y'])", "dataset": {}}
+        {
+            "source": "output.heatmap('matrix', [[1, 2], [3, 4]], ['A', 'B'], ['X', 'Y'])",
+            "dataset": {},
+        }
     )
     assert result["status"] == "completed"
     assert result["artifacts"]["matrix"] == {
@@ -392,15 +450,20 @@ def test_runner_emits_typed_heatmap_matrix_for_study_relationships():
 
 def test_runner_emits_typed_dashboard_composed_from_named_artifacts():
     result = execute_job(
-        {"source": "output.scalar('sample_size', 4)\noutput.series('trend', [1, 2])\noutput.dashboard('overview', [{'artifact': 'sample_size', 'title': 'Sample size', 'span': 4}, {'artifact': 'trend', 'title': 'Trend', 'span': 8}])", "dataset": {"timestamps": ["2026-01-01", "2026-01-02"]}}
+        {
+            "source": "output.scalar('sample_size', 4)\noutput.series('trend', [1, 2])\noutput.dashboard('overview', [{'artifact': 'sample_size', 'title': 'Sample size', 'span': 4}, {'artifact': 'trend', 'title': 'Trend', 'span': 8}])",
+            "dataset": {"timestamps": ["2026-01-01", "2026-01-02"]},
+        }
     )
     assert result["status"] == "completed"
     assert result["artifacts"]["overview"] == {
         "type": "dashboard",
-        "value": {"panels": [
-            {"artifact": "sample_size", "title": "Sample size", "span": 4},
-            {"artifact": "trend", "title": "Trend", "span": 8},
-        ]},
+        "value": {
+            "panels": [
+                {"artifact": "sample_size", "title": "Sample size", "span": 4},
+                {"artifact": "trend", "title": "Trend", "span": 8},
+            ]
+        },
     }
 
 
@@ -410,10 +473,12 @@ def test_runner_rejects_dashboard_references_to_missing_artifacts():
     )
 
     assert result["status"] == "failed"
-    assert result["diagnostics"] == [{
-        "code": "dashboard_reference_error",
-        "message": "dashboard 'overview' references unavailable artifact 'missing'",
-    }]
+    assert result["diagnostics"] == [
+        {
+            "code": "dashboard_reference_error",
+            "message": "dashboard 'overview' references unavailable artifact 'missing'",
+        }
+    ]
 
 
 def test_runner_computes_point_in_time_forward_returns_for_study_events():
@@ -428,8 +493,20 @@ def test_runner_computes_point_in_time_forward_returns_for_study_events():
     )
     assert result["status"] == "completed"
     assert result["artifacts"]["outcomes"]["value"] == [
-        {"event_index": 1, "event_timestamp": "2026-01-02", "horizon": 1, "outcome_timestamp": "2026-01-03", "forward_return": (12 / 11) - 1},
-        {"event_index": 1, "event_timestamp": "2026-01-02", "horizon": 2, "outcome_timestamp": "2026-01-04", "forward_return": (13 / 11) - 1},
+        {
+            "event_index": 1,
+            "event_timestamp": "2026-01-02",
+            "horizon": 1,
+            "outcome_timestamp": "2026-01-03",
+            "forward_return": (12 / 11) - 1,
+        },
+        {
+            "event_index": 1,
+            "event_timestamp": "2026-01-02",
+            "horizon": 2,
+            "outcome_timestamp": "2026-01-04",
+            "forward_return": (13 / 11) - 1,
+        },
     ]
 
 
@@ -445,12 +522,14 @@ def test_runner_emits_symbol_linked_occurrences_for_study_events():
         }
     )
     assert result["status"] == "completed"
-    assert result["artifacts"]["streaks"]["value"] == [{
-        "symbol": "SPY",
-        "timestamp": "2026-01-02",
-        "kind": "positive_close_streak",
-        "event_index": 1,
-    }]
+    assert result["artifacts"]["streaks"]["value"] == [
+        {
+            "symbol": "SPY",
+            "timestamp": "2026-01-02",
+            "kind": "positive_close_streak",
+            "event_index": 1,
+        }
+    ]
 
 
 def test_runner_exposes_restricted_numpy_and_pandas_facades():
@@ -557,13 +636,16 @@ def test_runner_reports_memory_limit_diagnostic(monkeypatch):
     assert result["diagnostics"][0]["code"] == "memory_limit"
 
 
-@pytest.mark.parametrize("expression", [
-    "values.tofile('/tmp/secret.bin')",
-    "values.dump('/tmp/secret.npy')",
-    "values.setflags(write=True)",
-    "values.resize(1)",
-    "values.ctypes.data",
-])
+@pytest.mark.parametrize(
+    "expression",
+    [
+        "values.tofile('/tmp/secret.bin')",
+        "values.dump('/tmp/secret.npy')",
+        "values.setflags(write=True)",
+        "values.resize(1)",
+        "values.ctypes.data",
+    ],
+)
 def test_runner_rejects_dangerous_methods_on_numpy_values(expression):
     result = execute_job({"source": f"values = np.array([1, 2])\n{expression}", "dataset": {}})
     assert result["status"] == "failed"
@@ -571,10 +653,12 @@ def test_runner_rejects_dangerous_methods_on_numpy_values(expression):
 
 
 def test_runner_does_not_expose_pandas_wrapper_internals():
-    result = execute_job({
-        "source": "series = pd.Series([1, 2])\noutput.table('raw', series._value)",
-        "dataset": {},
-    })
+    result = execute_job(
+        {
+            "source": "series = pd.Series([1, 2])\noutput.table('raw', series._value)",
+            "dataset": {},
+        }
+    )
     assert result["status"] == "failed"
     assert result["diagnostics"][0]["code"] == "forbidden_attribute"
     assert "Private and dunder attributes" in result["diagnostics"][0]["message"]

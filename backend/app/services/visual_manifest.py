@@ -108,7 +108,10 @@ def validate_visual_manifest(manifest: dict[str, Any], *, require_approved: bool
                     raise VisualManifestError(
                         f"{surface_id}/{entry.get('id')}: state and review status must match"
                     )
-                if entry.get("state") == "required_missing" and not str(entry.get("interim_oracle") or "").strip():
+                if (
+                    entry.get("state") == "required_missing"
+                    and not str(entry.get("interim_oracle") or "").strip()
+                ):
                     raise VisualManifestError(
                         f"{surface_id}/{entry.get('id')}: required_missing states need an interim oracle"
                     )
@@ -117,13 +120,19 @@ def validate_visual_manifest(manifest: dict[str, Any], *, require_approved: bool
                     if (
                         not isinstance(baselines, list)
                         or len(baselines) < len(REQUIRED_ENVIRONMENTS)
-                        or len({item for item in baselines if isinstance(item, str) and item.strip()})
+                        or len(
+                            {item for item in baselines if isinstance(item, str) and item.strip()}
+                        )
                         != len(baselines)
                     ):
                         raise VisualManifestError(
                             f"{surface_id}/{entry.get('id')}: required_missing states need one deterministic local baseline per required environment"
                         )
-                if require_approved and entry.get("state") not in {"approved", "out_of_scope", "superseded"}:
+                if require_approved and entry.get("state") not in {
+                    "approved",
+                    "out_of_scope",
+                    "superseded",
+                }:
                     raise VisualManifestError(
                         f"{surface_id}/{entry.get('id')}: visual acceptance is blocked by {entry.get('state')}"
                     )

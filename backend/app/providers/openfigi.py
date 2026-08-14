@@ -109,11 +109,7 @@ class OpenFigiProvider:
             raw_payload = [raw_payload]
         if not raw_payload or not isinstance(raw_payload, list):
             return []
-        return [
-            item.get("data") or []
-            for item in raw_payload
-            if isinstance(item, dict)
-        ]
+        return [item.get("data") or [] for item in raw_payload if isinstance(item, dict)]
 
     def _identifier_records_from_mapping(
         self,

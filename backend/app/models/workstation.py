@@ -26,7 +26,9 @@ class Workspace(Base, TimestampMixin):
     __tablename__ = "workspace"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("user.id", ondelete="CASCADE"), index=True)
+    user_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("user.id", ondelete="CASCADE"), index=True
+    )
     name: Mapped[str] = mapped_column(String(120), nullable=False)
     is_default: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     position: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
@@ -85,7 +87,9 @@ class WorkspaceLibraryItem(Base, TimestampMixin):
     __tablename__ = "workspace_library_item"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("user.id", ondelete="CASCADE"), index=True)
+    user_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("user.id", ondelete="CASCADE"), index=True
+    )
     kind: Mapped[str] = mapped_column(String(48), nullable=False, index=True)
     stable_key: Mapped[str] = mapped_column(String(80), nullable=False)
     name: Mapped[str] = mapped_column(String(160), nullable=False)
@@ -93,14 +97,18 @@ class WorkspaceLibraryItem(Base, TimestampMixin):
     payload: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
     dependency_metadata: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
 
-    __table_args__ = (UniqueConstraint("user_id", "kind", "stable_key", name="uq_library_item_key"),)
+    __table_args__ = (
+        UniqueConstraint("user_id", "kind", "stable_key", name="uq_library_item_key"),
+    )
 
 
 class InstrumentNote(Base, TimestampMixin):
     __tablename__ = "instrument_note"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("user.id", ondelete="CASCADE"), index=True)
+    user_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("user.id", ondelete="CASCADE"), index=True
+    )
     instrument_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("instrument.id", ondelete="CASCADE"), index=True
     )
@@ -116,7 +124,9 @@ class MarketGroup(Base, TimestampMixin):
     stable_key: Mapped[str] = mapped_column(String(80), nullable=False, unique=True)
     group_type: Mapped[str] = mapped_column(String(40), nullable=False, index=True)
     name: Mapped[str] = mapped_column(String(160), nullable=False)
-    parent_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("market_group.id"), nullable=True)
+    parent_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("market_group.id"), nullable=True
+    )
     representative_instrument_id: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("instrument.id", ondelete="SET NULL"), nullable=True
     )
@@ -143,12 +153,18 @@ class MarketGroupMember(Base, TimestampMixin):
     market_group_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("market_group.id", ondelete="CASCADE"), index=True
     )
-    instrument_id: Mapped[int] = mapped_column(Integer, ForeignKey("instrument.id", ondelete="CASCADE"), index=True)
-    relationship_type: Mapped[str] = mapped_column(String(48), nullable=False, default="constituent")
+    instrument_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("instrument.id", ondelete="CASCADE"), index=True
+    )
+    relationship_type: Mapped[str] = mapped_column(
+        String(48), nullable=False, default="constituent"
+    )
     weight: Mapped[float | None] = mapped_column(nullable=True)
     position: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     source: Mapped[str] = mapped_column(String(80), nullable=False, default="curated")
-    verification_state: Mapped[str] = mapped_column(String(40), nullable=False, default="unverified")
+    verification_state: Mapped[str] = mapped_column(
+        String(40), nullable=False, default="unverified"
+    )
     effective_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     known_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     provenance: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
@@ -168,10 +184,16 @@ class MarketGroupProxy(Base, TimestampMixin):
     market_group_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("market_group.id", ondelete="CASCADE"), index=True
     )
-    instrument_id: Mapped[int] = mapped_column(Integer, ForeignKey("instrument.id", ondelete="CASCADE"), index=True)
-    relationship_type: Mapped[str] = mapped_column(String(48), nullable=False, default="industry_proxy")
+    instrument_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("instrument.id", ondelete="CASCADE"), index=True
+    )
+    relationship_type: Mapped[str] = mapped_column(
+        String(48), nullable=False, default="industry_proxy"
+    )
     source: Mapped[str] = mapped_column(String(80), nullable=False, default="curated")
-    verification_state: Mapped[str] = mapped_column(String(40), nullable=False, default="unverified")
+    verification_state: Mapped[str] = mapped_column(
+        String(40), nullable=False, default="unverified"
+    )
     effective_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     known_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     provenance: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
@@ -179,4 +201,6 @@ class MarketGroupProxy(Base, TimestampMixin):
     group: Mapped[MarketGroup] = relationship(back_populates="proxies")
     instrument: Mapped[Instrument] = relationship(foreign_keys=[instrument_id])
 
-    __table_args__ = (UniqueConstraint("market_group_id", "instrument_id", name="uq_market_group_proxy"),)
+    __table_args__ = (
+        UniqueConstraint("market_group_id", "instrument_id", name="uq_market_group_proxy"),
+    )

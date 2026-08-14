@@ -6,7 +6,9 @@ from app.services.provider_runtime import ProviderNoDataError
 
 
 class TestOHLCVRouter:
-    def test_transformed_chart_types_return_server_shape(self, client, auth_headers, instrument, monkeypatch):
+    def test_transformed_chart_types_return_server_shape(
+        self, client, auth_headers, instrument, monkeypatch
+    ):
         bars = [
             SimpleNamespace(
                 ts=datetime(2024, 1, 2, tzinfo=UTC),
@@ -40,13 +42,23 @@ class TestOHLCVRouter:
             )
             assert response.status_code == 200, (bar_type, response.text)
             payload = response.json()
-            assert all(set(("ts", "open", "high", "low", "close", "volume")).issubset(row) for row in payload)
+            assert all(
+                set(("ts", "open", "high", "low", "close", "volume")).issubset(row)
+                for row in payload
+            )
 
-    def test_transformed_chart_ignores_parameters_for_other_types(self, client, auth_headers, instrument, monkeypatch):
+    def test_transformed_chart_ignores_parameters_for_other_types(
+        self, client, auth_headers, instrument, monkeypatch
+    ):
         bars = [
             SimpleNamespace(
-                ts=datetime(2024, 1, 2, tzinfo=UTC), open=100, high=105, low=95,
-                close=104, volume=10, is_adjusted=True,
+                ts=datetime(2024, 1, 2, tzinfo=UTC),
+                open=100,
+                high=105,
+                low=95,
+                close=104,
+                volume=10,
+                is_adjusted=True,
             ),
         ]
 

@@ -55,7 +55,9 @@ async def test_etf_classification_refresh_delegates_to_bounded_task(monkeypatch)
         calls.append(ctx)
         return {"processed": 2, "enriched": 8, "remaining": 1}
 
-    monkeypatch.setattr(etf_holdings_tasks, "reconcile_etf_holdings_classifications_task", fake_refresh)
+    monkeypatch.setattr(
+        etf_holdings_tasks, "reconcile_etf_holdings_classifications_task", fake_refresh
+    )
 
     result = await arq_worker.scheduled_etf_holdings_classification_refresh({"redis": "test"})
 
@@ -64,7 +66,10 @@ async def test_etf_classification_refresh_delegates_to_bounded_task(monkeypatch)
 
 
 def test_worker_registers_etf_classification_refresh_function():
-    assert arq_worker.scheduled_etf_holdings_classification_refresh in arq_worker.WorkerSettings.functions
+    assert (
+        arq_worker.scheduled_etf_holdings_classification_refresh
+        in arq_worker.WorkerSettings.functions
+    )
 
 
 @pytest.mark.asyncio

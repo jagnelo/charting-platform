@@ -113,11 +113,25 @@ class AlphaVantageProvider:
         return sorted(bars, key=lambda bar: bar.ts)
 
     def fetch_latest_ohlcv(
-        self, symbol: str, timeframe: Timeframe, limit: int, *, adjusted: bool = True,
-        instrument_id: int | None = None, data_source_id: int | None = None,
+        self,
+        symbol: str,
+        timeframe: Timeframe,
+        limit: int,
+        *,
+        adjusted: bool = True,
+        instrument_id: int | None = None,
+        data_source_id: int | None = None,
     ) -> list[OHLCVBar]:
         start = self.latest_window_start(timeframe, limit)
-        return self.fetch_ohlcv(symbol, timeframe, start, datetime.now(UTC), adjusted=adjusted, instrument_id=instrument_id, data_source_id=data_source_id)[-limit:]
+        return self.fetch_ohlcv(
+            symbol,
+            timeframe,
+            start,
+            datetime.now(UTC),
+            adjusted=adjusted,
+            instrument_id=instrument_id,
+            data_source_id=data_source_id,
+        )[-limit:]
 
     def latest_window_start(self, timeframe: Timeframe, limit: int) -> datetime:
         return datetime.now(UTC) - timedelta(days=max(limit * 2, 30))

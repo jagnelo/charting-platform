@@ -439,7 +439,9 @@ def basket_to_out(basket: Basket) -> BasketOut:
     )
 
 
-async def list_basket_snapshots(db: AsyncSession, basket_id: int, user_id: int) -> list[BasketSnapshot]:
+async def list_basket_snapshots(
+    db: AsyncSession, basket_id: int, user_id: int
+) -> list[BasketSnapshot]:
     basket = await get_basket(db, basket_id, user_id)
     if basket is None:
         raise BasketValidationError("Basket not found.")
@@ -552,7 +554,9 @@ async def _resolve_member_instruments(
 ) -> list[Instrument]:
     if not members:
         return []
-    instrument_ids = [member.instrument_id for member in members if member.instrument_id is not None]
+    instrument_ids = [
+        member.instrument_id for member in members if member.instrument_id is not None
+    ]
     symbols = [str(member.symbol).strip().upper() for member in members if member.symbol]
     stmt = select(Instrument).options(selectinload(Instrument.equity_detail))
     clauses = []
@@ -579,11 +583,15 @@ async def _resolve_member_instruments(
             missing.append(str(member.instrument_id or member.symbol))
             continue
         if instrument.id in seen_ids:
-            raise BasketValidationError(f"Basket contains duplicate instrument {instrument.symbol}.")
+            raise BasketValidationError(
+                f"Basket contains duplicate instrument {instrument.symbol}."
+            )
         seen_ids.add(instrument.id)
         ordered.append(instrument)
     if missing:
-        raise BasketValidationError(f"Basket contains unknown instruments: {', '.join(missing[:10])}.")
+        raise BasketValidationError(
+            f"Basket contains unknown instruments: {', '.join(missing[:10])}."
+        )
     return ordered
 
 
@@ -597,7 +605,11 @@ def _validate_members(
     if not members:
         raise BasketValidationError("A basket needs at least one instrument.")
     if weighting_scheme == "custom":
-        missing = [instrument.symbol for member, instrument in zip(members, instruments) if member.weight is None]
+        missing = [
+            instrument.symbol
+            for member, instrument in zip(members, instruments)
+            if member.weight is None
+        ]
         if missing:
             raise BasketValidationError(
                 f"Custom-weight baskets need weights for every member: {', '.join(missing[:10])}."
@@ -682,7 +694,9 @@ async def _load_etf_snapshot(
         return None, None
     stmt = (
         select(ETFHoldingsSnapshot)
-        .options(selectinload(ETFHoldingsSnapshot.rows).selectinload(ETFHolding.constituent_instrument))
+        .options(
+            selectinload(ETFHoldingsSnapshot.rows).selectinload(ETFHolding.constituent_instrument)
+        )
         .where(ETFHoldingsSnapshot.etf_profile_id == profile.id)
     )
     if snapshot_id is not None:
@@ -708,7 +722,5 @@ async def _load_instrument_by_symbol_or_id(
         return await db.get(Instrument, int(symbol_or_id))
     symbol = str(symbol_or_id).strip().upper()
     return (
-        await db.execute(
-            select(Instrument).where(func.upper(Instrument.symbol) == symbol).limit(1)
-        )
+        await db.execute(select(Instrument).where(func.upper(Instrument.symbol) == symbol).limit(1))
     ).scalar_one_or_none()

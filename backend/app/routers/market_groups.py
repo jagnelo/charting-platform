@@ -63,19 +63,23 @@ async def _historical_profile_payloads(
     if as_of is None or not instrument_ids:
         return {}
     snapshots = (
-        await db.execute(
-            select(InstrumentProfileSnapshot)
-            .where(
-                InstrumentProfileSnapshot.instrument_id.in_(instrument_ids),
-                InstrumentProfileSnapshot.observed_at <= as_of,
-            )
-            .order_by(
-                InstrumentProfileSnapshot.instrument_id,
-                InstrumentProfileSnapshot.observed_at.desc(),
-                InstrumentProfileSnapshot.id.desc(),
+        (
+            await db.execute(
+                select(InstrumentProfileSnapshot)
+                .where(
+                    InstrumentProfileSnapshot.instrument_id.in_(instrument_ids),
+                    InstrumentProfileSnapshot.observed_at <= as_of,
+                )
+                .order_by(
+                    InstrumentProfileSnapshot.instrument_id,
+                    InstrumentProfileSnapshot.observed_at.desc(),
+                    InstrumentProfileSnapshot.id.desc(),
+                )
             )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     result: dict[int, dict] = {}
     for snapshot in snapshots:
         result.setdefault(snapshot.instrument_id, snapshot.payload)
@@ -190,7 +194,12 @@ async def etf_industry_composition(
 
     rows = (
         await db.execute(
-            select(ETFHolding, EquityDetail.industry, EquityDetail.sector, EquityDetail.field_provenance)
+            select(
+                ETFHolding,
+                EquityDetail.industry,
+                EquityDetail.sector,
+                EquityDetail.field_provenance,
+            )
             .outerjoin(
                 EquityDetail, EquityDetail.instrument_id == ETFHolding.constituent_instrument_id
             )
@@ -231,7 +240,9 @@ async def etf_industry_composition(
             classification_systems_seen.add(classification_system)
             if not label:
                 exclusions.append(
-                    "classification_not_known_at_as_of" if as_of is not None else "unclassified_constituent"
+                    "classification_not_known_at_as_of"
+                    if as_of is not None
+                    else "unclassified_constituent"
                 )
                 continue
             classified_rows += 1
@@ -257,9 +268,8 @@ async def etf_industry_composition(
         industries=industries,
         exclusions=sorted(set(exclusions)),
         classification_systems=sorted(classification_systems_seen),
-        classification_coverage=classified_rows / sum(
-            1 for row, *_ in rows if _holding_exclusion_code(row) is None
-        )
+        classification_coverage=classified_rows
+        / sum(1 for row, *_ in rows if _holding_exclusion_code(row) is None)
         if any(_holding_exclusion_code(row) is None for row, *_ in rows)
         else 0,
     )
@@ -331,24 +341,21 @@ async def etf_industry_proxies(
             exclusions.append(f"candidate_no_point_in_time_holdings:{candidate}")
             continue
         classifications = (
-            (
-                await db.execute(
-                    select(
-                        ETFHolding,
-                        EquityDetail.instrument_id,
-                        EquityDetail.industry,
-                        EquityDetail.sector,
-                        EquityDetail.field_provenance,
-                    )
-                    .outerjoin(
-                        EquityDetail,
-                        EquityDetail.instrument_id == ETFHolding.constituent_instrument_id,
-                    )
-                    .where(ETFHolding.snapshot_id == snapshot.id)
+            await db.execute(
+                select(
+                    ETFHolding,
+                    EquityDetail.instrument_id,
+                    EquityDetail.industry,
+                    EquityDetail.sector,
+                    EquityDetail.field_provenance,
                 )
+                .outerjoin(
+                    EquityDetail,
+                    EquityDetail.instrument_id == ETFHolding.constituent_instrument_id,
+                )
+                .where(ETFHolding.snapshot_id == snapshot.id)
             )
-            .all()
-        )
+        ).all()
         classified_instrument_ids = {
             instrument_id
             for _row, instrument_id, *_ in classifications
@@ -463,7 +470,11 @@ async def etf_industry_constituents(
     ).all()
     historical_profiles = await _historical_profile_payloads(
         db,
-        {instrument.id for row, instrument, *_ in classified_rows if _holding_exclusion_code(row) is None},
+        {
+            instrument.id
+            for row, instrument, *_ in classified_rows
+            if _holding_exclusion_code(row) is None
+        },
         as_of,
     )
     rows: list[Instrument] = []

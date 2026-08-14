@@ -69,7 +69,11 @@ async def list_definitions(
     return result.scalars().all()
 
 
-@router.post("/signals/from-code/{code_version_id}", response_model=StrategyDefinitionDetailOut, status_code=201)
+@router.post(
+    "/signals/from-code/{code_version_id}",
+    response_model=StrategyDefinitionDetailOut,
+    status_code=201,
+)
 async def promote_code_signal(
     code_version_id: int,
     db: AsyncSession = Depends(get_db),
@@ -97,7 +101,9 @@ async def promote_code_signal(
     if version is None:
         raise HTTPException(status_code=404, detail="Signal code version not found")
     if version.output_contract not in {"boolean", "events"}:
-        raise HTTPException(status_code=422, detail="Signal code must produce Boolean or event output")
+        raise HTTPException(
+            status_code=422, detail="Signal code must produce Boolean or event output"
+        )
 
     base_name = f"{version.asset.name} Strategy Signal"
     name = base_name
@@ -384,16 +390,19 @@ def _expand_parameter_grid(raw_grid: dict | None) -> tuple[list[dict], list[dict
         if not isinstance(values, list):
             values = []
         normalized_values = [
-            value for value in values
+            value
+            for value in values
             if value is not None and value != "" and isinstance(value, int | float | str | bool)
         ]
         if not normalized_values:
             continue
-        dimensions.append({
-            "key": key,
-            "label": str(raw_dimension.get("label") or key),
-            "values": normalized_values[:50],
-        })
+        dimensions.append(
+            {
+                "key": key,
+                "label": str(raw_dimension.get("label") or key),
+                "values": normalized_values[:50],
+            }
+        )
 
     if not dimensions:
         return [], []
@@ -454,7 +463,9 @@ def _run_summary_ref(run: StrategyRun, metric: str) -> dict | None:
     }
 
 
-def _best_run_by_metric(runs: list[StrategyRun], metric: str, *, reverse: bool = True) -> dict | None:
+def _best_run_by_metric(
+    runs: list[StrategyRun], metric: str, *, reverse: bool = True
+) -> dict | None:
     ranked = [run for run in runs if _run_metric(run, metric) is not None]
     if not ranked:
         return None
@@ -475,7 +486,9 @@ def _summarize_run_batch(
         "failed_count": len(failed),
         "parameter_count": len(parameter_dimensions),
         "best_marked_return": _best_run_by_metric(completed, "net_return_pct", reverse=True),
-        "best_realized_return": _best_run_by_metric(completed, "realized_net_return_pct", reverse=True),
+        "best_realized_return": _best_run_by_metric(
+            completed, "realized_net_return_pct", reverse=True
+        ),
         "worst_marked_return": _best_run_by_metric(completed, "net_return_pct", reverse=False),
         "least_drawdown": _best_run_by_metric(completed, "max_drawdown_pct", reverse=False),
         "best_profit_factor": _best_run_by_metric(completed, "profit_factor", reverse=True),

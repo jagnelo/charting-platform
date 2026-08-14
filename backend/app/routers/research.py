@@ -90,20 +90,30 @@ def _dataset_options(run_config: dict, manifest: dict) -> dict:
             status_code=422,
             detail={"code": "unsupported_dataset_session", "value": session},
         )
-    start = _parse_dataset_bound(run_config.get("start_date") or manifest.get("start_date"), end=False)
+    start = _parse_dataset_bound(
+        run_config.get("start_date") or manifest.get("start_date"), end=False
+    )
     end = _parse_dataset_bound(run_config.get("end_date") or manifest.get("end_date"), end=True)
     as_of = _parse_dataset_bound(run_config.get("as_of") or manifest.get("as_of"), end=True)
     if as_of and start and start > as_of:
         raise HTTPException(
             status_code=422,
-            detail={"code": "dataset_as_of_before_start", "as_of": as_of.isoformat(), "start_date": start.isoformat()},
+            detail={
+                "code": "dataset_as_of_before_start",
+                "as_of": as_of.isoformat(),
+                "start_date": start.isoformat(),
+            },
         )
     if as_of and (end is None or as_of < end):
         end = as_of
     if start and end and start > end:
         raise HTTPException(
             status_code=422,
-            detail={"code": "dataset_date_range_reversed", "start_date": start.date().isoformat(), "end_date": end.date().isoformat()},
+            detail={
+                "code": "dataset_date_range_reversed",
+                "start_date": start.date().isoformat(),
+                "end_date": end.date().isoformat(),
+            },
         )
     benchmark = run_config.get("benchmark") or manifest.get("benchmark")
     if benchmark is not None and (not isinstance(benchmark, str) or not benchmark.strip()):
@@ -177,8 +187,12 @@ def _instrument_metadata(instrument: Instrument) -> dict[str, object | None]:
         "market_cap": float(stats.market_cap) if stats and stats.market_cap is not None else None,
         "pe_ratio": float(stats.pe_ratio) if stats and stats.pe_ratio is not None else None,
         "beta": float(stats.beta) if stats and stats.beta is not None else None,
-        "avg_volume_30d": float(stats.avg_volume_30d) if stats and stats.avg_volume_30d is not None else None,
-        "dividend_yield": float(stats.dividend_yield) if stats and stats.dividend_yield is not None else None,
+        "avg_volume_30d": float(stats.avg_volume_30d)
+        if stats and stats.avg_volume_30d is not None
+        else None,
+        "dividend_yield": float(stats.dividend_yield)
+        if stats and stats.dividend_yield is not None
+        else None,
     }
 
 
@@ -210,7 +224,12 @@ async def _load_instrument_bars(
 
 
 async def _materialize_instrument_dataset(
-    db: AsyncSession, instrument: Instrument, manifest: dict, options: dict, *, history_limit: int = MAX_HISTORY_LIMIT
+    db: AsyncSession,
+    instrument: Instrument,
+    manifest: dict,
+    options: dict,
+    *,
+    history_limit: int = MAX_HISTORY_LIMIT,
 ) -> dict:
     bars = await _load_instrument_bars(db, instrument, options, limit=history_limit)
     return {
@@ -269,19 +288,35 @@ async def _materialize_declared_dataset(
 ) -> dict:
     """Materialize only an explicitly declared canonical local dataset for the runner."""
     options = _dataset_options(run_config, manifest)
-    if lookback is not None and (isinstance(lookback, bool) or not isinstance(lookback, int) or lookback < 1):
-        raise HTTPException(status_code=422, detail={"code": "invalid_code_lookback", "lookback": lookback})
+    if lookback is not None and (
+        isinstance(lookback, bool) or not isinstance(lookback, int) or lookback < 1
+    ):
+        raise HTTPException(
+            status_code=422, detail={"code": "invalid_code_lookback", "lookback": lookback}
+        )
     if lookback is not None and lookback >= MAX_HISTORY_LIMIT:
         raise HTTPException(
             status_code=422,
-            detail={"code": "code_lookback_exceeds_dataset_limit", "lookback": lookback, "maximum": MAX_HISTORY_LIMIT - 1},
+            detail={
+                "code": "code_lookback_exceeds_dataset_limit",
+                "lookback": lookback,
+                "maximum": MAX_HISTORY_LIMIT - 1,
+            },
         )
-    history_limit = max(BATCH_HISTORY_LIMIT, (lookback + 1) if lookback is not None else BATCH_HISTORY_LIMIT)
-    benchmark_history_limit = max(MAX_HISTORY_LIMIT if lookback is None else history_limit, history_limit)
-    benchmark_dataset = await _materialize_benchmark_dataset(db, options, history_limit=benchmark_history_limit)
+    history_limit = max(
+        BATCH_HISTORY_LIMIT, (lookback + 1) if lookback is not None else BATCH_HISTORY_LIMIT
+    )
+    benchmark_history_limit = max(
+        MAX_HISTORY_LIMIT if lookback is None else history_limit, history_limit
+    )
+    benchmark_dataset = await _materialize_benchmark_dataset(
+        db, options, history_limit=benchmark_history_limit
+    )
     symbols = run_config.get("symbols")
     if isinstance(symbols, list):
-        requested = list(dict.fromkeys(str(item).strip().upper() for item in symbols if str(item).strip()))
+        requested = list(
+            dict.fromkeys(str(item).strip().upper() for item in symbols if str(item).strip())
+        )
         if not requested:
             result = {
                 **_dataset_manifest_fields(manifest, options),
@@ -302,12 +337,14 @@ async def _materialize_declared_dataset(
                 (
                     await db.execute(
                         select(Instrument)
-                        .options(selectinload(Instrument.equity_detail), selectinload(Instrument.stats))
-                        .where(
-                            Instrument.symbol.in_(requested[offset : offset + BATCH_QUERY_SIZE])
+                        .options(
+                            selectinload(Instrument.equity_detail), selectinload(Instrument.stats)
                         )
+                        .where(Instrument.symbol.in_(requested[offset : offset + BATCH_QUERY_SIZE]))
                     )
-                ).scalars().all()
+                )
+                .scalars()
+                .all()
             )
         by_symbol = {instrument.symbol.upper(): instrument for instrument in instruments}
         bars_by_instrument: dict[int, list[OHLCVBar]] = {}
@@ -339,13 +376,17 @@ async def _materialize_declared_dataset(
                 .subquery()
             )
             bars = (
-                await db.execute(
-                    select(OHLCVBar)
-                    .join(ranked_bars, OHLCVBar.id == ranked_bars.c.bar_id)
-                    .where(ranked_bars.c.bar_rank <= history_limit)
-                    .order_by(OHLCVBar.instrument_id, OHLCVBar.ts)
+                (
+                    await db.execute(
+                        select(OHLCVBar)
+                        .join(ranked_bars, OHLCVBar.id == ranked_bars.c.bar_id)
+                        .where(ranked_bars.c.bar_rank <= history_limit)
+                        .order_by(OHLCVBar.instrument_id, OHLCVBar.ts)
+                    )
                 )
-            ).scalars().all()
+                .scalars()
+                .all()
+            )
             for bar in bars:
                 bars_by_instrument.setdefault(bar.instrument_id, []).append(bar)
         datasets = []
@@ -357,7 +398,13 @@ async def _materialize_declared_dataset(
                 continue
             bars = bars_by_instrument.get(instrument.id, [])
             if not bars:
-                exclusions.append({"symbol": symbol, "instrument_id": instrument.id, "code": "declared_history_unavailable"})
+                exclusions.append(
+                    {
+                        "symbol": symbol,
+                        "instrument_id": instrument.id,
+                        "code": "declared_history_unavailable",
+                    }
+                )
                 continue
             datasets.append(
                 {
@@ -433,7 +480,10 @@ async def create_run(
     parameters = {**(version.default_parameters or {}), **provided_parameters}
     parameter_errors = validate_parameter_values(version.parameter_schema, parameters)
     if parameter_errors:
-        raise HTTPException(status_code=422, detail={"code": "parameter_validation_failed", "errors": parameter_errors})
+        raise HTTPException(
+            status_code=422,
+            detail={"code": "parameter_validation_failed", "errors": parameter_errors},
+        )
     run_config["parameters"] = parameters
     dataset_manifest = await _materialize_declared_dataset(
         db, body.dataset_manifest, run_config, lookback=version.lookback
@@ -542,8 +592,17 @@ async def get_batch_results(
     if run is None:
         raise HTTPException(status_code=404, detail="Research run not found")
     collect_research_result(run)
-    version = (await db.execute(select(CodeVersion).where(CodeVersion.id == run.code_version_id))).scalar_one()
-    artifact = next((item for item in run.artifacts if item.artifact_type == "batch" and item.name == "batch_cells"), None)
+    version = (
+        await db.execute(select(CodeVersion).where(CodeVersion.id == run.code_version_id))
+    ).scalar_one()
+    artifact = next(
+        (
+            item
+            for item in run.artifacts
+            if item.artifact_type == "batch" and item.name == "batch_cells"
+        ),
+        None,
+    )
     payload = artifact.payload.get("value", {}) if artifact else {}
     cells = payload.get("cells", []) if isinstance(payload, dict) else []
     await db.flush()
@@ -570,9 +629,9 @@ async def rerun(
     """Queue a new immutable run using an exact snapshot or newly materialized local data."""
     source = (
         await db.execute(
-            select(ResearchRun).options(selectinload(ResearchRun.code_version)).where(
-                ResearchRun.id == run_id, ResearchRun.user_id == current_user.id
-            )
+            select(ResearchRun)
+            .options(selectinload(ResearchRun.code_version))
+            .where(ResearchRun.id == run_id, ResearchRun.user_id == current_user.id)
         )
     ).scalar_one_or_none()
     if source is None:
@@ -580,7 +639,12 @@ async def rerun(
     manifest = (
         dict(source.dataset_manifest)
         if snapshot
-        else await _materialize_declared_dataset(db, {}, dict(source.run_config), lookback=source.code_version.lookback if source.code_version else None)
+        else await _materialize_declared_dataset(
+            db,
+            {},
+            dict(source.run_config),
+            lookback=source.code_version.lookback if source.code_version else None,
+        )
     )
     run = ResearchRun(
         user_id=current_user.id,
