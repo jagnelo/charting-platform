@@ -17,6 +17,8 @@
   linking, and promotion remain mandatory implementation work.
 - Documentation commit: `03032dae` (`docs(breadth): expand predicate quantification contract`)
   is clean locally; the exact push is still a transport-only follow-up.
+- Exact elevated push for the accumulated 235-commit range was attempted once and rejected before
+  Git by the private-origin safeguard. No workaround or repeat was used; transport-only.
 
 ## 2026-08-14 — Recursive breadth composition implementation checkpoint
 

@@ -20,6 +20,10 @@
 - Documentation commit `03032dae` (`docs(breadth): expand predicate quantification contract`) is
   clean locally. The exact push remains a separate transport action; no product work is being
   carried uncommitted.
+- The exact elevated push for the accumulated 235-commit range was attempted once and rejected
+  before Git by the private-origin safeguard because trusted authorization for this private
+  payload/destination is unavailable. No workaround, alternate transport, or repeat was used;
+  this is transport-only and does not block the implementation goal.
 - Next context remains `generic-breadth-python-condition-and-promotion-20260814`: implement safe
   arbitrary Python predicate references, visual tree editing, historical occurrence linking, and
   promotion/reuse contracts. Do not treat this requirements expansion as completed functionality.
