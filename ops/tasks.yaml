@@ -1,4 +1,33 @@
 tasks:
+  - id: tc2000-unified-python-sdk-autocomplete-20260814
+    title: Expand unified Python SDK autocomplete across supported namespaces
+    status: completed
+    priority: medium
+    scope: >-
+      Make the one Python-native market-analysis language discoverable across the currently
+      supported market, ta, stats, research, and output SDK methods while preserving the native
+      textarea/listbox/active-descendant contract and the existing editor interaction model.
+    definition_of_done:
+      - Catalog contains every currently documented supported SDK namespace surface
+      - Prefix filtering, keyboard selection, insertion, and live announcements remain correct
+      - Focused component and adjacent authenticated Study Lab/Python browser coverage pass
+      - Full frontend tests, type-check, and production build pass
+      - No visual threshold, mask, product criterion, or acceptance flexibility changes
+    validation:
+      - python-source-editor-5-of-5
+      - focused-F8g-editor-a11y-1-of-1
+      - adjacent-study-python-results-12-of-12
+      - frontend-vitest-818-of-818
+      - frontend-coverage-80.89-percent-statements
+      - make-test-fe-uplot-and-visual-policy
+      - frontend-type-check-and-production-build
+      - git-diff-check
+    notes:
+      - >-
+        Context is repository-controlled UI discoverability work; unsupported ta.atr and
+        stats.percentile suggestions were removed. Exact Study Lab V25 visual evidence remains
+        REF-STUDY-LAB-V25. The first browser launch failed before execution at the known Mach-port
+        boundary and passed through the approved elevated boundary; no flexibility changed.
   - id: tc2000-python-editor-live-status-20260814
     title: Announce unified Python editor suggestions without changing textbox semantics
     status: completed

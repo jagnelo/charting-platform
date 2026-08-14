@@ -1,5 +1,27 @@
 # Active Handoff
 
+## 2026-08-14 — Unified Python SDK autocomplete expansion
+
+- Context owner: Codex. Owned paths are `frontend/src/components/workstation/PythonSourceEditor.vue`,
+  `frontend/tests/unit/components/test_python_source_editor.test.ts`, and the corresponding
+  `docs/project-todos.md`, `docs/tc2000-parity.md`, `ops/*` checkpoint records.
+- Intent: make the single Python language discoverable across the complete currently supported
+  `market`, `ta`, `stats`, `research`, and `output` SDK namespaces without changing the native
+  textarea/listbox/active-descendant contract or inventing a second language.
+- Completed: the catalog now matches the supported isolated runtime, including the full prepared
+  `market`/`benchmark_*` surface, `ta`, `stats`, `research`, and typed `output` methods. Invalid
+  `ta.atr` and `stats.percentile` suggestions were removed.
+- Validation: component `5/5`; focused authenticated `F8g-editor-a11y` `1/1`; adjacent Study
+  Lab/Python/Results `12/12`; full frontend `818/818` at `80.89%` statements; `make test-fe`,
+  type-check, and production build pass. The first browser launch failed before execution at the
+  known Mach-port boundary and the same slice passed through the approved elevated boundary.
+- Implementation/docs are committed locally as `71a2c2638fe1c8199504383d22e174f798c6e3ac`.
+- Operational files are the only remaining dirty paths and will be committed as the separate
+  checkpoint before the one exact clean-range push attempt.
+- No visual threshold, mask, product criterion, or acceptance flexibility changed. `REF-STUDY-
+  LAB-V25` and the broader provider, historical/GICS, native-monitor, endurance, and final-audit
+  gaps remain open. Next action is isolated commit closure, then continue independent goal work.
+
 ## 2026-08-14 — Python editor changeset Git closure
 
 - Implementation/docs changeset is committed locally as `9a6cad4c2288786a1126f51cbc3f120bd70a654b`.

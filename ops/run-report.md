@@ -1,5 +1,17 @@
 # Run Report
 
+## 2026-08-14 — Unified Python SDK autocomplete expansion
+
+- Corrected the unified editor catalog to match the supported isolated runtime and added the full
+  prepared market/benchmark, TA, stats, research, and typed output completion surface. Removed
+  misleading unsupported `ta.atr` and `stats.percentile` entries.
+- Validation: unit `5/5`, focused authenticated editor `1/1`, adjacent Study Lab/Python/Results
+  `12/12`, frontend `818/818` at `80.89%` statements, `make test-fe`, type-check, and build.
+- Browser launch flexibility was environmental only (unprivileged Mach-port failure retried via
+  approved elevated boundary). No acceptance criterion or visual policy changed; external gaps
+  remain tracked.
+- Implementation/docs commit: `71a2c263`; operational checkpoint follows separately.
+
 ## 2026-08-14 — Python editor changeset Git closure
 
 - Implementation/docs commit `9a6cad4c` is clean locally after elevated index recovery.
