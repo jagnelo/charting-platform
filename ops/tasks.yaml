@@ -1,4 +1,30 @@
 tasks:
+  - id: tc2000-numeric-plot-series-validation-20260814
+    title: Validate Python and EasyScan numeric plot series
+    status: completed
+    priority: high
+    scope: >-
+      Apply one pre-uPlot validation contract to Python research plot artifacts and retained
+      EasyScan plot points so malformed timestamps and non-finite numeric values cannot reach the
+      workstation chart.
+    definition_of_done:
+      - Both series sources require aligned parseable timestamps
+      - Finite values and explicit null gaps are preserved
+      - Malformed values become gaps and all-missing series are rejected
+      - Focused, full frontend, type/build, uPlot, and diff checks pass
+      - No visual or acceptance criterion is silently relaxed
+    validation:
+      - numeric-series-3-of-3
+      - frontend-vitest-804-of-804
+      - frontend-type-check-build
+      - uplot-contract-45-files
+      - git-diff-check
+    notes:
+      - >-
+        Implementation `c445078b` adds the shared numeric-series validator and wires it into
+        WorkstationToolContent. Acceptance flexibility used: none. Exact/unrepresented V25,
+        provider/entitlement, historical/GICS, native-monitor, endurance, Docker, and final-audit
+        gaps remain open.
   - id: tc2000-chart-store-ohlc-validation-20260814
     title: Reject malformed OHLC bars before the primary uPlot path
     status: completed

@@ -1,5 +1,14 @@
 # Run Report
 
+## 2026-08-14 — Unified numeric plot-series validation context
+
+- Python research artifacts and retained EasyScan plot points now use a shared validator before
+  chart rendering, preventing malformed timestamps and non-finite values from reaching uPlot.
+- Focused numeric-series tests `3/3`; full frontend Vitest `804/804`; type-check; 476-module
+  production build; uPlot contract (`45` files); and diff-check pass. Implementation: `c445078b`.
+- Acceptance flexibility used: **none**; exact/unrepresented V25, provider/entitlement,
+  historical/GICS, native-monitor, endurance, Docker, and final-audit gaps remain explicit.
+
 ## 2026-08-14 — Canonical chart-store OHLC validation context
 
 - The shared chart store now excludes malformed OHLC rows and strips non-finite optional volume/

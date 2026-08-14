@@ -1,5 +1,18 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-14 — Unified numeric plot-series validation
+
+- Python research plot artifacts and retained EasyScan plot points now share one validation
+  boundary before reaching chart rendering. The boundary requires aligned parseable timestamps,
+  preserves finite values and explicit null gaps, converts malformed numeric points to gaps, and
+  rejects all-missing or malformed series.
+- Focused numeric-series coverage passes `3/3`; full frontend Vitest passes `804/804`; type-check,
+  the 476-module production build, uPlot contract (`45` files), and `git diff --check` pass.
+  Implementation: `c445078b`.
+- No acceptance flexibility, visual threshold, mask, provider substitution, or renderer rule was
+  used. Exact/unrepresented V25 Study Lab states, provider/entitlement, historical/GICS,
+  native-monitor, endurance, Docker, and final-audit gaps remain explicit.
+
 ## 2026-08-14 — Canonical chart store rejects malformed OHLC bars
 
 - The shared chart store now validates open, high, low, and close values before publishing bars

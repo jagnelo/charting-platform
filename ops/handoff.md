@@ -1,5 +1,18 @@
 # Active Handoff
 
+## 2026-08-14 — Unified numeric plot-series validation context completed
+
+- Implementation `c445078b` adds one shared validator for Python research and retained EasyScan
+  chart series. It requires aligned parseable timestamps, preserves finite values/null gaps,
+  converts malformed numeric points to gaps, and rejects all-missing output before uPlot.
+- Focused numeric-series tests pass `3/3`; full frontend Vitest `804/804`; type-check; 476-module
+  production build; uPlot contract (`45` files); and `git diff --check` pass.
+- Acceptance flexibility used: **none**. No visual threshold, board authority, mask, provider
+  rule, or renderer exception changed. Exact/unrepresented V25, provider/entitlement,
+  historical/GICS, native-monitor, endurance, Docker, and final-audit gaps remain tracked.
+- This implementation context is closed as a clean local commit. Remote synchronization remains a
+  transport-only concern and must not block the next context.
+
 ## 2026-08-14 — Canonical chart-store OHLC validation context completed
 
 - Implementation `b1419b52` hardens the shared chart store: non-finite OHLC rows are excluded
