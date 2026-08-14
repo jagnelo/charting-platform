@@ -1,5 +1,12 @@
 # Run Report
 
+## 2026-08-14 — Study Lab artifact export browser checkpoint
+
+- Rebuilt authenticated Chromium `F8p-export` passed `1/1` in 4.9s, downloaded the active
+  `completed_streaks` artifact with the expected run-scoped JSON filename, and emitted no critical
+  browser diagnostics. Acceptance flexibility used: none.
+- Implementation/docs commit: `06ae5236`; operational checkpoint follows separately.
+
 ## 2026-08-14 — Study Lab artifact export transport result
 
 - Implementation/docs `b0ecea52` and operational checkpoint `163a0191` are clean locally.

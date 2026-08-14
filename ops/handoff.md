@@ -1,5 +1,16 @@
 # Active Handoff
 
+## 2026-08-14 — Study Lab artifact export browser checkpoint (completed)
+
+- Added authenticated `F8p-export` coverage for the active Study Lab Export control. Against the
+  rebuilt branch stack, Chromium downloaded `study-run-<id>-completed_streaks.json`; the flow
+  passed `1/1` in 4.9s with no critical diagnostics.
+- Acceptance flexibility used: none. This is functional evidence only; `REF-STUDY-LAB-V25` and
+  broader documented gaps remain open.
+- Implementation/docs commit: `06ae5236` (`test(study-lab): verify artifact export in browser`).
+  The product worktree is clean; the operational checkpoint remains separate.
+- Git transport remains operational only and must not block continuation.
+
 ## 2026-08-14 — Study Lab artifact export transport record
 
 - Implementation/docs `b0ecea52` and operational checkpoint `163a0191` are clean local commits.
