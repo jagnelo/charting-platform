@@ -1,5 +1,17 @@
 # Run Report
 
+## 2026-08-14 — Git transport rule documentation checkpoint
+
+- Added an explicit user-facing rule to `docs/agent-orchestration.md`: a
+  private-origin egress rejection is transport-only, never a product-goal
+  blocker, and the worker remains responsible for ordinary Git operations.
+- Documentation commit `0b0e937b` is clean locally. The exact elevated
+  `rtk git push origin HEAD:feat/tc2000-frontend-rework` for
+  `91463e54..0b0e937b` was attempted once and rejected before Git because
+  trusted authorization for the private destination/payload was unavailable.
+- No workaround or repeated same-payload attempt was made; the goal continues
+  from the clean local commit boundary.
+
 ## 2026-08-14 — Blocked issuer native-boundary regression
 
 - Added the all-blocked-issuer regression contract and corrected the Anfield class-name edge case;

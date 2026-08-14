@@ -1,5 +1,21 @@
 # Active Handoff
 
+## 2026-08-14 — Git transport rule documentation checkpoint
+
+- Repository/index health is confirmed: no `.git/index.lock`, normal metadata
+  writability, and a clean worktree. The workflow now explicitly requires the
+  worker to own ordinary staging/commit/push recovery and to describe a
+  private-origin egress rejection as transport-only rather than a goal block.
+- The documentation change is committed locally as `0b0e937b`.
+- The exact elevated command `rtk git push origin HEAD:feat/tc2000-frontend-rework`
+  for range `91463e54..0b0e937b` was attempted once and rejected before Git by
+  the private-origin egress safeguard because trusted authorization for this
+  private payload and destination was unavailable. No alternate transport,
+  wrapper, rewrite, reset, stash, or repeat was used.
+- This is a transport hold only. The TC2000 goal continues from the clean local
+  boundary; retry only when the execution environment presents newly accepted
+  authorization for this exact payload.
+
 ## 2026-08-14 — Blocked issuer native-boundary regression
 
 - The generalized guard now covers every current `issuer_access_blocked` identity, requiring
