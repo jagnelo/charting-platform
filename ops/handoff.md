@@ -12,7 +12,9 @@
   `835/835`, type/build, Ruff/compile, diff-check, rebuilt family Chromium `1/1`, and generic
   rotation Chromium `1/1`. A fixture as-of boundary and an accessibility-label mismatch were
   repaired before authoritative reruns; no acceptance flexibility used.
-- Implementation is ready for checkpoint. Next context: longer rotation history, concentration/
+- Implementation/docs commit: `1645def0 feat(analysis): add benchmark family rotation` (clean
+  locally). Exact elevated push was attempted once and rejected before Git by the private-origin
+  safeguard; no workaround or repeat. Next context: longer rotation history, concentration/
   dispersion, and complete evidence population across all eight roots.
 
 ## 2026-08-14 — Historical cross-family ranking checkpoint
