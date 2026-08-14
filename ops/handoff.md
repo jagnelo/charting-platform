@@ -1,5 +1,19 @@
 # Active Handoff
 
+## 2026-08-14 — QQQE/Direxion route evidence
+
+- Added canonical `QQQE` metadata selecting the explicit Direxion holdings adapter and official
+  product page. The adapter's symbol-scoped public CSV route is now exercised by a dedicated
+  opt-in live test; the probe parsed at least 80 holdings rows and preserved composition/source
+  metadata.
+- Deterministic taxonomy/adapter tests pass, relevant unit coverage is `501/501`, and focused
+  Ruff, compile, and diff checks pass. The first live invocation's nonzero result was only the
+  repository coverage threshold on a one-test run; rerunning with `--no-cov` passed. No product
+  or acceptance flexibility was used.
+- Remaining: historical rebalance continuity, point-in-time membership, canonical QQQE bars,
+  and populated browser QQQ/QQQE cap/equal acceptance. Official source reference:
+  `https://www.direxion.com/product/nasdaq-100-equal-weighted-index-etf`.
+
 ## 2026-08-14 — Expanded US index-family vision documentation
 
 - Reaffirmed the active product scope as an eight-family matrix: S&P 500/400/600/1500,

@@ -1,5 +1,16 @@
 # Run Report
 
+## 2026-08-14 — QQQE/Direxion route evidence
+
+- Added `QQQE` canonical route metadata for the explicit Direxion adapter and official product
+  page, plus a regression for the exact generated holdings URL.
+- The opt-in live QQQE probe passed after rerunning with `--no-cov`; it parsed the public
+  symbol-scoped export. The initial one-test invocation also passed the test but exited on the
+  repository-wide coverage threshold, which is recorded as invocation scope only.
+- Relevant unit tests passed `501/501`; Ruff, Python compilation, and `git diff --check` passed.
+  No acceptance flexibility was used. Historical membership/rebalance, bars, and browser
+  QQQ/QQQE acceptance remain open.
+
 ## 2026-08-14 — Expanded US index-family vision documentation
 
 - Recorded the requested eight-family US analysis scope in the controlling product, parity, and
