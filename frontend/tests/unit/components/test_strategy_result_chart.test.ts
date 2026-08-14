@@ -181,4 +181,36 @@ describe('StrategyResultChart', () => {
     const values = instances[0].opts.axes[1].values(null, [0, 2, 2.4])
     expect(values).toEqual(['0', '2', '2'])
   })
+
+  it('does not create a numerical chart when every runtime value is malformed', async () => {
+    const wrapper = mount(StrategyResultChart, {
+      props: {
+        label: 'Malformed result',
+        series: [{ label: 'Strategy', color: '#64b5f6', points: [
+          { ts: '2026-01-01T00:00:00Z', value: Number.NaN },
+          { ts: '2026-01-02T00:00:00Z', value: Number.POSITIVE_INFINITY },
+        ] }],
+      },
+    })
+    await nextTick()
+
+    expect(instances).toHaveLength(0)
+    expect(wrapper.text()).toContain('No chart data available.')
+  })
+
+  it('preserves explicit null values as gaps instead of coercing them to zero', async () => {
+    mount(StrategyResultChart, {
+      props: {
+        label: 'Partial result',
+        series: [{ label: 'Strategy', color: '#64b5f6', points: [
+          { ts: '2026-01-01T00:00:00Z', value: null as unknown as number },
+          { ts: '2026-01-02T00:00:00Z', value: 2 },
+        ] }],
+      },
+    })
+    await nextTick()
+
+    expect(instances).toHaveLength(1)
+    expect(instances[0].data[1]).toEqual([null, 2])
+  })
 })

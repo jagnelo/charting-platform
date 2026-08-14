@@ -5,7 +5,7 @@
     :class="{ 'result-chart--hovering': !!tooltip }"
     @mouseleave="clearHover"
   >
-    <div v-if="!series.length || !timeline.length" class="result-chart__empty">
+    <div v-if="!hasValidData" class="result-chart__empty">
       {{ emptyLabel }}
     </div>
     <template v-else>
@@ -164,6 +164,13 @@ const timeExtent = computed(() => {
   const max = timeline.value[timeline.value.length - 1].value
   return { min, max: max === min ? min + 1 : max }
 })
+const hasValidData = computed(() => (
+  props.series.length > 0
+  && timeline.value.length > 0
+  && props.series.some(series => series.points.some(point => (
+    typeof point.value === 'number' && Number.isFinite(point.value)
+  )))
+))
 const availableRangeOptions = computed(() => RANGE_OPTIONS)
 const activeRangeOption = computed(() => (
   availableRangeOptions.value.find(option => option.key === selectedRangeKey.value)
@@ -209,8 +216,8 @@ const chartData = computed<uPlot.AlignedData>(() => {
   const values = props.series.map((series, seriesIndex) => {
     const map = pointMaps.value[seriesIndex]
     return timeline.value.map(item => {
-      const value = Number(map.get(item.ts)?.value)
-      return Number.isFinite(value) ? value : null
+      const value = map.get(item.ts)?.value
+      return typeof value === 'number' && Number.isFinite(value) ? value : null
     })
   })
   return [x, ...values] as uPlot.AlignedData
@@ -363,7 +370,7 @@ function destroyChart() {
 
 function refreshChart() {
   clearHover()
-  if (!timeline.value.length) {
+  if (!hasValidData.value) {
     destroyChart()
     return
   }
