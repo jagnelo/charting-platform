@@ -23,6 +23,13 @@
   before Git by the private-origin safeguard. No alternate transport or repeat was used;
   transport-only and not a product blocker.
 
+## 2026-08-14 — Recursive breadth ops transport result
+
+- Operational checkpoint `236d89c3` is clean locally.
+- The exact push for the accumulated 233-commit range was attempted once and rejected before Git
+  by the private-origin safeguard. No alternate transport or repeat was used; transport-only and
+  not a product blocker.
+
 ## 2026-08-14 — Generic breadth implementation/docs transport result
 
 - Historical generic breadth, isolated Python/Study Lab integration, dedicated uPlot history, and
