@@ -9808,3 +9808,35 @@ tasks:
         Implemented and validated without acceptance flexibility. Remaining provider-backed
         historical holdings/weights, family breadth/rotation/ranking/dispersion, constituent
         drill-down, exact/unrepresented V25 visual states, and final-audit gaps remain open.
+
+  - id: tc2000-family-dated-asof-workstation-20260814
+    title: Propagate disclosed benchmark-family composition dates through workstation analysis
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Turn independent dated holdings coverage into a selectable point-in-time input for family
+      overview, role constituents, all-leg ratios, and configurable breadth current/history views.
+      Keep latest and historical results distinct in the client cache and preserve unavailable-role
+      semantics without fallback.
+    definition_of_done:
+      - Coverage exposes role-specific snapshot dates and independent unavailable states
+      - The family As-of selector is derived only from disclosed composition dates
+      - Selected as_of is carried through overview, coverage, constituents, ratios, and breadth
+      - Ratio cache identity includes as_of and cannot reuse latest results for historical requests
+      - Store, full frontend, type/build, and rebuilt authenticated browser checks pass
+      - Remaining historical population and all-family analytics gaps are documented, not hidden
+    validation:
+      - workspace-store-57-of-57
+      - frontend-vitest-828-of-828
+      - frontend-typecheck-build
+      - rebuilt-F8s-breadth-family-ratio-1-of-1
+      - git-diff-check
+    notes:
+      - >-
+        The first unchanged browser rerun exposed a real missing as_of suffix in the family-ratio
+        cache key; the store/component key was repaired, a focused regression was added, and the
+        unchanged authenticated acceptance then passed 1/1. No product acceptance rule was relaxed.
+        Historical snapshot/bar population, rebalance continuity, complete eight-family analytics,
+        and final V25 visual gaps remain open. The initial unprivileged browser Mach-port failure
+        was an environment-only boundary and was validated through the required elevated rerun.

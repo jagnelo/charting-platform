@@ -327,6 +327,18 @@ per-member pass/fail, denominator/coverage, exact exclusions, provenance, and cu
 historical semantics. A fixed metric route or selector that cannot express the target relationship
 does not satisfy this gate, even if its aggregate percentage is numerically correct.
 
+#### Dated family analysis sub-gate
+
+When a benchmark family has disclosed holdings snapshots, the workstation must offer those
+composition dates as selectable `as_of` values. The chosen date must be carried consistently by
+family overview, role constituents, ratio comparisons, and breadth current/history calculations;
+the client must keep latest and historical results in distinct cache entries. Snapshot dates are
+role-specific and may be unavailable, so the UI must preserve independent status and show no
+verified date rather than borrowing SPY, QQQ, or another family's date. This sub-gate is covered
+by store `57/57`, full frontend `828/828`, type/build, and authenticated browser `1/1` evidence.
+It does not waive the remaining requirement to populate and validate historical evidence for all
+eight family roots and their evidenced style legs.
+
 Implementation checkpoint 3 (2026-08-14): nested composition and scalar comparisons are now
 implemented in both the canonical API evaluator and isolated Python runner. Focused service/runner
 coverage passes `93/93`, generic API/history integration passes `2/2`, and the workstation exposes

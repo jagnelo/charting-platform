@@ -3245,6 +3245,7 @@ test.describe('TC2000 workstation', () => {
 
   test('F8s-breadth-family-ratio — family breadth exposes role-aware cap and market relative strength', async ({ page, browserDiagnostics }) => {
     const customBreadthRequests: Array<Record<string, unknown>> = []
+    const familyAsOfRequests: string[] = []
     await page.route('**/api/v1/analysis/breadth', async route => {
       if (route.request().method() === 'POST') customBreadthRequests.push(JSON.parse(route.request().postData() ?? '{}') as Record<string, unknown>)
       await route.fulfill({
@@ -3295,6 +3296,7 @@ test.describe('TC2000 workstation', () => {
       })
     })
     await page.route('**/api/v1/analysis/benchmark-families/sp500/overview*', async route => {
+      familyAsOfRequests.push(route.request().url())
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -3321,6 +3323,7 @@ test.describe('TC2000 workstation', () => {
       })
     })
     await page.route('**/api/v1/analysis/benchmark-families/sp500/coverage*', async route => {
+      familyAsOfRequests.push(route.request().url())
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -3381,6 +3384,11 @@ test.describe('TC2000 workstation', () => {
     await expect(familyOverview).toContainText('NVDA')
     await expect(familyOverview).toContainText('Dated holdings coverage')
     await expect(familyOverview).toContainText('Cap weight SPY · available · 1 date')
+    const familyAsOf = familyOverview.getByRole('combobox', { name: 'Family analysis as of' })
+    await expect(familyAsOf).toHaveValue('')
+    await familyAsOf.selectOption('2026-06-27T23:59:59Z')
+    await expect(familyAsOf).toHaveValue('2026-06-27T23:59:59Z')
+    await expect.poll(() => familyAsOfRequests.filter(url => url.includes('as_of=')).length, { timeout: 10_000 }).toBeGreaterThan(0)
     const customUniverse = breadth.locator('select[aria-label="Custom breadth universe"]')
     await expect(customUniverse.locator('option[value="benchmark_family"]')).toHaveCount(1)
     await customUniverse.selectOption('benchmark_family')

@@ -1307,7 +1307,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     if (!normalizedFamily) return null
     const requestedRoles = [...new Set(options.roles?.length ? options.roles : [role])]
     const roleKey = requestedRoles.join(',')
-    const cacheKey = `${normalizedFamily}:${roleKey}:${normalizedMarket}:${options.timeframe ?? 'D1'}:${options.adjusted !== false ? 'adj' : 'raw'}`
+    const cacheKey = `${normalizedFamily}:${roleKey}:${normalizedMarket}:${options.timeframe ?? 'D1'}:${options.adjusted !== false ? 'adj' : 'raw'}${options.as_of ? `:${options.as_of}` : ''}`
     const requestKey = `top-down:family-ratios:${cacheKey}`
     const generation = beginAnalysisRequest(requestKey)
     if (!documentIsVisible()) return null

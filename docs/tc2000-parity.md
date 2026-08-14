@@ -6794,3 +6794,17 @@ pass `2/2` and Ruff passes.
 This is routing readiness, not evidence that every route is currently populated or historically
 complete. Live issuer retrieval, point-in-time rebalance history, QQQE/First Trust verification,
 and browser-visible family holdings remain open. Acceptance flexibility used: **none**.
+
+## 2026-08-14 — Family as-of selection and cache identity
+
+The family breadth surface now exposes a dated `As of` selector derived from the independent
+cap/equal/value/growth holdings snapshots returned by `/analysis/benchmark-families/{family_key}/coverage`.
+The selected point-in-time is propagated to overview, coverage, constituent, ratio, and generic
+breadth current/history requests. This makes a disclosed composition date a real analysis input,
+not merely metadata displayed beside a latest snapshot.
+
+The client cache identity includes the selected `as_of`, preventing a historical result from being
+mistaken for the latest result. An unchanged authenticated browser acceptance run passed `1/1`
+after this regression was repaired; store coverage is `57/57`, full frontend Vitest is `828/828`,
+and type-check/build pass. Historical population, rebalance continuity, and complete all-family
+browser evidence remain open and are still explicit acceptance gaps.

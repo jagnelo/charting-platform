@@ -163,6 +163,22 @@ describe('workspace store layout tabs', () => {
     expect(store.benchmarkFamilyRatios['sp500:cap_weight,equal_weight,value,growth:SPY:D1:adj']).toBeTruthy()
   })
 
+  it('keeps an as-of family ratio in a distinct cache entry', async () => {
+    apiGet.mockResolvedValue({ family_key: 'sp500', official_index_symbol: 'SPX', ratios: [], exclusions: [] })
+    const store = useWorkspaceStore()
+
+    await store.loadBenchmarkFamilyRatios('sp500', 'equal_weight', 'SPY', {
+      as_of: '2026-06-27T23:59:59Z',
+    })
+
+    expect(apiGet).toHaveBeenCalledWith('/analysis/benchmark-families/sp500/ratios', {
+      role: 'equal_weight',
+      market_benchmark: 'SPY',
+      as_of: '2026-06-27T23:59:59Z',
+    })
+    expect(store.benchmarkFamilyRatios['sp500:equal_weight:SPY:D1:adj:2026-06-27T23:59:59Z']).toBeTruthy()
+  })
+
   it('loads a family overview with independent mapping readiness and stable lineage cache', async () => {
     apiGet.mockResolvedValue({
       family_key: 'sp500',

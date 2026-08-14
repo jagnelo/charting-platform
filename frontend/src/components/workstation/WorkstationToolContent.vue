@@ -525,6 +525,7 @@
         <div v-if="familyCoverage" class="breadth-tool__family-coverage" aria-label="Benchmark family historical coverage">
           <strong>Dated holdings coverage</strong>
           <span>{{ familyCoverage.coverage == null ? 'Unavailable' : `${(familyCoverage.coverage * 100).toFixed(0)}% of roles` }} · {{ familyCoverage.as_of ? `known at ${familyCoverage.as_of}` : 'latest available disclosures' }}</span>
+          <label>As of <select :value="familyAsOf" aria-label="Family analysis as of" @change="setBreadthConfiguration({ as_of: (($event.target as HTMLSelectElement).value || null) })"><option value="">Latest</option><option v-for="date in familyCoverageDates" :key="date" :value="familyAsOfValue(date)">{{ date }}</option></select></label>
           <div class="breadth-tool__family-coverage-roles">
             <span v-for="role in familyCoverage.roles" :key="role.role">
               <b>{{ familyRoleLabel(role.role) }}</b> {{ role.symbol ?? role.label }} · {{ role.status }} · {{ role.snapshots.length }} date{{ role.snapshots.length === 1 ? '' : 's' }}
@@ -1675,18 +1676,21 @@ const familyRatioMarket = computed(() => {
 })
 const familyRatioRoles = ['cap_weight', 'equal_weight', 'value', 'growth'] as const
 const familyRatioRoleKey = familyRatioRoles.join(',')
-const familyRatioKey = computed(() => `${breadthGroupKey.value}:${familyRatioRoleKey}:${familyRatioMarket.value}:${breadthTimeframe.value}:${breadthAdjusted.value ? 'adj' : 'raw'}`)
+const familyRatioKey = computed(() => `${breadthGroupKey.value}:${familyRatioRoleKey}:${familyRatioMarket.value}:${breadthTimeframe.value}:${breadthAdjusted.value ? 'adj' : 'raw'}${familyAsOf.value ? `:${familyAsOf.value}` : ''}`)
 const familyRatios = computed(() => workspaceStore.benchmarkFamilyRatios[familyRatioKey.value])
 const familyRatioError = computed(() => workspaceStore.benchmarkFamilyRatioErrors[familyRatioKey.value] ?? null)
 const familyRatioLoading = ref(false)
-const familyOverviewKey = computed(() => `${breadthGroupKey.value}:${breadthTimeframe.value}:${breadthAdjusted.value ? 'adj' : 'raw'}:latest`)
+const familyOverviewKey = computed(() => `${breadthGroupKey.value}:${breadthTimeframe.value}:${breadthAdjusted.value ? 'adj' : 'raw'}:${familyAsOf.value || 'latest'}`)
 const familyOverview = computed(() => workspaceStore.benchmarkFamilyOverviews[familyOverviewKey.value])
 const familyOverviewError = computed(() => workspaceStore.benchmarkFamilyOverviewErrors[familyOverviewKey.value] ?? null)
 const familyOverviewLoading = ref(false)
-const familyCoverageKey = computed(() => `${breadthGroupKey.value}:latest:256`)
+const familyAsOf = computed(() => typeof props.tool.configuration.as_of === 'string' ? props.tool.configuration.as_of : '')
+const familyCoverageKey = computed(() => `${breadthGroupKey.value}:${familyAsOf.value || 'latest'}:256`)
 const familyCoverage = computed(() => workspaceStore.benchmarkFamilyCoverages[familyCoverageKey.value])
 const familyCoverageError = computed(() => workspaceStore.benchmarkFamilyCoverageErrors[familyCoverageKey.value] ?? null)
-const familyConstituentKey = computed(() => `${breadthGroupKey.value}:${familyRatioRole.value}:${breadthTimeframe.value}:${breadthAdjusted.value ? 'adj' : 'raw'}:latest:${familyRatioMarket.value}`)
+const familyCoverageDates = computed(() => [...new Set((familyCoverage.value?.roles ?? []).flatMap(role => role.snapshots.map(snapshot => snapshot.composition_date)))].sort().reverse())
+function familyAsOfValue(date: string) { return `${date}T23:59:59Z` }
+const familyConstituentKey = computed(() => `${breadthGroupKey.value}:${familyRatioRole.value}:${breadthTimeframe.value}:${breadthAdjusted.value ? 'adj' : 'raw'}:${familyAsOf.value || 'latest'}:${familyRatioMarket.value}`)
 const familyConstituents = computed(() => workspaceStore.benchmarkFamilyConstituents[familyConstituentKey.value])
 const familyConstituentError = computed(() => workspaceStore.benchmarkFamilyConstituentErrors[familyConstituentKey.value] ?? null)
 function familyRoleLabel(role: 'cap_weight' | 'equal_weight' | 'value' | 'growth') {
@@ -1741,6 +1745,7 @@ const genericBreadthDefinition = computed(() => ({
     : primaryBreadthCondition(),
   timeframe: breadthTimeframe.value,
   adjusted: breadthAdjusted.value,
+  ...(familyAsOf.value ? { as_of: familyAsOf.value } : {}),
   benchmark: breadthBenchmark.value,
 }))
 const genericBreadthKey = computed(() => JSON.stringify(genericBreadthDefinition.value))
@@ -2476,7 +2481,7 @@ function setBreadthConfiguration(configuration: Record<string, unknown>) {
   emit('configuration', props.tool.instance_key, { ...props.tool.configuration, ...configuration })
 }
 async function loadBreadthUniverse(groupKey: string, timeframe = breadthTimeframe.value, adjusted = breadthAdjusted.value, lookback = breadthLookback.value) {
-  const options = { ...(timeframe !== 'D1' ? { timeframe } : {}), ...(adjusted !== true ? { adjusted } : {}), ...(lookback !== 20 ? { new_high_lookback: lookback } : {}) }
+  const options = { ...(timeframe !== 'D1' ? { timeframe } : {}), ...(adjusted !== true ? { adjusted } : {}), ...(lookback !== 20 ? { new_high_lookback: lookback } : {}), ...(familyAsOf.value ? { as_of: familyAsOf.value } : {}) }
   const registry = workspaceStore.marketGroups['us-benchmarks']?.provenance?.benchmark_families
   const familyRecord = Array.isArray(registry)
     ? registry.find(item => item && typeof item === 'object' && (item as Record<string, unknown>).logical_key === groupKey) as Record<string, unknown> | undefined
@@ -2493,26 +2498,26 @@ async function loadBreadthUniverse(groupKey: string, timeframe = breadthTimefram
     workspaceStore.loadBreadthHistory(groupKey, options),
   ])
 }
-watch([breadthGroupKey, breadthTimeframe, breadthAdjusted, breadthLookback], ([groupKey, timeframe, adjusted, lookback]) => {
+watch([breadthGroupKey, breadthTimeframe, breadthAdjusted, breadthLookback, familyAsOf], ([groupKey, timeframe, adjusted, lookback]) => {
   if (props.tool.instance_key === 'breadth-summary' || props.tool.tool_type === 'breadth') void loadBreadthUniverse(groupKey, timeframe, adjusted, lookback)
 }, { immediate: true })
-watch([breadthGroupKey, breadthTimeframe, breadthAdjusted, familyRatioMarket], async ([groupKey, timeframe, adjusted, market]) => {
+watch([breadthGroupKey, breadthTimeframe, breadthAdjusted, familyRatioMarket, familyAsOf], async ([groupKey, timeframe, adjusted, market]) => {
   if (!isBenchmarkFamily.value || !(props.tool.instance_key === 'breadth-summary' || props.tool.tool_type === 'breadth')) return
   familyRatioLoading.value = true
   try {
-    await workspaceStore.loadBenchmarkFamilyRatios(groupKey, familyRatioRole.value, market, { timeframe, adjusted, roles: [...familyRatioRoles] })
+    await workspaceStore.loadBenchmarkFamilyRatios(groupKey, familyRatioRole.value, market, { timeframe, adjusted, as_of: familyAsOf.value || undefined, roles: [...familyRatioRoles] })
   } finally {
     familyRatioLoading.value = false
   }
 }, { immediate: true })
-watch([breadthGroupKey, breadthTimeframe, breadthAdjusted, familyRatioRole, familyRatioMarket], async ([groupKey, timeframe, adjusted, role, market]) => {
+watch([breadthGroupKey, breadthTimeframe, breadthAdjusted, familyRatioRole, familyRatioMarket, familyAsOf], async ([groupKey, timeframe, adjusted, role, market]) => {
   if (!isBenchmarkFamily.value || !(props.tool.instance_key === 'breadth-summary' || props.tool.tool_type === 'breadth')) return
   familyOverviewLoading.value = true
   try {
     await Promise.all([
-      workspaceStore.loadBenchmarkFamilyOverview(groupKey, { timeframe, adjusted }),
-      workspaceStore.loadBenchmarkFamilyCoverage(groupKey),
-      workspaceStore.loadBenchmarkFamilyConstituents(groupKey, role, { timeframe, adjusted, market_benchmark: market }),
+      workspaceStore.loadBenchmarkFamilyOverview(groupKey, { timeframe, adjusted, as_of: familyAsOf.value || undefined }),
+      workspaceStore.loadBenchmarkFamilyCoverage(groupKey, { as_of: familyAsOf.value || undefined }),
+      workspaceStore.loadBenchmarkFamilyConstituents(groupKey, role, { timeframe, adjusted, as_of: familyAsOf.value || undefined, market_benchmark: market }),
     ])
   } finally {
     familyOverviewLoading.value = false

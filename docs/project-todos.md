@@ -12348,3 +12348,21 @@ The current source also passes the focused authenticated top-down browser slice 
 - [ ] This closes routing readiness only. Live issuer retrieval, complete holdings ingestion,
       point-in-time rebalance history, QQQE/First Trust route verification, and browser population
       remain open. Acceptance flexibility used: **none**.
+
+### 2026-08-14 — Benchmark-family dated as-of workstation selection
+
+- [x] Added the read-only dated holdings coverage contract and surfaced independent cap/equal/value/
+      growth snapshot dates in the family breadth panel. The selector is driven only by disclosed
+      composition dates, never by an invented schedule or another family's dates.
+- [x] Selecting a disclosed date now propagates the same `as_of` through family overview, coverage,
+      role constituents, all-leg ratios, and configurable breadth current/history requests. The
+      family ratio cache identity includes `as_of`; a browser rerun caught the missing suffix in the
+      ratio cache key, which was repaired before the unchanged authoritative rerun passed.
+- [x] Regression evidence: workspace-store coverage passes `57/57`; full frontend Vitest passes
+      `828/828`; `vue-tsc`, production build, `git diff --check`, and rebuilt-stack authenticated
+      `F8s-breadth-family-ratio` Chromium pass `1/1`. No product acceptance rule was relaxed. The
+      initial unprivileged browser launch remains an environment-only Mach-port permission boundary.
+- [ ] Still open: populate historical snapshots and canonical bars for every S&P 500/400/600/1500,
+      Russell 1000/2000/3000, and Nasdaq 100 role; preserve rebalance continuity; and complete
+      family-wide breadth/rotation/ranking/dispersion and browser acceptance. Until those inputs
+      exist, missing dates and unavailable roles must remain visible rather than being synthesized.
