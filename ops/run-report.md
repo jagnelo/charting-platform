@@ -14,6 +14,9 @@
   cannot close the new task.
 - Acceptance flexibility used: none. No visual threshold, mask, provider rule, or existing
   acceptance criterion was relaxed. The expanded generic breadth task remains in progress.
+- Documentation commit `65540676` is clean locally. The exact push was attempted once and
+  rejected before Git by the private-origin egress safeguard; no alternate transport or repeat
+  was used. This remains transport-only and does not block the product goal.
 
 ## 2026-08-14 — Study Lab board-guided visual revalidation
 

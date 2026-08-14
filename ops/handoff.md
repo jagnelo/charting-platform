@@ -17,6 +17,9 @@
   condition evaluation, and representative browser acceptance remain open.
 - Acceptance flexibility used: none. No visual threshold, mask, provider rule, or existing
   acceptance criterion was relaxed.
+- Documentation commit: `65540676` (`docs(breadth): broaden plan to condition-driven studies`).
+  The exact push was attempted once and rejected before Git by the private-origin egress
+  safeguard; transport-only, with no workaround or repeat.
 - Next context: implement the versioned breadth-definition schema/API, canonical universe
   resolution, unified-Python/research helper, generic UI, independent uPlot pane, promotion
   paths, and focused/integration/browser/end-to-end acceptance for both representative cases.
