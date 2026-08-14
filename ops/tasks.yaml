@@ -31,6 +31,7 @@ tasks:
       - First browser runs exposed missing aggregate timestamp and symbol materializer fields; both were corrected and the rebuilt focused flow passed without changing acceptance rules.
       - Acceptance flexibility used: none.
       - Implementation/docs commit: e0a5a305; operational checkpoint follows separately.
+      - Operational checkpoint: 3201a5d2. Exact push 91463e54..3201a5d2 was rejected before Git by the private-origin egress safeguard; transport-only, no workaround or repeat.
   - id: tc2000-study-lab-90-90-breadth-factory-20260814
     title: Add transparent 90/90-style breadth Study Lab factory study
     status: completed

@@ -33,8 +33,15 @@
   acceptance rule changed.
 - Implementation/docs commit: `e0a5a305` (`feat(study-lab): add historical 90/90 breadth series`).
   The implementation boundary is clean; only this operational checkpoint remains unstaged.
-- Next action: commit this operational record separately, attempt the exact push once, record the
-  transport result, verify the local worktree, and continue the overall goal.
+- Operational checkpoint: `3201a5d2` (`chore(ops): close historical 90/90 breadth context`). The
+  worktree is clean locally. The exact elevated push for `91463e54..3201a5d2` to
+  `origin/feat/tc2000-frontend-rework` was attempted once and rejected before Git by the private-
+  origin egress safeguard because trusted authorization for that exact payload and destination was
+  unavailable. `.git/index.lock` is absent and repository metadata is healthy. No alternate
+  transport, wrapper, rewrite, reset, stash, force push, or repeat is permitted; this remains
+  transport-only and the goal continues from the clean local boundary.
+- Next action: continue the next independent workstation/backend gap. Retry this exact push only
+  if the environment grants trusted authorization for the same payload and destination.
 
 ## 2026-08-14 — Study Lab 90/90 breadth factory context (completed)
 

@@ -22,6 +22,15 @@
   once after closure and any private-origin rejection is recorded as transport-only.
 - Implementation/docs commit: `e0a5a305`; operational checkpoint follows separately.
 
+## 2026-08-14 — Historical 90/90 breadth Git transport result
+
+- Implementation/docs commit `e0a5a305` and operational checkpoint `3201a5d2` are clean locally.
+- The exact elevated push for `91463e54..3201a5d2` to the branch origin was attempted once and
+  rejected before Git by the private-origin egress safeguard. `.git/index.lock` is absent; no
+  alternate transport, wrapper, rewrite, reset, stash, force push, or repeat was used.
+- This is transport-only and does not block the TC2000 goal. Continue from the clean local boundary;
+  retry only when trusted authorization exists for the same exact payload and destination.
+
 ## 2026-08-14 — Study Lab SDK reference alignment
 
 - Aligned the visible Study Lab SDK reference with the executable isolated-runtime contract and
