@@ -14,6 +14,10 @@
 - No acceptance flexibility used. Open: provider-backed historical holdings/weights, family-wide
   breadth/rotation/ranking/dispersion, constituent drill-down, exact/unrepresented V25 states,
   and final audit.
+- Git: implementation `70ed0156` and operational checkpoint `4e86e3f6` are clean locally. The exact
+  elevated push `rtk git push origin HEAD:feat/tc2000-frontend-rework` was rejected before Git by
+  the private-origin safeguard; origin remains `91463e54`. No workaround, alternate transport,
+  rewrite, reset, stash, or repeat was attempted.
 
 ## 2026-08-14 — Family-ratio workstation integration
 
