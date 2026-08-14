@@ -28441,3 +28441,12 @@ indefinite soak; longer endurance remains an explicit open gap.
 - Next context: provider-backed family mappings and point-in-time holdings/weight evidence, then
   family-wide breadth/rotation/ranking/dispersion and populated browser drill-down. Exact or
   unrepresented V25 visual states, native multi-monitor, endurance, and final audit remain open.
+
+## 2026-08-14 — Family-breadth push transport
+
+- Clean local implementation/docs commit `1a9dad87` and operational checkpoint `d46ccd46` are
+  present; worktree is clean.
+- The exact elevated `rtk git push origin HEAD:feat/tc2000-frontend-rework` was attempted once and
+  rejected before Git by the private-origin safeguard because trusted authorization for the exact
+  private payload/destination was unavailable. No wrapper, alternate transport, rewrite, reset,
+  stash, or repeated attempt was used. This is transport-only and not a product-goal blocker.

@@ -27032,3 +27032,11 @@ in 4.6 minutes. No failure was suppressed or reclassified as product success.
 - Clean implementation/docs commit: `1a9dad87`; exact push remains transport-pending under the
   private-origin safeguard. Remaining family provider/history/weights, full breadth/rotation/
   ranking/dispersion, populated drill-down, and final-goal gaps remain open.
+
+# 2026-08-14 — Family-breadth push transport
+
+- The exact elevated `rtk git push origin HEAD:feat/tc2000-frontend-rework` for clean local
+  commits `1a9dad87` and `d46ccd46` was attempted once and rejected before Git by the private-origin
+  safeguard because trusted authorization for the exact private payload/destination was unavailable.
+- No workaround, alternate transport, rewrite, reset, stash, or repeated attempt was used. This is
+  transport-only and not a product-goal blocker; the local worktree remains clean.
