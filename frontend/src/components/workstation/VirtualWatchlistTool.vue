@@ -86,8 +86,8 @@
           @contextmenu.prevent.stop="openContextMenu($event, filteredRows[virtualRow.index])"
         >
           <template v-for="item in columnRenderItems" :key="item.column.key">
-            <span v-if="item.column.key !== stackedColumnKey" :style="columnCellStyle(item)" :class="numericCellClass(filteredRows[virtualRow.index], item.column.key)" :title="display(filteredRows[virtualRow.index], item.column.key)"><b v-if="item.column.key === 'symbol' && filteredRows[virtualRow.index].flagged" class="watchlist__flag" aria-label="Flagged">⚑</b><WorkstationGlyph v-if="cellWarning(filteredRows[virtualRow.index], item.column.key)" kind="warning" :title="cellWarning(filteredRows[virtualRow.index], item.column.key) ?? undefined" />{{ display(filteredRows[virtualRow.index], item.column.key) }}</span>
-            <span v-else :style="columnCellStyle(item)" class="watchlist__stack-cell"><small v-for="stackedColumn in stackedColumns" :key="stackedColumn.key" :class="numericCellClass(filteredRows[virtualRow.index], stackedColumn.key)" :title="display(filteredRows[virtualRow.index], stackedColumn.key)"><em>{{ stackedColumn.label }}</em><WorkstationGlyph v-if="cellWarning(filteredRows[virtualRow.index], stackedColumn.key)" kind="warning" :title="cellWarning(filteredRows[virtualRow.index], stackedColumn.key) ?? undefined" />{{ display(filteredRows[virtualRow.index], stackedColumn.key) }}</small></span>
+            <span v-if="item.column.key !== stackedColumnKey" :style="columnCellStyle(item)" :class="cellClasses(filteredRows[virtualRow.index], item.column.key)" :data-cell-state="cellState(filteredRows[virtualRow.index], item.column.key)" :title="cellTitle(filteredRows[virtualRow.index], item.column.key)"><b v-if="item.column.key === 'symbol' && filteredRows[virtualRow.index].flagged" class="watchlist__flag" aria-label="Flagged">⚑</b><WorkstationGlyph v-if="cellWarning(filteredRows[virtualRow.index], item.column.key)" kind="warning" :title="cellWarning(filteredRows[virtualRow.index], item.column.key) ?? undefined" />{{ display(filteredRows[virtualRow.index], item.column.key) }}</span>
+            <span v-else :style="columnCellStyle(item)" class="watchlist__stack-cell"><small v-for="stackedColumn in stackedColumns" :key="stackedColumn.key" :class="cellClasses(filteredRows[virtualRow.index], stackedColumn.key)" :data-cell-state="cellState(filteredRows[virtualRow.index], stackedColumn.key)" :title="cellTitle(filteredRows[virtualRow.index], stackedColumn.key)"><em>{{ stackedColumn.label }}</em><WorkstationGlyph v-if="cellWarning(filteredRows[virtualRow.index], stackedColumn.key)" kind="warning" :title="cellWarning(filteredRows[virtualRow.index], stackedColumn.key) ?? undefined" />{{ display(filteredRows[virtualRow.index], stackedColumn.key) }}</small></span>
           </template>
         </button>
       </div>
@@ -1218,6 +1218,31 @@ function numericCellClass(row: WatchlistRow, key: string) {
   return value == null ? '' : value > 0 ? 'watchlist__cell--positive' : value < 0 ? 'watchlist__cell--negative' : 'watchlist__cell--zero'
 }
 
+type CellState = 'ready' | 'stale' | 'delayed' | 'partial' | 'unavailable' | 'fetching' | 'coverage-limited' | 'warning'
+
+function cellState(row: WatchlistRow, key: string): CellState {
+  const warning = cellWarning(row, key)
+  if (!warning) return 'ready'
+  const normalized = warning.toLowerCase()
+  if (normalized.includes('stale')) return 'stale'
+  if (normalized.includes('delay')) return 'delayed'
+  if (normalized.includes('partial')) return 'partial'
+  if (normalized.includes('fetch')) return 'fetching'
+  if (normalized.includes('coverage')) return 'coverage-limited'
+  if (normalized.includes('unavailable') || normalized.includes('missing') || normalized.includes('insufficient')) return 'unavailable'
+  return 'warning'
+}
+
+function cellClasses(row: WatchlistRow, key: string) {
+  return [numericCellClass(row, key), `watchlist__cell--${cellState(row, key)}`]
+}
+
+function cellTitle(row: WatchlistRow, key: string) {
+  const value = display(row, key)
+  const warning = cellWarning(row, key)
+  return warning ? `${value} · ${warning}` : value
+}
+
 function cellWarning(row: WatchlistRow, key: string): string | null {
   if (key.startsWith('indicator:')) return props.indicatorValues[key]?.[row.symbol] == null ? props.indicatorWarnings[key]?.[row.symbol] ?? null : null
   if (key.startsWith('python:')) return null
@@ -1541,6 +1566,13 @@ function onCtrlWheel(event: WheelEvent) {
 .watchlist__row .watchlist__cell--positive { color: #72c995; }
 .watchlist__row .watchlist__cell--negative { color: #df8b8b; }
 .watchlist__row .watchlist__cell--zero { color: #a8b6bf; }
+.watchlist__row .watchlist__cell--stale,
+.watchlist__row .watchlist__cell--delayed,
+.watchlist__row .watchlist__cell--partial,
+.watchlist__row .watchlist__cell--coverage-limited { color: #dfbd82; }
+.watchlist__row .watchlist__cell--fetching { color: #9ccbe8; font-style: italic; }
+.watchlist__row .watchlist__cell--unavailable,
+.watchlist__row .watchlist__cell--warning { color: #e99a9a; }
 .watchlist__row span:first-child { color: #dce9f2; font-weight: 600; }
 .watchlist__stack-cell { display: grid; min-width: 0; align-self: stretch; padding: 1px 6px; }
 .watchlist__stack-cell small { overflow: hidden; color: #8999a5; font: 9px/1.15 "Segoe UI", Arial, sans-serif; text-overflow: ellipsis; white-space: nowrap; }

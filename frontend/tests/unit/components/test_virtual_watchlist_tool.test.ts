@@ -481,6 +481,21 @@ describe('VirtualWatchlistTool', () => {
     expect(wrapper.find('.workstation-glyph--warning').attributes('title')).toBe('insufficient_history')
   })
 
+  it('maps freshness warnings to explicit cell states and preserves the warning in the title', () => {
+    const wrapper = mount(VirtualWatchlistTool, {
+      props: {
+        label: 'Sectors',
+        rows: [{ instrumentId: 4, symbol: 'XLF', name: 'Financials', values: { performance_1d: null }, warnings: { performance_1d: 'stale provider observation' } }],
+        columns: [{ key: 'symbol', label: 'Symbol' }, { key: 'performance_1d', label: '1D' }],
+      },
+    })
+
+    const cell = wrapper.find('[data-cell-state="stale"]')
+    expect(cell.exists()).toBe(true)
+    expect(cell.classes()).toContain('watchlist__cell--stale')
+    expect(cell.attributes('title')).toBe('— · stale provider observation')
+  })
+
   it('supports plain, ctrl/meta, and shift range selection without losing row activation', async () => {
     const wrapper = mount(VirtualWatchlistTool, { props: { label: 'Sectors', rows } })
     const selectRow = (wrapper.vm as unknown as { selectRow: (row: typeof rows[number], event: MouseEvent) => void }).selectRow
