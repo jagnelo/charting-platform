@@ -26,6 +26,10 @@
 - Rerun passed `15/15` live routes. The failed run is retained as fix-first evidence; no
   acceptance flexibility was used. Historical membership/rebalance, bars, and browser family
   acceptance remain open.
+- Git: implementation `e2fdcb25` and operational checkpoint `f8847fba` are clean locally. The
+  required exact elevated push was attempted once and rejected before Git by the private-origin
+  safeguard because authorization for the accumulated private payload/destination was unavailable.
+  No workaround, alternate transport, rewrite, reset, stash, or repeat was attempted.
 - Remaining: historical rebalance continuity, point-in-time membership, canonical QQQE bars,
   and populated browser QQQ/QQQE cap/equal acceptance. Official source reference:
   `https://www.direxion.com/product/nasdaq-100-equal-weighted-index-etf`.
