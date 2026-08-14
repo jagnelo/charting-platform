@@ -68,6 +68,9 @@ from app.schemas.analysis import (
     BreadthPythonRunOut,
     BreadthPythonRunRequest,
     BreadthUniverseRequest,
+    CrossFamilyRankingHistoryOut,
+    CrossFamilyRankingHistoryPoint,
+    CrossFamilyRankingHistoryRowOut,
     CrossFamilyRankingOut,
     CrossFamilyRankingRowOut,
     ETFConstituentSnapshotOut,
@@ -155,6 +158,31 @@ def _aggregate_series_cells(
                 value=latest_value / base - 1, observation_time=latest_timestamp
             )
     return cells
+
+
+def _historical_return_series(
+    bars: list[OHLCVBar],
+) -> dict[datetime, dict[str, float | None]]:
+    """Calculate non-forward-filled return cells at every observed bar timestamp."""
+
+    series: dict[datetime, dict[str, float | None]] = {}
+    first_by_year: dict[int, int] = {}
+    for index, bar in enumerate(bars):
+        first_by_year.setdefault(bar.ts.year, index)
+        cells: dict[str, float | None] = {}
+        for period, offset in _PERIODS.items():
+            base_index = (
+                first_by_year[bar.ts.year]
+                if period == "YTD"
+                else index - (offset + 1)  # type: ignore[operator]
+            )
+            if base_index < 0 or base_index == index:
+                cells[period] = None
+                continue
+            base = bars[base_index].close
+            cells[period] = float(bar.close / base - 1) if base else None
+        series[bar.ts] = cells
+    return series
 
 
 def _technical_cells_for_series(
@@ -3001,6 +3029,176 @@ async def benchmark_family_breadth_history(
         as_of=as_of,
         limit=limit,
         roles=roles,
+        exclusions=exclusions,
+        freshness=freshness,
+        freshness_detail=freshness_detail,
+    )
+
+
+@router.get(
+    "/benchmark-families/ranking/history",
+    response_model=CrossFamilyRankingHistoryOut,
+)
+async def cross_family_ranking_history(
+    timeframe: Timeframe = Timeframe.D1,
+    adjusted: bool = True,
+    rank_period: str = Query(default="1M", pattern="^(1D|1W|1M|3M|6M|YTD|1Y)$"),
+    families: str | None = Query(default=None),
+    benchmark: str | None = Query(default=None),
+    as_of: datetime | None = Query(default=None),
+    limit: int = Query(default=500, ge=1, le=5_000),
+    _: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Return historical family performance/rank curves from observed local bars only."""
+
+    requested = {
+        item.strip()
+        for item in (families.split(",") if families else [])
+        if item.strip()
+    }
+    query = select(MarketGroup).where(MarketGroup.group_type == "benchmark_family")
+    if requested:
+        query = query.where(MarketGroup.stable_key.in_(requested))
+    groups = list((await db.execute(query.order_by(MarketGroup.stable_key))).scalars())
+    found = {group.stable_key for group in groups}
+    if requested and found != requested:
+        raise HTTPException(
+            404,
+            detail={
+                "code": "benchmark_family_not_found",
+                "family_keys": sorted(requested - found),
+            },
+        )
+    if not groups:
+        raise HTTPException(404, detail={"code": "benchmark_families_not_found"})
+
+    benchmark_instrument = await _instrument(db, benchmark) if benchmark else None
+    cap_instruments: dict[str, Instrument] = {}
+    exclusions: list[AnalysisWarning] = []
+    for group in groups:
+        mappings = (group.provenance or {}).get("proxy_mappings", {})
+        mapping = mappings.get("cap_weight") if isinstance(mappings, Mapping) else None
+        symbol = mapping.get("symbol") if isinstance(mapping, Mapping) else None
+        if not symbol:
+            continue
+        try:
+            cap_instruments[group.stable_key] = await _instrument(db, str(symbol))
+        except HTTPException as error:
+            if error.status_code != 404:
+                raise
+            exclusions.append(
+                AnalysisWarning(
+                    code="instrument_not_found",
+                    message=f"No canonical cap proxy is available for {group.stable_key}.",
+                )
+            )
+
+    instrument_ids = [instrument.id for instrument in cap_instruments.values()]
+    if benchmark_instrument:
+        instrument_ids.append(benchmark_instrument.id)
+    bars_by_id = _truncate_bars_at(
+        await _bars_by_instrument(db, instrument_ids, timeframe, adjusted),
+        as_of,
+    )
+    benchmark_series = (
+        _historical_return_series(bars_by_id.get(benchmark_instrument.id, []))
+        if benchmark_instrument
+        else {}
+    )
+    rows: list[CrossFamilyRankingHistoryRowOut] = []
+    rank_values: dict[datetime, dict[str, float]] = defaultdict(dict)
+    pending: list[CrossFamilyRankingHistoryRowOut] = []
+    for group in groups:
+        provenance = dict(group.provenance or {})
+        official = provenance.get("official_index")
+        mappings = provenance.get("proxy_mappings")
+        mapping = mappings.get("cap_weight") if isinstance(mappings, Mapping) else None
+        mapping = mapping if isinstance(mapping, Mapping) else {}
+        symbol = str(mapping.get("symbol")).upper() if mapping.get("symbol") else None
+        label = str(mapping.get("label") or "No verified mapped proxy")
+        instrument = cap_instruments.get(group.stable_key)
+        bars = bars_by_id.get(instrument.id, []) if instrument else []
+        series = _historical_return_series(bars) if bars else {}
+        warnings: list[AnalysisWarning] = []
+        if instrument is None:
+            warnings.append(
+                AnalysisWarning(
+                    code="family_cap_unavailable",
+                    message="The family has no canonical cap proxy or local bars.",
+                )
+            )
+        elif not bars:
+            warnings.append(
+                AnalysisWarning(
+                    code="no_bars",
+                    message="No canonical cap-proxy bars are available.",
+                    instrument_id=instrument.id,
+                )
+            )
+        points: list[CrossFamilyRankingHistoryPoint] = []
+        for timestamp in sorted(series)[-limit:]:
+            performance = series[timestamp]
+            relative = {
+                period: (
+                    value - benchmark_series.get(timestamp, {}).get(period)
+                    if value is not None
+                    and benchmark_series.get(timestamp, {}).get(period) is not None
+                    else None
+                )
+                for period, value in performance.items()
+            }
+            value = performance.get(rank_period)
+            if value is not None:
+                rank_values[timestamp][group.stable_key] = value
+            points.append(
+                CrossFamilyRankingHistoryPoint(
+                    timestamp=timestamp,
+                    performance=performance,
+                    relative_performance=relative,
+                )
+            )
+        pending.append(
+            CrossFamilyRankingHistoryRowOut(
+                family_key=group.stable_key,
+                family_name=group.name,
+                official_index_symbol=(
+                    str(official.get("symbol") or "")
+                    if isinstance(official, Mapping)
+                    else ""
+                ),
+                symbol=symbol,
+                label=label,
+                available=bool(series),
+                coverage=(
+                    sum(1 for cells in series.values() if cells.get(rank_period) is not None)
+                    / max(len(series), 1)
+                ),
+                points=points,
+                warnings=warnings,
+            )
+        )
+    for row in pending:
+        for point in row.points:
+            ranked = sorted(
+                rank_values.get(point.timestamp, {}).items(),
+                key=lambda item: item[1],
+                reverse=True,
+            )
+            rank_by_family = {family_key: index for index, (family_key, _) in enumerate(ranked, 1)}
+            point.rank = rank_by_family.get(row.family_key)
+        rows.append(row)
+    freshness, freshness_detail = await _batch_freshness(
+        db, instrument_ids, timeframe, adjusted
+    )
+    return CrossFamilyRankingHistoryOut(
+        timeframe=timeframe.value,
+        adjustment="split_adjusted" if adjusted else "raw",
+        as_of=as_of,
+        benchmark=benchmark_instrument.symbol if benchmark_instrument else None,
+        rank_period=rank_period,
+        limit=limit,
+        rows=rows,
         exclusions=exclusions,
         freshness=freshness,
         freshness_detail=freshness_detail,

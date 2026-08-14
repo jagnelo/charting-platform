@@ -1065,6 +1065,77 @@ class TestWorkspaces:
         assert rows["sp400"]["warnings"][0]["code"] == "family_cap_unavailable"
         assert payload["benchmark"] == "SPY"
 
+    def test_cross_family_ranking_history_preserves_point_in_time_rank_and_as_of(
+        self, client, auth_headers, db, instrument_type
+    ):
+        from datetime import UTC, datetime, timedelta
+        from decimal import Decimal
+
+        from app.models.instrument import Instrument
+        from app.models.ohlcv import OHLCVBar, Timeframe
+
+        seeded = client.get("/api/v1/market-groups", headers=auth_headers)
+        assert seeded.status_code == 200
+        instruments = {}
+        for symbol in ("SPY", "MDY"):
+            instrument = Instrument(
+                symbol=symbol,
+                name=symbol,
+                currency="USD",
+                instrument_type_id=instrument_type.id,
+                is_active=True,
+            )
+            db.add(instrument)
+            db.flush()
+            instruments[symbol] = instrument
+        base = datetime(2024, 1, 1, tzinfo=UTC)
+        for index in range(40):
+            for symbol, value in (
+                ("SPY", 100 + index),
+                ("MDY", 100 + (2 * index)),
+            ):
+                close = Decimal(str(value))
+                db.add(
+                    OHLCVBar(
+                        instrument_id=instruments[symbol].id,
+                        timeframe=Timeframe.D1,
+                        ts=base + timedelta(days=index),
+                        open=close,
+                        high=close,
+                        low=close,
+                        close=close,
+                        volume=Decimal("1"),
+                        is_adjusted=True,
+                    )
+                )
+        db.flush()
+
+        response = client.get(
+            "/api/v1/analysis/benchmark-families/ranking/history",
+            headers=auth_headers,
+            params={
+                "families": "sp500,sp400",
+                "benchmark": "SPY",
+                "rank_period": "1M",
+                "limit": 8,
+                "as_of": (base + timedelta(days=35)).isoformat(),
+            },
+        )
+        assert response.status_code == 200, response.text
+        payload = response.json()
+        rows = {row["family_key"]: row for row in payload["rows"]}
+        assert payload["limit"] == 8
+        assert payload["benchmark"] == "SPY"
+        assert len(rows["sp500"]["points"]) == 8
+        assert len(rows["sp400"]["points"]) == 8
+        assert rows["sp400"]["points"][-1]["rank"] == 1
+        assert rows["sp500"]["points"][-1]["rank"] == 2
+        assert rows["sp500"]["points"][-1]["relative_performance"]["1M"] == 0
+        observed = datetime.fromisoformat(
+            rows["sp400"]["points"][-1]["timestamp"].replace("Z", "+00:00")
+        )
+        assert observed <= base + timedelta(days=35)
+
     def test_benchmark_family_derived_equal_weight_requires_constituent_membership(
         self, client, auth_headers, db, instrument, ohlcv_bars
     ):

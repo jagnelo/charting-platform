@@ -3345,6 +3345,17 @@ test.describe('TC2000 workstation', () => {
         }),
       })
     })
+    await page.route('**/api/v1/analysis/benchmark-families/ranking/history*', async route => {
+      familyAsOfRequests.push(route.request().url())
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          timeframe: 'D1', adjustment: 'split_adjusted', rank_period: '1M', limit: 500, benchmark: null,
+          rows: [{ family_key: 'sp500', family_name: 'S&P 500', official_index_symbol: 'SPX', symbol: 'SPY', label: 'SPY', available: true, coverage: 1, points: [{ timestamp: '2026-01-02T00:00:00Z', rank: 1, performance: { '1M': 0.1 }, relative_performance: { '1M': 0 } }], warnings: [] }], exclusions: [],
+        }),
+      })
+    })
     await page.route('**/api/v1/analysis/benchmark-families/ranking*', async route => {
       familyAsOfRequests.push(route.request().url())
       await route.fulfill({
@@ -3474,6 +3485,7 @@ test.describe('TC2000 workstation', () => {
     await expect(breadth.locator('[aria-label="Benchmark family participation"]')).toContainText('Cap weight SPY · >20 70% · near 52w 40% · trend 65%', { timeout: 15_000 })
     await expect(breadth.locator('[aria-label="Benchmark family role ranking"]')).toContainText('#1 Equal weight RSP', { timeout: 15_000 })
     await expect(breadth.locator('[aria-label="Cross-family ranking"]')).toContainText('#1 S&P 500 SPY', { timeout: 15_000 })
+    await expect(breadth.locator('[aria-label="Cross-family ranking"]')).toContainText('History · 1 points', { timeout: 15_000 })
     await expect(familyPanel.getByRole('combobox', { name: 'Family ratio leg' })).toHaveValue('equal_weight')
     const familyOverview = breadth.locator('[aria-label="Benchmark family analysis"]')
     await expect(familyOverview).toBeVisible({ timeout: 15_000 })

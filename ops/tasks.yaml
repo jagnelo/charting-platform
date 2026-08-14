@@ -336,6 +336,37 @@ tasks:
         height-constrained scrollable flex surface and the unchanged oracle passed. The defect was
         repaired, not waived; no visual threshold, mask, provider rule, or acceptance criterion
         changed. Remaining historical and all-root evidence gaps stay tracked.
+  - id: tc2000-cross-family-ranking-history-20260814
+    title: Add historical cross-family leadership curves
+    status: completed
+    priority: high
+    scope: >-
+      Extend the cross-family benchmark ranking batch with bounded historical cap-proxy
+      performance/rank points for an explicit family subset or all configured roots. Preserve
+      observed timestamps, rank-period selection, optional aligned benchmark-relative returns,
+      as_of truncation, coverage, freshness, and no-forward-fill/no-fallback semantics. Wire the
+      client cache and dense workstation history evidence beside the current ranking.
+    definition_of_done:
+      - GET /analysis/benchmark-families/ranking/history returns bounded independent family points and per-timestamp ranks
+      - Period returns use actual prior observations and calendar-year YTD boundaries without forward-fill
+      - as_of, family filter, benchmark, rank period, timeframe, adjustment, and limit are preserved in request/cache identity
+      - Missing mappings, instruments, and bars remain row-local unavailable or warning states
+      - Workstation exposes history-point evidence without obscuring the current ranking or breadth controls
+      - Focused backend, store, full frontend, type/build, lint/compile, diff, and rebuilt browser checks pass
+      - Rotation tails, concentration, dispersion, and complete provider-backed family population remain open
+    validation:
+      - cross-family-ranking-history-integration-2-of-2
+      - workspace-store-63-of-63
+      - frontend-vitest-834-of-834
+      - vue-tsc-and-production-build
+      - ruff-compileall-and-diff-check
+      - rebuilt-F8s-breadth-family-ratio-history-1-of-1
+    notes:
+      - >-
+        Implemented and validated on 2026-08-14 with no acceptance flexibility. The initial test
+        oracle compared UTC strings lexicographically despite equivalent `Z` and `+00:00` forms;
+        it was repaired to compare parsed instants before the passing rerun. No product criterion,
+        visual threshold, mask, or provider rule changed.
   - id: tc2000-generic-condition-driven-breadth-20260814
     title: Broaden breadth from fixed metrics to reusable condition-driven cross-sectional studies
     status: in_progress

@@ -407,6 +407,20 @@ oracle passed with the RSI interaction and cross-family assertion. This is a clo
 defect, not a relaxed visual acceptance. Historical ranking curves, rotation, concentration/
 dispersion, and fully populated all-root evidence remain open.
 
+## 2026-08-14 — Historical cross-family leadership parity slice
+
+The cross-family contract now has a historical companion. It returns bounded observed-timestamp
+performance and rank points for each selected family cap proxy, with optional benchmark-relative
+returns, explicit rank period, `as_of` truncation, coverage, and row-local warnings. Period returns
+use actual prior observations and calendar-year boundaries; gaps are not forward-filled. The client
+cache identity carries the family set, timeframe, adjustment, rank period, benchmark, as-of, and
+limit. The workstation reports the available history-point count beside the current ranking.
+
+The focused browser acceptance verifies the history evidence without changing the existing role,
+RSI, or custom-condition interactions. This closes historical cross-family ranking only; historical
+relative-rotation tails, concentration/dispersion, provider-backed eight-root population, and
+unrepresented Version 25 visual states remain open.
+
 ## 2026-08-14 — Breadth scope expanded to condition-driven cross-sectional studies
 
 The breadth requirement is broader than the current fixed metric panel. The implemented panel

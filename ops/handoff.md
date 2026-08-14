@@ -1,5 +1,20 @@
 # Active Handoff
 
+## 2026-08-14 — Historical cross-family ranking checkpoint
+
+- Added `GET /analysis/benchmark-families/ranking/history` with bounded observed-timestamp
+  performance/rank points for explicit/all configured roots, optional aligned benchmark-relative
+  returns, rank period, `as_of`, limit, coverage, freshness, and no-forward-fill/no-fallback
+  semantics.
+- Added store cache identity and workstation history-point evidence beside current cross-family
+  leadership. The rebuilt authenticated `F8s-breadth-family-ratio` oracle verifies the visible
+  history evidence while preserving role ranking, RSI, and custom-condition interactions.
+- Validation: focused integration `2/2`, store `63/63`, full Vitest `834/834`, type/build,
+  Ruff/compile, diff-check, and Chromium `1/1`. The first test run caught only an ISO timestamp
+  assertion defect; it was fixed to compare parsed instants. No acceptance flexibility used.
+- Implementation is ready for checkpoint. Next context: relative-rotation history/tails,
+  concentration/dispersion, and complete evidence population across all eight roots.
+
 ## 2026-08-14 — Cross-family ranking and breadth layout repair checkpoint
 
 - Added `GET /analysis/benchmark-families/ranking` for explicit/all configured S&P, Russell, and

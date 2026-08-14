@@ -516,6 +516,42 @@ class CrossFamilyRankingOut(AnalysisResponseMetadata):
     exclusions: list[AnalysisWarning] = Field(default_factory=list)
 
 
+class CrossFamilyRankingHistoryPoint(BaseModel):
+    """One timestamp in a historical cross-family leadership series."""
+
+    timestamp: datetime
+    rank: int | None = None
+    performance: dict[str, float | None] = Field(default_factory=dict)
+    relative_performance: dict[str, float | None] = Field(default_factory=dict)
+
+
+class CrossFamilyRankingHistoryRowOut(BaseModel):
+    """Historical cap-proxy ranking for one benchmark family."""
+
+    family_key: str
+    family_name: str
+    official_index_symbol: str
+    symbol: str | None = None
+    label: str
+    available: bool
+    coverage: float = Field(ge=0, le=1)
+    points: list[CrossFamilyRankingHistoryPoint] = Field(default_factory=list)
+    warnings: list[AnalysisWarning] = Field(default_factory=list)
+
+
+class CrossFamilyRankingHistoryOut(AnalysisResponseMetadata):
+    """Historical cross-family performance and rank curves."""
+
+    timeframe: str
+    adjustment: str
+    as_of: datetime | None = None
+    benchmark: str | None = None
+    rank_period: str
+    limit: int = Field(ge=1, le=5_000)
+    rows: list[CrossFamilyRankingHistoryRowOut] = Field(default_factory=list)
+    exclusions: list[AnalysisWarning] = Field(default_factory=list)
+
+
 class BreadthUniverseRequest(BaseModel):
     """A provider-neutral universe selector for reusable breadth studies."""
 

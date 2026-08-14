@@ -551,6 +551,9 @@
           </span>
         </template>
         <span v-else class="breadth-tool__status">Cross-family ranking unavailable.</span>
+        <span v-if="crossFamilyRankingHistoryLoading" role="status">Loading history…</span>
+        <span v-else-if="crossFamilyRankingHistoryError" class="breadth-tool__status--error" role="alert">{{ crossFamilyRankingHistoryError }}</span>
+        <span v-if="crossFamilyRankingHistory" class="breadth-tool__cross-family-ranking-history">History · {{ crossFamilyRankingHistoryPointCount }} points</span>
       </div>
       <section v-if="isBenchmarkFamily" class="breadth-tool__family-overview" aria-label="Benchmark family analysis">
         <header class="breadth-tool__family-overview-header">
@@ -1744,6 +1747,11 @@ const crossFamilyRankingKey = computed(() => `${breadthTimeframe.value}:${breadt
 const crossFamilyRanking = computed(() => workspaceStore.crossFamilyRankings[crossFamilyRankingKey.value])
 const crossFamilyRankingError = computed(() => workspaceStore.crossFamilyRankingErrors[crossFamilyRankingKey.value] ?? null)
 const crossFamilyRankingLoading = ref(false)
+const crossFamilyRankingHistoryKey = computed(() => `${breadthTimeframe.value}:${breadthAdjusted.value ? 'adj' : 'raw'}:${familyAsOf.value || 'latest'}:1M:::500`)
+const crossFamilyRankingHistory = computed(() => workspaceStore.crossFamilyRankingHistories[crossFamilyRankingHistoryKey.value])
+const crossFamilyRankingHistoryPointCount = computed(() => Math.max(0, ...((crossFamilyRankingHistory.value?.rows ?? []).map(row => row.points.length))))
+const crossFamilyRankingHistoryError = computed(() => workspaceStore.crossFamilyRankingHistoryErrors[crossFamilyRankingHistoryKey.value] ?? null)
+const crossFamilyRankingHistoryLoading = ref(false)
 const familyOverviewKey = computed(() => `${breadthGroupKey.value}:${breadthTimeframe.value}:${breadthAdjusted.value ? 'adj' : 'raw'}:${familyAsOf.value || 'latest'}`)
 const familyOverview = computed(() => workspaceStore.benchmarkFamilyOverviews[familyOverviewKey.value])
 const familyOverviewError = computed(() => workspaceStore.benchmarkFamilyOverviewErrors[familyOverviewKey.value] ?? null)
@@ -2578,6 +2586,7 @@ watch([breadthGroupKey, breadthTimeframe, breadthAdjusted, familyRatioMarket, fa
   familyBreadthLoading.value = true
   familyRankingLoading.value = true
   crossFamilyRankingLoading.value = true
+  crossFamilyRankingHistoryLoading.value = true
   try {
     await Promise.all([
       workspaceStore.loadBenchmarkFamilyRatios(groupKey, familyRatioRole.value, market, { timeframe, adjusted, as_of: familyAsOf.value || undefined, roles: [...familyRatioRoles] }),
@@ -2586,6 +2595,7 @@ watch([breadthGroupKey, breadthTimeframe, breadthAdjusted, familyRatioMarket, fa
       workspaceStore.loadBenchmarkFamilyBreadthHistory(groupKey, { timeframe, adjusted, as_of: familyAsOf.value || undefined, limit: 500 }),
       workspaceStore.loadBenchmarkFamilyRanking(groupKey, { timeframe, adjusted, as_of: familyAsOf.value || undefined, rank_period: '1M' }),
       workspaceStore.loadCrossFamilyRanking({ timeframe, adjusted, as_of: familyAsOf.value || undefined, rank_period: '1M' }),
+      workspaceStore.loadCrossFamilyRankingHistory({ timeframe, adjusted, as_of: familyAsOf.value || undefined, rank_period: '1M', limit: 500 }),
     ])
   } finally {
     familyRatioLoading.value = false
@@ -2593,6 +2603,7 @@ watch([breadthGroupKey, breadthTimeframe, breadthAdjusted, familyRatioMarket, fa
     familyBreadthLoading.value = false
     familyRankingLoading.value = false
     crossFamilyRankingLoading.value = false
+    crossFamilyRankingHistoryLoading.value = false
   }
 }, { immediate: true })
 watch([breadthGroupKey, breadthTimeframe, breadthAdjusted, familyRatioRole, familyRatioMarket, familyAsOf], async ([groupKey, timeframe, adjusted, role, market]) => {

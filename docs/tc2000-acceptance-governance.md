@@ -199,6 +199,17 @@ condition editor or alter its controls; this is a required interaction/layout ch
 pixel exception. Historical curves, rotation tails, concentration, dispersion, and populated
 provider evidence remain separate gates. No acceptance flexibility is used.
 
+#### Historical cross-family ranking sub-gate
+
+The acceptance run must call `GET /analysis/benchmark-families/ranking/history` for the complete
+root set and an explicit subset, with a declared rank period, bounded limit, and `as_of`. It must
+verify observed-timestamp points, rank order at each timestamp, optional benchmark-relative values,
+coverage, freshness, and row-local unavailable states. The result must not forward-fill gaps or
+borrow another family's cap proxy. The workstation must expose that historical evidence beside
+the current cross-family ranking and retain the same condition-editor interaction/layout checks.
+Relative-rotation tails, concentration, dispersion, and complete provider-backed population remain
+separate gates. No acceptance flexibility is used.
+
 #### Dated holdings coverage sub-gate
 
 Before a family/leg can be presented as historically usable, acceptance must call

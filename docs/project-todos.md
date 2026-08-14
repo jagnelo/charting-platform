@@ -12466,3 +12466,23 @@ The current source also passes the focused authenticated top-down browser slice 
 - [ ] Still open: historical cross-family ranking curves, relative-rotation tails and state
       transitions, concentration/dispersion, condition-driven ranking inputs, and complete
       provider-backed population and browser evidence across all eight roots.
+
+### 2026-08-14 — Historical cross-family leadership curves
+
+- [x] Added `GET /analysis/benchmark-families/ranking/history` for bounded historical cap-proxy
+      performance and rank curves across an explicit family subset or all configured roots. Each
+      timestamp is calculated from observed local bars, with configurable rank period, optional
+      aligned benchmark-relative returns, `as_of` truncation, and no forward-fill.
+- [x] Missing cap mappings, instruments, and bars remain row-local unavailable/warning states;
+      historical points preserve rank, performance, relative performance, coverage, freshness,
+      and the requested output limit. The client cache identity includes family filter, timeframe,
+      adjustment, rank period, benchmark, as-of, and limit, and the workstation exposes the
+      aligned history-point count beside the current cross-family ranking.
+- [x] Validation passes: cross-family integration `2/2`, workspace-store `63/63`, full frontend
+      Vitest `834/834`, `vue-tsc`, production build, Ruff, compileall, `git diff --check`, and
+      rebuilt authenticated `F8s-breadth-family-ratio` Chromium `1/1`, including visible history
+      evidence. The first focused run exposed only a timestamp-format assertion defect; the oracle
+      was changed to compare parsed UTC instants and the unchanged product contract passed.
+- [ ] Still open: relative-rotation history/tails across every family, concentration/dispersion,
+      condition-driven ranking inputs, and complete provider-backed population and browser evidence
+      across all eight roots.

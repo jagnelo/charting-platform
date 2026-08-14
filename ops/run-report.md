@@ -1,5 +1,18 @@
 # Run Report
 
+## 2026-08-14 — Historical cross-family ranking checkpoint
+
+- Added historical cross-family leadership curves with actual observed timestamps, rank-period
+  selection, optional aligned benchmark-relative returns, bounded output, as-of truncation,
+  coverage/freshness, and explicit row-local unavailable states.
+- Wired cache identity and workstation history-point evidence. Rebuilt browser acceptance passes
+  with the current ranking, role participation, RSI, and custom-condition controls intact.
+- Validation: integration `2/2`, store `63/63`, frontend Vitest `834/834`, type/build,
+  Ruff/compileall, diff-check, and Chromium `1/1`. No acceptance flexibility used; only a test
+  timestamp-format oracle was corrected.
+- Remaining: relative-rotation history/tails, concentration/dispersion, provider-backed
+  eight-root population, and final V25 visual/acceptance gates.
+
 ## 2026-08-14 — Cross-family ranking and breadth layout repair checkpoint
 
 - Added provider-neutral `/analysis/benchmark-families/ranking` with explicit/all family selection,
