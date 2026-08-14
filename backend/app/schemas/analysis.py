@@ -178,6 +178,62 @@ class BenchmarkFamilyConcentrationOut(AnalysisResponseMetadata):
     exclusions: list[AnalysisWarning] = Field(default_factory=list)
 
 
+class BenchmarkFamilyConcentrationHistoryPointOut(BaseModel):
+    """One point-in-time concentration observation for a family leg."""
+
+    timestamp: datetime
+    snapshot_id: int
+    composition_date: date
+    known_at: datetime
+    membership_version: int
+    weight_method: str = "unavailable"
+    reported_weight_coverage: float | None = Field(default=None, ge=0, le=1)
+    top_n_weight: float | None = None
+    hhi: float | None = None
+    effective_constituents: float | None = None
+    eligible_count: int = 0
+    covered_count: int = 0
+    excluded_count: int = 0
+    coverage: float = Field(ge=0, le=1)
+    mean_return: float | None = None
+    median_return: float | None = None
+    dispersion: float | None = None
+    p10_return: float | None = None
+    p25_return: float | None = None
+    p75_return: float | None = None
+    p90_return: float | None = None
+    positive_percentage: float | None = Field(default=None, ge=0, le=1)
+    negative_percentage: float | None = Field(default=None, ge=0, le=1)
+    warnings: list[AnalysisWarning] = Field(default_factory=list)
+
+
+class BenchmarkFamilyConcentrationHistoryRoleOut(BaseModel):
+    """Historical concentration observations for one independent family role."""
+
+    role: Literal["cap_weight", "equal_weight", "value", "growth"]
+    symbol: str | None = None
+    label: str
+    verification_state: str
+    available: bool
+    points: list[BenchmarkFamilyConcentrationHistoryPointOut] = Field(default_factory=list)
+    exclusions: list[AnalysisWarning] = Field(default_factory=list)
+
+
+class BenchmarkFamilyConcentrationHistoryOut(AnalysisResponseMetadata):
+    """Point-in-time concentration/dispersion history for family roles."""
+
+    family_key: str
+    official_index_symbol: str
+    timeframe: str
+    adjustment: str
+    as_of: datetime | None = None
+    rank_period: str
+    top_n: int = Field(ge=1, le=25)
+    limit: int = Field(ge=1, le=5_000)
+    roles: list[BenchmarkFamilyConcentrationHistoryRoleOut] = Field(default_factory=list)
+    exclusions: list[AnalysisWarning] = Field(default_factory=list)
+
+
 class AnalysisCell(BaseModel):
     value: float | None = None
     observation_time: datetime | None = None

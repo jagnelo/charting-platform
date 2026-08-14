@@ -301,6 +301,21 @@ describe('workspace store layout tabs', () => {
     expect(store.benchmarkFamilyConcentrations['sp500:D1:adj:latest:1M:5']?.roles[0]?.hhi).toBe(0.1)
   })
 
+  it('loads historical family concentration with bounded cache identity', async () => {
+    apiGet.mockResolvedValue({
+      family_key: 'sp500', official_index_symbol: 'SPX', timeframe: 'D1', adjustment: 'split_adjusted', rank_period: '1M', top_n: 10, limit: 50,
+      roles: [{ role: 'cap_weight', symbol: 'SPY', label: 'SPY', verification_state: 'verified', available: true, points: [{ timestamp: '2026-01-02T00:00:00Z', snapshot_id: 1, composition_date: '2026-01-01', known_at: '2026-01-02T00:00:00Z', membership_version: 1, weight_method: 'reported_holdings_weights', reported_weight_coverage: 1, top_n_weight: 0.25, hhi: 0.1, effective_constituents: 10, eligible_count: 500, covered_count: 500, excluded_count: 0, coverage: 1, warnings: [] }], exclusions: [] }],
+      exclusions: [],
+    })
+    const store = useWorkspaceStore()
+
+    const result = await store.loadBenchmarkFamilyConcentrationHistory('sp500', { rank_period: '1M', limit: 50 })
+
+    expect(apiGet).toHaveBeenCalledWith('/analysis/benchmark-families/sp500/concentration/history', { rank_period: '1M', top_n: 10, limit: 50 })
+    expect(result?.roles[0]?.points[0]?.snapshot_id).toBe(1)
+    expect(store.benchmarkFamilyConcentrationHistories['sp500:D1:adj:latest:1M:10:50']?.roles[0]?.points).toHaveLength(1)
+  })
+
   it('loads cross-family ranking with a stable family-filter cache identity', async () => {
     apiGet.mockResolvedValue({
       timeframe: 'D1', adjustment: 'split_adjusted', rank_period: '1M', benchmark: 'SPY',

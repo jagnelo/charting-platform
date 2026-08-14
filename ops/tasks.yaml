@@ -429,6 +429,38 @@ tasks:
         Implemented and validated on 2026-08-14. The initial unavailable-role response omitted
         required coverage; the endpoint was repaired to return explicit `0.0` coverage and the
         focused integration rerun passed. This was a code-contract fix, not acceptance flexibility.
+  - id: tc2000-benchmark-family-concentration-history-20260815
+    title: Add point-in-time historical family concentration and dispersion
+    status: completed
+    priority: high
+    scope: >-
+      Extend family concentration beyond the current snapshot. At each observed bar timestamp,
+      select only the latest holdings disclosure whose composition and known-at evidence precede
+      that timestamp, calculate member return distribution and reported-weight concentration, and
+      expose bounded history through the workstation without forward-fill or role substitution.
+    definition_of_done:
+      - Historical endpoint preserves timestamp, snapshot ID, composition date, known-at, and membership version per point
+      - Future holdings disclosures cannot influence an earlier bar timestamp
+      - Historical points report top-N weight, HHI, effective constituents, distribution, coverage, and exclusions
+      - Missing snapshots, bars, weights, or roles remain explicit unavailable/warning states
+      - Store/cache and workstation expose bounded point-in-time history evidence
+      - Two-snapshot integration, family regression, frontend store, full frontend, type/build, lint/compile, diff, and browser checks pass
+      - Derived equal-weight history, complete provider population, and longer occurrence visualization remain open
+    validation:
+      - benchmark-family-concentration-history-integration-1-of-1
+      - benchmark-family-concentration-current-history-2-of-2
+      - benchmark-family-regression-14-of-14
+      - workspace-store-65-of-65
+      - frontend-vitest-837-of-837
+      - vue-tsc-and-production-build
+      - ruff-compileall-and-diff-check
+      - rebuilt-F8s-breadth-family-ratio-concentration-history-1-of-1
+    notes:
+      - >-
+        Implemented and validated on 2026-08-15. The initial fixture's disclosure post-dated all
+        bars and correctly produced no aligned history; the fixture was corrected to include the
+        disclosure boundary, then extended with a later snapshot to prove transition semantics.
+        No acceptance flexibility used.
   - id: tc2000-generic-condition-driven-breadth-20260814
     title: Broaden breadth from fixed metrics to reusable condition-driven cross-sectional studies
     status: in_progress

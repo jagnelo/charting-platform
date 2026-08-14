@@ -362,6 +362,54 @@ export interface BenchmarkFamilyConcentrationState {
   freshness_detail?: Record<string, number>
 }
 
+export interface BenchmarkFamilyConcentrationHistoryState {
+  family_key: string
+  official_index_symbol: string
+  timeframe: string
+  adjustment: string
+  as_of?: string | null
+  rank_period: string
+  top_n: number
+  limit: number
+  roles: Array<{
+    role: BenchmarkFamilyMappingState['role']
+    symbol?: string | null
+    label: string
+    verification_state: string
+    available: boolean
+    points: Array<{
+      timestamp: string
+      snapshot_id: number
+      composition_date: string
+      known_at: string
+      membership_version: number
+      weight_method: string
+      reported_weight_coverage?: number | null
+      top_n_weight?: number | null
+      hhi?: number | null
+      effective_constituents?: number | null
+      eligible_count: number
+      covered_count: number
+      excluded_count: number
+      coverage: number
+      mean_return?: number | null
+      median_return?: number | null
+      dispersion?: number | null
+      p10_return?: number | null
+      p25_return?: number | null
+      p75_return?: number | null
+      p90_return?: number | null
+      positive_percentage?: number | null
+      negative_percentage?: number | null
+      warnings: Array<{ code: string; message: string }>
+    }>
+    exclusions: Array<{ code: string; message: string }>
+  }>
+  exclusions: Array<{ code: string; message: string }>
+  freshness?: string
+  freshness_detail?: Record<string, number>
+}
+
 export interface CrossFamilyRankingState {
   timeframe: string
   adjustment: string
@@ -820,6 +868,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   const benchmarkFamilyRankingErrors = ref<Record<string, string | null>>({})
   const benchmarkFamilyConcentrations = ref<Record<string, BenchmarkFamilyConcentrationState | null>>({})
   const benchmarkFamilyConcentrationErrors = ref<Record<string, string | null>>({})
+  const benchmarkFamilyConcentrationHistories = ref<Record<string, BenchmarkFamilyConcentrationHistoryState | null>>({})
+  const benchmarkFamilyConcentrationHistoryErrors = ref<Record<string, string | null>>({})
   const crossFamilyRankings = ref<Record<string, CrossFamilyRankingState | null>>({})
   const crossFamilyRankingErrors = ref<Record<string, string | null>>({})
   const crossFamilyRankingHistories = ref<Record<string, CrossFamilyRankingHistoryState | null>>({})
@@ -1738,6 +1788,44 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       const message = cause?.message ?? `Unable to load ${normalizedFamily} concentration`
       benchmarkFamilyConcentrationErrors.value = { ...benchmarkFamilyConcentrationErrors.value, [cacheKey]: message }
       benchmarkFamilyConcentrations.value = { ...benchmarkFamilyConcentrations.value, [cacheKey]: null }
+      return null
+    }
+  }
+
+  async function loadBenchmarkFamilyConcentrationHistory(
+    familyKey: string,
+    options: { timeframe?: string; adjusted?: boolean; as_of?: string; rank_period?: string; top_n?: number; limit?: number } = {},
+  ) {
+    const normalizedFamily = familyKey.trim()
+    if (!normalizedFamily) return null
+    const rankPeriod = options.rank_period ?? '1M'
+    const topN = options.top_n ?? 10
+    const limit = options.limit ?? 500
+    const cacheKey = `${normalizedFamily}:${options.timeframe ?? 'D1'}:${options.adjusted !== false ? 'adj' : 'raw'}:${options.as_of ?? 'latest'}:${rankPeriod}:${topN}:${limit}`
+    const requestKey = `top-down:family-concentration-history:${cacheKey}`
+    const generation = beginAnalysisRequest(requestKey)
+    if (!documentIsVisible()) return null
+    benchmarkFamilyConcentrationHistoryErrors.value = { ...benchmarkFamilyConcentrationHistoryErrors.value, [cacheKey]: null }
+    try {
+      const result = await api.get<BenchmarkFamilyConcentrationHistoryState>(
+        `/analysis/benchmark-families/${encodeURIComponent(normalizedFamily)}/concentration/history`,
+        {
+          rank_period: rankPeriod,
+          top_n: topN,
+          limit,
+          ...(options.timeframe ? { timeframe: options.timeframe } : {}),
+          ...(typeof options.adjusted === 'boolean' ? { adjusted: options.adjusted } : {}),
+          ...(options.as_of ? { as_of: options.as_of } : {}),
+        },
+      )
+      if (!isCurrentAnalysisRequest(requestKey, generation)) return null
+      benchmarkFamilyConcentrationHistories.value = { ...benchmarkFamilyConcentrationHistories.value, [cacheKey]: result }
+      return result
+    } catch (cause: any) {
+      if (!isCurrentAnalysisRequest(requestKey, generation)) return null
+      const message = cause?.message ?? `Unable to load ${normalizedFamily} concentration history`
+      benchmarkFamilyConcentrationHistoryErrors.value = { ...benchmarkFamilyConcentrationHistoryErrors.value, [cacheKey]: message }
+      benchmarkFamilyConcentrationHistories.value = { ...benchmarkFamilyConcentrationHistories.value, [cacheKey]: null }
       return null
     }
   }
@@ -2768,6 +2856,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     benchmarkFamilyRankingErrors,
     benchmarkFamilyConcentrations,
     benchmarkFamilyConcentrationErrors,
+    benchmarkFamilyConcentrationHistories,
+    benchmarkFamilyConcentrationHistoryErrors,
     crossFamilyRankings,
     crossFamilyRankingErrors,
     crossFamilyRankingHistories,
@@ -2831,6 +2921,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     loadBenchmarkFamilyBreadthHistory,
     loadBenchmarkFamilyRanking,
     loadBenchmarkFamilyConcentration,
+    loadBenchmarkFamilyConcentrationHistory,
     loadCrossFamilyRanking,
     loadCrossFamilyRankingHistory,
     loadBenchmarkFamilyOverview,

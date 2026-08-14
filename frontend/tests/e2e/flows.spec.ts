@@ -3345,7 +3345,21 @@ test.describe('TC2000 workstation', () => {
         }),
       })
     })
-    await page.route('**/api/v1/analysis/benchmark-families/sp500/concentration*', async route => {
+    await page.route('**/api/v1/analysis/benchmark-families/sp500/concentration/history*', async route => {
+      familyAsOfRequests.push(route.request().url())
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          family_key: 'sp500', official_index_symbol: 'SPX', timeframe: 'D1', adjustment: 'split_adjusted', rank_period: '1M', top_n: 10, limit: 500,
+          roles: [
+            { role: 'cap_weight', symbol: 'SPY', label: 'SPY', verification_state: 'verified', available: true, points: [{ timestamp: '2026-01-02T00:00:00Z', snapshot_id: 1, composition_date: '2026-01-01', known_at: '2026-01-02T00:00:00Z', membership_version: 1, weight_method: 'reported_holdings_weights', reported_weight_coverage: 1, top_n_weight: 0.34, hhi: 0.04, effective_constituents: 25, eligible_count: 500, covered_count: 500, excluded_count: 0, coverage: 1, mean_return: 0.04, median_return: 0.03, dispersion: 0.02, warnings: [] }], exclusions: [] },
+            { role: 'equal_weight', symbol: 'RSP', label: 'RSP', verification_state: 'verified', available: true, points: [{ timestamp: '2026-01-02T00:00:00Z', snapshot_id: 2, composition_date: '2026-01-01', known_at: '2026-01-02T00:00:00Z', membership_version: 2, weight_method: 'reported_holdings_weights', reported_weight_coverage: 1, top_n_weight: 0.02, hhi: 0.002, effective_constituents: 500, eligible_count: 500, covered_count: 500, excluded_count: 0, coverage: 1, mean_return: 0.05, median_return: 0.05, dispersion: 0.015, warnings: [] }], exclusions: [] },
+          ], exclusions: [],
+        }),
+      })
+    })
+    await page.route('**/api/v1/analysis/benchmark-families/sp500/concentration?rank_period*', async route => {
       familyAsOfRequests.push(route.request().url())
       await route.fulfill({
         status: 200,
@@ -3499,6 +3513,7 @@ test.describe('TC2000 workstation', () => {
     await expect(breadth.locator('[aria-label="Benchmark family participation"]')).toContainText('Cap weight SPY · >20 70% · near 52w 40% · trend 65%', { timeout: 15_000 })
     await expect(breadth.locator('[aria-label="Benchmark family role ranking"]')).toContainText('#1 Equal weight RSP', { timeout: 15_000 })
     await expect(breadth.locator('[aria-label="Benchmark family concentration"]')).toContainText('Cap weight SPY · top 34.0% · HHI 0.04 · effective 25.00 · σ 2.0% · 100.0% covered', { timeout: 15_000 })
+    await expect(breadth.locator('[aria-label="Benchmark family concentration"]')).toContainText('History · 1 points · point-in-time snapshots', { timeout: 15_000 })
     await expect(breadth.locator('[aria-label="Cross-family ranking"]')).toContainText('#1 S&P 500 SPY', { timeout: 15_000 })
     await expect(breadth.locator('[aria-label="Cross-family ranking"]')).toContainText('History · 1 points', { timeout: 15_000 })
     await expect(familyPanel.getByRole('combobox', { name: 'Family ratio leg' })).toHaveValue('equal_weight')

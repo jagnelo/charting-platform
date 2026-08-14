@@ -1,5 +1,15 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-08-15 — Historical concentration/dispersion sub-gate
+
+Historical concentration acceptance must prove timestamp-safe disclosure selection. For each point,
+the selected snapshot's composition date and `known_at` must precede the bar timestamp, while the
+response preserves snapshot ID, membership version, weight method, top-N/HHI/effective count,
+distribution, coverage, and exclusions. A later disclosure must not alter earlier points. The
+current two-snapshot fixture and browser history evidence satisfy this contract for the represented
+SPY/RSP state; derived equal-weight history, complete eight-root/provider population, and broader
+historical occurrence/visual acceptance remain explicit open gates.
+
 ## 2026-08-14 — Concentration/dispersion sub-gate
 
 For every selected benchmark family leg, the acceptance run must verify that concentration and

@@ -755,6 +755,127 @@ class TestWorkspaces:
         assert cap["members"][0]["symbol"] == instrument.symbol
         assert roles["equal_weight"]["available"] is False
 
+    def test_benchmark_family_concentration_history_uses_known_at_snapshots(
+        self, client, auth_headers, db, instrument, instrument_type, ohlcv_bars
+    ):
+        from datetime import UTC, datetime
+        from decimal import Decimal
+
+        from app.models.etf_holdings import ETFHolding, ETFHoldingsSnapshot, ETFProfile
+        from app.models.instrument import Instrument
+        from app.models.ohlcv import OHLCVBar, Timeframe
+
+        seeded = client.get("/api/v1/market-groups", headers=auth_headers)
+        assert seeded.status_code == 200
+        spy = Instrument(
+            symbol="SPY",
+            name="SPDR S&P 500 ETF Trust",
+            currency="USD",
+            instrument_type_id=instrument_type.id,
+            is_active=True,
+        )
+        db.add(spy)
+        db.flush()
+        profile = ETFProfile(instrument_id=spy.id, adapter_status="resolved")
+        db.add(profile)
+        db.flush()
+        snapshot = ETFHoldingsSnapshot(
+            etf_profile_id=profile.id,
+            composition_date=datetime(2024, 1, 1, tzinfo=UTC).date(),
+            known_at=datetime(2024, 1, 2, tzinfo=UTC),
+            provenance="issuer_native",
+            source_provider="fixture",
+            source_quality="issuer_disclosed",
+            completeness_status="complete",
+            row_count=1,
+            resolved_count=1,
+            unresolved_count=0,
+            total_weight=Decimal("0.25"),
+            snapshot_hash="test-family-concentration-history-spy",
+        )
+        db.add(snapshot)
+        db.flush()
+        db.add(
+            ETFHolding(
+                snapshot_id=snapshot.id,
+                constituent_instrument_id=instrument.id,
+                position=1,
+                reported_symbol=instrument.symbol,
+                reported_name=instrument.name,
+                weight=Decimal("0.25"),
+                source_row_hash="test-family-concentration-history-aapl",
+                is_resolved=True,
+            )
+        )
+        later_snapshot = ETFHoldingsSnapshot(
+            etf_profile_id=profile.id,
+            composition_date=datetime(2024, 3, 1, tzinfo=UTC).date(),
+            known_at=datetime(2024, 3, 2, tzinfo=UTC),
+            provenance="issuer_native",
+            source_provider="fixture",
+            source_quality="issuer_disclosed",
+            completeness_status="complete",
+            row_count=1,
+            resolved_count=1,
+            unresolved_count=0,
+            total_weight=Decimal("0.50"),
+            snapshot_hash="test-family-concentration-history-spy-later",
+        )
+        db.add(later_snapshot)
+        db.flush()
+        db.add(
+            ETFHolding(
+                snapshot_id=later_snapshot.id,
+                constituent_instrument_id=instrument.id,
+                position=1,
+                reported_symbol=instrument.symbol,
+                reported_name=instrument.name,
+                weight=Decimal("0.50"),
+                source_row_hash="test-family-concentration-history-aapl-later",
+                is_resolved=True,
+            )
+        )
+        for index, bar in enumerate(ohlcv_bars):
+            close = Decimal(str(100 + index))
+            db.add(
+                OHLCVBar(
+                    instrument_id=spy.id,
+                    timeframe=Timeframe.D1,
+                    ts=bar.ts,
+                    open=close,
+                    high=close,
+                    low=close,
+                    close=close,
+                    volume=Decimal("1"),
+                    is_adjusted=True,
+                )
+            )
+        db.flush()
+
+        response = client.get(
+            "/api/v1/analysis/benchmark-families/sp500/concentration/history",
+            headers=auth_headers,
+            params={"rank_period": "1D", "top_n": 5, "limit": 100},
+        )
+        assert response.status_code == 200, response.text
+        payload = response.json()
+        roles = {role["role"]: role for role in payload["roles"]}
+        cap = roles["cap_weight"]
+        assert cap["available"] is True
+        assert cap["points"]
+        point = cap["points"][-1]
+        assert cap["points"][0]["snapshot_id"] == snapshot.id
+        assert point["snapshot_id"] == later_snapshot.id
+        assert point["composition_date"] == "2024-03-01"
+        assert point["known_at"].startswith("2024-03-02")
+        assert point["weight_method"] == "reported_holdings_weights"
+        assert point["top_n_weight"] == 0.50
+        assert point["hhi"] == 1
+        assert point["effective_constituents"] == 1
+        assert point["coverage"] == 1
+        assert {item["snapshot_id"] for item in cap["points"]} == {snapshot.id, later_snapshot.id}
+        assert roles["equal_weight"]["available"] is False
+
     def test_benchmark_family_ratios_align_selected_leg_to_cap_and_market(
         self, client, auth_headers, db, instrument_type
     ):

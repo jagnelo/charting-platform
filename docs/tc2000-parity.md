@@ -1,5 +1,19 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-15 — Historical family concentration/dispersion parity slice
+
+Family concentration now has a historical endpoint and workstation evidence path. At each observed
+bar timestamp it chooses the latest holdings disclosure that was composition-valid and known to the
+platform by that timestamp; future snapshots cannot influence earlier points. Each role's points
+retain snapshot/membership identity, composition and known-at dates, reported-weight method,
+top-N/HHI/effective-count metrics, distribution statistics, coverage, and exclusions. The
+SPY fixture regression proves a later disclosure does not become active before its known-at time.
+
+The current browser surface displays the bounded history-point count beside the current dense
+concentration strip. This closes the historical contract/presentation slice, not full data
+population: derived equal-weight history, complete S&P/Russell/Nasdaq role snapshots, longer
+history/occurrence visualization, and final all-root provider-backed parity remain open.
+
 ## 2026-08-14 — Family concentration and dispersion parity slice
 
 The family breadth surface now includes a dense concentration/dispersion strip for each available

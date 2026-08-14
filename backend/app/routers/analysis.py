@@ -41,6 +41,9 @@ from app.schemas.analysis import (
     BenchmarkFamilyBreadthMetricOut,
     BenchmarkFamilyBreadthOut,
     BenchmarkFamilyBreadthRoleOut,
+    BenchmarkFamilyConcentrationHistoryOut,
+    BenchmarkFamilyConcentrationHistoryPointOut,
+    BenchmarkFamilyConcentrationHistoryRoleOut,
     BenchmarkFamilyConcentrationMemberOut,
     BenchmarkFamilyConcentrationOut,
     BenchmarkFamilyConcentrationRoleOut,
@@ -2344,6 +2347,304 @@ async def benchmark_family_concentration(
         as_of=as_of,
         rank_period=rank_period,
         top_n=top_n,
+        roles=roles,
+        exclusions=exclusions,
+        freshness=freshness,
+        freshness_detail=freshness_detail,
+    )
+
+
+@router.get(
+    "/benchmark-families/{family_key}/concentration/history",
+    response_model=BenchmarkFamilyConcentrationHistoryOut,
+)
+async def benchmark_family_concentration_history(
+    family_key: str,
+    rank_period: str = Query(default="1M", pattern="^(1D|1W|1M|3M|6M|YTD|1Y)$"),
+    top_n: int = Query(default=10, ge=1, le=25),
+    limit: int = Query(default=500, ge=1, le=5_000),
+    as_of: datetime | None = Query(default=None),
+    timeframe: Timeframe = Timeframe.D1,
+    adjusted: bool = True,
+    _: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Return point-in-time concentration and dispersion history per family role.
+
+    Each timestamp selects the latest holdings disclosure whose composition date and
+    known-at timestamp were already available at that timestamp.  Member return cells
+    are calculated from observed local bars only; neither memberships nor returns are
+    forward-filled across unavailable evidence.
+    """
+
+    family = (
+        await db.execute(select(MarketGroup).where(MarketGroup.stable_key == family_key))
+    ).scalar_one_or_none()
+    if family is None or family.group_type != "benchmark_family":
+        raise HTTPException(
+            404,
+            detail={"code": "benchmark_family_not_found", "family_key": family_key},
+        )
+    provenance = dict(family.provenance or {})
+    official = provenance.get("official_index")
+    mappings = provenance.get("proxy_mappings")
+    mappings = mappings if isinstance(mappings, Mapping) else {}
+    roles: list[BenchmarkFamilyConcentrationHistoryRoleOut] = []
+    exclusions: list[AnalysisWarning] = []
+    freshness_ids: list[int] = []
+
+    for role in ("cap_weight", "equal_weight", "value", "growth"):
+        mapping = mappings.get(role)
+        mapping = mapping if isinstance(mapping, Mapping) else {}
+        symbol = str(mapping.get("symbol")).upper() if mapping.get("symbol") else None
+        label = str(mapping.get("label") or "No verified mapped proxy")
+        verification_state = str(mapping.get("verification_state") or "not_verified")
+        if not symbol:
+            warning = AnalysisWarning(
+                code="family_role_mapping_unavailable",
+                message=f"No verified mapped proxy is available for the {role} leg.",
+            )
+            exclusions.append(warning)
+            roles.append(
+                BenchmarkFamilyConcentrationHistoryRoleOut(
+                    role=role,
+                    symbol=None,
+                    label=label,
+                    verification_state=verification_state,
+                    available=False,
+                    exclusions=[warning],
+                )
+            )
+            continue
+
+        try:
+            proxy = await _instrument(db, symbol)
+        except HTTPException as error:
+            detail = error.detail if isinstance(error.detail, Mapping) else {}
+            warning = AnalysisWarning(
+                code=str(detail.get("code") or "benchmark_proxy_unavailable"),
+                message=f"No canonical proxy is available for {family_key} {role}.",
+            )
+            exclusions.append(warning)
+            roles.append(
+                BenchmarkFamilyConcentrationHistoryRoleOut(
+                    role=role,
+                    symbol=symbol,
+                    label=label,
+                    verification_state=verification_state,
+                    available=False,
+                    exclusions=[warning],
+                )
+            )
+            continue
+
+        profile = (
+            await db.execute(select(ETFProfile).where(ETFProfile.instrument_id == proxy.id))
+        ).scalar_one_or_none()
+        if profile is None:
+            warning = AnalysisWarning(
+                code="etf_profile_not_found",
+                message=f"No holdings profile is available for {family_key} {role}.",
+            )
+            exclusions.append(warning)
+            roles.append(
+                BenchmarkFamilyConcentrationHistoryRoleOut(
+                    role=role,
+                    symbol=symbol,
+                    label=label,
+                    verification_state=verification_state,
+                    available=False,
+                    exclusions=[warning],
+                )
+            )
+            continue
+
+        snapshots_statement = holdings_snapshot_source_filter(
+            select(ETFHoldingsSnapshot)
+            .options(selectinload(ETFHoldingsSnapshot.rows))
+            .where(ETFHoldingsSnapshot.etf_profile_id == profile.id)
+        ).where(ETFHoldingsSnapshot.known_at.is_not(None))
+        if as_of is not None:
+            snapshots_statement = snapshots_statement.where(
+                ETFHoldingsSnapshot.composition_date <= as_of.date(),
+                ETFHoldingsSnapshot.known_at <= as_of,
+            )
+        snapshots = list(
+            (
+                await db.execute(
+                    snapshots_statement.order_by(
+                        ETFHoldingsSnapshot.composition_date,
+                        ETFHoldingsSnapshot.known_at,
+                        ETFHoldingsSnapshot.id,
+                    )
+                )
+            ).scalars()
+        )
+        if not snapshots:
+            warning = AnalysisWarning(
+                code="holdings_snapshot_not_found",
+                message=f"No point-in-time holdings snapshots are available for {family_key} {role}.",
+            )
+            exclusions.append(warning)
+            roles.append(
+                BenchmarkFamilyConcentrationHistoryRoleOut(
+                    role=role,
+                    symbol=symbol,
+                    label=label,
+                    verification_state=verification_state,
+                    available=False,
+                    exclusions=[warning],
+                )
+            )
+            continue
+
+        instrument_ids = sorted(
+            {
+                holding.constituent_instrument_id
+                for snapshot in snapshots
+                for holding in snapshot.rows
+                if holding.constituent_instrument_id
+                and _holding_exclusion_code(holding) is None
+            }
+        )
+        freshness_ids.extend(instrument_ids)
+        bars_by_id = _truncate_bars_at(
+            await _bars_by_instrument(db, instrument_ids, timeframe, adjusted), as_of
+        )
+        series_by_id = {
+            instrument_id: _historical_return_series(bars)
+            for instrument_id, bars in bars_by_id.items()
+            if bars
+        }
+        timestamps = sorted(
+            {timestamp for series in series_by_id.values() for timestamp in series}
+        )[-limit:]
+        points: list[BenchmarkFamilyConcentrationHistoryPointOut] = []
+        role_exclusions: list[AnalysisWarning] = []
+        for timestamp in timestamps:
+            eligible_snapshots = [
+                snapshot
+                for snapshot in snapshots
+                if snapshot.composition_date <= timestamp.date()
+                and snapshot.known_at is not None
+                and snapshot.known_at <= timestamp
+            ]
+            if not eligible_snapshots:
+                continue
+            snapshot = max(
+                eligible_snapshots,
+                key=lambda item: (
+                    item.composition_date,
+                    item.known_at,
+                    item.id,
+                ),
+            )
+            eligible_rows = [
+                holding
+                for holding in snapshot.rows
+                if holding.constituent_instrument_id
+                and _holding_exclusion_code(holding) is None
+            ]
+            excluded_count = len(snapshot.rows) - len(eligible_rows)
+            performance_values = [
+                series_by_id[holding.constituent_instrument_id][timestamp].get(rank_period)
+                for holding in eligible_rows
+                if holding.constituent_instrument_id in series_by_id
+                and timestamp in series_by_id[holding.constituent_instrument_id]
+            ]
+            returns = [float(value) for value in performance_values if value is not None]
+            weighted_rows = [
+                holding
+                for holding in eligible_rows
+                if holding.weight is not None and float(holding.weight) >= 0
+            ]
+            reported_weight_total = sum(float(holding.weight) for holding in weighted_rows)
+            ordered_by_weight = sorted(
+                weighted_rows,
+                key=lambda holding: (-float(holding.weight or 0), holding.position),
+            )
+            top_rows = ordered_by_weight[:top_n]
+            hhi = (
+                sum(
+                    (float(holding.weight or 0) / reported_weight_total) ** 2
+                    for holding in weighted_rows
+                )
+                if reported_weight_total > 0
+                else None
+            )
+            stats = _distribution_stats(returns)
+            points.append(
+                BenchmarkFamilyConcentrationHistoryPointOut(
+                    timestamp=timestamp,
+                    snapshot_id=snapshot.id,
+                    composition_date=snapshot.composition_date,
+                    known_at=snapshot.known_at,
+                    membership_version=snapshot.id,
+                    weight_method=(
+                        "reported_holdings_weights" if weighted_rows else "unavailable"
+                    ),
+                    reported_weight_coverage=(
+                        min(max(reported_weight_total, 0.0), 1.0)
+                        if weighted_rows
+                        else None
+                    ),
+                    top_n_weight=(
+                        min(sum(float(holding.weight or 0) for holding in top_rows), 1.0)
+                        if weighted_rows
+                        else None
+                    ),
+                    hhi=hhi,
+                    effective_constituents=(1 / hhi if hhi else None),
+                    eligible_count=len(eligible_rows),
+                    covered_count=len(returns),
+                    excluded_count=excluded_count,
+                    coverage=len(returns) / max(len(eligible_rows), 1),
+                    warnings=(
+                        [
+                            AnalysisWarning(
+                                code="no_weight_data",
+                                message="No reported holdings weights are available at this timestamp.",
+                            )
+                        ]
+                        if not weighted_rows
+                        else []
+                    ),
+                    **stats,
+                )
+            )
+        if not points:
+            warning = AnalysisWarning(
+                code="no_aligned_history",
+                message=f"No point-in-time concentration observations are available for {family_key} {role}.",
+            )
+            role_exclusions.append(warning)
+            exclusions.append(warning)
+        roles.append(
+            BenchmarkFamilyConcentrationHistoryRoleOut(
+                role=role,
+                symbol=symbol,
+                label=label,
+                verification_state=verification_state,
+                available=bool(points),
+                points=points,
+                exclusions=role_exclusions,
+            )
+        )
+
+    freshness, freshness_detail = await _batch_freshness(
+        db, sorted(set(freshness_ids)), timeframe, adjusted
+    )
+    return BenchmarkFamilyConcentrationHistoryOut(
+        family_key=family_key,
+        official_index_symbol=(
+            str(official.get("symbol") or "") if isinstance(official, Mapping) else ""
+        ),
+        timeframe=timeframe.value,
+        adjustment="split_adjusted" if adjusted else "raw",
+        as_of=as_of,
+        rank_period=rank_period,
+        top_n=top_n,
+        limit=limit,
         roles=roles,
         exclusions=exclusions,
         freshness=freshness,

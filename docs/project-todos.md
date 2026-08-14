@@ -1,5 +1,23 @@
 # Project TODO Memory
 
+### 2026-08-15 — Historical family concentration and dispersion
+
+- [x] Added `GET /analysis/benchmark-families/{family_key}/concentration/history` with bounded
+      rank-period history for each cap/equal/value/growth role. Every timestamp selects the latest
+      holdings disclosure whose composition date and `known_at` were already available at that
+      timestamp, then evaluates only observed local member bars. The response preserves snapshot
+      ID, composition/known-at dates, membership version, reported-weight method, top-N weight,
+      HHI, effective constituents, return distribution, coverage, and warnings per point.
+- [x] Added store/cache loading and workstation history evidence (`point-in-time snapshots`) while
+      keeping current concentration and family controls visible. Added a two-disclosure regression
+      proving the history moves from the earlier snapshot to the later only after its known-at
+      boundary.
+- [x] Validation passes: focused history integration `1/1`, current/history concentration `2/2`,
+      family integration `14/14`, store `65/65`, full Vitest `837/837`, type-check/build, Ruff,
+      compilation, diff-check, rebuilt authenticated Chromium `F8s-breadth-family-ratio 1/1`.
+- [ ] Still open: historical derived-equal weighting, longer all-family/style population,
+      historical breadth predicates/occurrences, and full family-wide provider-backed acceptance.
+
 ### 2026-08-14 — Family concentration and cross-sectional dispersion slice
 
 - [x] Added `GET /analysis/benchmark-families/{family_key}/concentration` over the existing

@@ -552,6 +552,9 @@
           <span v-if="!familyConcentration.roles.some(item => item.available)" class="breadth-tool__status">No concentration data available.</span>
         </template>
         <span v-else class="breadth-tool__status">Concentration unavailable.</span>
+        <span v-if="familyConcentrationHistoryLoading" role="status">Loading history…</span>
+        <span v-else-if="familyConcentrationHistoryError" class="breadth-tool__status--error" role="alert">{{ familyConcentrationHistoryError }}</span>
+        <span v-else-if="familyConcentrationHistory" class="breadth-tool__family-concentration-history">History · {{ familyConcentrationHistoryPointCount }} points · point-in-time snapshots</span>
       </div>
       <div v-if="isBenchmarkFamily" class="breadth-tool__cross-family-ranking" aria-label="Cross-family ranking">
         <strong>US family ranking · {{ crossFamilyRanking?.rank_period ?? '1M' }}</strong>
@@ -1759,6 +1762,11 @@ const familyConcentrationKey = computed(() => `${breadthGroupKey.value}:${breadt
 const familyConcentration = computed(() => workspaceStore.benchmarkFamilyConcentrations[familyConcentrationKey.value])
 const familyConcentrationError = computed(() => workspaceStore.benchmarkFamilyConcentrationErrors[familyConcentrationKey.value] ?? null)
 const familyConcentrationLoading = ref(false)
+const familyConcentrationHistoryKey = computed(() => `${breadthGroupKey.value}:${breadthTimeframe.value}:${breadthAdjusted.value ? 'adj' : 'raw'}:${familyAsOf.value || 'latest'}:1M:10:500`)
+const familyConcentrationHistory = computed(() => workspaceStore.benchmarkFamilyConcentrationHistories[familyConcentrationHistoryKey.value])
+const familyConcentrationHistoryError = computed(() => workspaceStore.benchmarkFamilyConcentrationHistoryErrors[familyConcentrationHistoryKey.value] ?? null)
+const familyConcentrationHistoryPointCount = computed(() => Math.max(0, ...((familyConcentrationHistory.value?.roles ?? []).map(role => role.points.length))))
+const familyConcentrationHistoryLoading = ref(false)
 const crossFamilyRankingKey = computed(() => `${breadthTimeframe.value}:${breadthAdjusted.value ? 'adj' : 'raw'}:${familyAsOf.value || 'latest'}:1M::`)
 const crossFamilyRanking = computed(() => workspaceStore.crossFamilyRankings[crossFamilyRankingKey.value])
 const crossFamilyRankingError = computed(() => workspaceStore.crossFamilyRankingErrors[crossFamilyRankingKey.value] ?? null)
@@ -2602,6 +2610,7 @@ watch([breadthGroupKey, breadthTimeframe, breadthAdjusted, familyRatioMarket, fa
   familyBreadthLoading.value = true
   familyRankingLoading.value = true
   familyConcentrationLoading.value = true
+  familyConcentrationHistoryLoading.value = true
   crossFamilyRankingLoading.value = true
   crossFamilyRankingHistoryLoading.value = true
   try {
@@ -2612,6 +2621,7 @@ watch([breadthGroupKey, breadthTimeframe, breadthAdjusted, familyRatioMarket, fa
       workspaceStore.loadBenchmarkFamilyBreadthHistory(groupKey, { timeframe, adjusted, as_of: familyAsOf.value || undefined, limit: 500 }),
       workspaceStore.loadBenchmarkFamilyRanking(groupKey, { timeframe, adjusted, as_of: familyAsOf.value || undefined, rank_period: '1M' }),
       workspaceStore.loadBenchmarkFamilyConcentration(groupKey, { timeframe, adjusted, as_of: familyAsOf.value || undefined, rank_period: '1M', top_n: 10 }),
+      workspaceStore.loadBenchmarkFamilyConcentrationHistory(groupKey, { timeframe, adjusted, as_of: familyAsOf.value || undefined, rank_period: '1M', top_n: 10, limit: 500 }),
       workspaceStore.loadCrossFamilyRanking({ timeframe, adjusted, as_of: familyAsOf.value || undefined, rank_period: '1M' }),
       workspaceStore.loadCrossFamilyRankingHistory({ timeframe, adjusted, as_of: familyAsOf.value || undefined, rank_period: '1M', limit: 500 }),
     ])
@@ -2621,6 +2631,7 @@ watch([breadthGroupKey, breadthTimeframe, breadthAdjusted, familyRatioMarket, fa
     familyBreadthLoading.value = false
     familyRankingLoading.value = false
     familyConcentrationLoading.value = false
+    familyConcentrationHistoryLoading.value = false
     crossFamilyRankingLoading.value = false
     crossFamilyRankingHistoryLoading.value = false
   }
