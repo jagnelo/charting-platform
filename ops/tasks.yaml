@@ -1,4 +1,27 @@
 tasks:
+  - id: tc2000-study-lab-current-history-exclusion-20260814
+    title: Exclude current observation from Study Lab historical distribution
+    status: completed
+    priority: high
+    scope: >-
+      Correct the Current versus history factory source so the latest return is passed explicitly
+      as the current observation and prior returns form the historical sample.
+    definition_of_done:
+      - Factory source excludes the current return from the historical input
+      - Focused source-contract tests prove explicit current and prior-history arguments
+      - Authenticated Current versus history browser flow remains green
+      - No visual threshold, mask, product criterion, or acceptance rule changes
+    validation:
+      - focused-study-lab-source-contract-1-of-1
+      - focused-authenticated-browser-1-of-1
+      - adjacent-study-python-results-browser-13-of-13
+      - frontend-vitest-818-of-818
+      - type-check-build-uplot-visual-policy-diff-check
+    notes:
+      - REF-STUDY-LAB-V25 remains a documented original-surface interim visual-reference gap.
+      - Acceptance flexibility used: none; no product, visual, threshold, mask, or functional criterion changed.
+      - Implementation/docs commit: 975bbba7; operational checkpoint follows separately.
+      - Exact push for 91463e54..975bbba7 was rejected before Git by the private-origin egress safeguard; transport-only, not a goal blocker.
   - id: tc2000-study-lab-current-history-browser-20260814
     title: Add authenticated Current versus history Study Lab acceptance
     status: completed

@@ -1,5 +1,29 @@
 # Active Handoff
 
+## 2026-08-14 — Study Lab current-history exclusion correctness (completed)
+
+- Context owner: Codex. Owned paths are `frontend/src/components/workstation/StudyLabTool.vue`,
+  focused Study Lab tests, and checkpoint docs.
+- Intent: ensure the Current versus history factory compares the latest observation against prior
+  observations only; the current value must not be counted inside its own historical distribution.
+- Acceptance flexibility used: none for product, visual, or functional criteria. `REF-STUDY-LAB-V25`
+  remains an explicitly tracked original-surface interim baseline/product-contract reference gap.
+- Completed: the factory now passes `history = returns[:-1]` and `current = returns[-1]` to
+  `research.historical_comparison`, and the histogram consumes history only while highlighting the
+  explicit current value.
+- Validation: focused source-contract `1/1`; focused browser `1/1`; adjacent Study Lab/Python/Results
+  browser `13/13`; frontend `818/818`; type-check/build, uPlot contract, visual policy, and
+  `git diff --check` pass.
+- Implementation/docs commit: `975bbba7` (`fix(study-lab): exclude current value from history`).
+- Exact elevated push `rtk git push origin HEAD:feat/tc2000-frontend-rework` was attempted once for
+  range `91463e54..975bbba7` and rejected before Git by the private-origin export safeguard because
+  trusted authorization for this exact payload and destination was unavailable. Repository/index
+  health is normal; this is transport-only, not a product or goal blocker. No alternate transport,
+  wrapper, rewrite, reset, stash, force push, or repeat is used.
+- Next action: commit implementation/docs separately from the operational checkpoint, make the
+  operational checkpoint, record transport state, and continue with the next independent
+  workstation/backend gap.
+
 ## 2026-08-14 — Study Lab current-history browser transport record
 
 - The implementation/browser commit `3a97eaec` and operational checkpoint `62578592` are cleanly
