@@ -7,7 +7,8 @@
 - No acceptance flexibility used; official membership, complete rebalance continuity, canonical
   bars, and browser population remain open. Implementation/docs commit: `d018066`.
 - The exact elevated push was attempted once and rejected before Git by the private-origin
-  safeguard. No workaround or repeat; operational checkpoint remains to be made.
+  safeguard. No workaround or repeat; operational checkpoint `0cd59bd` is clean locally and the
+  next context can continue from this boundary.
 
 ## 2026-08-15 — Role-aware family dated backfill checkpoint
 
