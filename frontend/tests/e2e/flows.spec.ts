@@ -3244,6 +3244,22 @@ test.describe('TC2000 workstation', () => {
   })
 
   test('F8s-breadth-family-ratio — family breadth exposes role-aware cap and market relative strength', async ({ page, browserDiagnostics }) => {
+    const customBreadthRequests: Array<Record<string, unknown>> = []
+    await page.route('**/api/v1/analysis/breadth', async route => {
+      if (route.request().method() === 'POST') customBreadthRequests.push(JSON.parse(route.request().postData() ?? '{}') as Record<string, unknown>)
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ definition_version: 1, definition_hash: 'family-breadth', universe: { kind: 'benchmark_family', family_key: 'sp500', role: 'equal_weight', proxy_symbol: 'RSP' }, condition: {}, timeframe: 'D1', adjustment: 'split_adjusted', requested_count: 1, eligible_count: 1, pass_count: 1, excluded_count: 0, percentage: 1, coverage: 1, members: [], exclusions: [] }),
+      })
+    })
+    await page.route('**/api/v1/analysis/breadth/history', async route => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ definition_version: 1, definition_hash: 'family-breadth', universe: { kind: 'benchmark_family', family_key: 'sp500', role: 'equal_weight', proxy_symbol: 'RSP' }, condition: {}, timeframe: 'D1', adjustment: 'split_adjusted', points: [], exclusions: [] }),
+      })
+    })
     await page.route('**/market-groups/us-benchmarks*', async route => {
       const response = await route.fetch()
       const payload = await response.json() as Record<string, unknown>
@@ -3290,6 +3306,12 @@ test.describe('TC2000 workstation', () => {
     await expect(familyPanel).toBeVisible({ timeout: 10_000 })
     await expect(familyPanel).toContainText('RSP/SPY', { timeout: 15_000 })
     await expect(familyPanel.getByRole('combobox', { name: 'Family ratio leg' })).toHaveValue('equal_weight')
+    const customUniverse = breadth.locator('select[aria-label="Custom breadth universe"]')
+    await expect(customUniverse.locator('option[value="benchmark_family"]')).toHaveCount(1)
+    await customUniverse.selectOption('benchmark_family')
+    await breadth.getByRole('button', { name: 'Evaluate' }).click()
+    await expect.poll(() => customBreadthRequests.length, { timeout: 10_000 }).toBeGreaterThan(0)
+    expect(customBreadthRequests.at(-1)?.universe).toMatchObject({ kind: 'benchmark_family', key: 'sp500', role: 'equal_weight' })
     await browserDiagnostics.expectNoCriticalIssues()
   })
 

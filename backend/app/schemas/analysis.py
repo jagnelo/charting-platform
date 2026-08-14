@@ -290,8 +290,9 @@ class BreadthHistoryOut(AnalysisResponseMetadata):
 class BreadthUniverseRequest(BaseModel):
     """A provider-neutral universe selector for reusable breadth studies."""
 
-    kind: Literal["group", "etf_holdings", "symbols"]
+    kind: Literal["group", "benchmark_family", "etf_holdings", "symbols"]
     key: str | None = Field(default=None, min_length=1, max_length=160)
+    role: Literal["cap_weight", "equal_weight", "value", "growth"] = "cap_weight"
     symbols: list[str] = Field(default_factory=list, max_length=25_000)
     point_in_time: bool = True
 

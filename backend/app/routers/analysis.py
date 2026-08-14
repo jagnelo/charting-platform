@@ -2822,6 +2822,121 @@ def _generic_membership_version(payload: object) -> int:
     return int(hashlib.sha256(encoded.encode()).hexdigest()[:15], 16)
 
 
+async def _resolve_benchmark_family_breadth_universe(
+    definition: BreadthDefinitionRequest, db: AsyncSession
+) -> tuple[list[BreadthMember], list[int], list[AnalysisWarning], dict[str, object], object]:
+    """Resolve a family/style leg through its point-in-time ETF-proxy snapshot."""
+
+    family_key = definition.universe.key
+    if not family_key:
+        raise HTTPException(
+            422, detail={"code": "universe_key_required", "kind": "benchmark_family"}
+        )
+    family = (
+        await db.execute(select(MarketGroup).where(MarketGroup.stable_key == family_key))
+    ).scalar_one_or_none()
+    if family is None or family.group_type != "benchmark_family":
+        raise HTTPException(
+            404, detail={"code": "benchmark_family_not_found", "family_key": family_key}
+        )
+    provenance = dict(family.provenance or {})
+    mappings = provenance.get("proxy_mappings")
+    mapping = mappings.get(definition.universe.role) if isinstance(mappings, Mapping) else None
+    if not isinstance(mapping, Mapping) or not mapping.get("symbol"):
+        raise HTTPException(
+            404,
+            detail={
+                "code": "benchmark_mapping_unavailable",
+                "family_key": family_key,
+                "role": definition.universe.role,
+            },
+        )
+    proxy_symbol = str(mapping["symbol"]).upper()
+    proxy = await _instrument(db, proxy_symbol)
+    profile = (
+        await db.execute(select(ETFProfile).where(ETFProfile.instrument_id == proxy.id))
+    ).scalar_one_or_none()
+    if profile is None:
+        raise HTTPException(
+            404,
+            detail={"code": "etf_profile_not_found", "family_key": family_key, "symbol": proxy_symbol},
+        )
+    statement = holdings_snapshot_source_filter(
+        select(ETFHoldingsSnapshot).where(ETFHoldingsSnapshot.etf_profile_id == profile.id)
+    )
+    if definition.universe.point_in_time:
+        statement = _holdings_snapshot_at(statement, definition.as_of)
+    snapshot = (
+        await db.execute(
+            statement.options(
+                selectinload(ETFHoldingsSnapshot.rows).selectinload(
+                    ETFHolding.constituent_instrument
+                )
+            )
+            .order_by(
+                ETFHoldingsSnapshot.composition_date.desc(),
+                ETFHoldingsSnapshot.known_at.desc().nullslast(),
+                ETFHoldingsSnapshot.id.desc(),
+            )
+            .limit(1)
+        )
+    ).scalar_one_or_none()
+    if snapshot is None:
+        raise HTTPException(
+            404,
+            detail={
+                "code": "holdings_snapshot_not_found",
+                "family_key": family_key,
+                "role": definition.universe.role,
+                "symbol": proxy_symbol,
+            },
+        )
+    members: list[BreadthMember] = []
+    member_ids: list[int] = []
+    warnings: list[AnalysisWarning] = []
+    for holding in snapshot.rows:
+        if not holding.constituent_instrument_id or holding.constituent_instrument is None:
+            warnings.append(_generic_breadth_warning("unresolved_member", None))
+            continue
+        if holding.holding_type != "equity" or holding.row_type != "security":
+            warnings.append(
+                AnalysisWarning(
+                    code="non_equity_holding",
+                    message="Non-equity ETF exposure is excluded from benchmark-family breadth.",
+                )
+            )
+            continue
+        instrument = holding.constituent_instrument
+        if instrument.id in member_ids:
+            continue
+        members.append(BreadthMember(instrument.id, instrument.symbol, instrument.name))
+        member_ids.append(instrument.id)
+    membership_payload = {
+        "family_key": family_key,
+        "role": definition.universe.role,
+        "proxy_symbol": proxy_symbol,
+        "snapshot_id": snapshot.id,
+        "snapshot_hash": snapshot.snapshot_hash,
+        "instrument_ids": sorted(member_ids),
+    }
+    universe_provenance = {
+        "kind": "benchmark_family",
+        "family_key": family_key,
+        "family_name": family.name,
+        "role": definition.universe.role,
+        "proxy_symbol": proxy_symbol,
+        "membership_semantics": "etf_proxy_membership",
+        "composition_date": snapshot.composition_date.isoformat(),
+        "known_at": snapshot.known_at.isoformat() if snapshot.known_at else None,
+        "source_provider": snapshot.source_provider,
+        "provenance": snapshot.provenance,
+        "completeness_status": snapshot.completeness_status,
+        "snapshot_hash": snapshot.snapshot_hash,
+        "mapping_verification_state": mapping.get("verification_state"),
+    }
+    return members, member_ids, warnings, universe_provenance, membership_payload
+
+
 async def _resolve_generic_breadth_universe(
     definition: BreadthDefinitionRequest, db: AsyncSession
 ) -> tuple[list[BreadthMember], list[int], list[AnalysisWarning], dict[str, object], object]:
@@ -2834,6 +2949,8 @@ async def _resolve_generic_breadth_universe(
     universe_provenance: dict[str, object]
     membership_version_payload: object
 
+    if universe_kind == "benchmark_family":
+        return await _resolve_benchmark_family_breadth_universe(definition, db)
     if universe_kind == "group":
         if not definition.universe.key:
             raise HTTPException(
@@ -3466,7 +3583,16 @@ async def evaluate_generic_breadth(
     universe_provenance: dict[str, object]
     membership_version_payload: object
 
-    if universe_kind == "group":
+    if universe_kind == "benchmark_family":
+        (
+            members,
+            member_ids,
+            universe_warnings,
+            universe_provenance,
+            membership_version_payload,
+        ) = await _resolve_benchmark_family_breadth_universe(definition, db)
+
+    elif universe_kind == "group":
         if not definition.universe.key:
             raise HTTPException(
                 422, detail={"code": "universe_key_required", "kind": universe_kind}

@@ -13,6 +13,23 @@ closes the backend ratio primitive for family analysis; batch-all-leg compositio
 evidence, breadth/rotation/ranking, browser rendering, and exact visual/end-to-end acceptance
 remain open. No acceptance criterion was relaxed.
 
+## 2026-08-14 — Family/style legs as generic breadth universes
+
+The generic breadth API and composer now accept a `benchmark_family` universe with an explicit
+`cap_weight`, `equal_weight`, `value`, or `growth` role. The selected role resolves through the
+family's configured mapping and point-in-time ETF-proxy holdings snapshot, so the response retains
+family identity, proxy symbol, mapping verification, composition/known-at timestamps, source,
+completeness, snapshot hash, and ETF-proxy membership semantics. Current and historical calls use
+the same universe contract; the family role is not reduced to the current SPY-sector presets.
+
+When the active breadth root is a benchmark family, the custom condition composer exposes
+`Selected family leg`. This is the UI path for applying the same user-authored predicate (including
+the 200-day average and within-1%-of-52-week-high fixtures) to each available S&P, Russell, or
+Nasdaq family/style leg. Missing mappings, profiles, holdings, bars, or member resolution remain
+structured unavailable/exclusion states. No family role falls back to SPY, QQQ, another family,
+or a non-point-in-time membership snapshot. Focused current/history integration and Chromium
+coverage pass; provider population and the complete cross-family acceptance matrix remain open.
+
 ## 2026-08-14 — Family-leg constituent drill-down contract
 
 The family workflow now has a shared constituent route:

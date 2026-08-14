@@ -12043,3 +12043,26 @@ The current source also passes the focused authenticated top-down browser slice 
 - [ ] Still open: provider-backed historical membership/holdings/weights, family-wide breadth,
       rotation/ranking/dispersion, constituent browser drill-down, exact/unrepresented V25 visual
       states, and final acceptance. Acceptance flexibility used: **none**.
+
+### 2026-08-14 — Benchmark-family style-leg breadth universe
+
+- [x] Extended the generic breadth contract so `benchmark_family` is a first-class universe kind
+      with an explicit `role` of `cap_weight`, `equal_weight`, `value`, or `growth`. Current and
+      historical evaluation resolve that leg through its configured proxy mapping and the selected
+      point-in-time holdings snapshot, retaining family key, proxy symbol, mapping verification,
+      composition date, known-at time, source, completeness, snapshot hash, and ETF-proxy
+      membership semantics.
+- [x] Added current/history integration coverage for an S&P 500 cap leg using an issuer-labelled
+      SPY holdings fixture; the same contract is intended for every mapped S&P 500/400/600/1500,
+      Russell 1000/2000/3000, and Nasdaq 100 cap/equal/value/growth leg. The UI exposes
+      `Selected family leg` in the custom breadth composer when a benchmark-family root is active.
+- [x] Missing mappings, profiles, holdings snapshots, unresolved members, and non-equity rows stay
+      explicit errors/warnings; no role silently falls back to SPY, QQQ, another family, or a
+      current-only membership snapshot.
+- [x] Validation passes: focused Docker-backed benchmark-family/generic-breadth integration `4/4`,
+      focused family-breadth Chromium `1/1`, full frontend Vitest `824/824`, type-check, build,
+      Ruff, and diff checks. The first test run caught a real branch-placement defect and was
+      repaired before the passing rerun; acceptance flexibility used: **none**.
+- [ ] Still open: provider-backed population and historical holdings/weights for all families,
+      value/growth/equal availability evidence, family-wide breadth/rotation/ranking/dispersion,
+      populated drill-down, and full end-to-end acceptance across every available leg.

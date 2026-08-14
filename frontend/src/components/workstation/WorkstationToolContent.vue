@@ -405,6 +405,7 @@
         <strong>Custom condition</strong>
         <select :value="breadthCustomUniverseKind" aria-label="Custom breadth universe" @change="setBreadthConfiguration({ custom_universe_kind: ($event.target as HTMLSelectElement).value })">
           <option value="group">Current group</option>
+          <option v-if="isBenchmarkFamily" value="benchmark_family">Selected family leg</option>
           <option value="etf_holdings">SPY holdings proxy</option>
         </select>
         <select :value="breadthComposition" aria-label="Breadth condition composition" @change="setBreadthConfiguration({ breadth_condition_composition: ($event.target as HTMLSelectElement).value })">
@@ -1562,7 +1563,10 @@ const breadth = computed(() => workspaceStore.breadth[breadthGroupKey.value])
 const breadthHistory = computed(() => workspaceStore.breadthHistory[breadthGroupKey.value])
 const breadthBusy = computed(() => workspaceStore.breadthLoading[breadthGroupKey.value] === true || workspaceStore.breadthHistoryLoading[breadthGroupKey.value] === true)
 const breadthError = computed(() => workspaceStore.breadthErrors[breadthGroupKey.value] ?? workspaceStore.breadthHistoryErrors[breadthGroupKey.value] ?? null)
-const breadthCustomUniverseKind = computed(() => props.tool.configuration.custom_universe_kind === 'etf_holdings' ? 'etf_holdings' : 'group')
+const breadthCustomUniverseKind = computed(() => {
+  const candidate = props.tool.configuration.custom_universe_kind
+  return candidate === 'etf_holdings' || candidate === 'benchmark_family' ? candidate : 'group'
+})
 const breadthComposition = computed(() => props.tool.configuration.breadth_condition_composition === 'all' ? 'all' : 'single')
 const breadthConditionKind = computed(() => {
   const candidate = String(props.tool.configuration.breadth_condition ?? 'above_moving_average')
@@ -1624,7 +1628,11 @@ const genericBreadthDefinition = computed(() => ({
   version: 1,
   universe: {
     kind: breadthCustomUniverseKind.value,
-    ...(breadthCustomUniverseKind.value === 'group' ? { key: breadthGroupKey.value } : { key: 'SPY' }),
+    ...(breadthCustomUniverseKind.value === 'group'
+      ? { key: breadthGroupKey.value }
+      : breadthCustomUniverseKind.value === 'benchmark_family'
+        ? { key: breadthGroupKey.value, role: familyRatioRole.value }
+        : { key: 'SPY' }),
     point_in_time: true,
   },
   condition: breadthComposition.value === 'all'

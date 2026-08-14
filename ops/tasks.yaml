@@ -75,6 +75,15 @@ tasks:
         pass; deterministic missing-symbol ordering was repaired and re-tested. Batch leg
         composition, weighting evidence, breadth/rotation/ranking, browser visualisation, and
         final acceptance remain open. Acceptance flexibility used: none.
+      - >-
+        Generic breadth now accepts a `benchmark_family` universe plus explicit cap/equal/value/growth
+        role and resolves the selected leg through the configured mapping and point-in-time ETF
+        holdings snapshot. Family/proxy/membership/provenance metadata and exclusions are retained
+        for current and historical output; the composer exposes `Selected family leg` when a family
+        root is active. Focused Docker-backed integration `4/4`, Chromium `1/1`, frontend `824/824`,
+        type-check/build, Ruff, and diff checks pass. A first branch-placement defect was repaired
+        and re-tested; acceptance flexibility used: none. Provider population and the complete
+        family/style breadth matrix remain open.
   - id: tc2000-generic-condition-driven-breadth-20260814
     title: Broaden breadth from fixed metrics to reusable condition-driven cross-sectional studies
     status: in_progress

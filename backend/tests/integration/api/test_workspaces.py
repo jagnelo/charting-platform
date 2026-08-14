@@ -1475,6 +1475,92 @@ class TestWorkspaces:
         assert composite_payload["eligible_count"] == 1
         assert composite_payload["members"][0]["value"] is True
 
+    def test_generic_breadth_resolves_benchmark_family_style_leg_from_holdings_snapshot(
+        self, client, auth_headers, db, instrument, instrument_type, ohlcv_bars
+    ):
+        from datetime import UTC, datetime
+
+        from app.models.etf_holdings import ETFHolding, ETFHoldingsSnapshot, ETFProfile
+        from app.models.instrument import Instrument
+
+        seeded = client.get("/api/v1/market-groups", headers=auth_headers)
+        assert seeded.status_code == 200
+        spy = Instrument(
+            symbol="SPY",
+            name="SPDR S&P 500 ETF Trust",
+            currency="USD",
+            instrument_type_id=instrument_type.id,
+            is_active=True,
+        )
+        db.add(spy)
+        db.flush()
+        profile = ETFProfile(instrument_id=spy.id, adapter_status="resolved")
+        db.add(profile)
+        db.flush()
+        snapshot = ETFHoldingsSnapshot(
+            etf_profile_id=profile.id,
+            composition_date=datetime(2024, 5, 30, tzinfo=UTC).date(),
+            known_at=datetime(2024, 5, 31, tzinfo=UTC),
+            provenance="issuer_native",
+            source_provider="issuer",
+            completeness_status="complete",
+            row_count=1,
+            resolved_count=1,
+            unresolved_count=0,
+            snapshot_hash="test-family-breadth-spy-snapshot",
+        )
+        db.add(snapshot)
+        db.flush()
+        db.add(
+            ETFHolding(
+                snapshot_id=snapshot.id,
+                constituent_instrument_id=instrument.id,
+                position=0,
+                reported_symbol=instrument.symbol,
+                reported_name=instrument.name,
+                source_row_hash="test-family-breadth-member",
+                is_resolved=True,
+            )
+        )
+        db.flush()
+
+        body = {
+            "version": 1,
+            "universe": {
+                "kind": "benchmark_family",
+                "key": "sp500",
+                "role": "cap_weight",
+                "point_in_time": True,
+            },
+            "condition": {
+                "kind": "above_moving_average",
+                "params": {"period": 2, "average": "sma", "comparator": "above"},
+            },
+            "timeframe": "D1",
+            "adjusted": True,
+            "as_of": "2024-06-01T00:00:00Z",
+        }
+        response = client.post("/api/v1/analysis/breadth", headers=auth_headers, json=body)
+        assert response.status_code == 200, response.text
+        payload = response.json()
+        assert payload["universe"]["kind"] == "benchmark_family"
+        assert payload["universe"]["family_key"] == "sp500"
+        assert payload["universe"]["role"] == "cap_weight"
+        assert payload["universe"]["proxy_symbol"] == "SPY"
+        assert payload["universe"]["membership_semantics"] == "etf_proxy_membership"
+        assert payload["members"][0]["symbol"] == instrument.symbol
+
+        history = client.post(
+            "/api/v1/analysis/breadth/history",
+            headers=auth_headers,
+            json={**body, "limit": 20},
+        )
+        assert history.status_code == 200, history.text
+        history_payload = history.json()
+        assert history_payload["universe"]["family_key"] == "sp500"
+        assert history_payload["universe"]["proxy_symbol"] == "SPY"
+        assert history_payload["points"]
+
     def test_generic_breadth_history_uses_the_same_condition_without_forward_fill(
         self, client, auth_headers, db, instrument, ohlcv_bars
     ):
