@@ -1,5 +1,26 @@
 # Active Handoff
 
+## 2026-08-14 — Breadth predicate quantification plan expansion
+
+- Broadened the controlling goal and repo plans again to capture the latest product clarification:
+  breadth is `count(predicate(member, timestamp)) / eligible` over a selected point-in-time
+  universe, not a fixed metric catalogue. The saved definition must independently expose the
+  measured field/series, target/relationship, operator, target scope (member-level versus
+  cross-sectional), alignment/as-of policy, and nested composition.
+- Added required non-bespoke acceptance fixtures for close>SMA(200), within 1% of rolling
+  252-session high, volume-vs-average, RSI range, member/benchmark ratio, and nested combinations.
+  The same immutable predicate must drive aggregate/member/history/occurrence outputs and every
+  compatible Study Lab, uPlot, list/filter, scan, gauge, alert, and export target.
+- Added explicit `REF-BREADTH-COMPOSER-V25` gap and manifest surface for the missing authoritative
+  generic breadth editor/result visual states. This is a tracked visual gap with interim oracles,
+  not a blanket blocker. No acceptance threshold, mask, provider rule, or criterion was relaxed.
+- Documentation/YAML checks pass: `git diff --check`, `jq -e`, and Ruby YAML parsing for task and
+  visual manifests. The existing implementation evidence remains unchanged: service/runner 93/93,
+  router 18/18, API/history 2/2, frontend 821/821, type-check/build, Ruff, and diff checks.
+- Next context remains `generic-breadth-python-condition-and-promotion-20260814`: implement safe
+  arbitrary Python predicate references, visual tree editing, historical occurrence linking, and
+  promotion/reuse contracts. Do not treat this requirements expansion as completed functionality.
+
 ## 2026-08-14 — Recursive breadth composition implementation checkpoint
 
 - Added nested `all`/`any`/`not` breadth conditions and a platform-owned `comparison` condition

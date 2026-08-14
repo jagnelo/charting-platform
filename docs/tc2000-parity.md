@@ -51,6 +51,25 @@ uPlot lifecycle, frontend 821/821, type/build, Ruff, and diff checks pass. Full 
 browser evidence, arbitrary Python combinations, and promotion into other workstation targets
 remain open.
 
+## 2026-08-14 — Breadth predicate quantification expansion
+
+The breadth parity contract is now explicitly “evaluate a user-authored predicate for every
+eligible member, then aggregate”, rather than “choose a named breadth metric”. The saved
+definition must independently show the measured field/series, target/relationship, operator,
+lookback/alignment, target scope, and nested composition. Required representative predicates now
+include close above SMA(200), within 1% of a rolling 252-session high, volume above an average,
+an RSI range, a member/benchmark relative-strength test, and a nested combination. The engine
+must preserve the same semantics for aggregate current/history, member pass/fail, exclusions,
+state changes/occurrences, and compatible promotion targets.
+
+This broadens implementation scope without relaxing acceptance. The compact field/operator/
+comparison composer and recursive runtime are only an interim platform-owned slice. Full visual
+condition-tree editing, arbitrary unified-Python predicate execution through the isolated runner,
+historical occurrence linking, point-in-time ETF browser evidence, and promotion into compatible
+charts, lists, scans, gauges, alerts, and exports remain open parity items. A cross-sectional
+rank/percentile is a separate derived series and must never be silently substituted for a
+per-member predicate.
+
 ## 2026-08-14 — Study Lab export and board-guided visual revalidation
 
 - Active Study Lab export now covers scalar, Boolean, and structured artifacts; authenticated

@@ -219,6 +219,27 @@ execution, full visual condition-tree editing, chart-linked historical occurrenc
 promotion targets remain mandatory acceptance work; no visual threshold or acceptance flexibility
 was changed.
 
+#### Latest breadth expansion — quantifier and target-scope contract
+
+The acceptance oracle now treats breadth as `count(predicate(member, timestamp)) / eligible`
+over the selected point-in-time universe. It is not sufficient to expose a larger list of preset
+labels. The visual editor and API contract must independently identify the measured field/series,
+the target/relationship, operator, lookback, timestamp alignment, and composition. The target
+scope must be explicit: member-level thresholds, moving averages, prior highs/lows, benchmark or
+peer ratios, events, and derived series are evaluated per member before aggregation; a
+cross-sectional rank/percentile or group statistic is a separate derived output.
+
+The representative acceptance set is expanded to include the existing 200-day and within-1%
+52-week-high predicates plus volume-vs-average, an RSI range, a selected-member/benchmark ratio,
+and a nested combination. Each must produce the same aggregate, member pass/fail, history,
+state-change/occurrence, denominator, coverage, exclusion, provenance, and reproducibility
+outputs. The same immutable definition must be reusable in Study Lab and every compatible
+uPlot/list/filter/scan/gauge/alert/export target. Python is the authoritative escape hatch for
+predicates outside the visual subset, but only through the isolated runner and declared dataset
+manifest. This is a requirements expansion, not an acceptance relaxation; the compact composer,
+platform-owned comparisons, visual tree, Python execution, historical linking, and promotion gaps
+remain open until their own evidence passes.
+
 ### 2026-08-11 bounded endurance evidence
 
 The governed two-popout churn guard was run with `TC2000_POP_OUT_CHURN_ROUNDS=100`. Both performance

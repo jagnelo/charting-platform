@@ -384,6 +384,28 @@ surfaces:
       - { id: partial_coverage, state: required_missing, review: { status: required_missing }, interim_oracle: "F8i-d functional partial-coverage assertion", local_baselines: ["partial-coverage-gap-visual-1080p-100", "partial-coverage-gap-visual-1080p-125", "partial-coverage-gap-visual-1440p-100", "partial-coverage-gap-visual-1440p-125"] }
     reproduction: "Open S&P 500 Sector ranking with SPY comparison."
     masks: []
+  - id: breadth-composer-results
+    gap_ids: [REF-BREADTH-COMPOSER-V25, REF-STATE-VARIANTS, REF-ENV-TOKENS, REF-PERMISSION-REVIEW]
+    state: required_missing
+    tc2000: { generation: "25", build: "25.0.9571", capture_date: null, operator: null }
+    source: { type: authorised_live_capture, locator: null, sha256: null, permission: controlled_reference_only }
+    environment: { resolution: null, display_scale: null, theme: null, locale: null, timezone: null, device_pixel_ratio: null }
+    bounds: { window: null, crop: null }
+    measurements: { tokens: {}, approved_by: null }
+    review: { status: required_missing, reviewer: null, supersedes: null }
+    required_states: [universe_field_target_editor, nested_condition_tree, aggregate_snapshot, member_drilldown, historical_series, occurrence_link, promotion_targets]
+    board_covered_states: []
+    board_gap_states: [universe_field_target_editor, nested_condition_tree, aggregate_snapshot, member_drilldown, historical_series, occurrence_link, promotion_targets]
+    state_entries:
+      - { id: universe_field_target_editor, state: required_missing, review: { status: required_missing }, interim_oracle: "Generic breadth composer contract and four-environment local baseline" }
+      - { id: nested_condition_tree, state: required_missing, review: { status: required_missing }, interim_oracle: "Recursive all/any/not API and runner tests plus visual composer regression" }
+      - { id: aggregate_snapshot, state: required_missing, review: { status: required_missing }, interim_oracle: "Current generic breadth response and deterministic local baseline" }
+      - { id: member_drilldown, state: required_missing, review: { status: required_missing }, interim_oracle: "Passing/failing canonical member browser interaction" }
+      - { id: historical_series, state: required_missing, review: { status: required_missing }, interim_oracle: "Generic breadth history uPlot lifecycle and no-forward-fill tests" }
+      - { id: occurrence_link, state: required_missing, review: { status: required_missing }, interim_oracle: "Study Lab occurrence timestamp publication and linked-chart test" }
+      - { id: promotion_targets, state: required_missing, review: { status: required_missing }, interim_oracle: "Reusable condition target contract tests" }
+    reproduction: "Open the generic breadth composer, define a SPY-proxy predicate, and inspect aggregate, members, history, and reuse targets."
+    masks: []
   - id: study-lab
     gap_ids: [REF-STUDY-LAB-V25, REF-STATE-VARIANTS, REF-ENV-TOKENS, REF-PERMISSION-REVIEW]
     state: required_missing

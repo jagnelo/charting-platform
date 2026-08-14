@@ -10036,6 +10036,34 @@ integration remains `2/2`, frontend Vitest is `821/821`, type-check, production 
 diff checks pass. Arbitrary user Python code evaluation, full visual condition-tree editing,
 chart-linked historical occurrences, and promotion into every reusable target remain open.
 
+#### Latest breadth expansion — user-authored predicate quantification
+
+The breadth implementation is explicitly a cross-sectional quantifier rather than a selector over
+named metrics. At each timestamp it evaluates `predicate(member, timestamp)` for every eligible
+member in the selected, versioned universe and returns the pass count divided by that timestamp's
+eligible denominator. The predicate authoring model must keep these axes independent:
+
+- **what is measured:** raw/adjusted close, return, volume, volatility, trend state, RSI, relative
+  strength/ratio, metadata, event state, or a derived numeric/Boolean Python series;
+- **what it is tested against:** a moving average, absolute/percentage threshold, range,
+  percentile, prior high/low, benchmark or peer series, event, or another derived series;
+- **how it is combined:** nested AND/OR/NOT clauses with explicit member-level versus
+  cross-sectional target scope, timestamp alignment, lookback, timeframe, session, adjustment,
+  and as-of/known-at policy.
+
+The same immutable predicate must power the aggregate percentage, current member pass/fail table,
+historical percentages, state changes/occurrences, and compatible Study Lab, uPlot, watchlist,
+filter, EasyScan, Market Gauge, alert, and export targets. Required non-bespoke fixtures now
+include `close > SMA(close, 200)`, within 1% of the rolling 252-session high,
+`volume > SMA(volume, 20) * 1.5`, an RSI range, a selected-member/benchmark ratio, and a nested
+combination of these. A cross-sectional rank/percentile or group statistic is a separate derived
+series and must not be silently substituted for a per-member predicate.
+
+This expansion adds no acceptance flexibility. The compact composer and platform-owned comparison
+runtime are only an interim slice; arbitrary user Python predicates through the isolated runner,
+full visual condition-tree editing, historical occurrence/state-change linking, point-in-time ETF
+browser evidence, and promotion/reuse across every compatible target remain open completion work.
+
 Implementation requirements:
 
 - add a stable breadth-definition schema and versioned API family rather than adding one route

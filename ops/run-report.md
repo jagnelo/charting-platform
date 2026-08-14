@@ -1,5 +1,21 @@
 # Run Report
 
+## 2026-08-14 — Breadth predicate quantification plan expansion
+
+- Updated the active goal, section 14 plan, parity matrix, acceptance governance, task contract,
+  visual manifest, and board gap register to make breadth a user-authored predicate quantifier.
+- The expanded contract independently selects universe, measured field/series, target/operator,
+  target scope, alignment/as-of policy, and nested composition. It requires member-level and
+  cross-sectional semantics to remain distinct and names representative volume, RSI, ratio, and
+  nested fixtures in addition to the 200-day and within-1%-of-52-week-high cases.
+- Validation: `git diff --check`, `jq -e . ops/state.json`, and Ruby YAML parsing for
+  `ops/tasks.yaml` and the V25 visual manifest pass. No implementation behavior was changed in
+  this documentation-only context; existing breadth/runtime evidence remains open against the
+  expanded contract.
+- Acceptance flexibility used: **none**. `REF-BREADTH-COMPOSER-V25` is now an explicit visual
+  gap, and arbitrary isolated-Python predicates, full visual tree editing, historical occurrence
+  linking, and promotion remain mandatory implementation work.
+
 ## 2026-08-14 — Recursive breadth composition implementation checkpoint
 
 - Implemented nested `all`/`any`/`not` conditions and platform-owned scalar comparisons across
