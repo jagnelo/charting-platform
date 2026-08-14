@@ -1,4 +1,25 @@
 tasks:
+  - id: tc2000-study-lab-sdk-reference-duplicate-20260814
+    title: Remove duplicated Study Lab SDK reference row
+    status: completed
+    priority: medium
+    scope: >-
+      Keep the visible Study Lab SDK reference singular and aligned with the executable unified
+      Python stats namespace; prevent duplicate documentation rows from returning.
+    definition_of_done:
+      - The Study Lab SDK reference renders exactly one stats row
+      - A component regression enforces the singular row contract
+      - Focused Study Lab tests, full frontend tests, type-check, and production build pass
+      - No visual threshold, mask, product criterion, or acceptance flexibility changes
+    validation:
+      - study-lab-component-22-of-22
+      - frontend-vitest-819-of-819
+      - frontend-type-check-production-build
+      - git-diff-check
+    notes:
+      - Fix-first localized repair; no failure was suppressed or reclassified.
+      - Acceptance flexibility used: none.
+      - Implementation/docs commit: d3a696c2; operational checkpoint remains separate.
   - id: tc2000-study-histogram-current-marker-20260814
     title: Refresh Study Lab histogram current marker when the observation changes
     status: completed

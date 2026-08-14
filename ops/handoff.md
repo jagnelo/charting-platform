@@ -1,5 +1,25 @@
 # Active Handoff
 
+## 2026-08-14 — Study Lab SDK reference duplicate-row repair (completed)
+
+- Context owner: Codex. Owned paths were `StudyLabTool.vue`, its component regression, and the
+  controlling parity/TODO/operational records.
+- Intent: remove the duplicated visible `stats` SDK-reference row and enforce one authoritative
+  row matching the unified Python runtime. No visual threshold, mask, product criterion, or browser
+  acceptance rule changed.
+- Fix-first validation: focused Study Lab `22/22`, full frontend Vitest `819/819`, `vue-tsc`,
+  production build, and `git diff --check` pass. The exact-row regression fails if a duplicate is
+  reintroduced.
+- Implementation/docs commit: `d3a696c2` (`fix(study-lab): remove duplicate sdk reference row`).
+  The worktree is clean for the implementation boundary; the operational checkpoint remains a
+  separate commit.
+- Git rule: implementation/docs and operational checkpoint remain separate. Use the worker-owned
+  elevated `rtk git add`/`commit`/exact `push` path; a default `.git/index.lock` denial is sandbox
+  setup evidence, not a blocker. If private-origin egress rejects before Git, keep clean local
+  commits, record the exact range/command, and continue without retrying through another route.
+- Acceptance flexibility used: none. `REF-STUDY-LAB-V25` and broader documented gaps remain open.
+- Next action: continue the next independent workstation/backend gap from the clean boundary.
+
 ## 2026-08-14 — Study histogram current-marker lifecycle context (completed)
 
 - Context owner: Codex. Owned paths are `StudyHistogramUPlot.vue`, focused lifecycle coverage, and

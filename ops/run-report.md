@@ -1,5 +1,16 @@
 # Run Report
 
+## 2026-08-14 — Study Lab SDK reference duplicate-row repair
+
+- Removed the duplicate visible `stats` SDK reference row and added a regression requiring exactly
+  one row. Focused Study Lab `22/22`, full frontend `819/819`, type-check, production build, and
+  diff checks pass. Acceptance flexibility used: none.
+- Implementation/docs commit: `d3a696c2`. Operational records remain intentionally unstaged for
+  the separate checkpoint commit; no product files are being carried dirty.
+- This context is ready for separate implementation/docs and operational commits. Git transport is
+  operational only: use elevated worker-owned Git, record any pre-Git private-origin refusal, and
+  continue from clean local commits without alternate transport or goal blocking.
+
 ## 2026-08-14 — Study histogram current-marker lifecycle context started
 
 - Started from clean local `3ea76dc9` to fix the histogram redraw dependency on the current marker
