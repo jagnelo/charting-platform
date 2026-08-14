@@ -1,5 +1,20 @@
 # Active Handoff
 
+## 2026-08-14 — All-leg family ratio composition
+
+- Extended `/analysis/benchmark-families/{family_key}/ratios` with an explicit `roles` selector
+  for cap/equal/value/growth batch composition. Single-role callers remain compatible.
+- Batch responses preserve requested/resolved roles, canonical symbols, membership/provenance,
+  aligned timestamps, adjustment, coverage, and exact missing-mapping/instrument exclusions. No
+  silent SPY/QQQ or cross-family fallback is possible.
+- The Market Breadth family panel now requests all four roles once and retains a focus-leg control
+  without role-by-role refetching.
+- Validation: benchmark-family integration `5/5`; rebuilt Chromium F8s-breadth-family-ratio `1/1`;
+  frontend Vitest `824/824`; type-check/build; Ruff; and diff checks.
+- No acceptance flexibility used. Open: provider-backed historical holdings/weights, family-wide
+  breadth/rotation/ranking/dispersion, constituent drill-down, exact/unrepresented V25 states,
+  and final audit.
+
 ## 2026-08-14 — Family-ratio workstation integration
 
 - Integrated the existing benchmark-family ratio API into the authenticated Market Breadth tool.

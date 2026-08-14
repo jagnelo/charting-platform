@@ -27002,3 +27002,13 @@ in 4.6 minutes. No failure was suppressed or reclassified as product success.
 - Implementation `95055f2e` and operational checkpoint `8a38e838` are clean locally. The exact
   elevated push was rejected before Git by the private-origin safeguard; origin remains `91463e54`.
   No workaround, alternate transport, rewrite, reset, stash, or repeated attempt was made.
+
+# 2026-08-14 — All-leg family ratio composition
+
+- Added explicit role-set batch composition to the family-ratio API and switched the workstation
+  panel to one all-leg request with local focus selection. Missing mappings/instruments remain
+  labelled exclusions; legacy single-role requests remain supported.
+- Validation: benchmark-family integration `5/5`; rebuilt-stack Chromium `1/1`; frontend Vitest
+  `824/824`; type-check; production build; Ruff; and diff-check. No acceptance flexibility used.
+- Open gaps remain provider-backed historical holdings/weights, family breadth/rotation/ranking/
+  dispersion, constituent drill-down, exact/unrepresented V25 states, and final audit.

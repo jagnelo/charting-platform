@@ -9645,3 +9645,31 @@ tasks:
         and no acceptance flexibility was used. Provider-backed historical holdings/weights,
         all-leg batch analytics, family-wide breadth/rotation/ranking, drill-down, exact/unrepresented
         V25 visual states, and final-audit gaps remain open.
+
+  - id: tc2000-family-ratio-batch-composition-20260814
+    title: Add explicit all-leg benchmark-family ratio composition
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Extend the family-ratio contract and primary workstation panel from one selected role per
+      request to explicit cap/equal/value/growth batch composition, retaining provenance and
+      labelled missing-leg semantics.
+    definition_of_done:
+      - The API accepts an explicit role set and returns each available role against cap and market legs
+      - Legacy single-role requests remain compatible
+      - Missing mappings/instruments are exclusions, never silent family substitution
+      - The workstation requests the batch once and keeps focus-leg changes local
+      - Backend, frontend, browser, lint, type/build, and diff validation pass
+    validation:
+      - benchmark-family-integration-5-of-5
+      - F8s-breadth-family-ratio-1-of-1-rebuilt
+      - frontend-vitest-824-of-824
+      - frontend-typecheck-build
+      - ruff
+      - git-diff-check
+    notes:
+      - >-
+        Implemented and validated without acceptance flexibility. Remaining provider-backed
+        historical holdings/weights, family breadth/rotation/ranking/dispersion, constituent
+        drill-down, exact/unrepresented V25 visual states, and final-audit gaps remain open.
