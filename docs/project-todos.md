@@ -18,6 +18,9 @@
       contract** because the visual board has no authoritative Study Lab capture. No visual
       threshold, mask, product criterion, or browser acceptance rule was changed; the missing
       authoritative Study Lab reference remains tracked.
+- [x] Implementation/browser commit `3a97eaec` and operational checkpoint `62578592` are clean
+      local commits. The exact elevated push for `91463e54..62578592` was rejected before Git by
+      the private-origin egress safeguard; this is transport-only and does not block the goal.
 
 ### 2026-08-14 — DFTT official route re-probe
 

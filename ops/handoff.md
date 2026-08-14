@@ -1,5 +1,19 @@
 # Active Handoff
 
+## 2026-08-14 — Study Lab current-history browser transport record
+
+- The implementation/browser commit `3a97eaec` and operational checkpoint `62578592` are cleanly
+  committed. The exact elevated push for `91463e54..62578592` to
+  `origin/feat/tc2000-frontend-rework` was attempted once and rejected before Git by the private-
+  origin egress safeguard because trusted authorization for that exact payload and destination was
+  unavailable.
+- `.git/index.lock` is absent, repository metadata is healthy, and no alternate transport, wrapper,
+  rewrite, reset, stash, force push, or repeat was used. This is a transport-only hold; the goal
+  continues from the clean local boundary. Retry only if the same exact payload later receives
+  trusted execution authorization.
+- Next context: continue with the next independent workstation/backend gap; do not reopen this
+  completed browser context solely because external push egress is unavailable.
+
 ## 2026-08-14 — Study Lab current-history browser acceptance (completed)
 
 - Context owner: Codex. Owned paths were `frontend/tests/e2e/flows.spec.ts`, `Makefile`,
