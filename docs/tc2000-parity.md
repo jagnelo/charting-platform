@@ -1,5 +1,12 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-14 — Study Lab artifact export browser acceptance
+
+- Authenticated `F8p-export` now proves the active Study Lab Export control downloads a typed
+  `completed_streaks` artifact with the expected run-scoped JSON filename.
+- Rebuilt Chromium `1/1` in 4.9s with no critical diagnostics. Acceptance flexibility used:
+  **none**; no visual threshold, mask, or board rule changed.
+
 ## 2026-08-14 — Study Lab artifact export from active runs
 
 - The active Study Lab now exposes an Export control on each non-scalar result artifact. The

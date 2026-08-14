@@ -1,5 +1,13 @@
 # Project TODO Memory
 
+### 2026-08-14 — Study Lab artifact export browser acceptance
+
+- [x] Added authenticated `F8p-export` coverage for the active Study Lab run. The real Chromium
+      flow downloads the typed `completed_streaks` artifact and verifies the deterministic filename.
+- [x] Rebuilt branch stack browser run passes `1/1` in 4.9s with no critical diagnostics; no visual
+      threshold, mask, product criterion, or acceptance rule changed.
+- [ ] Acceptance flexibility used: **none**. `REF-STUDY-LAB-V25` remains open.
+
 ### 2026-08-14 — Study Lab artifact export from active runs
 
 - [x] Added a direct Export control to every non-scalar Study Lab artifact. Exports are JSON

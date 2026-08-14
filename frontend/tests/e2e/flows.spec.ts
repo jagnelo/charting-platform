@@ -2470,6 +2470,30 @@ test.describe('TC2000 workstation', () => {
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
+  test('F8p-export — Study Lab exports a typed artifact from the active run', async ({ page, browserDiagnostics }) => {
+    test.setTimeout(120_000)
+    await page.goto('/chart')
+    await expect(page.locator('.workspace-layout-host')).toBeVisible({ timeout: 10_000 })
+    await page.getByRole('button', { name: 'Study', exact: true }).click()
+
+    const study = page.locator('.study-lab-tool')
+    await expect(study).toBeVisible({ timeout: 10_000 })
+    await study.getByRole('combobox', { name: 'Factory study' }).selectOption('positive_streak')
+    await study.getByRole('textbox', { name: 'Study symbol' }).fill('SPY')
+    await study.getByRole('button', { name: 'Validate' }).click()
+    await expect(study).toContainText('Validated for isolated execution', { timeout: 10_000 })
+    await study.getByRole('button', { name: 'Run', exact: true }).click()
+    await expect(study.locator('.study-lab-tool__run-status--completed')).toBeVisible({ timeout: 90_000 })
+
+    const exportButton = study.getByRole('button', { name: 'Export completed_streaks' })
+    await expect(exportButton).toBeVisible()
+    const downloadPromise = page.waitForEvent('download')
+    await exportButton.click()
+    const download = await downloadPromise
+    expect(download.suggestedFilename()).toMatch(/^study-run-\d+-completed_streaks\.json$/)
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
   test('F8p-current-history — Study Lab renders the current observation inside its historical distribution', async ({ page, browserDiagnostics }) => {
     test.setTimeout(120_000)
     await page.goto('/chart')
