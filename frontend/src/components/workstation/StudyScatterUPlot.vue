@@ -17,6 +17,11 @@ const valid = ref(false)
 let chart: uPlot | null = null
 let observer: ResizeObserver | null = null
 
+function destroyChart() {
+  chart?.destroy()
+  chart = null
+}
+
 function drawPoints(instance: uPlot) {
   const context = instance.ctx
   context.save()
@@ -31,9 +36,16 @@ function drawPoints(instance: uPlot) {
   context.restore()
 }
 
+function hasValidPoints() {
+  return props.x.length > 0 && props.x.length === props.y.length && props.x.every(Number.isFinite) && props.y.every(Number.isFinite)
+}
+
 function draw() {
-  valid.value = props.x.length > 0 && props.x.length === props.y.length && props.x.every(Number.isFinite) && props.y.every(Number.isFinite)
-  if (!valid.value || !host.value) return
+  valid.value = hasValidPoints()
+  if (!valid.value || !host.value) {
+    if (!valid.value) destroyChart()
+    return
+  }
   const width = Math.max(180, host.value.clientWidth)
   const height = Math.max(120, host.value.clientHeight)
   const data: uPlot.AlignedData = [props.x, props.y]
@@ -44,9 +56,9 @@ function draw() {
   ], series: [{}, { label: props.name, stroke: 'transparent', width: 0 }], plugins: [{ hooks: { draw: [drawPoints] } }] }, data, host.value)
 }
 
-watch(() => [props.x, props.y, props.name], async () => { await nextTick(); draw() }, { deep: true })
-onMounted(() => { observer = new ResizeObserver(draw); if (root.value) observer.observe(root.value); draw() })
-onBeforeUnmount(() => { observer?.disconnect(); chart?.destroy(); chart = null })
+watch(() => [props.x, props.y, props.name], async () => { valid.value = hasValidPoints(); await nextTick(); draw() }, { deep: true })
+onMounted(async () => { observer = new ResizeObserver(draw); if (root.value) observer.observe(root.value); valid.value = hasValidPoints(); await nextTick(); draw() })
+onBeforeUnmount(() => { observer?.disconnect(); destroyChart() })
 </script>
 
 <style scoped>
