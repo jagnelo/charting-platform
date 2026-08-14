@@ -2529,6 +2529,7 @@ test.describe('TC2000 workstation', () => {
     await study.getByRole('button', { name: 'Run', exact: true }).click()
     await expect(study.locator('.study-lab-tool__run-status--completed')).toBeVisible({ timeout: 90_000 })
     await expect(study.locator('.study-series').first()).toBeVisible()
+    await expect(study.locator('.study-histogram')).toHaveCount(2)
     await expect(study.locator('table').filter({ hasText: 'breadth_thrust_history' })).toBeVisible()
     const occurrence = study.locator('.study-lab-tool__events button').filter({ hasText: '90_90_breadth_thrust' }).first()
     await expect(occurrence).toBeVisible()

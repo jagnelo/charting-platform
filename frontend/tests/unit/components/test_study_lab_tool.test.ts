@@ -220,6 +220,9 @@ describe('StudyLabTool', () => {
     const breadthHistorySource = (wrapper.find('[aria-label="Study Python source"]').element as HTMLTextAreaElement).value
     expect(breadthHistorySource).toContain('research.breadth_thrust_history(dataset, 90)')
     expect(breadthHistorySource).toContain("output.series('percent_price_advancing_history'")
+    expect(breadthHistorySource).toContain("output.histogram('price_participation_distribution'")
+    expect(breadthHistorySource).toContain("output.histogram('volume_participation_distribution'")
+    expect(breadthHistorySource).toContain("price_history[-1] if price_history else None")
     expect(breadthHistorySource).toContain("output.events('breadth_thrust_occurrences'")
     await selector.setValue('seasonality')
     const seasonalitySource = (wrapper.find('[aria-label="Study Python source"]').element as HTMLTextAreaElement).value

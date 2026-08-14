@@ -1,5 +1,16 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-14 — Historical 90/90 current-versus-history distributions
+
+- The Historical 90/90 Study Lab factory now emits typed price and volume participation histograms
+  with the latest aligned observation supplied as the highlighted current value, in addition to
+  aligned history series, qualification occurrences, detail rows, and exclusions.
+- Authenticated `F8p-90-90-history` verifies both histogram outputs from the canonical declared
+  universe. Frontend `818/818`, type-check/build, uPlot contract, visual-policy, and diff checks
+  remain green.
+- Acceptance flexibility used: **none**. No visual threshold, mask, product criterion, or
+  reference-board rule changed; `REF-STUDY-LAB-V25` remains open.
+
 ## 2026-08-14 — Study Lab occurrence-to-chart timestamp linking
 
 - Dated Study Lab occurrences now publish through the existing symbol/timeframe link bus into

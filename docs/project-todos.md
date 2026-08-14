@@ -1,5 +1,16 @@
 # Project TODO Memory
 
+### 2026-08-14 — Historical 90/90 current-versus-history distributions
+
+- [x] Extended the historical 90/90 Study Lab factory source with typed price-participation and
+      volume-participation histograms. Each histogram passes the latest aligned observation as its
+      current value so the existing uPlot renderer can highlight it against prior history.
+- [x] Added source-contract coverage and authenticated `F8p-90-90-history` acceptance proving both
+      distributions render alongside the historical series, qualification occurrences, and tables.
+- [ ] Acceptance flexibility used: **none**. `REF-STUDY-LAB-V25` remains the separately tracked
+      original-surface visual-reference gap; no visual threshold, mask, product criterion, or
+      browser acceptance rule changed.
+
 ### 2026-08-14 — Study Lab occurrence-to-chart timestamp acceptance
 
 - [x] Dated Study Lab occurrences now expose their linked timestamp on the uPlot chart and ratio
