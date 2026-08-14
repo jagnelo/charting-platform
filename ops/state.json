@@ -7,7 +7,7 @@
   "last_handoff_at": "2026-08-14T16:20:00Z",
   "last_commit": "39fea337 fix(study-lab): announce validation failures assertively",
   "git_ready_to_commit": false,
-  "git_checkpoint": "Study Lab validation polarity implementation 39fea337 is complete and clean locally; the operational record is being committed separately. Origin remains 91463e54bbfb37dc5e130d3c912434bfc41594bd. Exact elevated push remains transport-only under the recorded egress safeguard and must not block the next context.",
+  "git_checkpoint": "Study Lab validation polarity implementation 39fea337 and operational record 42f5b7f1 are committed locally with a clean worktree. Origin remains 91463e54bbfb37dc5e130d3c912434bfc41594bd. Exact elevated push remains transport-only under the recorded egress safeguard and must not block the next context.",
   "next_context": "select-next-repository-controlled-tc2000-gap-after-study-validation-polarity",
   "active_context": "study-validation-live-region-polarity",
   "context_status": "completed_clean_local_transport_hold_ready_for_next_context",
