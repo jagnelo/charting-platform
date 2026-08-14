@@ -6,6 +6,7 @@ import hashlib
 import json
 import math
 from collections import defaultdict
+from collections.abc import Mapping
 from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -2107,6 +2108,8 @@ _GENERIC_BREADTH_EXCLUSION_MESSAGES = {
     "benchmark_required": "This condition requires a benchmark.",
     "unsupported_condition": "The requested condition is not supported by this runtime.",
     "invalid_condition_params": "The condition parameters are invalid.",
+    "unsupported_field": "The requested comparison field is not supported by this runtime.",
+    "condition_clause_excluded": "A nested breadth condition could not be evaluated for this member.",
     "missing_bar_at_timestamp": "The member has no bar at this timestamp and was excluded without forward-fill.",
     "benchmark_missing_at_timestamp": "The benchmark has no bar at this timestamp.",
     "unresolved_member": "The universe member has no resolved canonical instrument.",
@@ -2116,10 +2119,34 @@ _GENERIC_BREADTH_EXCLUSION_MESSAGES = {
 
 
 def _generic_breadth_warning(code: str, instrument_id: int | None = None) -> AnalysisWarning:
+    base_code = code.split(":", 1)[0]
     return AnalysisWarning(
         code=code,
-        message=_GENERIC_BREADTH_EXCLUSION_MESSAGES.get(code, "The member was excluded."),
+        message=_GENERIC_BREADTH_EXCLUSION_MESSAGES.get(
+            base_code, "The member was excluded by a nested breadth condition."
+        ),
         instrument_id=instrument_id,
+    )
+
+
+def _generic_condition_requires_benchmark(condition: Mapping[str, object]) -> bool:
+    """Detect benchmark-dependent leaves in a nested breadth definition."""
+
+    kind = str(condition.get("kind", "")).lower()
+    params = condition.get("params")
+    if not isinstance(params, Mapping):
+        return False
+    if kind == "relative_strength":
+        return True
+    if kind == "comparison" and str(params.get("field", "")).lower() in {
+        "relative_strength",
+        "relative_return",
+    }:
+        return True
+    children = params.get("conditions")
+    return isinstance(children, list) and any(
+        isinstance(child, Mapping) and _generic_condition_requires_benchmark(child)
+        for child in children
     )
 
 
@@ -2471,7 +2498,7 @@ async def evaluate_generic_breadth(
         await _bars_by_instrument(db, member_ids, timeframe, definition.adjusted), definition.as_of
     )
     benchmark_bars = None
-    if definition.condition.kind == "relative_strength":
+    if _generic_condition_requires_benchmark(definition.condition.model_dump()):
         if not definition.benchmark:
             raise HTTPException(422, detail={"code": "benchmark_required"})
         benchmark = await _instrument(db, definition.benchmark)
@@ -2566,7 +2593,7 @@ async def evaluate_generic_breadth_history(
     bars_by_id = await _bars_by_instrument(db, member_ids, timeframe, definition.adjusted)
     bars_by_id = _truncate_bars_at(bars_by_id, definition.as_of)
     benchmark_bars = None
-    if definition.condition.kind == "relative_strength":
+    if _generic_condition_requires_benchmark(definition.condition.model_dump()):
         if not definition.benchmark:
             raise HTTPException(422, detail={"code": "benchmark_required"})
         benchmark = await _instrument(db, definition.benchmark)

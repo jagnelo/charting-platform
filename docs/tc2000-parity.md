@@ -6331,3 +6331,13 @@ an independent uPlot pane/plot, a watchlist column/filter, EasyScan condition, M
 alert, or export. The existing fixed metrics remain presets only. This is a requirements
 expansion; the current historical slice does not yet close arbitrary Python composition, full
 promotion targets, or representative ETF point-in-time browser acceptance.
+
+## 2026-08-14 — Generic breadth composition and member drill-down
+
+The reusable breadth contract now accepts nested `all`/`any`/`not` conditions and a scalar
+comparison vocabulary for close, return, volume, RSI, moving-average distance, 52-week distances,
+and relative strength. The isolated Python runner uses the same condition shape. The workstation
+composer exposes measured field/operator/target and benchmark controls, and the result surface
+provides pass/fail member drill-down with canonical symbol publication. This is board-guided
+functional progress; the broad visual reference does not yet represent every condition-editor or
+historical drill-down state, so those specific visual states remain tracked gaps.

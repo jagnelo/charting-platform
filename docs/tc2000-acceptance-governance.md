@@ -210,6 +210,15 @@ per-member pass/fail, denominator/coverage, exact exclusions, provenance, and cu
 historical semantics. A fixed metric route or selector that cannot express the target relationship
 does not satisfy this gate, even if its aggregate percentage is numerically correct.
 
+Implementation checkpoint 3 (2026-08-14): nested composition and scalar comparisons are now
+implemented in both the canonical API evaluator and isolated Python runner. Focused service/runner
+coverage passes `93/93`, generic API/history integration passes `2/2`, and the workstation exposes
+field/operator/target/benchmark controls plus aggregate pass/fail member drill-down. This closes
+the previously missing compositional API/runtime slice only. User-authored Python condition
+execution, full visual condition-tree editing, chart-linked historical occurrences, and all
+promotion targets remain mandatory acceptance work; no visual threshold or acceptance flexibility
+was changed.
+
 ### 2026-08-11 bounded endurance evidence
 
 The governed two-popout churn guard was run with `TC2000_POP_OUT_CHURN_ROUNDS=100`. Both performance

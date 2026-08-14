@@ -84,7 +84,7 @@ def _ema(values: list[float], period: int) -> float:
 
 
 def _comparison(metric: float, params: Mapping[str, Any]) -> bool:
-    comparator = str(params.get("comparator", "above")).lower()
+    comparator = str(params.get("operator", params.get("comparator", "above"))).lower()
     threshold = float(params.get("threshold", 0.0))
     if comparator in {"below", "lt", "<"}:
         return metric < threshold
@@ -92,7 +92,118 @@ def _comparison(metric: float, params: Mapping[str, Any]) -> bool:
         return metric <= threshold
     if comparator in {"at_or_above", "gte", ">="}:
         return metric >= threshold
+    if comparator in {"equal", "eq", "=="}:
+        return metric == threshold
+    if comparator in {"not_equal", "neq", "ne", "!="}:
+        return metric != threshold
     return metric > threshold
+
+
+def _nested_conditions(params: Mapping[str, Any]) -> list[Mapping[str, Any]] | None:
+    raw = params.get("conditions")
+    if not isinstance(raw, list) or not raw or any(not isinstance(item, Mapping) for item in raw):
+        return None
+    return [item for item in raw if isinstance(item, Mapping)]
+
+
+def _comparison_metric(
+    bars: list[Any],
+    field: str,
+    params: Mapping[str, Any],
+    *,
+    benchmark_bars: list[Any] | None,
+) -> tuple[float | None, str | None]:
+    """Resolve a scalar field for the generic comparison condition.
+
+    The field vocabulary deliberately stays platform-owned. User-authored Python
+    remains in the isolated research runner; this endpoint only evaluates
+    deterministic fields over already-materialised local bars.
+    """
+
+    normalized = field.lower().strip()
+    closes = _close_values(bars)
+    if closes is None or not closes:
+        return None, "invalid_close"
+    latest = closes[-1]
+    if normalized in {"close", "price", "last"}:
+        return latest, None
+    if normalized in {"return", "return_1"}:
+        if len(closes) < 2 or closes[-2] == 0:
+            return None, "insufficient_history"
+        return latest / closes[-2] - 1, None
+    if normalized in {"distance_to_52w_high", "distance_to_52_week_high"}:
+        lookback = int(params.get("lookback", 252))
+        if lookback < 2 or len(closes) < lookback:
+            return None, "insufficient_history"
+        reference = max(closes[-lookback:])
+        if reference <= 0:
+            return None, "invalid_reference"
+        return latest / reference - 1, None
+    if normalized in {"distance_to_52w_low", "distance_to_52_week_low"}:
+        lookback = int(params.get("lookback", 252))
+        if lookback < 2 or len(closes) < lookback:
+            return None, "insufficient_history"
+        reference = min(closes[-lookback:])
+        if reference <= 0:
+            return None, "invalid_reference"
+        return latest / reference - 1, None
+    if normalized == "volume":
+        volumes = [getattr(bar, "volume", None) for bar in bars]
+        if not volumes or not _finite(volumes[-1]):
+            return None, "missing_volume"
+        return float(volumes[-1]), None
+    if normalized in {"moving_average_distance", "ma_distance"}:
+        _, metric, warning = evaluate_condition(
+            bars,
+            {
+                "kind": "above_moving_average",
+                "params": {
+                    "period": params.get("period", 200),
+                    "average": params.get("average", "sma"),
+                },
+            },
+            benchmark_bars=benchmark_bars,
+        )
+        return metric, warning
+    if normalized == "rsi":
+        _, metric, warning = evaluate_condition(
+            bars,
+            {"kind": "rsi", "params": {"period": params.get("period", 14)}},
+            benchmark_bars=benchmark_bars,
+        )
+        return metric, warning
+    if normalized == "trend":
+        _, metric, warning = evaluate_condition(
+            bars,
+            {
+                "kind": "trend",
+                "params": {
+                    "fast_period": params.get("fast_period", 20),
+                    "slow_period": params.get("slow_period", 50),
+                    "direction": params.get("direction", "up"),
+                },
+            },
+            benchmark_bars=benchmark_bars,
+        )
+        return metric, warning
+    if normalized == "volume_ratio":
+        _, metric, warning = evaluate_condition(
+            bars,
+            {
+                "kind": "volume_ratio",
+                "params": {"period": params.get("period", 50), "threshold": 0},
+            },
+            benchmark_bars=benchmark_bars,
+        )
+        return metric, warning
+    if normalized in {"relative_strength", "relative_return"}:
+        _, metric, warning = evaluate_condition(
+            bars,
+            {"kind": "relative_strength", "params": {"lookback": params.get("lookback", 20)}},
+            benchmark_bars=benchmark_bars,
+        )
+        return metric, warning
+    return None, "unsupported_field"
 
 
 def evaluate_condition(
@@ -120,6 +231,51 @@ def evaluate_condition(
     latest = closes[-1]
     if not _finite(latest):
         return None, None, "invalid_close"
+
+    if kind in {"all", "any"}:
+        children = _nested_conditions(params)
+        if children is None:
+            return None, None, "invalid_condition_params"
+        evaluated = [
+            evaluate_condition(bars, child, benchmark_bars=benchmark_bars) for child in children
+        ]
+        if kind == "all":
+            for index, (value, _, warning) in enumerate(evaluated):
+                if value is None:
+                    return None, None, f"condition_clause_excluded:{index}:{warning or 'unknown'}"
+            metrics = [metric for _, metric, _ in evaluated if metric is not None]
+            return all(value is True for value, _, _ in evaluated), min(metrics) if metrics else None, None
+        if any(value is True for value, _, _ in evaluated):
+            metrics = [metric for value, metric, _ in evaluated if value is True and metric is not None]
+            return True, max(metrics) if metrics else None, None
+        if all(value is False for value, _, _ in evaluated):
+            metrics = [metric for _, metric, _ in evaluated if metric is not None]
+            return False, max(metrics) if metrics else None, None
+        for index, (value, _, warning) in enumerate(evaluated):
+            if value is None:
+                return None, None, f"condition_clause_excluded:{index}:{warning or 'unknown'}"
+
+    if kind == "not":
+        children = _nested_conditions(params)
+        if children is None or len(children) != 1:
+            return None, None, "invalid_condition_params"
+        value, metric, warning = evaluate_condition(
+            bars, children[0], benchmark_bars=benchmark_bars
+        )
+        if warning:
+            return None, None, f"condition_clause_excluded:0:{warning}"
+        return (not value) if value is not None else None, metric, None
+
+    if kind == "comparison":
+        field = params.get("field")
+        if not isinstance(field, str) or not field.strip():
+            return None, None, "invalid_condition_params"
+        metric, warning = _comparison_metric(
+            bars, field, params, benchmark_bars=benchmark_bars
+        )
+        if warning or metric is None:
+            return None, metric, warning or "invalid_condition_params"
+        return _comparison(metric, params), metric, None
 
     if kind == "above_moving_average":
         period = int(params.get("period", 200))

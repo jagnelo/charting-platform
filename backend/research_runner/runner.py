@@ -1169,6 +1169,130 @@ class _Research:
                 for value in window
             )
 
+        def compare(metric: float, compare_params: dict) -> bool:
+            operator = str(
+                compare_params.get("operator", compare_params.get("comparator", "above"))
+            ).lower()
+            threshold = float(compare_params.get("threshold", 0.0))
+            if operator in {"below", "lt", "<"}:
+                return metric < threshold
+            if operator in {"at_or_below", "lte", "<="}:
+                return metric <= threshold
+            if operator in {"at_or_above", "gte", ">="}:
+                return metric >= threshold
+            if operator in {"equal", "eq", "=="}:
+                return metric == threshold
+            if operator in {"not_equal", "neq", "ne", "!="}:
+                return metric != threshold
+            return metric > threshold
+
+        if kind in {"all", "any"}:
+            children = params.get("conditions")
+            if (
+                not isinstance(children, list)
+                or not children
+                or any(not isinstance(child, dict) for child in children)
+            ):
+                return None, None, "invalid_condition_params"
+            evaluated = [
+                _Research._breadth_condition_result(item, child, index, benchmark_item)
+                for child in children
+            ]
+            if kind == "all":
+                for child_index, (child_value, _, child_warning) in enumerate(evaluated):
+                    if child_value is None:
+                        return None, None, f"condition_clause_excluded:{child_index}:{child_warning or 'unknown'}"
+                metrics = [metric for _, metric, _ in evaluated if metric is not None]
+                return all(value is True for value, _, _ in evaluated), min(metrics) if metrics else None, None
+            if any(value is True for value, _, _ in evaluated):
+                metrics = [metric for value, metric, _ in evaluated if value is True and metric is not None]
+                return True, max(metrics) if metrics else None, None
+            if all(value is False for value, _, _ in evaluated):
+                metrics = [metric for _, metric, _ in evaluated if metric is not None]
+                return False, max(metrics) if metrics else None, None
+            for child_index, (child_value, _, child_warning) in enumerate(evaluated):
+                if child_value is None:
+                    return None, None, f"condition_clause_excluded:{child_index}:{child_warning or 'unknown'}"
+
+        if kind == "not":
+            children = params.get("conditions")
+            if (
+                not isinstance(children, list)
+                or len(children) != 1
+                or not isinstance(children[0], dict)
+            ):
+                return None, None, "invalid_condition_params"
+            value, metric, warning = _Research._breadth_condition_result(
+                item, children[0], index, benchmark_item
+            )
+            if warning:
+                return None, None, f"condition_clause_excluded:0:{warning}"
+            return (not value) if value is not None else None, metric, None
+
+        if kind == "comparison":
+            field = params.get("field")
+            if not isinstance(field, str) or not field.strip():
+                return None, None, "invalid_condition_params"
+            normalized_field = field.lower().strip()
+            metric: float | None = None
+            warning: str | None = None
+            if normalized_field in {"close", "price", "last"}:
+                metric = float(latest)
+            elif normalized_field in {"return", "return_1"}:
+                if len(values) < 2 or float(values[-2]) == 0:
+                    warning = "insufficient_history"
+                else:
+                    metric = float(latest) / float(values[-2]) - 1
+            elif normalized_field in {"distance_to_52w_high", "distance_to_52_week_high"}:
+                lookback = int(params.get("lookback", 252))
+                if lookback < 2 or len(values) < lookback:
+                    warning = "insufficient_history"
+                else:
+                    reference = max(float(value) for value in values[-lookback:])
+                    if reference <= 0:
+                        warning = "invalid_reference"
+                    else:
+                        metric = float(latest) / reference - 1
+            elif normalized_field in {"distance_to_52w_low", "distance_to_52_week_low"}:
+                lookback = int(params.get("lookback", 252))
+                if lookback < 2 or len(values) < lookback:
+                    warning = "insufficient_history"
+                else:
+                    reference = min(float(value) for value in values[-lookback:])
+                    if reference <= 0:
+                        warning = "invalid_reference"
+                    else:
+                        metric = float(latest) / reference - 1
+            elif normalized_field == "volume":
+                if not isinstance(volumes, list) or index >= len(volumes) or not finite_window([volumes[index]]):
+                    warning = "missing_volume"
+                else:
+                    metric = float(volumes[index])
+            elif normalized_field in {"moving_average_distance", "ma_distance"}:
+                _, metric, warning = _Research._breadth_condition_result(
+                    item,
+                    {"kind": "above_moving_average", "params": {"period": params.get("period", 200), "average": params.get("average", "sma")}},
+                    index,
+                    benchmark_item,
+                )
+            elif normalized_field in {"rsi", "trend", "volume_ratio", "relative_strength"}:
+                nested_params = {
+                    key: value
+                    for key, value in params.items()
+                    if key not in {"field", "operator", "comparator", "threshold"}
+                }
+                _, metric, warning = _Research._breadth_condition_result(
+                    item,
+                    {"kind": normalized_field, "params": nested_params},
+                    index,
+                    benchmark_item,
+                )
+            else:
+                warning = "unsupported_field"
+            if warning or metric is None:
+                return None, metric, warning or "invalid_condition_params"
+            return compare(metric, params), metric, None
+
         if kind == "above_moving_average":
             period = int(params.get("period", 200))
             if period < 2 or len(values) < period:

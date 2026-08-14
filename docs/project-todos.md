@@ -10025,6 +10025,17 @@ tests (14/14), frontend Vitest (821/821), type-check, production build, Ruff, an
 Full ETF point-in-time browser acceptance, arbitrary Python combinations, and reuse/promotion into
 columns, filters, scans, gauges, alerts, and exports remain open.
 
+Implementation checkpoint 3 (2026-08-14): the generic condition contract now supports nested
+`all`, `any`, and `not` composition plus a platform-owned `comparison` condition over close,
+one-period return, volume, RSI, moving-average distance, 52-week high/low distance, and relative
+strength. The isolated Python runner evaluates the same composition and comparison vocabulary.
+The workstation composer now exposes measured field, operator, target, benchmark, and an `All
+conditions` composition, and the generic result has passing/failing member drill-down that
+publishes canonical symbols. Focused breadth/runner coverage is `93/93`, generic API/history
+integration remains `2/2`, frontend Vitest is `821/821`, type-check, production build, Ruff, and
+diff checks pass. Arbitrary user Python code evaluation, full visual condition-tree editing,
+chart-linked historical occurrences, and promotion into every reusable target remain open.
+
 Implementation requirements:
 
 - add a stable breadth-definition schema and versioned API family rather than adding one route

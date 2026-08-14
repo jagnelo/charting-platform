@@ -401,22 +401,66 @@
           <option value="group">Current group</option>
           <option value="etf_holdings">SPY holdings proxy</option>
         </select>
+        <select :value="breadthComposition" aria-label="Breadth condition composition" @change="setBreadthConfiguration({ breadth_condition_composition: ($event.target as HTMLSelectElement).value })">
+          <option value="single">Single condition</option>
+          <option value="all">All conditions</option>
+        </select>
+        <label>Benchmark <input :value="breadthBenchmark" aria-label="Breadth benchmark" maxlength="12" @change="setBreadthConfiguration({ breadth_benchmark: ($event.target as HTMLInputElement).value.toUpperCase() })" /></label>
         <select :value="breadthConditionKind" aria-label="Breadth condition" @change="setBreadthConfiguration({ breadth_condition: ($event.target as HTMLSelectElement).value })">
           <option value="above_moving_average">Above moving average</option>
           <option value="within_52_week_high">Within distance of 52-week high</option>
+          <option value="comparison">Compare a measured field</option>
         </select>
         <template v-if="breadthConditionKind === 'above_moving_average'">
           <label>Period <input :value="breadthConditionPeriod" aria-label="Breadth condition moving average period" type="number" min="2" max="252" @change="setBreadthConfiguration({ breadth_condition_period: Number(($event.target as HTMLInputElement).value) })" /></label>
           <select :value="breadthConditionAverage" aria-label="Breadth condition average" @change="setBreadthConfiguration({ breadth_condition_average: ($event.target as HTMLSelectElement).value })"><option value="sma">SMA</option><option value="ema">EMA</option></select>
         </template>
-        <template v-else>
+        <template v-else-if="breadthConditionKind === 'within_52_week_high'">
           <label>Threshold <input :value="breadthConditionThreshold" aria-label="Breadth condition high threshold" type="number" min="0.001" max="0.5" step="0.001" @change="setBreadthConfiguration({ breadth_condition_threshold: Number(($event.target as HTMLInputElement).value) })" /></label>
           <label>Lookback <input :value="breadthConditionLookback" aria-label="Breadth condition high lookback" type="number" min="2" max="504" @change="setBreadthConfiguration({ breadth_condition_lookback: Number(($event.target as HTMLInputElement).value) })" /></label>
+        </template>
+        <template v-if="breadthConditionKind === 'comparison'">
+          <select :value="breadthComparisonField" aria-label="Breadth measured field" @change="setBreadthConfiguration({ breadth_comparison_field: ($event.target as HTMLSelectElement).value })">
+            <option value="close">Close</option>
+            <option value="return">One-period return</option>
+            <option value="volume">Volume</option>
+            <option value="rsi">RSI</option>
+            <option value="distance_to_52w_high">Distance to 52-week high</option>
+            <option value="distance_to_52w_low">Distance to 52-week low</option>
+            <option value="relative_strength">Relative strength</option>
+          </select>
+          <select :value="breadthComparisonOperator" aria-label="Breadth target operator" @change="setBreadthConfiguration({ breadth_comparison_operator: ($event.target as HTMLSelectElement).value })">
+            <option value="gte">At or above</option>
+            <option value="lte">At or below</option>
+            <option value="eq">Equal to</option>
+          </select>
+          <label>Target <input :value="breadthComparisonThreshold" aria-label="Breadth target threshold" type="number" step="0.001" @change="setBreadthConfiguration({ breadth_comparison_threshold: Number(($event.target as HTMLInputElement).value) })" /></label>
+        </template>
+        <template v-if="breadthComposition === 'all'">
+          <span class="breadth-tool__composition-note">+ measured-field target</span>
+          <select :value="breadthSecondaryField" aria-label="Breadth second measured field" @change="setBreadthConfiguration({ breadth_secondary_field: ($event.target as HTMLSelectElement).value })">
+            <option value="return">Return</option>
+            <option value="close">Close</option>
+            <option value="volume">Volume</option>
+            <option value="rsi">RSI</option>
+          </select>
+          <label>Target <input :value="breadthSecondaryThreshold" aria-label="Breadth second target threshold" type="number" step="0.001" @change="setBreadthConfiguration({ breadth_secondary_threshold: Number(($event.target as HTMLInputElement).value) })" /></label>
         </template>
         <button type="button" @click="runGenericBreadth">Evaluate</button>
         <span v-if="genericBreadthLoading" role="status" aria-live="polite">Evaluating…</span>
         <span v-else-if="genericBreadthError" class="breadth-tool__status--error" role="alert">{{ genericBreadthError }}</span>
         <span v-else-if="genericBreadth" class="breadth-tool__custom-result"><b>{{ genericBreadthPercentage }}</b> · {{ genericBreadth.pass_count }}/{{ genericBreadth.eligible_count }} eligible · {{ genericBreadthCoverage }} coverage</span>
+      </div>
+      <div v-if="genericBreadth" class="breadth-tool__generic-drilldown" aria-label="Generic breadth member drilldown">
+        <header>
+          <strong>{{ genericBreadthMemberState === 'pass' ? 'Passing' : 'Failing' }} members</strong>
+          <span class="breadth-tool__actions">
+            <button type="button" :class="{ 'breadth-tool__action--active': genericBreadthMemberState === 'pass' }" @click="genericBreadthMemberState = 'pass'">Pass {{ genericBreadth.pass_count }}</button>
+            <button type="button" :class="{ 'breadth-tool__action--active': genericBreadthMemberState === 'fail' }" @click="genericBreadthMemberState = 'fail'">Fail {{ genericBreadth.eligible_count - genericBreadth.pass_count }}</button>
+          </span>
+        </header>
+        <button v-for="member in genericBreadthMembers.slice(0, 100)" :key="member.instrument_id" type="button" @click="emit('select', member.symbol, member.instrument_id)"><strong>{{ member.symbol }}</strong><span>{{ member.name }}</span><small v-if="member.metric != null">{{ member.metric.toFixed(3) }}</small></button>
+        <small v-if="!genericBreadthMembers.length">No {{ genericBreadthMemberState === 'pass' ? 'passing' : 'failing' }} members are eligible.</small>
       </div>
       <GenericBreadthHistoryUPlot :history="genericBreadthHistory" />
       <p v-if="breadthBusy" class="breadth-tool__status" role="status" aria-live="polite" aria-atomic="true">Loading breadth analysis…</p>
@@ -1481,11 +1525,45 @@ const breadthHistory = computed(() => workspaceStore.breadthHistory[breadthGroup
 const breadthBusy = computed(() => workspaceStore.breadthLoading[breadthGroupKey.value] === true || workspaceStore.breadthHistoryLoading[breadthGroupKey.value] === true)
 const breadthError = computed(() => workspaceStore.breadthErrors[breadthGroupKey.value] ?? workspaceStore.breadthHistoryErrors[breadthGroupKey.value] ?? null)
 const breadthCustomUniverseKind = computed(() => props.tool.configuration.custom_universe_kind === 'etf_holdings' ? 'etf_holdings' : 'group')
-const breadthConditionKind = computed(() => props.tool.configuration.breadth_condition === 'within_52_week_high' ? 'within_52_week_high' : 'above_moving_average')
+const breadthComposition = computed(() => props.tool.configuration.breadth_condition_composition === 'all' ? 'all' : 'single')
+const breadthConditionKind = computed(() => {
+  const candidate = String(props.tool.configuration.breadth_condition ?? 'above_moving_average')
+  return ['above_moving_average', 'within_52_week_high', 'comparison'].includes(candidate) ? candidate : 'above_moving_average'
+})
 const breadthConditionPeriod = computed(() => Math.min(252, Math.max(2, Number(props.tool.configuration.breadth_condition_period ?? 200) || 200)))
 const breadthConditionAverage = computed(() => props.tool.configuration.breadth_condition_average === 'ema' ? 'ema' : 'sma')
 const breadthConditionThreshold = computed(() => Math.min(0.5, Math.max(0.001, Number(props.tool.configuration.breadth_condition_threshold ?? 0.01) || 0.01)))
 const breadthConditionLookback = computed(() => Math.min(504, Math.max(2, Number(props.tool.configuration.breadth_condition_lookback ?? 252) || 252)))
+const breadthComparisonField = computed(() => {
+  const candidate = String(props.tool.configuration.breadth_comparison_field ?? 'close')
+  return ['close', 'return', 'volume', 'rsi', 'distance_to_52w_high', 'distance_to_52w_low', 'relative_strength'].includes(candidate) ? candidate : 'close'
+})
+const breadthComparisonOperator = computed(() => {
+  const candidate = String(props.tool.configuration.breadth_comparison_operator ?? 'gte')
+  return ['gte', 'lte', 'eq'].includes(candidate) ? candidate : 'gte'
+})
+const breadthComparisonThreshold = computed(() => Number.isFinite(Number(props.tool.configuration.breadth_comparison_threshold)) ? Number(props.tool.configuration.breadth_comparison_threshold) : 0)
+const breadthSecondaryField = computed(() => {
+  const candidate = String(props.tool.configuration.breadth_secondary_field ?? 'return')
+  return ['close', 'return', 'volume', 'rsi'].includes(candidate) ? candidate : 'return'
+})
+const breadthSecondaryThreshold = computed(() => Number.isFinite(Number(props.tool.configuration.breadth_secondary_threshold)) ? Number(props.tool.configuration.breadth_secondary_threshold) : 0)
+const breadthBenchmark = computed(() => {
+  const candidate = String(props.tool.configuration.breadth_benchmark ?? 'SPY').trim().toUpperCase()
+  return candidate || 'SPY'
+})
+function comparisonCondition(field: string, operator: string, threshold: number) {
+  return { kind: 'comparison', params: { field, operator, threshold } }
+}
+function primaryBreadthCondition() {
+  if (breadthConditionKind.value === 'comparison') {
+    return comparisonCondition(breadthComparisonField.value, breadthComparisonOperator.value, breadthComparisonThreshold.value)
+  }
+  if (breadthConditionKind.value === 'within_52_week_high') {
+    return { kind: 'within_52_week_high', params: { lookback: breadthConditionLookback.value, threshold: breadthConditionThreshold.value, direction: 'high' } }
+  }
+  return { kind: 'above_moving_average', params: { period: breadthConditionPeriod.value, average: breadthConditionAverage.value, comparator: 'above' } }
+}
 const genericBreadthDefinition = computed(() => ({
   version: 1,
   universe: {
@@ -1493,11 +1571,12 @@ const genericBreadthDefinition = computed(() => ({
     ...(breadthCustomUniverseKind.value === 'group' ? { key: breadthGroupKey.value } : { key: 'SPY' }),
     point_in_time: true,
   },
-  condition: breadthConditionKind.value === 'above_moving_average'
-    ? { kind: 'above_moving_average', params: { period: breadthConditionPeriod.value, average: breadthConditionAverage.value, comparator: 'above' } }
-    : { kind: 'within_52_week_high', params: { lookback: breadthConditionLookback.value, threshold: breadthConditionThreshold.value, direction: 'high' } },
+  condition: breadthComposition.value === 'all'
+    ? { kind: 'all', params: { conditions: [primaryBreadthCondition(), comparisonCondition(breadthSecondaryField.value, 'gte', breadthSecondaryThreshold.value)] } }
+    : primaryBreadthCondition(),
   timeframe: breadthTimeframe.value,
   adjusted: breadthAdjusted.value,
+  benchmark: breadthBenchmark.value,
 }))
 const genericBreadthKey = computed(() => JSON.stringify(genericBreadthDefinition.value))
 const genericBreadth = computed(() => workspaceStore.genericBreadth[genericBreadthKey.value])
@@ -1506,6 +1585,8 @@ const genericBreadthLoading = computed(() => workspaceStore.genericBreadthLoadin
 const genericBreadthError = computed(() => workspaceStore.genericBreadthErrors[genericBreadthKey.value] ?? workspaceStore.genericBreadthHistoryErrors[genericBreadthKey.value] ?? null)
 const genericBreadthPercentage = computed(() => genericBreadth.value?.percentage == null ? 'Unavailable' : `${(genericBreadth.value.percentage * 100).toFixed(1)}%`)
 const genericBreadthCoverage = computed(() => genericBreadth.value == null ? 'Unavailable' : `${(genericBreadth.value.coverage * 100).toFixed(1)}%`)
+const genericBreadthMemberState = ref<'pass' | 'fail'>('pass')
+const genericBreadthMembers = computed(() => (genericBreadth.value?.members ?? []).filter(member => member.value === (genericBreadthMemberState.value === 'pass')))
 async function runGenericBreadth() {
   await Promise.all([
     workspaceStore.loadGenericBreadth(genericBreadthDefinition.value, genericBreadthKey.value),
@@ -2288,7 +2369,7 @@ const proxyCoverage = computed(() => industryProxySnapshot.value
 .combo-editor select[multiple] { height: 34px; }
 .combo-editor input { width: 78px; }
 .analysis { height: 100%; min-height: 0; }
-.breadth-tool { display:grid; grid-template-rows:auto auto auto auto minmax(0,1fr); height:100%; min-height:0; container-type:inline-size; }.breadth-tool__universe { display:flex; flex-wrap:wrap; gap:5px; align-items:center; padding:5px 7px 0; color:#9aabb6; font:10px "Segoe UI",Arial,sans-serif; min-width:0; }.breadth-tool__universe span { flex:0 0 auto; }.breadth-tool__universe select,.breadth-tool__universe input { border:1px solid #34434e; background:#172027; color:#d2dce3; font:inherit; min-width:0; max-width:100%; }.breadth-tool__universe select { flex:1 1 100px; }.breadth-tool__universe input { width:42px; flex:0 1 42px; }.breadth-tool__universe label { display:flex; flex:0 0 auto; align-items:center; gap:3px; white-space:nowrap; }.breadth-tool__custom { display:flex; flex-wrap:wrap; align-items:center; gap:4px; padding:5px 7px; border-top:1px solid #2b3841; color:#9aabb6; font:10px "Segoe UI",Arial,sans-serif; }.breadth-tool__custom select,.breadth-tool__custom input,.breadth-tool__custom button { border:1px solid #34434e; background:#172027; color:#d2dce3; font:inherit; min-width:0; }.breadth-tool__custom input { width:44px; }.breadth-tool__custom label { display:flex; align-items:center; gap:3px; }.breadth-tool__custom button { padding:2px 6px; cursor:pointer; }.breadth-tool__custom-result { color:#c3d2dc; white-space:nowrap; }.breadth-tool__status { margin:0; padding:5px 7px; color:#9aabb6; font:10px "Segoe UI",Arial,sans-serif; }.breadth-tool__status--error { color:#ff9b8a; }.metrics { display: grid; grid-template-columns: 1fr auto; gap: 5px 10px; padding: 9px; color: #99aabb; font: 10px "Segoe UI", Arial, sans-serif; }.breadth-tool__coverage-detail { padding:0 7px 4px; color:#778994; font:9px "Segoe UI",Arial,sans-serif; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }.breadth-tool__actions { display:flex; gap:3px; justify-content:flex-end; }.breadth-tool__actions button,.breadth-tool__drilldown header button { border:1px solid #34434e; background:#172027; color:#b9c8d1; font:inherit; padding:1px 4px; cursor:pointer; }.breadth-tool__actions button:hover,.breadth-tool__action--active { background:#1d4057; color:#e5f1f7; }.breadth-tool__drilldown { min-height:0; max-height:150px; overflow:auto; border-top:1px solid #2b3841; border-bottom:1px solid #2b3841; background:#131a20; font:10px "Segoe UI",Arial,sans-serif; }.breadth-tool__drilldown header { display:flex; justify-content:space-between; align-items:center; padding:4px 7px; color:#9aabb6; position:sticky; top:0; background:#20282f; }.breadth-tool__drilldown > button { display:flex; gap:8px; width:100%; border:0; border-bottom:1px solid #20282f; background:transparent; color:#cad4db; padding:4px 7px; text-align:left; cursor:pointer; }.breadth-tool__drilldown > button:hover { background:#1d4057; }.breadth-tool__drilldown > button span { color:#81929e; }.breadth-tool__drilldown > small { display:block; padding:7px; color:#8497a4; }
+.breadth-tool { display:grid; grid-template-rows:auto auto auto auto minmax(0,1fr); height:100%; min-height:0; container-type:inline-size; }.breadth-tool__universe { display:flex; flex-wrap:wrap; gap:5px; align-items:center; padding:5px 7px 0; color:#9aabb6; font:10px "Segoe UI",Arial,sans-serif; min-width:0; }.breadth-tool__universe span { flex:0 0 auto; }.breadth-tool__universe select,.breadth-tool__universe input { border:1px solid #34434e; background:#172027; color:#d2dce3; font:inherit; min-width:0; max-width:100%; }.breadth-tool__universe select { flex:1 1 100px; }.breadth-tool__universe input { width:42px; flex:0 1 42px; }.breadth-tool__universe label { display:flex; flex:0 0 auto; align-items:center; gap:3px; white-space:nowrap; }.breadth-tool__custom { display:flex; flex-wrap:wrap; align-items:center; gap:4px; padding:5px 7px; border-top:1px solid #2b3841; color:#9aabb6; font:10px "Segoe UI",Arial,sans-serif; }.breadth-tool__custom select,.breadth-tool__custom input,.breadth-tool__custom button { border:1px solid #34434e; background:#172027; color:#d2dce3; font:inherit; min-width:0; }.breadth-tool__custom input { width:44px; }.breadth-tool__custom label { display:flex; align-items:center; gap:3px; }.breadth-tool__custom button { padding:2px 6px; cursor:pointer; }.breadth-tool__custom-result { color:#c3d2dc; white-space:nowrap; }.breadth-tool__composition-note { color:#74858f; }.breadth-tool__status { margin:0; padding:5px 7px; color:#9aabb6; font:10px "Segoe UI",Arial,sans-serif; }.breadth-tool__status--error { color:#ff9b8a; }.metrics { display: grid; grid-template-columns: 1fr auto; gap: 5px 10px; padding: 9px; color: #99aabb; font: 10px "Segoe UI", Arial, sans-serif; }.breadth-tool__coverage-detail { padding:0 7px 4px; color:#778994; font:9px "Segoe UI",Arial,sans-serif; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }.breadth-tool__actions { display:flex; gap:3px; justify-content:flex-end; }.breadth-tool__actions button,.breadth-tool__drilldown header button,.breadth-tool__generic-drilldown header button { border:1px solid #34434e; background:#172027; color:#b9c8d1; font:inherit; padding:1px 4px; cursor:pointer; }.breadth-tool__actions button:hover,.breadth-tool__action--active { background:#1d4057; color:#e5f1f7; }.breadth-tool__drilldown,.breadth-tool__generic-drilldown { min-height:0; max-height:150px; overflow:auto; border-top:1px solid #2b3841; border-bottom:1px solid #2b3841; background:#131a20; font:10px "Segoe UI",Arial,sans-serif; }.breadth-tool__drilldown header,.breadth-tool__generic-drilldown header { display:flex; justify-content:space-between; align-items:center; padding:4px 7px; color:#9aabb6; position:sticky; top:0; background:#20282f; }.breadth-tool__drilldown > button,.breadth-tool__generic-drilldown > button { display:flex; gap:8px; width:100%; border:0; border-bottom:1px solid #20282f; background:transparent; color:#cad4db; padding:4px 7px; text-align:left; cursor:pointer; }.breadth-tool__drilldown > button:hover,.breadth-tool__generic-drilldown > button:hover { background:#1d4057; }.breadth-tool__drilldown > button span,.breadth-tool__generic-drilldown > button span { color:#81929e; }.breadth-tool__generic-drilldown > button small { margin-left:auto; color:#9bb6c3; }.breadth-tool__drilldown > small,.breadth-tool__generic-drilldown > small { display:block; padding:7px; color:#8497a4; }
 @container (max-width: 560px) {
   .breadth-tool__universe { flex-wrap:wrap; row-gap:4px; }
   .breadth-tool__universe > select { flex:1 1 100px; }

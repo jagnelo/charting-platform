@@ -1118,6 +1118,40 @@ class TestWorkspaces:
             item["code"] == "instrument_not_found" for item in explicit_payload["exclusions"]
         )
 
+        composite = client.post(
+            "/api/v1/analysis/breadth",
+            headers=auth_headers,
+            json={
+                "universe": {"kind": "symbols", "symbols": [instrument.symbol]},
+                "condition": {
+                    "kind": "all",
+                    "params": {
+                        "conditions": [
+                            {
+                                "kind": "comparison",
+                                "params": {"field": "return", "operator": ">", "threshold": -1},
+                            },
+                            {
+                                "kind": "not",
+                                "params": {
+                                    "conditions": [
+                                        {
+                                            "kind": "comparison",
+                                            "params": {"field": "close", "operator": "<", "threshold": 0},
+                                        }
+                                    ]
+                                },
+                            },
+                        ]
+                    },
+                },
+            },
+        )
+        assert composite.status_code == 200
+        composite_payload = composite.json()
+        assert composite_payload["eligible_count"] == 1
+        assert composite_payload["members"][0]["value"] is True
+
     def test_generic_breadth_history_uses_the_same_condition_without_forward_fill(
         self, client, auth_headers, db, instrument, ohlcv_bars
     ):

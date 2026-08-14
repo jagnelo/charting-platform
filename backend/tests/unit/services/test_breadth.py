@@ -103,3 +103,39 @@ def test_history_does_not_forward_fill_a_member_missing_the_current_timestamp():
     by_symbol = {result.symbol: result for result in latest["members"]}
     assert by_symbol["A"].value is True
     assert by_symbol["B"].exclusion_code == "missing_bar_at_timestamp"
+
+
+def test_composite_conditions_and_comparison_fields_are_reusable():
+    condition = {
+        "kind": "all",
+        "params": {
+            "conditions": [
+                {"kind": "comparison", "params": {"field": "return", "operator": ">", "threshold": 0}},
+                {"kind": "not", "params": {"conditions": [{"kind": "rsi", "params": {"period": 2, "threshold": 50, "comparator": "below"}}]}},
+            ]
+        },
+    }
+    value, metric, warning = evaluate_condition(_bars([100, 101, 103, 105]), condition)
+
+    assert value is True
+    assert metric is not None and metric > 0
+    assert warning is None
+
+
+def test_composite_condition_preserves_nested_exclusion_path():
+    value, metric, warning = evaluate_condition(
+        _bars([100]),
+        {
+            "kind": "all",
+            "params": {
+                "conditions": [
+                    {"kind": "comparison", "params": {"field": "return", "threshold": 0}},
+                    {"kind": "comparison", "params": {"field": "close", "threshold": 0}},
+                ]
+            },
+        },
+    )
+
+    assert value is None
+    assert metric is None
+    assert warning == "condition_clause_excluded:0:insufficient_history"

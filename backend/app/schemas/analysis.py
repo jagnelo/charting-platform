@@ -227,6 +227,10 @@ class BreadthConditionRequest(BaseModel):
         "rsi",
         "volume_ratio",
         "relative_strength",
+        "comparison",
+        "all",
+        "any",
+        "not",
     ]
     params: dict[str, object] = Field(default_factory=dict)
 

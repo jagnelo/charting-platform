@@ -170,6 +170,33 @@ def test_runner_computes_generic_breadth_snapshot_and_history_from_one_condition
     assert result["artifacts"]["current_rows"]["value"][-1]["value"] is False
 
 
+def test_runner_supports_composite_breadth_conditions_and_scalar_comparisons():
+    result = execute_job(
+        {
+            "source": (
+                "condition = {'kind': 'all', 'params': {'conditions': ["
+                "{'kind': 'comparison', 'params': {'field': 'return', 'operator': '>', 'threshold': 0}},"
+                "{'kind': 'not', 'params': {'conditions': [{'kind': 'comparison', 'params': {'field': 'close', 'operator': '<', 'threshold': 100}}]}}]}}\n"
+                "breadth = research.breadth_condition(dataset, condition)\n"
+                "output.scalar('percentage', breadth['percentage'])\n"
+                "output.table('rows', breadth['rows'])"
+            ),
+            "output_contract": "study",
+            "dataset": {
+                "datasets": [
+                    {"instrument_id": 1, "symbol": "A", "closes": [100, 101, 102]},
+                    {"instrument_id": 2, "symbol": "B", "closes": [100, 99, 98]},
+                ]
+            },
+        }
+    )
+
+    assert result["status"] == "completed"
+    assert result["artifacts"]["percentage"]["value"] == 0.5
+    assert result["artifacts"]["rows"]["value"][0]["value"] is True
+    assert result["artifacts"]["rows"]["value"][1]["value"] is False
+
+
 def test_runner_computes_transparent_ninety_ninety_breadth_and_exclusions():
     result = execute_job(
         {
