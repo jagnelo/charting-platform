@@ -1,5 +1,36 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-14 — Breadth scope expanded to condition-driven cross-sectional studies
+
+The breadth requirement is broader than the current fixed metric panel. The implemented panel
+is a useful represented-state baseline: it selects the current `sp500-sectors` or
+`us-benchmarks` group, evaluates fixed MA20/50/200, near-52-week, new-high/new-low, trend, and
+MA-distance metrics, exposes coverage and exclusions, and provides passing/failing drill-down
+plus historical fixed-MA uPlot series.
+
+The controlling plan now treats that panel as a preset over a generic breadth definition, not as
+the completion boundary. The remaining in-scope breadth contract must let users select a
+versioned universe (official index where entitled, explicitly labelled ETF-proxy holdings,
+sector/industry/benchmark group, watchlist/combo, basket, managed scan, or explicit symbols),
+select or author a reusable unified-Python condition, and aggregate pass/eligible counts and
+percentages across members. It must support configurable moving-average state/distance,
+distance to 52-week highs/lows, new-high/new-low windows, trend, RSI, volume, relative strength,
+and arbitrary safe predicates/AND/OR/NOT combinations, with current and historical output,
+per-member values, exclusions, coverage, and drill-down.
+
+The two mandatory representative studies are:
+
+1. percentage of SPY-proxy constituents above their 200-day average;
+2. percentage of SPY-proxy constituents within 1% of their 52-week high.
+
+Both must use the same generic universe/condition engine and be reusable as Study Lab artifacts,
+independent uPlot panes/plots, columns/filters, EasyScan conditions, gauges, alerts, and
+exports where their output contracts allow. The current roots do not yet provide an official
+S&P 500 constituent group, so proxy membership, holdings date, known-at/effective-at semantics,
+missing bars, and historical coverage must remain visibly labelled. This is an open functional
+parity gap, not an acceptance relaxation; no fixed-metric test or visual threshold is being
+treated as proof of the expanded contract.
+
 ## 2026-08-14 — Study Lab export and board-guided visual revalidation
 
 - Active Study Lab export now covers scalar, Boolean, and structured artifacts; authenticated

@@ -1,5 +1,20 @@
 # Run Report
 
+## 2026-08-14 — Breadth scope expansion documented
+
+- Broadened the controlling goal and plan from fixed breadth metrics to a generic,
+  versioned `universe + condition + parameters` cross-sectional study contract.
+- Added mandatory SPY-proxy examples: percentage above the 200-day average and percentage
+  within 1% of the 52-week high. Required outputs now include current/history, denominator,
+  coverage, exclusions, provenance, point-in-time semantics, member drill-down, and reusable
+  Study Lab/uPlot/column/filter/scan/gauge/alert/export targets where applicable.
+- Updated the active goal objective, project TODO, acceptance governance, parity matrix, and
+  task registry. This records requirements only; it does not claim the generic implementation
+  exists. Existing fixed breadth functionality remains a preset and its tests remain valid but
+  cannot close the new task.
+- Acceptance flexibility used: none. No visual threshold, mask, provider rule, or existing
+  acceptance criterion was relaxed. The expanded generic breadth task remains in progress.
+
 ## 2026-08-14 — Study Lab board-guided visual revalidation
 
 - Rebuilt the branch stack with seeded market-data fixtures after the visual suite correctly

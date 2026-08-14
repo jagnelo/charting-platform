@@ -9969,6 +9969,52 @@ conditions without re-querying providers or deriving membership from aggregate p
 the active drilldown can switch between passing and failing members without changing the
 selected condition or route.
 
+The fixed metrics above are convenience presets, not the breadth completion boundary. The
+workstation must also implement a generic condition-driven breadth contract:
+
+- choose a versioned universe from an official index when entitled, an explicitly labelled
+  ETF-proxy holding snapshot, benchmark/sector/industry/related group, personal or combo
+  watchlist, managed scan, basket, or explicit canonical symbols;
+- choose or author one reusable condition using the same unified-Python AST used by columns,
+  filters, scans, alerts, gauges, plots, and Study Lab, with a visual editor for its supported
+  subset;
+- expose condition parameters and targets for moving-average state/distance (SMA and EMA),
+  configurable distance to 52-week highs/lows, configurable new-high/new-low windows,
+  trend, RSI, volume, relative strength, metadata, and arbitrary safe Python predicates and
+  AND/OR/NOT combinations;
+- evaluate the condition independently for every eligible member at each requested timestamp,
+  never using a current snapshot as historical membership, and return pass count, eligible
+  denominator, percentage, coverage, exclusions/reasons, per-member values, current state,
+  aligned historical series, and passing/failing drill-down;
+- include condition/code version, universe membership version, timeframe, date range,
+  adjustment, session, as-of/known-at semantics, and dataset versions in response metadata,
+  reproducibility hashes, and cache identity;
+- permit the result to be saved or promoted as a Study Lab artifact, independent uPlot chart
+  pane/plot, watchlist column/filter, EasyScan condition, Market Gauge, alert, or export when
+  its output contract supports that target.
+
+Required representative acceptance cases are not bespoke features: (1) percentage of
+SPY-proxy constituents above their 200-day average, and (2) percentage of SPY-proxy
+constituents within 1% of their 52-week high. Both must use the same condition/universe
+engine and must expose the ETF-proxy label, holdings snapshot date, point-in-time limitations,
+coverage, and exclusions. The current two-option group selector and hard-coded MA20/50/200,
+near-high/low, new-high/low, and trend metrics remain useful presets but are explicitly
+insufficient for completion until arbitrary condition-driven breadth is available.
+
+Implementation requirements:
+
+- add a stable breadth-definition schema and versioned API family rather than adding one route
+  per metric;
+- resolve ETF-derived universes through canonical holdings/membership services and retain the
+  source, effective-at, known-at, composition date, and verification state;
+- use aligned timestamps and complete lookback windows, report every excluded member/date, and
+  reject look-ahead, future-membership, survivorship, and unsafe forward-fill paths;
+- support batch current snapshots and durable historical runs with cancellation, progress,
+  provenance/freshness, and deterministic fixtures;
+- test the generic engine, the two representative studies, visual-condition/Python parity,
+  historical membership, partial coverage, missing bars, cache identity, drill-down, promotion,
+  and uPlot rendering in focused, integration, browser, and end-to-end suites.
+
 The relative-rotation uPlot plane draws each member's color-coded sampled tail as a connected
 trail before drawing its current/retained points and labels the four transparent state
 quadrants, so the tail-length control represents visible history rather than only a count of
@@ -10119,7 +10165,7 @@ Add batch-oriented backend services for:
 - market-group trees, members, proxies, and related groups;
 - technical/ranking snapshots;
 - relative strength and normalized comparison;
-- breadth and relative rotation;
+- breadth and relative rotation, including condition-driven cross-sectional breadth;
 - scan and Python-code evaluation;
 - Study Lab runs and artifacts;
 - coverage, provenance, and freshness;
@@ -10134,6 +10180,19 @@ version, coverage, exclusions/reasons, calculation/code version, and refresh tim
 
 Cache identity must include universe membership version, timeframe/date range/as-of time,
 adjustment set, code/indicator/SDK version, requested fields, and source dataset versions.
+
+The breadth API must expose a versioned definition rather than a metric-specific route. A
+definition contains a canonical universe selector, a condition/code-version reference, typed
+parameters, timeframe/session/adjustment, date range, as-of/known-at policy, and requested
+outputs. The service returns current and/or aligned historical aggregate percentages, pass and
+eligible counts, coverage, per-member values, exclusions, membership/provenance/freshness
+metadata, and a stable definition/reproducibility hash. The same definition is consumable by
+the breadth tool, Study Lab, chart panes, watchlist columns/filters, EasyScan, Market Gauges,
+alerts, and exports. Built-in MA20/50/200 and near-high/low controls are presets over this
+contract, not separate semantics. The representative `SPY-proxy constituents above 200-day
+average` and `SPY-proxy constituents within 1% of 52-week high` studies must execute through
+the generic service and have focused, integration, browser, historical point-in-time, partial
+coverage, and promotion acceptance evidence.
 
 #### Alerts, notes, and supported reports
 
@@ -10453,6 +10512,10 @@ Study types:
 - positive/negative streaks and general state-duration studies;
 - before/after behavior and forward returns over multiple horizons;
 - breadth events, thrusts, new-high/new-low behavior, and moving-average participation;
+- condition-driven cross-sectional breadth over any declared universe, including percentages
+  above/below configurable SMA/EMA values, within configurable distances of 52-week highs/lows,
+  new-high/new-low windows, trend/RSI/volume/relative-strength predicates, and arbitrary
+  unified-Python predicates;
 - price/breadth and cross-market divergences;
 - volatility, trend, breadth, and relative-strength regimes;
 - calendar/day/month seasonality;
@@ -10520,6 +10583,10 @@ Ship editable factory studies for:
 - multi-horizon forward returns;
 - 90/90-style breadth events;
 - new-high/new-low and moving-average breadth;
+- percentage of an ETF-proxy universe above a configurable moving average;
+- percentage of an ETF-proxy universe within a configurable distance of its 52-week high or low;
+- a generic breadth-definition starter that can be reused as a chart series, column, filter,
+  scan, gauge, alert, or Study Lab artifact;
 - price/breadth divergence;
 - volatility and trend regimes;
 - month/day seasonality;

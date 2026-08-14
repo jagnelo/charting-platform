@@ -1,5 +1,26 @@
 # Active Handoff
 
+## 2026-08-14 — Breadth requirement broadened to generic condition-driven studies
+
+- The active plan and goal now explicitly require breadth to be a reusable definition of
+  `universe + condition + parameters + timeframe/as-of` evaluated across eligible members, not
+  only the existing fixed MA20/50/200, near-high/low, new-high/low, trend, and distance panel.
+- Mandatory representative cases are percentage of SPY-proxy constituents above their 200-day
+  average and percentage within 1% of their 52-week high. Both must use the same generic engine,
+  expose denominator/coverage/exclusions/provenance/point-in-time semantics, and support
+  current/history, drill-down, Study Lab, uPlot-pane, column/filter, scan, gauge, alert, and
+  export targets where contracts permit.
+- Updated `goal-objective.md`, `docs/project-todos.md`,
+  `docs/tc2000-acceptance-governance.md`, `docs/tc2000-parity.md`, and `ops/tasks.yaml`.
+- This is a requirements/documentation expansion, not implementation evidence. Existing fixed
+  breadth tests remain preset coverage; the generic engine, SPY-proxy universe path, historical
+  condition evaluation, and representative browser acceptance remain open.
+- Acceptance flexibility used: none. No visual threshold, mask, provider rule, or existing
+  acceptance criterion was relaxed.
+- Next context: implement the versioned breadth-definition schema/API, canonical universe
+  resolution, unified-Python/research helper, generic UI, independent uPlot pane, promotion
+  paths, and focused/integration/browser/end-to-end acceptance for both representative cases.
+
 ## 2026-08-14 — Study Lab export board-guided visual revalidation
 
 - From the clean local boundary, rebuilt the branch-scoped stack with

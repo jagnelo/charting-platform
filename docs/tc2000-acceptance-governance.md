@@ -152,6 +152,30 @@ completion claim: exact-build/unrepresented visual states, broader free-source/p
 native physical-monitor placement, beyond-bounded endurance, and the final requirement audit remain
 open and actionable. Acceptance flexibility used: **None**.
 
+### Expanded condition-driven breadth gate
+
+The fixed Market Breadth panel is not sufficient evidence for the broader breadth requirement.
+Completion acceptance must prove one generic definition contract across multiple universe types
+and conditions. At minimum, the authenticated browser and backend suites must demonstrate:
+
+- a point-in-time, explicitly labelled SPY ETF-proxy constituent universe;
+- percentage of eligible members above a configurable 200-day average;
+- percentage of eligible members within 1% of their 52-week high;
+- identical condition/universe semantics for current snapshots and aligned historical series;
+- denominator, coverage, exclusions, provenance, membership date/version, and freshness visible
+  at the result surface;
+- passing/failing member drill-down and symbol publication into linked charts;
+- reuse of the same definition as a Study Lab artifact and, where output contracts permit, a
+  chart pane/plot, watchlist column/filter, EasyScan condition, Market Gauge, alert, and export;
+- partial data, missing bars, incomplete holdings, current-snapshot-versus-point-in-time, and
+  unsupported-capability paths returning explicit structured warnings rather than silently
+  changing the universe or condition.
+
+The existing MA20/50/200, near-high/low, new-high/low, trend, and distance controls remain
+convenience presets and retain their current regression coverage. They cannot close this gate
+unless they execute through the generic definition contract. No visual threshold or acceptance
+flexibility is being relaxed by this expansion.
+
 ### 2026-08-11 bounded endurance evidence
 
 The governed two-popout churn guard was run with `TC2000_POP_OUT_CHURN_ROUNDS=100`. Both performance
