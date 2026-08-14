@@ -1,5 +1,15 @@
 # Run Report
 
+## 2026-08-14 — Chart-template comparison context push hold
+
+- Implementation `e568ac83` and operational record `653ea806` are separate and locally committed;
+  the worktree is clean at `653ea80654c870d2339bd8b428913daa69192360`, with origin at
+  `91463e54bbfb37dc5e130d3c912434bfc41594bd`.
+- The exact elevated push was retried and rejected before Git by the external private-repository
+  egress safeguard for this current range/destination. No workaround or force push was attempted.
+- This transport hold does not block product work; the next context can proceed from the clean
+  local boundary while the exact push awaits explicit authorization.
+
 ## 2026-08-14 — Chart-template comparison persistence context completed
 
 - Saved chart templates now restore `comparison_symbols`; active instrument identity remains

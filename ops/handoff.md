@@ -1,5 +1,18 @@
 # Active Handoff
 
+## 2026-08-14 — Chart-template comparison context push hold
+
+- Implementation `e568ac83` and operational closure `653ea806` are separate, locally committed,
+  and the worktree is clean. Local `HEAD` is `653ea80654c870d2339bd8b428913daa69192360` and
+  origin remains `91463e54bbfb37dc5e130d3c912434bfc41594bd` (19 commits ahead).
+- Exact elevated `rtk git push origin feat/tc2000-frontend-rework` was retried for this current
+  range and rejected before Git by the private-repository egress safeguard because explicit
+  authorization for this exact current range/destination is required. No workaround, rewrite,
+  indirect execution, or force push was attempted.
+- This is transport-only. The clean local commits remain the recoverable source of truth, and the
+  next repository-controlled implementation context may proceed without mixing files. Retry the
+  same narrow elevated command after explicit authorization for this exact range.
+
 ## 2026-08-14 — Chart-template comparison persistence context completed
 
 - Closed a repository-controlled workstation gap: chart templates now restore their saved
