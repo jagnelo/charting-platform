@@ -27058,6 +27058,14 @@ in 4.6 minutes. No failure was suppressed or reclassified as product success.
 - No workaround, alternate transport, rewrite, reset, stash, or repeat was used. Transport-only;
   the local branch remains clean and the product goal continues.
 
+# 2026-08-14 — Benchmark-family routing validation push transport
+
+- The exact elevated push for the clean range through `ab0b9144` was attempted once and rejected
+  before Git by the private-origin safeguard because trusted authorization for the exact accumulated
+  private payload and destination was unavailable.
+- No workaround, alternate transport, rewrite, reset, stash, or repeat was used. Transport-only;
+  local branch remains clean.
+
 # 2026-08-14 — Benchmark-family issuer routing
 
 - Added canonical free-source route metadata for the family/style proxies through SPDR and iShares
