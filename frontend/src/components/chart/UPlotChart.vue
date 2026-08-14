@@ -3242,7 +3242,12 @@ watch([visibleComparisonSeries, visiblePythonSeries], () => { if (uplot) updateD
 watch(visibleActiveIndicators, async () => { await nextTick(); initChart() }, { deep: true })
 watch(effectiveChartType, async (type) => {
   if (chartStore.symbol && chartStore.barType !== type) {
-    await chartStore.loadBars(chartStore.symbol, chartStore.timeframe, type)
+    await chartStore.loadBars(chartStore.symbol, chartStore.timeframe, type, chartStore.localOnlyMode, {
+      brick_size: chartTransformNumber('brick_size') ?? undefined,
+      reversal_pct: chartTransformNumber('reversal_pct') ?? undefined,
+      box_size: chartTransformNumber('box_size') ?? undefined,
+      reversal: chartTransformNumber('reversal') ?? undefined,
+    })
   } else {
     chartStore.setBarType(type)
   }

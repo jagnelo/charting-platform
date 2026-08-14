@@ -205,11 +205,17 @@ test.describe('Chart', () => {
     await settings.getByRole('spinbutton', { name: 'Reversal boxes' }).press('Tab')
     await expect(settings.getByRole('spinbutton', { name: 'Box size' })).toHaveValue('5')
     await page.locator('.editor-box .ed-close').click()
-    await menu.getByRole('textbox', { name: 'Chart template name' }).fill(`P&F ${Date.now()}`)
+    const transformTemplateName = `P&F ${Date.now()}`
+    await menu.getByRole('textbox', { name: 'Chart template name' }).fill(transformTemplateName)
     await menu.getByRole('button', { name: 'Save', exact: true }).click()
     await expect(menu.locator('.chart-template__apply').first()).toBeVisible({ timeout: 15_000 })
     await menu.locator('footer button').click()
     await expect(menu.getByRole('combobox', { name: 'Chart bar type' })).toHaveValue('candles')
+    const savedTemplate = menu.locator('.chart-template__apply').filter({ hasText: transformTemplateName })
+    const appliedRequest = page.waitForRequest(request => request.url().includes('/ohlcv/SPY/D1/transformed') && request.url().includes('bar_type=point_figure') && request.url().includes('box_size=5') && request.url().includes('reversal=2'))
+    await savedTemplate.click()
+    await expect(menu.getByRole('combobox', { name: 'Chart bar type' })).toHaveValue('point_figure')
+    await appliedRequest
     await browserDiagnostics.expectNoCriticalIssues()
   })
 

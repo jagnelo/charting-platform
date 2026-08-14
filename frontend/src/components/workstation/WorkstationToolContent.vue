@@ -1028,7 +1028,11 @@ const chartBarType = computed<ChartBarType>(() => {
     : 'candles'
 })
 const chartTransformParams = computed(() => {
-  const configuration = props.tool.configuration
+  // Template/settings changes are applied optimistically to the local
+  // serialisable configuration before the parent workspace snapshot round-trip
+  // completes. Read the same live object as chartBarType so a newly applied
+  // Renko/Kagi/Point & Figure template cannot request stale transform fields.
+  const configuration = liveChartConfiguration.value
   const number = (key: string) => typeof configuration[key] === 'number' && Number.isFinite(configuration[key]) ? configuration[key] as number : undefined
   return { brick_size: number('brick_size'), reversal_pct: number('reversal_pct'), box_size: number('box_size'), reversal: number('reversal') }
 })
@@ -1283,7 +1287,12 @@ watch([activeSymbol, activeTimeframe, syntheticExpression, chartBarType, chartTr
     }
   }
   if (sequence !== chartSelectionSequence) return
-  if (chartStore.symbol === targetSymbol && chartStore.timeframe === timeframe && chartStore.barType === barType) return
+  const requestedTransformKey = JSON.stringify(transformParams ?? {})
+  const loadedTransformKey = JSON.stringify(chartStore.transformParams ?? {})
+  if (chartStore.symbol === targetSymbol
+    && chartStore.timeframe === timeframe
+    && chartStore.barType === barType
+    && loadedTransformKey === requestedTransformKey) return
   void chartStore.loadBars(
     targetSymbol,
     timeframe as Timeframe,
