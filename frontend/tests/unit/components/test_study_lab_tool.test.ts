@@ -202,7 +202,10 @@ describe('StudyLabTool', () => {
     await selector.setValue('negative_streak')
     expect((wrapper.find('[aria-label="Study Python source"]').element as HTMLTextAreaElement).value).toContain("stats.streaks(closes, 'negative')")
     await selector.setValue('current_history_comparison')
-    expect((wrapper.find('[aria-label="Study Python source"]').element as HTMLTextAreaElement).value).toContain('research.historical_comparison')
+    const currentHistorySource = (wrapper.find('[aria-label="Study Python source"]').element as HTMLTextAreaElement).value
+    expect(currentHistorySource).toContain('research.historical_comparison')
+    expect(currentHistorySource).toContain("output.histogram('historical_return_distribution'")
+    expect(currentHistorySource).toContain("output.scalar('historical_sample_size'")
     await selector.setValue('seasonality')
     const seasonalitySource = (wrapper.find('[aria-label="Study Python source"]').element as HTMLTextAreaElement).value
     expect(seasonalitySource).toContain('average_day_of_week_return')

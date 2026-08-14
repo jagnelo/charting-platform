@@ -6139,3 +6139,14 @@ and authoritative backend coverage `1451/1451` at `80.17%`; type/build, uPlot, v
 `make test-fe` pass. This is a capability/contract increment only: visual thresholds, masks,
 product criteria, and acceptance flexibility are unchanged. Exact/unrepresented Study Lab V25 and
 broader provider, historical/GICS, native-monitor, endurance, and final-audit gaps remain open.
+
+## 2026-08-14 — Study Lab current-history distribution renderer
+
+The Current versus history factory starter now emits a typed historical-return histogram with the
+current observation highlighted, an explicit sample-size metric, and the existing comparison table
+and summary metrics. Focused Study Lab coverage is `22/22`, full frontend `820/820`, authenticated
+Study Lab/Python/Results browser coverage `12/12`, and `make test-fe`, uPlot/visual-policy,
+type-check, and production build pass. Acceptance flexibility used: `REF-STUDY-LAB-V25` original-
+surface interim baseline and product-contract evidence; the board contains no authoritative Study
+Lab capture. The gap remains open and no visual threshold, mask, product criterion, or acceptance
+rule changed.

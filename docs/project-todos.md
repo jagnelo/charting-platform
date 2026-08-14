@@ -11468,3 +11468,14 @@ The current source also passes the focused authenticated top-down browser slice 
 - [ ] Exact/unrepresented Study Lab V25 visual evidence and broader research/provider/historical,
   native-monitor, endurance, and final-audit gaps remain open. No visual threshold, mask, product
   criterion, or acceptance flexibility changed.
+
+### 2026-08-14 — Study Lab current-history distribution renderer
+
+- [x] Extended the Current versus history factory starter with an explicit historical sample-size
+  metric and a typed histogram highlighting the current observation, while retaining the existing
+  comparison table and summary metrics.
+- [x] Focused Study Lab `22/22`; full frontend `820/820`; `make test-fe`, uPlot/visual-policy,
+  type-check, production build, and authenticated Study Lab/Python/Results browser `12/12` pass.
+- [ ] Acceptance flexibility used: `REF-STUDY-LAB-V25` original-surface interim baseline and
+  product-contract evidence because the board has no authoritative Study Lab capture. The gap
+  remains open; no visual threshold, mask, product criterion, or acceptance rule changed.
