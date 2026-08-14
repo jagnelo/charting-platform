@@ -1,4 +1,35 @@
 tasks:
+  - id: tc2000-unified-python-stats-namespace-20260814
+    title: Implement the plan-required unified Python stats namespace
+    status: completed
+    priority: high
+    scope: >-
+      Add deterministic isolated-runner helpers for descriptive statistics, positive streaks,
+      ranks, percentiles, rolling functions, correlation, regression, and distributions, then
+      expose the same supported methods through the unified editor and Study Lab reference.
+    definition_of_done:
+      - Helpers use finite bounded inputs, explicit empty/invalid contracts, and no I/O or network
+      - Backend runner tests cover nominal, edge, invalid, and reproducible output behavior
+      - Frontend autocomplete/reference expose exactly the implemented stats methods
+      - Focused and broader frontend/browser gates plus backend validation pass
+      - No visual threshold, mask, product criterion, or acceptance flexibility changes
+    validation:
+      - focused-research-runner-71-of-71
+      - python-editor-and-study-lab-27-of-27
+      - adjacent-authenticated-study-python-results-12-of-12
+      - frontend-vitest-818-of-818
+      - frontend-coverage-80.91-percent-statements
+      - make-test-fe-uplot-and-visual-policy
+      - backend-unit-integration-1443-of-1443
+      - backend-coverage-80.17-percent
+      - frontend-type-check-and-production-build
+      - git-diff-check
+    notes:
+      - >-
+        Context closes a real missing plan requirement. The first unprivileged full backend
+        invocation hit the known uv cache permission boundary and the identical repository gate
+        passed through the approved elevated environment. REF-STUDY-LAB-V25 and broader external
+        gaps remain open; no flexibility changed.
   - id: tc2000-study-lab-sdk-reference-alignment-20260814
     title: Align Study Lab SDK reference with supported isolated runtime
     status: completed

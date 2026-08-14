@@ -1,5 +1,31 @@
 # Active Handoff
 
+## 2026-08-14 — Unified Python stats namespace (completed)
+
+- Context owner: Codex. Owned paths are `backend/research_runner/runner.py`, its focused runner
+  tests, `frontend/src/components/workstation/PythonSourceEditor.vue`, `StudyLabTool.vue`, their
+  tests, and corresponding docs/ops checkpoint records.
+- Intent: implement the plan-required deterministic `stats` namespace (descriptive statistics,
+  ranks, percentiles, rolling functions, correlation, regression, and distributions) inside the
+  isolated no-network runner, then expose exactly those methods in the unified editor/reference.
+- Completed: added deterministic finite-input stats helpers to the isolated runner, exposed the
+  exact same methods through editor completion and the Study Lab reference, and added nominal,
+  edge, invalid, and reproducibility coverage.
+- Validation: focused runner `71/71`; editor/Study Lab `27/27`; adjacent authenticated browser
+  `12/12`; frontend `818/818` at `80.91%` statements; backend `1443/1443` at `80.17%`;
+  `make test-fe`, uPlot/visual-policy, type-check, production build, and diff checks pass.
+- The first unprivileged full-backend invocation hit the known uv-cache permission boundary; the
+  identical repository gate passed through the approved elevated environment. This is execution
+  environment evidence, not a product defect or goal blocker.
+- Implementation/docs are committed locally as `c729d75d4edc4081b6cb3d29a49cf045466be10e`.
+- Next action: commit the operational checkpoint separately, verify the worktree is clean, and
+  make the single exact elevated push attempt for this clean range. A rejected private-origin
+  transport remains a transport-only record and must not block continued product work.
+- Implementation/docs are ready for the isolated implementation commit; operational checkpoint
+  follows separately. No visual threshold, mask, product criterion, or acceptance flexibility
+  changed. REF-STUDY-LAB-V25 and broader SDK/provider/historical/monitor/endurance/final-audit
+  gaps remain open.
+
 ## 2026-08-14 — Study Lab SDK reference alignment
 
 - Context owner: Codex. Owned paths are `frontend/src/components/workstation/StudyLabTool.vue`,
