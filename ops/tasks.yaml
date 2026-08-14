@@ -1,4 +1,29 @@
 tasks:
+  - id: tc2000-seeded-browser-checkpoint-20260814
+    title: Complete corrected seeded workstation browser checkpoint
+    status: completed
+    priority: high
+    scope: >-
+      Re-run the complete corrected authenticated TC2000 workstation browser matrix after the
+      gesture, transform/template, and seeded-provenance oracle repairs.
+    definition_of_done:
+      - Complete flows.spec.ts executes all 140 collected tests with no failures
+      - Canonical-only live-membership cases remain explicit skips only when seeded mode is enabled
+      - No visual threshold, mask, provenance rule, or product criterion is weakened
+      - Acceptance flexibility and remaining external evidence gaps are recorded
+    validation:
+      - seeded-flows-corrected-138-of-140-with-2-canonical-only-skips
+      - frontend-vitest-806-of-806
+      - frontend-type-check-build-476-modules
+      - git-diff-check
+    notes:
+      - >-
+        Corrected full matrix passed `138/140` in `6.9m` with one worker. The only skips are
+        F8e.live-membership and F8e.live-sector-drilldown, intentionally gated because seeded
+        market data is not authorised canonical free-source membership evidence. This is a
+        completed acceptance checkpoint, not a product completion claim. Exact/unrepresented V25,
+        provider/entitlement, historical/GICS, native-monitor, endurance, Docker, and final-audit
+        gaps remain tracked.
   - id: tc2000-browser-acceptance-hardening-20260814
     title: Harden workstation browser acceptance oracles
     status: completed
@@ -21,10 +46,10 @@ tasks:
       - git-diff-check
     notes:
       - >-
-        Implementation/test commit `51e042fb`. The corrected full 140-test rerun remains the next
-        acceptance checkpoint. Seeded proxy provenance flexibility is explicitly limited to an
-        all-labelled controlled fixture or an all-canonical free-source local snapshot; mixed or
-        unknown provenance remains a failure. No goal blocker was raised.
+        Implementation/test commit `51e042fb`. The corrected full rerun subsequently passed
+        `138/140` with the two documented canonical-only skips. Seeded proxy provenance flexibility
+        is explicitly limited to an all-labelled controlled fixture or an all-canonical free-source
+        local snapshot; mixed or unknown provenance remains a failure. No goal blocker was raised.
   - id: tc2000-comparison-timestamp-alignment-20260814
     title: Align ISO and epoch comparison bars
     status: completed

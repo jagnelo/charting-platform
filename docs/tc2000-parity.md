@@ -2,6 +2,16 @@
 
 ## 2026-08-14 — Browser acceptance hardening and full seeded revalidation
 
+- The corrected full seeded `flows.spec.ts` rerun passes `138/140` executed tests in `6.9m`
+  with one serialized Chromium worker; the two skips are explicit canonical-only
+  `F8e.live-membership` and `F8e.live-sector-drilldown` cases gated by
+  `E2E_SEED_MARKET_DATA=true`. They remain documented skips rather than hidden failures. This
+  closes the prior browser checkpoint; no failure, visual threshold, mask, provenance rule, or
+  product criterion was suppressed.
+- Full frontend Vitest remains `806/806`, type-check, the `476`-module production build, and
+  `git diff --check` remain green. Exact/unrepresented V25, provider/entitlement, historical/GICS,
+  native-monitor, endurance, Docker, and final-audit gaps remain open.
+
 - Hardened the authenticated browser matrix around three false negatives: the uPlot gesture test
   now zooms inward before history panning so persisted full-history views are deterministic; the
   transform-reset request observer is installed before the blur-triggered field change; and the

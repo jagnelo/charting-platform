@@ -1,5 +1,20 @@
 # Active Handoff
 
+## 2026-08-14 — Corrected seeded workstation acceptance checkpoint
+
+- The complete seeded authenticated Chromium `flows.spec.ts` matrix passes `138/140` executed
+  tests in `6.9m` with one worker after the final gesture, transform/template, and seeded
+  provenance oracle repairs.
+- The only two skips are explicit canonical-only cases (`F8e.live-membership` and
+  `F8e.live-sector-drilldown`) gated by seeded mode. They are not hidden failures: seeded fixtures
+  are not claimed as canonical free-source membership evidence.
+- Full frontend Vitest `806/806`, type-check, `476`-module production build, and diff-check remain
+  green. No visual threshold, mask, provenance rule, or product criterion was relaxed.
+- Acceptance flexibility used: seeded proxy provenance may be all controlled-fixture-labelled or
+  all canonical free-source local data; mixed/unknown provenance remains a failure. Exact/
+  unrepresented V25, provider/entitlement, historical/GICS, native-monitor, endurance, Docker,
+  and final-audit gaps remain open.
+
 ## 2026-08-14 — Current clean boundary and push transport result
 
 - Implementation/test commit `51e042fb` and operational/parity commit `06b09a1f` are present as

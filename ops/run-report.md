@@ -1,5 +1,19 @@
 # Run Report
 
+## 2026-08-14 — Corrected seeded workstation browser matrix
+
+- `frontend/tests/e2e/flows.spec.ts`: `138/140` executed passed, `2` intentional canonical-only
+  skips, `0` failures, `6.9m`, one Chromium worker.
+- The run used `E2E_SEED_INSTRUMENTS=true` and `E2E_SEED_MARKET_DATA=true`. Skips are the two
+  live canonical membership/sector-drilldown cases gated by seeded mode; no failure was
+  reclassified as success.
+- Full frontend Vitest `806/806`, type-check, `476`-module production build, and diff-check pass.
+- Acceptance flexibility used: seeded proxy provenance may be all controlled-fixture-labelled or
+  all canonical free-source local data; mixed/unknown provenance remains a failure. No visual
+  threshold, mask, renderer, or product criterion changed. Open gaps remain exact/unrepresented
+  V25 states, provider/entitlement breadth, historical/GICS truth, native monitor, endurance,
+  Docker housekeeping, and final audit.
+
 ## 2026-08-14 — Clean changeset closure and push transport hold
 
 - Closed the browser acceptance context in isolated commits: implementation/test `51e042fb`,
