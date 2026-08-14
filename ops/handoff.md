@@ -28796,6 +28796,8 @@ indefinite soak; longer endurance remains an explicit open gap.
 - No workaround, alternate transport, rewrite, reset, stash, or repeat was used. This is
   transport-only and not a product-goal blocker; the local branch remains clean.
 
+# 2026-08-14 — Family as-of workstation checkpoint
+
 - Added the dated family coverage selector to the Market Breadth workstation. It is populated only
   from disclosed cap/equal/value/growth composition dates and carries the selected `as_of` through
   overview, coverage, constituents, all-leg ratios, and generic breadth current/history requests.
@@ -28811,3 +28813,18 @@ indefinite soak; longer endurance remains an explicit open gap.
 - Remaining goal gaps are explicit: historical snapshot/bar population and rebalance continuity for
   all eight US families and evidenced style legs, family-wide breadth/rotation/ranking/dispersion,
   complete browser population, exact/unrepresented V25 states, and final acceptance.
+
+# 2026-08-14 — Family role technicals checkpoint
+
+- Added independent cap/equal/value/growth technical snapshots and rendered the compact Family
+  technicals strip beside ratios, holdings coverage, and constituent drill-down.
+- The endpoint carries timeframe, adjustment, membership version, freshness, warnings, and `as_of`
+  lineage. Missing mappings, canonical instruments, and missing bars stay role-local; no fallback.
+- Validation: benchmark-family integration `8/8`, store `58/58`, full frontend `829/829`, type/build,
+  Ruff/compile, diff-check, and rebuilt authenticated browser `1/1`. The first fixture used an
+  as-of before the family's known-at boundary and was corrected before the authoritative rerun;
+  no acceptance flexibility was used.
+- Implementation/docs commit: `99386e25` (clean locally). Exact push was attempted once and
+  rejected before Git by the private-origin safeguard; no workaround or repeat.
+- Remaining gaps: historical bars/holdings, family-wide breadth/ranking/rotation/dispersion,
+  complete browser population, and exact/unrepresented V25 visual states.

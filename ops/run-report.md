@@ -27300,6 +27300,8 @@ in 4.6 minutes. No failure was suppressed or reclassified as product success.
 - No workaround, alternate transport, rewrite, reset, stash, or repeat was used. Transport-only;
   the local branch remains clean and the product goal continues.
 
+# 2026-08-14 — Family as-of workstation checkpoint
+
 - The family breadth panel now offers role-specific disclosed composition dates and propagates the
   selected point-in-time through family overview, coverage, constituents, ratios, and generic
   breadth current/history requests. Latest and historical ratio cache entries are distinct.
@@ -27312,3 +27314,16 @@ in 4.6 minutes. No failure was suppressed or reclassified as product success.
   not a goal blocker.
 - Historical provider population, rebalance continuity, complete all-family analytics/browser
   evidence, exact/unrepresented V25 visuals, and final-goal gates remain open and tracked.
+
+# 2026-08-14 — Family role technicals checkpoint
+
+- Added independent role technicals for cap/equal/value/growth and rendered them in the family
+  workstation panel beside ratios and dated holdings coverage, preserving explicit unavailable
+  states and no-fallback semantics.
+- Validation: backend family integration `8/8`, store `58/58`, full frontend `829/829`, type/build,
+  Ruff/compile, diff-check, and authenticated browser `1/1`. A known-at/as-of fixture error was
+  corrected and the focused suite rerun; no acceptance flexibility used.
+- Clean implementation/docs commit: `99386e25`. Exact elevated push was attempted once and
+  rejected before Git by the private-origin safeguard; no workaround or repeat. Transport-only.
+- Historical bars/holdings, full family breadth/ranking/rotation/dispersion, browser population,
+  and exact/unrepresented V25 gaps remain open.
