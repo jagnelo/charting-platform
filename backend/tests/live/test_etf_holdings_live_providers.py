@@ -43,6 +43,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "infrastructure_capital",
     "acuitas",
     "aot",
+    "alerian",
     "abrdn",
     "acsi_funds",
     "oakmark",
@@ -2065,6 +2066,7 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
         ("sofi", "SFY", None, {}, 300),
         ("thrivent", "TSCV", None, {}, 40),
         ("calvert", "CVLC", None, {}, 500),
+        ("alerian", "ENFR", None, {}, 20),
     ],
 )
 async def test_live_issuer_direct_holdings_routes_return_parseable_rows(
