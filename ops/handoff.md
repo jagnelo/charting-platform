@@ -1,5 +1,22 @@
 # Active Handoff
 
+## 2026-08-14 — Git push egress safeguard recorded
+
+- Repository integrity is verified: `.git`, `index`, and `refs` are writable, no
+  `.git/index.lock` exists, local commits succeed, and the worktree is clean.
+- The exact command `rtk git push origin feat/tc2000-frontend-rework` was also
+  retried through the approved elevated Git boundary and was rejected before
+  Git ran because the environment's private-repository egress safeguard requires
+  explicit authorization for this exact newly-created commit payload. This is
+  not an authentication, remote, index, or product failure.
+- Current local `HEAD` is `0701db9d62da107fe6790c5f751028bfd7cfed10`; origin is
+  `91463e54bbfb37dc5e130d3c912434bfc41594bd`; the branch is clean and ahead by
+  12 commits. Completed contexts remain separate and locally recoverable.
+- The new recovery rule is documented in `docs/agent-orchestration.md`: do not
+  use indirect push workarounds; record the exact range and retry through the
+  same elevated Git path only after explicit authorization for that payload.
+  This transport hold does not block independently scoped implementation work.
+
 ## 2026-08-14 — Chart-template alternative mechanics context completed
 
 - Closed the template parity gap after the transform-controls context: saved chart templates already

@@ -1,5 +1,16 @@
 # Run Report
 
+## 2026-08-14 — Git push egress safeguard recorded
+
+- Verified normal repository writeability and absence of a stale index lock.
+- Retried the exact branch push through the approved elevated Git boundary; the
+  external safeguard rejected the newly-created private-repository payload before
+  Git execution. No indirect workaround was attempted.
+- Local branch remains clean at `0701db9d62da107fe6790c5f751028bfd7cfed10`,
+  origin remains `91463e54bbfb37dc5e130d3c912434bfc41594bd`, ahead by 12.
+- Added the durable recovery procedure to `docs/agent-orchestration.md` and
+  continued from the clean local boundary; this is not a product blocker.
+
 ## 2026-08-14 — Chart-template alternative mechanics context completed
 
 - Chart-template reset now removes all alternative transform parameters while preserving the

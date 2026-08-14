@@ -262,6 +262,32 @@ waiting for a normal terminal commit. If the elevated retry genuinely fails,
 preserve a precise handoff and make the next action the first priority of the
 next worker.
 
+### External push-egress safeguard
+
+An elevated `git push` can be rejected before Git starts when the execution
+environment detects a newly-created private-repository payload. This is not an
+index, Git, authentication, or repository-integrity failure. Do not retry the
+same payload through an indirect command, alternate shell, API, or plugin.
+
+When this occurs:
+
+1. Verify the repository is clean and record `HEAD`, `origin/<branch>`, the
+   exact commit range, remote, branch, and the full push command.
+2. Keep every completed changeset as a separate local commit; never amend,
+   squash, reset, stash, or create a metadata-only loop to hide the ahead
+   state.
+3. Record `committed_locally_pending_push` and the rejection in the operational
+   files. This is a transport hold, not a product blocker, so independently
+   scoped contexts may continue from the clean boundary.
+4. Retry only through the same approved elevated Git path after the user has
+   explicitly authorized that exact current payload (remote, branch, and commit
+   range). If authorization is unavailable, leave the clean local commits in
+   place and report the precise command needed; do not claim synchronization.
+5. Once accepted, verify `git rev-parse HEAD` equals
+   `git rev-parse origin/<branch>` and then close the operational record in a
+   separate commit. The goal must not be marked blocked solely for this
+   safeguard.
+
 ### Context-transition guard
 
 The first action after selecting any new context is a repository-boundary check,
