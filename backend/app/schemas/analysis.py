@@ -118,6 +118,16 @@ class BenchmarkFamilyMappingOut(BaseModel):
     source_url: str | None = None
     instrument_id: int | None = None
     available: bool = False
+    holdings_snapshot_id: int | None = None
+    holdings_available: bool = False
+    holdings_composition_date: date | None = None
+    holdings_known_at: datetime | None = None
+    holdings_source_provider: str | None = None
+    holdings_completeness_status: str | None = None
+    holdings_row_count: int | None = None
+    holdings_resolved_count: int | None = None
+    holdings_unresolved_count: int | None = None
+    holdings_total_weight: Decimal | None = None
 
 
 class BenchmarkFamilyOverviewOut(AnalysisResponseMetadata):

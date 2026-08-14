@@ -6587,3 +6587,18 @@ The Market Breadth family panel uses this batch contract and keeps a focus-leg c
 re-fetching when the focus changes. This closes the role-by-role request gap, not the broader family
 analysis requirement: provider-backed historical evidence, family breadth/rotation/ranking,
 dispersion, and constituent drill-down remain open.
+
+## 2026-08-14 — Family overview holdings readiness
+
+The benchmark-family overview now distinguishes a mapped canonical ETF/proxy from a mapped leg
+whose disclosed holdings are actually available. Each cap/equal/value/growth mapping carries the
+selected holdings snapshot ID, composition date, known-at timestamp, source provider, completeness
+state, row/resolution counts, and reported total weight. This makes the top-down UI able to show
+whether `available` means identity-only or `holdings_available` means usable composition evidence,
+without silently treating a current snapshot as historical truth. Focused Docker-backed family
+overview/constituent coverage passes `2/2`; Ruff and diff checks pass. The first unprivileged Docker
+attempt was an environment permission failure and was rerun successfully with elevated access.
+
+This closes only the response-level readiness contract. Provider-backed population, historical
+rebalance evidence, point-in-time taxonomy snapshots, and the visual/browser rendering of these
+fields remain open. Acceptance flexibility used: **none**.

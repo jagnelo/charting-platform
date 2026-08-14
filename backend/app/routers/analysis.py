@@ -2144,6 +2144,37 @@ async def benchmark_family_overview(
             await db.execute(select(Instrument).where(Instrument.symbol.in_(symbols)))
         ).scalars()
     }
+    mapped_instrument_ids = [instrument.id for instrument in instruments.values()]
+    holdings_statement = (
+        holdings_snapshot_source_filter(
+            select(ETFHoldingsSnapshot)
+            .options(selectinload(ETFHoldingsSnapshot.etf_profile))
+            .join(ETFProfile, ETFProfile.id == ETFHoldingsSnapshot.etf_profile_id)
+            .where(ETFProfile.instrument_id.in_(mapped_instrument_ids))
+        )
+        if mapped_instrument_ids
+        else None
+    )
+    if holdings_statement is not None and as_of is not None:
+        holdings_statement = _holdings_snapshot_at(holdings_statement, as_of)
+    holdings_snapshots = (
+        (
+            await db.execute(
+                holdings_statement.order_by(
+                    ETFHoldingsSnapshot.composition_date.desc(),
+                    ETFHoldingsSnapshot.known_at.desc().nullslast(),
+                    ETFHoldingsSnapshot.id.desc(),
+                )
+            )
+        ).scalars().all()
+        if holdings_statement is not None
+        else []
+    )
+    holdings_by_instrument: dict[int, ETFHoldingsSnapshot] = {}
+    for snapshot in holdings_snapshots:
+        instrument_id = snapshot.etf_profile.instrument_id if snapshot.etf_profile else None
+        if instrument_id is not None and instrument_id not in holdings_by_instrument:
+            holdings_by_instrument[instrument_id] = snapshot
     selected_members = _group_members_at(group, as_of)
     cap_mapping = proxy_mappings.get("cap_weight")
     cap_symbol = (
@@ -2195,6 +2226,7 @@ async def benchmark_family_overview(
         mapping = mapping if isinstance(mapping, Mapping) else {}
         symbol = str(mapping.get("symbol")).upper() if mapping.get("symbol") else None
         instrument = instruments.get(symbol) if symbol else None
+        holdings_snapshot = holdings_by_instrument.get(instrument.id) if instrument else None
         mappings.append(
             BenchmarkFamilyMappingOut(
                 role=role,
@@ -2204,6 +2236,24 @@ async def benchmark_family_overview(
                 source_url=str(mapping.get("source_url")) if mapping.get("source_url") else None,
                 instrument_id=instrument.id if instrument else None,
                 available=instrument is not None,
+                holdings_snapshot_id=holdings_snapshot.id if holdings_snapshot else None,
+                holdings_available=holdings_snapshot is not None,
+                holdings_composition_date=(
+                    holdings_snapshot.composition_date if holdings_snapshot else None
+                ),
+                holdings_known_at=holdings_snapshot.known_at if holdings_snapshot else None,
+                holdings_source_provider=(
+                    holdings_snapshot.source_provider if holdings_snapshot else None
+                ),
+                holdings_completeness_status=(
+                    holdings_snapshot.completeness_status if holdings_snapshot else None
+                ),
+                holdings_row_count=holdings_snapshot.row_count if holdings_snapshot else None,
+                holdings_resolved_count=holdings_snapshot.resolved_count if holdings_snapshot else None,
+                holdings_unresolved_count=(
+                    holdings_snapshot.unresolved_count if holdings_snapshot else None
+                ),
+                holdings_total_weight=holdings_snapshot.total_weight if holdings_snapshot else None,
             )
         )
 

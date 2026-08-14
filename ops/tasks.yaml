@@ -90,6 +90,13 @@ tasks:
         cap/equal/style composition can be audited without reconstructing weights. Focused
         constituent/generic-breadth integration `2/2` and Ruff/diff checks pass; provider/rebalance
         history, complete family population, and browser weighting presentation remain open.
+      - >-
+        Family overview mappings now separately expose canonical proxy availability and holdings
+        readiness: snapshot ID, composition/known-at timestamps, source, completeness, row and
+        resolution counts, and reported total weight. This is covered by the focused Docker-backed
+        overview/constituent integration `2/2`, Ruff, and diff checks. It does not fabricate missing
+        evidence or close provider population, historical taxonomy, or browser presentation gaps;
+        acceptance flexibility used: none.
   - id: tc2000-generic-condition-driven-breadth-20260814
     title: Broaden breadth from fixed metrics to reusable condition-driven cross-sectional studies
     status: in_progress

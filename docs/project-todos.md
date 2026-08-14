@@ -12079,3 +12079,19 @@ The current source also passes the focused authenticated top-down browser slice 
 - [ ] Still open: independently verified provider/rebalance history, official-versus-ETF membership
       distinction, complete family/style population, and full browser presentation of weighting
       evidence.
+
+### 2026-08-14 — Family overview holdings readiness
+
+- [x] Benchmark-family overview mappings now expose whether the mapped cap/equal/value/growth
+      instrument has a canonical ETF holdings snapshot, including snapshot identity, composition
+      and known-at timestamps, source provider, completeness, row resolution, and reported total
+      weight. This keeps proxy identity (`available`) separate from usable point-in-time composition
+      evidence (`holdings_available`) for every supported family.
+- [x] Added integration coverage proving issuer-labelled SPY evidence is surfaced on the S&P 500
+      cap leg without fabricating evidence for missing style/equal mappings. Focused Docker-backed
+      family overview/constituent tests pass `2/2`; Ruff and diff checks pass. The first unprivileged
+      test attempt was blocked by Docker socket permissions, then the same test was rerun with the
+      required elevated Docker access; no product failure remained.
+- [ ] Still open: provider-backed population and historical rebalance coverage for every S&P,
+      Russell, and Nasdaq family leg, point-in-time taxonomy snapshots, and browser presentation of
+      the holdings-readiness fields. Acceptance flexibility used: **none**.

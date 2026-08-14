@@ -522,6 +522,7 @@ class TestWorkspaces:
             row_count=1,
             resolved_count=1,
             unresolved_count=0,
+            total_weight=Decimal("0.25"),
             snapshot_hash="test-family-spy-snapshot",
         )
         db.add(snapshot)
@@ -558,6 +559,21 @@ class TestWorkspaces:
         assert payload["rows"][0]["weight"] == "0.25000000"
         assert payload["rows"][0]["shares"] == "12.00000000"
         assert payload["rows"][0]["market_value"] == "1234.500000"
+
+        overview = client.get(
+            "/api/v1/analysis/benchmark-families/sp500/overview",
+            headers=auth_headers,
+        )
+        assert overview.status_code == 200, overview.text
+        cap_mapping = next(
+            mapping for mapping in overview.json()["mappings"] if mapping["role"] == "cap_weight"
+        )
+        assert cap_mapping["holdings_available"] is True
+        assert cap_mapping["holdings_composition_date"] == "2024-05-30"
+        assert cap_mapping["holdings_source_provider"] == "issuer"
+        assert cap_mapping["holdings_row_count"] == 1
+        assert cap_mapping["holdings_resolved_count"] == 1
+        assert Decimal(cap_mapping["holdings_total_weight"]) == Decimal("0.25")
 
         missing = client.get(
             "/api/v1/analysis/benchmark-families/sp500/constituents",
