@@ -1,4 +1,25 @@
 tasks:
+  - id: tc2000-frontend-repository-gate-20260814
+    title: Run frontend unit, uPlot, and visual-policy gates after backend cleanup
+    status: completed
+    priority: medium
+    scope: >-
+      Re-run the repository frontend validation suite after the backend lint/format changes and
+      preserve deterministic chart and visual-policy evidence.
+    definition_of_done:
+      - Full frontend Vitest coverage run passes
+      - Primary uPlot renderer contract passes
+      - Visual acceptance policy parses and enforces its existing thresholds
+      - No screenshot baseline, mask, threshold, or product criterion changes
+    validation:
+      - frontend-vitest-817-of-817-with-coverage
+      - uplot-contract-45-files
+      - visual-policy-26-assertions
+      - git-diff-check
+    notes:
+      - >-
+        This is clean-boundary regression evidence; no acceptance flexibility was used and the
+        overall TC2000 goal remains in progress.
   - id: tc2000-backend-formatting-gate-20260814
     title: Normalize backend Ruff formatting and rerun full gates
     status: completed

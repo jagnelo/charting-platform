@@ -1,5 +1,13 @@
 # Active Handoff
 
+## 2026-08-14 — Frontend repository gate after backend cleanup
+
+- `make test-fe` passes: frontend Vitest coverage `817/817`, uPlot numerical renderer contract
+  `45` audited files, and visual acceptance policy `26` screenshot assertions with unchanged
+  `0.5%`/`1px`/`ΔE2000 2` thresholds.
+- No baseline, mask, product, provider, or acceptance rule changed. The branch remains clean locally
+  and ready for the next product gap.
+
 ## 2026-08-14 — Complete backend formatting gate
 
 - Ruff formatting normalized all 91 files reported by the mandatory formatter check in mechanical

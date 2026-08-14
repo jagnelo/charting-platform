@@ -1,5 +1,11 @@
 # Run Report
 
+## 2026-08-14 — Frontend repository gate after backend cleanup
+
+- `make test-fe` passes with Vitest `817/817`, the uPlot renderer contract auditing 45 files, and
+  visual acceptance-policy validation of 26 screenshot assertions. Existing thresholds and masks
+  are unchanged; no acceptance flexibility was used.
+
 ## 2026-08-14 — Complete backend formatting gate
 
 - Ruff format initially reported 91 backend files. The configured formatter normalized them in

@@ -1,5 +1,14 @@
 # Project TODO Memory
 
+### 2026-08-14 — Frontend repository gate after backend cleanup
+
+- [x] The repository frontend gate passes: Vitest coverage run `817/817`; the primary uPlot
+      renderer contract audits `45` source files; visual acceptance policy validates all `26`
+      screenshot assertions with the required `0.5%`/`1px`/`ΔE2000 2` thresholds. No baseline,
+      threshold, mask, or product criterion changed.
+- [ ] Acceptance flexibility used: **none**. This is regression evidence for the clean boundary;
+      the single completion bar and remaining external/reference gaps remain open.
+
 ### 2026-08-14 — Complete backend formatting gate
 
 - [x] The repository-configured Ruff formatter normalized the 91 backend files reported by the
