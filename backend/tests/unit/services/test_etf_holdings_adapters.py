@@ -20032,6 +20032,18 @@ def test_anfield_remains_explicitly_audited_fallback_only_after_route_404():
     assert ISSUER_ADAPTER_CONFIGS["anfield"].live_tested_default_route is False
 
 
+def test_westwood_remains_explicitly_audited_fallback_only_after_official_route_403():
+    """Do not promote search-indexed Westwood tables without an executable issuer artifact."""
+    audit = FALLBACK_ISSUER_AUDITS["westwood"]
+
+    assert audit.status == "issuer_access_blocked"
+    assert "issuer-owned" in audit.next_action
+    assert ISSUER_ADAPTER_CONFIGS["westwood"].live_tested_default_route is False
+    assert type(get_holdings_adapter("westwood")).__name__ == (
+        "WestwoodAuditedFallbackHoldingsAdapter"
+    )
+
+
 def test_stockanalysis_provider_fifth_continuation_batch_is_registered_and_audited():
     # Academy was promoted to a native issuer route; the remaining fifth-batch
     # identities must continue to carry explicit fallback audits.
