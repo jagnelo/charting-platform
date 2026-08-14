@@ -1,5 +1,17 @@
 # Run Report
 
+## 2026-08-14 — Current exact push authorization result (0d3ec147)
+
+- Clean repository/index checks pass: no `.git/index.lock`; local `HEAD` is `0d3ec147`;
+  origin remains `91463e54`; exact range is `91463e54..0d3ec147` (129 commits).
+- The single approved exact elevated push request, `rtk git push origin
+  HEAD:feat/tc2000-frontend-rework`, was rejected before Git by the private-origin
+  egress safeguard because trusted authorization for this payload and destination was
+  unavailable. No workaround or repeated same-payload attempt was made.
+- This is a transport-only hold. Completed contexts remain clean and isolated; the
+  active TC2000 goal continues. Retry only through the same approved exact-payload path
+  after newly accepted authorization is presented.
+
 ## 2026-08-14 — Top-down ratio acceptance-oracle repair
 
 - Broader seeded F8d/F8e initially exposed one localized order-dependent failure in F8e.2a:

@@ -1,5 +1,21 @@
 # Active Handoff
 
+## 2026-08-14 — Current exact push authorization result (0d3ec147)
+
+- Repository/index health is confirmed: there is no `.git/index.lock`, ownership and
+  writability are normal, and the worktree is clean at `0d3ec147`. The configured
+  `origin/feat/tc2000-frontend-rework` remains at `91463e54`, so the exact local
+  range is `91463e54..0d3ec147` (129 commits).
+- The exact elevated command `rtk git push origin HEAD:feat/tc2000-frontend-rework`
+  was requested for that remote, branch, and payload. The execution boundary rejected
+  it before Git started because trusted authorization to export this private-repository
+  range was unavailable.
+- This is not fixable by changing repository files or retrying through another shell,
+  transport, API, plugin, force push, rewrite, reset, stash, or wrapper. The documented
+  recovery is to keep the clean, isolated local commits and retry this exact command
+  only when the environment presents newly accepted authorization. It is transport-only
+  and must not block the product goal.
+
 ## 2026-08-14 — Top-down ratio acceptance-oracle repair
 
 - F8e.2a was order-dependent: a prior persisted comparison/template flow could leave the shared
