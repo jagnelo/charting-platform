@@ -11,9 +11,10 @@
   visual threshold.
 - The four reviewed board-guided baselines (1920×1080 and 2560×1440 at 100% and 125% display
   scale) were regenerated from that deterministic fixture and pass unchanged on a no-update
-  rerun. Focused chart-loading and structured-result coverage passes `8/8`; F8i error/loading
-  browser coverage passes `3/3`; frontend Vitest passes `806/806`; type-check, 476-module build,
-  and `git diff --check` pass. Implementation/test commit: `5eacf42f`.
+  rerun. Focused chart-loading and structured-result coverage passes `8/8`; the complete board
+  matrix passes `104/104` in `5.2m`; F8i error/loading browser coverage passes `3/3`; frontend
+  Vitest passes `806/806`; type-check, 476-module build, and `git diff --check` pass.
+  Implementation/test commit: `5eacf42f`.
 - Acceptance flexibility used: the Study Lab visual is represented-state evidence from the
   composite V25 reference board and a controlled seeded fixture, not an approved exact-build
   capture. The exact V25 structured-result reference, provider/entitlement breadth,

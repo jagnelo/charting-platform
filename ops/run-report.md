@@ -1,5 +1,15 @@
 # Run Report
 
+## 2026-08-14 — Complete board visual revalidation
+
+- `frontend/tests/e2e/tc2000_visual.spec.ts` passed `104/104` in `5.2m` with one worker across
+  all four required display environments. This is the authoritative no-update rerun after the
+  chart-loading lifecycle repair and deterministic Study Lab structured-result fixture.
+- No visual threshold, mask, reference authority, or product criterion changed. Composite-board
+  and controlled-seeded represented-state flexibility remains explicitly limited to the
+  unrepresented Study Lab state; exact V25 captures and the other documented external gaps remain
+  open.
+
 ## 2026-08-14 — Post-checkpoint push authorization result
 
 - Post-checkpoint elevated push for `91463e54..1075744c` was rejected before Git by the private

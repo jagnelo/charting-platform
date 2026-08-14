@@ -16,6 +16,7 @@ tasks:
       - Implementation is committed separately before operational records are updated
     validation:
       - board-focused-chart-loading-and-study-structured-visual-8-of-8
+      - board-guided-visual-matrix-104-of-104
       - f8i-chart-loading-error-3-of-3
       - frontend-vitest-806-of-806
       - frontend-type-check-build-476-modules
@@ -24,7 +25,8 @@ tasks:
       - >-
         Implementation/test commit `5eacf42f`. Four structured-result baselines were regenerated
         only after the test oracle was made deterministic and were then verified in a no-update
-        rerun. Composite-board/controlled-seeded represented-state flexibility is explicit; exact
+        rerun; the complete four-environment board matrix subsequently passed 104/104. Composite-
+        board/controlled-seeded represented-state flexibility is explicit; exact
         V25 structured-result captures, provider/entitlement, historical/GICS, native-monitor,
         endurance, Docker, and final-audit gaps remain open. The unprivileged Git write failed at
         the Codex filesystem boundary; sequential elevated staging/commit succeeded. Push was

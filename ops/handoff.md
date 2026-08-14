@@ -1,5 +1,16 @@
 # Active Handoff
 
+## 2026-08-14 — Complete board visual revalidation
+
+- The complete board-guided `tc2000_visual.spec.ts` matrix passed `104/104` in `5.2m` with one
+  worker across 1920×1080 and 2560×1440 at both 100% and 125% display scale. This includes all
+  shell, docking, linking, chart, freshness, Study Lab, error, and recovery states after the
+  chart-loading/Study Lab oracle repair.
+- No screenshots were updated during this run; the reviewed baselines passed unchanged. This is
+  represented-state composite-board evidence with controlled seeded data, not exact approved V25
+  capture evidence. Exact/unrepresented V25, provider/entitlement, historical/GICS,
+  native-monitor, endurance, Docker, and final-audit gaps remain tracked.
+
 ## 2026-08-14 — Post-checkpoint push authorization result
 
 - After the separate operational checkpoint `1075744c`, retried the exact elevated command
