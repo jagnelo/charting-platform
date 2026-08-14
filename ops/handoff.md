@@ -20,6 +20,9 @@
   and `git diff --check`. No implementation behavior changed in this documentation context.
 - Plan commit `2d9e916e` (`docs(analysis): expand US benchmark families`) is clean locally. The
   operational records remain a separate context and must be committed before the next context.
+- Exact elevated push for the accumulated 239-commit range was attempted once and rejected before
+  Git by the private-origin safeguard. No workaround, alternate transport, or repeat was used;
+  this remains transport-only and does not block the goal.
 - Next implementation context remains `generic-breadth-python-condition-and-promotion-20260814`;
   the benchmark-family task is now explicitly queued behind the current generic breadth work.
 

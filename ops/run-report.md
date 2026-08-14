@@ -12,6 +12,8 @@
   expansion; no implementation or acceptance flexibility was claimed.
 - Plan commit: `2d9e916e` (`docs(analysis): expand US benchmark families`) is clean locally; the
   operational checkpoint follows separately.
+- Exact elevated push for the accumulated 239-commit range was attempted once and rejected before
+  Git by the private-origin safeguard. No workaround or repeat was used; transport-only.
 
 ## 2026-08-14 — Breadth predicate quantification plan expansion
 
