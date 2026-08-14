@@ -1107,6 +1107,49 @@ async def refresh_benchmark_family_holdings_for_date(
     }
 
 
+async def refresh_benchmark_family_holdings_for_dates(
+    db: AsyncSession,
+    *,
+    family_key: str,
+    requested_dates: list[date],
+    roles: list[str] | None = None,
+) -> dict[str, Any]:
+    """Backfill a bounded set of family dates without collapsing role failures.
+
+    Dates are de-duplicated and processed in chronological order.  The existing single-date
+    operation owns role routing and failure isolation; this wrapper only provides a durable,
+    bounded range contract for scheduled maintenance and historical acceptance.
+    """
+
+    normalized_dates = sorted({value for value in requested_dates})
+    if not normalized_dates:
+        raise ValueError("At least one requested family holdings date is required.")
+    runs: list[dict[str, Any]] = []
+    refreshed = unavailable = failed = 0
+    normalized_roles: list[str] | None = None
+    for requested_date in normalized_dates:
+        summary = await refresh_benchmark_family_holdings_for_date(
+            db,
+            family_key=family_key,
+            requested_date=requested_date,
+            roles=roles,
+        )
+        normalized_roles = list(summary["roles"])
+        refreshed += int(summary["refreshed"])
+        unavailable += int(summary["unavailable"])
+        failed += int(summary["failed"])
+        runs.append(summary)
+    return {
+        "family_key": str(family_key).strip().lower(),
+        "requested_dates": normalized_dates,
+        "roles": normalized_roles or [],
+        "refreshed": refreshed,
+        "unavailable": unavailable,
+        "failed": failed,
+        "runs": runs,
+    }
+
+
 def _aliases(profile: ETFProfile) -> dict[str, Any]:
     aliases = profile.provider_aliases or {}
     return aliases if isinstance(aliases, dict) else {}

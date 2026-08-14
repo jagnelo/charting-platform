@@ -110,6 +110,12 @@ The opt-in live historical matrix passes `7/7` for iShares `IJR`, `IWB`, `IWD`, 
 composition-date metadata. This is evidence for seven issuer-backed routes only; it does not
 establish official index membership, complete rebalance continuity, or populated browser visuals.
 
+The admin historical family maintenance contract now also supports a bounded date set through
+`POST /etf-holdings/benchmark-family/{family_key}/refresh-range`. Dates are normalized and each
+run retains its requested/composition provenance plus independent role outcomes. This is an
+orchestration primitive for building family history, not a claim that the free-source route has
+already produced complete rebalance continuity.
+
 ## 2026-08-14 — Family-leg relative-strength ratio contract
 
 Family role analysis now exposes `GET /analysis/benchmark-families/{family_key}/ratios`. A

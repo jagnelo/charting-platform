@@ -12,6 +12,8 @@ from app.schemas.basket import BasketOut
 from app.schemas.etf_holdings import (
     BenchmarkFamilyHoldingsDatedRefreshRequest,
     BenchmarkFamilyHoldingsDatedRefreshSummary,
+    BenchmarkFamilyHoldingsRangeRefreshRequest,
+    BenchmarkFamilyHoldingsRangeRefreshSummary,
     ETFConstituentTimelinePoint,
     ETFHoldingsAdapterCatalogOut,
     ETFHoldingsAdapterProbeOut,
@@ -89,6 +91,7 @@ from app.services.etf_holdings_refresh import (
     probe_etf_holdings_adapter_route,
     refresh_all_known_etf_holdings,
     refresh_benchmark_family_holdings_for_date,
+    refresh_benchmark_family_holdings_for_dates,
     refresh_etf_holdings_for_date,
 )
 from app.services.etf_holdings_sec import parse_sec_legacy_holdings_xml, parse_sec_nport_xml
@@ -111,6 +114,30 @@ async def refresh_benchmark_family_for_date(
             db,
             family_key=family_key,
             requested_date=body.requested_date,
+            roles=body.roles,
+        )
+    except ValueError as exc:
+        await db.rollback()
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    await db.commit()
+    return summary
+
+
+@router.post(
+    "/benchmark-family/{family_key}/refresh-range",
+    response_model=BenchmarkFamilyHoldingsRangeRefreshSummary,
+)
+async def refresh_benchmark_family_for_dates(
+    family_key: str,
+    body: BenchmarkFamilyHoldingsRangeRefreshRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    try:
+        summary = await refresh_benchmark_family_holdings_for_dates(
+            db,
+            family_key=family_key,
+            requested_dates=body.requested_dates,
             roles=body.roles,
         )
     except ValueError as exc:

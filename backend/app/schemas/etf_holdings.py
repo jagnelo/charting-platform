@@ -520,6 +520,23 @@ class BenchmarkFamilyHoldingsDatedRefreshSummary(BaseModel):
     legs: list[BenchmarkFamilyHoldingsDatedRefreshLegOut] = Field(default_factory=list)
 
 
+class BenchmarkFamilyHoldingsRangeRefreshRequest(BaseModel):
+    """Bounded historical dates for independent family-leg backfill."""
+
+    requested_dates: list[date] = Field(min_length=1, max_length=64)
+    roles: list[str] = Field(default_factory=list)
+
+
+class BenchmarkFamilyHoldingsRangeRefreshSummary(BaseModel):
+    family_key: str
+    requested_dates: list[date]
+    roles: list[str]
+    refreshed: int
+    unavailable: int
+    failed: int
+    runs: list[BenchmarkFamilyHoldingsDatedRefreshSummary] = Field(default_factory=list)
+
+
 class ETFHoldingsDiscoveryRequest(BaseModel):
     adapter_key: str
     source_url: str

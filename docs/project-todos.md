@@ -9303,6 +9303,13 @@ comparison. No acceptance flexibility was used; the first browser attempt failed
 running stack served a pre-change image, the stack was rebuilt, and the unchanged product
 acceptance then passed.
 
+Historical maintenance now has a bounded range contract at
+`POST /etf-holdings/benchmark-family/{family_key}/refresh-range`. It accepts up to 64 requested
+dates and selected roles, de-duplicates and processes dates chronologically, and returns one
+dated run with independent cap/equal/value/growth leg statuses per date. This makes repeated
+issuer snapshots schedulable without implying that every family has complete official index
+membership or rebalance history; unavailable mappings and route failures remain explicit.
+
 #### Current continuation — 2026-08-14 QQQE/Direxion route evidence
 
 The Nasdaq-100 equal-weight leg now has canonical free-source route metadata: `QQQE` resolves

@@ -184,6 +184,13 @@ tasks:
         provider-backed population, historical continuity, all-family analytics, and exact V25
         acceptance remain open. No acceptance flexibility was used; the first browser attempt
         exposed stale served content and was fixed by rebuilding the branch-scoped stack.
+      - >-
+        Added bounded admin `POST /etf-holdings/benchmark-family/{family_key}/refresh-range` for
+        up to 64 requested dates. The range wrapper de-duplicates and orders dates, delegates each
+        date to the role-isolated refresh operation, and returns one dated run with independent
+        refreshed/unavailable/failed legs. Focused integration against the real wrapper passes
+        `1/1`; Ruff, compileall, and diff checks pass. This is historical orchestration readiness,
+        not complete official membership/rebalance evidence; no acceptance flexibility used.
   - id: tc2000-generic-condition-driven-breadth-20260814
     title: Broaden breadth from fixed metrics to reusable condition-driven cross-sectional studies
     status: in_progress

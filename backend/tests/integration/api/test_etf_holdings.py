@@ -2204,6 +2204,49 @@ def test_admin_can_refresh_selected_benchmark_family_legs_for_date(
     assert "asOfDate=20260630" in requested_urls[0]
 
 
+def test_admin_family_refresh_range_deduplicates_dates_and_preserves_each_run(
+    client, admin_headers, monkeypatch
+):
+    async def fake_refresh_date(db, *, family_key, requested_date, roles):
+        return {
+            "family_key": family_key,
+            "requested_date": requested_date,
+            "roles": roles,
+            "refreshed": 1,
+            "unavailable": 0,
+            "failed": 0,
+            "legs": [
+                {
+                    "role": "cap_weight",
+                    "symbol": "IWV",
+                    "status": "refreshed",
+                    "snapshot_id": 1,
+                    "composition_date": requested_date,
+                    "message": None,
+                }
+            ],
+        }
+
+    monkeypatch.setattr(
+        "app.services.etf_holdings_refresh.refresh_benchmark_family_holdings_for_date",
+        fake_refresh_date,
+    )
+    refresh = client.post(
+        "/api/v1/etf-holdings/benchmark-family/russell3000/refresh-range",
+        json={
+            "requested_dates": ["2026-06-30", "2026-03-31", "2026-06-30"],
+            "roles": ["cap_weight"],
+        },
+        headers=admin_headers,
+    )
+    assert refresh.status_code == 200
+    body = refresh.json()
+    assert body["requested_dates"] == ["2026-03-31", "2026-06-30"]
+    assert body["roles"] == ["cap_weight"]
+    assert [run["requested_date"] for run in body["runs"]] == ["2026-03-31", "2026-06-30"]
+    assert body["runs"][1]["legs"][0]["symbol"] == "IWV"
+
+
 def test_issuer_adapter_can_discover_holdings_file_from_product_page(
     client, admin_headers, auth_headers, monkeypatch
 ):

@@ -229,6 +229,13 @@ The operation must continue independent legs after one failure, and a missing va
 mapping must never be represented as a cap-leg success. This proves orchestration semantics only;
 it does not close the requirement for complete historical population across all families.
 
+The range form of this operation accepts at most 64 requested dates, de-duplicates them, processes
+them chronologically, and returns one dated summary per normalized date. Acceptance must verify
+that a duplicate date does not trigger duplicate work and that a failure or unavailable mapping
+on one date/role does not erase independent results for other dates/roles. The range contract
+still cannot be used as evidence of complete official membership or rebalance continuity without
+the corresponding source snapshots and point-in-time validation.
+
 ### Expanded condition-driven breadth gate
 
 The fixed Market Breadth panel is not sufficient evidence for the broader breadth requirement.
