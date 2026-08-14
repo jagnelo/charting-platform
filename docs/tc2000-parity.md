@@ -1,5 +1,18 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-14 — Chart-template comparison persistence
+
+- Saved chart templates now restore their persisted comparison set rather than retaining the
+  active chart comparisons. Active symbol identity remains protected, chips are visible before
+  normalized bars finish loading, parent workspace snapshot races are fenced, and opening the
+  template menu refreshes its library query.
+- Focused unit `9/9`, full frontend Vitest `780/780`, type-check, 475-module build, rebuilt
+  authenticated `F9c-template-comparison` browser `1/1`, and diff-check pass. The stale-image and
+  menu-oracle failures were corrected under fix-first and rerun; no acceptance flexibility was used.
+- This is a scoped workstation correction, not overall-goal completion. Board/unrepresented V25,
+  provider/entitlement, historical/GICS, native-monitor, endurance, Docker-cleanup, and final-audit
+  gaps remain open in their controlling ledgers.
+
 ## 2026-08-13 — Equal-weight industry ranking surface
 
 The Industries tool now has a canonical batch snapshot for top-down ranking rather than exposing

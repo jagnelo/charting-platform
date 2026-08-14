@@ -1,5 +1,21 @@
 # Project TODO Memory
 
+### 2026-08-14 — Chart-template comparison persistence
+
+- [x] Chart-template application now restores its saved `comparison_symbols` while preserving
+      active symbol/instrument identity. Configured comparison chips render immediately from the
+      serialisable configuration while bars hydrate; stale parent workspace snapshots are fenced;
+      opening the menu refreshes the library query.
+- [x] Focused ChartTemplateControl coverage passes `9/9`; full frontend Vitest `780/780`;
+      type-check; 475-module production build; rebuilt authenticated
+      `F9c-template-comparison` browser acceptance passes `1/1`; `git diff --check` passes.
+- [ ] No acceptance flexibility was used. Initial failures were stale-image/setup and menu-oracle
+      evidence, corrected by rebuilding/recreating the branch frontend and rerunning. Exact or
+      unrepresented V25 visual, provider/entitlement, historical/GICS, native-monitor, endurance,
+      Docker-cleanup, and final-audit gaps remain explicit. Implementation `e568ac83`, operational
+      closure `653ea806`, and push-hold record `6517c6d` are separate local commits; the exact
+      elevated push remains an external egress authorization hold, not a product blocker.
+
 ### 2026-08-14 — Chart-template alternative mechanics
 
 - [x] Chart-template save/apply retains Renko/Kagi/Point & Figure parameters through the existing
