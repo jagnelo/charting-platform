@@ -154,6 +154,28 @@ open and actionable. Acceptance flexibility used: **None**.
 
 ### Expanded benchmark-family gate
 
+#### Latest US-family perspective clarification
+
+The family gate covers eight complete US analysis perspectives: S&P 500, S&P MidCap 400, S&P
+SmallCap 600, S&P Composite 1500, Russell 1000, Russell 2000, Russell 3000, and Nasdaq 100. For
+each root, the acceptance run must attempt the official identity (where entitled), cap proxy,
+equal-weight vehicle or explicitly derived equal series, and every evidenced value/growth
+sub-index or ETF. It must then run the same technical, cap/equal/style spread, parent/peer ratio,
+condition-driven breadth, participation/leadership, concentration/dispersion, correlation,
+drawdown/volatility, relative rotation, cross-family ranking, seasonality/regime, and
+sector/industry/proxy/constituent drill-down contracts. The Nasdaq 100 cap/equal fixture is
+QQQ/QQQE (or another verified pair) only after canonical identity, relationship, holdings, and
+bar evidence passes.
+
+This is not satisfied by selector presence or a single SPY-backed demonstration. Each mapped leg
+must preserve role, native-versus-derived weighting, membership/rebalance version, effective and
+known-at semantics, adjustment, coverage, exclusions, freshness, and provenance through charts,
+watchlists, breadth results, ratios, scans, gauges, Study Lab artifacts, and exports. Missing or
+unverified official/equal/value/growth/holdings evidence remains a named gap or explicit
+`No verified mapped proxy`/unavailable/derived state; it never silently substitutes SPY, QQQ,
+another family, a current-only snapshot, or a name-based relationship. No acceptance threshold is
+relaxed by this clarification.
+
 The family gate is also a visual/workflow matrix. The acceptance run must launch each of the
 eight roots (S&P 500/400/600/1500, Russell 1000/2000/3000, Nasdaq 100), select every mapped
 cap/equal/value/growth leg, and exercise the same top-down, breadth, ratio, ranking, rotation,

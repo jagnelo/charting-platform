@@ -27,6 +27,7 @@ tasks:
       - Each family perspective follows benchmark technicals -> cap/equal/style comparison -> sectors -> industries/proxies -> constituents, with ratios, breadth, leadership, concentration/dispersion, rotation, ranking, drawdown, volatility, scans, gauges, Study Lab, and exports
       - Discovery candidates such as SPY/RSP, SPYG/SPYV, MDY/MDYG/MDYV, SLY/SLYG/SLYV, IWB/IWF/IWD, IWM/IWO/IWN, IWV, and QQQ/QQQE remain unaccepted until issuer/source, relationship, membership/weight method, effective/known-at, bars, and coverage evidence is recorded
       - Free-source/provider gaps and absent style/equal proxies remain explicit rather than fabricated
+      - The eight roots are accepted as complete analysis perspectives, with the same benchmark technicals, cap/equal/style spreads, parent/peer and cross-family ratios, configurable breadth, participation/leadership, concentration/dispersion, correlation, drawdown/volatility, relative rotation, ranking, seasonality/regime, drill-down, scans, gauges, Study Lab, reusable plots, and exports; selector presence alone is insufficient
     validation:
       - benchmark-family-taxonomy-and-provenance-contract
       - official-versus-etf-proxy-membership-semantics
@@ -191,6 +192,15 @@ tasks:
         refreshed/unavailable/failed legs. Focused integration against the real wrapper passes
         `1/1`; Ruff, compileall, and diff checks pass. This is historical orchestration readiness,
         not complete official membership/rebalance evidence; no acceptance flexibility used.
+      - >-
+        Latest product-vision clarification: the required US perspectives are S&P 500/400/600/1500,
+        Russell 1000/2000/3000, and Nasdaq 100, including every evidenced value/growth and
+        cap/equal leg. Each family/leg must carry the same top-down, generic breadth,
+        participation/leadership, concentration/dispersion, correlation, drawdown/volatility,
+        relative-rotation, ranking, ratio, sector/industry/constituent, Study Lab, scan, gauge,
+        reusable-plot, and export contracts. Nasdaq 100 requires an evidence-backed QQQ/QQQE-style
+        cap/equal deconstruction. This is a scope clarification, not acceptance flexibility;
+        unavailable mappings and provider/history/visual gaps remain explicit.
   - id: tc2000-generic-condition-driven-breadth-20260814
     title: Broaden breadth from fixed metrics to reusable condition-driven cross-sectional studies
     status: in_progress

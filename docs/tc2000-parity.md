@@ -1,5 +1,31 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-14 — US index-family and style perspective acceptance clarification
+
+The Version 25 workstation is expected to support the full US index-family matrix, not only the
+original SPX/SPY and sector examples. The required roots are S&P 500, S&P MidCap 400, S&P SmallCap
+600, S&P Composite 1500, Russell 1000, Russell 2000, Russell 3000, and Nasdaq 100. Each root is a
+reusable, linked analysis perspective with benchmark technicals, cap/equal/value/growth legs,
+ratios, generic breadth, ranking, drill-down, and the same dense workstation chrome.
+
+For every root, the parity run attempts the official index identity (when entitled), cap proxy,
+equal-weight vehicle or point-in-time derived equal series, and each evidenced value/growth
+sub-index or ETF. SPY/RSP is the S&P 500 fixture. Nasdaq 100 requires a separately evidenced
+cap/equal deconstruction such as QQQ/QQQE; candidate symbols are not accepted from names alone.
+The accepted result records issuer/source, relationship, native-versus-derived weighting,
+membership/rebalance version, effective/known-at dates, bars, adjustment, coverage, exclusions,
+freshness, and provenance. Missing evidence is rendered as `No verified mapped proxy`, unavailable,
+or derived, never as a silent SPY/QQQ or current-snapshot substitution.
+
+The same selected root/leg must feed all relevant companion views: configurable predicate breadth
+(including moving-average, high/low distance, new-high/new-low, RSI, trend, volume, volatility,
+relative-strength, benchmark/peer, and unified-Python predicates), participation and leadership,
+concentration and dispersion, correlation, drawdown/volatility regimes, relative rotation,
+cross-family ranking, seasonality/regime studies, sector → industry/proxy → constituent drill-down,
+watchlists, scans, gauges, Study Lab artifacts, reusable plots, and exports. Acceptance exercises
+these as analysis perspectives for all eight roots and each verified leg rather than only checking
+that selector rows exist. This is a scope clarification, not a threshold or evidence relaxation.
+
 ## 2026-08-14 — Expanded US benchmark-family visual/workflow matrix
 
 The visual parity target includes the eight US analysis roots required by the product vision:

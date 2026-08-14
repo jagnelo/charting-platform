@@ -1,5 +1,43 @@
 # Project TODO Memory
 
+### 2026-08-14 — Expanded US index-family, style, and breadth vision (latest clarification)
+
+- [ ] Treat the following as complete, independently selectable US-market analysis roots in the
+      TC2000 workstation: S&P 500, S&P MidCap 400, S&P SmallCap 600, S&P Composite 1500,
+      Russell 1000, Russell 2000, Russell 3000, and Nasdaq 100. This is an expansion of the
+      existing SPX/SPY workflow, not a later optional screen.
+- [ ] For each root, expose the official index identity when entitled, a clearly labelled
+      cap-weighted tradable proxy, an equal-weight vehicle or explicitly labelled point-in-time
+      derived equal-weight series where evidenced, and each independently evidenced value/growth
+      sub-index or ETF. Candidate symbols such as SPY/RSP/SPYG/SPYV, MDY/MDYG/MDYV, SLY/SLYG/SLYV,
+      IWB/IWF/IWD, IWM/IWO/IWN, IWV, and QQQ/QQQE are discovery and test inputs only; the
+      security master must verify issuer, relationship, holdings/weights, effective/known-at
+      dates, bars, and coverage before a mapping is accepted.
+- [ ] Generalize the SPY-versus-RSP deconstruction to every supported family. The Nasdaq 100
+      must receive an equivalent cap-versus-equal analysis (QQQ versus QQQE or another verified
+      equal proxy) only after canonical identity and holdings/relationship evidence passes.
+      Native ETF weighting must remain distinct from locally derived equal weighting, with the
+      membership snapshot, methodology, rebalance policy, weights, exclusions, and freshness
+      visible in the result.
+- [ ] Give every available family and style leg the same top-down workflow: benchmark technicals
+      and normalized performance; cap/equal and value/growth spreads; direct parent, peer, and
+      cross-family ratios; sector and industry/proxy ranking; constituent drill-down; and linked
+      watchlist/chart traversal without route changes.
+- [ ] Give every available family and style leg the same breadth and companion research views:
+      user-defined predicate breadth (moving averages, distance to highs/lows, new highs/lows,
+      RSI, trend, volume, volatility, relative strength, benchmark/peer relationships, and
+      unified-Python combinations), participation and leadership, concentration and dispersion,
+      correlation, drawdown and volatility regimes, relative rotation, cross-family ranking,
+      seasonality/regime studies, scans, gauges, Study Lab artifacts, reusable plots, and exports.
+      The selected family/leg, membership version, target scope, as-of policy, weighting method,
+      coverage, exclusions, freshness, and provenance must survive every output.
+- [ ] Acceptance must exercise all eight roots and every mapped cap/equal/value/growth leg as
+      complete analysis perspectives, not merely assert selector presence. A missing official,
+      equal, value, growth, holdings, or historical source remains `No verified mapped proxy`,
+      unavailable, or explicitly derived; it never falls back to SPY, QQQ, another family, a
+      current-only snapshot, or a name-based relationship. This clarification adds no acceptance
+      relaxation; unresolved provider, historical, visual, and browser gaps remain tracked below.
+
 ### 2026-08-14 — Family-leg relative-strength ratio contract
 
 - [x] Added `GET /analysis/benchmark-families/{family_key}/ratios` with explicit role selection
