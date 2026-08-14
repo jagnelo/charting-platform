@@ -1,5 +1,15 @@
 # Run Report
 
+## 2026-08-14 — Study Lab SDK reference alignment
+
+- Aligned the visible Study Lab SDK reference with the executable isolated-runtime contract and
+  removed unsupported helper-family claims.
+- Validation: focused Study Lab `22/22`, adjacent authenticated Study Lab/Python/Results `12/12`,
+  frontend `818/818` at `80.89%` statements, `make test-fe`, type-check, and build.
+- No visual threshold, mask, product criterion, or acceptance flexibility changed; the broader
+  SDK and external/reference gaps remain explicit.
+- Implementation/docs commit: `fd7b55f3`; operational checkpoint follows separately.
+
 ## 2026-08-14 — Unified Python SDK autocomplete expansion
 
 - Corrected the unified editor catalog to match the supported isolated runtime and added the full

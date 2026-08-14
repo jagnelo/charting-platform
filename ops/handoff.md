@@ -1,5 +1,22 @@
 # Active Handoff
 
+## 2026-08-14 — Study Lab SDK reference alignment
+
+- Context owner: Codex. Owned paths are `frontend/src/components/workstation/StudyLabTool.vue`,
+  `frontend/tests/unit/components/test_study_lab_tool.test.ts`, and the corresponding docs/ops
+  checkpoint records.
+- Intent: make the visible Study Lab SDK reference describe the supported isolated runtime exactly,
+  so users are not directed toward helper families that validation or execution cannot provide.
+- Completed: the visible reference now lists the executable market/benchmark, ta, stats, research,
+  and output methods and no longer advertises unavailable helper families.
+- Validation: focused Study Lab `22/22`; adjacent authenticated Study Lab/Python/Results `12/12`;
+  full frontend `818/818` at `80.89%` statements; `make test-fe`, type-check, and build pass.
+- No visual threshold, mask, product criterion, or acceptance flexibility changed. The broader SDK
+  expansion, `REF-STUDY-LAB-V25`, provider/live-entitlement, historical/GICS, native-monitor,
+  endurance, and final-audit gaps remain open. Next action is isolated commit closure.
+- Implementation/docs are committed locally as `fd7b55f387df967febcaab321150926070bd96d6`;
+  operational files are the only remaining dirty paths and will be committed separately.
+
 ## 2026-08-14 — Unified Python SDK autocomplete expansion
 
 - Context owner: Codex. Owned paths are `frontend/src/components/workstation/PythonSourceEditor.vue`,

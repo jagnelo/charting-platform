@@ -1,4 +1,28 @@
 tasks:
+  - id: tc2000-study-lab-sdk-reference-alignment-20260814
+    title: Align Study Lab SDK reference with supported isolated runtime
+    status: completed
+    priority: medium
+    scope: >-
+      Replace the visible Study Lab SDK-reference claims with the exact currently supported
+      market, ta, stats, research, and output methods so users are not given dead helper names.
+    definition_of_done:
+      - Visible reference lists the supported runtime surface and omits unavailable helper families
+      - Focused Study Lab component coverage proves the supported and absent reference terms
+      - Adjacent authenticated Study Lab/Python/Results flow and full frontend gates pass
+      - No visual threshold, mask, product criterion, or acceptance flexibility changes
+    validation:
+      - study-lab-component-22-of-22
+      - adjacent-study-python-results-12-of-12
+      - frontend-vitest-818-of-818
+      - frontend-coverage-80.89-percent-statements
+      - make-test-fe-uplot-and-visual-policy
+      - frontend-type-check-and-production-build
+      - git-diff-check
+    notes:
+      - >-
+        Context is a repository-controlled documentation/UI contract correction; unsupported
+        helper-family claims were removed, REF-STUDY-LAB-V25 remains open, and no flexibility changed.
   - id: tc2000-unified-python-sdk-autocomplete-20260814
     title: Expand unified Python SDK autocomplete across supported namespaces
     status: completed
