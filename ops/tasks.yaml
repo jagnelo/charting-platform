@@ -119,6 +119,13 @@ tasks:
         S&P 500/400/600/1500, Russell 1000/2000/3000, and Nasdaq 100, including every evidenced
         value/growth leg and the verified Nasdaq-100 cap/equal pair. Missing evidence remains a
         visible gap or unavailable/derived state; no SPY/QQQ/name-based fallback is permitted.
+      - >-
+        QQQE route evidence is now closed at the provider-routing layer: canonical `QQQE` metadata
+        selects the explicit Direxion adapter and official product page, and an opt-in live probe
+        parsed the symbol-scoped public holdings export. Relevant unit coverage is `501/501`, with
+        Ruff/compile/diff passing. Historical rebalance continuity, point-in-time membership,
+        bars, and populated browser QQQ/QQQE acceptance remain open; no acceptance flexibility was
+        used.
   - id: tc2000-generic-condition-driven-breadth-20260814
     title: Broaden breadth from fixed metrics to reusable condition-driven cross-sectional studies
     status: in_progress

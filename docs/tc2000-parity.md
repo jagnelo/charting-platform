@@ -18,6 +18,15 @@ authority for states it represents. Any family/style state absent or ambiguous o
 recorded as a named gap with an interim deterministic oracle; it is not silently accepted or
 masked.
 
+## 2026-08-14 — QQQE route evidence
+
+QQQE now has explicit canonical route metadata for the Direxion adapter and its official
+product page. The opt-in live probe fetched and parsed the symbol-scoped holdings export, while
+the deterministic route and taxonomy regressions prevent the Nasdaq-100 equal leg from falling
+through issuer-name inference. This is provider-route evidence only; historical rebalance,
+point-in-time membership, bar coverage, and populated browser parity remain open states in the
+family matrix.
+
 ## 2026-08-14 — Family-leg relative-strength ratio contract
 
 Family role analysis now exposes `GET /analysis/benchmark-families/{family_key}/ratios`. A

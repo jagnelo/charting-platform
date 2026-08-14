@@ -162,6 +162,12 @@ canonical identity, holdings, and relationship evidence are verified. Missing or
 family/style evidence is a labelled gap or unavailable state, never a silent fallback and never
 a reason to lower the global visual thresholds.
 
+The QQQE provider-route sub-gate is now evidenced: canonical route metadata selects the explicit
+Direxion adapter, and an opt-in live probe parsed the public symbol-scoped holdings export. This
+does not satisfy the broader Nasdaq-100 fixture by itself. Historical rebalance continuity,
+point-in-time membership, bars, and populated browser cap/equal visuals remain separate required
+acceptance cases.
+
 The top-down completion bar now covers S&P 500/400/600/1500, Russell 1000/2000/3000, and Nasdaq
 100, not only SPY/SPX. The authenticated and backend acceptance matrix must prove that each family
 can be selected as a versioned universe and exposes, where source evidence permits, its official

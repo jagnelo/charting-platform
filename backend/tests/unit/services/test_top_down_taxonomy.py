@@ -128,6 +128,17 @@ def test_benchmark_family_style_proxies_have_explicit_free_source_routes():
         assert metadata["issuer"] == "iShares"
         assert metadata["provider_aliases"]["issuer_product_id"] == product_id
 
+    qqqe_metadata = known_etf_route_metadata("QQQE")
+    assert qqqe_metadata["issuer"] == "Direxion"
+    assert qqqe_metadata["provider_aliases"]["holdings_adapter"] == "direxion"
+    assert qqqe_metadata["provider_aliases"]["issuer_product_url"].endswith(
+        "/nasdaq-100-equal-weighted-index-etf"
+    )
+    assert get_holdings_adapter("direxion") is not None
+    assert get_holdings_adapter("direxion").resolve_source_url(symbol="QQQE") == (
+        "https://www.direxion.com/holdings/QQQE.csv"
+    )
+
 
 def test_canonical_industry_label_accepts_only_reviewed_provider_aliases():
     assert canonical_industry_label("Semiconductors") == "Semiconductors"

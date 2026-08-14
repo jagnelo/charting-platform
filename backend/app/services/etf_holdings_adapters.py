@@ -3128,6 +3128,19 @@ KNOWN_ETF_PROVIDER_METADATA_BY_SYMBOL: dict[str, dict[str, Any]] = {
             "sec_fund_tickers_symbol": "QQQ",
         },
     },
+    # Direxion publishes QQQE's daily holdings as a public symbol-scoped CSV.
+    # Keep the official product page beside the adapter identity so canonical
+    # refresh can select the native route without issuer/name inference.
+    "QQQE": {
+        "issuer": "Direxion",
+        "provider_aliases": {
+            "holdings_adapter": "direxion",
+            "issuer_product_url": (
+                "https://www.direxion.com/product/"
+                "nasdaq-100-equal-weighted-index-etf"
+            ),
+        },
+    },
     # Invesco's public catalog currently resolves RSP to this CUSIP.  Keeping
     # the identifier on the canonical route metadata means the top-down
     # SPY/RSP workflow can bootstrap directly through the issuer's stable

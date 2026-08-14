@@ -2272,6 +2272,20 @@ async def test_live_rafferty_direxion_daily_holdings_export():
 
 @pytest.mark.asyncio
 @pytest.mark.slow
+@_covers_live_provider("direxion")
+async def test_live_direxion_qqqe_equal_weight_holdings_export():
+    """Exercise the exact Nasdaq-100 equal-weight leg used by the workstation."""
+    adapter = get_holdings_adapter("direxion")
+    assert adapter is not None
+
+    result = await adapter.fetch_latest(symbol="QQQE")
+
+    _assert_live_holdings_result(result, adapter_key="direxion", min_rows=80)
+    assert result.legal_metadata["route_resolution"] == "issuer_symbol_holdings_csv"
+
+
+@pytest.mark.asyncio
+@pytest.mark.slow
 @_covers_live_provider("hypatia")
 async def test_live_hypatia_public_fund_scoped_holdings_api():
     adapter = get_holdings_adapter("hypatia")

@@ -9230,6 +9230,21 @@ with side-by-side breadth and cross-family comparisons. Provider mapping, histor
 membership/rebalance evidence, family-wide analytics, and populated browser drill-down are
 implementation gaps tracked below; this scope expansion is not an acceptance relaxation.
 
+#### Current continuation — 2026-08-14 QQQE/Direxion route evidence
+
+The Nasdaq-100 equal-weight leg now has canonical free-source route metadata: `QQQE` resolves
+to the explicit `direxion` holdings adapter and the official Direxion product page. The adapter
+uses Direxion's symbol-scoped public daily holdings CSV, preserves the source/provider and
+composition-date provenance, and is no longer dependent on issuer-name inference. The focused
+taxonomy/adapter regression and the opt-in live probe for QQQE passed; the complete relevant
+unit slice is `501/501`, with Ruff, compilation, and diff checks passing.
+
+This closes QQQE route readiness, not historical completeness. Historical rebalance artifacts,
+point-in-time membership continuity, canonical bar population, and browser-visible QQQ/QQQE
+deconstruction remain open and are still required before the Nasdaq family acceptance fixture
+can pass. The official product page remains the source reference for the relationship and daily
+holdings route: <https://www.direxion.com/product/nasdaq-100-equal-weighted-index-etf>.
+
 #### Current continuation — 2026-08-12 listing visibility and browser contract repair
 
 The exchange-aware listing API contract is now exercised through the real seeded workstation
