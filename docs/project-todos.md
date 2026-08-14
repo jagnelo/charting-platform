@@ -12366,3 +12366,22 @@ The current source also passes the focused authenticated top-down browser slice 
       Russell 1000/2000/3000, and Nasdaq 100 role; preserve rebalance continuity; and complete
       family-wide breadth/rotation/ranking/dispersion and browser acceptance. Until those inputs
       exist, missing dates and unavailable roles must remain visible rather than being synthesized.
+
+### 2026-08-14 — Benchmark-family role technical snapshots
+
+- [x] Added `GET /analysis/benchmark-families/{family_key}/technicals`, returning independent
+      cap/equal/value/growth technical snapshots (last, RSI14, SMA20/50/200, 52-week position,
+      volume ratio, freshness, and warnings) with the family official identity, timeframe,
+      adjustment, membership version, and `as_of` lineage.
+- [x] The workstation now renders a dense Family technicals strip alongside family ratios,
+      holdings coverage, and constituent drill-down. Missing mappings and canonical bars remain
+      role-local warnings; no SPY/QQQ/other-family substitution is possible.
+- [x] Validation passes: benchmark-family integration `8/8`; workspace-store `58/58`; full
+      frontend Vitest `829/829`; type-check, production build, Ruff, compile, diff-check, and
+      rebuilt authenticated `F8s-breadth-family-ratio` browser acceptance `1/1`. A first test
+      fixture requested an `as_of` earlier than the family's known-at boundary; that fixture was
+      corrected and the full focused suite rerun. This was test correction, not acceptance
+      flexibility.
+- [ ] Still open: complete historical bars and holdings for every role/family, role-level breadth
+      and ranking/rotation/dispersion views, sector/industry taxonomy coverage, and full browser
+      population across all eight roots.

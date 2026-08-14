@@ -190,6 +190,38 @@ export interface BenchmarkFamilyRatiosState {
   freshness_detail?: Record<string, number>
 }
 
+export interface BenchmarkFamilyTechnicalRoleState {
+  role: 'cap_weight' | 'equal_weight' | 'value' | 'growth'
+  symbol: string | null
+  label: string
+  verification_state: string
+  available: boolean
+  as_of?: string | null
+  last: number | null
+  rsi14: number | null
+  sma20: number | null
+  sma50: number | null
+  sma200: number | null
+  position_52w: number | null
+  volume_ratio_50: number | null
+  freshness: string
+  warnings: Array<{ code: string; message: string }>
+}
+
+export interface BenchmarkFamilyTechnicalsState {
+  family_key: string
+  official_index_symbol: string
+  timeframe: string
+  adjustment: string
+  as_of?: string | null
+  membership_version?: number
+  universe_provenance?: Record<string, unknown>
+  roles: BenchmarkFamilyTechnicalRoleState[]
+  exclusions: Array<{ code: string; message: string }>
+  freshness?: string
+  freshness_detail?: Record<string, number>
+}
+
 export interface BenchmarkFamilyMappingState {
   role: 'cap_weight' | 'equal_weight' | 'value' | 'growth'
   symbol: string | null
@@ -587,6 +619,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   const groupSnapshotErrors = ref<Record<string, string | null>>({})
   const benchmarkFamilyRatios = ref<Record<string, BenchmarkFamilyRatiosState | null>>({})
   const benchmarkFamilyRatioErrors = ref<Record<string, string | null>>({})
+  const benchmarkFamilyTechnicals = ref<Record<string, BenchmarkFamilyTechnicalsState | null>>({})
+  const benchmarkFamilyTechnicalErrors = ref<Record<string, string | null>>({})
   const benchmarkFamilyOverviews = ref<Record<string, BenchmarkFamilyOverviewState | null>>({})
   const benchmarkFamilyOverviewErrors = ref<Record<string, string | null>>({})
   const benchmarkFamilyCoverages = ref<Record<string, BenchmarkFamilyCoverageState | null>>({})
@@ -1332,6 +1366,38 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       const message = cause?.message ?? `Unable to calculate ${normalizedFamily} relative strength`
       benchmarkFamilyRatioErrors.value = { ...benchmarkFamilyRatioErrors.value, [cacheKey]: message }
       benchmarkFamilyRatios.value = { ...benchmarkFamilyRatios.value, [cacheKey]: null }
+      return null
+    }
+  }
+
+  async function loadBenchmarkFamilyTechnicals(
+    familyKey: string,
+    options: { timeframe?: string; adjusted?: boolean; as_of?: string } = {},
+  ) {
+    const normalizedFamily = familyKey.trim()
+    if (!normalizedFamily) return null
+    const cacheKey = `${normalizedFamily}:${options.timeframe ?? 'D1'}:${options.adjusted !== false ? 'adj' : 'raw'}:${options.as_of ?? 'latest'}`
+    const requestKey = `top-down:family-technicals:${cacheKey}`
+    const generation = beginAnalysisRequest(requestKey)
+    if (!documentIsVisible()) return null
+    benchmarkFamilyTechnicalErrors.value = { ...benchmarkFamilyTechnicalErrors.value, [cacheKey]: null }
+    try {
+      const result = await api.get<BenchmarkFamilyTechnicalsState>(
+        `/analysis/benchmark-families/${encodeURIComponent(normalizedFamily)}/technicals`,
+        {
+          ...(options.timeframe ? { timeframe: options.timeframe } : {}),
+          ...(typeof options.adjusted === 'boolean' ? { adjusted: options.adjusted } : {}),
+          ...(options.as_of ? { as_of: options.as_of } : {}),
+        },
+      )
+      if (!isCurrentAnalysisRequest(requestKey, generation)) return null
+      benchmarkFamilyTechnicals.value = { ...benchmarkFamilyTechnicals.value, [cacheKey]: result }
+      return result
+    } catch (cause: any) {
+      if (!isCurrentAnalysisRequest(requestKey, generation)) return null
+      const message = cause?.message ?? `Unable to load ${normalizedFamily} family technicals`
+      benchmarkFamilyTechnicalErrors.value = { ...benchmarkFamilyTechnicalErrors.value, [cacheKey]: message }
+      benchmarkFamilyTechnicals.value = { ...benchmarkFamilyTechnicals.value, [cacheKey]: null }
       return null
     }
   }
@@ -2286,6 +2352,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     groupSnapshots,
     benchmarkFamilyRatios,
     benchmarkFamilyRatioErrors,
+    benchmarkFamilyTechnicals,
+    benchmarkFamilyTechnicalErrors,
     benchmarkFamilyOverviews,
     benchmarkFamilyOverviewErrors,
     benchmarkFamilyCoverages,
@@ -2340,6 +2408,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     loadMarketGroup,
     loadGroupSnapshot,
     loadBenchmarkFamilyRatios,
+    loadBenchmarkFamilyTechnicals,
     loadBenchmarkFamilyOverview,
     loadBenchmarkFamilyCoverage,
     loadBenchmarkFamilyConstituents,

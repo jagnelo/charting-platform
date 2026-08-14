@@ -242,6 +242,40 @@ class BenchmarkFamilyRatiosOut(AnalysisResponseMetadata):
     exclusions: list[AnalysisWarning] = Field(default_factory=list)
 
 
+class BenchmarkFamilyTechnicalRoleOut(BaseModel):
+    """Technical snapshot for one independently mapped family leg."""
+
+    role: Literal["cap_weight", "equal_weight", "value", "growth"]
+    symbol: str | None = None
+    label: str
+    verification_state: str
+    available: bool
+    as_of: datetime | None = None
+    last: float | None = None
+    rsi14: float | None = None
+    sma20: float | None = None
+    sma50: float | None = None
+    sma200: float | None = None
+    position_52w: float | None = None
+    volume_ratio_50: float | None = None
+    freshness: str = "unavailable"
+    warnings: list[AnalysisWarning] = Field(default_factory=list)
+
+
+class BenchmarkFamilyTechnicalsOut(AnalysisResponseMetadata):
+    """Role-aware technical snapshots for every mapped family proxy."""
+
+    family_key: str
+    official_index_symbol: str
+    timeframe: str
+    adjustment: str
+    as_of: datetime | None = None
+    membership_version: int
+    universe_provenance: dict[str, object] = Field(default_factory=dict)
+    roles: list[BenchmarkFamilyTechnicalRoleOut] = Field(default_factory=list)
+    exclusions: list[AnalysisWarning] = Field(default_factory=list)
+
+
 class ETFConstituentSnapshotRowOut(GroupSnapshotRow):
     """Technical row plus disclosed point-in-time holding evidence."""
 

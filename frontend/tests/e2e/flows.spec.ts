@@ -3295,6 +3295,28 @@ test.describe('TC2000 workstation', () => {
         }),
       })
     })
+    await page.route('**/api/v1/analysis/benchmark-families/sp500/technicals*', async route => {
+      familyAsOfRequests.push(route.request().url())
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          family_key: 'sp500',
+          official_index_symbol: 'SPX',
+          timeframe: 'D1',
+          adjustment: 'split_adjusted',
+          membership_version: 1,
+          universe_provenance: { technical_semantics: 'role_independent_local_ohlcv_snapshot' },
+          roles: [
+            { role: 'cap_weight', symbol: 'SPY', label: 'SPY', verification_state: 'verified', available: true, last: 600, rsi14: 55, sma20: 590, sma50: 580, sma200: 540, position_52w: 0.92, volume_ratio_50: 1.1, freshness: 'current', warnings: [] },
+            { role: 'equal_weight', symbol: 'RSP', label: 'RSP', verification_state: 'verified', available: true, last: 180, rsi14: 52, sma20: 178, sma50: 175, sma200: 165, position_52w: 0.85, volume_ratio_50: 1.0, freshness: 'current', warnings: [] },
+            { role: 'value', symbol: 'SPYV', label: 'SPYV', verification_state: 'verified', available: true, last: null, rsi14: null, sma20: null, sma50: null, sma200: null, position_52w: null, volume_ratio_50: null, freshness: 'unavailable', warnings: [{ code: 'no_bars', message: 'No local bars are available.' }] },
+            { role: 'growth', symbol: 'SPYG', label: 'SPYG', verification_state: 'verified', available: true, last: null, rsi14: null, sma20: null, sma50: null, sma200: null, position_52w: null, volume_ratio_50: null, freshness: 'unavailable', warnings: [{ code: 'no_bars', message: 'No local bars are available.' }] },
+          ],
+          exclusions: [],
+        }),
+      })
+    })
     await page.route('**/api/v1/analysis/benchmark-families/sp500/overview*', async route => {
       familyAsOfRequests.push(route.request().url())
       await route.fulfill({
@@ -3376,6 +3398,7 @@ test.describe('TC2000 workstation', () => {
     const familyPanel = breadth.locator('[aria-label="Benchmark family relative strength"]')
     await expect(familyPanel).toBeVisible({ timeout: 10_000 })
     await expect(familyPanel).toContainText('RSP/SPY', { timeout: 15_000 })
+    await expect(breadth.locator('[aria-label="Benchmark family technicals"]')).toContainText('Cap weight SPY · 600.00 · RSI 55.00', { timeout: 15_000 })
     await expect(familyPanel.getByRole('combobox', { name: 'Family ratio leg' })).toHaveValue('equal_weight')
     const familyOverview = breadth.locator('[aria-label="Benchmark family analysis"]')
     await expect(familyOverview).toBeVisible({ timeout: 15_000 })

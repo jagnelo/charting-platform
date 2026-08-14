@@ -9809,6 +9809,35 @@ tasks:
         historical holdings/weights, family breadth/rotation/ranking/dispersion, constituent
         drill-down, exact/unrepresented V25 visual states, and final-audit gaps remain open.
 
+  - id: tc2000-family-role-technicals-20260814
+    title: Add role-aware family technical snapshots to the workstation
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Expose local technicals for every independently configured cap/equal/value/growth family leg,
+      carrying the same point-in-time, adjustment, membership, freshness, and warning semantics as
+      ratios and breadth, then render the compact technical strip in the family workstation panel.
+    definition_of_done:
+      - The API returns independent technical states for all four role slots
+      - Missing mappings, canonical instruments, or bars remain role-local warnings with no fallback
+      - Timeframe, adjustment, as_of, membership version, and freshness are explicit
+      - The workstation renders the role technicals beside ratios and dated holdings coverage
+      - Backend, frontend, browser, lint, type/build, and diff validation pass
+    validation:
+      - benchmark-family-integration-8-of-8
+      - workspace-store-58-of-58
+      - frontend-vitest-829-of-829
+      - frontend-typecheck-build
+      - rebuilt-F8s-breadth-family-ratio-1-of-1
+      - ruff-compile-diff-check
+    notes:
+      - >-
+        Implemented without acceptance flexibility. A first fixture used an as_of before the
+        family's known-at boundary; it was corrected and the focused suite rerun. Historical bars
+        and holdings for all roles, family-wide breadth/ranking/rotation/dispersion, full browser
+        population, and exact/unrepresented V25 visual gaps remain open.
+
   - id: tc2000-family-dated-asof-workstation-20260814
     title: Propagate disclosed benchmark-family composition dates through workstation analysis
     status: completed

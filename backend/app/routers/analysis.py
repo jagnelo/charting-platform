@@ -44,6 +44,8 @@ from app.schemas.analysis import (
     BenchmarkFamilyOverviewOut,
     BenchmarkFamilyRatioOut,
     BenchmarkFamilyRatiosOut,
+    BenchmarkFamilyTechnicalRoleOut,
+    BenchmarkFamilyTechnicalsOut,
     BreadthConditionRequest,
     BreadthDefinitionHistoryOut,
     BreadthDefinitionHistoryPointOut,
@@ -825,14 +827,15 @@ async def instrument_technical_snapshot(
     symbol: str,
     timeframe: Timeframe = Timeframe.D1,
     adjusted: bool = True,
+    as_of: datetime | None = Query(default=None),
     _: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """Return local, reproducible technical values without a provider fetch."""
     instrument = await _instrument(db, symbol)
-    bars = (await _bars_by_instrument(db, [instrument.id], timeframe, adjusted)).get(
-        instrument.id, []
-    )
+    bars = (await _bars_by_instrument(db, [instrument.id], timeframe, adjusted)).get(instrument.id, [])
+    if as_of is not None:
+        bars = [bar for bar in bars if bar.ts <= as_of]
     latest = bars[-1] if bars else None
     warnings: list[AnalysisWarning] = []
 
@@ -860,7 +863,7 @@ async def instrument_technical_snapshot(
         return TechnicalSnapshotOut(
             symbol=instrument.symbol,
             timeframe=timeframe.value,
-            as_of=None,
+            as_of=as_of,
             adjustment="split_adjusted" if adjusted else "raw",
             freshness=freshness,
             freshness_detail=freshness_detail,
@@ -899,7 +902,7 @@ async def instrument_technical_snapshot(
     return TechnicalSnapshotOut(
         symbol=instrument.symbol,
         timeframe=timeframe.value,
-        as_of=latest.ts,
+        as_of=as_of or latest.ts,
         adjustment="split_adjusted" if adjusted else "raw",
         freshness=freshness,
         freshness_detail=freshness_detail,
@@ -2435,6 +2438,163 @@ async def benchmark_family_overview(
         rows=rows,
         freshness=freshness,
         freshness_detail=freshness_detail,
+    )
+
+
+@router.get(
+    "/benchmark-families/{family_key}/technicals",
+    response_model=BenchmarkFamilyTechnicalsOut,
+)
+async def benchmark_family_technicals(
+    family_key: str,
+    timeframe: Timeframe = Timeframe.D1,
+    adjusted: bool = True,
+    as_of: datetime | None = Query(default=None),
+    _: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Return role-aware technicals without collapsing unavailable family legs.
+
+    Each configured cap/equal/value/growth mapping is evaluated independently.  A
+    missing mapping or canonical proxy remains a warning on that role; no other
+    family or market symbol is substituted.
+    """
+
+    group = (
+        await db.execute(select(MarketGroup).where(MarketGroup.stable_key == family_key))
+    ).scalar_one_or_none()
+    if group is None or group.group_type != "benchmark_family":
+        raise HTTPException(
+            404,
+            detail={"code": "benchmark_family_not_found", "family_key": family_key},
+        )
+    provenance = dict(group.provenance or {})
+    official = provenance.get("official_index")
+    mappings = provenance.get("proxy_mappings")
+    if not isinstance(official, Mapping) or not isinstance(mappings, Mapping):
+        raise HTTPException(
+            422,
+            detail={"code": "benchmark_family_metadata_missing", "family_key": family_key},
+        )
+
+    symbols = [
+        str(mapping.get("symbol")).upper()
+        for mapping in mappings.values()
+        if isinstance(mapping, Mapping) and mapping.get("symbol")
+    ]
+    instruments = {
+        instrument.symbol.upper(): instrument
+        for instrument in (
+            await db.execute(select(Instrument).where(Instrument.symbol.in_(symbols)))
+        ).scalars()
+    }
+    roles: list[BenchmarkFamilyTechnicalRoleOut] = []
+    exclusions: list[AnalysisWarning] = []
+    available_count = 0
+    current_count = 0
+    selected_members = _group_members_at(group, as_of)
+
+    for role in ("cap_weight", "equal_weight", "value", "growth"):
+        mapping = mappings.get(role)
+        mapping = mapping if isinstance(mapping, Mapping) else {}
+        symbol = str(mapping.get("symbol")).upper() if mapping.get("symbol") else None
+        label = str(mapping.get("label") or "No verified mapped proxy")
+        verification_state = str(mapping.get("verification_state") or "not_verified")
+        instrument = instruments.get(symbol) if symbol else None
+        if not symbol:
+            warning = AnalysisWarning(
+                code="family_role_mapping_unavailable",
+                message=f"No verified mapped proxy is available for the {role} leg.",
+            )
+            exclusions.append(warning)
+            roles.append(
+                BenchmarkFamilyTechnicalRoleOut(
+                    role=role,
+                    symbol=None,
+                    label=label,
+                    verification_state=verification_state,
+                    available=False,
+                    warnings=[warning],
+                )
+            )
+            continue
+        if instrument is None:
+            warning = AnalysisWarning(
+                code="benchmark_proxy_unavailable",
+                message=f"The canonical proxy for the {role} leg is unavailable.",
+            )
+            exclusions.append(warning)
+            roles.append(
+                BenchmarkFamilyTechnicalRoleOut(
+                    role=role,
+                    symbol=symbol,
+                    label=label,
+                    verification_state=verification_state,
+                    available=False,
+                    warnings=[warning],
+                )
+            )
+            continue
+
+        snapshot = await instrument_technical_snapshot(
+            symbol=symbol,
+            timeframe=timeframe,
+            adjusted=adjusted,
+            as_of=as_of,
+            _=_,
+            db=db,
+        )
+        available_count += 1
+        exclusions.extend(snapshot.warnings)
+        if snapshot.last is not None:
+            current_count += 1
+        roles.append(
+            BenchmarkFamilyTechnicalRoleOut(
+                role=role,
+                symbol=symbol,
+                label=label,
+                verification_state=verification_state,
+                available=True,
+                as_of=snapshot.as_of,
+                last=snapshot.last,
+                rsi14=snapshot.rsi14,
+                sma20=snapshot.sma20,
+                sma50=snapshot.sma50,
+                sma200=snapshot.sma200,
+                position_52w=snapshot.position_52w,
+                volume_ratio_50=snapshot.volume_ratio_50,
+                freshness=snapshot.freshness,
+                warnings=snapshot.warnings,
+            )
+        )
+
+    return BenchmarkFamilyTechnicalsOut(
+        family_key=family_key,
+        official_index_symbol=str(official.get("symbol") or ""),
+        timeframe=timeframe.value,
+        adjustment="split_adjusted" if adjusted else "raw",
+        as_of=as_of or max((role.as_of for role in roles if role.as_of), default=None),
+        membership_version=_group_membership_version(group, selected_members),
+        universe_provenance={
+            **_group_provenance(group, as_of),
+            "family_key": family_key,
+            "technical_semantics": "role_independent_local_ohlcv_snapshot",
+            "requested_roles": ["cap_weight", "equal_weight", "value", "growth"],
+        },
+        roles=roles,
+        exclusions=exclusions,
+        freshness=(
+            "unavailable"
+            if not available_count
+            else "current"
+            if current_count == available_count
+            else "partial"
+        ),
+        freshness_detail={
+            "role_count": 4,
+            "available_roles": available_count,
+            "roles_with_bars": current_count,
+        },
     )
 
 

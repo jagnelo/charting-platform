@@ -6808,3 +6808,14 @@ mistaken for the latest result. An unchanged authenticated browser acceptance ru
 after this regression was repaired; store coverage is `57/57`, full frontend Vitest is `828/828`,
 and type-check/build pass. Historical population, rebalance continuity, and complete all-family
 browser evidence remain open and are still explicit acceptance gaps.
+
+## 2026-08-14 — Family role technical snapshots
+
+The family breadth surface now includes a role-aware technical strip backed by
+`/analysis/benchmark-families/{family_key}/technicals`. Cap/equal/value/growth legs independently
+report last price, RSI14, SMA20/50/200, 52-week position, volume ratio, freshness, and warnings,
+with the same timeframe, adjustment, membership, and `as_of` semantics as ratios and breadth.
+Unavailable mappings or bars remain visible on their own role and never collapse into a SPY/QQQ
+fallback. Focused family integration `8/8`, store `58/58`, full Vitest `829/829`, type/build,
+Ruff, and authenticated browser `1/1` pass. Historical population and the broader family ranking,
+breadth, rotation, dispersion, and browser evidence matrix remain open.

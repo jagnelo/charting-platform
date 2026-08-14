@@ -339,6 +339,17 @@ by store `57/57`, full frontend `828/828`, type/build, and authenticated browser
 It does not waive the remaining requirement to populate and validate historical evidence for all
 eight family roots and their evidenced style legs.
 
+#### Family technicals sub-gate
+
+Selecting any family root must expose one independently labelled technical state for each configured
+cap/equal/value/growth leg. The state includes last price, RSI14, SMA20/50/200, 52-week position,
+volume ratio, freshness, warnings, timeframe, adjustment, membership version, and `as_of` lineage.
+An unavailable role remains a role-local warning. It is not acceptable to show only the cap leg or
+to substitute SPY/QQQ. This sub-gate is covered by family integration `8/8`, store `58/58`, full
+frontend `829/829`, type/build, Ruff, and authenticated browser `1/1`; it does not close the
+remaining historical-data, breadth, rotation, ranking, dispersion, or exact/unrepresented visual
+gaps.
+
 Implementation checkpoint 3 (2026-08-14): nested composition and scalar comparisons are now
 implemented in both the canonical API evaluator and isolated Python runner. Focused service/runner
 coverage passes `93/93`, generic API/history integration passes `2/2`, and the workstation exposes

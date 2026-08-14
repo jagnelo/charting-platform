@@ -748,6 +748,66 @@ class TestWorkspaces:
             ("cap_weight", "market"),
         }
 
+    def test_benchmark_family_technicals_return_independent_role_states_without_fallback(
+        self, client, auth_headers, db, instrument_type
+    ):
+        from datetime import UTC, datetime, timedelta
+        from decimal import Decimal
+
+        from app.models.instrument import Instrument
+        from app.models.ohlcv import OHLCVBar, Timeframe
+
+        seeded = client.get("/api/v1/market-groups", headers=auth_headers)
+        assert seeded.status_code == 200
+        spy = Instrument(
+            symbol="SPY",
+            name="SPDR S&P 500 ETF Trust",
+            currency="USD",
+            instrument_type_id=instrument_type.id,
+            is_active=True,
+        )
+        db.add(spy)
+        db.flush()
+        base = datetime(2026, 6, 25, tzinfo=UTC)
+        for index, close in enumerate((100, 101, 102)):
+            timestamp = base + timedelta(days=index)
+            value = Decimal(str(close))
+            db.add(
+                OHLCVBar(
+                    instrument_id=spy.id,
+                    timeframe=Timeframe.D1,
+                    ts=timestamp,
+                    open=value,
+                    high=value,
+                    low=value,
+                    close=value,
+                    volume=Decimal("1"),
+                    is_adjusted=True,
+                )
+            )
+        db.flush()
+
+        response = client.get(
+            "/api/v1/analysis/benchmark-families/sp500/technicals",
+            headers=auth_headers,
+            params={"as_of": "2026-12-31T23:59:59Z"},
+        )
+        assert response.status_code == 200, response.text
+        payload = response.json()
+        roles = {role["role"]: role for role in payload["roles"]}
+        assert roles["cap_weight"]["symbol"] == "SPY"
+        assert roles["cap_weight"]["available"] is True
+        assert roles["cap_weight"]["last"] == 102
+        assert roles["cap_weight"]["as_of"] == "2026-12-31T23:59:59Z"
+        assert roles["cap_weight"]["sma200"] is None
+        assert roles["equal_weight"]["symbol"] == "RSP"
+        assert roles["equal_weight"]["available"] is False
+        assert roles["equal_weight"]["warnings"][0]["code"] == "benchmark_proxy_unavailable"
+        assert payload["universe_provenance"]["technical_semantics"] == (
+            "role_independent_local_ohlcv_snapshot"
+        )
+        assert payload["freshness"] == "current"
+
     def test_benchmark_family_derived_equal_weight_requires_constituent_membership(
         self, client, auth_headers, db, instrument, ohlcv_bars
     ):

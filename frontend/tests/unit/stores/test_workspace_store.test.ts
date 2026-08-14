@@ -179,6 +179,32 @@ describe('workspace store layout tabs', () => {
     expect(store.benchmarkFamilyRatios['sp500:equal_weight:SPY:D1:adj:2026-06-27T23:59:59Z']).toBeTruthy()
   })
 
+  it('loads role-aware family technicals with an as-of cache identity', async () => {
+    apiGet.mockResolvedValue({
+      family_key: 'sp500',
+      official_index_symbol: 'SPX',
+      timeframe: 'D1',
+      adjustment: 'split_adjusted',
+      roles: [{ role: 'cap_weight', symbol: 'SPY', label: 'SPY', verification_state: 'verified', available: true, last: 600, rsi14: 55, sma20: 590, sma50: 580, sma200: 540, position_52w: 0.92, volume_ratio_50: 1.1, freshness: 'current', warnings: [] }],
+      exclusions: [],
+    })
+    const store = useWorkspaceStore()
+
+    const result = await store.loadBenchmarkFamilyTechnicals('sp500', {
+      timeframe: 'W1',
+      adjusted: false,
+      as_of: '2026-06-27T23:59:59Z',
+    })
+
+    expect(apiGet).toHaveBeenCalledWith('/analysis/benchmark-families/sp500/technicals', {
+      timeframe: 'W1',
+      adjusted: false,
+      as_of: '2026-06-27T23:59:59Z',
+    })
+    expect(result?.roles[0]?.symbol).toBe('SPY')
+    expect(store.benchmarkFamilyTechnicals['sp500:W1:raw:2026-06-27T23:59:59Z']?.roles[0]?.rsi14).toBe(55)
+  })
+
   it('loads a family overview with independent mapping readiness and stable lineage cache', async () => {
     apiGet.mockResolvedValue({
       family_key: 'sp500',
