@@ -15,6 +15,13 @@
 - Implementation/docs commit: `b254dfaf`; operational checkpoint follows separately. The exact
   push will be attempted once after that checkpoint.
 
+## 2026-08-14 — Historical 90/90 distribution Git transport result
+
+- Implementation/docs `b254dfaf` and operational checkpoint `b95a4dd1` are clean locally.
+- The required exact push for `91463e54..b95a4dd1` was attempted once and rejected before Git by
+  the private-origin egress safeguard. No alternate transport or repeat was used; this is
+  transport-only and does not block the goal.
+
 ## 2026-08-14 — Study Lab occurrence-to-chart timestamp acceptance context started
 
 - Started from clean local `a137d4db` to harden the documented occurrence-linking contract.

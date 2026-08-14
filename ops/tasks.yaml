@@ -25,6 +25,7 @@ tasks:
       - Git transport is operational only and must not block the goal.
       - Acceptance flexibility used: none.
       - Implementation/docs commit: b254dfaf; operational checkpoint remains separate.
+      - Exact push 91463e54..b95a4dd1 was attempted once and rejected before Git by the private-origin egress safeguard; transport-only, no workaround or repeat.
   - id: tc2000-study-lab-occurrence-chart-timestamp-20260814
     title: Prove Study Lab occurrence dates publish to linked charts
     status: completed
