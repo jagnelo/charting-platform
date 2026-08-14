@@ -107,6 +107,37 @@ class GroupSnapshotOut(AnalysisResponseMetadata):
     rows: list[GroupSnapshotRow]
 
 
+class BenchmarkFamilyMappingOut(BaseModel):
+    """One independently tracked cap/equal/value/growth relationship."""
+
+    role: Literal["cap_weight", "equal_weight", "value", "growth"]
+    symbol: str | None = None
+    label: str
+    verification_state: str
+    source_url: str | None = None
+    instrument_id: int | None = None
+    available: bool = False
+
+
+class BenchmarkFamilyOverviewOut(AnalysisResponseMetadata):
+    """Proxy-leg comparison for one benchmark family, never a silent fallback."""
+
+    family_key: str
+    name: str
+    official_index_symbol: str
+    official_index_name: str
+    timeframe: str
+    adjustment: str
+    as_of: datetime | None = None
+    membership_version: int
+    universe_provenance: dict[str, object] = Field(default_factory=dict)
+    coverage: float = Field(ge=0, le=1)
+    exclusions: list[AnalysisWarning] = Field(default_factory=list)
+    mappings: list[BenchmarkFamilyMappingOut] = Field(default_factory=list)
+    derived_equal_weight: dict[str, object] = Field(default_factory=dict)
+    rows: list[GroupSnapshotRow] = Field(default_factory=list)
+
+
 class ETFConstituentSnapshotOut(GroupSnapshotOut):
     """A point-in-time ETF-proxy constituent batch, never an official index universe."""
 

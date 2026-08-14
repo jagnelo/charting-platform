@@ -1,5 +1,22 @@
 # Project TODO Memory
 
+### 2026-08-14 — Benchmark-family overview analytics contract
+
+- [x] Added `GET /analysis/benchmark-families/{family_key}/overview` as the first shared
+      family-analysis bridge. It returns the official index identity, cap/equal/value/growth
+      mapping records, canonical availability, derived-equal metadata, membership/provenance,
+      coverage, freshness, exclusions, and the existing group snapshot rows in one response.
+- [x] A family with no canonical cap proxy returns an unavailable, zero-row response with the
+      exact `cap_proxy_unavailable` exclusion. It never substitutes SPY, QQQ, or another family;
+      the integration test primes taxonomy through the supported read bootstrap and verifies the
+      overview remains read-only.
+- [x] Validation passes: focused family overview/child integration `2/2`, taxonomy/bootstrap and
+      family regression `4/4`, Ruff, and `git diff --check`. No acceptance flexibility used.
+- [ ] Still open: provider-backed identity and holdings evidence, point-in-time family members,
+      native versus derived equal-weight calculations, style-leg ratios, family-wide technical/
+      breadth/rotation snapshots, populated cap-available browser drill-down, and end-to-end
+      visual acceptance. These remain tracked gaps rather than hidden fallbacks.
+
 ### 2026-08-14 — Benchmark-family taxonomy and selectable child universes
 
 - [x] Added a JSON-safe eight-family registry to the canonical top-down taxonomy for S&P 500/400/

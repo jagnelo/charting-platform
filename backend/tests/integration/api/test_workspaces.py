@@ -461,6 +461,34 @@ class TestWorkspaces:
             "growth",
         }
 
+    def test_benchmark_family_overview_preserves_mapping_gaps_without_spy_fallback(
+        self, client, auth_headers
+    ):
+        # The taxonomy is normally materialised by startup/maintenance.  Prime
+        # the empty integration database through its supported read bootstrap
+        # before exercising the analytics endpoint; the overview itself must
+        # remain read-only and must not seed or substitute another benchmark.
+        seeded = client.get("/api/v1/market-groups", headers=auth_headers)
+        assert seeded.status_code == 200
+        response = client.get(
+            "/api/v1/analysis/benchmark-families/nasdaq100/overview",
+            headers=auth_headers,
+        )
+        assert response.status_code == 200, response.text
+        payload = response.json()
+        assert payload["family_key"] == "nasdaq100"
+        assert payload["official_index_symbol"] == "NDX"
+        assert payload["coverage"] == 0
+        assert payload["rows"] == []
+        assert payload["universe_provenance"]["cap_proxy_symbol"] == "QQQ"
+        assert payload["universe_provenance"]["cap_proxy_available"] is False
+        assert payload["exclusions"][0]["code"] == "cap_proxy_unavailable"
+        mappings = {mapping["role"]: mapping for mapping in payload["mappings"]}
+        assert mappings["cap_weight"]["symbol"] == "QQQ"
+        assert mappings["cap_weight"]["available"] is False
+        assert mappings["equal_weight"]["symbol"] == "QQQE"
+        assert mappings["equal_weight"]["label"] == "Nasdaq-100 equal-weight ETF proxy"
+
     def test_etf_industries_are_derived_from_point_in_time_holdings(
         self, client, admin_headers, auth_headers, db, instrument
     ):

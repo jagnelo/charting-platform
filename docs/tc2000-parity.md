@@ -1,5 +1,23 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-14 — Benchmark-family overview analytics contract
+
+The family selector now has a provider-neutral overview contract at
+`GET /analysis/benchmark-families/{family_key}/overview`. The response keeps the official index
+identity separate from cap/equal/value/growth proxy mappings, reports canonical instrument
+availability and derived-equal methodology, and carries the existing membership version,
+coverage, freshness, exclusions, and snapshot rows. This lets the workstation render one shared
+top-down surface for S&P 500/400/600/1500, Russell 1000/2000/3000, and Nasdaq 100 without
+hard-coding a SPY fallback.
+
+When a family cap proxy is not yet present in the security master, the endpoint returns no rows,
+`cap_proxy_unavailable`, and explicit provenance; it does not substitute SPY, QQQ, or another
+family. The focused integration suite verifies this behavior and primes taxonomy only through the
+normal market-group bootstrap, keeping the overview read-only. Provider verification,
+point-in-time constituents/holdings, native-versus-derived equal weights, available-cap browser
+drill-down, family-wide breadth/ratios/rotation, and exact visual acceptance remain open. No
+acceptance criterion was relaxed.
+
 ## 2026-08-14 — Benchmark-family taxonomy and selectable child universes
 
 The backend now exposes a JSON-safe registry for the eight required US benchmark families. Each

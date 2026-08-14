@@ -36,6 +36,8 @@ from app.schemas.analysis import (
     AnalysisCell,
     AnalysisPoint,
     AnalysisWarning,
+    BenchmarkFamilyMappingOut,
+    BenchmarkFamilyOverviewOut,
     BreadthConditionRequest,
     BreadthDefinitionHistoryOut,
     BreadthDefinitionHistoryPointOut,
@@ -1678,6 +1680,148 @@ async def etf_constituent_snapshot(
         provenance=snapshot.provenance,
         source_provider=snapshot.source_provider,
         completeness_status=snapshot.completeness_status,
+    )
+
+
+@router.get(
+    "/benchmark-families/{family_key}/overview",
+    response_model=BenchmarkFamilyOverviewOut,
+)
+async def benchmark_family_overview(
+    family_key: str,
+    timeframe: Timeframe = Timeframe.D1,
+    adjusted: bool = True,
+    as_of: datetime | None = Query(default=None),
+    _: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Compare one family's configured cap/equal/style proxy legs.
+
+    The cap leg is the benchmark only when its canonical identity exists.  A
+    missing cap identity returns an unavailable, provenance-bearing response;
+    this endpoint never substitutes SPY or QQQ for a different family.
+    """
+
+    group = (
+        await db.execute(
+            select(MarketGroup)
+            .options(selectinload(MarketGroup.members).selectinload(MarketGroupMember.instrument))
+            .where(MarketGroup.stable_key == family_key)
+        )
+    ).scalar_one_or_none()
+    if group is None or group.group_type != "benchmark_family":
+        raise HTTPException(
+            404,
+            detail={"code": "benchmark_family_not_found", "family_key": family_key},
+        )
+
+    provenance = dict(group.provenance or {})
+    official = provenance.get("official_index")
+    if not isinstance(official, Mapping):
+        raise HTTPException(
+            422,
+            detail={"code": "benchmark_family_metadata_missing", "family_key": family_key},
+        )
+    proxy_mappings = provenance.get("proxy_mappings")
+    if not isinstance(proxy_mappings, Mapping):
+        proxy_mappings = {}
+    symbols = [
+        str(mapping.get("symbol")).upper()
+        for mapping in proxy_mappings.values()
+        if isinstance(mapping, Mapping) and mapping.get("symbol")
+    ]
+    instruments = {
+        instrument.symbol.upper(): instrument
+        for instrument in (
+            await db.execute(select(Instrument).where(Instrument.symbol.in_(symbols)))
+        ).scalars()
+    }
+    selected_members = _group_members_at(group, as_of)
+    cap_mapping = proxy_mappings.get("cap_weight")
+    cap_symbol = (
+        str(cap_mapping.get("symbol")).upper()
+        if isinstance(cap_mapping, Mapping) and cap_mapping.get("symbol")
+        else None
+    )
+    cap_instrument = instruments.get(cap_symbol) if cap_symbol else None
+
+    if cap_instrument is not None:
+        snapshot = await group_snapshot(
+            group_key=family_key,
+            benchmark=cap_instrument.symbol,
+            timeframe=timeframe,
+            adjusted=adjusted,
+            as_of=as_of,
+            _=_,
+            db=db,
+        )
+        rows = snapshot.rows
+        membership_version = snapshot.membership_version
+        snapshot_as_of = snapshot.as_of
+        coverage = snapshot.coverage
+        exclusions = snapshot.exclusions
+        freshness = snapshot.freshness
+        freshness_detail = snapshot.freshness_detail
+        universe_provenance = snapshot.universe_provenance
+    else:
+        membership_version = _group_membership_version(group, selected_members)
+        rows = []
+        snapshot_as_of = None
+        coverage = 0.0
+        freshness = "unavailable"
+        freshness_detail = {}
+        universe_provenance = _group_provenance(group, as_of)
+        exclusions = [
+            AnalysisWarning(
+                code="cap_proxy_unavailable",
+                message=(
+                    f"No canonical cap-weighted proxy is available for {family_key}; "
+                    "no other family proxy was substituted."
+                ),
+            )
+        ]
+
+    mappings: list[BenchmarkFamilyMappingOut] = []
+    for role in ("cap_weight", "equal_weight", "value", "growth"):
+        mapping = proxy_mappings.get(role)
+        mapping = mapping if isinstance(mapping, Mapping) else {}
+        symbol = str(mapping.get("symbol")).upper() if mapping.get("symbol") else None
+        instrument = instruments.get(symbol) if symbol else None
+        mappings.append(
+            BenchmarkFamilyMappingOut(
+                role=role,
+                symbol=symbol,
+                label=str(mapping.get("label") or "No verified mapped proxy"),
+                verification_state=str(mapping.get("verification_state") or "not_verified"),
+                source_url=str(mapping.get("source_url")) if mapping.get("source_url") else None,
+                instrument_id=instrument.id if instrument else None,
+                available=instrument is not None,
+            )
+        )
+
+    return BenchmarkFamilyOverviewOut(
+        family_key=family_key,
+        name=group.name,
+        official_index_symbol=str(official.get("symbol") or ""),
+        official_index_name=str(official.get("name") or group.name),
+        timeframe=timeframe.value,
+        adjustment="split_adjusted" if adjusted else "raw",
+        as_of=snapshot_as_of,
+        membership_version=membership_version,
+        universe_provenance={
+            **universe_provenance,
+            "family_key": family_key,
+            "cap_proxy_symbol": cap_symbol,
+            "cap_proxy_available": cap_instrument is not None,
+            "official_index_series_policy": official.get("series_policy"),
+        },
+        coverage=coverage,
+        exclusions=exclusions,
+        mappings=mappings,
+        derived_equal_weight=dict(provenance.get("derived_equal_weight") or {}),
+        rows=rows,
+        freshness=freshness,
+        freshness_detail=freshness_detail,
     )
 
 
