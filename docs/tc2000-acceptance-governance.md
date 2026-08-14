@@ -154,6 +154,14 @@ open and actionable. Acceptance flexibility used: **None**.
 
 ### Expanded benchmark-family gate
 
+The family gate is also a visual/workflow matrix. The acceptance run must launch each of the
+eight roots (S&P 500/400/600/1500, Russell 1000/2000/3000, Nasdaq 100), select every mapped
+cap/equal/value/growth leg, and exercise the same top-down, breadth, ratio, ranking, rotation,
+and member drill-down contracts. The Nasdaq 100 cap/equal fixture is QQQ versus QQQE only when
+canonical identity, holdings, and relationship evidence are verified. Missing or ambiguous
+family/style evidence is a labelled gap or unavailable state, never a silent fallback and never
+a reason to lower the global visual thresholds.
+
 The top-down completion bar now covers S&P 500/400/600/1500, Russell 1000/2000/3000, and Nasdaq
 100, not only SPY/SPX. The authenticated and backend acceptance matrix must prove that each family
 can be selected as a versioned universe and exposes, where source evidence permits, its official

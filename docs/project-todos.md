@@ -9202,6 +9202,34 @@ Why this was deferred:
 ### 14. Replace the primary frontend with a TC2000 Version 25-style workstation and build its supporting backend/research platform
 Status: `In progress — single completion bar not yet satisfied`
 
+#### Current continuation — 2026-08-14 expanded US index-family analysis vision
+
+The workstation's US-market vision explicitly covers eight independently selectable,
+versioned benchmark families: S&P 500, S&P MidCap 400, S&P SmallCap 600, S&P Composite
+1500, Russell 1000, Russell 2000, Russell 3000, and Nasdaq 100. This extends the original
+SPX/SPY path rather than creating a separate future feature. Each family must expose the
+same top-down and breadth workflow: official identity when entitled, cap-weighted tradable
+proxy, verified equal-weight vehicle or point-in-time derived equal-weight series, and
+independently evidenced value/growth legs where available.
+
+The product must allow direct cap-versus-equal, value-versus-growth, family-versus-family,
+and leg-versus-parent comparisons, including the Nasdaq 100 cap/equal deconstruction
+(QQQ versus QQQE only after canonical identity, holdings, and relationship evidence is
+verified). Every available leg inherits benchmark technicals, configurable predicate
+breadth, participation and leadership, concentration/dispersion, drawdown/volatility,
+relative rotation, ranking, ratios, charts, watchlists, scans, gauges, Study Lab, and
+member drill-down. The selected universe, leg role, weighting method, membership snapshot,
+effective/known-at timestamps, adjustment, coverage, exclusions, freshness, and source
+provenance remain visible in every surface. Missing official/style/equal/holdings evidence
+is represented as `No verified mapped proxy`, unavailable, or explicitly derived; it is
+never filled with SPY, QQQ, another family, a current-only snapshot, or a name-based guess.
+
+Acceptance is a family matrix, not a single-symbol smoke test: the same browser and backend
+contracts must be exercised for all eight roots and each mapped cap/equal/value/growth leg,
+with side-by-side breadth and cross-family comparisons. Provider mapping, historical
+membership/rebalance evidence, family-wide analytics, and populated browser drill-down are
+implementation gaps tracked below; this scope expansion is not an acceptance relaxation.
+
 #### Current continuation — 2026-08-12 listing visibility and browser contract repair
 
 The exchange-aware listing API contract is now exercised through the real seeded workstation

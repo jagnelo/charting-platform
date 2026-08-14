@@ -1,5 +1,23 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-14 — Expanded US benchmark-family visual/workflow matrix
+
+The visual parity target includes the eight US analysis roots required by the product vision:
+S&P 500, S&P MidCap 400, S&P SmallCap 600, S&P Composite 1500, Russell 1000, Russell 2000,
+Russell 3000, and Nasdaq 100. The benchmark-family selector, cap/equal/style comparison
+surfaces, breadth controls, ratio charts, ranking tables, member drill-down, freshness and
+provenance states must use the same dense Version 25 workstation composition for every family,
+not only the original SPY example. Nasdaq 100 specifically requires the QQQ/QQQE-style
+cap/equal view only after the relationship and holdings evidence is verified.
+
+The parity matrix must include represented states for family and leg selection;
+cap/equal/value/growth side-by-side comparisons; missing or derived legs; ETF-native versus
+locally derived weights; current and historical breadth; family-relative ratios;
+cross-family ranking/rotation; and constituent drill-down. The board remains the visual
+authority for states it represents. Any family/style state absent or ambiguous on the board is
+recorded as a named gap with an interim deterministic oracle; it is not silently accepted or
+masked.
+
 ## 2026-08-14 — Family-leg relative-strength ratio contract
 
 Family role analysis now exposes `GET /analysis/benchmark-families/{family_key}/ratios`. A
