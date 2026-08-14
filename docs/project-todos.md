@@ -9,6 +9,9 @@
 - [x] Focused ChartTemplateControl coverage passes `9/9`; full frontend Vitest `780/780`;
       type-check; 475-module production build; rebuilt authenticated
       `F9c-template-comparison` browser acceptance passes `1/1`; `git diff --check` passes.
+- [x] The complete rebuilt authenticated `frontend/tests/e2e/flows.spec.ts` matrix passes `140/140`
+      in `7.1m` after the correction, including the full chart, top-down, linking/pop-out,
+      Python/Study Lab, alert, legacy, error, narrow-dock, and 125% browser-scale journeys.
 - [ ] No acceptance flexibility was used. Initial failures were stale-image/setup and menu-oracle
       evidence, corrected by rebuilding/recreating the branch frontend and rerunning. Exact or
       unrepresented V25 visual, provider/entitlement, historical/GICS, native-monitor, endurance,

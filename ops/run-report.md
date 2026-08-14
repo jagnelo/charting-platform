@@ -1,5 +1,13 @@
 # Run Report
 
+## 2026-08-14 — Post-comparison authenticated matrix completed
+
+- Rebuilt branch frontend acceptance: authenticated `flows.spec.ts` passes `140/140` in `7.1m`
+  with one worker, including F9c-template-comparison and all existing workstation/backend journeys.
+- No acceptance flexibility, visual-mask/baseline change, provider substitution, or uPlot exception
+  was used. Exact/unrepresented V25, provider/entitlement, historical/GICS, native-monitor,
+  endurance, Docker-cleanup, and final-audit gaps remain explicit.
+
 ## 2026-08-14 — Current-range push retry recorded
 
 - Exact elevated push of clean range `91463e54..2a4a55c3` was retried and rejected before Git by

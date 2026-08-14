@@ -1,5 +1,15 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-14 — Post-comparison authenticated matrix
+
+The rebuilt authenticated `frontend/tests/e2e/flows.spec.ts` matrix passes `140/140` in `7.1m`
+with one worker after comparison-template persistence was corrected. This includes the full chart,
+top-down SPY/RSP/sector/industry/constituent workflow, uPlot interactions, linking/pop-outs,
+Python/Study Lab, alerts, legacy, recovery/error, narrow-dock, and 125% browser-scale journeys.
+No acceptance flexibility, visual threshold/mask/baseline, provider substitution, or uPlot rule
+was changed. The result is scoped regression evidence; exact/unrepresented V25, provider/
+entitlement, historical/GICS, native-monitor, endurance, Docker-cleanup, and final-audit gaps remain.
+
 ## 2026-08-14 — Chart-template comparison persistence
 
 - Saved chart templates now restore their persisted comparison set rather than retaining the

@@ -1,5 +1,18 @@
 # Active Handoff
 
+## 2026-08-14 — Post-comparison authenticated matrix completed
+
+- The complete rebuilt authenticated `frontend/tests/e2e/flows.spec.ts` matrix passes `140/140`
+  in `7.1m` with one Chromium worker. This includes the new F9c-template-comparison flow and the
+  full chart, top-down, linking, pop-out, Python/Study Lab, alerts, legacy, error, narrow-dock,
+  and 125% browser-scale journeys.
+- No visual threshold, mask, provider rule, uPlot rule, or acceptance criterion changed. No
+  acceptance flexibility was used. This is broad regression evidence for the scoped correction,
+  not overall-goal completion; the documented exact/unrepresented V25, provider/entitlement,
+  historical/GICS, native-monitor, endurance, Docker-cleanup, and final-audit gaps remain open.
+- The current clean pre-record boundary is `16d00f79`; the operational record below is committed
+  separately. The earlier exact push hold remains transport-only and must not block the next context.
+
 ## 2026-08-14 — Current-range push retry recorded
 
 - Retried the exact elevated `rtk git push origin feat/tc2000-frontend-rework` for
