@@ -1,5 +1,14 @@
 # Run Report
 
+## 2026-08-14 — Full authenticated workstation matrix
+
+- Rebuilt/healthy branch stack passed the complete non-seeded authenticated Chromium matrix
+  `140/140` in `7.0m` with one worker after Alerian and Docker maintenance. Frontend `817/817`,
+  type-check/build, and backend units `1134/1134` remain green.
+- No product regression or browser-console acceptance failure was found. Board-guided/controlled
+  fixture visual evidence and scoped Docker cleanup remain explicitly recorded flexibility; exact/
+  unrepresented V25, provider/historical, native-monitor, endurance, and final-audit gaps remain.
+
 ## 2026-08-14 — Scoped Docker storage maintenance
 
 - Docker audit found about `10.8GB` in use and `1.378GB` reclaimable build cache. Scoped

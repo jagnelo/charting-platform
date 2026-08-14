@@ -1,5 +1,21 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-14 — Canonical authenticated matrix after backend/provider and Docker maintenance
+
+- The rebuilt branch stack remained healthy after the Alerian native route and scoped Docker
+  cleanup. The complete authenticated `flows.spec.ts` matrix passed `140/140` in `7.0m` with one
+  serial Chromium worker.
+- This run covers the real workstation shell, charts/templates/drawings, Golden Layout workspaces
+  and pop-outs, link groups/timeframes/crosshairs/gestures, keyboard traversal, top-down SPY/RSP →
+  sector → industry/proxy → constituent drill-down and ratios, Python/Study Lab/Results,
+  EasyScan/Gauges, alerts/notes, freshness/errors/recovery, legacy compatibility, and 125% browser
+  containment. Frontend `817/817`, type-check/build, backend units `1134/1134`, and provider
+  live-route evidence remain green.
+- Acceptance flexibility used: **scoped Docker build-cache cleanup** and the already documented
+  **board-guided/controlled-fixture track** for represented visual states. No visual threshold,
+  mask, product, provider, uPlot, or security criterion changed. Exact/unrepresented V25 visuals,
+  broader provider/historical truth, native-monitor, longer endurance, and final-audit gaps remain.
+
 ## 2026-08-14 — Alerian live-provider coverage
 
 - Added Alerian to the live-backed provider registry and the opt-in concrete route matrix for

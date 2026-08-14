@@ -1,5 +1,17 @@
 # Active Handoff
 
+## 2026-08-14 — Full authenticated workstation matrix
+
+- After Alerian/provider and scoped Docker maintenance, the complete non-seeded authenticated
+  `frontend/tests/e2e/flows.spec.ts --project=chromium` matrix passed `140/140` in `7.0m`.
+  Backend units pass `1134/1134`; frontend Vitest `817/817`, type-check, and production build pass.
+- The matrix covered the complete implemented top-down workflow, uPlot interactions, linking,
+  docking/pop-outs, Python/Study Lab, scans/gauges, alerts/notes, error/recovery, legacy, and
+  125% containment. No product regression was found.
+- Acceptance flexibility used: scoped Docker cache cleanup and board/controlled-fixture evidence
+  for represented visual states. Exact/unrepresented V25, provider/historical, native-monitor,
+  longer-endurance, and final-audit gaps remain explicit.
+
 ## 2026-08-14 — Scoped Docker storage maintenance
 
 - Read-only `docker system df` showed about `10.8GB` total use, including `1.378GB` reclaimable
