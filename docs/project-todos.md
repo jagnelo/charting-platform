@@ -12442,3 +12442,27 @@ The current source also passes the focused authenticated top-down browser slice 
       acceptance rule was relaxed.
 - [ ] Still open: cross-family ranking, historical ranking series, relative rotation tails,
       concentration/dispersion, and complete provider-backed population across all eight roots.
+
+### 2026-08-14 — Cross-family benchmark ranking and visual regression repair
+
+- [x] Added `GET /analysis/benchmark-families/ranking`, an all-family batch over the configured
+      S&P, Russell, and Nasdaq roots. It accepts an explicit family selection, rank period,
+      timeframe, adjustment, `as_of`, and optional benchmark; it returns independently resolved
+      cap-proxy return cells, rank order, aligned benchmark-relative spreads when requested, and
+      explicit no-canonical-bar/unavailable states. It never substitutes SPY, QQQ, or a different
+      family when a requested root is incomplete.
+- [x] Added store-level deduplication and a dense workstation cross-family strip. The panel shows
+      the leading available roots without a route change, while retaining loading, partial,
+      warning, stale, and unavailable semantics from the batch contract.
+- [x] The rebuilt authenticated `F8s-breadth-family-ratio` browser run exposed a real overlap
+      defect after the new strips were added: implicit grid rows allowed ranking/participation
+      content to cover the custom-condition controls. The breadth surface was changed to a
+      scrollable, height-constrained flex container; the unchanged browser oracle then passed
+      with the RSI interaction and cross-family assertion intact. This localized defect was fixed,
+      not waived, and no visual threshold, mask, provider rule, or acceptance criterion changed.
+- [x] Validation passes: focused cross-family integration `2/2`, workspace-store `62/62`, full
+      frontend Vitest `833/833`, `vue-tsc`, production build, Ruff, compileall, `git diff --check`,
+      and rebuilt authenticated Chromium `F8s-breadth-family-ratio` `1/1`.
+- [ ] Still open: historical cross-family ranking curves, relative-rotation tails and state
+      transitions, concentration/dispersion, condition-driven ranking inputs, and complete
+      provider-backed population and browser evidence across all eight roots.

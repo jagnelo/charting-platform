@@ -1,5 +1,21 @@
 # Active Handoff
 
+## 2026-08-14 — Cross-family ranking and breadth layout repair checkpoint
+
+- Added `GET /analysis/benchmark-families/ranking` for explicit/all configured S&P, Russell, and
+  Nasdaq roots with rank periods, canonical cap-proxy cells, optional aligned benchmark spreads,
+  provenance/coverage, and no-fallback unavailable states.
+- Added store caching and dense workstation cross-family ranking. A rebuilt browser run found a
+  genuine implicit-grid overlap between the new strips and custom-condition controls; the owning
+  breadth surface was repaired as a height-constrained scrollable flex container. The unchanged
+  `F8s-breadth-family-ratio` oracle then passed with the RSI interaction and cross-family assertion.
+- Validation: focused integration `2/2`, store `62/62`, full Vitest `833/833`, type/build,
+  Ruff/compile, diff-check, and Chromium `1/1`. No acceptance flexibility used; the overlap was
+  fixed and regression-tested rather than waived.
+- Implementation/docs are ready for commit. Next context: historical cross-family curves,
+  relative rotation, concentration/dispersion, and complete evidence population across all eight
+  roots.
+
 ## 2026-08-14 — Benchmark-family role-ranking checkpoint
 
 - Added `GET /analysis/benchmark-families/{family_key}/ranking` with transparent 1D/1W/1M/3M/6M/

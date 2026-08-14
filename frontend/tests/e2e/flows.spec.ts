@@ -3345,6 +3345,17 @@ test.describe('TC2000 workstation', () => {
         }),
       })
     })
+    await page.route('**/api/v1/analysis/benchmark-families/ranking*', async route => {
+      familyAsOfRequests.push(route.request().url())
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          timeframe: 'D1', adjustment: 'split_adjusted', rank_period: '1M', benchmark: null,
+          rows: [{ family_key: 'sp500', family_name: 'S&P 500', official_index_symbol: 'SPX', symbol: 'SPY', label: 'SPY', available: true, rank: 1, performance: { '1M': 0.1 }, relative_performance: { '1M': 0 }, warnings: [] }], exclusions: [],
+        }),
+      })
+    })
     await page.route('**/api/v1/analysis/benchmark-families/sp500/breadth*', async route => {
       familyAsOfRequests.push(route.request().url())
       const metric = (percentage: number | null) => ({ percentage, requested_count: 100, eligible_count: percentage == null ? 0 : 100, excluded_count: percentage == null ? 100 : 0, coverage: percentage == null ? 0 : 1, exclusions: [] })
@@ -3462,6 +3473,7 @@ test.describe('TC2000 workstation', () => {
     await expect(breadth.locator('[aria-label="Benchmark family technicals"]')).toContainText('Cap weight SPY · 600.00 · RSI 55.00', { timeout: 15_000 })
     await expect(breadth.locator('[aria-label="Benchmark family participation"]')).toContainText('Cap weight SPY · >20 70% · near 52w 40% · trend 65%', { timeout: 15_000 })
     await expect(breadth.locator('[aria-label="Benchmark family role ranking"]')).toContainText('#1 Equal weight RSP', { timeout: 15_000 })
+    await expect(breadth.locator('[aria-label="Cross-family ranking"]')).toContainText('#1 S&P 500 SPY', { timeout: 15_000 })
     await expect(familyPanel.getByRole('combobox', { name: 'Family ratio leg' })).toHaveValue('equal_weight')
     const familyOverview = breadth.locator('[aria-label="Benchmark family analysis"]')
     await expect(familyOverview).toBeVisible({ timeout: 15_000 })

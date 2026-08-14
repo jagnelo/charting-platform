@@ -68,6 +68,8 @@ from app.schemas.analysis import (
     BreadthPythonRunOut,
     BreadthPythonRunRequest,
     BreadthUniverseRequest,
+    CrossFamilyRankingOut,
+    CrossFamilyRankingRowOut,
     ETFConstituentSnapshotOut,
     ETFConstituentSnapshotRowOut,
     GroupSnapshotOut,
@@ -2999,6 +3001,169 @@ async def benchmark_family_breadth_history(
         as_of=as_of,
         limit=limit,
         roles=roles,
+        exclusions=exclusions,
+        freshness=freshness,
+        freshness_detail=freshness_detail,
+    )
+
+
+@router.get(
+    "/benchmark-families/ranking",
+    response_model=CrossFamilyRankingOut,
+)
+async def cross_family_ranking(
+    timeframe: Timeframe = Timeframe.D1,
+    adjusted: bool = True,
+    rank_period: str = Query(default="1M", pattern="^(1D|1W|1M|3M|6M|YTD|1Y)$"),
+    families: str | None = Query(default=None),
+    benchmark: str | None = Query(default=None),
+    as_of: datetime | None = Query(default=None),
+    _: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Rank all selected benchmark-family cap legs on one aligned contract."""
+
+    requested = {
+        item.strip()
+        for item in (families.split(",") if families else [])
+        if item.strip()
+    }
+    query = select(MarketGroup).where(MarketGroup.group_type == "benchmark_family")
+    if requested:
+        query = query.where(MarketGroup.stable_key.in_(requested))
+    groups = list(
+        (
+            await db.execute(query.order_by(MarketGroup.stable_key))
+        ).scalars()
+    )
+    if requested and {group.stable_key for group in groups} != requested:
+        missing = sorted(requested - {group.stable_key for group in groups})
+        raise HTTPException(
+            404,
+            detail={"code": "benchmark_family_not_found", "family_keys": missing},
+        )
+    if not groups:
+        raise HTTPException(404, detail={"code": "benchmark_families_not_found"})
+
+    benchmark_instrument = None
+    if benchmark:
+        benchmark_instrument = await _instrument(db, benchmark)
+    cap_instruments: dict[str, Instrument] = {}
+    exclusions: list[AnalysisWarning] = []
+    for group in groups:
+        mappings = (group.provenance or {}).get("proxy_mappings", {})
+        mapping = mappings.get("cap_weight") if isinstance(mappings, Mapping) else None
+        symbol = mapping.get("symbol") if isinstance(mapping, Mapping) else None
+        if not symbol:
+            continue
+        try:
+            cap_instruments[group.stable_key] = await _instrument(db, str(symbol))
+        except HTTPException as error:
+            if error.status_code != 404:
+                raise
+            exclusions.append(
+                AnalysisWarning(
+                    code="instrument_not_found",
+                    message=f"No canonical cap proxy is available for {group.stable_key}.",
+                )
+            )
+    bars_by_id = _truncate_bars_at(
+        await _bars_by_instrument(
+            db,
+            [
+                *[instrument.id for instrument in cap_instruments.values()],
+                *( [benchmark_instrument.id] if benchmark_instrument else [] ),
+            ],
+            timeframe,
+            adjusted,
+        ),
+        as_of,
+    )
+    benchmark_cells = (
+        _aggregate_series_cells(
+            [(bar.ts, float(bar.close)) for bar in bars_by_id.get(benchmark_instrument.id, [])],
+            benchmark_instrument.id,
+        )
+        if benchmark_instrument
+        else {}
+    )
+    rows: list[CrossFamilyRankingRowOut] = []
+    for group in groups:
+        provenance = dict(group.provenance or {})
+        official = provenance.get("official_index")
+        mappings = provenance.get("proxy_mappings")
+        mapping = mappings.get("cap_weight") if isinstance(mappings, Mapping) else None
+        mapping = mapping if isinstance(mapping, Mapping) else {}
+        symbol = str(mapping.get("symbol")).upper() if mapping.get("symbol") else None
+        label = str(mapping.get("label") or "No verified mapped proxy")
+        instrument = cap_instruments.get(group.stable_key)
+        if instrument is None:
+            rows.append(
+                CrossFamilyRankingRowOut(
+                    family_key=group.stable_key,
+                    family_name=group.name,
+                    official_index_symbol=str(official.get("symbol") or "") if isinstance(official, Mapping) else "",
+                    symbol=symbol,
+                    label=label,
+                    available=False,
+                    warnings=[
+                        AnalysisWarning(
+                            code="family_cap_unavailable",
+                            message="The family has no canonical cap proxy or local bars.",
+                        )
+                    ],
+                )
+            )
+            continue
+        cells = _aggregate_series_cells(
+            [(bar.ts, float(bar.close)) for bar in bars_by_id.get(instrument.id, [])],
+            instrument.id,
+        )
+        rows.append(
+            CrossFamilyRankingRowOut(
+                family_key=group.stable_key,
+                family_name=group.name,
+                official_index_symbol=str(official.get("symbol") or "") if isinstance(official, Mapping) else "",
+                symbol=symbol,
+                label=label,
+                available=bool(cells),
+                performance={period: cell.value for period, cell in cells.items()},
+                relative_performance={
+                    period: (
+                        cell.value - benchmark_cells[period].value
+                        if cell.value is not None
+                        and benchmark_cells.get(period) is not None
+                        and benchmark_cells[period].value is not None
+                        else None
+                    )
+                    for period, cell in cells.items()
+                },
+                warnings=[cell.warning for cell in cells.values() if cell.warning is not None],
+            )
+        )
+    ranked = sorted(
+        (row for row in rows if row.available and row.performance.get(rank_period) is not None),
+        key=lambda row: float(row.performance[rank_period]),  # type: ignore[arg-type]
+        reverse=True,
+    )
+    for rank, row in enumerate(ranked, start=1):
+        row.rank = rank
+    freshness, freshness_detail = await _batch_freshness(
+        db,
+        [
+            *[instrument.id for instrument in cap_instruments.values()],
+            *( [benchmark_instrument.id] if benchmark_instrument else [] ),
+        ],
+        timeframe,
+        adjusted,
+    )
+    return CrossFamilyRankingOut(
+        timeframe=timeframe.value,
+        adjustment="split_adjusted" if adjusted else "raw",
+        as_of=as_of,
+        benchmark=benchmark_instrument.symbol if benchmark_instrument else None,
+        rank_period=rank_period,
+        rows=rows,
         exclusions=exclusions,
         freshness=freshness,
         freshness_detail=freshness_detail,

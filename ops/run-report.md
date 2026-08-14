@@ -1,5 +1,18 @@
 # Run Report
 
+## 2026-08-14 — Cross-family ranking and breadth layout repair checkpoint
+
+- Added provider-neutral `/analysis/benchmark-families/ranking` with explicit/all family selection,
+  rank period, timeframe/adjustment/as-of identity, canonical cap-proxy lineage, optional aligned
+  benchmark spreads, and explicit incomplete-family states. Rendered the dense cross-family strip.
+- The first rebuilt browser run exposed a real CSS overlap caused by implicit grid rows covering the
+  custom condition editor. The breadth container was repaired to a constrained scrollable flex
+  surface; the unchanged authenticated oracle passed with the RSI and cross-family assertions.
+- Validation: integration `2/2`, workspace-store `62/62`, frontend Vitest `833/833`, type/build,
+  Ruff/compileall, diff-check, and Chromium `F8s-breadth-family-ratio` `1/1`. No flexibility used.
+- Remaining: historical cross-family ranking, rotation, concentration/dispersion, provider-backed
+  population, and final V25 visual/acceptance gates.
+
 ## 2026-08-14 — Benchmark-family role-ranking checkpoint
 
 - Added provider-neutral role ranking for mapped cap/equal/value/growth legs, including transparent

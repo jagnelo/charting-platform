@@ -310,6 +310,29 @@ export interface BenchmarkFamilyRankingState {
   freshness_detail?: Record<string, number>
 }
 
+export interface CrossFamilyRankingState {
+  timeframe: string
+  adjustment: string
+  as_of?: string | null
+  benchmark?: string | null
+  rank_period: string
+  rows: Array<{
+    family_key: string
+    family_name: string
+    official_index_symbol: string
+    symbol?: string | null
+    label: string
+    available: boolean
+    rank?: number | null
+    performance: Record<string, number | null>
+    relative_performance: Record<string, number | null>
+    warnings: Array<{ code: string; message: string; instrument_id?: number | null }>
+  }>
+  exclusions: Array<{ code: string; message: string; instrument_id?: number | null }>
+  freshness?: string
+  freshness_detail?: Record<string, number>
+}
+
 export interface BenchmarkFamilyMappingState {
   role: 'cap_weight' | 'equal_weight' | 'value' | 'growth'
   symbol: string | null
@@ -715,6 +738,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   const benchmarkFamilyBreadthHistoryErrors = ref<Record<string, string | null>>({})
   const benchmarkFamilyRankings = ref<Record<string, BenchmarkFamilyRankingState | null>>({})
   const benchmarkFamilyRankingErrors = ref<Record<string, string | null>>({})
+  const crossFamilyRankings = ref<Record<string, CrossFamilyRankingState | null>>({})
+  const crossFamilyRankingErrors = ref<Record<string, string | null>>({})
   const benchmarkFamilyOverviews = ref<Record<string, BenchmarkFamilyOverviewState | null>>({})
   const benchmarkFamilyOverviewErrors = ref<Record<string, string | null>>({})
   const benchmarkFamilyCoverages = ref<Record<string, BenchmarkFamilyCoverageState | null>>({})
@@ -1593,6 +1618,38 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       const message = cause?.message ?? `Unable to rank ${normalizedFamily} family roles`
       benchmarkFamilyRankingErrors.value = { ...benchmarkFamilyRankingErrors.value, [cacheKey]: message }
       benchmarkFamilyRankings.value = { ...benchmarkFamilyRankings.value, [cacheKey]: null }
+      return null
+    }
+  }
+
+  async function loadCrossFamilyRanking(
+    options: { timeframe?: string; adjusted?: boolean; as_of?: string; rank_period?: string; families?: string[]; benchmark?: string } = {},
+  ) {
+    const rankPeriod = options.rank_period ?? '1M'
+    const familyFilter = [...(options.families ?? [])].sort().join(',')
+    const benchmark = options.benchmark?.trim().toUpperCase()
+    const cacheKey = `${options.timeframe ?? 'D1'}:${options.adjusted !== false ? 'adj' : 'raw'}:${options.as_of ?? 'latest'}:${rankPeriod}:${familyFilter}:${benchmark ?? ''}`
+    const requestKey = `top-down:cross-family-ranking:${cacheKey}`
+    const generation = beginAnalysisRequest(requestKey)
+    if (!documentIsVisible()) return null
+    crossFamilyRankingErrors.value = { ...crossFamilyRankingErrors.value, [cacheKey]: null }
+    try {
+      const result = await api.get<CrossFamilyRankingState>('/analysis/benchmark-families/ranking', {
+        rank_period: rankPeriod,
+        ...(familyFilter ? { families: familyFilter } : {}),
+        ...(benchmark ? { benchmark } : {}),
+        ...(options.timeframe ? { timeframe: options.timeframe } : {}),
+        ...(typeof options.adjusted === 'boolean' ? { adjusted: options.adjusted } : {}),
+        ...(options.as_of ? { as_of: options.as_of } : {}),
+      })
+      if (!isCurrentAnalysisRequest(requestKey, generation)) return null
+      crossFamilyRankings.value = { ...crossFamilyRankings.value, [cacheKey]: result }
+      return result
+    } catch (cause: any) {
+      if (!isCurrentAnalysisRequest(requestKey, generation)) return null
+      const message = cause?.message ?? 'Unable to rank benchmark families'
+      crossFamilyRankingErrors.value = { ...crossFamilyRankingErrors.value, [cacheKey]: message }
+      crossFamilyRankings.value = { ...crossFamilyRankings.value, [cacheKey]: null }
       return null
     }
   }
@@ -2555,6 +2612,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     benchmarkFamilyBreadthHistoryErrors,
     benchmarkFamilyRankings,
     benchmarkFamilyRankingErrors,
+    crossFamilyRankings,
+    crossFamilyRankingErrors,
     benchmarkFamilyOverviews,
     benchmarkFamilyOverviewErrors,
     benchmarkFamilyCoverages,
@@ -2613,6 +2672,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     loadBenchmarkFamilyBreadth,
     loadBenchmarkFamilyBreadthHistory,
     loadBenchmarkFamilyRanking,
+    loadCrossFamilyRanking,
     loadBenchmarkFamilyOverview,
     loadBenchmarkFamilyCoverage,
     loadBenchmarkFamilyConstituents,

@@ -187,6 +187,18 @@ unavailable mappings or inventing a benchmark. This sub-gate covers current lead
 only; historical ranking, cross-family ranking, relative rotation, concentration, and dispersion
 remain separate gates. No acceptance flexibility is used.
 
+#### Cross-family ranking sub-gate
+
+The family acceptance run must call `GET /analysis/benchmark-families/ranking` for the complete
+configured root set and for an explicit subset. It must verify rank-period selection, independent
+canonical cap-proxy cells, membership/provenance and coverage lineage, role-local unavailable
+states, and optional benchmark-relative spreads only on aligned bars. The workstation must render
+the result without a route change and must not substitute a different family. The authenticated
+browser oracle must additionally verify that the cross-family strip does not overlap the custom
+condition editor or alter its controls; this is a required interaction/layout check, not a maskable
+pixel exception. Historical curves, rotation tails, concentration, dispersion, and populated
+provider evidence remain separate gates. No acceptance flexibility is used.
+
 #### Dated holdings coverage sub-gate
 
 Before a family/leg can be presented as historically usable, acceptance must call

@@ -281,6 +281,22 @@ describe('workspace store layout tabs', () => {
     expect(store.benchmarkFamilyRankings['sp500:D1:adj:latest:1M']?.roles[0]?.performance['1M']).toBe(0.12)
   })
 
+  it('loads cross-family ranking with a stable family-filter cache identity', async () => {
+    apiGet.mockResolvedValue({
+      timeframe: 'D1', adjustment: 'split_adjusted', rank_period: '1M', benchmark: 'SPY',
+      rows: [{ family_key: 'sp500', family_name: 'S&P 500', official_index_symbol: 'SPX', symbol: 'SPY', label: 'SPY', available: true, rank: 1, performance: { '1M': 0.1 }, relative_performance: { '1M': 0 }, warnings: [] }], exclusions: [],
+    })
+    const store = useWorkspaceStore()
+
+    const result = await store.loadCrossFamilyRanking({ families: ['sp500', 'sp400'], benchmark: 'SPY' })
+
+    expect(apiGet).toHaveBeenCalledWith('/analysis/benchmark-families/ranking', {
+      rank_period: '1M', families: 'sp400,sp500', benchmark: 'SPY',
+    })
+    expect(result?.rows[0]?.family_key).toBe('sp500')
+    expect(store.crossFamilyRankings['D1:adj:latest:1M:sp400,sp500:SPY']?.rows[0]?.rank).toBe(1)
+  })
+
   it('loads a family overview with independent mapping readiness and stable lineage cache', async () => {
     apiGet.mockResolvedValue({
       family_key: 'sp500',

@@ -305,6 +305,37 @@ tasks:
         Implemented and validated on 2026-08-14 with no acceptance flexibility. This closes the
         current role leadership sub-gate only; historical/cross-family ranking and rotation remain
         tracked by the parent benchmark-family and generic breadth tasks.
+  - id: tc2000-cross-family-ranking-20260814
+    title: Add cross-family benchmark ranking and repair breadth layout regression
+    status: completed
+    priority: high
+    scope: >-
+      Add a provider-neutral batch over the configured S&P 500/400/600/1500, Russell 1000/2000/3000,
+      and Nasdaq 100 roots. Resolve each cap proxy independently, support explicit family subsets,
+      rank periods, timeframe/adjustment/as_of, optional aligned benchmark spreads, and explicit
+      unavailable states. Render the ranking in the workstation without route changes and preserve
+      the generic breadth controls through a scrollable, constrained tool surface.
+    definition_of_done:
+      - GET /analysis/benchmark-families/ranking returns independent family cells, rank order, lineage, and no-fallback states
+      - Explicit family selection, rank period, timeframe, adjustment, as_of, and benchmark are part of the cache identity
+      - Workstation renders the leading available families with loading/partial/warning/unavailable states
+      - Cross-family ranking cannot overlap or cover custom condition controls at the accepted viewport
+      - Focused backend, store, full frontend, type/build, lint/compile, diff, and rebuilt browser checks pass
+      - Historical ranking, rotation, concentration, dispersion, and complete provider-backed population remain open
+    validation:
+      - cross-family-ranking-integration-2-of-2
+      - workspace-store-62-of-62
+      - frontend-vitest-833-of-833
+      - vue-tsc-and-production-build
+      - ruff-compileall-and-diff-check
+      - rebuilt-F8s-breadth-family-ratio-1-of-1
+    notes:
+      - >-
+        Implemented and validated on 2026-08-14. The initial rebuilt browser run exposed a real
+        implicit-grid overflow/overlap defect; the owning breadth container was changed to a
+        height-constrained scrollable flex surface and the unchanged oracle passed. The defect was
+        repaired, not waived; no visual threshold, mask, provider rule, or acceptance criterion
+        changed. Remaining historical and all-root evidence gaps stay tracked.
   - id: tc2000-generic-condition-driven-breadth-20260814
     title: Broaden breadth from fixed metrics to reusable condition-driven cross-sectional studies
     status: in_progress

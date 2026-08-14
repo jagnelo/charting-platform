@@ -1012,6 +1012,59 @@ class TestWorkspaces:
         assert roles["value"]["available"] is False
         assert payload["benchmark"] == "SPY"
 
+    def test_cross_family_ranking_keeps_unavailable_cap_legs_explicit(
+        self, client, auth_headers, db, instrument_type
+    ):
+        from datetime import UTC, datetime, timedelta
+        from decimal import Decimal
+
+        from app.models.instrument import Instrument
+        from app.models.ohlcv import OHLCVBar, Timeframe
+
+        seeded = client.get("/api/v1/market-groups", headers=auth_headers)
+        assert seeded.status_code == 200
+        spy = Instrument(
+            symbol="SPY",
+            name="SPY",
+            currency="USD",
+            instrument_type_id=instrument_type.id,
+            is_active=True,
+        )
+        db.add(spy)
+        db.flush()
+        base = datetime(2024, 1, 1, tzinfo=UTC)
+        for index in range(30):
+            close = Decimal(str(100 + index))
+            db.add(
+                OHLCVBar(
+                    instrument_id=spy.id,
+                    timeframe=Timeframe.D1,
+                    ts=base + timedelta(days=index),
+                    open=close,
+                    high=close,
+                    low=close,
+                    close=close,
+                    volume=Decimal("1"),
+                    is_adjusted=True,
+                )
+            )
+        db.flush()
+
+        response = client.get(
+            "/api/v1/analysis/benchmark-families/ranking",
+            headers=auth_headers,
+            params={"families": "sp500,sp400", "benchmark": "SPY", "rank_period": "1M"},
+        )
+        assert response.status_code == 200, response.text
+        payload = response.json()
+        rows = {row["family_key"]: row for row in payload["rows"]}
+        assert rows["sp500"]["available"] is True
+        assert rows["sp500"]["rank"] == 1
+        assert rows["sp500"]["relative_performance"]["1M"] == 0
+        assert rows["sp400"]["available"] is False
+        assert rows["sp400"]["warnings"][0]["code"] == "family_cap_unavailable"
+        assert payload["benchmark"] == "SPY"
+
     def test_benchmark_family_derived_equal_weight_requires_constituent_membership(
         self, client, auth_headers, db, instrument, ohlcv_bars
     ):
