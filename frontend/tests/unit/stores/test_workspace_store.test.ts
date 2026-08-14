@@ -163,6 +163,49 @@ describe('workspace store layout tabs', () => {
     expect(store.benchmarkFamilyRatios['sp500:cap_weight,equal_weight,value,growth:SPY:D1:adj']).toBeTruthy()
   })
 
+  it('loads a family overview with independent mapping readiness and stable lineage cache', async () => {
+    apiGet.mockResolvedValue({
+      family_key: 'sp500',
+      name: 'S&P 500',
+      official_index_symbol: 'SPX',
+      mappings: [{ role: 'equal_weight', symbol: 'RSP', holdings_available: true }],
+      rows: [],
+      exclusions: [],
+    })
+    const store = useWorkspaceStore()
+
+    const result = await store.loadBenchmarkFamilyOverview('sp500', { timeframe: 'W1', adjusted: false })
+
+    expect(apiGet).toHaveBeenCalledWith('/analysis/benchmark-families/sp500/overview', {
+      timeframe: 'W1',
+      adjusted: false,
+    })
+    expect(result?.official_index_symbol).toBe('SPX')
+    expect(store.benchmarkFamilyOverviews['sp500:W1:raw:latest']?.mappings[0]?.symbol).toBe('RSP')
+    expect(store.benchmarkFamilyOverviewErrors['sp500:W1:raw:latest']).toBeNull()
+  })
+
+  it('loads role-specific family constituents without substituting a missing leg', async () => {
+    apiGet.mockResolvedValue({
+      group_key: 'benchmark-family:sp500:equal_weight',
+      etf_symbol: 'RSP',
+      source_provider: 'fixture',
+      composition_date: '2026-06-27',
+      rows: [{ instrument_id: 7, symbol: 'NVDA', name: 'NVIDIA', weight: 0.01 }],
+      exclusions: [],
+    })
+    const store = useWorkspaceStore()
+
+    const result = await store.loadBenchmarkFamilyConstituents('sp500', 'equal_weight', { market_benchmark: 'SPY' })
+
+    expect(apiGet).toHaveBeenCalledWith('/analysis/benchmark-families/sp500/constituents', {
+      role: 'equal_weight',
+      market_benchmark: 'SPY',
+    })
+    expect(result?.etf_symbol).toBe('RSP')
+    expect(store.benchmarkFamilyConstituents['sp500:equal_weight:D1:adj:latest:SPY']?.rows[0]?.symbol).toBe('NVDA')
+  })
+
   it('hydrates a missing benchmark-family registry from explicit child groups', async () => {
     apiGet.mockImplementation((path: string) => {
       if (path === '/market-groups/us-benchmarks') return Promise.resolve({

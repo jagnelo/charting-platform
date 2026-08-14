@@ -3294,6 +3294,52 @@ test.describe('TC2000 workstation', () => {
         }),
       })
     })
+    await page.route('**/api/v1/analysis/benchmark-families/sp500/overview*', async route => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          family_key: 'sp500',
+          name: 'S&P 500',
+          official_index_symbol: 'SPX',
+          official_index_name: 'S&P 500',
+          timeframe: 'D1',
+          adjustment: 'split_adjusted',
+          membership_version: 1,
+          universe_provenance: { membership_semantics: 'etf_proxy' },
+          coverage: 1,
+          mappings: [
+            { role: 'cap_weight', symbol: 'SPY', label: 'SPY', verification_state: 'verified', available: true, holdings_available: true, holdings_completeness_status: 'complete' },
+            { role: 'equal_weight', symbol: 'RSP', label: 'RSP', verification_state: 'verified', available: true, holdings_available: true, holdings_completeness_status: 'complete' },
+            { role: 'value', symbol: 'SPYV', label: 'SPYV', verification_state: 'verified', available: true, holdings_available: false },
+            { role: 'growth', symbol: 'SPYG', label: 'SPYG', verification_state: 'verified', available: true, holdings_available: false },
+          ],
+          derived_equal_weight: {},
+          rows: [],
+          exclusions: [],
+        }),
+      })
+    })
+    await page.route('**/api/v1/analysis/benchmark-families/sp500/constituents*', async route => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          group_key: 'benchmark-family:sp500:equal_weight',
+          universe_provenance: { family_key: 'sp500', mapping_role: 'equal_weight' },
+          etf_symbol: 'RSP',
+          benchmark: 'SPY',
+          market_benchmark: 'SPY',
+          composition_date: '2026-06-27',
+          known_at: '2026-06-27T20:00:00Z',
+          provenance: 'issuer snapshot',
+          source_provider: 'fixture',
+          completeness_status: 'complete',
+          coverage: 1,
+          rows: [{ instrument_id: 7, symbol: 'NVDA', name: 'NVIDIA', position: 1, weight: 0.01, shares: null, market_value: null, holding_type: 'equity', row_type: 'holding', resolution_confidence: 1, performance: {}, calendar_year_performance: {}, technical: {} }],
+        }),
+      })
+    })
     await page.goto('/chart/SPY')
     await expect(page.locator('.workspace-layout-host')).toBeVisible({ timeout: 10_000 })
     await page.getByRole('button', { name: 'Add tool' }).click()
@@ -3306,6 +3352,11 @@ test.describe('TC2000 workstation', () => {
     await expect(familyPanel).toBeVisible({ timeout: 10_000 })
     await expect(familyPanel).toContainText('RSP/SPY', { timeout: 15_000 })
     await expect(familyPanel.getByRole('combobox', { name: 'Family ratio leg' })).toHaveValue('equal_weight')
+    const familyOverview = breadth.locator('[aria-label="Benchmark family analysis"]')
+    await expect(familyOverview).toBeVisible({ timeout: 15_000 })
+    await expect(familyOverview).toContainText('S&P 500 · SPX')
+    await expect(familyOverview).toContainText('RSP')
+    await expect(familyOverview).toContainText('NVDA')
     const customUniverse = breadth.locator('select[aria-label="Custom breadth universe"]')
     await expect(customUniverse.locator('option[value="benchmark_family"]')).toHaveCount(1)
     await customUniverse.selectOption('benchmark_family')

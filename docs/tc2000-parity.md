@@ -18,6 +18,13 @@ authority for states it represents. Any family/style state absent or ambiguous o
 recorded as a named gap with an interim deterministic oracle; it is not silently accepted or
 masked.
 
+The Market Breadth family surface now renders overview mapping/readiness cards and the selected
+role's source-labelled constituent rows, including composition date, provider, completeness,
+coverage, and canonical member publication into linked charts. This is a browser route/wiring
+checkpoint for the family matrix, not evidence that all eight families are populated or
+historically complete. The current fixture covers SPX/SPY/RSP and NVDA; missing mappings still
+render explicit unavailable states.
+
 ### Required US family perspective matrix
 
 This matrix is a completion requirement for the active goal. It is not satisfied by a family

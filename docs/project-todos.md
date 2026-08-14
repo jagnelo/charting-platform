@@ -9285,6 +9285,24 @@ drill-down, and Study Lab artifact. Missing or unrepresented visual states remai
 acceptance gaps; this scope lock relaxes no visual, data-integrity, provider, or historical-truth
 criterion.
 
+#### Current continuation — 2026-08-14 family overview and constituent browser surface
+
+The authenticated Market Breadth tool now consumes the provider-neutral family overview contract
+and the role-specific family constituent contract. Selecting any benchmark-family root presents
+official-index identity, cap/equal/value/growth mapping readiness, holdings availability,
+coverage/freshness, composition/source metadata, and the selected role's constituent rows in the
+same dense workstation surface. Selecting a constituent publishes its canonical instrument into
+the linked chart flow. The browser acceptance fixture exercises S&P 500/SPX with RSP equal-weight
+mapping and NVDA constituent publication. This closes only the frontend route/wiring slice;
+provider-backed population, all-family historical continuity, full family analytics, and exact
+V25 visual acceptance remain open.
+
+The family snapshot loader was also corrected so a missing family cap mapping passes no benchmark
+instead of silently borrowing SPY. Generic sector/benchmark groups retain their established SPY
+comparison. No acceptance flexibility was used; the first browser attempt failed because the
+running stack served a pre-change image, the stack was rebuilt, and the unchanged product
+acceptance then passed.
+
 #### Current continuation — 2026-08-14 QQQE/Direxion route evidence
 
 The Nasdaq-100 equal-weight leg now has canonical free-source route metadata: `QQQE` resolves

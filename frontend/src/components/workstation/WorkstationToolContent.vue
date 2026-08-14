@@ -507,6 +507,33 @@
         </template>
         <span v-else class="breadth-tool__status">No aligned family ratio data.</span>
       </div>
+      <section v-if="isBenchmarkFamily" class="breadth-tool__family-overview" aria-label="Benchmark family analysis">
+        <header class="breadth-tool__family-overview-header">
+          <strong>{{ familyOverview?.name ?? breadthGroupKey }} · {{ familyOverview?.official_index_symbol ?? 'official index' }}</strong>
+          <span v-if="familyOverview">{{ familyOverview.coverage == null ? 'Coverage unavailable' : `${(familyOverview.coverage * 100).toFixed(0)}% covered` }} · {{ familyOverview.freshness ?? 'unavailable' }}</span>
+          <span v-else-if="familyOverviewLoading" role="status">Loading family evidence…</span>
+          <span v-else-if="familyOverviewError" class="breadth-tool__status--error" role="alert">{{ familyOverviewError }}</span>
+          <span v-else>Family evidence unavailable.</span>
+        </header>
+        <div v-if="familyOverview" class="breadth-tool__family-legs">
+          <article v-for="mapping in familyOverview.mappings" :key="mapping.role" class="breadth-tool__family-leg" :class="{ 'breadth-tool__family-leg--selected': mapping.role === familyRatioRole }">
+            <div><b>{{ familyRoleLabel(mapping.role) }}</b><span>{{ mapping.symbol ?? mapping.label }}</span></div>
+            <small>{{ familyMappingState(mapping) }}</small>
+            <button type="button" :disabled="!mapping.holdings_available" :aria-label="`Load ${familyRoleLabel(mapping.role)} constituents`" @click="setBreadthConfiguration({ family_ratio_role: mapping.role })">Constituents</button>
+          </article>
+        </div>
+        <div v-if="familyConstituents" class="breadth-tool__family-constituents">
+          <div class="breadth-tool__family-constituents-header">
+            <strong>{{ familyRoleLabel(familyRatioRole) }} constituents · {{ familyConstituents.etf_symbol }}</strong>
+            <span>{{ familyConstituents.composition_date }} · {{ familyConstituents.source_provider }} · {{ familyConstituents.rows.length }} rows</span>
+          </div>
+          <button v-for="row in familyConstituents.rows.slice(0, 100)" :key="row.instrument_id" type="button" @click="emit('select', row.symbol, row.instrument_id)">
+            <strong>{{ row.symbol }}</strong><span>{{ row.name }}</span><small v-if="row.weight != null">{{ Number(row.weight).toFixed(2) }}%</small>
+          </button>
+          <small v-if="!familyConstituents.rows.length">No resolved constituent rows are available.</small>
+        </div>
+        <p v-else-if="familyConstituentError" class="breadth-tool__status breadth-tool__status--error" role="alert">{{ familyConstituentError }}</p>
+      </section>
       <div v-if="genericBreadth" class="breadth-tool__generic-drilldown" aria-label="Generic breadth member drilldown">
         <header>
           <strong>{{ genericBreadthMemberState === 'pass' ? 'Passing' : 'Failing' }} members</strong>
@@ -1642,6 +1669,21 @@ const familyRatioKey = computed(() => `${breadthGroupKey.value}:${familyRatioRol
 const familyRatios = computed(() => workspaceStore.benchmarkFamilyRatios[familyRatioKey.value])
 const familyRatioError = computed(() => workspaceStore.benchmarkFamilyRatioErrors[familyRatioKey.value] ?? null)
 const familyRatioLoading = ref(false)
+const familyOverviewKey = computed(() => `${breadthGroupKey.value}:${breadthTimeframe.value}:${breadthAdjusted.value ? 'adj' : 'raw'}:latest`)
+const familyOverview = computed(() => workspaceStore.benchmarkFamilyOverviews[familyOverviewKey.value])
+const familyOverviewError = computed(() => workspaceStore.benchmarkFamilyOverviewErrors[familyOverviewKey.value] ?? null)
+const familyOverviewLoading = ref(false)
+const familyConstituentKey = computed(() => `${breadthGroupKey.value}:${familyRatioRole.value}:${breadthTimeframe.value}:${breadthAdjusted.value ? 'adj' : 'raw'}:latest:${familyRatioMarket.value}`)
+const familyConstituents = computed(() => workspaceStore.benchmarkFamilyConstituents[familyConstituentKey.value])
+const familyConstituentError = computed(() => workspaceStore.benchmarkFamilyConstituentErrors[familyConstituentKey.value] ?? null)
+function familyRoleLabel(role: 'cap_weight' | 'equal_weight' | 'value' | 'growth') {
+  return ({ cap_weight: 'Cap weight', equal_weight: 'Equal weight', value: 'Value', growth: 'Growth' } as const)[role]
+}
+function familyMappingState(mapping: { symbol: string | null; label: string; verification_state: string; holdings_available: boolean; holdings_completeness_status?: string | null }) {
+  if (!mapping.symbol) return 'No verified mapped proxy'
+  if (!mapping.holdings_available) return `${mapping.verification_state} · holdings unavailable`
+  return `${mapping.holdings_completeness_status ?? 'holdings available'} · ${mapping.verification_state}`
+}
 function latestFamilyRatio(ratio: { points: Array<{ value: number }> }) {
   const value = ratio.points.length ? ratio.points[ratio.points.length - 1]?.value : undefined
   return value == null || !Number.isFinite(value) ? 'Unavailable' : value.toFixed(3)
@@ -2428,9 +2470,12 @@ async function loadBreadthUniverse(groupKey: string, timeframe = breadthTimefram
     : undefined
   const capMapping = familyRecord?.cap_weight && typeof familyRecord.cap_weight === 'object' ? familyRecord.cap_weight as Record<string, unknown> : null
   const familyBenchmark = typeof capMapping?.symbol === 'string' && capMapping.symbol.trim() ? capMapping.symbol.trim().toUpperCase() : undefined
+  // Family roots must never borrow SPY when their own cap mapping is absent. The
+  // generic sector/benchmark groups retain their established SPY comparison.
+  const snapshotBenchmark = familyRecord ? familyBenchmark : 'SPY'
   await Promise.all([
     workspaceStore.loadMarketGroup(groupKey),
-    workspaceStore.loadGroupSnapshot(groupKey, familyBenchmark ?? 'SPY', options),
+    workspaceStore.loadGroupSnapshot(groupKey, snapshotBenchmark, options),
     workspaceStore.loadBreadth(groupKey, options),
     workspaceStore.loadBreadthHistory(groupKey, options),
   ])
@@ -2445,6 +2490,18 @@ watch([breadthGroupKey, breadthTimeframe, breadthAdjusted, familyRatioMarket], a
     await workspaceStore.loadBenchmarkFamilyRatios(groupKey, familyRatioRole.value, market, { timeframe, adjusted, roles: [...familyRatioRoles] })
   } finally {
     familyRatioLoading.value = false
+  }
+}, { immediate: true })
+watch([breadthGroupKey, breadthTimeframe, breadthAdjusted, familyRatioRole, familyRatioMarket], async ([groupKey, timeframe, adjusted, role, market]) => {
+  if (!isBenchmarkFamily.value || !(props.tool.instance_key === 'breadth-summary' || props.tool.tool_type === 'breadth')) return
+  familyOverviewLoading.value = true
+  try {
+    await Promise.all([
+      workspaceStore.loadBenchmarkFamilyOverview(groupKey, { timeframe, adjusted }),
+      workspaceStore.loadBenchmarkFamilyConstituents(groupKey, role, { timeframe, adjusted, market_benchmark: market }),
+    ])
+  } finally {
+    familyOverviewLoading.value = false
   }
 }, { immediate: true })
 function formatNumber(value: number | null | undefined) { return value == null ? 'Unavailable' : value.toFixed(2) }
@@ -2496,7 +2553,7 @@ const proxyCoverage = computed(() => industryProxySnapshot.value
 .combo-editor select[multiple] { height: 34px; }
 .combo-editor input { width: 78px; }
 .analysis { height: 100%; min-height: 0; }
-.breadth-tool { display:grid; grid-template-rows:auto auto auto auto minmax(0,1fr); height:100%; min-height:0; container-type:inline-size; }.breadth-tool__universe { display:flex; flex-wrap:wrap; gap:5px; align-items:center; padding:5px 7px 0; color:#9aabb6; font:10px "Segoe UI",Arial,sans-serif; min-width:0; }.breadth-tool__universe span { flex:0 0 auto; }.breadth-tool__universe select,.breadth-tool__universe input { border:1px solid #34434e; background:#172027; color:#d2dce3; font:inherit; min-width:0; max-width:100%; }.breadth-tool__universe select { flex:1 1 100px; }.breadth-tool__universe input { width:42px; flex:0 1 42px; }.breadth-tool__universe label { display:flex; flex:0 0 auto; align-items:center; gap:3px; white-space:nowrap; }.breadth-tool__custom { display:flex; flex-wrap:wrap; align-items:center; gap:4px; padding:5px 7px; border-top:1px solid #2b3841; color:#9aabb6; font:10px "Segoe UI",Arial,sans-serif; }.breadth-tool__custom select,.breadth-tool__custom input,.breadth-tool__custom button { border:1px solid #34434e; background:#172027; color:#d2dce3; font:inherit; min-width:0; }.breadth-tool__custom input { width:44px; }.breadth-tool__custom label { display:flex; align-items:center; gap:3px; }.breadth-tool__custom button { padding:2px 6px; cursor:pointer; }.breadth-tool__custom-result { color:#c3d2dc; white-space:nowrap; }.breadth-tool__composition-note { color:#74858f; }.breadth-tool__family-ratios { display:flex; flex-wrap:wrap; align-items:center; gap:4px; padding:5px 7px; border-top:1px solid #2b3841; color:#9aabb6; font:10px "Segoe UI",Arial,sans-serif; }.breadth-tool__family-ratios select,.breadth-tool__family-ratios input { border:1px solid #34434e; background:#172027; color:#d2dce3; font:inherit; min-width:0; }.breadth-tool__family-ratios input { width:44px; }.breadth-tool__family-ratio { display:inline-flex; align-items:center; gap:4px; padding-left:4px; border-left:1px solid #34434e; }.breadth-tool__family-ratio b { color:#d7e8f0; }.breadth-tool__family-ratio small { color:#778994; }.breadth-tool__status { margin:0; padding:5px 7px; color:#9aabb6; font:10px "Segoe UI",Arial,sans-serif; }.breadth-tool__status--error { color:#ff9b8a; }.metrics { display: grid; grid-template-columns: 1fr auto; gap: 5px 10px; padding: 9px; color: #99aabb; font: 10px "Segoe UI", Arial, sans-serif; }.breadth-tool__coverage-detail { padding:0 7px 4px; color:#778994; font:9px "Segoe UI",Arial,sans-serif; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }.breadth-tool__actions { display:flex; gap:3px; justify-content:flex-end; }.breadth-tool__actions button,.breadth-tool__drilldown header button,.breadth-tool__generic-drilldown header button { border:1px solid #34434e; background:#172027; color:#b9c8d1; font:inherit; padding:1px 4px; cursor:pointer; }.breadth-tool__actions button:hover,.breadth-tool__action--active { background:#1d4057; color:#e5f1f7; }.breadth-tool__drilldown,.breadth-tool__generic-drilldown { min-height:0; max-height:150px; overflow:auto; border-top:1px solid #2b3841; border-bottom:1px solid #2b3841; background:#131a20; font:10px "Segoe UI",Arial,sans-serif; }.breadth-tool__drilldown header,.breadth-tool__generic-drilldown header { display:flex; justify-content:space-between; align-items:center; padding:4px 7px; color:#9aabb6; position:sticky; top:0; background:#20282f; }.breadth-tool__drilldown > button,.breadth-tool__generic-drilldown > button { display:flex; gap:8px; width:100%; border:0; border-bottom:1px solid #20282f; background:transparent; color:#cad4db; padding:4px 7px; text-align:left; cursor:pointer; }.breadth-tool__drilldown > button:hover,.breadth-tool__generic-drilldown > button:hover { background:#1d4057; }.breadth-tool__drilldown > button span,.breadth-tool__generic-drilldown > button span { color:#81929e; }.breadth-tool__generic-drilldown > button small { margin-left:auto; color:#9bb6c3; }.breadth-tool__drilldown > small,.breadth-tool__generic-drilldown > small { display:block; padding:7px; color:#8497a4; }
+.breadth-tool { display:grid; grid-template-rows:auto auto auto auto minmax(0,1fr); height:100%; min-height:0; container-type:inline-size; }.breadth-tool__universe { display:flex; flex-wrap:wrap; gap:5px; align-items:center; padding:5px 7px 0; color:#9aabb6; font:10px "Segoe UI",Arial,sans-serif; min-width:0; }.breadth-tool__universe span { flex:0 0 auto; }.breadth-tool__universe select,.breadth-tool__universe input { border:1px solid #34434e; background:#172027; color:#d2dce3; font:inherit; min-width:0; max-width:100%; }.breadth-tool__universe select { flex:1 1 100px; }.breadth-tool__universe input { width:42px; flex:0 1 42px; }.breadth-tool__universe label { display:flex; flex:0 0 auto; align-items:center; gap:3px; white-space:nowrap; }.breadth-tool__custom { display:flex; flex-wrap:wrap; align-items:center; gap:4px; padding:5px 7px; border-top:1px solid #2b3841; color:#9aabb6; font:10px "Segoe UI",Arial,sans-serif; }.breadth-tool__custom select,.breadth-tool__custom input,.breadth-tool__custom button { border:1px solid #34434e; background:#172027; color:#d2dce3; font:inherit; min-width:0; }.breadth-tool__custom input { width:44px; }.breadth-tool__custom label { display:flex; align-items:center; gap:3px; }.breadth-tool__custom button { padding:2px 6px; cursor:pointer; }.breadth-tool__custom-result { color:#c3d2dc; white-space:nowrap; }.breadth-tool__composition-note { color:#74858f; }.breadth-tool__family-ratios { display:flex; flex-wrap:wrap; align-items:center; gap:4px; padding:5px 7px; border-top:1px solid #2b3841; color:#9aabb6; font:10px "Segoe UI",Arial,sans-serif; }.breadth-tool__family-ratios select,.breadth-tool__family-ratios input { border:1px solid #34434e; background:#172027; color:#d2dce3; font:inherit; min-width:0; }.breadth-tool__family-ratios input { width:44px; }.breadth-tool__family-ratio { display:inline-flex; align-items:center; gap:4px; padding-left:4px; border-left:1px solid #34434e; }.breadth-tool__family-ratio b { color:#d7e8f0; }.breadth-tool__family-ratio small { color:#778994; }.breadth-tool__family-overview { min-height:0; max-height:230px; overflow:auto; border-top:1px solid #2b3841; border-bottom:1px solid #2b3841; background:#131a20; color:#9aabb6; font:10px "Segoe UI",Arial,sans-serif; }.breadth-tool__family-overview-header,.breadth-tool__family-constituents-header { display:flex; justify-content:space-between; gap:8px; align-items:center; padding:4px 7px; position:sticky; top:0; z-index:1; background:#20282f; }.breadth-tool__family-overview-header span,.breadth-tool__family-constituents-header span { color:#778994; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }.breadth-tool__family-legs { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:3px; padding:4px 6px; }.breadth-tool__family-leg { min-width:0; padding:4px; border:1px solid #2b3841; background:#172027; }.breadth-tool__family-leg--selected { border-color:#5d9ab6; background:#1b3340; }.breadth-tool__family-leg div { display:flex; justify-content:space-between; gap:4px; }.breadth-tool__family-leg div span,.breadth-tool__family-leg small { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#778994; }.breadth-tool__family-leg button { margin-top:3px; padding:1px 4px; border:1px solid #34434e; background:#11181d; color:#c7d6df; font:inherit; cursor:pointer; }.breadth-tool__family-leg button:disabled { cursor:not-allowed; opacity:.55; }.breadth-tool__family-constituents { border-top:1px solid #2b3841; }.breadth-tool__family-constituents > button { display:flex; gap:8px; width:100%; border:0; border-bottom:1px solid #20282f; background:transparent; color:#cad4db; padding:3px 7px; text-align:left; cursor:pointer; }.breadth-tool__family-constituents > button:hover { background:#1d4057; }.breadth-tool__family-constituents > button span { color:#81929e; }.breadth-tool__family-constituents > button small { margin-left:auto; color:#9bb6c3; }.breadth-tool__status { margin:0; padding:5px 7px; color:#9aabb6; font:10px "Segoe UI",Arial,sans-serif; }.breadth-tool__status--error { color:#ff9b8a; }.metrics { display: grid; grid-template-columns: 1fr auto; gap: 5px 10px; padding: 9px; color: #99aabb; font: 10px "Segoe UI", Arial, sans-serif; }.breadth-tool__coverage-detail { padding:0 7px 4px; color:#778994; font:9px "Segoe UI",Arial,sans-serif; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }.breadth-tool__actions { display:flex; gap:3px; justify-content:flex-end; }.breadth-tool__actions button,.breadth-tool__drilldown header button,.breadth-tool__generic-drilldown header button { border:1px solid #34434e; background:#172027; color:#b9c8d1; font:inherit; padding:1px 4px; cursor:pointer; }.breadth-tool__actions button:hover,.breadth-tool__action--active { background:#1d4057; color:#e5f1f7; }.breadth-tool__drilldown,.breadth-tool__generic-drilldown { min-height:0; max-height:150px; overflow:auto; border-top:1px solid #2b3841; border-bottom:1px solid #2b3841; background:#131a20; font:10px "Segoe UI",Arial,sans-serif; }.breadth-tool__drilldown header,.breadth-tool__generic-drilldown header { display:flex; justify-content:space-between; align-items:center; padding:4px 7px; color:#9aabb6; position:sticky; top:0; background:#20282f; }.breadth-tool__drilldown > button,.breadth-tool__generic-drilldown > button { display:flex; gap:8px; width:100%; border:0; border-bottom:1px solid #20282f; background:transparent; color:#cad4db; padding:4px 7px; text-align:left; cursor:pointer; }.breadth-tool__drilldown > button:hover,.breadth-tool__generic-drilldown > button:hover { background:#1d4057; }.breadth-tool__drilldown > button span,.breadth-tool__generic-drilldown > button span { color:#81929e; }.breadth-tool__generic-drilldown > button small { margin-left:auto; color:#9bb6c3; }.breadth-tool__drilldown > small,.breadth-tool__generic-drilldown > small { display:block; padding:7px; color:#8497a4; }
 @container (max-width: 560px) {
   .breadth-tool__universe { flex-wrap:wrap; row-gap:4px; }
   .breadth-tool__universe > select { flex:1 1 100px; }

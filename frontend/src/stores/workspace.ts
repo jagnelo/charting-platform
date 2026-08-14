@@ -190,6 +190,45 @@ export interface BenchmarkFamilyRatiosState {
   freshness_detail?: Record<string, number>
 }
 
+export interface BenchmarkFamilyMappingState {
+  role: 'cap_weight' | 'equal_weight' | 'value' | 'growth'
+  symbol: string | null
+  label: string
+  verification_state: string
+  source_url?: string | null
+  instrument_id?: number | null
+  available: boolean
+  holdings_snapshot_id?: number | null
+  holdings_available: boolean
+  holdings_composition_date?: string | null
+  holdings_known_at?: string | null
+  holdings_source_provider?: string | null
+  holdings_completeness_status?: string | null
+  holdings_row_count?: number | null
+  holdings_resolved_count?: number | null
+  holdings_unresolved_count?: number | null
+  holdings_total_weight?: number | null
+}
+
+export interface BenchmarkFamilyOverviewState {
+  family_key: string
+  name: string
+  official_index_symbol: string
+  official_index_name: string
+  timeframe: string
+  adjustment: string
+  as_of?: string | null
+  membership_version: number
+  universe_provenance: Record<string, unknown>
+  coverage: number
+  exclusions: Array<{ code: string; message: string }>
+  mappings: BenchmarkFamilyMappingState[]
+  derived_equal_weight: Record<string, unknown>
+  rows: GroupSnapshotRow[]
+  freshness?: string
+  freshness_detail?: Record<string, number>
+}
+
 export interface BreadthState {
   group_key: string
   timeframe?: string
@@ -302,6 +341,22 @@ export interface ETFConstituentSnapshotState extends GroupSnapshotState {
   provenance: string
   source_provider: string
   completeness_status: string
+}
+
+export interface BenchmarkFamilyConstituentRowState extends GroupSnapshotRow {
+  position?: number
+  weight?: number | null
+  shares?: number | null
+  market_value?: number | null
+  holding_type?: string
+  row_type?: string
+  resolution_confidence?: number | null
+}
+
+export interface BenchmarkFamilyConstituentsState extends ETFConstituentSnapshotState {
+  group_key: string
+  rows: BenchmarkFamilyConstituentRowState[]
+  universe_provenance?: Record<string, unknown>
 }
 
 export interface ETFIndustryCompositionState {
@@ -492,6 +547,10 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   const groupSnapshotErrors = ref<Record<string, string | null>>({})
   const benchmarkFamilyRatios = ref<Record<string, BenchmarkFamilyRatiosState | null>>({})
   const benchmarkFamilyRatioErrors = ref<Record<string, string | null>>({})
+  const benchmarkFamilyOverviews = ref<Record<string, BenchmarkFamilyOverviewState | null>>({})
+  const benchmarkFamilyOverviewErrors = ref<Record<string, string | null>>({})
+  const benchmarkFamilyConstituents = ref<Record<string, BenchmarkFamilyConstituentsState | null>>({})
+  const benchmarkFamilyConstituentErrors = ref<Record<string, string | null>>({})
   const breadth = ref<Record<string, BreadthState>>({})
   const breadthHistory = ref<Record<string, BreadthHistoryState>>({})
   const breadthLoading = ref<Record<string, boolean>>({})
@@ -1231,6 +1290,74 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       const message = cause?.message ?? `Unable to calculate ${normalizedFamily} relative strength`
       benchmarkFamilyRatioErrors.value = { ...benchmarkFamilyRatioErrors.value, [cacheKey]: message }
       benchmarkFamilyRatios.value = { ...benchmarkFamilyRatios.value, [cacheKey]: null }
+      return null
+    }
+  }
+
+  async function loadBenchmarkFamilyOverview(
+    familyKey: string,
+    options: { timeframe?: string; adjusted?: boolean; as_of?: string } = {},
+  ) {
+    const normalizedFamily = familyKey.trim()
+    if (!normalizedFamily) return null
+    const cacheKey = `${normalizedFamily}:${options.timeframe ?? 'D1'}:${options.adjusted !== false ? 'adj' : 'raw'}:${options.as_of ?? 'latest'}`
+    const requestKey = `top-down:family-overview:${cacheKey}`
+    const generation = beginAnalysisRequest(requestKey)
+    if (!documentIsVisible()) return null
+    benchmarkFamilyOverviewErrors.value = { ...benchmarkFamilyOverviewErrors.value, [cacheKey]: null }
+    try {
+      const result = await api.get<BenchmarkFamilyOverviewState>(
+        `/analysis/benchmark-families/${encodeURIComponent(normalizedFamily)}/overview`,
+        {
+          ...(options.timeframe ? { timeframe: options.timeframe } : {}),
+          ...(typeof options.adjusted === 'boolean' ? { adjusted: options.adjusted } : {}),
+          ...(options.as_of ? { as_of: options.as_of } : {}),
+        },
+      )
+      if (!isCurrentAnalysisRequest(requestKey, generation)) return null
+      benchmarkFamilyOverviews.value = { ...benchmarkFamilyOverviews.value, [cacheKey]: result }
+      return result
+    } catch (cause: any) {
+      if (!isCurrentAnalysisRequest(requestKey, generation)) return null
+      const message = cause?.message ?? `Unable to load ${normalizedFamily} family overview`
+      benchmarkFamilyOverviewErrors.value = { ...benchmarkFamilyOverviewErrors.value, [cacheKey]: message }
+      benchmarkFamilyOverviews.value = { ...benchmarkFamilyOverviews.value, [cacheKey]: null }
+      return null
+    }
+  }
+
+  async function loadBenchmarkFamilyConstituents(
+    familyKey: string,
+    role: BenchmarkFamilyMappingState['role'] = 'cap_weight',
+    options: { timeframe?: string; adjusted?: boolean; as_of?: string; market_benchmark?: string } = {},
+  ) {
+    const normalizedFamily = familyKey.trim()
+    const normalizedMarket = options.market_benchmark?.trim().toUpperCase()
+    if (!normalizedFamily) return null
+    const cacheKey = `${normalizedFamily}:${role}:${options.timeframe ?? 'D1'}:${options.adjusted !== false ? 'adj' : 'raw'}:${options.as_of ?? 'latest'}:${normalizedMarket ?? ''}`
+    const requestKey = `top-down:family-constituents:${cacheKey}`
+    const generation = beginAnalysisRequest(requestKey)
+    if (!documentIsVisible()) return null
+    benchmarkFamilyConstituentErrors.value = { ...benchmarkFamilyConstituentErrors.value, [cacheKey]: null }
+    try {
+      const result = await api.get<BenchmarkFamilyConstituentsState>(
+        `/analysis/benchmark-families/${encodeURIComponent(normalizedFamily)}/constituents`,
+        {
+          role,
+          ...(normalizedMarket ? { market_benchmark: normalizedMarket } : {}),
+          ...(options.timeframe ? { timeframe: options.timeframe } : {}),
+          ...(typeof options.adjusted === 'boolean' ? { adjusted: options.adjusted } : {}),
+          ...(options.as_of ? { as_of: options.as_of } : {}),
+        },
+      )
+      if (!isCurrentAnalysisRequest(requestKey, generation)) return null
+      benchmarkFamilyConstituents.value = { ...benchmarkFamilyConstituents.value, [cacheKey]: result }
+      return result
+    } catch (cause: any) {
+      if (!isCurrentAnalysisRequest(requestKey, generation)) return null
+      const message = cause?.message ?? `Unable to load ${normalizedFamily} ${role} constituents`
+      benchmarkFamilyConstituentErrors.value = { ...benchmarkFamilyConstituentErrors.value, [cacheKey]: message }
+      benchmarkFamilyConstituents.value = { ...benchmarkFamilyConstituents.value, [cacheKey]: null }
       return null
     }
   }
@@ -2086,6 +2213,10 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     groupSnapshots,
     benchmarkFamilyRatios,
     benchmarkFamilyRatioErrors,
+    benchmarkFamilyOverviews,
+    benchmarkFamilyOverviewErrors,
+    benchmarkFamilyConstituents,
+    benchmarkFamilyConstituentErrors,
     marketGroupErrors,
     groupSnapshotErrors,
     marketAnalysisRefreshing,
@@ -2134,6 +2265,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     loadMarketGroup,
     loadGroupSnapshot,
     loadBenchmarkFamilyRatios,
+    loadBenchmarkFamilyOverview,
+    loadBenchmarkFamilyConstituents,
     loadBreadth,
     loadBreadthHistory,
     loadGenericBreadth,

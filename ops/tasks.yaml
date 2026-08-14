@@ -173,6 +173,17 @@ tasks:
         cap/equal deconstruction such as QQQ/QQQE; missing legs remain explicit unavailable,
         derived, or `No verified mapped proxy` states. This is a requirement clarification, not
         acceptance flexibility; provider, historical, visual, and browser gaps remain tracked.
+      - >-
+        The authenticated Market Breadth family surface now loads the provider-neutral overview
+        and role-specific constituent routes, renders official identity plus cap/equal/value/growth
+        mapping and holdings readiness, and publishes selected canonical constituents to linked
+        charts. A focused rebuilt-stack browser acceptance for S&P 500/SPX with RSP and NVDA passes
+        `1/1`; frontend type-check/build, store tests `55/55`, and full Vitest `826/826` pass. The
+        family snapshot loader no longer supplies an implicit SPY benchmark when a family cap
+        mapping is absent. This closes only browser route/wiring and a local fallback defect;
+        provider-backed population, historical continuity, all-family analytics, and exact V25
+        acceptance remain open. No acceptance flexibility was used; the first browser attempt
+        exposed stale served content and was fixed by rebuilding the branch-scoped stack.
   - id: tc2000-generic-condition-driven-breadth-20260814
     title: Broaden breadth from fixed metrics to reusable condition-driven cross-sectional studies
     status: in_progress
