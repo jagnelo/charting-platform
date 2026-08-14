@@ -311,6 +311,18 @@ describe('StudyLabTool', () => {
     expect(wrapper.find('.scatter-chart').exists()).toBe(true)
     expect(wrapper.find('.heatmap-chart').exists()).toBe(true)
     expect(wrapper.find('.dashboard-chart').exists()).toBe(true)
+    const createObjectURL = vi.fn(() => 'blob:study-artifact')
+    const revokeObjectURL = vi.fn()
+    Object.defineProperty(URL, 'createObjectURL', { value: createObjectURL, configurable: true })
+    Object.defineProperty(URL, 'revokeObjectURL', { value: revokeObjectURL, configurable: true })
+    const anchorClick = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => undefined)
+    await wrapper.find('[aria-label="Export trend"]').trigger('click')
+    expect(createObjectURL).toHaveBeenCalledOnce()
+    expect(anchorClick).toHaveBeenCalledOnce()
+    expect(revokeObjectURL).toHaveBeenCalledWith('blob:study-artifact')
+    Reflect.deleteProperty(URL, 'createObjectURL')
+    Reflect.deleteProperty(URL, 'revokeObjectURL')
+    anchorClick.mockRestore()
     await wrapper.findAll('button').find(button => button.text() === 'Save plot: trend')!.trigger('click')
     expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({
       initial_version: expect.objectContaining({ output_contract: 'series', output_name: 'trend' }),

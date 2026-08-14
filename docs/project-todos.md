@@ -1,5 +1,14 @@
 # Project TODO Memory
 
+### 2026-08-14 — Study Lab artifact export from active runs
+
+- [x] Added a direct Export control to every non-scalar Study Lab artifact. Exports are JSON
+      envelopes containing the run ID, reproducibility hash, and typed artifact payload.
+- [x] Added browser-safe object-URL lifecycle coverage; focused Study Lab `22/22`, full frontend
+      Vitest `819/819`, type-check/build, uPlot, visual-policy, and diff checks pass.
+- [ ] Acceptance flexibility used: **none**. No visual threshold, mask, product criterion, or
+      browser acceptance rule changed; `REF-STUDY-LAB-V25` remains open.
+
 ### 2026-08-14 — Study Lab SDK reference duplicate-row repair
 
 - [x] Removed the duplicated `stats` row from the Study Lab SDK reference so the visible

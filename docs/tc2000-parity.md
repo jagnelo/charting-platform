@@ -1,5 +1,13 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-14 — Study Lab artifact export from active runs
+
+- The active Study Lab now exposes an Export control on each non-scalar result artifact. The
+  downloaded JSON preserves the run ID, reproducibility hash, artifact identity, type, and value.
+- Focused Study Lab `22/22`, full frontend `819/819`, type-check/build, and diff checks pass.
+- Acceptance flexibility used: **none**. This closes a repository-controlled result workflow gap;
+  no visual threshold, mask, or board rule changed.
+
 ## 2026-08-14 — Study Lab SDK reference duplicate-row repair
 
 - Removed a duplicated `stats` entry from the Study Lab SDK reference. The visible reference now
