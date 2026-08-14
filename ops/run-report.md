@@ -1,5 +1,15 @@
 # Run Report
 
+## 2026-08-14 — Symbol Performance uPlot resize lifecycle
+
+- Rebound `SymbolPerformanceBars`' ResizeObserver to its current conditional host, preventing the
+  empty→valid transition from leaving a chart without resize handling and preventing stale detached
+  hosts from remaining observed.
+- Focused component tests `2/2`, full frontend Vitest `794/794`, type-check, 475-module build,
+  uPlot contract (`45` files), and diff-check pass. Implementation: `663272ef`.
+- Acceptance flexibility used: **none**; remaining exact/unrepresented V25, provider/entitlement,
+  historical/GICS, native-monitor, endurance, Docker-cleanup, and final-audit gaps remain tracked.
+
 ## 2026-08-14 — Worker-owned elevated Git recovery documented
 
 - Verified no stale `.git/index.lock` exists and confirmed the repository metadata is healthy; the

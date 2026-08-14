@@ -1,5 +1,21 @@
 # Active Handoff
 
+## 2026-08-14 — Symbol Performance uPlot resize lifecycle completed
+
+- Implementation `663272ef` repairs `SymbolPerformanceBars` when its conditional uPlot host changes
+  between empty and populated data. A single observer now rebinds to the current host after Vue
+  mounts it, disconnects stale hosts, resizes the existing chart, and preserves point coordinates.
+- Regression coverage proves empty→valid observer attachment, resize via `setSize`, valid→empty
+  disconnection, and empty→valid recovery. Focused component tests `2/2`; full frontend Vitest
+  `794/794`; type-check; 475-module production build; uPlot contract (`45` files); and diff-check
+  pass.
+- Acceptance flexibility used: **none**. This is a repository-controlled lifecycle repair and
+  changes no visual threshold, board authority, provider rule, or product boundary. Exact/
+  unrepresented V25, provider/entitlement, historical/GICS, native-monitor, endurance, Docker
+  global-prune, and final-audit gaps remain explicit.
+- The implementation is a clean local commit. The exact push range remains transport-only pending
+  the environment's explicit private-repository authorization; continue from this clean boundary.
+
 ## 2026-08-14 — Worker-owned elevated Git recovery documented
 
 - Verified the repository is healthy: no `.git/index.lock` exists; `.git`, `.git/index`, and
