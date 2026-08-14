@@ -16,13 +16,23 @@ async function ensureUserExists(
   email: string,
   password: string,
 ) {
-  const response = await request.post('/api/v1/auth/register', {
-    data: { username, email, password },
-  })
-  if (response.status() === 201 || response.status() === 409) {
-    return
+  let lastStatus = 0
+  let lastBody = ''
+  // Registration is test-environment setup, not the product assertion. A brief
+  // proxy/backend handoff can return a transient 5xx while the branch stack is
+  // healthy. Retry only those statuses, keep the budget small, and still fail
+  // with the final response so a persistent application error is never hidden.
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const response = await request.post('/api/v1/auth/register', {
+      data: { username, email, password },
+    })
+    lastStatus = response.status()
+    lastBody = await response.text()
+    if (lastStatus === 201 || lastStatus === 409) return
+    if (![500, 502, 503, 504].includes(lastStatus) || attempt === 2) break
+    await new Promise(resolve => setTimeout(resolve, 100 * (attempt + 1)))
   }
-  throw new Error(`Failed to provision E2E user ${username}: ${response.status()} ${await response.text()}`)
+  throw new Error(`Failed to provision E2E user ${username}: ${lastStatus} ${lastBody}`)
 }
 
 class BrowserDiagnostics {
