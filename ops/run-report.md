@@ -15,6 +15,8 @@
 - Acceptance flexibility used: **none**. `REF-BREADTH-COMPOSER-V25` is now an explicit visual
   gap, and arbitrary isolated-Python predicates, full visual tree editing, historical occurrence
   linking, and promotion remain mandatory implementation work.
+- Documentation commit: `03032dae` (`docs(breadth): expand predicate quantification contract`)
+  is clean locally; the exact push is still a transport-only follow-up.
 
 ## 2026-08-14 — Recursive breadth composition implementation checkpoint
 
