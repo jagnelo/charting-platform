@@ -20044,6 +20044,20 @@ def test_westwood_remains_explicitly_audited_fallback_only_after_official_route_
     )
 
 
+def test_all_issuer_access_blocked_adapters_remain_non_native():
+    """A blocked issuer must not silently become a native route through shared metadata."""
+    blocked = {
+        adapter_key
+        for adapter_key, audit in FALLBACK_ISSUER_AUDITS.items()
+        if audit.status == "issuer_access_blocked"
+    }
+
+    assert blocked
+    for adapter_key in blocked:
+        assert ISSUER_ADAPTER_CONFIGS[adapter_key].live_tested_default_route is False
+        assert get_holdings_adapter(adapter_key) is not None
+
+
 def test_stockanalysis_provider_fifth_continuation_batch_is_registered_and_audited():
     # Academy was promoted to a native issuer route; the remaining fifth-batch
     # identities must continue to carry explicit fallback audits.
