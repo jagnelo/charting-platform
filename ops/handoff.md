@@ -1,5 +1,16 @@
 # Active Handoff
 
+## 2026-08-14 — Browser performance and bounded endurance evidence
+
+- The existing real-browser performance suite passes `3/3` in `19.5s`: 100,000-point uPlot
+  zoom/pan with chart-instance preservation, multi-window lifecycle recovery, and repeated
+  multi-window churn with bounded memory/tool growth.
+- No implementation change was required for this context. Acceptance flexibility used: **none**.
+  This closes bounded repository performance evidence only; indefinite endurance and physical
+  monitor behavior remain explicit gaps.
+- The evidence is recorded separately from the watchlist implementation. Keep the local branch
+  clean, commit this operational record, then continue with the next repository-controlled gap.
+
 ## 2026-08-14 — Watchlist freshness-state context completed
 
 - Closed the repository-controlled watchlist state gap in implementation commit `8b894915`:

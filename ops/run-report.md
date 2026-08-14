@@ -1,5 +1,13 @@
 # Run Report
 
+## 2026-08-14 — Browser performance and bounded endurance evidence
+
+- Real-browser `uplot_performance.spec.ts` and `workstation_performance.spec.ts` pass `3/3` in
+  `19.5s` with one Chromium worker, covering 100,000-point interactions, chart preservation,
+  lifecycle recovery, and repeated multi-window churn.
+- No acceptance flexibility or implementation threshold changed. Indefinite endurance and
+  physical-monitor behavior remain open by design.
+
 ## 2026-08-14 — Watchlist freshness-state context completed
 
 - `VirtualWatchlistTool` now exposes explicit warning-state semantics for stale, delayed, partial,

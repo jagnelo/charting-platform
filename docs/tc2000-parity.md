@@ -1,5 +1,14 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-14 — Browser performance and bounded endurance evidence
+
+- The real-browser uPlot guard passes 100,000 points through repeated zoom/pan without replacing
+  the chart, and both workstation lifecycle/churn guards pass. Combined result: `3/3` in `19.5s`
+  with one Chromium worker.
+- This is bounded repository evidence for the performance invariants, not a claim of indefinite
+  endurance or physical multi-monitor validation. No acceptance flexibility, visual threshold,
+  mask, provider, or uPlot rule changed.
+
 ## 2026-08-14 — Watchlist freshness-state semantics
 
 - Dense watchlist cells now classify canonical warnings as stale, delayed, partial, fetching,

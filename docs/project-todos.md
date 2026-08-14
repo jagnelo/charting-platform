@@ -1,5 +1,15 @@
 # Project TODO Memory
 
+### 2026-08-14 — Browser performance and bounded endurance evidence
+
+- [x] Real-browser uPlot guard passes 100,000 points with repeated zoom/pan while preserving the
+      same chart instance; the two workstation lifecycle/churn guards also pass.
+- [x] Validation: `uplot_performance.spec.ts` plus `workstation_performance.spec.ts` passes `3/3`
+      in `19.5s` on Chromium with one worker.
+- [ ] This closes the repository's bounded performance/endurance evidence gap only. It does not
+      claim indefinite or physical-monitor endurance; those remain explicit goal gaps.
+- [ ] Acceptance flexibility used: none.
+
 ### 2026-08-14 — Watchlist freshness-state semantics
 
 - [x] Watchlist and stacked cells now expose explicit `data-cell-state` and tokenized classes for

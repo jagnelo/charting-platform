@@ -1,4 +1,23 @@
 tasks:
+  - id: tc2000-browser-performance-bounded-endurance-20260814
+    title: Validate uPlot and workstation bounded performance guards
+    status: completed
+    priority: high
+    scope: >-
+      Run the repository's real-browser uPlot large-history and workstation lifecycle/churn
+      performance guards and retain the evidence without claiming unverified indefinite or
+      physical-monitor endurance.
+    definition_of_done:
+      - 100000-point uPlot zoom/pan preserves the chart instance
+      - workstation lifecycle recovery passes without canvas/tool growth
+      - repeated multi-window churn remains within the bounded memory/tool guard
+      - no visual, provider, uPlot, or acceptance threshold is relaxed
+    validation:
+      - uplot-and-workstation-performance-3-of-3-19.5s
+    notes:
+      - >-
+        This closes bounded repository performance evidence only. Indefinite endurance and
+        physical-monitor behavior remain explicit goal gaps; acceptance flexibility used: none.
   - id: tc2000-watchlist-freshness-state-semantics-20260814
     title: Expose explicit watchlist freshness and warning states
     status: completed
