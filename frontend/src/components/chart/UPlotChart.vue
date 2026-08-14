@@ -5,7 +5,7 @@
     <div class="uplot-wrapper" ref="wrapperRef"
           :data-drawing-count="renderableDrawings.length"
           :class="{ 'cursor-crosshair-wrapper': overlayInteractionsEnabled && (!!drawStore.activeToolType || drawStore.avwapDropActive) }">
-      <canvas ref="drawingCanvasRef" class="drawing-canvas"
+      <canvas v-if="!chartStore.isLoading" ref="drawingCanvasRef" class="drawing-canvas"
               :class="{ 'cursor-crosshair': overlayInteractionsEnabled && (!!drawStore.activeToolType || drawStore.avwapDropActive) }" />
       <div ref="chartRef" />
 
@@ -97,7 +97,7 @@
         :style="{ height: `${subPaneHeights[pane.key] ?? SUB_PANE_DEFAULT_H}px` }"
       >
         <div class="sub-pane-label">{{ pane.label }}</div>
-        <canvas :ref="el => subPaneCanvasRefs[pane.key] = el as HTMLCanvasElement" class="drawing-canvas" />
+      <canvas v-if="!chartStore.isLoading" :ref="el => subPaneCanvasRefs[pane.key] = el as HTMLCanvasElement" class="drawing-canvas" />
       </div>
     </template>
 
@@ -3229,9 +3229,24 @@ onUnmounted(() => {
 })
 
 watch(() => chartStore.bars, () => {
+  if (chartStore.isLoading) return
   if (uplot) updateData(); else void initChart()
   applyLinkedTimestamp(props.linkedTimestamp)
 }, { deep: false })
+// Keep the settings dialog and its controls mounted while a transform request
+// is in flight, but never leave the previous numerical renderer visible under
+// the loading state. The workstation owns the component for the whole request;
+// this local lifecycle destroys only uPlot/canvas resources and recreates them
+// once valid bars have arrived.
+watch(() => chartStore.isLoading, async loading => {
+  if (loading) {
+    destroyAll()
+    return
+  }
+  if (!chartStore.symbol || chartStore.error) return
+  await nextTick()
+  await initChart()
+})
 watch([() => chartStore.symbol, () => chartStore.timeframe, () => chartStore.barType], () => {
   // The reactive Vue Query key starts a fresh latest-bars observer for the new
   // canonical symbol/timeframe/bar type; no component-owned timer is needed.

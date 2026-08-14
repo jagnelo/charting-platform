@@ -242,7 +242,7 @@
           </button>
         </div>
         <UPlotChart
-          v-if="chartStore.symbol && !chartStore.isLoading && !chartStore.error"
+          v-if="chartStore.symbol && !chartStore.error"
           :chart-type="chartBarType"
           :chart-settings="liveChartConfiguration"
           :workspace-link-group="localLinkGroup"
