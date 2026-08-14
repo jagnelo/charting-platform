@@ -1,5 +1,13 @@
 # Run Report
 
+## 2026-08-14 — Thrivent native holdings routes
+
+- Added a strict Thrivent issuer adapter for seven official ETF product pages and their complete
+  symbol-scoped daily CSV exports. The route records product-page lineage, daily cadence, and
+  disclosed holdings-date freshness; unsupported symbols are not silently promoted.
+- Focused tests pass `2/2`; the complete ETF adapter unit suite passes `481/481`; provider registry
+  contract passes `2/2`; Ruff and format checks pass. Acceptance flexibility used: none.
+
 ## 2026-08-14 — SoFi SFY quarterly holdings route
 
 - Added the audited issuer-linked SoFi SFY PDF adapter and removed SoFi from the

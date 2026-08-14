@@ -1,4 +1,30 @@
 tasks:
+  - id: tc2000-thrivent-holdings-route-20260814
+    title: Add native Thrivent ETF daily holdings routes
+    status: completed
+    priority: high
+    scope: >-
+      Replace Thrivent's audited fallback-only state with a strict issuer-native adapter for the
+      complete symbol-scoped daily CSV exports linked from official Thrivent ETF product pages.
+    definition_of_done:
+      - Seven verified Thrivent ETF symbols resolve to issuer-owned CSV routes
+      - Unknown symbols do not appear native and may still use SEC fallback when identified
+      - Fetch provenance records the exact product page, route, daily cadence, and disclosed-date semantics
+      - Static parser/fetch/probe coverage and opt-in live route coverage are registered
+      - Full ETF adapter units, provider registry contracts, Ruff, format, and diff checks pass
+    validation:
+      - thrivent-focused-unit-2-of-2
+      - full-etf-adapter-unit-481-of-481
+      - live-provider-registry-contract-2-of-2
+      - official-thrivent-product-page-link-evidence
+      - ruff-check-and-format
+      - git-diff-check
+    notes:
+      - >-
+        Official Thrivent pages expose a complete “Download Daily Holdings Data” link to
+        `content/dam/thrivent/fund-data/csv/daily-holdings-{ticker}.csv`. The adapter is limited
+        to TMVE, TSCV, TSME, TCPB, TUSB, TILC, and TISC until further official product evidence
+        adds another symbol. Acceptance flexibility used: none.
   - id: tc2000-sofi-quarterly-holdings-route-20260814
     title: Add the audited SoFi SFY quarterly holdings archive route
     status: completed
@@ -7771,9 +7797,11 @@ tasks:
         exports for LGDX and SMDX. The provider-specific adapter discovers the current dated
         fund PDF from the issuer page before parsing the selected fund's report.
       - >
-        Current priority blockers: WisdomTree, SoFi, and Thrivent return bot-protection HTTP 403
-        responses to browser-header backend requests. Thrivent and WisdomTree advertise current
-        full/daily holdings, but their public routes are not executable from the backend. John
+        Current priority blockers: WisdomTree returns bot-protection HTTP 403 responses to
+        browser-header backend requests. WisdomTree advertises current full holdings, but its
+        public route is not executable from the backend. SoFi now has a symbol-scoped periodic
+        archive route with explicit non-daily freshness metadata; Thrivent now has verified
+        symbol-scoped daily CSV routes. John
         Hancock's public multi-fund basket PDF also returns HTTP 403. PIMCO's public fund client
         exposes only a top-ten export and its direct API requires an unavailable authenticated role.
         A 2026-07-21 endpoint-level audit reproduced PIMCO's public client configuration from

@@ -1,5 +1,16 @@
 # Active Handoff
 
+## 2026-08-14 — Thrivent native holdings routes
+
+- Replaced Thrivent's fallback-only adapter with `ThriventHoldingsAdapter`, using the complete
+  issuer-linked daily CSV pattern for TMVE, TSCV, TSME, TCPB, TUSB, TILC, and TISC. Unknown
+  symbols remain route-limited and can use SEC fallback when identifiers are present.
+- Fetch results now expose the exact product page, issuer route, daily export cadence, disclosed
+  holdings-date semantics, and terms metadata. No acceptance flexibility was used.
+- Implementation commit `77f3911f`. Focused tests `2/2`, full ETF adapter units `481/481`, provider
+  registry contract `2/2`, Ruff, format, and diff checks pass. Continue with the next unresolved
+  provider or workstation/backend gap.
+
 ## 2026-08-14 — SoFi SFY quarterly holdings route
 
 - Replaced the recognition-only SoFi fallback with a symbol-scoped `SofiHoldingsAdapter` for SFY.
