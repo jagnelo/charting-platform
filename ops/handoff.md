@@ -16,6 +16,9 @@
   authorization for that private destination/payload. This is
   transport-only, not a product or goal blocker; no alternate transport, wrapper, reset, stash,
   force push, or repeat was used.
+- A final exact attempt for the clean operational-record range `91463e54..beea96f9` was rejected
+  by the same pre-Git safeguard. This repeats no transport workaround; the local boundary remains
+  clean and all completed contexts remain separately committed.
 - The repository already contains the durable `.git/index.lock` recovery and no-accumulation
   procedure in `docs/agent-orchestration.md`; this record confirms it was executed successfully.
 - Acceptance flexibility used: none. `REF-STUDY-LAB-V25` and the broader documented gaps remain

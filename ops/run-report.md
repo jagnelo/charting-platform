@@ -13,6 +13,8 @@
 - The separate operational checkpoint `b5c204cd` is also clean. Its exact closure push range
   `91463e54..b5c204cd` was rejected before Git by the same safeguard; no alternate transport or
   repeat was used.
+- The final clean operational-record range `91463e54..beea96f9` received the same pre-Git
+  rejection. This is recorded as transport state only; no product context is dirty or blocked.
 - The future recovery is documented in `docs/agent-orchestration.md`: verify no stale lock, use
   sequential elevated `rtk git add`/`commit`/exact `push`, record any pre-Git egress refusal, and
   never leave completed work dirty or mark the product goal blocked.
