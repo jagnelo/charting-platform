@@ -1,5 +1,27 @@
 # Active Handoff
 
+## 2026-08-14 — Expanded US index-family/style/breadth vision clarification
+
+- Updated the controlling project TODO, parity matrix, acceptance governance, and active task
+  definition to make all eight US analysis roots completion-bar perspectives: S&P 500, S&P MidCap
+  400, S&P SmallCap 600, S&P Composite 1500, Russell 1000, Russell 2000, Russell 3000, and
+  Nasdaq 100.
+- Explicitly required the same top-down technicals, cap/equal/value/growth comparisons,
+  parent/peer/cross-family ratios, condition-driven breadth, participation/leadership,
+  concentration/dispersion, correlation, drawdown/volatility, relative rotation, ranking,
+  seasonality/regime, sector/industry/proxy/constituent drill-down, scans, gauges, Study Lab,
+  reusable plots, and exports for every evidenced family/style leg.
+- Candidate ETFs remain discovery inputs only. Missing or unverified official/equal/value/growth
+  or holdings evidence remains `No verified mapped proxy`, unavailable, or explicitly derived;
+  no SPY/QQQ/name-based/current-snapshot fallback is allowed. No acceptance flexibility used.
+- Documentation commit: `d9889870` (`docs(tc2000): expand us family perspectives`) is clean
+  locally. YAML/JSON parsing and `git diff --check` pass. The exact elevated push was attempted
+  once and rejected before Git by the private-origin safeguard for the accumulated private
+  payload/destination; no workaround, alternate transport, rewrite, reset, stash, or repeat.
+- Next context remains implementation: populate historical family evidence and exercise the full
+  all-family analytics/browser acceptance matrix; this clarification does not claim those gaps
+  are closed.
+
 ## 2026-08-14 — Bounded historical family refresh range
 
 - Added `POST /etf-holdings/benchmark-family/{family_key}/refresh-range` with a maximum of 64

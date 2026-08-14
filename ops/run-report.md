@@ -1,5 +1,19 @@
 # Run Report
 
+## 2026-08-14 — Expanded US index-family/style/breadth vision clarification
+
+- Updated `docs/project-todos.md`, `docs/tc2000-parity.md`, `docs/tc2000-acceptance-governance.md`,
+  and `ops/tasks.yaml` so the eight US roots and every evidenced cap/equal/value/growth leg are
+  treated as complete analysis perspectives, with the full top-down, breadth, ratio, ranking,
+  rotation, participation, concentration/dispersion, correlation, drawdown/volatility,
+  seasonality/regime, drill-down, Study Lab, scan, gauge, plot, and export contracts.
+- Candidate ETFs remain evidence inputs; missing mappings remain explicit unavailable/derived or
+  `No verified mapped proxy`, with no SPY/QQQ/name-based/current-snapshot fallback. No acceptance
+  flexibility used. YAML/JSON parsing and `git diff --check` pass.
+- Documentation commit `d9889870` is clean locally. Exact elevated push was attempted once and
+  rejected before Git by the private-origin safeguard; no workaround or repeat. Historical
+  population, family-wide analytics, browser acceptance, and final gates remain open.
+
 ## 2026-08-14 — Bounded historical family refresh range
 
 - Added the bounded role-aware family range endpoint for up to 64 dates. Dates are normalized and
