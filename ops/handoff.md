@@ -13,6 +13,10 @@
 - Added a refresh-bootstrap regression proving an empty QQQE profile is upgraded to issuer
   `Direxion` and adapter `direxion` with the official product URL metadata. The focused bootstrap
   and taxonomy tests pass `2/2`; the broader holdings/taxonomy/bootstrap unit slice is `509/509`.
+- Git: implementation/test checkpoint `2a1d304a` and operational checkpoint `47ed70d8` are clean
+  locally. The required exact elevated push was attempted once and rejected before Git by the
+  private-origin safeguard because authorization for the accumulated private payload/destination
+  was unavailable. No workaround, alternate transport, rewrite, reset, stash, or repeat was used.
 - Remaining: historical rebalance continuity, point-in-time membership, canonical QQQE bars,
   and populated browser QQQ/QQQE cap/equal acceptance. Official source reference:
   `https://www.direxion.com/product/nasdaq-100-equal-weighted-index-etf`.

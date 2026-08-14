@@ -21,6 +21,13 @@
 - Added and passed a refresh-bootstrap regression proving QQQE's empty profile is upgraded to
   the explicit Direxion adapter and official product URL metadata.
 
+## 2026-08-14 — QQQE bootstrap push transport
+
+- The exact elevated push for clean commits `2a1d304a` and `47ed70d8` was attempted once and
+  rejected before Git by the private-origin safeguard because authorization for the accumulated
+  private payload/destination was unavailable. No workaround, alternate transport, rewrite,
+  reset, stash, or repeat was attempted; transport-only and the local worktree remains clean.
+
 ## 2026-08-14 — Expanded US index-family vision documentation
 
 - Recorded the requested eight-family US analysis scope in the controlling product, parity, and
