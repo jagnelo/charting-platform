@@ -1,5 +1,14 @@
 # Active Handoff
 
+## 2026-08-14 — DFTT route remains externally blocked
+
+- The official Donoghue Forlines Tactical 30 ETF page returned Cloudflare HTTP `403` on a
+  bounded read-only probe at `2026-08-14T09:38Z`; no complete executable holdings artifact was
+  available for promotion.
+- DFTT remains explicitly fallback-only with the existing issuer-route verification and
+  conditional SEC reconstruction. No acceptance flexibility was used; continue independent
+  workstation/backend work.
+
 ## 2026-08-14 — Alerian SEC fallback edge closed
 
 - Unsupported Alerian symbols with a SEC CIK now return the explicit EDGAR fallback URL instead

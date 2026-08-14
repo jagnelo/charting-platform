@@ -2002,8 +2002,8 @@ tasks:
     notes:
       - >-
         No product, visual, threshold, mask, or acceptance criterion was relaxed. Donoghue
-        Forlines DFTT remains open because its official page and AJAX holdings endpoint return
-        access-limited HTTP 503 responses; conditional SEC reconstruction remains fallback-only.
+        Forlines DFTT remains open because its official product page returned Cloudflare HTTP 403
+        during the latest bounded probe; conditional SEC reconstruction remains fallback-only.
   - id: tc2000-current-source-and-board-acceptance-after-race-repairs-20260813
     title: Revalidate full workstation after workspace, shell, and plot-drag race repairs
     status: completed

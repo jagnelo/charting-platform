@@ -1,5 +1,16 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-14 — DFTT official route re-probe
+
+- A bounded read-only request to the official Donoghue Forlines Tactical 30 ETF product page
+  (`https://etfs.donoghueforlines.com/etfs/tactical-30-etf/`) returned Cloudflare HTTP `403`
+  at `2026-08-14T09:38Z`; no executable page-declared holdings CSV was available to the backend.
+- The existing adapter remains policy-correct: it verifies the product page, follows only its
+  declared fund-scoped route when reachable, and uses SEC reconstruction only when identifiers
+  permit it. DFTT remains explicitly issuer-access-limited rather than falsely promoted.
+- Acceptance flexibility used: **none**. This is an external access gap and does not relax the
+  workstation or free-source acceptance contract.
+
 ## 2026-08-14 — Canonical authenticated matrix after backend/provider and Docker maintenance
 
 - The rebuilt branch stack remained healthy after the Alerian native route and scoped Docker

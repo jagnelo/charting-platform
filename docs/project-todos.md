@@ -1,5 +1,15 @@
 # Project TODO Memory
 
+### 2026-08-14 — DFTT official route re-probe
+
+- [x] Re-probed the official Donoghue Forlines Tactical 30 ETF page with a bounded
+      browser-compatible read-only request; Cloudflare returned HTTP `403` and no complete
+      executable holdings artifact was exposed.
+- [ ] Keep DFTT `issuer_access_blocked`/fallback-only. Closure requires a reachable complete
+      official route or an independently entitled canonical holdings source; do not promote
+      search-indexed or third-party tables as issuer evidence. Acceptance flexibility used:
+      **none**.
+
 ### 2026-08-14 — Close Alerian unsupported-symbol SEC fallback edge
 
 - [x] Corrected the unsupported-symbol branch of the Alerian probe: a non-`AMLP`/`ENFR` symbol

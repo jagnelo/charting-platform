@@ -1,5 +1,12 @@
 # Run Report
 
+## 2026-08-14 — DFTT route remains externally blocked
+
+- A bounded browser-compatible probe of the official Donoghue Forlines DFTT product page
+  returned Cloudflare HTTP `403` at `2026-08-14T09:38Z`; no complete executable holdings CSV was
+  exposed. Existing route verification and conditional SEC fallback remain unchanged.
+- No acceptance flexibility was used. This is an external provider-access gap, not a goal blocker.
+
 ## 2026-08-14 — Alerian SEC fallback edge closed
 
 - Corrected unsupported-symbol probing so a CIK selects the explicit SEC EDGAR fallback rather
