@@ -39,6 +39,8 @@ from app.schemas.analysis import (
     BenchmarkFamilyDerivedEqualWeightOut,
     BenchmarkFamilyMappingOut,
     BenchmarkFamilyOverviewOut,
+    BenchmarkFamilyRatioOut,
+    BenchmarkFamilyRatiosOut,
     BreadthConditionRequest,
     BreadthDefinitionHistoryOut,
     BreadthDefinitionHistoryPointOut,
@@ -1783,6 +1785,172 @@ async def benchmark_family_constituents(
                 "family_official_index": (provenance.get("official_index") or {}).get("symbol"),
             },
         }
+    )
+
+
+@router.get(
+    "/benchmark-families/{family_key}/ratios",
+    response_model=BenchmarkFamilyRatiosOut,
+)
+async def benchmark_family_ratios(
+    family_key: str,
+    role: str = Query(default="equal_weight", pattern="^(cap_weight|equal_weight|value|growth)$"),
+    market_benchmark: str | None = Query(default=None),
+    timeframe: Timeframe = Timeframe.D1,
+    adjusted: bool = True,
+    as_of: datetime | None = Query(default=None),
+    _: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Return aligned family-leg ratios without substituting unavailable mappings."""
+
+    group = (
+        await db.execute(select(MarketGroup).where(MarketGroup.stable_key == family_key))
+    ).scalar_one_or_none()
+    if group is None or group.group_type != "benchmark_family":
+        raise HTTPException(
+            404,
+            detail={"code": "benchmark_family_not_found", "family_key": family_key},
+        )
+    provenance = dict(group.provenance or {})
+    official = provenance.get("official_index")
+    mappings = provenance.get("proxy_mappings")
+    if not isinstance(official, Mapping) or not isinstance(mappings, Mapping):
+        raise HTTPException(
+            422,
+            detail={"code": "benchmark_family_metadata_missing", "family_key": family_key},
+        )
+    selected_mapping = mappings.get(role)
+    cap_mapping = mappings.get("cap_weight")
+    if not isinstance(selected_mapping, Mapping) or not selected_mapping.get("symbol"):
+        raise HTTPException(
+            404,
+            detail={"code": "benchmark_mapping_unavailable", "family_key": family_key, "role": role},
+        )
+    if not isinstance(cap_mapping, Mapping) or not cap_mapping.get("symbol"):
+        raise HTTPException(
+            404,
+            detail={"code": "benchmark_mapping_unavailable", "family_key": family_key, "role": "cap_weight"},
+        )
+    selected_symbol = str(selected_mapping["symbol"]).upper()
+    cap_symbol = str(cap_mapping["symbol"]).upper()
+    symbol_candidates = [selected_symbol, cap_symbol]
+    if market_benchmark:
+        symbol_candidates.append(market_benchmark.upper())
+    symbols = set(symbol_candidates)
+    instruments = {
+        instrument.symbol.upper(): instrument
+        for instrument in (
+            await db.execute(select(Instrument).where(Instrument.symbol.in_(symbols)))
+        ).scalars()
+    }
+    missing_symbol = next((symbol for symbol in symbol_candidates if symbol not in instruments), None)
+    if missing_symbol is not None:
+        missing_role = "market" if market_benchmark and missing_symbol == market_benchmark.upper() else role
+        raise HTTPException(
+            404,
+            detail={
+                "code": "benchmark_proxy_unavailable" if missing_role != "market" else "market_benchmark_unavailable",
+                "family_key": family_key,
+                "role": missing_role,
+                "symbol": missing_symbol,
+            },
+        )
+    instrument_ids = [instrument.id for instrument in instruments.values()]
+    bars_by_id = _truncate_bars_at(
+        await _bars_by_instrument(db, instrument_ids, timeframe, adjusted), as_of
+    )
+
+    def ratio_result(
+        *,
+        benchmark_role: str,
+        primary_symbol: str,
+        benchmark_symbol: str,
+    ) -> BenchmarkFamilyRatioOut:
+        primary = instruments[primary_symbol]
+        benchmark = instruments[benchmark_symbol]
+        primary_bars = bars_by_id.get(primary.id, [])
+        benchmark_bars = bars_by_id.get(benchmark.id, [])
+        primary_by_time = {bar.ts: bar for bar in primary_bars}
+        benchmark_by_time = {bar.ts: bar for bar in benchmark_bars}
+        timestamps = sorted(primary_by_time.keys() & benchmark_by_time.keys())
+        points = [
+            AnalysisPoint(
+                timestamp=timestamp,
+                value=float(primary_by_time[timestamp].close / benchmark_by_time[timestamp].close),
+            )
+            for timestamp in timestamps
+            if benchmark_by_time[timestamp].close != 0
+        ]
+        maximum = max(len(primary_by_time), len(benchmark_by_time), 1)
+        warnings: list[AnalysisWarning] = []
+        if not points:
+            warnings.append(
+                AnalysisWarning(
+                    code="no_aligned_bars",
+                    message="No aligned bars are available for this family ratio.",
+                )
+            )
+        elif len(points) < maximum:
+            warnings.append(
+                AnalysisWarning(
+                    code="partial_overlap",
+                    message="Only intersecting timestamps were used; gaps were not forward-filled.",
+                )
+            )
+        return BenchmarkFamilyRatioOut(
+            family_key=family_key,
+            role=role,
+            symbol=primary_symbol,
+            benchmark_role=benchmark_role,
+            benchmark=benchmark_symbol,
+            timeframe=timeframe.value,
+            adjustment="split_adjusted" if adjusted else "raw",
+            as_of=as_of or (points[-1].timestamp if points else None),
+            points=points,
+            coverage=len(points) / maximum,
+            warnings=warnings,
+            freshness="coverage_limited" if not points else "available",
+            freshness_detail={"primary_bars": len(primary_bars), "benchmark_bars": len(benchmark_bars)},
+        )
+
+    ratios: list[BenchmarkFamilyRatioOut] = []
+    if role != "cap_weight":
+        ratios.append(
+            ratio_result(
+                benchmark_role="cap_weight",
+                primary_symbol=selected_symbol,
+                benchmark_symbol=cap_symbol,
+            )
+        )
+    if market_benchmark:
+        ratios.append(
+            ratio_result(
+                benchmark_role="market",
+                primary_symbol=selected_symbol,
+                benchmark_symbol=market_benchmark.upper(),
+            )
+        )
+    members = _group_members_at(group, as_of)
+    return BenchmarkFamilyRatiosOut(
+        family_key=family_key,
+        official_index_symbol=str(official.get("symbol") or ""),
+        timeframe=timeframe.value,
+        adjustment="split_adjusted" if adjusted else "raw",
+        as_of=as_of,
+        membership_version=_group_membership_version(group, members),
+        universe_provenance={
+            **_group_provenance(group, as_of),
+            "selected_role": role,
+            "selected_symbol": selected_symbol,
+            "cap_symbol": cap_symbol,
+            "market_benchmark": market_benchmark.upper() if market_benchmark else None,
+            "ratio_semantics": "aligned_close_ratio_without_forward_fill",
+        },
+        ratios=ratios,
+        exclusions=[],
+        freshness="available" if ratios and any(r.points for r in ratios) else "coverage_limited",
+        freshness_detail={"ratio_count": len(ratios)},
     )
 
 

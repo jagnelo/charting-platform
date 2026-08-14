@@ -157,6 +157,36 @@ class BenchmarkFamilyDerivedEqualWeightOut(AnalysisResponseMetadata):
     exclusions: list[AnalysisWarning] = Field(default_factory=list)
 
 
+class BenchmarkFamilyRatioOut(AnalysisResponseMetadata):
+    """One role-labelled ratio between family legs or an explicit market benchmark."""
+
+    family_key: str
+    role: Literal["cap_weight", "equal_weight", "value", "growth"]
+    symbol: str
+    benchmark_role: Literal["cap_weight", "market"]
+    benchmark: str
+    timeframe: str
+    adjustment: str
+    as_of: datetime | None = None
+    points: list[AnalysisPoint] = Field(default_factory=list)
+    coverage: float = Field(ge=0, le=1)
+    warnings: list[AnalysisWarning] = Field(default_factory=list)
+
+
+class BenchmarkFamilyRatiosOut(AnalysisResponseMetadata):
+    """Aligned role-aware relative-strength ratios for one benchmark family."""
+
+    family_key: str
+    official_index_symbol: str
+    timeframe: str
+    adjustment: str
+    as_of: datetime | None = None
+    membership_version: int
+    universe_provenance: dict[str, object] = Field(default_factory=dict)
+    ratios: list[BenchmarkFamilyRatioOut] = Field(default_factory=list)
+    exclusions: list[AnalysisWarning] = Field(default_factory=list)
+
+
 class ETFConstituentSnapshotOut(GroupSnapshotOut):
     """A point-in-time ETF-proxy constituent batch, never an official index universe."""
 

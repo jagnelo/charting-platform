@@ -559,6 +559,69 @@ class TestWorkspaces:
         assert missing.status_code == 404
         assert missing.json()["detail"]["code"] == "benchmark_proxy_unavailable"
 
+    def test_benchmark_family_ratios_align_selected_leg_to_cap_and_market(
+        self, client, auth_headers, db, instrument_type
+    ):
+        from datetime import UTC, datetime, timedelta
+        from decimal import Decimal
+
+        from app.models.instrument import Instrument
+        from app.models.ohlcv import OHLCVBar, Timeframe
+
+        seeded = client.get("/api/v1/market-groups", headers=auth_headers)
+        assert seeded.status_code == 200
+        spy = Instrument(
+            symbol="SPY",
+            name="SPDR S&P 500 ETF Trust",
+            currency="USD",
+            instrument_type_id=instrument_type.id,
+            is_active=True,
+        )
+        rsp = Instrument(
+            symbol="RSP",
+            name="Invesco S&P 500 Equal Weight ETF",
+            currency="USD",
+            instrument_type_id=instrument_type.id,
+            is_active=True,
+        )
+        db.add_all([spy, rsp])
+        db.flush()
+        base = datetime(2025, 1, 1, tzinfo=UTC)
+        for index, (spy_close, rsp_close) in enumerate(((100, 50), (101, 51), (102, 53))):
+            timestamp = base + timedelta(days=index)
+            for current, close in ((spy, spy_close), (rsp, rsp_close)):
+                value = Decimal(str(close))
+                db.add(
+                    OHLCVBar(
+                        instrument_id=current.id,
+                        timeframe=Timeframe.D1,
+                        ts=timestamp,
+                        open=value,
+                        high=value,
+                        low=value,
+                        close=value,
+                        volume=Decimal("1"),
+                        is_adjusted=True,
+                    )
+                )
+        db.flush()
+        response = client.get(
+            "/api/v1/analysis/benchmark-families/sp500/ratios",
+            headers=auth_headers,
+            params={"role": "equal_weight", "market_benchmark": "SPY"},
+        )
+        assert response.status_code == 200, response.text
+        payload = response.json()
+        assert payload["universe_provenance"]["ratio_semantics"] == (
+            "aligned_close_ratio_without_forward_fill"
+        )
+        assert [(item["benchmark_role"], item["benchmark"]) for item in payload["ratios"]] == [
+            ("cap_weight", "SPY"),
+            ("market", "SPY"),
+        ]
+        assert len(payload["ratios"][0]["points"]) == 3
+        assert payload["ratios"][0]["points"][-1]["value"] == 53 / 102
+
     def test_benchmark_family_derived_equal_weight_requires_constituent_membership(
         self, client, auth_headers, db, instrument, ohlcv_bars
     ):

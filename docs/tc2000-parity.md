@@ -1,5 +1,18 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-14 — Family-leg relative-strength ratio contract
+
+Family role analysis now exposes `GET /analysis/benchmark-families/{family_key}/ratios`. A
+selected cap/equal/value/growth leg can be compared directly with the family cap proxy and, when
+requested, an explicit market benchmark. Ratios use intersecting timestamps only, preserve
+partial-overlap warnings and coverage, and carry family role, benchmark role, membership version,
+adjustment, freshness, and as-of provenance.
+
+Unavailable mappings and canonical identities are errors rather than silent substitutions. This
+closes the backend ratio primitive for family analysis; batch-all-leg composition, weighting
+evidence, breadth/rotation/ranking, browser rendering, and exact visual/end-to-end acceptance
+remain open. No acceptance criterion was relaxed.
+
 ## 2026-08-14 — Family-leg constituent drill-down contract
 
 The family workflow now has a shared constituent route:

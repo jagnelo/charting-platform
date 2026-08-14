@@ -1,5 +1,20 @@
 # Project TODO Memory
 
+### 2026-08-14 — Family-leg relative-strength ratio contract
+
+- [x] Added `GET /analysis/benchmark-families/{family_key}/ratios` with explicit role selection
+      and optional market benchmark. It returns aligned cap-leg and market-leg ratios for the
+      selected family proxy, without forward-filling gaps.
+- [x] Each ratio preserves family/role/benchmark-role identity, timeframe, adjustment, as-of,
+      coverage, freshness detail, partial-overlap warnings, membership version, and ratio
+      semantics. Missing mappings or canonical instruments remain structured errors.
+- [x] Validation passes: positive cap/equal/market ratio integration `1/1`, Ruff, and diff checks.
+      A deterministic missing-symbol ordering repair was focused-tested; acceptance flexibility
+      used: none.
+- [ ] Still open: batch ratios for all available legs in one workstation request, native/derived
+      weighting evidence, family-wide breadth/rotation/ranking, browser ratio visualisation, and
+      final visual/end-to-end acceptance.
+
 ### 2026-08-14 — Family-leg constituent drill-down contract
 
 - [x] Added `GET /analysis/benchmark-families/{family_key}/constituents?role=...` for cap,
