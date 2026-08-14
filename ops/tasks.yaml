@@ -1,7 +1,7 @@
 tasks:
   - id: tc2000-study-lab-current-versus-history-comparison-20260814
-  title: Add Study Lab current-versus-history comparison
-  status: completed
+    title: Add Study Lab current-versus-history comparison
+    status: completed
     priority: high
     scope: >-
       Add deterministic research.historical_comparison over declared finite values, expose it in
@@ -12,17 +12,41 @@ tasks:
       - Editor/reference/factory starter expose exactly the implemented method
       - Focused and broader frontend/browser/backend gates pass
       - No visual threshold, mask, product criterion, or acceptance flexibility changes
-  validation:
-    - study-lab-current-history-runner-77-of-77
-    - study-lab-editor-and-tool-27-of-27
-    - frontend-vitest-818-of-818
-    - adjacent-authenticated-study-python-results-12-of-12
-    - backend-unit-integration-1449-of-1449-at-80.17-percent
-    - type-check-build-make-test-fe-uplot-visual-policy-pass
-  notes:
+    validation:
+      - study-lab-current-history-runner-77-of-77
+      - study-lab-editor-and-tool-27-of-27
+      - frontend-vitest-818-of-818
+      - adjacent-authenticated-study-python-results-12-of-12
+      - backend-unit-integration-1449-of-1449-at-80.17-percent
+      - type-check-build-make-test-fe-uplot-visual-policy-pass
+    notes:
       - Context closes a plan-required Study Lab comparison capability; broader visual/external gaps remain open.
       - No visual threshold, mask, product criterion, or acceptance flexibility changed.
-      - Implementation/docs commit: 18223e96; operational checkpoint follows as a separate commit.
+      - 'Implementation/docs commit: 18223e96; operational checkpoint follows as a separate commit.'
+  - id: tc2000-study-lab-generic-streaks-20260814
+    title: Add unified Python generic streaks helper
+    status: completed
+    priority: medium
+    scope: >-
+      Add deterministic stats.streaks for directional consecutive changes and use it in Study Lab
+      factory starters while preserving the legacy positive_close_streaks compatibility method.
+    definition_of_done:
+      - Direction, finite-input, empty, and invalid-input contracts are explicit
+      - Runner tests cover positive/negative/inclusive directions and invalid directions
+      - Editor/reference/factory starters expose exactly the implemented helper
+      - Focused and broader frontend/browser/backend gates pass
+      - No visual threshold, mask, product criterion, or acceptance flexibility changes
+    validation:
+      - study-lab-generic-streaks-runner-79-of-79
+      - study-lab-editor-and-tool-27-of-27
+      - frontend-vitest-820-of-820
+      - adjacent-authenticated-study-python-results-12-of-12
+      - backend-unit-integration-1451-of-1451-at-80.17-percent
+      - type-check-build-make-test-fe-uplot-visual-policy-pass
+    notes:
+      - Context is a unified-Python capability increment; broader visual/external gaps remain open.
+      - No visual threshold, mask, product criterion, or acceptance flexibility changed.
+      - 'Implementation/docs commit: d9d1191e; operational checkpoint follows as a separate commit.'
   - id: tc2000-study-lab-research-helper-integration-20260814
     title: Integrate unified research helpers into Study Lab factory starters
     status: completed

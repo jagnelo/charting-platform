@@ -1,5 +1,22 @@
 # Active Handoff
 
+## 2026-08-14 — Unified Python generic streaks (completed)
+
+- Context owner: Codex. Owned paths are `backend/research_runner/runner.py`, focused runner
+  tests, `PythonSourceEditor.vue`, `StudyLabTool.vue`, their tests, and checkpoint docs.
+- Completed: added deterministic `stats.streaks(values, direction, inclusive?)`, preserved the
+  compatibility helper, and migrated the negative-close factory study to the shared primitive.
+- Validation: focused runner `79/79`; editor/Study Lab `27/27`; frontend `820/820`; authenticated
+  adjacent browser `12/12`; authoritative backend `1451/1451` at `80.17%`; `make test-fe`,
+  uPlot/visual-policy, type-check, production build, and `git diff --check` pass.
+- No visual threshold, mask, product criterion, or acceptance flexibility changed. Exact/
+  unrepresented Study Lab V25, provider/live-entitlement, historical/GICS, native-monitor,
+  endurance, and final-audit gaps remain open.
+- Implementation/docs are committed locally as `d9d1191e` (`feat(research): add generic streak studies`).
+- Next action: commit this operational checkpoint separately, verify
+  clean state, make one exact push attempt, record the transport result, then continue the next
+  independent goal context.
+
 ## 2026-08-14 — Study Lab current-versus-history comparison (completed)
 
 - Context owner: Codex. Owned paths were `backend/research_runner/runner.py`, focused runner
