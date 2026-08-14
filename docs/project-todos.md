@@ -9245,6 +9245,18 @@ deconstruction remain open and are still required before the Nasdaq family accep
 can pass. The official product page remains the source reference for the relationship and daily
 holdings route: <https://www.direxion.com/product/nasdaq-100-equal-weighted-index-etf>.
 
+#### Current continuation — 2026-08-14 family issuer-route live matrix
+
+The first opt-in live matrix caught incorrect iShares product IDs for the Russell value legs:
+`IWD` had been mapped to `239701` and `IWN` to `239708`. Those identifiers were corrected to
+the official product records (`IWD` `239708`, `IWN` `239712`), with taxonomy URLs and regressions
+updated. The rerun passed all 15 newly mapped SPDR/iShares family legs (`SPYG`, `SPYV`, `MDY`,
+`MDYG`, `MDYV`, `SLYG`, `SLYV`, `SPTM`, `IJR`, `IWB`, `IWD`, `IWF`, `IWN`, `IWO`, `IWV`).
+
+The failed first run and correction are retained as regression evidence. This closes current
+issuer-route readiness for those legs only; historical rebalance continuity, point-in-time
+membership, canonical bars, and populated family browser acceptance remain open.
+
 #### Current continuation — 2026-08-12 listing visibility and browser contract repair
 
 The exchange-aware listing API contract is now exercised through the real seeded workstation

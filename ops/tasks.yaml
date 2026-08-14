@@ -126,6 +126,13 @@ tasks:
         Ruff/compile/diff passing. Historical rebalance continuity, point-in-time membership,
         bars, and populated browser QQQ/QQQE acceptance remain open; no acceptance flexibility was
         used.
+      - >-
+        The opt-in live matrix caught and corrected stale iShares identifiers for the Russell
+        value legs (`IWD` `239701` -> `239708`; `IWN` `239708` -> `239712`). After updating the
+        canonical route catalog, taxonomy URLs, and regressions, all 15 newly mapped SPDR/iShares
+        family legs passed live. Historical membership/rebalance, bars, and browser acceptance
+        remain open; the failed first run is retained as fix-first evidence and no flexibility was
+        used.
   - id: tc2000-generic-condition-driven-breadth-20260814
     title: Broaden breadth from fixed metrics to reusable condition-driven cross-sectional studies
     status: in_progress

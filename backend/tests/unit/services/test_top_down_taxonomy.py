@@ -118,9 +118,9 @@ def test_benchmark_family_style_proxies_have_explicit_free_source_routes():
     for symbol, product_id in {
         "IJR": "239774",
         "IWB": "239707",
-        "IWD": "239701",
+        "IWD": "239708",
         "IWF": "239706",
-        "IWN": "239708",
+        "IWN": "239712",
         "IWO": "239709",
         "IWV": "239714",
     }.items():

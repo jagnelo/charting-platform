@@ -179,7 +179,7 @@ BENCHMARK_FAMILY_REGISTRY: tuple[dict[str, Any], ...] = (
             "symbol": "IWD",
             "label": "Russell 1000 value ETF proxy",
             "verification_state": "proxy_identity_registered",
-            "source_url": "https://www.ishares.com/us/products/239701/ishares-russell-1000-value-etf",
+            "source_url": "https://www.ishares.com/us/products/239708/ishares-russell-1000-value-etf",
         },
         "growth": {
             "symbol": "IWF",
@@ -208,7 +208,7 @@ BENCHMARK_FAMILY_REGISTRY: tuple[dict[str, Any], ...] = (
             "symbol": "IWN",
             "label": "Russell 2000 value ETF proxy",
             "verification_state": "proxy_identity_registered",
-            "source_url": "https://www.ishares.com/us/products/239708/ishares-russell-2000-value-etf",
+            "source_url": "https://www.ishares.com/us/products/239712/ishares-russell-2000-value-etf",
         },
         "growth": {
             "symbol": "IWO",

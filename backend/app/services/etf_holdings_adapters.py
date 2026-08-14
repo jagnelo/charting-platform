@@ -3091,9 +3091,9 @@ ISHARES_PRODUCT_IDS_BY_SYMBOL: dict[str, str] = {
     # Official iShares product identifiers for the Russell style/family
     # proxies used by the benchmark-family taxonomy.
     "IWB": "239707",
-    "IWD": "239701",
+    "IWD": "239708",
     "IWF": "239706",
-    "IWN": "239708",
+    "IWN": "239712",
     "IWO": "239709",
     "IJR": "239774",
     "IWV": "239714",

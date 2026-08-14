@@ -27,6 +27,14 @@ through issuer-name inference. This is provider-route evidence only; historical 
 point-in-time membership, bar coverage, and populated browser parity remain open states in the
 family matrix.
 
+## 2026-08-14 — Family issuer-route live matrix
+
+The opt-in route matrix now passes for all 15 newly mapped SPDR/iShares family legs. The first
+run exposed stale iShares identifiers for `IWD` and `IWN`; correcting them to `239708` and
+`239712` respectively restored the complete `15/15` result. The failed run remains recorded as
+fix-first evidence. This validates current issuer retrieval, not historical membership or
+browser population.
+
 ## 2026-08-14 — Family-leg relative-strength ratio contract
 
 Family role analysis now exposes `GET /analysis/benchmark-families/{family_key}/ratios`. A
