@@ -1,5 +1,22 @@
 # Active Handoff
 
+## 2026-08-14 — Current clean boundary and Git recovery result
+
+- The repository/index is healthy: branch `feat/tc2000-frontend-rework` is clean at
+  `2fa509316b17374b6849d8e389ac6dc3e74b6ead`, origin remains
+  `91463e54bbfb37dc5e130d3c912434bfc41594bd`, and no `.git/index.lock` exists.
+- The focused authenticated `F8e.swing-analysis` browser regression passed `1/1` on the
+  permitted rerun; the earlier missing-RSI observation was not reproducible and no speculative
+  product change was made.
+- The exact elevated command `rtk git push origin feat/tc2000-frontend-rework` for range
+  `91463e54bbfb37dc5e130d3c912434bfc41594bd..2fa509316b17374b6849d8e389ac6dc3e74b6ead`
+  was attempted once and rejected before Git by the private-origin egress safeguard because
+  trusted authorization for that exact private payload/destination was unavailable.
+- This is transport-only, not a product blocker. No wrapper, alternate transport, rewrite,
+  reset, stash, or repeated same-payload attempt was used. Continue implementation from the
+  clean local boundary; retry only through the same elevated path after trusted exact-payload
+  authorization is accepted.
+
 ## 2026-08-14 — DFTT route remains externally blocked
 
 - The official Donoghue Forlines Tactical 30 ETF page returned Cloudflare HTTP `403` on a

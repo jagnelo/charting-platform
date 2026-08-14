@@ -2,6 +2,19 @@
 
 ## 2026-08-14 — DFTT route remains externally blocked
 
+## 2026-08-14 — Current clean boundary and Git recovery result
+
+- Repository/index health is confirmed: no `.git/index.lock`, clean local HEAD
+  `2fa509316b17374b6849d8e389ac6dc3e74b6ead`, and origin remains
+  `91463e54bbfb37dc5e130d3c912434bfc41594bd`.
+- The permitted focused authenticated `F8e.swing-analysis` rerun passed `1/1`; the earlier
+  missing-RSI failure was transient/non-reproducible, so no unverified code change was made.
+- The exact elevated push for
+  `91463e54bbfb37dc5e130d3c912434bfc41594bd..2fa509316b17374b6849d8e389ac6dc3e74b6ead`
+  was rejected before Git by the private-origin egress safeguard. No alternate transport or
+  repeat was attempted. This remains a transport hold only; the goal continues locally.
+- No acceptance flexibility, visual mask, threshold, or product criterion changed.
+
 - A bounded browser-compatible probe of the official Donoghue Forlines DFTT product page
   returned Cloudflare HTTP `403` at `2026-08-14T09:38Z`; no complete executable holdings CSV was
   exposed. Existing route verification and conditional SEC fallback remain unchanged.
