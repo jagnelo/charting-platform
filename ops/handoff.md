@@ -1,5 +1,15 @@
 # Active Handoff
 
+## 2026-08-14 — Study Lab validation live-region polarity context completed
+
+- Implementation commit `39fea337` binds Study Lab validation `aria-live` to its outcome: assertive
+  for invalid `role=alert`, polite for valid `role=status`, with atomic updates retained.
+- Focused Study Lab units `22/22`, type-check, diff-check, and rebuilt/force-recreated authenticated
+  F8t browser acceptance `1/1` in `3.3s` pass. The initial run exposed a stale frontend image and
+  was discarded as setup evidence; the rebuilt rerun passed.
+- Acceptance flexibility used: **none**. Exact V25 validation-state styling remains
+  `REF-STATE-VARIANTS`. This localized repair is closed and does not block independent work.
+
 ## 2026-08-14 — Shared workstation live-region context completed
 
 - Implementation commit `77416595` standardizes live-region polarity and atomic updates across

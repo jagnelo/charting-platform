@@ -1,4 +1,27 @@
 tasks:
+  - id: tc2000-study-validation-live-region-polarity-20260814
+    title: Announce Study Lab validation failures assertively
+    status: completed
+    priority: high
+    scope: >-
+      Bind Study Lab validation live-region polarity to the validation outcome while preserving
+      atomic updates, editor semantics, recovery behavior, and the existing role contract.
+    definition_of_done:
+      - invalid validation uses assertive role=alert semantics
+      - valid validation uses polite role=status semantics
+      - focused unit and browser regressions verify both outcomes
+      - type-check and diff gates pass
+      - no visual threshold, mask, provider, uPlot, or acceptance rule is relaxed
+    validation:
+      - study-lab-focused-unit-22-of-22
+      - rebuilt-authenticated-F8t-1-of-1-3.3s
+      - frontend-type-check
+      - git-diff-check
+    notes:
+      - >-
+        The initial browser run used a stale frontend image and was corrected by rebuilding and
+        force-recreating the branch frontend. Exact V25 validation styling remains
+        REF-STATE-VARIANTS. Acceptance flexibility used: none.
   - id: tc2000-shared-live-region-semantics-20260814
     title: Standardize dynamic workstation live-region semantics
     status: completed

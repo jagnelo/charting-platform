@@ -1,5 +1,16 @@
 # Project TODO Memory
 
+### 2026-08-14 — Study Lab validation live-region polarity
+
+- [x] Invalid Study Lab validation now uses an assertive live region while valid validation remains
+      polite; both retain atomic updates and role semantics.
+- [x] Focused Study Lab unit coverage passes `22/22`; type-check and diff-check pass; rebuilt and
+      force-recreated authenticated F8t browser acceptance passes `1/1` in `3.3s`. Implementation
+      commit: `39fea337`.
+- [ ] Acceptance flexibility used: none. The first browser attempt was stale-container setup
+      evidence and was corrected by rebuilding/force-recreating the branch frontend; exact V25
+      validation-state styling remains `REF-STATE-VARIANTS`.
+
 ### 2026-08-14 — Shared workstation live-region semantics
 
 - [x] Standardized dynamic status/error announcements across watchlists, charts, columns, EasyScan,

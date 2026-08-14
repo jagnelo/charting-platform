@@ -1,5 +1,12 @@
 # Run Report
 
+## 2026-08-14 — Study Lab validation live-region polarity
+
+- Implementation `39fea337` corrects invalid/valid Study Lab validation announcement polarity.
+- Focused Study Lab units `22/22`, type-check, diff-check, and authoritative rebuilt authenticated
+  F8t browser `1/1` in `3.3s` pass. Initial stale-container evidence was corrected by rebuild and
+  force-recreation. No acceptance flexibility or visual/provider/uPlot rule changed.
+
 ## 2026-08-14 — Shared workstation live-region semantics
 
 - Implementation `77416595` standardizes dynamic status/error live-region semantics across the

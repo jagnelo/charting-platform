@@ -1,5 +1,15 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-14 — Study Lab validation live-region polarity
+
+- Invalid Study Lab validation now announces assertively while valid validation announces politely;
+  both remain atomic and preserve the existing editor/recovery flow.
+- Focused Study Lab units `22/22`, type-check, diff-check, and rebuilt authenticated F8t browser
+  acceptance `1/1` in `3.3s` pass. The initial browser result was stale-container setup evidence;
+  rebuild/force-recreate produced the authoritative pass.
+- No visual threshold, mask, provider, uPlot, or acceptance rule changed. Exact V25 validation-state
+  styling remains `REF-STATE-VARIANTS`; acceptance flexibility used: none.
+
 ## 2026-08-14 — Shared workstation live-region semantics
 
 - Dynamic status and error surfaces across watchlists, charts, EasyScan, alerts, gauges, coverage,
