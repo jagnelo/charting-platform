@@ -2564,12 +2564,15 @@ test.describe('TC2000 workstation', () => {
     await expect(study.locator('.study-lab-tool__validation')).toContainText('Validation errors', { timeout: 30_000 })
     await expect(study.locator('.study-lab-tool__validation--bad pre')).toBeVisible()
     await expect(study.locator('.study-lab-tool__validation--bad')).toHaveAttribute('role', 'alert')
+    await expect(study.locator('.study-lab-tool__validation--bad')).toHaveAttribute('aria-live', 'assertive')
+    await expect(study.locator('.study-lab-tool__validation--bad')).toHaveAttribute('aria-atomic', 'true')
 
     await study.getByRole('textbox', { name: 'Study Python source' }).fill("output.scalar('recovered', 1)")
     await study.getByRole('button', { name: 'Validate' }).click()
     await expect(study.locator('.study-lab-tool__validation')).toContainText('Validated for isolated execution', { timeout: 30_000 })
     await expect(study.locator('.study-lab-tool__validation--bad')).toHaveCount(0)
     await expect(study.locator('.study-lab-tool__validation[role="status"]')).toBeVisible()
+    await expect(study.locator('.study-lab-tool__validation[role="status"]')).toHaveAttribute('aria-live', 'polite')
     await browserDiagnostics.expectNoCriticalIssues()
   })
 

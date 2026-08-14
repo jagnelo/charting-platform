@@ -48,7 +48,7 @@
       <span><b>research</b>: forward_returns, occurrences, regimes, breadth, historical comparisons</span>
       <span><b>output</b>: scalar, boolean, series, table, events, bar, histogram, range, scatter, heatmap, dashboard</span>
     </details>
-    <section v-if="validation" class="study-lab-tool__validation" :role="validation.valid ? 'status' : 'alert'" aria-live="polite" aria-atomic="true" :class="{ 'study-lab-tool__validation--bad': !validation.valid }">
+    <section v-if="validation" class="study-lab-tool__validation" :role="validation.valid ? 'status' : 'alert'" :aria-live="validation.valid ? 'polite' : 'assertive'" aria-atomic="true" :class="{ 'study-lab-tool__validation--bad': !validation.valid }">
       <strong>{{ validation.valid ? 'Validated for isolated execution' : 'Validation errors' }}</strong>
       <pre v-if="validation.diagnostics.length">{{ validation.diagnostics }}</pre>
       <span v-else>Dependencies: {{ validation.dependencies.join(', ') || 'none' }} · Lookback: {{ validation.lookback_hint ?? 'none' }} · Outputs: {{ validation.output_contracts.join(', ') || 'none' }}</span>
