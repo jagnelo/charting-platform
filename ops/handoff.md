@@ -1,5 +1,25 @@
 # Active Handoff
 
+## 2026-08-14 — Benchmark-family browser drill-down slice
+
+- Added frontend store contracts/loaders for `GET /analysis/benchmark-families/{family_key}/overview`
+  and role-specific `/constituents`; the Market Breadth tool now renders official identity,
+  cap/equal/value/growth mapping and holdings readiness, source/composition/coverage metadata, and
+  canonical constituent rows that publish into linked charts.
+- Corrected the family snapshot loader so a family with no cap mapping passes no benchmark instead
+  of silently borrowing SPY. Generic sector/benchmark groups retain their established SPY
+  comparison. No acceptance flexibility used.
+- Focused store validation passes `55/55`; full frontend Vitest `826/826`; type-check/build pass;
+  rebuilt branch-scoped stack browser acceptance `F8s-breadth-family-ratio` passes `1/1`. The first
+  browser attempt failed only because the stack served a pre-change image; rebuilding the stack
+  fixed the environment and the product assertion passed unchanged.
+- Implementation/docs commit: `5e1f7804` (`feat(workstation): expose benchmark family drilldown`).
+  Exact elevated `rtk git push origin HEAD:feat/tc2000-frontend-rework` was attempted once after
+  this checkpoint and rejected before Git by the private-origin safeguard due unavailable
+  authorization for the accumulated private payload/destination. No workaround, alternate
+  transport, rewrite, reset, stash, or repeat was used. Worktree is clean locally; next is family
+  historical population, all-family analytics, and broader browser acceptance.
+
 ## 2026-08-14 — Expanded US family scope-lock documentation
 
 - Locked the requested US analysis matrix into the controlling plan and parity records: S&P

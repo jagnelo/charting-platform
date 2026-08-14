@@ -1,5 +1,18 @@
 # Run Report
 
+## 2026-08-14 — Benchmark-family browser drill-down slice
+
+- Added provider-neutral overview and role-specific constituent loaders to the workstation store;
+  the Market Breadth family surface now shows cap/equal/value/growth readiness and source-labelled
+  constituents with canonical linked-chart publication.
+- Removed the implicit SPY benchmark when a selected family has no cap mapping; this preserves the
+  no-silent-fallback contract. No acceptance flexibility used.
+- Validation: store `55/55`, full frontend Vitest `826/826`, type-check/build, and rebuilt-stack
+  Chromium `F8s-breadth-family-ratio` `1/1`. The first browser attempt exposed stale served
+  content, not a product defect; the rebuilt stack passed without changing the oracle.
+- Commit `5e1f7804`; exact push attempted once and rejected before Git by the private-origin
+  safeguard. No workaround/repeat; local worktree clean.
+
 ## 2026-08-14 — Expanded US family scope-lock documentation
 
 - Added an explicit scope lock to the controlling product and parity documents: S&P 500/400/600/
