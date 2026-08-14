@@ -756,6 +756,13 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
       await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ versions: [{ id: 778 }] }) })
     })
     await page.route(/\/api\/v1\/research\/runs$/, async route => {
+      if (route.request().method() === 'GET') {
+        // The adjacent Persisted runs tool must not depend on whatever rows a
+        // shared E2E database happens to contain.  An empty, successful list
+        // is the deterministic factory state for this visual capture.
+        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([]) })
+        return
+      }
       if (route.request().method() !== 'POST') return route.continue()
       await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify(structuredRun) })
     })
@@ -763,7 +770,7 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(structuredRun) })
     })
     await page.goto('/chart')
-    await expect(page.locator('.workstation')).toBeVisible()
+    await waitForShellReady(page)
     await expect(page.locator('.workspace-layout-host')).toBeVisible({ timeout: 15_000 })
     await page.getByRole('button', { name: 'Study', exact: true }).click()
     const study = page.locator('.study-lab-tool')

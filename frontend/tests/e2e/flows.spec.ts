@@ -1334,6 +1334,9 @@ test.describe('TC2000 workstation', () => {
     await expect(loadingState).toHaveAttribute('role', 'status')
     await expect(loadingState).toHaveAttribute('aria-live', 'polite')
     await expect(loadingState).toBeVisible({ timeout: 5_000 })
+    // Loading must detach the prior numerical renderer rather than leaving a
+    // stale uPlot canvas underneath the explicit state surface.
+    await expect(page.locator('.chart-tool canvas')).toHaveCount(0)
     await ohlcvResponse
     await expect(page.locator('.chart-tool .tool-state--error')).toBeVisible({ timeout: 10_000 })
     await browserDiagnostics.expectNoCriticalIssues()
