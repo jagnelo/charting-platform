@@ -1,5 +1,14 @@
 # Run Report
 
+## 2026-08-14 — Post-checkpoint push authorization result
+
+- Post-checkpoint elevated push for `91463e54..1075744c` was rejected before Git by the private
+  repository egress safeguard because exact trusted authorization for this destination and payload
+  was unavailable.
+- No indirect transport or history-changing workaround was used. The worktree remains clean and
+  the implementation and operational commits remain separately recoverable; this transport hold
+  does not block the active product goal.
+
 ## 2026-08-14 — Chart loading and Study Lab visual checkpoint
 
 - Focused board-guided visual command passed `8/8` across 1920×1080 and 2560×1440 at 100% and
