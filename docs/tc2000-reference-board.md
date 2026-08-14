@@ -1,5 +1,16 @@
 # TC2000 Version 25 composite reference board
 
+## 2026-08-14 canonical workstation revalidation
+
+The current non-seeded branch deployment was revalidated against the board-guided interaction
+contract after the bootstrap repair. The complete authenticated workstation matrix passed `140/140`;
+the four-environment board baselines and gap-directed state oracles remain the active visual track.
+This run confirms represented shell density, tool-window containment, charts, grids, linking,
+Study Lab composition, and top-down traversal behavior, but it does not promote any board image to
+exact-build approval. `REF-SHELL-V25`, `REF-STATE-VARIANTS`, `REF-LINKING-V25`, `REF-STUDY-LAB-V25`,
+`REF-ENV-TOKENS`, and `REF-PERMISSION-REVIEW` remain explicit where the board lacks authoritative
+pinned-build state evidence.
+
 ## 2026-08-12 deterministic drawing-toolbar visual correction
 
 The chart drawing toolbar was compared against the board's chart/comparison and dense-window

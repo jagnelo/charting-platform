@@ -6033,3 +6033,13 @@ fresh-stack authenticated browser retry is not counted as parity evidence: repea
 responses occurred during E2E provisioning/reset, with one backend restart and health-check startup
 observed. The restricted browser launch also hit a host Mach-port permission boundary. No visual or
 functional criterion was relaxed; rerun parity only after a stable backend health window.
+
+## 2026-08-14 canonical deployment revalidation
+
+The previously unstable fresh deployment was revalidated after the bootstrap rollback and bounded
+startup repair. Backend health reported both E2E seed flags false, frontend health returned HTTP
+200, and the complete authenticated Chromium workstation matrix passed `140/140` in `7.0m`.
+Frontend Vitest `817/817`, uPlot contract `45` files, visual policy `26` assertions, type/build,
+and backend `1438/1438` at `80.17%` also passed. The board-guided visual track remains accepted
+for represented states; exact/unrepresented visual, provider/live-entitlement, historical,
+native-monitor, endurance, and final-audit gaps remain open and are not silently promoted.
