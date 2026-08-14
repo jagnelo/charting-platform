@@ -348,6 +348,24 @@ execution boundary. This is an operational transport state, not a product
 failure, and it must never be represented as a blocked goal or used to justify
 leaving completed work unstaged or uncommitted.
 
+### User-facing transport rule
+
+When the exact elevated push is rejected by the private-origin egress safeguard,
+the worker must report the situation plainly as:
+
+- the repository is healthy;
+- the changeset is committed locally and the worktree is clean;
+- the remote is behind because export authorization was rejected before Git; and
+- the product goal is continuing from the clean local commit boundary.
+
+The worker must not describe this as “Git is broken”, “the goal is blocked”, or
+ask the user to run ordinary `git add`, `git commit`, or `git push` commands.
+Those actions remain the worker's responsibility. The only permitted retry is
+the same exact elevated command for the same remote, branch, and commit range
+when the execution environment reports newly accepted trusted authorization.
+Until then, independently scoped implementation contexts may be validated and
+committed locally, with each transport hold recorded in the operational files.
+
 ### Context-transition guard
 
 The first action after selecting any new context is a repository-boundary check,
