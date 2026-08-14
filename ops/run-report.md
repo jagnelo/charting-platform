@@ -1,5 +1,16 @@
 # Run Report
 
+## 2026-08-14 — Backend revalidation and current push safeguard
+
+- Post-maintenance `make test-backend` passed `1121` unit and `303` integration tests (`1424`
+  total); existing dependency deprecation warnings were non-failing.
+- Clean local `HEAD` is `f14affdb`; origin is `91463e54`; exact push range is
+  `91463e54..f14affdb`. The elevated push was rejected before Git by the private-repository
+  egress safeguard. No workaround or history rewrite was attempted; local changesets remain
+  separate and the transport hold does not block implementation work.
+- The repository workflow now treats elevated sequential Git as the normal `.git/index.lock`
+  recovery and requires exact-range authorization for this external push safeguard.
+
 ## 2026-08-14 — Docker storage maintenance
 
 - Initial Docker usage: `24.06GB` images with `19.29GB` reclaimable. Global volume-inclusive prune

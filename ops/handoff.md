@@ -1,5 +1,19 @@
 # Active Handoff
 
+## 2026-08-14 — Backend revalidation and current push safeguard
+
+- After Docker maintenance, authoritative `make test-backend` completed with `1121` unit and
+  `303` integration tests passing (`1424` total). Existing dependency deprecation warnings were
+  non-failing. No product acceptance flexibility was used.
+- The clean local branch is `f14affdb`; origin remains `91463e54`. The exact elevated command
+  `rtk git push origin HEAD:feat/tc2000-frontend-rework` for `91463e54..f14affdb` was rejected
+  before Git by the private-repository egress safety boundary. This is transport-only; no
+  workaround, alternate transport, force push, rewrite, or indirect execution was attempted.
+- `.git/index.lock` recovery is documented in `docs/agent-orchestration.md` and the elevated
+  sequential `rtk git add`/`rtk git commit` path is proven. Keep local contexts separate and
+  continue the goal from this clean boundary; retry the exact push only after exact payload
+  authorization is available.
+
 ## 2026-08-14 — Docker maintenance context completed
 
 - Before cleanup Docker reported `24.06GB` total and `19.29GB` reclaimable. The exact global
