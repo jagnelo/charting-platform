@@ -1,5 +1,18 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-14 — Current-history Study Lab browser acceptance
+
+- Added a real authenticated browser path for the Current versus history factory study. The flow
+  selects the factory source, validates it, runs it against canonical SPY data, and asserts the
+  historical sample-size metric, uPlot histogram, comparison table, and clean browser diagnostics.
+- The first run exposed and corrected a stale branch frontend container rather than an application
+  defect. After force-recreating the container from the current image, the focused flow passed
+  `1/1` and the adjacent Study Lab/Python/results slice passed `13/13`.
+- Acceptance flexibility used: **REF-STUDY-LAB-V25 original-surface interim baseline/product
+  contract**. The board has no authoritative Study Lab capture; no visual threshold, mask, product
+  criterion, or functional acceptance rule changed. The authoritative Study Lab visual gap remains
+  open and is tracked separately.
+
 ## 2026-08-14 — DFTT official route re-probe
 
 - A bounded read-only request to the official Donoghue Forlines Tactical 30 ETF product page

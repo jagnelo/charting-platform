@@ -1,5 +1,24 @@
 # Project TODO Memory
 
+### 2026-08-14 — Current-history Study Lab browser acceptance and stale-bundle recovery
+
+- [x] Added the authenticated `F8p-current-history` regression for selecting, validating, running,
+      and inspecting the Current versus history factory study. It verifies the sample-size metric,
+      histogram, comparison table, and critical browser diagnostics without changing the oracle.
+- [x] The first browser attempt correctly exposed a test-environment defect: the branch image had
+      rebuilt, but Compose reused an older frontend container whose served `index.html` referenced
+      the previous asset. The branch frontend was force-recreated, the served asset changed from
+      `index-r9mh2XCX.js` to the current `index-9FkW5eci.js`, and the unchanged focused test passed
+      `1/1`; the adjacent Study Lab/Python/results slice passed `13/13`.
+- [x] `make test-stack-up` now includes `--force-recreate`, and the recovery procedure is recorded
+      in `docs/agent-orchestration.md` so healthy containers cannot be mistaken for a current
+      frontend bundle. Implementation/browser commit and the follow-up operational checkpoint are
+      still required before this context is closed.
+- [ ] Acceptance flexibility used: **REF-STUDY-LAB-V25 original-surface interim baseline/product
+      contract** because the visual board has no authoritative Study Lab capture. No visual
+      threshold, mask, product criterion, or browser acceptance rule was changed; the missing
+      authoritative Study Lab reference remains tracked.
+
 ### 2026-08-14 — DFTT official route re-probe
 
 - [x] Re-probed the official Donoghue Forlines Tactical 30 ETF page with a bounded

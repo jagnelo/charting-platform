@@ -464,6 +464,29 @@ added, and multiple completed contexts silently mixed into one later commit. A d
 active-context defect; an ahead-of-remote clean tree is a synchronization hold, not permission to
 continue feature work.
 
+### Browser-stack freshness recovery
+
+Browser acceptance must execute against the code that was just validated and committed, not merely
+against a container that happens to be healthy. A green service health check does not prove that its
+frontend bundle is current. When a browser test cannot see a newly added route, control, label, or
+factory option:
+
+1. Treat the first failure as an environment/bundle diagnosis, preserve the unchanged browser
+   oracle, and inspect the served `index.html` asset name.
+2. Compare the running frontend container image ID and creation time with the current branch image.
+   Do not weaken, skip, or reclassify the test while this comparison is unresolved.
+3. Rebuild the branch-scoped stack with the repository target, which uses
+   `docker compose up -d --build --force-recreate --wait`, or force-recreate only the identified
+   branch-scoped service when the image is already current. Never stop or recreate an unrelated
+   compose project.
+4. Verify the served asset changed to the freshly built asset, then rerun the same focused test and
+   the nearest regression slice. Record the stale-container diagnosis, rebuild/recreate command,
+   served-asset verification, and both results in the active handoff and project TODO entry.
+
+This procedure is a fix for a test-environment defect, not a product acceptance relaxation. The
+`--force-recreate` flag is intentionally part of `make test-stack-up` so future branch validation
+does not silently reuse an older frontend container after a successful build.
+
 #### Operational-record egress exception
 
 The freeze above applies to implementation commits, not to an already-committed operational record

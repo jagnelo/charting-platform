@@ -2470,6 +2470,27 @@ test.describe('TC2000 workstation', () => {
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
+  test('F8p-current-history — Study Lab renders the current observation inside its historical distribution', async ({ page, browserDiagnostics }) => {
+    test.setTimeout(120_000)
+    await page.goto('/chart')
+    await expect(page.locator('.workspace-layout-host')).toBeVisible({ timeout: 10_000 })
+    await page.getByRole('button', { name: 'Study', exact: true }).click()
+
+    const study = page.locator('.study-lab-tool')
+    await expect(study).toBeVisible({ timeout: 10_000 })
+    await study.getByRole('combobox', { name: 'Factory study' }).selectOption('current_history_comparison')
+    await expect(study.getByRole('textbox', { name: 'Study Python source' })).toHaveValue(/historical_return_distribution/)
+    await study.getByRole('textbox', { name: 'Study symbol' }).fill('SPY')
+    await study.getByRole('button', { name: 'Validate' }).click()
+    await expect(study).toContainText('Validated for isolated execution', { timeout: 10_000 })
+    await study.getByRole('button', { name: 'Run', exact: true }).click()
+    await expect(study.locator('.study-lab-tool__run-status--completed')).toBeVisible({ timeout: 90_000 })
+    await expect(study.locator('.study-lab-tool__metrics article').filter({ hasText: 'historical_sample_size' })).toBeVisible()
+    await expect(study.locator('.study-histogram-uplot, [class*="study-histogram"]').first()).toBeVisible()
+    await expect(study.locator('table').filter({ hasText: 'current_vs_history' })).toBeVisible()
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
   test('F8p-high-low — Study Lab exposes and runs a configurable new-high/new-low lookback', async ({ page, browserDiagnostics }) => {
     test.setTimeout(120_000)
     await page.goto('/chart')
