@@ -1,5 +1,14 @@
 # Run Report
 
+## 2026-08-14 — Shared workstation live-region semantics
+
+- Implementation `77416595` standardizes dynamic status/error live-region semantics across the
+  workstation surfaces. Focused component coverage `156/156`; full Vitest `781/781`; type-check;
+  475-module build; and diff-check pass.
+- Elevated authenticated browser slice passes `10/10` in `27.8s` across Study Lab, Study Results,
+  Coverage, Relative Rotation, Alerts, and Market Gauge. No acceptance flexibility was used and
+  exact V25 state styling remains `REF-STATE-VARIANTS`.
+
 ## 2026-08-14 — Push egress safeguard re-confirmed
 
 - Clean local `HEAD` is `b571c925`; origin is `91463e54`; exact push range is

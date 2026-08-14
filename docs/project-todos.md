@@ -1,5 +1,18 @@
 # Project TODO Memory
 
+### 2026-08-14 — Shared workstation live-region semantics
+
+- [x] Standardized dynamic status/error announcements across watchlists, charts, columns, EasyScan,
+      alerts, Market Gauge, coverage, rotation, Research Results, Study Lab, recovery, and
+      constituent-provenance surfaces with explicit live polarity and atomic updates.
+- [x] Focused component coverage passes `156/156`; full frontend Vitest passes `781/781`;
+      type-check, 475-module production build, diff-check, and elevated authenticated browser
+      coverage pass `10/10` in `27.8s` across Study Lab, Results, coverage, rotation, alerts, and
+      Market Gauge. Implementation commit: `77416595`.
+- [ ] Acceptance flexibility used: none. This closes a repository-controlled semantic contract
+      gap; exact V25 state styling remains tracked under `REF-STATE-VARIANTS`, with provider,
+      historical/GICS, native-monitor, endurance, Docker-cleanup, and final-audit gaps unchanged.
+
 ### 2026-08-14 — Alert and Market Gauge empty-state semantics
 
 - [x] Empty alert and Market Gauge states now expose polite, atomic live regions so canonical

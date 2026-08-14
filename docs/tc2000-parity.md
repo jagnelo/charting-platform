@@ -1,5 +1,15 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-14 — Shared workstation live-region semantics
+
+- Dynamic status and error surfaces across watchlists, charts, EasyScan, alerts, gauges, coverage,
+  rotation, Research Results, Study Lab, recovery, and constituent provenance now declare explicit
+  live polarity and atomic updates.
+- Focused component coverage `156/156`, full frontend Vitest `781/781`, type-check, 475-module
+  build, diff-check, and elevated authenticated browser coverage `10/10` in `27.8s` pass.
+- No visual threshold, mask, provider, uPlot, or acceptance rule changed. Exact V25 state styling
+  remains the explicit `REF-STATE-VARIANTS` gap; no acceptance flexibility was used.
+
 ## 2026-08-14 — Alert and Market Gauge empty-state semantics
 
 - Empty alert and Market Gauge prompts now expose polite, atomic status live regions, completing the

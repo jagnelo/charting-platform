@@ -1,5 +1,17 @@
 # Active Handoff
 
+## 2026-08-14 — Shared workstation live-region context completed
+
+- Implementation commit `77416595` standardizes live-region polarity and atomic updates across
+  dynamic workstation status/error surfaces: watchlists, charts, EasyScan, alerts, Market Gauge,
+  coverage, rotation, Research Results, Study Lab, recovery, and constituent provenance.
+- Validation: focused component coverage `156/156`; full frontend Vitest `781/781`; type-check;
+  475-module build; diff-check; and elevated authenticated browser coverage `10/10` in `27.8s`.
+- Acceptance flexibility used: **none**. No visual threshold, mask, provider, uPlot, or product
+  criterion changed. Exact V25 state styling remains `REF-STATE-VARIANTS`.
+- This implementation context is committed and clean locally. Continue from this boundary using
+  the sequential elevated Git path; the separate push-egress safeguard remains transport-only.
+
 ## 2026-08-14 — Current push egress safeguard re-confirmed
 
 - The clean local branch is `b571c925`; origin remains `91463e54bbfb37dc5e130d3c912434bfc41594bd`.
