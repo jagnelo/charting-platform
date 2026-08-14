@@ -27040,3 +27040,12 @@ in 4.6 minutes. No failure was suppressed or reclassified as product success.
   safeguard because trusted authorization for the exact private payload/destination was unavailable.
 - No workaround, alternate transport, rewrite, reset, stash, or repeated attempt was used. This is
   transport-only and not a product-goal blocker; the local worktree remains clean.
+
+# 2026-08-14 — Family constituent weighting evidence
+
+- Family/ETF-proxy constituent rows now expose disclosed position, weight, shares, market value,
+  holding type, row type, and resolution confidence beside technical values.
+- Focused Docker-backed integration `2/2`, Ruff, compile, frontend type-check, diff-check, and
+  YAML/JSON parsing pass. No acceptance flexibility used.
+- Clean implementation/docs commit: `cf6c9673`. Provider/rebalance history, full family
+  population, and browser weighting presentation remain open.

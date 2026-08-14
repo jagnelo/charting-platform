@@ -28450,3 +28450,13 @@ indefinite soak; longer endurance remains an explicit open gap.
   rejected before Git by the private-origin safeguard because trusted authorization for the exact
   private payload/destination was unavailable. No wrapper, alternate transport, rewrite, reset,
   stash, or repeated attempt was used. This is transport-only and not a product-goal blocker.
+
+## 2026-08-14 — Family constituent weighting evidence
+
+- Family/ETF-proxy constituent rows now preserve disclosed `position`, `weight`, `shares`,
+  `market_value`, `holding_type`, `row_type`, and `resolution_confidence` alongside technical
+  values. This is source snapshot evidence, not reconstructed index weighting.
+- Focused Docker-backed integration `2/2`, Ruff, compile, frontend type-check, diff-check, and
+  YAML/JSON parsing pass. No acceptance flexibility used.
+- Implementation/docs commit: `cf6c9673` (clean locally). Next context is provider-backed family
+  mapping/holdings and rebalance evidence; full browser weight presentation remains open.
