@@ -183,6 +183,16 @@ def execute_job(
     if isinstance(datasets, list):
         if str(job.get("output_contract") or "") == "study":
             return _execute_single(source, job.get("dataset", {}), job)
+        if str(job.get("execution_mode") or "") == "breadth_history":
+            return _execute_breadth_history(
+                source,
+                datasets,
+                job,
+                output_name=str(job.get("output_name") or "") or None,
+                history_limit=job.get("history_limit"),
+                progress_callback=progress_callback,
+                cancellation_check=cancellation_check,
+            )
         return _execute_batch(
             source,
             datasets,
@@ -193,6 +203,149 @@ def execute_job(
             cancellation_check=cancellation_check,
         )
     return _execute_single(source, job.get("dataset", {}), job)
+
+
+def _truncate_dataset(dataset: dict, index: int) -> dict:
+    """Return a read-only timestamp slice for one isolated breadth cell."""
+    truncated = dict(dataset)
+    for field in ("opens", "highs", "lows", "closes", "volumes", "vwaps", "sessions", "timestamps"):
+        value = dataset.get(field)
+        if isinstance(value, list):
+            truncated[field] = value[: index + 1]
+    benchmark = dataset.get("benchmark_dataset")
+    if isinstance(benchmark, dict):
+        benchmark_timestamps = benchmark.get("timestamps")
+        if isinstance(benchmark_timestamps, list) and index < len(benchmark_timestamps):
+            truncated["benchmark_dataset"] = _truncate_dataset(benchmark, index)
+    return truncated
+
+
+def _boolean_artifact(
+    result: dict, output_name: str | None
+) -> tuple[bool | None, str | None]:
+    """Extract one Boolean output while preserving a bounded cell diagnostic."""
+    matches = [
+        artifact
+        for name, artifact in result.get("artifacts", {}).items()
+        if isinstance(artifact, dict)
+        and artifact.get("type") == "boolean"
+        and (output_name is None or name == output_name)
+    ]
+    if len(matches) != 1:
+        return None, f"Expected exactly one boolean output{f' named {output_name!r}' if output_name else ''}."
+    value = matches[0].get("value")
+    if not isinstance(value, bool):
+        return None, "Boolean output must be true or false."
+    exclusion = matches[0].get("exclusion")
+    if isinstance(exclusion, str) and exclusion:
+        return None, exclusion
+    return value, None
+
+
+def _execute_breadth_history(
+    source: str,
+    datasets: list[object],
+    hash_input: dict,
+    output_name: str | None = None,
+    history_limit: object = None,
+    *,
+    progress_callback: Callable[[dict], None] | None = None,
+    cancellation_check: Callable[[], bool] | None = None,
+) -> dict:
+    """Run one user Boolean predicate at aligned historical timestamps.
+
+    The first declared member supplies the timestamp axis, matching the existing
+    breadth history contract. Other members must contain the exact timestamp;
+    missing timestamps become exclusions rather than forward-filled values.
+    """
+    first = next((item for item in datasets if isinstance(item, dict)), None)
+    timestamps = first.get("timestamps", []) if isinstance(first, dict) else []
+    if not isinstance(timestamps, list):
+        timestamps = []
+    normalized_limit = history_limit
+    if isinstance(normalized_limit, bool) or not isinstance(normalized_limit, int):
+        normalized_limit = len(timestamps)
+    normalized_limit = max(1, min(normalized_limit, len(timestamps))) if timestamps else 0
+    timestamps = timestamps[-normalized_limit:] if normalized_limit else []
+    points: list[dict] = []
+    total = len(timestamps)
+    if progress_callback:
+        progress_callback({"completed_cells": 0, "total_cells": total, "status": "running"})
+    for point_index, timestamp in enumerate(timestamps):
+        if cancellation_check and cancellation_check():
+            return {
+                "status": "canceled",
+                "diagnostics": [{"code": "batch_canceled", "message": "breadth history canceled"}],
+                "artifacts": {"breadth_history": {"type": "breadth_history", "value": {"points": points}}},
+            }
+        cells: list[dict] = []
+        for candidate in datasets:
+            if not isinstance(candidate, dict):
+                cells.append(
+                    {"status": "excluded", "error": "invalid_dataset_row", "timestamp": timestamp}
+                )
+                continue
+            candidate_timestamps = candidate.get("timestamps")
+            if not isinstance(candidate_timestamps, list) or timestamp not in candidate_timestamps:
+                cells.append({
+                    "instrument_id": candidate.get("instrument_id"),
+                    "symbol": str(candidate.get("symbol") or "").upper(),
+                    "name": str((candidate.get("metadata") or {}).get("name") or candidate.get("symbol") or "").strip(),
+                    "status": "excluded",
+                    "error": "missing_bar_at_timestamp",
+                    "timestamp": timestamp,
+                })
+                continue
+            index = candidate_timestamps.index(timestamp)
+            cell_dataset = _truncate_dataset(candidate, index)
+            benchmark = candidate.get("benchmark_dataset")
+            if isinstance(benchmark, dict):
+                benchmark_timestamps = benchmark.get("timestamps")
+                if isinstance(benchmark_timestamps, list) and timestamp in benchmark_timestamps:
+                    cell_dataset["benchmark_dataset"] = _truncate_dataset(
+                        benchmark, benchmark_timestamps.index(timestamp)
+                    )
+                else:
+                    cell_dataset.pop("benchmark_dataset", None)
+            result = _execute_single(
+                source,
+                cell_dataset,
+                {
+                    "source": source,
+                    "dataset": cell_dataset,
+                    "output_contract": hash_input.get("output_contract"),
+                    "parameters": hash_input.get("parameters", {}),
+                    "timestamp": timestamp,
+                },
+                manage_timeout=False,
+            )
+            value, error = _boolean_artifact(result, output_name)
+            cell = {
+                "instrument_id": candidate.get("instrument_id"),
+                "symbol": str(candidate.get("symbol") or "").upper(),
+                "name": str((candidate.get("metadata") or {}).get("name") or candidate.get("symbol") or "").strip(),
+                "status": "completed" if error is None else "excluded",
+                "value": value,
+                "timestamp": timestamp,
+            }
+            if error:
+                cell["error"] = (
+                    result.get("diagnostics", [{}])[0].get("message")
+                    if result.get("status") != "completed"
+                    and result.get("diagnostics")
+                    and isinstance(result.get("diagnostics")[0], dict)
+                    else error
+                )
+            cells.append(cell)
+        points.append({"timestamp": timestamp, "cells": cells})
+        if progress_callback and (point_index + 1 == total or (point_index + 1) % 10 == 0):
+            progress_callback({"completed_cells": point_index + 1, "total_cells": total, "status": "running"})
+    return {
+        "status": "completed",
+        "artifacts": {"breadth_history": {"type": "breadth_history", "value": {"points": points}}},
+        "resource_usage": {"point_count": len(points)},
+        "reproducibility_hash": sha256(json.dumps(hash_input, sort_keys=True).encode()).hexdigest(),
+    }
 
 
 def _execute_single(
@@ -380,24 +533,39 @@ def _execute_batch(
                     }
                 )
                 continue
-            matches = [
-                artifact
-                for name, artifact in result.get("artifacts", {}).items()
-                if isinstance(artifact, dict)
-                and artifact.get("type") == output_contract
-                and (output_name is None or name == output_name)
-            ]
-            if len(matches) != 1:
+            if output_contract == "boolean":
+                value, extraction_error = _boolean_artifact(result, output_name)
+                matches = [
+                    artifact
+                    for name, artifact in result.get("artifacts", {}).items()
+                    if isinstance(artifact, dict)
+                    and artifact.get("type") == output_contract
+                    and (output_name is None or name == output_name)
+                ]
+            else:
+                matches = [
+                    artifact
+                    for name, artifact in result.get("artifacts", {}).items()
+                    if isinstance(artifact, dict)
+                    and artifact.get("type") == output_contract
+                    and (output_name is None or name == output_name)
+                ]
+                extraction_error = None
+                if len(matches) != 1:
+                    extraction_error = f"Expected exactly one {output_contract} output."
+                    value = None
+                else:
+                    value = matches[0].get("value")
+            if extraction_error:
                 cells.append(
                     {
                         "instrument_id": instrument_id,
                         "symbol": symbol,
-                        "status": "failed",
-                        "error": f"Expected exactly one {output_contract} output.",
+                        "status": "excluded" if output_contract == "boolean" else "failed",
+                        "error": extraction_error,
                     }
                 )
                 continue
-            value = matches[0].get("value")
             if output_contract == "scalar" and (
                 not isinstance(value, int | float) or isinstance(value, bool)
             ):
@@ -410,14 +578,18 @@ def _execute_batch(
                     }
                 )
                 continue
-            cells.append(
-                {
-                    "instrument_id": instrument_id,
-                    "symbol": symbol,
-                    "status": "completed",
-                    "value": value,
-                }
-            )
+            cell = {
+                "instrument_id": instrument_id,
+                "symbol": symbol,
+                "status": "completed",
+                "value": value,
+            }
+            if output_contract == "boolean" and matches:
+                if matches[0].get("metric") is not None:
+                    cell["metric"] = matches[0]["metric"]
+                if matches[0].get("exclusion") is not None:
+                    cell["exclusion"] = matches[0]["exclusion"]
+            cells.append(cell)
             if progress_callback and (len(cells) == total or len(cells) % 50 == 0):
                 progress_callback(
                     {"completed_cells": len(cells), "total_cells": total, "status": "running"}
@@ -501,11 +673,32 @@ class _Output:
         else:
             self._store(name, {"type": "series", "value": values})
 
-    def boolean(self, name: str, value: object) -> None:
+    def boolean(
+        self,
+        name: str,
+        value: object,
+        metric: object = None,
+        exclusion: object = None,
+    ) -> None:
         value = _materialize(value)
         if not isinstance(value, bool):
             raise ValueError("boolean output must be true or false")
-        self._store(name, {"type": "boolean", "value": value})
+        artifact: dict[str, object] = {"type": "boolean", "value": value}
+        if metric is not None:
+            normalized_metric = _materialize(metric)
+            if (
+                not isinstance(normalized_metric, int | float)
+                or isinstance(normalized_metric, bool)
+                or not math.isfinite(float(normalized_metric))
+            ):
+                raise ValueError("boolean metric must be a finite number")
+            artifact["metric"] = float(normalized_metric)
+        if exclusion is not None:
+            normalized_exclusion = _materialize(exclusion)
+            if not isinstance(normalized_exclusion, str) or not normalized_exclusion:
+                raise ValueError("boolean exclusion must be a non-empty string")
+            artifact["exclusion"] = normalized_exclusion
+        self._store(name, artifact)
 
     def table(self, name: str, value: object) -> None:
         self._store(name, {"type": "table", "value": _materialize(value)})

@@ -312,6 +312,63 @@ class BreadthDefinitionHistoryOut(AnalysisResponseMetadata):
     exclusions: list[AnalysisWarning] = Field(default_factory=list)
 
 
+class BreadthPythonRunRequest(BaseModel):
+    """Queue one user-authored Boolean predicate through the isolated runner."""
+
+    code_version_id: int = Field(ge=1)
+    universe: BreadthUniverseRequest
+    parameters: dict[str, object] = Field(default_factory=dict)
+    timeframe: str = "D1"
+    adjusted: bool = True
+    session: Literal["regular", "all"] = "regular"
+    as_of: datetime | None = None
+    benchmark: str | None = Field(default=None, max_length=80)
+    history: bool = False
+    history_limit: int = Field(default=500, ge=1, le=5_000)
+
+
+class BreadthPythonRunOut(BaseModel):
+    run_id: int
+    code_version_id: int
+    status: str
+    execution_mode: Literal["breadth_current", "breadth_history"]
+    definition_hash: str
+    universe: dict[str, object] = Field(default_factory=dict)
+    condition: dict[str, object] = Field(default_factory=dict)
+    dataset_manifest: dict[str, object] = Field(default_factory=dict)
+    progress: dict[str, object] = Field(default_factory=dict)
+    diagnostics: list[dict[str, object]] = Field(default_factory=list)
+
+
+class BreadthPythonResultPointOut(BaseModel):
+    timestamp: datetime | None = None
+    requested_count: int = Field(ge=0)
+    eligible_count: int = Field(ge=0)
+    pass_count: int = Field(ge=0)
+    excluded_count: int = Field(ge=0)
+    percentage: float | None = Field(default=None, ge=0, le=1)
+    coverage: float = Field(ge=0, le=1)
+    members: list[BreadthMemberResultOut] = Field(default_factory=list)
+    exclusions: list[AnalysisWarning] = Field(default_factory=list)
+
+
+class BreadthPythonResultOut(AnalysisResponseMetadata):
+    """Collected isolated-Python breadth output with explicit run lineage."""
+
+    run_id: int
+    code_version_id: int
+    status: str
+    execution_mode: Literal["breadth_current", "breadth_history"]
+    definition_hash: str
+    universe: dict[str, object] = Field(default_factory=dict)
+    condition: dict[str, object] = Field(default_factory=dict)
+    dataset_manifest: dict[str, object] = Field(default_factory=dict)
+    current: BreadthPythonResultPointOut | None = None
+    points: list[BreadthPythonResultPointOut] = Field(default_factory=list)
+    progress: dict[str, object] = Field(default_factory=dict)
+    diagnostics: list[dict[str, object]] = Field(default_factory=list)
+
+
 class IndicatorBatchRequest(BaseModel):
     symbols: list[str] = Field(min_length=1, max_length=10_000)
     indicator: str = Field(min_length=1, max_length=64)

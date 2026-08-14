@@ -20,6 +20,7 @@ from app.models.etf_holdings import ETFHolding, ETFHoldingsSnapshot, ETFProfile
 from app.models.instrument import Instrument
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.provider_observation import DatasetStatus, InstrumentDatasetState
+from app.models.research import CodeAsset, CodeVersion, ResearchRun
 from app.models.screener import ScreenerDefinition, ScreenerResult
 from app.models.user import User
 from app.models.workstation import MarketGroup, MarketGroupMember, WorkspaceLibraryItem
@@ -45,6 +46,10 @@ from app.schemas.analysis import (
     BreadthHistoryRequest,
     BreadthMemberResultOut,
     BreadthOut,
+    BreadthPythonResultOut,
+    BreadthPythonResultPointOut,
+    BreadthPythonRunOut,
+    BreadthPythonRunRequest,
     ETFConstituentSnapshotOut,
     GroupSnapshotOut,
     GroupSnapshotRow,
@@ -68,6 +73,12 @@ from app.services.breadth import (
     evaluate_breadth_history,
 )
 from app.services.indicators import OHLCVSeries, get_latest_value
+from app.services.parameter_validation import validate_parameter_values
+from app.services.research_jobs import (
+    collect_research_result,
+    enqueue_research_run,
+    read_research_progress,
+)
 
 router = APIRouter(prefix="/analysis", tags=["analysis"])
 
@@ -2432,6 +2443,340 @@ def _saved_condition_to_breadth(node: Mapping[str, object]) -> dict[str, object]
                     },
                 }
     raise ValueError("saved condition is outside the supported breadth subset")
+
+
+def _python_breadth_condition_metadata(
+    version: CodeVersion, parameters: Mapping[str, object]
+) -> dict[str, object]:
+    asset = version.asset
+    return {
+        "kind": "python",
+        "code_version_id": version.id,
+        "asset_key": asset.stable_key if asset is not None else None,
+        "asset_version": version.version_number,
+        "output_contract": version.output_contract,
+        "sdk_version": version.sdk_version,
+        "runtime_version": version.runtime_version,
+        "lookback": version.lookback,
+        "parameters": dict(parameters),
+    }
+
+
+async def _load_python_breadth_run(
+    db: AsyncSession, run_id: int, current_user: User
+) -> ResearchRun:
+    run = (
+        await db.execute(
+            select(ResearchRun)
+            .options(
+                selectinload(ResearchRun.artifacts),
+                selectinload(ResearchRun.code_version).selectinload(CodeVersion.asset),
+            )
+            .where(ResearchRun.id == run_id, ResearchRun.user_id == current_user.id)
+        )
+    ).scalar_one_or_none()
+    if run is None or not str(run.run_config.get("execution_mode", "")).startswith("breadth_"):
+        raise HTTPException(status_code=404, detail="Breadth Python run not found")
+    collect_research_result(run)
+    run.progress = read_research_progress(run.id)
+    return run
+
+
+def _python_breadth_warning(code: str, instrument_id: object = None) -> AnalysisWarning:
+    return AnalysisWarning(
+        code=code,
+        message="The isolated Python predicate excluded this member from the eligible denominator.",
+        instrument_id=instrument_id if isinstance(instrument_id, int) else None,
+    )
+
+
+def _python_breadth_point(
+    raw: Mapping[str, object], requested_count: int
+) -> BreadthPythonResultPointOut:
+    timestamp_value = raw.get("timestamp")
+    timestamp: datetime | None = None
+    if isinstance(timestamp_value, str):
+        try:
+            timestamp = datetime.fromisoformat(timestamp_value.replace("Z", "+00:00"))
+        except ValueError:
+            timestamp = None
+    cells = raw.get("cells")
+    cells = cells if isinstance(cells, list) else []
+    members: list[BreadthMemberResultOut] = []
+    exclusions: list[AnalysisWarning] = []
+    for cell in cells:
+        if not isinstance(cell, dict) or not isinstance(cell.get("instrument_id"), int):
+            continue
+        value = cell.get("value") if isinstance(cell.get("value"), bool) else None
+        error = cell.get("error")
+        warning = _python_breadth_warning(str(error), cell.get("instrument_id")) if error else None
+        if warning:
+            exclusions.append(warning)
+        members.append(
+            BreadthMemberResultOut(
+                instrument_id=cell["instrument_id"],
+                symbol=str(cell.get("symbol") or "").upper(),
+                name=str(cell.get("name") or cell.get("symbol") or "").strip(),
+                value=value,
+                metric=(
+                    float(cell["metric"])
+                    if isinstance(cell.get("metric"), int | float)
+                    and not isinstance(cell.get("metric"), bool)
+                    else None
+                ),
+                observation_time=timestamp,
+                warning=warning,
+            )
+        )
+    eligible = sum(member.value is not None for member in members)
+    passed = sum(member.value is True for member in members)
+    requested = max(requested_count, len(members))
+    return BreadthPythonResultPointOut(
+        timestamp=timestamp,
+        requested_count=requested,
+        eligible_count=eligible,
+        pass_count=passed,
+        excluded_count=max(requested - eligible, 0),
+        percentage=passed / eligible if eligible else None,
+        coverage=eligible / requested if requested else 0,
+        members=members,
+        exclusions=exclusions,
+    )
+
+
+def _manifest_exclusion_warnings(manifest: Mapping[str, object]) -> list[AnalysisWarning]:
+    raw = manifest.get("exclusions")
+    if not isinstance(raw, list):
+        return []
+    return [
+        AnalysisWarning(
+            code=str(item.get("code") or "excluded"),
+            message="The declared breadth universe member was unavailable before isolated evaluation.",
+        )
+        for item in raw
+        if isinstance(item, dict)
+    ]
+
+
+def _python_breadth_run_out(run: ResearchRun) -> BreadthPythonRunOut:
+    config = run.run_config if isinstance(run.run_config, dict) else {}
+    return BreadthPythonRunOut(
+        run_id=run.id,
+        code_version_id=run.code_version_id,
+        status=run.status,
+        execution_mode=config.get("execution_mode", "breadth_current"),
+        definition_hash=str(config.get("definition_hash") or ""),
+        universe=config.get("universe", {}),
+        condition=config.get("condition", {}),
+        dataset_manifest=run.dataset_manifest if isinstance(run.dataset_manifest, dict) else {},
+        progress=run.progress if isinstance(getattr(run, "progress", {}), dict) else {},
+        diagnostics=run.diagnostics if isinstance(run.diagnostics, list) else [],
+    )
+
+
+@router.post("/breadth/python", response_model=BreadthPythonRunOut, status_code=202)
+async def queue_python_breadth(
+    body: BreadthPythonRunRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Queue an arbitrary Boolean breadth predicate in the isolated runner."""
+    try:
+        timeframe = Timeframe(body.timeframe)
+    except ValueError as exc:
+        raise HTTPException(
+            422, detail={"code": "unsupported_timeframe", "timeframe": body.timeframe}
+        ) from exc
+    version = (
+        await db.execute(
+            select(CodeVersion)
+            .join(CodeAsset)
+            .options(selectinload(CodeVersion.asset))
+            .where(
+                CodeVersion.id == body.code_version_id,
+                CodeAsset.user_id == current_user.id,
+                CodeAsset.kind == "condition",
+                CodeAsset.is_archived.is_(False),
+            )
+        )
+    ).scalar_one_or_none()
+    if version is None or version.output_contract != "boolean":
+        raise HTTPException(
+            422,
+            detail={
+                "code": "python_breadth_condition_unavailable",
+                "message": "The selected user-owned code version must be an active Boolean condition.",
+            },
+        )
+    if not isinstance(body.parameters, dict):
+        raise HTTPException(422, detail={"code": "parameters_must_be_object"})
+
+    placeholder = BreadthDefinitionRequest(
+        universe=body.universe,
+        condition=BreadthConditionRequest(kind="comparison", params={"field": "close"}),
+        timeframe=timeframe.value,
+        adjusted=body.adjusted,
+        as_of=body.as_of,
+        benchmark=body.benchmark,
+    )
+    members, member_ids, universe_warnings, universe_provenance, membership_payload = (
+        await _resolve_generic_breadth_universe(placeholder, db)
+    )
+    membership_version = _generic_membership_version(membership_payload)
+    parameters = dict(version.default_parameters or {})
+    parameters.update(body.parameters)
+    parameter_errors = validate_parameter_values(version.parameter_schema, parameters)
+    if parameter_errors:
+        raise HTTPException(
+            422,
+            detail={"code": "parameter_validation_failed", "errors": parameter_errors},
+        )
+    condition_metadata = _python_breadth_condition_metadata(version, parameters)
+    execution_mode = "breadth_history" if body.history else "breadth_current"
+    definition_payload = {
+        "universe": universe_provenance,
+        "membership_version": membership_version,
+        "condition": condition_metadata,
+        "timeframe": timeframe.value,
+        "adjustment": "split_adjusted" if body.adjusted else "raw",
+        "session": body.session,
+        "as_of": body.as_of.isoformat() if body.as_of else None,
+        "benchmark": body.benchmark.upper() if body.benchmark else None,
+        "execution_mode": execution_mode,
+        "history_limit": body.history_limit,
+    }
+    run_config = {
+        "symbols": [member.symbol for member in members],
+        "parameters": parameters,
+        "timeframe": timeframe.value,
+        "adjustment": "split_adjusted" if body.adjusted else "raw",
+        "session": body.session,
+        "as_of": body.as_of.isoformat() if body.as_of else None,
+        "benchmark": body.benchmark.upper() if body.benchmark else None,
+        "execution_mode": execution_mode,
+        "history_limit": body.history_limit,
+        "definition_hash": definition_hash(
+            definition_payload, membership_version=membership_version
+        ),
+        "universe": {
+            **universe_provenance,
+            "membership_version": membership_version,
+            "requested_count": len(members) + len(universe_warnings),
+            "warnings": [warning.model_dump() for warning in universe_warnings],
+        },
+        "condition": condition_metadata,
+    }
+    from app.routers.research import _materialize_declared_dataset
+
+    manifest = await _materialize_declared_dataset(
+        db,
+        {
+            "universe": universe_provenance,
+            "membership_version": membership_version,
+            "requested_count": len(member_ids) + len(universe_warnings),
+        },
+        run_config,
+        lookback=version.lookback,
+    )
+    run = ResearchRun(
+        user_id=current_user.id,
+        code_version_id=version.id,
+        run_config=run_config,
+        dataset_manifest=manifest,
+    )
+    run.code_version = version
+    db.add(run)
+    await db.flush()
+    enqueue_research_run(run)
+    run.progress = {}
+    return _python_breadth_run_out(run)
+
+
+@router.get("/breadth/python/runs/{run_id}", response_model=BreadthPythonResultOut)
+async def get_python_breadth_result(
+    run_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Collect a queued Python breadth run without executing source in FastAPI."""
+    run = await _load_python_breadth_run(db, run_id, current_user)
+    config = run.run_config if isinstance(run.run_config, dict) else {}
+    execution_mode = config.get("execution_mode", "breadth_current")
+    requested_count = int(
+        (config.get("universe") or {}).get("requested_count", 0)
+        if isinstance(config.get("universe"), dict)
+        else 0
+    )
+    points: list[BreadthPythonResultPointOut] = []
+    current: BreadthPythonResultPointOut | None = None
+    artifact = next(
+        (
+            item
+            for item in run.artifacts
+            if item.name == ("breadth_history" if execution_mode == "breadth_history" else "batch_cells")
+        ),
+        None,
+    )
+    if artifact and isinstance(artifact.payload, dict):
+        value = artifact.payload.get("value")
+        if execution_mode == "breadth_history" and isinstance(value, dict):
+            raw_points = value.get("points")
+            if isinstance(raw_points, list):
+                points = [
+                    _python_breadth_point(point, requested_count)
+                    for point in raw_points
+                    if isinstance(point, dict)
+                ]
+                current = points[-1] if points else None
+        elif isinstance(value, dict):
+            raw_cells = value.get("cells")
+            current = _python_breadth_point(
+                {
+                    "timestamp": None,
+                    "cells": raw_cells if isinstance(raw_cells, list) else [],
+                },
+                requested_count,
+            )
+    manifest_warnings = _manifest_exclusion_warnings(
+        run.dataset_manifest if isinstance(run.dataset_manifest, dict) else {}
+    )
+    if manifest_warnings:
+        if current is not None:
+            current = current.model_copy(
+                update={
+                    "excluded_count": current.excluded_count + len(manifest_warnings),
+                    "exclusions": [*current.exclusions, *manifest_warnings],
+                    "coverage": current.eligible_count / requested_count
+                    if requested_count
+                    else 0,
+                }
+            )
+        points = [
+            point.model_copy(
+                update={
+                    "excluded_count": point.excluded_count + len(manifest_warnings),
+                    "exclusions": [*point.exclusions, *manifest_warnings],
+                    "coverage": point.eligible_count / requested_count if requested_count else 0,
+                }
+            )
+            for point in points
+        ]
+    return BreadthPythonResultOut(
+        calculation_version="analysis-python-v1",
+        data_provenance="canonical_local_database_then_isolated_runner",
+        run_id=run.id,
+        code_version_id=run.code_version_id,
+        status=run.status,
+        execution_mode=execution_mode,
+        definition_hash=str(config.get("definition_hash") or ""),
+        universe=config.get("universe", {}),
+        condition=config.get("condition", {}),
+        dataset_manifest=run.dataset_manifest if isinstance(run.dataset_manifest, dict) else {},
+        current=current,
+        points=points,
+        progress=run.progress if isinstance(getattr(run, "progress", {}), dict) else {},
+        diagnostics=run.diagnostics if isinstance(run.diagnostics, list) else [],
+    )
 
 
 @router.post("/breadth", response_model=BreadthDefinitionOut)

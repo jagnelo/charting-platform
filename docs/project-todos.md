@@ -1,5 +1,28 @@
 # Project TODO Memory
 
+### 2026-08-14 — Isolated-Python breadth predicates and EasyScan promotion
+
+- [x] Added `POST /analysis/breadth/python` for user-owned immutable Boolean CodeVersions. It
+      resolves the selected canonical group/ETF-proxy/explicit-symbol universe locally, records
+      membership/provenance/condition/runtime metadata, materializes only canonical local data,
+      and queues the source through the existing no-network research runner.
+- [x] Added `GET /analysis/breadth/python/runs/{run_id}` for current and historical results. The
+      runner evaluates the same user source per member; history reruns it on aligned truncated
+      datasets and excludes missing timestamps instead of forward-filling. Results expose the
+      eligible denominator, pass count, percentage, per-member values, exclusions, progress,
+      dataset manifest, and reproducibility hash.
+- [x] Extended Boolean artifacts with optional finite metrics and exclusion codes, and retained
+      the existing EasyScan promotion path as the first compatible reuse target. The integration
+      proof queues both current/history runs and promotes the exact CodeVersion into EasyScan.
+- [x] Focused isolated-runner/router/evaluator coverage passes `113/113`; sandbox/job protocol
+      coverage passes `50/50`; database-backed current/history/Python queue/EasyScan integration
+      passes `3/3`; Ruff and diff checks pass.
+- [ ] Visual Python condition-tree authoring, occurrence-to-chart linking, promotion into every
+      compatible uPlot/list/filter/gauge/alert/export target, and point-in-time ETF browser
+      evidence remain open. Acceptance flexibility used: **none**. The first runner indentation
+      defect and an omitted integration fixture were fixed and regression-tested rather than
+      suppressed.
+
 ### 2026-08-14 — Reuse versioned condition assets in generic breadth
 
 - [x] Extended current and historical generic breadth definitions to accept either an inline

@@ -1245,6 +1245,95 @@ class TestWorkspaces:
         assert payload["condition_library_version"] == 1
         assert payload["python_code_version_id"] == saved_python_version
 
+    def test_python_breadth_queues_isolated_current_and_history_and_promotes_to_scan(
+        self, client, auth_headers, instrument, ohlcv_bars, tmp_path, monkeypatch
+    ):
+        import json
+
+        from research_runner.runner import execute_job
+
+        monkeypatch.setattr(
+            "app.services.research_jobs.settings.RESEARCH_JOB_DIR", str(tmp_path / "jobs")
+        )
+        monkeypatch.setattr(
+            "app.services.research_jobs.settings.RESEARCH_RESULT_DIR", str(tmp_path / "results")
+        )
+        source = (
+            "condition = parameters['condition']\n"
+            "snapshot = research.breadth_condition({'datasets': [dataset]}, condition)\n"
+            "row = snapshot['rows'][0]\n"
+            "output.boolean('match', row['value'] is True, metric=row['metric'], exclusion=row.get('exclusion'))"
+        )
+        asset_response = client.post(
+            "/api/v1/code/assets",
+            headers=auth_headers,
+            json={
+                "stable_key": "python-breadth-condition",
+                "name": "Python breadth condition",
+                "kind": "condition",
+                "initial_version": {
+                    "source": source,
+                    "output_contract": "boolean",
+                    "output_name": "match",
+                },
+            },
+        )
+        assert asset_response.status_code == 201
+        version_id = asset_response.json()["versions"][0]["id"]
+
+        promotion = client.post(
+            f"/api/v1/screeners/from-python-condition/{version_id}",
+            headers=auth_headers,
+            json={"name": "Python breadth EasyScan"},
+        )
+        assert promotion.status_code == 201
+        assert promotion.json()["conditions"] == {
+            "type": "python_condition",
+            "code_version_id": version_id,
+        }
+
+        for history in (False, True):
+            queued = client.post(
+                "/api/v1/analysis/breadth/python",
+                headers=auth_headers,
+                json={
+                    "code_version_id": version_id,
+                    "universe": {"kind": "symbols", "symbols": [instrument.symbol]},
+                    "parameters": {
+                        "condition": {"kind": "above_moving_average", "params": {"period": 2}}
+                    },
+                    "session": "all",
+                    "history": history,
+                    "history_limit": 20,
+                },
+            )
+            assert queued.status_code == 202
+            queued_payload = queued.json()
+            assert queued_payload["execution_mode"] == (
+                "breadth_history" if history else "breadth_current"
+            )
+            job_path = tmp_path / "jobs" / f"{queued_payload['run_id']}.json"
+            job = json.loads(job_path.read_text())
+            assert job["execution_mode"] == queued_payload["execution_mode"]
+            result = execute_job(job)
+            (tmp_path / "results").mkdir(exist_ok=True)
+            (tmp_path / "results" / f"{queued_payload['run_id']}.json").write_text(
+                json.dumps(result)
+            )
+            collected = client.get(
+                f"/api/v1/analysis/breadth/python/runs/{queued_payload['run_id']}",
+                headers=auth_headers,
+            )
+            assert collected.status_code == 200
+            collected_payload = collected.json()
+            assert collected_payload["status"] == "completed"
+            assert collected_payload["code_version_id"] == version_id
+            if history:
+                assert collected_payload["points"], collected_payload
+                assert collected_payload["current"] is not None
+            else:
+                assert collected_payload["current"]["requested_count"] == 1
+
     def test_etf_constituent_snapshot_is_point_in_time_and_source_labelled(
         self, client, auth_headers, db, instrument, instrument_type, ohlcv_bars
     ):

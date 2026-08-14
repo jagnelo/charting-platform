@@ -197,6 +197,77 @@ def test_runner_supports_composite_breadth_conditions_and_scalar_comparisons():
     assert result["artifacts"]["rows"]["value"][1]["value"] is False
 
 
+def test_runner_executes_arbitrary_python_breadth_predicate_in_current_batch_mode():
+    source = (
+        "condition = parameters['condition']\n"
+        "snapshot = research.breadth_condition({'datasets': [dataset]}, condition)\n"
+        "row = snapshot['rows'][0]\n"
+        "output.boolean('match', row['value'] is True, metric=row['metric'], exclusion=row.get('exclusion'))"
+    )
+    result = execute_job(
+        {
+            "source": source,
+            "output_contract": "boolean",
+            "parameters": {
+                "condition": {"kind": "above_moving_average", "params": {"period": 2}}
+            },
+            "dataset": {
+                "datasets": [
+                    {"instrument_id": 1, "symbol": "A", "closes": [100, 101]},
+                    {"instrument_id": 2, "symbol": "B", "closes": [100, 99]},
+                ]
+            },
+        }
+    )
+
+    assert result["status"] == "completed"
+    cells = result["artifacts"]["batch_cells"]["value"]["cells"]
+    assert [cell["value"] for cell in cells] == [True, False]
+
+
+def test_runner_executes_arbitrary_python_breadth_predicate_over_aligned_history():
+    timestamps = ["2026-01-01", "2026-01-02", "2026-01-03"]
+    source = (
+        "condition = parameters['condition']\n"
+        "snapshot = research.breadth_condition({'datasets': [dataset]}, condition)\n"
+        "row = snapshot['rows'][0]\n"
+        "output.boolean('match', row['value'] is True, metric=row['metric'], exclusion=row.get('exclusion'))"
+    )
+    result = execute_job(
+        {
+            "source": source,
+            "output_contract": "boolean",
+            "execution_mode": "breadth_history",
+            "history_limit": 3,
+            "parameters": {
+                "condition": {"kind": "above_moving_average", "params": {"period": 2}}
+            },
+            "dataset": {
+                "datasets": [
+                    {
+                        "instrument_id": 1,
+                        "symbol": "A",
+                        "timestamps": timestamps,
+                        "closes": [100, 101, 102],
+                    },
+                    {
+                        "instrument_id": 2,
+                        "symbol": "B",
+                        "timestamps": timestamps,
+                        "closes": [100, 99, 98],
+                    },
+                ]
+            },
+        }
+    )
+
+    assert result["status"] == "completed"
+    points = result["artifacts"]["breadth_history"]["value"]["points"]
+    assert len(points) == 3
+    assert all(cell["status"] == "excluded" for cell in points[0]["cells"])
+    assert [cell["value"] for cell in points[-1]["cells"]] == [True, False]
+
+
 def test_runner_computes_transparent_ninety_ninety_breadth_and_exclusions():
     result = execute_job(
         {

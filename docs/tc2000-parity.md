@@ -1,5 +1,26 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-14 — Isolated-Python breadth predicate execution
+
+Generic breadth now has an explicit isolated-Python path in addition to the platform-owned
+visual-condition subset. `POST /analysis/breadth/python` accepts a user-owned immutable Boolean
+CodeVersion plus universe, parameters, timeframe, adjustment, session, benchmark, and as-of
+configuration. It resolves canonical local membership and queues the source through the existing
+no-network research runner; FastAPI and the browser never execute user source.
+
+`GET /analysis/breadth/python/runs/{run_id}` collects current or historical output with condition
+and runtime identity, membership version, dataset manifest, reproducibility hash, pass/eligible
+counts, percentages, per-member values, exclusions, and progress. Historical execution uses
+aligned timestamp truncation and excludes missing bars instead of forward-filling. Boolean output
+artifacts may carry a finite metric and an explicit exclusion code. The existing
+`/screeners/from-python-condition/{code_version_id}` route is exercised as the first compatible
+promotion target and retains the exact immutable CodeVersion reference.
+
+This closes the isolated execution/runtime bridge only. Full visual condition-tree authoring,
+occurrence-to-chart linking, promotion into every compatible uPlot/list/filter/gauge/alert/export
+target, and point-in-time ETF browser evidence remain open. No visual threshold, provider rule, or
+acceptance criterion was relaxed.
+
 ## 2026-08-14 — Versioned condition reuse in generic breadth
 
 Generic breadth current and history requests now accept either an inline supported condition or a
