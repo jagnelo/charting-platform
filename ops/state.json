@@ -7,7 +7,7 @@
   "last_handoff_at": "2026-08-14T19:30:00Z",
   "last_commit": "95055f2e feat(frontend): integrate benchmark family ratios",
   "git_ready_to_commit": true,
-  "git_checkpoint": "Implementation commit 95055f2e is clean locally. Operational records for the family-ratio UI validation remain to be committed separately. Exact elevated pushes for the accumulated range were previously rejected before Git by the private-origin safeguard; origin remains 91463e54. No workaround, alternate transport, or repeat.",
+  "git_checkpoint": "Implementation commit 95055f2e and operational checkpoint 8a38e838 are clean locally. The exact elevated push for the accumulated range was rejected before Git by the private-origin safeguard; origin remains 91463e54. No workaround, alternate transport, or repeat.",
   "next_context": "benchmark-family-provider-and-point-in-time-evidence-20260814",
   "active_context": "benchmark-family-analytics-and-provenance-evaluation-20260814",
   "context_status": "family-ratio-ui-validation-complete-pending-commit",

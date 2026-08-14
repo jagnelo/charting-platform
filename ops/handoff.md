@@ -16,6 +16,10 @@
   setup evidence only; no visual, provenance, or acceptance criterion was relaxed.
 - Open: provider-backed historical memberships/weights, all-leg batch analytics, family breadth/
   rotation/ranking, constituent drill-down, exact/unrepresented V25 states, and final audit.
+- Git: implementation `95055f2e` and operational checkpoint `8a38e838` are clean locally. The exact
+  elevated push `rtk git push origin HEAD:feat/tc2000-frontend-rework` was rejected before Git by
+  the private-origin safeguard; origin remains `91463e54`. No workaround, alternate transport,
+  rewrite, reset, stash, or repeat was attempted.
 
 ## 2026-08-14 — Family-leg relative-strength ratio contract
 
