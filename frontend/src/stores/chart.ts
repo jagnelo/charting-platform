@@ -300,15 +300,24 @@ function createChartStore(storeId: string) {
     }
 
     function _mapBars(raw: any[]): OHLCVBar[] {
-      return raw.map(b => ({
-        ...b,
-        open:   Number(b.open),
-        high:   Number(b.high),
-        low:    Number(b.low),
-        close:  Number(b.close),
-        volume: b.volume != null ? Number(b.volume) : undefined,
-        vwap:   b.vwap   != null ? Number(b.vwap)   : undefined,
-      }))
+      return raw.flatMap(b => {
+        const open = Number(b?.open)
+        const high = Number(b?.high)
+        const low = Number(b?.low)
+        const close = Number(b?.close)
+        if (![open, high, low, close].every(Number.isFinite)) return []
+        const volume = b?.volume == null ? undefined : Number(b.volume)
+        const vwap = b?.vwap == null ? undefined : Number(b.vwap)
+        return [{
+          ...b,
+          open,
+          high,
+          low,
+          close,
+          volume: volume != null && Number.isFinite(volume) ? volume : undefined,
+          vwap: vwap != null && Number.isFinite(vwap) ? vwap : undefined,
+        } as OHLCVBar]
+      })
     }
 
     function setIndicators(configs: IndicatorConfig[]) { indicatorsDirty = true; indicators.value = configs }

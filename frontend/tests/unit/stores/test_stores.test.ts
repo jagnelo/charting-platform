@@ -157,6 +157,28 @@ describe('useChartStore', () => {
     )
   })
 
+  it('filters malformed OHLC fields before they reach uPlot data', async () => {
+    ;(api.get as ReturnType<typeof vi.fn>).mockImplementation((path: string) => {
+      if (path === '/instruments/SPY') return Promise.resolve({ id: 42, symbol: 'SPY', stats: { week52_high: 1 } }) as any
+      if (path === '/instrument-indicators/42') return Promise.resolve({ indicators: [] }) as any
+      if (path === '/ohlcv/SPY/D1') return Promise.resolve([
+        { ts: '2026-01-01T00:00:00Z', open: 1, high: 2, low: 0.5, close: 1.5, volume: 10 },
+        { ts: '2026-01-02T00:00:00Z', open: 'not-a-number', high: 2, low: 1, close: 1.5, volume: 20 },
+        { ts: '2026-01-03T00:00:00Z', open: 2, high: 3, low: 1.5, close: 2.5, volume: 'unknown', vwap: 'Infinity' },
+      ]) as any
+      return Promise.resolve([]) as any
+    })
+
+    const store = useChartStore()
+    await store.loadBars('SPY', 'D1')
+
+    expect(store.bars).toHaveLength(2)
+    expect(store.bars.every(bar => [bar.open, bar.high, bar.low, bar.close].every(Number.isFinite))).toBe(true)
+    expect(store.bars[1].volume).toBeUndefined()
+    expect(store.bars[1].vwap).toBeUndefined()
+    expect(store.uplotData.flat().some(value => typeof value === 'number' && !Number.isFinite(value))).toBe(false)
+  })
+
   it('workstation pagination stays on the local canonical OHLCV route', async () => {
     ;(api.get as ReturnType<typeof vi.fn>).mockImplementation((path: string) => {
       if (path === '/instruments/SPY') return Promise.resolve({ id: 42, symbol: 'SPY', stats: { week52_high: 1 } }) as any
