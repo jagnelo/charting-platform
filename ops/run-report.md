@@ -1,5 +1,14 @@
 # Run Report
 
+## 2026-08-14 — Distribution Bars uPlot resize lifecycle
+
+- Rebound `DistributionBars`' ResizeObserver to its conditional host, closing the empty→valid
+  result transition where a rendered histogram otherwise had no resize handling.
+- Focused component tests `2/2`, full frontend Vitest `795/795`, type-check, 475-module build,
+  uPlot contract (`45` files), and diff-check pass. Implementation: `82e81bfa`.
+- Acceptance flexibility used: **none**; remaining exact/unrepresented V25, provider/entitlement,
+  historical/GICS, native-monitor, endurance, Docker-cleanup, and final-audit gaps remain tracked.
+
 ## 2026-08-14 — Symbol Performance uPlot resize lifecycle
 
 - Rebound `SymbolPerformanceBars`' ResizeObserver to its current conditional host, preventing the

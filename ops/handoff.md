@@ -1,5 +1,19 @@
 # Active Handoff
 
+## 2026-08-14 — Distribution Bars uPlot resize lifecycle completed
+
+- Implementation `82e81bfa` repairs `DistributionBars` conditional-host resizing. The observer is
+  created independently of initial data, rebinds after empty→populated Vue host insertion,
+  disconnects on populated→empty removal, and resizes the existing uPlot instance without
+  recreating it.
+- Regression coverage proves empty→valid attachment, `setSize` handling, and stale-host
+  disconnection. Focused component tests `2/2`; full frontend Vitest `795/795`; type-check;
+  475-module production build; uPlot contract (`45` files); and diff-check pass.
+- Acceptance flexibility used: **none**. Exact/unrepresented V25, provider/entitlement,
+  historical/GICS, native-monitor, endurance, Docker global-prune, and final-audit gaps remain
+  explicit. This is a repository-controlled lifecycle repair with no visual or product-boundary
+  relaxation. The implementation is a clean local commit; push transport remains separate.
+
 ## 2026-08-14 — Symbol Performance uPlot resize lifecycle completed
 
 - Implementation `663272ef` repairs `SymbolPerformanceBars` when its conditional uPlot host changes
