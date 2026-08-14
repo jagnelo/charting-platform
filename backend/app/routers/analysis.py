@@ -41,6 +41,9 @@ from app.schemas.analysis import (
     BenchmarkFamilyBreadthMetricOut,
     BenchmarkFamilyBreadthOut,
     BenchmarkFamilyBreadthRoleOut,
+    BenchmarkFamilyConcentrationMemberOut,
+    BenchmarkFamilyConcentrationOut,
+    BenchmarkFamilyConcentrationRoleOut,
     BenchmarkFamilyCoverageOut,
     BenchmarkFamilyCoverageRoleOut,
     BenchmarkFamilyCoverageSnapshotOut,
@@ -185,6 +188,47 @@ def _historical_return_series(
             cells[period] = float(bar.close / base - 1) if base else None
         series[bar.ts] = cells
     return series
+
+
+def _distribution_stats(values: list[float]) -> dict[str, float | None]:
+    """Return deterministic finite-sample distribution statistics."""
+
+    if not values:
+        return {
+            "mean_return": None,
+            "median_return": None,
+            "dispersion": None,
+            "p10_return": None,
+            "p25_return": None,
+            "p75_return": None,
+            "p90_return": None,
+            "positive_percentage": None,
+            "negative_percentage": None,
+        }
+    ordered = sorted(values)
+
+    def percentile(fraction: float) -> float:
+        position = (len(ordered) - 1) * fraction
+        lower = math.floor(position)
+        upper = math.ceil(position)
+        if lower == upper:
+            return ordered[lower]
+        weight = position - lower
+        return ordered[lower] + (ordered[upper] - ordered[lower]) * weight
+
+    mean = sum(values) / len(values)
+    variance = sum((value - mean) ** 2 for value in values) / len(values)
+    return {
+        "mean_return": mean,
+        "median_return": percentile(0.5),
+        "dispersion": math.sqrt(variance),
+        "p10_return": percentile(0.1),
+        "p25_return": percentile(0.25),
+        "p75_return": percentile(0.75),
+        "p90_return": percentile(0.9),
+        "positive_percentage": sum(value > 0 for value in values) / len(values),
+        "negative_percentage": sum(value < 0 for value in values) / len(values),
+    }
 
 
 def _technical_cells_for_series(
@@ -2095,6 +2139,215 @@ async def benchmark_family_constituents(
                 "family_official_index": (provenance.get("official_index") or {}).get("symbol"),
             },
         }
+    )
+
+
+@router.get(
+    "/benchmark-families/{family_key}/concentration",
+    response_model=BenchmarkFamilyConcentrationOut,
+)
+async def benchmark_family_concentration(
+    family_key: str,
+    rank_period: str = Query(default="1M", pattern="^(1D|1W|1M|3M|6M|YTD|1Y)$"),
+    top_n: int = Query(default=10, ge=1, le=25),
+    as_of: datetime | None = Query(default=None),
+    timeframe: Timeframe = Timeframe.D1,
+    adjusted: bool = True,
+    _: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Summarise reported-weight concentration and return dispersion per family leg."""
+
+    group = (
+        await db.execute(select(MarketGroup).where(MarketGroup.stable_key == family_key))
+    ).scalar_one_or_none()
+    if group is None or group.group_type != "benchmark_family":
+        raise HTTPException(
+            404,
+            detail={"code": "benchmark_family_not_found", "family_key": family_key},
+        )
+    provenance = dict(group.provenance or {})
+    official = provenance.get("official_index")
+    mappings = provenance.get("proxy_mappings")
+    mappings = mappings if isinstance(mappings, Mapping) else {}
+    cap_mapping = mappings.get("cap_weight")
+    cap_mapping = cap_mapping if isinstance(cap_mapping, Mapping) else {}
+    cap_symbol = str(cap_mapping.get("symbol")).upper() if cap_mapping.get("symbol") else None
+    roles: list[BenchmarkFamilyConcentrationRoleOut] = []
+    exclusions: list[AnalysisWarning] = []
+    for role in ("cap_weight", "equal_weight", "value", "growth"):
+        mapping = mappings.get(role)
+        mapping = mapping if isinstance(mapping, Mapping) else {}
+        symbol = str(mapping.get("symbol")).upper() if mapping.get("symbol") else None
+        label = str(mapping.get("label") or "No verified mapped proxy")
+        verification_state = str(mapping.get("verification_state") or "not_verified")
+        if not symbol:
+            warning = AnalysisWarning(
+                code="family_role_mapping_unavailable",
+                message=f"No verified mapped proxy is available for the {role} leg.",
+            )
+            exclusions.append(warning)
+            roles.append(
+                BenchmarkFamilyConcentrationRoleOut(
+                    role=role,
+                    symbol=None,
+                    label=label,
+                    verification_state=verification_state,
+                    available=False,
+                    top_n=top_n,
+                    coverage=0.0,
+                    warnings=[warning],
+                )
+            )
+            continue
+        if not cap_symbol:
+            warning = AnalysisWarning(
+                code="family_cap_proxy_unavailable",
+                message="The family cap proxy is unavailable; role-relative concentration cannot be evaluated.",
+            )
+            exclusions.append(warning)
+            roles.append(
+                BenchmarkFamilyConcentrationRoleOut(
+                    role=role,
+                    symbol=symbol,
+                    label=label,
+                    verification_state=verification_state,
+                    available=False,
+                    top_n=top_n,
+                    coverage=0.0,
+                    warnings=[warning],
+                )
+            )
+            continue
+        try:
+            snapshot = await etf_constituent_snapshot(
+                symbol=symbol,
+                benchmark=cap_symbol,
+                market_benchmark=None,
+                as_of=as_of,
+                timeframe=timeframe,
+                adjusted=adjusted,
+                _=_,
+                db=db,
+            )
+        except HTTPException as error:
+            detail = error.detail if isinstance(error.detail, Mapping) else {}
+            warning = AnalysisWarning(
+                code=str(detail.get("code") or "family_holdings_unavailable"),
+                message=f"No usable holdings snapshot is available for {family_key} {role}.",
+            )
+            exclusions.append(warning)
+            roles.append(
+                BenchmarkFamilyConcentrationRoleOut(
+                    role=role,
+                    symbol=symbol,
+                    label=label,
+                    verification_state=verification_state,
+                    available=False,
+                    top_n=top_n,
+                    coverage=0.0,
+                    warnings=[warning],
+                )
+            )
+            continue
+
+        performance_rows = [
+            (row, row.performance.get(rank_period).value if row.performance.get(rank_period) else None)
+            for row in snapshot.rows
+        ]
+        returns = [float(value) for _, value in performance_rows if value is not None]
+        weighted_rows = [
+            row for row in snapshot.rows if row.weight is not None and float(row.weight) >= 0
+        ]
+        reported_weight_total = sum(float(row.weight) for row in weighted_rows)
+        ordered_by_weight = sorted(
+            weighted_rows,
+            key=lambda row: (-float(row.weight or 0), row.position),
+        )
+        if not ordered_by_weight:
+            ordered_by_weight = sorted(snapshot.rows, key=lambda row: row.position)
+        top_rows = ordered_by_weight[:top_n]
+        hhi = (
+            sum((float(row.weight or 0) / reported_weight_total) ** 2 for row in weighted_rows)
+            if reported_weight_total > 0
+            else None
+        )
+        stats = _distribution_stats(returns)
+        member_outputs = [
+            BenchmarkFamilyConcentrationMemberOut(
+                instrument_id=row.instrument_id,
+                symbol=row.symbol,
+                name=row.name,
+                position=row.position,
+                weight=row.weight,
+                performance=value,
+                covered=value is not None,
+            )
+            for row, value in performance_rows
+            if row in top_rows
+        ]
+        role_warnings = list(snapshot.exclusions)
+        exclusions.extend(snapshot.exclusions)
+        denominator = len(snapshot.rows) + len(snapshot.exclusions)
+        roles.append(
+            BenchmarkFamilyConcentrationRoleOut(
+                role=role,
+                symbol=symbol,
+                label=label,
+                verification_state=verification_state,
+                available=bool(snapshot.rows),
+                membership_version=snapshot.membership_version,
+                composition_date=snapshot.composition_date,
+                known_at=snapshot.known_at,
+                weight_method=("reported_holdings_weights" if weighted_rows else "unavailable"),
+                reported_weight_coverage=(
+                    min(max(reported_weight_total, 0.0), 1.0) if weighted_rows else None
+                ),
+                top_n=top_n,
+                top_n_weight=(
+                    min(sum(float(row.weight or 0) for row in top_rows), 1.0)
+                    if weighted_rows
+                    else None
+                ),
+                hhi=hhi,
+                effective_constituents=(1 / hhi if hhi else None),
+                eligible_count=len(snapshot.rows),
+                covered_count=len(returns),
+                excluded_count=len(snapshot.exclusions),
+                coverage=len(returns) / max(denominator, 1),
+                members=member_outputs,
+                warnings=role_warnings,
+                **stats,
+            )
+        )
+
+    freshness_ids = [
+        instrument.id
+        for instrument in (
+            await db.execute(
+                select(Instrument).where(
+                    Instrument.symbol.in_([role.symbol for role in roles if role.symbol])
+                )
+            )
+        ).scalars()
+    ]
+    freshness, freshness_detail = await _batch_freshness(
+        db, freshness_ids, timeframe, adjusted
+    )
+    return BenchmarkFamilyConcentrationOut(
+        family_key=family_key,
+        official_index_symbol=(
+            str(official.get("symbol") or "") if isinstance(official, Mapping) else ""
+        ),
+        timeframe=timeframe.value,
+        adjustment="split_adjusted" if adjusted else "raw",
+        as_of=as_of,
+        rank_period=rank_period,
+        top_n=top_n,
+        roles=roles,
+        exclusions=exclusions,
+        freshness=freshness,
+        freshness_detail=freshness_detail,
     )
 
 

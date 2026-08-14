@@ -1,5 +1,28 @@
 # Project TODO Memory
 
+### 2026-08-14 — Family concentration and cross-sectional dispersion slice
+
+- [x] Added `GET /analysis/benchmark-families/{family_key}/concentration` over the existing
+      point-in-time constituent snapshot contract. Each cap/equal/value/growth leg remains
+      independent and reports reported-weight coverage, top-N weight, HHI, effective constituent
+      count, selected-period return distribution (mean/median/dispersion/percentiles and positive/
+      negative share), covered/excluded counts, membership dates, freshness, provenance, and the
+      top-N member rows. Missing mappings, cap proxies, holdings, weights, and bars remain explicit
+      unavailable/zero-coverage states; no role or family fallback is permitted.
+- [x] Added the authenticated workstation/store concentration strip beside family ratios,
+      technicals, participation, and ranking, plus stable cache identity and loading/error states.
+      The SPY/RSP fixture now exercises the UI and displays top-N concentration, HHI, effective
+      breadth, dispersion, and coverage.
+- [x] Validation passes: focused backend concentration integration `1/1`, concentration store
+      unit `64/64`, full frontend Vitest `836/836`, type-check/build, rebuilt-stack Chromium
+      `F8s-breadth-family-ratio` `1/1`, and `git diff --check`. The first focused run exposed and
+      repaired a real unavailable-role response-contract defect (`coverage` is now explicitly
+      `0.0`); this was a code fix with regression coverage, not acceptance flexibility.
+- [ ] Still open: historical concentration/dispersion curves, provider-backed population across
+      all eight benchmark roots and verified style legs, rebalance-aware weighting, and full
+      family-wide browser/end-to-end acceptance. These are tracked requirements, not hidden by
+      the current fixture.
+
 ### 2026-08-14 — Family dated-coverage contract and workstation evidence strip
 
 - [x] Added read-only `GET /analysis/benchmark-families/{family_key}/coverage`, returning

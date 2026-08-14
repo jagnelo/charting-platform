@@ -665,6 +665,96 @@ class TestWorkspaces:
         assert missing.status_code == 404
         assert missing.json()["detail"]["code"] == "benchmark_proxy_unavailable"
 
+    def test_benchmark_family_concentration_reports_weight_hhi_and_dispersion(
+        self, client, auth_headers, db, instrument, instrument_type, ohlcv_bars
+    ):
+        from datetime import UTC, datetime
+        from decimal import Decimal
+
+        from app.models.etf_holdings import ETFHolding, ETFHoldingsSnapshot, ETFProfile
+        from app.models.instrument import Instrument
+        from app.models.ohlcv import OHLCVBar, Timeframe
+
+        seeded = client.get("/api/v1/market-groups", headers=auth_headers)
+        assert seeded.status_code == 200
+        spy = Instrument(
+            symbol="SPY",
+            name="SPDR S&P 500 ETF Trust",
+            currency="USD",
+            instrument_type_id=instrument_type.id,
+            is_active=True,
+        )
+        db.add(spy)
+        db.flush()
+        profile = ETFProfile(instrument_id=spy.id, adapter_status="resolved")
+        db.add(profile)
+        db.flush()
+        snapshot = ETFHoldingsSnapshot(
+            etf_profile_id=profile.id,
+            composition_date=datetime(2024, 6, 30, tzinfo=UTC).date(),
+            known_at=datetime(2024, 7, 1, tzinfo=UTC),
+            provenance="issuer_native",
+            source_provider="fixture",
+            source_quality="issuer_disclosed",
+            completeness_status="complete",
+            row_count=1,
+            resolved_count=1,
+            unresolved_count=0,
+            total_weight=Decimal("0.25"),
+            snapshot_hash="test-family-concentration-spy",
+        )
+        db.add(snapshot)
+        db.flush()
+        db.add(
+            ETFHolding(
+                snapshot_id=snapshot.id,
+                constituent_instrument_id=instrument.id,
+                position=1,
+                reported_symbol=instrument.symbol,
+                reported_name=instrument.name,
+                weight=Decimal("0.25"),
+                source_row_hash="test-family-concentration-aapl",
+                is_resolved=True,
+            )
+        )
+        for index, bar in enumerate(ohlcv_bars):
+            close = Decimal(str(100 + index))
+            db.add(
+                OHLCVBar(
+                    instrument_id=spy.id,
+                    timeframe=Timeframe.D1,
+                    ts=bar.ts,
+                    open=close,
+                    high=close,
+                    low=close,
+                    close=close,
+                    volume=Decimal("1"),
+                    is_adjusted=True,
+                )
+            )
+        db.flush()
+
+        response = client.get(
+            "/api/v1/analysis/benchmark-families/sp500/concentration",
+            headers=auth_headers,
+            params={"rank_period": "1M", "top_n": 5},
+        )
+        assert response.status_code == 200, response.text
+        payload = response.json()
+        roles = {role["role"]: role for role in payload["roles"]}
+        cap = roles["cap_weight"]
+        assert cap["available"] is True
+        assert cap["weight_method"] == "reported_holdings_weights"
+        assert cap["top_n_weight"] == 0.25
+        assert cap["hhi"] == 1
+        assert cap["effective_constituents"] == 1
+        assert cap["eligible_count"] == 1
+        assert cap["covered_count"] == 1
+        assert cap["coverage"] == 1
+        assert cap["dispersion"] == 0
+        assert cap["members"][0]["symbol"] == instrument.symbol
+        assert roles["equal_weight"]["available"] is False
+
     def test_benchmark_family_ratios_align_selected_leg_to_cap_and_market(
         self, client, auth_headers, db, instrument_type
     ):

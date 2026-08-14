@@ -1,5 +1,22 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-14 — Family concentration and dispersion parity slice
+
+The family breadth surface now includes a dense concentration/dispersion strip for each available
+cap/equal/value/growth leg. It is sourced from the same point-in-time holdings/constituent
+snapshot used by drill-down, rather than a second universe resolver. The strip discloses top-N
+reported weight, HHI, effective constituent count, selected-period return dispersion, and coverage
+alongside the family role label and proxy symbol. A role without verified mapping, holdings, weight,
+or bars remains unavailable with an explicit warning and zero coverage; it is never substituted by
+SPY, QQQ, another family, or a current-only inferred relationship.
+
+The backend contract and store cache identity include family, timeframe, adjustment, as-of,
+rank-period, and top-N. The browser fixture validates the SPY/RSP cap/equal presentation and the
+store unit validates stable loading/cache behavior. This closes the current concentration UI slice
+only. Historical concentration/dispersion, rebalance-aware weights, complete provider population
+for S&P 400/600/1500 and Russell 1000/2000/3000/Nasdaq 100, and final all-root visual acceptance
+remain open matrix items.
+
 ## 2026-08-14 — Dated family coverage evidence strip
 
 The family analysis backend now exposes `GET /analysis/benchmark-families/{family_key}/coverage`.

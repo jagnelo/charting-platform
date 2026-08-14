@@ -118,6 +118,66 @@ class BenchmarkFamilyRotationOut(AnalysisResponseMetadata):
     exclusions: list[AnalysisWarning] = Field(default_factory=list)
 
 
+class BenchmarkFamilyConcentrationMemberOut(BaseModel):
+    """One resolved family-leg member in a concentration/dispersion summary."""
+
+    instrument_id: int
+    symbol: str
+    name: str
+    position: int
+    weight: Decimal | None = None
+    performance: float | None = None
+    covered: bool
+
+
+class BenchmarkFamilyConcentrationRoleOut(BaseModel):
+    """Concentration and cross-sectional dispersion for one family role."""
+
+    role: Literal["cap_weight", "equal_weight", "value", "growth"]
+    symbol: str | None = None
+    label: str
+    verification_state: str
+    available: bool
+    membership_version: int | None = None
+    composition_date: date | None = None
+    known_at: datetime | None = None
+    weight_method: str = "unavailable"
+    reported_weight_coverage: float | None = Field(default=None, ge=0, le=1)
+    top_n: int = Field(ge=1, le=25)
+    top_n_weight: float | None = None
+    hhi: float | None = None
+    effective_constituents: float | None = None
+    eligible_count: int = 0
+    covered_count: int = 0
+    excluded_count: int = 0
+    coverage: float = Field(ge=0, le=1)
+    mean_return: float | None = None
+    median_return: float | None = None
+    dispersion: float | None = None
+    p10_return: float | None = None
+    p25_return: float | None = None
+    p75_return: float | None = None
+    p90_return: float | None = None
+    positive_percentage: float | None = Field(default=None, ge=0, le=1)
+    negative_percentage: float | None = Field(default=None, ge=0, le=1)
+    members: list[BenchmarkFamilyConcentrationMemberOut] = Field(default_factory=list)
+    warnings: list[AnalysisWarning] = Field(default_factory=list)
+
+
+class BenchmarkFamilyConcentrationOut(AnalysisResponseMetadata):
+    """Concentration/dispersion batch over independent benchmark-family legs."""
+
+    family_key: str
+    official_index_symbol: str
+    timeframe: str
+    adjustment: str
+    as_of: datetime | None = None
+    rank_period: str
+    top_n: int = Field(ge=1, le=25)
+    roles: list[BenchmarkFamilyConcentrationRoleOut] = Field(default_factory=list)
+    exclusions: list[AnalysisWarning] = Field(default_factory=list)
+
+
 class AnalysisCell(BaseModel):
     value: float | None = None
     observation_time: datetime | None = None

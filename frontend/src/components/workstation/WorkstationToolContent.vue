@@ -541,6 +541,18 @@
         </template>
         <span v-else class="breadth-tool__status">Role ranking unavailable.</span>
       </div>
+      <div v-if="isBenchmarkFamily" class="breadth-tool__family-concentration" aria-label="Benchmark family concentration">
+        <strong>Leadership concentration · top {{ familyConcentration?.top_n ?? 10 }} · {{ familyConcentration?.rank_period ?? '1M' }} dispersion</strong>
+        <span v-if="familyConcentrationLoading" role="status">Loading…</span>
+        <span v-else-if="familyConcentrationError" class="breadth-tool__status--error" role="alert">{{ familyConcentrationError }}</span>
+        <template v-else-if="familyConcentration">
+          <span v-for="role in familyConcentration.roles.filter(item => item.available)" :key="role.role" class="breadth-tool__family-concentration-role">
+            <b>{{ familyRoleLabel(role.role) }}</b> {{ role.symbol ?? role.label }} · top {{ formatPercent(role.top_n_weight) }} · HHI {{ formatNumber(role.hhi) }} · effective {{ formatNumber(role.effective_constituents) }} · σ {{ formatPercent(role.dispersion) }} · {{ formatPercent(role.coverage) }} covered
+          </span>
+          <span v-if="!familyConcentration.roles.some(item => item.available)" class="breadth-tool__status">No concentration data available.</span>
+        </template>
+        <span v-else class="breadth-tool__status">Concentration unavailable.</span>
+      </div>
       <div v-if="isBenchmarkFamily" class="breadth-tool__cross-family-ranking" aria-label="Cross-family ranking">
         <strong>US family ranking · {{ crossFamilyRanking?.rank_period ?? '1M' }}</strong>
         <span v-if="crossFamilyRankingLoading" role="status">Loading…</span>
@@ -1743,6 +1755,10 @@ const familyRankingKey = computed(() => `${breadthGroupKey.value}:${breadthTimef
 const familyRanking = computed(() => workspaceStore.benchmarkFamilyRankings[familyRankingKey.value])
 const familyRankingError = computed(() => workspaceStore.benchmarkFamilyRankingErrors[familyRankingKey.value] ?? null)
 const familyRankingLoading = ref(false)
+const familyConcentrationKey = computed(() => `${breadthGroupKey.value}:${breadthTimeframe.value}:${breadthAdjusted.value ? 'adj' : 'raw'}:${familyAsOf.value || 'latest'}:1M:10`)
+const familyConcentration = computed(() => workspaceStore.benchmarkFamilyConcentrations[familyConcentrationKey.value])
+const familyConcentrationError = computed(() => workspaceStore.benchmarkFamilyConcentrationErrors[familyConcentrationKey.value] ?? null)
+const familyConcentrationLoading = ref(false)
 const crossFamilyRankingKey = computed(() => `${breadthTimeframe.value}:${breadthAdjusted.value ? 'adj' : 'raw'}:${familyAsOf.value || 'latest'}:1M::`)
 const crossFamilyRanking = computed(() => workspaceStore.crossFamilyRankings[crossFamilyRankingKey.value])
 const crossFamilyRankingError = computed(() => workspaceStore.crossFamilyRankingErrors[crossFamilyRankingKey.value] ?? null)
@@ -2585,6 +2601,7 @@ watch([breadthGroupKey, breadthTimeframe, breadthAdjusted, familyRatioMarket, fa
   familyTechnicalsLoading.value = true
   familyBreadthLoading.value = true
   familyRankingLoading.value = true
+  familyConcentrationLoading.value = true
   crossFamilyRankingLoading.value = true
   crossFamilyRankingHistoryLoading.value = true
   try {
@@ -2594,6 +2611,7 @@ watch([breadthGroupKey, breadthTimeframe, breadthAdjusted, familyRatioMarket, fa
       workspaceStore.loadBenchmarkFamilyBreadth(groupKey, { timeframe, adjusted, as_of: familyAsOf.value || undefined, near_threshold: 0.01, new_high_lookback: 20 }),
       workspaceStore.loadBenchmarkFamilyBreadthHistory(groupKey, { timeframe, adjusted, as_of: familyAsOf.value || undefined, limit: 500 }),
       workspaceStore.loadBenchmarkFamilyRanking(groupKey, { timeframe, adjusted, as_of: familyAsOf.value || undefined, rank_period: '1M' }),
+      workspaceStore.loadBenchmarkFamilyConcentration(groupKey, { timeframe, adjusted, as_of: familyAsOf.value || undefined, rank_period: '1M', top_n: 10 }),
       workspaceStore.loadCrossFamilyRanking({ timeframe, adjusted, as_of: familyAsOf.value || undefined, rank_period: '1M' }),
       workspaceStore.loadCrossFamilyRankingHistory({ timeframe, adjusted, as_of: familyAsOf.value || undefined, rank_period: '1M', limit: 500 }),
     ])
@@ -2602,6 +2620,7 @@ watch([breadthGroupKey, breadthTimeframe, breadthAdjusted, familyRatioMarket, fa
     familyTechnicalsLoading.value = false
     familyBreadthLoading.value = false
     familyRankingLoading.value = false
+    familyConcentrationLoading.value = false
     crossFamilyRankingLoading.value = false
     crossFamilyRankingHistoryLoading.value = false
   }

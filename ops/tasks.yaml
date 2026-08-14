@@ -399,6 +399,36 @@ tasks:
         family's known-at boundary and was corrected to exercise the latest contract; a component
         accessibility-label mismatch was repaired so the resolved cap benchmark is authoritative.
         No product acceptance, visual threshold, mask, or provider rule was relaxed.
+  - id: tc2000-benchmark-family-concentration-20260815
+    title: Add benchmark-family concentration and cross-sectional dispersion
+    status: completed
+    priority: high
+    scope: >-
+      Compute concentration and return-distribution evidence independently for cap/equal/value/
+      growth legs using the existing point-in-time constituent snapshot. Expose reported-weight
+      coverage, top-N weight, HHI, effective constituent count, selected-period dispersion,
+      percentiles, positive/negative share, member rows, exclusions, freshness, and provenance;
+      render the result in the family breadth workstation surface without any role fallback.
+    definition_of_done:
+      - GET /analysis/benchmark-families/{family_key}/concentration preserves family role and point-in-time membership lineage
+      - Reported weights are never inferred; missing weights and unavailable roles are explicit zero-coverage states
+      - Top-N weight, HHI, effective constituent count, dispersion, percentiles, and member coverage are returned
+      - Store loader cache identity includes family, timeframe, adjustment, as_of, rank period, and top-N
+      - Family breadth renders loading, error, unavailable, top-N, HHI, effective-count, dispersion, and coverage states
+      - Backend integration, store, full frontend, type/build, diff, and rebuilt authenticated browser checks pass
+      - Historical concentration curves, rebalance-aware weighting, and complete eight-root provider population remain open
+    validation:
+      - benchmark-family-concentration-integration-1-of-1
+      - workspace-store-concentration-64-of-64
+      - frontend-vitest-836-of-836
+      - vue-tsc-and-production-build
+      - ruff-compileall-and-diff-check
+      - rebuilt-F8s-breadth-family-ratio-concentration-1-of-1
+    notes:
+      - >-
+        Implemented and validated on 2026-08-14. The initial unavailable-role response omitted
+        required coverage; the endpoint was repaired to return explicit `0.0` coverage and the
+        focused integration rerun passed. This was a code-contract fix, not acceptance flexibility.
   - id: tc2000-generic-condition-driven-breadth-20260814
     title: Broaden breadth from fixed metrics to reusable condition-driven cross-sectional studies
     status: in_progress

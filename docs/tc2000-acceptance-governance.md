@@ -1,5 +1,17 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-08-14 — Concentration/dispersion sub-gate
+
+For every selected benchmark family leg, the acceptance run must verify that concentration and
+cross-sectional dispersion use the same membership snapshot and as-of/known-at policy as the
+constituent drill-down. The response must identify whether weights are reported holdings weights,
+locally derived equal weights, or unavailable; expose top-N weight, HHI, effective constituent
+count, return distribution, covered/eligible/excluded counts, freshness, and exact warnings. A
+missing role or weight source is an explicit unavailable/zero-coverage result and cannot borrow a
+different family or role. The current SPY/RSP fixture and browser strip are deterministic evidence
+for the presentation contract only; historical curves, rebalance continuity, all-eight-root
+provider population, and complete style-leg acceptance remain required gates.
+
 Status: `Controlling completion and exception policy`
 
 This policy makes the TC2000 workstation goal rigorous and finishable without pretending that
