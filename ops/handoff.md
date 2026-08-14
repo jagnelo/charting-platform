@@ -1,5 +1,28 @@
 # Active Handoff
 
+## 2026-08-14 — Expanded US benchmark-family scope
+
+- Broadened the active goal and section 14 to make S&P 500/400/600/1500, Russell 1000/2000/3000,
+  and Nasdaq 100 first-class benchmark-family roots. Each family must independently resolve
+  official index identity, cap-weighted proxy, verified equal-weight proxy/derived series, and
+  value/growth variants where evidence exists.
+- Generalized the SPY/RSP pattern to every family and added explicit Nasdaq 100 cap/equal
+  deconstruction (for example QQQ versus a verified QQQE mapping only when canonical identity and
+  holdings evidence confirms it). Added family breadth, participation, concentration, dispersion,
+  rotation, drawdown/volatility, ranking, and member-drilldown requirements.
+- Missing mappings must show `No verified mapped proxy`; no family may silently fall back to SPY,
+  QQQ, or an unrelated ETF. Native ETF weights versus locally derived equal-weight methodology,
+  membership snapshots, effective/known-at times, coverage, and exclusions must remain visible.
+- Added pending task `tc2000-us-benchmark-family-expansion-20260814` with taxonomy, provider,
+  cap/equal/style, Nasdaq, breadth, and browser acceptance gates. This is a scope expansion, not
+  a relaxation; no visual threshold, mask, provider, or acceptance criterion was relaxed.
+- Documentation checks pass: Ruby YAML parsing for `ops/tasks.yaml` and the V25 manifest, `jq -e`,
+  and `git diff --check`. No implementation behavior changed in this documentation context.
+- Plan commit `2d9e916e` (`docs(analysis): expand US benchmark families`) is clean locally. The
+  operational records remain a separate context and must be committed before the next context.
+- Next implementation context remains `generic-breadth-python-condition-and-promotion-20260814`;
+  the benchmark-family task is now explicitly queued behind the current generic breadth work.
+
 ## 2026-08-14 — Breadth predicate quantification plan expansion
 
 - Broadened the controlling goal and repo plans again to capture the latest product clarification:

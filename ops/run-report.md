@@ -1,5 +1,18 @@
 # Run Report
 
+## 2026-08-14 — Expanded US benchmark-family scope
+
+- Updated the active goal, section 14 plan, parity matrix, acceptance governance, and task list to
+  cover S&P 500/400/600/1500, Russell 1000/2000/3000, and Nasdaq 100 as first-class families.
+- Added cap-weighted/equal-weight/value/growth mapping rules, Nasdaq 100 cap/equal acceptance,
+  family-wide breadth and useful companion views, provenance/weighting requirements, and explicit
+  `No verified mapped proxy` behavior. QQQE is documented only as a candidate mapping requiring
+  canonical identity and holdings evidence.
+- Validation: Ruby YAML parsing, `jq -e`, and `git diff --check` pass. This is a requirements-only
+  expansion; no implementation or acceptance flexibility was claimed.
+- Plan commit: `2d9e916e` (`docs(analysis): expand US benchmark families`) is clean locally; the
+  operational checkpoint follows separately.
+
 ## 2026-08-14 — Breadth predicate quantification plan expansion
 
 - Updated the active goal, section 14 plan, parity matrix, acceptance governance, task contract,

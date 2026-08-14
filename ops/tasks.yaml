@@ -1,4 +1,35 @@
 tasks:
+  - id: tc2000-us-benchmark-family-expansion-20260814
+    title: Expand top-down and breadth analysis across US benchmark families and cap/equal/style variants
+    status: pending
+    priority: high
+    scope: >-
+      Make S&P 500/400/600/1500, Russell 1000/2000/3000, and Nasdaq 100 first-class versioned
+      workstation universes. Resolve official identities, cap-weighted proxies, equal-weight
+      proxies or explicitly labelled derived equal-weight series, and verified value/growth
+      variants wherever evidence exists. Generalize the SPY/RSP deconstruction to all families,
+      including a Nasdaq 100 cap/equal comparison, and apply generic breadth plus participation,
+      concentration, dispersion, rotation, drawdown, volatility, and member drill-down views.
+    definition_of_done:
+      - Family registry stores official index, cap, equal, value, and growth relationships independently with source/effective/known-at/provenance metadata
+      - Missing mappings return No verified mapped proxy and never silently substitute another family
+      - ETF-native versus locally derived equal-weight methodology, weights, membership snapshots, coverage, and exclusions are visible
+      - S&P 500/400/600/1500, Russell 1000/2000/3000, and Nasdaq 100 can be selected through the same top-down workflow
+      - Nasdaq 100 cap/equal deconstruction is exercised through a verified pair such as QQQ/QQQE when evidence confirms the mapping
+      - Generic breadth predicates and cap/equal/style spreads work across every available family/style universe
+      - Family-level technicals, leadership/concentration, dispersion, relative rotation, drawdown/volatility, ranking, and member drill-down are covered
+      - Free-source/provider gaps and absent style/equal proxies remain explicit rather than fabricated
+    validation:
+      - benchmark-family-taxonomy-and-provenance-contract
+      - official-versus-etf-proxy-membership-semantics
+      - cap-equal-style-comparison-and-derived-weight-audit
+      - nasdaq-100-cap-equal-acceptance
+      - cross-family-breadth-and-relative-rotation-acceptance
+      - family-member-drilldown-and-no-silent-fallback
+      - focused-integration-browser-and-end-to-end-matrix
+    notes:
+      - This is a scope expansion of the active TC2000 goal, not a relaxation or a claim that all mappings currently exist.
+      - Exact ETF symbols and style relationships remain evidence-backed data, not hard-coded assumptions; current and historical availability must be recorded by the canonical security master.
   - id: tc2000-generic-condition-driven-breadth-20260814
     title: Broaden breadth from fixed metrics to reusable condition-driven cross-sectional studies
     status: in_progress
