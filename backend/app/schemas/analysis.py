@@ -138,6 +138,25 @@ class BenchmarkFamilyOverviewOut(AnalysisResponseMetadata):
     rows: list[GroupSnapshotRow] = Field(default_factory=list)
 
 
+class BenchmarkFamilyDerivedEqualWeightOut(AnalysisResponseMetadata):
+    """A reproducible equal-weight series built only from eligible family members."""
+
+    family_key: str
+    name: str
+    official_index_symbol: str
+    timeframe: str
+    adjustment: str
+    as_of: datetime | None = None
+    membership_version: int
+    universe_provenance: dict[str, object] = Field(default_factory=dict)
+    method: str
+    member_count: int = Field(ge=0)
+    covered_member_count: int = Field(ge=0)
+    coverage: float = Field(ge=0, le=1)
+    points: list[AnalysisPoint] = Field(default_factory=list)
+    exclusions: list[AnalysisWarning] = Field(default_factory=list)
+
+
 class ETFConstituentSnapshotOut(GroupSnapshotOut):
     """A point-in-time ETF-proxy constituent batch, never an official index universe."""
 

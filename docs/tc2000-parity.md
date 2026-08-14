@@ -1,5 +1,21 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-14 — Point-in-time derived equal-weight family series
+
+Benchmark families that explicitly permit derived equal weighting now expose
+`GET /analysis/benchmark-families/{family_key}/derived-equal-weight`. The endpoint selects only
+point-in-time constituent membership rows and aligned local bars, then emits a normalized
+equal-start-weight series with declared methodology, membership version, effective/known-at
+provenance, adjustment, freshness, coverage, and exclusions. Proxy mapping rows are deliberately
+not eligible constituents.
+
+The contract distinguishes three states: a family may disallow derivation; it may allow it but
+have no point-in-time constituent membership; or it may produce a partial/complete series from
+available member bars. Each state is explicit and testable, with no SPY/QQQ or other-family
+fallback. This closes the reusable derived-series backend bridge only. Provider-backed holdings,
+rebalance/weight history, family-wide ratios/breadth/rotation, browser drill-down, and exact
+visual acceptance remain open; no acceptance criterion was relaxed.
+
 ## 2026-08-14 — Benchmark-family overview analytics contract
 
 The family selector now has a provider-neutral overview contract at

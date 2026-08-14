@@ -1,5 +1,22 @@
 # Project TODO Memory
 
+### 2026-08-14 — Point-in-time derived equal-weight family series
+
+- [x] Added `GET /analysis/benchmark-families/{family_key}/derived-equal-weight`. It builds a
+      normalized equal-start-weight series only from explicit `constituent`, `official_constituent`,
+      or `etf_proxy_constituent` membership rows selected through effective/known-at semantics.
+      Proxy mapping rows are never treated as constituents.
+- [x] The response records the declared family methodology, official index identity, membership
+      version, member/covered counts, coverage, adjustment, freshness, aligned points, and exact
+      exclusions. Families without an allowed method return a structured capability error; families
+      without members or bars return explicit unavailable/partial results rather than a fabricated
+      series.
+- [x] Validation passes: positive derived-series plus unavailable/not-allowed integration `1/1`,
+      focused family integration `3/3`, Ruff, and diff checks. Acceptance flexibility used: none.
+- [ ] Still open: provider-backed point-in-time membership ingestion, declared rebalance schedules
+      and historical weight snapshots, cap/equal/style ratio/rotation/breadth aggregation, family
+      constituent browser drill-down, and complete visual/end-to-end acceptance.
+
 ### 2026-08-14 — Benchmark-family overview analytics contract
 
 - [x] Added `GET /analysis/benchmark-families/{family_key}/overview` as the first shared

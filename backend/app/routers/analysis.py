@@ -36,6 +36,7 @@ from app.schemas.analysis import (
     AnalysisCell,
     AnalysisPoint,
     AnalysisWarning,
+    BenchmarkFamilyDerivedEqualWeightOut,
     BenchmarkFamilyMappingOut,
     BenchmarkFamilyOverviewOut,
     BreadthConditionRequest,
@@ -1820,6 +1821,124 @@ async def benchmark_family_overview(
         mappings=mappings,
         derived_equal_weight=dict(provenance.get("derived_equal_weight") or {}),
         rows=rows,
+        freshness=freshness,
+        freshness_detail=freshness_detail,
+    )
+
+
+@router.get(
+    "/benchmark-families/{family_key}/derived-equal-weight",
+    response_model=BenchmarkFamilyDerivedEqualWeightOut,
+)
+async def benchmark_family_derived_equal_weight(
+    family_key: str,
+    timeframe: Timeframe = Timeframe.D1,
+    adjusted: bool = True,
+    as_of: datetime | None = Query(default=None),
+    _: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Build a labelled equal-weight series from point-in-time family members.
+
+    Proxy mapping rows are never treated as constituents.  A family must have
+    explicit constituent membership rows (official or clearly-labelled ETF
+    proxy membership) before a derived series can be calculated.
+    """
+
+    group = (
+        await db.execute(
+            select(MarketGroup)
+            .options(selectinload(MarketGroup.members))
+            .where(MarketGroup.stable_key == family_key)
+        )
+    ).scalar_one_or_none()
+    if group is None or group.group_type != "benchmark_family":
+        raise HTTPException(
+            404,
+            detail={"code": "benchmark_family_not_found", "family_key": family_key},
+        )
+
+    provenance = dict(group.provenance or {})
+    official = provenance.get("official_index")
+    if not isinstance(official, Mapping):
+        raise HTTPException(
+            422,
+            detail={"code": "benchmark_family_metadata_missing", "family_key": family_key},
+        )
+    method_metadata = provenance.get("derived_equal_weight")
+    if not isinstance(method_metadata, Mapping) or not method_metadata.get("allowed"):
+        raise HTTPException(
+            422,
+            detail={
+                "code": "derived_equal_weight_not_allowed",
+                "family_key": family_key,
+            },
+        )
+
+    members = _group_members_at(group, as_of)
+    constituent_members = [
+        member
+        for member in members
+        if member.relationship_type
+        in {"constituent", "official_constituent", "etf_proxy_constituent"}
+    ]
+    membership_version = _group_membership_version(group, constituent_members)
+    member_ids = [member.instrument_id for member in constituent_members]
+    bars_by_id = _truncate_bars_at(
+        await _bars_by_instrument(db, member_ids, timeframe, adjusted), as_of
+    )
+    covered_member_count = sum(1 for instrument_id in member_ids if bars_by_id.get(instrument_id))
+    series = _equal_weight_series(bars_by_id, member_ids)
+    exclusions: list[AnalysisWarning] = []
+    if not constituent_members:
+        exclusions.append(
+            AnalysisWarning(
+                code="derived_equal_membership_unavailable",
+                message=(
+                    "No point-in-time constituent membership is available; proxy mapping rows "
+                    "were not used as constituents."
+                ),
+            )
+        )
+    elif not series:
+        exclusions.append(
+            AnalysisWarning(
+                code="derived_equal_no_bars",
+                message="No aligned local bars are available for the eligible members.",
+            )
+        )
+    if covered_member_count < len(constituent_members):
+        exclusions.append(
+            AnalysisWarning(
+                code="derived_equal_partial_bars",
+                message="Members without local bars were excluded from the aligned series.",
+            )
+        )
+    freshness, freshness_detail = await _batch_freshness(
+        db, member_ids, timeframe, adjusted
+    )
+    return BenchmarkFamilyDerivedEqualWeightOut(
+        family_key=family_key,
+        name=group.name,
+        official_index_symbol=str(official.get("symbol") or ""),
+        timeframe=timeframe.value,
+        adjustment="split_adjusted" if adjusted else "raw",
+        as_of=series[-1][0] if series else as_of,
+        membership_version=membership_version,
+        universe_provenance={
+            **_group_provenance(group, as_of),
+            "membership_semantics": "point_in_time_constituent_derived_equal_weight",
+            "member_count": len(constituent_members),
+            "covered_member_count": covered_member_count,
+            "weight_method": str(method_metadata.get("method") or "declared_equal_weight"),
+            "official_index_symbol": official.get("symbol"),
+        },
+        method=str(method_metadata.get("method") or "declared_equal_weight"),
+        member_count=len(constituent_members),
+        covered_member_count=covered_member_count,
+        coverage=covered_member_count / max(len(constituent_members), 1),
+        points=[AnalysisPoint(timestamp=timestamp, value=value) for timestamp, value in series],
+        exclusions=exclusions,
         freshness=freshness,
         freshness_detail=freshness_detail,
     )

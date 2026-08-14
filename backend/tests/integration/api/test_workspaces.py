@@ -489,6 +489,62 @@ class TestWorkspaces:
         assert mappings["equal_weight"]["symbol"] == "QQQE"
         assert mappings["equal_weight"]["label"] == "Nasdaq-100 equal-weight ETF proxy"
 
+    def test_benchmark_family_derived_equal_weight_requires_constituent_membership(
+        self, client, auth_headers, db, instrument, ohlcv_bars
+    ):
+        from sqlalchemy import select
+
+        from app.models.workstation import MarketGroup, MarketGroupMember
+
+        seeded = client.get("/api/v1/market-groups", headers=auth_headers)
+        assert seeded.status_code == 200
+        family = db.execute(
+            select(MarketGroup).where(MarketGroup.stable_key == "sp1500")
+        ).scalar_one()
+        db.add(
+            MarketGroupMember(
+                market_group_id=family.id,
+                instrument_id=instrument.id,
+                relationship_type="etf_proxy_constituent",
+                position=0,
+                source="controlled_fixture",
+                verification_state="proxy_verified",
+                provenance={"membership_semantics": "etf_proxy_membership"},
+            )
+        )
+        db.flush()
+        available = client.get(
+            "/api/v1/analysis/benchmark-families/sp1500/derived-equal-weight",
+            headers=auth_headers,
+        )
+        assert available.status_code == 200, available.text
+        available_payload = available.json()
+        assert available_payload["member_count"] == 1
+        assert available_payload["covered_member_count"] == 1
+        assert available_payload["coverage"] == 1
+        assert len(available_payload["points"]) == len(ohlcv_bars)
+        assert available_payload["universe_provenance"]["membership_semantics"] == (
+            "point_in_time_constituent_derived_equal_weight"
+        )
+
+        unavailable = client.get(
+            "/api/v1/analysis/benchmark-families/sp400/derived-equal-weight",
+            headers=auth_headers,
+        )
+        assert unavailable.status_code == 200, unavailable.text
+        payload = unavailable.json()
+        assert payload["family_key"] == "sp400"
+        assert payload["member_count"] == 0
+        assert payload["points"] == []
+        assert payload["exclusions"][0]["code"] == "derived_equal_membership_unavailable"
+
+        not_allowed = client.get(
+            "/api/v1/analysis/benchmark-families/nasdaq100/derived-equal-weight",
+            headers=auth_headers,
+        )
+        assert not_allowed.status_code == 422
+        assert not_allowed.json()["detail"]["code"] == "derived_equal_weight_not_allowed"
+
     def test_etf_industries_are_derived_from_point_in_time_holdings(
         self, client, admin_headers, auth_headers, db, instrument
     ):
