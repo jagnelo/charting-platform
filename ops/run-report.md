@@ -1,5 +1,18 @@
 # Run Report
 
+## 2026-08-14 — Expanded US family scope-lock documentation
+
+- Added an explicit scope lock to the controlling product and parity documents: S&P 500/400/600/
+  1500, Russell 1000/2000/3000, and Nasdaq 100 are first-class completion-bar perspectives;
+  evidenced cap/equal/value/growth legs share the full top-down, generic breadth, ratio, ranking,
+  rotation, participation, concentration/dispersion, drill-down, Study Lab, scan, gauge, and
+  export contracts.
+- Missing mappings remain explicit unavailable/derived/`No verified mapped proxy`; no SPY/QQQ or
+  name-based fallback is allowed. Commit `878570cd`; YAML/JSON parsing and diff checks pass; no
+  acceptance flexibility used.
+- The exact elevated push was attempted once and rejected before Git by the private-origin
+  safeguard. No workaround or repeat; transport-only. The worktree remains clean locally.
+
 ## 2026-08-15 — Historical iShares family-leg matrix checkpoint
 
 - Opt-in live matrix passed `7/7` for iShares `IJR`, `IWB`, `IWD`, `IWF`, `IWN`, `IWO`, and `IWV`

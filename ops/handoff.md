@@ -1,5 +1,22 @@
 # Active Handoff
 
+## 2026-08-14 — Expanded US family scope-lock documentation
+
+- Locked the requested US analysis matrix into the controlling plan and parity records: S&P
+  500/400/600/1500, Russell 1000/2000/3000, and Nasdaq 100 are all completion-bar perspectives.
+  Every evidenced cap/equal/value/growth leg inherits the same top-down,
+  condition-driven-breadth, ratio, ranking, rotation, participation/leadership,
+  concentration/dispersion, drawdown/volatility, drill-down, Study Lab, scan, gauge, and export
+  contracts. Missing evidence remains explicit unavailable/derived/`No verified mapped proxy`.
+- Documentation commit: `878570cd` (`docs(tc2000): lock expanded us family scope`). YAML/JSON
+  parsing and `git diff --check` pass. No acceptance flexibility used; this is a clarification of
+  the existing goal, not a relaxation.
+- Exact elevated `rtk git push origin HEAD:feat/tc2000-frontend-rework` was attempted once after
+  this checkpoint and rejected before Git by the private-origin safeguard because authorization
+  for the accumulated private payload/destination was unavailable. No workaround, alternate
+  transport, rewrite, reset, stash, or repeat was used. The local worktree is clean; next context
+  remains family historical population and browser family drill-down/coverage acceptance.
+
 ## 2026-08-15 — iShares historical family-leg live matrix
 
 - Opt-in live historical-as-of matrix passes `7/7` for `IJR`, `IWB`, `IWD`, `IWF`, `IWN`, `IWO`,
