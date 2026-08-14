@@ -1,4 +1,27 @@
 tasks:
+  - id: tc2000-study-lab-current-history-browser-20260814
+    title: Add authenticated Current versus history Study Lab acceptance
+    status: completed
+    priority: medium
+    scope: >-
+      Add a real-user browser regression for selecting, validating, running, and inspecting the
+      Current versus history factory study against canonical SPY data.
+    definition_of_done:
+      - Browser selects current_history_comparison and validates the generated source
+      - Completed run exposes historical sample-size metric, histogram, and comparison table
+      - Adjacent Study Lab/Python/Results browser slice remains green with no critical diagnostics
+      - REF-STUDY-LAB-V25 interim flexibility is recorded; no threshold or product criterion changes
+    validation:
+      - focused-authenticated-browser-1-of-1
+      - adjacent-study-python-results-browser-13-of-13
+      - branch-stack-rebuilt-and-force-recreated
+      - make-test-stack-up-force-recreate-regression
+    notes:
+      - Original Study Lab surface has no authoritative board capture; local interim baseline remains open.
+      - First browser attempt found a stale container, not a product failure; served asset was verified after force recreation.
+      - Acceptance flexibility used: REF-STUDY-LAB-V25 interim baseline/product contract only; no threshold or product criterion changed.
+      - Implementation/workflow/docs commit: 3a97eaec; operational checkpoint remains a separate commit.
+      - Exact push for 91463e54..3a97eaec was rejected before Git by the private-origin egress safeguard; transport-only, not a goal blocker.
   - id: tc2000-study-lab-current-history-distribution-20260814
     title: Render current-versus-history distribution in Study Lab
     status: completed

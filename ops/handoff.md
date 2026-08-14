@@ -1,5 +1,34 @@
 # Active Handoff
 
+## 2026-08-14 — Study Lab current-history browser acceptance (completed)
+
+- Context owner: Codex. Owned paths were `frontend/tests/e2e/flows.spec.ts`, `Makefile`,
+  `docs/agent-orchestration.md`, and checkpoint docs.
+- Intent: cover the real authenticated factory-study workflow for Current versus history, including
+  validation, execution, sample-size metric, histogram, and comparison table.
+- Acceptance flexibility used: `REF-STUDY-LAB-V25` original-surface interim baseline/product
+  contract; no authoritative Study Lab board capture exists. No threshold, mask, product criterion,
+  or acceptance rule is relaxed.
+- Completed: added the authenticated `F8p-current-history` flow. The first run exposed a stale
+  frontend container even though the rebuilt image was current; the branch frontend was force-
+  recreated, the served asset changed from `index-r9mh2XCX.js` to `index-9FkW5eci.js`, and the
+  unchanged browser oracle then passed.
+- Validation: focused browser `1/1`; adjacent Study Lab/Python/Results slice `13/13`; branch
+  services healthy after rebuild/recreate. `make test-stack-up` now uses `--force-recreate`; the
+  recovery procedure is documented in `docs/agent-orchestration.md`.
+- Implementation/workflow/docs commit: `3a97eaec` (`test(study-lab): add current history browser acceptance`).
+- Exact elevated push `rtk git push origin HEAD:feat/tc2000-frontend-rework` was attempted once for
+  range `91463e54..3a97eaec` and rejected before Git by the private-origin export safeguard because
+  trusted authorization for this exact payload and destination was unavailable. Repository/index
+  health is normal; this is transport-only, not a product or goal blocker. No alternate transport,
+  wrapper, rewrite, reset, stash, force push, or repeat is used.
+- Acceptance flexibility used: `REF-STUDY-LAB-V25` original-surface interim baseline/product
+  contract because the board has no authoritative Study Lab capture. No threshold, mask, product
+  criterion, or browser acceptance rule changed; the visual gap remains open.
+- Next action: commit the operational checkpoint separately, verify a clean local boundary, and
+  continue with the next independent workstation/backend gap; retry this exact push only if the
+  execution environment later accepts the exact range.
+
 ## 2026-08-14 — Study Lab current-history distribution renderer (completed)
 
 - Context owner: Codex. Owned paths are `frontend/src/components/workstation/StudyLabTool.vue`,

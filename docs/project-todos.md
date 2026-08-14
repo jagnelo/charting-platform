@@ -12,8 +12,8 @@
       `1/1`; the adjacent Study Lab/Python/results slice passed `13/13`.
 - [x] `make test-stack-up` now includes `--force-recreate`, and the recovery procedure is recorded
       in `docs/agent-orchestration.md` so healthy containers cannot be mistaken for a current
-      frontend bundle. Implementation/browser commit and the follow-up operational checkpoint are
-      still required before this context is closed.
+      frontend bundle. Implementation/browser changes are committed locally as `3a97eaec`; the
+      follow-up operational checkpoint records the exact push transport result.
 - [ ] Acceptance flexibility used: **REF-STUDY-LAB-V25 original-surface interim baseline/product
       contract** because the visual board has no authoritative Study Lab capture. No visual
       threshold, mask, product criterion, or browser acceptance rule was changed; the missing
