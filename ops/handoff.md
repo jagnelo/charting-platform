@@ -1,5 +1,21 @@
 # Active Handoff
 
+## 2026-08-14 — Family-leg relative-strength ratio contract
+
+- Added `GET /api/v1/analysis/benchmark-families/{family_key}/ratios` with explicit cap/equal/
+  value/growth role and optional market benchmark. It returns aligned ratios without forward-fill,
+  with role identity, coverage, partial-overlap warnings, freshness, adjustment, as-of, and
+  membership provenance.
+- Missing mappings and canonical identities remain explicit errors. A deterministic missing-symbol
+  ordering defect was repaired and focused-tested; acceptance flexibility used: **none**.
+- Validation: positive cap/equal/market ratio integration `1/1`, Ruff, and diff checks.
+- Open: all-leg batch composition, weighting/holdings evidence, breadth/rotation/ranking, browser
+  ratio visualisation, and final visual/end-to-end acceptance.
+- Implementation commit `8a33978f feat(analysis): add benchmark family ratio contract` is clean
+  locally. Its exact elevated push was attempted once and rejected before Git by the private-origin
+  safeguard; origin remains `91463e54`. Operational records are being committed separately; no
+  workaround, alternate transport, or repeat.
+
 ## 2026-08-14 — Family-leg constituent drill-down contract
 
 - Added `GET /api/v1/analysis/benchmark-families/{family_key}/constituents` with an explicit

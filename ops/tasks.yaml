@@ -67,6 +67,14 @@ tasks:
         fallback. Focused family constituent/overview/derived regressions `3/3` and Ruff pass;
         provider population, browser drill-down, family ratios/breadth/rotation, and final
         acceptance remain open. Acceptance flexibility used: none.
+      - >-
+        Family ratio bridge implemented locally: `GET /analysis/benchmark-families/{family_key}/ratios`
+        returns role-labelled aligned ratios to the family cap proxy and optional market benchmark,
+        with no forward-fill, coverage/partial-overlap warnings, membership version, and explicit
+        mapping/proxy errors. Positive cap/equal/market integration `1/1`, Ruff, and diff checks
+        pass; deterministic missing-symbol ordering was repaired and re-tested. Batch leg
+        composition, weighting evidence, breadth/rotation/ranking, browser visualisation, and
+        final acceptance remain open. Acceptance flexibility used: none.
   - id: tc2000-generic-condition-driven-breadth-20260814
     title: Broaden breadth from fixed metrics to reusable condition-driven cross-sectional studies
     status: in_progress

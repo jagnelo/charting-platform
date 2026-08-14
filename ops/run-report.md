@@ -1,5 +1,19 @@
 # Run Report
 
+## 2026-08-14 — Family-leg relative-strength ratio contract
+
+- Added role-aware family ratios to the cap proxy and optional market benchmark. The calculation
+  uses aligned timestamps only, exposes partial-overlap warnings and coverage, and retains family
+  mapping/membership/as-of lineage.
+- Missing family mappings or canonical identities remain structured errors; no fallback was added.
+  Positive cap/equal/market integration `1/1`, Ruff, and diff checks pass. The missing-symbol
+  ordering edge was repaired and revalidated. Acceptance flexibility used: **none**.
+- Open: batch leg analytics, weighting/holdings evidence, breadth/rotation/ranking, browser
+  visualisation, and final visual/end-to-end gates.
+- Implementation commit `8a33978f` is clean locally. Its exact elevated push was attempted once
+  and rejected before Git by the private-origin safeguard; origin remains `91463e54`. No
+  workaround, alternate transport, or repeat was used; this is transport-only.
+
 ## 2026-08-14 — Family-leg constituent drill-down contract
 
 - Added the family-leg constituent route for cap/equal/value/growth mappings. It delegates to the
