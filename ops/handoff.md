@@ -1,5 +1,18 @@
 # Active Handoff
 
+## 2026-08-14 — Radar clean acceptance checkpoint
+
+- The complete rebuilt-stack functional E2E matrix completed with `141` passed, `0` failed, and
+  `106` explicit skips from `247` collected tests. The skips are the two seeded canonical-only
+  membership cases plus the 104 visual cases intentionally gated out of the non-visual command.
+- The explicit board-guided visual matrix completed `104/104` across 1920×1080 and 2560×1440 at
+  100% and 125% display scale. Frontend Vitest `817/817`, type-check, 477-module build, and the
+  already recorded Radar/backend gates remain green. No threshold, mask, provider rule, or
+  acceptance criterion was relaxed.
+- The exact elevated push for `91463e54..80fa0e04` was attempted again and rejected before Git by
+  the private-origin egress safeguard. This remains transport-only; local commits are clean and
+  separately recoverable, and the goal continues from this boundary.
+
 ## 2026-08-14 — Radar all-universe scan batching repair
 
 - The complete browser audit exposed a real F17 failure: the Radar busy overlay remained visible

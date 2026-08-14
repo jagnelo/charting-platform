@@ -1,5 +1,20 @@
 # Project TODO Memory
 
+### 2026-08-14 — Radar acceptance and clean transport checkpoint
+
+- [x] Rebuilt-stack authenticated functional E2E completed with `141` passed and `0` failed from
+      `247` collected tests. The `106` skips are explicit: `104` visual cases are gated unless the
+      board flag is enabled, and the two canonical-only membership cases are skipped in seeded
+      mode; no failure was reclassified as a skip.
+- [x] Explicit board-guided visual acceptance passes `104/104` across all four required display
+      environments; frontend Vitest passes `817/817`; type-check and `477`-module production
+      build pass. The exact elevated push for clean range `91463e54..80fa0e04` was retried and
+      rejected before Git by the private-origin egress safeguard. Acceptance flexibility used:
+      **none**; this transport result is not a product or goal blocker.
+- [ ] Continue the next board-guided or backend gap from this clean local boundary. Exact V25
+      approved captures, provider/entitlement breadth, historical/GICS truth, native-monitor,
+      endurance, Docker global-prune, and final-audit gaps remain open and tracked.
+
 ### 2026-08-14 — Radar all-universe scan batching
 
 - [x] Repaired the repository-controlled Radar latency regression exposed by the complete

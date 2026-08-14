@@ -1,4 +1,30 @@
 tasks:
+  - id: tc2000-radar-acceptance-checkpoint-20260814
+    title: Complete Radar rebuilt-stack acceptance and record transport result
+    status: completed
+    priority: high
+    scope: >-
+      Revalidate the Radar batching repair through the complete authenticated functional suite and
+      the explicit board-guided visual matrix, then preserve a clean local changeset boundary.
+    definition_of_done:
+      - Functional authenticated matrix completes with zero failures
+      - All four display-environment visual suites complete with zero failures
+      - Frontend unit, type-check, build, backend, and Radar focused evidence remains green
+      - Exact push is attempted through the approved elevated Git path and any environment refusal is recorded
+      - No acceptance flexibility, visual threshold, mask, or product criterion is silently changed
+    validation:
+      - authenticated-e2e-141-passed-0-failed-247-collected-106-explicit-skips
+      - board-visual-104-of-104-four-environments
+      - frontend-vitest-817-of-817
+      - frontend-type-check-build-477-modules
+      - backend-coverage-1424-of-1424-80.15-percent
+      - exact-push-rejected-before-git-91463e54-to-80fa0e04
+      - git-diff-check
+    notes:
+      - >-
+        The exact push was rejected by the private-origin egress safeguard before Git; the local
+        implementation and operational commits remain clean, separate, and recoverable. This is
+        transport-only and does not block the product goal.
   - id: tc2000-radar-universe-batching-20260814
     title: Batch Radar all-universe history and setup hydration
     status: completed

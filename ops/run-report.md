@@ -1,5 +1,16 @@
 # Run Report
 
+## 2026-08-14 — Radar clean acceptance checkpoint
+
+- Rebuilt-stack authenticated functional E2E: `141 passed`, `0 failed`, `106 explicit skips` out
+  of `247` collected. The skips are the two seeded canonical-only cases and the 104 visual cases
+  gated from the non-visual command.
+- Explicit board-guided visual E2E: `104/104` passed across 1920×1080 and 2560×1440 at 100% and
+  125% display scale. Full frontend Vitest: `817/817`; type-check and 477-module build pass.
+- The exact elevated push for clean range `91463e54..80fa0e04` was rejected before Git by the
+  private-origin egress safeguard. No alternate transport, indirect execution, force push,
+  rewrite, reset, or stash was used; this remains a transport-only condition.
+
 ## 2026-08-14 — Radar all-universe scan batching repair
 
 - Reproduced the real-user F17 timeout on the rebuilt stack: all-universe D1 Radar hydration used
