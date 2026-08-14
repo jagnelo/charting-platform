@@ -6126,3 +6126,16 @@ uPlot, visual-policy, and `make test-fe` remain green. This closes a plan-requir
 capability without changing visual thresholds, masks, product criteria, or acceptance flexibility.
 Exact/unrepresented Study Lab V25 visual evidence and broader provider, historical/GICS,
 native-monitor, endurance, and final-audit gaps remain explicitly tracked.
+
+## 2026-08-14 — Unified Python generic streaks
+
+The unified Python SDK now exposes `stats.streaks(values, direction, inclusive?)` for deterministic
+positive/negative consecutive-change studies. It validates finite numeric input and direction,
+reports completed records, current state, longest/shortest/average lengths, and preserves the
+legacy `stats.positive_close_streaks` compatibility helper. The factory negative-close study now
+uses the shared helper rather than duplicating its loop. Focused runner coverage is `79/79`, focused
+editor/Study Lab coverage `27/27`, full frontend `820/820`, authenticated browser coverage `12/12`,
+and authoritative backend coverage `1451/1451` at `80.17%`; type/build, uPlot, visual-policy, and
+`make test-fe` pass. This is a capability/contract increment only: visual thresholds, masks,
+product criteria, and acceptance flexibility are unchanged. Exact/unrepresented Study Lab V25 and
+broader provider, historical/GICS, native-monitor, endurance, and final-audit gaps remain open.

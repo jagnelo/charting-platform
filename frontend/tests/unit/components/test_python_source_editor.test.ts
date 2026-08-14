@@ -106,6 +106,7 @@ describe('PythonSourceEditor', () => {
     ;(editor.element as HTMLTextAreaElement).setSelectionRange(6, 6)
     await editor.trigger('keyup')
     expect(wrapper.text()).toContain('stats.mean(values)')
+    expect(wrapper.text()).toContain("stats.streaks(values, 'positive')")
     expect(wrapper.text()).toContain('stats.percentile(values, 0.9)')
     await wrapper.setProps({ modelValue: 'stats.d' })
     ;(editor.element as HTMLTextAreaElement).setSelectionRange(8, 8)

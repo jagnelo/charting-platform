@@ -135,6 +135,7 @@ describe('StudyLabTool', () => {
     expect((editor.element as HTMLTextAreaElement).value).toContain('market.close()')
     expect(wrapper.text()).toContain('SDK reference')
     expect(wrapper.text()).toContain('positive_close_streaks')
+    expect(wrapper.text()).toContain('stats: positive_close_streaks, streaks')
     expect(wrapper.text()).toContain('percentile')
     expect(wrapper.text()).toContain('distribution')
     expect(wrapper.text()).toContain('cross_sectional_rank')
@@ -198,6 +199,8 @@ describe('StudyLabTool', () => {
       await selector.setValue(value)
       expect((wrapper.find('[aria-label="Study Python source"]').element as HTMLTextAreaElement).value.length).toBeGreaterThan(80)
     }
+    await selector.setValue('negative_streak')
+    expect((wrapper.find('[aria-label="Study Python source"]').element as HTMLTextAreaElement).value).toContain("stats.streaks(closes, 'negative')")
     await selector.setValue('current_history_comparison')
     expect((wrapper.find('[aria-label="Study Python source"]').element as HTMLTextAreaElement).value).toContain('research.historical_comparison')
     await selector.setValue('seasonality')

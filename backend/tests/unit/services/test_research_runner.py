@@ -377,6 +377,30 @@ def test_runner_executes_factory_positive_close_streak_study():
     ]
 
 
+def test_runner_generic_streaks_supports_direction_and_inclusive_contracts():
+    result = execute_job(
+        {
+            "source": "positive = stats.streaks([1, 2, 3, 2, 2, 1], 'positive')\nnegative = stats.streaks([1, 2, 3, 2, 2, 1], 'negative', True)\noutput.table('positive', positive['records'])\noutput.table('negative', negative)",
+            "dataset": {"closes": [1, 2, 3, 2, 2, 1]},
+        }
+    )
+    assert result["status"] == "completed"
+    assert result["artifacts"]["positive"]["value"] == [{"start_index": 1, "end_index": 2, "length": 2}]
+    assert result["artifacts"]["negative"]["value"]["inclusive"] is True
+    assert result["artifacts"]["negative"]["value"]["longest"] == 3
+
+
+def test_runner_generic_streaks_rejects_unknown_direction():
+    result = execute_job(
+        {
+            "source": "output.table('streaks', stats.streaks([1, 2], 'flat'))",
+            "dataset": {"closes": [1, 2]},
+        }
+    )
+    assert result["status"] == "failed"
+    assert "stats streak direction must be positive or negative" in result["diagnostics"][0]["message"]
+
+
 def test_runner_exposes_declared_benchmark_dataset():
     result = execute_job(
         {

@@ -87,6 +87,7 @@ const suggestionsCatalog: Suggestion[] = [
   { prefix: 'ta', insert: 'ta.ema(market.close(), 20)', signature: 'series, period' },
   { prefix: 'ta', insert: 'ta.rsi(market.close(), 14)', signature: 'series, period' },
   { prefix: 'stats', insert: 'stats.positive_close_streaks(dataset)', signature: 'dataset' },
+  { prefix: 'stats', insert: "stats.streaks(values, 'positive')", signature: 'values, direction, inclusive?' },
   { prefix: 'stats', insert: 'stats.mean(values)', signature: 'values' },
   { prefix: 'stats', insert: 'stats.median(values)', signature: 'values' },
   { prefix: 'stats', insert: 'stats.std(values)', signature: 'values' },

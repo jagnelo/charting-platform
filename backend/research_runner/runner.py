@@ -714,6 +714,52 @@ class _Stats:
             ]
         return {"bins": bucket_rows, "sample_size": len(numeric), "min": minimum, "max": maximum, "current": current}
 
+    @staticmethod
+    def streaks(values: object, direction: str = "positive", inclusive: bool = False) -> dict[str, object]:
+        """Summarize consecutive changes in a declared numeric series.
+
+        ``direction`` is one of ``positive``/``negative``; with ``inclusive`` it
+        becomes ``non_positive``/``non_negative`` respectively. Records contain
+        only source-series indexes so callers can attach their own timestamps.
+        """
+        numeric = _Stats._finite_values(values)
+        if direction not in {"positive", "negative"}:
+            raise ValueError("stats streak direction must be positive or negative")
+        if not isinstance(inclusive, bool):
+            raise ValueError("stats streak inclusive must be boolean")
+        if direction == "positive":
+            predicate = (lambda change: change >= 0) if inclusive else (lambda change: change > 0)
+        else:
+            predicate = (lambda change: change <= 0) if inclusive else (lambda change: change < 0)
+        records: list[dict[str, int]] = []
+        current = 0
+        start_index: int | None = None
+        for index in range(1, len(numeric)):
+            if predicate(numeric[index] - numeric[index - 1]):
+                if current == 0:
+                    start_index = index
+                current += 1
+                continue
+            if current and start_index is not None:
+                records.append({"start_index": start_index, "end_index": index - 1, "length": current})
+            current = 0
+            start_index = None
+        if current and start_index is not None:
+            records.append({"start_index": start_index, "end_index": len(numeric) - 1, "length": current})
+        completed = [record["length"] for record in records if record["end_index"] < len(numeric) - 1]
+        current_length = current if current and records and records[-1]["end_index"] == len(numeric) - 1 else 0
+        all_lengths = completed + ([current_length] if current_length else [])
+        return {
+            "direction": direction,
+            "inclusive": inclusive,
+            "current": current_length,
+            "longest": max(all_lengths) if all_lengths else 0,
+            "shortest": min(all_lengths) if all_lengths else 0,
+            "average": sum(all_lengths) / len(all_lengths) if all_lengths else 0,
+            "records": records,
+            "lengths": completed,
+        }
+
     def positive_close_streaks(self, dataset: dict) -> dict:
         closes = dataset.get("closes", [])
         timestamps = dataset.get("timestamps", [])

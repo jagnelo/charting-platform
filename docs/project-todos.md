@@ -11454,3 +11454,17 @@ The current source also passes the focused authenticated top-down browser slice 
 - [ ] Exact/unrepresented Study Lab V25 visual evidence and broader research/provider/historical,
   native-monitor, endurance, and final-audit gaps remain open. No visual threshold, mask, product
   criterion, or acceptance flexibility changed.
+
+### 2026-08-14 — Unified Python generic streaks
+
+- [x] Added deterministic `stats.streaks(values, direction, inclusive?)` for positive and negative
+  consecutive changes, including explicit finite-input, empty, direction, inclusive, current,
+  completed-record, and distribution contracts. The existing `stats.positive_close_streaks`
+  compatibility method remains unchanged.
+- [x] Migrated the factory negative-close study to the generic helper and exposed it through the
+  editor/reference. Focused runner `79/79`; editor/Study Lab `27/27`; frontend `820/820` at the
+  current coverage gate; authenticated Study Lab/Python/Results browser `12/12`; backend
+  `1451/1451` at `80.17%`; `make test-fe`, uPlot/visual-policy, type-check, and build pass.
+- [ ] Exact/unrepresented Study Lab V25 visual evidence and broader research/provider/historical,
+  native-monitor, endurance, and final-audit gaps remain open. No visual threshold, mask, product
+  criterion, or acceptance flexibility changed.
