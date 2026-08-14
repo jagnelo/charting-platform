@@ -59,6 +59,14 @@ tasks:
         unavailable/not-allowed integration `1/1`, family-focused integration `3/3`, and Ruff
         pass. Provider holdings/rebalance evidence, family ratios/breadth/rotation, and browser
         acceptance remain open; acceptance flexibility used: none.
+      - >-
+        Family-leg constituent bridge implemented locally: `GET /analysis/benchmark-families/{family_key}/constituents`
+        resolves only the requested cap/equal/value/growth mapping, reuses the point-in-time ETF
+        holdings snapshot contract, and relabels family/role provenance. Missing mappings,
+        identities, or holdings return explicit family capability errors with no cap/SPY/QQQ
+        fallback. Focused family constituent/overview/derived regressions `3/3` and Ruff pass;
+        provider population, browser drill-down, family ratios/breadth/rotation, and final
+        acceptance remain open. Acceptance flexibility used: none.
   - id: tc2000-generic-condition-driven-breadth-20260814
     title: Broaden breadth from fixed metrics to reusable condition-driven cross-sectional studies
     status: in_progress

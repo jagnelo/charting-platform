@@ -1,5 +1,19 @@
 # Run Report
 
+## 2026-08-14 — Family-leg constituent drill-down contract
+
+- Added the family-leg constituent route for cap/equal/value/growth mappings. It delegates to the
+  point-in-time ETF holdings analysis, preserving composition date, known-at, source, coverage,
+  exclusions, and per-member technical values while adding family-role lineage.
+- Missing mapping, canonical identity, or holdings snapshot is an explicit capability error; no
+  silent cap/SPY/QQQ fallback was introduced.
+- Focused constituent/overview/derived integration `3/3`, Ruff, and diff checks pass. Acceptance
+  flexibility used: **none**. Provider population, browser drill-down, family analytics, and
+  visual/end-to-end gates remain open.
+- Implementation commit `aed07c46` is clean locally. Its exact elevated push was attempted once
+  and rejected before Git by the private-origin safeguard; origin remains `91463e54`. No
+  workaround, alternate transport, or repeat was used; this is transport-only.
+
 ## 2026-08-14 — Point-in-time derived equal-weight family series
 
 - Added a family-level derived equal-weight endpoint that consumes only explicit constituent

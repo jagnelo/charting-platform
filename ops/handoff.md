@@ -1,5 +1,22 @@
 # Active Handoff
 
+## 2026-08-14 — Family-leg constituent drill-down contract
+
+- Added `GET /api/v1/analysis/benchmark-families/{family_key}/constituents` with an explicit
+  `role` for cap/equal/value/growth. It resolves only that mapping, reuses the existing
+  point-in-time ETF holdings snapshot, and adds family/role/mapping provenance without changing
+  ETF-proxy membership semantics.
+- Missing mapping, identity, or holdings returns a structured family capability error. No cap,
+  SPY, QQQ, or other-family substitution is permitted.
+- Validation: focused constituent/overview/derived integration `3/3`, Ruff, and diff checks.
+  Acceptance flexibility used: **none**.
+- Remaining: provider population and historical holdings, browser drill-down, family-wide
+  ratios/breadth/rotation, and final visual/end-to-end acceptance.
+- Implementation commit `aed07c46 feat(analysis): add benchmark family constituent drilldown` is
+  clean locally. Its exact elevated push was attempted once and rejected before Git by the
+  private-origin safeguard; origin remains `91463e54`. Operational records are being committed
+  separately; no workaround, alternate transport, or repeat.
+
 ## 2026-08-14 — Point-in-time derived equal-weight family series
 
 - Added `GET /api/v1/analysis/benchmark-families/{family_key}/derived-equal-weight`. It derives a
