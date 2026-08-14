@@ -1,5 +1,16 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-14 — Conditional numerical-data validation
+
+- Study Series and Breadth History now reject malformed timestamps and non-finite numerical payloads
+  before uPlot, expose the explicit unavailable state, and destroy any stale chart instance.
+- Focused family `10/10`, full frontend Vitest `793/793`, type-check, 475-module build, uPlot
+  contract (`45` files), diff-check, and authenticated F8o `1/1` pass. No visual baseline,
+  threshold, mask, provider, or acceptance rule changed; flexibility used: none.
+- This closes a repository-controlled numerical data-integrity gap; exact/unrepresented Study Lab,
+  provider/entitlement, historical/GICS, native-monitor, endurance, Docker, and final-audit gaps
+  remain open.
+
 ## 2026-08-14 — Conditional numerical-state announcements
 
 - Empty/invalid conditional numerical surfaces now announce their status with `role=status`,

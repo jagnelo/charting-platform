@@ -1,5 +1,17 @@
 # Project TODO Memory
 
+### 2026-08-14 — Conditional numerical-data validation
+
+- [x] Study Series now rejects invalid timestamps and non-finite values before uPlot; Breadth
+      History rejects invalid timestamps and malformed moving-average values instead of rendering
+      NaN coordinates. Invalid payloads use the explicit status state and release old charts.
+- [x] Focused family coverage passes `10/10`; full frontend Vitest passes `793/793`; type-check,
+      475-module production build, uPlot contract (`45` audited files), diff-check, and authenticated
+      F8o browser acceptance pass `1/1`. Implementation commit: `80082d9d`.
+- [ ] Acceptance flexibility used: **none**. Exact/unrepresented Study Lab visuals, provider/
+      entitlement breadth, historical/GICS truth, native-monitor, endurance, Docker global-prune,
+      and final-audit gaps remain explicit.
+
 ### 2026-08-14 — Conditional numerical-state announcements
 
 - [x] Empty/invalid states for Study Series, Histogram, Range, Bars, Scatter, and Breadth History

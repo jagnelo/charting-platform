@@ -1,4 +1,28 @@
 tasks:
+  - id: tc2000-conditional-uplot-data-validation-20260814
+    title: Reject malformed conditional numerical data before uPlot
+    status: completed
+    priority: high
+    scope: >-
+      Prevent invalid timestamps and non-finite Study Series/Breadth History values from reaching
+      numerical chart rendering or leaving stale charts attached to removed hosts.
+    definition_of_done:
+      - Invalid timestamps and numerical values produce explicit unavailable states
+      - Existing uPlot charts are destroyed when data becomes invalid
+      - Focused malformed-data regression and broader frontend/browser gates pass
+      - No visual or acceptance criterion is silently relaxed
+    validation:
+      - conditional-uplot-family-10-of-10
+      - frontend-vitest-793-of-793
+      - frontend-type-check-build
+      - uplot-contract-45-files
+      - authenticated-f8o-1-of-1
+    notes:
+      - >-
+        Implementation `80082d9d` closes malformed timestamp/NaN leakage in Study Series and
+        Breadth History. Acceptance flexibility used: none. Exact/unrepresented Study Lab,
+        provider/entitlement, historical/GICS, native-monitor, endurance, Docker, and final-audit
+        gaps remain open.
   - id: tc2000-conditional-uplot-state-announcements-20260814
     title: Announce conditional numerical empty states accessibly
     status: completed

@@ -1,5 +1,15 @@
 # Run Report
 
+## 2026-08-14 — Conditional numerical-data validation
+
+- Tightened Study Series and Breadth History validation to reject malformed timestamps and
+  non-finite values before numerical rendering, with explicit invalid-state cleanup.
+- Focused family `10/10`, full frontend Vitest `793/793`, type-check, 475-module build, uPlot
+  contract for `45` files, diff-check, and authenticated F8o `1/1` pass. Implementation:
+  `80082d9d`.
+- Acceptance flexibility used: **none**; no visual threshold, mask, provider, uPlot, or product
+  boundary changed. Remaining goal gaps are unchanged and explicit.
+
 ## 2026-08-14 — Conditional numerical-state announcements
 
 - Added explicit polite atomic status semantics to the conditional Study/Breadth numerical states;

@@ -1,5 +1,16 @@
 # Active Handoff
 
+## 2026-08-14 — Conditional numerical-data validation completed
+
+- Implementation `80082d9d` rejects malformed Study Series timestamps/non-finite values and Breadth
+  History timestamps/moving-average values before uPlot; invalid data renders the status state and
+  releases stale charts rather than producing NaN coordinates.
+- Validation: focused family `10/10`; full frontend Vitest `793/793`; type-check; 475-module build;
+  uPlot contract (`45` files); diff-check; and authenticated F8o `1/1`.
+- Acceptance flexibility used: **none**. Exact/unrepresented Study Lab, provider/entitlement,
+  historical/GICS, native-monitor, endurance, Docker global-prune, and final-audit gaps remain
+  explicit. Implementation is a clean local commit; push transport remains separate.
+
 ## 2026-08-14 — Conditional numerical-state announcements completed
 
 - Implementation `1c4f1cd1` adds polite atomic status-live-region semantics to empty/invalid Study
