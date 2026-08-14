@@ -1,5 +1,18 @@
 # Project TODO Memory
 
+### 2026-08-14 — Chart loading/error live-region semantics
+
+- [x] Chart loading, provider-error, and no-symbol states now expose explicit accessible status
+      semantics (`role`, `aria-live`, and atomic updates) without changing the existing visible
+      state contract or uPlot rendering path.
+- [x] Focused F8i browser coverage passes `3/3` in `8.7s` after rebuilding and force-recreating
+      the branch frontend container. The initial run's two failures were stale-container setup
+      evidence: the old image omitted the newly added attributes; the corrected rerun passed.
+- [x] Full frontend Vitest passes `781/781`; type-check, 475-module production build, and
+      `git diff --check` pass. Implementation commit: `b417c161`.
+- [ ] Acceptance flexibility used: none. Exact V25 loading/error styling remains tracked under
+      `REF-STATE-VARIANTS`; this closes the repository-controlled semantic gap only.
+
 ### 2026-08-14 — Browser performance and bounded endurance evidence
 
 - [x] Real-browser uPlot guard passes 100,000 points with repeated zoom/pan while preserving the

@@ -1,5 +1,16 @@
 # Run Report
 
+## 2026-08-14 — Chart loading/error live-region semantics
+
+- Implementation `b417c161` adds accessible live-region semantics to chart loading, provider-error,
+  and no-symbol states and extends F8i-a/F8i-b to verify them.
+- Full frontend Vitest `781/781`, type-check, 475-module build, and diff-check pass. Rebuilt and
+  force-recreated authenticated browser F8i passes `3/3` in `8.7s`.
+- The initial browser run was discarded as stale-container setup evidence (old DOM omitted the
+  new attributes); no acceptance flexibility was used and no visual/provider/uPlot rule changed.
+- Exact V25 state styling remains the `REF-STATE-VARIANTS` gap; this semantic correction is closed
+  locally and must remain a separate changeset.
+
 ## 2026-08-14 — Browser performance and bounded endurance evidence
 
 - Real-browser `uplot_performance.spec.ts` and `workstation_performance.spec.ts` pass `3/3` in

@@ -257,6 +257,11 @@ first verify that this is not a real repository problem:
    or actual filesystem problem) in the handoff and keep the current changeset
    context explicit.
 
+The successful elevated retry is the normal resolution for this sandbox boundary: once the
+repository is confirmed healthy, use the permitted `rtk git add`/`rtk git commit` path rather than
+leaving completed work uncommitted. A failed unprivileged attempt is setup evidence, not a product
+defect and not a reason to block the active goal.
+
 The worker must not move on to a new changeset while a completed context is
 waiting for a normal terminal commit. If the elevated retry genuinely fails,
 preserve a precise handoff and make the next action the first priority of the

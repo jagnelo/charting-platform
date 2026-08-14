@@ -1,5 +1,17 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-14 — Chart loading/error live-region semantics
+
+- Chart loading, provider-error, and no-symbol states now announce their state through explicit
+  status/alert semantics while retaining the existing visible tool-state presentation and uPlot
+  chart path.
+- Focused F8i browser acceptance passes `3/3` in `8.7s` after a rebuilt, force-recreated branch
+  frontend. The first attempt was discarded as stale-container setup evidence because the old
+  image did not contain the new attributes; the authoritative rerun passed.
+- Full frontend Vitest `781/781`, type-check, 475-module build, and diff-check pass. No visual
+  threshold, mask, provider, or acceptance rule changed. Exact V25 loading/error appearance is
+  still an explicit `REF-STATE-VARIANTS` reference gap.
+
 ## 2026-08-14 — Browser performance and bounded endurance evidence
 
 - The real-browser uPlot guard passes 100,000 points through repeated zoom/pan without replacing

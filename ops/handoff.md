@@ -1,5 +1,21 @@
 # Active Handoff
 
+## 2026-08-14 — Chart loading/error live-region context completed
+
+- Implementation commit `b417c161` adds explicit `role=status`/polite live-region semantics for
+  chart loading and no-symbol states and `role=alert`/assertive semantics for provider errors;
+  F8i-a/F8i-b assert the contract.
+- Validation: focused F8i slice passes `3/3` in `8.7s` after rebuilding and force-recreating the
+  branch frontend container; full frontend Vitest `781/781`, type-check, 475-module build, and
+  diff-check pass. The initial focused run had two failures because the stale frontend image
+  omitted the new attributes; it was setup evidence, not a source failure, and the authoritative
+  rerun passed.
+- Acceptance flexibility used: **none**. No visual threshold, mask, provider, uPlot, or product
+  criterion changed. Exact V25 loading/error appearance remains tracked as `REF-STATE-VARIANTS`.
+- The implementation context is complete and clean locally. The permitted elevated Git path
+  resolved the prior index-lock boundary; continue to use it sequentially for every closure. The
+  external push-egress hold remains transport-only and must not block the next implementation gap.
+
 ## 2026-08-14 — Browser performance and bounded endurance evidence
 
 - The existing real-browser performance suite passes `3/3` in `19.5s`: 100,000-point uPlot

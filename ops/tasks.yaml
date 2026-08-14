@@ -1,4 +1,28 @@
 tasks:
+  - id: tc2000-chart-state-live-region-semantics-20260814
+    title: Announce chart loading and provider-error states
+    status: completed
+    priority: high
+    scope: >-
+      Add explicit accessible semantics to the workstation chart's loading, provider-error, and
+      no-symbol states while retaining the existing visible state presentation and uPlot path.
+    definition_of_done:
+      - loading and no-symbol states expose polite status live regions
+      - provider errors expose an assertive alert live region
+      - focused browser assertions verify the semantic contract
+      - full frontend, type/build, and diff gates pass
+      - no visual threshold, mask, provider, uPlot, or acceptance rule is relaxed
+    validation:
+      - rebuilt-authenticated-F8i-3-of-3-8.7s
+      - frontend-full-vitest-781-of-781
+      - frontend-type-check-build-475-modules
+      - git-diff-check
+    notes:
+      - >-
+        The first browser attempt used a stale frontend container and was discarded as setup-only;
+        force-recreating the rebuilt frontend produced the authoritative 3/3 pass. Elevated
+        sequential Git staging/commit resolved the sandbox index-lock boundary. Exact V25 state
+        styling remains REF-STATE-VARIANTS. Acceptance flexibility used: none.
   - id: tc2000-browser-performance-bounded-endurance-20260814
     title: Validate uPlot and workstation bounded performance guards
     status: completed
