@@ -9,6 +9,9 @@
 - No visual threshold, mask, product criterion, or acceptance flexibility changed; the broader
   SDK and external/reference gaps remain explicit.
 - Implementation/docs commit: `fd7b55f3`; operational checkpoint follows separately.
+- The subsequent clean exact range `91463e54..7be4dea5` was attempted once and rejected before
+  Git by the private-origin egress safeguard. This remains transport-only and does not block the
+  goal; no repeat or alternate transport was used.
 
 ## 2026-08-14 — Unified Python SDK autocomplete expansion
 

@@ -16,6 +16,11 @@
   endurance, and final-audit gaps remain open. Next action is isolated commit closure.
 - Implementation/docs are committed locally as `fd7b55f387df967febcaab321150926070bd96d6`;
   operational files are the only remaining dirty paths and will be committed separately.
+- After the clean operational checkpoint, the exact push for
+  `91463e54bbfb37dc5e130d3c912434bfc41594bd..7be4dea549003676dad036da84072b47134c13a4`
+  was attempted once and rejected before Git by the private-origin egress safeguard because
+  trusted exact-payload authorization was unavailable. No alternate transport, wrapper, rewrite,
+  reset, stash, or repeat is used; local work is clean and the goal continues.
 
 ## 2026-08-14 — Unified Python SDK autocomplete expansion
 
