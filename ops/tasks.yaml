@@ -1,4 +1,50 @@
 tasks:
+  - id: tc2000-study-dashboard-layout-validation-20260814
+    title: Reject malformed Study Lab dashboard panel layouts
+    status: completed
+    priority: high
+    scope: >-
+      Share one strict dashboard-panel schema validator between Study Lab and Research Results so
+      user-authored dashboard spans cannot escape into invalid CSS grid declarations.
+    definition_of_done:
+      - Dashboard panels require non-empty artifact and title strings
+      - Spans are finite integer values from 1 through 12
+      - Empty or malformed layouts use the structured payload fallback
+      - Focused, full frontend, type/build, and real browser checks pass
+    validation:
+      - study-artifact-utility-10-of-10
+      - study-lab-and-results-43-of-43
+      - frontend-vitest-817-of-817
+      - frontend-type-check-build-477-modules
+      - authenticated-f8o-1-of-1
+      - git-diff-check
+    notes:
+      - >-
+        Implementation commit `d7767d0c`. No product or visual acceptance flexibility was used;
+        the exact V25 and other documented external gaps remain open.
+  - id: tc2000-git-egress-handling-20260814
+    title: Keep private-origin push refusal from blocking product work
+    status: completed
+    priority: high
+    scope: >-
+      Verify the worker-owned elevated Git path and document the private-repository egress
+      safeguard as a transport-only condition with no worktree accumulation.
+    definition_of_done:
+      - Repository metadata and worktree are healthy and clean
+      - Scoped changeset staging and commit succeed through elevated Git
+      - Exact push rejection is recorded with range, destination, and command
+      - No alternate transport, history rewrite, reset, stash, or indirect workaround is used
+      - Independent product contexts may continue from clean local commits
+    validation:
+      - clean-status-and-metadata-audit
+      - elevated-scoped-commit-d7767d0c
+      - exact-push-rejected-before-git-91463e54-to-d7767d0c
+      - git-diff-check
+    notes:
+      - >-
+        The environment safeguard rejected the exact private-origin payload before Git. This is
+        not a goal blocker; retry only through the same approved elevated path after exact
+        destination/range authorization is available.
   - id: tc2000-pending-transform-regression-20260814
     title: Prove settings and canvas behavior during pending transform requests
     status: completed

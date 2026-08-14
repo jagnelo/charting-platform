@@ -1,5 +1,26 @@
 # Active Handoff
 
+## 2026-08-14 — Study Lab dashboard artifact layout validation
+
+- Shared `normalizeStudyDashboardPanels` validation between Study Lab and Research Results. It
+  rejects empty names/titles, empty dashboards, non-integer spans, non-finite spans, and spans
+  outside the twelve-column grid; malformed dashboard artifacts remain in the generic structured
+  payload fallback rather than emitting invalid CSS.
+- Implementation commit `d7767d0c`; worktree clean locally. Focused coverage `43/43`, full
+  frontend Vitest `817/817`, type-check, 477-module build, authenticated F8o `1/1`, and diff-check
+  pass. Acceptance flexibility used: none.
+
+## 2026-08-14 — Git egress handling reaffirmed
+
+- Metadata audit found no `.git/index.lock`; `.git`, index, and refs are writable by the repository
+  owner. Worker-owned elevated staging and commit succeeded for `d7767d0c`.
+- Exact command `rtk git push origin feat/tc2000-frontend-rework` for range `91463e54..d7767d0c`
+  was rejected before Git by the private-origin egress safeguard. The clean local commit remains
+  separately recoverable; this is transport-only and does not block the goal. No workaround,
+  alternate transport/API/plugin, force push, rewrite, reset, or stash was attempted.
+- Required future action: retry that exact elevated push only after exact destination/range
+  authorization is available; continue independent contexts from this clean boundary meanwhile.
+
 ## 2026-08-14 — Pending-transform regression coverage
 
 - Added test commit `f7ed8f21` to hold the Renko transform request and assert the exact transition:

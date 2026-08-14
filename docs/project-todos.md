@@ -1,5 +1,27 @@
 # Project TODO Memory
 
+### 2026-08-14 — Study Lab dashboard artifact layout validation
+
+- [x] Centralized dashboard-panel validation for Study Lab and Research Results. A dashboard is
+      accepted only when it has non-empty artifact/title strings and integer grid spans from 1 to
+      12; malformed layouts fall back to the serializable payload instead of leaking invalid CSS.
+- [x] Focused Study artifact/component coverage passes `43/43`; full frontend Vitest passes
+      `817/817`; type-check, 477-module production build, authenticated F8o structured-study
+      browser coverage `1/1`, and `git diff --check` pass. Implementation commit: `d7767d0c`.
+- [ ] Acceptance flexibility used: **none**. This closes a repository-controlled structured-output
+      contract gap; exact/unrepresented V25 Study Lab visuals, provider/entitlement breadth,
+      historical/GICS truth, native-monitor, endurance, Docker, and final-audit gaps remain open.
+
+### 2026-08-14 — Git egress handling reaffirmed
+
+- [x] Verified `.git`, index, refs, and worktree are healthy; sequential elevated Git staging and
+      commits work. The exact elevated push for the clean range `91463e54..d7767d0c` was rejected
+      before Git by the private-repository egress safeguard.
+- [ ] This is transport-only, not a product blocker. Keep each completed context as a separate
+      local commit, do not rewrite/reset/stash or use indirect transports, and retry the same
+      elevated push only when exact destination/range authorization is available. Continue
+      independent product work from the clean boundary.
+
 ### 2026-08-14 — Pending-transform canvas regression coverage
 
 - [x] Added a real-user F9c-transform regression that holds the Renko request, verifies Chart

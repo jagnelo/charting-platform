@@ -1,5 +1,23 @@
 # Run Report
 
+## 2026-08-14 — Study Lab dashboard artifact layout validation
+
+- Centralized dashboard-panel validation now rejects empty/invalid artifact names, titles, and
+  grid spans outside integer `1..12` in both Study Lab and Research Results. Invalid layouts stay
+  visible through the structured payload fallback instead of emitting unsafe CSS.
+- Focused coverage passes `43/43`; full frontend Vitest `817/817`; type-check; 477-module
+  production build; authenticated F8o structured-study browser coverage `1/1`; and diff-check
+  pass. Implementation commit: `d7767d0c`. No acceptance flexibility used.
+
+## 2026-08-14 — Git egress handling reaffirmed
+
+- The clean implementation checkpoint `d7767d0c` was created through the worker-owned elevated
+  sequential Git path after metadata/index health checks.
+- Exact elevated `rtk git push origin feat/tc2000-frontend-rework` for `91463e54..d7767d0c` was
+  rejected before Git by the private-repository egress safeguard. This remains a transport-only
+  hold: no indirect transport, rewrite, reset, stash, or broad cleanup was used, and independent
+  product work continues from the clean local boundary.
+
 ## 2026-08-14 — Pending-transform regression coverage
 
 - Added and passed the held-request F9c-transform browser regression (`1/1`), proving settings
