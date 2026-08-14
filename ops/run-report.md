@@ -1,5 +1,14 @@
 # Run Report
 
+## 2026-08-14 — Dated holdings composition provenance checkpoint
+
+- Corrected dated refresh persistence to preserve the issuer-returned composition date, retain the
+  requested date as `as_of_date`, and reject future-dated issuer responses.
+- Dated/issuer API regressions pass `3/3`; Ruff, compileall, and diff checks pass. No acceptance
+  flexibility used. Implementation/docs commit: `6357f94`.
+- The required exact elevated push was attempted once and rejected before Git by the private-origin
+  safeguard. No workaround or repeat; transport-only. Operational checkpoint remains to be made.
+
 ## 2026-08-14 — Expanded US family scope and iShares historical as-of route
 
 - Reaffirmed the full eight-family requirement in the controlling plan/parity/governance/task

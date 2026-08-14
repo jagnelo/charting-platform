@@ -1,5 +1,19 @@
 # Active Handoff
 
+## 2026-08-14 — Dated holdings composition provenance fix
+
+- Fixed `refresh_etf_holdings_for_date`: issuer-returned `composition_date` is now persisted,
+  requested evaluation date remains `as_of_date`, and future-dated responses are rejected.
+- Added an API regression proving an IWV request for 2026-06-30 persists an issuer-returned
+  2026-06-27 composition snapshot and retains both dates/provenance. Adjacent dated/issuer API
+  regressions pass `3/3`; Ruff, compile, and diff checks pass. No acceptance flexibility used.
+- Implementation/docs commit: `6357f94` (`fix(holdings): preserve dated composition provenance`).
+- Exact elevated push `rtk git push origin HEAD:feat/tc2000-frontend-rework` was attempted once
+  after this checkpoint and rejected before Git by the private-origin safeguard. No workaround,
+  alternate transport, rewrite, reset, stash, or repeat was used; transport-only.
+- Next: continue point-in-time family membership/rebalance population and browser acceptance from
+  this clean implementation boundary; operational files require a separate checkpoint commit.
+
 ## 2026-08-14 — Expanded US family vision plus iShares historical route
 
 - The controlling product scope is now explicitly written as eight complete US analysis

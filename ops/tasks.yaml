@@ -142,6 +142,13 @@ tasks:
         verifies requested/composition-date provenance plus parsed holdings. This is a route-level
         point-in-time improvement only; complete rebalance continuity, official index membership,
         and populated family browser acceptance remain open; no flexibility was used.
+      - >-
+        Fixed the dated refresh persistence defect: issuer-returned composition dates are now
+        stored as `composition_date`, the requested evaluation date remains `as_of_date`, and
+        future-dated issuer responses are rejected. The focused dated/issuer API regressions pass
+        `3/3`, including an IWV request for 2026-06-30 returning a 2026-06-27 composition snapshot.
+        This closes a local provenance/data-integrity defect only; historical continuity and family
+        browser acceptance remain open; no flexibility was used.
   - id: tc2000-generic-condition-driven-breadth-20260814
     title: Broaden breadth from fixed metrics to reusable condition-driven cross-sectional studies
     status: in_progress
