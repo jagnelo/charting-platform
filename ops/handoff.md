@@ -1,5 +1,21 @@
 # Active Handoff
 
+## 2026-08-14 — Native Alerian holdings context and transport result
+
+- The Alerian implementation context is closed and cleanly committed as `d9124be6`:
+  `backend/app/services/etf_holdings_adapters.py` and its focused unit tests only. AMLP and ENFR
+  now resolve through an explicit native adapter using the official ALPS public HubSpot proxy;
+  identity/date/cash/provenance validation is covered.
+- Focused Alerian checks pass `3/3`; the complete ETF adapter unit suite passes `489/489`; Ruff,
+  Python compilation, and diff checks pass. No acceptance flexibility was used.
+- The exact elevated push for range `925391949542d24ba534ff5edebcada112947abd..d9124be605e78f17bff5d81815a439f8d591ef5f`
+  to `origin/feat/tc2000-frontend-rework` was requested once and rejected before Git because the
+  execution boundary requires trusted user authorization for that exact private-origin payload.
+  The worktree is clean; this is transport-only and does not block the goal.
+- Next context: continue an independently scoped TC2000/backend gap from the clean local
+  boundary. Retry this exact push only after the user/environment explicitly authorizes the same
+  remote, branch, and commit range; do not use another transport or wrapper.
+
 ## 2026-08-14 — Visual preflight checkpoint transport result
 
 - The implementation (`f7720659`) and parity/operations checkpoint (`3b57808e`) are both cleanly

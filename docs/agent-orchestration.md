@@ -325,6 +325,13 @@ When this occurs:
    separate commit. The goal must not be marked blocked solely for this
    safeguard.
 
+For a later retry, the user authorization must identify the exact export rather
+than merely saying “push it”. Use this shape in the approval request and wait
+for trusted acceptance: `I authorize pushing commit <HEAD> (range
+<origin_sha>..<HEAD>) to <remote>/<branch>`. If the execution boundary still
+reports that trusted authorization is unavailable, do not retry or change
+transport; record the rejection and continue from the clean local boundary.
+
 ### No-loop rule for push authorization
 
 The worker must attempt the exact elevated push once for the completed context,

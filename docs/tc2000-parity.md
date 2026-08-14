@@ -1,5 +1,22 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-14 — Native Alerian holdings for ETF constituent drill-down
+
+- Promoted Alerian from audited fallback-only recognition to a native issuer route for AMLP and
+  ENFR. Canonical route metadata now identifies the issuer and adapter explicitly, allowing the
+  top-down sector/industry/constituent workflow to load these ETFs without an ETF.com table.
+- The adapter uses the ALPS product-page-owned public HubSpot proxy for the issuer Marketing API;
+  it does not use the credentialed direct API. Payloads are validated for requested fund identity,
+  consistent as-of date, symbol/name/identifier fields, cash rows, and industry metadata before
+  canonical normalization. The direct route was observed as unauthorized while the public proxy
+  returned complete JSON holdings for both AMLP and ENFR.
+- Focused Alerian coverage passes `3/3`; the complete ETF adapter unit suite passes `489/489`;
+  Ruff, Python compilation, and diff checks pass. Implementation commit: `d9124be6`.
+- Acceptance flexibility used: **none**. This closes a repository-controlled constituent-source
+  gap for two verified products. Broader issuer coverage, historical holdings snapshots,
+  provider-entitlement breadth, exact/unrepresented V25 visual states, native-monitor, endurance,
+  and final-audit gaps remain open.
+
 ## 2026-08-14 — Visual fixture preflight runs once per worker
 
 - The board-guided visual suite now validates the requested seeded backend mode once in a

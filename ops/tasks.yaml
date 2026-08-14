@@ -1,4 +1,31 @@
 tasks:
+  - id: tc2000-alerian-native-holdings-20260814
+    title: Add native Alerian holdings for ETF constituent drill-down
+    status: completed
+    priority: high
+    scope: >-
+      Replace Alerian's audited fallback-only state for AMLP and ENFR with the issuer-owned ALPS
+      public HubSpot proxy, preserving canonical identity, as-of date, cash-row, and provenance
+      validation for top-down constituent analysis.
+    definition_of_done:
+      - AMLP and ENFR have explicit canonical Alerian route metadata
+      - The public proxy is used without credentialed direct API dependence
+      - Identity mismatch, empty payload, inconsistent date, and cash rows are handled explicitly
+      - Alerian is removed from fallback audits and registered as a native adapter
+      - Focused and complete adapter suites, Ruff, compilation, and diff checks pass
+      - Acceptance flexibility and remaining provider/historical gaps are recorded
+    validation:
+      - alerian-focused-3-of-3
+      - etf-holdings-adapter-unit-489-of-489
+      - ruff-adapter-and-test
+      - python-compile
+      - git-diff-check
+    notes:
+      - >-
+        Official ALPS product pages returned complete JSON through the public HubSpot proxy for
+        AMLP and ENFR; direct secure Marketing API access returned unauthorized. Implementation
+        commit d9124be6. Exact push was rejected before Git by the private-origin safeguard, so
+        the clean local commit is transport-pending rather than goal-blocking.
   - id: tc2000-visual-fixture-preflight-20260814
     title: Fail fast when board visual fixture mode does not match the backend
     status: completed

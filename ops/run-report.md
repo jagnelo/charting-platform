@@ -1,5 +1,17 @@
 # Run Report
 
+## 2026-08-14 — Native Alerian holdings context and transport result
+
+- Promoted Alerian AMLP/ENFR to a native ALPS public-proxy holdings adapter with canonical
+  identity/date/cash/provenance checks. Focused checks `3/3`, complete ETF adapter units `489/489`,
+  Ruff, Python compilation, and diff checks pass. Implementation commit: `d9124be6`.
+- Acceptance flexibility used: none; remaining issuer breadth, historical holdings, exact/
+  unrepresented V25, provider/entitlement, native-monitor, endurance, and final-audit gaps remain.
+- Exact elevated push for `925391949542d24ba534ff5edebcada112947abd..d9124be605e78f17bff5d81815a439f8d591ef5f`
+  to `origin/feat/tc2000-frontend-rework` was rejected before Git by the private-origin safeguard
+  because trusted exact-payload authorization was unavailable. Clean local commit retained;
+  transport-only, no retry/workaround.
+
 ## 2026-08-14 — Visual preflight checkpoint transport result
 
 - The isolated visual preflight implementation and parity/operations record are cleanly committed
