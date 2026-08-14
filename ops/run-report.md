@@ -1,5 +1,12 @@
 # Run Report
 
+## 2026-08-14 — Board/parity documentation checkpoint
+
+- Reference-board and parity records now include the current canonical revalidation (`140/140`)
+  without promoting board material to exact-build approval or closing any gap ID.
+- Documentation commit: `13bfabba`; worktree was clean after commit. No product criterion or
+  acceptance flexibility changed.
+
 ## 2026-08-14 — Revalidation checkpoint transport result
 
 - Canonical deployment revalidation is committed locally as `671bd8d5`; the worktree is clean.

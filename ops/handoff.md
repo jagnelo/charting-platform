@@ -1,5 +1,13 @@
 # Active Handoff
 
+## 2026-08-14 — Board/parity documentation checkpoint
+
+- Updated `docs/tc2000-reference-board.md` and `docs/tc2000-parity.md` with the current canonical
+  revalidation evidence and explicitly retained all board/reference gap IDs.
+- Documentation is cleanly committed as `13bfabba55a60585587ca4dfd368539c5086f629`.
+- No implementation or acceptance criterion changed; this context only keeps the controlling
+  visual/parity records synchronized with the completed `140/140` canonical matrix.
+
 ## 2026-08-14 — Revalidation checkpoint transport result
 
 - Canonical revalidation evidence is cleanly committed as `671bd8d54ce3a8ce60c2c01daad34c0694ab6c40`.
