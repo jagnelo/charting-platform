@@ -1,5 +1,12 @@
 # Run Report
 
+## 2026-08-14 — Complete backend formatting gate
+
+- Ruff format initially reported 91 backend files. The configured formatter normalized them in
+  mechanical commit `56315722`; no semantic edits were introduced intentionally.
+- Full `make lint` passes, and the combined backend gate passes `1424/1424` with `80.15%` coverage.
+  Diff-check is clean; no visual/data/product criterion was relaxed.
+
 ## 2026-08-14 — Repository-wide backend lint repair
 
 - `make lint` first reached the backend gate but the unprivileged uv cache could not be opened;

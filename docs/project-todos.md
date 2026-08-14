@@ -1,5 +1,14 @@
 # Project TODO Memory
 
+### 2026-08-14 — Complete backend formatting gate
+
+- [x] The repository-configured Ruff formatter normalized the 91 backend files reported by the
+      mandatory format check. Full `make lint` now passes, including Ruff lint, Ruff format check,
+      and frontend TypeScript; the authoritative combined backend gate passes `1424/1424` at
+      `80.15%`. Mechanical formatting commit: `56315722`.
+- [ ] Acceptance flexibility used: **none**. This is a mechanical repository-quality repair;
+      the TC2000 completion bar and its visual/data/hardware/endurance/final-audit gaps remain open.
+
 ### 2026-08-14 — Repository-wide backend lint repair
 
 - [x] The repository-wide backend Ruff gate initially failed on one unsorted import block in the

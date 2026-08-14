@@ -1,4 +1,25 @@
 tasks:
+  - id: tc2000-backend-formatting-gate-20260814
+    title: Normalize backend Ruff formatting and rerun full gates
+    status: completed
+    priority: medium
+    scope: >-
+      Apply the repository-configured Ruff formatter to the 91 backend files reported by the
+      mandatory format check, then verify lint, type-check, and combined backend behavior.
+    definition_of_done:
+      - All backend app and test files pass Ruff format check
+      - Ruff lint and frontend TypeScript continue to pass
+      - Combined backend unit/integration coverage remains green above the 75 percent threshold
+      - Mechanical formatting is committed separately and diff-check is clean
+      - No product, visual, provider, or acceptance rule is changed
+    validation:
+      - make-lint-pass
+      - backend-coverage-1424-of-1424-80.15-percent
+      - git-diff-check
+    notes:
+      - >-
+        Mechanical formatting commit `56315722`; no runtime or product behavior was intentionally
+        changed and the broader goal remains active.
   - id: tc2000-backend-lint-repair-20260814
     title: Restore repository-wide backend Ruff cleanliness
     status: completed

@@ -1,5 +1,14 @@
 # Active Handoff
 
+## 2026-08-14 — Complete backend formatting gate
+
+- Ruff formatting normalized all 91 files reported by the mandatory formatter check in mechanical
+  commit `56315722`. `make lint` now passes end-to-end (Ruff lint, Ruff format, frontend TypeScript)
+  and the combined backend gate passes `1424/1424` at `80.15%` coverage.
+- No runtime behavior, product criterion, visual threshold, provider rule, or acceptance flexibility
+  changed. The implementation/operational worktree is clean locally; the private-origin push
+  safeguard remains transport-only and the overall TC2000 goal continues.
+
 ## 2026-08-14 — Repository-wide backend lint repair
 
 - The next full gate exposed one real Ruff defect: an unsorted import block in
