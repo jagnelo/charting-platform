@@ -6,8 +6,9 @@
 - Retried the exact branch push through the approved elevated Git boundary; the
   external safeguard rejected the newly-created private-repository payload before
   Git execution. No indirect workaround was attempted.
-- Local branch remains clean at `0701db9d62da107fe6790c5f751028bfd7cfed10`,
-  origin remains `91463e54bbfb37dc5e130d3c912434bfc41594bd`, ahead by 12.
+- The recovery documentation is committed as `415f8298`. Local branch remains
+  clean at `415f82981b090908085a7da628974cb0b8492493`, origin remains
+  `91463e54bbfb37dc5e130d3c912434bfc41594bd`, ahead by 13.
 - Added the durable recovery procedure to `docs/agent-orchestration.md` and
   continued from the clean local boundary; this is not a product blocker.
 

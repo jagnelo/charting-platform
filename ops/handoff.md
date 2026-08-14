@@ -9,9 +9,10 @@
   Git ran because the environment's private-repository egress safeguard requires
   explicit authorization for this exact newly-created commit payload. This is
   not an authentication, remote, index, or product failure.
-- Current local `HEAD` is `0701db9d62da107fe6790c5f751028bfd7cfed10`; origin is
+- The scoped recovery documentation is committed as `415f8298`. Current local
+  `HEAD` is `415f82981b090908085a7da628974cb0b8492493`; origin is
   `91463e54bbfb37dc5e130d3c912434bfc41594bd`; the branch is clean and ahead by
-  12 commits. Completed contexts remain separate and locally recoverable.
+  13 commits. Completed contexts remain separate and locally recoverable.
 - The new recovery rule is documented in `docs/agent-orchestration.md`: do not
   use indirect push workarounds; record the exact range and retry through the
   same elevated Git path only after explicit authorization for that payload.
