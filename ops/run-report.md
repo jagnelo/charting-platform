@@ -1,5 +1,12 @@
 # Run Report
 
+## 2026-08-14 — Current push transport result after lifecycle repair
+
+- Exact elevated push for `91463e54..584e83b3` was rejected before Git by the private-repository
+  egress safeguard because trusted authorization for that destination and payload was unavailable.
+- This is recorded as committed-locally-pending-push; the repository is clean and no product work
+  is blocked. No workaround or history-changing operation was used.
+
 ## 2026-08-14 — Chart settings loading lifecycle repair
 
 - The first complete seeded flow run after the visual fix was `134 passed / 4 failed`; the four

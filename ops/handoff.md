@@ -1,5 +1,14 @@
 # Active Handoff
 
+## 2026-08-14 — Current push transport result after lifecycle repair
+
+- The exact elevated command `rtk git push origin feat/tc2000-frontend-rework` was attempted for
+  clean range `91463e54..584e83b3` after the chart settings lifecycle and operational commits.
+- The environment rejected it before Git because trusted authorization for exporting that exact
+  private-repository payload and destination was unavailable. This remains a transport-only
+  safeguard; no alternate transport, indirect execution, history rewrite, reset, stash, or force
+  push was attempted. The worktree remains clean and the goal remains active.
+
 ## 2026-08-14 — Chart settings loading lifecycle repair
 
 - Initial complete seeded `flows.spec.ts` exposed four failures: F9c, F9c-transform, and
