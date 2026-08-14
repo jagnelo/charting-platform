@@ -134,6 +134,8 @@ describe('StudyLabTool', () => {
     await wrapper.find('[aria-label="Study Python source SDK suggestions"] button').trigger('mousedown')
     expect((editor.element as HTMLTextAreaElement).value).toContain('market.close()')
     expect(wrapper.text()).toContain('SDK reference')
+    const statsReferenceRows = wrapper.findAll('.study-lab-tool__sdk-reference > span').filter(row => row.text().startsWith('stats:'))
+    expect(statsReferenceRows).toHaveLength(1)
     expect(wrapper.text()).toContain('positive_close_streaks')
     expect(wrapper.text()).toContain('stats: positive_close_streaks, streaks')
     expect(wrapper.text()).toContain('percentile')

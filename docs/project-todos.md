@@ -1,5 +1,14 @@
 # Project TODO Memory
 
+### 2026-08-14 — Study Lab SDK reference duplicate-row repair
+
+- [x] Removed the duplicated `stats` row from the Study Lab SDK reference so the visible
+      documentation has one authoritative row matching the unified Python runtime.
+- [x] Added a component regression asserting the reference contains exactly one `stats` row;
+      focused Study Lab tests pass `22/22`, full frontend Vitest `819/819`, type-check/build pass.
+- [ ] Acceptance flexibility used: **none**. This is a localized documentation/UI correctness
+      repair; no visual threshold, mask, product criterion, or browser acceptance rule changed.
+
 ### 2026-08-14 — Study histogram current-marker lifecycle
 
 - [x] Corrected `StudyHistogramUPlot` to include the typed `current` observation in its redraw

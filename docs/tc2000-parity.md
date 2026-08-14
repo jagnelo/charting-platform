@@ -1,5 +1,13 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-14 — Study Lab SDK reference duplicate-row repair
+
+- Removed a duplicated `stats` entry from the Study Lab SDK reference. The visible reference now
+  has one row for the supported stats namespace, and a component regression enforces that shape.
+- Focused Study Lab `22/22`, full frontend `819/819`, type-check, and production build pass.
+- Acceptance flexibility used: **none**. No visual threshold, mask, product criterion, or
+  reference-board rule changed.
+
 ## 2026-08-14 — Study histogram current-marker lifecycle
 
 - Fixed the Study Lab histogram lifecycle so changes to the current observation redraw the marker
