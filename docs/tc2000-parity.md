@@ -6087,3 +6087,17 @@ visual-policy checks pass. This is a genuine backend capability addition; no vis
 mask, product criterion, or acceptance flexibility changed. `REF-STUDY-LAB-V25`, broader SDK and
 research families, provider/live-entitlement breadth, historical/GICS, native-monitor, endurance,
 and final-audit gaps remain explicitly tracked.
+
+## 2026-08-14 — Unified Python research outcome helpers
+
+The isolated runner now exposes deterministic `research.conditional_outcomes` and
+`research.regimes` helpers over declared data only. Conditional outcomes report complete-horizon
+sample sizes, central tendency, positive/negative counts, and raw aligned values. Regimes report
+point-in-time up/flat/down classifications, coverage, counts, current state, and timestamped rows
+with explicit lookback/threshold contracts. The unified editor and Study Lab reference expose the
+same methods. Focused runner tests pass `75/75`, editor/Study Lab `27/27`, authenticated adjacent
+browser `12/12`, full frontend `818/818`, combined backend `1447/1447` at `80.17%`, and the
+type/build/uPlot/visual-policy checks pass. This is a genuine research capability addition; no
+visual threshold, mask, product criterion, or acceptance flexibility changed. Broader research,
+provider/live-entitlement, historical/GICS, native-monitor, endurance, and final-audit gaps remain
+tracked.

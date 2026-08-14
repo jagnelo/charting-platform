@@ -176,6 +176,50 @@ def test_runner_stats_namespace_reports_invalid_contracts(source, message):
     assert message in result["diagnostics"][0]["message"]
 
 
+def test_runner_computes_conditional_outcomes_and_point_in_time_regimes():
+    result = execute_job(
+        {
+            "source": (
+                "outcomes = research.conditional_outcomes(dataset, [1, 2], [1, 2])\n"
+                "regimes = research.regimes(dataset, 2, 0.02)\n"
+                "output.table('outcomes', outcomes)\n"
+                "output.table('regime_rows', regimes['rows'])\n"
+                "output.table('regime_summary', [regimes['counts']])\n"
+                "output.scalar('current_state', regimes['current']['state'])"
+            ),
+            "output_contract": "study",
+            "dataset": {
+                "symbol": "SPY",
+                "timestamps": [f"2024-01-0{index}T00:00:00+00:00" for index in range(1, 7)],
+                "closes": [100, 102, 101, 106, 105, 110],
+            },
+        }
+    )
+    assert result["status"] == "completed"
+    outcomes = result["artifacts"]["outcomes"]["value"]
+    assert outcomes[0]["horizon"] == 1
+    assert outcomes[0]["sample_size"] == 2
+    assert outcomes[0]["positive_count"] == 1
+    assert outcomes[1]["sample_size"] == 2
+    assert len(result["artifacts"]["regime_rows"]["value"]) == 4
+    assert result["artifacts"]["regime_summary"]["value"] == [{"up": 3, "flat": 1, "down": 0}]
+    assert result["artifacts"]["current_state"]["value"] == "up"
+
+
+@pytest.mark.parametrize(
+    ("source", "message"),
+    [
+        ("output.table('x', research.conditional_outcomes(dataset, [0], [0]))", "horizons must be positive integers"),
+        ("output.table('x', research.regimes(dataset, 0))", "regime lookback must be a positive integer"),
+        ("output.table('x', research.regimes(dataset, 1, -1))", "threshold must be a finite non-negative number"),
+    ],
+)
+def test_runner_research_outcome_helpers_report_invalid_contracts(source, message):
+    result = execute_job({"source": source, "dataset": {"closes": [1, 2], "timestamps": ["a", "b"]}})
+    assert result["status"] == "failed"
+    assert message in result["diagnostics"][0]["message"]
+
+
 def test_runner_emits_typed_boolean_artifacts():
     result = execute_job({"source": "output.boolean('qualifies', 2 > 1)", "dataset": {}})
     assert result["status"] == "completed"

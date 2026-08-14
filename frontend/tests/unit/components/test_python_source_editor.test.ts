@@ -111,6 +111,11 @@ describe('PythonSourceEditor', () => {
     ;(editor.element as HTMLTextAreaElement).setSelectionRange(8, 8)
     await editor.trigger('keyup')
     expect(wrapper.text()).toContain('stats.distribution(values, 8, current)')
+    await wrapper.setProps({ modelValue: 'research.' })
+    ;(editor.element as HTMLTextAreaElement).setSelectionRange(9, 9)
+    await editor.trigger('keyup')
+    expect(wrapper.text()).toContain('research.conditional_outcomes(dataset, indices, [1, 5, 20])')
+    expect(wrapper.text()).toContain('research.regimes(dataset, 20, 0.05)')
 
     await wrapper.setProps({ modelValue: 'output.' })
     ;(editor.element as HTMLTextAreaElement).setSelectionRange(7, 7)

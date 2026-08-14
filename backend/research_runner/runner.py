@@ -974,6 +974,80 @@ class _Research:
             if isinstance(index, int) and not isinstance(index, bool) and 0 <= index < len(timestamps) and isinstance(timestamps[index], str) and timestamps[index]
         ]
 
+    def conditional_outcomes(self, dataset: dict, event_indices: object, horizons: object = (1, 5, 20)) -> list[dict]:
+        """Summarize forward returns after declared events without look-ahead."""
+        closes = dataset.get("closes", [])
+        if not isinstance(closes, list) or not isinstance(event_indices, list | tuple) or not isinstance(horizons, list | tuple):
+            raise ValueError("conditional_outcomes requires closes, event indices, and horizons lists")
+        parsed_horizons: list[int] = []
+        for horizon in horizons:
+            if not isinstance(horizon, int) or isinstance(horizon, bool) or horizon <= 0:
+                raise ValueError("conditional outcome horizons must be positive integers")
+            parsed_horizons.append(horizon)
+        parsed_events = [
+            index for index in event_indices
+            if isinstance(index, int) and not isinstance(index, bool) and 0 <= index < len(closes)
+        ]
+        summaries: list[dict] = []
+        for horizon in parsed_horizons:
+            values: list[float] = []
+            for index in parsed_events:
+                target = index + horizon
+                if target >= len(closes):
+                    continue
+                base, outcome = closes[index], closes[target]
+                if not isinstance(base, int | float) or isinstance(base, bool) or not math.isfinite(float(base)) or float(base) == 0:
+                    continue
+                if not isinstance(outcome, int | float) or isinstance(outcome, bool) or not math.isfinite(float(outcome)):
+                    continue
+                values.append((float(outcome) / float(base)) - 1)
+            summaries.append({
+                "horizon": horizon,
+                "sample_size": len(values),
+                "mean": _Stats.mean(values),
+                "median": _Stats.median(values),
+                "positive_count": sum(1 for value in values if value > 0),
+                "negative_count": sum(1 for value in values if value < 0),
+                "values": values,
+            })
+        return summaries
+
+    def regimes(self, dataset: dict, lookback: int = 20, threshold: float = 0.0) -> dict:
+        """Classify trailing returns into up, down, or flat point-in-time regimes."""
+        closes = dataset.get("closes", [])
+        timestamps = dataset.get("timestamps", [])
+        if not isinstance(closes, list) or not isinstance(timestamps, list):
+            raise ValueError("regimes requires closes and timestamps lists")
+        if not isinstance(lookback, int) or isinstance(lookback, bool) or lookback <= 0:
+            raise ValueError("regime lookback must be a positive integer")
+        if not isinstance(threshold, int | float) or isinstance(threshold, bool) or not math.isfinite(float(threshold)) or threshold < 0:
+            raise ValueError("regime threshold must be a finite non-negative number")
+        rows: list[dict] = []
+        for index in range(lookback, len(closes)):
+            base, latest = closes[index - lookback], closes[index]
+            if not isinstance(base, int | float) or isinstance(base, bool) or not math.isfinite(float(base)) or float(base) == 0:
+                continue
+            if not isinstance(latest, int | float) or isinstance(latest, bool) or not math.isfinite(float(latest)):
+                continue
+            change = (float(latest) / float(base)) - 1
+            state = "up" if change > float(threshold) else "down" if change < -float(threshold) else "flat"
+            rows.append({
+                "index": index,
+                "timestamp": timestamps[index] if index < len(timestamps) else None,
+                "lookback": lookback,
+                "return": change,
+                "state": state,
+            })
+        counts = {state: sum(1 for row in rows if row["state"] == state) for state in ("up", "flat", "down")}
+        return {
+            "lookback": lookback,
+            "threshold": float(threshold),
+            "coverage": len(rows),
+            "counts": counts,
+            "current": rows[-1] if rows else None,
+            "rows": rows,
+        }
+
 
 class _Market:
     """Prepared-dataset market namespace; it can never retrieve undeclared data."""

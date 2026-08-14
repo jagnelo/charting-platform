@@ -11411,3 +11411,20 @@ The current source also passes the focused authenticated top-down browser slice 
 - [ ] The broader SDK families named in the controlling plan (`research` regimes, conditional
   outcomes, richer structured studies, and exact/unrepresented Study Lab V25 visual evidence)
   remain open. No visual threshold, mask, product criterion, or acceptance flexibility changed.
+
+### 2026-08-14 — Unified Python research outcome helpers
+
+- [x] Added deterministic `research.conditional_outcomes` and `research.regimes` helpers to the
+  isolated runner. Conditional outcomes align declared event indices to complete forward horizons
+  and return sample size, mean, median, positive/negative counts, and values. Regimes classify
+  trailing returns as up/flat/down with explicit lookback, threshold, coverage, counts, current
+  state, and point-in-time rows. Invalid horizons/lookbacks/thresholds and insufficient history
+  remain explicit; no future membership/bar, provider, I/O, or network access is introduced.
+- [x] Exposed the exact methods in the unified editor and Study Lab SDK reference. Focused runner
+  coverage passes `75/75`; editor/Study Lab unit coverage `27/27`; full frontend Vitest `818/818`
+  at `80.90%` statements; authenticated Study Lab/Python/Results browser coverage `12/12`; full
+  backend unit/integration coverage `1447/1447` at `80.17%`; `make test-fe`, uPlot/visual-policy,
+  type-check, and production build pass.
+- [ ] Broader conditional research families, exact/unrepresented Study Lab V25 visual evidence,
+  provider/live-entitlement breadth, historical/GICS, native-monitor, endurance, and final-audit
+  gaps remain open. No visual threshold, mask, product criterion, or acceptance flexibility changed.

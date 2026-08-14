@@ -138,6 +138,8 @@ describe('StudyLabTool', () => {
     expect(wrapper.text()).toContain('percentile')
     expect(wrapper.text()).toContain('distribution')
     expect(wrapper.text()).toContain('cross_sectional_rank')
+    expect(wrapper.text()).toContain('conditional_outcomes')
+    expect(wrapper.text()).toContain('regimes')
     expect(wrapper.text()).not.toContain('historical comparisons')
   })
 
