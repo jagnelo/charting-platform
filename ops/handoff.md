@@ -1,5 +1,16 @@
 # Active Handoff
 
+## 2026-08-14 — Current-range push safeguard recorded
+
+- Implementation `793398f2` and the separate operational record `e5b84a32` are committed locally;
+  the worktree is clean. The exact command `rtk git push origin feat/tc2000-frontend-rework` for
+  range `91463e54..e5b84a32` was attempted once and rejected before Git by the external
+  private-repository egress safeguard.
+- This is not an index, filesystem, Git, authentication, or product failure. No workaround,
+  indirect execution, force push, rewrite, or alternate transport was attempted. The clean local
+  commits remain the source of truth; retry only the same narrow command after explicit authorization
+  for this exact range/destination. The active goal is not blocked by this transport hold.
+
 ## 2026-08-14 — Backend gate semantics and scoped Docker maintenance
 
 - Fixed the repository test-harness defect where `make test-int` applied the global coverage

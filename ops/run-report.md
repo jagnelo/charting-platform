@@ -1,5 +1,12 @@
 # Run Report
 
+## 2026-08-14 — Current-range push safeguard recorded
+
+- Clean local commits `793398f2` and `e5b84a32` close the backend-gate context and its operational
+  record. Exact push range `91463e54..e5b84a32` was rejected before Git by the private-repository
+  egress safeguard. No workaround or rewrite was attempted; this remains transport-only and does
+  not block the goal or the next clean context.
+
 ## 2026-08-14 — Backend gate semantics and scoped Docker maintenance
 
 - `make test-backend` passes `1121` unit and `303` integration tests after correcting the
