@@ -1,5 +1,30 @@
 # Active Handoff
 
+## 2026-08-14 — Chart loading and Study Lab visual checkpoint
+
+- Closed implementation/test context in isolated commit `5eacf42f`: the primary chart no longer
+  retains a uPlot canvas while history is loading; F8i now asserts stale numerical output is
+  detached; and the Study Lab structured-result visual oracle waits for the seeded shell-ready
+  state and stubs the adjacent persisted-run list to a deterministic empty response.
+- Focused board-guided visual coverage passes `8/8` across all four display environments without
+  snapshot updates after the reviewed baseline refresh. F8i browser coverage passes `3/3`.
+  Frontend Vitest passes `806/806`; type-check, 476-module production build, and diff-check pass.
+- Acceptance flexibility used and tracked: the four Study Lab baselines are represented-state
+  evidence from the composite V25 reference board and controlled seeded data, not approved
+  exact-build captures. This closes timing drift only; exact V25 structured-result references,
+  provider/entitlement breadth, historical/GICS truth, native-monitor, endurance, Docker, and
+  final-audit gaps remain open.
+- Verified repository metadata before Git recovery: `.git`, `.git/index`, and `.git/refs` are
+  owned by `jagnelo:staff`, writable by the workspace owner, and no `.git/index.lock` exists.
+  The unprivileged `git add` failed at the Codex filesystem boundary; the documented sequential
+  elevated path succeeded for staging and committing.
+- Exact push attempted after the clean implementation commit:
+  `rtk git push origin feat/tc2000-frontend-rework`. The environment rejected it before Git via
+  the private-repository egress safeguard because trusted authorization for this exact payload
+  and destination is unavailable. Current transport range is `91463e54..5eacf42f`; this is
+  committed-locally-pending-push transport state, not a product or goal blocker. No alternate
+  transport, force push, rewrite, reset, stash, or indirect workaround was used.
+
 ## 2026-08-14 — Corrected seeded workstation acceptance checkpoint
 
 - The complete seeded authenticated Chromium `flows.spec.ts` matrix passes `138/140` executed

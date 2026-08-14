@@ -1,5 +1,25 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-14 — Chart loading lifecycle and deterministic Study Lab visual state
+
+- The primary chart host now detaches its uPlot canvas while history is loading. The loading
+  surface therefore cannot leave a stale numerical renderer underneath it; the existing chart
+  instance is recreated only after valid history is available.
+- The Study Lab structured-result board capture now waits for the seeded shell to reach its stable
+  ready state and stubs the adjacent persisted-runs list to its explicit empty state. This removes
+  shared-database and first-refresh timing drift without masking application pixels or changing a
+  visual threshold.
+- The four reviewed board-guided baselines (1920×1080 and 2560×1440 at 100% and 125% display
+  scale) were regenerated from that deterministic fixture and pass unchanged on a no-update
+  rerun. Focused chart-loading and structured-result coverage passes `8/8`; F8i error/loading
+  browser coverage passes `3/3`; frontend Vitest passes `806/806`; type-check, 476-module build,
+  and `git diff --check` pass. Implementation/test commit: `5eacf42f`.
+- Acceptance flexibility used: the Study Lab visual is represented-state evidence from the
+  composite V25 reference board and a controlled seeded fixture, not an approved exact-build
+  capture. The exact V25 structured-result reference, provider/entitlement breadth,
+  historical/GICS truth, native-monitor, endurance, Docker, and final-audit gaps remain open and
+  are not silently closed by this baseline update.
+
 ## 2026-08-14 — Browser acceptance hardening and full seeded revalidation
 
 - The corrected full seeded `flows.spec.ts` rerun passes `138/140` executed tests in `6.9m`

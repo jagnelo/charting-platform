@@ -1,5 +1,22 @@
 # Run Report
 
+## 2026-08-14 — Chart loading and Study Lab visual checkpoint
+
+- Focused board-guided visual command passed `8/8` across 1920×1080 and 2560×1440 at 100% and
+  125% display scale, with no-update verification after the four structured-result baselines were
+  reviewed and regenerated from the deterministic seeded fixture.
+- Targeted `flows.spec.ts` F8i-a/F8i-b passed `3/3`. Full frontend Vitest passed `806/806`;
+  `vue-tsc --noEmit`, Vite production build (`476` modules), and `git diff --check` passed.
+- The first browser attempt failed before test execution because restricted Chromium could not
+  register its macOS Mach-port rendezvous service. The exact command was rerun through the
+  permitted elevated browser boundary; this was setup evidence, not an application failure.
+- Implementation/test commit: `5eacf42f`. Worktree is clean. Push attempt for
+  `91463e54..5eacf42f` was rejected before Git by the private-repository egress safeguard; the
+  result is recorded as committed-locally-pending-push and does not block the product goal.
+- Flexibility: represented-state/composite-board and controlled seeded fixture evidence was used
+  for Study Lab because exact approved V25 structured-result captures remain unavailable. No
+  screenshot threshold, mask, renderer rule, or product criterion was relaxed.
+
 ## 2026-08-14 — Corrected seeded workstation browser matrix
 
 - `frontend/tests/e2e/flows.spec.ts`: `138/140` executed passed, `2` intentional canonical-only
