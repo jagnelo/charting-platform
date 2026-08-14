@@ -1,5 +1,33 @@
 # Active Handoff
 
+## 2026-08-14 — Study Lab 90/90 breadth factory context (completed)
+
+- Context owner: Codex. Owned paths are `backend/research_runner/runner.py`, the focused runner
+  tests, `frontend/src/components/workstation/StudyLabTool.vue`, its SDK/editor tests, and the
+  controlling parity/TODO/checkpoint records.
+- Intent: close the plan-required 90/90-style breadth study gap using declared canonical universe
+  data only. The helper will report price-advancing and volume-advancing coverage independently,
+  qualify only when both percentages reach 90%, and preserve exact exclusions for missing/invalid
+  volume instead of fabricating participation.
+- Acceptance flexibility used: none. `REF-STUDY-LAB-V25` remains the separately tracked original-
+  surface visual-reference gap; no visual threshold, mask, product criterion, or browser oracle is
+  being changed.
+- Validation: focused runner/factory-source `85/85`; focused frontend editor/Study Lab `27/27`;
+  authenticated `F8p-90-90` browser `1/1`; adjacent Study Lab/Python/Results slice `9/9`; full
+  frontend `818/818`; type-check/build; authoritative backend unit/integration `1453/1453` at
+  `80.17%`; Ruff check/format for changed backend files; uPlot contract; visual policy; and
+  `git diff --check` pass. The first full backend attempt exposed a missing prepared-volume fixture,
+  which was corrected and the complete gate rerun successfully.
+- Completed: the runner helper, factory starter, editor/reference entries, browser acceptance,
+  prepared fixture, and parity/TODO records now agree on the same explicit contract.
+- Acceptance flexibility used: none. `REF-STUDY-LAB-V25` remains the separately tracked
+  original-surface visual-reference gap; no visual threshold, mask, product criterion, or browser
+  acceptance rule was changed.
+- Git rule: keep implementation/docs and operational checkpoint as separate clean commits. Push
+  the exact local range once through the elevated worker-owned path; if the private-origin
+  safeguard rejects it before Git, record the exact range and continue without treating transport
+  as a product blocker.
+
 ## 2026-08-14 — Study Lab current-history exclusion transport record
 
 - Implementation/docs `975bbba7` and operational checkpoint `42a988ff` are cleanly committed. The

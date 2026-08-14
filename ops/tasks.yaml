@@ -1,4 +1,34 @@
 tasks:
+  - id: tc2000-study-lab-90-90-breadth-factory-20260814
+    title: Add transparent 90/90-style breadth Study Lab factory study
+    status: completed
+    priority: high
+    scope: >-
+      Add one unified Python research helper and factory starter that evaluates declared-universe
+      price and volume participation at the latest aligned observation, reports coverage and
+      exclusions, and qualifies only when both participation percentages meet the configured 90%
+      threshold. No provider fan-out or inferred volume is permitted.
+    definition_of_done:
+      - The isolated runner exposes deterministic research.breadth_thrust over declared datasets
+      - Missing/invalid price or volume rows are excluded with explicit reasons and never counted
+      - The Study Lab factory starter emits metrics, a Boolean qualification, and detail table
+      - SDK autocomplete/reference and focused source contracts expose exactly the supported helper
+      - Focused, adjacent browser, frontend, backend, type/build, uPlot, visual-policy, and diff gates pass
+      - No visual threshold, mask, product criterion, or acceptance flexibility changes
+    validation:
+      - focused-research-runner-and-factory-source-85-of-85
+      - focused-python-editor-study-lab-27-of-27
+      - authenticated-f8p-90-90-browser-1-of-1
+      - adjacent-study-python-results-browser-9-of-9
+      - frontend-vitest-818-of-818
+      - backend-unit-integration-1453-of-1453-at-80.17-percent
+      - frontend-type-check-production-build
+      - ruff-uplot-visual-policy-diff-check
+    notes:
+      - REF-STUDY-LAB-V25 remains an original-surface visual gap; no interim visual rule is being promoted.
+      - Keep implementation/docs and operational checkpoint in separate commits; Git transport is not a goal blocker.
+      - First full backend rerun exposed a missing prepared-volume fixture; the fixture was corrected and the full gate rerun passed.
+      - Acceptance flexibility used: none; REF-STUDY-LAB-V25 remains a tracked original-surface visual gap.
   - id: tc2000-study-lab-current-history-exclusion-20260814
     title: Exclude current observation from Study Lab historical distribution
     status: completed

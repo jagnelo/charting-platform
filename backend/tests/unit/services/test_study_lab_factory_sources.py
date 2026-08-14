@@ -92,23 +92,35 @@ def test_all_named_factory_sources_execute_against_a_prepared_fixture():
             "timestamps": timestamps,
         },
         "datasets": [
-            {"instrument_id": 1, "symbol": "SPY", "closes": closes, "timestamps": timestamps},
+            {
+                "instrument_id": 1,
+                "symbol": "SPY",
+                "closes": closes,
+                "volumes": [1000 + day * 10 for day in range(30)],
+                "timestamps": timestamps,
+            },
             {
                 "instrument_id": 2,
                 "symbol": "XLK",
                 "closes": [90 + day * 2 for day in range(30)],
+                "volumes": [900 + day * 8 for day in range(30)],
                 "timestamps": timestamps,
             },
             {
                 "instrument_id": 3,
                 "symbol": "XLE",
                 "closes": [120 + day for day in range(30)],
+                "volumes": [800 + day * 6 for day in range(30)],
                 "timestamps": timestamps,
             },
         ],
     }
 
-    aggregate_sources = {"crossSectionalRankSource", "breadthParticipationSource"}
+    aggregate_sources = {
+        "crossSectionalRankSource",
+        "breadthParticipationSource",
+        "breadthThrustSource",
+    }
     for name, source in _source_constants().items():
         run_dataset = (
             dataset

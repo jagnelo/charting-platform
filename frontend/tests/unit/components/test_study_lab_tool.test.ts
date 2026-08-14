@@ -192,6 +192,7 @@ describe('StudyLabTool', () => {
       { value: 'relative_strength_regime', label: 'Relative-strength regime changes' },
       { value: 'cross_sectional_rank', label: 'Cross-sectional ranking' },
       { value: 'breadth_participation', label: 'Breadth participation' },
+      { value: 'breadth_thrust_90_90', label: '90/90 breadth thrust' },
       { value: 'current_history_comparison', label: 'Current versus history' },
     ]))
 
@@ -210,6 +211,10 @@ describe('StudyLabTool', () => {
     expect(currentHistorySource).toContain("output.histogram('historical_return_distribution'")
     expect(currentHistorySource).toContain("output.histogram('historical_return_distribution', history, 12, comparison['current'])")
     expect(currentHistorySource).toContain("output.scalar('historical_sample_size'")
+    await selector.setValue('breadth_thrust_90_90')
+    const breadthThrustSource = (wrapper.find('[aria-label="Study Python source"]').element as HTMLTextAreaElement).value
+    expect(breadthThrustSource).toContain('research.breadth_thrust(dataset, 90)')
+    expect(breadthThrustSource).toContain("output.boolean('qualifies_90_90'")
     await selector.setValue('seasonality')
     const seasonalitySource = (wrapper.find('[aria-label="Study Python source"]').element as HTMLTextAreaElement).value
     expect(seasonalitySource).toContain('average_day_of_week_return')

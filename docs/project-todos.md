@@ -1,5 +1,18 @@
 # Project TODO Memory
 
+### 2026-08-14 — Study Lab transparent 90/90 breadth thrust
+
+- [x] Added `research.breadth_thrust(dataset, threshold=90)` to the isolated unified-Python
+      runtime. It compares the latest two declared observations for price and volume participation,
+      returns independent counts/percentages, a transparent qualification Boolean, detail rows, and
+      explicit exclusions for insufficient, malformed, or zero-baseline data.
+- [x] Added the `90/90 breadth thrust` factory starter, SDK autocomplete/reference entry, source
+      contracts, prepared-fixture coverage, focused runner coverage, authenticated browser flow, and
+      adjacent Study Lab/Python/Results regression.
+- [ ] Acceptance flexibility used: **none**. `REF-STUDY-LAB-V25` remains the separately tracked
+      original-surface visual-reference gap; no visual threshold, mask, product criterion, or
+      browser acceptance rule changed.
+
 ### 2026-08-14 — Study Lab current-history exclusion correctness
 
 - [x] Corrected the Current versus history factory source so `returns[:-1]` is the historical

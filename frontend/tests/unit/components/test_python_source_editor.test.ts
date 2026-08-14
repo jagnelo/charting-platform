@@ -121,6 +121,10 @@ describe('PythonSourceEditor', () => {
     ;(editor.element as HTMLTextAreaElement).setSelectionRange(10, 10)
     await editor.trigger('keyup')
     expect(wrapper.text()).toContain('research.historical_comparison(values, current)')
+    await wrapper.setProps({ modelValue: 'research.b' })
+    ;(editor.element as HTMLTextAreaElement).setSelectionRange(10, 10)
+    await editor.trigger('keyup')
+    expect(wrapper.text()).toContain('research.breadth_thrust(dataset, 90)')
 
     await wrapper.setProps({ modelValue: 'output.' })
     ;(editor.element as HTMLTextAreaElement).setSelectionRange(7, 7)

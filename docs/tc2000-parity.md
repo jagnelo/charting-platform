@@ -6174,3 +6174,12 @@ type-check, and production build pass. Acceptance flexibility used: `REF-STUDY-L
 surface interim baseline and product-contract evidence; the board contains no authoritative Study
 Lab capture. The gap remains open and no visual threshold, mask, product criterion, or acceptance
 rule changed.
+# 2026-08-14 — Study Lab 90/90 breadth thrust
+
+- Added the plan-required transparent 90/90-style breadth study to the unified Python path. It
+  evaluates declared-universe price and volume advances at the latest aligned observation, reports
+  coverage and row-level exclusions, and qualifies only when both participation percentages meet
+  the configured threshold. Missing or zero-baseline data is excluded rather than inferred.
+- The factory starter, editor completion, SDK reference, focused source/runner contracts, and
+  authenticated `F8p-90-90` browser acceptance are implemented. The original Study Lab surface
+  remains under `REF-STUDY-LAB-V25`; no visual or acceptance threshold was relaxed.

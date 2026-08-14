@@ -26,13 +26,21 @@ from research_runner.validation import validate_workstation_python
 try:  # The isolated image receives this file through Dockerfile.research-runner.
     from research_runner.canonical_indicators import (
         OHLCVSeries as _CanonicalOHLCVSeries,
+    )
+    from research_runner.canonical_indicators import (
         compute_indicator as _compute_canonical_indicator,
+    )
+    from research_runner.canonical_indicators import (
         normalize_indicator_params as _normalize_canonical_indicator_params,
     )
 except ImportError:  # Local unit tests run from the application source tree.
     from app.services.indicators import (
         OHLCVSeries as _CanonicalOHLCVSeries,
+    )
+    from app.services.indicators import (
         compute_indicator as _compute_canonical_indicator,
+    )
+    from app.services.indicators import (
         normalize_indicator_params as _normalize_canonical_indicator_params,
     )
 
@@ -108,7 +116,10 @@ def _limit_resources() -> dict[int, tuple[int, int]]:
             hard_limit = current[1]
             soft_limit = value[0]
             if limit == resource.RLIMIT_CPU:
-                cpu_used = resource.getrusage(resource.RUSAGE_SELF).ru_utime + resource.getrusage(resource.RUSAGE_SELF).ru_stime
+                cpu_used = (
+                    resource.getrusage(resource.RUSAGE_SELF).ru_utime
+                    + resource.getrusage(resource.RUSAGE_SELF).ru_stime
+                )
                 # RLIMIT_CPU is an absolute process CPU-time limit, not a
                 # duration. Offset it from already-consumed CPU time so local
                 # test callers cannot inherit an immediately-expired limit.
@@ -195,7 +206,15 @@ def _execute_single(
     # No Python builtins, imports, filesystem APIs, sockets, or process APIs are exposed.
     parameters = hash_input.get("parameters", {})
     if not isinstance(parameters, dict):
-        return {"status": "failed", "diagnostics": [{"code": "invalid_parameters", "message": "research parameters must be a JSON object"}]}
+        return {
+            "status": "failed",
+            "diagnostics": [
+                {
+                    "code": "invalid_parameters",
+                    "message": "research parameters must be a JSON object",
+                }
+            ],
+        }
     outputs: dict[str, object] = {}
     safe_globals = {
         "__builtins__": _SAFE_BUILTINS,
@@ -227,9 +246,25 @@ def _execute_single(
         # per-cell failure and then continue running the remaining universe.
         if not manage_timeout:
             raise
-        return {"status": "failed", "diagnostics": [{"code": "wall_time_limit", "message": "research execution wall-time limit exceeded"}]}
+        return {
+            "status": "failed",
+            "diagnostics": [
+                {
+                    "code": "wall_time_limit",
+                    "message": "research execution wall-time limit exceeded",
+                }
+            ],
+        }
     except MemoryError:
-        return {"status": "failed", "diagnostics": [{"code": "memory_limit", "message": "research execution exceeded the configured memory limit"}]}
+        return {
+            "status": "failed",
+            "diagnostics": [
+                {
+                    "code": "memory_limit",
+                    "message": "research execution exceeded the configured memory limit",
+                }
+            ],
+        }
     except Exception as exc:
         return {"status": "failed", "diagnostics": [{"code": "runtime_error", "message": str(exc)}]}
     finally:
@@ -240,15 +275,26 @@ def _execute_single(
             _restore_resources(previous_limits)
     dashboard_error = _dashboard_reference_error(outputs)
     if dashboard_error:
-        return {"status": "failed", "diagnostics": [{"code": "dashboard_reference_error", "message": dashboard_error}]}
+        return {
+            "status": "failed",
+            "diagnostics": [{"code": "dashboard_reference_error", "message": dashboard_error}],
+        }
     try:
         serialized_artifacts = json.dumps(outputs, separators=(",", ":"), allow_nan=False)
     except (TypeError, ValueError) as exc:
-        return {"status": "failed", "diagnostics": [{"code": "output_serialization_error", "message": str(exc)}]}
+        return {
+            "status": "failed",
+            "diagnostics": [{"code": "output_serialization_error", "message": str(exc)}],
+        }
     if len(serialized_artifacts.encode()) > MAX_OUTPUT_BYTES:
         return {
             "status": "failed",
-            "diagnostics": [{"code": "output_size_limit", "message": "research output exceeds the configured byte limit"}],
+            "diagnostics": [
+                {
+                    "code": "output_size_limit",
+                    "message": "research output exceeds the configured byte limit",
+                }
+            ],
         }
     return {
         "status": "completed",
@@ -269,7 +315,15 @@ def _execute_batch(
     cancellation_check: Callable[[], bool] | None = None,
 ) -> dict:
     if output_contract not in {"scalar", "boolean", "events"}:
-        return {"status": "failed", "diagnostics": [{"code": "batch_output_contract_unsupported", "message": "Batch execution requires scalar, boolean, or events output."}]}
+        return {
+            "status": "failed",
+            "diagnostics": [
+                {
+                    "code": "batch_output_contract_unsupported",
+                    "message": "Batch execution requires scalar, boolean, or events output.",
+                }
+            ],
+        }
     cells: list[dict] = []
     started = time.monotonic()
     total = len(datasets)
@@ -284,9 +338,14 @@ def _execute_batch(
             if cancellation_check and cancellation_check():
                 return {
                     "status": "canceled",
-                    "diagnostics": [{"code": "batch_canceled", "message": "prepared-universe batch canceled"}],
+                    "diagnostics": [
+                        {"code": "batch_canceled", "message": "prepared-universe batch canceled"}
+                    ],
                     "artifacts": {"batch_cells": {"type": "batch", "value": {"cells": cells}}},
-                    "resource_usage": {"cell_count": len(cells), "wall_ms": round((time.monotonic() - started) * 1000, 3)},
+                    "resource_usage": {
+                        "cell_count": len(cells),
+                        "wall_ms": round((time.monotonic() - started) * 1000, 3),
+                    },
                 }
             if not isinstance(candidate, dict):
                 continue
@@ -297,36 +356,86 @@ def _execute_batch(
             result = _execute_single(
                 source,
                 candidate,
-                {"source": source, "dataset": candidate, "output_contract": output_contract, "parameters": hash_input.get("parameters", {})},
+                {
+                    "source": source,
+                    "dataset": candidate,
+                    "output_contract": output_contract,
+                    "parameters": hash_input.get("parameters", {}),
+                },
                 manage_timeout=False,
             )
             if result.get("status") != "completed":
                 diagnostics = result.get("diagnostics", [])
-                message = diagnostics[0].get("message") if diagnostics and isinstance(diagnostics[0], dict) else "Batch cell failed"
-                cells.append({"instrument_id": instrument_id, "symbol": symbol, "status": "failed", "error": message})
+                message = (
+                    diagnostics[0].get("message")
+                    if diagnostics and isinstance(diagnostics[0], dict)
+                    else "Batch cell failed"
+                )
+                cells.append(
+                    {
+                        "instrument_id": instrument_id,
+                        "symbol": symbol,
+                        "status": "failed",
+                        "error": message,
+                    }
+                )
                 continue
             matches = [
-                artifact for name, artifact in result.get("artifacts", {}).items()
+                artifact
+                for name, artifact in result.get("artifacts", {}).items()
                 if isinstance(artifact, dict)
                 and artifact.get("type") == output_contract
                 and (output_name is None or name == output_name)
             ]
             if len(matches) != 1:
-                cells.append({"instrument_id": instrument_id, "symbol": symbol, "status": "failed", "error": f"Expected exactly one {output_contract} output."})
+                cells.append(
+                    {
+                        "instrument_id": instrument_id,
+                        "symbol": symbol,
+                        "status": "failed",
+                        "error": f"Expected exactly one {output_contract} output.",
+                    }
+                )
                 continue
             value = matches[0].get("value")
-            if output_contract == "scalar" and (not isinstance(value, int | float) or isinstance(value, bool)):
-                cells.append({"instrument_id": instrument_id, "symbol": symbol, "status": "failed", "error": "Scalar output must be numeric."})
+            if output_contract == "scalar" and (
+                not isinstance(value, int | float) or isinstance(value, bool)
+            ):
+                cells.append(
+                    {
+                        "instrument_id": instrument_id,
+                        "symbol": symbol,
+                        "status": "failed",
+                        "error": "Scalar output must be numeric.",
+                    }
+                )
                 continue
-            cells.append({"instrument_id": instrument_id, "symbol": symbol, "status": "completed", "value": value})
+            cells.append(
+                {
+                    "instrument_id": instrument_id,
+                    "symbol": symbol,
+                    "status": "completed",
+                    "value": value,
+                }
+            )
             if progress_callback and (len(cells) == total or len(cells) % 50 == 0):
-                progress_callback({"completed_cells": len(cells), "total_cells": total, "status": "running"})
+                progress_callback(
+                    {"completed_cells": len(cells), "total_cells": total, "status": "running"}
+                )
     except TimeoutError:
         return {
             "status": "failed",
-            "diagnostics": [{"code": "batch_wall_time_limit", "message": "prepared-universe batch wall-time limit exceeded"}],
+            "diagnostics": [
+                {
+                    "code": "batch_wall_time_limit",
+                    "message": "prepared-universe batch wall-time limit exceeded",
+                }
+            ],
             "artifacts": {"batch_cells": {"type": "batch", "value": {"cells": cells}}},
-            "resource_usage": {"cell_count": len(cells), "wall_ms": round((time.monotonic() - started) * 1000, 3)},
+            "resource_usage": {
+                "cell_count": len(cells),
+                "wall_ms": round((time.monotonic() - started) * 1000, 3),
+            },
         }
     finally:
         signal.alarm(0)
@@ -335,7 +444,10 @@ def _execute_batch(
     return {
         "status": "completed",
         "artifacts": {"batch_cells": {"type": "batch", "value": {"cells": cells}}},
-        "resource_usage": {"cell_count": len(cells), "wall_ms": round((time.monotonic() - started) * 1000, 3)},
+        "resource_usage": {
+            "cell_count": len(cells),
+            "wall_ms": round((time.monotonic() - started) * 1000, 3),
+        },
         "reproducibility_hash": sha256(json.dumps(hash_input, sort_keys=True).encode()).hexdigest(),
     }
 
@@ -379,10 +491,13 @@ class _Output:
             and isinstance(timestamps, list)
             and len(timestamps) == len(values)
         ):
-            self._store(name, {
-                "type": "series",
-                "value": {"timestamps": timestamps, "values": values},
-            })
+            self._store(
+                name,
+                {
+                    "type": "series",
+                    "value": {"timestamps": timestamps, "values": values},
+                },
+            )
         else:
             self._store(name, {"type": "series", "value": values})
 
@@ -406,14 +521,19 @@ class _Output:
         normalized_values = [
             float(value)
             for value in raw_values
-            if isinstance(value, int | float) and not isinstance(value, bool) and math.isfinite(float(value))
+            if isinstance(value, int | float)
+            and not isinstance(value, bool)
+            and math.isfinite(float(value))
         ]
         if len(normalized_values) != len(raw_values):
             raise ValueError("bar values must be finite numbers")
         normalized_labels = [str(label) for label in raw_labels]
         if any(not label or len(label) > 128 for label in normalized_labels):
             raise ValueError("bar labels must be non-empty strings of at most 128 characters")
-        self._store(name, {"type": "bar", "value": {"labels": normalized_labels, "values": normalized_values}})
+        self._store(
+            name,
+            {"type": "bar", "value": {"labels": normalized_labels, "values": normalized_values}},
+        )
 
     def histogram(self, name: str, value: object, bins: int = 8, current: object = None) -> None:
         """Emit a deterministic numeric distribution for Study Lab renderers."""
@@ -422,11 +542,24 @@ class _Output:
             raise ValueError("histogram values must be a list")
         if not isinstance(bins, int) or isinstance(bins, bool) or not 1 <= bins <= 64:
             raise ValueError("histogram bins must be an integer between 1 and 64")
-        if current is not None and (not isinstance(current, int | float) or isinstance(current, bool) or not math.isfinite(float(current))):
+        if current is not None and (
+            not isinstance(current, int | float)
+            or isinstance(current, bool)
+            or not math.isfinite(float(current))
+        ):
             raise ValueError("histogram current value must be numeric")
-        numeric = [float(item) for item in value if isinstance(item, int | float) and not isinstance(item, bool) and math.isfinite(float(item))]
+        numeric = [
+            float(item)
+            for item in value
+            if isinstance(item, int | float)
+            and not isinstance(item, bool)
+            and math.isfinite(float(item))
+        ]
         if not numeric:
-            self._store(name, {"type": "histogram", "value": {"bins": [], "sample_size": 0, "current": current}})
+            self._store(
+                name,
+                {"type": "histogram", "value": {"bins": [], "sample_size": 0, "current": current}},
+            )
             return
         minimum = min(numeric)
         maximum = max(numeric)
@@ -446,10 +579,19 @@ class _Output:
                 }
                 for index, count in enumerate(counts)
             ]
-        self._store(name, {
-            "type": "histogram",
-            "value": {"bins": bucket_rows, "sample_size": len(numeric), "min": minimum, "max": maximum, "current": current},
-        })
+        self._store(
+            name,
+            {
+                "type": "histogram",
+                "value": {
+                    "bins": bucket_rows,
+                    "sample_size": len(numeric),
+                    "min": minimum,
+                    "max": maximum,
+                    "current": current,
+                },
+            },
+        )
 
     def range(self, name: str, lower: object, upper: object, center: object = None) -> None:
         """Emit aligned lower/upper bands with an optional center series."""
@@ -460,24 +602,39 @@ class _Output:
             raise ValueError("range bounds must be lists")
         if len(lower_values) == 0 or len(lower_values) != len(upper_values):
             raise ValueError("range bounds must be non-empty and have the same length")
-        if center_values is not None and (not isinstance(center_values, list | tuple) or len(center_values) != len(lower_values)):
+        if center_values is not None and (
+            not isinstance(center_values, list | tuple) or len(center_values) != len(lower_values)
+        ):
             raise ValueError("range center must match the bound length")
+
         def finite_values(values: list | tuple) -> list[float]:
-            if not all(isinstance(value, int | float) and not isinstance(value, bool) and math.isfinite(float(value)) for value in values):
+            if not all(
+                isinstance(value, int | float)
+                and not isinstance(value, bool)
+                and math.isfinite(float(value))
+                for value in values
+            ):
                 raise ValueError("range values must be finite numbers")
             return [float(value) for value in values]
+
         normalized_lower = finite_values(lower_values)
         normalized_upper = finite_values(upper_values)
         normalized_center = finite_values(center_values) if center_values is not None else None
         timestamps = self.dataset.get("timestamps")
         if not isinstance(timestamps, list) or len(timestamps) != len(normalized_lower):
             timestamps = [str(index) for index in range(len(normalized_lower))]
-        self._store(name, {"type": "range", "value": {
-            "timestamps": [str(timestamp) for timestamp in timestamps],
-            "lower": normalized_lower,
-            "upper": normalized_upper,
-            "center": normalized_center,
-        }})
+        self._store(
+            name,
+            {
+                "type": "range",
+                "value": {
+                    "timestamps": [str(timestamp) for timestamp in timestamps],
+                    "lower": normalized_lower,
+                    "upper": normalized_upper,
+                    "center": normalized_center,
+                },
+            },
+        )
 
     def scatter(self, name: str, x: object, y: object) -> None:
         """Emit a bounded numeric x/y point cloud for uPlot rendering."""
@@ -490,19 +647,31 @@ class _Output:
         points = [
             (float(left), float(right))
             for left, right in zip(x_values, y_values, strict=True)
-            if isinstance(left, int | float) and not isinstance(left, bool)
-            and isinstance(right, int | float) and not isinstance(right, bool)
-            and math.isfinite(float(left)) and math.isfinite(float(right))
+            if isinstance(left, int | float)
+            and not isinstance(left, bool)
+            and isinstance(right, int | float)
+            and not isinstance(right, bool)
+            and math.isfinite(float(left))
+            and math.isfinite(float(right))
         ]
-        self._store(name, {
-            "type": "scatter",
-            "value": {"x": [point[0] for point in points], "y": [point[1] for point in points]},
-        })
+        self._store(
+            name,
+            {
+                "type": "scatter",
+                "value": {"x": [point[0] for point in points], "y": [point[1] for point in points]},
+            },
+        )
 
-    def heatmap(self, name: str, values: object, rows: object = None, columns: object = None) -> None:
+    def heatmap(
+        self, name: str, values: object, rows: object = None, columns: object = None
+    ) -> None:
         """Emit a bounded rectangular numeric matrix for the native Study Lab renderer."""
         matrix = _materialize(values)
-        if not isinstance(matrix, list | tuple) or not matrix or not all(isinstance(row, list | tuple) for row in matrix):
+        if (
+            not isinstance(matrix, list | tuple)
+            or not matrix
+            or not all(isinstance(row, list | tuple) for row in matrix)
+        ):
             raise ValueError("heatmap values must be a non-empty matrix")
         width = len(matrix[0])
         if width == 0 or any(len(row) != width for row in matrix):
@@ -512,11 +681,25 @@ class _Output:
             raise ValueError("heatmap values must be finite numbers")
         raw_rows = _materialize(rows)
         raw_columns = _materialize(columns)
-        row_labels = [str(value) for value in raw_rows] if isinstance(raw_rows, list | tuple) else [str(index + 1) for index in range(len(normalized))]
-        column_labels = [str(value) for value in raw_columns] if isinstance(raw_columns, list | tuple) else [str(index + 1) for index in range(width)]
+        row_labels = (
+            [str(value) for value in raw_rows]
+            if isinstance(raw_rows, list | tuple)
+            else [str(index + 1) for index in range(len(normalized))]
+        )
+        column_labels = (
+            [str(value) for value in raw_columns]
+            if isinstance(raw_columns, list | tuple)
+            else [str(index + 1) for index in range(width)]
+        )
         if len(row_labels) != len(normalized) or len(column_labels) != width:
             raise ValueError("heatmap labels must match matrix dimensions")
-        self._store(name, {"type": "heatmap", "value": {"rows": row_labels, "columns": column_labels, "values": normalized}})
+        self._store(
+            name,
+            {
+                "type": "heatmap",
+                "value": {"rows": row_labels, "columns": column_labels, "values": normalized},
+            },
+        )
 
     def dashboard(self, name: str, panels: object) -> None:
         """Compose named artifacts into a typed, non-HTML dashboard."""
@@ -611,7 +794,12 @@ class _Stats:
     @staticmethod
     def percentile(values: object, probability: float) -> float | None:
         numeric = sorted(_Stats._finite_values(values))
-        if not isinstance(probability, int | float) or isinstance(probability, bool) or not math.isfinite(float(probability)) or not 0 <= float(probability) <= 1:
+        if (
+            not isinstance(probability, int | float)
+            or isinstance(probability, bool)
+            or not math.isfinite(float(probability))
+            or not 0 <= float(probability) <= 1
+        ):
             raise ValueError("stats percentile probability must be between 0 and 1")
         if not numeric:
             return None
@@ -626,7 +814,10 @@ class _Stats:
     @staticmethod
     def ranks(values: object, descending: bool = True) -> list[int]:
         numeric = _Stats._finite_values(values)
-        order = sorted(range(len(numeric)), key=lambda index: (-numeric[index], index) if descending else (numeric[index], index))
+        order = sorted(
+            range(len(numeric)),
+            key=lambda index: (-numeric[index], index) if descending else (numeric[index], index),
+        )
         ranks = [0] * len(numeric)
         for rank, index in enumerate(order, start=1):
             ranks[index] = rank
@@ -682,17 +873,29 @@ class _Stats:
             return {"slope": None, "intercept": None, "r_squared": None, "sample_size": len(x)}
         slope = sum((a - x_mean) * (b - y_mean) for a, b in zip(x, y, strict=True)) / denominator
         intercept = y_mean - (slope * x_mean)
-        residual = sum((actual - (slope * predicted + intercept)) ** 2 for predicted, actual in zip(x, y, strict=True))
+        residual = sum(
+            (actual - (slope * predicted + intercept)) ** 2
+            for predicted, actual in zip(x, y, strict=True)
+        )
         total = sum((actual - y_mean) ** 2 for actual in y)
         r_squared = 1.0 - residual / total if total else 1.0
-        return {"slope": slope, "intercept": intercept, "r_squared": r_squared, "sample_size": len(x)}
+        return {
+            "slope": slope,
+            "intercept": intercept,
+            "r_squared": r_squared,
+            "sample_size": len(x),
+        }
 
     @staticmethod
     def distribution(values: object, bins: int = 8, current: object = None) -> dict[str, object]:
         numeric = _Stats._finite_values(values)
         if not isinstance(bins, int) or isinstance(bins, bool) or not 1 <= bins <= 64:
             raise ValueError("stats distribution bins must be an integer between 1 and 64")
-        if current is not None and (not isinstance(current, int | float) or isinstance(current, bool) or not math.isfinite(float(current))):
+        if current is not None and (
+            not isinstance(current, int | float)
+            or isinstance(current, bool)
+            or not math.isfinite(float(current))
+        ):
             raise ValueError("stats distribution current value must be numeric")
         if not numeric:
             return {"bins": [], "sample_size": 0, "current": current}
@@ -712,10 +915,18 @@ class _Stats:
                 }
                 for index, count in enumerate(counts)
             ]
-        return {"bins": bucket_rows, "sample_size": len(numeric), "min": minimum, "max": maximum, "current": current}
+        return {
+            "bins": bucket_rows,
+            "sample_size": len(numeric),
+            "min": minimum,
+            "max": maximum,
+            "current": current,
+        }
 
     @staticmethod
-    def streaks(values: object, direction: str = "positive", inclusive: bool = False) -> dict[str, object]:
+    def streaks(
+        values: object, direction: str = "positive", inclusive: bool = False
+    ) -> dict[str, object]:
         """Summarize consecutive changes in a declared numeric series.
 
         ``direction`` is one of ``positive``/``negative``; with ``inclusive`` it
@@ -741,13 +952,21 @@ class _Stats:
                 current += 1
                 continue
             if current and start_index is not None:
-                records.append({"start_index": start_index, "end_index": index - 1, "length": current})
+                records.append(
+                    {"start_index": start_index, "end_index": index - 1, "length": current}
+                )
             current = 0
             start_index = None
         if current and start_index is not None:
-            records.append({"start_index": start_index, "end_index": len(numeric) - 1, "length": current})
-        completed = [record["length"] for record in records if record["end_index"] < len(numeric) - 1]
-        current_length = current if current and records and records[-1]["end_index"] == len(numeric) - 1 else 0
+            records.append(
+                {"start_index": start_index, "end_index": len(numeric) - 1, "length": current}
+            )
+        completed = [
+            record["length"] for record in records if record["end_index"] < len(numeric) - 1
+        ]
+        current_length = (
+            current if current and records and records[-1]["end_index"] == len(numeric) - 1 else 0
+        )
         all_lengths = completed + ([current_length] if current_length else [])
         return {
             "direction": direction,
@@ -933,14 +1152,22 @@ class _Research:
                 continue
             latest = closes[-1]
             base = closes[-lookback - 1]
-            if not isinstance(latest, int | float) or isinstance(latest, bool) or not isinstance(base, int | float) or isinstance(base, bool) or base == 0:
+            if (
+                not isinstance(latest, int | float)
+                or isinstance(latest, bool)
+                or not isinstance(base, int | float)
+                or isinstance(base, bool)
+                or base == 0
+            ):
                 continue
-            rows.append({
-                "symbol": symbol,
-                "instrument_id": item.get("instrument_id"),
-                "return": (float(latest) / float(base)) - 1,
-                "lookback": lookback,
-            })
+            rows.append(
+                {
+                    "symbol": symbol,
+                    "instrument_id": item.get("instrument_id"),
+                    "return": (float(latest) / float(base)) - 1,
+                    "lookback": lookback,
+                }
+            )
         rows.sort(key=lambda row: (row["return"], row["symbol"]), reverse=True)
         for rank, row in enumerate(rows, start=1):
             row["rank"] = rank
@@ -963,10 +1190,24 @@ class _Research:
                 continue
             latest = closes[-1]
             window = closes[-period:]
-            if not isinstance(latest, int | float) or isinstance(latest, bool) or not all(isinstance(value, int | float) and not isinstance(value, bool) for value in window):
+            if (
+                not isinstance(latest, int | float)
+                or isinstance(latest, bool)
+                or not all(
+                    isinstance(value, int | float) and not isinstance(value, bool)
+                    for value in window
+                )
+            ):
                 continue
             average = sum(float(value) for value in window) / period
-            rows.append({"symbol": symbol, "moving_average": average, "close": float(latest), "above": float(latest) >= average})
+            rows.append(
+                {
+                    "symbol": symbol,
+                    "moving_average": average,
+                    "close": float(latest),
+                    "above": float(latest) >= average,
+                }
+            )
         above = sum(1 for row in rows if row["above"])
         coverage = len(rows)
         return {
@@ -978,10 +1219,98 @@ class _Research:
             "rows": rows,
         }
 
-    def forward_returns(self, dataset: dict, event_indices: object, horizons: object = (1, 5, 20)) -> list[dict]:
+    def breadth_thrust(self, dataset: dict, threshold: float = 90.0) -> dict:
+        """Measure transparent price/volume participation for a declared universe."""
+        if (
+            not isinstance(threshold, int | float)
+            or isinstance(threshold, bool)
+            or not math.isfinite(float(threshold))
+            or not 0 <= float(threshold) <= 100
+        ):
+            raise ValueError("breadth thrust threshold must be between 0 and 100")
+        datasets = dataset.get("datasets")
+        if not isinstance(datasets, list):
+            raise ValueError("Declared prepared universe is unavailable")
+        rows: list[dict] = []
+        exclusions: list[dict] = []
+        for item in datasets:
+            if not isinstance(item, dict):
+                exclusions.append({"code": "invalid_dataset_row"})
+                continue
+            symbol = str(item.get("symbol") or "").upper()
+            closes = item.get("closes")
+            volumes = item.get("volumes")
+            if not symbol:
+                exclusions.append({"code": "missing_symbol"})
+                continue
+            if not isinstance(closes, list) or len(closes) < 2:
+                exclusions.append({"symbol": symbol, "code": "insufficient_close_history"})
+                continue
+            if not isinstance(volumes, list) or len(volumes) < 2:
+                exclusions.append({"symbol": symbol, "code": "insufficient_volume_history"})
+                continue
+            previous_close, latest_close = closes[-2], closes[-1]
+            previous_volume, latest_volume = volumes[-2], volumes[-1]
+            values = (previous_close, latest_close, previous_volume, latest_volume)
+            if not all(
+                isinstance(value, int | float)
+                and not isinstance(value, bool)
+                and math.isfinite(float(value))
+                for value in values
+            ):
+                exclusions.append({"symbol": symbol, "code": "invalid_close_or_volume"})
+                continue
+            if float(previous_close) == 0:
+                exclusions.append({"symbol": symbol, "code": "zero_previous_close"})
+                continue
+            if float(previous_volume) == 0:
+                exclusions.append({"symbol": symbol, "code": "zero_previous_volume"})
+                continue
+            close_change = (float(latest_close) / float(previous_close)) - 1
+            volume_change = (float(latest_volume) / float(previous_volume)) - 1
+            rows.append(
+                {
+                    "symbol": symbol,
+                    "instrument_id": item.get("instrument_id"),
+                    "close_change": close_change,
+                    "volume_change": volume_change,
+                    "price_advancing": float(latest_close) > float(previous_close),
+                    "volume_advancing": float(latest_volume) > float(previous_volume),
+                }
+            )
+        coverage = len(rows)
+        price_advancing = sum(1 for row in rows if row["price_advancing"])
+        volume_advancing = sum(1 for row in rows if row["volume_advancing"])
+        price_percent = (price_advancing / coverage) * 100 if coverage else None
+        volume_percent = (volume_advancing / coverage) * 100 if coverage else None
+        threshold_value = float(threshold)
+        return {
+            "threshold": threshold_value,
+            "coverage": coverage,
+            "price_advancing_count": price_advancing,
+            "volume_advancing_count": volume_advancing,
+            "percent_price_advancing": price_percent,
+            "percent_volume_advancing": volume_percent,
+            "qualifies": bool(
+                price_percent is not None
+                and volume_percent is not None
+                and price_percent >= threshold_value
+                and volume_percent >= threshold_value
+            ),
+            "rows": rows,
+            "exclusions": exclusions,
+        }
+
+    def forward_returns(
+        self, dataset: dict, event_indices: object, horizons: object = (1, 5, 20)
+    ) -> list[dict]:
         closes = dataset.get("closes", [])
         timestamps = dataset.get("timestamps", [])
-        if not isinstance(closes, list) or not isinstance(event_indices, list | tuple) or not isinstance(horizons, list | tuple):
+        if (
+            not isinstance(closes, list)
+            or not isinstance(event_indices, list | tuple)
+            or not isinstance(horizons, list | tuple)
+        ):
             raise ValueError("forward_returns requires event indices and horizons lists")
         parsed_horizons = []
         for horizon in horizons:
@@ -990,7 +1319,12 @@ class _Research:
             parsed_horizons.append(horizon)
         rows: list[dict] = []
         for index in event_indices:
-            if not isinstance(index, int) or isinstance(index, bool) or index < 0 or index >= len(closes):
+            if (
+                not isinstance(index, int)
+                or isinstance(index, bool)
+                or index < 0
+                or index >= len(closes)
+            ):
                 continue
             base = float(closes[index])
             if base == 0:
@@ -999,39 +1333,64 @@ class _Research:
                 target = index + horizon
                 if target >= len(closes):
                     continue
-                rows.append({
-                    "event_index": index,
-                    "event_timestamp": timestamps[index] if index < len(timestamps) else None,
-                    "horizon": horizon,
-                    "outcome_timestamp": timestamps[target] if target < len(timestamps) else None,
-                    "forward_return": (float(closes[target]) / base) - 1,
-                })
+                rows.append(
+                    {
+                        "event_index": index,
+                        "event_timestamp": timestamps[index] if index < len(timestamps) else None,
+                        "horizon": horizon,
+                        "outcome_timestamp": timestamps[target]
+                        if target < len(timestamps)
+                        else None,
+                        "forward_return": (float(closes[target]) / base) - 1,
+                    }
+                )
         return rows
 
-    def occurrences(self, dataset: dict, event_indices: object, kind: str = "occurrence") -> list[dict]:
+    def occurrences(
+        self, dataset: dict, event_indices: object, kind: str = "occurrence"
+    ) -> list[dict]:
         timestamps = dataset.get("timestamps", [])
         symbol = str(dataset.get("symbol") or "").upper()
-        if not symbol or not isinstance(timestamps, list) or not isinstance(event_indices, list | tuple):
-            raise ValueError("occurrences requires a declared symbol, timestamps, and event indices")
+        if (
+            not symbol
+            or not isinstance(timestamps, list)
+            or not isinstance(event_indices, list | tuple)
+        ):
+            raise ValueError(
+                "occurrences requires a declared symbol, timestamps, and event indices"
+            )
         label = str(kind or "occurrence")
         return [
             {"symbol": symbol, "timestamp": timestamps[index], "kind": label, "event_index": index}
             for index in event_indices
-            if isinstance(index, int) and not isinstance(index, bool) and 0 <= index < len(timestamps) and isinstance(timestamps[index], str) and timestamps[index]
+            if isinstance(index, int)
+            and not isinstance(index, bool)
+            and 0 <= index < len(timestamps)
+            and isinstance(timestamps[index], str)
+            and timestamps[index]
         ]
 
-    def conditional_outcomes(self, dataset: dict, event_indices: object, horizons: object = (1, 5, 20)) -> list[dict]:
+    def conditional_outcomes(
+        self, dataset: dict, event_indices: object, horizons: object = (1, 5, 20)
+    ) -> list[dict]:
         """Summarize forward returns after declared events without look-ahead."""
         closes = dataset.get("closes", [])
-        if not isinstance(closes, list) or not isinstance(event_indices, list | tuple) or not isinstance(horizons, list | tuple):
-            raise ValueError("conditional_outcomes requires closes, event indices, and horizons lists")
+        if (
+            not isinstance(closes, list)
+            or not isinstance(event_indices, list | tuple)
+            or not isinstance(horizons, list | tuple)
+        ):
+            raise ValueError(
+                "conditional_outcomes requires closes, event indices, and horizons lists"
+            )
         parsed_horizons: list[int] = []
         for horizon in horizons:
             if not isinstance(horizon, int) or isinstance(horizon, bool) or horizon <= 0:
                 raise ValueError("conditional outcome horizons must be positive integers")
             parsed_horizons.append(horizon)
         parsed_events = [
-            index for index in event_indices
+            index
+            for index in event_indices
             if isinstance(index, int) and not isinstance(index, bool) and 0 <= index < len(closes)
         ]
         summaries: list[dict] = []
@@ -1042,20 +1401,31 @@ class _Research:
                 if target >= len(closes):
                     continue
                 base, outcome = closes[index], closes[target]
-                if not isinstance(base, int | float) or isinstance(base, bool) or not math.isfinite(float(base)) or float(base) == 0:
+                if (
+                    not isinstance(base, int | float)
+                    or isinstance(base, bool)
+                    or not math.isfinite(float(base))
+                    or float(base) == 0
+                ):
                     continue
-                if not isinstance(outcome, int | float) or isinstance(outcome, bool) or not math.isfinite(float(outcome)):
+                if (
+                    not isinstance(outcome, int | float)
+                    or isinstance(outcome, bool)
+                    or not math.isfinite(float(outcome))
+                ):
                     continue
                 values.append((float(outcome) / float(base)) - 1)
-            summaries.append({
-                "horizon": horizon,
-                "sample_size": len(values),
-                "mean": _Stats.mean(values),
-                "median": _Stats.median(values),
-                "positive_count": sum(1 for value in values if value > 0),
-                "negative_count": sum(1 for value in values if value < 0),
-                "values": values,
-            })
+            summaries.append(
+                {
+                    "horizon": horizon,
+                    "sample_size": len(values),
+                    "mean": _Stats.mean(values),
+                    "median": _Stats.median(values),
+                    "positive_count": sum(1 for value in values if value > 0),
+                    "negative_count": sum(1 for value in values if value < 0),
+                    "values": values,
+                }
+            )
         return summaries
 
     def regimes(self, dataset: dict, lookback: int = 20, threshold: float = 0.0) -> dict:
@@ -1066,25 +1436,50 @@ class _Research:
             raise ValueError("regimes requires closes and timestamps lists")
         if not isinstance(lookback, int) or isinstance(lookback, bool) or lookback <= 0:
             raise ValueError("regime lookback must be a positive integer")
-        if not isinstance(threshold, int | float) or isinstance(threshold, bool) or not math.isfinite(float(threshold)) or threshold < 0:
+        if (
+            not isinstance(threshold, int | float)
+            or isinstance(threshold, bool)
+            or not math.isfinite(float(threshold))
+            or threshold < 0
+        ):
             raise ValueError("regime threshold must be a finite non-negative number")
         rows: list[dict] = []
         for index in range(lookback, len(closes)):
             base, latest = closes[index - lookback], closes[index]
-            if not isinstance(base, int | float) or isinstance(base, bool) or not math.isfinite(float(base)) or float(base) == 0:
+            if (
+                not isinstance(base, int | float)
+                or isinstance(base, bool)
+                or not math.isfinite(float(base))
+                or float(base) == 0
+            ):
                 continue
-            if not isinstance(latest, int | float) or isinstance(latest, bool) or not math.isfinite(float(latest)):
+            if (
+                not isinstance(latest, int | float)
+                or isinstance(latest, bool)
+                or not math.isfinite(float(latest))
+            ):
                 continue
             change = (float(latest) / float(base)) - 1
-            state = "up" if change > float(threshold) else "down" if change < -float(threshold) else "flat"
-            rows.append({
-                "index": index,
-                "timestamp": timestamps[index] if index < len(timestamps) else None,
-                "lookback": lookback,
-                "return": change,
-                "state": state,
-            })
-        counts = {state: sum(1 for row in rows if row["state"] == state) for state in ("up", "flat", "down")}
+            state = (
+                "up"
+                if change > float(threshold)
+                else "down"
+                if change < -float(threshold)
+                else "flat"
+            )
+            rows.append(
+                {
+                    "index": index,
+                    "timestamp": timestamps[index] if index < len(timestamps) else None,
+                    "lookback": lookback,
+                    "return": change,
+                    "state": state,
+                }
+            )
+        counts = {
+            state: sum(1 for row in rows if row["state"] == state)
+            for state in ("up", "flat", "down")
+        }
         return {
             "lookback": lookback,
             "threshold": float(threshold),
@@ -1098,7 +1493,11 @@ class _Research:
         """Place a current value within a declared historical numeric distribution."""
         numeric = _Stats._finite_values(values)
         if current is not None:
-            if not isinstance(current, int | float) or isinstance(current, bool) or not math.isfinite(float(current)):
+            if (
+                not isinstance(current, int | float)
+                or isinstance(current, bool)
+                or not math.isfinite(float(current))
+            ):
                 raise ValueError("historical comparison current value must be numeric")
             current_value = float(current)
         elif numeric:
@@ -1121,8 +1520,18 @@ class _Research:
         minimum, maximum = min(numeric), max(numeric)
         average = _Stats.mean(numeric)
         deviation = _Stats.std(numeric)
-        percentile_rank = (sum(1 for value in numeric if value <= current_value) / len(numeric)) * 100 if current_value is not None else None
-        range_position = ((current_value - minimum) / (maximum - minimum)) if current_value is not None and maximum != minimum else 1.0 if current_value is not None else None
+        percentile_rank = (
+            (sum(1 for value in numeric if value <= current_value) / len(numeric)) * 100
+            if current_value is not None
+            else None
+        )
+        range_position = (
+            ((current_value - minimum) / (maximum - minimum))
+            if current_value is not None and maximum != minimum
+            else 1.0
+            if current_value is not None
+            else None
+        )
         return {
             "sample_size": len(numeric),
             "current": current_value,
@@ -1132,7 +1541,9 @@ class _Research:
             "percentile_rank": percentile_rank,
             "min": minimum,
             "max": maximum,
-            "z_score": ((current_value - average) / deviation) if current_value is not None and average is not None and deviation else None,
+            "z_score": ((current_value - average) / deviation)
+            if current_value is not None and average is not None and deviation
+            else None,
             "range_position": range_position,
         }
 
@@ -1143,7 +1554,11 @@ class _Market:
     def __init__(self, dataset: dict) -> None:
         self._dataset = dataset
         benchmark = dataset.get("benchmark_dataset")
-        self._benchmark = benchmark if isinstance(benchmark, dict) and benchmark.get("status", "ready") == "ready" else None
+        self._benchmark = (
+            benchmark
+            if isinstance(benchmark, dict) and benchmark.get("status", "ready") == "ready"
+            else None
+        )
 
     def close(self, symbol: str | None = None) -> list[float]:
         return self._series("closes", symbol)
@@ -1173,7 +1588,11 @@ class _Market:
         if len(lengths) != 1 or next(iter(lengths), 0) != len(timestamps):
             raise ValueError("Declared OHLCV fields are not aligned")
         return [
-            {"timestamp": timestamps[index], "session": self._sessions()[index], **{name: values[index] for name, values in requested.items()}}
+            {
+                "timestamp": timestamps[index],
+                "session": self._sessions()[index],
+                **{name: values[index] for name, values in requested.items()},
+            }
             for index in range(len(timestamps))
         ]
 
@@ -1235,7 +1654,10 @@ class _Market:
                     prefix = f"{year:04d}-{((month - 1) // 3) * 3 + 1:02d}-"
                 else:
                     prefix = f"{year:04d}-{month:02d}-"
-                index = next((i for i, stamp in enumerate(timestamps) if str(stamp).startswith(prefix)), len(closes) - 1)
+                index = next(
+                    (i for i, stamp in enumerate(timestamps) if str(stamp).startswith(prefix)),
+                    len(closes) - 1,
+                )
             else:
                 return None
             if "index" not in locals():
@@ -1243,8 +1665,24 @@ class _Market:
                 # Parse only the epoch-independent ISO date portion in the
                 # host SDK; users never receive datetime or import access.
                 import datetime as _datetime
-                target = _datetime.datetime.fromisoformat(str(latest_timestamp).replace("Z", "+00:00")).timestamp() - seconds
-                index = next((i for i, stamp in enumerate(timestamps) if _datetime.datetime.fromisoformat(str(stamp).replace("Z", "+00:00")).timestamp() >= target), len(closes) - 1)
+
+                target = (
+                    _datetime.datetime.fromisoformat(
+                        str(latest_timestamp).replace("Z", "+00:00")
+                    ).timestamp()
+                    - seconds
+                )
+                index = next(
+                    (
+                        i
+                        for i, stamp in enumerate(timestamps)
+                        if _datetime.datetime.fromisoformat(
+                            str(stamp).replace("Z", "+00:00")
+                        ).timestamp()
+                        >= target
+                    ),
+                    len(closes) - 1,
+                )
         if index < 0 or index >= len(closes) or closes[index] == 0:
             return None
         return (float(closes[-1]) - float(closes[index])) / float(closes[index])
@@ -1328,7 +1766,11 @@ class _Market:
             raise ValueError("Declared dataset has no timestamp series")
         if sessions is None:
             return ["regular"] * len(timestamps)
-        if not isinstance(sessions, list) or len(sessions) != len(timestamps) or not all(isinstance(value, str) for value in sessions):
+        if (
+            not isinstance(sessions, list)
+            or len(sessions) != len(timestamps)
+            or not all(isinstance(value, str) for value in sessions)
+        ):
             raise ValueError("Declared session fields are not aligned")
         return list(sessions)
 
@@ -1346,7 +1788,9 @@ class _Market:
             raise ValueError("Declared dataset is missing one or more OHLCV fields")
         return fields
 
-    def _series(self, field: str, symbol: str | None = None, *, allow_none: bool = False) -> list[float | None]:
+    def _series(
+        self, field: str, symbol: str | None = None, *, allow_none: bool = False
+    ) -> list[float | None]:
         self._check_declared(symbol)
         values = self._dataset.get(field)
         if not isinstance(values, list):
@@ -1385,21 +1829,30 @@ class _Ta:
         closes = self._dataset.get("closes", [])
         volumes = self._dataset.get("volumes", [])
         timestamps = self._dataset.get("timestamps", [])
-        if not all(isinstance(values, list) for values in (opens, highs, lows, closes, volumes, timestamps)):
+        if not all(
+            isinstance(values, list) for values in (opens, highs, lows, closes, volumes, timestamps)
+        ):
             raise ValueError("declared OHLCV data is incomplete")
-        if not (len(opens) == len(highs) == len(lows) == len(closes) == len(volumes) == len(timestamps)):
+        if not (
+            len(opens) == len(highs) == len(lows) == len(closes) == len(volumes) == len(timestamps)
+        ):
             raise ValueError("declared OHLCV data is not aligned")
         import datetime as _datetime
+
         epoch = []
         for stamp in timestamps:
-            epoch.append(int(_datetime.datetime.fromisoformat(str(stamp).replace("Z", "+00:00")).timestamp()))
+            epoch.append(
+                int(_datetime.datetime.fromisoformat(str(stamp).replace("Z", "+00:00")).timestamp())
+            )
         data = _CanonicalOHLCVSeries(
             timestamps=_numpy.asarray(epoch, dtype=_numpy.int64),
             opens=_numpy.asarray(opens, dtype=float),
             highs=_numpy.asarray(highs, dtype=float),
             lows=_numpy.asarray(lows, dtype=float),
             closes=_numpy.asarray(closes, dtype=float),
-            volumes=_numpy.asarray([0 if value is None else value for value in volumes], dtype=float),
+            volumes=_numpy.asarray(
+                [0 if value is None else value for value in volumes], dtype=float
+            ),
         )
         normalized = _normalize_canonical_indicator_params(indicator_type, params or {})
         values = _compute_canonical_indicator(indicator_type, data, normalized)
@@ -1482,7 +1935,12 @@ def run_once(path: Path) -> None:
         if len(encoded) > MAX_OUTPUT_BYTES:
             result = {
                 "status": "failed",
-                "diagnostics": [{"code": "output_size_limit", "message": "research result exceeds the configured byte limit"}],
+                "diagnostics": [
+                    {
+                        "code": "output_size_limit",
+                        "message": "research result exceeds the configured byte limit",
+                    }
+                ],
             }
             encoded = json.dumps(result, separators=(",", ":")).encode()
         temporary = result_path.with_suffix(".tmp")
@@ -1496,7 +1954,12 @@ def run_once(path: Path) -> None:
         if not isinstance(payload, dict) or not isinstance(payload.get("source"), str):
             raise ValueError("research job payload must contain a source string")
     except (OSError, ValueError, json.JSONDecodeError) as exc:
-        write_result({"status": "failed", "diagnostics": [{"code": "job_payload_invalid", "message": str(exc)}]})
+        write_result(
+            {
+                "status": "failed",
+                "diagnostics": [{"code": "job_payload_invalid", "message": str(exc)}],
+            }
+        )
         cancel_path.unlink(missing_ok=True)
         progress_path.unlink(missing_ok=True)
         running_path.rename(path.with_suffix(".processed"))
@@ -1515,7 +1978,10 @@ def run_once(path: Path) -> None:
             cancellation_check=cancel_path.exists,
         )
     except Exception as exc:  # the worker must survive one malformed/crashing job
-        result = {"status": "failed", "diagnostics": [{"code": "runner_error", "message": str(exc)}]}
+        result = {
+            "status": "failed",
+            "diagnostics": [{"code": "runner_error", "message": str(exc)}],
+        }
     write_result(result)
     progress_path.unlink(missing_ok=True)
     cancel_path.unlink(missing_ok=True)

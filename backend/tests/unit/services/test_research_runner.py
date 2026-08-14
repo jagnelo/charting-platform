@@ -129,6 +129,69 @@ def test_runner_computes_cross_sectional_rank_and_breadth_from_declared_bars():
     assert result["artifacts"]["percent_above"]["value"] == (2 / 3) * 100
 
 
+def test_runner_computes_transparent_ninety_ninety_breadth_and_exclusions():
+    result = execute_job(
+        {
+            "source": (
+                "breadth = research.breadth_thrust(dataset, 90)\n"
+                "output.scalar('price', breadth['percent_price_advancing'])\n"
+                "output.scalar('volume', breadth['percent_volume_advancing'])\n"
+                "output.boolean('qualifies', breadth['qualifies'])\n"
+                "output.table('rows', breadth['rows'])\n"
+                "output.table('exclusions', breadth['exclusions'])"
+            ),
+            "output_contract": "study",
+            "dataset": {
+                "datasets": [
+                    {
+                        "instrument_id": 1,
+                        "symbol": "SPY",
+                        "closes": [100, 101],
+                        "volumes": [1000, 1200],
+                    },
+                    {
+                        "instrument_id": 2,
+                        "symbol": "XLK",
+                        "closes": [100, 102],
+                        "volumes": [1000, 1100],
+                    },
+                    {
+                        "instrument_id": 3,
+                        "symbol": "XLE",
+                        "closes": [100, 99],
+                        "volumes": [1000, 1200],
+                    },
+                    {
+                        "instrument_id": 4,
+                        "symbol": "BAD",
+                        "closes": [100, 101],
+                        "volumes": [1000, None],
+                    },
+                ],
+            },
+        }
+    )
+    assert result["status"] == "completed"
+    assert result["artifacts"]["price"]["value"] == (2 / 3) * 100
+    assert result["artifacts"]["volume"]["value"] == 100.0
+    assert result["artifacts"]["qualifies"]["value"] is False
+    assert result["artifacts"]["exclusions"]["value"] == [
+        {"symbol": "BAD", "code": "invalid_close_or_volume"}
+    ]
+
+
+def test_runner_rejects_invalid_ninety_ninety_threshold():
+    result = execute_job(
+        {
+            "source": "research.breadth_thrust(dataset, 101)",
+            "output_contract": "study",
+            "dataset": {"datasets": []},
+        }
+    )
+    assert result["status"] == "failed"
+    assert "threshold must be between 0 and 100" in result["diagnostics"][0]["message"]
+
+
 def test_runner_exposes_deterministic_stats_namespace_with_edge_contracts():
     result = execute_job(
         {
@@ -209,13 +272,24 @@ def test_runner_computes_conditional_outcomes_and_point_in_time_regimes():
 @pytest.mark.parametrize(
     ("source", "message"),
     [
-        ("output.table('x', research.conditional_outcomes(dataset, [0], [0]))", "horizons must be positive integers"),
-        ("output.table('x', research.regimes(dataset, 0))", "regime lookback must be a positive integer"),
-        ("output.table('x', research.regimes(dataset, 1, -1))", "threshold must be a finite non-negative number"),
+        (
+            "output.table('x', research.conditional_outcomes(dataset, [0], [0]))",
+            "horizons must be positive integers",
+        ),
+        (
+            "output.table('x', research.regimes(dataset, 0))",
+            "regime lookback must be a positive integer",
+        ),
+        (
+            "output.table('x', research.regimes(dataset, 1, -1))",
+            "threshold must be a finite non-negative number",
+        ),
     ],
 )
 def test_runner_research_outcome_helpers_report_invalid_contracts(source, message):
-    result = execute_job({"source": source, "dataset": {"closes": [1, 2], "timestamps": ["a", "b"]}})
+    result = execute_job(
+        {"source": source, "dataset": {"closes": [1, 2], "timestamps": ["a", "b"]}}
+    )
     assert result["status"] == "failed"
     assert message in result["diagnostics"][0]["message"]
 
@@ -246,7 +320,12 @@ def test_runner_places_current_value_within_historical_distribution():
 
 
 def test_runner_historical_comparison_rejects_non_numeric_current_value():
-    result = execute_job({"source": "output.table('x', [research.historical_comparison([1, 2], 'now')])", "dataset": {}})
+    result = execute_job(
+        {
+            "source": "output.table('x', [research.historical_comparison([1, 2], 'now')])",
+            "dataset": {},
+        }
+    )
     assert result["status"] == "failed"
     assert "current value must be numeric" in result["diagnostics"][0]["message"]
 
@@ -385,7 +464,9 @@ def test_runner_generic_streaks_supports_direction_and_inclusive_contracts():
         }
     )
     assert result["status"] == "completed"
-    assert result["artifacts"]["positive"]["value"] == [{"start_index": 1, "end_index": 2, "length": 2}]
+    assert result["artifacts"]["positive"]["value"] == [
+        {"start_index": 1, "end_index": 2, "length": 2}
+    ]
     assert result["artifacts"]["negative"]["value"]["inclusive"] is True
     assert result["artifacts"]["negative"]["value"]["longest"] == 3
 
@@ -398,7 +479,9 @@ def test_runner_generic_streaks_rejects_unknown_direction():
         }
     )
     assert result["status"] == "failed"
-    assert "stats streak direction must be positive or negative" in result["diagnostics"][0]["message"]
+    assert (
+        "stats streak direction must be positive or negative" in result["diagnostics"][0]["message"]
+    )
 
 
 def test_runner_exposes_declared_benchmark_dataset():
