@@ -157,6 +157,12 @@ tasks:
         coverage proves Russell 3000/IWV refresh plus an unavailable value leg; this is
         orchestration readiness only and does not close complete historical family population or
         browser acceptance; no flexibility was used.
+      - >-
+        The opt-in live historical matrix passes `7/7` for iShares `IJR`, `IWB`, `IWD`, `IWF`,
+        `IWN`, `IWO`, and `IWV` at requested date 2026-06-30. Each route returns parseable rows
+        with requested/composition-date metadata. This is issuer-route evidence only; official
+        index membership, complete rebalance continuity, and browser population remain open; no
+        flexibility was used.
   - id: tc2000-generic-condition-driven-breadth-20260814
     title: Broaden breadth from fixed metrics to reusable condition-driven cross-sectional studies
     status: in_progress

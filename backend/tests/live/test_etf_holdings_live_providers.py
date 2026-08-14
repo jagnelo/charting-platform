@@ -2135,6 +2135,22 @@ async def test_live_ishares_explicit_historical_as_of_snapshot():
 
 @pytest.mark.asyncio
 @pytest.mark.slow
+@_covers_live_provider("ishares")
+@pytest.mark.parametrize("symbol", ["IJR", "IWB", "IWD", "IWF", "IWN", "IWO", "IWV"])
+async def test_live_ishares_family_legs_support_historical_as_of_snapshots(symbol):
+    adapter = get_holdings_adapter("ishares")
+    assert adapter is not None
+
+    result = await adapter.fetch_for_date(symbol=symbol, requested_date=date(2026, 6, 30))
+
+    _assert_live_holdings_result(result, adapter_key="ishares", min_rows=100)
+    assert result.legal_metadata["route_resolution"] == "issuer_public_json_api_as_of_date"
+    assert result.legal_metadata["requested_holdings_date"] == "2026-06-30"
+    assert result.legal_metadata["composition_date"]
+
+
+@pytest.mark.asyncio
+@pytest.mark.slow
 @pytest.mark.parametrize(
     ("adapter_key", "symbol", "identifiers", "expected_route_resolution"),
     [

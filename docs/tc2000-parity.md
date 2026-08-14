@@ -93,6 +93,11 @@ focused regression exercises Russell 3000/IWV and confirms a returned 2026-06-27
 2026-06-30 request while retaining the missing value leg as unavailable. This is orchestration
 readiness only; complete historical population and browser acceptance remain open.
 
+The opt-in live historical matrix passes `7/7` for iShares `IJR`, `IWB`, `IWD`, `IWF`, `IWN`,
+`IWO`, and `IWV` at requested date 2026-06-30, with parseable rows and explicit requested versus
+composition-date metadata. This is evidence for seven issuer-backed routes only; it does not
+establish official index membership, complete rebalance continuity, or populated browser visuals.
+
 ## 2026-08-14 — Family-leg relative-strength ratio contract
 
 Family role analysis now exposes `GET /analysis/benchmark-families/{family_key}/ratios`. A

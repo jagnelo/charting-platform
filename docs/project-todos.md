@@ -9310,6 +9310,12 @@ refreshes the Russell 3000 cap leg (IWV), reports its returned 2026-06-27 compos
 2026-06-30 request, and retains the value leg as unavailable. This is orchestration readiness for
 historical population, not evidence that all family legs have been populated.
 
+The opt-in live historical matrix now passes `7/7` for iShares `IJR`, `IWB`, `IWD`, `IWF`, `IWN`,
+`IWO`, and `IWV` at requested date 2026-06-30. Each route returned parseable holdings and explicit
+requested-date/composition-date metadata. This closes dated-route evidence for those seven
+issuer-backed legs only; it does not imply official index membership, complete rebalance history,
+or populated browser data.
+
 #### Current continuation — 2026-08-12 listing visibility and browser contract repair
 
 The exchange-aware listing API contract is now exercised through the real seeded workstation
