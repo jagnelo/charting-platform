@@ -26,6 +26,12 @@
 - Implementation/docs commit: `32503f91` (`test(study-lab): verify occurrence timestamp linking`).
 - Operational checkpoint: follows as a separate commit. The exact push will be attempted once after
   closure; any private-origin rejection is transport-only and does not block the goal.
+- Exact push result: the clean range `91463e54..3d365ce7` was attempted once with
+  `rtk git push origin feat/tc2000-frontend-rework` and rejected before Git by the private-origin
+  egress safeguard because trusted authorization for this exact private payload/destination was not
+  available. `.git/index.lock` is absent; no alternate transport, wrapper, rewrite, reset, stash,
+  force push, or repeat was used. This is transport-only; the goal continues from the clean local
+  boundary.
 - Next action: continue the next independent workstation/backend gap.
 
 ## 2026-08-14 — Study Lab historical 90/90 breadth series context (completed)

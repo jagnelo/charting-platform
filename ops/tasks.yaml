@@ -29,6 +29,7 @@ tasks:
       - First browser attempt exposed stale served frontend content; force-recreate corrected the environment and the unchanged acceptance passed.
       - Acceptance flexibility used: none.
       - Implementation/docs commit: 32503f91; operational checkpoint follows separately.
+      - Exact push 91463e54..3d365ce7 was attempted once and rejected before Git by the private-origin egress safeguard; transport-only, no workaround or repeat.
   - id: tc2000-study-lab-historical-90-90-breadth-series-20260814
     title: Add historical 90/90 breadth participation series and occurrences
     status: completed
