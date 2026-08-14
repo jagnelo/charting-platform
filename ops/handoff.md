@@ -1,5 +1,26 @@
 # Active Handoff
 
+## 2026-08-14 — Benchmark-family overview analytics bridge
+
+- Implemented `GET /api/v1/analysis/benchmark-families/{family_key}/overview` for the eight
+  configured US benchmark families. It exposes official index identity, independent cap/equal/
+  value/growth mappings, canonical availability, derived-equal metadata, membership/provenance,
+  coverage, freshness, exclusions, and existing group snapshot rows.
+- Missing canonical cap identity is a deliberate unavailable result: zero rows, exact
+  `cap_proxy_unavailable`, and no SPY/QQQ/other-family substitution. The endpoint remains
+  read-only; the integration test primes an empty fixture only through the supported market-group
+  bootstrap before requesting the overview.
+- Validation: focused overview/child integration `2/2`; taxonomy/family regression `4/4`; Ruff;
+  `git diff --check`. Acceptance flexibility used: **none**.
+- Remaining family gaps: provider-backed mapping and holdings evidence, point-in-time membership,
+  native/derived equal-weight computation, style-leg ratios, family-wide breadth/rotation/history,
+  populated cap-available browser drill-down, and final visual acceptance. These are tracked as
+  implementation gaps, not hidden fallback behavior.
+- Implementation commit `8fcddaf9 feat(analysis): add benchmark family overview contract` is clean
+  locally. The exact elevated push was attempted once and rejected before Git by the private-origin
+  safeguard; origin remains `91463e54`. The four operational records are being checkpointed
+  separately; no workaround, alternate transport, or repeat.
+
 ## 2026-08-14 — Benchmark-family taxonomy and selectable child universes
 
 - Implemented the first slice of `tc2000-us-benchmark-family-expansion-20260814`: a JSON-safe

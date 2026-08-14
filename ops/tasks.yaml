@@ -42,6 +42,15 @@ tasks:
         frontend type-check, and Vitest `821/821` pass. Provider verification, point-in-time
         membership/holdings, derived weights, family-wide analytics, and populated browser
         acceptance remain open; acceptance flexibility used: none.
+      - >-
+        Analytics bridge implemented locally: `GET /analysis/benchmark-families/{family_key}/overview`
+        returns official identity, independent cap/equal/value/growth mappings, canonical
+        availability, derived-equal metadata, snapshot lineage, coverage, freshness, and exact
+        exclusions. Missing cap identity returns zero rows with `cap_proxy_unavailable` and never
+        substitutes SPY/QQQ. Focused overview/child integration `2/2`, taxonomy/family regression
+        `4/4`, and Ruff pass; provider evidence, point-in-time membership, derived calculations,
+        populated cap-available browser analytics, and full family breadth/rotation remain open.
+        Acceptance flexibility used: none.
   - id: tc2000-generic-condition-driven-breadth-20260814
     title: Broaden breadth from fixed metrics to reusable condition-driven cross-sectional studies
     status: in_progress

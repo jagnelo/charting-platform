@@ -1,5 +1,24 @@
 # Run Report
 
+## 2026-08-14 — Benchmark-family overview analytics bridge
+
+- Added the provider-neutral family overview endpoint for S&P 500/400/600/1500, Russell
+  1000/2000/3000, and Nasdaq 100. It combines official identity, cap/equal/value/growth mapping
+  records, canonical availability, derived-equal policy, membership/provenance, coverage,
+  freshness, exclusions, and the reusable group snapshot contract.
+- Fix-first repair: the first isolated overview integration test correctly exposed that its empty
+  fixture had not materialised taxonomy; the test now primes the supported market-group bootstrap
+  and proves the overview itself stays read-only. No endpoint fallback or acceptance weakening was
+  introduced.
+- Validation: focused child/overview integration `2/2`, taxonomy/family regression `4/4`, Ruff,
+  and diff checks pass. Acceptance flexibility used: **none**.
+- Open: provider and point-in-time evidence, canonical cap-available data, derived equal-weight
+  calculations, style ratios, family-wide breadth/rotation/history, browser drill-down, and final
+  visual acceptance.
+- Implementation commit `8fcddaf9` is clean locally. The exact elevated push was attempted once
+  and rejected before Git by the private-origin safeguard; origin remains `91463e54`. No
+  workaround, alternate transport, or repeat was used; this is transport-only.
+
 ## 2026-08-14 — Benchmark-family taxonomy slice
 
 - Added the eight-family registry, explicit mapping metadata, child market groups, child-list API,
