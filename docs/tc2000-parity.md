@@ -6622,3 +6622,16 @@ rerun; no product or acceptance criterion was relaxed.
 Remaining gaps are arbitrary Python predicates in the visible composer, richer target-series and
 cross-sectional target-scope controls, promotion to every compatible target, and provider-backed
 family data population.
+
+## 2026-08-14 — Benchmark-family issuer routing
+
+The expanded family matrix now has explicit free-source issuer routing metadata for its configured
+style and cap proxies. SPDR routes cover `SPYV`, `SPYG`, `MDY`, `MDYV`, `MDYG`, `SLYV`, `SLYG`, and
+`SPTM`; iShares product identifiers cover `IJR`, `IWB`, `IWD`, `IWF`, `IWN`, `IWO`, and `IWV`.
+The holdings refresh path can therefore select an issuer adapter from canonical product identity,
+without ticker/name inference or a paid-provider dependency. Focused taxonomy/provider-route tests
+pass `2/2` and Ruff passes.
+
+This is routing readiness, not evidence that every route is currently populated or historically
+complete. Live issuer retrieval, point-in-time rebalance history, QQQE/First Trust verification,
+and browser-visible family holdings remain open. Acceptance flexibility used: **none**.

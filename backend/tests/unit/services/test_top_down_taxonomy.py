@@ -106,6 +106,29 @@ def test_every_curated_industry_proxy_has_a_canonical_issuer_route():
         assert get_holdings_adapter(adapter_key) is not None
 
 
+def test_benchmark_family_style_proxies_have_explicit_free_source_routes():
+    """Family drill-down proxies must enter the holdings pipeline with issuer evidence."""
+
+    spdr_symbols = ("SPYV", "SPYG", "MDY", "MDYV", "MDYG", "SLYV", "SLYG", "SPTM")
+    for symbol in spdr_symbols:
+        metadata = known_etf_route_metadata(symbol)
+        assert metadata["issuer"] == "State Street Global Advisors"
+        assert metadata["provider_aliases"]["holdings_adapter"] == "spdr"
+
+    for symbol, product_id in {
+        "IJR": "239774",
+        "IWB": "239707",
+        "IWD": "239701",
+        "IWF": "239706",
+        "IWN": "239708",
+        "IWO": "239709",
+        "IWV": "239714",
+    }.items():
+        metadata = known_etf_route_metadata(symbol)
+        assert metadata["issuer"] == "iShares"
+        assert metadata["provider_aliases"]["issuer_product_id"] == product_id
+
+
 def test_canonical_industry_label_accepts_only_reviewed_provider_aliases():
     assert canonical_industry_label("Semiconductors") == "Semiconductors"
     assert canonical_industry_label("Semiconductors & Related Devices") == "Semiconductors"

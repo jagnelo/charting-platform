@@ -3088,6 +3088,15 @@ class IssuerCsvHoldingsAdapter(PublicCsvHoldingsAdapter):
 ISHARES_PRODUCT_IDS_BY_SYMBOL: dict[str, str] = {
     "EEM": "239637",
     "IVV": "239726",
+    # Official iShares product identifiers for the Russell style/family
+    # proxies used by the benchmark-family taxonomy.
+    "IWB": "239707",
+    "IWD": "239701",
+    "IWF": "239706",
+    "IWN": "239708",
+    "IWO": "239709",
+    "IJR": "239774",
+    "IWV": "239714",
     "IWM": "239710",
     # Official iShares product identifiers for curated industry proxies used
     # by the US top-down taxonomy.  These identifiers are resolved from the
@@ -3193,6 +3202,14 @@ for _ishares_symbol in ("SOXX", "IBB", "ITA", "ITB"):
 # adapter whose response is independently identity-checked before persistence.
 for _spdr_symbol in (
     "SPY",
+    "SPYG",
+    "SPYV",
+    "MDY",
+    "MDYG",
+    "MDYV",
+    "SLYG",
+    "SLYV",
+    "SPTM",
     "DIA",
     "XLB",
     "XLC",

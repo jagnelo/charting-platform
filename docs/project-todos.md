@@ -12111,3 +12111,15 @@ The current source also passes the focused authenticated top-down browser slice 
 - [ ] Still open: arbitrary Python predicate authoring in the visible composer, richer target-series
       and cross-sectional target scope controls, promotion to every compatible target, and full
       family/provider-backed browser data population.
+
+### 2026-08-14 — Benchmark-family issuer routing
+
+- [x] Added explicit free-source holdings route metadata for the newly first-class family/style
+      proxies: SPDR `SPYV`, `SPYG`, `MDY`, `MDYV`, `MDYG`, `SLYV`, `SLYG`, and `SPTM`; iShares
+      product IDs for `IJR`, `IWB`, `IWD`, `IWF`, `IWN`, `IWO`, and `IWV`. These routes are selected
+      by canonical symbol/product identity and do not infer membership from names.
+- [x] Added taxonomy regression coverage proving the route metadata and issuer/product IDs for
+      these family legs. Focused taxonomy/provider-route tests `2/2` and Ruff pass.
+- [ ] This closes routing readiness only. Live issuer retrieval, complete holdings ingestion,
+      point-in-time rebalance history, QQQE/First Trust route verification, and browser population
+      remain open. Acceptance flexibility used: **none**.

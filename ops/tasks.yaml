@@ -106,6 +106,12 @@ tasks:
         was corrected before the passing rerun; acceptance flexibility used: none. Arbitrary
         Python-in-composer, target-series/cross-sectional scope, promotion, and provider population
         remain open.
+      - >-
+        Explicit free-source issuer routing now covers family/style proxies SPYV, SPYG, MDY, MDYV,
+        MDYG, SLYV, SLYG, SPTM through SPDR and IJR, IWB, IWD, IWF, IWN, IWO, IWV through official
+        iShares product IDs. Focused taxonomy/provider-route tests `2/2` and Ruff pass. This is
+        routing readiness only: live retrieval, complete historical holdings/rebalances, QQQE/First
+        Trust verification, and browser population remain open; acceptance flexibility used: none.
   - id: tc2000-generic-condition-driven-breadth-20260814
     title: Broaden breadth from fixed metrics to reusable condition-driven cross-sectional studies
     status: in_progress
