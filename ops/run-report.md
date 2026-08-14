@@ -10,6 +10,9 @@
 - Exact push range `91463e54..43f0078b` was rejected before Git by the private-origin egress
   safeguard. No workaround or repeat was used; this is a transport-only hold and the goal
   continues from the clean local commit.
+- The separate operational checkpoint `b5c204cd` is also clean. Its exact closure push range
+  `91463e54..b5c204cd` was rejected before Git by the same safeguard; no alternate transport or
+  repeat was used.
 - The future recovery is documented in `docs/agent-orchestration.md`: verify no stale lock, use
   sequential elevated `rtk git add`/`commit`/exact `push`, record any pre-Git egress refusal, and
   never leave completed work dirty or mark the product goal blocked.

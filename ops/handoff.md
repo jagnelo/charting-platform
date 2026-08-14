@@ -10,9 +10,10 @@
   `completed_streaks.json`) passed without critical browser diagnostics.
 - Implementation commit: `43f0078b` (`feat(study-lab): export metric artifacts`). The worktree is
   clean after the elevated, worker-owned `rtk git add`/`rtk git commit` recovery path.
-- Exact elevated push `rtk git push origin feat/tc2000-frontend-rework` for range
-  `91463e54..43f0078b` was rejected before Git by the private-origin egress safeguard because this
-  execution boundary has no trusted authorization for that private destination/payload. This is
+- Exact elevated push `rtk git push origin feat/tc2000-frontend-rework` for implementation range
+  `91463e54..43f0078b` and the subsequent closure range `91463e54..b5c204cd` was rejected before
+  Git by the private-origin egress safeguard because this execution boundary has no trusted
+  authorization for that private destination/payload. This is
   transport-only, not a product or goal blocker; no alternate transport, wrapper, reset, stash,
   force push, or repeat was used.
 - The repository already contains the durable `.git/index.lock` recovery and no-accumulation
