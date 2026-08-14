@@ -28460,3 +28460,11 @@ indefinite soak; longer endurance remains an explicit open gap.
   YAML/JSON parsing pass. No acceptance flexibility used.
 - Implementation/docs commit: `cf6c9673` (clean locally). Next context is provider-backed family
   mapping/holdings and rebalance evidence; full browser weight presentation remains open.
+
+## 2026-08-14 — Family-weight evidence push transport
+
+- The exact elevated `rtk git push origin HEAD:feat/tc2000-frontend-rework` for the clean local
+  family-weight implementation and operational range through `ce8f829e` was attempted once and
+  rejected before Git by the private-origin safeguard because trusted authorization for the exact
+  private payload/destination was unavailable. No workaround, alternate transport, rewrite, reset,
+  stash, or repeated attempt was used. This remains transport-only and does not block the goal.

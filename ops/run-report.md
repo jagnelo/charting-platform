@@ -27049,3 +27049,11 @@ in 4.6 minutes. No failure was suppressed or reclassified as product success.
   YAML/JSON parsing pass. No acceptance flexibility used.
 - Clean implementation/docs commit: `cf6c9673`. Provider/rebalance history, full family
   population, and browser weighting presentation remain open.
+
+# 2026-08-14 — Family-weight evidence push transport
+
+- Exact elevated push for the clean local range through `ce8f829e` was attempted once and rejected
+  before Git by the private-origin safeguard because trusted authorization for the exact private
+  payload/destination was unavailable.
+- No workaround, alternate transport, rewrite, reset, stash, or repeat was used. Transport-only;
+  the local branch remains clean and the product goal continues.
