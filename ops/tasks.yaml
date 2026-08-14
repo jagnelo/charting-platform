@@ -1,4 +1,24 @@
 tasks:
+  - id: tc2000-backend-lint-repair-20260814
+    title: Restore repository-wide backend Ruff cleanliness
+    status: completed
+    priority: medium
+    scope: >-
+      Repair the isolated import-order defect exposed by the repository-wide backend Ruff gate in
+      the workstation-bootstrap regression test without changing runtime behavior.
+    definition_of_done:
+      - "ruff check app tests passes for the complete backend source and test tree"
+      - Workstation-bootstrap focused regression coverage remains green
+      - The fix is committed as an isolated changeset
+      - No acceptance flexibility or product criterion is changed
+    validation:
+      - backend-ruff-full-pass
+      - workstation-bootstrap-unit-3-of-3
+      - git-diff-check
+    notes:
+      - >-
+        Implementation commit `5028e0e6`; this is a repository-controlled quality repair and does
+        not close the broader TC2000 workstation completion bar.
   - id: tc2000-radar-acceptance-checkpoint-20260814
     title: Complete Radar rebuilt-stack acceptance and record transport result
     status: completed

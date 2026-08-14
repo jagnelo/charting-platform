@@ -1,5 +1,14 @@
 # Run Report
 
+## 2026-08-14 — Repository-wide backend lint repair
+
+- `make lint` first reached the backend gate but the unprivileged uv cache could not be opened;
+  the same gate was rerun through the approved elevated uv boundary. It exposed one import-order
+  error in `test_workstation_bootstrap.py`.
+- The import block was corrected in implementation commit `5028e0e6`. Full backend Ruff passes;
+  focused workstation-bootstrap coverage passes `3/3`; diff-check remains clean. No product or
+  acceptance criterion was relaxed.
+
 ## 2026-08-14 — Radar clean acceptance checkpoint
 
 - Rebuilt-stack authenticated functional E2E: `141 passed`, `0 failed`, `106 explicit skips` out

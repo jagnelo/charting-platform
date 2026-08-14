@@ -1,5 +1,15 @@
 # Project TODO Memory
 
+### 2026-08-14 — Repository-wide backend lint repair
+
+- [x] The repository-wide backend Ruff gate initially failed on one unsorted import block in the
+      workstation-bootstrap regression test. The imports were normalized without changing test or
+      production behavior; full `ruff check app tests` now passes and the focused bootstrap suite
+      passes `3/3`. Implementation commit: `5028e0e6`.
+- [ ] Acceptance flexibility used: **none**. This closes a repository-controlled quality gate;
+      the full TC2000 goal and its documented exact/unrepresented visual, provider, historical,
+      native-monitor, endurance, Docker, and final-audit gaps remain open.
+
 ### 2026-08-14 — Radar acceptance and clean transport checkpoint
 
 - [x] Rebuilt-stack authenticated functional E2E completed with `141` passed and `0` failed from

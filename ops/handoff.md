@@ -1,5 +1,14 @@
 # Active Handoff
 
+## 2026-08-14 — Repository-wide backend lint repair
+
+- The next full gate exposed one real Ruff defect: an unsorted import block in
+  `test_workstation_bootstrap.py`. Imports were normalized in isolated implementation commit
+  `5028e0e6`; repository-wide `ruff check app tests` passes and the focused bootstrap regression
+  passes `3/3`.
+- No runtime behavior, visual threshold, provider rule, or acceptance criterion changed. The
+  overall goal remains active and the exact/unrepresented and other external gaps remain tracked.
+
 ## 2026-08-14 — Radar clean acceptance checkpoint
 
 - The complete rebuilt-stack functional E2E matrix completed with `141` passed, `0` failed, and
