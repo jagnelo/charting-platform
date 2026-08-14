@@ -17,7 +17,7 @@
       <small v-if="gauge.data_provenance" class="market-gauge__lineage">{{ gauge.data_provenance }} · {{ gauge.calculation_version }}</small>
       <small v-if="gauge.exclusions.length" class="market-gauge__warnings" :title="gauge.exclusions.map(item => item.message).join('\n')">Coverage warnings: {{ gauge.exclusions.length }}</small>
     </template>
-    <p v-else class="market-gauge__state" role="status">Choose a retained EasyScan result.</p>
+    <p v-else class="market-gauge__state" role="status" aria-live="polite" aria-atomic="true">Choose a retained EasyScan result.</p>
   </section>
 </template>
 

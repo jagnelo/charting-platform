@@ -61,7 +61,10 @@ describe('MarketGaugeTool', () => {
     apiGet.mockImplementation((path: string) => path === '/screeners' ? Promise.resolve([]) : Promise.reject(new Error('gauge unavailable')))
     const wrapper = mountTool()
     await flushPromises()
-    expect(wrapper.find('.market-gauge__state[role="status"]').text()).toContain('Choose a retained EasyScan result')
+    const emptyState = wrapper.find('.market-gauge__state[role="status"]')
+    expect(emptyState.text()).toContain('Choose a retained EasyScan result')
+    expect(emptyState.attributes('aria-live')).toBe('polite')
+    expect(emptyState.attributes('aria-atomic')).toBe('true')
 
     apiGet.mockImplementation((path: string) => path === '/screeners' ? Promise.reject(new Error('scan list unavailable')) : Promise.resolve(undefined))
     await wrapper.find('button').trigger('click')
