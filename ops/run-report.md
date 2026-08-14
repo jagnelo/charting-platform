@@ -1,5 +1,14 @@
 # Run Report
 
+## 2026-08-14 — Strategy attribution malformed-input validation
+
+- Rejected null `r_multiple` trades and malformed Symbol Performance numeric rows before they can
+  be represented as zero/breakeven attribution points.
+- Focused attribution tests `6/6`, full frontend Vitest `799/799`, type-check, 475-module build,
+  uPlot contract (`45` files), and diff-check pass. Implementation: `50c6e302`.
+- Acceptance flexibility used: **none**; all remaining visual/provider/historical/monitor/endurance
+  and final-audit gaps remain tracked.
+
 ## 2026-08-14 — StrategyResultChart malformed-value validation
 
 - Prevented runtime null/non-finite StrategyResultChart values from being coerced into misleading

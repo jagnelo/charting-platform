@@ -1,5 +1,17 @@
 # Active Handoff
 
+## 2026-08-14 — Strategy attribution malformed-input validation completed
+
+- Implementation `50c6e302` closes two runtime data-integrity gaps: Distribution Bars no longer
+  treats null `r_multiple` values as zero, and Symbol Performance excludes rows with malformed
+  required or supplied numeric P&L fields instead of rendering them as breakeven.
+- Focused attribution tests `6/6`; full frontend Vitest `799/799`; type-check; 475-module
+  production build; uPlot contract (`45` files); and diff-check pass.
+- Acceptance flexibility used: **none**. No visual threshold, board authority, provider rule,
+  uPlot renderer, or product boundary changed. Exact/unrepresented V25, provider/entitlement,
+  historical/GICS, native-monitor, endurance, Docker global-prune, and final-audit gaps remain
+  explicit. The implementation is a clean local commit; push transport remains separate.
+
 ## 2026-08-14 — StrategyResultChart malformed-value validation completed
 
 - Implementation `2fe2487c` hardens `StrategyResultChart` numerical input handling. Explicit nulls
