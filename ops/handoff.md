@@ -1,5 +1,24 @@
 # Active Handoff
 
+## 2026-08-14 — Study Lab active-artifact export context (completed)
+
+- Context owner: Codex. Owned paths were `StudyLabTool.vue`, its component regression, and the
+  controlling parity/TODO/operational records.
+- Intent: close the plan-required direct artifact-export path in the active Study Lab, preserving
+  run ID, reproducibility hash, artifact identity/type/value, and object-URL cleanup.
+- Fix-first validation: focused Study Lab `22/22`, full frontend Vitest `819/819`, `vue-tsc`,
+  production build, uPlot contract, visual policy, and `git diff --check` pass. The first jsdom
+  run exposed missing `URL.createObjectURL`; the bounded test double was added and the unchanged
+  functional assertion passed.
+- Implementation/docs commit: `b0ecea52` (`feat(study-lab): export active run artifacts`). The
+  product worktree is clean; the operational checkpoint remains a separate commit.
+- Acceptance flexibility used: none. No visual threshold, mask, product criterion, or browser
+  acceptance rule changed; `REF-STUDY-LAB-V25` remains open.
+- Git rule: implementation/docs and operational checkpoint remain separate; use elevated worker-
+  owned Git, record any exact pre-Git private-origin refusal, and continue from clean commits.
+- Next action: commit this implementation/docs context, close its operational record, and continue
+  the next independent workstation/backend gap.
+
 ## 2026-08-14 — Study Lab SDK reference transport record
 
 - Implementation/docs `d3a696c2` and operational checkpoint `cade5106` are clean local commits.

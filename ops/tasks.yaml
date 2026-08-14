@@ -1,4 +1,28 @@
 tasks:
+  - id: tc2000-study-lab-artifact-export-20260814
+    title: Export typed artifacts directly from the active Study Lab run
+    status: completed
+    priority: high
+    scope: >-
+      Add a direct JSON export control to active Study Lab result artifacts, preserving run
+      identity and reproducibility metadata without sending data to a provider or rebuilding
+      numerical renderers.
+    definition_of_done:
+      - Every non-scalar Study Lab artifact exposes an accessible Export control
+      - Export payload includes run ID, reproducibility hash, artifact identity, type, and value
+      - Object URLs are revoked after download initiation
+      - Focused/full frontend, type-check, build, and diff checks pass
+      - No visual threshold, mask, product criterion, or acceptance flexibility changes
+    validation:
+      - study-lab-component-22-of-22
+      - frontend-vitest-819-of-819
+      - frontend-type-check-production-build
+      - uplot-visual-policy-diff-check
+    notes:
+      - Initial jsdom test exposed absent URL.createObjectURL; the test now installs and removes a
+        bounded URL double, while production code retains the native browser path.
+      - Acceptance flexibility used: none; broader Study Lab visual-reference gaps remain open.
+      - Implementation/docs commit: b0ecea52; operational checkpoint remains separate.
   - id: tc2000-study-lab-sdk-reference-duplicate-20260814
     title: Remove duplicated Study Lab SDK reference row
     status: completed

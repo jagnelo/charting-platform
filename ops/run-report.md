@@ -1,5 +1,14 @@
 # Run Report
 
+## 2026-08-14 — Study Lab active-artifact export context
+
+- Added direct JSON export controls for active Study Lab non-scalar artifacts, with run identity,
+  reproducibility metadata, typed artifact payload, and URL revocation.
+- Focused Study Lab `22/22`, full frontend `819/819`, type-check/build, uPlot/visual policy, and
+  diff checks pass. Initial jsdom URL API absence was fixed in the test boundary.
+- Acceptance flexibility used: none. Implementation/docs and operational commits remain separate.
+- Implementation/docs commit: `b0ecea52`; operational checkpoint follows separately.
+
 ## 2026-08-14 — Study Lab SDK reference transport result
 
 - Implementation/docs `d3a696c2` and operational checkpoint `cade5106` are clean locally.
