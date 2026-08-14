@@ -363,6 +363,105 @@ async def test_thrivent_csv_route_preserves_issuer_source_metadata(monkeypatch):
     assert result.legal_metadata["refresh_frequency"] == "daily_issuer_export"
 
 
+def test_calvert_route_is_symbol_scoped_and_not_fallback_only():
+    adapter = get_holdings_adapter("calvert")
+    assert adapter is not None
+    assert adapter.__class__.__name__ == "CalvertHoldingsAdapter"
+    assert adapter.config.live_tested_default_route is True
+    assert "calvert" not in FALLBACK_ISSUER_AUDITS
+
+    ready = adapter.probe(
+        symbol="CVLC", name="Calvert US Large-Cap Core Responsible Index ETF", identifiers={}
+    )
+    unsupported = adapter.probe(symbol="NOT_CALVERT", name="", identifiers={})
+
+    assert ready.status == "ready"
+    assert ready.issuer_product_id == "100502"
+    assert ready.source_url.endswith("/product/EF/100502/chart/etfTradeDateHoldingsCurrent.json")
+    assert unsupported.status == "needs_issuer_route"
+
+
+def test_calvert_parser_preserves_daily_rows_and_metadata():
+    adapter = get_holdings_adapter("calvert")
+    assert adapter is not None
+    rows = adapter._parse_rows(
+        [
+            {
+                "ticker": "NVDA",
+                "cusip": "67066G104",
+                "securityDescription": "NVIDIA CORP COMMON STOCK",
+                "pctOfNetValue": "7.33",
+                "quantity": "319699.00000000",
+                "marketValueBase": "72028184.70",
+                "currencyCode": "USD",
+                "countryCode": "US",
+            },
+            {
+                "ticker": "-",
+                "symbol": "USD",
+                "securityDescription": "US DOLLAR",
+                "pctOfNetValue": "1.19",
+                "quantity": "2563563",
+                "marketValueBase": "2563562.52",
+                "currencyCode": "USD",
+            },
+        ],
+        symbol="CVLC",
+        composition_date=date(2026, 8, 13),
+    )
+
+    assert rows[0].symbol == "NVDA"
+    assert rows[0].weight == Decimal("0.0733")
+    assert rows[0].market_value == Decimal("72028184.70")
+    assert rows[0].source_row_id == "CVLC:2026-08-13:1"
+    assert rows[1].holding_type == "cash"
+    assert rows[1].row_type == "cash"
+
+
+@pytest.mark.asyncio
+async def test_calvert_daily_json_route_preserves_issuer_source_metadata(monkeypatch):
+    adapter = get_holdings_adapter("calvert")
+    assert adapter is not None
+    source_url = adapter.resolve_source_url(symbol="CVLC")
+    assert source_url is not None
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=json.dumps(
+                {
+                    "en": {
+                        "fundTicker": "CVLC",
+                        "effectiveDate": "08/13/2026",
+                        "holdings": [
+                            {
+                                "ticker": "NVDA",
+                                "securityDescription": "NVIDIA CORP COMMON STOCK",
+                                "pctOfNetValue": "7.33",
+                                "quantity": "319699",
+                                "marketValueBase": "72028184.70",
+                            }
+                        ],
+                    }
+                }
+            ),
+            content_type="application/json",
+            url=source_url,
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="CVLC")
+
+    assert FakeAsyncClient.requested[0][0] == source_url
+    assert result.rows[0].symbol == "NVDA"
+    assert result.legal_metadata["source_provider"] == "calvert"
+    assert result.legal_metadata["route_resolution"] == (
+        "calvert_public_symbol_scoped_daily_holdings_json"
+    )
+    assert result.legal_metadata["composition_date"] == "2026-08-13"
+    assert result.legal_metadata["freshness_semantics"] == "issuer_disclosed_holdings_date"
+
+
 def test_altshares_brand_alias_uses_the_verified_water_island_route():
     adapter = get_holdings_adapter("altshares")
 

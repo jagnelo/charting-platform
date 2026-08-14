@@ -1635,6 +1635,7 @@ ETF_COM_BRAND_RECONCILIATION_NATIVE_ADAPTERS: frozenset[str] = frozenset(
     {
         "american_beacon",
         "avantis",
+        "calvert",
         "congress",
         "day_hagan",
         "oakmark",
@@ -62639,6 +62640,23 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
             "public product-page-declared FilePoint and SEI holdings artifacts."
         ),
     ),
+    "calvert": IssuerCsvAdapterConfig(
+        adapter_key="calvert",
+        source_provider="calvert",
+        source_access="issuer_public_daily_holdings_json",
+        product_page_templates=(
+            "https://www.calvert.com/investment-solutions/etfs/us-equity/calvert-us-large-cap-core-responsible-index-etf.html",
+            "https://www.calvert.com/investment-solutions/etfs/us-equity/calvert-us-large-cap-diversity-equity-and-inclusion-index-etf.html",
+            "https://www.calvert.com/investment-solutions/etfs/us-equity/calvert-us-mid-cap-core-responsible-index-etf.html",
+            "https://www.calvert.com/investment-solutions/etfs/international-equity/calvert-international-responsible-index-etf.html",
+            "https://www.calvert.com/investment-solutions/etfs/investment-grade-credit/calvert-ultra-short-investment-grade-etf.html",
+        ),
+        live_tested_default_route=True,
+        terms_note=(
+            "Calvert public ETF pages expose daily holdings JSON; issuer terms and the disclosed "
+            "holdings date govern freshness."
+        ),
+    ),
     "sofi": IssuerCsvAdapterConfig(
         adapter_key="sofi",
         source_provider="sofi",
@@ -62726,7 +62744,6 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
         "blueprint",
         "bufferlabs",
         "bushido",
-        "calvert",
         "capforce",
         "castellan",
         "conductor_fund",
@@ -63195,8 +63212,200 @@ class BridgewayReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """ETF.com-reconciled fallback adapter pending Bridgeway route discovery."""
 
 
-class CalvertReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
-    """ETF.com-reconciled fallback adapter pending Calvert route discovery."""
+class CalvertHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch Calvert ETF holdings from its public daily JSON feed.
+
+    Calvert's product pages expose a stable product-data chart base and the
+    holdings component resolves ``etfTradeDateHoldingsCurrent.json`` from it.
+    Keep the product IDs and symbols explicit so a future Calvert identity can
+    never be treated as native merely because it shares the fund family.
+    """
+
+    PRODUCT_IDS_BY_SYMBOL = {
+        "CVLC": "100502",
+        "CDEI": "100503",
+        "CVMC": "100504",
+        "CVIE": "100506",
+        "CVSB": "100507",
+    }
+    PRODUCT_PAGE_URLS = {
+        "CVLC": "https://www.calvert.com/investment-solutions/etfs/us-equity/calvert-us-large-cap-core-responsible-index-etf.html",
+        "CDEI": "https://www.calvert.com/investment-solutions/etfs/us-equity/calvert-us-large-cap-diversity-equity-and-inclusion-index-etf.html",
+        "CVMC": "https://www.calvert.com/investment-solutions/etfs/us-equity/calvert-us-mid-cap-core-responsible-index-etf.html",
+        "CVIE": "https://www.calvert.com/investment-solutions/etfs/international-equity/calvert-international-responsible-index-etf.html",
+        "CVSB": "https://www.calvert.com/investment-solutions/etfs/investment-grade-credit/calvert-ultra-short-investment-grade-etf.html",
+    }
+    HOLDINGS_URL_TEMPLATE = (
+        "https://www.calvert.com/im/json/imwebdata/data/product/EF/{product_id}/chart/"
+        "etfTradeDateHoldingsCurrent.json"
+    )
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        normalized_symbol = symbol.strip().upper()
+        if normalized_symbol in self.PRODUCT_IDS_BY_SYMBOL:
+            return HoldingsAdapterProbe(
+                adapter_key=self.adapter_key,
+                confidence=Decimal("0.9500"),
+                status="ready",
+                reason="Calvert publishes a complete symbol-scoped daily holdings JSON feed.",
+                source_url=self.resolve_source_url(symbol=normalized_symbol),
+                issuer_product_id=self.PRODUCT_IDS_BY_SYMBOL[normalized_symbol],
+            )
+        if _identifier(identifiers, "sec_cik", "cik"):
+            return super().probe(symbol=symbol, name=name, identifiers=identifiers)
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.6500"),
+            status="needs_issuer_route",
+            reason="The verified Calvert daily JSON route currently supports only known ETF symbols.",
+            required_identifiers=["issuer_product_id", "sec_cik"],
+        )
+
+    def resolve_source_url(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> str | None:
+        del identifiers
+        normalized_symbol = symbol.strip().upper()
+        product_id = self.PRODUCT_IDS_BY_SYMBOL.get(normalized_symbol) or (
+            issuer_product_id.strip() if issuer_product_id else None
+        )
+        if source_url:
+            parsed = urlparse(source_url)
+            if (
+                parsed.scheme == "https"
+                and parsed.netloc == "www.calvert.com"
+                and "/im/json/imwebdata/data/product/EF/" in parsed.path
+                and parsed.path.endswith("/chart/etfTradeDateHoldingsCurrent.json")
+            ):
+                return source_url
+            raise ValueError("Calvert holdings source_url must be the verified daily JSON route.")
+        if product_id is None:
+            return None
+        return self.HOLDINGS_URL_TEMPLATE.format(product_id=product_id)
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del identifiers
+        normalized_symbol = symbol.strip().upper()
+        product_id = self.PRODUCT_IDS_BY_SYMBOL.get(normalized_symbol)
+        if product_id is None:
+            raise ValueError(
+                f"No verified Calvert daily holdings route is configured for {normalized_symbol}."
+            )
+        if issuer_product_id and issuer_product_id.strip() != product_id:
+            raise ValueError(f"Calvert product ID does not match {normalized_symbol}.")
+        resolved_url = self.resolve_source_url(
+            symbol=normalized_symbol,
+            issuer_product_id=product_id,
+            source_url=source_url,
+        )
+        if resolved_url is None:
+            raise ValueError(
+                f"Calvert daily holdings route is unavailable for {normalized_symbol}."
+            )
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(
+                resolved_url,
+                # Calvert's public edge rejects the repository-wide EDGAR/Chrome
+                # user-agent headers but serves the same route with the default
+                # HTTP client identity. Do not spoof a browser or bypass the edge;
+                # keep only the content negotiation headers needed by the JSON feed.
+                headers={
+                    "Accept": "application/json,*/*",
+                    "Accept-Language": "en-US,en;q=0.9",
+                },
+                follow_redirects=True,
+            )
+            response.raise_for_status()
+        payload = response.json()
+        language_payload = payload.get("en") if isinstance(payload, dict) else None
+        if not isinstance(language_payload, dict):
+            raise ValueError("Calvert holdings response did not contain an English dataset.")
+        if str(language_payload.get("fundTicker") or "").upper() != normalized_symbol:
+            raise ValueError(
+                f"Calvert holdings response identity did not match {normalized_symbol}."
+            )
+        composition_date = _parse_issuer_date(language_payload.get("effectiveDate"))
+        raw_rows = language_payload.get("holdings")
+        if not isinstance(raw_rows, list) or not raw_rows:
+            raise ValueError(
+                f"Calvert holdings response contained no positions for {normalized_symbol}."
+            )
+        rows = self._parse_rows(
+            raw_rows, symbol=normalized_symbol, composition_date=composition_date
+        )
+        if not rows:
+            raise ValueError(
+                f"Calvert holdings response contained no parseable positions for {normalized_symbol}."
+            )
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response.text,
+            raw_json=payload,
+            source_url=str(response.url),
+            source_identifier=normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "route_resolution": "calvert_public_symbol_scoped_daily_holdings_json",
+                "product_page_url": self.PRODUCT_PAGE_URLS[normalized_symbol],
+                "source_format": "json",
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "refresh_frequency": "daily_issuer_export",
+                "freshness_semantics": "issuer_disclosed_holdings_date",
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @staticmethod
+    def _parse_rows(
+        raw_rows: list[Any], *, symbol: str, composition_date: date | None
+    ) -> list[CanonicalHoldingRow]:
+        rows: list[CanonicalHoldingRow] = []
+        for index, raw in enumerate(raw_rows, start=1):
+            if not isinstance(raw, dict):
+                continue
+            name = _clean(raw.get("securityDescription"))
+            ticker = _clean(raw.get("ticker"))
+            description = (name or "").upper()
+            is_cash = description in {"US DOLLAR", "CASH"} or "CASH" in description
+            valid_ticker = ticker and re.fullmatch(r"[A-Z][A-Z0-9.-]{0,11}", ticker.upper())
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=None if is_cash or not valid_ticker else ticker.upper(),
+                    name=name,
+                    cusip=_clean(raw.get("cusip")) or _clean(raw.get("symbol")),
+                    isin=_clean(raw.get("isin")),
+                    sedol=_clean(raw.get("sedol")),
+                    weight=_decimal_percent_points(raw.get("pctOfNetValue")),
+                    shares=_decimal(raw.get("quantity")) or _decimal(raw.get("positionSize")),
+                    market_value=_decimal(raw.get("marketValueBase")),
+                    currency=_clean(raw.get("currencyCode")),
+                    country=_clean(raw.get("countryCode")),
+                    holding_type="cash" if is_cash else "equity" if valid_ticker else "security",
+                    row_type="cash" if is_cash else "security",
+                    source_row_id=(
+                        f"{symbol}:{composition_date.isoformat() if composition_date else 'unknown'}:{index}"
+                    ),
+                    extra_data={
+                        key: value for key, value in raw.items() if _clean(value) is not None
+                    },
+                )
+            )
+        return rows
 
 
 class CongressReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
@@ -64337,7 +64546,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "bridgeway": BridgewayReconciledFallbackHoldingsAdapter,
         "bufferlabs": BufferLabsReconciledFallbackHoldingsAdapter,
         "bushido": BushidoReconciledFallbackHoldingsAdapter,
-        "calvert": CalvertReconciledFallbackHoldingsAdapter,
+        "calvert": CalvertHoldingsAdapter,
         "capforce": CapForceReconciledFallbackHoldingsAdapter,
         "castellan": CastellanReconciledFallbackHoldingsAdapter,
         "columbia_threadneedle": ColumbiaThreadneedleHoldingsAdapter,
