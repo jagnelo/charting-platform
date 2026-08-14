@@ -157,6 +157,14 @@ test.describe('Chart', () => {
   })
 
   test('F9c-transform — alternative chart settings control server transform parameters', async ({ page, browserDiagnostics }) => {
+    let releaseRenkoRequest: (() => void) | null = null
+    const renkoRequestHeld = new Promise<void>(resolve => { releaseRenkoRequest = resolve })
+    const transformedPath = /\/api\/v1\/ohlcv(?:\/local)?\/SPY\/D1\/transformed/
+    await page.route(transformedPath, async route => {
+      if (!route.request().url().includes('bar_type=renko')) return route.continue()
+      await renkoRequestHeld
+      await route.continue()
+    })
     await page.goto('/chart/SPY')
     const chart = page.locator('.chart-tool').filter({ has: page.getByTitle('Chart settings') }).first()
     await expect(chart).toBeVisible({ timeout: 15_000 })
@@ -166,6 +174,13 @@ test.describe('Chart', () => {
     const rendering = dialog.getByRole('combobox', { name: 'Primary rendering' })
     await rendering.selectOption('renko')
     const brickSize = dialog.getByRole('spinbutton', { name: 'Brick size' })
+    // Exercise the transition itself: settings stay usable while the old
+    // numerical renderer is destroyed and the replacement request is pending.
+    await expect(brickSize).toBeVisible()
+    await expect(chart.locator('canvas')).toHaveCount(0)
+    releaseRenkoRequest?.()
+    await page.unroute(transformedPath)
+    await expect(chart.locator('canvas')).toHaveCount(2, { timeout: 15_000 })
     await brickSize.fill('12')
     const request = page.waitForRequest(request => request.url().includes('/ohlcv/SPY/D1/transformed') && request.url().includes('bar_type=renko') && request.url().includes('brick_size=12'))
     await brickSize.press('Tab')
