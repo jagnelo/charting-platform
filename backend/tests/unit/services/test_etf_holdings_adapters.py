@@ -318,6 +318,51 @@ async def test_sofi_fetch_preserves_periodic_archive_provenance(monkeypatch):
     assert result.legal_metadata["freshness_semantics"] == "periodic_archive_not_current_daily_feed"
 
 
+def test_thrivent_route_is_symbol_scoped_and_not_fallback_only():
+    adapter = get_holdings_adapter("thrivent")
+    assert adapter is not None
+    assert adapter.__class__.__name__ == "ThriventHoldingsAdapter"
+    assert adapter.config.live_tested_default_route is True
+    assert "thrivent" not in FALLBACK_ISSUER_AUDITS
+
+    ready = adapter.probe(symbol="TSCV", name="Thrivent Small Cap Value ETF", identifiers={})
+    unsupported = adapter.probe(symbol="NOT_THRIVENT", name="", identifiers={})
+
+    assert ready.status == "ready"
+    assert ready.source_url.endswith("daily-holdings-tscv.csv")
+    assert ready.source_url == adapter.resolve_source_url(symbol="TSCV")
+    assert unsupported.status == "needs_issuer_route"
+
+
+@pytest.mark.asyncio
+async def test_thrivent_csv_route_preserves_issuer_source_metadata(monkeypatch):
+    adapter = get_holdings_adapter("thrivent")
+    assert adapter is not None
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=(
+                "Fund Ticker,Security Name,Symbol,Shares,Market Value,Weight\n"
+                "TSCV,Example Corp.,EXMP,100,10000,1.5%\n"
+            ),
+            content_type="text/csv",
+            url=adapter.resolve_source_url(symbol="TSCV"),
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="TSCV")
+
+    assert FakeAsyncClient.requested[0][0].endswith("daily-holdings-tscv.csv")
+    assert result.rows[0].symbol == "EXMP"
+    assert result.rows[0].weight == Decimal("0.015")
+    assert result.legal_metadata["source_provider"] == "thrivent"
+    assert result.legal_metadata["route_resolution"] == (
+        "thrivent_public_symbol_scoped_daily_holdings_csv"
+    )
+    assert result.legal_metadata["refresh_frequency"] == "daily_issuer_export"
+
+
 def test_altshares_brand_alias_uses_the_verified_water_island_route():
     adapter = get_holdings_adapter("altshares")
 

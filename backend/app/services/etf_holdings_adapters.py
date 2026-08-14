@@ -62650,6 +62650,16 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
             "the route is periodic/archive data and not a current daily holdings feed."
         ),
     ),
+    "thrivent": IssuerCsvAdapterConfig(
+        adapter_key="thrivent",
+        source_provider="thrivent",
+        source_access="issuer_public_daily_holdings_csv",
+        live_tested_default_route=True,
+        terms_note=(
+            "Thrivent publishes symbol-scoped daily holdings CSV exports from its public ETF pages; "
+            "issuer terms and the disclosed holdings date govern freshness."
+        ),
+    ),
 }
 
 for _adapter_key in sorted(ETFDB_RECOGNITION_ONLY_ISSUER_HINTS):
@@ -62676,7 +62686,6 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
         "guinness_atkinson",
         "manulife",
         "ridgeline",
-        "thrivent",
         "westwood",
         "wisdomtree",
         "q3",
@@ -63076,8 +63085,94 @@ class SofiHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return rows, composition_date
 
 
-class ThriventAuditedFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
-    """Audited fallback-only adapter for Thrivent ETF identities."""
+class ThriventHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch Thrivent's symbol-scoped daily holdings CSV exports."""
+
+    PRODUCT_PAGE_URLS = {
+        "TMVE": "https://www.thriventfunds.com/etfs/mid-cap-value-etf.html",
+        "TSCV": "https://www.thriventfunds.com/etfs/small-cap-value-etf.html",
+        "TSME": "https://www.thriventfunds.com/etfs/small-mid-cap-equity-etf.html",
+        "TCPB": "https://www.thriventfunds.com/etfs/core-plus-bond-etf.html",
+        "TUSB": "https://www.thriventfunds.com/etfs/ultra-short-bond-etf.html",
+        "TILC": "https://www.thriventfunds.com/etfs/international-large-cap-etf.html",
+        "TISC": "https://www.thriventfunds.com/etfs/international-small-cap-etf.html",
+    }
+    HOLDINGS_URL_TEMPLATE = (
+        "https://www.thriventfunds.com/content/dam/thrivent/fund-data/csv/"
+        "daily-holdings-{symbol_lower}.csv"
+    )
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        normalized_symbol = symbol.strip().upper()
+        if normalized_symbol in self.PRODUCT_PAGE_URLS:
+            return super().probe(symbol=symbol, name=name, identifiers=identifiers)
+        if _identifier(identifiers, "sec_cik", "cik"):
+            return super().probe(symbol=symbol, name=name, identifiers=identifiers)
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.6500"),
+            status="needs_issuer_route",
+            reason="The verified Thrivent CSV route currently supports only known ETF symbols.",
+            required_identifiers=["issuer_product_id", "sec_cik"],
+        )
+
+    def resolve_source_url(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> str | None:
+        del issuer_product_id, identifiers
+        if source_url:
+            return source_url.strip()
+        normalized_symbol = symbol.strip().upper()
+        if normalized_symbol not in self.PRODUCT_PAGE_URLS:
+            return None
+        return self.HOLDINGS_URL_TEMPLATE.format(symbol_lower=normalized_symbol.lower())
+
+    def resolve_product_page_url(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> str | None:
+        del issuer_product_id, identifiers
+        return self.PRODUCT_PAGE_URLS.get(symbol.strip().upper())
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        normalized_symbol = symbol.strip().upper()
+        if normalized_symbol not in self.PRODUCT_PAGE_URLS:
+            raise ValueError(
+                f"No verified Thrivent daily holdings route is configured for {normalized_symbol}."
+            )
+        result = await super().fetch_latest(
+            symbol=normalized_symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers,
+        )
+        result.legal_metadata = {
+            **(result.legal_metadata or {}),
+            "source_access": self.config.source_access,
+            "source_provider": self.source_provider,
+            "adapter_key": self.adapter_key,
+            "route_resolution": "thrivent_public_symbol_scoped_daily_holdings_csv",
+            "product_page_url": self.PRODUCT_PAGE_URLS[normalized_symbol],
+            "refresh_frequency": "daily_issuer_export",
+            "freshness_semantics": "issuer_disclosed_holdings_date",
+            "terms_note": self.config.terms_note,
+        }
+        return result
 
 
 class WestwoodAuditedFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
@@ -64364,7 +64459,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "subversive": SubversiveReconciledFallbackHoldingsAdapter,
         "suncoast": SuncoastReconciledFallbackHoldingsAdapter,
         "swedish_export_credit": SwedishExportCreditReconciledFallbackHoldingsAdapter,
-        "thrivent": ThriventAuditedFallbackHoldingsAdapter,
+        "thrivent": ThriventHoldingsAdapter,
         "touchstone": TouchstoneHoldingsAdapter,
         "tradr": TradrHoldingsAdapter,
         "trimtabs": TrimTabsReconciledFallbackHoldingsAdapter,
