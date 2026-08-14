@@ -9,10 +9,11 @@ import uPlot from 'uplot'
 import RelativeRotationTool from '@/components/workstation/RelativeRotationTool.vue'
 
 let resize: (() => void) | null = null
+let observedHost: Element | null = null
 class ResizeObserverMock {
   constructor(callback: () => void) { resize = callback }
-  observe() {}
-  disconnect() {}
+  observe(element: Element) { observedHost = element }
+  disconnect() { observedHost = null }
 }
 vi.stubGlobal('ResizeObserver', ResizeObserverMock)
 
@@ -21,6 +22,7 @@ describe('RelativeRotationTool', () => {
     vi.mocked(api.get).mockReset()
     vi.mocked(uPlot).mockClear()
     resize = null
+    observedHost = null
   })
 
   function mountTool(options: Record<string, any> = {}, queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })) {
@@ -39,6 +41,7 @@ describe('RelativeRotationTool', () => {
     await nextTick()
     expect(wrapper.text()).toContain('improving->leading')
     expect(wrapper.text()).toContain('63°')
+    expect(observedHost).toBe(wrapper.get('.rotation-tool__plot').element)
     resize?.()
     expect(vi.mocked(uPlot)).toHaveBeenCalledTimes(1)
     const chart = vi.mocked(uPlot).mock.results[0]?.value
