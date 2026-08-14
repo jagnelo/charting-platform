@@ -103,7 +103,9 @@ const normalizedRows = computed(() => props.rows.filter(row => (
   && Number.isFinite(row.count)
   && Number(row.count) >= 0
 )))
-const normalizedTrades = computed(() => props.trades.filter(trade => Number.isFinite(Number(trade?.r_multiple))))
+const normalizedTrades = computed(() => props.trades.filter(trade => (
+  typeof trade?.r_multiple === 'number' && Number.isFinite(trade.r_multiple)
+)))
 const hasData = computed(() => normalizedRows.value.length > 0 || normalizedTrades.value.length > 0)
 const maxCount = computed(() => Math.max(1, ...normalizedRows.value.map(row => Number(row.count) || 0)))
 const maxAbsPnl = computed(() => Math.max(1, ...normalizedTrades.value.map(trade => Math.abs(Number(trade.pnl ?? 0)))))

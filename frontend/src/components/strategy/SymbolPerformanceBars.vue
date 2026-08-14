@@ -100,8 +100,22 @@ const pointPositions = ref<Record<string, { left: number; top: number }>>({})
 let resizeObserver: ResizeObserver | null = null
 let observedHost: HTMLDivElement | null = null
 
+function isFiniteOptional(value: unknown) {
+  return value == null || (typeof value === 'number' && Number.isFinite(value))
+}
+
+function hasValidNumericFields(row: SymbolRow) {
+  return typeof row?.net_pnl === 'number'
+    && Number.isFinite(row.net_pnl)
+    && [
+      row.total_pnl, row.realized_pnl, row.unrealized_pnl,
+      row.closed_trade_count, row.open_position_count, row.trade_count,
+      row.win_rate, row.avg_r,
+    ].every(isFiniteOptional)
+}
+
 const sortedRows = computed(() => [...props.rows]
-  .filter(row => row?.symbol)
+  .filter(row => row?.symbol && hasValidNumericFields(row))
   .sort((left, right) => Math.abs(markedPnlPercent(right)) - Math.abs(markedPnlPercent(left)) || Math.abs(totalPnl(right)) - Math.abs(totalPnl(left))))
 const maxAbsPercent = computed(() => Math.max(0.1, ...sortedRows.value.map(row => Math.abs(markedPnlPercent(row)))))
 const magnitude = computed(() => niceMagnitude(maxAbsPercent.value))

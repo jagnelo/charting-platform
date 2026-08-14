@@ -147,4 +147,18 @@ describe('SymbolPerformanceBars', () => {
     wrapper.unmount()
     vi.unstubAllGlobals()
   })
+
+  it('excludes rows with malformed required P&L values instead of showing breakeven', async () => {
+    vi.mocked(uPlot).mockClear()
+    const wrapper = mount(SymbolPerformanceBars, {
+      props: {
+        rows: [{ symbol: 'BAD', net_pnl: null as unknown as number }],
+      },
+    })
+    await nextTick()
+
+    expect(vi.mocked(uPlot)).not.toHaveBeenCalled()
+    expect(wrapper.text()).toContain('No per-symbol attribution yet.')
+    expect(wrapper.find('[data-testid="symbol-pnl-point"]').exists()).toBe(false)
+  })
 })

@@ -89,4 +89,18 @@ describe('DistributionBars', () => {
     wrapper.unmount()
     vi.unstubAllGlobals()
   })
+
+  it('does not treat a null R multiple as a zero-valued trade', async () => {
+    vi.mocked(uPlot).mockClear()
+    const wrapper = mount(DistributionBars, {
+      props: {
+        rows: [],
+        trades: [{ instrument_symbol: 'BAD', r_multiple: null as unknown as number }],
+      },
+    })
+    await nextTick()
+
+    expect(vi.mocked(uPlot)).not.toHaveBeenCalled()
+    expect(wrapper.text()).toContain('No closed trade R multiples yet.')
+  })
 })
