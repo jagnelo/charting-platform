@@ -1,5 +1,38 @@
 # Active Handoff
 
+## 2026-08-14 — Recursive breadth composition implementation checkpoint
+
+- Added nested `all`/`any`/`not` breadth conditions and a platform-owned `comparison` condition
+  across close, one-period return, volume, RSI, moving-average distance, 52-week distances, and
+  relative strength. The canonical API and isolated Python runner use the same condition shape;
+  nested benchmark requirements are detected before data evaluation.
+- Expanded the workstation composer with measured field, operator, target, benchmark, and
+  composition controls. Generic current results now expose passing/failing member drill-down and
+  publish canonical symbol IDs through the existing link path.
+- Fix-first defect: runner recursion initially called a static evaluator through `self`, producing
+  `name 'self' is not defined`; replaced with the owning class call and added a regression test.
+- Validation: service/runner `93/93`, router `18/18`, elevated Docker-backed generic API/history
+  integration `2/2`, frontend Vitest `821/821`, `vue-tsc`, production build, Ruff, and diff checks.
+  The unprivileged Docker setup boundary remains a known environment-only failure; the elevated
+  rerun is authoritative.
+- Acceptance flexibility used: none. Open gaps are user-authored Python condition execution,
+  full visual condition-tree editing, chart-linked historical occurrences, complete promotion into
+  every reusable target, ETF point-in-time browser evidence, and the broader V25/provider/final
+  audit gaps.
+- Implementation/docs is committed locally as `8ff8896f` (`feat(analysis): compose breadth
+  conditions`). The exact push for the accumulated 232-commit range was attempted once and
+  rejected before Git by the private-origin safeguard; no workaround or repeat.
+- Operational records are now the only dirty context. Commit them separately and leave the
+  worktree clean before the next context.
+
+## 2026-08-14 — Recursive breadth composition transport result
+
+- The self-contained implementation/docs commit `8ff8896f` contains recursive breadth conditions,
+  scalar comparisons, benchmark dependency detection, the expanded workstation composer, member
+  drill-down, tests, and controlling plan updates.
+- The required exact push was rejected before Git by the private-origin safeguard for the
+  accumulated 232-commit range. This is transport-only; no alternate transport or repeat was used.
+
 ## 2026-08-14 — Breadth definition axes and goal expansion
 
 - The active goal attachment and repository plan were broadened to make “breadth around what?”

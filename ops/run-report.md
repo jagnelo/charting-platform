@@ -1,5 +1,28 @@
 # Run Report
 
+## 2026-08-14 — Recursive breadth composition implementation checkpoint
+
+- Implemented nested `all`/`any`/`not` conditions and platform-owned scalar comparisons across
+  close, return, volume, RSI, moving-average distance, 52-week distances, and relative strength.
+  The canonical evaluator and isolated Python runner share the same condition shape, including
+  nested benchmark dependency detection.
+- Expanded the workstation composer with measured field/operator/target/benchmark/composition
+  controls and generic pass/fail member drill-down with canonical symbol publication.
+- Fix-first repair: static runner recursion incorrectly referenced `self`; corrected to the owning
+  class and regression-tested.
+- Validation: service/runner `93/93`, router `18/18`, elevated generic API/history integration
+  `2/2`, frontend Vitest `821/821`, type-check, production build, Ruff, and diff checks.
+- Acceptance flexibility used: none. User-authored Python condition execution, full visual
+  condition-tree editing, chart-linked historical occurrences, complete promotion targets,
+  point-in-time ETF browser evidence, and broader V25/provider/final-audit gaps remain open.
+
+## 2026-08-14 — Recursive breadth composition transport result
+
+- Implementation/docs commit `8ff8896f` is clean locally.
+- The required exact push for the accumulated 232-commit range was attempted once and rejected
+  before Git by the private-origin safeguard. No alternate transport or repeat was used;
+  transport-only and not a product blocker.
+
 ## 2026-08-14 — Generic breadth implementation/docs transport result
 
 - Historical generic breadth, isolated Python/Study Lab integration, dedicated uPlot history, and

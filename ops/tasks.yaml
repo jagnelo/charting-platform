@@ -24,6 +24,7 @@ tasks:
       - generic-breadth-evaluator-and-api-implemented
       - generic-breadth-history-and-no-forward-fill
       - isolated-python-breadth-condition-helper
+      - recursive-breadth-composition-and-comparison
       - generic-breadth-uplot-history-surface
       - study-lab-generic-breadth-factory-starters
       - breadth-definition-axes-and-reuse-plan-expansion
@@ -34,8 +35,8 @@ tasks:
       - The first implementation slice is complete locally in d7c93cf4: versioned current-snapshot API, canonical group/ETF-proxy/explicit-symbol resolution, deterministic evaluator, and a compact workstation composer.
       - Existing fixed breadth tests remain valid preset coverage and cannot close this task.
       - Historical generic evaluation, full point-in-time ETF acceptance, unified-Python/research integration, independent uPlot panes, promotion targets, and representative browser acceptance remain open.
-      - Focused validation: breadth service 5/5, router unit suite 18/18, database-backed generic API/history 2/2, research runner/factory 89/89, generic uPlot lifecycle included in 14/14, frontend Vitest 821/821, type-check, production build, Ruff, and diff checks.
-      - The second implementation slice is committed locally as fe49dcd4 and owns backend generic history/Python, frontend generic history/uPlot, related tests, and the parity/planning documentation updates. Its exact push was rejected before Git by the private-origin safeguard; transport-only.
+      - Focused validation: breadth service/runner 93/93, router unit suite 18/18, database-backed generic API/history/composition 2/2, generic uPlot lifecycle included in 14/14, frontend Vitest 821/821, type-check, production build, Ruff, and diff checks.
+      - The historical implementation/docs slice is fe49dcd4. The recursive composition/comparison/API/UI slice is committed locally as 8ff8896f; its exact push was rejected before Git by the private-origin safeguard and is transport-only.
       - The active goal was broadened again to make “breadth around what?” explicit: users must be able to test price/return/volume/volatility/trend/relative-strength/metadata or derived Python fields against averages, thresholds, ranges, percentiles, highs/lows, benchmark/peer series, events, or other derived series, with reusable aggregate/history/member outputs.
       - No visual threshold, mask, provider rule, or acceptance criterion was relaxed.
   - id: tc2000-study-lab-artifact-export-20260814
