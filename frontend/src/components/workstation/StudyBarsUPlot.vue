@@ -1,6 +1,6 @@
 <template>
   <div ref="root" class="study-bars">
-    <div v-if="!valid" class="study-bars__state">Bars have no finite observations.</div>
+    <div v-if="!valid" class="study-bars__state" role="status" aria-live="polite" aria-atomic="true">Bars have no finite observations.</div>
     <div v-else ref="host" class="study-bars__host" />
   </div>
 </template>

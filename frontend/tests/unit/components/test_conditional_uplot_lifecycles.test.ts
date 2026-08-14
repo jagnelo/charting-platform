@@ -37,6 +37,8 @@ describe('conditional uPlot lifecycle contracts', () => {
     const chart = vi.mocked(uPlot).mock.results[0]?.value
     await wrapper.setProps(invalid as any)
     await vi.waitFor(() => expect(chart.destroy).toHaveBeenCalledTimes(1))
+    expect(wrapper.get('[role="status"]').attributes('aria-live')).toBe('polite')
+    expect(wrapper.get('[role="status"]').attributes('aria-atomic')).toBe('true')
     wrapper.unmount()
   })
 })

@@ -1,4 +1,4 @@
-<template><div ref="root" class="breadth-history"><div v-if="!history?.points.length" class="breadth-history__state">Historical breadth is unavailable.</div><div v-else ref="host" class="breadth-history__host" /></div></template>
+<template><div ref="root" class="breadth-history"><div v-if="!history?.points.length" class="breadth-history__state" role="status" aria-live="polite" aria-atomic="true">Historical breadth is unavailable.</div><div v-else ref="host" class="breadth-history__host" /></div></template>
 
 <script setup lang="ts">
 import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'

@@ -1,6 +1,6 @@
 <template>
   <div ref="root" class="study-scatter">
-    <div v-if="!valid" class="study-scatter__state">Scatter output has no aligned numeric points.</div>
+    <div v-if="!valid" class="study-scatter__state" role="status" aria-live="polite" aria-atomic="true">Scatter output has no aligned numeric points.</div>
     <div v-else ref="host" class="study-scatter__host" />
   </div>
 </template>

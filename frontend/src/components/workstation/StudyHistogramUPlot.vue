@@ -1,6 +1,6 @@
 <template>
   <div ref="root" class="study-histogram">
-    <div v-if="!valid" class="study-histogram__state">Distribution has no numeric observations.</div>
+    <div v-if="!valid" class="study-histogram__state" role="status" aria-live="polite" aria-atomic="true">Distribution has no numeric observations.</div>
     <div v-else ref="host" class="study-histogram__host" />
   </div>
 </template>

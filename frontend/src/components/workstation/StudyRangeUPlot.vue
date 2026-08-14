@@ -1,6 +1,6 @@
 <template>
   <div ref="root" class="study-range">
-    <div v-if="!valid" class="study-range__state">Range has no aligned finite bounds.</div>
+    <div v-if="!valid" class="study-range__state" role="status" aria-live="polite" aria-atomic="true">Range has no aligned finite bounds.</div>
     <div v-else ref="host" class="study-range__host" />
   </div>
 </template>

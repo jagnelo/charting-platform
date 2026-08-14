@@ -1,6 +1,6 @@
 <template>
   <div ref="root" class="study-series">
-    <div v-if="!valid" class="study-series__state">Series has no aligned timestamp/value data.</div>
+    <div v-if="!valid" class="study-series__state" role="status" aria-live="polite" aria-atomic="true">Series has no aligned timestamp/value data.</div>
     <div v-else ref="host" class="study-series__host" />
   </div>
 </template>
