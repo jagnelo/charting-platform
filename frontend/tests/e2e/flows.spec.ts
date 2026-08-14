@@ -3320,6 +3320,28 @@ test.describe('TC2000 workstation', () => {
         }),
       })
     })
+    await page.route('**/api/v1/analysis/benchmark-families/sp500/coverage*', async route => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          family_key: 'sp500',
+          name: 'S&P 500',
+          official_index_symbol: 'SPX',
+          official_index_name: 'S&P 500',
+          membership_version: 1,
+          universe_provenance: { coverage_semantics: 'role_independent_dated_holdings_snapshots' },
+          coverage: 0.5,
+          roles: [
+            { role: 'cap_weight', symbol: 'SPY', label: 'SPY', verification_state: 'verified', available: true, status: 'available', snapshots: [{ snapshot_id: 1, composition_date: '2026-06-27', as_of_date: '2026-06-30', known_at: '2026-06-28T20:00:00Z', provenance: 'issuer snapshot', source_provider: 'fixture', source_quality: 'issuer_disclosed', completeness_status: 'complete', row_count: 1, resolved_count: 1, unresolved_count: 0 }] },
+            { role: 'equal_weight', symbol: 'RSP', label: 'RSP', verification_state: 'verified', available: true, status: 'available', snapshots: [{ snapshot_id: 2, composition_date: '2026-06-27', as_of_date: '2026-06-30', known_at: '2026-06-28T20:00:00Z', provenance: 'issuer snapshot', source_provider: 'fixture', source_quality: 'issuer_disclosed', completeness_status: 'complete', row_count: 1, resolved_count: 1, unresolved_count: 0 }] },
+            { role: 'value', symbol: 'SPYV', label: 'SPYV', verification_state: 'verified', available: true, status: 'no_snapshot', snapshots: [] },
+            { role: 'growth', symbol: 'SPYG', label: 'SPYG', verification_state: 'verified', available: true, status: 'no_snapshot', snapshots: [] },
+          ],
+          exclusions: [],
+        }),
+      })
+    })
     await page.route('**/api/v1/analysis/benchmark-families/sp500/constituents*', async route => {
       await route.fulfill({
         status: 200,
@@ -3357,6 +3379,8 @@ test.describe('TC2000 workstation', () => {
     await expect(familyOverview).toContainText('S&P 500 · SPX')
     await expect(familyOverview).toContainText('RSP')
     await expect(familyOverview).toContainText('NVDA')
+    await expect(familyOverview).toContainText('Dated holdings coverage')
+    await expect(familyOverview).toContainText('Cap weight SPY · available · 1 date')
     const customUniverse = breadth.locator('select[aria-label="Custom breadth universe"]')
     await expect(customUniverse.locator('option[value="benchmark_family"]')).toHaveCount(1)
     await customUniverse.selectOption('benchmark_family')

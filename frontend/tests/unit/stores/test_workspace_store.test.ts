@@ -185,6 +185,28 @@ describe('workspace store layout tabs', () => {
     expect(store.benchmarkFamilyOverviewErrors['sp500:W1:raw:latest']).toBeNull()
   })
 
+  it('loads dated family coverage without collapsing unavailable roles into the cap leg', async () => {
+    apiGet.mockResolvedValue({
+      family_key: 'sp500',
+      name: 'S&P 500',
+      official_index_symbol: 'SPX',
+      coverage: 0.25,
+      roles: [
+        { role: 'cap_weight', symbol: 'SPY', status: 'available', snapshots: [{ snapshot_id: 1, composition_date: '2026-06-30' }] },
+        { role: 'equal_weight', symbol: null, status: 'mapping_unavailable', snapshots: [] },
+      ],
+      exclusions: [],
+    })
+    const store = useWorkspaceStore()
+
+    const result = await store.loadBenchmarkFamilyCoverage('sp500')
+
+    expect(apiGet).toHaveBeenCalledWith('/analysis/benchmark-families/sp500/coverage', {})
+    expect(result?.roles[0]?.snapshots[0]?.composition_date).toBe('2026-06-30')
+    expect(store.benchmarkFamilyCoverages['sp500:latest:256']?.coverage).toBe(0.25)
+    expect(store.benchmarkFamilyCoverageErrors['sp500:latest:256']).toBeNull()
+  })
+
   it('loads role-specific family constituents without substituting a missing leg', async () => {
     apiGet.mockResolvedValue({
       group_key: 'benchmark-family:sp500:equal_weight',

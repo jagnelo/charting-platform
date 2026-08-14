@@ -1,5 +1,25 @@
 # Project TODO Memory
 
+### 2026-08-14 — Family dated-coverage contract and workstation evidence strip
+
+- [x] Added read-only `GET /analysis/benchmark-families/{family_key}/coverage`, returning
+      independently dated holdings disclosures for cap/equal/value/growth roles, with snapshot
+      IDs, composition/as-of/known-at dates, source/provenance, completeness, row resolution,
+      and explicit `mapping_unavailable`/`no_snapshot` role states. An `as_of` request applies the
+      existing point-in-time composition and known-at policy; no role can borrow SPY, QQQ, or a
+      different family.
+- [x] Added the authenticated family store loader and dense workstation evidence strip showing
+      dated-disclosure counts/status per role. The result is cached by family/as-of/limit and
+      remains provider-neutral.
+- [x] Validation passes: focused family integration `7/7`, Ruff, compilation, frontend store
+      `56/56`, full Vitest `827/827`, type-check/build, and rebuilt-stack Chromium
+      `F8s-breadth-family-ratio` `1/1`. The unprivileged browser launch failed before execution
+      at the macOS Mach-port boundary; the unchanged oracle passed through the required elevated
+      rerun. No acceptance flexibility used.
+- [ ] Still open: using the available date set to drive a user-selectable family as-of workflow,
+      populating complete historical rebalance/membership continuity, and extending the same
+      historical evidence into all-family breadth/ratios/rotation/ranking acceptance.
+
 ### 2026-08-14 — Expanded US index-family, style, and breadth vision (latest clarification)
 
 - [ ] Treat the following as complete, independently selectable US-market analysis roots in the

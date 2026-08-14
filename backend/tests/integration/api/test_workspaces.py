@@ -489,6 +489,88 @@ class TestWorkspaces:
         assert mappings["equal_weight"]["symbol"] == "QQQE"
         assert mappings["equal_weight"]["label"] == "Nasdaq-100 equal-weight ETF proxy"
 
+    def test_benchmark_family_coverage_exposes_role_dates_and_point_in_time_filter(
+        self, client, auth_headers, db, instrument_type
+    ):
+        from datetime import UTC, datetime
+
+        from app.models.etf_holdings import ETFHoldingsSnapshot, ETFProfile
+        from app.models.instrument import Instrument
+
+        seeded = client.get("/api/v1/market-groups", headers=auth_headers)
+        assert seeded.status_code == 200
+        spy = Instrument(
+            symbol="SPY",
+            name="SPDR S&P 500 ETF Trust",
+            currency="USD",
+            instrument_type_id=instrument_type.id,
+            is_active=True,
+        )
+        db.add(spy)
+        db.flush()
+        profile = ETFProfile(instrument_id=spy.id, adapter_status="resolved")
+        db.add(profile)
+        db.flush()
+        first = ETFHoldingsSnapshot(
+            etf_profile_id=profile.id,
+            composition_date=datetime(2026, 6, 30, tzinfo=UTC).date(),
+            known_at=datetime(2026, 7, 1, tzinfo=UTC),
+            provenance="issuer_native",
+            source_provider="issuer",
+            source_quality="issuer_disclosed",
+            completeness_status="complete",
+            row_count=10,
+            resolved_count=9,
+            unresolved_count=1,
+            total_weight=0.99,
+            snapshot_hash="test-family-coverage-first",
+        )
+        second = ETFHoldingsSnapshot(
+            etf_profile_id=profile.id,
+            composition_date=datetime(2027, 6, 30, tzinfo=UTC).date(),
+            known_at=datetime(2027, 7, 1, tzinfo=UTC),
+            provenance="issuer_native",
+            source_provider="issuer",
+            source_quality="issuer_disclosed",
+            completeness_status="complete",
+            row_count=11,
+            resolved_count=11,
+            unresolved_count=0,
+            total_weight=1.0,
+            snapshot_hash="test-family-coverage-second",
+        )
+        db.add_all([first, second])
+        db.flush()
+
+        response = client.get(
+            "/api/v1/analysis/benchmark-families/sp500/coverage",
+            headers=auth_headers,
+        )
+        assert response.status_code == 200, response.text
+        payload = response.json()
+        roles = {role["role"]: role for role in payload["roles"]}
+        assert roles["cap_weight"]["status"] == "available"
+        assert [row["composition_date"] for row in roles["cap_weight"]["snapshots"]] == [
+            "2027-06-30",
+            "2026-06-30",
+        ]
+        assert roles["equal_weight"]["status"] == "mapping_unavailable"
+        assert roles["value"]["status"] == "mapping_unavailable"
+        assert roles["growth"]["status"] == "mapping_unavailable"
+        assert payload["coverage"] == 0.25
+
+        historical = client.get(
+            "/api/v1/analysis/benchmark-families/sp500/coverage",
+            headers=auth_headers,
+            params={"as_of": "2026-12-31T00:00:00Z"},
+        )
+        assert historical.status_code == 200, historical.text
+        historical_cap = next(
+            role for role in historical.json()["roles"] if role["role"] == "cap_weight"
+        )
+        assert [row["composition_date"] for row in historical_cap["snapshots"]] == ["2026-06-30"]
+        assert historical.json()["universe_provenance"]["point_in_time"] is True
+
     def test_benchmark_family_constituent_route_preserves_leg_and_proxy_errors(
         self, client, auth_headers, db, instrument, instrument_type, ohlcv_bars
     ):

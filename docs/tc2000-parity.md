@@ -1,5 +1,22 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-14 — Dated family coverage evidence strip
+
+The family analysis backend now exposes `GET /analysis/benchmark-families/{family_key}/coverage`.
+It returns each cap/equal/value/growth role independently, with all visible dated holdings
+disclosures up to a bounded limit and their composition date, requested as-of date, known-at time,
+source/provider, provenance, completeness, row count, and resolution counts. Supplying `as_of`
+uses the existing historical-safe rule: composition and known-at must both be no later than the
+requested time. Missing mappings and mapped instruments with no snapshots remain explicit role
+states; no family proxy is substituted.
+
+The Market Breadth family surface now renders a compact dated-disclosure evidence strip alongside
+the mapping and constituent panels. The store cache identity includes family, as-of, and limit,
+and the browser fixture exercises the strip. This closes the coverage/readiness presentation
+slice only. Complete historical rebalance continuity, a user-selectable as-of control, and
+all-family historical breadth/ratio/rotation acceptance remain open; no acceptance flexibility
+was used.
+
 ## 2026-08-14 — US index-family and style perspective acceptance clarification
 
 The Version 25 workstation is expected to support the full US index-family matrix, not only the

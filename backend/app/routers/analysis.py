@@ -36,6 +36,9 @@ from app.schemas.analysis import (
     AnalysisCell,
     AnalysisPoint,
     AnalysisWarning,
+    BenchmarkFamilyCoverageOut,
+    BenchmarkFamilyCoverageRoleOut,
+    BenchmarkFamilyCoverageSnapshotOut,
     BenchmarkFamilyDerivedEqualWeightOut,
     BenchmarkFamilyMappingOut,
     BenchmarkFamilyOverviewOut,
@@ -2088,6 +2091,158 @@ async def benchmark_family_ratios(
         exclusions=exclusions,
         freshness="available" if ratios and any(r.points for r in ratios) else "coverage_limited",
         freshness_detail={"ratio_count": len(ratios)},
+    )
+
+
+@router.get(
+    "/benchmark-families/{family_key}/coverage",
+    response_model=BenchmarkFamilyCoverageOut,
+)
+async def benchmark_family_coverage(
+    family_key: str,
+    as_of: datetime | None = Query(default=None),
+    limit: int = Query(default=256, ge=1, le=512),
+    _: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Return dated holdings disclosures for each mapped family role.
+
+    This is intentionally read-only and provider-neutral.  A missing mapping,
+    canonical instrument, or dated snapshot is reported for that role only;
+    another role (including SPY or QQQ) is never substituted.  When ``as_of``
+    is supplied, the existing composition/known-at point-in-time policy is
+    applied so a current disclosure cannot masquerade as historical evidence.
+    """
+
+    group = (
+        await db.execute(
+            select(MarketGroup)
+            .options(selectinload(MarketGroup.members).selectinload(MarketGroupMember.instrument))
+            .where(MarketGroup.stable_key == family_key)
+        )
+    ).scalar_one_or_none()
+    if group is None or group.group_type != "benchmark_family":
+        raise HTTPException(
+            404,
+            detail={"code": "benchmark_family_not_found", "family_key": family_key},
+        )
+
+    provenance = dict(group.provenance or {})
+    official = provenance.get("official_index")
+    if not isinstance(official, Mapping):
+        raise HTTPException(
+            422,
+            detail={"code": "benchmark_family_metadata_missing", "family_key": family_key},
+        )
+    proxy_mappings = provenance.get("proxy_mappings")
+    if not isinstance(proxy_mappings, Mapping):
+        proxy_mappings = {}
+    symbols = [
+        str(mapping.get("symbol")).upper()
+        for mapping in proxy_mappings.values()
+        if isinstance(mapping, Mapping) and mapping.get("symbol")
+    ]
+    instruments = {
+        instrument.symbol.upper(): instrument
+        for instrument in (
+            await db.execute(select(Instrument).where(Instrument.symbol.in_(symbols)))
+        ).scalars()
+    }
+
+    roles: list[BenchmarkFamilyCoverageRoleOut] = []
+    exclusions: list[AnalysisWarning] = []
+    role_count = 4
+    covered_roles = 0
+    for role in ("cap_weight", "equal_weight", "value", "growth"):
+        mapping = proxy_mappings.get(role)
+        mapping = mapping if isinstance(mapping, Mapping) else {}
+        symbol = str(mapping.get("symbol")).upper() if mapping.get("symbol") else None
+        instrument = instruments.get(symbol) if symbol else None
+        snapshots: list[BenchmarkFamilyCoverageSnapshotOut] = []
+        if instrument is None:
+            status = "mapping_unavailable"
+            exclusions.append(
+                AnalysisWarning(
+                    code="family_role_mapping_unavailable",
+                    message=f"No canonical instrument is available for {family_key} {role}.",
+                )
+            )
+        else:
+            statement = holdings_snapshot_source_filter(
+                select(ETFHoldingsSnapshot)
+                .join(ETFProfile, ETFProfile.id == ETFHoldingsSnapshot.etf_profile_id)
+                .where(ETFProfile.instrument_id == instrument.id)
+            )
+            statement = _holdings_snapshot_at(statement, as_of)
+            rows = (
+                await db.execute(
+                    statement.order_by(
+                        ETFHoldingsSnapshot.composition_date.desc(),
+                        ETFHoldingsSnapshot.known_at.desc().nullslast(),
+                        ETFHoldingsSnapshot.id.desc(),
+                    ).limit(limit)
+                )
+            ).scalars().all()
+            snapshots = [
+                BenchmarkFamilyCoverageSnapshotOut(
+                    snapshot_id=row.id,
+                    composition_date=row.composition_date,
+                    as_of_date=row.as_of_date,
+                    known_at=row.known_at,
+                    provenance=row.provenance,
+                    source_provider=row.source_provider,
+                    source_quality=row.source_quality,
+                    completeness_status=row.completeness_status,
+                    row_count=row.row_count,
+                    resolved_count=row.resolved_count,
+                    unresolved_count=row.unresolved_count,
+                )
+                for row in rows
+            ]
+            status = "available" if snapshots else "no_snapshot"
+            if snapshots:
+                covered_roles += 1
+            else:
+                exclusions.append(
+                    AnalysisWarning(
+                        code="family_role_holdings_unavailable",
+                        message=f"No dated holdings snapshot is available for {family_key} {role}.",
+                        instrument_id=instrument.id,
+                    )
+                )
+        roles.append(
+            BenchmarkFamilyCoverageRoleOut(
+                role=role,
+                symbol=symbol,
+                label=str(mapping.get("label") or "No verified mapped proxy"),
+                verification_state=str(mapping.get("verification_state") or "not_verified"),
+                instrument_id=instrument.id if instrument else None,
+                available=instrument is not None,
+                status=status,
+                snapshots=snapshots,
+            )
+        )
+
+    selected_members = _group_members_at(group, as_of)
+    return BenchmarkFamilyCoverageOut(
+        family_key=family_key,
+        name=group.name,
+        official_index_symbol=str(official.get("symbol") or ""),
+        official_index_name=str(official.get("name") or group.name),
+        as_of=as_of,
+        membership_version=_group_membership_version(group, selected_members),
+        universe_provenance={
+            **_group_provenance(group, as_of),
+            "family_key": family_key,
+            "coverage_semantics": "role_independent_dated_holdings_snapshots",
+            "point_in_time": as_of is not None,
+            "snapshot_limit": limit,
+        },
+        coverage=covered_roles / role_count,
+        roles=roles,
+        exclusions=exclusions,
+        freshness="available" if covered_roles else "coverage_limited",
+        freshness_detail={"role_count": role_count, "covered_roles": covered_roles},
     )
 
 

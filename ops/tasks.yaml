@@ -201,6 +201,15 @@ tasks:
         reusable-plot, and export contracts. Nasdaq 100 requires an evidence-backed QQQ/QQQE-style
         cap/equal deconstruction. This is a scope clarification, not acceptance flexibility;
         unavailable mappings and provider/history/visual gaps remain explicit.
+      - >-
+        Added read-only GET /analysis/benchmark-families/{family_key}/coverage plus the family
+        store/UI dated-disclosure evidence strip. It returns independent role snapshot dates,
+        composition/as-of/known-at, source/provenance, completeness, resolution counts, and
+        mapping_unavailable/no_snapshot states; explicit as_of applies historical-safe eligibility
+        and never substitutes another family role. Focused family integration 7/7, store 56/56,
+        full Vitest 827/827, type/build, Ruff/compile, and rebuilt Chromium F8s-breadth-family-ratio
+        1/1 pass. This closes coverage-readiness presentation only; complete historical continuity,
+        selectable as-of UI, and family-wide historical analytics remain open; no flexibility used.
   - id: tc2000-generic-condition-driven-breadth-20260814
     title: Broaden breadth from fixed metrics to reusable condition-driven cross-sectional studies
     status: in_progress

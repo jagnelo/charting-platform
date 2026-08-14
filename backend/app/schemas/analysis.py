@@ -130,6 +130,50 @@ class BenchmarkFamilyMappingOut(BaseModel):
     holdings_total_weight: Decimal | None = None
 
 
+class BenchmarkFamilyCoverageSnapshotOut(BaseModel):
+    """One dated holdings disclosure available for a family leg."""
+
+    snapshot_id: int
+    composition_date: date
+    as_of_date: date | None = None
+    known_at: datetime | None = None
+    provenance: str
+    source_provider: str
+    source_quality: str
+    completeness_status: str
+    row_count: int
+    resolved_count: int
+    unresolved_count: int
+
+
+class BenchmarkFamilyCoverageRoleOut(BaseModel):
+    """Historical holdings coverage for one independently mapped family role."""
+
+    role: Literal["cap_weight", "equal_weight", "value", "growth"]
+    symbol: str | None = None
+    label: str
+    verification_state: str
+    instrument_id: int | None = None
+    available: bool = False
+    status: str
+    snapshots: list[BenchmarkFamilyCoverageSnapshotOut] = Field(default_factory=list)
+
+
+class BenchmarkFamilyCoverageOut(AnalysisResponseMetadata):
+    """Dated family-leg holdings coverage without proxy substitution."""
+
+    family_key: str
+    name: str
+    official_index_symbol: str
+    official_index_name: str
+    as_of: datetime | None = None
+    membership_version: int
+    universe_provenance: dict[str, object] = Field(default_factory=dict)
+    coverage: float = Field(ge=0, le=1)
+    roles: list[BenchmarkFamilyCoverageRoleOut] = Field(default_factory=list)
+    exclusions: list[AnalysisWarning] = Field(default_factory=list)
+
+
 class BenchmarkFamilyOverviewOut(AnalysisResponseMetadata):
     """Proxy-leg comparison for one benchmark family, never a silent fallback."""
 

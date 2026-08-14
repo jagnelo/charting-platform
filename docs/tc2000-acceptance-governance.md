@@ -154,6 +154,17 @@ open and actionable. Acceptance flexibility used: **None**.
 
 ### Expanded benchmark-family gate
 
+#### Dated holdings coverage sub-gate
+
+Before a family/leg can be presented as historically usable, acceptance must call
+`GET /analysis/benchmark-families/{family_key}/coverage` and verify that cap/equal/value/growth
+roles retain independent snapshot dates, source/provenance, completeness, resolution, and
+composition-versus-known-at semantics. An explicit `as_of` must exclude future disclosures and
+must not fail by substituting another role. The workstation must expose these statuses and counts
+without implying that a role with zero snapshots has historical coverage. This sub-gate proves
+coverage evidence and honest presentation; it does not waive the separate requirement for a
+complete rebalance/membership history or user-selectable historical drill-down.
+
 #### Latest US-family perspective clarification
 
 The family gate covers eight complete US analysis perspectives: S&P 500, S&P MidCap 400, S&P

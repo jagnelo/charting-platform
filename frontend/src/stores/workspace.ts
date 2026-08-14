@@ -229,6 +229,46 @@ export interface BenchmarkFamilyOverviewState {
   freshness_detail?: Record<string, number>
 }
 
+export interface BenchmarkFamilyCoverageSnapshotState {
+  snapshot_id: number
+  composition_date: string
+  as_of_date?: string | null
+  known_at?: string | null
+  provenance: string
+  source_provider: string
+  source_quality: string
+  completeness_status: string
+  row_count: number
+  resolved_count: number
+  unresolved_count: number
+}
+
+export interface BenchmarkFamilyCoverageRoleState {
+  role: BenchmarkFamilyMappingState['role']
+  symbol?: string | null
+  label: string
+  verification_state: string
+  instrument_id?: number | null
+  available: boolean
+  status: string
+  snapshots: BenchmarkFamilyCoverageSnapshotState[]
+}
+
+export interface BenchmarkFamilyCoverageState {
+  family_key: string
+  name: string
+  official_index_symbol: string
+  official_index_name: string
+  as_of?: string | null
+  membership_version: number
+  universe_provenance: Record<string, unknown>
+  coverage: number
+  roles: BenchmarkFamilyCoverageRoleState[]
+  exclusions: Array<{ code: string; message: string; instrument_id?: number | null }>
+  freshness?: string
+  freshness_detail?: Record<string, number>
+}
+
 export interface BreadthState {
   group_key: string
   timeframe?: string
@@ -549,6 +589,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   const benchmarkFamilyRatioErrors = ref<Record<string, string | null>>({})
   const benchmarkFamilyOverviews = ref<Record<string, BenchmarkFamilyOverviewState | null>>({})
   const benchmarkFamilyOverviewErrors = ref<Record<string, string | null>>({})
+  const benchmarkFamilyCoverages = ref<Record<string, BenchmarkFamilyCoverageState | null>>({})
+  const benchmarkFamilyCoverageErrors = ref<Record<string, string | null>>({})
   const benchmarkFamilyConstituents = ref<Record<string, BenchmarkFamilyConstituentsState | null>>({})
   const benchmarkFamilyConstituentErrors = ref<Record<string, string | null>>({})
   const breadth = ref<Record<string, BreadthState>>({})
@@ -1322,6 +1364,37 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       const message = cause?.message ?? `Unable to load ${normalizedFamily} family overview`
       benchmarkFamilyOverviewErrors.value = { ...benchmarkFamilyOverviewErrors.value, [cacheKey]: message }
       benchmarkFamilyOverviews.value = { ...benchmarkFamilyOverviews.value, [cacheKey]: null }
+      return null
+    }
+  }
+
+  async function loadBenchmarkFamilyCoverage(
+    familyKey: string,
+    options: { as_of?: string; limit?: number } = {},
+  ) {
+    const normalizedFamily = familyKey.trim()
+    if (!normalizedFamily) return null
+    const cacheKey = `${normalizedFamily}:${options.as_of ?? 'latest'}:${options.limit ?? 256}`
+    const requestKey = `top-down:family-coverage:${cacheKey}`
+    const generation = beginAnalysisRequest(requestKey)
+    if (!documentIsVisible()) return null
+    benchmarkFamilyCoverageErrors.value = { ...benchmarkFamilyCoverageErrors.value, [cacheKey]: null }
+    try {
+      const result = await api.get<BenchmarkFamilyCoverageState>(
+        `/analysis/benchmark-families/${encodeURIComponent(normalizedFamily)}/coverage`,
+        {
+          ...(options.as_of ? { as_of: options.as_of } : {}),
+          ...(options.limit ? { limit: options.limit } : {}),
+        },
+      )
+      if (!isCurrentAnalysisRequest(requestKey, generation)) return null
+      benchmarkFamilyCoverages.value = { ...benchmarkFamilyCoverages.value, [cacheKey]: result }
+      return result
+    } catch (cause: any) {
+      if (!isCurrentAnalysisRequest(requestKey, generation)) return null
+      const message = cause?.message ?? `Unable to load ${normalizedFamily} family coverage`
+      benchmarkFamilyCoverageErrors.value = { ...benchmarkFamilyCoverageErrors.value, [cacheKey]: message }
+      benchmarkFamilyCoverages.value = { ...benchmarkFamilyCoverages.value, [cacheKey]: null }
       return null
     }
   }
@@ -2215,6 +2288,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     benchmarkFamilyRatioErrors,
     benchmarkFamilyOverviews,
     benchmarkFamilyOverviewErrors,
+    benchmarkFamilyCoverages,
+    benchmarkFamilyCoverageErrors,
     benchmarkFamilyConstituents,
     benchmarkFamilyConstituentErrors,
     marketGroupErrors,
@@ -2266,6 +2341,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     loadGroupSnapshot,
     loadBenchmarkFamilyRatios,
     loadBenchmarkFamilyOverview,
+    loadBenchmarkFamilyCoverage,
     loadBenchmarkFamilyConstituents,
     loadBreadth,
     loadBreadthHistory,
