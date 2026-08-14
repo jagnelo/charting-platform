@@ -1,5 +1,17 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-14 — Canonical chart store rejects malformed OHLC bars
+
+- The shared chart store now validates open, high, low, and close values before publishing bars
+  to the primary uPlot data path. Malformed OHLC rows are excluded; malformed optional volume and
+  VWAP values become unavailable instead of `NaN`/`Infinity`.
+- Focused chart-store coverage passes `37/37`; full frontend Vitest passes `801/801`; type-check,
+  the 475-module production build, uPlot contract (`45` files), and `git diff --check` pass.
+  Implementation: `b1419b52`.
+- No acceptance flexibility, visual threshold, mask, provider substitution, or renderer rule was
+  used. Exact/unrepresented V25, provider/entitlement, historical/GICS, native-monitor,
+  endurance, Docker, and final-audit gaps remain explicit.
+
 ## 2026-08-14 — Study Range rejects malformed timestamps
 
 - Study Lab range output now rejects malformed timestamps before uPlot instead of silently

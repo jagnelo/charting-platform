@@ -1,5 +1,15 @@
 # Run Report
 
+## 2026-08-14 — Canonical chart-store OHLC validation context
+
+- The shared chart store now excludes malformed OHLC rows and strips non-finite optional volume/
+  VWAP values before uPlot data is exposed. The regression proves valid rows remain usable and the
+  resulting uPlot data contains no non-finite numeric values.
+- Focused chart-store tests `37/37`; full frontend Vitest `801/801`; type-check; 475-module
+  production build; uPlot contract (`45` files); and diff-check pass. Implementation: `b1419b52`.
+- Acceptance flexibility used: **none**; exact/unrepresented V25, provider/entitlement,
+  historical/GICS, native-monitor, endurance, Docker, and final-audit gaps remain explicit.
+
 ## 2026-08-14 — Study Range malformed-timestamp context
 
 - `StudyRangeUPlot` now requires parseable timestamps alongside aligned finite bounds and no longer

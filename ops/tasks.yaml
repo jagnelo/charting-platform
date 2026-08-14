@@ -1,4 +1,28 @@
 tasks:
+  - id: tc2000-chart-store-ohlc-validation-20260814
+    title: Reject malformed OHLC bars before the primary uPlot path
+    status: completed
+    priority: high
+    scope: >-
+      Ensure provider-backed, local-canonical, basket, and transformed chart loads cannot publish
+      non-finite OHLC values or optional NaN/Infinity fields to the shared chart store.
+    definition_of_done:
+      - Non-finite open, high, low, or close rows are excluded at the shared mapping boundary
+      - Non-finite optional volume and VWAP values become unavailable
+      - uPlot data derived from loaded bars contains no non-finite numeric values
+      - Focused, full frontend, type/build, uPlot, and diff checks pass
+      - No visual or acceptance criterion is silently relaxed
+    validation:
+      - chart-store-37-of-37
+      - frontend-vitest-801-of-801
+      - frontend-type-check-build
+      - uplot-contract-45-files
+      - git-diff-check
+    notes:
+      - >-
+        Implementation `b1419b52` closes the shared OHLC coercion gap. Acceptance flexibility used:
+        none. Exact/unrepresented V25, provider/entitlement, historical/GICS, native-monitor,
+        endurance, Docker, and final-audit gaps remain open.
   - id: tc2000-study-range-timestamp-validation-20260814
     title: Reject malformed Study Range timestamps before uPlot
     status: completed

@@ -1,5 +1,17 @@
 # Active Handoff
 
+## 2026-08-14 — Canonical chart-store OHLC validation context completed
+
+- Implementation `b1419b52` hardens the shared chart store: non-finite OHLC rows are excluded
+  before uPlot, and malformed optional volume/VWAP values are represented as unavailable.
+- Focused chart-store tests pass `37/37`; full frontend Vitest `801/801`; type-check; 475-module
+  production build; uPlot contract (`45` files); and `git diff --check` pass.
+- Acceptance flexibility used: **none**. No visual threshold, board authority, mask, provider
+  rule, or renderer exception changed. Exact/unrepresented V25, provider/entitlement,
+  historical/GICS, native-monitor, endurance, Docker, and final-audit gaps remain tracked.
+- This implementation context is closed as a clean local commit. The separate operational record
+  below will establish the next clean boundary; remote synchronization remains transport-only.
+
 ## 2026-08-14 — Study Range malformed-timestamp context completed
 
 - Implementation `3f03b33a` closes a repository-controlled numerical integrity gap in
