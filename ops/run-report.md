@@ -1,5 +1,12 @@
 # Run Report
 
+## 2026-08-14 — Generic breadth checkpoint transport result
+
+- Product commit `d7c93cf4` and operational checkpoint `ae03275c` are clean locally.
+- Exact elevated push to `origin/feat/tc2000-frontend-rework` was rejected before Git by the
+  private-origin egress safeguard for the accumulated private range. No workaround or repeat
+  was used; this remains transport-only and does not block the product goal.
+
 ## 2026-08-14 — Generic breadth current-snapshot implementation checkpoint
 
 - Implemented and committed `d7c93cf4` (`feat(analysis): add condition-driven breadth studies`).
