@@ -95,6 +95,7 @@ const tooltipStyle = ref<CSSProperties>({})
 const activeTradeKey = ref<string | null>(null)
 const pointPositions = ref<Record<string, { left: number; top: number }>>({})
 let resizeObserver: ResizeObserver | null = null
+let observedHost: HTMLDivElement | null = null
 
 const normalizedRows = computed(() => props.rows.filter(row => (
   Number.isFinite(row.lower)
@@ -319,27 +320,42 @@ function positionTooltip(anchor: Element | null) {
   tooltipStyle.value = { left: `${left}px`, top: `${top}px` }
 }
 
+function resizeChart() {
+  if (chart.value && typeof chart.value.setSize === 'function') {
+    chart.value.setSize({ width: Math.max(280, hostRef.value?.clientWidth || 640), height: 220 })
+  }
+  updatePointPositions()
+}
+
+function syncResizeObserver() {
+  if (!resizeObserver) return
+  const host = hostRef.value
+  if (host === observedHost) return
+  resizeObserver.disconnect()
+  observedHost = host
+  if (host) resizeObserver.observe(host)
+}
+
 onMounted(() => {
   refreshChart()
   window.addEventListener('scroll', hideTooltip, true)
   window.addEventListener('resize', hideTooltip)
-  if (typeof ResizeObserver !== 'undefined' && hostRef.value) {
-    resizeObserver = new ResizeObserver(() => {
-      if (chart.value && typeof chart.value.setSize === 'function') chart.value.setSize({ width: Math.max(280, hostRef.value?.clientWidth || 640), height: 220 })
-      updatePointPositions()
-    })
-    resizeObserver.observe(hostRef.value)
+  if (typeof ResizeObserver !== 'undefined') {
+    resizeObserver = new ResizeObserver(resizeChart)
+    syncResizeObserver()
   }
 })
 
 onBeforeUnmount(() => {
   resizeObserver?.disconnect()
+  observedHost = null
   window.removeEventListener('scroll', hideTooltip, true)
   window.removeEventListener('resize', hideTooltip)
   destroyChart()
 })
 
 watch([normalizedRows, normalizedTrades], refreshChart, { deep: true })
+watch(hostRef, syncResizeObserver, { flush: 'post' })
 </script>
 
 <style scoped>

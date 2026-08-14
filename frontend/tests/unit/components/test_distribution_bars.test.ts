@@ -5,6 +5,17 @@ import { describe, expect, it, vi } from 'vitest'
 import DistributionBars from '@/components/strategy/DistributionBars.vue'
 import uPlot from 'uplot'
 
+class ResizeObserverMock {
+  static instances: ResizeObserverMock[] = []
+  observed: Element | null = null
+  constructor(private readonly callback: ResizeObserverCallback) {
+    ResizeObserverMock.instances.push(this)
+  }
+  observe(element: Element) { this.observed = element }
+  disconnect() { this.observed = null }
+  trigger() { this.callback([], this as unknown as ResizeObserver) }
+}
+
 describe('DistributionBars', () => {
   it('renders an R outcome map with trade dots and hover detail', async () => {
     vi.mocked(uPlot).mockClear()
@@ -51,5 +62,31 @@ describe('DistributionBars', () => {
     expect(document.body.textContent).toContain('AAPL')
     expect(document.body.textContent).toContain('-0.75R')
     expect(document.body.textContent).toContain('Stop Loss')
+  })
+
+  it('attaches resize handling when histogram data changes from empty to valid', async () => {
+    vi.mocked(uPlot).mockClear()
+    ResizeObserverMock.instances.splice(0)
+    vi.stubGlobal('ResizeObserver', ResizeObserverMock)
+    const wrapper = mount(DistributionBars, { props: { rows: [], trades: [] } })
+    expect(ResizeObserverMock.instances.at(-1)?.observed).toBeNull()
+
+    await wrapper.setProps({ rows: [{ lower: -1, upper: 0, count: 1 }], trades: [] })
+    await nextTick()
+    await nextTick()
+
+    const observer = ResizeObserverMock.instances.at(-1)
+    const chart = vi.mocked(uPlot).mock.results.at(-1)?.value as { setSize: ReturnType<typeof vi.fn> }
+    expect(observer?.observed).toBeInstanceOf(HTMLElement)
+    chart.setSize.mockClear()
+    observer?.trigger()
+    expect(chart.setSize).toHaveBeenCalledWith({ width: 640, height: 220 })
+
+    await wrapper.setProps({ rows: [], trades: [] })
+    await nextTick()
+    await nextTick()
+    expect(observer?.observed).toBeNull()
+    wrapper.unmount()
+    vi.unstubAllGlobals()
   })
 })
