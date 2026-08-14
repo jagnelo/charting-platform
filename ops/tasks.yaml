@@ -29,6 +29,7 @@ tasks:
       - Keep implementation/docs and operational checkpoint in separate commits; Git transport is not a goal blocker.
       - First full backend rerun exposed a missing prepared-volume fixture; the fixture was corrected and the full gate rerun passed.
       - Acceptance flexibility used: none; REF-STUDY-LAB-V25 remains a tracked original-surface visual gap.
+      - Implementation/docs commit: 36cf4c54.
   - id: tc2000-study-lab-current-history-exclusion-20260814
     title: Exclude current observation from Study Lab historical distribution
     status: completed

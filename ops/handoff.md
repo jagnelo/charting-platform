@@ -20,6 +20,9 @@
   which was corrected and the complete gate rerun successfully.
 - Completed: the runner helper, factory starter, editor/reference entries, browser acceptance,
   prepared fixture, and parity/TODO records now agree on the same explicit contract.
+- Implementation/docs commit: `36cf4c54` (`feat(study-lab): add transparent 90/90 breadth study`).
+- The worktree is clean at this implementation boundary. The operational checkpoint and exact push
+  transport result will be recorded separately before the next context begins.
 - Acceptance flexibility used: none. `REF-STUDY-LAB-V25` remains the separately tracked
   original-surface visual-reference gap; no visual threshold, mask, product criterion, or browser
   acceptance rule was changed.
