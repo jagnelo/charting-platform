@@ -1001,8 +1001,8 @@ function updateAutoRatioExpression(symbol: string, comparisonETF = workspaceStor
   })
 }
 
-function selectOccurrence(symbol: string, timestamp: string) {
-  void selectSymbol(symbol, timestamp)
+function selectOccurrence(symbol: string, timestamp: string, instrumentId?: number | null) {
+  void selectSymbol(symbol, timestamp, false, instrumentId)
 }
 
 function selectIndustryForContext(industry: string, etf?: string) {
@@ -1480,7 +1480,7 @@ function renderDockTool(dockTool: { instance_key: string; title: string; tool_ty
     onCompare: (symbols: string[]) => compareSymbols(symbols),
     onReorder: (watchlistId: number, itemIds: number[]) => reorderWatchlistItems(watchlistId, itemIds),
     onRowAction: (action: 'chart' | 'compare' | 'ratio' | 'note' | 'alert' | 'copy', row: { symbol: string; instrumentId: number | null }) => void handleRowAction(action, row),
-    onOccurrence: (symbol: string, timestamp: string) => void selectSymbol(symbol, timestamp),
+    onOccurrence: (symbol: string, timestamp: string, instrumentId?: number | null) => void selectSymbol(symbol, timestamp, false, instrumentId),
     onSelectIndustry: (industry: string, etf: string) => selectIndustryForContext(industry, etf),
     onSelectProxy: (symbol: string, instrumentId?: number | null) => void selectIndustryProxy(symbol, instrumentId),
     onColumns: (windowKey: string, keys: string[]) => updateColumns(windowKey, keys),

@@ -6,9 +6,19 @@ For every supported generic breadth history definition, acceptance must verify t
 derived from the same per-member historical results as the aggregate percentage. `member_entered`
 and `member_exited` events require two known Boolean observations and preserve canonical instrument
 identity, timestamp, metric, percentage, pass/eligible counts, and stable identity. Initial,
-missing-bar, and excluded observations must not create transitions. The current service/API fixture
-passes this contract; click-to-linked-chart browsing, isolated-Python occurrences, and Study Lab
-promotion remain explicit open gates.
+missing-bar, and excluded observations must not create transitions. The workstation must render a
+bounded occurrence browser and route a click through the existing occurrence/link bus with the
+canonical instrument ID and timestamp, updating the linked chart context. The service/API and
+represented authenticated browser fixtures pass this sub-gate. Occurrence filtering, isolated-
+Python artifacts, Study Lab promotion, and unrepresented Version-25 occurrence states remain open
+gates.
+
+The first browser attempt exposed a localized, recoverable overlap between the unavailable generic
+history state and the occurrence list, plus an exact-route fixture that did not match query
+parameters. Both were repaired in branch-controlled code/tests, then the focused browser test,
+full frontend unit suite, type-check, production build, and diff checks were rerun. No acceptance
+threshold or flexibility was changed; the residual risk is limited to unrepresented visual states
+tracked in the board/manifest gap ledger.
 
 ## 2026-08-15 — Eight-root US analysis and Nasdaq-100 cap/equal gate
 

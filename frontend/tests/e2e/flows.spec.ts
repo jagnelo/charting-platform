@@ -3258,17 +3258,17 @@ test.describe('TC2000 workstation', () => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ definition_version: 1, definition_hash: 'family-breadth', universe: { kind: 'benchmark_family', family_key: 'sp500', role: 'equal_weight', proxy_symbol: 'RSP' }, condition: {}, timeframe: 'D1', adjustment: 'split_adjusted', points: [], exclusions: [] }),
+        body: JSON.stringify({ definition_version: 1, definition_hash: 'family-breadth', universe: { kind: 'benchmark_family', family_key: 'sp500', role: 'equal_weight', proxy_symbol: 'RSP' }, condition: {}, timeframe: 'D1', adjustment: 'split_adjusted', points: [], occurrences: [{ occurrence_id: 'SPY:2026-06-27T00:00:00Z:member_entered', timestamp: '2026-06-27T00:00:00Z', kind: 'member_entered', instrument_id: 1, symbol: 'SPY', name: 'SPDR S&P 500 ETF Trust', value: true, metric: 0.025, percentage: 0.5, pass_count: 1, eligible_count: 2 }], exclusions: [] }),
       })
     })
-    await page.route('**/api/v1/analysis/groups/sp500/breadth', async route => {
+    await page.route('**/api/v1/analysis/groups/sp500/breadth*', async route => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({ group_key: 'sp500', timeframe: 'D1', adjustment: 'split_adjusted', evaluated_count: 1, coverage: 1, above_ma: { ma20: 1, ma50: 1, ma200: 1 }, exclusions: [] }),
       })
     })
-    await page.route('**/api/v1/analysis/groups/sp500/breadth/history', async route => {
+    await page.route('**/api/v1/analysis/groups/sp500/breadth/history*', async route => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -3535,6 +3535,13 @@ test.describe('TC2000 workstation', () => {
     await breadth.getByRole('button', { name: 'Evaluate' }).click()
     await expect.poll(() => customBreadthRequests.length, { timeout: 10_000 }).toBeGreaterThan(0)
     expect(customBreadthRequests.at(-1)?.universe).toMatchObject({ kind: 'benchmark_family', key: 'sp500', role: 'equal_weight' })
+    const occurrencePanel = breadth.locator('[aria-label="Generic breadth historical occurrences"]')
+    await expect(occurrencePanel).toBeVisible({ timeout: 15_000 })
+    const occurrence = occurrencePanel.getByRole('button', { name: /SPY Entered condition/ })
+    await expect(occurrence).toBeVisible()
+    await occurrence.click()
+    await expect(page.getByRole('combobox', { name: 'Active symbol' })).toHaveValue('SPY')
+    await expect(page.locator('.chart-root[data-linked-timestamp]')).toHaveAttribute('data-linked-timestamp', '2026-06-27T00:00:00Z')
     const condition = breadth.locator('select[aria-label="Breadth condition"]')
     await condition.selectOption('rsi')
     await breadth.getByLabel('Breadth RSI target').fill('55')

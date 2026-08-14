@@ -1,4 +1,28 @@
 tasks:
+  - id: tc2000-generic-breadth-occurrence-browser-20260815
+    title: Browse and publish generic breadth historical occurrences
+    status: completed
+    priority: high
+    scope: >-
+      Render the deterministic generic breadth member-entered/member-exited history stream in a
+      dense workstation browser and publish the selected canonical instrument and timestamp through
+      the existing occurrence/link bus into linked uPlot charts.
+    definition_of_done:
+      - Workstation exposes bounded occurrence browsing with entered/exited labels and metrics
+      - Clicking an event publishes the canonical symbol, instrument ID, and timestamp
+      - Existing Study Lab and Research Results occurrence paths remain compatible
+      - Focused browser acceptance proves active symbol and linked chart timestamp
+      - Pointer-overlap and query-string fixture regressions are repaired and broader frontend gates pass
+      - Remaining filtering, isolated-Python, Study Lab, and visual-reference gaps are documented
+    validation:
+      - focused-authenticated-chromium-F8s-breadth-family-ratio-1-of-1
+      - frontend-vitest-837-of-837
+      - vue-tsc-production-build
+      - ruff-compileall-diff-check
+    notes:
+      - >-
+        No acceptance flexibility used. The first browser attempt found a real localized pointer
+        overlap and a route-fixture mismatch; both were fixed and the unchanged oracle passed.
   - id: tc2000-generic-breadth-occurrences-20260815
     title: Add deterministic historical generic-breadth occurrences
     status: completed

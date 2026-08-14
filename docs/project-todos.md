@@ -8,13 +8,18 @@
       pass count, eligible count, and a stable occurrence ID.
 - [x] Initial observations, missing bars, and excluded values do not fabricate transitions;
       events require two known Boolean observations. Added service and API regressions, frontend
-      occurrence typing, and a visible history-occurrence count beside the generic breadth plot.
-      Service `8/8`, generic-history API `1/1`, family/generic integration `17/17`, full Vitest
-      `837/837`, type-check/build, Ruff, compileall, and diff checks pass. A first syntax failure
-      in the new helper was repaired before authoritative reruns; no acceptance flexibility used.
-- [ ] Still open: click an occurrence to publish its symbol/timestamp to linked uPlot charts,
-      expose occurrence browsing/filtering in the workstation, and provide equivalent occurrence
-      artifacts for isolated Python breadth runs and Study Lab promotion.
+      occurrence typing, a dense occurrence browser, canonical instrument-ID publication, and a
+      visible history-occurrence count beside the generic breadth plot. Clicking an event uses the
+      existing workstation occurrence/link bus to publish both symbol and timestamp to linked uPlot
+      charts. Service `8/8`, generic-history API `1/1`, family/generic integration `17/17`,
+      full Vitest `837/837`, type-check/build, focused authenticated Chromium
+      `F8s-breadth-family-ratio 1/1`, Ruff, compileall, and diff checks pass. The first syntax
+      failure in the backend helper and the first browser pointer-overlap/fixture-route defects
+      were repaired before authoritative reruns; no acceptance flexibility used.
+- [ ] Still open: occurrence filtering and equivalent occurrence artifacts for isolated Python
+      breadth runs and Study Lab promotion. The browser acceptance now covers the represented
+      generic-history click-to-chart path; unrepresented Version-25 occurrence states remain in
+      the visual gap ledger.
 
 ### 2026-08-15 — Expanded US benchmark-family and Nasdaq-100 decomposition scope
 

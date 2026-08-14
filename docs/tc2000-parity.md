@@ -6,11 +6,16 @@ The generic historical breadth response now includes a deterministic occurrence 
 its member-level historical results. A member entering or exiting the selected predicate is emitted
 only after two known Boolean observations; initial values, missing bars, and exclusions do not
 create synthetic transitions. Each event retains timestamp, canonical instrument identity, symbol,
-metric, aggregate percentage, pass/eligible counts, and a stable occurrence ID.
+metric, aggregate percentage, pass/eligible counts, and a stable occurrence ID. The workstation now
+renders a bounded dense occurrence browser; each event retains its canonical instrument ID and
+publishes symbol plus timestamp through the existing occurrence/link bus when clicked, so linked
+uPlot charts navigate to the selected historical bar.
 
-The workstation exposes the occurrence count beside the generic breadth uPlot history. This closes
-the backend occurrence contract for supported visual conditions, not occurrence browsing, click-to-
-chart timestamp publication, isolated-Python occurrence artifacts, or full Study Lab promotion.
+The focused authenticated browser fixture passes the represented click-to-chart path. During the
+first run a real pointer-overlap defect in the unavailable-history state and a query-string route
+fixture mismatch were found and fixed; the unchanged acceptance then passed. This closes the
+represented backend/browser occurrence path, not occurrence filtering, isolated-Python occurrence
+artifacts, full Study Lab promotion, or unrepresented Version-25 visual states.
 
 ## 2026-08-15 — Full US benchmark-family perspective matrix reaffirmed
 

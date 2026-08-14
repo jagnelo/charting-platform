@@ -68,7 +68,7 @@ onBeforeUnmount(() => { observer?.disconnect(); destroyChart() })
 </script>
 
 <style scoped>
-.generic-breadth-history { height: 150px; min-height: 110px; margin-top: 4px; background: #101419; }
+.generic-breadth-history { position: relative; z-index: 0; height: 150px; min-height: 110px; margin-top: 4px; background: #101419; }
 .generic-breadth-history__host { height: 100%; }
-.generic-breadth-history__state { display: grid; height: 100%; place-items: center; color: #8497a4; font: 10px "Segoe UI", Arial, sans-serif; }
+.generic-breadth-history__state { display: grid; height: 100%; place-items: center; color: #8497a4; font: 10px "Segoe UI", Arial, sans-serif; pointer-events: none; }
 </style>
