@@ -1,5 +1,14 @@
 # Run Report
 
+## 2026-08-14 — Current exact push authorization result
+
+- Worktree/index checks pass at local `58c3aa09`; origin remains `91463e54`, giving exact range
+  `91463e54..58c3aa09` (124 commits).
+- The exact elevated `rtk git push origin feat/tc2000-frontend-rework` request was rejected by
+  the execution boundary before Git ran because trusted authorization for this private payload
+  and destination was unavailable. No alternate transport or repeat was attempted. This remains
+  a transport-only hold and does not block the product goal.
+
 ## 2026-08-14 — Auth-store router teardown race
 
 - Reproduced and repaired the only unhandled frontend-suite error: a storage logout listener
