@@ -11348,3 +11348,16 @@ The current source also passes the focused authenticated top-down browser slice 
   and final audit. Board-guided represented-state evidence and the non-seeded canonical deployment
   are acceptance evidence; no visual threshold, mask, product criterion, or provenance rule was
   relaxed.
+
+### 2026-08-14 — Python editor live suggestion announcements
+
+- [x] Added non-role-changing live semantics to the unified Python editor. While the native
+  textarea retains its established textbox contract, a polite atomic status now announces the
+  available SDK suggestion count and the currently selected completion; this improves keyboard and
+  assistive-technology feedback without reintroducing the rejected Chromium combobox remapping.
+- [x] Focused PythonSourceEditor coverage passes `4/4`; focused authenticated `F8g-editor-a11y`
+  passes `1/1`; adjacent Study Lab/Python/Results browser coverage passes `12/12`; full frontend
+  Vitest passes `817/817`; `vue-tsc` and production build pass.
+- [ ] Exact/unrepresented Study Lab visual evidence remains `REF-STUDY-LAB-V25`; provider/live-
+  entitlement, historical/GICS, native-monitor, beyond-bounded endurance, and final-audit gaps
+  remain open. No visual threshold, mask, product criterion, or acceptance flexibility changed.

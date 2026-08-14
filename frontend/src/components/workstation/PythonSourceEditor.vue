@@ -27,6 +27,7 @@
         <code>{{ suggestion.insert }}</code><small>{{ suggestion.signature }}</small>
       </button>
     </div>
+    <p v-if="suggestionStatus" class="python-source-editor__sr-status" role="status" aria-live="polite" aria-atomic="true">{{ suggestionStatus }}</p>
   </div>
 </template>
 
@@ -75,6 +76,11 @@ const suggestions = computed(() => {
   const prefix = editorPrefix.value.toLowerCase()
   if (!prefix) return suggestionsCatalog.slice(0, 8)
   return suggestionsCatalog.filter(item => item.prefix === prefix || item.insert.toLowerCase().startsWith(prefix)).slice(0, 8)
+})
+const suggestionStatus = computed(() => {
+  if (!showSuggestions.value || !suggestions.value.length) return ''
+  const selected = suggestions.value[selectedSuggestionIndex.value]
+  return `${suggestions.value.length} SDK suggestions. ${selected?.insert ?? ''} selected.`
 })
 function suggestionId(index: number) {
   return `${instanceId}-suggestion-${index}`
@@ -159,4 +165,5 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', dismissOnOutsi
 .python-source-editor__suggestions button:hover,.python-source-editor__suggestions button:focus,.python-source-editor__suggestion--selected { background:#1d3543; }
 .python-source-editor__suggestions code { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#9ed0ed; }
 .python-source-editor__suggestions small { color:#8195a3; white-space:nowrap; }
+.python-source-editor__sr-status { position:absolute; width:1px; height:1px; margin:-1px; padding:0; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0; }
 </style>

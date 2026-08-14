@@ -22,6 +22,8 @@ describe('PythonSourceEditor', () => {
     expect(wrapper.find(`#${editor.attributes('aria-activedescendant')}`).attributes('role')).toBe('option')
     expect(wrapper.find('[aria-label="Python source SDK suggestions"]').exists()).toBe(true)
     expect(wrapper.text()).toContain('market.close()')
+    expect(wrapper.get('[role="status"]').text()).toContain('SDK suggestions')
+    expect(wrapper.get('[role="status"]').text()).toContain('market.close() selected')
     await wrapper.find('[aria-label="Python source SDK suggestions"] button').trigger('mousedown')
     const nextValue = wrapper.emitted('update:modelValue')?.at(-1)?.[0]
     expect(nextValue).toBe('market.close()')
@@ -50,6 +52,7 @@ describe('PythonSourceEditor', () => {
     expect(secondSuggestionId).toBeTruthy()
     expect(secondSuggestionId).not.toBe(firstSuggestionId)
     expect(wrapper.find(`#${secondSuggestionId}`).attributes('aria-selected')).toBe('true')
+    expect(wrapper.get('[role="status"]').text()).toContain('market.ohlcv() selected')
     await editor.trigger('keydown', { key: 'Enter' })
     expect(wrapper.emitted('update:modelValue')?.at(-1)?.[0]).toBe('market.ohlcv()')
 

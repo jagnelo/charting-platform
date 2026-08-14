@@ -6043,3 +6043,12 @@ Frontend Vitest `817/817`, uPlot contract `45` files, visual policy `26` asserti
 and backend `1438/1438` at `80.17%` also passed. The board-guided visual track remains accepted
 for represented states; exact/unrepresented visual, provider/live-entitlement, historical,
 native-monitor, endurance, and final-audit gaps remain open and are not silently promoted.
+
+## 2026-08-14 — Python editor live suggestion semantics
+
+The unified Python editor now announces the suggestion count and active completion through a
+polite atomic status while preserving the native textarea, `aria-autocomplete="list"`, listbox,
+and active-descendant contract. Focused component coverage is `4/4`, focused authenticated editor
+coverage is `1/1`, and the adjacent Study Lab/Python/Results slice is `12/12`. This is a
+repository-controlled accessibility refinement; `REF-STUDY-LAB-V25` remains open for exact or
+unrepresented visual evidence and no acceptance threshold or mask changed.
