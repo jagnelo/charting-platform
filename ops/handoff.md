@@ -1,5 +1,21 @@
 # Active Handoff
 
+## 2026-08-14 — Worker-owned elevated Git recovery documented
+
+- Verified the repository is healthy: no `.git/index.lock` exists; `.git`, `.git/index`, and
+  `.git/refs` are owned by the workspace user. The default Codex filesystem boundary makes the
+  Git metadata read-only, so the documented elevated path is required for writes.
+- Added an explicit worker-owned recovery rule to `docs/agent-orchestration.md`: after read-only
+  checks, use sequential elevated `rtk git add`, `rtk git commit`, and `rtk git push` without
+  handing normal Git work back to the user or blocking the product goal.
+- The documentation change is committed locally as `377d3ef5`. Worktree is clean. The exact push
+  `rtk git push origin feat/tc2000-frontend-rework` for `91463e54..377d3ef5` was rejected before
+  Git by the private-repository egress safeguard. This is transport-only; no workaround, rewrite,
+  force push, or indirect execution was attempted. Continue independent goal work from this clean
+  boundary and retry only the same exact payload after explicit authorization.
+- Acceptance flexibility used: **none**. This changes only operational recovery documentation;
+  all product, visual, provider, sandbox, and test criteria remain unchanged.
+
 ## 2026-08-14 — Conditional numerical-data validation completed
 
 - Implementation `80082d9d` rejects malformed Study Series timestamps/non-finite values and Breadth

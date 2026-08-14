@@ -1,5 +1,18 @@
 # Run Report
 
+## 2026-08-14 — Worker-owned elevated Git recovery documented
+
+- Verified no stale `.git/index.lock` exists and confirmed the repository metadata is healthy; the
+  default Codex sandbox is the reason `.git` writes require elevation.
+- Added the durable worker-owned recovery rule to `docs/agent-orchestration.md` and committed it
+  as `377d3ef5` after reviewing the scoped staged diff. The worktree is clean.
+- The exact elevated `rtk git push origin feat/tc2000-frontend-rework` for range
+  `91463e54..377d3ef5` was rejected before Git by the private-repository egress safeguard. This is
+  transport-only, not an index, repository, authentication, product, or goal blocker. No
+  workaround, rewrite, force push, or indirect execution was attempted; retry the same payload
+  only after explicit authorization and continue independent work from the clean local commit.
+- Acceptance flexibility used: **none**.
+
 ## 2026-08-14 — Conditional numerical-data validation
 
 - Tightened Study Series and Breadth History validation to reject malformed timestamps and
