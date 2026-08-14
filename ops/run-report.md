@@ -1,5 +1,14 @@
 # Run Report
 
+## 2026-08-14 — Applied-template context push hold
+
+- Implementation `d3992fdf` and ops `51a1553b` are separate local commits with
+  a clean worktree. The exact elevated push was rejected before Git execution by
+  the external private-repository egress safeguard for the current payload.
+- This remains a transport hold only; no workaround, rewrite, or acceptance
+  relaxation was used. Independent implementation may continue from the clean
+  local boundary.
+
 ## 2026-08-14 — Applied chart-template transform mechanics context completed
 
 - Applied saved chart templates now use the live chart configuration when
