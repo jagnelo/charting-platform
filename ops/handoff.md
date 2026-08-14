@@ -15,9 +15,14 @@
   unrepresented Study Lab V25, provider/live-entitlement, historical/GICS, native-monitor,
   endurance, and final-audit gaps remain open.
 - Implementation/docs are committed locally as `18223e96` (`feat(research): add current history comparison`).
-- Next action: commit this operational checkpoint separately, verify
-  clean state, make one exact push attempt, record the transport result, then continue the next
-  independent goal context.
+- Operational checkpoint is committed locally as `948e7c88` (`chore(ops): close current history context`).
+- Clean-state verification passed: branch HEAD `948e7c88f7babe6d7758cadcfddf6f2db42641a3`, origin
+  `91463e54bbfb37dc5e130d3c912434bfc41594bd`, `.git/index.lock` absent. The one exact elevated
+  `rtk git push origin HEAD:feat/tc2000-frontend-rework` attempt was rejected before Git by the
+  private-origin export safeguard because trusted authorization for this 179-commit range was not
+  available. No alternate transport, wrapper, rewrite, reset, stash, workaround, or repeat is
+  used. This is transport-only and does not block the product goal; continue from the clean local
+  boundary.
 
 ## 2026-08-14 — Study Lab integration Git closure
 
