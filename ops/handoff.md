@@ -3,8 +3,8 @@
 ## 2026-08-14 — Alerian live-provider coverage and transport result
 
 - Added `alerian` to `LIVE_BACKED_ISSUER_ADAPTERS` and ENFR to the opt-in concrete route matrix.
-  Provider registry contracts pass `2/2`; the official ALPS ENFR live test passes `1/1`; Ruff and
-  diff checks pass. Test commit: `a03e1cdf`.
+  Provider registry contracts pass `2/2`; the official ALPS ENFR live test passes `1/1`; the full
+  backend unit gate passes `1134/1134`; Ruff and diff checks pass. Test commit: `a03e1cdf`.
 - The exact elevated push for range `47f5359a6ad516c0459c94d29b92e6313da3003d..a03e1cdf030957e87df30178ac529868fe3ce8b8`
   to `origin/feat/tc2000-frontend-rework` was requested once and rejected before Git by the
   private-origin safeguard. The worktree is clean; this remains transport-only.

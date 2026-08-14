@@ -4,7 +4,8 @@
 
 - Added Alerian to the live-backed provider registry and the opt-in concrete route matrix for
   ENFR. The non-network provider contracts pass `2/2`; the official ALPS ENFR live route passes
-  `1/1`; Ruff and diff checks pass. Test commit: `a03e1cdf`.
+  `1/1`; the full backend unit gate passes `1134/1134`; Ruff and diff checks pass. Test commit:
+  `a03e1cdf`.
 - Acceptance flexibility used: **none**. This is maintainability evidence for the native AMLP/ENFR
   route, not a claim that all Alerian products or historical snapshots are covered. Those broader
   provider and historical gaps remain open.
