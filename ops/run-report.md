@@ -13,6 +13,9 @@
 - Implementation commit `8a33978f` is clean locally. Its exact elevated push was attempted once
   and rejected before Git by the private-origin safeguard; origin remains `91463e54`. No
   workaround, alternate transport, or repeat was used; this is transport-only.
+- Operational checkpoint `27e973cf` is clean locally. Its exact elevated push was attempted once
+  and rejected before Git by the same safeguard; origin remains `91463e54`. The worktree remains
+  clean and transport is the only unresolved boundary.
 
 ## 2026-08-14 — Family-leg constituent drill-down contract
 
