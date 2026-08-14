@@ -1,4 +1,30 @@
 tasks:
+  - id: tc2000-blocked-issuer-native-boundary-20260814
+    title: Enforce explicit non-native state for blocked ETF issuers
+    status: completed
+    priority: high
+    scope: >-
+      Harden the ETF provider contract so issuer_access_blocked identities cannot be silently
+      promoted through shared adapter metadata while their official routes remain inaccessible;
+      retain provider-specific classes where needed for audited SEC fallback behavior.
+    definition_of_done:
+      - Every issuer_access_blocked identity remains explicitly non-live-backed
+      - Provider-specific retained classes such as Anfield remain valid without implying native support
+      - The blocked-provider contract has a regression test across the complete current blocked set
+      - Bounded official-route evidence for the currently re-probed providers is recorded
+    validation:
+      - blocked-issuer-focused-regression-5-of-5
+      - etf-holdings-adapter-unit-486-of-486
+      - ruff-test-file
+      - git-diff-check
+    notes:
+      - >-
+        The new guard caught and corrected an over-specific class-name assumption: Anfield keeps
+        AnfieldHoldingsAdapter for its audited route history, but its live/native flag remains false
+        after the official route 404. Current bounded re-probes still show Guinness Atkinson official
+        PDFs at HTTP 403, Q3 QVOY CSV at HTTP 503, and WisdomTree DXJ backend-compatible access at
+        HTTP 403. No provider was promoted and no acceptance flexibility was used; implementation
+        commit 00c751e3.
   - id: tc2000-westwood-route-audit-20260814
     title: Re-audit Westwood issuer holdings routes and preserve fallback truth
     status: completed

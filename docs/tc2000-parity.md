@@ -1,5 +1,18 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-14 — Blocked issuer native-boundary regression
+
+- Added a generalized regression over the complete current `issuer_access_blocked` set. Every
+  blocked identity must remain `live_tested_default_route=False`, retain an explicit adapter, and
+  remain eligible for the audited fallback path. The contract deliberately allows provider-specific
+  retained classes such as `AnfieldHoldingsAdapter`; class naming is not used as a false proxy for
+  native support.
+- The focused blocked-provider slice passes `5/5`; the complete ETF adapter unit suite passes
+  `486/486`; Ruff and diff checks pass. Implementation commit: `00c751e3`.
+- Bounded external evidence remains explicit: Guinness Atkinson official holdings PDFs returned
+  HTTP 403, Q3's official QVOY CSV route returned HTTP 503, and WisdomTree DXJ backend-compatible
+  access returned HTTP 403. No provider was promoted and no acceptance flexibility was used.
+
 ## 2026-08-14 — Westwood issuer route audit and fallback guard
 
 - Re-tested the official Westwood product surfaces for MDST and WEEI after search-indexed

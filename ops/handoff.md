@@ -1,5 +1,15 @@
 # Active Handoff
 
+## 2026-08-14 — Blocked issuer native-boundary regression
+
+- The generalized guard now covers every current `issuer_access_blocked` identity, requiring
+  `live_tested_default_route=False` while preserving an explicit adapter and fallback eligibility.
+  It correctly accommodates Anfield's retained provider-specific class after its route 404.
+- Focused blocked-provider checks pass `5/5`; complete ETF adapter units pass `486/486`; Ruff and
+  diff checks pass. Implementation commit: `00c751e3`.
+- Bounded route evidence remains open rather than promoted: Guinness PDFs 403, Q3 QVOY CSV 503,
+  and WisdomTree DXJ backend-equivalent access 403. Acceptance flexibility used: none.
+
 ## 2026-08-14 — Westwood issuer route audit
 
 - Official Westwood MDST and WEEI pages advertise current holdings and CSV download controls,
