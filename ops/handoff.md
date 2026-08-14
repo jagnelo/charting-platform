@@ -1,5 +1,18 @@
 # Active Handoff
 
+## 2026-08-14 — Comparison timestamp-alignment context completed
+
+- Implementation `0333f11b` repairs normalized top-down comparisons that could miss valid history
+  when primary bars used ISO timestamps and comparison bars used epoch values. Keys now normalize
+  ISO, seconds, and milliseconds; malformed values cannot create matches.
+- Focused comparison tests pass `4/4`; full frontend Vitest `806/806`; type-check; 476-module
+  production build; uPlot contract (`45` files); and `git diff --check` pass.
+- Acceptance flexibility used: **none**. No visual threshold, board authority, mask, provider
+  rule, or renderer exception changed. Exact/unrepresented V25, provider/entitlement,
+  historical/GICS, native-monitor, endurance, Docker, and final-audit gaps remain tracked.
+- This implementation context is closed as a clean local commit. Remote synchronization remains a
+  transport-only concern and must not block the next context.
+
 ## 2026-08-14 — Unified numeric plot-series validation context completed
 
 - Implementation `c445078b` adds one shared validator for Python research and retained EasyScan

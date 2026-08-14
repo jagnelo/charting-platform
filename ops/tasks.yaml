@@ -1,4 +1,29 @@
 tasks:
+  - id: tc2000-comparison-timestamp-alignment-20260814
+    title: Align ISO and epoch comparison bars
+    status: completed
+    priority: high
+    scope: >-
+      Make top-down normalized comparisons match primary and comparison bars when their canonical
+      APIs expose ISO, epoch-second, or epoch-millisecond timestamp representations.
+    definition_of_done:
+      - Comparison timestamp keys normalize equivalent representations
+      - Malformed timestamps cannot create false matches
+      - Comparison bars retain a stable serializable timestamp representation
+      - Focused, full frontend, type/build, uPlot, and diff checks pass
+      - No visual or acceptance criterion is silently relaxed
+    validation:
+      - workstation-comparison-4-of-4
+      - frontend-vitest-806-of-806
+      - frontend-type-check-build
+      - uplot-contract-45-files
+      - git-diff-check
+    notes:
+      - >-
+        Implementation `0333f11b` closes the ISO-versus-epoch alignment gap in normalized
+        comparison series. Acceptance flexibility used: none. Exact/unrepresented V25,
+        provider/entitlement, historical/GICS, native-monitor, endurance, Docker, and final-audit
+        gaps remain open.
   - id: tc2000-numeric-plot-series-validation-20260814
     title: Validate Python and EasyScan numeric plot series
     status: completed

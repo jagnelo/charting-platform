@@ -1,5 +1,15 @@
 # Run Report
 
+## 2026-08-14 — Comparison timestamp-alignment context
+
+- Normalized comparison series now align ISO primary bars with epoch-second/millisecond comparison
+  bars and reject malformed timestamps, preventing valid top-down relative comparisons from
+  appearing empty.
+- Focused comparison tests `4/4`; full frontend Vitest `806/806`; type-check; 476-module
+  production build; uPlot contract (`45` files); and diff-check pass. Implementation: `0333f11b`.
+- Acceptance flexibility used: **none**; exact/unrepresented V25, provider/entitlement,
+  historical/GICS, native-monitor, endurance, Docker, and final-audit gaps remain explicit.
+
 ## 2026-08-14 — Unified numeric plot-series validation context
 
 - Python research artifacts and retained EasyScan plot points now use a shared validator before

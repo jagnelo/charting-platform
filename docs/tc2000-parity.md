@@ -1,5 +1,18 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-14 — Comparison timestamp alignment
+
+- Top-down normalized comparisons now align bars through normalized epoch-second timestamp keys,
+  accepting ISO, epoch-second, and epoch-millisecond representations while rejecting malformed
+  timestamps. Comparison bars retain their timestamp text instead of being coerced into an
+  incompatible numeric representation.
+- Focused comparison coverage passes `4/4`; full frontend Vitest passes `806/806`; type-check,
+  the 476-module production build, uPlot contract (`45` files), and `git diff --check` pass.
+  Implementation: `0333f11b`.
+- No acceptance flexibility, visual threshold, mask, provider substitution, or renderer rule was
+  used. Exact/unrepresented V25, provider/entitlement, historical/GICS, native-monitor,
+  endurance, Docker, and final-audit gaps remain explicit.
+
 ## 2026-08-14 — Unified numeric plot-series validation
 
 - Python research plot artifacts and retained EasyScan plot points now share one validation
