@@ -46,7 +46,10 @@ describe('ResearchResultsTool', () => {
     expect(wrapper.find('[role="region"][aria-label="Study Lab research results"]').exists()).toBe(true)
     expect(wrapper.find('[role="list"][aria-label="Persisted research runs"]').exists()).toBe(true)
     expect(wrapper.find('.research-results-tool__run').attributes('aria-current')).toBe('true')
-    expect(wrapper.find('.research-results-tool__notice[role="status"]').text()).toContain('Loading selected run details')
+    const loadingNotice = wrapper.find('.research-results-tool__notice[role="status"]')
+    expect(loadingNotice.text()).toContain('Loading selected run details')
+    expect(loadingNotice.attributes('aria-live')).toBe('polite')
+    expect(loadingNotice.attributes('aria-atomic')).toBe('true')
 
     resolveDetail({ id: 10, status: 'completed', code_version_id: 4, run_config: {}, dataset_manifest: {}, artifact_count: 1, artifacts: [{ id: 1, name: 'sample', artifact_type: 'scalar', payload: { value: 1 } }] })
     await flushPromises()
@@ -179,7 +182,9 @@ describe('ResearchResultsTool', () => {
 
     expect(wrapper.get('[data-status="failed"]').text()).toBe('Failed')
     expect(wrapper.get('[aria-label="Run 16 status: Failed"]').exists()).toBe(true)
-    expect(wrapper.get('.research-results-tool__run-guidance').text()).toContain('Inspect diagnostics')
+    const guidance = wrapper.get('.research-results-tool__run-guidance')
+    expect(guidance.text()).toContain('Inspect diagnostics')
+    expect(guidance.attributes('aria-atomic')).toBe('true')
     expect(wrapper.text()).toContain('Rerun snapshot')
     expect(wrapper.text()).toContain('Rerun latest')
 

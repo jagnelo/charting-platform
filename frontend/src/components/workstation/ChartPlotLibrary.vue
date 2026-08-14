@@ -42,7 +42,7 @@
         <input v-model.trim="promotionName" aria-label="Plot promotion name" placeholder="Name" />
         <button type="button" :disabled="promotionBusy || !promotionName || !Number.isFinite(promotionThreshold) || (promotionTarget === 'filter' && !selectedFilterTarget)" @click="promoteSelected">{{ promotionBusy ? 'Saving…' : 'Copy' }}</button>
       </div>
-      <p v-if="promotionStatus" class="chart-plots__promotion-status" role="status">{{ promotionStatus }}</p>
+      <p v-if="promotionStatus" class="chart-plots__promotion-status" role="status" aria-live="polite" aria-atomic="true">{{ promotionStatus }}</p>
       <p>Price history <small>active</small></p>
       <p v-if="!chartStore.indicators.length && !pythonPlots?.length && !scanPlots?.length">No indicator or reusable plots.</p>
       <ol v-else><li v-for="(plot, index) in (scanPlots ?? [])" :key="scanPlotKey(plot, index)" class="chart-plots__python-item chart-plots__scan-item" :class="{ muted: plot.hidden }">

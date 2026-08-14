@@ -18,7 +18,7 @@
         <label>To <input v-model.trim="endDate" aria-label="Study end date" type="date" /></label>
         <label>As of <input v-model.trim="asOf" aria-label="Study as of" type="datetime-local" /></label>
       </div>
-      <p v-if="requiresDeclaredUniverse" class="study-lab-tool__universe-warning" role="status">This factory study needs a declared comma-separated universe; it will not fall back to the active symbol.</p>
+      <p v-if="requiresDeclaredUniverse" class="study-lab-tool__universe-warning" role="status" aria-live="polite" aria-atomic="true">This factory study needs a declared comma-separated universe; it will not fall back to the active symbol.</p>
       <section class="study-lab-tool__parameters" aria-label="Study parameter controls">
         <label>Parameter schema <textarea v-model="parameterSchemaText" aria-label="Study parameter schema" spellcheck="false" placeholder='{"properties":{"lookback":{"type":"integer","default":20}}}' /></label>
         <div v-if="parameterDefinitions.length" class="study-lab-tool__parameter-grid">
@@ -48,14 +48,14 @@
       <span><b>research</b>: forward_returns, occurrences, regimes, breadth, historical comparisons</span>
       <span><b>output</b>: scalar, boolean, series, table, events, bar, histogram, range, scatter, heatmap, dashboard</span>
     </details>
-    <section v-if="validation" class="study-lab-tool__validation" :role="validation.valid ? 'status' : 'alert'" aria-live="polite" :class="{ 'study-lab-tool__validation--bad': !validation.valid }">
+    <section v-if="validation" class="study-lab-tool__validation" :role="validation.valid ? 'status' : 'alert'" aria-live="polite" aria-atomic="true" :class="{ 'study-lab-tool__validation--bad': !validation.valid }">
       <strong>{{ validation.valid ? 'Validated for isolated execution' : 'Validation errors' }}</strong>
       <pre v-if="validation.diagnostics.length">{{ validation.diagnostics }}</pre>
       <span v-else>Dependencies: {{ validation.dependencies.join(', ') || 'none' }} · Lookback: {{ validation.lookback_hint ?? 'none' }} · Outputs: {{ validation.output_contracts.join(', ') || 'none' }}</span>
     </section>
     <section v-if="run" class="study-lab-tool__run">
-      <div><strong>Run #{{ run.id }}</strong><span role="status" aria-live="polite" :aria-label="`Study run status: ${runStatusLabel}`" :data-status="run.status" :class="`study-lab-tool__run-status--${run.status}`">{{ runStatusLabel }}</span><small v-if="progressLabel">{{ progressLabel }}</small><button v-if="canCancel" type="button" @click="cancel">Cancel</button><button v-if="canRerun" type="button" :disabled="rerunBusy" @click="rerun(true)">{{ rerunBusy ? 'Rerunning…' : 'Rerun snapshot' }}</button><button v-if="canRerun" type="button" :disabled="rerunBusy" @click="rerun(false)">{{ rerunBusy ? 'Rerunning…' : 'Rerun latest' }}</button></div>
-      <p class="study-lab-tool__run-guidance" role="status" aria-live="polite">{{ runGuidance }}</p>
+      <div><strong>Run #{{ run.id }}</strong><span role="status" aria-live="polite" aria-atomic="true" :aria-label="`Study run status: ${runStatusLabel}`" :data-status="run.status" :class="`study-lab-tool__run-status--${run.status}`">{{ runStatusLabel }}</span><small v-if="progressLabel">{{ progressLabel }}</small><button v-if="canCancel" type="button" @click="cancel">Cancel</button><button v-if="canRerun" type="button" :disabled="rerunBusy" @click="rerun(true)">{{ rerunBusy ? 'Rerunning…' : 'Rerun snapshot' }}</button><button v-if="canRerun" type="button" :disabled="rerunBusy" @click="rerun(false)">{{ rerunBusy ? 'Rerunning…' : 'Rerun latest' }}</button></div>
+      <p class="study-lab-tool__run-guidance" role="status" aria-live="polite" aria-atomic="true">{{ runGuidance }}</p>
       <div v-if="promotableKind || artifactPromotions.length" class="study-lab-tool__promotions" aria-label="Promote study result">
         <button v-if="promotableKind === 'scalar'" type="button" :disabled="promotionBusy" @click="promote('column')">{{ promotionBusy ? 'Promoting…' : 'Save as column' }}</button>
         <button v-if="promotableKind === 'series'" type="button" :disabled="promotionBusy" @click="promote('plot')">{{ promotionBusy ? 'Promoting…' : 'Save as chart plot' }}</button>
@@ -72,7 +72,7 @@
       <details v-if="run.warnings?.length" class="study-lab-tool__run-details"><summary>Warnings ({{ run.warnings.length }})</summary><pre>{{ formatMessages(run.warnings) }}</pre></details>
       <details v-if="run.logs" class="study-lab-tool__run-details"><summary>Execution log</summary><pre>{{ run.logs }}</pre></details>
       <details v-if="Object.keys(run.resource_usage ?? {}).length" class="study-lab-tool__run-details"><summary>Resource usage</summary><pre>{{ formatObject(run.resource_usage) }}</pre></details>
-      <div v-if="metricArtifacts.length" class="study-lab-tool__metrics" aria-label="Study metrics"><article v-for="artifact in metricArtifacts" :key="artifact.id" role="status" :aria-label="`${artifact.name} metric`" :class="{ 'study-lab-tool__metric--true': artifact.artifact_type === 'boolean' && artifact.payload.value === true, 'study-lab-tool__metric--false': artifact.artifact_type === 'boolean' && artifact.payload.value === false }"><small>{{ artifact.name }}</small><strong>{{ formatMetric(artifact) }}</strong></article></div>
+      <div v-if="metricArtifacts.length" class="study-lab-tool__metrics" aria-label="Study metrics"><article v-for="artifact in metricArtifacts" :key="artifact.id" role="status" aria-live="polite" aria-atomic="true" :aria-label="`${artifact.name} metric`" :class="{ 'study-lab-tool__metric--true': artifact.artifact_type === 'boolean' && artifact.payload.value === true, 'study-lab-tool__metric--false': artifact.artifact_type === 'boolean' && artifact.payload.value === false }"><small>{{ artifact.name }}</small><strong>{{ formatMetric(artifact) }}</strong></article></div>
       <article v-for="artifact in nonScalarArtifacts" :key="artifact.id" :aria-label="`${artifact.name} ${artifact.artifact_type} result`">
         <strong>{{ artifact.name }}</strong><small>{{ artifact.artifact_type }}</small>
         <table v-if="artifact.artifact_type === 'table' && tableRows(artifact).length"><caption class="sr-only">{{ artifact.name }} table</caption><thead><tr><th v-for="column in tableColumns(artifact)" :key="column" scope="col">{{ column }}</th></tr></thead><tbody><tr v-for="(row, index) in tableRows(artifact)" :key="index"><td v-for="column in tableColumns(artifact)" :key="column">{{ formatCell(row[column]) }}</td></tr></tbody></table>
@@ -87,8 +87,8 @@
         <pre v-else>{{ artifactText(artifact.payload) }}</pre>
       </article>
     </section>
-    <p v-if="error" class="study-lab-tool__error" role="alert" aria-live="assertive">{{ error }}</p>
-    <p v-else-if="promotionStatus" class="study-lab-tool__promotion-status" role="status">{{ promotionStatus }}</p>
+    <p v-if="error" class="study-lab-tool__error" role="alert" aria-live="assertive" aria-atomic="true">{{ error }}</p>
+    <p v-else-if="promotionStatus" class="study-lab-tool__promotion-status" role="status" aria-live="polite" aria-atomic="true">{{ promotionStatus }}</p>
     <p v-else class="study-lab-tool__notice">Canonical local data only · isolated no-network runner · results are versioned by code and dataset manifest.</p>
   </section>
 </template>

@@ -1,6 +1,6 @@
 <template>
   <section class="easy-scan" :class="{ 'easy-scan--plot-drop-active': plotDropActive }" @dragover.prevent="dragOverPlot" @dragleave="dragLeavePlot" @drop.prevent="dropPlot">
-    <p v-if="plotDropActive" class="easy-scan__plot-drop-hint" role="status">Drop to add the chart plot as a technical condition</p>
+    <p v-if="plotDropActive" class="easy-scan__plot-drop-hint" role="status" aria-live="polite" aria-atomic="true">Drop to add the chart plot as a technical condition</p>
     <div class="easy-scan__builder">
       <input v-model.trim="conditionName" aria-label="Condition name" placeholder="Condition name" />
       <select v-model="field" aria-label="Price field"><option value="close">Close</option><option value="volume">Volume</option></select>
@@ -40,7 +40,7 @@
       <button type="button" :disabled="busy || (!selectedKey && !selectedPythonVersion) || !scanName" @click="run">Run</button>
     </div>
     <p v-if="error" class="easy-scan__error">{{ error }}</p>
-    <p v-if="plotDropStatus" class="easy-scan__drop-status" role="status">{{ plotDropStatus }}</p>
+    <p v-if="plotDropStatus" class="easy-scan__drop-status" role="status" aria-live="polite" aria-atomic="true">{{ plotDropStatus }}</p>
     <p v-else-if="busy" class="easy-scan__state"><span>{{ status }}</span><button v-if="pythonResearchRunId" type="button" @click="cancelPythonRun">Cancel</button></p>
     <div v-else-if="result" class="easy-scan__result">
       <label v-if="resultHistory.length" class="easy-scan__history">Result <select v-model="selectedResultId" aria-label="Scan result history"><option value="">Latest</option><option v-for="item in resultHistory" :key="item.id" :value="String(item.id)">{{ item.run_at ? new Date(item.run_at).toLocaleString() : `Run ${item.id}` }}</option></select></label>

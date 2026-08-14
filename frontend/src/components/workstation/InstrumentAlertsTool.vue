@@ -61,8 +61,8 @@
       <label class="alerts-tool__repeat"><input v-model="repeat" type="checkbox" :disabled="!instrumentId || busy" />Repeat</label>
       <button type="submit" :disabled="!instrumentId || busy || !validTarget">Add</button>
     </form>
-    <p v-if="error" class="alerts-tool__error" role="alert" aria-live="assertive">{{ error }}</p>
-    <p v-else-if="loading" class="alerts-tool__state" role="status" aria-live="polite">Loading alerts…</p>
+    <p v-if="error" class="alerts-tool__error" role="alert" aria-live="assertive" aria-atomic="true">{{ error }}</p>
+    <p v-else-if="loading" class="alerts-tool__state" role="status" aria-live="polite" aria-atomic="true">Loading alerts…</p>
     <p v-else-if="!instrumentId && !screenerAlerts.length" class="alerts-tool__state" role="status" aria-live="polite" aria-atomic="true">Select a canonical instrument.</p>
     <p v-else-if="!alerts.length && !indicatorAlerts.length && !screenerAlerts.length" class="alerts-tool__state" role="status" aria-live="polite" aria-atomic="true">No alerts for {{ symbol }}.</p>
     <ul v-else class="alerts-tool__list" role="list" aria-label="Saved alerts">

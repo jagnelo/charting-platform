@@ -5,9 +5,9 @@
       <button v-if="comparisonRuns.length === 2" type="button" @click="comparisonOpen = !comparisonOpen">{{ comparisonOpen ? 'Hide compare' : 'Compare' }}</button>
       <button type="button" :disabled="loading" @click="refresh">Refresh</button>
     </header>
-    <p v-if="error" class="research-results-tool__error" role="alert" aria-live="assertive">{{ error }}</p>
-    <p v-else-if="loading && !runs.length" class="research-results-tool__notice" role="status" aria-live="polite">Loading reproducible research runs…</p>
-    <p v-else-if="!runs.length" class="research-results-tool__notice" role="status">No persisted studies yet. Run a study in the adjacent Study Lab pane.</p>
+    <p v-if="error" class="research-results-tool__error" role="alert" aria-live="assertive" aria-atomic="true">{{ error }}</p>
+    <p v-else-if="loading && !runs.length" class="research-results-tool__notice" role="status" aria-live="polite" aria-atomic="true">Loading reproducible research runs…</p>
+    <p v-else-if="!runs.length" class="research-results-tool__notice" role="status" aria-live="polite" aria-atomic="true">No persisted studies yet. Run a study in the adjacent Study Lab pane.</p>
     <div v-else class="research-results-tool__runs" role="list" aria-label="Persisted research runs">
       <button
         v-for="run in runs"
@@ -22,7 +22,7 @@
       >
         <input type="checkbox" :checked="comparisonIds.includes(run.id)" :aria-label="`Compare run ${run.id}`" @click.stop @change="toggleComparison(run.id)" />
         <strong>Run #{{ run.id }}</strong>
-        <span role="status" :aria-label="`Run ${run.id} status: ${statusLabel(run.status)}`" :data-status="run.status" :class="`research-results-tool__status--${run.status}`">{{ statusLabel(run.status) }}</span>
+        <span role="status" aria-live="polite" aria-atomic="true" :aria-label="`Run ${run.id} status: ${statusLabel(run.status)}`" :data-status="run.status" :class="`research-results-tool__status--${run.status}`">{{ statusLabel(run.status) }}</span>
         <small>{{ run.artifact_count ?? run.artifacts.length }} artifact{{ (run.artifact_count ?? run.artifacts.length) === 1 ? '' : 's' }}</small>
       </button>
     </div>
@@ -35,7 +35,7 @@
     </section>
     <article v-if="selectedRun" class="research-results-tool__detail" :aria-label="`Research run ${selectedRun.id} details`">
       <div class="research-results-tool__detail-header"><strong>Run #{{ selectedRun.id }}</strong><button v-if="canCancel(selectedRun)" type="button" :disabled="canceling" @click="cancel(selectedRun)">Cancel</button><button type="button" :disabled="rerunning || canceling" @click="rerun(selectedRun, true)">Rerun snapshot</button><button type="button" :disabled="rerunning || canceling" @click="rerun(selectedRun, false)">Rerun latest</button></div>
-      <p class="research-results-tool__run-guidance" role="status" aria-live="polite">{{ statusGuidance(selectedRun.status) }}</p>
+      <p class="research-results-tool__run-guidance" role="status" aria-live="polite" aria-atomic="true">{{ statusGuidance(selectedRun.status) }}</p>
       <small v-if="selectedRun.reproducibility_hash">{{ selectedRun.reproducibility_hash }}</small>
       <details v-if="selectedRun.diagnostics?.length" class="research-results-tool__run-details"><summary>Diagnostics ({{ selectedRun.diagnostics.length }})</summary><pre>{{ formatMessages(selectedRun.diagnostics) }}</pre></details>
       <details v-if="selectedRun.warnings?.length" class="research-results-tool__run-details"><summary>Warnings ({{ selectedRun.warnings.length }})</summary><pre>{{ formatMessages(selectedRun.warnings) }}</pre></details>
@@ -57,9 +57,9 @@
           <pre v-else>{{ artifactText(artifact.payload) }}</pre>
         </article>
       </div>
-      <p v-else-if="detailLoading" class="research-results-tool__notice" role="status" aria-live="polite">Loading selected run details…</p>
-      <p v-else-if="detailError" class="research-results-tool__error" role="alert" aria-live="assertive">{{ detailError }} <button type="button" :disabled="detailRetrying" @click="retryDetail">Retry</button></p>
-      <p v-else class="research-results-tool__notice" role="status">No structured artifacts have been produced yet.</p>
+      <p v-else-if="detailLoading" class="research-results-tool__notice" role="status" aria-live="polite" aria-atomic="true">Loading selected run details…</p>
+      <p v-else-if="detailError" class="research-results-tool__error" role="alert" aria-live="assertive" aria-atomic="true">{{ detailError }} <button type="button" :disabled="detailRetrying" @click="retryDetail">Retry</button></p>
+      <p v-else class="research-results-tool__notice" role="status" aria-live="polite" aria-atomic="true">No structured artifacts have been produced yet.</p>
     </article>
   </section>
 </template>

@@ -1,9 +1,9 @@
 <template>
   <section class="watchlist" :class="{ 'watchlist--columns-open': columnMenuOpen, 'watchlist--sets-open': columnSetMenuOpen, 'watchlist--condition-open': Boolean(conditionFilterState || pythonConditionState), 'watchlist--grouped': hasColumnGroups, 'watchlist--plot-drop-active': plotDropActive }" :aria-label="label" :aria-busy="loading ? 'true' : 'false'" @click="contextMenu = null" @keydown.esc="handleWatchlistEscape" @dragenter.prevent="dragOverPlot" @dragover.prevent="dragOverPlot" @dragleave="dragLeavePlot" @drop.prevent="dropPlot">
-    <p v-if="plotDropActive" class="watchlist__plot-drop-hint" role="status">Drop to add the chart plot as a numeric column</p>
-    <p v-if="dropError" class="watchlist__drop-error" role="alert">{{ dropError }}</p>
-    <p v-if="loading" class="watchlist__loading-status" role="status" aria-live="polite">{{ loadingLabel }}</p>
-    <p v-if="errorMessage" class="watchlist__data-error" role="alert">{{ errorMessage }}</p>
+    <p v-if="plotDropActive" class="watchlist__plot-drop-hint" role="status" aria-live="polite" aria-atomic="true">Drop to add the chart plot as a numeric column</p>
+    <p v-if="dropError" class="watchlist__drop-error" role="alert" aria-live="assertive" aria-atomic="true">{{ dropError }}</p>
+    <p v-if="loading" class="watchlist__loading-status" role="status" aria-live="polite" aria-atomic="true">{{ loadingLabel }}</p>
+    <p v-if="errorMessage" class="watchlist__data-error" role="alert" aria-live="assertive" aria-atomic="true">{{ errorMessage }}</p>
     <header class="watchlist__controls">
       <span>{{ label }}</span>
       <input v-model="filter" :aria-label="`${label} filter`" placeholder="Filter" />

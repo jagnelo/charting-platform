@@ -93,6 +93,7 @@ describe('RelativeRotationTool', () => {
     await vi.waitFor(() => expect(first.text()).toContain('No sector rotation rows are available.'))
     await vi.waitFor(() => expect(second.text()).toContain('No sector rotation rows are available.'))
     expect(first.find('.rotation-tool__state[role="status"]').attributes('aria-live')).toBe('polite')
+    expect(first.find('.rotation-tool__state[role="status"]').attributes('aria-atomic')).toBe('true')
     expect(api.get).toHaveBeenCalledTimes(1)
   })
 

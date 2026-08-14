@@ -1,5 +1,5 @@
 <template>
-  <section class="unknown-tool" role="alert">
+  <section class="unknown-tool" role="alert" aria-live="assertive" aria-atomic="true">
     <strong>Tool recovery required</strong>
     <p>
       This saved tool (<code>{{ tool.tool_type }}</code>) is not available in this workstation build.

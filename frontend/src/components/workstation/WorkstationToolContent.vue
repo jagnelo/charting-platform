@@ -113,7 +113,7 @@
         <span v-else-if="watchlistStore.loading">Loading watchlists…</span>
         <span v-else>No personal watchlists available.</span>
         <span v-if="personalWatchlistError" class="personal-watchlist-tool__error">{{ personalWatchlistError }}</span>
-        <span v-if="watchlistStore.loadError" class="personal-watchlist-tool__error" role="alert">{{ watchlistStore.loadError }}</span>
+        <span v-if="watchlistStore.loadError" class="personal-watchlist-tool__error" role="alert" aria-live="assertive" aria-atomic="true">{{ watchlistStore.loadError }}</span>
         <section class="combo-editor" aria-label="Combo list editor">
           <header>Combo list</header>
           <input v-model="comboNameDraft" aria-label="Combo list name" placeholder="Name" :disabled="flaggedItemsSelected" />
@@ -253,7 +253,7 @@
         />
         <div v-if="chartStore.isLoading" class="tool-state chart-tool__status" role="status" aria-live="polite" aria-atomic="true">Loading {{ activeSymbol }}…</div>
         <div v-else-if="chartStore.error" class="tool-state tool-state--error chart-tool__status" role="alert" aria-live="assertive" aria-atomic="true">{{ chartStore.error }}</div>
-        <div v-if="!chartStore.symbol" class="tool-state" role="status" aria-live="polite">Select a canonical instrument.</div>
+        <div v-if="!chartStore.symbol" class="tool-state" role="status" aria-live="polite" aria-atomic="true">Select a canonical instrument.</div>
       </div>
     </div>
     <div v-else-if="isIndustryTool && industries.length" class="industry-list">
@@ -380,6 +380,8 @@
         v-if="constituentExclusionSummary"
         class="constituent-tool__provenance"
         role="status"
+        aria-live="polite"
+        aria-atomic="true"
         :title="constituentExclusionCodes.join(', ')"
       >{{ constituentExclusionSummary }}</small>
     </div>
@@ -393,9 +395,9 @@
         <input :value="breadthLookback" aria-label="Breadth new high low lookback" type="number" min="2" max="252" @change="setBreadthConfiguration({ new_high_lookback: Number(($event.target as HTMLInputElement).value) })" />
         <label><input type="checkbox" :checked="breadthAdjusted" aria-label="Breadth split adjusted" @change="setBreadthConfiguration({ adjusted: ($event.target as HTMLInputElement).checked })" /> Adjusted</label>
       </div>
-      <p v-if="breadthBusy" class="breadth-tool__status" role="status" aria-live="polite">Loading breadth analysis…</p>
-      <p v-else-if="breadthError" class="breadth-tool__status breadth-tool__status--error" role="alert" aria-live="assertive">{{ breadthError }}</p>
-      <p v-else-if="!breadth" class="breadth-tool__status" role="status" aria-live="polite">Breadth analysis is unavailable.</p>
+      <p v-if="breadthBusy" class="breadth-tool__status" role="status" aria-live="polite" aria-atomic="true">Loading breadth analysis…</p>
+      <p v-else-if="breadthError" class="breadth-tool__status breadth-tool__status--error" role="alert" aria-live="assertive" aria-atomic="true">{{ breadthError }}</p>
+      <p v-else-if="!breadth" class="breadth-tool__status" role="status" aria-live="polite" aria-atomic="true">Breadth analysis is unavailable.</p>
       <div class="metrics">
         <template v-for="period in ['ma20', 'ma50', 'ma200']" :key="period">
           <span>Above {{ period.slice(2) }} MA</span>

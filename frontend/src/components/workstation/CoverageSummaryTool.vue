@@ -1,7 +1,7 @@
 <template>
   <section class="coverage-summary" role="region" :aria-label="`${symbol} coverage`" :aria-busy="loading || rangeLoading">
-    <p v-if="loading" class="coverage-summary__state" role="status" aria-live="polite">Loading local coverage…</p>
-    <p v-else-if="error" class="coverage-summary__state coverage-summary__state--error" role="alert" aria-live="assertive">{{ error }}</p>
+    <p v-if="loading" class="coverage-summary__state" role="status" aria-live="polite" aria-atomic="true">Loading local coverage…</p>
+    <p v-else-if="error" class="coverage-summary__state coverage-summary__state--error" role="alert" aria-live="assertive" aria-atomic="true">{{ error }}</p>
     <template v-else>
       <div class="coverage-summary__identity">
         <span>Canonical instrument</span><strong>{{ symbol }}</strong>
@@ -41,9 +41,9 @@
           <label class="coverage-summary__adjusted"><input v-model="rangeAdjusted" aria-label="Coverage split adjusted" type="checkbox" /> Adjusted</label>
           <button type="button" aria-label="Check OHLCV range" :disabled="rangeLoading || !rangeValid" @click="checkRange">{{ rangeLoading ? 'Checking…' : 'Check' }}</button>
         </div>
-        <p v-if="rangeValidationError" class="coverage-summary__range-message coverage-summary__range-message--error" role="alert" aria-live="assertive">{{ rangeValidationError }}</p>
-        <p v-else-if="rangeError" class="coverage-summary__range-message coverage-summary__range-message--error" role="alert" aria-live="assertive">{{ rangeError }}</p>
-        <div v-else-if="rangeAssessment" class="coverage-summary__assessment" role="status" aria-live="polite" :class="`coverage-summary__assessment--${rangeAssessment.status}`">
+        <p v-if="rangeValidationError" class="coverage-summary__range-message coverage-summary__range-message--error" role="alert" aria-live="assertive" aria-atomic="true">{{ rangeValidationError }}</p>
+        <p v-else-if="rangeError" class="coverage-summary__range-message coverage-summary__range-message--error" role="alert" aria-live="assertive" aria-atomic="true">{{ rangeError }}</p>
+        <div v-else-if="rangeAssessment" class="coverage-summary__assessment" role="status" aria-live="polite" aria-atomic="true" :class="`coverage-summary__assessment--${rangeAssessment.status}`">
           <div><span>Status</span><strong>{{ rangeAssessment.status }}</strong></div>
           <div><span>Bars</span><strong>{{ rangeAssessment.bar_count.toLocaleString() }}</strong></div>
           <div><span>Covered</span><strong>{{ formatRange(rangeAssessment.covered_start, rangeAssessment.covered_end) }}</strong></div>
@@ -55,7 +55,7 @@
             </ul>
           </div>
         </div>
-        <p v-else class="coverage-summary__range-message" role="status" aria-live="polite">Choose a date range to inspect local readiness and missing slices.</p>
+        <p v-else class="coverage-summary__range-message" role="status" aria-live="polite" aria-atomic="true">Choose a date range to inspect local readiness and missing slices.</p>
       </section>
       <p class="coverage-summary__note">Local canonical data only · source and freshness limitations remain explicit in each dataset state.</p>
     </template>

@@ -1,13 +1,13 @@
 <template>
   <section class="rotation-tool" role="region" :aria-label="`Relative rotation vs ${benchmark}`" :aria-busy="loading">
     <header><strong>Relative Rotation · {{ benchmark }}</strong><div class="rotation-tool__controls"><label>Universe <select v-model="groupKey" aria-label="Rotation universe"><option value="sp500-sectors">S&amp;P 500 sectors</option><option value="us-benchmarks">US benchmarks</option></select></label><label>Benchmark <input v-model.trim="benchmark" aria-label="Rotation benchmark" /></label><label>Timeframe <select v-model="timeframe" aria-label="Rotation timeframe"><option value="D1">Daily</option><option value="W1">Weekly</option><option value="MN">Monthly</option></select></label><label>Sampling <input v-model.number="sampling" aria-label="Rotation sampling" type="number" min="1" max="30" /></label><label>Lookback <input v-model.number="lookback" aria-label="Rotation lookback" type="number" min="2" max="252" /></label><label>Tail <input v-model.number="tailLength" aria-label="Rotation tail length" type="number" min="1" max="100" /></label><label>As of <input v-model="asOf" aria-label="Rotation as of" type="date" /></label><label class="rotation-tool__adjusted"><input v-model="adjusted" aria-label="Rotation split adjusted" type="checkbox" /> Adjusted</label></div><small>Trend: ratio return over {{ lookback }} sampled observations · Momentum: change in that trend{{ asOf ? ` · As of ${asOf}` : '' }}{{ freshness ? ` · ${formatWorkstationFreshness(freshness)}` : '' }}</small></header>
-    <p v-if="loading" class="rotation-tool__state" role="status" aria-live="polite">Calculating aligned local ratios…</p>
-    <p v-else-if="error" class="rotation-tool__state rotation-tool__state--error" role="alert" aria-live="assertive">{{ error }}</p>
-    <p v-else-if="!rows.length" class="rotation-tool__state" role="status" aria-live="polite">No sector rotation rows are available.</p>
+    <p v-if="loading" class="rotation-tool__state" role="status" aria-live="polite" aria-atomic="true">Calculating aligned local ratios…</p>
+    <p v-else-if="error" class="rotation-tool__state rotation-tool__state--error" role="alert" aria-live="assertive" aria-atomic="true">{{ error }}</p>
+    <p v-else-if="!rows.length" class="rotation-tool__state" role="status" aria-live="polite" aria-atomic="true">No sector rotation rows are available.</p>
     <template v-else>
       <div class="rotation-tool__plot-shell" @mousemove="onPlotMove" @mouseleave="hovered = null" @click="selectHovered">
         <div ref="plotHost" class="rotation-tool__plot" aria-label="Relative rotation trend and momentum plane" />
-        <div v-if="hovered" class="rotation-tool__tooltip" :style="tooltipStyle" role="status" aria-live="polite">
+        <div v-if="hovered" class="rotation-tool__tooltip" :style="tooltipStyle" role="status" aria-live="polite" aria-atomic="true">
           <strong>{{ hovered.symbol }}</strong><span>{{ hovered.point.timestamp }}</span><span>Trend {{ percent(hovered.point.trend) }} · Momentum {{ percent(hovered.point.momentum) }}</span>
         </div>
       </div>

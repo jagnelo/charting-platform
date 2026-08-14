@@ -6,10 +6,10 @@
         <option v-for="scan in scans" :key="scan.id" :value="String(scan.id)">{{ scan.name }}</option>
       </select>
       <button type="button" :disabled="loading" @click="refresh">{{ loading ? 'Refreshing…' : 'Refresh' }}</button>
-      <span v-if="gauge" class="market-gauge__freshness" role="status" aria-live="polite" :data-freshness="freshnessKind">{{ freshnessLabel }}</span>
+    <span v-if="gauge" class="market-gauge__freshness" role="status" aria-live="polite" aria-atomic="true" :data-freshness="freshnessKind">{{ freshnessLabel }}</span>
     </header>
-    <p v-if="error" class="market-gauge__error" role="alert" aria-live="assertive">{{ error }}</p>
-    <p v-else-if="scansQuery.isPending.value" class="market-gauge__state" role="status" aria-live="polite">Loading saved scans…</p>
+    <p v-if="error" class="market-gauge__error" role="alert" aria-live="assertive" aria-atomic="true">{{ error }}</p>
+    <p v-else-if="scansQuery.isPending.value" class="market-gauge__state" role="status" aria-live="polite" aria-atomic="true">Loading saved scans…</p>
     <template v-else-if="gauge">
       <div class="market-gauge__reading"><b>{{ percentage }}</b><span>{{ gauge.matched_count }} matches</span></div>
       <p>{{ gauge.evaluated_count }}/{{ gauge.universe_count }} evaluated · {{ gauge.exclusions.length }} excluded</p>
