@@ -1,4 +1,29 @@
 tasks:
+  - id: tc2000-visual-fixture-preflight-20260814
+    title: Fail fast when board visual fixture mode does not match the backend
+    status: completed
+    priority: medium
+    scope: >-
+      Move the seeded backend-mode assertion in the board-guided visual suite to a worker-level
+      preflight so a misconfigured stack cannot generate duplicate failures for every visual case.
+    definition_of_done:
+      - A wrong seeded/unseeded backend mode produces one suite setup failure rather than a test cascade
+      - A verified seeded stack still passes the complete four-environment board matrix
+      - Frontend unit, type-check, production build, and diff checks remain green
+      - Interim board/fixture flexibility and remaining visual gaps are recorded
+    validation:
+      - focused-unseeded-preflight-one-failure
+      - seeded-board-visual-104-of-104
+      - frontend-vitest
+      - frontend-type-check
+      - frontend-production-build
+      - git-diff-check
+    notes:
+      - >-
+        Implementation commit f7720659. The isolated seeded stack used alternate ports and was
+        removed after validation; the normal branch stack was not changed. Board-guided visual
+        authority and controlled deterministic seeded data remain interim acceptance evidence,
+        with exact/unrepresented V25 and external provider/hardware/endurance gaps still open.
   - id: tc2000-blocked-issuer-native-boundary-20260814
     title: Enforce explicit non-native state for blocked ETF issuers
     status: completed

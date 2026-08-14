@@ -1,5 +1,26 @@
 # Active Handoff
 
+## 2026-08-14 — Visual fixture preflight repair
+
+- The board-guided Playwright suite now checks the requested seeded backend mode once per worker
+  in `beforeAll` instead of repeating a common setup failure in every test. Against the known
+  unseeded stack, the focused negative run produced one mismatch failure; it no longer generated
+  a 104-test cascade.
+- A fresh isolated Compose project on alternate ports was started with
+  `E2E_SEED_INSTRUMENTS=true E2E_SEED_MARKET_DATA=true`; `/health` and frontend HTTP checks passed.
+  The complete board-guided visual matrix passed `104/104` in `5.3m` across all four required
+  display environments. The disposable project and volumes were then removed; the normal branch
+  stack was not changed.
+- Frontend Vitest, type-check, production build, and diff checks pass. Implementation commit:
+  `f7720659`.
+- Acceptance flexibility used: board-guided visual authority plus controlled deterministic seeded
+  data for represented states. Exact-build/permission, unrepresented-state, provider/entitlement,
+  historical/GICS, native-monitor, endurance, and final-audit gaps remain open.
+- The exact elevated push `rtk git push origin HEAD:feat/tc2000-frontend-rework` for range
+  `91463e54..f7720659` was attempted once and rejected before Git by the private-origin egress
+  safeguard because trusted authorization for this private payload and destination was unavailable.
+  This is transport-only; the clean local commit remains authoritative and the goal continues.
+
 ## 2026-08-14 — Git transport rule documentation checkpoint
 
 - Repository/index health is confirmed: no `.git/index.lock`, normal metadata

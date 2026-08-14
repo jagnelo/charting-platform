@@ -1,5 +1,20 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-14 — Visual fixture preflight runs once per worker
+
+- The board-guided visual suite now validates the requested seeded backend mode once in a
+  worker-level `beforeAll` using a temporary browser context. It no longer repeats the same
+  `e2e_seed_market_data` mismatch 104 times when a caller points it at an unseeded stack.
+- The focused negative regression produced one setup failure against the known unseeded stack;
+  the authoritative isolated seeded stack advertised both fixture flags as `true` and the full
+  four-environment board matrix passed `104/104` in `5.3m`.
+- Frontend Vitest, type-check, production build, and `git diff --check` pass. Implementation
+  commit: `f7720659`.
+- Acceptance flexibility used: **board-guided visual authority plus controlled deterministic
+  seeded market data** for represented states. The exact-build/permission and unrepresented
+  `REF-STATE-VARIANTS`, `REF-STUDY-LAB-V25`, provider/entitlement, historical/GICS,
+  native-monitor, endurance, and final-audit gaps remain open.
+
 ## 2026-08-14 — Blocked issuer native-boundary regression
 
 - Added a generalized regression over the complete current `issuer_access_blocked` set. Every

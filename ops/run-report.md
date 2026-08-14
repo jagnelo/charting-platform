@@ -1,5 +1,19 @@
 # Run Report
 
+## 2026-08-14 — Visual fixture preflight repair
+
+- Moved the seeded-backend preflight in `tc2000_visual.spec.ts` from every-test `beforeEach` to a
+  worker-level `beforeAll`, preventing a wrong-stack configuration from producing a duplicate
+  104-test cascade. The focused mismatch run now fails once at setup.
+- Rebuilt an isolated seeded Compose stack on alternate ports, verified both fixture flags through
+  `/health`, and passed the full board-guided matrix `104/104` in `5.3m` across 1920×1080 and
+  2560×1440 at 100% and 125%. The disposable stack was removed afterward.
+- Frontend Vitest, type-check, production build, and diff checks pass. Implementation commit
+  `f7720659`. Acceptance flexibility used: board-guided visual authority plus controlled seeded
+  data for represented states; exact-build/unrepresented and other external gaps remain open.
+- Exact push for `91463e54..f7720659` was rejected before Git by the private-origin egress
+  safeguard. No workaround or repeat was attempted; this remains transport-only.
+
 ## 2026-08-14 — Git transport rule documentation checkpoint
 
 - Added an explicit user-facing rule to `docs/agent-orchestration.md`: a
