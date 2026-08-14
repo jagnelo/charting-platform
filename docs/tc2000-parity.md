@@ -1,5 +1,31 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-14 — US benchmark-family and factor-analysis acceptance expansion
+
+The workstation scope is family-wide: S&P 500, S&P MidCap 400, S&P SmallCap 600, S&P Composite
+1500, Russell 1000, Russell 2000, Russell 3000, and Nasdaq 100 are selectable, versioned roots.
+The taxonomy must retain each logical family even when free-source evidence does not provide an
+official constituent feed, equal-weight vehicle, or value/growth vehicle. It records independently
+which official identity, cap proxy, equal proxy/derived series, and value/growth variants are
+actually evidenced at each effective/known-at interval.
+
+Every available family and style leg uses the same analysis contract: benchmark technicals;
+cap/equal and value/growth comparisons; generic predicate breadth; participation/leadership;
+concentration/dispersion; drawdown/volatility; relative rotation; cross-family ranking; and
+drill-down into sectors, industries/proxies, and constituents where classification or holdings
+evidence supports it. SPY/RSP is the reusable pattern, and Nasdaq 100 requires an equivalent
+cap/equal deconstruction such as QQQ versus a separately verified equal-weight proxy such as QQQE.
+A derived equal-weight series discloses its point-in-time membership, rebalance/weight method, and
+exclusions; it is never presented as ETF-native.
+
+Generic breadth applies to each family and each available leg/style, not only SPY sectors. The
+user independently selects family/leg universe, measured field, target/operator, alignment,
+timeframe, as-of policy, and nested condition; aggregate current/history, member pass/fail,
+occurrences, ratios, charts, scans, gauges, Study Lab artifacts, and exports retain family
+identity, proxy semantics, membership version, coverage, freshness, and exclusions. Missing
+style/equal mappings display `No verified mapped proxy`; no family silently falls back to SPY,
+QQQ, or another unrelated universe. This scope expansion has no acceptance relaxation.
+
 ## 2026-08-14 — Isolated-Python breadth predicate execution
 
 Generic breadth now has an explicit isolated-Python path in addition to the platform-owned

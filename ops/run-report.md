@@ -1,5 +1,16 @@
 # Run Report
 
+## 2026-08-14 — Expanded US benchmark/factor family scope
+
+- Updated the controlling project TODO, parity matrix, governance gate, and task ledger to make
+  S&P 500/400/600/1500, Russell 1000/2000/3000, and Nasdaq 100 first-class analysis families.
+- Recorded equal-weight, value/growth, cross-family ratios, generic breadth, and shared
+  top-down/participation/rotation/drill-down contracts, with explicit no-silent-fallback and
+  point-in-time/provenance requirements. No acceptance criterion was relaxed and no implementation
+  was falsely marked complete.
+- Validation: `git diff --check`, JSON parse, and YAML/manifest parse pass. Implementation,
+  source evidence, and browser acceptance remain open under the pending benchmark-family task.
+
 ## 2026-08-14 — Isolated-Python breadth predicates
 
 - Added the isolated execution bridge for arbitrary user Boolean breadth predicates. Current and
@@ -18,6 +29,9 @@
   range ending at that commit was attempted once and rejected before Git by the private-origin
   safeguard; origin remains `91463e54`. This is transport-only and no workaround or repeat was
   attempted.
+- Operational checkpoint `a96910c6` is clean locally. Its exact elevated push was likewise rejected
+  before Git by the private-origin safeguard; origin remains `91463e54`. The context is closed
+  locally and no indirect transport was attempted.
 
 ## 2026-08-14 — Versioned condition-asset reuse in generic breadth
 

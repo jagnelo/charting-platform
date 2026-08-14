@@ -170,6 +170,17 @@ to SPY/RSP (for example QQQ versus a separately verified equal-weight proxy such
 a scope expansion, not a relaxation; incomplete provider, membership, or visual evidence remains
 an explicit gap.
 
+The family gate also covers factor/style analysis, not only benchmark-versus-equal pairs. The
+acceptance run must attempt the verified value and growth variants for S&P 500/400/600/1500 and
+Russell 1000/2000/3000, record `No verified mapped proxy` for any family without an evidenced
+variant, and prove that available variants inherit the benchmark technical, breadth,
+participation, concentration/dispersion, volatility/drawdown, rotation, ranking, and member
+drill-down contracts. Cross-family ratios (for example S&P 500 versus Russell 2000 or a value leg
+versus its cap parent) must preserve timestamp alignment, adjustment, membership version,
+coverage, and provenance. A current ETF snapshot cannot satisfy a historical family study without
+an explicit current-snapshot/survivorship warning, and no relationship may be inferred from naming
+alone.
+
 ### Expanded condition-driven breadth gate
 
 The fixed Market Breadth panel is not sufficient evidence for the broader breadth requirement.

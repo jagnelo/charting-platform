@@ -1,5 +1,23 @@
 # Active Handoff
 
+## 2026-08-14 — Expanded US benchmark/factor family scope
+
+- The active goal and controlling plan now explicitly require family-wide US analysis for S&P
+  500/400/600/1500, Russell 1000/2000/3000, and Nasdaq 100. Each family/style leg must receive
+  the same technical, cap/equal/value-growth, generic breadth, participation, concentration,
+  dispersion, volatility/drawdown, rotation, ranking, ratio, and member-drilldown treatment where
+  evidence supports it.
+- Equal-weight, value, and growth relationships remain independent evidence-backed taxonomy
+  records. Derived equal-weight series must expose methodology and point-in-time membership; absent
+  mappings show `No verified mapped proxy` and never silently fall back to SPY/QQQ. Nasdaq 100
+  cap/equal deconstruction is mandatory when a verified pair is available.
+- This is documentation/acceptance scope only in this context; no implementation is claimed. The
+  existing pending task `tc2000-us-benchmark-family-expansion-20260814` owns the implementation,
+  provider evidence, breadth, and browser matrix. Acceptance flexibility used: **none**.
+- Validation for the documentation update: `git diff --check`, `jq -e . ops/state.json`, and Ruby
+  YAML parsing of `ops/tasks.yaml` plus the V25 visual manifest pass. Next context is the actual
+  benchmark taxonomy/provenance implementation.
+
 ## 2026-08-14 — Isolated-Python breadth execution bridge
 
 - Implemented the next active context: user-owned immutable Boolean CodeVersions can be queued
@@ -25,6 +43,9 @@
   attempted once; `origin/feat/tc2000-frontend-rework` remains at `91463e54` because the private
   origin safeguard rejected the payload before Git. This is transport-only; no alternate transport,
   rewrite, reset, stash, or repeat was used.
+- Operational checkpoint `a96910c6 chore(ops): record isolated Python breadth checkpoint` is also
+  clean locally. Its exact elevated push was rejected before Git by the same safeguard; origin
+  remains `91463e54`. The completed context is closed locally and the next context may begin.
 - Next context: visual condition-tree authoring and breadth occurrence/promotion UI integration.
 
 ## 2026-08-14 — Versioned breadth condition-asset reuse

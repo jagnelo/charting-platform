@@ -1,5 +1,33 @@
 # Project TODO Memory
 
+### 2026-08-14 — Expanded US benchmark, factor, and breadth family matrix
+
+- [ ] Treat S&P 500, S&P MidCap 400, S&P SmallCap 600, S&P Composite 1500, Russell 1000,
+      Russell 2000, Russell 3000, and Nasdaq 100 as first-class, versioned US analysis families.
+- [ ] For every family independently register the official index identity when entitled, a
+      clearly labelled cap-weighted tradable proxy, an evidenced equal-weight ETF or reproducible
+      point-in-time derived equal-weight series, and value/growth sub-index or ETF variants where
+      evidence confirms they exist. Candidate symbols are evidence inputs, never hard-coded
+      taxonomy facts; absent mappings remain `No verified mapped proxy`.
+- [ ] Give every available family/style leg the same workstation path: benchmark technicals,
+      cap/equal and value/growth spreads, configurable predicate breadth, participation/leadership,
+      concentration/dispersion, drawdown/volatility, relative rotation, cross-family ranking, and
+      drill-down to sectors, industries/proxies, and constituents where evidence supports it.
+- [ ] Generalize SPY/RSP to every supported family. Nasdaq 100 must explicitly provide a cap/equal
+      deconstruction (for example QQQ versus a separately verified equal-weight proxy such as
+      QQQE), disclosing native-versus-derived weighting, membership snapshot, effective/known-at
+      times, adjustment, coverage, and exclusions.
+- [ ] Apply generic breadth to each family and each available cap/equal/style leg. Users choose
+      universe, measured field/series, target/operator, timeframe, alignment/as-of policy, and
+      nested composition, then receive current/history, member pass/fail, occurrences, and
+      drill-down results. SPY 200-day and within-1%-of-52-week-high studies are fixtures, not the
+      supported-universe limit.
+- [ ] Add family-aware navigation, direct family/leg ratios, and cross-family comparison while
+      retaining exact taxonomy, membership, provenance, freshness, coverage, and exclusions in
+      charts, lists, scans, gauges, Study Lab artifacts, and exports. Missing feeds, style/equal
+      proxies, and historical holdings remain explicit tracked gaps; acceptance flexibility used:
+      **none**.
+
 ### 2026-08-14 — Isolated-Python breadth predicates and EasyScan promotion
 
 - [x] Added `POST /analysis/breadth/python` for user-owned immutable Boolean CodeVersions. It

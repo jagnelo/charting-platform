@@ -8,8 +8,11 @@ tasks:
       workstation universes. Resolve official identities, cap-weighted proxies, equal-weight
       proxies or explicitly labelled derived equal-weight series, and verified value/growth
       variants wherever evidence exists. Generalize the SPY/RSP deconstruction to all families,
-      including a Nasdaq 100 cap/equal comparison, and apply generic breadth plus participation,
-      concentration, dispersion, rotation, drawdown, volatility, and member drill-down views.
+      including a Nasdaq 100 cap/equal comparison, and apply the same technical, generic breadth,
+      participation, leadership, concentration, dispersion, rotation, drawdown, volatility,
+      cross-family comparison, and member drill-down views to every available family/style leg.
+      Value/growth and equal relationships are evidence-backed and may be absent; no naming-based
+      relationship or silent SPY/QQQ fallback is permitted.
     definition_of_done:
       - Family registry stores official index, cap, equal, value, and growth relationships independently with source/effective/known-at/provenance metadata
       - Missing mappings return No verified mapped proxy and never silently substitute another family
@@ -18,6 +21,8 @@ tasks:
       - Nasdaq 100 cap/equal deconstruction is exercised through a verified pair such as QQQ/QQQE when evidence confirms the mapping
       - Generic breadth predicates and cap/equal/style spreads work across every available family/style universe
       - Family-level technicals, leadership/concentration, dispersion, relative rotation, drawdown/volatility, ranking, and member drill-down are covered
+      - Value/growth legs, direct family-to-family ratios, and cross-family ranking use the same aligned, provenance-bearing analysis contract wherever mapped
+      - Breadth predicates, history/occurrences, and promotion outputs work against each available family/style leg rather than only SPY sectors
       - Free-source/provider gaps and absent style/equal proxies remain explicit rather than fabricated
     validation:
       - benchmark-family-taxonomy-and-provenance-contract
