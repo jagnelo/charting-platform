@@ -1,5 +1,16 @@
 # Active Handoff
 
+## 2026-08-14 — Study Scatter conditional uPlot lifecycle completed
+
+- Implementation `2768f019` repairs Study Lab scatter lifecycle: initial valid data waits for the
+  conditional host before chart creation; invalid/empty output destroys the old chart; valid data
+  later creates a fresh chart. This prevents stale canvases and preserves uPlot-only numeric output.
+- Validation: focused Study Scatter `2/2`; full frontend Vitest `783/783`; type-check; 475-module
+  build; uPlot contract (`45` files); diff-check; and authenticated structured-study `F8o` `1/1`.
+- Acceptance flexibility used: **none**. Exact/unrepresented Study Lab visuals, provider/
+  entitlement, historical/GICS, native-monitor, endurance, Docker global-prune, and final-audit
+  gaps remain explicit. Implementation is a clean local commit; push transport remains separate.
+
 ## 2026-08-14 — Relative Rotation async plot-host lifecycle completed
 
 - Implementation `8a159854` fixes the real lifecycle gap where Relative Rotation's asynchronous

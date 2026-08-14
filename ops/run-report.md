@@ -1,5 +1,15 @@
 # Run Report
 
+## 2026-08-14 — Study Scatter conditional uPlot lifecycle
+
+- Fixed Study Lab scatter initial rendering and valid/invalid/recovery transitions. Conditional
+  host creation now precedes uPlot creation, invalid output destroys the chart, and valid recovery
+  creates a new instance.
+- Focused `2/2`, full frontend Vitest `783/783`, type-check, 475-module build, uPlot contract for
+  `45` primary files, diff-check, and authenticated F8o `1/1` pass. Implementation: `2768f019`.
+- Acceptance flexibility used: **none**; no visual threshold, mask, provider, uPlot, or product
+  boundary changed. Remaining goal gaps are unchanged and explicit.
+
 ## 2026-08-14 — Relative Rotation async plot-host lifecycle
 
 - Fixed the asynchronous `ResizeObserver` lifecycle in `RelativeRotationTool`: the real plot host is

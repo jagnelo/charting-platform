@@ -1,4 +1,28 @@
 tasks:
+  - id: tc2000-study-scatter-lifecycle-20260814
+    title: Repair conditional Study Lab scatter uPlot lifecycle
+    status: completed
+    priority: high
+    scope: >-
+      Ensure valid scatter output creates a chart after its conditional host mounts, invalid output
+      releases the old chart, and valid recovery creates a fresh instance without stale canvases.
+    definition_of_done:
+      - Initial valid scatter data renders through uPlot after host hydration
+      - Invalid or empty data destroys the previous chart and exposes the state message
+      - Valid data recovery creates a new chart instance safely
+      - Focused, full frontend, type/build, uPlot, diff, and browser evidence pass
+      - No visual or acceptance criterion is silently relaxed
+    validation:
+      - study-scatter-unit-2-of-2
+      - frontend-vitest-783-of-783
+      - frontend-type-check-build
+      - uplot-contract-45-files
+      - authenticated-f8o-1-of-1
+    notes:
+      - >-
+        Implementation `2768f019` adds conditional-host hydration and explicit chart cleanup.
+        Acceptance flexibility used: none. Exact/unrepresented Study Lab, provider/entitlement,
+        historical/GICS, native-monitor, endurance, Docker, and final-audit gaps remain open.
   - id: tc2000-relative-rotation-async-resize-20260814
     title: Observe asynchronously mounted Relative Rotation plot hosts
     status: completed

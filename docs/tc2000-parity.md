@@ -1,5 +1,17 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-14 — Study Scatter conditional uPlot lifecycle
+
+- Study Lab scatter output now hydrates the conditional uPlot host before creating the chart,
+  destroys orphaned charts on invalid/empty output, and recreates a fresh chart when valid output
+  returns. This preserves uPlot-only numeric rendering and prevents removed canvases from leaking.
+- Focused unit `2/2`, full frontend Vitest `783/783`, type-check, 475-module build, uPlot contract
+  (`45` files), diff-check, and authenticated structured-study browser `F8o` `1/1` pass. No visual
+  baseline, threshold, mask, provider, or acceptance rule changed; flexibility used: none.
+- This closes a repository-controlled Study Lab lifecycle defect. Exact/unrepresented Study Lab
+  visuals, provider/entitlement, historical/GICS, native-monitor, endurance, Docker, and final-audit
+  gaps remain open.
+
 ## 2026-08-14 — Relative Rotation async plot-host lifecycle
 
 - The Relative Rotation uPlot host is now observed after asynchronous data hydration and when the

@@ -1,5 +1,17 @@
 # Project TODO Memory
 
+### 2026-08-14 — Study Scatter conditional uPlot lifecycle
+
+- [x] Study Lab scatter output now creates its initial uPlot only after the conditional host is
+      mounted, destroys the chart when data becomes invalid and the host disappears, and recreates
+      it safely when valid data returns.
+- [x] Focused Study Scatter coverage passes `2/2`; full frontend Vitest passes `783/783`; type-check,
+      475-module production build, uPlot contract (`45` audited files), diff-check, and authenticated
+      structured-study browser flow `F8o` pass `1/1`. Implementation commit: `2768f019`.
+- [ ] Acceptance flexibility used: **none**. Exact/unrepresented Study Lab visuals, provider/
+      entitlement breadth, historical/GICS truth, native-monitor, endurance, Docker global-prune,
+      and final-audit gaps remain explicit.
+
 ### 2026-08-14 — Relative Rotation async plot-host lifecycle
 
 - [x] Relative Rotation now observes its asynchronously mounted uPlot host after data hydration,
