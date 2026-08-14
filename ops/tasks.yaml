@@ -1,4 +1,28 @@
 tasks:
+  - id: tc2000-relative-rotation-async-resize-20260814
+    title: Observe asynchronously mounted Relative Rotation plot hosts
+    status: completed
+    priority: high
+    scope: >-
+      Repair the real-browser lifecycle in which Relative Rotation creates its uPlot host after
+      asynchronous data hydration, leaving the initial ResizeObserver attached to no element.
+    definition_of_done:
+      - The async plot host is observed after it appears and after host replacement
+      - Existing uPlot instances are resized rather than recreated
+      - Observer and chart cleanup remain safe on tool removal
+      - Focused, complete frontend, type/build, uPlot, diff, and browser evidence pass
+      - No visual or acceptance criterion is silently relaxed
+    validation:
+      - relative-rotation-unit-6-of-6
+      - frontend-vitest-781-of-781
+      - frontend-type-check-build
+      - uplot-contract-45-files
+      - authenticated-f8s-1-of-1
+    notes:
+      - >-
+        Implementation `8a159854` adds post-flush host observation and cleanup. Acceptance
+        flexibility used: none. Exact/unrepresented V25, provider/entitlement, historical/GICS,
+        native-monitor, endurance, Docker, and final-audit gaps remain open.
   - id: tc2000-docker-storage-maintenance-20260814
     title: Reduce Docker storage without deleting unrelated volumes
     status: completed

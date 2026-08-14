@@ -1,5 +1,18 @@
 # Active Handoff
 
+## 2026-08-14 — Relative Rotation async plot-host lifecycle completed
+
+- Implementation `8a159854` fixes the real lifecycle gap where Relative Rotation's asynchronous
+  uPlot host was created after the initial `ResizeObserver` setup. A post-flush host watcher now
+  observes/reconnects the host and cleanup disconnects it; chart instances remain reusable.
+- Validation: focused component `6/6`; full frontend Vitest `781/781`; type-check; 475-module
+  production build; uPlot contract (`45` files); diff-check; and authenticated F8s browser `1/1`.
+- Acceptance flexibility used: **none**. This closes one repository-controlled interaction gap;
+  exact/unrepresented V25, provider/entitlement, historical/GICS, native-monitor, endurance,
+  Docker global-prune, and final-audit gaps remain explicit.
+- The implementation is a clean local commit. The external push safeguard remains transport-only;
+  continue to the next independent context and retry only the exact authorized push range.
+
 ## 2026-08-14 — Backend revalidation and current push safeguard
 
 - After Docker maintenance, authoritative `make test-backend` completed with `1121` unit and

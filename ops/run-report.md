@@ -1,5 +1,14 @@
 # Run Report
 
+## 2026-08-14 — Relative Rotation async plot-host lifecycle
+
+- Fixed the asynchronous `ResizeObserver` lifecycle in `RelativeRotationTool`: the real plot host is
+  observed after hydration and observer ownership is cleaned up when the host/tool is removed.
+- Focused `6/6`, full frontend Vitest `781/781`, type-check, 475-module build, uPlot contract for
+  `45` primary files, diff-check, and authenticated F8s `1/1` pass. Implementation: `8a159854`.
+- Acceptance flexibility used: **none**; the repair changes no visual threshold, mask, provider,
+  uPlot renderer, or product boundary. Remaining goal gaps are unchanged and explicit.
+
 ## 2026-08-14 — Backend revalidation and current push safeguard
 
 - Post-maintenance `make test-backend` passed `1121` unit and `303` integration tests (`1424`

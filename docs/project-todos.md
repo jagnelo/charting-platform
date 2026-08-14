@@ -1,5 +1,17 @@
 # Project TODO Memory
 
+### 2026-08-14 — Relative Rotation async plot-host lifecycle
+
+- [x] Relative Rotation now observes its asynchronously mounted uPlot host after data hydration,
+      reconnects observation when the host changes, and disconnects cleanly when the tool leaves
+      the layout. This closes a real resize-lifecycle defect without recreating the chart.
+- [x] Focused component coverage passes `6/6`; full frontend Vitest passes `781/781`; type-check,
+      475-module production build, uPlot contract (`45` audited files), diff-check, and authenticated
+      F8s browser acceptance pass `1/1`. Implementation commit: `8a159854`.
+- [ ] Acceptance flexibility used: **none**. Exact/unrepresented V25 visual states, provider/
+      entitlement breadth, historical/GICS truth, native-monitor, endurance, Docker global-prune,
+      and final-audit gaps remain explicit.
+
 ### 2026-08-14 — Docker storage maintenance
 
 - [x] Docker exceeded the objective's 10GB maintenance threshold (`24.06GB` total, `19.29GB`

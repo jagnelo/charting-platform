@@ -1,5 +1,17 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-14 — Relative Rotation async plot-host lifecycle
+
+- The Relative Rotation uPlot host is now observed after asynchronous data hydration and when the
+  host changes, so live dock resizing calls the existing chart's size path rather than leaving the
+  chart unobserved. Cleanup disconnects the observer on removal.
+- Focused unit `6/6`, full frontend Vitest `781/781`, type-check, 475-module build, uPlot contract
+  (`45` files), diff-check, and authenticated F8s browser acceptance `1/1` pass. No visual baseline,
+  threshold, mask, provider, or uPlot-renderer rule changed. Acceptance flexibility used: none.
+- This closes a repository-controlled interaction/performance defect; exact/unrepresented V25,
+  provider/entitlement, historical/GICS, native-monitor, endurance, Docker, and final-audit gaps
+  remain open.
+
 ## 2026-08-14 — Docker storage maintenance
 
 - Docker crossed the maintenance threshold at `24.06GB`; scoped builder/image cleanup reclaimed
