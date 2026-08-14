@@ -8,7 +8,8 @@
   retained classes such as `AnfieldHoldingsAdapter`; class naming is not used as a false proxy for
   native support.
 - The focused blocked-provider slice passes `5/5`; the complete ETF adapter unit suite passes
-  `486/486`; Ruff and diff checks pass. Implementation commit: `00c751e3`.
+  `486/486`; the broader backend unit gate passes `1131/1131`; Ruff and diff checks pass.
+  Implementation commit: `00c751e3`.
 - Bounded external evidence remains explicit: Guinness Atkinson official holdings PDFs returned
   HTTP 403, Q3's official QVOY CSV route returned HTTP 503, and WisdomTree DXJ backend-compatible
   access returned HTTP 403. No provider was promoted and no acceptance flexibility was used.

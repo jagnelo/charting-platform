@@ -3,8 +3,9 @@
 ## 2026-08-14 — Blocked issuer native-boundary regression
 
 - Added the all-blocked-issuer regression contract and corrected the Anfield class-name edge case;
-  blocked-provider focused checks pass `5/5`, complete ETF adapter units pass `486/486`, Ruff and
-  diff checks pass. Implementation commit `00c751e3`.
+  blocked-provider focused checks pass `5/5`, complete ETF adapter units pass `486/486`, the
+  broader backend unit gate passes `1131/1131` (34 dependency deprecation warnings only), Ruff
+  and diff checks pass. Implementation commit `00c751e3`.
 - Current bounded official-route observations remain explicit: Guinness 403, Q3 QVOY 503, and
   WisdomTree DXJ 403. No native promotion or acceptance relaxation occurred.
 
