@@ -18,6 +18,11 @@
 - Implementation/docs are committed locally as `71a2c2638fe1c8199504383d22e174f798c6e3ac`.
 - Operational files are the only remaining dirty paths and will be committed as the separate
   checkpoint before the one exact clean-range push attempt.
+- The clean exact push for `91463e54bbfb37dc5e130d3c912434bfc41594bd..8cef61c89113676bf3a7b6d8fc6bcef7bac6d2f1`
+  was attempted once and rejected before Git by the private-origin egress safeguard because the
+  execution environment did not accept trusted authorization for this exact payload. No wrapper,
+  alternate transport, rewrite, reset, stash, or repeated attempt is permitted; local work is
+  clean and the product goal continues from this boundary.
 - No visual threshold, mask, product criterion, or acceptance flexibility changed. `REF-STUDY-
   LAB-V25` and the broader provider, historical/GICS, native-monitor, endurance, and final-audit
   gaps remain open. Next action is isolated commit closure, then continue independent goal work.

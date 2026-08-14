@@ -11,6 +11,9 @@
   approved elevated boundary). No acceptance criterion or visual policy changed; external gaps
   remain tracked.
 - Implementation/docs commit: `71a2c263`; operational checkpoint follows separately.
+- After the operational checkpoint, the clean exact range `91463e54..8cef61c8` was attempted once
+  and rejected before Git by the private-origin egress safeguard. This is transport-only and not a
+  goal blocker; no repeat or alternate transport was used.
 
 ## 2026-08-14 — Python editor changeset Git closure
 
