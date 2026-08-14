@@ -1,5 +1,13 @@
 # Run Report
 
+## 2026-08-14 — Current Git export result
+
+- Clean local checkpoint: `2b7651266d5a81d0240a62b60f1b2d118367a374`; remote remains
+  `91463e54bbfb37dc5e130d3c912434bfc41594bd`; no index lock or uncommitted files.
+- The exact elevated push for `91463e54bbfb37dc5e130d3c912434bfc41594bd..2b7651266d5a81d0240a62b60f1b2d118367a374`
+  to `origin/feat/tc2000-frontend-rework` was rejected before Git by the private-origin export
+  safeguard. This remains transport-only; the product goal continues from the clean boundary.
+
 ## 2026-08-14 — Full authenticated workstation matrix
 
 - Rebuilt/healthy branch stack passed the complete non-seeded authenticated Chromium matrix

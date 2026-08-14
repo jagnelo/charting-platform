@@ -1,5 +1,18 @@
 # Active Handoff
 
+## 2026-08-14 — Current Git export result
+
+- Repository/index health is normal: the worktree is clean at `2b7651266d5a81d0240a62b60f1b2d118367a374`,
+  no `.git/index.lock` exists, and the configured remote is
+  `origin/feat/tc2000-frontend-rework` at `91463e54bbfb37dc5e130d3c912434bfc41594bd`.
+- The exact elevated command `rtk git push origin HEAD:feat/tc2000-frontend-rework` for range
+  `91463e54bbfb37dc5e130d3c912434bfc41594bd..2b7651266d5a81d0240a62b60f1b2d118367a374`
+  was attempted once and rejected before Git by the private-origin egress safeguard. This is
+  an external export-authorization result, not a repository or product failure.
+- No wrapper, alternate transport, rewrite, reset, stash, or repeated same-payload attempt was
+  used. Keep the clean local commits and continue the TC2000 goal; retry only through the same
+  approved elevated path when trusted authorization accepts this exact range and destination.
+
 ## 2026-08-14 — Full authenticated workstation matrix
 
 - After Alerian/provider and scoped Docker maintenance, the complete non-seeded authenticated
