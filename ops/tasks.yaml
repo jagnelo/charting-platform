@@ -1,4 +1,27 @@
 tasks:
+  - id: tc2000-study-histogram-current-marker-20260814
+    title: Refresh Study Lab histogram current marker when the observation changes
+    status: completed
+    priority: high
+    scope: >-
+      Correct the StudyHistogramUPlot lifecycle so current-value marker changes redraw the existing
+      uPlot instance without recreating it or changing bins/data semantics.
+    definition_of_done:
+      - Histogram watches current marker changes and redraws the marker
+      - Focused lifecycle coverage proves marker update and uPlot instance reuse
+      - Full frontend, type/build, uPlot, visual-policy, and diff checks pass
+      - No visual threshold, mask, product criterion, or acceptance flexibility changes
+    validation:
+      - focused-conditional-uplot-lifecycle-12-of-12
+      - frontend-vitest-819-of-819
+      - frontend-type-check-production-build
+      - uplot-visual-policy-diff-check
+    notes:
+      - REF-STUDY-LAB-V25 remains a separate visual-reference gap.
+      - Fix any browser or lifecycle defect at its owning boundary; never suppress failures.
+      - Git transport is operational only and must not block the goal.
+      - Acceptance flexibility used: none.
+      - Implementation/docs commit: b7f71c81; operational checkpoint remains separate.
   - id: tc2000-study-lab-historical-90-90-distribution-20260814
     title: Add current-versus-history distributions to the 90/90 Study Lab
     status: completed

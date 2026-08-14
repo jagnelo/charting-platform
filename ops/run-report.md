@@ -1,5 +1,19 @@
 # Run Report
 
+## 2026-08-14 — Study histogram current-marker lifecycle context started
+
+- Started from clean local `3ea76dc9` to fix the histogram redraw dependency on the current marker
+  value. No product or visual acceptance relaxation is planned.
+
+## 2026-08-14 — Study histogram current-marker lifecycle validated
+
+- Fixed the missing `current` watcher dependency in `StudyHistogramUPlot`; current marker changes
+  now redraw without uPlot recreation.
+- Focused lifecycle `12/12`, full frontend `819/819`, type-check/build, uPlot contract, visual
+  policy, and diff checks pass. No acceptance flexibility.
+- Implementation/docs commit: `b7f71c81`; operational checkpoint follows separately and exact push
+  is attempted once after closure.
+
 ## 2026-08-14 — Historical 90/90 distribution visuals context started
 
 - Started from clean local `96c2d1a0` to add explicit current-versus-history price and volume

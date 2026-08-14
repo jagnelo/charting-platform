@@ -1,5 +1,26 @@
 # Active Handoff
 
+## 2026-08-14 — Study histogram current-marker lifecycle context (completed)
+
+- Context owner: Codex. Owned paths are `StudyHistogramUPlot.vue`, focused lifecycle coverage, and
+  parity/TODO/operational records.
+- Intent: ensure a changed typed histogram current observation redraws the highlighted marker even
+  when bins are unchanged. Preserve uPlot instance reuse, resize behavior, and output semantics.
+- Acceptance flexibility used: none. No visual threshold, mask, product criterion, or reference
+  rule changes; `REF-STUDY-LAB-V25` remains separately tracked.
+- Git rule: start from clean local `3ea76dc9` (the prior 90/90 transport-record commit). Keep
+  implementation/docs and operational checkpoint separate; attempt the exact push once after
+  closure and treat any private-origin rejection as transport-only.
+- Fix-first requirement: focused lifecycle and authenticated Study Lab browser checks must pass
+  after the change; correct any exposed defect before closing the context.
+- Completed: `StudyHistogramUPlot` now watches `current` and redraws the marker through the existing
+  chart instance. Focused lifecycle `12/12`, frontend `819/819`, type-check/build, uPlot contract,
+  visual policy, and diff checks pass. No browser oracle or acceptance rule changed.
+- Acceptance flexibility used: none. `REF-STUDY-LAB-V25` remains open.
+- Implementation/docs commit: `b7f71c81` (`fix(study-lab): refresh histogram current marker`).
+  Operational checkpoint remains separate and the exact push will be attempted once after closure.
+- Next action: continue the next independent workstation/backend gap.
+
 ## 2026-08-14 — Historical 90/90 distribution visuals context (completed)
 
 - Context owner: Codex. Owned paths are the Study Lab factory source, focused Study Lab contracts,
