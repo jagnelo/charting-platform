@@ -1,5 +1,26 @@
 # Active Handoff
 
+## 2026-08-14 — Study Lab metric export closure and Git transport record
+
+- The active Study Lab export context is complete. Scalar, Boolean, and structured artifacts now
+  expose accessible JSON Export controls; the payload retains run ID, reproducibility hash, and
+  typed artifact identity/value. `StudyLabTool` keeps the browser object-URL lifecycle bounded.
+- Fix-first evidence: focused Study Lab `22/22`, prior full frontend `819/819`, `vue-tsc`,
+  production build, and rebuilt authenticated `F8p-export` `1/1` (both `current_streak.json` and
+  `completed_streaks.json`) passed without critical browser diagnostics.
+- Implementation commit: `43f0078b` (`feat(study-lab): export metric artifacts`). The worktree is
+  clean after the elevated, worker-owned `rtk git add`/`rtk git commit` recovery path.
+- Exact elevated push `rtk git push origin feat/tc2000-frontend-rework` for range
+  `91463e54..43f0078b` was rejected before Git by the private-origin egress safeguard because this
+  execution boundary has no trusted authorization for that private destination/payload. This is
+  transport-only, not a product or goal blocker; no alternate transport, wrapper, reset, stash,
+  force push, or repeat was used.
+- The repository already contains the durable `.git/index.lock` recovery and no-accumulation
+  procedure in `docs/agent-orchestration.md`; this record confirms it was executed successfully.
+- Acceptance flexibility used: none. `REF-STUDY-LAB-V25` and the broader documented gaps remain
+  explicit. Next action: continue the next independent product context from the clean local
+  boundary.
+
 ## 2026-08-14 — Study Lab artifact export browser transport record
 
 - Browser implementation/docs `06ae5236` and operational checkpoint `0f55f8e1` are clean local

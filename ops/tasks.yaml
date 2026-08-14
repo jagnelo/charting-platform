@@ -4,14 +4,15 @@ tasks:
     status: completed
     priority: high
     scope: >-
-      Add a direct JSON export control to active Study Lab result artifacts, preserving run
-      identity and reproducibility metadata without sending data to a provider or rebuilding
-      numerical renderers.
+      Add a direct JSON export control to every active Study Lab result artifact, including scalar,
+      Boolean, and structured outputs, preserving run identity and reproducibility metadata without
+      sending data to a provider or rebuilding numerical renderers.
     definition_of_done:
-      - Every non-scalar Study Lab artifact exposes an accessible Export control
+      - Every scalar, Boolean, and non-scalar Study Lab artifact exposes an accessible Export control
       - Export payload includes run ID, reproducibility hash, artifact identity, type, and value
       - Object URLs are revoked after download initiation
       - Focused/full frontend, type-check, build, and diff checks pass
+      - Authenticated browser acceptance downloads both a scalar metric and a structured artifact
       - No visual threshold, mask, product criterion, or acceptance flexibility changes
     validation:
       - study-lab-component-22-of-22
@@ -22,14 +23,22 @@ tasks:
       - Initial jsdom test exposed absent URL.createObjectURL; the test now installs and removes a
         bounded URL double, while production code retains the native browser path.
       - Acceptance flexibility used: none; broader Study Lab visual-reference gaps remain open.
-      - Implementation/docs commit: b0ecea52; operational checkpoint remains separate.
-      - Operational checkpoint: 163a0191. Exact push 91463e54..163a0191 was attempted once and
+      - Initial implementation/docs commit: b0ecea52; operational checkpoint remained separate.
+      - >-
+        Operational checkpoint: 163a0191. Exact push 91463e54..163a0191 was attempted once and
         rejected before Git by the private-origin egress safeguard; transport-only, no workaround
         or repeat.
       - Authenticated rebuilt-stack `F8p-export` passes 1/1 in 4.9s and verifies the downloaded
         completed_streaks JSON filename with clean browser diagnostics.
-      - Exact push 91463e54..0f55f8e1 was attempted once and rejected before Git by the private-
+      - >-
+        Exact push 91463e54..0f55f8e1 was attempted once and rejected before Git by the private-
         origin egress safeguard; transport-only, no workaround or repeat.
+      - >-
+        Metric and Boolean export completion: implementation commit 43f0078b; focused Study Lab
+        22/22, type-check/build, and authenticated `F8p-export` 1/1 now verify both
+        `current_streak.json` and `completed_streaks.json` downloads. Exact push
+        91463e54..43f0078b was rejected before Git by the same private-origin safeguard; the
+        worktree remains clean and the goal continues.
   - id: tc2000-study-lab-sdk-reference-duplicate-20260814
     title: Remove duplicated Study Lab SDK reference row
     status: completed
@@ -1034,13 +1043,21 @@ tasks:
     validation:
       - clean-status-and-metadata-audit
       - elevated-scoped-commit-d7767d0c
+      - elevated-scoped-commit-43f0078b
       - exact-push-rejected-before-git-91463e54-to-d7767d0c
+      - exact-push-rejected-before-git-91463e54-to-43f0078b
       - git-diff-check
     notes:
       - >-
         The environment safeguard rejected the exact private-origin payload before Git. This is
         not a goal blocker; retry only through the same approved elevated path after exact
         destination/range authorization is available.
+      - >-
+        On 2026-08-14, the same recovery was re-executed successfully: no stale `.git/index.lock`
+        existed, repository/index ownership was healthy, scoped `rtk git add` and `rtk git commit`
+        created `43f0078b`, and the worktree was clean. The exact push was rejected before Git for
+        lack of trusted private-origin export authorization. This is the expected transport record,
+        not a product blocker or reason to leave work uncommitted.
   - id: tc2000-pending-transform-regression-20260814
     title: Prove settings and canvas behavior during pending transform requests
     status: completed

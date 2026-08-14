@@ -1,5 +1,19 @@
 # Run Report
 
+## 2026-08-14 — Study Lab metric export closure and Git transport result
+
+- Completed the active Study Lab export context for scalar, Boolean, and structured artifacts.
+  Focused Study Lab `22/22`, type-check/build, and rebuilt authenticated `F8p-export` `1/1` passed;
+  browser downloads verified both `current_streak.json` and `completed_streaks.json`.
+- Implementation commit `43f0078b` was created through the elevated worker-owned Git path and the
+  worktree is clean. This confirms the repository-side fix for the sandbox index-lock boundary.
+- Exact push range `91463e54..43f0078b` was rejected before Git by the private-origin egress
+  safeguard. No workaround or repeat was used; this is a transport-only hold and the goal
+  continues from the clean local commit.
+- The future recovery is documented in `docs/agent-orchestration.md`: verify no stale lock, use
+  sequential elevated `rtk git add`/`commit`/exact `push`, record any pre-Git egress refusal, and
+  never leave completed work dirty or mark the product goal blocked.
+
 ## 2026-08-14 — Study Lab artifact export browser transport result
 
 - Browser implementation/docs `06ae5236` and operational checkpoint `0f55f8e1` are clean locally.
