@@ -1,5 +1,14 @@
 # Active Handoff
 
+## 2026-08-14 — Current clean boundary and push transport state
+
+- The current worktree is clean at `fade78be`; the branch is `120` commits ahead of
+  `origin/feat/tc2000-frontend-rework` (`91463e54..fade78be`). Implementation and operational
+  contexts remain isolated; no files are uncommitted.
+- The exact private-origin push remains subject to the already documented pre-Git trusted
+  authorization gate. No new push attempt or workaround is made without newly accepted
+  exact-payload authorization. This is transport-only and does not block the active product goal.
+
 ## 2026-08-14 — Auth-store router teardown race
 
 - The frontend suite exposed one unhandled post-teardown `ReferenceError: history is not defined`
