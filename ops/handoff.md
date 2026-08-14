@@ -18,6 +18,9 @@
   locally. Its exact elevated push was attempted once and rejected before Git by the private-origin
   safeguard; origin remains `91463e54`. Operational records are being committed separately; no
   workaround, alternate transport, or repeat.
+- Operational checkpoint `0ab9cbbb chore(ops): record derived family series checkpoint` is also clean
+  locally. Its exact elevated push was attempted once and rejected before Git by the same
+  private-origin safeguard; origin remains `91463e54`. Transport is the only unresolved boundary.
 
 ## 2026-08-14 — Benchmark-family overview analytics bridge
 
