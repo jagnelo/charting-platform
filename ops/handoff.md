@@ -1,5 +1,21 @@
 # Active Handoff
 
+## 2026-08-14 — Generic breadth historical occurrence checkpoint
+
+- Extended `POST /analysis/breadth/history` with typed member-entered/member-exited occurrences
+  derived from the same per-member historical pass/fail results. Each event carries stable ID,
+  timestamp, canonical instrument identity, metric, aggregate percentage, pass count, and eligible
+  count. Initial observations, missing bars, and exclusions do not create synthetic transitions.
+- Added frontend occurrence typing and a visible occurrence count beside the generic breadth uPlot
+  history. Validation: service `8/8`, generic-history API `1/1`, family/generic integration `17/17`,
+  frontend `837/837`, type-check, production build, Ruff, compileall, JSON/YAML parsing, and
+  diff-check. A first syntax failure was fixed immediately and the focused/broader suites rerun;
+  acceptance flexibility used: none.
+- Implementation/docs commit: `b3913de6 feat(breadth): expose historical occurrences`. Worktree
+  was clean before the operational update. Exact push was attempted once and rejected before Git
+  by the private-origin safeguard; no workaround or repeat. Next context: occurrence browsing and
+  click-to-linked-chart publication, then isolated-Python/Study Lab occurrence promotion.
+
 ## 2026-08-14 — Derived-equal historical concentration checkpoint
 
 - Extended `GET /analysis/benchmark-families/{family_key}/concentration/history` for families

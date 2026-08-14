@@ -1,5 +1,19 @@
 # Run Report
 
+## 2026-08-14 — Generic breadth historical occurrence checkpoint
+
+- Implemented deterministic historical member state-transition events for the generic breadth
+  condition contract and exposed them through the API, store typing, and workstation history
+  evidence. Events are generated only from two known Boolean observations; gaps and exclusions are
+  preserved rather than interpreted as state changes.
+- Validation: breadth service `8/8`, generic-history API `1/1`, combined family/generic integration
+  `17/17`, full frontend `837/837`, `vue-tsc`, production build, Ruff, compileall, JSON/YAML, and
+  diff checks. Acceptance flexibility used: none; the first syntax defect was repaired and rerun.
+- Git closure: implementation/docs commit `b3913de6` is clean locally. Exact push was attempted once
+  and rejected before Git by the private-origin safeguard; no workaround or repeat. Remaining work
+  is occurrence browsing/chart linking, Python/Study Lab promotion, provider population, and final
+  V25 acceptance.
+
 ## 2026-08-14 — Derived-equal historical concentration checkpoint
 
 - Implemented point-in-time derived-equal historical concentration for explicitly permitted family

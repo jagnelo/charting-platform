@@ -1,4 +1,29 @@
 tasks:
+  - id: tc2000-generic-breadth-occurrences-20260815
+    title: Add deterministic historical generic-breadth occurrences
+    status: completed
+    priority: high
+    scope: >-
+      Derive member-entered/member-exited events from the existing generic breadth history
+      evaluation, preserving canonical identity, timestamp, metric, aggregate counts, and stable
+      occurrence IDs without fabricating transitions across missing or excluded observations.
+    definition_of_done:
+      - History response includes typed member state-transition occurrences
+      - Events require two known Boolean observations and share the aggregate history semantics
+      - Initial, missing-bar, and excluded values do not emit synthetic events
+      - Service/API regressions, frontend typing/display, lint, compile, type/build, and diff checks pass
+      - Remaining chart-linking, Python-run, and Study Lab promotion gaps are documented
+    validation:
+      - breadth-service-8-of-8
+      - generic-breadth-history-api-1-of-1
+      - family-generic-integration-17-of-17
+      - frontend-vitest-837-of-837
+      - vue-tsc-production-build
+      - ruff-compileall-diff-check
+    notes:
+      - >-
+        Implemented and validated without acceptance flexibility. A first syntax error in the
+        occurrence helper was fixed immediately and the focused and broader suites rerun.
   - id: tc2000-us-benchmark-family-expansion-20260814
     title: Expand top-down and breadth analysis across US benchmark families and cap/equal/style variants
     status: in_progress
