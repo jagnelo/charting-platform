@@ -1,5 +1,21 @@
 # Project TODO Memory
 
+### 2026-08-14 — Preserve chart settings through loading-time uPlot rebuilds
+
+- [x] The workstation keeps `UPlotChart` mounted while a symbol/timeframe/alternative-bar
+      request is loading, so the Chart Settings dialog and transform controls do not disappear.
+      The numerical uPlot instance, drawing canvas, and sub-pane canvases are still destroyed
+      during loading and recreated only after valid bars return; stale chart pixels cannot remain.
+- [x] The original sequence-sensitive browser failures are closed: F9c/F9c-transform/
+      F9c-template-transform plus F8r-breadth-narrow pass `4/4`; isolated transform tests pass;
+      focused board loading/Study visuals pass `8/8`; frontend Vitest passes `806/806`;
+      type-check, 476-module production image build, and diff-check pass; corrected full seeded
+      authenticated flows pass `138/140` executed with the two explicit canonical-only skips.
+      Implementation commit: `0ffab190`.
+- [ ] Acceptance flexibility used: **none**. This is a repository-controlled lifecycle repair;
+      exact/unrepresented V25 visual states, provider/entitlement breadth, historical/GICS truth,
+      native-monitor, longer endurance, Docker global-prune, and final-audit gaps remain explicit.
+
 ### 2026-08-14 — Conditional numerical-data validation
 
 - [x] Study Series now rejects invalid timestamps and non-finite values before uPlot; Breadth

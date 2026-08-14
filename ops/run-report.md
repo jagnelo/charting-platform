@@ -1,5 +1,18 @@
 # Run Report
 
+## 2026-08-14 — Chart settings loading lifecycle repair
+
+- The first complete seeded flow run after the visual fix was `134 passed / 4 failed`; the four
+  failures were reproduced. After the lifecycle repair, the original sequence passes `4/4`,
+  isolated transform cases pass `2/2`, and the complete corrected authenticated matrix passes
+  `138/140` executed with two canonical-only skips and zero failures.
+- Frontend Vitest passes `806/806`; `vue-tsc --noEmit`; 476-module Docker production build;
+  focused board loading/Study visuals `8/8`; and `git diff --check` pass.
+- No acceptance flexibility was used. The regression was repository-controlled and fixed rather
+  than hidden by increasing timeouts or changing visual criteria.
+- Implementation commit: `0ffab190`; worktree was clean at the implementation boundary before
+  this operational record.
+
 ## 2026-08-14 — Complete board visual revalidation
 
 - `frontend/tests/e2e/tc2000_visual.spec.ts` passed `104/104` in `5.2m` with one worker across

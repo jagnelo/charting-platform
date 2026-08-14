@@ -1,4 +1,34 @@
 tasks:
+  - id: tc2000-chart-settings-loading-lifecycle-20260814
+    title: Preserve chart settings while rebuilding loading-time uPlot data
+    status: completed
+    priority: high
+    scope: >-
+      Repair the sequence-sensitive alternative-bar and chart-template flows exposed when the
+      loading-state uPlot cleanup unmounted the entire chart component and closed its settings
+      dialog.
+    definition_of_done:
+      - Settings and transform controls remain mounted during chart history requests
+      - uPlot, drawing, and sub-pane canvases are destroyed during loading and recreated after valid bars
+      - F9c, transform, template-transform, and narrow-breadth sequence regressions pass
+      - Focused visual and complete authenticated browser gates pass
+      - No visual threshold, mask, renderer, or acceptance criterion is relaxed
+    validation:
+      - f9c-transform-sequence-4-of-4
+      - isolated-transform-regressions-2-of-2
+      - board-loading-study-visual-8-of-8
+      - seeded-authenticated-flows-138-of-140-with-2-canonical-only-skips
+      - frontend-vitest-806-of-806
+      - frontend-type-check-build-476-modules
+      - git-diff-check
+    notes:
+      - >-
+        Implementation commit `0ffab190`. The initial complete seeded matrix exposed three
+        settings timeouts and one narrow-breadth overflow; focused reproduction confirmed the
+        settings failures were caused by the chart component unmounting during loading. The
+        durable fix keeps the component/dialog mounted while destroying only numerical/canvas
+        resources. No acceptance flexibility was used; all documented external/reference gaps
+        remain open.
   - id: tc2000-chart-loading-study-visual-20260814
     title: Close stale chart loading and Study Lab visual-oracle drift
     status: completed

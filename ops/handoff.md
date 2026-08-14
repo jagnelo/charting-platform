@@ -1,5 +1,22 @@
 # Active Handoff
 
+## 2026-08-14 — Chart settings loading lifecycle repair
+
+- Initial complete seeded `flows.spec.ts` exposed four failures: F9c, F9c-transform, and
+  F9c-template-transform timed out because the chart component was unmounted when transform
+  loading began; F8r-breadth-narrow was sequence-sensitive. Focused reproduction isolated the
+  first three to the loading lifecycle rather than external data.
+- Implementation commit `0ffab190` keeps `UPlotChart` and its Teleported Chart Settings dialog
+  mounted while loading, destroys uPlot/drawing/sub-pane canvas resources, and recreates them
+  after valid bars. The stale-canvas loading assertion remains intact.
+- Validation: original four-case sequence `4/4`; isolated transform cases `2/2`; focused board
+  loading/Study visuals `8/8`; frontend Vitest `806/806`; type-check; 476-module production
+  image build; diff-check; and corrected full seeded authenticated matrix `138/140` executed with
+  only the two explicit canonical-only skips.
+- Acceptance flexibility used: none. No thresholds, masks, reference authority, provenance,
+  provider rules, or product criteria changed. Exact/unrepresented V25, provider/entitlement,
+  historical/GICS, native-monitor, endurance, Docker, and final-audit gaps remain open.
+
 ## 2026-08-14 — Complete board visual revalidation
 
 - The complete board-guided `tc2000_visual.spec.ts` matrix passed `104/104` in `5.2m` with one

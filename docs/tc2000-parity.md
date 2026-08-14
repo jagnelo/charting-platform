@@ -1,5 +1,21 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-14 — Preserve settings during loading-time chart rebuilds
+
+- The chart host now remains mounted while symbol/timeframe/alternative-bar history is loading,
+  preserving the Version 25-style settings dialog and transform controls through the request.
+  `UPlotChart` destroys its numerical instance and all drawing/sub-pane canvases during loading,
+  then recreates them after valid bars arrive, so no stale numerical renderer remains underneath
+  the explicit loading state.
+- The sequence that exposed the defect (F9c, F9c-transform, F9c-template-transform, and
+  F8r-breadth-narrow) passes `4/4`; focused board loading/Study visuals pass `8/8`; the full
+  seeded authenticated flow matrix passes `138/140` executed with the two documented
+  canonical-only skips; frontend Vitest `806/806`, type-check, 476-module build, and diff-check
+  pass. Implementation commit: `0ffab190`.
+- Acceptance flexibility used: **none**. This is a repository-controlled lifecycle repair. Exact
+  or unrepresented V25 visual states, provider/entitlement breadth, historical/GICS truth,
+  native-monitor, endurance, Docker, and final-audit gaps remain open.
+
 ## 2026-08-14 — Chart loading lifecycle and deterministic Study Lab visual state
 
 - The primary chart host now detaches its uPlot canvas while history is loading. The loading
