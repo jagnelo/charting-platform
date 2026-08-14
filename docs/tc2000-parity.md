@@ -349,6 +349,23 @@ rotation, cross-family ranking, and member drill-down wherever data permits. Nat
 derived weights, membership snapshots, effective/known-at times, coverage, exclusions, and
 freshness are always shown; no family silently falls back to SPY or QQQ.
 
+## 2026-08-14 — Benchmark-family participation parity slice
+
+The family workflow now has a role-aware participation batch parallel to the family technical
+snapshot. For each independently mapped cap/equal/value/growth leg, the backend evaluates member
+participation above SMA20/50/200, proximity to a rolling 52-week high, configurable new-high
+windows, trend-up state, and relative strength to the family cap proxy when aligned bars exist.
+Each role carries its own membership version, provenance, coverage, exclusions, and unavailable
+state; a missing cap or style leg is never replaced by SPY, QQQ, or another role.
+
+The authenticated workstation renders these values as a dense Version-25-style family
+participation strip with role-local loading, partial, warning, and unavailable states. The focused
+browser oracle asserts the visible cap-role strip while backend and store tests assert the
+configurable near-high threshold/lookback and no-fallback semantics. This is a parity sub-gate,
+not completion of the generic breadth contract: historical role participation, arbitrary
+condition-driven studies, occurrence linking, and all-family ranking/rotation/dispersion remain
+open and are tracked in the controlling plan.
+
 ## 2026-08-14 — Breadth scope expanded to condition-driven cross-sectional studies
 
 The breadth requirement is broader than the current fixed metric panel. The implemented panel

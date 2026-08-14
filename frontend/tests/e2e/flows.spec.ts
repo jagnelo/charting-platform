@@ -3317,6 +3317,30 @@ test.describe('TC2000 workstation', () => {
         }),
       })
     })
+    await page.route('**/api/v1/analysis/benchmark-families/sp500/breadth*', async route => {
+      familyAsOfRequests.push(route.request().url())
+      const metric = (percentage: number | null) => ({ percentage, requested_count: 100, eligible_count: percentage == null ? 0 : 100, excluded_count: percentage == null ? 100 : 0, coverage: percentage == null ? 0 : 1, exclusions: [] })
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          family_key: 'sp500',
+          official_index_symbol: 'SPX',
+          timeframe: 'D1',
+          adjustment: 'split_adjusted',
+          near_threshold: 0.01,
+          new_high_lookback: 20,
+          membership_version: 1,
+          roles: [
+            { role: 'cap_weight', symbol: 'SPY', label: 'SPY', verification_state: 'verified', available: true, above_ma: { ma20: metric(0.7), ma50: metric(0.6), ma200: metric(0.5) }, near_52w_high: metric(0.4), new_high: metric(0.1), trend_up: metric(0.65), relative_strength_to_cap: null, exclusions: [] },
+            { role: 'equal_weight', symbol: 'RSP', label: 'RSP', verification_state: 'verified', available: true, above_ma: { ma20: metric(0.55), ma50: metric(0.5), ma200: metric(0.45) }, near_52w_high: metric(0.3), new_high: metric(0.08), trend_up: metric(0.5), relative_strength_to_cap: metric(0.02), exclusions: [] },
+            { role: 'value', symbol: 'SPYV', label: 'SPYV', verification_state: 'verified', available: true, above_ma: {}, near_52w_high: null, new_high: null, trend_up: null, relative_strength_to_cap: null, exclusions: [{ code: 'holdings_snapshot_not_found', message: 'No holdings snapshot.' }] },
+            { role: 'growth', symbol: 'SPYG', label: 'SPYG', verification_state: 'verified', available: true, above_ma: {}, near_52w_high: null, new_high: null, trend_up: null, relative_strength_to_cap: null, exclusions: [{ code: 'holdings_snapshot_not_found', message: 'No holdings snapshot.' }] },
+          ],
+          exclusions: [],
+        }),
+      })
+    })
     await page.route('**/api/v1/analysis/benchmark-families/sp500/overview*', async route => {
       familyAsOfRequests.push(route.request().url())
       await route.fulfill({
@@ -3399,6 +3423,7 @@ test.describe('TC2000 workstation', () => {
     await expect(familyPanel).toBeVisible({ timeout: 10_000 })
     await expect(familyPanel).toContainText('RSP/SPY', { timeout: 15_000 })
     await expect(breadth.locator('[aria-label="Benchmark family technicals"]')).toContainText('Cap weight SPY · 600.00 · RSI 55.00', { timeout: 15_000 })
+    await expect(breadth.locator('[aria-label="Benchmark family participation"]')).toContainText('Cap weight SPY · >20 70% · near 52w 40% · trend 65%', { timeout: 15_000 })
     await expect(familyPanel.getByRole('combobox', { name: 'Family ratio leg' })).toHaveValue('equal_weight')
     const familyOverview = breadth.locator('[aria-label="Benchmark family analysis"]')
     await expect(familyOverview).toBeVisible({ timeout: 15_000 })

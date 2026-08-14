@@ -276,6 +276,51 @@ class BenchmarkFamilyTechnicalsOut(AnalysisResponseMetadata):
     exclusions: list[AnalysisWarning] = Field(default_factory=list)
 
 
+class BenchmarkFamilyBreadthMetricOut(BaseModel):
+    """One transparent current participation metric for a family role."""
+
+    percentage: float | None = Field(default=None, ge=0, le=1)
+    requested_count: int = Field(ge=0)
+    eligible_count: int = Field(ge=0)
+    excluded_count: int = Field(ge=0)
+    coverage: float = Field(ge=0, le=1)
+    exclusions: list[AnalysisWarning] = Field(default_factory=list)
+
+
+class BenchmarkFamilyBreadthRoleOut(BaseModel):
+    """Role-local current participation and relative-strength metrics."""
+
+    role: Literal["cap_weight", "equal_weight", "value", "growth"]
+    symbol: str | None = None
+    label: str
+    verification_state: str
+    available: bool
+    membership_version: int | None = None
+    universe_provenance: dict[str, object] = Field(default_factory=dict)
+    above_ma: dict[str, BenchmarkFamilyBreadthMetricOut] = Field(default_factory=dict)
+    near_52w_high: BenchmarkFamilyBreadthMetricOut | None = None
+    new_high: BenchmarkFamilyBreadthMetricOut | None = None
+    trend_up: BenchmarkFamilyBreadthMetricOut | None = None
+    relative_strength_to_cap: BenchmarkFamilyBreadthMetricOut | None = None
+    exclusions: list[AnalysisWarning] = Field(default_factory=list)
+
+
+class BenchmarkFamilyBreadthOut(AnalysisResponseMetadata):
+    """Side-by-side current breadth for every available family role."""
+
+    family_key: str
+    official_index_symbol: str
+    timeframe: str
+    adjustment: str
+    as_of: datetime | None = None
+    near_threshold: float = Field(ge=0, le=0.5)
+    new_high_lookback: int = Field(ge=2, le=252)
+    membership_version: int
+    universe_provenance: dict[str, object] = Field(default_factory=dict)
+    roles: list[BenchmarkFamilyBreadthRoleOut] = Field(default_factory=list)
+    exclusions: list[AnalysisWarning] = Field(default_factory=list)
+
+
 class ETFConstituentSnapshotRowOut(GroupSnapshotRow):
     """Technical row plus disclosed point-in-time holding evidence."""
 

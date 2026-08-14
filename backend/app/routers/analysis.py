@@ -36,6 +36,9 @@ from app.schemas.analysis import (
     AnalysisCell,
     AnalysisPoint,
     AnalysisWarning,
+    BenchmarkFamilyBreadthMetricOut,
+    BenchmarkFamilyBreadthOut,
+    BenchmarkFamilyBreadthRoleOut,
     BenchmarkFamilyCoverageOut,
     BenchmarkFamilyCoverageRoleOut,
     BenchmarkFamilyCoverageSnapshotOut,
@@ -60,6 +63,7 @@ from app.schemas.analysis import (
     BreadthPythonResultPointOut,
     BreadthPythonRunOut,
     BreadthPythonRunRequest,
+    BreadthUniverseRequest,
     ETFConstituentSnapshotOut,
     ETFConstituentSnapshotRowOut,
     GroupSnapshotOut,
@@ -2595,6 +2599,230 @@ async def benchmark_family_technicals(
             "available_roles": available_count,
             "roles_with_bars": current_count,
         },
+    )
+
+
+@router.get(
+    "/benchmark-families/{family_key}/breadth",
+    response_model=BenchmarkFamilyBreadthOut,
+)
+async def benchmark_family_breadth(
+    family_key: str,
+    timeframe: Timeframe = Timeframe.D1,
+    adjusted: bool = True,
+    as_of: datetime | None = Query(default=None),
+    near_threshold: float = Query(default=0.01, ge=0, le=0.5),
+    new_high_lookback: int = Query(default=20, ge=2, le=252),
+    _: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Compare standard participation metrics across family role universes.
+
+    This is a convenience batch view over the same point-in-time ETF-proxy
+    universe and evaluator used by configurable generic breadth. It does not
+    replace the user-authored breadth contract or fabricate unavailable legs.
+    """
+
+    family = (
+        await db.execute(select(MarketGroup).where(MarketGroup.stable_key == family_key))
+    ).scalar_one_or_none()
+    if family is None or family.group_type != "benchmark_family":
+        raise HTTPException(
+            404,
+            detail={"code": "benchmark_family_not_found", "family_key": family_key},
+        )
+    provenance = dict(family.provenance or {})
+    official = provenance.get("official_index")
+    mappings = provenance.get("proxy_mappings")
+    if not isinstance(official, Mapping) or not isinstance(mappings, Mapping):
+        raise HTTPException(
+            422,
+            detail={"code": "benchmark_family_metadata_missing", "family_key": family_key},
+        )
+
+    cap_mapping = mappings.get("cap_weight")
+    cap_symbol = (
+        str(cap_mapping.get("symbol")).upper()
+        if isinstance(cap_mapping, Mapping) and cap_mapping.get("symbol")
+        else None
+    )
+    cap_instrument = None
+    if cap_symbol:
+        try:
+            cap_instrument = await _instrument(db, cap_symbol)
+        except HTTPException as error:
+            if error.status_code != 404:
+                raise
+    cap_bars = (
+        _truncate_bars_at(
+            await _bars_by_instrument(db, [cap_instrument.id], timeframe, adjusted), as_of
+        ).get(cap_instrument.id, [])
+        if cap_instrument
+        else []
+    )
+    roles: list[BenchmarkFamilyBreadthRoleOut] = []
+    exclusions: list[AnalysisWarning] = []
+
+    def metric(
+        results: list[object], aggregate: dict[str, int | float],
+    ) -> BenchmarkFamilyBreadthMetricOut:
+        metric_exclusions = [
+            _generic_breadth_warning(str(result.exclusion_code), result.instrument_id)
+            for result in results
+            if getattr(result, "exclusion_code", None)
+        ]
+        return BenchmarkFamilyBreadthMetricOut(
+            percentage=aggregate.get("percentage"),
+            requested_count=int(aggregate.get("requested_count", 0)),
+            eligible_count=int(aggregate.get("eligible_count", 0)),
+            excluded_count=int(aggregate.get("excluded_count", 0)),
+            coverage=float(aggregate.get("coverage", 0.0)),
+            exclusions=metric_exclusions,
+        )
+
+    for role in ("cap_weight", "equal_weight", "value", "growth"):
+        mapping = mappings.get(role)
+        mapping = mapping if isinstance(mapping, Mapping) else {}
+        symbol = str(mapping.get("symbol")).upper() if mapping.get("symbol") else None
+        label = str(mapping.get("label") or "No verified mapped proxy")
+        verification_state = str(mapping.get("verification_state") or "not_verified")
+        if not symbol:
+            warning = AnalysisWarning(
+                code="family_role_mapping_unavailable",
+                message=f"No verified mapped proxy is available for the {role} leg.",
+            )
+            exclusions.append(warning)
+            roles.append(
+                BenchmarkFamilyBreadthRoleOut(
+                    role=role,
+                    symbol=None,
+                    label=label,
+                    verification_state=verification_state,
+                    available=False,
+                    exclusions=[warning],
+                )
+            )
+            continue
+
+        definition = BreadthDefinitionRequest(
+            universe=BreadthUniverseRequest(
+                kind="benchmark_family", key=family_key, role=role, point_in_time=True
+            ),
+            condition=BreadthConditionRequest(
+                kind="above_moving_average", params={"period": 20}
+            ),
+            timeframe=timeframe.value,
+            adjusted=adjusted,
+            as_of=as_of,
+        )
+        try:
+            members, _, universe_warnings, universe_provenance, membership_payload = (
+                await _resolve_benchmark_family_breadth_universe(definition, db)
+            )
+        except HTTPException as error:
+            detail = error.detail if isinstance(error.detail, Mapping) else {}
+            warning = AnalysisWarning(
+                code=str(detail.get("code") or "family_breadth_unavailable"),
+                message=str(detail.get("message") or f"Breadth is unavailable for the {role} leg."),
+            )
+            exclusions.append(warning)
+            roles.append(
+                BenchmarkFamilyBreadthRoleOut(
+                    role=role,
+                    symbol=symbol,
+                    label=label,
+                    verification_state=verification_state,
+                    available=False,
+                    exclusions=[warning],
+                )
+            )
+            continue
+        instrument_ids = [member.instrument_id for member in members]
+        bars_by_id = _truncate_bars_at(
+            await _bars_by_instrument(db, instrument_ids, timeframe, adjusted), as_of
+        )
+        role_exclusions = list(universe_warnings)
+
+        def evaluate(condition: dict[str, object]) -> BenchmarkFamilyBreadthMetricOut:
+            results, aggregate = evaluate_breadth(
+                members, bars_by_id, condition, benchmark_bars=cap_bars or None
+            )
+            return metric(results, aggregate)
+
+        above_ma = {
+            f"ma{period}": evaluate(
+                {"kind": "above_moving_average", "params": {"period": period}}
+            )
+            for period in (20, 50, 200)
+        }
+        near_high = evaluate(
+            {
+                "kind": "within_52_week_high",
+                "params": {"lookback": 252, "threshold": near_threshold, "direction": "high"},
+            }
+        )
+        new_high = evaluate(
+            {
+                "kind": "new_high_low",
+                "params": {"lookback": new_high_lookback, "direction": "high"},
+            }
+        )
+        trend_up = evaluate(
+            {
+                "kind": "trend",
+                "params": {"fast_period": 20, "slow_period": 50, "direction": "up"},
+            }
+        )
+        relative = None
+        if role != "cap_weight" and cap_bars:
+            relative = evaluate(
+                {"kind": "relative_strength", "params": {"lookback": 20, "threshold": 0}}
+            )
+        role_exclusions.extend(
+            warning
+            for item in [*above_ma.values(), near_high, new_high, trend_up, relative]
+            if item is not None
+            for warning in item.exclusions
+        )
+        membership_version = _generic_membership_version(membership_payload)
+        roles.append(
+            BenchmarkFamilyBreadthRoleOut(
+                role=role,
+                symbol=symbol,
+                label=label,
+                verification_state=verification_state,
+                available=True,
+                membership_version=membership_version,
+                universe_provenance=universe_provenance,
+                above_ma=above_ma,
+                near_52w_high=near_high,
+                new_high=new_high,
+                trend_up=trend_up,
+                relative_strength_to_cap=relative,
+                exclusions=role_exclusions,
+            )
+        )
+
+    selected_members = _group_members_at(family, as_of)
+    return BenchmarkFamilyBreadthOut(
+        family_key=family_key,
+        official_index_symbol=str(official.get("symbol") or ""),
+        timeframe=timeframe.value,
+        adjustment="split_adjusted" if adjusted else "raw",
+        as_of=as_of,
+        near_threshold=near_threshold,
+        new_high_lookback=new_high_lookback,
+        membership_version=_group_membership_version(family, selected_members),
+        universe_provenance={
+            **_group_provenance(family, as_of),
+            "family_key": family_key,
+            "breadth_semantics": "standard_role_participation_batch_over_point_in_time_holdings",
+            "requested_roles": ["cap_weight", "equal_weight", "value", "growth"],
+        },
+        roles=roles,
+        exclusions=exclusions,
+        freshness="available" if any(role.available for role in roles) else "unavailable",
+        freshness_detail={"role_count": 4, "available_roles": sum(role.available for role in roles)},
     )
 
 

@@ -12385,3 +12385,25 @@ The current source also passes the focused authenticated top-down browser slice 
 - [ ] Still open: complete historical bars and holdings for every role/family, role-level breadth
       and ranking/rotation/dispersion views, sector/industry taxonomy coverage, and full browser
       population across all eight roots.
+
+### 2026-08-14 — Benchmark-family role participation batch
+
+- [x] Added `GET /analysis/benchmark-families/{family_key}/breadth` for side-by-side cap,
+      equal-weight, value, and growth participation across every mapped role. The response keeps
+      role identity, point-in-time membership, source/provenance, coverage, exclusions, and
+      no-fallback unavailable states independent; a missing cap role cannot make another role
+      appear available.
+- [x] The workstation now shows compact role strips for percentage above SMA20, percentage near
+      the rolling 52-week high (configurable threshold), and trend-up participation (configurable
+      lookback), with role-local loading, unavailable, warning, and partial-data states. The same
+      batch exposes relative strength to the family cap proxy where aligned bars exist.
+- [x] Validation passes: Docker-backed benchmark-family integration `9/9`; workspace-store
+      suite `59/59`; full frontend Vitest `830/830`; `vue-tsc`, production build, Ruff,
+      compileall, and `git diff --check`; rebuilt authenticated `F8s-breadth-family-ratio`
+      Chromium acceptance `1/1`. No acceptance rule was relaxed; the browser oracle was extended
+      to assert the visible role-participation strip.
+- [ ] Still open: historical role participation, arbitrary user-selected predicates and nested
+      condition composition on this family endpoint, full breadth history/occurrence linking,
+      family-wide ranking/rotation/dispersion/concentration, and populated acceptance across all
+      eight benchmark roots. Fixed metrics remain convenience presets, not the generic breadth
+      completion boundary.

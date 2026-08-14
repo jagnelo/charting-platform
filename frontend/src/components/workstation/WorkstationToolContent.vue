@@ -518,6 +518,17 @@
         </template>
         <span v-else class="breadth-tool__status">Family technicals unavailable.</span>
       </div>
+      <div v-if="isBenchmarkFamily" class="breadth-tool__family-breadth" aria-label="Benchmark family participation">
+        <strong>Role participation</strong>
+        <span v-if="familyBreadthLoading" role="status">Loading…</span>
+        <span v-else-if="familyBreadthError" class="breadth-tool__status--error" role="alert">{{ familyBreadthError }}</span>
+        <template v-else-if="familyBreadth">
+          <span v-for="role in familyBreadth.roles" :key="role.role" class="breadth-tool__family-breadth-role">
+            <b>{{ familyRoleLabel(role.role) }}</b> {{ role.symbol ?? role.label }} · >20 {{ familyBreadthPercentage(role.above_ma.ma20) }} · near 52w {{ familyBreadthPercentage(role.near_52w_high) }} · trend {{ familyBreadthPercentage(role.trend_up) }}
+          </span>
+        </template>
+        <span v-else class="breadth-tool__status">Role participation unavailable.</span>
+      </div>
       <section v-if="isBenchmarkFamily" class="breadth-tool__family-overview" aria-label="Benchmark family analysis">
         <header class="breadth-tool__family-overview-header">
           <strong>{{ familyOverview?.name ?? breadthGroupKey }} · {{ familyOverview?.official_index_symbol ?? 'official index' }}</strong>
@@ -1695,6 +1706,10 @@ const familyTechnicalKey = computed(() => `${breadthGroupKey.value}:${breadthTim
 const familyTechnicals = computed(() => workspaceStore.benchmarkFamilyTechnicals[familyTechnicalKey.value])
 const familyTechnicalError = computed(() => workspaceStore.benchmarkFamilyTechnicalErrors[familyTechnicalKey.value] ?? null)
 const familyTechnicalsLoading = ref(false)
+const familyBreadthKey = computed(() => `${breadthGroupKey.value}:${breadthTimeframe.value}:${breadthAdjusted.value ? 'adj' : 'raw'}:${familyAsOf.value || 'latest'}:0.01:20`)
+const familyBreadth = computed(() => workspaceStore.benchmarkFamilyBreadths[familyBreadthKey.value])
+const familyBreadthError = computed(() => workspaceStore.benchmarkFamilyBreadthErrors[familyBreadthKey.value] ?? null)
+const familyBreadthLoading = ref(false)
 const familyOverviewKey = computed(() => `${breadthGroupKey.value}:${breadthTimeframe.value}:${breadthAdjusted.value ? 'adj' : 'raw'}:${familyAsOf.value || 'latest'}`)
 const familyOverview = computed(() => workspaceStore.benchmarkFamilyOverviews[familyOverviewKey.value])
 const familyOverviewError = computed(() => workspaceStore.benchmarkFamilyOverviewErrors[familyOverviewKey.value] ?? null)
@@ -1722,6 +1737,9 @@ function latestFamilyRatio(ratio: { points: Array<{ value: number }> }) {
 }
 function familyTechnicalValue(value: number | null | undefined) {
   return value == null || !Number.isFinite(value) ? 'Unavailable' : value.toFixed(2)
+}
+function familyBreadthPercentage(metric: { percentage: number | null } | null | undefined) {
+  return metric?.percentage == null || !Number.isFinite(metric.percentage) ? 'Unavailable' : `${(metric.percentage * 100).toFixed(0)}%`
 }
 function comparisonCondition(field: string, operator: string, threshold: number) {
   return { kind: 'comparison', params: { field, operator, threshold } }
@@ -2523,14 +2541,17 @@ watch([breadthGroupKey, breadthTimeframe, breadthAdjusted, familyRatioMarket, fa
   if (!isBenchmarkFamily.value || !(props.tool.instance_key === 'breadth-summary' || props.tool.tool_type === 'breadth')) return
   familyRatioLoading.value = true
   familyTechnicalsLoading.value = true
+  familyBreadthLoading.value = true
   try {
     await Promise.all([
       workspaceStore.loadBenchmarkFamilyRatios(groupKey, familyRatioRole.value, market, { timeframe, adjusted, as_of: familyAsOf.value || undefined, roles: [...familyRatioRoles] }),
       workspaceStore.loadBenchmarkFamilyTechnicals(groupKey, { timeframe, adjusted, as_of: familyAsOf.value || undefined }),
+      workspaceStore.loadBenchmarkFamilyBreadth(groupKey, { timeframe, adjusted, as_of: familyAsOf.value || undefined, near_threshold: 0.01, new_high_lookback: 20 }),
     ])
   } finally {
     familyRatioLoading.value = false
     familyTechnicalsLoading.value = false
+    familyBreadthLoading.value = false
   }
 }, { immediate: true })
 watch([breadthGroupKey, breadthTimeframe, breadthAdjusted, familyRatioRole, familyRatioMarket, familyAsOf], async ([groupKey, timeframe, adjusted, role, market]) => {
@@ -2624,4 +2645,5 @@ const proxyCoverage = computed(() => industryProxySnapshot.value
 .industry-list small { display: block; padding: 7px; line-height: 1.3; }
 .industry-list__provenance { border-top: 1px solid #20282f; color: #8ea4b0; }
 .breadth-tool__family-technicals { display:flex; flex-wrap:wrap; align-items:center; gap:4px 8px; padding:5px 7px; border-top:1px solid #2b3841; color:#9aabb6; font:10px "Segoe UI",Arial,sans-serif; }.breadth-tool__family-technical { padding-left:5px; border-left:1px solid #34434e; color:#8497a4; }.breadth-tool__family-technical b { color:#cad4db; }
+.breadth-tool__family-breadth { display:flex; flex-wrap:wrap; align-items:center; gap:4px 8px; padding:5px 7px; border-top:1px solid #2b3841; color:#9aabb6; font:10px "Segoe UI",Arial,sans-serif; }.breadth-tool__family-breadth-role { padding-left:5px; border-left:1px solid #34434e; color:#8497a4; }.breadth-tool__family-breadth-role b { color:#cad4db; }
 </style>

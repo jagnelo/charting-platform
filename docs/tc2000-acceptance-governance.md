@@ -154,6 +154,21 @@ open and actionable. Acceptance flexibility used: **None**.
 
 ### Expanded benchmark-family gate
 
+#### Role participation sub-gate
+
+For every family root and every independently mapped cap/equal/value/growth role, the acceptance
+run must exercise the role-participation batch and verify that the UI renders side-by-side
+participation values without collapsing roles or substituting another universe. The check must
+cover SMA participation, near-52-week-high threshold/lookback parameters, trend participation,
+coverage/eligible/excluded counts, membership/provenance lineage, and role-local unavailable or
+partial states. Relative strength to the family cap is shown only when aligned bars exist and must
+retain the same warning semantics.
+
+This sub-gate proves the current participation presentation and its data contract only. It does
+not waive historical participation, arbitrary/nested user predicates, occurrence linking, Study
+Lab promotion, or the wider ranking/rotation/concentration/dispersion gates. Missing data remains
+an explicit gap; no acceptance flexibility is used.
+
 #### Dated holdings coverage sub-gate
 
 Before a family/leg can be presented as historically usable, acceptance must call

@@ -222,6 +222,47 @@ export interface BenchmarkFamilyTechnicalsState {
   freshness_detail?: Record<string, number>
 }
 
+export interface BenchmarkFamilyBreadthMetricState {
+  percentage: number | null
+  requested_count: number
+  eligible_count: number
+  excluded_count: number
+  coverage: number
+  exclusions: Array<{ code: string; message: string; instrument_id?: number | null }>
+}
+
+export interface BenchmarkFamilyBreadthRoleState {
+  role: 'cap_weight' | 'equal_weight' | 'value' | 'growth'
+  symbol: string | null
+  label: string
+  verification_state: string
+  available: boolean
+  membership_version?: number | null
+  universe_provenance?: Record<string, unknown>
+  above_ma: Record<string, BenchmarkFamilyBreadthMetricState>
+  near_52w_high?: BenchmarkFamilyBreadthMetricState | null
+  new_high?: BenchmarkFamilyBreadthMetricState | null
+  trend_up?: BenchmarkFamilyBreadthMetricState | null
+  relative_strength_to_cap?: BenchmarkFamilyBreadthMetricState | null
+  exclusions: Array<{ code: string; message: string; instrument_id?: number | null }>
+}
+
+export interface BenchmarkFamilyBreadthState {
+  family_key: string
+  official_index_symbol: string
+  timeframe: string
+  adjustment: string
+  as_of?: string | null
+  near_threshold: number
+  new_high_lookback: number
+  membership_version?: number
+  universe_provenance?: Record<string, unknown>
+  roles: BenchmarkFamilyBreadthRoleState[]
+  exclusions: Array<{ code: string; message: string; instrument_id?: number | null }>
+  freshness?: string
+  freshness_detail?: Record<string, number>
+}
+
 export interface BenchmarkFamilyMappingState {
   role: 'cap_weight' | 'equal_weight' | 'value' | 'growth'
   symbol: string | null
@@ -621,6 +662,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   const benchmarkFamilyRatioErrors = ref<Record<string, string | null>>({})
   const benchmarkFamilyTechnicals = ref<Record<string, BenchmarkFamilyTechnicalsState | null>>({})
   const benchmarkFamilyTechnicalErrors = ref<Record<string, string | null>>({})
+  const benchmarkFamilyBreadths = ref<Record<string, BenchmarkFamilyBreadthState | null>>({})
+  const benchmarkFamilyBreadthErrors = ref<Record<string, string | null>>({})
   const benchmarkFamilyOverviews = ref<Record<string, BenchmarkFamilyOverviewState | null>>({})
   const benchmarkFamilyOverviewErrors = ref<Record<string, string | null>>({})
   const benchmarkFamilyCoverages = ref<Record<string, BenchmarkFamilyCoverageState | null>>({})
@@ -1398,6 +1441,40 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       const message = cause?.message ?? `Unable to load ${normalizedFamily} family technicals`
       benchmarkFamilyTechnicalErrors.value = { ...benchmarkFamilyTechnicalErrors.value, [cacheKey]: message }
       benchmarkFamilyTechnicals.value = { ...benchmarkFamilyTechnicals.value, [cacheKey]: null }
+      return null
+    }
+  }
+
+  async function loadBenchmarkFamilyBreadth(
+    familyKey: string,
+    options: { timeframe?: string; adjusted?: boolean; as_of?: string; near_threshold?: number; new_high_lookback?: number } = {},
+  ) {
+    const normalizedFamily = familyKey.trim()
+    if (!normalizedFamily) return null
+    const cacheKey = `${normalizedFamily}:${options.timeframe ?? 'D1'}:${options.adjusted !== false ? 'adj' : 'raw'}:${options.as_of ?? 'latest'}:${options.near_threshold ?? 0.01}:${options.new_high_lookback ?? 20}`
+    const requestKey = `top-down:family-breadth:${cacheKey}`
+    const generation = beginAnalysisRequest(requestKey)
+    if (!documentIsVisible()) return null
+    benchmarkFamilyBreadthErrors.value = { ...benchmarkFamilyBreadthErrors.value, [cacheKey]: null }
+    try {
+      const result = await api.get<BenchmarkFamilyBreadthState>(
+        `/analysis/benchmark-families/${encodeURIComponent(normalizedFamily)}/breadth`,
+        {
+          ...(options.timeframe ? { timeframe: options.timeframe } : {}),
+          ...(typeof options.adjusted === 'boolean' ? { adjusted: options.adjusted } : {}),
+          ...(options.as_of ? { as_of: options.as_of } : {}),
+          ...(typeof options.near_threshold === 'number' ? { near_threshold: options.near_threshold } : {}),
+          ...(typeof options.new_high_lookback === 'number' ? { new_high_lookback: options.new_high_lookback } : {}),
+        },
+      )
+      if (!isCurrentAnalysisRequest(requestKey, generation)) return null
+      benchmarkFamilyBreadths.value = { ...benchmarkFamilyBreadths.value, [cacheKey]: result }
+      return result
+    } catch (cause: any) {
+      if (!isCurrentAnalysisRequest(requestKey, generation)) return null
+      const message = cause?.message ?? `Unable to load ${normalizedFamily} family breadth`
+      benchmarkFamilyBreadthErrors.value = { ...benchmarkFamilyBreadthErrors.value, [cacheKey]: message }
+      benchmarkFamilyBreadths.value = { ...benchmarkFamilyBreadths.value, [cacheKey]: null }
       return null
     }
   }
@@ -2354,6 +2431,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     benchmarkFamilyRatioErrors,
     benchmarkFamilyTechnicals,
     benchmarkFamilyTechnicalErrors,
+    benchmarkFamilyBreadths,
+    benchmarkFamilyBreadthErrors,
     benchmarkFamilyOverviews,
     benchmarkFamilyOverviewErrors,
     benchmarkFamilyCoverages,
@@ -2409,6 +2488,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     loadGroupSnapshot,
     loadBenchmarkFamilyRatios,
     loadBenchmarkFamilyTechnicals,
+    loadBenchmarkFamilyBreadth,
     loadBenchmarkFamilyOverview,
     loadBenchmarkFamilyCoverage,
     loadBenchmarkFamilyConstituents,

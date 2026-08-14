@@ -210,6 +210,39 @@ tasks:
         full Vitest 827/827, type/build, Ruff/compile, and rebuilt Chromium F8s-breadth-family-ratio
         1/1 pass. This closes coverage-readiness presentation only; complete historical continuity,
         selectable as-of UI, and family-wide historical analytics remain open; no flexibility used.
+  - id: tc2000-family-role-participation-20260814
+    title: Add side-by-side benchmark-family participation and breadth role snapshots
+    status: completed
+    priority: high
+    scope: >-
+      Extend the benchmark-family workflow with a provider-neutral role-participation batch for
+      cap/equal/value/growth legs. Evaluate fixed convenience predicates (moving-average state,
+      near-52-week-high distance, new-high window, trend, and cap-relative strength) with
+      configurable parameters, point-in-time memberships, coverage, exclusions, provenance, and
+      explicit no-fallback availability. Render a compact role-aware workstation strip and extend
+      the browser oracle; keep generic arbitrary-condition breadth as a separate in-progress
+      completion requirement.
+    definition_of_done:
+      - GET /analysis/benchmark-families/{family_key}/breadth returns independent role metrics and lineage
+      - Missing mappings or holdings produce role-local unavailable/warning states without SPY/QQQ/other-role fallback
+      - Near-high threshold and new-high lookback are request-configurable and preserved in cache identity
+      - Workstation renders cap/equal/value/growth participation with loading, partial, warning, and unavailable states
+      - Role participation retains membership version, universe provenance, coverage, exclusions, and aligned cap-relative strength semantics
+      - Focused backend, store, full frontend, type/build, lint/compile, and rebuilt browser checks pass
+      - Generic arbitrary Python breadth, historical occurrences, and family-wide ranking/rotation/dispersion remain explicitly open
+    validation:
+      - benchmark-family-breadth-integration-9-of-9
+      - workspace-store-59-of-59
+      - frontend-vitest-830-of-830
+      - vue-tsc-and-production-build
+      - ruff-compileall-and-diff-check
+      - rebuilt-F8s-breadth-family-ratio-1-of-1
+    notes:
+      - >-
+        Implemented and validated on 2026-08-14. No acceptance criterion was relaxed; the browser
+        oracle was extended to assert the visible family participation strip. Historical role
+        breadth and the generic condition-driven breadth contract remain tracked by
+        tc2000-generic-condition-driven-breadth-20260814 and the parent family-expansion task.
   - id: tc2000-generic-condition-driven-breadth-20260814
     title: Broaden breadth from fixed metrics to reusable condition-driven cross-sectional studies
     status: in_progress

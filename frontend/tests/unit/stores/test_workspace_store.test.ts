@@ -205,6 +205,33 @@ describe('workspace store layout tabs', () => {
     expect(store.benchmarkFamilyTechnicals['sp500:W1:raw:2026-06-27T23:59:59Z']?.roles[0]?.rsi14).toBe(55)
   })
 
+  it('loads side-by-side family participation with configurable near-high parameters', async () => {
+    apiGet.mockResolvedValue({
+      family_key: 'sp500',
+      official_index_symbol: 'SPX',
+      timeframe: 'D1',
+      adjustment: 'split_adjusted',
+      near_threshold: 0.02,
+      new_high_lookback: 50,
+      roles: [{ role: 'cap_weight', symbol: 'SPY', label: 'SPY', verification_state: 'verified', available: true, above_ma: { ma20: { percentage: 0.7, requested_count: 10, eligible_count: 10, excluded_count: 0, coverage: 1, exclusions: [] } }, near_52w_high: null, new_high: null, trend_up: null, relative_strength_to_cap: null, exclusions: [] }],
+      exclusions: [],
+    })
+    const store = useWorkspaceStore()
+
+    await store.loadBenchmarkFamilyBreadth('sp500', {
+      near_threshold: 0.02,
+      new_high_lookback: 50,
+      as_of: '2026-06-27T23:59:59Z',
+    })
+
+    expect(apiGet).toHaveBeenCalledWith('/analysis/benchmark-families/sp500/breadth', {
+      as_of: '2026-06-27T23:59:59Z',
+      near_threshold: 0.02,
+      new_high_lookback: 50,
+    })
+    expect(store.benchmarkFamilyBreadths['sp500:D1:adj:2026-06-27T23:59:59Z:0.02:50']?.roles[0]?.above_ma.ma20.percentage).toBe(0.7)
+  })
+
   it('loads a family overview with independent mapping readiness and stable lineage cache', async () => {
     apiGet.mockResolvedValue({
       family_key: 'sp500',
