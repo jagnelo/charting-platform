@@ -12,9 +12,10 @@
 - Validation: focused integration `2/2`, store `62/62`, full Vitest `833/833`, type/build,
   Ruff/compile, diff-check, and Chromium `1/1`. No acceptance flexibility used; the overlap was
   fixed and regression-tested rather than waived.
-- Implementation/docs are ready for commit. Next context: historical cross-family curves,
-  relative rotation, concentration/dispersion, and complete evidence population across all eight
-  roots.
+- Implementation/docs commit: `3b11d420 feat(analysis): add cross-family ranking` (clean locally).
+  Exact elevated push was attempted once and rejected before Git by the private-origin safeguard;
+  no workaround or repeat. Next context: historical cross-family curves, relative rotation,
+  concentration/dispersion, and complete evidence population across all eight roots.
 
 ## 2026-08-14 — Benchmark-family role-ranking checkpoint
 
