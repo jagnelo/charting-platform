@@ -1,5 +1,16 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-14 — Study Lab export and board-guided visual revalidation
+
+- Active Study Lab export now covers scalar, Boolean, and structured artifacts; authenticated
+  `F8p-export` verifies both scalar and structured run-scoped JSON downloads.
+- The unchanged board-guided Study Lab original-surface test passed `1/1` at 1920x1080/100% after
+  rebuilding the stack with the required seeded fixture mode. No baseline, mask, threshold, or
+  product criterion changed. `REF-STUDY-LAB-V25` remains an explicit visual-reference gap.
+- The first unprivileged browser launch failed before page creation at the macOS Mach-port
+  boundary, and the first elevated run exposed a backend fixture-mode mismatch; both were fixed
+  through the documented environment recovery path rather than by weakening acceptance.
+
 ## 2026-08-14 — Study Lab artifact export browser acceptance
 
 - Authenticated `F8p-export` now proves the active Study Lab Export control downloads a typed

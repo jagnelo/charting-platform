@@ -1,5 +1,30 @@
 # Project TODO Memory
 
+### 2026-08-14 — Study Lab metric and structured artifact export closure
+
+- [x] Extended the active Study Lab Export control to scalar, Boolean, and structured artifacts;
+      JSON envelopes retain the run ID, reproducibility hash, artifact identity/type, and value.
+- [x] Focused Study Lab `22/22`, `vue-tsc`, production build, and rebuilt authenticated
+      `F8p-export` `1/1` verify both `current_streak.json` and `completed_streaks.json` downloads.
+- [x] Rebuilt the branch stack with `E2E_SEED_MARKET_DATA=true` and reran the unchanged
+      board-guided Study Lab original-surface visual test at 1920x1080/100%; it passed `1/1` in
+      4.3s. The initial unprivileged browser launch hit the known Mach-port boundary and the
+      first elevated run correctly exposed a fixture-mode mismatch; both were repaired at the
+      environment boundary without weakening the oracle.
+- [ ] Acceptance flexibility used: **none**. No visual threshold, mask, product criterion, or
+      browser rule changed; `REF-STUDY-LAB-V25` remains an explicit authoritative-reference gap.
+
+### 2026-08-14 — Git write recovery and transport handling confirmation
+
+- [x] Verified no stale `.git/index.lock` and healthy repository/index ownership. The reviewed
+      product context staged and committed through the worker-owned elevated `rtk git add`/
+      `rtk git commit` path as `43f0078b`, with separate operational checkpoints.
+- [x] The exact elevated push was attempted for each closure range and rejected before Git by the
+      private-origin egress safeguard. Each context remains a separate clean local commit; the
+      rejection is recorded as transport-only and the product goal continues.
+- [x] Future handling is governed by the `.git/index.lock` recovery, no-accumulation, and exact
+      push rules in `docs/agent-orchestration.md`; no normal Git command is delegated to the user.
+
 ### 2026-08-14 — Study Lab artifact export browser acceptance
 
 - [x] Added authenticated `F8p-export` coverage for the active Study Lab run. The real Chromium

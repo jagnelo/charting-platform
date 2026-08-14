@@ -1,5 +1,14 @@
 # Run Report
 
+## 2026-08-14 — Study Lab board-guided visual revalidation
+
+- Rebuilt the branch stack with seeded market-data fixtures after the visual suite correctly
+  rejected the unseeded backend. The unchanged Study Lab original-surface test passed `1/1` at
+  `visual-1080p-100` in 4.3s.
+- The unprivileged browser Mach-port failure and fixture-mode mismatch were setup defects fixed at
+  their owning boundaries; no visual oracle or acceptance rule was changed. `REF-STUDY-LAB-V25`
+  remains open.
+
 ## 2026-08-14 — Study Lab metric export closure and Git transport result
 
 - Completed the active Study Lab export context for scalar, Boolean, and structured artifacts.

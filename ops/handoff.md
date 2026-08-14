@@ -1,5 +1,20 @@
 # Active Handoff
 
+## 2026-08-14 — Study Lab export board-guided visual revalidation
+
+- From the clean local boundary, rebuilt the branch-scoped stack with
+  `E2E_SEED_MARKET_DATA=true E2E_SEED_INSTRUMENTS=true make test-stack-up` so the visual fixture
+  contract matched the browser suite.
+- The unchanged board-guided Study Lab original-surface visual test passed `1/1` at
+  `visual-1080p-100` in 4.3s. The first unprivileged launch failed before page creation at the
+  macOS Mach-port boundary; the first elevated run exposed the honest `e2e_seed_market_data=false`
+  mismatch. Both were fixed at the environment boundary; no oracle, baseline, mask, threshold, or
+  product criterion was weakened.
+- Acceptance flexibility used: none. `REF-STUDY-LAB-V25` remains an explicit authoritative
+  visual-reference gap. Docs updated in `docs/project-todos.md` and `docs/tc2000-parity.md`.
+- Next action: continue the next independent workstation/backend implementation context from the
+  clean local commit boundary; Git transport remains recorded as external and non-blocking.
+
 ## 2026-08-14 — Study Lab metric export closure and Git transport record
 
 - The active Study Lab export context is complete. Scalar, Boolean, and structured artifacts now
