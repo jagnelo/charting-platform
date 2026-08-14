@@ -7,7 +7,8 @@
 - Dated/issuer API regressions pass `3/3`; Ruff, compileall, and diff checks pass. No acceptance
   flexibility used. Implementation/docs commit: `6357f94`.
 - The required exact elevated push was attempted once and rejected before Git by the private-origin
-  safeguard. No workaround or repeat; transport-only. Operational checkpoint remains to be made.
+  safeguard. No workaround or repeat; transport-only. Operational checkpoint `ade9e54` is clean
+  locally and the next context can continue from this boundary.
 
 ## 2026-08-14 — Expanded US family scope and iShares historical as-of route
 

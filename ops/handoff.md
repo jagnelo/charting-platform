@@ -11,8 +11,9 @@
 - Exact elevated push `rtk git push origin HEAD:feat/tc2000-frontend-rework` was attempted once
   after this checkpoint and rejected before Git by the private-origin safeguard. No workaround,
   alternate transport, rewrite, reset, stash, or repeat was used; transport-only.
-- Next: continue point-in-time family membership/rebalance population and browser acceptance from
-  this clean implementation boundary; operational files require a separate checkpoint commit.
+- Operational checkpoint `ade9e54` records this implementation hash, validation, and rejected push
+  result. The worktree is clean locally; next is point-in-time family membership/rebalance
+  population and browser acceptance from this clean boundary.
 
 ## 2026-08-14 — Expanded US family vision plus iShares historical route
 
