@@ -358,6 +358,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "world_gold_council",
     "yorkville",
     "truth_social",
+    "sofi",
     "yieldmax",
     "zacks",
 }
@@ -2059,6 +2060,7 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
         ("oshares", "OUSA", None, {}, 50),
         ("range", "NUKZ", None, {}, 10),
         ("range", "COAL", None, {}, 10),
+        ("sofi", "SFY", None, {}, 300),
     ],
 )
 async def test_live_issuer_direct_holdings_routes_return_parseable_rows(

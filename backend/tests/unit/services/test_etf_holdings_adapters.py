@@ -243,6 +243,81 @@ def test_water_island_parser_preserves_periodic_long_and_short_positions():
     assert rows[2].extra_data["position_side"] == "short"
 
 
+def test_sofi_parser_reads_complete_quarterly_schedule_and_discloses_archive_semantics():
+    adapter = get_holdings_adapter("sofi")
+    assert adapter is not None
+    assert adapter.__class__.__name__ == "SofiHoldingsAdapter"
+    assert adapter.config.live_tested_default_route is True
+    assert "sofi" not in FALLBACK_ISSUER_AUDITS
+
+    rows, composition_date = adapter._parse_holdings_text(
+        """
+        SoFi Select 500 ETF
+        Schedule of Investments November 30, 2025 (Unaudited)
+        COMMON STOCKS - 99.7%
+        Bank of America Corp.   40,341  $ 2,164,295
+        NVIDIA Corp.   12,000  $ 2,100,000
+        First American Government Obligations Fund - Class X, 3.92%(e)   1,063,564  $ 1,063,564
+        TOTAL NET ASSETS - 100.0%      $ 557,145,032
+        """
+    )
+
+    assert composition_date == date(2025, 11, 30)
+    assert [row.name for row in rows] == [
+        "Bank of America Corp.",
+        "NVIDIA Corp.",
+        "First American Government Obligations Fund - Class X, 3.92%(e)",
+    ]
+    assert rows[0].weight == Decimal("2164295") / Decimal("557145032")
+    assert rows[2].holding_type == "fund"
+    assert rows[0].source_row_id == "SFY:2025-11-30:1"
+
+
+def test_sofi_probe_is_symbol_scoped_and_uses_verified_archive_route():
+    adapter = get_holdings_adapter("sofi")
+    assert adapter is not None
+
+    ready = adapter.probe(symbol="SFY", name="SoFi Select 500 ETF", identifiers={})
+    unsupported = adapter.probe(symbol="SFYX", name="", identifiers={})
+
+    assert ready.status == "ready"
+    assert ready.source_url == adapter.HOLDINGS_URL
+    assert unsupported.status == "needs_issuer_route"
+
+
+@pytest.mark.asyncio
+async def test_sofi_fetch_preserves_periodic_archive_provenance(monkeypatch):
+    adapter = get_holdings_adapter("sofi")
+    assert adapter is not None
+    row = CanonicalHoldingRow(
+        name="NVIDIA Corp.",
+        weight=Decimal("0.01"),
+        shares=Decimal("12000"),
+        market_value=Decimal("2100000"),
+    )
+    monkeypatch.setattr(
+        type(adapter),
+        "_parse_holdings_pdf",
+        staticmethod(lambda raw_pdf: ([row], date(2025, 11, 30), "parsed")),
+    )
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            content=b"%PDF-fake",
+            content_type="application/pdf",
+            url=adapter.HOLDINGS_URL,
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="SFY")
+
+    assert FakeAsyncClient.requested[0][0] == adapter.HOLDINGS_URL
+    assert result.rows == [row]
+    assert result.legal_metadata["composition_date"] == "2025-11-30"
+    assert result.legal_metadata["freshness_semantics"] == "periodic_archive_not_current_daily_feed"
+
+
 def test_altshares_brand_alias_uses_the_verified_water_island_route():
     adapter = get_holdings_adapter("altshares")
 

@@ -62639,6 +62639,17 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
             "public product-page-declared FilePoint and SEI holdings artifacts."
         ),
     ),
+    "sofi": IssuerCsvAdapterConfig(
+        adapter_key="sofi",
+        source_provider="sofi",
+        source_access="issuer_linked_quarterly_holdings_pdf_archive",
+        product_page_templates=("https://www.sofi.com/invest/etfs/{symbol_lower}/",),
+        live_tested_default_route=True,
+        terms_note=(
+            "SoFi's public product page links a complete quarterly Schedule of Investments PDF; "
+            "the route is periodic/archive data and not a current daily holdings feed."
+        ),
+    ),
 }
 
 for _adapter_key in sorted(ETFDB_RECOGNITION_ONLY_ISSUER_HINTS):
@@ -62665,7 +62676,6 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
         "guinness_atkinson",
         "manulife",
         "ridgeline",
-        "sofi",
         "thrivent",
         "westwood",
         "wisdomtree",
@@ -62918,8 +62928,152 @@ class RockPointAuditedFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Audited fallback-only adapter for Rock Point-linked recognition identities."""
 
 
-class SofiAuditedFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
-    """Audited fallback-only adapter for SoFi ETF identities."""
+class SofiHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Parse SoFi's issuer-linked quarterly Schedule of Investments archive.
+
+    SoFi's public product page is protected by a WAF for backend clients, but the
+    page currently links a complete SEC-style quarterly PDF from its public CDN.
+    This route is intentionally limited to SFY and reports its periodic/archive
+    freshness rather than pretending to be a current daily holdings feed.
+    """
+
+    PRODUCT_PAGE_URLS = {"SFY": "https://www.sofi.com/invest/etfs/sfy/"}
+    HOLDINGS_URL = (
+        "https://d32ijn7u0aqfv7.cloudfront.net/wp/wp-content/uploads/raw/"
+        "Fiscal-Q3-Quarterly-Holdings-1.pdf"
+    )
+    _ROW_RE = re.compile(
+        r"^(?P<name>(?!TOTAL\b|NET ASSETS\b|COMMON STOCKS\b|[A-Za-z &/,-]+\s+-\s+\d)[A-Za-z0-9][^$\n]*?)"
+        r"\s{2,}(?P<shares>\(?[\d,]+\)?)\s+(?:\$\s*)?(?P<value>\(?[\d,]+\)?)$",
+        re.IGNORECASE,
+    )
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name
+        normalized_symbol = symbol.strip().upper()
+        has_sec_fallback = bool(_identifier(identifiers, "sec_cik", "cik"))
+        source_url = self.HOLDINGS_URL if normalized_symbol in self.PRODUCT_PAGE_URLS else None
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9000") if source_url else Decimal("0.5000"),
+            status="ready" if source_url or has_sec_fallback else "needs_issuer_route",
+            reason=(
+                "SoFi publishes a complete issuer-linked quarterly Schedule of Investments PDF."
+                if source_url
+                else "No verified SoFi archive route is configured for this symbol; SEC EDGAR fallback is available."
+                if has_sec_fallback
+                else "The verified SoFi archive route currently supports SFY only."
+            ),
+            source_url=source_url,
+            issuer_product_id=normalized_symbol or None,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del issuer_product_id, identifiers
+        normalized_symbol = symbol.strip().upper()
+        if normalized_symbol not in self.PRODUCT_PAGE_URLS:
+            raise ValueError(
+                f"No verified SoFi quarterly holdings archive route is configured for {normalized_symbol}."
+            )
+        report_url = source_url or self.HOLDINGS_URL
+        if "cloudfront.net/" not in report_url:
+            raise ValueError("SoFi holdings source_url must be the verified public CDN PDF route.")
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            report = await client.get(
+                report_url,
+                headers=_holdings_request_headers(accept="application/pdf,*/*"),
+                follow_redirects=True,
+            )
+            report.raise_for_status()
+        rows, composition_date, text = self._parse_holdings_pdf(report.content)
+        if not rows:
+            raise ValueError("SoFi quarterly holdings PDF contained no parseable positions.")
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=text,
+            raw_json={"source_format": "pdf", "row_count": len(rows)},
+            source_url=str(report.url),
+            source_identifier=normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "pdf",
+                "route_resolution": "sofi_issuer_linked_quarterly_schedule_of_investments",
+                "product_page_url": self.PRODUCT_PAGE_URLS[normalized_symbol],
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "refresh_frequency": "quarterly",
+                "freshness_semantics": "periodic_archive_not_current_daily_feed",
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @classmethod
+    def _parse_holdings_pdf(
+        cls, raw_pdf: bytes
+    ) -> tuple[list[CanonicalHoldingRow], date | None, str]:
+        from pypdf import PdfReader  # noqa: PLC0415
+
+        text = "\n".join(page.extract_text() or "" for page in PdfReader(BytesIO(raw_pdf)).pages)
+        rows, composition_date = cls._parse_holdings_text(text)
+        return rows, composition_date, text
+
+    @classmethod
+    def _parse_holdings_text(cls, text: str) -> tuple[list[CanonicalHoldingRow], date | None]:
+        date_match = re.search(
+            r"Schedule of Investments\s+([A-Z][a-z]+ \d{1,2}, \d{4})", text, re.IGNORECASE
+        )
+        composition_date = None
+        if date_match:
+            try:
+                composition_date = datetime.strptime(date_match.group(1), "%B %d, %Y").date()
+            except ValueError:
+                composition_date = None
+        net_assets_match = re.search(
+            r"TOTAL NET ASSETS\s*-\s*100\.0%\s+\$?\s*([\d,]+)", text, re.IGNORECASE
+        )
+        net_assets = _decimal(net_assets_match.group(1)) if net_assets_match else None
+        rows: list[CanonicalHoldingRow] = []
+        for line in (item.strip() for item in text.splitlines()):
+            match = cls._ROW_RE.match(line)
+            if match is None:
+                continue
+            name = match.group("name").strip()
+            market_value = _decimal(match.group("value"))
+            shares = _decimal(match.group("shares"))
+            if market_value is None or shares is None:
+                continue
+            upper_name = name.upper()
+            is_cash = any(
+                marker in upper_name
+                for marker in ("CASH", "MONEY MARKET", "TREASURY OBLIGATION", "REPURCHASE")
+            )
+            holding_type = "cash" if is_cash else "fund" if "FUND" in upper_name else "equity"
+            rows.append(
+                CanonicalHoldingRow(
+                    name=name,
+                    weight=(market_value / net_assets if net_assets else None),
+                    shares=shares,
+                    market_value=market_value,
+                    currency="USD",
+                    holding_type=holding_type,
+                    row_type="cash" if is_cash else "security",
+                    source_row_id=(
+                        f"SFY:{composition_date.isoformat() if composition_date else 'unknown'}:"
+                        f"{len(rows) + 1}"
+                    ),
+                    extra_data={"source": "sofi_quarterly_schedule_of_investments_pdf"},
+                )
+            )
+        return rows, composition_date
 
 
 class ThriventAuditedFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
@@ -64199,7 +64353,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "segall_bryant_hamill": SegallBryantHamillReconciledFallbackHoldingsAdapter,
         "siren": SirenReconciledFallbackHoldingsAdapter,
         "smi_funds": SmiFundsReconciledFallbackHoldingsAdapter,
-        "sofi": SofiAuditedFallbackHoldingsAdapter,
+        "sofi": SofiHoldingsAdapter,
         "sophus": SophusReconciledFallbackHoldingsAdapter,
         "sp_funds": SpFundsHoldingsAdapter,
         "stance": StanceReconciledFallbackHoldingsAdapter,
