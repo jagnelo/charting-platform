@@ -9882,6 +9882,36 @@ Create a versioned market taxonomy containing:
 - representative, equal-weight, and comparison relationships;
 - source, provenance, known-at time, composition date, and freshness.
 
+##### Expanded US benchmark families and style universes
+
+The taxonomy must make the following benchmark families first-class selectable roots rather than
+leaving them as future ad-hoc symbols:
+
+- S&P 500, S&P MidCap 400, S&P SmallCap 600, and the S&P Composite 1500;
+- Russell 1000, Russell 2000, and Russell 3000 (spelled and labelled `Russell` throughout the UI);
+- Nasdaq 100.
+
+For every family, store independent relationships for the official index identity, a tradable
+cap-weighted proxy, a verified equal-weight proxy, and verified value/growth sub-index or ETF
+proxies where they exist. The registry must permit zero, one, or several mapped style/equal-weight
+proxies and must show `No verified mapped proxy` when evidence is absent. Similar names are never
+enough to create a child relationship. If no equal-weight ETF exists, a locally derived equal-
+weight series may be offered only when built from the point-in-time member snapshot with an
+explicit methodology, weight schedule, effective/known-at times, and coverage/exclusion record.
+
+The initial SPY/RSP decomposition is a reusable pattern, not an S&P-500-only special case. The
+Nasdaq 100 must support cap-weighted versus equal-weight deconstruction (for example, QQQ versus
+a verified Nasdaq-100 equal-weight proxy such as QQQE, subject to canonical identity and holdings
+evidence). S&P 400/600/1500 and Russell 1000/2000/3000 must expose the same top-down and breadth
+contracts, including value/growth variants whenever a source-backed mapping exists.
+
+Every benchmark family and style variant must support, as data permits, benchmark technicals,
+cap/equal/style spreads, configurable predicate breadth, participation and leadership, top-N
+concentration, cross-sectional dispersion, drawdown/volatility, relative rotation, cross-family
+ranking, and drill-down to sectors/industries/constituents. A result must identify whether it is
+official-index, ETF-proxy, ETF-native equal-weight, or locally derived equal-weight data; no proxy
+or derived series may be presented as an official index.
+
 Industry ETF semantics:
 - treat industry ETFs as curated proxies associated with an industry, not as fictional
   children owned by a sector ETF;
@@ -9906,6 +9936,11 @@ Index-series semantics:
 
 Linked drill-down mechanics:
 - selecting a benchmark loads technicals and its equal-weight comparison;
+- selecting any supported S&P/Russell/Nasdaq family loads its cap-weighted, equal-weight, and
+  verified value/growth variants side by side, with explicit unavailable/proxy labels rather than
+  silently falling back to an unrelated ETF;
+- switching family or style preserves the selected timeframe, adjustment, breadth definition,
+  and as-of policy while replacing only the universe and benchmark context;
 - selecting a sector loads industries, constituents, breadth, relative strength, and
   sector comparison;
 - selecting an industry loads its constituents and verified proxy ETFs;
@@ -9946,6 +9981,15 @@ Breadth analytics:
 - click-through to passing/failing constituent lists;
 - comparison of multiple groups side by side.
 
+Family-level breadth must work identically for S&P 500/400/600/1500, Russell 1000/2000/3000,
+Nasdaq 100, and every verified value/growth or equal-weight variant. Add side-by-side cap versus
+equal versus style views, breadth spreads (equal participation minus cap participation),
+leadership/concentration, cross-sectional dispersion, advance/decline and high/low participation,
+and relative-rotation/ranking views across the selected families. A missing official index,
+holdings snapshot, value/growth proxy, or equal-weight ETF must yield a labelled unavailable or
+derived result with exact provenance and exclusions; it must never silently substitute SPY, QQQ,
+or another family.
+
 The primary breadth surface now exposes a canonical group selector, Above/Below controls
 for the 20/50/200-MA states, and a linked passing/failing member drill-down. It loads
 the selected group's snapshot and current/historical breadth through the existing local
@@ -9968,6 +10012,25 @@ so the workstation can open passing members for near-52-week, new-high/new-low, 
 conditions without re-querying providers or deriving membership from aggregate percentages;
 the active drilldown can switch between passing and failing members without changing the
 selected condition or route.
+
+Benchmark-family acceptance must prove a matrix rather than only the current SPY path:
+
+- launch each S&P 500/400/600/1500, Russell 1000/2000/3000, and Nasdaq 100 family from the same
+  workstation selector;
+- compare cap-weighted versus equal-weight views wherever an ETF-native mapping is verified, and
+  otherwise compare against an explicitly labelled locally derived equal-weight series or show
+  `No verified mapped proxy`;
+- expose verified value/growth variants for each family where they exist, with no fabricated child
+  relationships for families lacking them;
+- run the same breadth definitions across each available family/style universe and compare their
+  percentages, participation spreads, leadership/concentration, dispersion, rotation, drawdown,
+  and volatility outputs side by side;
+- drill from a family to its labelled member universe and preserve membership snapshot,
+  effective/known-at, weighting methodology, coverage, exclusions, and freshness in every view.
+
+The Nasdaq 100 cap/equal acceptance fixture must exercise the same deconstruction pattern as
+SPY/RSP (for example QQQ and a separately verified equal-weight proxy such as QQQE), while the
+acceptance oracle must tolerate neither an unverified mapping nor silent fallback to SPY.
 
 The fixed metrics above are convenience presets, not the breadth completion boundary. The
 workstation must also implement a generic condition-driven breadth contract:

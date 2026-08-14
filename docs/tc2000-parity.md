@@ -1,5 +1,24 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-14 — Expanded US benchmark-family and cap/equal/style scope
+
+The top-down workstation now has an explicit benchmark-family matrix beyond SPX/SPY. First-class
+roots are S&P 500, S&P MidCap 400, S&P SmallCap 600, S&P Composite 1500, Russell 1000, Russell
+2000, Russell 3000, and Nasdaq 100. Each family must resolve an official index identity when
+entitled, a labelled cap-weighted proxy, a verified equal-weight proxy or reproducible derived
+equal-weight series, and value/growth sub-index or ETF proxies wherever source evidence confirms
+they exist. Missing mappings remain visible as `No verified mapped proxy`; names alone never create
+taxonomy relationships.
+
+The existing SPY/RSP comparison is the reusable pattern. Nasdaq 100 must provide an equivalent
+cap/equal deconstruction (for example QQQ versus a verified equal-weight proxy such as QQQE), and
+the S&P 400/600/1500 plus Russell 1000/2000/3000 families must use the same contracts. Every
+family/style view receives benchmark technicals, cap/equal/style spreads, generic predicate
+breadth, participation and leadership, concentration, dispersion, drawdown/volatility, relative
+rotation, cross-family ranking, and member drill-down wherever data permits. Native ETF weights,
+derived weights, membership snapshots, effective/known-at times, coverage, exclusions, and
+freshness are always shown; no family silently falls back to SPY or QQQ.
+
 ## 2026-08-14 — Breadth scope expanded to condition-driven cross-sectional studies
 
 The breadth requirement is broader than the current fixed metric panel. The implemented panel

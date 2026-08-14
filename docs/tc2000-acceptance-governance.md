@@ -152,6 +152,24 @@ completion claim: exact-build/unrepresented visual states, broader free-source/p
 native physical-monitor placement, beyond-bounded endurance, and the final requirement audit remain
 open and actionable. Acceptance flexibility used: **None**.
 
+### Expanded benchmark-family gate
+
+The top-down completion bar now covers S&P 500/400/600/1500, Russell 1000/2000/3000, and Nasdaq
+100, not only SPY/SPX. The authenticated and backend acceptance matrix must prove that each family
+can be selected as a versioned universe and exposes, where source evidence permits, its official
+identity, cap-weighted proxy, equal-weight proxy/derived series, and value/growth variants. A
+missing mapping must display `No verified mapped proxy` with provenance; it cannot silently fall
+back to SPY, QQQ, or an unrelated family.
+
+For every available family/style variant, acceptance must exercise the same benchmark technicals,
+cap/equal/style spread, generic predicate breadth, participation/leadership, concentration,
+dispersion, drawdown/volatility, relative rotation, cross-family ranking, and member drill-down
+contracts. Equal-weight results must state whether weights are ETF-native or locally derived from a
+point-in-time membership snapshot. The Nasdaq 100 must have a cap/equal deconstruction equivalent
+to SPY/RSP (for example QQQ versus a separately verified equal-weight proxy such as QQQE). This is
+a scope expansion, not a relaxation; incomplete provider, membership, or visual evidence remains
+an explicit gap.
+
 ### Expanded condition-driven breadth gate
 
 The fixed Market Breadth panel is not sufficient evidence for the broader breadth requirement.
