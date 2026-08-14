@@ -28526,3 +28526,12 @@ indefinite soak; longer endurance remains an explicit open gap.
   claim was made. Acceptance flexibility used: none.
 - Implementation/docs commit: `d6c86311` (clean locally). QQQE/First Trust verification, live
   retrieval, historical rebalances, and browser holdings population remain open.
+
+## 2026-08-14 — Benchmark-family issuer routing push transport
+
+- The exact elevated `rtk git push origin HEAD:feat/tc2000-frontend-rework` for clean commits
+  `d6c86311` and `2fa6e686` was attempted once and rejected before Git by the private-origin
+  safeguard because trusted authorization for the exact accumulated private payload/destination
+  was unavailable.
+- No workaround, alternate transport, rewrite, reset, stash, or repeat was used. This is
+  transport-only and not a product-goal blocker; the local branch remains clean.
