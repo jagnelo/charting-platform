@@ -1,5 +1,23 @@
 # Run Report
 
+## 2026-08-14 — Study Lab occurrence-to-chart timestamp acceptance context started
+
+- Started from clean local `a137d4db` to harden the documented occurrence-linking contract.
+- Scope is limited to publishing the selected occurrence timestamp into linked uPlot chart/ratio
+  surfaces and proving it through authenticated browser behavior plus focused component checks.
+- No visual threshold, mask, provider, data, or acceptance relaxation is planned. Git transport is
+  operational only and will not block continued implementation.
+
+## 2026-08-14 — Study Lab occurrence-to-chart timestamp acceptance validated
+
+- Added deterministic linked-timestamp host state to uPlot chart and ratio surfaces and expanded
+  `F8p-90-90-history` to click a real occurrence and verify its exact timestamp reaches the chart.
+- Fix-first browser validation initially exposed stale served frontend content; the branch stack was
+  force-recreated, the current bundle served, and the unchanged focused flow passed `1/1`.
+- Focused ratio lifecycle `11/11`, adjacent authenticated Study Lab/Python/Results `9/9`, full
+  frontend `818/818`, type-check/build, uPlot contract, visual policy, and diff checks pass.
+- Implementation/docs commit: `32503f91`; operational checkpoint follows separately.
+
 ## 2026-08-14 — Study Lab historical 90/90 breadth series context started
 
 - Started the next independent repository-controlled gap from clean local boundary `8eec709c`.

@@ -1,5 +1,33 @@
 # Active Handoff
 
+## 2026-08-14 — Study Lab occurrence-to-chart timestamp acceptance context (completed)
+
+- Context owner: Codex. Owned paths are the uPlot chart host, Study Lab browser acceptance,
+  focused component coverage, and the controlling parity/TODO/checkpoint records.
+- Intent: close the remaining functional acceptance hole around Study Lab occurrence selection:
+  selecting a dated occurrence must publish its canonical timestamp to the linked chart/ratio
+  surfaces and expose that state for accessible, deterministic verification. Preserve the existing
+  link-group rules and uPlot instance; do not create a new data request or change visual thresholds.
+- Acceptance flexibility used: none. This is a represented functional contract; no visual mask,
+  threshold, product criterion, or reference-board rule is being changed.
+- Git rule: start from clean local `a137d4db`; implementation/docs and the operational checkpoint
+  remain separate commits. Attempt the exact push once after closure; if the private-origin
+  safeguard rejects it before Git, record the exact range and continue without retry/workaround.
+- Fix-first requirement: validate the real browser path after implementation. Any defect exposed by
+  the focused run must be corrected at its owning boundary and rerun; no failure may be suppressed.
+- Completed: uPlot chart and ratio hosts now expose the consumed linked timestamp without changing
+  chart-instance lifecycle. The authenticated historical 90/90 flow clicks a real qualification
+  occurrence and verifies the exact timestamp on the linked chart.
+- Validation: focused ratio lifecycle `11/11`; authenticated `F8p-90-90-history` `1/1`; adjacent
+  Study Lab/Python/Results `9/9`; frontend `818/818`; type-check/build; uPlot contract; visual
+  acceptance policy; and `git diff --check` pass. The first browser attempt was correctly
+  classified as a stale frontend container; force-recreate rebuilt the current bundle and the
+  unchanged functional acceptance then passed.
+- Implementation/docs commit: `32503f91` (`test(study-lab): verify occurrence timestamp linking`).
+- Operational checkpoint: follows as a separate commit. The exact push will be attempted once after
+  closure; any private-origin rejection is transport-only and does not block the goal.
+- Next action: continue the next independent workstation/backend gap.
+
 ## 2026-08-14 — Study Lab historical 90/90 breadth series context (completed)
 
 - Context owner: Codex. Owned paths are `backend/research_runner/runner.py`, focused runner and

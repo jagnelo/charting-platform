@@ -1,4 +1,34 @@
 tasks:
+  - id: tc2000-study-lab-occurrence-chart-timestamp-20260814
+    title: Prove Study Lab occurrence dates publish to linked charts
+    status: completed
+    priority: high
+    scope: >-
+      Close the functional acceptance hole between dated Study Lab occurrences and linked uPlot
+      chart/ratio surfaces. Preserve canonical symbol-link and timestamp-link semantics, expose
+      the applied timestamp as deterministic accessible state, and verify the real authenticated
+      browser journey without changing visual thresholds or provider behavior.
+    definition_of_done:
+      - Study Lab occurrence selection publishes symbol and timestamp through the existing link bus
+      - Linked uPlot chart and ratio hosts consume the timestamp without recreating or refetching
+      - Focused component coverage proves timestamp application and cleanup semantics
+      - Authenticated browser acceptance clicks a real occurrence and verifies linked chart state
+      - Adjacent Study Lab/Python/Results, frontend, type/build, uPlot, visual-policy, and diff gates pass
+      - No visual threshold, mask, product criterion, or acceptance flexibility changes
+    validation:
+      - focused-ratio-lifecycle-11-of-11
+      - authenticated-f8p-90-90-history-1-of-1
+      - adjacent-study-python-results-browser-9-of-9
+      - frontend-vitest-818-of-818
+      - frontend-type-check-production-build
+      - uplot-visual-policy-diff-check
+    notes:
+      - REF-STUDY-LAB-V25 remains a separate original-surface visual-reference gap; this context changes no visual oracle.
+      - Fix browser-exposed defects at the owning boundary and rerun; do not suppress or reclassify failures.
+      - Git transport is operational only and must never block the goal.
+      - First browser attempt exposed stale served frontend content; force-recreate corrected the environment and the unchanged acceptance passed.
+      - Acceptance flexibility used: none.
+      - Implementation/docs commit: 32503f91; operational checkpoint follows separately.
   - id: tc2000-study-lab-historical-90-90-breadth-series-20260814
     title: Add historical 90/90 breadth participation series and occurrences
     status: completed
