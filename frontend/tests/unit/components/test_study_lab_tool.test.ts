@@ -134,6 +134,10 @@ describe('StudyLabTool', () => {
     await wrapper.find('[aria-label="Study Python source SDK suggestions"] button').trigger('mousedown')
     expect((editor.element as HTMLTextAreaElement).value).toContain('market.close()')
     expect(wrapper.text()).toContain('SDK reference')
+    expect(wrapper.text()).toContain('positive_close_streaks')
+    expect(wrapper.text()).toContain('cross_sectional_rank')
+    expect(wrapper.text()).not.toContain('percentiles')
+    expect(wrapper.text()).not.toContain('historical comparisons')
   })
 
   it('loads editable factory studies and switches back to custom Python on edit', async () => {

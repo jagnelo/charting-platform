@@ -11379,3 +11379,17 @@ The current source also passes the focused authenticated top-down browser slice 
   remain open. The unprivileged browser launch's Mach-port failure was retried through the
   approved elevated boundary; no visual threshold, mask, product criterion, or acceptance
   flexibility changed.
+
+### 2026-08-14 — Study Lab SDK reference alignment
+
+- [x] Replaced the visible Study Lab SDK reference's unsupported claims (`stats` ranks,
+  percentiles, rolling/correlation/regression/distributions and `research` regimes/historical
+  comparisons) with the exact currently executable `market`, `ta`, `stats`, `research`, and
+  `output` surface. This keeps the UI honest while the broader SDK remains an explicit product
+  expansion requirement rather than a dead-control promise.
+- [x] Focused Study Lab coverage passes `22/22`; adjacent authenticated Study Lab/Python/Results
+  coverage passes `12/12`; full frontend Vitest passes `818/818` at `80.89%` statements;
+  type-check, production build, `make test-fe`, uPlot contract, and visual-policy checks pass.
+- [ ] `REF-STUDY-LAB-V25`, provider/live-entitlement, historical/GICS, native-monitor,
+  beyond-bounded endurance, and final-audit gaps remain open. No visual threshold, mask, product
+  criterion, or acceptance flexibility changed.

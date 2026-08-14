@@ -6062,3 +6062,13 @@ the four `research` helpers, and all typed `output` artifact methods. Unsupporte
 editor coverage is `1/1`, adjacent Study Lab/Python/Results coverage is `12/12`, and the full
 frontend gate is `818/818` with `make test-fe`, type-check, and build green. This is a contract
 and discoverability correction; no visual threshold, mask, or acceptance flexibility changed.
+
+## 2026-08-14 — Study Lab SDK reference alignment
+
+The visible SDK reference now mirrors the executable isolated-runtime contract instead of
+advertising unavailable helper families. It lists the prepared market and benchmark accessors,
+`ta.indicator`/`sma`/`ema`/`rsi`, `stats.positive_close_streaks`, the supported research helpers,
+and every typed output artifact. Focused Study Lab coverage is `22/22`, adjacent authenticated
+coverage is `12/12`, and the full frontend/uPlot/visual-policy gate remains green. This is an
+honesty/contract correction; the broader SDK expansion and `REF-STUDY-LAB-V25` visual gap remain
+open, with no acceptance flexibility changed.

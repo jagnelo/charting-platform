@@ -42,10 +42,10 @@
     </div>
     <details class="study-lab-tool__sdk-reference">
       <summary>SDK reference</summary>
-      <span><b>market</b>: close/open/high/low/volume/vwap/ohlcv, benchmark_* accessors, timestamps, sessions, metadata</span>
-      <span><b>ta</b>: sma, ema, rsi, atr, highest, lowest, rate_of_change</span>
-      <span><b>stats</b>: streaks, ranks, percentiles, rolling, correlation, regression, distributions</span>
-      <span><b>research</b>: forward_returns, occurrences, regimes, breadth, historical comparisons</span>
+      <span><b>market</b>: close/open/high/low/volume/vwap/ohlcv, timestamps, sessions, metadata, percent_change, 52-week, benchmark_* accessors, universe</span>
+      <span><b>ta</b>: indicator, sma, ema, rsi</span>
+      <span><b>stats</b>: positive_close_streaks</span>
+      <span><b>research</b>: forward_returns, occurrences, cross_sectional_rank, breadth_snapshot</span>
       <span><b>output</b>: scalar, boolean, series, table, events, bar, histogram, range, scatter, heatmap, dashboard</span>
     </details>
     <section v-if="validation" class="study-lab-tool__validation" :role="validation.valid ? 'status' : 'alert'" :aria-live="validation.valid ? 'polite' : 'assertive'" aria-atomic="true" :class="{ 'study-lab-tool__validation--bad': !validation.valid }">
