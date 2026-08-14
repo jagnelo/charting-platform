@@ -4,6 +4,8 @@ import asyncio
 
 from sqlalchemy import select
 
+import app.services.workstation_bootstrap as bootstrap
+from app.config import settings
 from app.models.data_source import DataSource
 from app.models.etf_holdings import ETFProfile
 from app.models.instrument import Instrument
@@ -107,9 +109,6 @@ def test_core_workstation_bootstrap_tolerates_venue_distinct_provider_symbols(db
 
 def test_core_workstation_data_reloads_instrument_after_provider_rollback(db, monkeypatch):
     """A failed provider attempt must not leave an expired ORM identity for the next symbol."""
-    from app.config import settings
-    import app.services.workstation_bootstrap as bootstrap
-
     facade = _AsyncSessionFacade(db)
     asyncio.run(ensure_core_workstation_identities(facade))
     monkeypatch.setattr(settings, "E2E_SEED_MARKET_DATA", False)
