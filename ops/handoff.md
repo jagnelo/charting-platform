@@ -1,5 +1,45 @@
 # Active Handoff
 
+## 2026-08-14 — Expanded US family vision plus iShares historical route
+
+- The controlling product scope is now explicitly written as eight complete US analysis
+  perspectives: S&P 500/400/600/1500, Russell 1000/2000/3000, and Nasdaq 100. Each root must
+  carry every evidenced cap/equal/value/growth leg through the same top-down benchmark -> sector
+  -> industry/proxy -> constituent path, generic breadth, ratios, ranking, rotation,
+  participation/leadership, concentration/dispersion, drawdown/volatility, scans, gauges, Study
+  Lab, and export contracts. Candidate symbols are discovery inputs only; absent evidence remains
+  an explicit unavailable/derived gap. No acceptance flexibility was used.
+- Updated `docs/project-todos.md` section 14, `docs/tc2000-parity.md`,
+  `docs/tc2000-acceptance-governance.md`, and the benchmark-family task definition to preserve
+  this scope for future goal resumption.
+- Implemented `IsharesHoldingsAdapter.fetch_for_date` using the public BlackRock
+  `asOfDate=YYYYMMDD` endpoint. It preserves requested/composition dates and route provenance.
+  Focused holdings/bootstrap/taxonomy units pass `510/510`; opt-in live IWV as-of probe passes
+  `1/1`; Ruff, compile, diff, and YAML/JSON parsing pass. This is route-level evidence only:
+  complete historical rebalance continuity, official index membership, canonical bars, and
+  populated browser acceptance remain open. No acceptance flexibility was used.
+- Current context remains `benchmark-family-live-and-point-in-time-evidence-20260814`; next step
+  is to checkpoint this implementation/docs unit, attempt the required exact push once, record
+  the transport result, and continue historical family population/browser acceptance.
+
+## 2026-08-14 — Historical iShares route and expanded family scope checkpoint
+
+- Implementation/docs commit: `b227a9f` (`feat(holdings): add historical iShares snapshots`). It
+  includes the explicit BlackRock `asOfDate=YYYYMMDD` route, deterministic/live regressions, and
+  the expanded eight-family analysis-perspective requirements in the controlling docs and task.
+- Validation: holdings/bootstrap/taxonomy units `510/510`; opt-in live IWV as-of probe `1/1`;
+  Ruff, compileall, `git diff --check`, and YAML/JSON parsing pass. No acceptance flexibility was
+  used. Historical rebalance continuity, official index membership, canonical bars, family-wide
+  population, and browser acceptance remain open.
+- Exact elevated command `rtk git push origin HEAD:feat/tc2000-frontend-rework` was attempted once
+  after the implementation checkpoint and rejected before Git by the private-origin safeguard.
+  Authorization for the accumulated private payload/destination was unavailable. No workaround,
+  alternate transport, rewrite, reset, stash, or repeat was used; this is transport-only and not a
+  goal blocker.
+- The operational files below are the only remaining dirty files and must be committed as a
+  separate checkpoint before the next context.
+
+
 ## 2026-08-14 — QQQE/Direxion route evidence
 
 - Added canonical `QQQE` metadata selecting the explicit Direxion holdings adapter and official

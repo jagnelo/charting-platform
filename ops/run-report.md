@@ -1,5 +1,23 @@
 # Run Report
 
+## 2026-08-14 — Expanded US family scope and iShares historical as-of route
+
+- Reaffirmed the full eight-family requirement in the controlling plan/parity/governance/task
+  records: S&P 500/400/600/1500, Russell 1000/2000/3000, and Nasdaq 100; all evidenced
+  cap/equal/value/growth legs inherit the same top-down, generic breadth, ratio, ranking,
+  rotation, participation, concentration/dispersion, drawdown/volatility, drill-down, Study Lab,
+  scan, gauge, and export behavior. Candidate ETF symbols remain evidence inputs only.
+- Implemented iShares explicit historical holdings retrieval through BlackRock's public
+  `asOfDate=YYYYMMDD` route, retaining requested/composition dates and provenance.
+- Validation: focused holdings/bootstrap/taxonomy `510/510`; opt-in live IWV as-of `1/1`; Ruff,
+  compileall, `git diff --check`, and Ruby YAML/JSON parsing pass. No acceptance flexibility used.
+- Open: complete historical rebalance/membership continuity, official-index membership evidence,
+  canonical family bars, family-wide populated analytics, browser acceptance, and final goal audit.
+- Implementation/docs commit `b227a9f` is clean locally. The required exact elevated push was
+  attempted once and rejected before Git by the private-origin safeguard; no workaround or repeat
+  was used. Operational files are the only pending checkpoint changes.
+
+
 ## 2026-08-14 — QQQE route push transport
 
 - The exact elevated push for clean commits `4609601b` and `404a73da` was attempted once and
