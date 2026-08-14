@@ -366,6 +366,19 @@ not completion of the generic breadth contract: historical role participation, a
 condition-driven studies, occurrence linking, and all-family ranking/rotation/dispersion remain
 open and are tracked in the controlling plan.
 
+## 2026-08-14 — Historical family participation parity slice
+
+Family role participation now has a historical companion endpoint. SMA20/50/200 percentages are
+calculated independently for cap/equal/value/growth roles over actual observed timestamps from
+each role's point-in-time holdings. The contract retains membership/provenance and excludes
+missing bars at the timestamp instead of forward-filling them. The workstation requests this
+batch alongside current participation and exposes the aligned-point count in the dense role strip.
+
+This slice is intentionally narrower than the generic breadth completion bar: historical
+near-high/new-high/trend/relative-strength predicates, arbitrary user-authored conditions,
+occurrence linking, role ranking, rotation, and full eight-root historical population remain open
+and visibly tracked.
+
 ## 2026-08-14 — Breadth scope expanded to condition-driven cross-sectional studies
 
 The breadth requirement is broader than the current fixed metric panel. The implemented panel

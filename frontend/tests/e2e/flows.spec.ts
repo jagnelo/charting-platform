@@ -3261,6 +3261,20 @@ test.describe('TC2000 workstation', () => {
         body: JSON.stringify({ definition_version: 1, definition_hash: 'family-breadth', universe: { kind: 'benchmark_family', family_key: 'sp500', role: 'equal_weight', proxy_symbol: 'RSP' }, condition: {}, timeframe: 'D1', adjustment: 'split_adjusted', points: [], exclusions: [] }),
       })
     })
+    await page.route('**/api/v1/analysis/groups/sp500/breadth', async route => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ group_key: 'sp500', timeframe: 'D1', adjustment: 'split_adjusted', evaluated_count: 1, coverage: 1, above_ma: { ma20: 1, ma50: 1, ma200: 1 }, exclusions: [] }),
+      })
+    })
+    await page.route('**/api/v1/analysis/groups/sp500/breadth/history', async route => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ group_key: 'sp500', timeframe: 'D1', adjustment: 'split_adjusted', points: [], exclusions: [] }),
+      })
+    })
     await page.route('**/market-groups/us-benchmarks*', async route => {
       const response = await route.fetch()
       const payload = await response.json() as Record<string, unknown>
@@ -3339,6 +3353,15 @@ test.describe('TC2000 workstation', () => {
           ],
           exclusions: [],
         }),
+      })
+    })
+    await page.route('**/api/v1/analysis/benchmark-families/sp500/breadth/history*', async route => {
+      familyAsOfRequests.push(route.request().url())
+      const point = { timestamp: '2026-01-02T00:00:00Z', above_ma: { ma20: 0.7, ma50: 0.6, ma200: 0.5 }, coverage: { ma20: 1, ma50: 1, ma200: 1 } }
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ family_key: 'sp500', official_index_symbol: 'SPX', timeframe: 'D1', adjustment: 'split_adjusted', limit: 500, roles: [{ role: 'cap_weight', symbol: 'SPY', label: 'SPY', verification_state: 'verified', available: true, points: [point], exclusions: [] }, { role: 'equal_weight', symbol: 'RSP', label: 'RSP', verification_state: 'verified', available: true, points: [point], exclusions: [] }], exclusions: [] }),
       })
     })
     await page.route('**/api/v1/analysis/benchmark-families/sp500/overview*', async route => {

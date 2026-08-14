@@ -434,6 +434,33 @@ class BreadthHistoryOut(AnalysisResponseMetadata):
     exclusions: list[AnalysisWarning] = Field(default_factory=list)
 
 
+class BenchmarkFamilyBreadthHistoryRoleOut(BaseModel):
+    """Historical moving-average participation for one family role."""
+
+    role: Literal["cap_weight", "equal_weight", "value", "growth"]
+    symbol: str | None = None
+    label: str
+    verification_state: str
+    available: bool
+    membership_version: int | None = None
+    universe_provenance: dict[str, object] = Field(default_factory=dict)
+    points: list[BreadthHistoryPoint] = Field(default_factory=list)
+    exclusions: list[AnalysisWarning] = Field(default_factory=list)
+
+
+class BenchmarkFamilyBreadthHistoryOut(AnalysisResponseMetadata):
+    """Aligned historical participation across independent family roles."""
+
+    family_key: str
+    official_index_symbol: str
+    timeframe: str
+    adjustment: str
+    as_of: datetime | None = None
+    limit: int = Field(ge=1, le=5_000)
+    roles: list[BenchmarkFamilyBreadthHistoryRoleOut] = Field(default_factory=list)
+    exclusions: list[AnalysisWarning] = Field(default_factory=list)
+
+
 class BreadthUniverseRequest(BaseModel):
     """A provider-neutral universe selector for reusable breadth studies."""
 

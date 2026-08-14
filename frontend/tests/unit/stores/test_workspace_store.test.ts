@@ -232,6 +232,35 @@ describe('workspace store layout tabs', () => {
     expect(store.benchmarkFamilyBreadths['sp500:D1:adj:2026-06-27T23:59:59Z:0.02:50']?.roles[0]?.above_ma.ma20.percentage).toBe(0.7)
   })
 
+  it('loads aligned historical participation for independent family roles', async () => {
+    apiGet.mockResolvedValue({
+      family_key: 'sp500',
+      official_index_symbol: 'SPX',
+      timeframe: 'W1',
+      adjustment: 'raw',
+      limit: 30,
+      roles: [{ role: 'equal_weight', symbol: 'RSP', label: 'RSP', verification_state: 'verified', available: true, points: [{ timestamp: '2026-06-27T00:00:00Z', above_ma: { ma20: 0.8, ma50: null, ma200: null }, coverage: { ma20: 1, ma50: 0, ma200: 0 } }], exclusions: [] }],
+      exclusions: [],
+    })
+    const store = useWorkspaceStore()
+
+    const result = await store.loadBenchmarkFamilyBreadthHistory('sp500', {
+      timeframe: 'W1',
+      adjusted: false,
+      as_of: '2026-06-27T23:59:59Z',
+      limit: 30,
+    })
+
+    expect(apiGet).toHaveBeenCalledWith('/analysis/benchmark-families/sp500/breadth/history', {
+      limit: 30,
+      timeframe: 'W1',
+      adjusted: false,
+      as_of: '2026-06-27T23:59:59Z',
+    })
+    expect(result?.roles[0]?.points[0]?.above_ma.ma20).toBe(0.8)
+    expect(store.benchmarkFamilyBreadthHistories['sp500:W1:raw:2026-06-27T23:59:59Z:30']?.roles[0]?.symbol).toBe('RSP')
+  })
+
   it('loads a family overview with independent mapping readiness and stable lineage cache', async () => {
     apiGet.mockResolvedValue({
       family_key: 'sp500',

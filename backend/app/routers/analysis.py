@@ -36,6 +36,8 @@ from app.schemas.analysis import (
     AnalysisCell,
     AnalysisPoint,
     AnalysisWarning,
+    BenchmarkFamilyBreadthHistoryOut,
+    BenchmarkFamilyBreadthHistoryRoleOut,
     BenchmarkFamilyBreadthMetricOut,
     BenchmarkFamilyBreadthOut,
     BenchmarkFamilyBreadthRoleOut,
@@ -2823,6 +2825,181 @@ async def benchmark_family_breadth(
         exclusions=exclusions,
         freshness="available" if any(role.available for role in roles) else "unavailable",
         freshness_detail={"role_count": 4, "available_roles": sum(role.available for role in roles)},
+    )
+
+
+@router.get(
+    "/benchmark-families/{family_key}/breadth/history",
+    response_model=BenchmarkFamilyBreadthHistoryOut,
+)
+async def benchmark_family_breadth_history(
+    family_key: str,
+    timeframe: Timeframe = Timeframe.D1,
+    adjusted: bool = True,
+    limit: int = Query(default=500, ge=1, le=5_000),
+    as_of: datetime | None = Query(default=None),
+    _: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Return aligned SMA participation history for every available family role.
+
+    Each role is evaluated against its own point-in-time holdings. Missing bars
+    are excluded at each timestamp; no current membership or alternate family
+    role is forward-filled into the historical series.
+    """
+
+    family = (
+        await db.execute(select(MarketGroup).where(MarketGroup.stable_key == family_key))
+    ).scalar_one_or_none()
+    if family is None or family.group_type != "benchmark_family":
+        raise HTTPException(
+            404,
+            detail={"code": "benchmark_family_not_found", "family_key": family_key},
+        )
+    provenance = dict(family.provenance or {})
+    official = provenance.get("official_index")
+    mappings = provenance.get("proxy_mappings")
+    if not isinstance(official, Mapping) or not isinstance(mappings, Mapping):
+        raise HTTPException(
+            422,
+            detail={"code": "benchmark_family_metadata_missing", "family_key": family_key},
+        )
+
+    roles: list[BenchmarkFamilyBreadthHistoryRoleOut] = []
+    exclusions: list[AnalysisWarning] = []
+    freshness_ids: list[int] = []
+    for role in ("cap_weight", "equal_weight", "value", "growth"):
+        mapping = mappings.get(role)
+        mapping = mapping if isinstance(mapping, Mapping) else {}
+        symbol = str(mapping.get("symbol")).upper() if mapping.get("symbol") else None
+        label = str(mapping.get("label") or "No verified mapped proxy")
+        verification_state = str(mapping.get("verification_state") or "not_verified")
+        if not symbol:
+            warning = AnalysisWarning(
+                code="family_role_mapping_unavailable",
+                message=f"No verified mapped proxy is available for the {role} leg.",
+            )
+            exclusions.append(warning)
+            roles.append(
+                BenchmarkFamilyBreadthHistoryRoleOut(
+                    role=role,
+                    symbol=None,
+                    label=label,
+                    verification_state=verification_state,
+                    available=False,
+                    exclusions=[warning],
+                )
+            )
+            continue
+
+        definition = BreadthDefinitionRequest(
+            universe=BreadthUniverseRequest(
+                kind="benchmark_family", key=family_key, role=role, point_in_time=True
+            ),
+            condition=BreadthConditionRequest(
+                kind="above_moving_average", params={"period": 20}
+            ),
+            timeframe=timeframe.value,
+            adjusted=adjusted,
+            as_of=as_of,
+        )
+        try:
+            members, member_ids, universe_warnings, universe_provenance, membership_payload = (
+                await _resolve_benchmark_family_breadth_universe(definition, db)
+            )
+        except HTTPException as error:
+            detail = error.detail if isinstance(error.detail, Mapping) else {}
+            warning = AnalysisWarning(
+                code=str(detail.get("code") or "family_breadth_unavailable"),
+                message=str(
+                    detail.get("message")
+                    or f"Breadth history is unavailable for the {role} leg."
+                ),
+            )
+            exclusions.append(warning)
+            roles.append(
+                BenchmarkFamilyBreadthHistoryRoleOut(
+                    role=role,
+                    symbol=symbol,
+                    label=label,
+                    verification_state=verification_state,
+                    available=False,
+                    exclusions=[warning],
+                )
+            )
+            continue
+
+        bars_by_id = _truncate_bars_at(
+            await _bars_by_instrument(db, member_ids, timeframe, adjusted), as_of
+        )
+        freshness_ids.extend(member_ids)
+        by_timestamp: dict[datetime, dict[str, tuple[float | None, float]]] = {}
+        role_exclusions = list(universe_warnings)
+        for period in (20, 50, 200):
+            raw_points = evaluate_breadth_history(
+                members,
+                bars_by_id,
+                {"kind": "above_moving_average", "params": {"period": period}},
+                limit=limit,
+            )
+            for raw_point in raw_points:
+                timestamp = raw_point["timestamp"]
+                by_timestamp.setdefault(timestamp, {})[f"ma{period}"] = (
+                    raw_point["percentage"],
+                    raw_point["coverage"],
+                )
+                role_exclusions.extend(
+                    warning
+                    for result in raw_point["members"]
+                    if result.exclusion_code
+                    for warning in [
+                        _generic_breadth_warning(
+                            result.exclusion_code, result.instrument_id
+                        )
+                    ]
+                )
+        points = [
+            BreadthHistoryPoint(
+                timestamp=timestamp,
+                above_ma={
+                    period: values.get(period, (None, 0.0))[0]
+                    for period in ("ma20", "ma50", "ma200")
+                },
+                coverage={
+                    period: values.get(period, (None, 0.0))[1]
+                    for period in ("ma20", "ma50", "ma200")
+                },
+            )
+            for timestamp, values in sorted(by_timestamp.items())
+        ][-limit:]
+        roles.append(
+            BenchmarkFamilyBreadthHistoryRoleOut(
+                role=role,
+                symbol=symbol,
+                label=label,
+                verification_state=verification_state,
+                available=True,
+                membership_version=_generic_membership_version(membership_payload),
+                universe_provenance=universe_provenance,
+                points=points,
+                exclusions=role_exclusions,
+            )
+        )
+
+    freshness, freshness_detail = await _batch_freshness(
+        db, sorted(set(freshness_ids)), timeframe, adjusted
+    )
+    return BenchmarkFamilyBreadthHistoryOut(
+        family_key=family_key,
+        official_index_symbol=str(official.get("symbol") or ""),
+        timeframe=timeframe.value,
+        adjustment="split_adjusted" if adjusted else "raw",
+        as_of=as_of,
+        limit=limit,
+        roles=roles,
+        exclusions=exclusions,
+        freshness=freshness,
+        freshness_detail=freshness_detail,
     )
 
 

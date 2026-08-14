@@ -12407,3 +12407,22 @@ The current source also passes the focused authenticated top-down browser slice 
       family-wide ranking/rotation/dispersion/concentration, and populated acceptance across all
       eight benchmark roots. Fixed metrics remain convenience presets, not the generic breadth
       completion boundary.
+
+### 2026-08-14 — Historical benchmark-family participation
+
+- [x] Added `GET /analysis/benchmark-families/{family_key}/breadth/history`, evaluating SMA20/50/200
+      participation independently for each cap/equal/value/growth role using point-in-time
+      holdings and aligned observed timestamps. Missing bars are excluded at each timestamp rather
+      than forward-filled; missing mappings/holdings remain role-local capability states.
+- [x] Added store caching and workstation loading for the historical role batch. The visible role
+      strip now reports the number of aligned historical points while retaining current metrics as
+      the primary dense view.
+- [x] Validation passes: benchmark-family history integration `2/2`, workspace-store `60/60`,
+      full frontend Vitest `831/831`, `vue-tsc`, production build, Ruff, compileall, diff-check,
+      and rebuilt authenticated `F8s-breadth-family-ratio` Chromium `1/1`. The browser fixture
+      initially exposed unmocked generic breadth 404s after the new requests were added; explicit
+      current/history fixtures were added and the unchanged acceptance then passed. No product
+      acceptance rule was relaxed.
+- [ ] Still open: historical near-high/new-high/trend/relative-strength series, arbitrary
+      condition-driven history and occurrence linking, role/family ranking and rotation, and
+      complete historical membership/bar population across all eight roots.

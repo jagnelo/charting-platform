@@ -880,6 +880,79 @@ class TestWorkspaces:
             "standard_role_participation_batch_over_point_in_time_holdings"
         )
 
+    def test_benchmark_family_breadth_history_keeps_role_lineage_and_missing_roles_explicit(
+        self, client, auth_headers, db, instrument, instrument_type, ohlcv_bars
+    ):
+        from datetime import UTC, datetime
+        from decimal import Decimal
+
+        from app.models.etf_holdings import ETFHolding, ETFHoldingsSnapshot, ETFProfile
+        from app.models.instrument import Instrument
+
+        seeded = client.get("/api/v1/market-groups", headers=auth_headers)
+        assert seeded.status_code == 200
+        rsp = Instrument(
+            symbol="RSP",
+            name="Invesco S&P 500 Equal Weight ETF",
+            currency="USD",
+            instrument_type_id=instrument_type.id,
+            is_active=True,
+        )
+        db.add(rsp)
+        db.flush()
+        profile = ETFProfile(instrument_id=rsp.id, adapter_status="resolved")
+        db.add(profile)
+        db.flush()
+        snapshot = ETFHoldingsSnapshot(
+            etf_profile_id=profile.id,
+            composition_date=datetime(2024, 6, 28, tzinfo=UTC).date(),
+            known_at=datetime(2024, 6, 29, tzinfo=UTC),
+            provenance="issuer_native",
+            source_provider="fixture",
+            source_quality="issuer_disclosed",
+            completeness_status="complete",
+            row_count=1,
+            resolved_count=1,
+            unresolved_count=0,
+            total_weight=Decimal("1"),
+            snapshot_hash="test-family-breadth-history-rsp",
+        )
+        db.add(snapshot)
+        db.flush()
+        db.add(
+            ETFHolding(
+                snapshot_id=snapshot.id,
+                constituent_instrument_id=instrument.id,
+                position=0,
+                reported_symbol=instrument.symbol,
+                reported_name=instrument.name,
+                weight=Decimal("1"),
+                source_row_hash="test-family-breadth-history-aapl",
+                is_resolved=True,
+            )
+        )
+        db.flush()
+
+        response = client.get(
+            "/api/v1/analysis/benchmark-families/sp500/breadth/history",
+            headers=auth_headers,
+            params={"limit": 30},
+        )
+        assert response.status_code == 200, response.text
+        payload = response.json()
+        roles = {role["role"]: role for role in payload["roles"]}
+        assert roles["cap_weight"]["available"] is False
+        assert roles["cap_weight"]["exclusions"][0]["code"] == "instrument_not_found"
+        assert roles["equal_weight"]["available"] is True
+        assert roles["equal_weight"]["membership_version"] is not None
+        assert len(roles["equal_weight"]["points"]) == 30
+        assert set(roles["equal_weight"]["points"][-1]["above_ma"]) == {
+            "ma20",
+            "ma50",
+            "ma200",
+        }
+        assert payload["limit"] == 30
+
     def test_benchmark_family_derived_equal_weight_requires_constituent_membership(
         self, client, auth_headers, db, instrument, ohlcv_bars
     ):

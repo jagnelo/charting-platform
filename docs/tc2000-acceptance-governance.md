@@ -169,6 +169,16 @@ not waive historical participation, arbitrary/nested user predicates, occurrence
 Lab promotion, or the wider ranking/rotation/concentration/dispersion gates. Missing data remains
 an explicit gap; no acceptance flexibility is used.
 
+#### Historical role participation sub-gate
+
+The family acceptance run must also call the historical role batch with a bounded limit and verify
+that each available role returns aligned SMA20/50/200 points with its own membership/provenance
+lineage. A missing current bar at a timestamp must reduce that role's eligible coverage rather
+than being forward-filled. Missing mappings or holdings must remain role-local unavailable states.
+This sub-gate validates historical SMA participation only; it does not close historical
+near-high/new-high/trend/relative-strength studies, arbitrary condition history, occurrence
+linking, ranking, rotation, or complete family population. No acceptance flexibility is used.
+
 #### Dated holdings coverage sub-gate
 
 Before a family/leg can be presented as historically usable, acceptance must call

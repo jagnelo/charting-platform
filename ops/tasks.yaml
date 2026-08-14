@@ -243,6 +243,37 @@ tasks:
         oracle was extended to assert the visible family participation strip. Historical role
         breadth and the generic condition-driven breadth contract remain tracked by
         tc2000-generic-condition-driven-breadth-20260814 and the parent family-expansion task.
+  - id: tc2000-family-role-participation-history-20260814
+    title: Add historical benchmark-family role participation
+    status: completed
+    priority: high
+    scope: >-
+      Extend the family role participation slice with aligned historical SMA20/50/200 series for
+      cap/equal/value/growth roles. Use independent point-in-time holdings, actual observed bars,
+      per-timestamp coverage and exclusions, and explicit no-fallback semantics. Wire the store
+      and dense workstation evidence while keeping arbitrary condition history and occurrence
+      linking in the generic breadth task.
+    definition_of_done:
+      - GET /analysis/benchmark-families/{family_key}/breadth/history returns independent role points and lineage
+      - Missing bars are excluded at each timestamp and never forward-filled
+      - Missing mappings/holdings remain role-local unavailable states
+      - Store cache identity includes family, timeframe, adjustment, as_of, and limit
+      - Workstation requests historical role participation and exposes aligned-point evidence
+      - Focused backend, store, full frontend, type/build, lint/compile, and rebuilt browser checks pass
+      - Historical non-MA predicates, arbitrary condition history, occurrence linking, ranking, rotation, and full family population remain explicitly open
+    validation:
+      - benchmark-family-breadth-history-integration-2-of-2
+      - workspace-store-60-of-60
+      - frontend-vitest-831-of-831
+      - vue-tsc-and-production-build
+      - ruff-compileall-and-diff-check
+      - rebuilt-F8s-breadth-family-ratio-1-of-1
+    notes:
+      - >-
+        Implemented and validated on 2026-08-14. The browser fixture initially exposed unmocked
+        generic breadth 404s after the new requests were added; explicit current/history fixtures
+        were added and the unchanged acceptance passed. No product acceptance criterion was
+        relaxed. Remaining breadth/history and family analytics gaps stay tracked.
   - id: tc2000-generic-condition-driven-breadth-20260814
     title: Broaden breadth from fixed metrics to reusable condition-driven cross-sectional studies
     status: in_progress

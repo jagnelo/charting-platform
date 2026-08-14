@@ -528,6 +528,7 @@
           </span>
         </template>
         <span v-else class="breadth-tool__status">Role participation unavailable.</span>
+        <span v-if="familyBreadthHistory" class="breadth-tool__family-breadth-history">History · {{ familyBreadthHistoryPointCount }} aligned points</span>
       </div>
       <section v-if="isBenchmarkFamily" class="breadth-tool__family-overview" aria-label="Benchmark family analysis">
         <header class="breadth-tool__family-overview-header">
@@ -1710,6 +1711,9 @@ const familyBreadthKey = computed(() => `${breadthGroupKey.value}:${breadthTimef
 const familyBreadth = computed(() => workspaceStore.benchmarkFamilyBreadths[familyBreadthKey.value])
 const familyBreadthError = computed(() => workspaceStore.benchmarkFamilyBreadthErrors[familyBreadthKey.value] ?? null)
 const familyBreadthLoading = ref(false)
+const familyBreadthHistoryKey = computed(() => `${breadthGroupKey.value}:${breadthTimeframe.value}:${breadthAdjusted.value ? 'adj' : 'raw'}:${familyAsOf.value || 'latest'}:500`)
+const familyBreadthHistory = computed(() => workspaceStore.benchmarkFamilyBreadthHistories[familyBreadthHistoryKey.value])
+const familyBreadthHistoryPointCount = computed(() => Math.max(0, ...((familyBreadthHistory.value?.roles ?? []).map(role => role.points.length))))
 const familyOverviewKey = computed(() => `${breadthGroupKey.value}:${breadthTimeframe.value}:${breadthAdjusted.value ? 'adj' : 'raw'}:${familyAsOf.value || 'latest'}`)
 const familyOverview = computed(() => workspaceStore.benchmarkFamilyOverviews[familyOverviewKey.value])
 const familyOverviewError = computed(() => workspaceStore.benchmarkFamilyOverviewErrors[familyOverviewKey.value] ?? null)
@@ -2547,6 +2551,7 @@ watch([breadthGroupKey, breadthTimeframe, breadthAdjusted, familyRatioMarket, fa
       workspaceStore.loadBenchmarkFamilyRatios(groupKey, familyRatioRole.value, market, { timeframe, adjusted, as_of: familyAsOf.value || undefined, roles: [...familyRatioRoles] }),
       workspaceStore.loadBenchmarkFamilyTechnicals(groupKey, { timeframe, adjusted, as_of: familyAsOf.value || undefined }),
       workspaceStore.loadBenchmarkFamilyBreadth(groupKey, { timeframe, adjusted, as_of: familyAsOf.value || undefined, near_threshold: 0.01, new_high_lookback: 20 }),
+      workspaceStore.loadBenchmarkFamilyBreadthHistory(groupKey, { timeframe, adjusted, as_of: familyAsOf.value || undefined, limit: 500 }),
     ])
   } finally {
     familyRatioLoading.value = false
