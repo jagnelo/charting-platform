@@ -1,5 +1,18 @@
 # Active Handoff
 
+## 2026-08-14 — Top-down ratio acceptance-oracle repair
+
+- F8e.2a was order-dependent: a prior persisted comparison/template flow could leave the shared
+  ratio window at a custom state, so `Open ratio vs active` was visually evaluated against stale
+  SPY/RSP state. The test now resets the immutable factory workspace before exercising the action.
+- The deep journey also now requires `NVDA/XLK` and `NVDA/SPY`, preserving the sector-relative and
+  market-relative legs even after industry-proxy traversal.
+- Focused ratio/unit `14/14`, full frontend `817/817`, type-check, focused browser `1/1`, and
+  broader seeded F8d/F8e `9/9` executed with two explicit skips pass. The first failure and repair
+  are retained as fix-first evidence; no production ratio behavior or acceptance threshold changed.
+- Acceptance flexibility used: existing controlled seeded/board-guided browser evidence only;
+  exact/unrepresented V25 and canonical-live provider skips remain explicit.
+
 ## 2026-08-14 — Current exact push authorization result
 
 - Repository/index health is confirmed: worktree clean at `58c3aa09`; `origin/feat/tc2000-frontend-rework`

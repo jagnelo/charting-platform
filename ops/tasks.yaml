@@ -1,4 +1,32 @@
 tasks:
+  - id: tc2000-topdown-ratio-action-oracle-20260814
+    title: Isolate top-down ratio action state and require explicit stock sector ratios
+    status: completed
+    priority: high
+    scope: >-
+      Harden the authenticated top-down acceptance journey so persisted comparison/template state
+      from earlier flows cannot contaminate the sector context-menu ratio action, and require the
+      stock drill-down to expose both its selected sector ratio and market ratio explicitly.
+    definition_of_done:
+      - The ratio context-menu flow resets the immutable factory state before mutating the shared workspace.
+      - The deep top-down journey requires NVDA/XLK and NVDA/SPY rather than accepting an industry-proxy-only leg.
+      - Focused ratio/unit, full frontend, type-check, and seeded top-down browser validation pass.
+      - The original failure, repair, rerun evidence, and remaining seeded/canonical limitations are recorded.
+    validation:
+      - ratio-unit-14-of-14
+      - frontend-vitest-817-of-817
+      - frontend-type-check
+      - focused-F8e.2a-1-of-1
+      - broader-seeded-F8d-F8e-9-of-9-with-2-explicit-skips
+      - git-diff-check
+    notes:
+      - >-
+        The first broader seeded run exposed one order-dependent F8e.2a failure: a prior persisted
+        custom ratio left the visible tool at SPY/RSP after the context-menu action. Isolating the
+        factory state repaired the acceptance oracle without changing production ratio behavior.
+        Focused rerun passed 1/1 and the broader slice passed 9/9 executed with two explicit
+        canonical-only skips. Board-guided/controlled-seeded evidence remains interim for visual
+        and provider gaps; no threshold, mask, product rule, or acceptance criterion was relaxed.
   - id: tc2000-calvert-holdings-route-20260814
     title: Add native Calvert daily holdings routes
     status: completed

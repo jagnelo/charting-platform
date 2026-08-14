@@ -1,5 +1,21 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-14 — Top-down ratio acceptance-oracle isolation
+
+- The authenticated top-down ratio context-menu flow now resets the immutable factory workspace
+  before mutating the shared ratio window. This prevents a preceding comparison/template test from
+  leaving a persisted custom ratio that masks the `Open ratio vs active` behavior.
+- The deep top-down journey now requires the explicit stock legs `NVDA/XLK` and `NVDA/SPY`; an
+  industry-proxy-only ratio no longer satisfies the stock/sector acceptance contract.
+- The first broader seeded run exposed the order-dependent failure at F8e.2a. After the fix,
+  focused ratio/unit coverage passed `14/14`, the focused browser flow passed `1/1`, the broader
+  seeded F8d/F8e slice passed `9/9` executed with two explicit canonical-only skips, frontend
+  Vitest passed `817/817`, and type-check/diff checks passed.
+- Acceptance flexibility used: controlled seeded/board-guided browser evidence for this existing
+  interim track; no visual threshold, mask, provider rule, or product criterion changed. The
+  remaining exact/unrepresented V25, provider/entitlement, historical/GICS, native-monitor,
+  endurance, Docker, and final-audit gaps remain explicit.
+
 ## 2026-08-14 — Preserve settings during loading-time chart rebuilds
 
 - The chart host now remains mounted while symbol/timeframe/alternative-bar history is loading,

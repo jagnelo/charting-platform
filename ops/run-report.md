@@ -1,5 +1,15 @@
 # Run Report
 
+## 2026-08-14 — Top-down ratio acceptance-oracle repair
+
+- Broader seeded F8d/F8e initially exposed one localized order-dependent failure in F8e.2a:
+  persisted workspace state from an earlier flow left the ratio tool at SPY/RSP after the row
+  action. The flow now restores the factory workspace before mutation.
+- The deep drill-down oracle now requires `NVDA/XLK` and `NVDA/SPY`, not an industry-proxy-only
+  ratio. Focused ratio/unit coverage passed `14/14`; focused browser `1/1`; broader seeded slice
+  `9/9` executed with two explicit canonical-only skips; full frontend Vitest `817/817`; type-check
+  and diff checks pass. No threshold, mask, provider rule, or product criterion changed.
+
 ## 2026-08-14 — Current exact push authorization result
 
 - Worktree/index checks pass at local `58c3aa09`; origin remains `91463e54`, giving exact range
