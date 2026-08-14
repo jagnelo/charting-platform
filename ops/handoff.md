@@ -21,6 +21,9 @@
 - Implementation commit `4ebc57fe` (`feat(analysis): reuse versioned breadth conditions`) is
   clean locally. The exact elevated push was attempted once and rejected before Git by the
   private-origin safeguard for the accumulated 241-commit range; no workaround or repeat.
+- Operational checkpoint `4494b244` is also clean locally. Its exact elevated push was attempted
+  once and rejected before Git by the same private-origin safeguard for the accumulated 242-commit
+  range; no workaround or repeat. Transport remains the only unresolved boundary.
 - Next context after closure: `generic-breadth-python-condition-and-promotion-20260814`, beginning
   with isolated-runner arbitrary Python condition references and promotion contracts.
 

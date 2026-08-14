@@ -18,6 +18,9 @@
   and rejected before Git by the private-origin safeguard for the accumulated 241-commit range;
   no workaround or repeat was used. The transport result is operational only and does not block
   the product goal.
+- Operational checkpoint `4494b244` is clean locally. Its exact elevated push was attempted once
+  and rejected before Git by the same safeguard for the accumulated 242-commit range; no
+  workaround or repeat was used.
 
 ## 2026-08-14 — Expanded US benchmark-family scope
 
