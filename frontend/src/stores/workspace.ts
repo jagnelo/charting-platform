@@ -162,6 +162,34 @@ export interface GroupSnapshotState {
   rows: GroupSnapshotRow[]
 }
 
+export interface BenchmarkFamilyRatioState {
+  family_key: string
+  role: 'cap_weight' | 'equal_weight' | 'value' | 'growth'
+  symbol: string
+  benchmark_role: 'cap_weight' | 'market'
+  benchmark: string
+  timeframe: string
+  adjustment: string
+  as_of?: string | null
+  points: Array<{ timestamp: string; value: number }>
+  coverage: number
+  warnings: Array<{ code: string; message: string }>
+}
+
+export interface BenchmarkFamilyRatiosState {
+  family_key: string
+  official_index_symbol: string
+  timeframe: string
+  adjustment: string
+  as_of?: string | null
+  membership_version?: number
+  universe_provenance?: Record<string, unknown>
+  ratios: BenchmarkFamilyRatioState[]
+  exclusions: Array<{ code: string; message: string }>
+  freshness?: string
+  freshness_detail?: Record<string, number>
+}
+
 export interface BreadthState {
   group_key: string
   timeframe?: string
@@ -462,6 +490,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   const groupSnapshots = ref<Record<string, GroupSnapshotState>>({})
   const marketGroupErrors = ref<Record<string, string | null>>({})
   const groupSnapshotErrors = ref<Record<string, string | null>>({})
+  const benchmarkFamilyRatios = ref<Record<string, BenchmarkFamilyRatiosState | null>>({})
+  const benchmarkFamilyRatioErrors = ref<Record<string, string | null>>({})
   const breadth = ref<Record<string, BreadthState>>({})
   const breadthHistory = ref<Record<string, BreadthHistoryState>>({})
   const breadthLoading = ref<Record<string, boolean>>({})
@@ -1112,8 +1142,27 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     try {
       const group = await api.get<MarketGroupState>(`/market-groups/${encodeURIComponent(stableKey)}`)
       if (!isCurrentAnalysisRequest(requestKey, generation)) return null
-      marketGroups.value = { ...marketGroups.value, [stableKey]: group }
-      return group
+      let hydratedGroup = group
+      // Older persisted/backend fixtures may expose the benchmark root before
+      // the family registry was added.  Recover the registry from the explicit
+      // child endpoint instead of hard-coding family symbols or silently
+      // changing the selected universe.
+      if (stableKey === 'us-benchmarks' && group.provenance && !Array.isArray(group.provenance.benchmark_families)) {
+        try {
+          const children = await api.get<MarketGroupState[]>('/market-groups/us-benchmarks/children')
+          const families = children
+            .filter(child => child.group_type === 'benchmark_family')
+            .map(child => ({ logical_key: child.stable_key, name: child.name }))
+          if (families.length) {
+            hydratedGroup = { ...group, provenance: { ...group.provenance, benchmark_families: families } }
+          }
+        } catch {
+          // Keep the root response and its explicit provenance. A missing child
+          // registry is surfaced by the UI as unavailable rather than inferred.
+        }
+      }
+      marketGroups.value = { ...marketGroups.value, [stableKey]: hydratedGroup }
+      return hydratedGroup
     } catch (cause: any) {
       if (!isCurrentAnalysisRequest(requestKey, generation)) return null
       error.value = cause?.message ?? `Unable to load ${stableKey}`
@@ -1142,6 +1191,43 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       if (!isCurrentAnalysisRequest(requestKey, generation)) return null
       error.value = cause?.message ?? `Unable to calculate ${stableKey}`
       groupSnapshotErrors.value = { ...groupSnapshotErrors.value, [stableKey]: error.value }
+      return null
+    }
+  }
+
+  async function loadBenchmarkFamilyRatios(
+    familyKey: string,
+    role: BenchmarkFamilyRatioState['role'] = 'equal_weight',
+    marketBenchmark = 'SPY',
+    options: { timeframe?: string; adjusted?: boolean; as_of?: string } = {},
+  ) {
+    const normalizedFamily = familyKey.trim()
+    const normalizedMarket = marketBenchmark.trim().toUpperCase()
+    if (!normalizedFamily) return null
+    const cacheKey = `${normalizedFamily}:${role}:${normalizedMarket}:${options.timeframe ?? 'D1'}:${options.adjusted !== false ? 'adj' : 'raw'}`
+    const requestKey = `top-down:family-ratios:${cacheKey}`
+    const generation = beginAnalysisRequest(requestKey)
+    if (!documentIsVisible()) return null
+    benchmarkFamilyRatioErrors.value = { ...benchmarkFamilyRatioErrors.value, [cacheKey]: null }
+    try {
+      const result = await api.get<BenchmarkFamilyRatiosState>(
+        `/analysis/benchmark-families/${encodeURIComponent(normalizedFamily)}/ratios`,
+        {
+          role,
+          market_benchmark: normalizedMarket,
+          ...(options.timeframe ? { timeframe: options.timeframe } : {}),
+          ...(typeof options.adjusted === 'boolean' ? { adjusted: options.adjusted } : {}),
+          ...(options.as_of ? { as_of: options.as_of } : {}),
+        },
+      )
+      if (!isCurrentAnalysisRequest(requestKey, generation)) return null
+      benchmarkFamilyRatios.value = { ...benchmarkFamilyRatios.value, [cacheKey]: result }
+      return result
+    } catch (cause: any) {
+      if (!isCurrentAnalysisRequest(requestKey, generation)) return null
+      const message = cause?.message ?? `Unable to calculate ${normalizedFamily} relative strength`
+      benchmarkFamilyRatioErrors.value = { ...benchmarkFamilyRatioErrors.value, [cacheKey]: message }
+      benchmarkFamilyRatios.value = { ...benchmarkFamilyRatios.value, [cacheKey]: null }
       return null
     }
   }
@@ -1995,6 +2081,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     isPersistenceLeader,
     marketGroups,
     groupSnapshots,
+    benchmarkFamilyRatios,
+    benchmarkFamilyRatioErrors,
     marketGroupErrors,
     groupSnapshotErrors,
     marketAnalysisRefreshing,
@@ -2042,6 +2130,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     deleteCurrentWorkspace,
     loadMarketGroup,
     loadGroupSnapshot,
+    loadBenchmarkFamilyRatios,
     loadBreadth,
     loadBreadthHistory,
     loadGenericBreadth,

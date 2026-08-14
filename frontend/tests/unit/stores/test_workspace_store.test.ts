@@ -125,6 +125,50 @@ describe('workspace store layout tabs', () => {
     expect(apiGet).toHaveBeenCalledWith('/analysis/groups/sp500-sectors/breadth/history', { limit: 500, timeframe: 'W1', adjusted: false })
   })
 
+  it('loads role-aware benchmark-family ratios with a stable cache key and lineage', async () => {
+    apiGet.mockResolvedValue({
+      family_key: 'sp500',
+      official_index_symbol: 'SPX',
+      ratios: [{ role: 'equal_weight', symbol: 'RSP', benchmark_role: 'cap_weight', benchmark: 'SPY', points: [] }],
+      exclusions: [],
+    })
+    const store = useWorkspaceStore()
+
+    const result = await store.loadBenchmarkFamilyRatios('sp500', 'equal_weight', 'SPY', { timeframe: 'W1', adjusted: false })
+
+    expect(apiGet).toHaveBeenCalledWith('/analysis/benchmark-families/sp500/ratios', {
+      role: 'equal_weight',
+      market_benchmark: 'SPY',
+      timeframe: 'W1',
+      adjusted: false,
+    })
+    expect(result?.family_key).toBe('sp500')
+    expect(store.benchmarkFamilyRatios['sp500:equal_weight:SPY:W1:raw']?.ratios[0]?.symbol).toBe('RSP')
+    expect(store.benchmarkFamilyRatioErrors['sp500:equal_weight:SPY:W1:raw']).toBeNull()
+  })
+
+  it('hydrates a missing benchmark-family registry from explicit child groups', async () => {
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/market-groups/us-benchmarks') return Promise.resolve({
+        stable_key: 'us-benchmarks',
+        provenance: { taxonomy_version: 'legacy-fixture' },
+        members: [],
+      })
+      if (path === '/market-groups/us-benchmarks/children') return Promise.resolve([
+        { stable_key: 'sp500', group_type: 'benchmark_family', name: 'S&P 500' },
+      ])
+      return Promise.resolve({})
+    })
+    const store = useWorkspaceStore()
+
+    await store.loadMarketGroup('us-benchmarks')
+
+    expect(apiGet).toHaveBeenCalledWith('/market-groups/us-benchmarks/children')
+    expect(store.marketGroups['us-benchmarks']?.provenance.benchmark_families).toEqual([
+      { logical_key: 'sp500', name: 'S&P 500' },
+    ])
+  })
+
   it('tracks breadth loading and errors independently for the workstation state surface', async () => {
     const pending = deferred<unknown>()
     apiGet.mockImplementation((path: string) => path.endsWith('/breadth') ? pending.promise : Promise.resolve({ points: [] }))

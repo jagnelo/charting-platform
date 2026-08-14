@@ -12004,3 +12004,23 @@ The current source also passes the focused authenticated top-down browser slice 
 - [ ] Acceptance flexibility used: `REF-STUDY-LAB-V25` original-surface interim baseline and
   product-contract evidence because the board has no authoritative Study Lab capture. The gap
   remains open; no visual threshold, mask, product criterion, or acceptance rule changed.
+
+### 2026-08-14 — Benchmark-family ratio workstation integration
+
+- [x] Integrated the family-ratio backend contract into the authenticated Market Breadth tool.
+      Selecting any benchmark-family child now loads a role-aware relative-strength panel with
+      equal/value/growth/cap-leg selection, an explicit market benchmark, aligned ratio values,
+      coverage, point count, loading, no-data, and error states. Existing SPY/RSP behavior is
+      unchanged and family identity is carried by a stable cache/request key.
+- [x] Hardened legacy/fixture compatibility by hydrating missing `benchmark_families` metadata
+      from the explicit children endpoint instead of embedding symbols or silently selecting
+      SPY/QQQ. The browser acceptance injects only a deterministic labelled fixture response
+      where the persisted test database predates the family registry; this is test setup evidence,
+      not a production fallback or acceptance relaxation.
+- [x] Validation passes: focused family-ratio Playwright `1/1` against a freshly force-recreated
+      branch stack; full frontend Vitest `823/823`; `vue-tsc`; and production build. The initial
+      browser failure was a real ambiguous test selector and was fixed before the passing rerun.
+- [ ] Still open: provider-backed historical membership/holdings and weighting evidence, all-leg
+      batch composition, family-wide breadth/rotation/ranking, constituent browser drill-down,
+      exact/unrepresented V25 visual states, and final acceptance. Acceptance flexibility used:
+      **none**; the fixture route is explicitly tracked as interim evidence only.

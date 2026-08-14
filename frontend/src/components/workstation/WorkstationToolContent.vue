@@ -457,6 +457,26 @@
         <span v-else-if="genericBreadthError" class="breadth-tool__status--error" role="alert">{{ genericBreadthError }}</span>
         <span v-else-if="genericBreadth" class="breadth-tool__custom-result"><b>{{ genericBreadthPercentage }}</b> · {{ genericBreadth.pass_count }}/{{ genericBreadth.eligible_count }} eligible · {{ genericBreadthCoverage }} coverage</span>
       </div>
+      <div v-if="isBenchmarkFamily" class="breadth-tool__family-ratios" aria-label="Benchmark family relative strength">
+        <strong>Family relative strength</strong>
+        <select :value="familyRatioRole" aria-label="Family ratio leg" @change="setBreadthConfiguration({ family_ratio_role: ($event.target as HTMLSelectElement).value })">
+          <option value="equal_weight">Equal weight</option>
+          <option value="value">Value</option>
+          <option value="growth">Growth</option>
+          <option value="cap_weight">Cap weight</option>
+        </select>
+        <label>Market <input :value="familyRatioMarket" aria-label="Family ratio market benchmark" maxlength="12" @change="setBreadthConfiguration({ family_ratio_market: ($event.target as HTMLInputElement).value.toUpperCase() })" /></label>
+        <span v-if="familyRatioLoading" role="status">Loading…</span>
+        <span v-else-if="familyRatioError" class="breadth-tool__status--error" role="alert">{{ familyRatioError }}</span>
+        <template v-else-if="familyRatios?.ratios?.length">
+          <span v-for="ratio in familyRatios.ratios" :key="`${ratio.benchmark_role}:${ratio.benchmark}`" class="breadth-tool__family-ratio">
+            <span>{{ ratio.symbol }}/{{ ratio.benchmark }}</span>
+            <b>{{ latestFamilyRatio(ratio) }}</b>
+            <small>{{ ratio.points.length }} points · {{ (ratio.coverage * 100).toFixed(0) }}%</small>
+          </span>
+        </template>
+        <span v-else class="breadth-tool__status">No aligned family ratio data.</span>
+      </div>
       <div v-if="genericBreadth" class="breadth-tool__generic-drilldown" aria-label="Generic breadth member drilldown">
         <header>
           <strong>{{ genericBreadthMemberState === 'pass' ? 'Passing' : 'Failing' }} members</strong>
@@ -1494,6 +1514,7 @@ const benchmarkFamilyOptions = computed(() => {
     return logicalKey && name ? [{ logicalKey, name }] : []
   })
 })
+const isBenchmarkFamily = computed(() => benchmarkFamilyOptions.value.some(family => family.logicalKey === breadthGroupKey.value))
 const benchmarkIdentity = computed(() => {
   const identity = workspaceStore.marketGroups['us-benchmarks']?.provenance?.benchmark_identities
   const sp500 = identity && typeof identity === 'object' ? (identity as Record<string, unknown>).sp500 : null
@@ -1569,6 +1590,22 @@ const breadthBenchmark = computed(() => {
   const candidate = String(props.tool.configuration.breadth_benchmark ?? 'SPY').trim().toUpperCase()
   return candidate || 'SPY'
 })
+const familyRatioRole = computed(() => {
+  const candidate = String(props.tool.configuration.family_ratio_role ?? 'equal_weight')
+  return ['cap_weight', 'equal_weight', 'value', 'growth'].includes(candidate) ? candidate as 'cap_weight' | 'equal_weight' | 'value' | 'growth' : 'equal_weight'
+})
+const familyRatioMarket = computed(() => {
+  const candidate = String(props.tool.configuration.family_ratio_market ?? 'SPY').trim().toUpperCase()
+  return candidate || 'SPY'
+})
+const familyRatioKey = computed(() => `${breadthGroupKey.value}:${familyRatioRole.value}:${familyRatioMarket.value}:${breadthTimeframe.value}:${breadthAdjusted.value ? 'adj' : 'raw'}`)
+const familyRatios = computed(() => workspaceStore.benchmarkFamilyRatios[familyRatioKey.value])
+const familyRatioError = computed(() => workspaceStore.benchmarkFamilyRatioErrors[familyRatioKey.value] ?? null)
+const familyRatioLoading = ref(false)
+function latestFamilyRatio(ratio: { points: Array<{ value: number }> }) {
+  const value = ratio.points.length ? ratio.points[ratio.points.length - 1]?.value : undefined
+  return value == null || !Number.isFinite(value) ? 'Unavailable' : value.toFixed(3)
+}
 function comparisonCondition(field: string, operator: string, threshold: number) {
   return { kind: 'comparison', params: { field, operator, threshold } }
 }
@@ -2345,6 +2382,15 @@ async function loadBreadthUniverse(groupKey: string, timeframe = breadthTimefram
 watch([breadthGroupKey, breadthTimeframe, breadthAdjusted, breadthLookback], ([groupKey, timeframe, adjusted, lookback]) => {
   if (props.tool.instance_key === 'breadth-summary' || props.tool.tool_type === 'breadth') void loadBreadthUniverse(groupKey, timeframe, adjusted, lookback)
 }, { immediate: true })
+watch([breadthGroupKey, breadthTimeframe, breadthAdjusted, familyRatioRole, familyRatioMarket], async ([groupKey, timeframe, adjusted, role, market]) => {
+  if (!isBenchmarkFamily.value || !(props.tool.instance_key === 'breadth-summary' || props.tool.tool_type === 'breadth')) return
+  familyRatioLoading.value = true
+  try {
+    await workspaceStore.loadBenchmarkFamilyRatios(groupKey, role, market, { timeframe, adjusted })
+  } finally {
+    familyRatioLoading.value = false
+  }
+}, { immediate: true })
 function formatNumber(value: number | null | undefined) { return value == null ? 'Unavailable' : value.toFixed(2) }
 function formatPercent(value: number | null | undefined) { return value == null ? 'Unavailable' : `${(value * 100).toFixed(1)}%` }
 function formatRatio(value: number | null | undefined) { return value == null ? 'Unavailable' : `${value.toFixed(2)}×` }
@@ -2394,7 +2440,7 @@ const proxyCoverage = computed(() => industryProxySnapshot.value
 .combo-editor select[multiple] { height: 34px; }
 .combo-editor input { width: 78px; }
 .analysis { height: 100%; min-height: 0; }
-.breadth-tool { display:grid; grid-template-rows:auto auto auto auto minmax(0,1fr); height:100%; min-height:0; container-type:inline-size; }.breadth-tool__universe { display:flex; flex-wrap:wrap; gap:5px; align-items:center; padding:5px 7px 0; color:#9aabb6; font:10px "Segoe UI",Arial,sans-serif; min-width:0; }.breadth-tool__universe span { flex:0 0 auto; }.breadth-tool__universe select,.breadth-tool__universe input { border:1px solid #34434e; background:#172027; color:#d2dce3; font:inherit; min-width:0; max-width:100%; }.breadth-tool__universe select { flex:1 1 100px; }.breadth-tool__universe input { width:42px; flex:0 1 42px; }.breadth-tool__universe label { display:flex; flex:0 0 auto; align-items:center; gap:3px; white-space:nowrap; }.breadth-tool__custom { display:flex; flex-wrap:wrap; align-items:center; gap:4px; padding:5px 7px; border-top:1px solid #2b3841; color:#9aabb6; font:10px "Segoe UI",Arial,sans-serif; }.breadth-tool__custom select,.breadth-tool__custom input,.breadth-tool__custom button { border:1px solid #34434e; background:#172027; color:#d2dce3; font:inherit; min-width:0; }.breadth-tool__custom input { width:44px; }.breadth-tool__custom label { display:flex; align-items:center; gap:3px; }.breadth-tool__custom button { padding:2px 6px; cursor:pointer; }.breadth-tool__custom-result { color:#c3d2dc; white-space:nowrap; }.breadth-tool__composition-note { color:#74858f; }.breadth-tool__status { margin:0; padding:5px 7px; color:#9aabb6; font:10px "Segoe UI",Arial,sans-serif; }.breadth-tool__status--error { color:#ff9b8a; }.metrics { display: grid; grid-template-columns: 1fr auto; gap: 5px 10px; padding: 9px; color: #99aabb; font: 10px "Segoe UI", Arial, sans-serif; }.breadth-tool__coverage-detail { padding:0 7px 4px; color:#778994; font:9px "Segoe UI",Arial,sans-serif; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }.breadth-tool__actions { display:flex; gap:3px; justify-content:flex-end; }.breadth-tool__actions button,.breadth-tool__drilldown header button,.breadth-tool__generic-drilldown header button { border:1px solid #34434e; background:#172027; color:#b9c8d1; font:inherit; padding:1px 4px; cursor:pointer; }.breadth-tool__actions button:hover,.breadth-tool__action--active { background:#1d4057; color:#e5f1f7; }.breadth-tool__drilldown,.breadth-tool__generic-drilldown { min-height:0; max-height:150px; overflow:auto; border-top:1px solid #2b3841; border-bottom:1px solid #2b3841; background:#131a20; font:10px "Segoe UI",Arial,sans-serif; }.breadth-tool__drilldown header,.breadth-tool__generic-drilldown header { display:flex; justify-content:space-between; align-items:center; padding:4px 7px; color:#9aabb6; position:sticky; top:0; background:#20282f; }.breadth-tool__drilldown > button,.breadth-tool__generic-drilldown > button { display:flex; gap:8px; width:100%; border:0; border-bottom:1px solid #20282f; background:transparent; color:#cad4db; padding:4px 7px; text-align:left; cursor:pointer; }.breadth-tool__drilldown > button:hover,.breadth-tool__generic-drilldown > button:hover { background:#1d4057; }.breadth-tool__drilldown > button span,.breadth-tool__generic-drilldown > button span { color:#81929e; }.breadth-tool__generic-drilldown > button small { margin-left:auto; color:#9bb6c3; }.breadth-tool__drilldown > small,.breadth-tool__generic-drilldown > small { display:block; padding:7px; color:#8497a4; }
+.breadth-tool { display:grid; grid-template-rows:auto auto auto auto minmax(0,1fr); height:100%; min-height:0; container-type:inline-size; }.breadth-tool__universe { display:flex; flex-wrap:wrap; gap:5px; align-items:center; padding:5px 7px 0; color:#9aabb6; font:10px "Segoe UI",Arial,sans-serif; min-width:0; }.breadth-tool__universe span { flex:0 0 auto; }.breadth-tool__universe select,.breadth-tool__universe input { border:1px solid #34434e; background:#172027; color:#d2dce3; font:inherit; min-width:0; max-width:100%; }.breadth-tool__universe select { flex:1 1 100px; }.breadth-tool__universe input { width:42px; flex:0 1 42px; }.breadth-tool__universe label { display:flex; flex:0 0 auto; align-items:center; gap:3px; white-space:nowrap; }.breadth-tool__custom { display:flex; flex-wrap:wrap; align-items:center; gap:4px; padding:5px 7px; border-top:1px solid #2b3841; color:#9aabb6; font:10px "Segoe UI",Arial,sans-serif; }.breadth-tool__custom select,.breadth-tool__custom input,.breadth-tool__custom button { border:1px solid #34434e; background:#172027; color:#d2dce3; font:inherit; min-width:0; }.breadth-tool__custom input { width:44px; }.breadth-tool__custom label { display:flex; align-items:center; gap:3px; }.breadth-tool__custom button { padding:2px 6px; cursor:pointer; }.breadth-tool__custom-result { color:#c3d2dc; white-space:nowrap; }.breadth-tool__composition-note { color:#74858f; }.breadth-tool__family-ratios { display:flex; flex-wrap:wrap; align-items:center; gap:4px; padding:5px 7px; border-top:1px solid #2b3841; color:#9aabb6; font:10px "Segoe UI",Arial,sans-serif; }.breadth-tool__family-ratios select,.breadth-tool__family-ratios input { border:1px solid #34434e; background:#172027; color:#d2dce3; font:inherit; min-width:0; }.breadth-tool__family-ratios input { width:44px; }.breadth-tool__family-ratio { display:inline-flex; align-items:center; gap:4px; padding-left:4px; border-left:1px solid #34434e; }.breadth-tool__family-ratio b { color:#d7e8f0; }.breadth-tool__family-ratio small { color:#778994; }.breadth-tool__status { margin:0; padding:5px 7px; color:#9aabb6; font:10px "Segoe UI",Arial,sans-serif; }.breadth-tool__status--error { color:#ff9b8a; }.metrics { display: grid; grid-template-columns: 1fr auto; gap: 5px 10px; padding: 9px; color: #99aabb; font: 10px "Segoe UI", Arial, sans-serif; }.breadth-tool__coverage-detail { padding:0 7px 4px; color:#778994; font:9px "Segoe UI",Arial,sans-serif; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }.breadth-tool__actions { display:flex; gap:3px; justify-content:flex-end; }.breadth-tool__actions button,.breadth-tool__drilldown header button,.breadth-tool__generic-drilldown header button { border:1px solid #34434e; background:#172027; color:#b9c8d1; font:inherit; padding:1px 4px; cursor:pointer; }.breadth-tool__actions button:hover,.breadth-tool__action--active { background:#1d4057; color:#e5f1f7; }.breadth-tool__drilldown,.breadth-tool__generic-drilldown { min-height:0; max-height:150px; overflow:auto; border-top:1px solid #2b3841; border-bottom:1px solid #2b3841; background:#131a20; font:10px "Segoe UI",Arial,sans-serif; }.breadth-tool__drilldown header,.breadth-tool__generic-drilldown header { display:flex; justify-content:space-between; align-items:center; padding:4px 7px; color:#9aabb6; position:sticky; top:0; background:#20282f; }.breadth-tool__drilldown > button,.breadth-tool__generic-drilldown > button { display:flex; gap:8px; width:100%; border:0; border-bottom:1px solid #20282f; background:transparent; color:#cad4db; padding:4px 7px; text-align:left; cursor:pointer; }.breadth-tool__drilldown > button:hover,.breadth-tool__generic-drilldown > button:hover { background:#1d4057; }.breadth-tool__drilldown > button span,.breadth-tool__generic-drilldown > button span { color:#81929e; }.breadth-tool__generic-drilldown > button small { margin-left:auto; color:#9bb6c3; }.breadth-tool__drilldown > small,.breadth-tool__generic-drilldown > small { display:block; padding:7px; color:#8497a4; }
 @container (max-width: 560px) {
   .breadth-tool__universe { flex-wrap:wrap; row-gap:4px; }
   .breadth-tool__universe > select { flex:1 1 100px; }

@@ -3243,6 +3243,56 @@ test.describe('TC2000 workstation', () => {
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
+  test('F8s-breadth-family-ratio — family breadth exposes role-aware cap and market relative strength', async ({ page, browserDiagnostics }) => {
+    await page.route('**/market-groups/us-benchmarks*', async route => {
+      const response = await route.fetch()
+      const payload = await response.json() as Record<string, unknown>
+      const provenance = payload.provenance && typeof payload.provenance === 'object'
+        ? payload.provenance as Record<string, unknown>
+        : {}
+      await route.fulfill({
+        response,
+        body: JSON.stringify({
+          ...payload,
+          provenance: {
+            ...provenance,
+            benchmark_families: [{ logical_key: 'sp500', name: 'S&P 500' }],
+          },
+        }),
+      })
+    })
+    await page.route('**/api/v1/analysis/benchmark-families/sp500/ratios*', async route => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          family_key: 'sp500',
+          official_index_symbol: 'SPX',
+          timeframe: 'D1',
+          adjustment: 'split_adjusted',
+          ratios: [
+            { family_key: 'sp500', role: 'equal_weight', symbol: 'RSP', benchmark_role: 'cap_weight', benchmark: 'SPY', timeframe: 'D1', adjustment: 'split_adjusted', points: [{ timestamp: '2026-01-02T00:00:00Z', value: 0.98 }], coverage: 1, warnings: [] },
+            { family_key: 'sp500', role: 'equal_weight', symbol: 'RSP', benchmark_role: 'market', benchmark: 'SPY', timeframe: 'D1', adjustment: 'split_adjusted', points: [{ timestamp: '2026-01-02T00:00:00Z', value: 0.98 }], coverage: 1, warnings: [] },
+          ],
+          exclusions: [],
+        }),
+      })
+    })
+    await page.goto('/chart/SPY')
+    await expect(page.locator('.workspace-layout-host')).toBeVisible({ timeout: 10_000 })
+    await page.getByRole('button', { name: 'Add tool' }).click()
+    await page.getByRole('menuitem', { name: 'Market Breadth', exact: true }).click()
+    const breadth = page.locator('.tool-window:visible').filter({ has: page.locator('.breadth-tool') }).last()
+    await expect(breadth).toBeVisible({ timeout: 10_000 })
+    const universe = breadth.locator('select[aria-label="Breadth universe"]')
+    await universe.selectOption('sp500')
+    const familyPanel = breadth.locator('[aria-label="Benchmark family relative strength"]')
+    await expect(familyPanel).toBeVisible({ timeout: 10_000 })
+    await expect(familyPanel).toContainText('RSP/SPY', { timeout: 15_000 })
+    await expect(familyPanel.getByRole('combobox', { name: 'Family ratio leg' })).toHaveValue('equal_weight')
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
   test('F8s-rotation — Relative Rotation exposes benchmark-scoped state semantics', async ({ page, browserDiagnostics }) => {
     await page.goto('/chart/SPY')
     await expect(page.locator('.workspace-layout-host')).toBeVisible({ timeout: 10_000 })

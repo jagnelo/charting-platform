@@ -6523,3 +6523,26 @@ composer exposes measured field/operator/target and benchmark controls, and the 
 provides pass/fail member drill-down with canonical symbol publication. This is board-guided
 functional progress; the broad visual reference does not yet represent every condition-editor or
 historical drill-down state, so those specific visual states remain tracked gaps.
+
+## 2026-08-14 — Family-ratio workstation rendering
+
+The family analytics contract is now reachable from the primary workstation rather than being
+backend-only. In Market Breadth, selecting a benchmark-family universe opens a dedicated
+relative-strength panel with explicit cap/equal/value/growth leg selection and an explicit market
+benchmark. Each row preserves the ratio identity (for example `RSP/SPY`), latest value, aligned
+point count, coverage, and loading/error/no-data state. The loader uses a stable
+family/role/market/timeframe/adjustment cache key and guards against stale visibility and
+generation responses.
+
+When an older persisted or seeded response lacks the family registry, the frontend requests the
+documented `/market-groups/us-benchmarks/children` contract and merges only its returned metadata.
+It never hard-codes family symbols or falls back to SPY/QQQ. The focused browser test uses an
+explicit deterministic response interception solely to make the pre-family fixture observable;
+this is labelled interim fixture evidence and does not relax visual, provenance, or acceptance
+criteria. The first failed browser attempt exposed an ambiguous selector and was repaired before
+the authoritative rerun (`1/1`); full frontend Vitest (`823/823`), type-check, and production
+build also pass.
+
+Remaining parity gaps are provider-backed historical family evidence, all-leg batch analytics,
+family-wide breadth/rotation/ranking, constituent drill-down, and exact/unrepresented Version 25
+visual states. They remain open and must not be treated as closed by this UI integration.
