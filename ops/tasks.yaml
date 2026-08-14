@@ -461,6 +461,35 @@ tasks:
         bars and correctly produced no aligned history; the fixture was corrected to include the
         disclosure boundary, then extended with a later snapshot to prove transition semantics.
         No acceptance flexibility used.
+  - id: tc2000-benchmark-family-derived-equal-concentration-history-20260815
+    title: Add point-in-time derived-equal historical concentration
+    status: completed
+    priority: high
+    scope: >-
+      Extend historical family concentration to taxonomy families whose derived-equal policy is
+      explicitly allowed and has no verified equal ETF mapping. Select member-level effective and
+      known-at rows at each observed timestamp, calculate equal-weight concentration/dispersion,
+      and disclose derived membership semantics without fabricating an ETF snapshot.
+    definition_of_done:
+      - Derived-equal history selects only eligible constituent relationship types and excludes future members
+      - Member-level effective/known-at boundaries govern historical selection even when a curated root was registered later
+      - Points disclose method, membership version, coverage, HHI/effective count, and null ETF snapshot identity
+      - Ordinary group snapshots retain the stricter group lifecycle policy
+      - Focused, adjacent family, frontend type/store, lint, compile, and diff checks pass
+    validation:
+      - derived-equal-concentration-history-1-of-1
+      - concentration-derived-family-subset-4-of-4
+      - benchmark-family-subset-15-of-15
+      - frontend-vitest-837-of-837
+      - vue-tsc
+      - ruff-compileall-diff-check
+    notes:
+      - >-
+        The first regression exposed a real late-registered taxonomy-root defect: the shared group
+        selector rejected historical members because the root known_at was current. An explicit
+        derived-history-only policy was added and the focused and broader reruns passed. No
+        acceptance flexibility used; complete provider-backed membership/rebalance population,
+        native equal history, historical breadth occurrences, and final browser/visual gates remain open.
   - id: tc2000-generic-condition-driven-breadth-20260814
     title: Broaden breadth from fixed metrics to reusable condition-driven cross-sectional studies
     status: in_progress

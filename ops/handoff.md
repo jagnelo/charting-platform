@@ -1,5 +1,27 @@
 # Active Handoff
 
+## 2026-08-14 — Derived-equal historical concentration checkpoint
+
+- Extended `GET /analysis/benchmark-families/{family_key}/concentration/history` for families
+  whose taxonomy allows derived equal weighting and has no verified equal ETF mapping. The route
+  selects constituent/official/ETF-proxy membership rows by member-level effective/known-at
+  boundaries at each observed bar, calculates equal-weight top-N/HHI/effective-count and return
+  dispersion, and labels points `point_in_time_group_membership` with `snapshot_id: null`.
+- Added a narrowly scoped `allow_late_registered_group` membership policy. Only the derived
+  historical path and derived-equal series endpoint may use it; ordinary group snapshots still
+  reject a root that was not known at the requested time. The S&P MidCap-400 fixture proves a
+  second member enters only after its known-at boundary.
+- Updated parity/governance/TODO records and the workstation history label so derived members are
+  not misrepresented as holdings snapshots. Validation: focused regression `1/1`, concentration/
+  derived `4/4`, benchmark-family `15/15`, frontend Vitest `837/837`, type-check, production
+  build, Ruff, compileall, JSON/YAML parsing, and diff-check pass. First regression exposed a real
+  late-registered-root defect and was repaired before authoritative reruns; acceptance flexibility
+  used: none.
+- Implementation/docs commit: `756c096b feat(analysis): add derived equal concentration history`.
+  Worktree was clean before the operational update. Exact push was attempted once and rejected
+  before Git by the private-origin safeguard; no workaround or repeat. Next context: complete
+  provider-backed population/rebalance continuity and broader historical breadth/occurrence views.
+
 ## 2026-08-14 — Expanded US benchmark-family perspective scope checkpoint
 
 - Updated `docs/project-todos.md`, `docs/tc2000-parity.md`, and

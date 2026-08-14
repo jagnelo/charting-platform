@@ -1,5 +1,22 @@
 # Run Report
 
+## 2026-08-14 — Derived-equal historical concentration checkpoint
+
+- Implemented point-in-time derived-equal historical concentration for explicitly permitted family
+  roots without an equal ETF mapping. It preserves member-level effective/known-at semantics,
+  equal-weight method, membership version, HHI/effective count, coverage, dispersion, and null ETF
+  snapshot identity; the workstation now distinguishes derived member history from ETF snapshots.
+- Fixed a real shared-selector defect exposed by the regression: curated family roots registered at
+  the current time were suppressing valid historical member rows. The explicit exception is limited
+  to derived historical reconstruction; ordinary group snapshots remain strict.
+- Validation: focused derived `1/1`, concentration/derived `4/4`, benchmark-family `15/15`, full
+  frontend `837/837`, `vue-tsc`, production build, Ruff, compileall, JSON/YAML parsing, and diff
+  checks. Acceptance flexibility used: none.
+- Git closure: implementation/docs commit `756c096b` is clean locally. Exact push was attempted once
+  and rejected before Git by the private-origin safeguard; no workaround or repeat. Remaining gaps
+  are provider/rebalance population, native equal history, historical breadth occurrences, and
+  final browser/visual acceptance.
+
 ## 2026-08-14 — Expanded US benchmark-family perspective scope checkpoint
 
 - Documented the requested complete US perspective matrix: S&P 500/400/600/1500, Russell
