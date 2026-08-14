@@ -15,11 +15,11 @@ class ResizeObserverMock {
 vi.stubGlobal('ResizeObserver', ResizeObserverMock)
 
 const cases = [
-  { name: 'series', component: StudySeriesUPlot, valid: { name: 'Series', timestamps: ['2026-01-01', '2026-01-02'], values: [1, 2] }, invalid: { timestamps: [], values: [] } },
+  { name: 'series', component: StudySeriesUPlot, valid: { name: 'Series', timestamps: ['2026-01-01', '2026-01-02'], values: [1, 2] }, invalid: { timestamps: ['not-a-date'], values: [Number.NaN] } },
   { name: 'histogram', component: StudyHistogramUPlot, valid: { name: 'Histogram', bins: [{ start: 0, end: 1, count: 2 }] }, invalid: { bins: [] } },
   { name: 'range', component: StudyRangeUPlot, valid: { name: 'Range', timestamps: ['2026-01-01', '2026-01-02'], lower: [1, 2], upper: [2, 3] }, invalid: { timestamps: [], lower: [], upper: [] } },
   { name: 'bars', component: StudyBarsUPlot, valid: { name: 'Bars', labels: ['A', 'B'], values: [1, -1] }, invalid: { labels: [], values: [] } },
-  { name: 'breadth history', component: BreadthHistoryUPlot, valid: { history: { group_key: 'sp500-sectors', points: [{ timestamp: '2026-01-01', above_ma: { ma20: 0.5, ma50: 0.4, ma200: 0.3 }, coverage: {} }] } }, invalid: { history: { group_key: 'sp500-sectors', points: [] } } },
+  { name: 'breadth history', component: BreadthHistoryUPlot, valid: { history: { group_key: 'sp500-sectors', points: [{ timestamp: '2026-01-01', above_ma: { ma20: 0.5, ma50: 0.4, ma200: 0.3 }, coverage: {} }] } }, invalid: { history: { group_key: 'sp500-sectors', points: [{ timestamp: 'not-a-date', above_ma: { ma20: Number.NaN, ma50: 0.4, ma200: 0.3 }, coverage: {} }] } } },
 ] as const
 
 describe('conditional uPlot lifecycle contracts', () => {

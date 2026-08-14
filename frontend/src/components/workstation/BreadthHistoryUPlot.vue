@@ -1,4 +1,4 @@
-<template><div ref="root" class="breadth-history"><div v-if="!history?.points.length" class="breadth-history__state" role="status" aria-live="polite" aria-atomic="true">Historical breadth is unavailable.</div><div v-else ref="host" class="breadth-history__host" /></div></template>
+<template><div ref="root" class="breadth-history"><div v-if="!hasValidData()" class="breadth-history__state" role="status" aria-live="polite" aria-atomic="true">Historical breadth is unavailable.</div><div v-else ref="host" class="breadth-history__host" /></div></template>
 
 <script setup lang="ts">
 import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
@@ -12,7 +12,13 @@ const host = ref<HTMLElement | null>(null)
 let chart: uPlot | null = null
 let observer: ResizeObserver | null = null
 function destroyChart() { chart?.destroy(); chart = null }
-function hasValidData() { return Boolean(props.history?.points.length) }
+function hasValidData() {
+  const points = props.history?.points ?? []
+  return points.length > 0 && points.every(point => (
+    Number.isFinite(Date.parse(point.timestamp))
+    && ['ma20', 'ma50', 'ma200'].every(key => point.above_ma[key] == null || Number.isFinite(point.above_ma[key]))
+  ))
+}
 function data(): uPlot.AlignedData {
   const points = props.history?.points ?? []
   return [points.map(point => new Date(point.timestamp).getTime() / 1000), ...['ma20', 'ma50', 'ma200'].map(key => points.map(point => point.above_ma[key] ?? null))]

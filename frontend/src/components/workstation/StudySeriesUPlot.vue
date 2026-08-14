@@ -24,7 +24,12 @@ function data(): uPlot.AlignedData {
     props.values,
   ]
 }
-function hasValidData() { return props.timestamps.length > 0 && props.timestamps.length === props.values.length }
+function hasValidData() {
+  return props.timestamps.length > 0
+    && props.timestamps.length === props.values.length
+    && props.timestamps.every(timestamp => Number.isFinite(Date.parse(timestamp)))
+    && props.values.every(value => value == null || Number.isFinite(value))
+}
 function draw() {
   valid.value = hasValidData()
   if (!valid.value || !host.value) { if (!valid.value) destroyChart(); return }
