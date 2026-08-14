@@ -27,6 +27,10 @@
   locally. Its exact elevated push was attempted once and rejected before Git by the private-origin
   safeguard; origin remains `91463e54`. No alternate transport, rewrite, reset, stash, or repeat
   was used.
+- Operational checkpoint `121005f8 chore(ops): record benchmark taxonomy checkpoint` is clean
+  locally. Its exact elevated push was likewise rejected before Git by the same safeguard; origin
+  remains `91463e54`. The context is closed locally; do not retry without newly accepted exact
+  payload authorization.
 
 ## 2026-08-14 — Expanded US benchmark/factor family scope
 

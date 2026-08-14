@@ -14,6 +14,8 @@
 - Implementation commit `0d0265c5` is clean locally. The exact elevated push was attempted once and
   rejected before Git by the private-origin safeguard; origin remains `91463e54`. This is
   transport-only and no workaround or repeat was attempted.
+- Operational checkpoint `121005f8` is clean locally. Its exact push was rejected before Git by the
+  same safeguard; origin remains `91463e54`. No repeat or alternate transport was attempted.
 
 ## 2026-08-14 — Expanded US benchmark/factor family scope
 
