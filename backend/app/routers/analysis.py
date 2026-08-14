@@ -1795,6 +1795,7 @@ async def benchmark_family_constituents(
 async def benchmark_family_ratios(
     family_key: str,
     role: str = Query(default="equal_weight", pattern="^(cap_weight|equal_weight|value|growth)$"),
+    roles: str | None = Query(default=None),
     market_benchmark: str | None = Query(default=None),
     timeframe: Timeframe = Timeframe.D1,
     adjusted: bool = True,
@@ -1820,21 +1821,97 @@ async def benchmark_family_ratios(
             422,
             detail={"code": "benchmark_family_metadata_missing", "family_key": family_key},
         )
-    selected_mapping = mappings.get(role)
+    requested_roles = [role]
+    batch_requested = roles is not None
+    if roles is not None:
+        requested_roles = [item.strip() for item in roles.split(",") if item.strip()]
+        if not requested_roles or any(
+            item not in {"cap_weight", "equal_weight", "value", "growth"}
+            for item in requested_roles
+        ):
+            raise HTTPException(
+                422,
+                detail={
+                    "code": "invalid_benchmark_roles",
+                    "family_key": family_key,
+                    "roles": roles,
+                },
+            )
+        requested_roles = list(dict.fromkeys(requested_roles))
+    selected_mappings = {
+        selected_role: mappings.get(selected_role)
+        for selected_role in requested_roles
+        if isinstance(mappings.get(selected_role), Mapping)
+        and mappings.get(selected_role, {}).get("symbol")
+    }
     cap_mapping = mappings.get("cap_weight")
-    if not isinstance(selected_mapping, Mapping) or not selected_mapping.get("symbol"):
+    exclusions: list[AnalysisWarning] = []
+    missing_roles = [
+        selected_role for selected_role in requested_roles if selected_role not in selected_mappings
+    ]
+    if missing_roles and not batch_requested:
         raise HTTPException(
             404,
-            detail={"code": "benchmark_mapping_unavailable", "family_key": family_key, "role": role},
+            detail={
+                "code": "benchmark_mapping_unavailable",
+                "family_key": family_key,
+                "role": missing_roles[0],
+            },
+        )
+    for missing_role in missing_roles:
+        exclusions.append(
+            AnalysisWarning(
+                code="benchmark_mapping_unavailable",
+                message=f"No verified mapped proxy is available for the {missing_role} leg.",
+            )
         )
     if not isinstance(cap_mapping, Mapping) or not cap_mapping.get("symbol"):
-        raise HTTPException(
-            404,
-            detail={"code": "benchmark_mapping_unavailable", "family_key": family_key, "role": "cap_weight"},
+        if batch_requested:
+            exclusions.append(
+                AnalysisWarning(
+                    code="benchmark_mapping_unavailable",
+                    message="No verified cap-weighted proxy is available; cap-relative ratios were omitted.",
+                )
+            )
+        else:
+            raise HTTPException(
+                404,
+                detail={
+                    "code": "benchmark_mapping_unavailable",
+                    "family_key": family_key,
+                    "role": "cap_weight",
+                },
+            )
+    if not selected_mappings and batch_requested:
+        members = _group_members_at(group, as_of)
+        return BenchmarkFamilyRatiosOut(
+            family_key=family_key,
+            official_index_symbol=str(official.get("symbol") or ""),
+            timeframe=timeframe.value,
+            adjustment="split_adjusted" if adjusted else "raw",
+            as_of=as_of,
+            membership_version=_group_membership_version(group, members),
+            universe_provenance={
+                **_group_provenance(group, as_of),
+                "requested_roles": requested_roles,
+                "market_benchmark": market_benchmark.upper() if market_benchmark else None,
+                "ratio_semantics": "aligned_close_ratio_without_forward_fill",
+            },
+            ratios=[],
+            exclusions=exclusions,
+            freshness="unavailable",
+            freshness_detail={"ratio_count": 0},
         )
-    selected_symbol = str(selected_mapping["symbol"]).upper()
-    cap_symbol = str(cap_mapping["symbol"]).upper()
-    symbol_candidates = [selected_symbol, cap_symbol]
+    cap_symbol = (
+        str(cap_mapping["symbol"]).upper()
+        if isinstance(cap_mapping, Mapping) and cap_mapping.get("symbol")
+        else None
+    )
+    symbol_candidates = [
+        str(selected_mapping["symbol"]).upper() for selected_mapping in selected_mappings.values()
+    ]
+    if cap_symbol:
+        symbol_candidates.append(cap_symbol)
     if market_benchmark:
         symbol_candidates.append(market_benchmark.upper())
     symbols = set(symbol_candidates)
@@ -1844,17 +1921,50 @@ async def benchmark_family_ratios(
             await db.execute(select(Instrument).where(Instrument.symbol.in_(symbols)))
         ).scalars()
     }
-    missing_symbol = next((symbol for symbol in symbol_candidates if symbol not in instruments), None)
-    if missing_symbol is not None:
-        missing_role = "market" if market_benchmark and missing_symbol == market_benchmark.upper() else role
+    missing_symbols = [
+        symbol for symbol in dict.fromkeys(symbol_candidates) if symbol not in instruments
+    ]
+    missing_market = bool(market_benchmark and market_benchmark.upper() not in instruments)
+    if missing_market:
         raise HTTPException(
             404,
             detail={
-                "code": "benchmark_proxy_unavailable" if missing_role != "market" else "market_benchmark_unavailable",
+                "code": "market_benchmark_unavailable",
                 "family_key": family_key,
-                "role": missing_role,
+                "role": "market",
+                "symbol": market_benchmark.upper(),
+            },
+        )
+    if missing_symbols and not batch_requested:
+        missing_symbol = missing_symbols[0]
+        raise HTTPException(
+            404,
+            detail={
+                "code": "benchmark_proxy_unavailable",
+                "family_key": family_key,
+                "role": role,
                 "symbol": missing_symbol,
             },
+        )
+    available_roles = [
+        selected_role
+        for selected_role, selected_mapping in selected_mappings.items()
+        if str(selected_mapping["symbol"]).upper() in instruments
+    ]
+    for selected_role in selected_mappings:
+        if selected_role not in available_roles:
+            exclusions.append(
+                AnalysisWarning(
+                    code="benchmark_proxy_unavailable",
+                    message=f"The canonical proxy for the {selected_role} leg is unavailable.",
+                )
+            )
+    if cap_symbol and cap_symbol not in instruments:
+        exclusions.append(
+            AnalysisWarning(
+                code="benchmark_proxy_unavailable",
+                message="The canonical cap-weighted proxy is unavailable; cap-relative ratios were omitted.",
+            )
         )
     instrument_ids = [instrument.id for instrument in instruments.values()]
     bars_by_id = _truncate_bars_at(
@@ -1863,6 +1973,7 @@ async def benchmark_family_ratios(
 
     def ratio_result(
         *,
+        primary_role: str,
         benchmark_role: str,
         primary_symbol: str,
         benchmark_symbol: str,
@@ -1900,7 +2011,7 @@ async def benchmark_family_ratios(
             )
         return BenchmarkFamilyRatioOut(
             family_key=family_key,
-            role=role,
+            role=primary_role,
             symbol=primary_symbol,
             benchmark_role=benchmark_role,
             benchmark=benchmark_symbol,
@@ -1911,26 +2022,33 @@ async def benchmark_family_ratios(
             coverage=len(points) / maximum,
             warnings=warnings,
             freshness="coverage_limited" if not points else "available",
-            freshness_detail={"primary_bars": len(primary_bars), "benchmark_bars": len(benchmark_bars)},
+            freshness_detail={
+                "primary_bars": len(primary_bars),
+                "benchmark_bars": len(benchmark_bars),
+            },
         )
 
     ratios: list[BenchmarkFamilyRatioOut] = []
-    if role != "cap_weight":
-        ratios.append(
-            ratio_result(
-                benchmark_role="cap_weight",
-                primary_symbol=selected_symbol,
-                benchmark_symbol=cap_symbol,
+    for selected_role in available_roles:
+        selected_symbol = str(selected_mappings[selected_role]["symbol"]).upper()
+        if selected_role != "cap_weight" and cap_symbol and cap_symbol in instruments:
+            ratios.append(
+                ratio_result(
+                    primary_role=selected_role,
+                    benchmark_role="cap_weight",
+                    primary_symbol=selected_symbol,
+                    benchmark_symbol=cap_symbol,
+                )
             )
-        )
-    if market_benchmark:
-        ratios.append(
-            ratio_result(
-                benchmark_role="market",
-                primary_symbol=selected_symbol,
-                benchmark_symbol=market_benchmark.upper(),
+        if market_benchmark:
+            ratios.append(
+                ratio_result(
+                    primary_role=selected_role,
+                    benchmark_role="market",
+                    primary_symbol=selected_symbol,
+                    benchmark_symbol=market_benchmark.upper(),
+                )
             )
-        )
     members = _group_members_at(group, as_of)
     return BenchmarkFamilyRatiosOut(
         family_key=family_key,
@@ -1941,14 +2059,18 @@ async def benchmark_family_ratios(
         membership_version=_group_membership_version(group, members),
         universe_provenance={
             **_group_provenance(group, as_of),
-            "selected_role": role,
-            "selected_symbol": selected_symbol,
+            "selected_role": role if not batch_requested else None,
+            "requested_roles": requested_roles,
+            "selected_symbols": {
+                selected_role: str(selected_mappings[selected_role]["symbol"]).upper()
+                for selected_role in available_roles
+            },
             "cap_symbol": cap_symbol,
             "market_benchmark": market_benchmark.upper() if market_benchmark else None,
             "ratio_semantics": "aligned_close_ratio_without_forward_fill",
         },
         ratios=ratios,
-        exclusions=[],
+        exclusions=exclusions,
         freshness="available" if ratios and any(r.points for r in ratios) else "coverage_limited",
         freshness_detail={"ratio_count": len(ratios)},
     )

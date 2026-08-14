@@ -6546,3 +6546,17 @@ build also pass.
 Remaining parity gaps are provider-backed historical family evidence, all-leg batch analytics,
 family-wide breadth/rotation/ranking, constituent drill-down, and exact/unrepresented Version 25
 visual states. They remain open and must not be treated as closed by this UI integration.
+
+## 2026-08-14 — All-leg family ratio composition
+
+The family ratio API now supports an explicit `roles=cap_weight,equal_weight,value,growth` batch
+selector. One request returns every available role against the family cap proxy and the selected
+market benchmark, with aligned timestamps and no forward-fill. The response echoes requested and
+resolved roles, canonical symbols, membership version, provenance, coverage, adjustment, and
+labelled exclusions for missing mappings or instruments. The original single `role` query remains
+available for compatibility.
+
+The Market Breadth family panel uses this batch contract and keeps a focus-leg control without
+re-fetching when the focus changes. This closes the role-by-role request gap, not the broader family
+analysis requirement: provider-backed historical evidence, family breadth/rotation/ranking,
+dispersion, and constituent drill-down remain open.

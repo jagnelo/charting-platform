@@ -12021,6 +12021,25 @@ The current source also passes the focused authenticated top-down browser slice 
       branch stack; full frontend Vitest `823/823`; `vue-tsc`; and production build. The initial
       browser failure was a real ambiguous test selector and was fixed before the passing rerun.
 - [ ] Still open: provider-backed historical membership/holdings and weighting evidence, all-leg
-      batch composition, family-wide breadth/rotation/ranking, constituent browser drill-down,
-      exact/unrepresented V25 visual states, and final acceptance. Acceptance flexibility used:
-      **none**; the fixture route is explicitly tracked as interim evidence only.
+  batch composition, family-wide breadth/rotation/ranking, constituent browser drill-down,
+  exact/unrepresented V25 visual states, and final acceptance. Acceptance flexibility used:
+  **none**; the fixture route is explicitly tracked as interim evidence only.
+
+### 2026-08-14 — Benchmark-family all-leg ratio composition
+
+- [x] Extended `GET /analysis/benchmark-families/{family_key}/ratios` with an explicit comma-
+      separated `roles` selector. Batch requests can request cap/equal/value/growth together and
+      return each available leg against the family cap proxy and optional market benchmark in one
+      aligned response. The legacy single-role contract remains compatible.
+- [x] Batch responses preserve requested roles, selected canonical symbols, membership/provenance,
+      timeframe, adjustment, coverage, and exact exclusions for missing mappings or canonical
+      instruments. Missing style/equal legs are omitted with labelled warnings; no SPY/QQQ or other
+      family fallback is introduced.
+- [x] The workstation family-ratio panel now requests all four role legs together, retains the
+      focus-leg control, and uses a batch cache identity so switching focus does not issue
+      redundant role-by-role requests. Rebuilt-stack Playwright `1/1`, benchmark-family backend
+      integration `5/5`, frontend Vitest `824/824`, type-check, production build, Ruff, and diff
+      checks pass.
+- [ ] Still open: provider-backed historical membership/holdings/weights, family-wide breadth,
+      rotation/ranking/dispersion, constituent browser drill-down, exact/unrepresented V25 visual
+      states, and final acceptance. Acceptance flexibility used: **none**.

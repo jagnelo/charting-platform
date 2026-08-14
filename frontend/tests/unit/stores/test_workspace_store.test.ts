@@ -147,6 +147,22 @@ describe('workspace store layout tabs', () => {
     expect(store.benchmarkFamilyRatioErrors['sp500:equal_weight:SPY:W1:raw']).toBeNull()
   })
 
+  it('loads an explicit all-leg benchmark-family ratio batch without changing the role cache identity', async () => {
+    apiGet.mockResolvedValue({ family_key: 'sp500', official_index_symbol: 'SPX', ratios: [], exclusions: [] })
+    const store = useWorkspaceStore()
+
+    await store.loadBenchmarkFamilyRatios('sp500', 'equal_weight', 'SPY', {
+      roles: ['cap_weight', 'equal_weight', 'value', 'growth'],
+    })
+
+    expect(apiGet).toHaveBeenCalledWith('/analysis/benchmark-families/sp500/ratios', {
+      role: 'equal_weight',
+      roles: 'cap_weight,equal_weight,value,growth',
+      market_benchmark: 'SPY',
+    })
+    expect(store.benchmarkFamilyRatios['sp500:cap_weight,equal_weight,value,growth:SPY:D1:adj']).toBeTruthy()
+  })
+
   it('hydrates a missing benchmark-family registry from explicit child groups', async () => {
     apiGet.mockImplementation((path: string) => {
       if (path === '/market-groups/us-benchmarks') return Promise.resolve({

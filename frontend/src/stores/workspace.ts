@@ -1199,12 +1199,14 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     familyKey: string,
     role: BenchmarkFamilyRatioState['role'] = 'equal_weight',
     marketBenchmark = 'SPY',
-    options: { timeframe?: string; adjusted?: boolean; as_of?: string } = {},
+    options: { timeframe?: string; adjusted?: boolean; as_of?: string; roles?: BenchmarkFamilyRatioState['role'][] } = {},
   ) {
     const normalizedFamily = familyKey.trim()
     const normalizedMarket = marketBenchmark.trim().toUpperCase()
     if (!normalizedFamily) return null
-    const cacheKey = `${normalizedFamily}:${role}:${normalizedMarket}:${options.timeframe ?? 'D1'}:${options.adjusted !== false ? 'adj' : 'raw'}`
+    const requestedRoles = [...new Set(options.roles?.length ? options.roles : [role])]
+    const roleKey = requestedRoles.join(',')
+    const cacheKey = `${normalizedFamily}:${roleKey}:${normalizedMarket}:${options.timeframe ?? 'D1'}:${options.adjusted !== false ? 'adj' : 'raw'}`
     const requestKey = `top-down:family-ratios:${cacheKey}`
     const generation = beginAnalysisRequest(requestKey)
     if (!documentIsVisible()) return null
@@ -1214,6 +1216,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
         `/analysis/benchmark-families/${encodeURIComponent(normalizedFamily)}/ratios`,
         {
           role,
+          ...(requestedRoles.length > 1 ? { roles: requestedRoles.join(',') } : {}),
           market_benchmark: normalizedMarket,
           ...(options.timeframe ? { timeframe: options.timeframe } : {}),
           ...(typeof options.adjusted === 'boolean' ? { adjusted: options.adjusted } : {}),

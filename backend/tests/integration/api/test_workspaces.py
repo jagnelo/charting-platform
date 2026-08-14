@@ -622,6 +622,26 @@ class TestWorkspaces:
         assert len(payload["ratios"][0]["points"]) == 3
         assert payload["ratios"][0]["points"][-1]["value"] == 53 / 102
 
+        batch_response = client.get(
+            "/api/v1/analysis/benchmark-families/sp500/ratios",
+            headers=auth_headers,
+            params={
+                "roles": "equal_weight,cap_weight",
+                "market_benchmark": "SPY",
+            },
+        )
+        assert batch_response.status_code == 200, batch_response.text
+        batch_payload = batch_response.json()
+        assert batch_payload["universe_provenance"]["requested_roles"] == [
+            "equal_weight",
+            "cap_weight",
+        ]
+        assert {(item["role"], item["benchmark_role"]) for item in batch_payload["ratios"]} == {
+            ("equal_weight", "cap_weight"),
+            ("equal_weight", "market"),
+            ("cap_weight", "market"),
+        }
+
     def test_benchmark_family_derived_equal_weight_requires_constituent_membership(
         self, client, auth_headers, db, instrument, ohlcv_bars
     ):

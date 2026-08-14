@@ -1598,7 +1598,9 @@ const familyRatioMarket = computed(() => {
   const candidate = String(props.tool.configuration.family_ratio_market ?? 'SPY').trim().toUpperCase()
   return candidate || 'SPY'
 })
-const familyRatioKey = computed(() => `${breadthGroupKey.value}:${familyRatioRole.value}:${familyRatioMarket.value}:${breadthTimeframe.value}:${breadthAdjusted.value ? 'adj' : 'raw'}`)
+const familyRatioRoles = ['cap_weight', 'equal_weight', 'value', 'growth'] as const
+const familyRatioRoleKey = familyRatioRoles.join(',')
+const familyRatioKey = computed(() => `${breadthGroupKey.value}:${familyRatioRoleKey}:${familyRatioMarket.value}:${breadthTimeframe.value}:${breadthAdjusted.value ? 'adj' : 'raw'}`)
 const familyRatios = computed(() => workspaceStore.benchmarkFamilyRatios[familyRatioKey.value])
 const familyRatioError = computed(() => workspaceStore.benchmarkFamilyRatioErrors[familyRatioKey.value] ?? null)
 const familyRatioLoading = ref(false)
@@ -2382,11 +2384,11 @@ async function loadBreadthUniverse(groupKey: string, timeframe = breadthTimefram
 watch([breadthGroupKey, breadthTimeframe, breadthAdjusted, breadthLookback], ([groupKey, timeframe, adjusted, lookback]) => {
   if (props.tool.instance_key === 'breadth-summary' || props.tool.tool_type === 'breadth') void loadBreadthUniverse(groupKey, timeframe, adjusted, lookback)
 }, { immediate: true })
-watch([breadthGroupKey, breadthTimeframe, breadthAdjusted, familyRatioRole, familyRatioMarket], async ([groupKey, timeframe, adjusted, role, market]) => {
+watch([breadthGroupKey, breadthTimeframe, breadthAdjusted, familyRatioMarket], async ([groupKey, timeframe, adjusted, market]) => {
   if (!isBenchmarkFamily.value || !(props.tool.instance_key === 'breadth-summary' || props.tool.tool_type === 'breadth')) return
   familyRatioLoading.value = true
   try {
-    await workspaceStore.loadBenchmarkFamilyRatios(groupKey, role, market, { timeframe, adjusted })
+    await workspaceStore.loadBenchmarkFamilyRatios(groupKey, familyRatioRole.value, market, { timeframe, adjusted, roles: [...familyRatioRoles] })
   } finally {
     familyRatioLoading.value = false
   }
