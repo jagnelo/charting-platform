@@ -7,6 +7,7 @@ import { setActivePinia, createPinia } from 'pinia'
 import { useAuthStore } from '@/stores/auth'
 import { useChartStore } from '@/stores/chart'
 import { useAlertsStore } from '@/stores/alerts'
+import { router } from '@/router'
 
 vi.mock('@/lib/api', () => ({
   api: {
@@ -68,7 +69,7 @@ describe('useAuthStore', () => {
     expect(clearTokens).toHaveBeenCalled()
   })
 
-  it('clears this window when another same-origin window announces logout', () => {
+  it('clears this window when another same-origin window announces logout', async () => {
     localStorage.setItem('access_token', 'at')
     localStorage.setItem('refresh_token', 'rt')
     const store = useAuthStore()
@@ -82,6 +83,11 @@ describe('useAuthStore', () => {
     expect(store.user).toBeNull()
     expect(store.isLoggedIn).toBe(false)
     expect(clearTokens).toHaveBeenCalled()
+
+    // The storage listener owns the asynchronous router navigation. Await its
+    // completion so Vue Router cannot resume after Vitest has torn down the
+    // jsdom history object.
+    await vi.waitFor(() => expect(router.currentRoute.value.path).toBe('/login'))
   })
 
   it('loadMe sets user from /auth/me', async () => {
