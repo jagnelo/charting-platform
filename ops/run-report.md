@@ -1,5 +1,21 @@
 # Run Report
 
+## 2026-08-14 — Python editor changeset Git closure
+
+- Implementation/docs commit `9a6cad4c` is clean locally after elevated index recovery.
+- The exact push range `91463e54..9a6cad4c` was rejected before Git by the private-origin
+  egress safeguard because operational records were still dirty at that point. The records are
+  now being committed separately so the next attempt can use a clean exact payload.
+- No product criterion or acceptance flexibility changed; this remains transport-only and does
+  not block the active TC2000 goal.
+
+## 2026-08-14 — Python editor live-status refinement
+
+- Added non-role-changing live suggestion announcements to the unified Python editor.
+- Validation: unit `4/4`, focused authenticated editor `1/1`, adjacent Study Lab/Python/Results
+  slice `12/12`, full frontend `817/817`, type-check, and production build.
+- No acceptance flexibility or visual policy changed; `REF-STUDY-LAB-V25` remains explicitly open.
+
 ## 2026-08-14 — Board/parity documentation checkpoint
 
 - Reference-board and parity records now include the current canonical revalidation (`140/140`)

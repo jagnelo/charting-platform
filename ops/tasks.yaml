@@ -1,4 +1,29 @@
 tasks:
+  - id: tc2000-python-editor-live-status-20260814
+    title: Announce unified Python editor suggestions without changing textbox semantics
+    status: completed
+    priority: medium
+    scope: >-
+      Improve keyboard and assistive-technology feedback for the unified Python editor while
+      preserving the native textarea, listbox, and active-descendant contract required by the
+      Study Lab and floated/linked editor surfaces.
+    definition_of_done:
+      - Suggestion count and active completion are announced through a polite atomic status
+      - Native textbox semantics and Chromium browser queries remain unchanged
+      - Focused unit and authenticated browser regressions pass
+      - Adjacent Study Lab/Python/Results flows and full frontend gates remain green
+      - The original-surface visual gap remains explicit rather than being silently closed
+    validation:
+      - python-source-editor-4-of-4
+      - focused-F8g-editor-a11y-1-of-1
+      - adjacent-study-python-results-12-of-12
+      - frontend-vitest-817-of-817
+      - frontend-type-check-and-production-build
+      - git-diff-check
+    notes:
+      - >-
+        This is a repository-controlled accessibility refinement. No role-changing combobox
+        workaround was introduced; REF-STUDY-LAB-V25 and the other documented external gaps remain.
   - id: tc2000-canonical-deployment-revalidation-20260814
     title: Revalidate the canonical workstation deployment after bootstrap repair
     status: completed

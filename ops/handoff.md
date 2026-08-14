@@ -1,5 +1,29 @@
 # Active Handoff
 
+## 2026-08-14 — Python editor changeset Git closure
+
+- Implementation/docs changeset is committed locally as `9a6cad4c2288786a1126f51cbc3f120bd70a654b`.
+  The native Python editor now announces suggestion count and active completion without changing
+  its established textarea/listbox semantics; focused and broader frontend validation is green.
+- The first exact elevated push for `91463e54bbfb37dc5e130d3c912434bfc41594bd..9a6cad4c2288786a1126f51cbc3f120bd70a654b`
+  was rejected before Git by the private-origin egress safeguard while these operational records
+  were still uncommitted. This is a transport decision, not a repository or product failure.
+- The operational record is now being closed as its own commit so the next exact push attempt has
+  a clean worktree. No alternate transport, wrapper, reset, stash, rewrite, or repeated payload
+  attempt is being used. The product goal remains active and is not blocked by Git transport.
+
+## 2026-08-14 — Python editor live-status refinement
+
+- The unified Python editor now exposes a polite atomic status announcing suggestion count and
+  the active SDK completion while preserving the native textarea, listbox, and active-descendant
+  contract. This avoids the earlier role-changing combobox regression.
+- Focused component coverage passed `4/4`; authenticated `F8g-editor-a11y` passed `1/1`; adjacent
+  Study Lab/Python/Results browser coverage passed `12/12`; full frontend Vitest passed `817/817`;
+  type-check and production build passed.
+- No visual threshold, mask, product criterion, or acceptance flexibility changed. The original
+  Study Lab visual gap `REF-STUDY-LAB-V25`, provider/live-entitlement, historical/GICS,
+  native-monitor, endurance, and final-audit gaps remain open.
+
 ## 2026-08-14 — Board/parity documentation checkpoint
 
 - Updated `docs/tc2000-reference-board.md` and `docs/tc2000-parity.md` with the current canonical
