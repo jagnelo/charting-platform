@@ -1,5 +1,25 @@
 # Project TODO Memory
 
+### 2026-08-14 — Benchmark-family taxonomy and selectable child universes
+
+- [x] Added a JSON-safe eight-family registry to the canonical top-down taxonomy for S&P 500/400/
+      600/1500, Russell 1000/2000/3000, and Nasdaq 100. Each record carries the logical/official
+      identity, cap/equal/value/growth mapping candidates, source URL, mapping state, and derived
+      equal-weight methodology policy. Missing mappings remain `No verified mapped proxy`.
+- [x] Added benchmark-family child groups beneath `us-benchmarks` and
+      `GET /market-groups/us-benchmarks/children`. Configured identities are attached only when
+      their canonical instruments already exist; the root SPY/RSP/DIA/IWM ordering is unchanged.
+      Mapping rows preserve role, source, verification state, and relationship provenance.
+- [x] Extended the identity bootstrap to register the configured family/style proxy identities
+      without creating official index instruments or fabricating holdings, bars, exchange claims,
+      or membership. Added frontend breadth-universe options that load a selected family child
+      group and use its cap proxy for benchmark-relative calculations.
+- [x] Validation passes: taxonomy/bootstrap `13/13`, benchmark-family API integration `2/2`, Ruff,
+      `vue-tsc`, and frontend Vitest `821/821`.
+- [ ] Provider-backed mapping verification, point-in-time family membership/holdings, derived
+      equal-weight calculation, family-wide snapshots/ratios/rotation/breadth history, populated
+      browser drill-down, and visual acceptance remain open. Acceptance flexibility used: **none**.
+
 ### 2026-08-14 — Expanded US benchmark, factor, and breadth family matrix
 
 - [ ] Treat S&P 500, S&P MidCap 400, S&P SmallCap 600, S&P Composite 1500, Russell 1000,

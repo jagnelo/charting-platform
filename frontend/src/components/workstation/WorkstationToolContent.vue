@@ -388,7 +388,13 @@
     <div v-else-if="tool.instance_key === 'breadth-summary' || tool.tool_type === 'breadth'" class="breadth-tool" role="region" :aria-label="`Breadth analysis for ${breadthGroupKey}`" :aria-busy="breadthBusy ? 'true' : 'false'">
       <div class="breadth-tool__universe">
         <span>Universe</span>
-        <select :value="breadthGroupKey" aria-label="Breadth universe" @change="setBreadthGroup(($event.target as HTMLSelectElement).value)"><option value="sp500-sectors">S&amp;P 500 sectors</option><option value="us-benchmarks">US benchmarks</option></select>
+        <select :value="breadthGroupKey" aria-label="Breadth universe" @change="setBreadthGroup(($event.target as HTMLSelectElement).value)">
+          <option value="sp500-sectors">S&amp;P 500 sectors</option>
+          <option value="us-benchmarks">US benchmark index proxies</option>
+          <optgroup label="Benchmark families">
+            <option v-for="family in benchmarkFamilyOptions" :key="family.logicalKey" :value="family.logicalKey">{{ family.name }}</option>
+          </optgroup>
+        </select>
         <span>Timeframe</span>
         <select :value="breadthTimeframe" aria-label="Breadth timeframe" @change="setBreadthConfiguration({ timeframe: ($event.target as HTMLSelectElement).value })"><option value="D1">Daily</option><option value="W1">Weekly</option><option value="MN">Monthly</option></select>
         <span>Lookback</span>
@@ -1477,6 +1483,17 @@ watch(() => [chartStore.instrument?.id, activeTimeframe.value] as const, ([instr
 }, { immediate: true })
 const benchmarks = computed(() => workspaceStore.marketGroups['us-benchmarks']?.members.map(member => member.instrument.symbol) ?? [])
 const sectors = computed(() => workspaceStore.marketGroups['sp500-sectors']?.members.map(member => member.instrument.symbol) ?? [])
+const benchmarkFamilyOptions = computed(() => {
+  const raw = workspaceStore.marketGroups['us-benchmarks']?.provenance?.benchmark_families
+  if (!Array.isArray(raw)) return []
+  return raw.flatMap(item => {
+    if (!item || typeof item !== 'object') return []
+    const family = item as Record<string, unknown>
+    const logicalKey = typeof family.logical_key === 'string' ? family.logical_key.trim() : ''
+    const name = typeof family.name === 'string' ? family.name.trim() : logicalKey
+    return logicalKey && name ? [{ logicalKey, name }] : []
+  })
+})
 const benchmarkIdentity = computed(() => {
   const identity = workspaceStore.marketGroups['us-benchmarks']?.provenance?.benchmark_identities
   const sp500 = identity && typeof identity === 'object' ? (identity as Record<string, unknown>).sp500 : null
@@ -2302,7 +2319,9 @@ function setBreadthDrilldown(key: string, state: 'above' | 'below') {
     : { key, state }
 }
 function setBreadthGroup(groupKey: string) {
-  const normalized = groupKey === 'us-benchmarks' ? 'us-benchmarks' : 'sp500-sectors'
+  const normalized = groupKey === 'us-benchmarks' || groupKey === 'sp500-sectors' || benchmarkFamilyOptions.value.some(family => family.logicalKey === groupKey)
+    ? groupKey
+    : 'sp500-sectors'
   setBreadthConfiguration({ group_key: normalized })
 }
 function setBreadthConfiguration(configuration: Record<string, unknown>) {
@@ -2310,9 +2329,15 @@ function setBreadthConfiguration(configuration: Record<string, unknown>) {
 }
 async function loadBreadthUniverse(groupKey: string, timeframe = breadthTimeframe.value, adjusted = breadthAdjusted.value, lookback = breadthLookback.value) {
   const options = { ...(timeframe !== 'D1' ? { timeframe } : {}), ...(adjusted !== true ? { adjusted } : {}), ...(lookback !== 20 ? { new_high_lookback: lookback } : {}) }
+  const registry = workspaceStore.marketGroups['us-benchmarks']?.provenance?.benchmark_families
+  const familyRecord = Array.isArray(registry)
+    ? registry.find(item => item && typeof item === 'object' && (item as Record<string, unknown>).logical_key === groupKey) as Record<string, unknown> | undefined
+    : undefined
+  const capMapping = familyRecord?.cap_weight && typeof familyRecord.cap_weight === 'object' ? familyRecord.cap_weight as Record<string, unknown> : null
+  const familyBenchmark = typeof capMapping?.symbol === 'string' && capMapping.symbol.trim() ? capMapping.symbol.trim().toUpperCase() : undefined
   await Promise.all([
     workspaceStore.loadMarketGroup(groupKey),
-    workspaceStore.loadGroupSnapshot(groupKey, 'SPY', options),
+    workspaceStore.loadGroupSnapshot(groupKey, familyBenchmark ?? 'SPY', options),
     workspaceStore.loadBreadth(groupKey, options),
     workspaceStore.loadBreadthHistory(groupKey, options),
   ])

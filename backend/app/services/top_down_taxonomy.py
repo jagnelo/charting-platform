@@ -46,6 +46,252 @@ _SP500_IDENTITY = {
     "official_series_policy": "use_only_when_entitled",
 }
 
+# The family registry is deliberately metadata-first.  A configured ETF ticker
+# is an identity candidate, not proof that the ETF is an official constituent
+# source or that its holdings are complete at every historical date.  The
+# ``verification_state`` on each mapping is therefore carried into the
+# workstation response and is upgraded only by the canonical holdings/provider
+# evidence pipeline.  ``derived_equal_weight`` describes the safe fallback
+# methodology when no verified equal-weight ETF exists; it does not fabricate an
+# instrument or imply an index-provider relationship.
+BENCHMARK_FAMILY_REGISTRY: tuple[dict[str, Any], ...] = (
+    {
+        "logical_key": "sp500",
+        "name": "S&P 500",
+        "official_index_symbol": "SPX",
+        "official_index_name": "S&P 500 Index",
+        "cap_weight": {
+            "symbol": "SPY",
+            "label": "S&P 500 cap-weighted ETF proxy",
+            "verification_state": "proxy_identity_registered",
+            "source_url": "https://www.ssga.com/us/en/individual/etfs/spdr-sp-500-etf-trust-spy",
+        },
+        "equal_weight": {
+            "symbol": "RSP",
+            "label": "S&P 500 equal-weight ETF proxy",
+            "verification_state": "proxy_identity_registered",
+            "source_url": "https://www.invesco.com/us/en/etf/rsp",
+        },
+        "value": {
+            "symbol": "SPYV",
+            "label": "S&P 500 value ETF proxy",
+            "verification_state": "proxy_identity_registered",
+            "source_url": "https://www.ssga.com/us/en/individual/etfs/state-street-spdr-portfolio-sp-500-value-etf-spyv",
+        },
+        "growth": {
+            "symbol": "SPYG",
+            "label": "S&P 500 growth ETF proxy",
+            "verification_state": "proxy_identity_registered",
+            "source_url": "https://www.ssga.com/us/en/individual/etfs/spdr-portfolio-sp-500-growth-etf-spyg",
+        },
+        "derived_equal_weight": {"allowed": False, "method": None},
+    },
+    {
+        "logical_key": "sp400",
+        "name": "S&P MidCap 400",
+        "official_index_symbol": "MID",
+        "official_index_name": "S&P MidCap 400 Index",
+        "cap_weight": {
+            "symbol": "MDY",
+            "label": "S&P MidCap 400 cap-weighted ETF proxy",
+            "verification_state": "proxy_identity_registered",
+            "source_url": "https://www.ssga.com/us/en/individual/etfs/spdr-sp-midcap-400-etf-trust-mdy",
+        },
+        "equal_weight": {"symbol": None, "label": "No verified mapped proxy", "verification_state": "not_verified", "source_url": None},
+        "value": {
+            "symbol": "MDYV",
+            "label": "S&P MidCap 400 value ETF proxy",
+            "verification_state": "proxy_identity_registered",
+            "source_url": "https://www.ssga.com/us/en/individual/etfs/spdr-sp-400-mid-cap-value-etf-mdyv",
+        },
+        "growth": {
+            "symbol": "MDYG",
+            "label": "S&P MidCap 400 growth ETF proxy",
+            "verification_state": "proxy_identity_registered",
+            "source_url": "https://www.ssga.com/us/en/individual/etfs/spdr-sp-400-mid-cap-growth-etf-mdyg",
+        },
+        "derived_equal_weight": {
+            "allowed": True,
+            "method": "equal_start_weight_point_in_time_membership_rebalanced_on_declared_schedule",
+        },
+    },
+    {
+        "logical_key": "sp600",
+        "name": "S&P SmallCap 600",
+        "official_index_symbol": "SML",
+        "official_index_name": "S&P SmallCap 600 Index",
+        "cap_weight": {
+            "symbol": "IJR",
+            "label": "S&P SmallCap 600 cap-weighted ETF proxy",
+            "verification_state": "proxy_identity_registered",
+            "source_url": "https://www.ishares.com/us/products/239774/ishares-core-sp-smallcap-etf",
+        },
+        "equal_weight": {"symbol": None, "label": "No verified mapped proxy", "verification_state": "not_verified", "source_url": None},
+        "value": {
+            "symbol": "SLYV",
+            "label": "S&P SmallCap 600 value ETF proxy",
+            "verification_state": "proxy_identity_registered",
+            "source_url": "https://www.ssga.com/us/en/individual/etfs/spdr-sp-600-small-cap-value-etf-slyv",
+        },
+        "growth": {
+            "symbol": "SLYG",
+            "label": "S&P SmallCap 600 growth ETF proxy",
+            "verification_state": "proxy_identity_registered",
+            "source_url": "https://www.ssga.com/us/en/individual/etfs/spdr-sp-600-small-cap-growth-etf-slyg",
+        },
+        "derived_equal_weight": {
+            "allowed": True,
+            "method": "equal_start_weight_point_in_time_membership_rebalanced_on_declared_schedule",
+        },
+    },
+    {
+        "logical_key": "sp1500",
+        "name": "S&P Composite 1500",
+        "official_index_symbol": "SPSUPX",
+        "official_index_name": "S&P Composite 1500 Index",
+        "cap_weight": {
+            "symbol": "SPTM",
+            "label": "S&P Composite 1500 cap-weighted ETF proxy",
+            "verification_state": "proxy_identity_registered",
+            "source_url": "https://www.ssga.com/us/en/individual/etfs/state-street-spdr-portfolio-sp-1500-composite-stock-market-etf-sptm",
+        },
+        "equal_weight": {"symbol": None, "label": "No verified mapped proxy", "verification_state": "not_verified", "source_url": None},
+        "value": {"symbol": None, "label": "No verified mapped proxy", "verification_state": "not_verified", "source_url": None},
+        "growth": {"symbol": None, "label": "No verified mapped proxy", "verification_state": "not_verified", "source_url": None},
+        "derived_equal_weight": {
+            "allowed": True,
+            "method": "equal_start_weight_point_in_time_membership_rebalanced_on_declared_schedule",
+        },
+    },
+    {
+        "logical_key": "russell1000",
+        "name": "Russell 1000",
+        "official_index_symbol": "RUI",
+        "official_index_name": "Russell 1000 Index",
+        "cap_weight": {
+            "symbol": "IWB",
+            "label": "Russell 1000 cap-weighted ETF proxy",
+            "verification_state": "proxy_identity_registered",
+            "source_url": "https://www.ishares.com/us/products/239707/ishares-russell-1000-etf",
+        },
+        "equal_weight": {"symbol": None, "label": "No verified mapped proxy", "verification_state": "not_verified", "source_url": None},
+        "value": {
+            "symbol": "IWD",
+            "label": "Russell 1000 value ETF proxy",
+            "verification_state": "proxy_identity_registered",
+            "source_url": "https://www.ishares.com/us/products/239701/ishares-russell-1000-value-etf",
+        },
+        "growth": {
+            "symbol": "IWF",
+            "label": "Russell 1000 growth ETF proxy",
+            "verification_state": "proxy_identity_registered",
+            "source_url": "https://www.ishares.com/us/products/239706/ishares-russell-1000-growth-etf",
+        },
+        "derived_equal_weight": {
+            "allowed": True,
+            "method": "equal_start_weight_point_in_time_membership_rebalanced_on_declared_schedule",
+        },
+    },
+    {
+        "logical_key": "russell2000",
+        "name": "Russell 2000",
+        "official_index_symbol": "RTY",
+        "official_index_name": "Russell 2000 Index",
+        "cap_weight": {
+            "symbol": "IWM",
+            "label": "Russell 2000 cap-weighted ETF proxy",
+            "verification_state": "proxy_identity_registered",
+            "source_url": "https://www.ishares.com/us/products/239710/ishares-russell-2000-etf",
+        },
+        "equal_weight": {"symbol": None, "label": "No verified mapped proxy", "verification_state": "not_verified", "source_url": None},
+        "value": {
+            "symbol": "IWN",
+            "label": "Russell 2000 value ETF proxy",
+            "verification_state": "proxy_identity_registered",
+            "source_url": "https://www.ishares.com/us/products/239708/ishares-russell-2000-value-etf",
+        },
+        "growth": {
+            "symbol": "IWO",
+            "label": "Russell 2000 growth ETF proxy",
+            "verification_state": "proxy_identity_registered",
+            "source_url": "https://www.ishares.com/us/products/239709/ishares-russell-2000-growth-etf",
+        },
+        "derived_equal_weight": {
+            "allowed": True,
+            "method": "equal_start_weight_point_in_time_membership_rebalanced_on_declared_schedule",
+        },
+    },
+    {
+        "logical_key": "russell3000",
+        "name": "Russell 3000",
+        "official_index_symbol": "RUA",
+        "official_index_name": "Russell 3000 Index",
+        "cap_weight": {
+            "symbol": "IWV",
+            "label": "Russell 3000 cap-weighted ETF proxy",
+            "verification_state": "proxy_identity_registered",
+            "source_url": "https://www.ishares.com/us/products/239714/ishares-russell-3000-etf",
+        },
+        "equal_weight": {"symbol": None, "label": "No verified mapped proxy", "verification_state": "not_verified", "source_url": None},
+        "value": {"symbol": None, "label": "No verified mapped proxy", "verification_state": "not_verified", "source_url": None},
+        "growth": {"symbol": None, "label": "No verified mapped proxy", "verification_state": "not_verified", "source_url": None},
+        "derived_equal_weight": {
+            "allowed": True,
+            "method": "equal_start_weight_point_in_time_membership_rebalanced_on_declared_schedule",
+        },
+    },
+    {
+        "logical_key": "nasdaq100",
+        "name": "Nasdaq 100",
+        "official_index_symbol": "NDX",
+        "official_index_name": "Nasdaq-100 Index",
+        "cap_weight": {
+            "symbol": "QQQ",
+            "label": "Nasdaq-100 cap-weighted ETF proxy",
+            "verification_state": "proxy_identity_registered",
+            "source_url": "https://www.invesco.com/qqq-etf/en/about.html",
+        },
+        "equal_weight": {
+            "symbol": "QQQE",
+            "label": "Nasdaq-100 equal-weight ETF proxy",
+            "verification_state": "proxy_identity_registered",
+            "source_url": "https://www.direxion.com/product/nasdaq-100-equal-weighted-index-etf",
+        },
+        "value": {"symbol": None, "label": "No verified mapped proxy", "verification_state": "not_verified", "source_url": None},
+        "growth": {"symbol": None, "label": "No verified mapped proxy", "verification_state": "not_verified", "source_url": None},
+        "derived_equal_weight": {"allowed": False, "method": None},
+    },
+)
+
+
+def benchmark_family_registry() -> list[dict[str, Any]]:
+    """Return JSON-safe family metadata without exposing mutable module state."""
+
+    return [
+        {
+            **family,
+            **{
+                role: dict(mapping)
+                for role in ("cap_weight", "equal_weight", "value", "growth", "derived_equal_weight")
+                if isinstance((mapping := family.get(role)), dict)
+            },
+        }
+        for family in BENCHMARK_FAMILY_REGISTRY
+    ]
+
+
+def benchmark_family_proxy_symbols() -> tuple[str, ...]:
+    """Return only configured tradable proxy identities, preserving registry order."""
+
+    return tuple(
+        dict.fromkeys(
+            mapping["symbol"]
+            for family in BENCHMARK_FAMILY_REGISTRY
+            for role in ("cap_weight", "equal_weight", "value", "growth")
+            if (mapping := family.get(role)) and mapping.get("symbol")
+        )
+    )
+
 # A versioned candidate registry, not a name-based inference rule. Candidates become
 # visible only when their own disclosed holdings independently contain classified
 # constituents for the selected industry (see the market-groups proxy endpoint).
@@ -158,6 +404,7 @@ async def seed_top_down_taxonomy(db: AsyncSession) -> None:
             {
                 "taxonomy_version": "us-top-down-v2",
                 "benchmark_identities": {"sp500": _SP500_IDENTITY},
+                "benchmark_families": benchmark_family_registry(),
             },
         ),
         "sp500-sectors": (
@@ -189,6 +436,54 @@ async def seed_top_down_taxonomy(db: AsyncSession) -> None:
             }
     await db.flush()
 
+    # Family groups are children of the root benchmark group.  They keep the
+    # root's historical SPY/RSP/DIA/IWM navigation stable while making every
+    # supported index/style leg selectable through the same market-group API.
+    family_groups: dict[str, MarketGroup] = {}
+    benchmark_root = existing["us-benchmarks"]
+    for family in BENCHMARK_FAMILY_REGISTRY:
+        stable_key = str(family["logical_key"])
+        mappings = {
+            role: dict(family.get(role) or {})
+            for role in ("cap_weight", "equal_weight", "value", "growth")
+        }
+        provenance = {
+            "classification": "product_taxonomy",
+            "taxonomy_version": "us-top-down-v3",
+            "family_key": stable_key,
+            "official_index": {
+                "symbol": family["official_index_symbol"],
+                "name": family["official_index_name"],
+                "series_policy": "use_only_when_entitled",
+            },
+            "proxy_mappings": mappings,
+            "derived_equal_weight": dict(family.get("derived_equal_weight") or {}),
+            "membership_semantics": "official_index_when_entitled_or_explicitly_labelled_proxy",
+            "relationship_evidence_policy": "canonical_identity_and_point_in_time_source_evidence_required",
+        }
+        group = existing.get(stable_key)
+        if group is None:
+            group = MarketGroup(
+                stable_key=stable_key,
+                group_type="benchmark_family",
+                name=str(family["name"]),
+                parent_id=benchmark_root.id,
+                source="curated_top_down_taxonomy",
+                provenance=provenance,
+                effective_at=None,
+                known_at=observed_at,
+            )
+            db.add(group)
+            existing[stable_key] = group
+        else:
+            group.parent_id = benchmark_root.id
+            group.name = str(family["name"])
+            group.group_type = "benchmark_family"
+            group.provenance = {**(group.provenance or {}), **provenance}
+            group.known_at = group.known_at or observed_at
+        family_groups[stable_key] = group
+    await db.flush()
+
     # Do not touch the relationship collection here.  Startup runs in an
     # AsyncSession, and a collection that was not loaded in this transaction
     # would trigger an implicit lazy query and MissingGreenlet.  Keep the
@@ -200,7 +495,11 @@ async def seed_top_down_taxonomy(db: AsyncSession) -> None:
     for market_group_id, instrument_id in member_rows:
         member_ids_by_group.setdefault(market_group_id, set()).add(instrument_id)
 
-    symbols = [item[0] for item in _BENCHMARKS] + [item[0] for item in _SECTORS]
+    symbols = list(dict.fromkeys(
+        [item[0] for item in _BENCHMARKS]
+        + [item[0] for item in _SECTORS]
+        + list(benchmark_family_proxy_symbols())
+    ))
     instruments = {
         instrument.symbol.upper(): instrument
         for instrument in (
@@ -208,7 +507,15 @@ async def seed_top_down_taxonomy(db: AsyncSession) -> None:
         ).scalars()
     }
 
-    async def attach(group_key: str, symbol: str, relationship_type: str, position: int) -> None:
+    async def attach(
+        group_key: str,
+        symbol: str,
+        relationship_type: str,
+        position: int,
+        *,
+        verification_state: str = "proxy_verified",
+        relationship_provenance: dict[str, Any] | None = None,
+    ) -> None:
         instrument = instruments.get(symbol)
         if instrument is None:
             return
@@ -222,9 +529,13 @@ async def seed_top_down_taxonomy(db: AsyncSession) -> None:
                 relationship_type=relationship_type,
                 position=position,
                 source="curated_top_down_taxonomy",
-                verification_state="proxy_verified",
+                verification_state=verification_state,
                 known_at=observed_at,
-                provenance={"symbol": symbol, "classification": "ETF/index proxy"},
+                provenance={
+                    "symbol": symbol,
+                    "classification": "ETF/index proxy",
+                    **(relationship_provenance or {}),
+                },
             )
         )
         member_ids_by_group[group.id].add(instrument.id)
@@ -233,3 +544,38 @@ async def seed_top_down_taxonomy(db: AsyncSession) -> None:
         await attach("us-benchmarks", symbol, relationship_type, position)
     for position, (symbol, _) in enumerate(_SECTORS):
         await attach("sp500-sectors", symbol, "sector_etf_proxy", position)
+
+    for family in BENCHMARK_FAMILY_REGISTRY:
+        family_key = str(family["logical_key"])
+        group = family_groups[family_key]
+        mappings = {
+            role: dict(family.get(role) or {})
+            for role in ("cap_weight", "equal_weight", "value", "growth")
+        }
+        for position, (role, mapping) in enumerate(mappings.items()):
+            symbol = mapping.get("symbol")
+            if not symbol:
+                continue
+            await attach(
+                family_key,
+                str(symbol),
+                f"{role}_proxy",
+                position,
+                verification_state=str(mapping.get("verification_state") or "not_verified"),
+                relationship_provenance={
+                    "family_key": family_key,
+                    "mapping_role": role,
+                    "source_url": mapping.get("source_url"),
+                    "mapping_label": mapping.get("label"),
+                },
+            )
+            instrument = instruments.get(str(symbol).upper())
+            if instrument is not None:
+                if role == "cap_weight" and group.representative_instrument_id is None:
+                    group.representative_instrument_id = instrument.id
+                if (
+                    role == "equal_weight"
+                    and mapping.get("verification_state") == "proxy_identity_registered"
+                    and group.equal_weight_instrument_id is None
+                ):
+                    group.equal_weight_instrument_id = instrument.id

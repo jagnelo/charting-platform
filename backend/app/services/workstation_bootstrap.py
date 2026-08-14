@@ -36,16 +36,31 @@ from app.services.top_down_taxonomy import (
     _BENCHMARKS,
     _INDUSTRY_PROXY_CANDIDATES,
     _SECTORS,
+    BENCHMARK_FAMILY_REGISTRY,
+    benchmark_family_proxy_symbols,
     seed_top_down_taxonomy,
 )
 
 CORE_WORKSTATION_REGISTRY = "curated_workstation_registry_v1"
+
+_BENCHMARK_PROXY_NAMES = {
+    str(mapping["symbol"]): f"{mapping.get('label') or symbol}"
+    for family in BENCHMARK_FAMILY_REGISTRY
+    for role in ("cap_weight", "equal_weight", "value", "growth")
+    for mapping in [family.get(role) or {}]
+    if (symbol := mapping.get("symbol"))
+}
 
 # These are tradable/reference identities needed by the immutable US Top Down
 # layout.  SPX remains a logical index identity in taxonomy provenance; it is
 # deliberately not created as a tradable instrument here.
 CORE_WORKSTATION_INSTRUMENTS: tuple[tuple[str, str, str], ...] = (
     *tuple((symbol, name, "ETF") for symbol, name, _ in _BENCHMARKS),
+    *tuple(
+        (symbol, _BENCHMARK_PROXY_NAMES.get(symbol, f"{symbol} benchmark/style proxy ETF"), "ETF")
+        for symbol in benchmark_family_proxy_symbols()
+        if symbol not in {item[0] for item in _BENCHMARKS}
+    ),
     *tuple((symbol, name, "ETF") for symbol, name in _SECTORS),
     # Curated industry proxies are part of the supported drill-down universe.
     # They are identities only here; membership remains valid only after the

@@ -11,6 +11,7 @@ from app.models.etf_holdings import ETFProfile
 from app.models.instrument import Instrument
 from app.models.instrument_identity import InstrumentProviderSymbol
 from app.models.workstation import MarketGroup, MarketGroupMember
+from app.services.top_down_taxonomy import BENCHMARK_FAMILY_REGISTRY
 from app.services.workstation_bootstrap import (
     CORE_WORKSTATION_INSTRUMENTS,
     CORE_WORKSTATION_REGISTRY,
@@ -69,8 +70,16 @@ def test_core_workstation_identity_bootstrap_is_idempotent_and_not_fixture_data(
 
     groups = db.execute(select(MarketGroup)).scalars().all()
     members = db.execute(select(MarketGroupMember)).scalars().all()
-    assert {group.stable_key for group in groups} == {"us-benchmarks", "sp500-sectors"}
-    assert len(members) == 5 + 11
+    assert {group.stable_key for group in groups} == {
+        "us-benchmarks",
+        "sp500-sectors",
+        *(family["logical_key"] for family in BENCHMARK_FAMILY_REGISTRY),
+    }
+    expected_proxy_members = sum(
+        sum(1 for role in ("cap_weight", "equal_weight", "value", "growth") if family[role]["symbol"])
+        for family in BENCHMARK_FAMILY_REGISTRY
+    )
+    assert len(members) == 5 + 11 + expected_proxy_members
 
 
 def test_core_workstation_bootstrap_tolerates_venue_distinct_provider_symbols(db):

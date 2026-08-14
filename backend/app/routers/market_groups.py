@@ -533,6 +533,29 @@ async def list_market_groups(
     return (await db.execute(statement)).scalars().unique().all()
 
 
+@router.get("/{stable_key}/children", response_model=list[MarketGroupOut])
+async def list_market_group_children(
+    stable_key: str,
+    _: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """List selectable child universes without flattening them into the root.
+
+    Benchmark-family children carry independent cap/equal/style mappings.  They
+    are deliberately fetched through an explicit endpoint so the existing root
+    SPY/RSP/sector workflow keeps its stable ordering and denominator semantics.
+    """
+
+    await _ensure_taxonomy_if_empty(db)
+    parent = (
+        await db.execute(select(MarketGroup).where(MarketGroup.stable_key == stable_key))
+    ).scalar_one_or_none()
+    if parent is None:
+        raise HTTPException(status_code=404, detail="Market group not found")
+    statement = _groups_query().where(MarketGroup.parent_id == parent.id).order_by(MarketGroup.name)
+    return (await db.execute(statement)).scalars().unique().all()
+
+
 @router.get("/{stable_key}", response_model=MarketGroupOut)
 async def get_market_group(
     stable_key: str,

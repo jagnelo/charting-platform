@@ -1,5 +1,25 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-14 — Benchmark-family taxonomy and selectable child universes
+
+The backend now exposes a JSON-safe registry for the eight required US benchmark families. Each
+family carries its official logical identity, configured cap/equal/value/growth mapping candidates,
+source URLs, mapping state, and derived equal-weight policy. The registry explicitly retains
+`No verified mapped proxy` for absent style/equal relationships and does not infer relationships
+from names.
+
+`us-benchmarks` now owns child `benchmark_family` groups, discoverable through
+`GET /market-groups/us-benchmarks/children`. Canonical proxy identities are attached to a child
+only when already present in the security master; each member retains its cap/equal/value/growth
+role and relationship provenance. The core identity bootstrap registers configured proxy
+identities as identity-only records, never as official index constituents or fabricated data.
+The breadth universe selector can load these child groups and uses their configured cap proxy for
+benchmark-relative calculations while retaining the existing SPY/RSP default workflow.
+
+This closes the taxonomy/selection contract only. Provider evidence, point-in-time membership and
+holdings, derived equal-weight calculation, family-wide snapshots/ratios/rotation/breadth history,
+populated browser drill-down, and visual parity remain open; no acceptance criterion was relaxed.
+
 ## 2026-08-14 — US benchmark-family and factor-analysis acceptance expansion
 
 The workstation scope is family-wide: S&P 500, S&P MidCap 400, S&P SmallCap 600, S&P Composite

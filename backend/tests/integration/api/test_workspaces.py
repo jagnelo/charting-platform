@@ -414,6 +414,53 @@ class TestWorkspaces:
             == "ETF proxy where applicable"
         )
 
+    def test_benchmark_family_children_expose_cap_equal_style_registry_without_fallback(
+        self, client, auth_headers
+    ):
+        roots = {
+            group["stable_key"]: group
+            for group in client.get("/api/v1/market-groups", headers=auth_headers).json()
+        }
+        families = roots["us-benchmarks"]["provenance"]["benchmark_families"]
+        assert [family["logical_key"] for family in families] == [
+            "sp500",
+            "sp400",
+            "sp600",
+            "sp1500",
+            "russell1000",
+            "russell2000",
+            "russell3000",
+            "nasdaq100",
+        ]
+        nasdaq = next(family for family in families if family["logical_key"] == "nasdaq100")
+        assert nasdaq["cap_weight"]["symbol"] == "QQQ"
+        assert nasdaq["equal_weight"]["symbol"] == "QQQE"
+        sp1500 = next(family for family in families if family["logical_key"] == "sp1500")
+        assert sp1500["value"]["label"] == "No verified mapped proxy"
+        assert sp1500["growth"]["label"] == "No verified mapped proxy"
+
+        children = client.get(
+            "/api/v1/market-groups/us-benchmarks/children", headers=auth_headers
+        )
+        assert children.status_code == 200
+        child_by_key = {group["stable_key"]: group for group in children.json()}
+        assert set(child_by_key) == {family["logical_key"] for family in families}
+        # This integration fixture intentionally seeds only the original
+        # workstation identities.  The taxonomy must preserve the family
+        # mappings without fabricating missing canonical instruments or
+        # silently substituting QQQ/SPY.
+        assert child_by_key["nasdaq100"]["representative_instrument_id"] is None
+        assert child_by_key["nasdaq100"]["equal_weight_instrument_id"] is None
+        assert child_by_key["sp1500"]["equal_weight_instrument_id"] is None
+        assert child_by_key["nasdaq100"]["members"] == []
+        assert child_by_key["sp500"]["members"] == []
+        assert set(child_by_key["sp500"]["provenance"]["proxy_mappings"]) == {
+            "cap_weight",
+            "equal_weight",
+            "value",
+            "growth",
+        }
+
     def test_etf_industries_are_derived_from_point_in_time_holdings(
         self, client, admin_headers, auth_headers, db, instrument
     ):

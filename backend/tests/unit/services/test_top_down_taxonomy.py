@@ -12,12 +12,49 @@ from app.services.top_down_taxonomy import (
     _BENCHMARKS,
     _INDUSTRY_PROXY_CANDIDATES,
     _SECTORS,
+    BENCHMARK_FAMILY_REGISTRY,
+    benchmark_family_proxy_symbols,
+    benchmark_family_registry,
     canonical_industry_label,
     industry_proxy_candidates,
     seed_top_down_taxonomy,
     source_classification_for_as_of,
     source_classification_from_profile_snapshot,
 )
+
+
+def test_benchmark_family_registry_is_complete_and_no_missing_mapping_is_fabricated():
+    families = benchmark_family_registry()
+    assert [family["logical_key"] for family in families] == [
+        "sp500",
+        "sp400",
+        "sp600",
+        "sp1500",
+        "russell1000",
+        "russell2000",
+        "russell3000",
+        "nasdaq100",
+    ]
+    assert {family["official_index_symbol"] for family in families} == {
+        "SPX",
+        "MID",
+        "SML",
+        "SPSUPX",
+        "RUI",
+        "RTY",
+        "RUA",
+        "NDX",
+    }
+    nasdaq = next(family for family in families if family["logical_key"] == "nasdaq100")
+    assert nasdaq["cap_weight"]["symbol"] == "QQQ"
+    assert nasdaq["equal_weight"]["symbol"] == "QQQE"
+    assert nasdaq["equal_weight"]["verification_state"] == "proxy_identity_registered"
+    assert next(family for family in families if family["logical_key"] == "sp1500")["value"]["symbol"] is None
+    assert next(family for family in families if family["logical_key"] == "sp1500")["derived_equal_weight"]["allowed"]
+    assert "SPYV" in benchmark_family_proxy_symbols()
+    assert "IWF" in benchmark_family_proxy_symbols()
+    assert "QQQE" in benchmark_family_proxy_symbols()
+    assert len(BENCHMARK_FAMILY_REGISTRY) == 8
 
 
 class _AsyncSessionFacade:
@@ -151,6 +188,7 @@ def test_profile_snapshot_classification_is_source_labelled():
 
 def test_seed_top_down_taxonomy_attaches_known_proxies_and_is_idempotent(db, instrument_type):
     symbols = [(symbol, name) for symbol, name, *_ in _BENCHMARKS] + list(_SECTORS)
+    symbols.extend((symbol, f"{symbol} proxy") for symbol in benchmark_family_proxy_symbols())
     db.add_all(
         [
             Instrument(
@@ -170,11 +208,38 @@ def test_seed_top_down_taxonomy_attaches_known_proxies_and_is_idempotent(db, ins
     asyncio.run(seed_top_down_taxonomy(facade))
 
     groups = db.execute(select(MarketGroup)).scalars().all()
-    assert {group.stable_key for group in groups} == {"us-benchmarks", "sp500-sectors"}
+    assert {group.stable_key for group in groups} == {
+        "us-benchmarks",
+        "sp500-sectors",
+        "sp500",
+        "sp400",
+        "sp600",
+        "sp1500",
+        "russell1000",
+        "russell2000",
+        "russell3000",
+        "nasdaq100",
+    }
     members = db.execute(select(MarketGroupMember)).scalars().all()
-    assert len(members) == len(_BENCHMARKS) + len(_SECTORS)
+    assert len(members) == len(_BENCHMARKS) + len(_SECTORS) + sum(
+        sum(1 for role in ("cap_weight", "equal_weight", "value", "growth") if family[role]["symbol"])
+        for family in BENCHMARK_FAMILY_REGISTRY
+    )
     assert {member.source for member in members} == {"curated_top_down_taxonomy"}
-    assert {member.verification_state for member in members} == {"proxy_verified"}
+    assert {member.verification_state for member in members} == {
+        "proxy_verified",
+        "proxy_identity_registered",
+    }
     benchmark = next(group for group in groups if group.stable_key == "us-benchmarks")
     assert benchmark.provenance["benchmark_identities"]["sp500"]["official_index_symbol"] == "SPX"
     assert benchmark.provenance["benchmark_identities"]["sp500"]["default_tradable_proxy"] == "SPY"
+    family_by_key = {group.stable_key: group for group in groups if group.group_type == "benchmark_family"}
+    assert family_by_key["nasdaq100"].parent_id == benchmark.id
+    assert family_by_key["nasdaq100"].representative_instrument_id is not None
+    assert family_by_key["nasdaq100"].equal_weight_instrument_id is not None
+    assert {member.relationship_type for member in members if member.market_group_id == family_by_key["sp500"].id} == {
+        "cap_weight_proxy",
+        "equal_weight_proxy",
+        "value_proxy",
+        "growth_proxy",
+    }
