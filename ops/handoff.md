@@ -1,5 +1,26 @@
 # Active Handoff
 
+## 2026-08-14 — Family dated coverage endpoint and workstation evidence strip
+
+- Added read-only `GET /analysis/benchmark-families/{family_key}/coverage` with independent
+  cap/equal/value/growth role rows and bounded dated snapshots. Each snapshot preserves ID,
+  composition/as-of/known-at dates, source/provider, provenance, completeness, row count, and
+  resolved/unresolved counts. `as_of` applies composition and known-at point-in-time eligibility;
+  mapping and no-snapshot roles remain explicit and never borrow another proxy.
+- Added the family store loader/cache and dense Market Breadth dated-disclosure evidence strip.
+  Added backend, store, and browser regression coverage. Focused family integration `7/7`, store
+  `56/56`, full Vitest `827/827`, type-check/build, Ruff/compile, and rebuilt-stack Chromium
+  `F8s-breadth-family-ratio` `1/1` pass. The first browser launch failed before execution at
+  macOS Mach-port permission; the unchanged oracle passed via the elevated rerun. No acceptance
+  flexibility used.
+- Implementation/docs commit: `062657a8` (`feat(analysis): expose family dated coverage`).
+  Exact elevated push was attempted once and rejected before Git by the private-origin safeguard
+  for the accumulated private payload/destination. No workaround, alternate transport, rewrite,
+  reset, stash, or repeat was used. Worktree was clean at this checkpoint.
+- Next context: use the returned date sets for a user-selectable family as-of workflow and then
+  extend historical evidence into all-family breadth, ratios, rotation, and ranking. Complete
+  historical rebalance/membership continuity remains open; this checkpoint does not claim it.
+
 ## 2026-08-14 — Expanded US index-family/style/breadth vision clarification
 
 - Updated the controlling project TODO, parity matrix, acceptance governance, and active task

@@ -1,5 +1,19 @@
 # Run Report
 
+## 2026-08-14 — Family dated coverage endpoint and workstation evidence strip
+
+- Added `GET /analysis/benchmark-families/{family_key}/coverage`, independent role statuses, and
+  dated snapshot lineage with point-in-time-safe `as_of` filtering. Missing mappings/no snapshots
+  remain explicit; no SPY/QQQ or other-role substitution is possible.
+- Added the family store cache/loader and Market Breadth dated-disclosure evidence strip.
+- Validation: family integration `7/7`, frontend store `56/56`, full Vitest `827/827`,
+  type-check/build, Ruff/compile, and rebuilt-stack Chromium `F8s-breadth-family-ratio` `1/1`.
+  The initial browser launch hit the known unprivileged Mach-port boundary; the unchanged oracle
+  passed via elevated rerun. No acceptance flexibility used.
+- Commit `062657a8`; exact push attempted once and rejected before Git by the private-origin
+  safeguard. No workaround/repeat. Historical continuity, as-of UI selection, and full-family
+  historical analytics remain open.
+
 ## 2026-08-14 — Expanded US index-family/style/breadth vision clarification
 
 - Updated `docs/project-todos.md`, `docs/tc2000-parity.md`, `docs/tc2000-acceptance-governance.md`,
