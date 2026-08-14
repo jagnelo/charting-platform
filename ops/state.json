@@ -7,7 +7,7 @@
   "last_handoff_at": "2026-08-14T22:25:00Z",
   "last_commit": "b9e570d9 chore(ops): record benchmark vision scope",
   "git_ready_to_commit": true,
-  "git_checkpoint": "Implementation/docs commit d6c86311 and operational checkpoint ab0b9144 are clean locally. The exact elevated push for the accumulated range was attempted once and rejected before Git by the private-origin safeguard; origin remains 91463e54. No workaround, alternate transport, or repeat.",
+  "git_checkpoint": "Documentation commit db684c0b and operational checkpoints b9e570d9 plus final state metadata are clean locally. The exact elevated push for the accumulated range was attempted once and rejected before Git by the private-origin safeguard because trusted authorization for the exact private payload/destination was unavailable; origin remains 91463e54. No workaround, alternate transport, rewrite, reset, stash, or repeat.",
   "next_context": "benchmark-family-live-and-point-in-time-evidence-20260814",
   "active_context": "benchmark-family-scope-documentation-20260814",
   "context_status": "benchmark-family-scope-documentation-checkpoint-complete",

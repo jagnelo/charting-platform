@@ -9,8 +9,11 @@
   behavior for every evidenced family leg, including the verified QQQ/QQQE cap/equal fixture.
 - Missing evidence remains a named unavailable/derived gap; no fallback or acceptance criterion
   was relaxed. Validation passed `git diff --check` and Ruby YAML/JSON parsing.
-- Worktree remains intentionally uncommitted until the documentation changeset is checkpointed;
-  next work is provider/historical evidence and family-wide populated acceptance.
+- The documentation changeset is checkpointed locally; next work is provider/historical evidence
+  and family-wide populated acceptance.
+- The required exact push was attempted once after the checkpoint and rejected before Git by the
+  private-origin safeguard. No workaround or repeat was used; local branch is clean and transport
+  is the only unresolved boundary.
 
 ## 2026-08-14 — Family-leg relative-strength ratio contract
 

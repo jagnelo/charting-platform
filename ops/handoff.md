@@ -15,6 +15,11 @@
 - Next: continue implementation/evidence work for provider-backed family population, historical
   memberships/rebalances, family-wide analytics, and browser acceptance; QQQE/Direxion route
   verification remains open.
+- Git: implementation/docs `db684c0b` and operational commits `b9e570d9` plus the final state
+  metadata checkpoint are clean locally. The required exact elevated push was rejected before Git
+  by the private-origin safeguard because trusted authorization for the accumulated private
+  payload/destination was unavailable. No workaround, alternate transport, rewrite, reset, stash,
+  or repeat was attempted; transport-only and not a goal blocker.
 
 ## 2026-08-14 — All-leg family ratio composition
 
