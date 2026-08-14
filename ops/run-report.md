@@ -13,6 +13,9 @@
 - Implementation commit `aed07c46` is clean locally. Its exact elevated push was attempted once
   and rejected before Git by the private-origin safeguard; origin remains `91463e54`. No
   workaround, alternate transport, or repeat was used; this is transport-only.
+- Operational checkpoint `db6d86fc` is clean locally. Its exact elevated push was attempted once
+  and rejected before Git by the same safeguard; origin remains `91463e54`. The worktree remains
+  clean and transport is the only unresolved boundary.
 
 ## 2026-08-14 — Point-in-time derived equal-weight family series
 
