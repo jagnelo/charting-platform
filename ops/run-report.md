@@ -1,5 +1,19 @@
 # Run Report
 
+## 2026-08-14 — Historical benchmark-family participation checkpoint
+
+- Added the historical family-role breadth endpoint and workstation loader for aligned SMA20/50/
+  200 participation series. Point-in-time roles remain independent; missing bars are excluded at
+  each timestamp rather than forward-filled.
+- Validation: backend history integration `2/2`, workspace-store `60/60`, full frontend Vitest
+  `831/831`, `vue-tsc`, production build, Ruff, compileall, diff-check, and rebuilt authenticated
+  Chromium `F8s-breadth-family-ratio` `1/1`. A fixture omission initially produced generic breadth
+  404s; explicit fixtures were added and the unchanged oracle passed. No acceptance flexibility.
+- Commit `c4750f49` is clean locally. Exact push was attempted once and rejected before Git by the
+  private-origin safeguard; no workaround/repeat.
+- Remaining: historical non-MA predicates, arbitrary condition/occurrence history, role/family
+  ranking and rotation, complete historical population, and final V25 visual/acceptance gates.
+
 ## 2026-08-14 — Benchmark-family role participation checkpoint
 
 - Added the role-aware family breadth batch and workstation participation strip for cap/equal/

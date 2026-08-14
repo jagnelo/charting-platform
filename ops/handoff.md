@@ -1,5 +1,20 @@
 # Active Handoff
 
+## 2026-08-14 — Historical benchmark-family participation checkpoint
+
+- Added `GET /analysis/benchmark-families/{family_key}/breadth/history` with independent
+  cap/equal/value/growth SMA20/50/200 series, point-in-time holdings, actual observed timestamps,
+  per-role coverage/exclusions, and no-forward-fill/no-fallback semantics.
+- Added the store cache/loader and workstation historical-point evidence beside the current role
+  participation strip. Backend history integration `2/2`, store `60/60`, full Vitest `831/831`,
+  type/build, Ruff/compile, diff-check, and rebuilt authenticated Chromium `1/1` pass. A browser
+  fixture omission caused generic breadth 404 diagnostics; explicit fixtures were added and the
+  unchanged oracle then passed. No acceptance flexibility used.
+- Implementation/docs commit: `c4750f49` (clean locally). Exact elevated push was attempted once
+  and rejected before Git by the private-origin safeguard; no workaround or repeat.
+- Next context: extend historical predicates and implement role/family ranking, rotation,
+  concentration, and dispersion while preserving the eight-root completion bar.
+
 ## 2026-08-14 — Benchmark-family role participation checkpoint
 
 - Added `GET /analysis/benchmark-families/{family_key}/breadth` for independent cap/equal/value/
