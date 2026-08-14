@@ -27069,3 +27069,12 @@ in 4.6 minutes. No failure was suppressed or reclassified as product success.
   failed only at environment socket setup; elevated rerun passed. Acceptance flexibility used: none.
 - Clean implementation/docs commit: `ffd3b725`. Provider-backed population, historical rebalance/
   taxonomy evidence, and browser holdings-readiness presentation remain open.
+
+# 2026-08-14 — Family holdings readiness push transport
+
+- The exact elevated push for clean commits `ffd3b725` and `9cfad47e` to
+  `origin/feat/tc2000-frontend-rework` was attempted once and rejected before Git by the
+  private-origin safeguard because trusted authorization for the exact accumulated private payload
+  and destination was unavailable.
+- No workaround, alternate transport, rewrite, reset, stash, or repeat was used. Transport-only;
+  the local branch remains clean and the product goal continues.

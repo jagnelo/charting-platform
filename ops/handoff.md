@@ -28483,3 +28483,12 @@ indefinite soak; longer endurance remains an explicit open gap.
   historical rebalance/taxonomy evidence, and browser presentation of holdings readiness remain
   open. Exact push is attempted once after this checkpoint and any safeguard response is recorded
   separately; no workaround or repeat.
+
+## 2026-08-14 — Family holdings readiness push transport
+
+- The exact elevated `rtk git push origin HEAD:feat/tc2000-frontend-rework` for clean commits
+  `ffd3b725` and `9cfad47e` was attempted once and rejected before Git by the private-origin
+  safeguard because trusted authorization for the exact accumulated private payload/destination
+  was unavailable.
+- No workaround, alternate transport, rewrite, reset, stash, or repeated attempt was used. This
+  is transport-only and not a product-goal blocker; the branch remains clean locally.
