@@ -1,5 +1,20 @@
 # Run Report
 
+## 2026-08-14 — Historical 90/90 distribution visuals context started
+
+- Started from clean local `96c2d1a0` to add explicit current-versus-history price and volume
+  participation histograms to the historical 90/90 Study Lab factory output.
+- No visual or functional acceptance relaxation is planned; Git transport remains operational only.
+
+## 2026-08-14 — Historical 90/90 distribution visuals validated
+
+- Added current-highlighted price and volume participation histograms to the historical 90/90
+  factory source while preserving series, occurrences, tables, exclusions, and provenance.
+- Focused Study Lab source `22/22`, authenticated `F8p-90-90-history` `1/1`, frontend `818/818`,
+  type-check/build, uPlot contract, visual policy, and diff checks pass. No acceptance flexibility.
+- Implementation/docs commit: `b254dfaf`; operational checkpoint follows separately. The exact
+  push will be attempted once after that checkpoint.
+
 ## 2026-08-14 — Study Lab occurrence-to-chart timestamp acceptance context started
 
 - Started from clean local `a137d4db` to harden the documented occurrence-linking contract.

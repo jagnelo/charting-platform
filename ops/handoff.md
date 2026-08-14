@@ -1,5 +1,31 @@
 # Active Handoff
 
+## 2026-08-14 — Historical 90/90 distribution visuals context (completed)
+
+- Context owner: Codex. Owned paths are the Study Lab factory source, focused Study Lab contracts,
+  authenticated historical 90/90 browser coverage, and the controlling parity/TODO/checkpoint docs.
+- Intent: make the historical 90/90 factory study answer the requested current-versus-history
+  question with explicit price and volume participation distributions, highlighting the latest
+  observation through the existing typed histogram renderer. Preserve the current series,
+  occurrences, tables, point-in-time universe, and no-provider-fan-out contract.
+- Acceptance flexibility used: none. This changes no visual threshold, mask, product criterion, or
+  reference-board rule; `REF-STUDY-LAB-V25` remains tracked separately.
+- Git rule: start from clean local `96c2d1a0`; implementation/docs and operational checkpoint stay
+  separate. Attempt the exact push once after closure; any private-origin rejection is transport-
+  only and must not stop the goal.
+- Fix-first requirement: run focused source/browser tests against the rebuilt stack and correct any
+  defect at its owning boundary before recording completion.
+- Completed: the factory source emits current-highlighted price and volume participation
+  histograms. Focused Study Lab source coverage `22/22`, authenticated `F8p-90-90-history` `1/1`,
+  frontend `818/818`, type-check/build, uPlot contract, visual acceptance policy, and diff checks
+  pass. The rebuilt browser path rendered both distributions without changing the oracle.
+- Acceptance flexibility used: none. `REF-STUDY-LAB-V25` remains open; no visual threshold, mask,
+  product criterion, or browser rule changed.
+- Implementation/docs commit: `b254dfaf` (`feat(study-lab): add 90/90 distribution visuals`).
+  The implementation boundary is clean; operational checkpoint remains a separate commit. Exact
+  push is attempted once after closure.
+- Next action: continue the next independent workstation/backend gap.
+
 ## 2026-08-14 — Study Lab occurrence-to-chart timestamp acceptance context (completed)
 
 - Context owner: Codex. Owned paths are the uPlot chart host, Study Lab browser acceptance,

@@ -1,4 +1,30 @@
 tasks:
+  - id: tc2000-study-lab-historical-90-90-distribution-20260814
+    title: Add current-versus-history distributions to the 90/90 Study Lab
+    status: completed
+    priority: high
+    scope: >-
+      Extend the historical 90/90 factory output with typed price and volume participation
+      histograms whose current values are highlighted, preserving aligned series, qualification
+      occurrences, tables, exclusions, and declared-universe provenance.
+    definition_of_done:
+      - Factory source emits price and volume histograms with explicit current observations
+      - Browser acceptance renders both distribution artifacts from canonical declared data
+      - Focused source contracts and adjacent Study Lab regressions pass
+      - Frontend type/build, uPlot, visual-policy, and diff checks pass
+      - No visual threshold, mask, product criterion, or acceptance flexibility changes
+    validation:
+      - focused-study-lab-source-22-of-22
+      - authenticated-f8p-90-90-history-1-of-1
+      - frontend-vitest-818-of-818
+      - frontend-type-check-production-build
+      - uplot-visual-policy-diff-check
+    notes:
+      - REF-STUDY-LAB-V25 remains a separate original-surface visual-reference gap.
+      - Correct any browser-exposed defect at its owning boundary and rerun; never suppress failures.
+      - Git transport is operational only and must not block the goal.
+      - Acceptance flexibility used: none.
+      - Implementation/docs commit: b254dfaf; operational checkpoint remains separate.
   - id: tc2000-study-lab-occurrence-chart-timestamp-20260814
     title: Prove Study Lab occurrence dates publish to linked charts
     status: completed
