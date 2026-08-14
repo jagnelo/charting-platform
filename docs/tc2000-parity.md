@@ -1,5 +1,30 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-15 — Full US benchmark-family perspective matrix reaffirmed
+
+The completion bar now explicitly covers eight independently selectable US roots: S&P 500,
+S&P MidCap 400, S&P SmallCap 600, S&P Composite 1500, Russell 1000, Russell 2000, Russell 3000,
+and Nasdaq 100. The same Version-25 workstation composition must carry each root through
+benchmark technicals; cap/equal/value/growth comparisons; parent, peer, and cross-family ratios;
+condition-driven breadth; participation and leadership; concentration/dispersion; drawdown and
+volatility; relative rotation; ranking; and sector → industry/proxy → constituent drill-down.
+
+Each family leg is independent. The parity run verifies an official identity when entitled, a
+labelled cap proxy, an equal-weight vehicle or point-in-time derived series, and every evidenced
+value/growth sub-index or ETF. Candidate symbols such as SPY/RSP, MDY/MDYG/MDYV, SLY/SLYG/SLYV,
+IWB/IWF/IWD, IWM/IWO/IWN, IWV, and QQQ/QQQE are not relationships by name: canonical issuer,
+holdings/weights, membership/rebalance, effective/known-at, adjustment, bars, coverage, and
+provenance evidence are required. Nasdaq 100 has a mandatory cap/equal deconstruction fixture
+(QQQ versus QQQE or another independently verified equal proxy) once that evidence is present.
+
+The selected root/leg and its exact membership, weighting method, as-of/known-at policy, coverage,
+exclusions, freshness, and provenance must survive technicals, ratios, breadth, charts, watchlists,
+scans, gauges, Study Lab, reusable plots, exports, and linked drill-down. A missing official,
+equal, value, growth, holdings, or historical source is a visible `No verified mapped proxy`,
+unavailable, or derived state. It is never silently substituted. All eight roots and every
+verified leg must be exercised as real analysis perspectives; a selector-only check is not parity.
+This is a scope clarification, not an acceptance relaxation.
+
 ## 2026-08-15 — Historical family concentration/dispersion parity slice
 
 Family concentration now has a historical endpoint and workstation evidence path. At each observed

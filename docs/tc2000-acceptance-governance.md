@@ -1,5 +1,24 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-08-15 — Eight-root US analysis and Nasdaq-100 cap/equal gate
+
+The family acceptance matrix consists of S&P 500, S&P MidCap 400, S&P SmallCap 600, S&P
+Composite 1500, Russell 1000, Russell 2000, Russell 3000, and Nasdaq 100. For each root, the
+acceptance run must attempt the official identity (when entitled), cap proxy, equal-weight vehicle
+or point-in-time derived equal series, and every evidenced value/growth leg. It must then exercise
+the same technical, ratio, configurable breadth, participation, leadership, concentration,
+dispersion, drawdown/volatility, rotation, ranking, and sector/industry/proxy/constituent
+workflow. A selector row or one SPY-backed fixture is insufficient.
+
+The Nasdaq 100 sub-gate specifically requires a QQQ-versus-QQQE-style cap/equal deconstruction
+only after canonical identity, issuer/relationship, holdings or derived-membership, weighting,
+effective/known-at, bar, and coverage evidence has passed. Native ETF weights and locally derived
+equal weights are separate methods. Every result carries family/leg identity, membership version,
+as-of policy, coverage, exclusions, freshness, and provenance. Missing evidence remains a named
+`No verified mapped proxy`, unavailable, or derived state and cannot borrow SPY, QQQ, another
+family, or a current-only snapshot. This is an expansion of the acceptance scope, not a relaxed
+criterion; unresolved provider, historical, visual, and browser gaps stay in the gap ledger.
+
 ## 2026-08-15 — Historical concentration/dispersion sub-gate
 
 Historical concentration acceptance must prove timestamp-safe disclosure selection. For each point,

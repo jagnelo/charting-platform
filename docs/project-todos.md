@@ -1,5 +1,34 @@
 # Project TODO Memory
 
+### 2026-08-15 — Expanded US benchmark-family and Nasdaq-100 decomposition scope
+
+- [ ] Treat S&P 500, S&P MidCap 400, S&P SmallCap 600, S&P Composite 1500, Russell 1000,
+      Russell 2000, Russell 3000, and Nasdaq 100 as eight first-class top-down analysis roots.
+      Each root must support benchmark technicals, cap/equal/style comparisons, configurable
+      breadth, participation/leadership, concentration/dispersion, ratios, rotation, ranking,
+      and sector → industry/proxy → constituent drill-down without leaving the workstation.
+- [ ] For every root, independently verify the official index identity (when entitled), a
+      labelled cap-weighted tradable proxy, an equal-weight vehicle or explicitly labelled
+      point-in-time derived equal series, and every evidenced value/growth sub-index or ETF.
+      Candidate symbols are discovery inputs only; issuer, relationship, holdings/weights,
+      effective/known-at, bar, adjustment, and coverage evidence must be recorded before a leg
+      becomes selectable. Missing evidence remains `No verified mapped proxy`, unavailable, or
+      derived and never falls back to SPY, QQQ, another family, or a current-only snapshot.
+- [ ] Generalize the SPY/RSP decomposition to all supported roots. Nasdaq 100 specifically needs
+      a cap-versus-equal acceptance fixture (QQQ versus QQQE or another independently verified
+      equal proxy) and must disclose native ETF weighting versus locally derived equal weighting,
+      membership/rebalance version, dates, exclusions, freshness, and provenance.
+- [ ] Apply the same user-defined breadth predicate contract to every available root and leg,
+      including moving-average state/distance, configurable 52-week-high/low distance, new
+      highs/lows, RSI/trend, volume/volatility, benchmark/peer relative strength, and unified
+      Python combinations. Outputs must remain reusable as charts, watchlist columns/filters,
+      scans, gauges, alerts, Study Lab artifacts, and exports with membership/as-of/coverage
+      lineage intact.
+- [ ] Acceptance must exercise each root and each evidenced cap/equal/value/growth leg as a
+      complete analysis perspective rather than only checking selector presence. Provider,
+      historical-membership, visual-reference, and browser-population gaps remain explicit
+      tracked work; this clarification does not relax any acceptance criterion.
+
 ### 2026-08-15 — Historical family concentration and dispersion
 
 - [x] Added `GET /analysis/benchmark-families/{family_key}/concentration/history` with bounded
