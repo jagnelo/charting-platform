@@ -28562,3 +28562,13 @@ and strict visual gaps remain explicitly tracked.
   chaining, family/provider population, exact V25 visual coverage, and final audit remain open.
 - The exact push attempt for the clean `27353f08..ff7bc08c` range was rejected before Git
   transport by the private-origin safeguard; no workaround or repeat was attempted.
+
+# 2026-08-19 — Arbitrary Market Map period checkpoint
+
+- Added CUSTOM start/end controls to the source-agnostic Market Map. Dates flow through the
+  canonical batch/cache contract and persist in tool configuration for locked or editable sources.
+- Evidence: Market Map component `18/18`; custom-period integration `1/1`; frontend Vitest
+  `875/875`; type/build; backend Ruff/compileall; YAML/JSON; and diff-check.
+- No acceptance flexibility. An outdated cache-count assertion was corrected after the new
+  request correctly produced a second cache entry. Point-in-time weights, provider-backed root
+  population, remaining map metrics, exact V25 visual coverage, and final audit remain open.

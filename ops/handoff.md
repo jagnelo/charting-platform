@@ -30439,3 +30439,15 @@ indefinite soak; longer endurance remains an explicit open gap.
 - Git transport: the single exact push attempt for `27353f08..ff7bc08c` was rejected before Git
   transport by the private-origin safeguard. No workaround, alternate transport, or retry was
   used; this is transport-only and not a product blocker.
+
+# 2026-08-19 — Arbitrary Market Map period checkpoint
+
+- Connected the existing server-side `CUSTOM` Market Map period contract to the workstation.
+  Users can select CUSTOM, enter start/end dates, and retain them in serializable tool state;
+  requests carry the dates into period bounds and cache identity for any WatchlistSource.
+- Validation passed: Market Map component `18/18`, custom-period integration `1/1`, frontend
+  Vitest `875/875`, type-check/build, backend Ruff/compileall, YAML/JSON, and diff checks.
+- No acceptance flexibility was used. The first integration assertion still expected one cache
+  after two distinct period requests; it was corrected at the test boundary and the unchanged
+  oracle passed. Point-in-time weights, full root population, remaining metrics, exact V25 visual
+  approval, and final audit remain open.

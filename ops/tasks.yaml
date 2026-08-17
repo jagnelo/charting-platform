@@ -11535,3 +11535,32 @@ tasks:
         structured rejection. Existing Boolean promotion and numeric plot/column promotion remain
         unchanged. Filters, gauges, alerts, Study Lab, Strategy Lab, richer chaining, family/provider
         population, exact V25 visual evidence, and the final audit remain open.
+  - id: tc2000-market-map-custom-period-20260819
+    title: Expose arbitrary completed-session periods in the universal Market Map
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Connect the existing CUSTOM Market Map batch contract to the workstation with explicit start
+      and end date controls. Persist the range in serializable tool state and verify it creates a
+      distinct cache request for locked and editable WatchlistSources.
+    definition_of_done:
+      - Market Map exposes all supported presets plus CUSTOM
+      - Custom start/end dates are sent to the canonical batch API
+      - Tool configuration and snapshot restoration retain the selected range
+      - Backend period bounds and cache identity remain distinct per request
+      - Unit, integration, type/build, lint, and diff gates pass
+    validation:
+      - market-map-component-18-of-18
+      - market-map-custom-period-integration-1-of-1
+      - frontend-vitest-875-of-875
+      - frontend-typecheck-build
+      - backend-ruff-compileall
+      - yaml-json-diff-check
+    notes:
+      - >-
+        No acceptance flexibility was used. The first integration rerun exposed an outdated cache
+        count assertion after the new custom request correctly created a second cache entry; the
+        assertion was corrected to account for distinct period identity and the unchanged oracle
+        passed. Point-in-time weights, complete root population, remaining map metrics, exact V25
+        visual approval, and final audit remain open.
