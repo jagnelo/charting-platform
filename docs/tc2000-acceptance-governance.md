@@ -8,8 +8,9 @@ member predicate evaluation, tri-state `all`/`any`/`not` composition, clause dia
 denominator/exclusion semantics, current-bar alignment, historical no-forward-fill behavior, and
 no provider fan-out. The same condition must serialize through the visual tree editor and
 authenticated browser flow.
-Cross-sectional group statistics beyond percentile and arbitrary Python target-series leaves remain
-open and cannot be treated as silently equivalent.
+Arbitrary Python target-series leaves remain open and cannot be treated as silently equivalent. The
+explicit group-statistic leaf is accepted only for its declared mean, median, minimum, maximum, and
+standard-deviation set, with the member-minus-group metric retained.
 
 ## 2026-08-17 — Cross-sectional Market Map breadth sub-gate
 

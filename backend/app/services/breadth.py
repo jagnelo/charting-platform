@@ -642,6 +642,178 @@ def evaluate_cross_sectional_percentile(
     }
 
 
+def evaluate_cross_sectional_statistic(
+    members: list[BreadthMember],
+    bars_by_instrument: Mapping[int, list[Any]],
+    condition: Mapping[str, Any],
+    *,
+    benchmark_bars: list[Any] | None = None,
+    forced_exclusions: Mapping[int, str] | None = None,
+) -> tuple[list[BreadthMemberResult], dict[str, int | float]]:
+    """Compare each member scalar with one same-timestamp group statistic.
+
+    ``metric`` is the member scalar minus the selected group statistic, making
+    the decision and its magnitude transparent.  The supported statistic set is
+    deliberately small and deterministic; richer derived/Python series remain
+    an explicitly separate capability.
+    """
+
+    params = condition.get("params", condition)
+    if not isinstance(params, Mapping) or str(condition.get("kind", "")).lower() != "cross_sectional_statistic":
+        return [
+            _excluded_member_result(member, condition, "cross_sectional_unsupported_condition")
+            for member in members
+        ], {
+            "requested_count": len(members),
+            "eligible_count": 0,
+            "pass_count": 0,
+            "excluded_count": len(members),
+            "coverage": 0.0,
+            "percentage": None,
+        }
+    field = params.get("field")
+    statistic = str(params.get("statistic", "mean")).lower()
+    if not isinstance(field, str) or not field.strip() or statistic not in {
+        "mean",
+        "median",
+        "min",
+        "max",
+        "std",
+    }:
+        code = "invalid_condition_params"
+        return [
+            _excluded_member_result(member, condition, code)
+            for member in members
+        ], {
+            "requested_count": len(members),
+            "eligible_count": 0,
+            "pass_count": 0,
+            "excluded_count": len(members),
+            "coverage": 0.0,
+            "percentage": None,
+        }
+    try:
+        threshold = float(params.get("threshold", 0.0))
+    except (TypeError, ValueError):
+        threshold = math.nan
+    if not _finite(threshold):
+        code = "invalid_condition_params"
+        return [
+            _excluded_member_result(member, condition, code)
+            for member in members
+        ], {
+            "requested_count": len(members),
+            "eligible_count": 0,
+            "pass_count": 0,
+            "excluded_count": len(members),
+            "coverage": 0.0,
+            "percentage": None,
+        }
+    metrics: dict[int, float] = {}
+    exclusions: dict[int, str] = {}
+    for member in members:
+        if forced_exclusions and member.instrument_id in forced_exclusions:
+            exclusions[member.instrument_id] = forced_exclusions[member.instrument_id]
+            continue
+        scalar, warning = _comparison_metric(
+            list(bars_by_instrument.get(member.instrument_id, [])),
+            field,
+            params,
+            benchmark_bars=benchmark_bars,
+        )
+        if warning or scalar is None or not _finite(scalar):
+            exclusions[member.instrument_id] = warning or "invalid_condition_params"
+            continue
+        metrics[member.instrument_id] = float(scalar)
+    values = list(metrics.values())
+    if not values:
+        group_value = math.nan
+    elif statistic == "mean":
+        group_value = sum(values) / len(values)
+    elif statistic == "median":
+        ordered = sorted(values)
+        middle = len(ordered) // 2
+        group_value = ordered[middle] if len(ordered) % 2 else (ordered[middle - 1] + ordered[middle]) / 2
+    elif statistic == "min":
+        group_value = min(values)
+    elif statistic == "max":
+        group_value = max(values)
+    else:
+        mean = sum(values) / len(values)
+        group_value = math.sqrt(sum((value - mean) ** 2 for value in values) / len(values))
+    results: list[BreadthMemberResult] = []
+    for member in members:
+        warning = exclusions.get(member.instrument_id)
+        if warning or not _finite(group_value):
+            code = warning or "invalid_reference"
+            results.append(_excluded_member_result(member, condition, code))
+            continue
+        delta = metrics[member.instrument_id] - group_value
+        value = _comparison(delta, params)
+        results.append(
+            BreadthMemberResult(
+                instrument_id=member.instrument_id,
+                symbol=member.symbol,
+                name=member.name,
+                value=value,
+                metric=delta,
+                observation_time=(
+                    getattr(bars_by_instrument.get(member.instrument_id, [])[-1], "ts", None)
+                    if bars_by_instrument.get(member.instrument_id)
+                    else None
+                ),
+                diagnostics=(
+                    BreadthConditionDiagnostic(
+                        path="$",
+                        kind="cross_sectional_statistic",
+                        status="pass" if value else "fail",
+                        value=value,
+                        metric=delta,
+                    ),
+                ),
+            )
+        )
+    eligible = sum(result.value is not None for result in results)
+    passed = sum(result.value is True for result in results)
+    requested = len(results)
+    return results, {
+        "requested_count": requested,
+        "eligible_count": eligible,
+        "pass_count": passed,
+        "excluded_count": requested - eligible,
+        "coverage": eligible / requested if requested else 0.0,
+        "percentage": passed / eligible if eligible else None,
+        "group_value": group_value if _finite(group_value) else math.nan,
+    }
+
+
+def evaluate_cross_sectional_target(
+    members: list[BreadthMember],
+    bars_by_instrument: Mapping[int, list[Any]],
+    condition: Mapping[str, Any],
+    *,
+    benchmark_bars: list[Any] | None = None,
+    forced_exclusions: Mapping[int, str] | None = None,
+) -> tuple[list[BreadthMemberResult], dict[str, int | float]]:
+    """Dispatch one explicit cross-sectional target without scope fallback."""
+
+    if str(condition.get("kind", "")).lower() == "cross_sectional_statistic":
+        return evaluate_cross_sectional_statistic(
+            members,
+            bars_by_instrument,
+            condition,
+            benchmark_bars=benchmark_bars,
+            forced_exclusions=forced_exclusions,
+        )
+    return evaluate_cross_sectional_percentile(
+        members,
+        bars_by_instrument,
+        condition,
+        benchmark_bars=benchmark_bars,
+        forced_exclusions=forced_exclusions,
+    )
+
+
 def _excluded_member_result(
     member: BreadthMember,
     condition: Mapping[str, Any],
@@ -701,10 +873,11 @@ def _evaluate_cross_sectional_tree(
     """
 
     scoped_results: dict[str, dict[int, BreadthMemberResult]] = {}
+    scoped_aggregates: dict[str, dict[str, int | float]] = {}
 
     def collect(node: Mapping[str, Any], path: str) -> None:
         if _is_cross_sectional(node):
-            leaf_results, _ = evaluate_cross_sectional_percentile(
+            leaf_results, aggregate = evaluate_cross_sectional_target(
                 members,
                 bars_by_instrument,
                 node,
@@ -714,6 +887,7 @@ def _evaluate_cross_sectional_tree(
             scoped_results[path] = {
                 result.instrument_id: result for result in leaf_results
             }
+            scoped_aggregates[path] = aggregate
         params = node.get("params", {})
         if not isinstance(params, Mapping):
             return
@@ -854,7 +1028,7 @@ def _evaluate_cross_sectional_tree(
     eligible = sum(result.value is not None for result in results)
     passed = sum(result.value is True for result in results)
     requested = len(results)
-    return results, {
+    aggregate: dict[str, int | float] = {
         "requested_count": requested,
         "eligible_count": eligible,
         "pass_count": passed,
@@ -862,6 +1036,10 @@ def _evaluate_cross_sectional_tree(
         "coverage": eligible / requested if requested else 0.0,
         "percentage": passed / eligible if eligible else None,
     }
+    root_aggregate = scoped_aggregates.get("$", {})
+    if "group_value" in root_aggregate:
+        aggregate["group_value"] = root_aggregate["group_value"]
+    return results, aggregate
 
 
 def evaluate_condition(

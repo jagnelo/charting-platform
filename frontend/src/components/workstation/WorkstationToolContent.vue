@@ -455,6 +455,7 @@
           <option value="comparison">Compare a measured field</option>
           <option value="range">Measured field within a range</option>
           <option value="percentile">Measured field percentile</option>
+          <option value="cross_sectional_statistic">Cross-sectional group statistic</option>
           <option v-if="breadthComposition === 'single'" value="python_series">Python numeric series target</option>
         </select>
         <template v-if="breadthConditionKind === 'python_series'">
@@ -584,6 +585,18 @@
           <label>Window <input :value="breadthPercentilePeriod" aria-label="Breadth percentile rolling window" type="number" min="2" max="5000" @change="setBreadthConfiguration({ breadth_percentile_period: Number(($event.target as HTMLInputElement).value) })" /></label>
           <select :value="breadthComparisonOperator" aria-label="Breadth percentile operator" @change="setBreadthConfiguration({ breadth_comparison_operator: ($event.target as HTMLSelectElement).value })"><option value="gte">At or above</option><option value="lte">At or below</option><option value="gt">Above</option><option value="lt">Below</option></select>
           <label>Percentile <input :value="breadthPercentileTarget" aria-label="Breadth percentile target" type="number" min="0" max="1" step="0.01" @change="setBreadthConfiguration({ breadth_percentile_target: Number(($event.target as HTMLInputElement).value) })" /></label>
+        </template>
+        <template v-else-if="breadthConditionKind === 'cross_sectional_statistic'">
+          <select value="cross_sectional" aria-label="Breadth group statistic target scope" disabled><option value="cross_sectional">Cross-sectional group</option></select>
+          <select :value="breadthComparisonField" aria-label="Breadth group statistic measured field" @change="setBreadthConfiguration({ breadth_comparison_field: ($event.target as HTMLSelectElement).value })">
+            <option value="close">Close</option>
+            <option value="return">One-period return</option>
+            <option value="volume">Volume</option>
+            <option value="moving_average_distance">Moving-average distance</option>
+          </select>
+          <select :value="String(breadthConfigurationValue('breadth_cross_sectional_statistic', 'mean'))" aria-label="Breadth group statistic function" @change="setBreadthConfiguration({ breadth_cross_sectional_statistic: ($event.target as HTMLSelectElement).value })"><option value="mean">Mean</option><option value="median">Median</option><option value="min">Minimum</option><option value="max">Maximum</option><option value="std">Standard deviation</option></select>
+          <select :value="breadthComparisonOperator" aria-label="Breadth group statistic operator" @change="setBreadthConfiguration({ breadth_comparison_operator: ($event.target as HTMLSelectElement).value })"><option value="gte">At or above</option><option value="lte">At or below</option><option value="gt">Above</option><option value="lt">Below</option><option value="eq">Equal</option></select>
+          <label>Difference <input :value="breadthComparisonThreshold" aria-label="Breadth group statistic difference" type="number" step="0.001" @change="setBreadthConfiguration({ breadth_comparison_threshold: Number(($event.target as HTMLInputElement).value) })" /></label>
         </template>
         <template v-if="breadthComposition === 'all' || breadthComposition === 'any'">
           <span class="breadth-tool__composition-note">+ measured-field target</span>
@@ -1863,7 +1876,7 @@ const breadthComposition = computed(() => {
 })
 const breadthConditionKind = computed(() => {
   const candidate = String(breadthConfigurationValue('breadth_condition', 'above_moving_average'))
-  return ['above_moving_average', 'within_52_week_high', 'new_high_low', 'prior_high_low', 'trend', 'rsi', 'volume_ratio', 'relative_strength', 'series_comparison', 'event', 'comparison', 'range', 'percentile', 'python_series'].includes(candidate) && (candidate !== 'python_series' || breadthComposition.value === 'single') ? candidate : 'above_moving_average'
+  return ['above_moving_average', 'within_52_week_high', 'new_high_low', 'prior_high_low', 'trend', 'rsi', 'volume_ratio', 'relative_strength', 'series_comparison', 'event', 'comparison', 'range', 'percentile', 'cross_sectional_statistic', 'python_series'].includes(candidate) && (candidate !== 'python_series' || breadthComposition.value === 'single') ? candidate : 'above_moving_average'
 })
 const breadthConditionPeriod = computed(() => Math.min(252, Math.max(2, Number(breadthConfigurationValue('breadth_condition_period', 200)) || 200)))
 const breadthConditionAverage = computed(() => breadthConfigurationValue('breadth_condition_average') === 'ema' ? 'ema' : 'sma')
@@ -2010,7 +2023,7 @@ function asGenericBreadthHistory(state: NonNullable<typeof breadthPythonSeriesSt
   }
 }
 type BreadthTreeNode = {
-  kind: 'all' | 'any' | 'not' | 'above_moving_average' | 'within_52_week_high' | 'new_high_low' | 'prior_high_low' | 'trend' | 'rsi' | 'volume_ratio' | 'relative_strength' | 'series_comparison' | 'event' | 'comparison' | 'range' | 'percentile'
+  kind: 'all' | 'any' | 'not' | 'above_moving_average' | 'within_52_week_high' | 'new_high_low' | 'prior_high_low' | 'trend' | 'rsi' | 'volume_ratio' | 'relative_strength' | 'series_comparison' | 'event' | 'comparison' | 'range' | 'percentile' | 'cross_sectional_statistic'
   target_scope?: 'member' | 'cross_sectional'
   params: Record<string, unknown>
 }
@@ -2124,6 +2137,11 @@ function primaryBreadthCondition() {
   }
   if (breadthConditionKind.value === 'percentile') {
     return { kind: 'percentile', target_scope: breadthPercentileScope.value, params: { field: breadthPercentileField.value, period: breadthPercentilePeriod.value, percentile: breadthPercentileTarget.value, operator: breadthComparisonOperator.value } }
+  }
+  if (breadthConditionKind.value === 'cross_sectional_statistic') {
+    const statistic = String(breadthConfigurationValue('breadth_cross_sectional_statistic', 'mean'))
+    const selectedStatistic = ['mean', 'median', 'min', 'max', 'std'].includes(statistic) ? statistic : 'mean'
+    return { kind: 'cross_sectional_statistic', target_scope: 'cross_sectional', params: { field: breadthComparisonField.value, statistic: selectedStatistic, operator: breadthComparisonOperator.value, threshold: breadthComparisonThreshold.value } }
   }
   if (breadthConditionKind.value === 'within_52_week_high') {
     return { kind: 'within_52_week_high', params: { lookback: breadthConditionLookback.value, threshold: breadthConditionThreshold.value, direction: breadthHighLowDirection.value } }

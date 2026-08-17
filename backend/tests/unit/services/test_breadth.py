@@ -472,6 +472,28 @@ def test_cross_sectional_percentile_ranks_members_before_aggregation():
     assert aggregate["percentage"] == 2 / 3
 
 
+def test_cross_sectional_statistic_compares_members_with_same_timestamp_group_mean():
+    members = [
+        BreadthMember(1, "LOW", "Low"),
+        BreadthMember(2, "MID", "Mid"),
+        BreadthMember(3, "HIGH", "High"),
+    ]
+    results, aggregate = evaluate_breadth(
+        members,
+        {1: _bars([1]), 2: _bars([2]), 3: _bars([3])},
+        {
+            "kind": "cross_sectional_statistic",
+            "target_scope": "cross_sectional",
+            "params": {"field": "close", "statistic": "mean", "operator": "gte", "threshold": 0},
+        },
+    )
+
+    assert [result.metric for result in results] == [-1.0, 0.0, 1.0]
+    assert [result.value for result in results] == [False, True, True]
+    assert aggregate["group_value"] == 2.0
+    assert aggregate["percentage"] == 2 / 3
+
+
 def test_cross_sectional_history_ranks_only_members_with_a_current_bar():
     first = _bars([1, 2, 3])
     second = _bars([3, 2, 1])

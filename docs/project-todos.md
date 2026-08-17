@@ -12,7 +12,10 @@
 - [x] Apply the same nested evaluator inside the isolated Study Lab runner, so current and
       historical Python studies compose cross-sectional leaves with member predicates using the
       prepared dataset only and preserve exact timestamp exclusions.
-- [ ] Cross-sectional statistics beyond percentile, arbitrary Python target-series leaves, and
+- [x] Add an explicit cross-sectional group-statistic leaf (mean, median, min, max, or standard
+      deviation) whose member metric is the same-timestamp difference from the group statistic;
+      expose it through the API, Market Map, Study Lab runner, and condition-tree editor.
+- [ ] Arbitrary Python target-series leaves and
       cross-sectional-to-derived-series relationships remain open and must retain explicit scope
       and diagnostics.
 

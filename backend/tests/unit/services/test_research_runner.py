@@ -204,6 +204,37 @@ def test_runner_computes_cross_sectional_percentile_breadth_for_snapshot_and_his
     assert rows["B"]["value"] is False
 
 
+def test_runner_computes_cross_sectional_statistic_breadth_for_snapshot_and_history():
+    timestamps = ["2026-01-01", "2026-01-02"]
+    result = execute_job(
+        {
+            "source": (
+                "condition = {'kind': 'cross_sectional_statistic', 'target_scope': 'cross_sectional', 'params': "
+                "{'field': 'close', 'statistic': 'mean', 'operator': 'gte', 'threshold': 0}}\n"
+                "snapshot = research.breadth_condition(dataset, condition)\n"
+                "history = research.breadth_condition(dataset, condition, True)\n"
+                "output.scalar('group_mean', snapshot['rows'][1]['metric'])\n"
+                "output.scalar('snapshot_percentage', snapshot['percentage'])\n"
+                "output.series('history_percentage', [point['percentage'] for point in history['points']])"
+            ),
+            "output_contract": "study",
+            "dataset": {
+                "timestamps": timestamps,
+                "datasets": [
+                    {"instrument_id": 1, "symbol": "A", "timestamps": timestamps, "closes": [1, 3]},
+                    {"instrument_id": 2, "symbol": "B", "timestamps": timestamps, "closes": [2, 2]},
+                    {"instrument_id": 3, "symbol": "C", "timestamps": timestamps, "closes": [3, 1]},
+                ],
+            },
+        }
+    )
+
+    assert result["status"] == "completed"
+    assert result["artifacts"]["group_mean"]["value"] == 0.0
+    assert result["artifacts"]["snapshot_percentage"]["value"] == 2 / 3
+    assert result["artifacts"]["history_percentage"]["value"]["values"] == [2 / 3, 2 / 3]
+
+
 def test_runner_composes_nested_cross_sectional_and_member_breadth_conditions():
     timestamps = ["2026-01-01", "2026-01-02", "2026-01-03"]
     result = execute_job(

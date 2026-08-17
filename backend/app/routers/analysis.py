@@ -5186,7 +5186,7 @@ _GENERIC_BREADTH_EXCLUSION_MESSAGES = {
     "zero_average_volume": "The volume baseline is zero.",
     "benchmark_required": "This condition requires a benchmark.",
     "unsupported_condition": "The requested condition is not supported by this runtime.",
-    "cross_sectional_unsupported_condition": "The selected cross-sectional target is only supported for percentile conditions.",
+    "cross_sectional_unsupported_condition": "The selected cross-sectional target is not supported for this condition kind.",
     "cross_sectional_requires_universe": "A cross-sectional condition must be evaluated with its complete universe.",
     "invalid_condition_params": "The condition parameters are invalid.",
     "unsupported_field": "The requested comparison field is not supported by this runtime.",

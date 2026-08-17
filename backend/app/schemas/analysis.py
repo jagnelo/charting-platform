@@ -737,6 +737,7 @@ class BreadthConditionRequest(BaseModel):
         "comparison",
         "range",
         "percentile",
+        "cross_sectional_statistic",
         "all",
         "any",
         "not",

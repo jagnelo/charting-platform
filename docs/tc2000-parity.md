@@ -8,8 +8,9 @@ the aligned eligible universe, while member leaves retain their own coverage and
 the resulting Market Map tiles and historical breadth points preserve clause paths, ranks,
 pass/fail state, denominator, and no-forward-fill semantics. The isolated Study Lab runner now
 uses the same nested evaluator for current and historical Python studies over the declared
-prepared dataset. Cross-sectional statistics beyond percentile and arbitrary Python target-series
-leaves remain explicit gaps.
+prepared dataset. The explicit group-statistic leaf now supports mean, median, minimum, maximum,
+and standard deviation comparisons with a transparent member-minus-group metric. Arbitrary Python
+target-series leaves remain explicit gaps.
 
 ## 2026-08-17 — Cross-sectional Market Map breadth colour
 

@@ -497,6 +497,38 @@ class TestWatchlistsCrud:
         assert mixed_cells[instrument.id]["condition_metric"] is not None
         assert mixed_cells[instrument_b.id]["condition_metric"] is not None
 
+        statistic_response = client.post(
+            "/api/v1/analysis/market-map",
+            headers=auth_headers,
+            json={
+                "source_id": f"watchlist:{watchlist.id}",
+                "group_by": "none",
+                "period": "1D",
+                "area_metric": "equal",
+                "color_metric": "breadth",
+                "condition": {
+                    "kind": "cross_sectional_statistic",
+                    "target_scope": "cross_sectional",
+                    "params": {
+                        "field": "close",
+                        "statistic": "mean",
+                        "operator": "gte",
+                        "threshold": 0,
+                    },
+                },
+                "end": "2024-01-06T00:00:00Z",
+            },
+        )
+
+        assert statistic_response.status_code == 200, statistic_response.text
+        statistic_cells = {
+            cell["instrument_id"]: cell for cell in statistic_response.json()["cells"]
+        }
+        assert statistic_cells[instrument.id]["condition_value"] is True
+        assert statistic_cells[instrument_b.id]["condition_value"] is False
+        assert statistic_cells[instrument.id]["condition_metric"] == pytest.approx(3.75)
+        assert statistic_cells[instrument_b.id]["condition_metric"] == pytest.approx(-3.75)
+
     def test_market_map_colours_tiles_by_event_predicate_with_loaded_state(
         self, client, auth_headers, db, watchlist, instrument, instrument_b
     ):

@@ -41,6 +41,21 @@ describe('BreadthConditionTreeEditor', () => {
     expect(initial.params.percentile).toBe(0.8)
   })
 
+  it('serializes an explicit cross-sectional group statistic target', async () => {
+    const wrapper = mount(BreadthConditionTreeEditor, {
+      props: { modelValue: { kind: 'cross_sectional_statistic', target_scope: 'cross_sectional', params: { field: 'close', statistic: 'mean', operator: 'gte', threshold: 0 } } },
+    })
+    await wrapper.get('[aria-label="Breadth group statistic function 1"]').setValue('median')
+    const statisticPayload = wrapper.emitted('update:modelValue')?.at(-1)?.[0] as { params: Record<string, unknown> }
+    await wrapper.setProps({ modelValue: statisticPayload })
+    await wrapper.get('[aria-label="Breadth group statistic difference 1"]').setValue('0.1')
+    const payload = wrapper.emitted('update:modelValue')?.at(-1)?.[0] as { kind: string; target_scope: string; params: Record<string, unknown> }
+    expect(payload.kind).toBe('cross_sectional_statistic')
+    expect(payload.target_scope).toBe('cross_sectional')
+    expect(payload.params.statistic).toBe('median')
+    expect(payload.params.threshold).toBe(0.1)
+  })
+
   it('wraps a root leaf without discarding its predicate', async () => {
     const initial = { kind: 'new_high_low', params: { direction: 'low', lookback: 20 } }
     const wrapper = mount(BreadthConditionTreeEditor, { props: { modelValue: initial } })

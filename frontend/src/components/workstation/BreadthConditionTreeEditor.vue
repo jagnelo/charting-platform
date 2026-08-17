@@ -106,6 +106,14 @@
         <label class="breadth-condition-tree__check"><input :checked="booleanParam('inclusive', true)" :aria-label="`Breadth inclusive range ${path}`" type="checkbox" @change="setParam('inclusive', ($event.target as HTMLInputElement).checked)" /> Inclusive</label>
       </template>
 
+      <template v-else-if="leafKind === 'cross_sectional_statistic'">
+        <label><span class="field-label">Scope</span><select value="cross_sectional" :aria-label="`Breadth group statistic scope ${path}`" disabled><option value="cross_sectional">Cross-sectional group</option></select></label>
+        <label><span class="field-label">Field</span><select :value="stringParam('field', 'close')" :aria-label="`Breadth group statistic field ${path}`" @change="setParam('field', ($event.target as HTMLSelectElement).value)"><option value="close">Close</option><option value="return">Return</option><option value="volume">Volume</option><option value="moving_average_distance">Moving-average distance</option></select></label>
+        <label><span class="field-label">Statistic</span><select :value="stringParam('statistic', 'mean')" :aria-label="`Breadth group statistic function ${path}`" @change="setParam('statistic', ($event.target as HTMLSelectElement).value)"><option value="mean">Mean</option><option value="median">Median</option><option value="min">Minimum</option><option value="max">Maximum</option><option value="std">Standard deviation</option></select></label>
+        <label><span class="field-label">Operator</span><select :value="stringParam('operator', 'gte')" :aria-label="`Breadth group statistic operator ${path}`" @change="setParam('operator', ($event.target as HTMLSelectElement).value)"><option value="gte">At or above</option><option value="lte">At or below</option><option value="gt">Above</option><option value="lt">Below</option><option value="eq">Equal</option></select></label>
+        <label><span class="field-label">Difference</span><input :value="numberParam('threshold', 0)" :aria-label="`Breadth group statistic difference ${path}`" type="number" step="0.001" @change="setParam('threshold', numberValue($event, 0))" /></label>
+      </template>
+
       <template v-else>
         <label><span class="field-label">Scope</span><select :value="stringParam('target_scope', 'member')" :aria-label="`Breadth percentile scope ${path}`" @change="setNodeField('target_scope', ($event.target as HTMLSelectElement).value)"><option value="member">Member rolling percentile</option><option value="cross_sectional">Cross-sectional percentile</option></select></label>
         <label><span class="field-label">Field</span><select :value="stringParam('field', 'close')" :aria-label="`Breadth percentile field ${path}`" @change="setParam('field', ($event.target as HTMLSelectElement).value)"><option value="close">Close</option><option value="return">Return</option><option value="volume">Volume</option><option value="moving_average_distance">Moving-average distance</option></select></label>
@@ -138,6 +146,7 @@ export type BreadthLeafKind =
   | 'comparison'
   | 'range'
   | 'percentile'
+  | 'cross_sectional_statistic'
 export type BreadthGroupKind = 'all' | 'any' | 'not'
 type GroupKind = BreadthGroupKind
 export interface BreadthConditionNode {
@@ -160,6 +169,7 @@ const LEAF_OPTIONS: Array<{ value: BreadthLeafKind; label: string }> = [
   { value: 'comparison', label: 'Measured-field comparison' },
   { value: 'range', label: 'Measured-field range' },
   { value: 'percentile', label: 'Measured-field percentile' },
+  { value: 'cross_sectional_statistic', label: 'Cross-sectional group statistic' },
 ]
 
 const props = withDefaults(defineProps<{
@@ -195,9 +205,11 @@ function defaultLeaf(kind: BreadthLeafKind = 'above_moving_average'): BreadthCon
     comparison: { field: 'close', operator: 'gte', threshold: 0 },
     range: { field: 'close', lower: 0, upper: 1, inclusive: true },
     percentile: { field: 'close', period: 252, operator: 'gte', percentile: 0.8 },
+    cross_sectional_statistic: { field: 'close', statistic: 'mean', operator: 'gte', threshold: 0 },
   }
   const next = { kind, params: { ...defaults[kind] } } as BreadthConditionNode
   if (kind === 'percentile') next.target_scope = 'member'
+  if (kind === 'cross_sectional_statistic') next.target_scope = 'cross_sectional'
   return next
 }
 function defaultGroup(kind: BreadthGroupKind = 'all'): BreadthConditionNode {

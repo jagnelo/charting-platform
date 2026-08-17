@@ -1989,6 +1989,8 @@ class _Research:
         params = condition.get("params", condition)
         if not isinstance(datasets, list) or not isinstance(params, dict):
             raise ValueError("Declared prepared universe is unavailable")
+        if str(condition.get("kind") or "").lower() == "cross_sectional_statistic":
+            return self._evaluate_cross_sectional_statistic_at(dataset, condition, timestamp)
         if str(condition.get("kind") or "").lower() != "percentile":
             return {
                 "timestamp": timestamp,
@@ -2121,10 +2123,143 @@ class _Research:
             "exclusions": exclusions,
         }
 
+    def _evaluate_cross_sectional_statistic_at(
+        self, dataset: dict, condition: dict, timestamp: str | None = None
+    ) -> dict:
+        """Compare member scalars with a same-timestamp group statistic."""
+        datasets = dataset.get("datasets")
+        params = condition.get("params", condition)
+        if not isinstance(datasets, list) or not isinstance(params, dict):
+            raise ValueError("Declared prepared universe is unavailable")
+        field = params.get("field")
+        statistic = str(params.get("statistic", "mean")).lower()
+        valid_statistics = {"mean", "median", "min", "max", "std"}
+        try:
+            threshold = float(params.get("threshold", 0.0))
+        except (TypeError, ValueError):
+            threshold = math.nan
+        if not isinstance(field, str) or not field.strip() or statistic not in valid_statistics or not math.isfinite(threshold):
+            code = "invalid_condition_params"
+            return {
+                "timestamp": timestamp,
+                "requested_count": len(datasets),
+                "eligible_count": 0,
+                "pass_count": 0,
+                "excluded_count": len(datasets),
+                "percentage": None,
+                "coverage": 0,
+                "rows": [
+                    {"status": "excluded", "exclusion": code}
+                    for _ in datasets
+                ],
+                "exclusions": [{"code": code}],
+            }
+        pending: list[tuple[dict, float, str, int]] = []
+        rows: list[dict] = []
+        exclusions: list[dict] = []
+        for item in datasets:
+            if not isinstance(item, dict):
+                exclusions.append({"code": "invalid_dataset_row"})
+                continue
+            symbol = str(item.get("symbol") or "").upper()
+            closes = item.get("closes")
+            timestamps = item.get("timestamps")
+            if not isinstance(closes, list) or not closes:
+                code = "no_bars"
+                rows.append({"symbol": symbol, "instrument_id": item.get("instrument_id"), "value": None, "metric": None, "timestamp": timestamp, "exclusion": code})
+                exclusions.append({"symbol": symbol, "timestamp": timestamp, "code": code})
+                continue
+            if timestamp is None:
+                item_index = len(closes) - 1
+            elif isinstance(timestamps, list) and timestamp in timestamps:
+                item_index = timestamps.index(timestamp)
+            else:
+                code = "missing_bar_at_timestamp"
+                rows.append({"symbol": symbol, "instrument_id": item.get("instrument_id"), "value": None, "metric": None, "timestamp": timestamp, "exclusion": code})
+                exclusions.append({"symbol": symbol, "timestamp": timestamp, "code": code})
+                continue
+            value, metric, warning = self._breadth_condition_result(
+                item,
+                {"kind": "comparison", "params": {**params, "field": field}},
+                item_index,
+                dataset.get("benchmark_dataset") if isinstance(dataset.get("benchmark_dataset"), dict) else None,
+            )
+            if warning or metric is None:
+                code = warning or "invalid_condition_params"
+                rows.append({"symbol": symbol, "instrument_id": item.get("instrument_id"), "value": None, "metric": None, "timestamp": timestamp, "exclusion": code})
+                exclusions.append({"symbol": symbol, "timestamp": timestamp, "code": code})
+                continue
+            pending.append((item, float(metric), symbol, item_index))
+        values = [metric for _, metric, _, _ in pending]
+        if not values:
+            group_value = math.nan
+        elif statistic == "mean":
+            group_value = sum(values) / len(values)
+        elif statistic == "median":
+            ordered = sorted(values)
+            middle = len(ordered) // 2
+            group_value = ordered[middle] if len(ordered) % 2 else (ordered[middle - 1] + ordered[middle]) / 2
+        elif statistic == "min":
+            group_value = min(values)
+        elif statistic == "max":
+            group_value = max(values)
+        else:
+            mean = sum(values) / len(values)
+            group_value = math.sqrt(sum((value - mean) ** 2 for value in values) / len(values))
+        for item, metric, symbol, _ in pending:
+            if not math.isfinite(group_value):
+                code = "invalid_reference"
+                value = None
+                delta = None
+                exclusions.append({"symbol": symbol, "timestamp": timestamp, "code": code})
+            else:
+                delta = metric - group_value
+                value = self._compare_metric(delta, params)
+                code = None
+            row = {
+                "symbol": symbol,
+                "instrument_id": item.get("instrument_id"),
+                "value": value,
+                "metric": delta,
+                "timestamp": timestamp,
+            }
+            if code:
+                row["exclusion"] = code
+            rows.append(row)
+        eligible = sum(row.get("value") is not None for row in rows)
+        passed = sum(row.get("value") is True for row in rows)
+        requested = len(rows)
+        return {
+            "timestamp": timestamp,
+            "requested_count": requested,
+            "eligible_count": eligible,
+            "pass_count": passed,
+            "excluded_count": requested - eligible,
+            "percentage": passed / eligible if eligible else None,
+            "coverage": eligible / requested if requested else 0,
+            "rows": rows,
+            "exclusions": exclusions,
+            "group_value": group_value if math.isfinite(group_value) else None,
+        }
+
     @staticmethod
     def _compare_percentile(metric: float, params: dict) -> bool:
         operator = str(params.get("operator", "gte")).lower()
         threshold = float(params.get("percentile", 0.8))
+        if operator in {"below", "lt", "<"}:
+            return metric < threshold
+        if operator in {"at_or_below", "lte", "<="}:
+            return metric <= threshold
+        if operator in {"equal", "eq", "=="}:
+            return metric == threshold
+        if operator in {"not_equal", "neq", "ne", "!="}:
+            return metric != threshold
+        return metric >= threshold
+
+    @staticmethod
+    def _compare_metric(metric: float, params: dict) -> bool:
+        operator = str(params.get("operator", "gte")).lower()
+        threshold = float(params.get("threshold", 0.0))
         if operator in {"below", "lt", "<"}:
             return metric < threshold
         if operator in {"at_or_below", "lte", "<="}:
