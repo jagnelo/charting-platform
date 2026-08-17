@@ -13203,3 +13203,26 @@ The current source also passes the focused authenticated top-down browser slice 
 - [ ] Still open: historical rotation curves beyond bounded tails, concentration/dispersion,
       condition-driven ranking inputs, and complete provider-backed population/browser evidence
       across all eight roots.
+
+### 2026-08-17 — Universal watchlist-source breadth and heatmaps
+
+- [x] Generalized the generic breadth universe contract to accept the same canonical source IDs
+      exposed by `/watchlists/sources`: editable personal lists, locked index/ETF and market-group
+      lists, and managed screener lists. Numeric personal-list IDs remain a compatibility shorthand.
+      Resolution is local and provenance-aware, honors point-in-time `as_of` membership, preserves
+      exclusions, and never performs provider fan-out.
+- [x] Added the authenticated breadth composer’s `Watchlist source` universe selector. It loads the
+      source catalog once, labels locked sources, persists the canonical source ID, and sends the
+      same condition/target/timeframe/adjustment definition regardless of whether the source is a
+      personal list or an immutable index/ETF universe. This makes index constituents a hard list
+      the user may follow and analyze without allowing direct membership edits.
+- [x] The existing Market Map already consumes this source contract, so its hierarchy, tile area and
+      colour metrics, selection, and publication mechanics apply to arbitrary personal, managed,
+      index/ETF, market-group, combo, and explicit-symbol sources through one interaction model.
+- [x] Validation: canonical watchlist-source breadth integration `2/2`, backend compileall/Ruff,
+      frontend Vitest `853/853`, `vue-tsc`, and production build. The isolated uv-cache rerun was
+      required because the default cache directory was sandbox-inaccessible; this is an environment
+      workaround, not a product acceptance relaxation.
+- [ ] Still open: map selection directly launching the breadth/Study Lab definition, durable map
+      snapshots/cache, all requested map colour/area calculations, provider-backed population and
+      point-in-time continuity for every root, and final board-guided visual approval.

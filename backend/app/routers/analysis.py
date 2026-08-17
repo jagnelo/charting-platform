@@ -120,6 +120,7 @@ from app.services.research_jobs import (
     enqueue_research_run,
     read_research_progress,
 )
+from app.services.watchlist_sources import resolve_watchlist_source
 
 router = APIRouter(prefix="/analysis", tags=["analysis"])
 
@@ -5199,6 +5200,7 @@ async def _resolve_generic_breadth_reference(
     condition: Mapping[str, object],
     timeframe: Timeframe,
     db: AsyncSession,
+    user_id: int | None = None,
 ) -> tuple[list[object] | None, list[int], list[AnalysisWarning], dict[str, object]]:
     """Resolve a group/peer aggregate target without provider fan-out.
 
@@ -5227,7 +5229,7 @@ async def _resolve_generic_breadth_reference(
         reference_warnings,
         reference_universe_provenance,
         reference_membership_payload,
-    ) = await _resolve_generic_breadth_universe(reference_definition, db)
+    ) = await _resolve_generic_breadth_universe(reference_definition, db, user_id)
     reference_bars_by_id = _truncate_bars_at(
         await _bars_by_instrument(db, reference_ids, timeframe, definition.adjusted),
         definition.as_of,
@@ -5360,8 +5362,85 @@ async def _resolve_benchmark_family_breadth_universe(
     return members, member_ids, warnings, universe_provenance, membership_payload
 
 
+async def _resolve_user_watchlist_breadth_universe(
+    definition: BreadthDefinitionRequest,
+    db: AsyncSession,
+    user_id: int | None,
+) -> tuple[list[BreadthMember], list[int], list[AnalysisWarning], dict[str, object], object]:
+    """Resolve any selectable watchlist source without provider fan-out.
+
+    Numeric keys remain a compatibility shorthand for personal watchlists. The
+    canonical form is a source descriptor ID, allowing locked index/ETF
+    universes to use the same breadth contract as editable personal lists.
+    """
+
+    if user_id is None:
+        raise HTTPException(422, detail={"code": "watchlist_user_context_required"})
+    key = definition.universe.key
+    if not key:
+        raise HTTPException(422, detail={"code": "watchlist_source_required"})
+    source_id = f"watchlist:{key}" if key.isdigit() else key
+    if not source_id.startswith(("watchlist:", "market-group:", "etf-holdings:")):
+        raise HTTPException(422, detail={"code": "unsupported_watchlist_source", "source_id": key})
+    try:
+        resolved = await resolve_watchlist_source(
+            db,
+            user_id,
+            source_id,
+            as_of=definition.as_of if definition.universe.point_in_time else None,
+        )
+    except LookupError as exc:
+        raise HTTPException(404, detail={"code": str(exc), "source_id": source_id}) from exc
+    except ValueError as exc:
+        raise HTTPException(422, detail={"code": str(exc), "source_id": source_id}) from exc
+
+    instrument_ids = list(dict.fromkeys(member.instrument_id for member in resolved.members))
+    instruments = (
+        (await db.execute(select(Instrument).where(Instrument.id.in_(instrument_ids))))
+        .scalars()
+        .all()
+    ) if instrument_ids else []
+    by_id = {instrument.id: instrument for instrument in instruments}
+    members: list[BreadthMember] = []
+    member_ids: list[int] = []
+    warnings: list[AnalysisWarning] = []
+    for member in resolved.members:
+        instrument = by_id.get(member.instrument_id)
+        if instrument is None:
+            warnings.append(_generic_breadth_warning("unresolved_member", member.instrument_id))
+            continue
+        members.append(BreadthMember(instrument.id, instrument.symbol, instrument.name))
+        member_ids.append(instrument.id)
+    for exclusion in resolved.exclusions:
+        if isinstance(exclusion, Mapping):
+            warnings.append(_generic_breadth_warning(str(exclusion.get("reason", "membership_excluded"))))
+    descriptor = resolved.descriptor.model_dump(mode="json")
+    membership_payload = {
+        "source_id": source_id,
+        "membership_version": resolved.descriptor.membership_version,
+        "item_ids": sorted(member_ids),
+        "excluded": list(resolved.exclusions),
+    }
+    provenance = {
+        "kind": "watchlist",
+        "source_id": source_id,
+        "source_kind": resolved.descriptor.source_kind,
+        "name": resolved.descriptor.name,
+        "membership_semantics": "locked_source_members" if resolved.descriptor.locked else "user_watchlist_members",
+        "locked": resolved.descriptor.locked,
+        "member_count": len(member_ids),
+        "descriptor": descriptor,
+    }
+    if resolved.descriptor.watchlist_id is not None:
+        provenance["watchlist_id"] = resolved.descriptor.watchlist_id
+        provenance["watchlist_name"] = resolved.descriptor.name
+        provenance["is_managed"] = resolved.descriptor.source_kind == "screener_managed"
+        provenance["is_locked"] = resolved.descriptor.locked
+    return members, member_ids, warnings, provenance, membership_payload
+
+
 async def _resolve_generic_breadth_universe(
-    definition: BreadthDefinitionRequest, db: AsyncSession
+    definition: BreadthDefinitionRequest, db: AsyncSession, user_id: int | None = None
 ) -> tuple[list[BreadthMember], list[int], list[AnalysisWarning], dict[str, object], object]:
     """Resolve one breadth universe without provider fan-out."""
 
@@ -5374,6 +5453,8 @@ async def _resolve_generic_breadth_universe(
 
     if universe_kind == "benchmark_family":
         return await _resolve_benchmark_family_breadth_universe(definition, db)
+    if universe_kind == "watchlist":
+        return await _resolve_user_watchlist_breadth_universe(definition, db, user_id)
     if universe_kind == "group":
         if not definition.universe.key:
             raise HTTPException(
@@ -5936,7 +6017,7 @@ async def queue_python_breadth(
         benchmark=body.benchmark,
     )
     members, member_ids, universe_warnings, universe_provenance, membership_payload = (
-        await _resolve_generic_breadth_universe(placeholder, db)
+        await _resolve_generic_breadth_universe(placeholder, db, current_user.id)
     )
     membership_version = _generic_membership_version(membership_payload)
     parameters = dict(version.default_parameters or {})
@@ -6385,6 +6466,15 @@ async def evaluate_generic_breadth(
             "snapshot_hash": snapshot.snapshot_hash,
         }
 
+    elif universe_kind == "watchlist":
+        (
+            members,
+            member_ids,
+            universe_warnings,
+            universe_provenance,
+            membership_version_payload,
+        ) = await _resolve_user_watchlist_breadth_universe(definition, db, current_user.id)
+
     else:
         requested_symbols = list(
             dict.fromkeys(
@@ -6440,7 +6530,7 @@ async def evaluate_generic_breadth(
                 reference_warnings,
                 reference_provenance,
             ) = await _resolve_generic_breadth_reference(
-                definition, condition_definition.model_dump(), timeframe, db
+                definition, condition_definition.model_dump(), timeframe, db, current_user.id
             )
         else:
             if not definition.benchmark:
@@ -6576,7 +6666,7 @@ async def evaluate_generic_breadth_history(
         universe_warnings,
         universe_provenance,
         membership_payload,
-    ) = await _resolve_generic_breadth_universe(definition, db)
+    ) = await _resolve_generic_breadth_universe(definition, db, current_user.id)
     bars_by_id = await _bars_by_instrument(db, member_ids, timeframe, definition.adjusted)
     bars_by_id = _truncate_bars_at(bars_by_id, definition.as_of)
     events_by_id: dict[int, list[InstrumentEvent] | None] | None = None
@@ -6595,7 +6685,7 @@ async def evaluate_generic_breadth_history(
                 reference_warnings,
                 reference_provenance,
             ) = await _resolve_generic_breadth_reference(
-                definition, condition_definition.model_dump(), timeframe, db
+                definition, condition_definition.model_dump(), timeframe, db, current_user.id
             )
         else:
             if not definition.benchmark:

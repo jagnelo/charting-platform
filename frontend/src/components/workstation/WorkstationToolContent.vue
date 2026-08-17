@@ -407,7 +407,21 @@
           <option value="group">Current group</option>
           <option v-if="isBenchmarkFamily" value="benchmark_family">Selected family leg</option>
           <option value="etf_holdings">SPY holdings proxy</option>
+          <option value="watchlist">Watchlist source</option>
         </select>
+        <select
+          v-if="breadthCustomUniverseKind === 'watchlist'"
+          :value="breadthWatchlistSourceId"
+          aria-label="Custom breadth watchlist source"
+          @change="setBreadthConfiguration({ custom_universe_watchlist_id: ($event.target as HTMLSelectElement).value })"
+        >
+          <option value="">Select a watchlist source…</option>
+          <option v-for="source in breadthWatchlistSources" :key="source.source_id" :value="source.source_id">
+            {{ source.name }}{{ source.locked ? ' · Locked' : '' }}
+          </option>
+        </select>
+        <small v-if="breadthCustomUniverseKind === 'watchlist' && watchlistStore.watchlistSourcesLoading" role="status">Loading watchlist sources…</small>
+        <small v-if="breadthCustomUniverseKind === 'watchlist' && watchlistStore.watchlistSourcesError" role="alert">{{ watchlistStore.watchlistSourcesError }}</small>
         <select :value="breadthComposition" aria-label="Breadth condition composition" @change="setBreadthConfiguration({ breadth_condition_composition: ($event.target as HTMLSelectElement).value })">
           <option value="single">Single condition</option>
           <option value="all">All conditions</option>
@@ -1243,6 +1257,9 @@ function handlePersonalRowAction(action: 'chart' | 'compare' | 'ratio' | 'note' 
 
 onMounted(async () => {
   void loadBreadthPythonSeriesAssets()
+  if ((props.tool.instance_key === 'breadth-summary' || props.tool.tool_type === 'breadth') && !watchlistStore.watchlistSources.length && !watchlistStore.watchlistSourcesLoading) {
+    await watchlistStore.loadWatchlistSources()
+  }
   if (!watchlistStore.watchlists.length && !watchlistStore.loading) await watchlistStore.loadWatchlists()
   if (props.tool.tool_type !== 'watchlist' || props.tool.configuration.personal !== true) return
   await loadComboLists()
@@ -1832,7 +1849,13 @@ const breadthBusy = computed(() => workspaceStore.breadthLoading[breadthGroupKey
 const breadthError = computed(() => workspaceStore.breadthErrors[breadthGroupKey.value] ?? workspaceStore.breadthHistoryErrors[breadthGroupKey.value] ?? null)
 const breadthCustomUniverseKind = computed(() => {
   const candidate = breadthConfigurationValue('custom_universe_kind')
-  return candidate === 'etf_holdings' || candidate === 'benchmark_family' ? candidate : 'group'
+  return candidate === 'etf_holdings' || candidate === 'benchmark_family' || candidate === 'watchlist' ? candidate : 'group'
+})
+const breadthWatchlistSources = computed(() => watchlistStore.watchlistSources)
+const breadthWatchlistSourceId = computed(() => {
+  const configured = String(breadthConfigurationValue('custom_universe_watchlist_id', ''))
+  if (configured && breadthWatchlistSources.value.some(source => source.source_id === configured)) return configured
+  return breadthWatchlistSources.value[0]?.source_id ?? ''
 })
 const breadthComposition = computed(() => {
   const candidate = String(breadthConfigurationValue('breadth_condition_composition', 'single'))
@@ -1924,7 +1947,9 @@ const breadthPythonSeriesUniverse = computed(() => ({
     ? { key: breadthGroupKey.value }
     : breadthCustomUniverseKind.value === 'benchmark_family'
       ? { key: breadthGroupKey.value, role: String(breadthConfigurationValue('family_ratio_role', 'equal_weight')) }
-      : { key: 'SPY' }),
+      : breadthCustomUniverseKind.value === 'watchlist'
+        ? { key: breadthWatchlistSourceId.value }
+        : { key: 'SPY' }),
   point_in_time: true,
 }))
 const breadthPythonSeriesRequest = computed<Record<string, unknown>>(() => ({
@@ -2131,7 +2156,9 @@ const genericBreadthDefinition = computed(() => ({
       ? { key: breadthGroupKey.value }
       : breadthCustomUniverseKind.value === 'benchmark_family'
         ? { key: breadthGroupKey.value, role: familyRatioRole.value }
-        : { key: 'SPY' }),
+        : breadthCustomUniverseKind.value === 'watchlist'
+          ? { key: breadthWatchlistSourceId.value }
+          : { key: 'SPY' }),
     point_in_time: true,
   },
   condition: breadthComposition.value === 'tree'

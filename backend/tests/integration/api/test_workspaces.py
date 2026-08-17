@@ -2608,6 +2608,42 @@ class TestWorkspaces:
         assert event_history_payload["condition"]["event_target"]["event_count"] == 1
         assert event_history_payload["points"]
 
+    def test_generic_breadth_accepts_a_user_watchlist_source_without_provider_fanout(
+        self, client, auth_headers, instrument, ohlcv_bars
+    ):
+        created = client.post(
+            "/api/v1/watchlists",
+            headers=auth_headers,
+            json={"name": "Breadth watchlist source"},
+        )
+        assert created.status_code == 200
+        watchlist_id = created.json()["id"]
+        added = client.post(
+            f"/api/v1/watchlists/{watchlist_id}/items",
+            headers=auth_headers,
+            json={"instrument_id": instrument.id},
+        )
+        assert added.status_code == 200
+
+        response = client.post(
+            "/api/v1/analysis/breadth",
+            headers=auth_headers,
+            json={
+                "universe": {"kind": "watchlist", "key": f"watchlist:{watchlist_id}", "point_in_time": True},
+                "condition": {"kind": "above_moving_average", "params": {"period": 20}},
+                "timeframe": "D1",
+                "adjusted": True,
+            },
+        )
+
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["universe"]["kind"] == "watchlist"
+        assert payload["universe"]["watchlist_id"] == watchlist_id
+        assert payload["universe"]["membership_semantics"] == "user_watchlist_members"
+        assert payload["requested_count"] == 1
+        assert payload["members"][0]["instrument_id"] == instrument.id
+
     def test_generic_breadth_resolves_benchmark_family_style_leg_from_holdings_snapshot(
         self, client, auth_headers, db, instrument, instrument_type, ohlcv_bars
     ):

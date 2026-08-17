@@ -7393,3 +7393,17 @@ Unavailable mappings or bars remain visible on their own role and never collapse
 fallback. Focused family integration `8/8`, store `58/58`, full Vitest `829/829`, type/build,
 Ruff, and authenticated browser `1/1` pass. Historical population and the broader family ranking,
 breadth, rotation, dispersion, and browser evidence matrix remain open.
+## 2026-08-17 — One heatmap contract for every watchlist source
+
+Market Map and condition-driven breadth now share the canonical `/watchlists/sources` model. A
+locked index/ETF or market-group constituent set is rendered as a system-managed watchlist: users
+can follow, select, map, scan, compare, and use it for breadth without editing membership. Personal
+and managed lists use the same source identity and visual controls, with their own mutation rules.
+The generic breadth composer exposes a `Watchlist source` selector and persists the source ID, so
+the predicate “percentage of members within 1% of a 52-week high” or any other supported condition
+is applied to whichever list is selected rather than to a fixed SPY-only universe. Source lineage,
+lock state, effective/known-at dates, coverage, exclusions, and freshness remain visible.
+
+This closes the source-selection and resolver contract, not the complete acceptance gate. Direct
+map-to-breadth/Study-Lab launch, durable map snapshots, all requested metrics, complete historical
+provider population, and final board-guided visual approval remain explicit gaps.

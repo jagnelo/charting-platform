@@ -952,3 +952,19 @@ and only stop the whole goal for the escalation conditions above. A transient or
 test failure must be reproduced in isolation and in the nearest relevant sequence before it is
 classified as a product blocker; if it cannot be reproduced, retain the failure evidence and add a
 regression guard rather than treating it as resolved or blocking the goal.
+## 2026-08-17 — Universal source watchlist acceptance
+
+The source-universe gate treats every index, index ETF, market group, managed scan, combo, and
+personal list as a selectable watchlist source. Locked system sources are immutable in membership
+but remain usable by Market Map, breadth, scans, alerts, linked charts, and Study Lab; personal and
+managed sources retain their own edit rules. The generic breadth API accepts canonical source IDs
+(`watchlist:*`, `market-group:*`, `etf-holdings:*`) plus the legacy numeric personal-list shorthand,
+resolves through the local provenance-aware source service, and preserves point-in-time exclusions.
+
+Acceptance must prove the same predicate and target controls against at least one editable personal
+list and one locked index/ETF source, including member denominator, pass/fail drill-down, current and
+historical output, source lock/provenance, freshness, coverage, and no provider fan-out. The UI must
+show source selection and lock status rather than presenting a fixed SPY-only breadth universe.
+This sub-gate is implemented and covered by canonical watchlist-source integration `2/2`, frontend
+full-suite `853/853`, `vue-tsc`, and production build. It does not close direct map-to-breadth/Study
+Lab launch, snapshots/cache, complete historical population, or final visual board approval.

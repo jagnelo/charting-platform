@@ -622,3 +622,15 @@ Visual work is complete only when:
   behavioral tests, visual baselines, supported/partial/excluded status, and any
   justified divergence;
 - protected reference material is absent from product bundles and distributable assets.
+## 2026-08-17 — Watchlist-source visual state
+
+The visual board now treats the source picker as one composable state across Market Map and
+condition-driven breadth. The same dense controls must render for a personal list, locked
+index/ETF constituent list, managed scan, market group, combo, or explicit-symbol list; only the
+membership affordance changes. Locked sources show their lock/provenance state and reject direct
+membership edits, while remaining selectable, followable, mappable, and usable for breadth.
+
+The accepted browser/component oracle covers the source selector, locked label, canonical source ID,
+custom predicate target, denominator, member drill-down, coverage, exclusions, freshness, and source
+lineage. The board has no exact V25 capture for every source-kind combination, so those absent states
+remain named board gaps; this is a documented interim visual reference, not a silent screenshot pass.
