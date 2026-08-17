@@ -896,6 +896,8 @@ export interface MarketMapCell {
   condition_metric?: number | null
   observation_time?: string | null
   coverage: number
+  color_coverage?: number
+  area_coverage?: number
   warnings: MarketMapWarning[]
 }
 
@@ -910,6 +912,8 @@ export interface MarketMapNode {
   area_total?: number | null
   color_value?: number | null
   coverage: number
+  color_coverage?: number
+  area_coverage?: number
   aggregation_method: string
   warnings: MarketMapWarning[]
 }

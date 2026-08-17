@@ -1033,3 +1033,19 @@ hierarchy node, null-last behavior, deterministic symbol tie-breaking, configura
 and unchanged canonical selection/publication. Focused component coverage is 11/11 and the full
 frontend suite remains 860/860. Exact V25 ordering-control imagery is not represented and remains a
 tracked visual gap.
+
+## 2026-08-17 — Universal locked-watchlist heatmap evidence
+
+The heatmap acceptance gate is source-polymorphic: the same request and renderer must work for an
+editable personal list and a locked index/ETF, sector, industry, managed, combo, or explicit-symbol
+source. The locked state is an authorization/membership property only; it must not remove the
+source from follow, selection, hierarchy, sorting, snapshot, or cross-tool publication flows.
+
+Coverage acceptance now checks three values at cell, node, and root level: colour coverage, area
+coverage, and their combined minimum. A fixture with a valid colour and an unproven area field must
+show colour coverage `1`, area coverage `0`, combined coverage `0`, no tile geometry for that member,
+and the exact `unproven_area_field` warning. This prevents an apparently complete heatmap from hiding
+missing sizing data while preserving the useful colour analysis. Docker-backed watchlist integration
+passes `29/29`; focused Market Map component coverage is `11/11`; frontend type-check and production
+build pass. The remaining gate is point-in-time weighting, family population, direct definition
+promotion, and final visual-board approval.

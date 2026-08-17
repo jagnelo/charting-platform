@@ -629,11 +629,9 @@ async def build_market_map(db: AsyncSession, user_id: int, request: MarketMapReq
         path = _group_path(request, instrument)
         if path and "Unclassified" in path:
             warnings.append(_warning("missing_classification", "Sector or industry classification is unavailable; grouped under Unclassified.", instrument_id=instrument_id))
-        coverage = (
-            1.0 if colour is not None else 0.0
-            if request.color_metric in {"breadth", "python"}
-            else 1.0 if result is not None else 0.0
-        )
+        color_coverage = 1.0 if colour is not None else 0.0
+        area_coverage = 1.0 if area is not None and math.isfinite(area) and area > 0 else 0.0
+        coverage = min(color_coverage, area_coverage)
         cells.append(MarketMapCell(
             instrument_id=instrument_id,
             symbol=instrument.symbol,
@@ -649,6 +647,8 @@ async def build_market_map(db: AsyncSession, user_id: int, request: MarketMapReq
             condition_metric=condition_metric,
             observation_time=observed,
             coverage=coverage,
+            color_coverage=color_coverage,
+            area_coverage=area_coverage,
             warnings=warnings,
         ))
     cells.sort(key=lambda cell: (cell.area_value is not None, cell.area_value or 0), reverse=True)
@@ -676,6 +676,8 @@ async def build_market_map(db: AsyncSession, user_id: int, request: MarketMapReq
             area_total=sum(item.area_value for item in bucket if item.area_value is not None) or None,
             color_value=metric,
             coverage=sum(item.coverage for item in bucket) / max(len(bucket), 1),
+            color_coverage=sum(item.color_coverage for item in bucket) / max(len(bucket), 1),
+            area_coverage=sum(item.area_coverage for item in bucket) / max(len(bucket), 1),
             aggregation_method=method,
             warnings=node_warnings,
         ))
@@ -687,7 +689,7 @@ async def build_market_map(db: AsyncSession, user_id: int, request: MarketMapReq
         parents = []
         for sector, bucket in sorted(sector_buckets.items()):
             metric, method = _node_metric(bucket, request.area_metric)
-            parents.append(MarketMapNode(node_id=f"group:{sector}", parent_id="root", level="sector", label=sector, group_path=[sector], member_count=len(bucket), covered_count=sum(1 for item in bucket if item.coverage), area_total=sum(item.area_value for item in bucket if item.area_value is not None) or None, color_value=metric, coverage=sum(item.coverage for item in bucket) / max(len(bucket), 1), aggregation_method=method))
+            parents.append(MarketMapNode(node_id=f"group:{sector}", parent_id="root", level="sector", label=sector, group_path=[sector], member_count=len(bucket), covered_count=sum(1 for item in bucket if item.coverage), area_total=sum(item.area_value for item in bucket if item.area_value is not None) or None, color_value=metric, coverage=sum(item.coverage for item in bucket) / max(len(bucket), 1), color_coverage=sum(item.color_coverage for item in bucket) / max(len(bucket), 1), area_coverage=sum(item.area_coverage for item in bucket) / max(len(bucket), 1), aggregation_method=method))
         nodes = [node for node in nodes if node.node_id == "root"] + parents + [node for node in nodes if node.node_id != "root"]
     if request.group_by != "none":
         root_metric, root_method = _node_metric(cells, request.area_metric)
@@ -701,6 +703,8 @@ async def build_market_map(db: AsyncSession, user_id: int, request: MarketMapReq
             area_total=sum(item.area_value for item in cells if item.area_value is not None) or None,
             color_value=root_metric,
             coverage=sum(item.coverage for item in cells) / max(len(cells), 1),
+            color_coverage=sum(item.color_coverage for item in cells) / max(len(cells), 1),
+            area_coverage=sum(item.area_coverage for item in cells) / max(len(cells), 1),
             aggregation_method=root_method,
         )
         nodes = [root, *nodes]
@@ -731,6 +735,8 @@ async def build_market_map(db: AsyncSession, user_id: int, request: MarketMapReq
         requested_count=len(member_ids),
         evaluated_count=sum(1 for cell in cells if cell.coverage),
         coverage=sum(cell.coverage for cell in cells) / max(len(member_ids), 1),
+        color_coverage=sum(cell.color_coverage for cell in cells) / max(len(member_ids), 1),
+        area_coverage=sum(cell.area_coverage for cell in cells) / max(len(member_ids), 1),
         nodes=nodes,
         cells=cells,
         exclusions=exclusions,

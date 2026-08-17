@@ -713,3 +713,17 @@ The interim board-guided oracle includes the compact Sort control and its larges
 strongest-colour, and symbol A–Z states. No exact V25 capture for this specific map ordering control
 is present; density, placement, focus, and persistence are therefore board-guided and the missing
 state remains explicitly unapproved.
+
+## 2026-08-17 — Universal locked-watchlist heatmap state
+
+The visual board now treats a heatmap source as a watchlist regardless of origin. The same dense map
+surface is used for personal, locked index/ETF, sector, industry, managed, combo, and explicit-symbol
+sources; only the membership affordance changes. Locked sources retain a visible lock/provenance
+state while remaining followable, selectable, drillable, sortable, and publishable. The map status
+area distinguishes colour coverage, area coverage, and combined coverage so partial data is visible
+without hiding otherwise valid tiles.
+
+No exact V25 capture exists for every source-kind and partial-area combination. These are therefore
+board-guided interim states with named gaps, not pixel-approved V25 baselines. The implementation
+must continue to use the supplied V25 board for shared density/chrome/interaction decisions and keep
+each missing source-kind state in the manifest until an authoritative reference is available.

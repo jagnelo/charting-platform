@@ -96,6 +96,8 @@ class MarketMapCell(BaseModel):
     condition_metric: float | None = None
     observation_time: datetime | None = None
     coverage: float = Field(ge=0, le=1)
+    color_coverage: float = Field(default=0, ge=0, le=1)
+    area_coverage: float = Field(default=0, ge=0, le=1)
     warnings: list[MarketMapWarning] = Field(default_factory=list)
 
 
@@ -110,6 +112,8 @@ class MarketMapNode(BaseModel):
     area_total: float | None = None
     color_value: float | None = None
     coverage: float = Field(ge=0, le=1)
+    color_coverage: float = Field(default=0, ge=0, le=1)
+    area_coverage: float = Field(default=0, ge=0, le=1)
     aggregation_method: str
     warnings: list[MarketMapWarning] = Field(default_factory=list)
 
@@ -142,6 +146,8 @@ class MarketMapOut(BaseModel):
     requested_count: int = 0
     evaluated_count: int = 0
     coverage: float = Field(ge=0, le=1)
+    color_coverage: float = Field(default=0, ge=0, le=1)
+    area_coverage: float = Field(default=0, ge=0, le=1)
     nodes: list[MarketMapNode] = Field(default_factory=list)
     cells: list[MarketMapCell] = Field(default_factory=list)
     exclusions: list[MarketMapWarning] = Field(default_factory=list)

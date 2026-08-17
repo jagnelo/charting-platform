@@ -7523,6 +7523,25 @@ This closes provider-declared numeric metadata sizing for the currently modelled
 point-in-time market-cap/weight data, richer cross-sectional fields, complete family population, and
 exact V25 visual approval remain open.
 
+## 2026-08-17 — One heatmap model for every watchlist source
+
+Market Map is deliberately source-polymorphic. An index, index ETF, sector, industry, managed scan,
+combo, explicit-symbol set, or personal list resolves to the same canonical watchlist-source
+contract and is rendered by the same heatmap. System sources are immutable in membership but remain
+followable, selectable, sortable, drillable, cacheable, snapshot-able, and publishable into
+Breadth, Study Lab, scans, alerts, and linked charts. Editable personal sources additionally expose
+membership mutation; that is the only source-kind difference in the map surface.
+
+The response now distinguishes `color_coverage`, `area_coverage`, and combined `coverage`. A member
+with a valid return/condition colour but no valid, finite, positive area value remains visible with
+colour coverage while contributing zero area and zero combined coverage; the warning and provenance
+stay attached to that tile. Node and root coverage are member means, so partial universes are honest
+without disabling the useful part of the map.
+
+This is the governing behavior for arbitrary locked watchlists and removes the previous conceptual
+split between “index heatmaps” and “user watchlists”. Point-in-time cap/weight areas, richer
+cross-sectional fields, complete family population, and exact V25 visual approval remain open.
+
 ## 2026-08-17 — Market Map ordering controls
 
 The workstation now offers stable, persisted ordering within the active map node: largest area,

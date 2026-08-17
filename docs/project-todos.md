@@ -13333,3 +13333,20 @@ The current source also passes the focused authenticated top-down browser slice 
       member context without changing routes; editable-list publication remains the subset path.
 - [ ] All requested area/colour metrics, Python and predicate breadth outputs, point-in-time
       market-cap weights, complete root population, and board-guided visual approval remain open.
+
+### Universal locked-watchlist heatmap contract
+
+- [x] Treat every canonical constituent universe as a watchlist source, including index and index
+      ETF membership, sector/industry groups, managed scans, combos, and personal lists. The
+      source has one stable member stream and one provenance/membership descriptor; `locked` only
+      controls membership mutation, not whether the source can be followed, selected, mapped,
+      screened, or published into another tool.
+- [x] Run all source kinds through the same Market Map request, hierarchy, area/colour metrics,
+      ordering, tile selection, linked publication, cache, and snapshot contracts. A locked source
+      therefore behaves like TC2000's system watchlist while an editable source adds membership
+      controls; there is no separate index-only heatmap implementation.
+- [x] Expose separate colour, area, and combined coverage so a missing area metric cannot appear as
+      a fully covered heatmap merely because its colour metric is available. Aggregate coverage is
+      the member mean and every unavailable cell retains its exact warning/provenance state.
+- [ ] Add direct map-to-breadth/Study-Lab definition creation, richer cross-sectional metrics,
+      point-in-time market-cap/weight areas, full family population, and final V25 visual approval.

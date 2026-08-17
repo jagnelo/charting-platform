@@ -1049,6 +1049,11 @@ class TestWatchlistsCrud:
         assert cells["AAPL"]["area_value"] == 2500
         assert cells["AAPL"]["area_provenance"]["source"] == "fixture"
         assert cells["MSFT"]["area_value"] is None
+        assert cells["AAPL"]["color_coverage"] == 1
+        assert cells["AAPL"]["area_coverage"] == 1
+        assert cells["MSFT"]["coverage"] == 0
+        assert cells["MSFT"]["area_coverage"] == 0
+        assert body["area_coverage"] == 0.5
         assert any(item["code"] == "unproven_area_field" for item in cells["MSFT"]["warnings"])
 
         invalid = client.post(
