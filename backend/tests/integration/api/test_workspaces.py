@@ -2443,6 +2443,46 @@ class TestWorkspaces:
         assert cross_payload["eligible_count"] == 1
         assert cross_payload["members"][0]["metric"] == 1.0
 
+        series_comparison = client.post(
+            "/api/v1/analysis/breadth",
+            headers=auth_headers,
+            json={
+                "universe": {"kind": "symbols", "symbols": [instrument.symbol]},
+                "benchmark": instrument.symbol,
+                "condition": {
+                    "kind": "series_comparison",
+                    "params": {
+                        "field": "return",
+                        "target_field": "return",
+                        "relation": "difference",
+                        "operator": ">=",
+                        "threshold": 0,
+                    },
+                },
+            },
+        )
+        assert series_comparison.status_code == 200
+        series_payload = series_comparison.json()
+        assert series_payload["condition"]["kind"] == "series_comparison"
+        assert series_payload["condition"]["reference_symbol"] == instrument.symbol
+        assert series_payload["members"][0]["value"] is True
+        series_history = client.post(
+            "/api/v1/analysis/breadth/history",
+            headers=auth_headers,
+            json={
+                "universe": {"kind": "symbols", "symbols": [instrument.symbol]},
+                "benchmark": instrument.symbol,
+                "condition": {
+                    "kind": "series_comparison",
+                    "params": {"field": "return", "target_field": "return", "operator": ">=", "threshold": 0},
+                },
+                "limit": 20,
+            },
+        )
+        assert series_history.status_code == 200
+        assert series_history.json()["condition"]["reference_symbol"] == instrument.symbol
+        assert series_history.json()["points"]
+
     def test_generic_breadth_resolves_benchmark_family_style_leg_from_holdings_snapshot(
         self, client, auth_headers, db, instrument, instrument_type, ohlcv_bars
     ):

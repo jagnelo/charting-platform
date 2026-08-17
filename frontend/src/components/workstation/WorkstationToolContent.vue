@@ -431,6 +431,7 @@
           <option value="rsi">RSI threshold</option>
           <option value="volume_ratio">Volume ratio threshold</option>
           <option value="relative_strength">Relative strength threshold</option>
+          <option value="series_comparison">Member versus reference series</option>
           <option value="comparison">Compare a measured field</option>
           <option value="range">Measured field within a range</option>
           <option value="percentile">Measured field percentile</option>
@@ -492,6 +493,27 @@
             <option value="eq">Equal to</option>
           </select>
           <label>Target <input :value="breadthComparisonThreshold" aria-label="Breadth target threshold" type="number" step="0.001" @change="setBreadthConfiguration({ breadth_comparison_threshold: Number(($event.target as HTMLInputElement).value) })" /></label>
+        </template>
+        <template v-else-if="breadthConditionKind === 'series_comparison'">
+          <select :value="breadthSeriesMemberField" aria-label="Breadth series member field" @change="setBreadthConfiguration({ breadth_series_member_field: ($event.target as HTMLSelectElement).value })">
+            <option value="close">Member close</option>
+            <option value="return">Member return</option>
+            <option value="volume">Member volume</option>
+            <option value="rsi">Member RSI</option>
+            <option value="distance_to_52w_high">Member distance to 52-week high</option>
+            <option value="distance_to_52w_low">Member distance to 52-week low</option>
+          </select>
+          <select :value="breadthSeriesReferenceField" aria-label="Breadth series reference field" @change="setBreadthConfiguration({ breadth_series_reference_field: ($event.target as HTMLSelectElement).value })">
+            <option value="close">Reference close</option>
+            <option value="return">Reference return</option>
+            <option value="volume">Reference volume</option>
+            <option value="rsi">Reference RSI</option>
+            <option value="distance_to_52w_high">Reference distance to 52-week high</option>
+            <option value="distance_to_52w_low">Reference distance to 52-week low</option>
+          </select>
+          <select :value="breadthSeriesRelation" aria-label="Breadth series relation" @change="setBreadthConfiguration({ breadth_series_relation: ($event.target as HTMLSelectElement).value })"><option value="difference">Difference</option><option value="ratio">Ratio minus one</option></select>
+          <select :value="breadthComparisonOperator" aria-label="Breadth series operator" @change="setBreadthConfiguration({ breadth_comparison_operator: ($event.target as HTMLSelectElement).value })"><option value="gte">At or above</option><option value="lte">At or below</option><option value="gt">Above</option><option value="lt">Below</option><option value="eq">Equal to</option></select>
+          <label>Threshold <input :value="breadthComparisonThreshold" aria-label="Breadth series threshold" type="number" step="0.001" @change="setBreadthConfiguration({ breadth_comparison_threshold: Number(($event.target as HTMLInputElement).value) })" /></label>
         </template>
         <template v-else-if="breadthConditionKind === 'range'">
           <select :value="breadthRangeField" aria-label="Breadth range measured field" @change="setBreadthConfiguration({ breadth_range_field: ($event.target as HTMLSelectElement).value })">
@@ -1770,7 +1792,7 @@ const breadthComposition = computed(() => {
 })
 const breadthConditionKind = computed(() => {
   const candidate = String(props.tool.configuration.breadth_condition ?? 'above_moving_average')
-  return ['above_moving_average', 'within_52_week_high', 'new_high_low', 'prior_high_low', 'trend', 'rsi', 'volume_ratio', 'relative_strength', 'comparison', 'range', 'percentile'].includes(candidate) ? candidate : 'above_moving_average'
+  return ['above_moving_average', 'within_52_week_high', 'new_high_low', 'prior_high_low', 'trend', 'rsi', 'volume_ratio', 'relative_strength', 'series_comparison', 'comparison', 'range', 'percentile'].includes(candidate) ? candidate : 'above_moving_average'
 })
 const breadthConditionPeriod = computed(() => Math.min(252, Math.max(2, Number(props.tool.configuration.breadth_condition_period ?? 200) || 200)))
 const breadthConditionAverage = computed(() => props.tool.configuration.breadth_condition_average === 'ema' ? 'ema' : 'sma')
@@ -1791,6 +1813,15 @@ const breadthComparisonOperator = computed(() => {
   return ['gte', 'lte', 'gt', 'lt', 'eq'].includes(candidate) ? candidate : 'gte'
 })
 const breadthComparisonThreshold = computed(() => Number.isFinite(Number(props.tool.configuration.breadth_comparison_threshold)) ? Number(props.tool.configuration.breadth_comparison_threshold) : 0)
+const breadthSeriesMemberField = computed(() => {
+  const candidate = String(props.tool.configuration.breadth_series_member_field ?? 'return')
+  return ['close', 'return', 'volume', 'rsi', 'distance_to_52w_high', 'distance_to_52w_low'].includes(candidate) ? candidate : 'return'
+})
+const breadthSeriesReferenceField = computed(() => {
+  const candidate = String(props.tool.configuration.breadth_series_reference_field ?? 'return')
+  return ['close', 'return', 'volume', 'rsi', 'distance_to_52w_high', 'distance_to_52w_low'].includes(candidate) ? candidate : 'return'
+})
+const breadthSeriesRelation = computed(() => props.tool.configuration.breadth_series_relation === 'ratio' ? 'ratio' : 'difference')
 const breadthRangeField = computed(() => {
   const candidate = String(props.tool.configuration.breadth_range_field ?? 'close')
   return ['close', 'return', 'volume', 'distance_to_52w_high'].includes(candidate) ? candidate : 'close'
@@ -1814,7 +1845,7 @@ const breadthBenchmark = computed(() => {
   return candidate || 'SPY'
 })
 type BreadthTreeNode = {
-  kind: 'all' | 'any' | 'not' | 'above_moving_average' | 'within_52_week_high' | 'new_high_low' | 'prior_high_low' | 'trend' | 'rsi' | 'volume_ratio' | 'relative_strength' | 'comparison' | 'range' | 'percentile'
+  kind: 'all' | 'any' | 'not' | 'above_moving_average' | 'within_52_week_high' | 'new_high_low' | 'prior_high_low' | 'trend' | 'rsi' | 'volume_ratio' | 'relative_strength' | 'series_comparison' | 'comparison' | 'range' | 'percentile'
   target_scope?: 'member' | 'cross_sectional'
   params: Record<string, unknown>
 }
@@ -1914,6 +1945,9 @@ function comparisonCondition(field: string, operator: string, threshold: number)
   return { kind: 'comparison', params: { field, operator, threshold } }
 }
 function primaryBreadthCondition() {
+  if (breadthConditionKind.value === 'series_comparison') {
+    return { kind: 'series_comparison', params: { field: breadthSeriesMemberField.value, target_field: breadthSeriesReferenceField.value, relation: breadthSeriesRelation.value, operator: breadthComparisonOperator.value, threshold: breadthComparisonThreshold.value } }
+  }
   if (breadthConditionKind.value === 'comparison') {
     return comparisonCondition(breadthComparisonField.value, breadthComparisonOperator.value, breadthComparisonThreshold.value)
   }

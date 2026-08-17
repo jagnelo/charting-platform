@@ -5038,6 +5038,7 @@ _GENERIC_BREADTH_EXCLUSION_MESSAGES = {
     "condition_clause_excluded": "A nested breadth condition could not be evaluated for this member.",
     "missing_bar_at_timestamp": "The member has no bar at this timestamp and was excluded without forward-fill.",
     "benchmark_missing_at_timestamp": "The benchmark has no bar at this timestamp.",
+    "unaligned_reference": "The member and benchmark/peer have no bar at the same timestamp.",
     "unresolved_member": "The universe member has no resolved canonical instrument.",
     "non_equity_holding": "Non-equity ETF exposure is excluded from breadth.",
     "instrument_not_found": "No canonical instrument exists for this requested symbol.",
@@ -5073,6 +5074,8 @@ def _generic_condition_requires_benchmark(condition: Mapping[str, object]) -> bo
         "relative_strength",
         "relative_return",
     }:
+        return True
+    if kind == "series_comparison":
         return True
     children = params.get("conditions")
     return isinstance(children, list) and any(
@@ -6223,6 +6226,8 @@ async def evaluate_generic_breadth(
         "params": condition_definition.params,
         **condition_metadata,
     }
+    if definition.benchmark:
+        condition["reference_symbol"] = definition.benchmark.upper()
     results, aggregate = evaluate_breadth(
         members, bars_by_id, condition, benchmark_bars=benchmark_bars
     )
@@ -6341,6 +6346,8 @@ async def evaluate_generic_breadth_history(
         "params": condition_definition.params,
         **condition_metadata,
     }
+    if definition.benchmark:
+        condition["reference_symbol"] = definition.benchmark.upper()
     raw_points = evaluate_breadth_history(
         members,
         bars_by_id,

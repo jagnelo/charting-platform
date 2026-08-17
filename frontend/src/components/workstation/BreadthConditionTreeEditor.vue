@@ -84,6 +84,14 @@
         <label><span class="field-label">Threshold</span><input :value="numberParam('threshold', 0)" :aria-label="`Breadth comparison threshold ${path}`" type="number" step="0.001" @change="setParam('threshold', numberValue($event, 0))" /></label>
       </template>
 
+      <template v-else-if="leafKind === 'series_comparison'">
+        <label><span class="field-label">Member field</span><select :value="stringParam('field', 'return')" :aria-label="`Breadth series member field ${path}`" @change="setParam('field', ($event.target as HTMLSelectElement).value)"><option value="close">Close</option><option value="return">Return</option><option value="volume">Volume</option><option value="rsi">RSI</option><option value="distance_to_52w_high">Distance to 52-week high</option><option value="distance_to_52w_low">Distance to 52-week low</option></select></label>
+        <label><span class="field-label">Reference field</span><select :value="stringParam('target_field', 'return')" :aria-label="`Breadth series reference field ${path}`" @change="setParam('target_field', ($event.target as HTMLSelectElement).value)"><option value="close">Close</option><option value="return">Return</option><option value="volume">Volume</option><option value="rsi">RSI</option><option value="distance_to_52w_high">Distance to 52-week high</option><option value="distance_to_52w_low">Distance to 52-week low</option></select></label>
+        <label><span class="field-label">Relation</span><select :value="stringParam('relation', 'difference')" :aria-label="`Breadth series relation ${path}`" @change="setParam('relation', ($event.target as HTMLSelectElement).value)"><option value="difference">Difference</option><option value="ratio">Ratio minus one</option></select></label>
+        <label><span class="field-label">Operator</span><select :value="stringParam('operator', 'gte')" :aria-label="`Breadth series operator ${path}`" @change="setParam('operator', ($event.target as HTMLSelectElement).value)"><option value="gte">At or above</option><option value="lte">At or below</option><option value="gt">Above</option><option value="lt">Below</option><option value="eq">Equal</option></select></label>
+        <label><span class="field-label">Threshold</span><input :value="numberParam('threshold', 0)" :aria-label="`Breadth series threshold ${path}`" type="number" step="0.001" @change="setParam('threshold', numberValue($event, 0))" /></label>
+      </template>
+
       <template v-else-if="leafKind === 'range'">
         <label><span class="field-label">Field</span><select :value="stringParam('field', 'close')" :aria-label="`Breadth range field ${path}`" @change="setParam('field', ($event.target as HTMLSelectElement).value)"><option value="close">Close</option><option value="return">Return</option><option value="volume">Volume</option><option value="distance_to_52w_high">Distance to 52-week high</option></select></label>
         <label><span class="field-label">Minimum</span><input :value="numberParam('lower', 0)" :aria-label="`Breadth range minimum ${path}`" type="number" step="0.001" @change="setParam('lower', numberValue($event, 0))" /></label>
@@ -118,6 +126,7 @@ type BreadthLeafKind =
   | 'rsi'
   | 'volume_ratio'
   | 'relative_strength'
+  | 'series_comparison'
   | 'comparison'
   | 'range'
   | 'percentile'
@@ -138,6 +147,7 @@ const LEAF_OPTIONS: Array<{ value: BreadthLeafKind; label: string }> = [
   { value: 'rsi', label: 'RSI threshold' },
   { value: 'volume_ratio', label: 'Volume ratio threshold' },
   { value: 'relative_strength', label: 'Relative strength threshold' },
+  { value: 'series_comparison', label: 'Member versus reference series' },
   { value: 'comparison', label: 'Measured-field comparison' },
   { value: 'range', label: 'Measured-field range' },
   { value: 'percentile', label: 'Measured-field percentile' },
@@ -171,6 +181,7 @@ function defaultLeaf(kind: BreadthLeafKind = 'above_moving_average'): BreadthCon
     rsi: { period: 14, operator: 'gte', threshold: 50 },
     volume_ratio: { period: 20, operator: 'gte', threshold: 1 },
     relative_strength: { lookback: 20, operator: 'gte', threshold: 1 },
+    series_comparison: { field: 'return', target_field: 'return', relation: 'difference', operator: 'gte', threshold: 0 },
     comparison: { field: 'close', operator: 'gte', threshold: 0 },
     range: { field: 'close', lower: 0, upper: 1, inclusive: true },
     percentile: { target_scope: 'member', field: 'close', period: 252, operator: 'gte', percentile: 0.8 },

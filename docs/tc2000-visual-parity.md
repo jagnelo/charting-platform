@@ -115,6 +115,11 @@ the screenshot and interaction assertions. Empty or unverified value/growth/equa
 their explicit unavailable/derived/`No verified mapped proxy` visual state and remain in the board
 gap ledger until evidence closes them; the fixture must not hide them by dropping the row.
 
+For represented breadth authoring, the visual state includes the reference-symbol control and the
+member field, reference field, relation, operator, and threshold controls for `series_comparison`.
+The browser assertion must verify that these controls survive composition changes and emit the
+same canonical request. Unrepresented Version-25 event/group target visuals remain board gaps.
+
 ## Evidence hierarchy
 
 Resolve visual or behavioral ambiguity in this order:

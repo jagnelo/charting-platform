@@ -13,6 +13,23 @@
 - [ ] Event targets, benchmark/peer target-series authoring, arbitrary derived-Python composition,
       and complete promotion fan-out remain open; this slice does not imply those capabilities.
 
+### 2026-08-17 — Benchmark/peer series breadth target
+
+- [x] Added the `series_comparison` breadth leaf. It compares an independently selected member
+      field with a canonical benchmark/peer field using explicit difference or ratio-minus-one
+      semantics, operator, threshold, and reference symbol. Exact latest timestamps are required;
+      stale or missing reference bars are excluded rather than forward-filled.
+- [x] Current and historical responses preserve `reference_symbol`, aligned timestamps,
+      diagnostics, occurrences, denominator/coverage, and the same immutable definition hash.
+      Compact and recursive authoring expose member field, reference field, relation, operator,
+      threshold, and the existing reference-symbol input.
+- [x] Focused current/history service and API tests, full backend unit tests, full frontend
+      Vitest, type-check, production build, and authenticated browser request serialization pass.
+      A historical diagnostic mismatch was fixed at the owning boundary and the unchanged focused
+      tests passed; no acceptance criterion was relaxed.
+- [ ] Event-series targets, group/peer aggregates, arbitrary derived-Python target series, and
+      promotion into every compatible surface remain open and must retain the same lineage.
+
 ### 2026-08-17 — Expanded US index/factor and Nasdaq deconstruction vision
 
 This is the current user-confirmed expansion of the top-down vision. It is part of the active

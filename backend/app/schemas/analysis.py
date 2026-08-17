@@ -732,6 +732,7 @@ class BreadthConditionRequest(BaseModel):
         "rsi",
         "volume_ratio",
         "relative_strength",
+        "series_comparison",
         "comparison",
         "range",
         "percentile",

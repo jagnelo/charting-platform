@@ -104,6 +104,56 @@ def test_prior_high_low_history_preserves_exclusions_and_state_changes():
     assert points[-1]["members"][0].diagnostics[0].kind == "prior_high_low"
 
 
+def test_series_comparison_compares_member_and_reference_fields_without_forward_fill():
+    member = _bars([100, 110])
+    reference = _bars([100, 105])
+    value, metric, warning = evaluate_condition(
+        member,
+        {
+            "kind": "series_comparison",
+            "params": {
+                "field": "return",
+                "target_field": "return",
+                "relation": "difference",
+                "operator": "gte",
+                "threshold": 0.04,
+            },
+        },
+        benchmark_bars=reference,
+    )
+
+    assert value is True
+    assert metric is not None and abs(metric - (0.10 - 0.05)) < 1e-12
+    assert warning is None
+
+    reference[-1].ts = member[-1].ts - timedelta(days=1)
+    _, _, warning = evaluate_condition(
+        member,
+        {"kind": "series_comparison", "params": {"field": "close"}},
+        benchmark_bars=reference,
+    )
+    assert warning == "unaligned_reference"
+
+
+def test_series_comparison_history_requires_reference_at_each_timestamp():
+    member = _bars([100, 101, 103, 102])
+    reference = _bars([100, 100.5, 101, 101.5])
+    reference[-1].ts = member[-1].ts - timedelta(days=1)
+    points = evaluate_breadth_history(
+        [BreadthMember(1, "A", "A")],
+        {1: member},
+        {
+            "kind": "series_comparison",
+            "params": {"field": "return", "target_field": "return", "operator": "gte", "threshold": 0},
+        },
+        limit=10,
+        benchmark_bars=reference,
+    )
+
+    assert points[-1]["members"][0].exclusion_code == "benchmark_missing_at_timestamp"
+    assert points[-1]["members"][0].diagnostics[0].code == "benchmark_missing_at_timestamp"
+
+
 def test_breadth_keeps_insufficient_history_out_of_the_denominator():
     members = [
         BreadthMember(1, "A", "A"),

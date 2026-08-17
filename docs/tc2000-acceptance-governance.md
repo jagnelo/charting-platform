@@ -197,6 +197,17 @@ or derived, with source/effective/known-at/coverage evidence and a closure condi
 silent omission or cross-family fallback, and it does not prevent independent roots with valid
 evidence from continuing through their own acceptance runs.
 
+### Benchmark/peer series breadth sub-gate
+
+For a `series_comparison` condition, acceptance must verify that the saved definition names the
+member field, reference field, relation (`difference` or `ratio`), operator, threshold, and
+canonical `reference_symbol`. Current and historical runs must align member and reference bars on
+the exact observation timestamp, exclude missing/misaligned references with
+`benchmark_missing_at_timestamp`, and preserve the same diagnostics, occurrences, denominator,
+coverage, and definition hash. A browser request must prove that the compact editor emits the
+selected fields and relation. Event-series, group aggregate, arbitrary derived-Python, and full
+promotion targets remain tracked gaps rather than being implied by this sub-gate.
+
 ## 2026-08-17 — Research Results occurrence-filter sub-gate
 
 The persisted Python breadth occurrence browser now supports an accessible symbol substring

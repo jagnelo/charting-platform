@@ -1,4 +1,32 @@
 tasks:
+  - id: tc2000-breadth-series-comparison-20260817
+    title: Add aligned benchmark and peer series targets to generic breadth
+    status: completed
+    priority: high
+    scope: >-
+      Add one platform-owned series_comparison breadth leaf that compares member and canonical
+      benchmark/peer fields with explicit difference or ratio-minus-one semantics. Require exact
+      timestamp alignment and preserve reference symbol, diagnostics, history, occurrences,
+      coverage, and definition lineage through compact and recursive workstation authoring.
+    definition_of_done:
+      - Schema and evaluator accept member/reference fields, relation, operator, and threshold
+      - Missing or misaligned reference bars return benchmark_missing_at_timestamp without forward-fill
+      - Current/history API responses retain reference_symbol and immutable definition identity
+      - Compact and recursive editors serialize the same canonical condition
+      - Focused service/API/component/browser tests and broader backend/frontend gates pass
+      - Event/group/Python target series and full promotion fan-out remain explicit follow-up gaps
+    validation:
+      - series-comparison-service-current-history
+      - generic-breadth-api-current-history
+      - frontend-series-comparison-component-and-vitest
+      - authenticated-f8s-breadth-family-ratio
+      - backend-unit-type-build-ruff-compile-diff
+    notes:
+      - >-
+        Implemented without acceptance flexibility. A historical diagnostic initially retained
+        no_bars after the aggregate had been classified as benchmark_missing_at_timestamp; the
+        owning diagnostic rewrite was corrected and the unchanged focused tests passed.
+
   - id: tc2000-breadth-prior-high-low-20260817
     title: Add reusable prior-high/low breadth target
     status: completed

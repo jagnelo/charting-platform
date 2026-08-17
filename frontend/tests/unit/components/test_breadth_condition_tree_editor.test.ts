@@ -63,4 +63,18 @@ describe('BreadthConditionTreeEditor', () => {
     expect(payload.params.direction).toBe('low')
     expect(payload.params.lookback).toBe(30)
   })
+
+  it('serializes a member-versus-reference series target leaf', async () => {
+    const wrapper = mount(BreadthConditionTreeEditor, {
+      props: { modelValue: { kind: 'series_comparison', params: { field: 'return', target_field: 'return', relation: 'difference', operator: 'gte', threshold: 0 } } },
+    })
+    await wrapper.get('[aria-label="Breadth series relation 1"]').setValue('ratio')
+    const relationPayload = wrapper.emitted('update:modelValue')?.at(-1)?.[0] as { params: Record<string, unknown> }
+    await wrapper.setProps({ modelValue: relationPayload })
+    await wrapper.get('[aria-label="Breadth series reference field 1"]').setValue('close')
+    const payload = wrapper.emitted('update:modelValue')?.at(-1)?.[0] as { kind: string; params: Record<string, unknown> }
+    expect(payload.kind).toBe('series_comparison')
+    expect(payload.params.relation).toBe('ratio')
+    expect(payload.params.target_field).toBe('close')
+  })
 })

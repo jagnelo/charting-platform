@@ -219,6 +219,56 @@ def _comparison_metric(
     return None, "unsupported_field"
 
 
+def _series_comparison_metric(
+    bars: list[Any],
+    reference_bars: list[Any] | None,
+    params: Mapping[str, Any],
+) -> tuple[float | None, str | None]:
+    """Compare one member field with an aligned benchmark/peer field.
+
+    ``reference_bars`` is already resolved by the router from the canonical local
+    database.  The latest observations must share an exact timestamp; this keeps
+    peer comparisons honest instead of silently carrying a stale reference forward.
+    ``relation=ratio`` returns member/reference - 1, while ``difference`` returns
+    member - reference.
+    """
+
+    if reference_bars is None:
+        return None, "benchmark_required"
+    if not bars or not reference_bars:
+        return None, "no_bars"
+    member_timestamp = getattr(bars[-1], "ts", None)
+    reference_timestamp = getattr(reference_bars[-1], "ts", None)
+    if member_timestamp is None or reference_timestamp is None:
+        return None, "invalid_reference"
+    if member_timestamp != reference_timestamp:
+        return None, "unaligned_reference"
+    field = params.get("field", "close")
+    target_field = params.get("target_field", field)
+    if not isinstance(field, str) or not isinstance(target_field, str):
+        return None, "invalid_condition_params"
+    member_metric, member_warning = _comparison_metric(
+        bars, field, params, benchmark_bars=None
+    )
+    if member_warning or member_metric is None:
+        return None, member_warning or "invalid_condition_params"
+    target_metric, target_warning = _comparison_metric(
+        reference_bars, target_field, params, benchmark_bars=None
+    )
+    if target_warning or target_metric is None:
+        return None, target_warning or "invalid_condition_params"
+    relation = str(params.get("relation", "difference")).lower()
+    if relation == "difference":
+        metric = member_metric - target_metric
+    elif relation == "ratio":
+        if target_metric == 0:
+            return None, "invalid_reference"
+        metric = member_metric / target_metric - 1
+    else:
+        return None, "invalid_condition_params"
+    return (metric if _finite(metric) else None), (None if _finite(metric) else "invalid_reference")
+
+
 def _field_series(
     bars: list[Any],
     field: str,
@@ -295,6 +345,8 @@ def _condition_requires_benchmark(condition: Mapping[str, Any]) -> bool:
         "relative_strength",
         "relative_return",
     }:
+        return True
+    if kind == "series_comparison":
         return True
     children = params.get("conditions")
     return isinstance(children, list) and any(
@@ -519,6 +571,15 @@ def evaluate_condition(
         if warning or metric is None:
             return None, metric, warning or "invalid_condition_params"
         return _comparison(metric, params), metric, None
+
+    if kind == "series_comparison":
+        metric, warning = _series_comparison_metric(bars, benchmark_bars, params)
+        if warning or metric is None:
+            return None, metric, warning or "invalid_condition_params"
+        try:
+            return _comparison(metric, params), metric, None
+        except (TypeError, ValueError):
+            return None, None, "invalid_condition_params"
 
     if kind == "range":
         field = params.get("field")
@@ -875,7 +936,12 @@ def evaluate_breadth_history(
                 exclusion = "benchmark_missing_at_timestamp"
                 diagnostics = tuple(
                     replace(item, code="benchmark_missing_at_timestamp")
-                    if item.code in {"benchmark_required", "insufficient_history"}
+                    if item.code in {
+                        "benchmark_required",
+                        "insufficient_history",
+                        "no_bars",
+                        "unaligned_reference",
+                    }
                     else item
                     for item in diagnostics
                 )

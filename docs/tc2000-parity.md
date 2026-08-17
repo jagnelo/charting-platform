@@ -11,6 +11,18 @@ unchanged. Backend unit `1183/1183`, generic current/history integration `2/2`, 
 targets, benchmark/peer target series, arbitrary derived Python, and promotion fan-out remain
 explicit gaps; no acceptance flexibility was used.
 
+## 2026-08-17 — Benchmark/peer series breadth target
+
+Generic breadth now has an explicit `series_comparison` leaf. A selected canonical benchmark or
+peer symbol supplies a second field series; the member and reference fields, `difference` or
+`ratio` relation, operator, threshold, and `reference_symbol` are persisted in the condition.
+Current and historical evaluation require exact timestamp alignment and report
+`benchmark_missing_at_timestamp` instead of carrying a stale reference forward. Compact and
+recursive editors, diagnostics, occurrences, API lineage, focused current/history tests, full
+backend/frontend gates, and the represented authenticated browser request path pass. Event and
+group-derived targets, arbitrary Python target series, and complete promotion fan-out remain
+explicit parity gaps.
+
 ## 2026-08-17 — Recursive breadth clause diagnostics
 
 The canonical recursive breadth evaluator now emits a deterministic diagnostic trace for the
