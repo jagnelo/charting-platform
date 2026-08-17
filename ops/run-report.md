@@ -27904,3 +27904,16 @@ in 4.6 minutes. No failure was suppressed or reclassified as product success.
   created. Its exact push was attempted once and rejected before Git by the private-origin
   safeguard; no workaround or repeat. The transport result is recorded in the operational
   checkpoint and is not a product blocker.
+# 2026-08-17 — Numeric Python-series breadth composer
+
+- Added authenticated breadth authoring for numeric Python-series condition assets, including
+  explicit operator/threshold controls, workspace persistence, isolated queue/poll/cancel state,
+  current/history adaptation, numeric member metrics, pass/fail drill-down, and lineage.
+- Validation passed: workspace store `66/66`, full Vitest `847/847`, frontend type-check, rebuilt
+  production image, and elevated Chromium `F8s-breadth-python-series 1/1`. An initial stale-image
+  browser attempt was repaired by rebuilding the branch stack; unchanged rerun passed. No acceptance
+  flexibility used.
+- Direct series/reference relations, recursive Python leaves, and broad promotion fan-out remain
+  open and are documented in the parity/acceptance records.
+- Implementation/docs commit `ce64e718` was created cleanly. Exact push was attempted once and
+  rejected before Git by the private-origin safeguard; no workaround or repeat.

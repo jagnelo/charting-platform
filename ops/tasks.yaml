@@ -1,4 +1,35 @@
 tasks:
+  - id: tc2000-breadth-python-series-composer-20260817
+    title: Wire numeric Python-series condition assets into the breadth workstation
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Integrate the already-supported isolated numeric-series breadth contract into the authenticated
+      workstation: load user-owned series condition assets, expose explicit operator/threshold
+      authoring, queue and poll durable runs, preserve workspace configuration, and render current/
+      historical percentages, numeric member metrics, pass/fail drill-down, and lineage.
+    definition_of_done:
+      - Breadth composer lists only user-owned condition CodeVersions whose output contract is series
+      - Operator and finite numeric threshold are serialized into the isolated breadth request
+      - Workspace store owns polling, cancellation, visibility/generation fences, cache state, and errors
+      - Current/history output is adapted into the existing breadth result and uPlot history surfaces
+      - Store, full frontend, type/build, and rebuilt authenticated browser coverage pass
+      - Direct series-to-series/reference targets, recursive Python leaves, and broad promotion gaps remain documented
+    validation:
+      - workspace-python-series-polling-1-of-1
+      - frontend-vitest-847-of-847
+      - frontend-typecheck
+      - rebuilt-F8s-breadth-python-series-1-of-1
+      - production-frontend-build
+      - git-diff-check
+    notes:
+      - >-
+        The first browser attempt served a stale frontend image and exposed the setup defect; the
+        branch-scoped stack was rebuilt and the unchanged browser test then passed. No acceptance
+        flexibility used. Exact push of ce64e718 was attempted once and rejected before Git by the
+        private-origin safeguard; no workaround or retry.
+
   - id: tc2000-us-family-role-matrix-clarification-20260817
     title: Clarify the complete US family and style role matrix in the controlling goal
     status: completed

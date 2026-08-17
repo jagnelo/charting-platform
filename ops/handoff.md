@@ -1,5 +1,28 @@
 # Active Handoff
 
+## 2026-08-17 — Numeric Python-series breadth composer checkpoint
+
+- The authenticated Market Breadth composer now loads the latest user-owned condition assets with
+  `output_contract: series`, exposes `gt/gte/lt/lte/eq/ne` and a finite numeric threshold, and
+  persists the selected CodeVersion/target relation in workspace configuration.
+- The workspace store queues `/analysis/breadth/python`, polls the durable run, cancels superseded
+  runs, and uses request-generation/visibility fences so stale results cannot overwrite a newer
+  family, universe, timeframe, or target selection. The current percentage, numeric member metric,
+  Boolean pass/fail projection, drill-down, historical points, and occurrences reuse the existing
+  breadth result/history surfaces.
+- Validation passed: workspace store `66/66`, full frontend Vitest `847/847`, `vue-tsc`, rebuilt
+  frontend production image, and elevated authenticated Chromium `F8s-breadth-python-series 1/1`.
+  The first browser attempt served the stale pre-change image; rebuilding the branch-scoped stack
+  fixed that setup defect and the unchanged rerun passed. No acceptance flexibility used.
+- Remaining gaps: direct series-to-series/benchmark target relations, Python-series leaves inside
+  recursive visual trees, and promotion to plot/column/filter/gauge/alert/Study Lab/Strategy Lab.
+- Implementation/docs commit `ce64e718` is clean locally. Its exact push to
+  `origin/feat/tc2000-frontend-rework` was attempted once and rejected before Git by the private-
+  origin safeguard because exact trusted authorization for the accumulated payload/destination was
+  unavailable. No workaround, alternate transport, rewrite, reset, stash, or repeat will be
+  attempted; transport-only and not a product blocker. This operational update is separate and
+  will not trigger another push attempt.
+
 ## 2026-08-17 — Expanded US family role-matrix documentation checkpoint
 
 - Clarified the controlling plan and active goal with an explicit eight-root × evidenced-role ×
