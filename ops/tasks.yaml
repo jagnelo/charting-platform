@@ -21,6 +21,9 @@ tasks:
       - >-
         Documentation/planning checkpoint only. No map implementation or acceptance flexibility
         was claimed; Finviz captures are behavioural references and not TC2000 artwork baselines.
+      - >-
+        Planning/docs commit 4c0c6b3d is clean locally. Its exact push was attempted once and
+        rejected before Git by the private-origin safeguard; no workaround or repeat.
 
   - id: tc2000-breadth-python-series-composer-20260817
     title: Wire numeric Python-series condition assets into the breadth workstation

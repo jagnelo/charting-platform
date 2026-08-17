@@ -13,6 +13,10 @@ No implementation or acceptance flexibility was claimed in this planning checkpo
 record batch/cache/no-provider-fanout, rollup/coverage, large-universe, and interaction gates.
 Finviz captures are behavioural references, not TC2000 artwork baselines.
 
+- Planning/docs commit: `4c0c6b3d` (clean locally).
+- Exact push was attempted once and rejected before Git by the private-origin safeguard; no
+  workaround or repeat will be attempted. This is transport-only and not a product blocker.
+
 ## 2026-08-17 — Numeric Python-series breadth composer checkpoint
 
 - The authenticated Market Breadth composer now loads the latest user-owned condition assets with
