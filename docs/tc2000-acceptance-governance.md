@@ -1034,6 +1034,11 @@ and unchanged canonical selection/publication. Focused component coverage is 11/
 frontend suite remains 860/860. Exact V25 ordering-control imagery is not represented and remains a
 tracked visual gap.
 
+The browser/component acceptance also requires the coverage distinction to be visible in the
+workstation summary, legend, and tile detail. The focused Market Map suite now asserts combined,
+colour, and area coverage labels for a fully covered map; partial fixtures must retain the same
+labels with the appropriate reduced values.
+
 ## 2026-08-17 — Universal locked-watchlist heatmap evidence
 
 The heatmap acceptance gate is source-polymorphic: the same request and renderer must work for an

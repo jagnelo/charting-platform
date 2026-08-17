@@ -946,6 +946,8 @@ export interface MarketMap {
   requested_count: number
   evaluated_count: number
   coverage: number
+  color_coverage?: number
+  area_coverage?: number
   nodes: MarketMapNode[]
   cells: MarketMapCell[]
   exclusions: MarketMapWarning[]

@@ -13350,3 +13350,7 @@ The current source also passes the focused authenticated top-down browser slice 
       the member mean and every unavailable cell retains its exact warning/provenance state.
 - [ ] Add direct map-to-breadth/Study-Lab definition creation, richer cross-sectional metrics,
       point-in-time market-cap/weight areas, full family population, and final V25 visual approval.
+
+- [x] Surface colour, area, and combined coverage in the Market Map summary, legend, and tile hover
+      state, with compatibility fallback for older cached responses that only contain combined
+      coverage. Partial area data is therefore visible to the user rather than hidden in the API.

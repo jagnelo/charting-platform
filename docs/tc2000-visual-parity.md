@@ -714,6 +714,10 @@ strongest-colour, and symbol A–Z states. No exact V25 capture for this specifi
 is present; density, placement, focus, and persistence are therefore board-guided and the missing
 state remains explicitly unapproved.
 
+The interim component oracle includes the visible three-part coverage treatment in summary, legend,
+and hover detail. This is board-guided for source-kind/partial-data combinations lacking exact V25
+captures; it is not claimed as an approved pixel baseline.
+
 ## 2026-08-17 — Universal locked-watchlist heatmap state
 
 The visual board now treats a heatmap source as a watchlist regardless of origin. The same dense map

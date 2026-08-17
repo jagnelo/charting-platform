@@ -110,7 +110,7 @@
     <p v-if="snapshotError" class="market-map-tool__status market-map-tool__status--error" role="alert">{{ snapshotError }}</p>
     <p v-if="map?.warnings.length" class="market-map-tool__status" role="status">{{ map.warnings.map(item => item.message).join(' · ') }}</p>
     <div v-if="map" class="market-map-tool__summary">
-      <span>{{ map.source.name }}</span><span>{{ map.evaluated_count }}/{{ map.requested_count }} covered</span><span>{{ formatFreshness(map.freshness) }}</span><span v-if="activeSnapshotName">Snapshot · {{ activeSnapshotName }}</span><span v-else-if="map.cache_hit">Cached result · {{ map.cached_at ? new Date(map.cached_at).toLocaleTimeString() : 'saved' }}</span><span v-if="map.source.locked">Locked source · {{ map.source.membership_version }}</span>
+      <span>{{ map.source.name }}</span><span>{{ map.evaluated_count }}/{{ map.requested_count }} combined covered</span><span>Colour {{ coveragePercent(map.color_coverage, map.coverage) }}%</span><span>Area {{ coveragePercent(map.area_coverage, map.coverage) }}%</span><span>{{ formatFreshness(map.freshness) }}</span><span v-if="activeSnapshotName">Snapshot · {{ activeSnapshotName }}</span><span v-else-if="map.cache_hit">Cached result · {{ map.cached_at ? new Date(map.cached_at).toLocaleTimeString() : 'saved' }}</span><span v-if="map.source.locked">Locked source · {{ map.source.membership_version }}</span>
     </div>
     <div v-if="map" class="market-map-tool__nodes" aria-label="Market Map groups">
       <button v-if="selectedNode" type="button" aria-label="Market Map parent group" @click="selectNode(activeNode?.parent_id ?? null)">← Up</button>
@@ -123,7 +123,7 @@
         <button type="button" :class="{ active: selectedNode === node.node_id }" @click="selectNode(node.node_id)">{{ node.label }}</button>
       </template>
     </nav>
-    <div v-if="map" class="market-map-tool__legend" aria-label="Market Map colour legend"><span class="market-map-tool__legend--negative">−</span><span>{{ colorLabel }}</span><span class="market-map-tool__legend--positive">+</span><span class="market-map-tool__legend__coverage">Coverage {{ Math.round(map.coverage * 100) }}%</span></div>
+    <div v-if="map" class="market-map-tool__legend" aria-label="Market Map colour and coverage legend"><span class="market-map-tool__legend--negative">−</span><span>{{ colorLabel }}</span><span class="market-map-tool__legend--positive">+</span><span class="market-map-tool__legend__coverage">Combined {{ coveragePercent(map.coverage, 0) }}% · Colour {{ coveragePercent(map.color_coverage, map.coverage) }}% · Area {{ coveragePercent(map.area_coverage, map.coverage) }}%</span></div>
     <div v-if="map" class="market-map-tool__viewport-controls" aria-label="Market Map viewport controls">
       <button type="button" aria-label="Zoom out Market Map" :disabled="viewportZoom <= 1" @click="zoomBy(-0.25)">−</button>
       <span aria-live="polite">{{ Math.round(viewportZoom * 100) }}%</span>
@@ -152,7 +152,7 @@
         <p v-if="!visibleCells.length" class="market-map-tool__status">No covered members match this group.</p>
       </div>
     </div>
-    <aside v-if="hoveredCell" class="market-map-tool__hover" role="status"><strong>{{ hoveredCell.symbol }}</strong><span>{{ hoveredCell.name }}</span><span>{{ hoveredCell.group_path.join(' · ') || 'All members' }}</span><span v-if="hoveredCell.warnings.length">{{ hoveredCell.warnings.map(item => item.message).join(' · ') }}</span></aside>
+    <aside v-if="hoveredCell" class="market-map-tool__hover" role="status"><strong>{{ hoveredCell.symbol }}</strong><span>{{ hoveredCell.name }}</span><span>{{ hoveredCell.group_path.join(' · ') || 'All members' }}</span><span>Combined {{ coveragePercent(hoveredCell.coverage, 0) }}% · Colour {{ coveragePercent(hoveredCell.color_coverage, hoveredCell.coverage) }}% · Area {{ coveragePercent(hoveredCell.area_coverage, hoveredCell.coverage) }}%</span><span v-if="hoveredCell.warnings.length">{{ hoveredCell.warnings.map(item => item.message).join(' · ') }}</span></aside>
     <p v-if="!map && !loading" class="market-map-tool__status">Choose a managed index/ETF universe or personal watchlist to build a map.</p>
   </section>
 </template>
@@ -223,6 +223,10 @@ const sourcesError = computed(() => watchlistStore.watchlistSourcesError)
 const publicationTargets = computed(() => watchlistStore.watchlists.filter(watchlist => !watchlist.is_managed && !watchlist.is_locked))
 
 function formatFreshness(value: string) { return value.replace(/_/g, ' ') }
+function coveragePercent(value: number | null | undefined, fallback: number) {
+  const resolved = value ?? fallback
+  return Math.round(Math.max(0, Math.min(1, resolved)) * 100)
+}
 function formatMetric(value: number | null | undefined) {
   if (value == null || !Number.isFinite(value)) return '—'
   if (colorMetric.value === 'rsi_14') return value.toFixed(1)

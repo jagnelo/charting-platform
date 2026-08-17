@@ -7542,6 +7542,10 @@ This is the governing behavior for arbitrary locked watchlists and removes the p
 split between “index heatmaps” and “user watchlists”. Point-in-time cap/weight areas, richer
 cross-sectional fields, complete family population, and exact V25 visual approval remain open.
 
+The workstation now carries that distinction into the visible tool chrome: summary, legend, and
+tile hover expose colour, area, and combined coverage independently. Older cached responses remain
+readable through a combined-coverage fallback, while new responses always provide the three values.
+
 ## 2026-08-17 — Market Map ordering controls
 
 The workstation now offers stable, persisted ordering within the active map node: largest area,
