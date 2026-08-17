@@ -1,5 +1,12 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-17 — Occurrence browser filters
+
+The represented Research Results occurrence browser now has dense symbol and transition filters,
+live result counts, keyboard-accessible controls, and an explicit no-match state. The filters
+are local presentation state over persisted occurrence artifacts and preserve the same linked
+chart behavior. Broader event-artifact filtering and promotion surfaces remain named gaps.
+
 ## 2026-08-17 — Python breadth history in Research Results
 
 Collected isolated Python breadth histories now use the same dense result composition as other

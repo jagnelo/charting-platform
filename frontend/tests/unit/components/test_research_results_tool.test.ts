@@ -171,7 +171,7 @@ describe('ResearchResultsTool', () => {
               { timestamp: '2026-01-01T00:00:00Z', percentage: 0, requested_count: 1, eligible_count: 1, pass_count: 0, excluded_count: 0, coverage: 1 },
               { timestamp: '2026-01-02T00:00:00Z', percentage: 1, requested_count: 1, eligible_count: 1, pass_count: 1, excluded_count: 0, coverage: 1 },
             ],
-            occurrences: [{
+              occurrences: [{
               occurrence_id: '7:2026-01-02T00:00:00+00:00:member_entered',
               timestamp: '2026-01-02T00:00:00+00:00',
               kind: 'member_entered',
@@ -182,8 +182,20 @@ describe('ResearchResultsTool', () => {
               metric: 0.04,
               percentage: 1,
               pass_count: 1,
-              eligible_count: 1,
-            }],
+                eligible_count: 1,
+              }, {
+                occurrence_id: '8:2026-01-03T00:00:00+00:00:member_exited',
+                timestamp: '2026-01-03T00:00:00+00:00',
+                kind: 'member_exited',
+                instrument_id: 8,
+                symbol: 'AAPL',
+                name: 'AAPL',
+                value: false,
+                metric: -0.01,
+                percentage: 0,
+                pass_count: 0,
+                eligible_count: 1,
+              }],
           },
         },
       },
@@ -192,6 +204,10 @@ describe('ResearchResultsTool', () => {
     await flushPromises()
 
     expect(wrapper.find('.breadth-history-chart').exists()).toBe(true)
+    expect(wrapper.text()).toContain('2 shown')
+    await wrapper.get('[aria-label="Occurrence symbol filter"]').setValue('spy')
+    expect(wrapper.text()).toContain('1 shown')
+    expect(wrapper.text()).not.toContain('AAPL')
     const occurrence = wrapper.get('[aria-label="SPY entered 2026-01-02T00:00:00+00:00"]')
     await occurrence.trigger('click')
     expect(wrapper.emitted('occurrence')?.[0]?.[0]).toMatchObject({

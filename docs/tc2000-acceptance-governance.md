@@ -1,5 +1,14 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-08-17 — Research Results occurrence-filter sub-gate
+
+The persisted Python breadth occurrence browser now supports an accessible symbol substring
+filter and entered/exited transition filter, with a live visible-count and explicit no-match
+state. Filtering operates on the immutable persisted occurrence rows and does not alter the
+definition, denominator, or provenance. The filtered click path continues through the existing
+canonical occurrence/link bus. Component and type-check evidence passes; filtering for other
+event artifact classes and all promotion targets remain open gates.
+
 ## 2026-08-17 — Persisted Python breadth occurrence sub-gate
 
 When an isolated Python breadth-history run is collected, the generic Research Results surface

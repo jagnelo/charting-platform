@@ -55,12 +55,17 @@
           <StudyDashboard v-else-if="artifact.artifact_type === 'dashboard' && dashboardData(artifact)" :name="artifact.name" :panels="dashboardData(artifact)!" :artifacts="selectedRun.artifacts" @occurrence="emit('occurrence', $event)" />
           <section v-else-if="artifact.artifact_type === 'breadth_history' && breadthHistoryData(artifact)" class="research-results-tool__breadth-history" aria-label="Historical breadth">
             <GenericBreadthHistoryUPlot :history="breadthHistoryData(artifact)!" />
+            <div class="research-results-tool__occurrence-filters" role="group" aria-label="Historical breadth occurrence filters">
+              <label>Symbol <input v-model="occurrenceSymbolFilter" type="search" aria-label="Occurrence symbol filter" placeholder="All symbols" /></label>
+              <label>Transition <select v-model="occurrenceKindFilter" aria-label="Occurrence transition filter"><option value="all">All</option><option value="member_entered">Entered</option><option value="member_exited">Exited</option></select></label>
+              <span role="status" aria-live="polite">{{ filteredBreadthHistoryOccurrences(artifact).length }} shown</span>
+            </div>
             <div class="research-results-tool__events" role="list" aria-label="Historical breadth occurrences">
-              <button v-for="(event, index) in breadthHistoryOccurrences(artifact).slice().reverse().slice(0, 100)" :key="event.occurrence_id + '-' + index" type="button" role="listitem" :aria-label="event.symbol + ' ' + (event.kind === 'member_entered' ? 'entered' : 'exited') + ' ' + event.timestamp" @click="emit('occurrence', event)">
+              <button v-for="(event, index) in filteredBreadthHistoryOccurrences(artifact).slice().reverse().slice(0, 100)" :key="event.occurrence_id + '-' + index" type="button" role="listitem" :aria-label="event.symbol + ' ' + (event.kind === 'member_entered' ? 'entered' : 'exited') + ' ' + event.timestamp" @click="emit('occurrence', event)">
                 <strong>{{ event.symbol }}</strong><span>{{ event.kind === 'member_entered' ? 'Entered condition' : 'Exited condition' }} · {{ event.timestamp }}</span>
                 <small v-if="event.percentage != null">{{ (event.percentage * 100).toFixed(1) }}%</small>
               </button>
-              <small v-if="!breadthHistoryOccurrences(artifact).length">No member state changes were recorded for this history.</small>
+              <small v-if="!filteredBreadthHistoryOccurrences(artifact).length">No member state changes match the current filters.</small>
             </div>
           </section>
           <div v-else-if="artifact.artifact_type === 'events'" class="research-results-tool__events" role="list" :aria-label="`${artifact.name} occurrences`"><button v-for="(event, index) in eventRows(artifact)" :key="`${event.symbol}-${event.timestamp}-${index}`" type="button" role="listitem" :aria-label="`${event.symbol} ${event.timestamp} occurrence`" @click="emit('occurrence', event)"><strong>{{ event.symbol }}</strong><span>{{ event.timestamp }}</span></button></div>
@@ -112,6 +117,8 @@ const comparisonOpen = ref(false)
 const error = ref('')
 const rerunning = ref(false)
 const canceling = ref(false)
+const occurrenceSymbolFilter = ref('')
+const occurrenceKindFilter = ref<'all' | 'member_entered' | 'member_exited'>('all')
 const emit = defineEmits<{ occurrence: [event: { symbol: string; timestamp: string; kind?: string; instrument_id?: number }] }>()
 const comparisonRuns = computed(() => comparisonIds.value.map(id => runs.value.find(run => run.id === id)).filter((run): run is ResearchRunSummary => Boolean(run)))
 const surfaceVisible = ref(true)
@@ -299,6 +306,13 @@ function breadthHistoryOccurrences(artifact: ResearchRunSummary['artifacts'][num
       && typeof candidate.symbol === 'string'
   })
 }
+function filteredBreadthHistoryOccurrences(artifact: ResearchRunSummary['artifacts'][number]): BreadthHistoryOccurrence[] {
+  const symbol = occurrenceSymbolFilter.value.trim().toUpperCase()
+  return breadthHistoryOccurrences(artifact).filter(event => (
+    (!symbol || event.symbol.toUpperCase().includes(symbol))
+    && (occurrenceKindFilter.value === 'all' || event.kind === occurrenceKindFilter.value)
+  ))
+}
 function eventRows(artifact: ResearchRunSummary['artifacts'][number]): Array<{ symbol: string; timestamp: string; kind?: string }> {
   const value = artifact.payload.value
   return Array.isArray(value) ? value.filter((item): item is { symbol: string; timestamp: string; kind?: string } => Boolean(item) && typeof item === 'object' && typeof (item as Record<string, unknown>).symbol === 'string' && typeof (item as Record<string, unknown>).timestamp === 'string') : []
@@ -386,4 +400,5 @@ onBeforeUnmount(() => {
 .research-results-tool__run-details { margin:4px 0; border-top:1px solid #29343c; padding-top:3px; }.research-results-tool__run-details summary { color:#9db0bc; cursor:pointer; }.research-results-tool__run-details pre { margin:3px 0 0; max-height:90px; overflow:auto; white-space:pre-wrap; }
 .research-results-tool__run-guidance { margin:3px 0; color:#91a8b4; line-height:1.35; }.research-results-tool__status--failed,.research-results-tool__status--canceled { color:#ed9696; }
 .research-results-tool__events small { grid-column:2; color:#91a8b4; }.research-results-tool__breadth-history { display:grid; gap:3px; }.research-results-tool__breadth-history :deep(.generic-breadth-history) { height:150px; }
+.research-results-tool__occurrence-filters { display:flex; align-items:center; flex-wrap:wrap; gap:5px; color:#91a8b4; }.research-results-tool__occurrence-filters label { display:flex; align-items:center; gap:3px; }.research-results-tool__occurrence-filters input,.research-results-tool__occurrence-filters select { min-width:80px; border:1px solid #3a4954; background:#121a20; color:#dce6ed; font:inherit; padding:2px 3px; }.research-results-tool__occurrence-filters span { margin-left:auto; }
 </style>

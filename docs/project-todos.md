@@ -1,5 +1,18 @@
 # Project TODO Memory
 
+### 2026-08-17 — Research Results occurrence filtering
+
+- [x] Added keyboard-accessible symbol substring and entered/exited transition filters to the
+      persisted Python breadth occurrence browser. The visible count and empty state update from
+      the same immutable occurrence rows; filtered clicks still publish canonical symbol,
+      timestamp, kind, and instrument ID through the existing link bus.
+- [x] Component regression covers two persisted members, symbol filtering, visible-count changes,
+      and canonical occurrence emission. Focused component and type-check gates pass; no
+      acceptance flexibility used.
+- [ ] Filtering remains to be applied consistently to other event-bearing Study Lab artifacts,
+      and occurrence promotion into compatible chart/list/filter/scan/gauge/alert/Study Lab
+      targets remains open.
+
 ### 2026-08-17 — Persisted Python breadth occurrence result surface
 
 - [x] The research-result collection boundary now normalizes isolated-runner breadth_history
