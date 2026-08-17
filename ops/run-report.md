@@ -28057,3 +28057,24 @@ in 4.6 minutes. No failure was suppressed or reclassified as product success.
 - Commit `a30040cfae9b030e5c25216e014f7358b39a4c83 feat: publish market maps into analysis tools` was
   created cleanly. Its one exact elevated push attempt was rejected before Git by the private-origin
   safeguard; no retry or workaround. Ops state is now the pending separate checkpoint.
+
+# 2026-08-17 — Durable Market Map cache checkpoint
+
+- Added the `market_map_cache` model and Alembic migration `f7a8b9c0d1e2`. Complete map responses
+  are persisted per authenticated user and keyed by request semantics, canonical membership
+  version, ordered member IDs, and local source/reference bar watermarks. New composition or bar
+  data therefore produces a distinct identity rather than silently mutating a prior result.
+- Added cache reuse inside `POST /analysis/market-map` and the explicit user-isolated restore route
+  `GET /analysis/market-map/cache/{cache_key}`. The frontend displays cached/computed time and has a
+  typed restore client. No provider calls were added.
+- Updated controlling TODO/parity/acceptance/visual docs: durable result caching is closed;
+  named snapshots, full metric/Python/breadth colour coverage, point-in-time area weights,
+  provider/history population, and final visual approval remain explicit gaps.
+- Validation: full watchlist integration `24/24`; focused cache/isolation `1/1`; frontend full
+  Vitest `854/854`; Market Map component `5/5`; type-check/build; Ruff; compileall; and diff-check.
+  Expected dependency deprecation warnings only. No acceptance flexibility used. Offline Alembic
+  SQL generation reached the pre-existing older `inspect(MockConnection)` migration defect; the new
+  revision is the reported head and compiles.
+- Commit `ae8ae608d88d0a6beaac053ea243c076869cb96a feat: persist market map results` was created
+  cleanly. Its one exact push attempt was rejected before Git by the private-origin safeguard; no
+  retry or workaround. Ops state is the pending separate checkpoint.

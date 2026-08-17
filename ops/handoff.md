@@ -29802,3 +29802,34 @@ indefinite soak; longer endurance remains an explicit open gap.
   explicitly tracked and were not silently waived.
 - Exact next context: durable Market Map snapshots/cache and the remaining metric matrix, starting
   with a clean synchronized-boundary check and no mixed worktree.
+
+# 2026-08-17 — Durable Market Map cache checkpoint
+
+- Context scope: `MarketMapCache` model/migration, deterministic source/member/bar-watermark cache
+  identity, cache restore endpoint, visible frontend cache status, tests, and controlling map docs.
+  The implementation is self-contained; only the operational files remain dirty.
+- `POST /analysis/market-map` now persists the full canonical response in an authenticated,
+  user-isolated cache. Identity includes request semantics, membership version, ordered member IDs,
+  and local bar/reference-bar watermarks. A new source composition or completed-session bar creates
+  a new key. `GET /analysis/market-map/cache/{cache_key}` restores a result without provider fan-out.
+- The workstation now renders `Cached result` and its computed time while retaining freshness,
+  coverage, lock, and provenance states. A typed cache-fetch client is available for later snapshot
+  navigation.
+- Validation: full watchlist integration `24/24`; focused cache identity/cross-user restore `1/1`;
+  focused Market Map component `5/5`; full frontend Vitest `854/854`; `vue-tsc`; production build;
+  Ruff; compileall; and `git diff --check`. The first Docker fixture invocation failed only at the
+  sandbox socket boundary and the unchanged focused/full reruns passed with approved Docker access.
+  Alembic reports `f7a8b9c0d1e2` as the new head; offline SQL generation is blocked by a pre-existing
+  older migration that calls `inspect()` on Alembic's offline mock connection, not by this migration.
+  No acceptance flexibility used.
+- Implementation/docs commit `ae8ae608d88d0a6beaac053ea243c076869cb96a` is clean locally. The one
+  required exact push to `origin/feat/tc2000-frontend-rework` was rejected before Git by the
+  private-origin safeguard because trusted authorization for this exact private payload and
+  destination was unavailable. No retry, alternate transport, rewrite, reset, stash, or workaround
+  will be attempted; transport-only and not a product-goal blocker.
+- Remaining gaps: named user snapshots, all requested map area/colour metrics (including Python/
+  breadth output and point-in-time weights), complete provider-backed root/history population,
+  browser snapshot/metric acceptance, and final board-guided visual approval. These are explicit and
+  were not relaxed.
+- Exact next context: implement named Market Map snapshots and then close the remaining area/colour
+  metric matrix, beginning from a clean operational checkpoint.
