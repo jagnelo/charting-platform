@@ -1,5 +1,29 @@
 # Run Report
 
+## 2026-08-17 — Python breadth history to EasyScan promotion checkpoint
+
+- Implemented provenance-preserving promotion of eligible completed isolated-Python breadth
+  history into reusable EasyScan. The created scan is deliberately a current-data evaluation over
+  the source run's declared canonical member IDs, while source run/code/definition/reproducibility
+  and exact dataset-manifest hashes remain attached. Structured validation rejects incomplete,
+  wrong-mode, non-Boolean/unowned, empty/incomplete-universe, and duplicate-name requests without
+  silently broadening the universe.
+- Research Results exposes the promotion action only when the run is completed and has a persisted
+  breadth-history artifact. Remaining chart/list/filter/gauge/alert/Study Lab/Strategy Lab targets
+  are open and explicitly documented.
+- Validation passed: focused workspace 1/1, screener 2/2, visual manifest 10/10, promotion
+  component 13/13, full frontend Vitest 839/839, type-check, production build, Ruff, compileall,
+  JSON/YAML, and diff check. Full `make test-backend` passed with 1171 unit and 326 integration
+  tests; only existing deprecation warnings remained. The first full run exposed and repaired a
+  real visual-manifest metadata/oracle defect (missing deterministic breadth-composer baselines
+  and omitted gap ID); the unchanged gates then passed. No acceptance flexibility or threshold
+  change was used. Initial wrong-working-directory test invocations were corrected before counting
+  validation.
+- Git closure: implementation commit `c13ff6c3` and a separate operational checkpoint are clean
+  locally. Each exact branch push was attempted once and rejected before Git by the private-origin
+  safeguard; no workaround or repeat. The enclosing ops commit is verified externally with
+  `git rev-parse HEAD`; remote synchronization remains a transport-only hold.
+
 ## 2026-08-17 — Expanded US market-family goal directive checkpoint
 
 - Recorded the latest product-scope clarification in the controlling TODO, parity, acceptance,

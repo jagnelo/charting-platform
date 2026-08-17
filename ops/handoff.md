@@ -1,5 +1,41 @@
 # Active Handoff
 
+## 2026-08-17 — Python breadth history to EasyScan promotion checkpoint
+
+- Completed the first compatible promotion target for persisted isolated-Python breadth history:
+  `POST /analysis/breadth/python/runs/{run_id}/promote-scan` creates an EasyScan only for an
+  owned, completed `breadth_history` run with a persisted artifact and Boolean condition version.
+  The target is explicitly a current-data re-evaluation over the source run's declared canonical
+  member IDs; it does not pretend to be historical replay. Source run ID, code/definition hash,
+  reproducibility hash, exact dataset-manifest SHA-256, compact manifest, universe, and
+  point-in-time-source flag are retained in condition provenance. Missing members, empty source
+  universes, duplicate names, wrong execution mode, incomplete runs, and non-Boolean/unowned code
+  return structured errors without broad-universe fallback.
+- Research Results now exposes an accessible `Promote to EasyScan` action only for eligible
+  completed breadth-history runs and reports the target semantics after creation. Existing
+  rerun/cancel controls are guarded while promotion is active. Plot, column, filter, gauge,
+  alert, Study Lab, and Strategy Lab promotion targets remain intentionally open and are tracked
+  rather than implied by this scan promotion.
+- Validation: focused workspaces integration 1/1; screener regressions 2/2; visual-manifest unit
+  10/10; frontend promotion component 13/13; full frontend Vitest 839/839; vue-tsc; production
+  build; Ruff; compileall; JSON/YAML parsing; `git diff --check`; full `make test-backend` unit
+  gate 1171 passed and integration gate 326 passed (34/54 deprecation warnings only). The first
+  full backend run exposed an existing visual-manifest oracle defect: required breadth-composer
+  states lacked deterministic `local_baselines` and the expected `REF-BREADTH-COMPOSER-V25` gap
+  was omitted. Those metadata/test defects were repaired and the unchanged focused plus full
+  gates passed. No product threshold or acceptance criterion was relaxed; the breadth-composer
+  reference remains a tracked visual gap, not an approved V25 match.
+- Initial command attempts used backend-relative paths from the repository root and collected no
+  product tests; corrected working-directory commands were rerun and only their results above are
+  authoritative. This was an invocation error, not acceptance flexibility.
+- Implementation/docs commit `c13ff6c3 feat(research): promote Python breadth history to EasyScan`
+  is clean locally. The required exact push was attempted once and rejected before Git by the
+  private-origin safeguard; no workaround or repeat. The separate operational checkpoint is now
+  committed locally; its enclosing commit is verified externally with `git rev-parse HEAD`, while
+  its exact push was also attempted once and rejected by the same safeguard. Continue with the
+  remaining promotion surfaces and eight-root provider/history/browser/visual gates only after
+  preserving this clean boundary.
+
 ## 2026-08-17 — Expanded US market-family goal directive checkpoint
 
 - The latest goal clarification is now recorded at the top of `docs/project-todos.md`,

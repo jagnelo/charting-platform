@@ -18,6 +18,34 @@ tasks:
       - diff-check
     notes:
       - No acceptance flexibility used; filtering is presentation state over immutable persisted rows.
+  - id: tc2000-python-breadth-promotion-scan-20260817
+    title: Promote completed Python breadth history into lineage-preserving EasyScan
+    status: completed
+    priority: high
+    scope: >-
+      Add a Research Results promotion action and backend contract that reuses the immutable
+      Boolean condition and source member IDs while retaining source-run, membership, as-of,
+      dataset-manifest, definition, and reproducibility lineage.
+    definition_of_done:
+      - Completed breadth-history runs create custom-universe EasyScans without all-universe fallback
+      - Condition metadata preserves source run ID, exact manifest fingerprint, membership metadata, and target current-data semantics
+      - Current-only, incomplete, foreign/non-Boolean, missing-artifact, incomplete-universe, and duplicate-name paths return structured errors
+      - Research Results exposes success/error feedback only for eligible completed breadth history
+      - Remaining plot/column/filter/gauge/alert/Study Lab/Strategy Lab promotions remain explicitly open
+    validation:
+      - python-breadth-promotion-integration-1-of-1
+      - existing-python-screener-regressions-2-of-2
+      - research-results-component-13-of-13
+      - frontend-vitest-839-of-839
+      - frontend-type-check-production-build
+      - ruff-compileall-diff-check
+    notes:
+      - >-
+        No acceptance flexibility used. Initial invocations used paths relative to the wrong
+        working directories and either collected no product tests or targeted the wrong file;
+        corrected commands passed and only those results are authoritative. Exact source lineage
+        is retained through source_run_id plus manifest fingerprint, while the target's explicit
+        current-data semantics avoid a false point-in-time replay claim.
   - id: tc2000-python-breadth-occurrence-results-20260817
     title: Surface collected Python breadth history in Research Results
     status: completed
