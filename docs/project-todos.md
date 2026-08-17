@@ -21,6 +21,27 @@ is a visible `No verified mapped proxy`, unavailable, or derived state with a tr
 condition. No role may be fabricated from a name, silently substituted by SPY/QQQ or another
 family, or satisfied by an unlabelled current-only snapshot.
 
+The required role matrix is explicit and parameterised rather than implied by a family selector:
+
+| Root perspective | Cap-weighted leg | Equal-weight leg | Value leg | Growth leg | Required analysis treatment |
+| --- | --- | --- | --- | --- | --- |
+| S&P 500 | official identity/proxy | verified ETF or derived series | verified sub-index/ETF if available | verified sub-index/ETF if available | benchmark, sectors, industries/proxies, constituents, breadth |
+| S&P 400 | official identity/proxy | verified ETF or derived series | verified sub-index/ETF if available | verified sub-index/ETF if available | same top-down and breadth workflow |
+| S&P 600 | official identity/proxy | verified ETF or derived series | verified sub-index/ETF if available | verified sub-index/ETF if available | same top-down and breadth workflow |
+| S&P 1500 | official identity/proxy | verified ETF or derived series | verified sub-index/ETF if available | verified sub-index/ETF if available | same top-down and breadth workflow |
+| Russell 1000 | official identity/proxy | verified ETF or derived series | verified sub-index/ETF if available | verified sub-index/ETF if available | same top-down and breadth workflow |
+| Russell 2000 | official identity/proxy | verified ETF or derived series | verified sub-index/ETF if available | verified sub-index/ETF if available | same top-down and breadth workflow |
+| Russell 3000 | official identity/proxy | verified ETF or derived series | verified sub-index/ETF if available | verified sub-index/ETF if available | same top-down and breadth workflow |
+| Nasdaq 100 | official identity/proxy | dedicated cap/equal deconstruction | verified sub-index/ETF if available | verified sub-index/ETF if available | QQQ/QQQE-style comparison, breadth, leadership, concentration |
+
+Each cell marked “if available” is an evidence-gated role, not a promise that a product exists.
+For every populated cell the same technical, ratio/spread, relative-strength, configurable breadth,
+ranking, rotation, risk, drill-down, Study Lab, and export contracts apply. For an unpopulated cell,
+the family still remains usable and the UI/API must retain a labelled unavailable, derived, or
+`No verified mapped proxy` state plus the evidence and closure condition. The acceptance matrix is
+therefore the Cartesian set of eight roots × evidenced roles × supported views, not eight selector
+rows or one SPY demonstration.
+
 - [ ] Every available root and role must expose the same rapid workflow: technicals and normalized
       performance; cap/equal and value/growth spreads; direct, parent/peer, and cross-family ratios;
       sector and industry/proxy ranking where classification evidence exists; constituent drill-down;

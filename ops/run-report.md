@@ -27890,3 +27890,14 @@ in 4.6 minutes. No failure was suppressed or reclassified as product success.
   rejected before Git by the private-origin safeguard; no workaround or repeat. Transport-only.
 - Historical bars/holdings, full family breadth/ranking/rotation/dispersion, browser population,
   and exact/unrepresented V25 gaps remain open.
+
+# 2026-08-17 — Expanded US family role-matrix documentation
+
+- Added an explicit eight-root role matrix to the controlling TODO and repeated the latest scope
+  in the active goal objective: S&P 500/400/600/1500, Russell 1000/2000/3000, and Nasdaq 100,
+  with independently evidenced cap/equal/value/growth legs.
+- Clarified root/role/view Cartesian acceptance, Nasdaq cap/equal deconstruction parity with
+  SPY/RSP, and visible unavailable/derived/`No verified mapped proxy` outcomes for missing roles.
+- Updated project TODO, parity, acceptance-governance, visual-parity, active goal, and handoff
+  records. Documentation-only; no acceptance flexibility used.
+- Validation pending in this context: YAML/JSON parsing, diff-check, and clean scoped commit.

@@ -1,4 +1,29 @@
 tasks:
+  - id: tc2000-us-family-role-matrix-clarification-20260817
+    title: Clarify the complete US family and style role matrix in the controlling goal
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Document the latest requirement as an explicit eight-root × evidenced-role × supported-view
+      matrix: S&P 500/400/600/1500, Russell 1000/2000/3000, and Nasdaq 100, with independently
+      evidenced cap-weight, equal-weight, value, and growth legs wherever they exist. Include the
+      Nasdaq cap/equal deconstruction equivalent to SPY/RSP and all corresponding top-down,
+      breadth, relative-strength, ranking, risk, drill-down, Study Lab, and reuse views.
+    definition_of_done:
+      - The active goal objective contains the latest family/style requirement explicitly
+      - Project TODO includes a concrete root/role matrix and evidence-gated missing-role semantics
+      - Parity, acceptance, and visual-parity documents evaluate the same root/role/view matrix
+      - Nasdaq 100 cap/equal remains a mandatory dedicated case without guessed QQQ/QQQE mapping
+      - Documentation parses cleanly and is committed as one self-contained checkpoint
+    validation:
+      - ruby-yaml-json-parse
+      - git-diff-check
+    notes:
+      - >-
+        Documentation-only clarification. No acceptance flexibility used. Provider/history
+        population, family-wide implementation, and browser/visual acceptance remain open.
+
   - id: tc2000-breadth-python-series-target-20260817
     title: Add isolated numeric Python-series breadth targets
     status: completed

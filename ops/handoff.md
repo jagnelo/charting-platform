@@ -1,5 +1,22 @@
 # Active Handoff
 
+## 2026-08-17 — Expanded US family role-matrix documentation checkpoint
+
+- Clarified the controlling plan and active goal with an explicit eight-root × evidenced-role ×
+  supported-view matrix: S&P 500/400/600/1500, Russell 1000/2000/3000, and Nasdaq 100; cap,
+  equal, value, and growth legs are independently evidence-gated.
+- Added a concrete role matrix to `docs/project-todos.md`, explicit root/role/view parity wording
+  to `docs/tc2000-parity.md` and `docs/tc2000-acceptance-governance.md`, and corresponding visual
+  matrix guidance to `docs/tc2000-visual-parity.md`. The active goal objective repeats the latest
+  requirement so resuming the Codex goal cannot collapse it back to SPY-only analysis.
+- Explicitly documented that Nasdaq 100 cap/equal must behave like the SPY/RSP deconstruction,
+  while QQQ/QQQE (or another pair) remains candidate evidence until identity, holdings, weighting,
+  rebalance, historical bars, and point-in-time membership pass. Missing roles remain visible
+  unavailable/derived/`No verified mapped proxy` states with closure conditions.
+- No implementation or acceptance flexibility was introduced. Provider/history population,
+  family-wide analytics, complete breadth/promotion, and browser/visual coverage remain open under
+  the existing implementation task.
+
 ## 2026-08-17 — Isolated Python-series breadth target checkpoint
 
 - Added `series` output support for owned condition CodeVersions on the isolated Python breadth

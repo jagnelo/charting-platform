@@ -22,6 +22,17 @@ ratios, sector/industry/proxy ranking, participation, leadership, concentration/
 rotation, drawdown/volatility, seasonality/regimes, watchlists, filters, scans, gauges, alerts,
 Study Lab, plots, and exports.
 
+Parity is evaluated as a root/role/view matrix, not as a selector smoke test. The root set is
+S&P 500, S&P 400, S&P 600, S&P 1500, Russell 1000, Russell 2000, Russell 3000, and Nasdaq 100;
+the role set is independently evidenced cap-weight, equal-weight, value, and growth. The view set
+includes benchmark technicals, normalized performance, cap/equal and value/growth spreads, direct
+and cross-family ratios, sector/industry/proxy ranking, configurable breadth, participation,
+leadership, concentration/dispersion, rotation, drawdown/volatility/correlation,
+seasonality/regime context, constituent drill-down, and compatible library/research outputs.
+Every matrix row carries its own membership/as-of, weighting, adjustment, coverage, exclusion,
+freshness, and provenance data. A missing role is a tested unavailable/derived state with a tracked
+closure condition; it is not removed from the matrix or replaced by another family.
+
 ### Breadth target scope across the family matrix
 
 The parity contract applies the breadth composer to each selected root/role and to each resolved

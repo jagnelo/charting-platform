@@ -29,6 +29,14 @@ show the provenance/freshness/coverage and membership/as-of labels needed to dis
 ETF weights, locally derived equal weights, and proxy membership. Family/style visuals remain
 board-guided where represented and remain named gaps where the board has no authoritative state.
 
+The visual matrix is likewise root/role based: S&P 500/400/600/1500, Russell 1000/2000/3000, and
+Nasdaq 100 are each exercised with every evidenced cap, equal, value, and growth leg. A populated
+role must show its own selector identity, weighting/style label, ratios/spreads, breadth universe
+and target, ranking/rotation context, and constituent drill-down; the Nasdaq cap/equal case must
+show the same deconstruction mechanics as SPY/RSP. If a role or combination is unavailable or not
+represented on the board, retain the explicit state and gap-ledger entry rather than borrowing a
+visual from SPY, QQQ, or another family.
+
 The family visual acceptance also checks the breadth target as part of the composed workstation
 state. A root/role selector, member-universe selector, target/condition editor, percentage result,
 member pass/fail drill-down, and lineage/status strip must remain visually coherent when the target

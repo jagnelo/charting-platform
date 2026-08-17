@@ -24,6 +24,17 @@ holdings relationship cannot be verified, the expected result is an explicit una
 or `No verified mapped proxy` state with a closure condition in the gap ledger. Selector presence,
 name similarity, another family's product, or a current-only snapshot never satisfies this gate.
 
+The acceptance runner is parameterised by `(root, role, view)` across the Cartesian matrix, with
+the eight roots (S&P 500/400/600/1500, Russell 1000/2000/3000, Nasdaq 100), every independently
+verified cap/equal/value/growth role, and the complete supported view set. For each row it must
+exercise technicals, normalized performance, cap/equal and style spreads, parent/peer/cross-family
+ratios, sector/industry/proxy ranking, user-authored breadth, participation/leadership,
+concentration/dispersion, rotation, risk/regime views, and constituent drill-down without changing
+routes. The same row identity and evidence lineage must survive into watchlists, filters, scans,
+gauges, alerts, Study Lab, plots, and exports. An unavailable role is still an asserted outcome
+(`No verified mapped proxy`, unavailable, or derived) with evidence and a closure condition; it is
+not an omitted test case or a silent fallback.
+
 ### Required breadth/deconstruction traversal
 
 The family run is incomplete unless it exercises user-authored breadth against every available
