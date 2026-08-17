@@ -11170,3 +11170,35 @@ tasks:
         private-origin safeguard, with no workaround or retry. Mixed-scope trees, richer group
         statistics, Python target-series leaves, exact V25 geometry, provider/family population,
         and final audit remain.
+  - id: tc2000-mixed-scope-breadth-trees-20260817
+    title: Compose cross-sectional and member predicates in breadth trees
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Extend the universal locked/editable watchlist breadth and Market Map contract so a
+      cross-sectional percentile leaf can be composed with member-level predicates without
+      losing scope, diagnostics, denominator, or point-in-time alignment semantics.
+    definition_of_done:
+      - Mixed all/any/not trees evaluate cross-sectional leaves once over the eligible universe
+      - Member leaves retain tri-state values, exclusions, and clause paths
+      - Current Market Map and historical breadth share the same no-forward-fill evaluator
+      - Backend unit/integration, frontend component, and authenticated browser regressions pass
+      - Cross-sectional statistics beyond percentile and Python target-series gaps remain explicit
+    validation:
+      - breadth-unit-26-of-26
+      - docker-market-map-mixed-scope-1-of-1
+      - frontend-market-map-editor-23-of-23
+      - frontend-vitest-869-of-869
+      - authenticated-f8s-breadth-1-of-1
+      - frontend-typecheck-build
+      - ruff-and-diff-check
+    notes:
+      - >-
+        Initial Docker-backed invocation failed only at the unprivileged socket boundary; the
+        unchanged elevated rerun passed. This was setup flexibility, not acceptance flexibility.
+        No visual threshold, baseline, or mask was relaxed. Implementation/docs commit 5cc6082c
+        is clean locally; its one exact push attempt was rejected before Git by the private-origin
+        safeguard, with no workaround or retry. Richer cross-sectional statistics, Python
+        target-series, family/provider population, exact V25 mixed-statistics geometry, and final
+        audit remain.

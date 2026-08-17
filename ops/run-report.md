@@ -28375,3 +28375,19 @@ and strict visual gaps remain explicitly tracked.
   population, exact V25 condition/map geometry, and final audit. Implementation/docs commit
   `c4cf6d7c` is clean locally; its one exact push attempt was rejected before Git by the private-origin
   safeguard. Ops follows separately.
+
+# 2026-08-17 — Mixed-scope breadth tree checkpoint
+
+- Added mixed-scope AST evaluation: a cross-sectional percentile leaf can now be composed with
+  member-level predicates using `all`/`any`/`not` in current Market Map colouring and historical
+  breadth. Clause paths, ranks, exclusions, denominator, exact alignment, and no-forward-fill
+  behavior remain explicit.
+- Validation passed: backend breadth unit `26/26`, Ruff, Docker-backed Market Map integration
+  `1/1`, focused frontend `23/23`, full Vitest `869/869`, `vue-tsc`, production build, and
+  authenticated Chromium F8s-breadth `1/1`. Initial Docker socket denial was setup-only; the
+  unchanged elevated rerun passed. No acceptance flexibility, visual threshold, baseline, or mask
+  relaxation was used.
+- Open: richer cross-sectional statistics, Python target-series leaves, family/provider population,
+  exact V25 mixed-statistics visual evidence, and final audit. Implementation/docs commit
+  `5cc6082c` is clean locally; its one exact push attempt was rejected before Git by the
+  private-origin safeguard. Ops follows separately.

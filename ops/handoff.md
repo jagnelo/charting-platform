@@ -30189,3 +30189,18 @@ indefinite soak; longer endurance remains an explicit open gap.
   before Git by the private-origin safeguard; no workaround or retry was attempted. Separate ops
   is being committed now. Open: mixed-scope trees, richer cross-sectional group statistics, Python
   target-series leaves, family/provider population, exact V25 geometry, and final audit.
+
+# 2026-08-17 — Mixed-scope breadth tree checkpoint
+
+- Breadth and Market Map now compose cross-sectional percentile leaves with member-level predicates
+  in the same `all`/`any`/`not` tree. Scoped leaves are ranked once over the aligned universe;
+  member leaves preserve tri-state diagnostics, exclusions, and no-forward-fill history semantics.
+- Validation passed: breadth unit `26/26`, Ruff, Docker-backed Market Map integration `1/1`,
+  focused frontend Market Map/editor `23/23`, full Vitest `869/869`, `vue-tsc`, production build,
+  and authenticated Chromium F8s-breadth `1/1`. The initial unprivileged Docker run failed only at
+  socket setup; unchanged elevated rerun passed. No acceptance flexibility or visual threshold/
+  baseline/mask relaxation was used.
+- Implementation/docs commit `5cc6082c` is clean locally. Its one exact push attempt was rejected
+  before Git by the private-origin safeguard; no workaround or retry was attempted. Open:
+  cross-sectional statistics beyond percentile, Python target-series leaves, full family/provider
+  population, exact V25 mixed-statistics geometry, and final audit.
