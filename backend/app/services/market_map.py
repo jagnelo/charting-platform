@@ -637,6 +637,12 @@ async def build_market_map(db: AsyncSession, user_id: int, request: MarketMapReq
         area_provenance: dict[str, object] | None = None
         if request.area_metric == "equal":
             area = 1.0
+            area_provenance = {
+                "kind": "derived",
+                "method": "equal_member_area",
+                "source_id": resolved.descriptor.source_id,
+                "membership_version": resolved.descriptor.membership_version,
+            }
         elif request.area_metric == "python":
             python_value, python_warning, _, _ = python_values.get(
                 instrument_id,
@@ -660,12 +666,33 @@ async def build_market_map(db: AsyncSession, user_id: int, request: MarketMapReq
                         instrument_id=instrument_id,
                     )
                 )
+            if area is not None:
+                area_provenance = {
+                    "kind": "isolated_python",
+                    "run_id": request.python_run_id,
+                    "output_contract": python_output_contract,
+                }
         elif request.area_metric == "weight":
             area = member.weight
+            if area is not None:
+                area_provenance = {
+                    "kind": "point_in_time_membership",
+                    "source": member.source,
+                    "effective_at": member.effective_at.isoformat() if member.effective_at else None,
+                    "known_at": member.known_at.isoformat() if member.known_at else None,
+                    "membership_version": resolved.descriptor.membership_version,
+                }
             if area is None:
                 warnings.append(_warning("missing_weight", "No point-in-time source weight is available.", instrument_id=instrument_id))
         elif request.area_metric == "volume":
             area = float(rows[-1].volume) if rows and rows[-1].volume is not None else None
+            if area is not None and rows:
+                area_provenance = {
+                    "kind": "local_ohlcv",
+                    "field": "volume",
+                    "observed_at": rows[-1].ts.isoformat(),
+                    "adjustment": "raw_volume",
+                }
             if area is None:
                 warnings.append(_warning("missing_volume", "No local volume is available for area sizing.", instrument_id=instrument_id))
         elif request.area_metric == "field":
@@ -680,6 +707,14 @@ async def build_market_map(db: AsyncSession, user_id: int, request: MarketMapReq
                 )
         else:
             area = float(instrument.stats.market_cap) if instrument.stats and instrument.stats.market_cap is not None else None
+            if area is not None:
+                market_cap_provenance = (instrument.stats.field_provenance or {}).get("market_cap") if instrument.stats else None
+                area_provenance = market_cap_provenance if isinstance(market_cap_provenance, dict) else {
+                    "kind": "current_metadata",
+                    "field": "market_cap",
+                    "source": "local_instrument_stats",
+                    "point_in_time": False,
+                }
             if area is None:
                 warnings.append(_warning("missing_market_cap", "No market-cap value is available.", instrument_id=instrument_id))
             else:

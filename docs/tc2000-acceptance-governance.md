@@ -3,6 +3,11 @@
 Market Map acceptance must also verify CSV export from a loaded map. The export must contain every
 returned cell and its canonical grouping, metric, coverage, observation-time, and warning fields;
 it must work for locked and editable sources without mutating selection, membership, or route state.
+Acceptance must also inspect `area_provenance` for each covered cell. Equal and Python areas must
+identify their derivation, source weights must retain effective/known-at and membership lineage,
+volume must identify its local observation bar, and current market-cap metadata must explicitly
+state that it is not point-in-time. This provenance gate does not waive the separate requirement
+for historical market-cap/weight reconstruction.
 
 ## 2026-08-19 — Arbitrary Market Map period sub-gate
 

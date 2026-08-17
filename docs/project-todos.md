@@ -279,6 +279,10 @@ The captures are behavioural/product references; Finviz artwork and branding are
 - [x] The workstation exports current source-agnostic map cells as CSV with canonical identity,
       grouping, area/colour values, coverage, observation time, and warning columns without
       changing selection or route state.
+- [x] Every map cell now carries area provenance for equal-derived sizing, isolated Python output,
+      point-in-time source weights, local volume, provider-field values, and current metadata
+      market-cap sizing. Current market-cap values remain explicitly labelled non-point-in-time;
+      provenance visibility does not claim historical market-cap reconstruction.
 - [ ] Board-approved visual baselines, all requested map metrics, point-in-time area weights, and
       complete provider-backed root population remain open.
 

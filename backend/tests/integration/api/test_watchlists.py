@@ -70,6 +70,8 @@ class TestWatchlistsCrud:
         assert body["evaluated_count"] == 2
         assert body["coverage"] == 1
         assert {cell["symbol"] for cell in body["cells"]} == {"AAPL", "MSFT"}
+        assert all(cell["area_provenance"]["kind"] == "current_metadata" for cell in body["cells"])
+        assert all(cell["area_provenance"]["point_in_time"] is False for cell in body["cells"])
         assert {node["label"] for node in body["nodes"]} >= {"Technology", "Hardware", "Software"}
         assert body["nodes"][-1]["aggregation_method"] == "area_weighted_mean"
         assert body["cache_hit"] is False
@@ -91,6 +93,7 @@ class TestWatchlistsCrud:
         custom_body = custom_response.json()
         assert custom_body["period_start"].startswith("2024-01-03")
         assert custom_body["period_end"].startswith("2024-01-07")
+        assert all(cell["area_provenance"]["method"] == "equal_member_area" for cell in custom_body["cells"])
 
         cached_response = client.post(
             "/api/v1/analysis/market-map",
@@ -197,6 +200,7 @@ class TestWatchlistsCrud:
                     relationship_type="constituent",
                     source="controlled_fixture",
                     verification_state="verified",
+                    weight=0.6,
                     effective_at=now,
                     known_at=now,
                 ),
@@ -207,6 +211,7 @@ class TestWatchlistsCrud:
                     relationship_type="constituent",
                     source="controlled_fixture",
                     verification_state="verified",
+                    weight=0.4,
                     effective_at=now,
                     known_at=now,
                 ),
@@ -255,6 +260,24 @@ class TestWatchlistsCrud:
         assert body["evaluated_count"] == 2
         assert {cell["symbol"] for cell in body["cells"]} == {"AAPL", "MSFT"}
         assert {node["label"] for node in body["nodes"]} >= {"Technology", "Hardware", "Industrials", "Machinery"}
+
+        weighted = client.post(
+            "/api/v1/analysis/market-map",
+            headers=auth_headers,
+            json={
+                "source_id": "market-group:locked-sp500-fixture",
+                "group_by": "none",
+                "period": "1W",
+                "area_metric": "weight",
+                "color_metric": "return",
+                "end": "2024-01-07T00:00:00Z",
+            },
+        )
+        assert weighted.status_code == 200, weighted.text
+        weighted_cells = {cell["symbol"]: cell for cell in weighted.json()["cells"]}
+        assert weighted_cells["AAPL"]["area_value"] == 0.6
+        assert weighted_cells["AAPL"]["area_provenance"]["kind"] == "point_in_time_membership"
+        assert weighted_cells["AAPL"]["area_provenance"]["known_at"].startswith("2024-01-01")
 
     def test_market_map_reports_missing_local_data_without_provider_fanout(
         self, client, auth_headers, watchlist, instrument

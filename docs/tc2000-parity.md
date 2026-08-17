@@ -4,6 +4,12 @@ The current Market Map also exports its loaded canonical cells to CSV, including
 hierarchy, area/colour values, coverage, observation time, and warning codes. Export is source
 neutral for locked system-managed and editable watchlists and does not change route or selection.
 
+Map area values now expose per-cell provenance: equal-derived sizing, isolated Python output,
+point-in-time membership weights, local OHLCV volume, provider numeric fields, or current stored
+market-cap metadata. Current market-cap sizing remains visibly non-point-in-time and is not treated
+as historical truth; the remaining historical market-cap/weight reconstruction requirement stays
+open.
+
 ## 2026-08-19 — Arbitrary Market Map period control
 
 Market Map exposes the supported preset periods plus a `CUSTOM` period with explicit start and
