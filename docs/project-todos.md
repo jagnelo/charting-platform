@@ -1,5 +1,47 @@
 # Project TODO Memory
 
+### 2026-08-17 — US market family/style analysis matrix (latest user requirement)
+
+The top-down workstation must support the following US market perspectives as one
+interchangeable analysis matrix, rather than treating SPY as the only entry point:
+
+- [ ] S&P 500, S&P MidCap 400, S&P SmallCap 600, and S&P Composite 1500;
+- [ ] Russell 1000, Russell 2000, and Russell 3000; and
+- [ ] Nasdaq 100, including a cap-weighted versus equal-weight deconstruction equivalent
+      to the SPY/RSP workflow.
+
+For every root, the product must independently attempt the official index identity (when
+entitled), a cap-weighted tradable proxy, an equal-weight vehicle or reproducible point-in-time
+equal series, and value and growth sub-index/ETF legs whenever they actually exist. “If it exists”
+is resolved by evidence, not by a likely ticker: role, issuer/source, holdings or weighting
+methodology, rebalance/composition dates, canonical identity, historical bars, membership
+continuity, coverage, freshness, and known-at/effective-at semantics must be recorded before a
+role becomes selectable. A family can have no verified value, growth, or equal proxy; that outcome
+is a visible `No verified mapped proxy`, unavailable, or derived state with a tracked closure
+condition. No role may be fabricated from a name, silently substituted by SPY/QQQ or another
+family, or satisfied by an unlabelled current-only snapshot.
+
+- [ ] Every available root and role must expose the same rapid workflow: technicals and normalized
+      performance; cap/equal and value/growth spreads; direct, parent/peer, and cross-family ratios;
+      sector and industry/proxy ranking where classification evidence exists; constituent drill-down;
+      configurable predicate breadth and participation; leadership, concentration/dispersion,
+      drawdown/volatility, correlation, relative rotation, seasonality/regime context; and reuse
+      through watchlists, filters, scans, gauges, alerts, Study Lab, reusable plots, and exports.
+- [ ] The acceptance fixture must iterate all eight roots and every evidenced cap/equal/value/growth
+      leg, preserving family/role, weighting method, membership/rebalance version, adjustment,
+      as-of/known-at policy, coverage, exclusions, freshness, and provenance through every linked
+      view. A selector row without populated evidence does not pass.
+- [ ] Nasdaq 100 must specifically prove the cap/equal path (QQQ/QQQE is only a candidate pair
+      until canonical identity, holdings, weighting, rebalance, historical bars, and point-in-time
+      membership evidence pass). This is an additional required perspective, not a relaxation of
+      the existing SPY/RSP contract.
+
+The corresponding breadth surface remains generic and user-authored: the same member predicate
+must run against each selected root, proxy, style leg, or derived universe, with historical series,
+occurrences, member pass/fail sets, cross-sectional views, and promotion into every compatible
+chart/list/filter/scan/gauge/alert/Study Lab/export target. Family/style/provider, historical,
+visual, and browser gaps remain named in the gap ledger until closed.
+
 ### 2026-08-17 — Prior high/low breadth target
 
 - [x] Added the reusable `prior_high_low` predicate to the generic breadth contract. It compares

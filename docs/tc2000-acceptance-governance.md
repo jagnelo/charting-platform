@@ -1,5 +1,29 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-08-17 — Eight-root US family/style acceptance (latest requirement)
+
+The complete top-down acceptance matrix contains eight interchangeable roots: S&P 500, S&P
+MidCap 400, S&P SmallCap 600, S&P Composite 1500, Russell 1000, Russell 2000, Russell 3000,
+and Nasdaq 100. The run must attempt the official identity (when entitled), cap-weighted proxy,
+equal-weight vehicle or point-in-time derived equal series, and every independently evidenced
+value/growth sub-index or ETF for each root. This is an acceptance expansion, not permission to
+silently omit unavailable roles.
+
+For each available `(root, role)`, acceptance exercises technicals, cap/equal and value/growth
+spreads, direct and cross-family ratios, sector/industry/proxy ranking, configurable predicate
+breadth, participation/leadership, concentration/dispersion, drawdown/volatility/correlation,
+relative rotation, seasonality/regime context, constituent drill-down, and reuse through
+watchlists, filters, scans, gauges, alerts, Study Lab, plots, and exports. Every response and
+artifact retains role, weighting method, membership/rebalance version, effective/known-at policy,
+adjustment, coverage, exclusions, freshness, and provenance.
+
+The Nasdaq 100 requires a dedicated cap/equal deconstruction equivalent to SPY/RSP. QQQ/QQQE is
+only a candidate fixture until independent identity, holdings, weighting, rebalance, historical
+bars, and point-in-time membership evidence pass. If a value, growth, equal, official-index, or
+holdings relationship cannot be verified, the expected result is an explicit unavailable, derived,
+or `No verified mapped proxy` state with a closure condition in the gap ledger. Selector presence,
+name similarity, another family's product, or a current-only snapshot never satisfies this gate.
+
 ## 2026-08-17 — Prior high/low breadth sub-gate
 
 Acceptance now includes a reusable prior-window extreme predicate: for every eligible member, the

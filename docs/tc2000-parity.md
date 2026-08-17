@@ -1,5 +1,27 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-17 — US family/style and Nasdaq cap/equal acceptance matrix (latest requirement)
+
+The workstation's top-down entry points are the S&P 500, S&P MidCap 400, S&P SmallCap 600,
+S&P Composite 1500, Russell 1000, Russell 2000, Russell 3000, and Nasdaq 100. Each is a
+first-class, route-free root with the same linked technical, breadth, ratio, ranking, rotation,
+concentration/dispersion, and sector -> industry/proxy -> constituent workflow.
+
+For each root, parity attempts every independently evidenced cap-weighted, equal-weight, value,
+and growth role. A role is selectable only when canonical identity, source/issuer relationship,
+holdings or weighting method, effective/known-at and rebalance dates, historical bars, membership
+continuity, coverage, and freshness are available. Missing evidence is rendered as unavailable,
+derived, or `No verified mapped proxy` and retained in the gap ledger; ticker names, another
+family, SPY/QQQ substitution, and unlabelled current snapshots are not evidence.
+
+The Nasdaq 100 has a dedicated cap/equal parity case equivalent to SPY/RSP. QQQ/QQQE is a
+candidate fixture only after its independent identity, holdings, weighting, rebalance, bars, and
+point-in-time membership checks pass. For every available root/role, the same breadth predicate
+and universe semantics must feed technicals, cap/equal/style spreads, direct and cross-family
+ratios, sector/industry/proxy ranking, participation, leadership, concentration/dispersion,
+rotation, drawdown/volatility, seasonality/regimes, watchlists, filters, scans, gauges, alerts,
+Study Lab, plots, and exports.
+
 ## 2026-08-17 — Prior high/low breadth target
 
 Generic breadth now supports a versioned `prior_high_low` leaf in both the compact composer and

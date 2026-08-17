@@ -1,5 +1,21 @@
 # TC2000 Version 25 Visual-Parity Specification
 
+## 2026-08-17 — Family/style analysis visual states (latest requirement)
+
+The visual acceptance matrix must include the same workstation states for each of the eight US
+roots (S&P 500/400/600/1500, Russell 1000/2000/3000, Nasdaq 100) and every evidenced cap/equal/
+value/growth role. Capture and compare root/role selectors, linked technical charts, cap/equal and
+style spread panes, direct and cross-family ratio tools, breadth predicate/universe controls,
+sector/industry/proxy ranking, concentration/dispersion and rotation panels, and constituent
+drill-down states. Missing or unverified roles must have an explicit unavailable/derived/`No
+verified mapped proxy` visual; an empty selector or silent fallback is not an accepted state.
+
+The Nasdaq 100 cap/equal view must visibly behave like the SPY/RSP deconstruction when its
+independent QQQ/QQQE (or other verified pair) evidence is approved. Visual references must also
+show the provenance/freshness/coverage and membership/as-of labels needed to distinguish native
+ETF weights, locally derived equal weights, and proxy membership. Family/style visuals remain
+board-guided where represented and remain named gaps where the board has no authoritative state.
+
 Status: `Controlling implementation plan`
 
 Current audit state (2026-08-10T06:40:00Z): all four seeded workstation environments pass the
