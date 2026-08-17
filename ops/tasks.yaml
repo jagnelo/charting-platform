@@ -1,4 +1,29 @@
 tasks:
+  - id: tc2000-breadth-new-high-low-authoring-20260817
+    title: Expose new-high/new-low breadth authoring controls
+    status: completed
+    priority: high
+    scope: >-
+      Wire backend-supported new-high/new-low and high/low 52-week-distance predicates into the
+      generic breadth editor with explicit direction and lookback controls.
+    definition_of_done:
+      - Workstation exposes new_high_low with high/low direction and prior-window controls
+      - Workstation exposes high/low direction for within_52_week_high
+      - Serialized requests retain exact condition kind, direction, and lookback
+      - Authenticated Chromium proves near-low and new-low request paths
+      - Frontend/backend breadth validation, type/build, Ruff, compile, and diff checks pass
+      - Event, benchmark/peer, derived-Python, and promotion gaps remain documented
+    validation:
+      - focused-authenticated-F8s-breadth-family-ratio-1-of-1
+      - frontend-vitest-839-of-839
+      - frontend-type-check-production-build
+      - breadth-unit-14-of-14
+      - ruff-compileall-diff-check
+    notes:
+      - >-
+        No acceptance flexibility used. The first browser run found duplicate accessible labels
+        for the global and custom lookback inputs; labels were separated and the unchanged oracle
+        passed after rebuilding the seeded stack.
   - id: tc2000-cross-sectional-python-study-breadth-20260817
     title: Expose cross-sectional percentile breadth in isolated Python Study Lab
     status: completed

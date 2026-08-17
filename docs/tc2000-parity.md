@@ -1,5 +1,16 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-17 — New-high/new-low breadth authoring
+
+The generic breadth composer now exposes the backend-supported `new_high_low` predicate with
+explicit prior-window length and high/low direction, and the 52-week-distance predicate exposes
+the same high/low direction choice. Both use the existing versioned condition payload and remain
+available for current/history, occurrence, drill-down, and existing promotion paths. Rebuilt
+authenticated Chromium coverage proves near-low and new-low request serialization. The initial
+duplicate accessible lookback labels were corrected at the component boundary and the unchanged
+oracle passed. Prior/event composition, richer benchmark/peer/derived-series authoring, and
+complete promotion fan-out remain explicit gaps.
+
 ## 2026-08-17 — Cross-sectional percentile Study Lab starter
 
 Study Lab now includes an editable factory study for cross-sectional percentile breadth. It uses

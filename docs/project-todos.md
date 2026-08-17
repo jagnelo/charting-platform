@@ -1,5 +1,19 @@
 # Project TODO Memory
 
+### 2026-08-17 — Breadth new-high/new-low authoring surface
+
+- [x] Exposed `new_high_low` in the workstation's generic breadth composer with explicit high/
+      low direction and lookback controls. The same editor now also exposes high-versus-low
+      direction for the existing `within_52_week_high` condition; both serialize through the
+      versioned condition contract already evaluated by the backend and isolated runner.
+- [x] Added authenticated Chromium coverage proving the custom breadth request carries the exact
+      direction and lookback for near-low and new-low studies. Full frontend type-check, build,
+      Vitest, backend breadth unit, Ruff, compile, and diff checks pass.
+- [ ] Prior high/low event composition, benchmark/peer target-series authoring, arbitrary
+      derived-Python visual composition, and promotion fan-out remain open. A first browser run
+      exposed duplicate accessible lookback labels; the component labels were separated and the
+      unchanged oracle passed. This was a localized repository defect, not acceptance flexibility.
+
 ### 2026-08-17 — Cross-sectional percentile breadth in isolated Python Study Lab
 
 - [x] Added a unified-Python Study Lab factory starter that evaluates a declared

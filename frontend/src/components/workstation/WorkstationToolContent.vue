@@ -415,7 +415,8 @@
         <label>Benchmark <input :value="breadthBenchmark" aria-label="Breadth benchmark" maxlength="12" @change="setBreadthConfiguration({ breadth_benchmark: ($event.target as HTMLInputElement).value.toUpperCase() })" /></label>
         <select :value="breadthConditionKind" aria-label="Breadth condition" @change="setBreadthConfiguration({ breadth_condition: ($event.target as HTMLSelectElement).value })">
           <option value="above_moving_average">Above moving average</option>
-          <option value="within_52_week_high">Within distance of 52-week high</option>
+          <option value="within_52_week_high">Within distance of 52-week high/low</option>
+          <option value="new_high_low">New high/low versus prior window</option>
           <option value="trend">Trend state</option>
           <option value="rsi">RSI threshold</option>
           <option value="volume_ratio">Volume ratio threshold</option>
@@ -429,8 +430,13 @@
           <select :value="breadthConditionAverage" aria-label="Breadth condition average" @change="setBreadthConfiguration({ breadth_condition_average: ($event.target as HTMLSelectElement).value })"><option value="sma">SMA</option><option value="ema">EMA</option></select>
         </template>
         <template v-else-if="breadthConditionKind === 'within_52_week_high'">
+          <select :value="breadthHighLowDirection" aria-label="Breadth 52-week direction" @change="setBreadthConfiguration({ breadth_condition_high_low_direction: ($event.target as HTMLSelectElement).value })"><option value="high">Near 52-week high</option><option value="low">Near 52-week low</option></select>
           <label>Threshold <input :value="breadthConditionThreshold" aria-label="Breadth condition high threshold" type="number" min="0.001" max="0.5" step="0.001" @change="setBreadthConfiguration({ breadth_condition_threshold: Number(($event.target as HTMLInputElement).value) })" /></label>
           <label>Lookback <input :value="breadthConditionLookback" aria-label="Breadth condition high lookback" type="number" min="2" max="504" @change="setBreadthConfiguration({ breadth_condition_lookback: Number(($event.target as HTMLInputElement).value) })" /></label>
+        </template>
+        <template v-else-if="breadthConditionKind === 'new_high_low'">
+          <select :value="breadthHighLowDirection" aria-label="Breadth new high low direction" @change="setBreadthConfiguration({ breadth_condition_high_low_direction: ($event.target as HTMLSelectElement).value })"><option value="high">New high</option><option value="low">New low</option></select>
+          <label>Lookback <input :value="breadthConditionLookback" aria-label="Breadth condition new high low lookback" type="number" min="2" max="252" @change="setBreadthConfiguration({ breadth_condition_lookback: Number(($event.target as HTMLInputElement).value) })" /></label>
         </template>
         <template v-else-if="breadthConditionKind === 'trend'">
           <label>Fast <input :value="breadthConditionFastPeriod" aria-label="Breadth trend fast period" type="number" min="2" max="100" @change="setBreadthConfiguration({ breadth_condition_fast_period: Number(($event.target as HTMLInputElement).value) })" /></label>
@@ -1739,7 +1745,7 @@ const breadthCustomUniverseKind = computed(() => {
 const breadthComposition = computed(() => props.tool.configuration.breadth_condition_composition === 'all' ? 'all' : 'single')
 const breadthConditionKind = computed(() => {
   const candidate = String(props.tool.configuration.breadth_condition ?? 'above_moving_average')
-  return ['above_moving_average', 'within_52_week_high', 'trend', 'rsi', 'volume_ratio', 'relative_strength', 'comparison', 'range', 'percentile'].includes(candidate) ? candidate : 'above_moving_average'
+  return ['above_moving_average', 'within_52_week_high', 'new_high_low', 'trend', 'rsi', 'volume_ratio', 'relative_strength', 'comparison', 'range', 'percentile'].includes(candidate) ? candidate : 'above_moving_average'
 })
 const breadthConditionPeriod = computed(() => Math.min(252, Math.max(2, Number(props.tool.configuration.breadth_condition_period ?? 200) || 200)))
 const breadthConditionAverage = computed(() => props.tool.configuration.breadth_condition_average === 'ema' ? 'ema' : 'sma')
@@ -1750,6 +1756,7 @@ const breadthConditionVolumePeriod = computed(() => Math.min(252, Math.max(2, Nu
 const breadthConditionFastPeriod = computed(() => Math.min(100, Math.max(2, Number(props.tool.configuration.breadth_condition_fast_period ?? 20) || 20)))
 const breadthConditionSlowPeriod = computed(() => Math.min(252, Math.max(3, Number(props.tool.configuration.breadth_condition_slow_period ?? 50) || 50)))
 const breadthConditionDirection = computed(() => props.tool.configuration.breadth_condition_direction === 'down' ? 'down' : 'up')
+const breadthHighLowDirection = computed(() => props.tool.configuration.breadth_condition_high_low_direction === 'low' ? 'low' : 'high')
 const breadthComparisonField = computed(() => {
   const candidate = String(props.tool.configuration.breadth_comparison_field ?? 'close')
   return ['close', 'return', 'volume', 'rsi', 'distance_to_52w_high', 'distance_to_52w_low', 'relative_strength'].includes(candidate) ? candidate : 'close'
@@ -1874,7 +1881,10 @@ function primaryBreadthCondition() {
     return { kind: 'percentile', target_scope: breadthPercentileScope.value, params: { field: breadthPercentileField.value, period: breadthPercentilePeriod.value, percentile: breadthPercentileTarget.value, operator: breadthComparisonOperator.value } }
   }
   if (breadthConditionKind.value === 'within_52_week_high') {
-    return { kind: 'within_52_week_high', params: { lookback: breadthConditionLookback.value, threshold: breadthConditionThreshold.value, direction: 'high' } }
+    return { kind: 'within_52_week_high', params: { lookback: breadthConditionLookback.value, threshold: breadthConditionThreshold.value, direction: breadthHighLowDirection.value } }
+  }
+  if (breadthConditionKind.value === 'new_high_low') {
+    return { kind: 'new_high_low', params: { lookback: breadthConditionLookback.value, direction: breadthHighLowDirection.value } }
   }
   if (breadthConditionKind.value === 'trend') {
     return { kind: 'trend', params: { fast_period: breadthConditionFastPeriod.value, slow_period: breadthConditionSlowPeriod.value, direction: breadthConditionDirection.value } }

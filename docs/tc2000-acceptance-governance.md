@@ -1,5 +1,17 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-08-17 — New-high/new-low breadth sub-gate
+
+The breadth editor must allow the user to select `new_high_low` versus a configurable prior
+window and choose high or low direction. The existing 52-week-distance predicate must likewise
+distinguish near-high from near-low. Acceptance verifies the serialized condition kind, direction,
+and lookback through an authenticated browser interaction against the rebuilt stack, while the
+backend evaluator and historical/no-forward-fill contract remain unchanged. A first run found
+duplicate accessible labels for the legacy and custom lookback inputs; those labels were separated
+and the unchanged 1/1 oracle passed. No acceptance threshold, visual mask, provider rule, or goal
+criterion was relaxed. Event composition, benchmark/peer targets, arbitrary derived Python, and
+promotion fan-out remain tracked gaps.
+
 ## 2026-08-17 — Cross-sectional percentile Study Lab sub-gate
 
 The Study Lab factory must expose an editable unified-Python starter for cross-sectional
