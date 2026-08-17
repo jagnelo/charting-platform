@@ -1,5 +1,31 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-17 — Current US family perspective vision
+
+The workstation parity target is an interchangeable set of eight US market roots: S&P 500, S&P
+MidCap 400, S&P SmallCap 600, S&P Composite 1500, Russell 1000, Russell 2000, Russell 3000, and
+Nasdaq 100. The dense Version 25 shell, linked symbol/timeframe behavior, charts, watchlists,
+ratios, breadth, rankings, rotation, drill-down, Study Lab, and provenance/freshness states must
+behave consistently when the selected root changes.
+
+Every root has independent cap-weight, equal-weight, value, and growth roles when source evidence
+supports them. The existing SPY/RSP deconstruction is the contract template; Nasdaq 100 requires
+its own verified cap/equal relationship such as QQQ/QQQE, with native versus derived weighting
+clearly labelled. Candidate symbols are not relationships by name. A missing relationship must
+render as `No verified mapped proxy`, unavailable, or derived and must not borrow SPY, QQQ, or a
+current-only snapshot.
+
+The same selected root/leg drives top-down technicals, direct and cross-family ratios, sector ->
+industry/proxy -> constituent navigation, and user-authored breadth. Breadth is a generic
+predicate quantification over the selected point-in-time universe: examples include percentage
+above a chosen moving average, percentage within a configurable distance of a 52-week high,
+new-high/new-low participation, and Python-composed conditions. All resulting charts, tables,
+occurrences, scans, gauges, alerts, Study Lab artifacts, and exports retain family/role,
+membership/as-of, weighting, coverage, exclusions, freshness, and provenance lineage.
+
+Any family/style state not represented by the reference board remains a named visual gap with an
+interim deterministic oracle; it is never silently treated as pixel-verified.
+
 ## 2026-08-15 — Generic breadth occurrence parity slice
 
 The generic historical breadth response now includes a deterministic occurrence stream derived from

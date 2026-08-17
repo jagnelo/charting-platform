@@ -1,5 +1,41 @@
 # Project TODO Memory
 
+### 2026-08-17 — Expanded US index/style perspectives and Nasdaq-100 deconstruction (current vision clarification)
+
+- [ ] The top-down workstation must treat the S&P 500, S&P MidCap 400, S&P SmallCap 600,
+      S&P Composite 1500, Russell 1000, Russell 2000, Russell 3000, and Nasdaq 100 as equally
+      important first-class US analysis roots. This is part of the active completion bar, not a
+      future optional screen or a selector-only taxonomy exercise.
+- [ ] For every root, independently resolve the official index identity when entitled, a
+      labelled cap-weighted tradable proxy, an equal-weight vehicle or point-in-time derived
+      equal series, and verified value and growth sub-index/ETF legs wherever they actually
+      exist. A missing or unverified leg remains `No verified mapped proxy`, unavailable, or
+      explicitly derived; it must never be invented from a name or silently borrowed from SPY,
+      QQQ, another family, or a current-only membership snapshot.
+- [ ] Generalise the existing SPY/RSP cap-versus-equal deconstruction to all roots. Nasdaq 100
+      requires an equivalent cap/equal view (for example QQQ versus QQQE only after canonical
+      identity, issuer relationship, holdings or derived-membership, weighting, rebalance,
+      effective/known-at, bar, and coverage evidence has passed). Native ETF weights and local
+      equal reconstruction remain separate, visibly labelled methods.
+- [ ] Each root and each verified style/weight leg must expose the same linked workflow without
+      route changes: benchmark technicals and normalized performance; parent, peer, and
+      cross-family ratios; sector and industry/proxy ranking; constituent drill-down; generic
+      predicate breadth; participation and leadership; concentration/dispersion; correlation;
+      drawdown/volatility; relative rotation; cross-family ranking; seasonality/regime studies;
+      watchlists, scans, gauges, Study Lab artifacts, reusable plots, and exports.
+- [ ] Breadth remains a user-authored predicate over the selected family/leg universe, not a
+      fixed SPY-only metric. The same composer must support moving-average state/distance,
+      configurable distance to 52-week highs/lows, new highs/lows, RSI/trend, volume/volatility,
+      relative strength, benchmark/peer relationships, and unified-Python combinations. Results
+      preserve family/role, point-in-time membership version, target scope, weighting method,
+      as-of/known-at policy, coverage, exclusions, freshness, and provenance through every
+      chart, list, filter, scan, gauge, alert, Study Lab, and export surface.
+- [ ] Acceptance must exercise all eight roots and every evidenced cap/equal/value/growth leg as
+      complete analysis perspectives. Selector presence, one SPY-backed fixture, or a candidate
+      ticker is insufficient. Provider, historical-membership, style/equal mapping, visual,
+      and browser-population gaps remain named in the gap ledger and are not silently treated as
+      satisfied.
+
 ### 2026-08-15 — Generic breadth historical occurrence contract
 
 - [x] Extended `POST /analysis/breadth/history` with deterministic member state-transition

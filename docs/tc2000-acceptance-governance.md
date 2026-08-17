@@ -1,5 +1,35 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-08-17 — Current US family perspective completion bar
+
+The active product vision now requires eight interchangeable US top-down roots: S&P 500, S&P
+MidCap 400, S&P SmallCap 600, S&P Composite 1500, Russell 1000, Russell 2000, Russell 3000,
+and Nasdaq 100. Each root is a complete analysis perspective, not a label in a selector. The
+acceptance run must attempt its official identity (when entitled), cap proxy, equal-weight
+vehicle or point-in-time derived equal series, and each evidenced value/growth leg, then drive
+the same technical, ratio, condition-driven breadth, participation, leadership,
+concentration/dispersion, correlation, drawdown/volatility, rotation, ranking,
+sector -> industry/proxy -> constituent, watchlist, scan, gauge, Study Lab, reusable-plot, and
+export paths.
+
+The S&P 500 SPY/RSP comparison is the reference behavior for the broader cap/equal contract. The
+Nasdaq 100 must have an independently evidenced cap/equal deconstruction (QQQ/QQQE is a candidate
+pair, not an assumption). Native ETF weighting and locally derived equal weighting must remain
+separate and disclose membership/rebalance version, effective/known-at dates, weights, coverage,
+exclusions, freshness, and provenance. Value/growth legs are attempted independently for every
+root; if a leg cannot be verified, the correct result is a visible `No verified mapped proxy`,
+unavailable, or derived state. No family may silently fall back to SPY, QQQ, another root, or a
+current-only snapshot.
+
+Breadth acceptance is consequently family- and leg-parameterised. The predicate composer must be
+able to evaluate arbitrary supported member-level conditions (including moving-average state or
+distance, configurable 52-week-high/low distance, new highs/lows, RSI/trend, volume/volatility,
+relative strength, benchmark/peer relationships, and unified Python) over each selected
+point-in-time universe, and preserve that scope through history, occurrences, charts, lists,
+filters, scans, gauges, alerts, Study Lab, and exports. A single SPY demonstration or a family
+selector with no populated data does not pass. Missing provider, history, style/equal, visual,
+or browser evidence remains a named gap and is reported rather than hidden.
+
 ## 2026-08-15 — Generic breadth occurrence sub-gate
 
 For every supported generic breadth history definition, acceptance must verify that occurrences are
