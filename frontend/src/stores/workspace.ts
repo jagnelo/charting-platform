@@ -586,6 +586,14 @@ export interface GenericBreadthState {
   excluded_count: number
   percentage: number | null
   coverage: number
+  diagnostics?: Array<{
+    path: string
+    kind: string
+    status: 'pass' | 'fail' | 'excluded'
+    value: boolean | null
+    metric: number | null
+    code?: string | null
+  }>
   members: Array<{
     instrument_id: number
     symbol: string
@@ -594,6 +602,7 @@ export interface GenericBreadthState {
     metric: number | null
     observation_time?: string | null
     warning?: { code: string; message: string } | null
+    diagnostics?: NonNullable<GenericBreadthState['diagnostics']>
   }>
   exclusions: Array<{ code: string; message: string; instrument_id?: number | null }>
   freshness?: string

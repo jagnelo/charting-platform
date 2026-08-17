@@ -3251,7 +3251,7 @@ test.describe('TC2000 workstation', () => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ definition_version: 1, definition_hash: 'family-breadth', universe: { kind: 'benchmark_family', family_key: 'sp500', role: 'equal_weight', proxy_symbol: 'RSP' }, condition: {}, timeframe: 'D1', adjustment: 'split_adjusted', requested_count: 1, eligible_count: 1, pass_count: 1, excluded_count: 0, percentage: 1, coverage: 1, members: [], exclusions: [] }),
+        body: JSON.stringify({ definition_version: 1, definition_hash: 'family-breadth', universe: { kind: 'benchmark_family', family_key: 'sp500', role: 'equal_weight', proxy_symbol: 'RSP' }, condition: {}, timeframe: 'D1', adjustment: 'split_adjusted', requested_count: 1, eligible_count: 1, pass_count: 1, excluded_count: 0, percentage: 1, coverage: 1, members: [{ instrument_id: 1, symbol: 'SPY', name: 'SPDR S&P 500 ETF Trust', value: true, metric: 0.12, observation_time: '2026-06-27T00:00:00Z', diagnostics: [{ path: '$', kind: 'all', status: 'pass', value: true, metric: 0.12 }, { path: '$.conditions[0]', kind: 'comparison', status: 'pass', value: true, metric: 0.12 }] }], exclusions: [] }),
       })
     })
     await page.route('**/api/v1/analysis/breadth/history', async route => {
@@ -3540,6 +3540,7 @@ test.describe('TC2000 workstation', () => {
     await customUniverse.selectOption('benchmark_family')
     const initialRequest = await evaluateCustomBreadth()
     expect(initialRequest?.universe).toMatchObject({ kind: 'benchmark_family', key: 'sp500', role: 'equal_weight' })
+    await expect(breadth.locator('[aria-label="Generic breadth clause diagnostics"]')).toContainText('$.conditions[0] comparison pass')
     const occurrencePanel = breadth.locator('[aria-label="Generic breadth historical occurrences"]')
     await expect(occurrencePanel).toBeVisible({ timeout: 15_000 })
     const occurrence = occurrencePanel.getByRole('button', { name: /SPY Entered condition/ })

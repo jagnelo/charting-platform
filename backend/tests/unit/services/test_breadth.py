@@ -8,6 +8,7 @@ from app.services.breadth import (
     evaluate_breadth,
     evaluate_breadth_history,
     evaluate_condition,
+    evaluate_condition_with_diagnostics,
 )
 
 
@@ -106,6 +107,25 @@ def test_history_does_not_forward_fill_a_member_missing_the_current_timestamp():
     assert by_symbol["B"].exclusion_code == "missing_bar_at_timestamp"
 
 
+def test_history_clause_diagnostics_use_the_benchmark_missing_code_after_alignment():
+    member_bars = _bars([100, 101, 102])
+    benchmark_bars = _bars([100, 101])
+    points = evaluate_breadth_history(
+        [BreadthMember(1, "A", "A")],
+        {1: member_bars},
+        {
+            "kind": "relative_strength",
+            "params": {"lookback": 1, "operator": ">", "threshold": 0},
+        },
+        limit=10,
+        benchmark_bars=benchmark_bars,
+    )
+
+    result = points[-1]["members"][0]
+    assert result.exclusion_code == "benchmark_missing_at_timestamp"
+    assert result.diagnostics[0].code == "benchmark_missing_at_timestamp"
+
+
 def test_history_occurrences_report_only_known_member_state_transitions():
     points = evaluate_breadth_history(
         [BreadthMember(1, "A", "A")],
@@ -163,6 +183,64 @@ def test_composite_condition_preserves_nested_exclusion_path():
     assert value is None
     assert metric is None
     assert warning == "condition_clause_excluded:0:insufficient_history"
+
+
+def test_composite_condition_returns_structured_clause_diagnostics():
+    condition = {
+        "kind": "all",
+        "params": {
+            "conditions": [
+                {"kind": "comparison", "params": {"field": "close", "threshold": 100}},
+                {
+                    "kind": "any",
+                    "params": {
+                        "conditions": [
+                            {"kind": "comparison", "params": {"field": "return", "threshold": 0}},
+                            {"kind": "comparison", "params": {"field": "close", "threshold": 200}},
+                        ]
+                    },
+                },
+            ]
+        },
+    }
+
+    value, metric, warning, diagnostics = evaluate_condition_with_diagnostics(
+        _bars([100, 102]), condition
+    )
+
+    assert value is True
+    assert metric is not None
+    assert warning is None
+    assert [item.path for item in diagnostics] == [
+        "$",
+        "$.conditions[0]",
+        "$.conditions[1]",
+        "$.conditions[1].conditions[0]",
+        "$.conditions[1].conditions[1]",
+    ]
+    assert [item.status for item in diagnostics] == ["pass", "pass", "pass", "pass", "fail"]
+    assert diagnostics[-1].kind == "comparison"
+
+
+def test_clause_diagnostics_preserve_exclusion_code_and_path():
+    results, _ = evaluate_breadth(
+        [BreadthMember(1, "A", "A")],
+        {1: _bars([100])},
+        {
+            "kind": "all",
+            "params": {
+                "conditions": [
+                    {"kind": "comparison", "params": {"field": "return", "threshold": 0}},
+                    {"kind": "comparison", "params": {"field": "close", "threshold": 0}},
+                ]
+            },
+        },
+    )
+
+    assert results[0].diagnostics[0].status == "excluded"
+    assert results[0].diagnostics[0].code == "condition_clause_excluded:0:insufficient_history"
+    assert results[0].diagnostics[1].path == "$.conditions[0]"
+    assert results[0].diagnostics[1].code == "insufficient_history"
 
 
 def test_range_condition_exposes_member_level_bounds_and_metric():

@@ -1,6 +1,21 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-17 — Recursive breadth clause diagnostics
+
+The canonical recursive breadth evaluator now emits a deterministic diagnostic trace for the
+root and every nested `all`/`any`/`not` clause. Each member result carries the clause path, kind,
+pass/fail/excluded status, metric, and exact exclusion code through both current and historical
+responses. The authenticated workstation renders those diagnostics in the dense breadth result
+surface and member drill-down. Backend unit/API, frontend type/build, full Vitest, and rebuilt
+authenticated Chromium breadth coverage pass. Event/benchmark-peer targets, arbitrary derived
+Python composition, and promotion fan-out remain explicit gaps; no acceptance flexibility was
+used.
+
 ## 2026-08-17 — Expanded US index/factor matrix and Nasdaq cap/equal parity
+
+This entry records the latest user-confirmed scope: the family/style matrix and Nasdaq-100
+deconstruction are required workstation perspectives, not merely backend taxonomy or optional
+selectors. The parity matrix below therefore applies to every evidenced root and leg.
 
 The top-down workstation vision now explicitly covers eight interchangeable US roots: S&P 500,
 S&P MidCap 400, S&P SmallCap 600, S&P Composite 1500, Russell 1000, Russell 2000, Russell 3000,
@@ -32,9 +47,9 @@ AND/OR groups, nested groups, and single-child NOT groups, then edit the support
 inside each node. The tree emits the canonical recursive condition AST, so the same definition
 drives current/history evaluation and retains denominator, exclusion, occurrence, and provenance
 semantics. Authenticated Chromium proves `all(any(new_high_low))`; component coverage proves the
-tree’s recursive editing and immutable updates. Per-clause diagnostics, event and benchmark/peer
-targets, arbitrary derived-Python composition, and complete promotion fan-out remain explicit
-parity gaps. No acceptance threshold or visual mask was relaxed.
+tree’s recursive editing and immutable updates. Event and benchmark/peer targets, arbitrary
+derived-Python composition, and complete promotion fan-out remain explicit parity gaps. No
+acceptance threshold or visual mask was relaxed.
 
 ## 2026-08-17 — Breadth OR/NOT composition
 

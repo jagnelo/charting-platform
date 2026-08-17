@@ -14,7 +14,7 @@ import hashlib
 import json
 import math
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime
 from typing import Any
 
@@ -27,6 +27,18 @@ class BreadthMember:
 
 
 @dataclass(frozen=True)
+class BreadthConditionDiagnostic:
+    """One clause-level explanation for a breadth member evaluation."""
+
+    path: str
+    kind: str
+    status: str
+    value: bool | None
+    metric: float | None
+    code: str | None = None
+
+
+@dataclass(frozen=True)
 class BreadthMemberResult:
     instrument_id: int
     symbol: str
@@ -35,6 +47,7 @@ class BreadthMemberResult:
     metric: float | None
     observation_time: datetime | None
     exclusion_code: str | None = None
+    diagnostics: tuple[BreadthConditionDiagnostic, ...] = ()
 
 
 def normalized_definition(definition: Mapping[str, Any]) -> dict[str, Any]:
@@ -271,6 +284,25 @@ def _is_cross_sectional(condition: Mapping[str, Any]) -> bool:
     return _target_scope(condition) == "cross_sectional"
 
 
+def _condition_requires_benchmark(condition: Mapping[str, Any]) -> bool:
+    kind = str(condition.get("kind", "")).lower()
+    params = condition.get("params", {})
+    if not isinstance(params, Mapping):
+        return False
+    if kind == "relative_strength":
+        return True
+    if kind in {"comparison", "percentile"} and str(params.get("field", "")).lower() in {
+        "relative_strength",
+        "relative_return",
+    }:
+        return True
+    children = params.get("conditions")
+    return isinstance(children, list) and any(
+        isinstance(child, Mapping) and _condition_requires_benchmark(child)
+        for child in children
+    )
+
+
 def evaluate_cross_sectional_percentile(
     members: list[BreadthMember],
     bars_by_instrument: Mapping[int, list[Any]],
@@ -299,6 +331,16 @@ def evaluate_cross_sectional_percentile(
                 metric=None,
                 observation_time=None,
                 exclusion_code="cross_sectional_unsupported_condition",
+                diagnostics=(
+                    BreadthConditionDiagnostic(
+                        path="$",
+                        kind=str(condition.get("kind", "")),
+                        status="excluded",
+                        value=None,
+                        metric=None,
+                        code="cross_sectional_unsupported_condition",
+                    ),
+                ),
             )
             for member in members
         ], {
@@ -354,6 +396,16 @@ def evaluate_cross_sectional_percentile(
                     metric=None,
                     observation_time=None,
                     exclusion_code=warning,
+                    diagnostics=(
+                        BreadthConditionDiagnostic(
+                            path="$",
+                            kind=str(condition.get("kind", "")),
+                            status="excluded",
+                            value=None,
+                            metric=None,
+                            code=warning,
+                        ),
+                    ),
                 )
             )
             continue
@@ -370,6 +422,15 @@ def evaluate_cross_sectional_percentile(
                 value=value,
                 metric=rank,
                 observation_time=getattr(bars[-1], "ts", None) if bars else None,
+                diagnostics=(
+                    BreadthConditionDiagnostic(
+                        path="$",
+                        kind=str(condition.get("kind", "")),
+                        status="pass" if value else "fail",
+                        value=value,
+                        metric=rank,
+                    ),
+                ),
             )
         )
     eligible = sum(result.value is not None for result in results)
@@ -596,6 +657,60 @@ def evaluate_condition(
     return None, None, "unsupported_condition"
 
 
+def evaluate_condition_with_diagnostics(
+    bars: list[Any],
+    condition: Mapping[str, Any],
+    *,
+    benchmark_bars: list[Any] | None = None,
+) -> tuple[bool | None, float | None, str | None, tuple[BreadthConditionDiagnostic, ...]]:
+    """Evaluate a condition and retain a deterministic trace for every clause.
+
+    The existing evaluator remains the semantic authority. This wrapper walks
+    the same immutable AST after evaluation, so diagnostics cannot change the
+    Boolean result or denominator semantics while explaining nested groups and
+    leaf outcomes to the workstation.
+    """
+
+    value, metric, exclusion = evaluate_condition(
+        bars, condition, benchmark_bars=benchmark_bars
+    )
+    diagnostics: list[BreadthConditionDiagnostic] = []
+
+    def visit(node: Mapping[str, Any], path: str) -> None:
+        node_value, node_metric, node_exclusion = evaluate_condition(
+            bars, node, benchmark_bars=benchmark_bars
+        )
+        diagnostics.append(
+            BreadthConditionDiagnostic(
+                path=path,
+                kind=str(node.get("kind", "")),
+                status=(
+                    "excluded"
+                    if node_exclusion or node_value is None
+                    else "pass"
+                    if node_value
+                    else "fail"
+                ),
+                value=node_value,
+                metric=node_metric,
+                code=node_exclusion,
+            )
+        )
+        kind = str(node.get("kind", "")).lower()
+        params = node.get("params")
+        if kind not in {"all", "any", "not"} or not isinstance(params, Mapping):
+            return
+        children = _nested_conditions(params)
+        if children is None:
+            return
+        for index, child in enumerate(children):
+            visit(child, f"{path}.conditions[{index}]")
+
+    if isinstance(condition, Mapping):
+        visit(condition, "$")
+    return value, metric, exclusion, tuple(diagnostics)
+
+
 def evaluate_breadth(
     members: list[BreadthMember],
     bars_by_instrument: Mapping[int, list[Any]],
@@ -615,7 +730,7 @@ def evaluate_breadth(
     results: list[BreadthMemberResult] = []
     for member in members:
         bars = list(bars_by_instrument.get(member.instrument_id, []))
-        value, metric, exclusion = evaluate_condition(
+        value, metric, exclusion, diagnostics = evaluate_condition_with_diagnostics(
             bars, condition, benchmark_bars=benchmark_bars
         )
         results.append(
@@ -627,6 +742,7 @@ def evaluate_breadth(
                 metric=metric,
                 observation_time=getattr(bars[-1], "ts", None) if bars else None,
                 exclusion_code=exclusion,
+                diagnostics=diagnostics,
             )
         )
     eligible = sum(result.value is not None for result in results)
@@ -691,6 +807,16 @@ def evaluate_breadth_history(
                         metric=None,
                         observation_time=None,
                         exclusion_code=exclusion,
+                        diagnostics=(
+                            BreadthConditionDiagnostic(
+                                path="$",
+                                kind=str(condition.get("kind", "")),
+                                status="excluded",
+                                value=None,
+                                metric=None,
+                                code=exclusion,
+                            ),
+                        ),
                     )
                 )
                 continue
@@ -710,11 +836,21 @@ def evaluate_breadth_history(
                 # retain the observed bars here only to preserve the strict
                 # no-forward-fill membership boundary.
                 continue
-            value, metric, exclusion = evaluate_condition(
+            value, metric, exclusion, diagnostics = evaluate_condition_with_diagnostics(
                 observed, condition, benchmark_bars=benchmark_at_timestamp
             )
-            if exclusion == "benchmark_required" and benchmark_bars is not None:
+            if (
+                benchmark_bars is not None
+                and not benchmark_at_timestamp
+                and _condition_requires_benchmark(condition)
+            ):
                 exclusion = "benchmark_missing_at_timestamp"
+                diagnostics = tuple(
+                    replace(item, code="benchmark_missing_at_timestamp")
+                    if item.code in {"benchmark_required", "insufficient_history"}
+                    else item
+                    for item in diagnostics
+                )
             member_results.append(
                 BreadthMemberResult(
                     instrument_id=member.instrument_id,
@@ -724,6 +860,7 @@ def evaluate_breadth_history(
                     metric=metric,
                     observation_time=timestamp if value is not None else None,
                     exclusion_code=exclusion,
+                    diagnostics=diagnostics,
                 )
             )
         if _is_cross_sectional(condition):

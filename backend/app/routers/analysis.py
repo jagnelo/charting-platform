@@ -62,6 +62,7 @@ from app.schemas.analysis import (
     BenchmarkFamilyRotationRoleOut,
     BenchmarkFamilyTechnicalRoleOut,
     BenchmarkFamilyTechnicalsOut,
+    BreadthConditionDiagnosticOut,
     BreadthConditionRequest,
     BreadthDefinitionHistoryOccurrenceOut,
     BreadthDefinitionHistoryOut,
@@ -6244,6 +6245,17 @@ async def evaluate_generic_breadth(
                 metric=result.metric,
                 observation_time=result.observation_time,
                 warning=warning,
+                diagnostics=[
+                    BreadthConditionDiagnosticOut(
+                        path=item.path,
+                        kind=item.kind,
+                        status=item.status,
+                        value=item.value,
+                        metric=item.metric,
+                        code=item.code,
+                    )
+                    for item in result.diagnostics
+                ],
             )
         )
     membership_version = _generic_membership_version(membership_version_payload)
@@ -6359,6 +6371,17 @@ async def evaluate_generic_breadth_history(
                     metric=result.metric,
                     observation_time=result.observation_time,
                     warning=warning,
+                    diagnostics=[
+                        BreadthConditionDiagnosticOut(
+                            path=item.path,
+                            kind=item.kind,
+                            status=item.status,
+                            value=item.value,
+                            metric=item.metric,
+                            code=item.code,
+                        )
+                        for item in result.diagnostics
+                    ],
                 )
             )
         warnings.extend(point_warnings)

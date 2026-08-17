@@ -753,6 +753,17 @@ class BreadthDefinitionRequest(BaseModel):
     benchmark: str | None = Field(default=None, max_length=80)
 
 
+class BreadthConditionDiagnosticOut(BaseModel):
+    """Structured trace entry for one breadth AST clause."""
+
+    path: str
+    kind: str
+    status: Literal["pass", "fail", "excluded"]
+    value: bool | None = None
+    metric: float | None = None
+    code: str | None = None
+
+
 class BreadthMemberResultOut(BaseModel):
     instrument_id: int
     symbol: str
@@ -761,6 +772,7 @@ class BreadthMemberResultOut(BaseModel):
     metric: float | None = None
     observation_time: datetime | None = None
     warning: AnalysisWarning | None = None
+    diagnostics: list[BreadthConditionDiagnosticOut] = Field(default_factory=list)
 
 
 class BreadthDefinitionOut(AnalysisResponseMetadata):

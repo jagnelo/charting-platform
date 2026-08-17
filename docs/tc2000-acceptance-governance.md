@@ -1,6 +1,21 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-08-17 — Recursive breadth diagnostics sub-gate
+
+Current and historical generic breadth acceptance must return a structured trace for every
+evaluated AST clause, not only an opaque aggregate exclusion. The trace records a stable recursive
+path, clause kind, pass/fail/excluded status, metric, and exact exclusion code for each member.
+The workstation exposes the trace in the dense result and member drill-down surfaces. Unit,
+database-backed API, full frontend, type/build, and rebuilt authenticated Chromium checks pass.
+Event/benchmark-peer target series, arbitrary derived-Python composition, and promotion fan-out
+remain open gates. No visual threshold, provider rule, or acceptance flexibility changed.
+
 ## 2026-08-17 — Eight-root factor/style acceptance matrix
+
+This is the user-confirmed active scope expansion. Acceptance must treat the S&P 500/400/600/1500,
+Russell 1000/2000/3000, and Nasdaq 100 perspectives as equally first-class, including any
+independently evidenced value/growth legs and Nasdaq-100 cap/equal deconstruction; it is not enough
+to prove the original SPY/RSP fixture.
 
 The top-down acceptance run must treat S&P 500, S&P MidCap 400, S&P SmallCap 600, S&P Composite
 1500, Russell 1000, Russell 2000, Russell 3000, and Nasdaq 100 as eight complete, interchangeable

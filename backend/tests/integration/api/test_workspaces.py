@@ -2355,6 +2355,13 @@ class TestWorkspaces:
         composite_payload = composite.json()
         assert composite_payload["eligible_count"] == 1
         assert composite_payload["members"][0]["value"] is True
+        assert [item["path"] for item in composite_payload["members"][0]["diagnostics"]] == [
+            "$",
+            "$.conditions[0]",
+            "$.conditions[1]",
+            "$.conditions[1].conditions[0]",
+        ]
+        assert composite_payload["members"][0]["diagnostics"][0]["status"] == "pass"
 
         bounded = client.post(
             "/api/v1/analysis/breadth",
@@ -2550,6 +2557,12 @@ class TestWorkspaces:
         assert payload["points"][-1]["eligible_count"] == 1
         assert payload["points"][-1]["coverage"] == 1
         assert payload["points"][-1]["members"][0]["value"] in {True, False}
+        assert payload["points"][-1]["members"][0]["diagnostics"][0]["path"] == "$"
+        assert payload["points"][-1]["members"][0]["diagnostics"][0]["status"] in {
+            "pass",
+            "fail",
+            "excluded",
+        }
         assert isinstance(payload["occurrences"], list)
         assert payload["definition_hash"]
         assert payload["condition_asset_key"] == "breadth-history-sma"

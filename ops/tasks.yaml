@@ -1,4 +1,31 @@
 tasks:
+  - id: tc2000-breadth-clause-diagnostics-20260817
+    title: Add structured recursive breadth clause diagnostics
+    status: completed
+    priority: high
+    scope: >-
+      Carry deterministic root and nested breadth AST diagnostics through current and historical
+      member results and render them in the authenticated workstation.
+    definition_of_done:
+      - Every evaluated clause reports stable path, kind, pass/fail/excluded status, metric, and exact exclusion code
+      - Current and historical generic breadth responses preserve the trace without changing denominator or exclusion semantics
+      - Workstation renders diagnostics in the dense result and member drill-down surfaces
+      - Unit, database-backed API, frontend type/test/build, authenticated browser, lint, compile, and diff gates pass
+      - Event/benchmark-peer targets, arbitrary derived Python composition, and promotion fan-out remain explicitly open
+    validation:
+      - breadth-unit-17-of-17
+      - generic-breadth-current-integration-1-of-1
+      - generic-breadth-history-integration-1-of-1
+      - frontend-vitest-842-of-842
+      - frontend-type-check-production-build
+      - authenticated-F8s-breadth-family-ratio-1-of-1
+      - ruff-compileall-diff-check
+    notes:
+      - >-
+        No acceptance flexibility used. The first browser rerun served a stale pre-change frontend
+        bundle and could not find the diagnostics panel; the branch-scoped stack was rebuilt and
+        the unchanged authenticated flow then passed. This was an environment/setup defect, not a
+        product criterion change.
   - id: tc2000-breadth-recursive-condition-tree-20260817
     title: Add recursive breadth condition-tree authoring
     status: completed

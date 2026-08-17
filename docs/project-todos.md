@@ -2,6 +2,11 @@
 
 ### 2026-08-17 — Expanded US index/factor and Nasdaq deconstruction vision
 
+This is the current user-confirmed expansion of the top-down vision. It is part of the active
+completion bar, not a later optional dashboard: the same workstation must support the S&P size
+families, Russell size families, their evidenced value/growth legs, and Nasdaq-100 cap/equal
+deconstruction alongside the original SPY/RSP workflow.
+
 - [ ] Treat the US analysis universe as a matrix of interchangeable roots and style legs,
       not a single SPY workflow: S&P 500, S&P MidCap 400, S&P SmallCap 600, S&P Composite 1500,
       Russell 1000, Russell 2000, Russell 3000, and Nasdaq 100. Each root must be launchable from
@@ -38,8 +43,11 @@
       coverage proves recursive add/remove/operator behavior, NOT cardinality, leaf parameter
       editing, and no mutation of the input AST. Frontend type-check, 841 Vitest tests, build,
       backend breadth 14/14, router breadth 1/1, and diff checks pass.
-- [ ] Per-clause visual diagnostics, event targets, benchmark/peer target-series authoring,
-      arbitrary derived-Python composition, and promotion fan-out remain open. The first browser
+- [x] Structured per-clause diagnostics now accompany current/history member results, including
+      recursive paths, clause kinds, pass/fail/excluded status, metrics, and exclusion codes; the
+      workstation exposes the trace in its dense diagnostics/member drill-down surface.
+- [ ] Event targets, benchmark/peer target-series authoring, arbitrary derived-Python composition,
+      and promotion fan-out remain open. The first browser
       rerun exposed a stale range-edit oracle and a fixture that inherited the prior percentile
       leaf; both were corrected with explicit value/reset assertions and the unchanged flow passed.
       No acceptance flexibility was used.
