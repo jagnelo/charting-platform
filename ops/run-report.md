@@ -28183,3 +28183,19 @@ and strict visual gaps remain explicitly tracked.
   blocker.
 - Open: provider-declared numeric fields, point-in-time market-cap/weight semantics, richer group
   statistics, complete family population, and exact V25 visual baselines.
+
+# 2026-08-17 — Provenance-aware provider numeric area checkpoint
+
+- Added `area_metric=field` over local `InstrumentStats` for the allow-listed provider fields
+  `avg_volume_30d`, `pe_ratio`, `beta`, `dividend_yield`, `week52_high`, and `week52_low`.
+  Field-level provenance is returned on each covered cell; missing, malformed, and unproven values
+  remain explicit warnings and do not size geometry.
+- Validation: Docker-backed watchlist integration `29/29`, focused Market Map `11/11`, full
+  frontend Vitest `860/860`, `vue-tsc`, production build, Ruff, compileall, and `git diff --check`.
+  Only the existing two Nautilus deprecation warnings appeared. No acceptance flexibility or visual
+  threshold/mask relaxation was used.
+- Implementation/docs commit `ab135c9b` is clean locally. The one exact push attempt was rejected
+  before Git by the private-origin safeguard; no retry/workaround. Transport-only, not a product
+  blocker.
+- Open: historical point-in-time market-cap/weight semantics, richer cross-sectional fields,
+  complete family population, and exact V25 visual baselines.

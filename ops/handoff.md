@@ -39,6 +39,22 @@ lists retain separate mutation rules.
 - Remaining gaps: provider-declared numeric fields, point-in-time market-cap/weight areas, richer
   cross-sectional group statistics, full eight-family population, and exact V25 visual approval.
 
+## 2026-08-17 — Provenance-aware provider numeric area checkpoint
+
+- Added `area_metric=field` with the allow-listed local stats fields `avg_volume_30d`, `pe_ratio`,
+  `beta`, `dividend_yield`, `week52_high`, and `week52_low`. The service never fans out to a
+  provider, requires field-level provenance, returns provenance per covered cell, and excludes
+  missing, malformed, or unproven values from tile geometry with explicit warnings.
+- Validation passed: Docker-backed watchlist integration `29/29`, focused Market Map `11/11`,
+  full frontend Vitest `860/860`, `vue-tsc`, production build, Ruff, compileall, and
+  `git diff --check`. Expected Nautilus dependency deprecation warnings only. No acceptance
+  flexibility used.
+- Implementation/docs commit `ab135c9b` is clean locally. Its one exact push attempt was rejected
+  before Git by the private-origin safeguard; no workaround, alternate transport, rewrite, reset,
+  stash, or repeat will be attempted. This is transport-only and not a product blocker.
+- Remaining gaps: historical point-in-time market-cap/weight data, richer cross-sectional fields,
+  complete eight-family population, and exact V25 visual approval.
+
 ## 2026-08-17 — WatchlistSource implementation checkpoint
 
 - Added `GET /watchlists/sources` and `GET /watchlists/sources/{source_id}`.
