@@ -28036,3 +28036,24 @@ in 4.6 minutes. No failure was suppressed or reclassified as product success.
   pending separate checkpoint commit.
 - Remaining: direct map→breadth/Study-Lab publication, durable map snapshots/cache, all map metrics,
   full provider-backed root/history population, and final board-guided visual approval.
+
+# 2026-08-17 — Market Map analysis publication checkpoint
+
+- Implemented direct Market Map publication into Breadth and Study Lab. The source-agnostic map now
+  exposes actions that preserve the canonical source ID and selected-member context, reuse or open
+  the target tool, and avoid route changes. Locked index/ETF and market-group sources remain locked;
+  selected tiles do not silently replace the full source universe. Editable-list publication remains
+  the explicit subset workflow.
+- Extended Study Lab dataset materialization to resolve `universe_source_id` through the local,
+  point-in-time `WatchlistSource` resolver, persist descriptor/membership/exclusion lineage, and
+  ignore stale manual symbols when a source declaration is present.
+- Updated project TODO, parity, acceptance-governance, and visual-parity records to close the direct
+  publication wiring gap while retaining explicit gaps for snapshots/cache, metric completeness,
+  point-in-time area weights, provider/history population, and final visual approval.
+- Validation passed: focused Market Map component `5/5`; full frontend Vitest `854/854`; frontend
+  type-check and production build; `tests/integration/api/test_code.py` `22/22`; selected
+  watchlist/workspace integration `3/3`; backend compileall; Ruff; and `git diff --check`. Expected
+  dependency deprecation warnings only. No acceptance flexibility used.
+- Commit `a30040cfae9b030e5c25216e014f7358b39a4c83 feat: publish market maps into analysis tools` was
+  created cleanly. Its one exact elevated push attempt was rejected before Git by the private-origin
+  safeguard; no retry or workaround. Ops state is now the pending separate checkpoint.

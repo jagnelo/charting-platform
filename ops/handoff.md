@@ -29771,3 +29771,34 @@ indefinite soak; longer endurance remains an explicit open gap.
 - Exact next context: implement direct map-to-breadth/Study-Lab publication using the persisted
   source ID and condition definition, then add focused interaction/browser coverage before moving to
   durable snapshots/cache.
+
+# 2026-08-17 — Market Map analysis publication checkpoint
+
+- Context scope: direct publication from `MarketMapTool` through `WorkstationToolContent` and
+  `WorkstationView`, Study Lab source-backed dataset materialization, focused regressions, and the
+  four controlling parity/TODO documents. The implementation is self-contained; no unrelated dirty
+  edits remain.
+- A selected Market Map source now offers `Open source in Breadth` and `Open source in Study Lab`.
+  The handler reuses or opens the target tool, preserves the canonical source ID, and carries the
+  selected member IDs/symbols and `publication_origin`. Breadth treats the source as a locked or
+  editable watchlist universe through the existing source selector; Study Lab sends
+  `universe_source_id` to the backend. The full source remains authoritative; selected tiles are
+  context metadata and the existing editable-list action remains the subset path.
+- The research router resolves source-backed Study Lab datasets through the local point-in-time
+  watchlist resolver, records descriptor/membership/exclusion lineage, and ignores stale manual
+  symbols when a source is declared. No provider fan-out was added.
+- Validation: focused Market Map component `5/5`; full frontend Vitest `854/854`; `vue-tsc`;
+  production build; research integration `22/22`; source/map/breadth integration `3/3`; backend
+  compileall; Ruff; and `git diff --check`. Expected dependency deprecation warnings only. No
+  acceptance flexibility used.
+- Implementation/docs commit `a30040cfae9b030e5c25216e014f7358b39a4c83` is clean locally. The one
+  required exact push to `origin/feat/tc2000-frontend-rework` was rejected before Git by the
+  private-origin safeguard because trusted authorization for this exact private payload and
+  destination was unavailable. No retry, alternate transport, rewrite, reset, stash, or workaround
+  will be attempted; this is transport-only and not a product-goal blocker.
+- Remaining gaps: durable map snapshots/cache, all requested map area/colour metrics (including
+  Python/breadth outputs and point-in-time weights), complete provider-backed root/history
+  population, browser publication acceptance, and final board-guided visual approval. These remain
+  explicitly tracked and were not silently waived.
+- Exact next context: durable Market Map snapshots/cache and the remaining metric matrix, starting
+  with a clean synchronized-boundary check and no mixed worktree.
