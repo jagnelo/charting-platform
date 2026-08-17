@@ -28500,3 +28500,19 @@ and strict visual gaps remain explicitly tracked.
   transport by the execution policy; no workaround or retry was attempted.
 - Implementation commit `dd2e9374` is clean locally. Cross-sectional derived relationships,
   promotion fan-out, full family/provider population, exact V25 evidence, and final audit remain.
+
+# 2026-08-18 — Cross-sectional Python series-comparison checkpoint
+
+- Implemented cross-sectional scope for the recursive `python_series_comparison` leaf. The
+  isolated runner derives each member's difference or ratio-minus-one first, then applies one
+  transparent same-timestamp group statistic and evaluates the member-minus-group threshold.
+  Member scope remains backward compatible; the API and editor persist scope/statistic metadata.
+- Validation passed: runner `8/8`; API integration `1/1`; backend unit `1202/1202`; editor `9/9`;
+  full Vitest `872/872`; `vue-tsc`; Vite build; rebuilt Playwright comparison `1/1`; unchanged
+  Python-series/tree neighbors `2/2`; Ruff; compileall; YAML/JSON; and diff-check.
+- No acceptance flexibility was used. The exact push attempt for implementation commit
+  `20e2809d` was rejected before Git transport by the private-origin safeguard and will not be
+  retried or worked around.
+- Implementation commit `20e2809d` is clean locally. Open capability gaps remain richer chained
+  derived-series composition, universal promotion fan-out, full family/provider population,
+  exact V25 visual coverage, and the final acceptance audit.

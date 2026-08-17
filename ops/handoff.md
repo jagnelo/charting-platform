@@ -30350,3 +30350,25 @@ indefinite soak; longer endurance remains an explicit open gap.
   Remaining gaps are cross-sectional-to-derived relationships, universal promotion fan-out,
   complete family/provider population, exact V25 visual evidence, and the final audit.
 - Next context: promotion fan-out and cross-sectional derived-series relationships.
+
+# 2026-08-18 — Cross-sectional Python series-comparison checkpoint
+
+- Extended `python_series_comparison` so a recursive breadth leaf can run in either member or
+  cross-sectional scope. The isolated runner derives difference or ratio-minus-one independently
+  for each member, applies a same-timestamp mean/median/min/max/population-standard-deviation
+  statistic, and evaluates the member-minus-group result.
+- API validation, visual scope/statistic controls, current/history persistence, and universal
+  WatchlistSource behavior retain ownership, alignment, exclusion, and no-provider-fan-out rules.
+- Validation passed: runner `8/8`; API `1/1`; backend unit `1202/1202`; frontend editor `9/9`;
+  full Vitest `872/872`; type-check/build; rebuilt browser comparison `1/1`; unchanged Python
+  series/tree browser neighbors `2/2`; Ruff; compileall; YAML/JSON parsing; and diff-check.
+- No acceptance flexibility, visual threshold, mask, provider, scope, or lineage rule was
+  relaxed. The branch stack was rebuilt before browser validation. The exact push attempt for
+  implementation commit `20e2809d` was rejected before Git transport by the private-origin
+  execution safeguard; no workaround or retry was attempted. This is transport-only and not a
+  product blocker.
+- Implementation commit `20e2809d` is clean locally. Remaining gaps are richer multi-stage
+  cross-sectional derived composition, promotion fan-out, complete family/provider population,
+  exact V25 visual evidence, and the final functional/visual/security/performance audit.
+- Next context: promote unified Python results across compatible targets and extend derived-series
+  composition without introducing a second language or a member-only fallback.

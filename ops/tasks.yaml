@@ -11395,3 +11395,37 @@ tasks:
         neighbors then passed. Direct member-level comparison is implemented; cross-sectional
         derived relationships, universal promotion fan-out, complete family/provider population,
         and final V25 visual acceptance remain tracked gaps.
+  - id: tc2000-python-cross-sectional-comparison-20260818
+    title: Aggregate two isolated Python series comparisons cross-sectionally
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Extend python_series_comparison so any canonical WatchlistSource can compare two owned
+      numeric-series outputs per member, then apply a same-timestamp group statistic and evaluate
+      the member-minus-group result in the recursive breadth tree. Preserve member scope,
+      current/history alignment, exclusions, metrics, and isolated execution.
+    definition_of_done:
+      - API validates member or cross-sectional comparison scope and the declared statistic
+      - Runner derives difference or ratio-minus-one per member before mean, median, min, max, or population std aggregation
+      - Cross-sectional comparison results preserve member-minus-group metrics and explicit errors
+      - Visual editor exposes scope and statistic without changing existing member comparison behavior
+      - Current/history jobs and universal locked/editable WatchlistSources retain their existing contracts
+      - Richer multi-stage derived composition and promotion fan-out remain explicit next gaps
+    validation:
+      - runner-python-series-comparison-8-of-8
+      - api-python-cross-sectional-comparison-1-of-1
+      - backend-unit-1202-of-1202
+      - frontend-editor-comparison-9-of-9
+      - frontend-vitest-872-of-872
+      - frontend-typecheck-build
+      - rebuilt-browser-python-comparison-1-of-1
+      - rebuilt-browser-python-neighbor-regression-2-of-2
+      - ruff-compileall-diff-check
+    notes:
+      - >-
+        No acceptance flexibility was used. The stack was rebuilt from the current branch; focused
+        browser comparison plus unchanged series/tree neighbors passed. The implementation is
+        intentionally limited to one two-series derivation followed by one transparent group
+        statistic; richer chaining, promotion fan-out, full family/provider population, and final
+        V25 visual acceptance remain tracked gaps.
