@@ -28572,3 +28572,5 @@ and strict visual gaps remain explicitly tracked.
 - No acceptance flexibility. An outdated cache-count assertion was corrected after the new
   request correctly produced a second cache entry. Point-in-time weights, provider-backed root
   population, remaining map metrics, exact V25 visual coverage, and final audit remain open.
+- The exact push attempt for the clean `066d92d4..9e7cf84c` range was rejected before Git
+  transport by the private-origin safeguard; no workaround or repeat was attempted.

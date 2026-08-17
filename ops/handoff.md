@@ -30451,3 +30451,6 @@ indefinite soak; longer endurance remains an explicit open gap.
   after two distinct period requests; it was corrected at the test boundary and the unchanged
   oracle passed. Point-in-time weights, full root population, remaining metrics, exact V25 visual
   approval, and final audit remain open.
+- Git transport: the single exact push attempt for `066d92d4..9e7cf84c` was rejected before Git
+  transport by the private-origin safeguard. No workaround, alternate transport, or retry was
+  used; this is transport-only and not a product blocker.
