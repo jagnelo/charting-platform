@@ -11060,3 +11060,29 @@ tasks:
       - >-
         Implementation/docs commit f2d65c7b is clean locally; its one exact push attempt was
         rejected before Git by the private-origin safeguard. No acceptance flexibility was used.
+  - id: tc2000-market-map-definition-20260817
+    title: Save Market Map breadth conditions as immutable Study Lab definitions
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Create a reusable immutable Study Lab asset directly from the current Market Map breadth
+      condition and canonical source configuration.
+    definition_of_done:
+      - Breadth mode exposes a named Save as Study Lab definition action
+      - The generated code asset preserves the nested condition tree and canonical source ID
+      - Period, timeframe, and adjustment defaults are retained in the immutable version
+      - Generated Python uses the shared research.breadth_condition contract and structured outputs
+      - Backend and frontend regression coverage validates the persisted contract
+      - Promotion fan-out to columns, filters, scans, alerts, gauges, plots, and Strategy Lab stays
+        explicitly tracked as a separate open gate
+    validation:
+      - market-map-component-15-of-15
+      - frontend-vitest-867-of-867
+      - frontend-typecheck-build
+      - backend-code-asset-contract-1-of-1
+      - git-diff-check
+    notes:
+      - >-
+        Implementation/docs commit 8609057f is clean locally. Its one exact push attempt was
+        rejected before Git by the private-origin safeguard; no acceptance flexibility was used.

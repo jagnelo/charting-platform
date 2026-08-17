@@ -30120,3 +30120,22 @@ indefinite soak; longer endurance remains an explicit open gap.
 - Open: immutable definition creation/versioning from map configuration, promotion fan-out,
   point-in-time weights, complete family population, provider breadth, exact V25 action-row
   geometry, and final audit gates.
+
+# 2026-08-17 — Market Map reusable definition checkpoint
+
+- Added a direct “Save as Study Lab definition” action for breadth-coloured Market Maps. It creates
+  an immutable `kind: study` code asset through `/code/assets`, preserving the current nested
+  condition tree, canonical source ID, period, D1 timeframe, split-adjusted mode, and generated
+  Python source for current/history percentage, member, exclusion, and historical outputs.
+- Validation passed: focused Market Map component `15/15`, full frontend Vitest `867/867`,
+  `vue-tsc`, production build, backend Docker-backed API contract `1/1`, and `git diff --check`.
+  The first component run exposed a missing QueryClient test fixture and the first backend run hit
+  the known Docker-socket permission boundary; both were corrected at their owning setup boundary
+  and the unchanged authoritative reruns passed. No acceptance flexibility or visual threshold/mask
+  relaxation was used.
+- Implementation/docs commit `8609057f` is clean locally. Its one exact push attempt was rejected
+  before Git by the private-origin safeguard; no retry, workaround, alternate transport, rewrite,
+  reset, or stash will be attempted. This is transport-only and not a product blocker.
+- Open: promotion fan-out into columns/filters/scans/alerts/gauges/plots/Strategy Lab, point-in-time
+  weights, complete index-family population, provider breadth, exact V25 action-row geometry, and
+  final functional/visual/security/performance audit gates.

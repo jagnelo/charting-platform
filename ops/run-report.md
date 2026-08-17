@@ -28315,3 +28315,19 @@ and strict visual gaps remain explicitly tracked.
   was not retried or worked around.
 - Remaining gaps: immutable definition creation/versioning, promotion fan-out, point-in-time
   weights, family population, provider breadth, exact V25 action-row geometry, and final audit.
+
+# 2026-08-17 — Market Map reusable definition checkpoint
+
+- Market Map breadth mode now saves the current condition/configuration as an immutable Study Lab
+  code asset. The generated source uses the shared `research.breadth_condition` contract for
+  current/history metrics, percentage series, member rows, exclusion rows, and historical points;
+  defaults retain the condition tree, canonical source ID, period, D1 timeframe, and split-adjusted
+  mode.
+- Validation: focused Market Map `15/15`; full frontend Vitest `867/867`; `vue-tsc`; production
+  build; Docker-backed backend API contract `1/1`; and `git diff --check`. The missing QueryClient
+  fixture and unprivileged Docker-socket setup failures were fixed/superseded before unchanged
+  authoritative reruns. No acceptance flexibility or visual threshold/mask relaxation was used.
+- Commit `8609057f feat: save market map breadth definitions` is clean locally. One exact push was
+  rejected before Git by the private-origin safeguard; no retry or workaround. Remaining gaps are
+  promotion fan-out, point-in-time weights, family/provider population, exact V25 action geometry,
+  and final audit.
