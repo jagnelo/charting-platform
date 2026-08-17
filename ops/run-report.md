@@ -28592,3 +28592,23 @@ and strict visual gaps remain explicitly tracked.
 - Remaining open goal gaps: point-in-time market-cap/weight semantics, complete family/provider
   population, exact/unrepresented V25 visual evidence, and final functional/visual/security/
   performance/migration/end-to-end audit.
+
+# 2026-08-19 — Market Map area-provenance checkpoint
+
+- Implemented per-cell area provenance across the universal Market Map. Equal-derived areas,
+  isolated Python values, point-in-time membership weights, local volume, provider numeric fields,
+  and current market-cap metadata now identify their derivation and lineage. Current market-cap
+  explicitly states that it is not point-in-time and keeps the existing warning.
+- Validation passed: complete `tests/integration/api/test_watchlists.py` `31/31`, focused locked/
+  personal map cases `2/2`, Ruff, compileall, YAML/JSON parsing, and `git diff --check`.
+- Fix-first/environment note: the initial default-cache run used Python 3.9 from the repository
+  root and was corrected by invoking the backend project with its Python 3.12 environment and an
+  isolated uv cache. The first backend attempt then hit Docker-socket permissions; the unchanged
+  approved run passed. No acceptance flexibility, visual threshold, mask, or provenance rule was
+  relaxed.
+- Implementation/docs commit `91b13cb3` is clean locally. The single exact push attempt was
+  rejected before Git transport by the private-origin safeguard; no workaround or retry was used.
+  This transport hold does not block continued product work.
+- Remaining gaps: historical market-cap/weight reconstruction, complete family/provider population,
+  exact/unrepresented V25 visual evidence, and final functional/visual/security/performance/
+  migration/end-to-end audit.

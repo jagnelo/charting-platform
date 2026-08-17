@@ -30477,3 +30477,23 @@ indefinite soak; longer endurance remains an explicit open gap.
   performance/migration audit.
 - Next context: continue the unified Python promotion fan-out/derived-series work from a clean
   operational boundary.
+
+# 2026-08-19 — Market Map area-provenance checkpoint
+
+- Added explicit `area_provenance` for every covered area metric: equal-derived sizing identifies
+  its method/source membership version; isolated Python sizing identifies run/output contract;
+  point-in-time source weights retain source/effective-at/known-at/membership lineage; local volume
+  identifies its observed bar; provider numeric fields retain existing field provenance; and
+  current market-cap metadata states `point_in_time: false`.
+- Locked market-group and personal-watchlist sources continue to use the same map contract. Current
+  market-cap remains explicitly warned as non-point-in-time; historical market-cap/weight
+  reconstruction is still open.
+- Validation passed: complete watchlists integration `31/31` (including focused personal and locked
+  source cases), Ruff, compileall, YAML/JSON parsing, and `git diff --check`.
+- No acceptance flexibility was used. The initial unprivileged Docker run and default uv-cache
+  access were setup/environment boundaries; unchanged reruns with approved Docker access and an
+  isolated cache passed. No product, visual, provenance, or scope criterion changed.
+- Implementation/docs commit `91b13cb3` is clean locally. Its single exact push attempt was
+  rejected before Git transport by the private-origin safeguard. No workaround or retry was used;
+  transport remains operational-only and is not a product blocker. Operational checkpoint pending.
+- Next context: continue unified Python promotion fan-out and richer derived-series composition.

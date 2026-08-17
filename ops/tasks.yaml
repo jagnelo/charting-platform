@@ -11595,3 +11595,35 @@ tasks:
         Implementation/docs commit 119c81d1 is clean locally. The single exact push attempt was rejected
         before Git transport by the private-origin safeguard; no workaround or retry was used. This is
         transport-only and does not block the product goal.
+  - id: tc2000-market-map-area-provenance-20260819
+    title: Expose explicit provenance for Market Map area sizing
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Make area sizing semantics inspectable for every universal Market Map source. Return lineage
+      for equal-derived areas, isolated Python outputs, point-in-time membership weights, local
+      volume bars, provider numeric fields, and current market-cap metadata, while retaining an
+      explicit non-point-in-time warning for current market-cap values.
+    definition_of_done:
+      - Covered cells expose area_provenance appropriate to the selected area metric
+      - Point-in-time source weights retain source, effective-at, known-at, and membership lineage
+      - Equal and Python area derivations identify their method or isolated run
+      - Volume identifies the local observation bar and market-cap metadata states point_in_time false
+      - Locked and personal source integration coverage passes with no provider fan-out
+      - Remaining historical market-cap/weight reconstruction stays explicitly open
+    validation:
+      - market-map-watchlists-integration-31-of-31
+      - market-map-focused-2-of-2
+      - ruff-compileall-diff-check
+      - yaml-json-diff-check
+    notes:
+      - >-
+        No acceptance flexibility was used. The first unprivileged integration run was blocked by
+        the Docker socket permission boundary; the unchanged run with approved Docker access passed
+        2/2, then the complete watchlists integration file passed 31/31. The default uv cache also
+        required the existing isolated-cache workaround; neither was a product-oracle relaxation.
+      - >-
+        Implementation/docs commit 91b13cb3 is clean locally. The single exact push attempt was
+        rejected before Git transport by the private-origin safeguard; no workaround or retry was
+        used. This is transport-only and does not block the product goal.
