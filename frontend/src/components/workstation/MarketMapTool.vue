@@ -29,11 +29,30 @@
       </label>
       <label>Colour
         <select v-model="colorMetric" aria-label="Market Map colour metric">
-          <option value="return">Return</option><option value="relative_return">Relative return</option><option value="rsi_14">RSI(14)</option><option value="relative_volume">Relative volume</option><option value="distance_52w_high">Distance to 52W high</option><option value="distance_52w_low">Distance to 52W low</option>
+          <option value="return">Return</option><option value="relative_return">Relative return</option><option value="breadth">Breadth condition</option><option value="rsi_14">RSI(14)</option><option value="relative_volume">Relative volume</option><option value="distance_52w_high">Distance to 52W high</option><option value="distance_52w_low">Distance to 52W low</option>
         </select>
       </label>
-      <label v-if="colorMetric === 'relative_return'">Reference
+      <label v-if="colorMetric === 'relative_return' || (colorMetric === 'breadth' && breadthConditionKind === 'relative_strength')">Reference
         <input v-model="referenceSymbol" aria-label="Market Map relative-return reference" placeholder="SPY" maxlength="20" />
+      </label>
+      <label v-if="colorMetric === 'breadth'">Condition
+        <select v-model="breadthConditionKind" aria-label="Market Map breadth condition">
+          <option value="above_moving_average">Above moving average</option>
+          <option value="within_52_week_high">Within 52-week high</option>
+          <option value="new_high_low">New high/low</option>
+          <option value="rsi">RSI threshold</option>
+          <option value="volume_ratio">Volume ratio</option>
+          <option value="relative_strength">Relative strength</option>
+        </select>
+      </label>
+      <label v-if="colorMetric === 'breadth' && breadthConditionKind === 'above_moving_average'">Period
+        <input v-model.number="breadthConditionPeriod" aria-label="Market Map breadth moving average period" type="number" min="2" max="252" />
+      </label>
+      <label v-if="colorMetric === 'breadth' && breadthConditionKind === 'within_52_week_high'">Within %
+        <input v-model.number="breadthConditionThreshold" aria-label="Market Map breadth extreme threshold" type="number" min="0" max="1" step="0.001" />
+      </label>
+      <label v-if="colorMetric === 'breadth' && (breadthConditionKind === 'rsi' || breadthConditionKind === 'volume_ratio')">Threshold
+        <input v-model.number="breadthConditionThreshold" aria-label="Market Map breadth threshold" type="number" step="0.01" />
       </label>
       <button type="button" class="market-map-tool__run" :disabled="loading || !sourceId" @click="run">{{ loading ? 'Loading…' : 'Refresh' }}</button>
       <label>Snapshot
@@ -118,6 +137,9 @@ const period = ref(String(props.configuration.period ?? '1D'))
 const areaMetric = ref<MarketMapAreaMetric>((props.configuration.area_metric as MarketMapAreaMetric) ?? 'market_cap')
 const colorMetric = ref<MarketMapColorMetric>((props.configuration.color_metric as MarketMapColorMetric) ?? 'return')
 const referenceSymbol = ref(String(props.configuration.reference_symbol ?? ''))
+const breadthConditionKind = ref(String(props.configuration.breadth_condition_kind ?? 'above_moving_average'))
+const breadthConditionPeriod = ref(Number(props.configuration.breadth_condition_period ?? 200))
+const breadthConditionThreshold = ref(Number(props.configuration.breadth_condition_threshold ?? 0.01))
 const periods = ['1D', '1W', 'MTD', 'YTD', '1M', '3M', '6M', '1Y']
 const loading = ref(false)
 const error = ref('')
@@ -185,6 +207,15 @@ const visibleCells = computed(() => {
   return map.value.cells.filter(cell => path.every((part, index) => cell.group_path[index] === part))
 })
 const visibleLayoutCells = computed<MarketMapLayoutCell[]>(() => layoutMarketMapCells(visibleCells.value))
+const breadthCondition = computed<Record<string, unknown> | null>(() => {
+  if (colorMetric.value !== 'breadth') return null
+  if (breadthConditionKind.value === 'above_moving_average') return { kind: 'above_moving_average', params: { period: breadthConditionPeriod.value, average: 'sma', comparator: 'above' } }
+  if (breadthConditionKind.value === 'within_52_week_high') return { kind: 'within_52_week_high', params: { lookback: 252, threshold: breadthConditionThreshold.value, direction: 'high' } }
+  if (breadthConditionKind.value === 'new_high_low') return { kind: 'new_high_low', params: { lookback: breadthConditionPeriod.value, direction: 'high' } }
+  if (breadthConditionKind.value === 'rsi') return { kind: 'rsi', params: { period: 14, operator: 'gte', threshold: breadthConditionThreshold.value } }
+  if (breadthConditionKind.value === 'volume_ratio') return { kind: 'volume_ratio', params: { period: 50, operator: 'gte', threshold: breadthConditionThreshold.value } }
+  return { kind: 'relative_strength', params: { lookback: breadthConditionPeriod.value, operator: 'gte', threshold: 0 } }
+})
 const colorLabel = computed(() => colorMetric.value.replace(/_/g, ' '))
 const canvasStyle = computed(() => ({ transform: `translate(${panX.value}%, ${panY.value}%) scale(${viewportZoom.value})` }))
 
@@ -333,7 +364,7 @@ async function run() {
   loading.value = true
   error.value = ''
   try {
-    map.value = await fetchMarketMap({ source_id: sourceId.value, group_by: groupBy.value, period: period.value, area_metric: areaMetric.value, color_metric: colorMetric.value, reference_symbol: colorMetric.value === 'relative_return' ? referenceSymbol.value.toUpperCase() : null, timeframe: 'D1', adjusted: true })
+    map.value = await fetchMarketMap({ source_id: sourceId.value, group_by: groupBy.value, period: period.value, area_metric: areaMetric.value, color_metric: colorMetric.value, condition: breadthCondition.value, reference_symbol: colorMetric.value === 'relative_return' || (colorMetric.value === 'breadth' && breadthConditionKind.value === 'relative_strength') ? referenceSymbol.value.toUpperCase() : null, timeframe: 'D1', adjusted: true })
     snapshotSelectionId.value = ''
     activeSnapshotName.value = ''
     selectedNode.value = null
@@ -346,9 +377,9 @@ async function run() {
   }
 }
 function persist() {
-  emit('configuration', { ...props.configuration, source_id: sourceId.value, group_by: groupBy.value, period: period.value, area_metric: areaMetric.value, color_metric: colorMetric.value, reference_symbol: referenceSymbol.value })
+  emit('configuration', { ...props.configuration, source_id: sourceId.value, group_by: groupBy.value, period: period.value, area_metric: areaMetric.value, color_metric: colorMetric.value, condition: breadthCondition.value, breadth_condition_kind: breadthConditionKind.value, breadth_condition_period: breadthConditionPeriod.value, breadth_condition_threshold: breadthConditionThreshold.value, reference_symbol: referenceSymbol.value })
 }
-watch([sourceId, groupBy, period, areaMetric, colorMetric, referenceSymbol], persist)
+watch([sourceId, groupBy, period, areaMetric, colorMetric, referenceSymbol, breadthConditionKind, breadthConditionPeriod, breadthConditionThreshold], persist)
 watch(sourceId, () => {
   if (skipNextSourceRun.value) {
     skipNextSourceRun.value = false

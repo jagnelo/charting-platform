@@ -25,8 +25,10 @@ fixture coverage proves that a personal source can produce sector/industry nodes
 weighted tiles from local bars and metadata, while missing bars remain visible as cell warnings.
 The complete response is persisted by a user-isolated cache identity containing request semantics,
 membership version, member IDs, and local bar watermarks; repeated requests and the explicit cache
-restore route return the persisted result without provider fan-out. This is not visual acceptance:
-named snapshots, all requested periods/metrics, Python/breadth colour outputs, point-in-time
+restore route return the persisted result without provider fan-out. Built-in breadth predicate
+colour output now uses the shared condition evaluator and retains pass/fail tile values, condition
+metrics, exact exclusions, and the serialized condition definition. This is not visual acceptance:
+named snapshots, all requested periods/metrics, isolated Python colour outputs, point-in-time
 market-cap area, the renderer, and complete historical population remain explicit open gates. No
 acceptance flexibility was used for this slice.
 

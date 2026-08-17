@@ -186,6 +186,71 @@ class TestWatchlistsCrud:
         )
         assert response.status_code == 422
 
+    def test_market_map_colours_tiles_by_reusable_breadth_condition(
+        self, client, auth_headers, db, watchlist, instrument, instrument_b
+    ):
+        from app.models.ohlcv import OHLCVBar, Timeframe
+        from app.models.watchlist import WatchlistItem
+
+        watchlist.items.extend(
+            [
+                WatchlistItem(instrument_id=instrument.id, position=0),
+                WatchlistItem(instrument_id=instrument_b.id, position=1),
+            ]
+        )
+        base = datetime(2024, 1, 1, tzinfo=UTC)
+        for offset, price in enumerate((100, 101, 102, 103, 104, 105)):
+            for member, multiplier in ((instrument, 1), (instrument_b, 2)):
+                db.add(
+                    OHLCVBar(
+                        instrument_id=member.id,
+                        timeframe=Timeframe.D1,
+                        ts=base + timedelta(days=offset),
+                        open=price * multiplier,
+                        high=price * multiplier + 1,
+                        low=price * multiplier - 1,
+                        close=price * multiplier,
+                        volume=1_000_000,
+                        is_adjusted=True,
+                    )
+                )
+        db.flush()
+
+        response = client.post(
+            "/api/v1/analysis/market-map",
+            headers=auth_headers,
+            json={
+                "source_id": f"watchlist:{watchlist.id}",
+                "group_by": "none",
+                "period": "1D",
+                "area_metric": "equal",
+                "color_metric": "breadth",
+                "condition": {
+                    "kind": "above_moving_average",
+                    "params": {"period": 3, "average": "sma", "comparator": "above"},
+                },
+                "end": "2024-01-06T00:00:00Z",
+            },
+        )
+
+        assert response.status_code == 200, response.text
+        body = response.json()
+        assert body["color_metric"] == "breadth"
+        assert body["condition"]["kind"] == "above_moving_average"
+        assert {cell["condition_value"] for cell in body["cells"]} == {True}
+        assert all(cell["condition_metric"] > 0 for cell in body["cells"])
+        assert all(cell["color_value"] > 0 for cell in body["cells"])
+
+        missing_condition = client.post(
+            "/api/v1/analysis/market-map",
+            headers=auth_headers,
+            json={
+                "source_id": f"watchlist:{watchlist.id}",
+                "color_metric": "breadth",
+            },
+        )
+        assert missing_condition.status_code == 422
+
     def test_sources_unify_personal_and_locked_index_universes(
         self, client, auth_headers, db, watchlist, instrument
     ):

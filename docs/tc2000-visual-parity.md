@@ -12,8 +12,9 @@ interim oracle.
 
 The backend now exposes the first data contract needed to drive that board-guided surface at
 `POST /analysis/market-map`. It is not a visual baseline and does not close the board gaps: nested
-treemap navigation, zoom/pan, map publication beyond linked-symbol selection, Python/breadth colour
-state, or point-in-time market-cap area visual has not been accepted yet. Durable result caching
+treemap navigation, zoom/pan, map publication beyond linked-symbol selection, isolated Python
+colour state, or point-in-time market-cap area visual has not been accepted yet. Built-in breadth
+predicate controls now have a deterministic interim component oracle. Durable result caching
 and named snapshot controls now have deterministic interim component oracles, but neither
 persistence contract is a substitute for exact-build visual evidence. These remain tracked gaps
 rather than silently inferred from the Finviz references.
@@ -39,6 +40,19 @@ The visual reference board has no authoritative Version 25 capture for this exac
 control composition. Therefore it is accepted only as a documented interim functional oracle;
 the missing exact-build geometry, typography, and interaction state remain in the gap ledger and
 must be superseded by a stronger reference before strict visual approval.
+
+## 2026-08-17 — Breadth predicate colour-map visual state
+
+The interim Market Map oracle now covers the represented built-in breadth colour state: condition
+selector, condition parameters, optional canonical reference symbol, pass/fail tile colouring,
+underlying condition metric, coverage, and exclusion status. This is board-guided functional
+evidence for the same dense source-agnostic map surface used by personal, managed, combo, and
+locked index/ETF watchlists.
+
+The reference board does not contain authoritative exact-build captures for this condition-editor
+composition. Isolated Python colour assets, event/peer/group-derived map predicates, custom numeric
+area fields, point-in-time market-cap area, and their exact Version 25 geometry remain explicit
+gap-ledger entries rather than being treated as visually accepted.
 
 ## 2026-08-17 — Family/style analysis visual states (latest requirement)
 

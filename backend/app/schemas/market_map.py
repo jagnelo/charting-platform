@@ -12,6 +12,7 @@ MarketMapAreaMetric = Literal["equal", "market_cap", "weight", "volume"]
 MarketMapColorMetric = Literal[
     "return",
     "relative_return",
+    "breadth",
     "rsi_14",
     "relative_volume",
     "distance_52w_high",
@@ -31,6 +32,7 @@ class MarketMapRequest(BaseModel):
     adjusted: bool = True
     area_metric: MarketMapAreaMetric = "market_cap"
     color_metric: MarketMapColorMetric = "return"
+    condition: dict[str, object] | None = None
     reference_symbol: str | None = Field(default=None, max_length=80)
     as_of: datetime | None = None
     limit: int = Field(default=10_000, ge=1, le=50_000)
@@ -46,6 +48,8 @@ class MarketMapRequest(BaseModel):
             raise ValueError("start must be before end")
         if self.color_metric == "relative_return" and not self.reference_symbol:
             raise ValueError("relative_return requires reference_symbol")
+        if self.color_metric == "breadth" and not self.condition:
+            raise ValueError("breadth requires condition")
         return self
 
 
@@ -66,6 +70,8 @@ class MarketMapCell(BaseModel):
     area_value: float | None = None
     color_value: float | None = None
     return_value: float | None = None
+    condition_value: bool | None = None
+    condition_metric: float | None = None
     observation_time: datetime | None = None
     coverage: float = Field(ge=0, le=1)
     warnings: list[MarketMapWarning] = Field(default_factory=list)
@@ -96,6 +102,7 @@ class MarketMapOut(BaseModel):
     adjustment: str
     area_metric: MarketMapAreaMetric
     color_metric: MarketMapColorMetric
+    condition: dict[str, object] | None = None
     reference_symbol: str | None = None
     membership_version: str | None = None
     calculation_version: str = "market-map-v1"

@@ -132,4 +132,24 @@ describe('MarketMapTool', () => {
     expect(wrapper.text()).toContain('Snapshot · Morning leaders')
     expect(wrapper.get('[aria-label="Market Map snapshot"]').element.value).toBe('12')
   })
+
+  it('authors a breadth condition and sends it as the map colour definition', async () => {
+    apiPost.mockImplementation((path: string, body?: Record<string, unknown>) => {
+      if (path === '/analysis/market-map') return Promise.resolve({ ...response, color_metric: body?.color_metric, condition: body?.condition })
+      return Promise.resolve([])
+    })
+    const wrapper = mount(MarketMapTool, { props: { configuration: { source_id: 'market-group:sp500' } } })
+    await flushPromises()
+
+    await wrapper.get('select[aria-label="Market Map colour metric"]').setValue('breadth')
+    await wrapper.get('input[aria-label="Market Map breadth moving average period"]').setValue('3')
+    await wrapper.get('.market-map-tool__run').trigger('click')
+    await flushPromises()
+
+    const request = apiPost.mock.calls.map(call => call[1]).find(body => body?.color_metric === 'breadth')
+    expect(request).toEqual(expect.objectContaining({
+      color_metric: 'breadth',
+      condition: { kind: 'above_moving_average', params: { period: 3, average: 'sma', comparator: 'above' } },
+    }))
+  })
 })

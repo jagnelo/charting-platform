@@ -33,8 +33,9 @@ batch, rollup, period, and interaction gates pass.
 The first local batch map implementation now exists at `POST /analysis/market-map`. It accepts the
 same source IDs, calculates independent area and colour values from persisted bars/metadata, and
 returns cells plus sector/industry nodes with coverage, weighting, freshness, cache identity, and
-warnings. It is intentionally a backend enabling slice: named snapshots, Python/breadth colour
-assets, historical market-cap weights, and the treemap renderer are not claimed complete. The
+warnings. Built-in breadth predicates now reuse the canonical condition evaluator and return both
+the pass/fail tile colour and underlying condition metric; isolated Python colour assets and
+historical market-cap weights remain open. The
 workstation now supplies the map-to-tool publication layer and a durable source-aware cache on top
 of this contract; identical requests can be restored by cache key without provider fan-out. A
 current market-cap area warning is still returned instead of implying point-in-time truth.
@@ -7436,3 +7437,16 @@ This closes the named-snapshot persistence contract only. All requested map peri
 modes, Python/breadth outputs, point-in-time market-cap weights, complete provider-backed root
 population, and board-guided visual approval remain explicit gaps; direct map-to-breadth/Study-Lab
 publication is already covered by the preceding workstation slice.
+
+## 2026-08-17 — Breadth predicate colour maps
+
+`POST /analysis/market-map` now accepts `color_metric=breadth` plus the existing versioned breadth
+condition AST. Each tile retains `condition_value`, `condition_metric`, exact exclusion codes,
+coverage, observation time, and the condition definition; node rollups use the same area-weighted
+aggregation contract as other colour modes. The workstation exposes the built-in moving-average,
+52-week proximity, new-high, RSI, volume-ratio, and relative-strength condition controls, with
+relative-strength using the canonical reference-symbol bars.
+
+This closes built-in predicate colour maps for arbitrary watchlist sources, not isolated Python
+colour assets, event/peer/group-derived map predicates, custom numeric area fields, point-in-time
+market-cap area, full root population, or strict board-guided visual approval.

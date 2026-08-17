@@ -21,6 +21,7 @@ from app.schemas.market_map import (
     MarketMapRequest,
     MarketMapWarning,
 )
+from app.services.breadth import evaluate_condition
 from app.services.watchlist_sources import resolve_watchlist_source
 
 _OFFSETS = {"1D": 1, "1W": 5, "1M": 21, "3M": 63, "6M": 126, "1Y": 252}
@@ -96,27 +97,40 @@ def _rsi(bars: list[OHLCVBar]):
     return 100.0 if loss == 0 else 100.0 - 100.0 / (1.0 + gain / loss)
 
 
-def _colour(request: MarketMapRequest, bars: list[OHLCVBar], return_value: float | None):
+def _colour(
+    request: MarketMapRequest,
+    bars: list[OHLCVBar],
+    return_value: float | None,
+    *,
+    reference_bars: list[OHLCVBar] | None = None,
+) -> tuple[float | None, str | None, bool | None, float | None]:
     metric = request.color_metric
     if metric in {"return", "relative_return"}:
-        return return_value, None
+        return return_value, None, None, None
+    if metric == "breadth":
+        value, condition_metric, warning = evaluate_condition(
+            bars,
+            request.condition or {},
+            benchmark_bars=reference_bars,
+        )
+        return (1.0 if value else -1.0) if value is not None else None, warning, value, condition_metric
     if not bars:
-        return None, "no_bars"
+        return None, "no_bars", None, None
     latest = float(bars[-1].close)
     if metric == "rsi_14":
-        return _rsi(bars), None if len(bars) >= 15 else "insufficient_history"
+        return _rsi(bars), None if len(bars) >= 15 else "insufficient_history", None, None
     if metric == "relative_volume":
         values = [bar.volume for bar in bars[-51:]]
         if len(values) < 51 or any(value is None for value in values):
-            return None, "insufficient_volume_history"
+            return None, "insufficient_volume_history", None, None
         average = sum(float(value) for value in values[:-1]) / 50
-        return (float(values[-1]) / average if average else None), None
+        return (float(values[-1]) / average if average else None), None, None, None
     window = [float(bar.close) for bar in bars[-252:]]
     if len(window) < 252:
-        return None, "insufficient_history"
+        return None, "insufficient_history", None, None
     if metric == "distance_52w_high":
-        return latest / max(window) - 1, None
-    return latest / min(window) - 1 if min(window) else None, None
+        return latest / max(window) - 1, None, None, None
+    return latest / min(window) - 1 if min(window) else None, None, None, None
 
 
 def _group_path(request: MarketMapRequest, instrument: Instrument) -> list[str]:
@@ -296,7 +310,12 @@ async def build_market_map(db: AsyncSession, user_id: int, request: MarketMapReq
         warnings: list[MarketMapWarning] = []
         if code:
             warnings.append(_warning(code, message or code, instrument_id=instrument_id))
-        colour, colour_code = _colour(request, rows, result)
+        colour, colour_code, condition_value, condition_metric = _colour(
+            request,
+            rows,
+            result,
+            reference_bars=reference_bars,
+        )
         if request.color_metric == "relative_return":
             if result is None or ref_return is None:
                 colour = None
@@ -335,6 +354,8 @@ async def build_market_map(db: AsyncSession, user_id: int, request: MarketMapReq
             area_value=area,
             color_value=colour,
             return_value=result,
+            condition_value=condition_value,
+            condition_metric=condition_metric,
             observation_time=observed,
             coverage=coverage,
             warnings=warnings,
@@ -404,6 +425,7 @@ async def build_market_map(db: AsyncSession, user_id: int, request: MarketMapReq
         adjustment="split_adjusted" if request.adjusted else "raw",
         area_metric=request.area_metric,
         color_metric=request.color_metric,
+        condition=request.condition,
         reference_symbol=request.reference_symbol.upper() if request.reference_symbol else None,
         membership_version=resolved.descriptor.membership_version,
         cache_key=cache_key,

@@ -21,7 +21,9 @@ The captures are behavioural/product references; Finviz artwork and branding are
 - [ ] Support 1D, 1W, MTD, YTD, 1M, 3M, 6M, 1Y, and arbitrary completed-session periods with
       explicit adjustment and session semantics.
 - [ ] Support colour by absolute/relative return, RSI, relative volume, distance to 52-week
-      extremes, breadth predicates, and compatible Python numeric outputs. Support area by
+      extremes, and compatible Python numeric outputs. Built-in breadth predicates are now
+      available through the same condition AST; compatible Python numeric outputs remain open.
+      Support area by
       market cap, point-in-time index/ETF weight, equal area, volume, or a declared numeric
       field. Rollups must state weighting and coverage.
 - [ ] Add zoom/pan, hover detail, legend/palette, sorting, drill-down, tile selection,
@@ -70,9 +72,22 @@ The captures are behavioural/product references; Finviz artwork and branding are
       produce a different cache identity.
 - [x] Named user snapshots can save and restore a complete cached map with source, membership,
       coverage, provenance, and rendered metrics preserved; names are user-isolated and duplicate
-      names are rejected. Custom Python/breadth colour outputs, point-in-time market-cap area,
+      names are rejected. Custom Python colour outputs, point-in-time market-cap area,
       richer classifications, renderer, and the full eight-root population remain open. Current
       market-cap area is explicitly labelled as latest stored metadata rather than historical truth.
+
+#### Implementation checkpoint — predicate-colour maps
+
+- [x] Added `color_metric=breadth` to the batch contract. It accepts the existing versioned
+      breadth condition AST, evaluates each member through the shared evaluator, and returns
+      pass/fail colour values plus the underlying condition metric, condition definition, and
+      exact exclusion code. Cache identity includes the condition because it is part of the
+      serialized request.
+- [x] The workstation exposes built-in moving-average, 52-week proximity, new-high, RSI,
+      volume-ratio, and relative-strength condition controls. Relative-strength predicates use
+      the same canonical reference-symbol bars and alignment rules as other map comparisons.
+- [ ] Arbitrary isolated Python colour assets, event/peer/group-derived map predicates, custom
+      numeric area fields, point-in-time market-cap weights, and final visual approval remain open.
 
 #### Implementation checkpoint — workstation Market Map tool
 
