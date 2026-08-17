@@ -20,6 +20,13 @@ descriptor listing, locked index-source metadata, user isolation, member resolut
 historical exclusion of members not known at `as_of`. This does not satisfy the parent map gate;
 treemap metrics, rollups, periods, rendering, and publication remain open.
 
+The backend batch sub-gate now has a deterministic contract at `POST /analysis/market-map`. Its
+fixture coverage proves that a personal source can produce sector/industry nodes and independently
+weighted tiles from local bars and metadata, while missing bars remain visible as cell warnings.
+This is not visual acceptance: persistent caching, all requested periods/metrics, Python/breadth
+colour outputs, point-in-time market-cap area, the renderer, and map publication remain explicit
+open gates. No acceptance flexibility was used for this slice.
+
 The browser gate covers hover detail, palette/legend, zoom/pan, sort, drill-down, selection,
 multi-selection, map-to-chart/watchlist/breadth/Study-Lab publication, loading/partial/stale/
 unavailable/error/recovery states, and large-universe rendering without one provider request per

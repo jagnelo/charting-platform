@@ -55,6 +55,20 @@ The captures are behavioural/product references; Finviz artwork and branding are
 - [ ] The Market Map batch calculation/rendering contract remains open; this source slice does
       not claim treemap, period metrics, rollups, or map interaction completion.
 
+#### Implementation checkpoint — local batch map contract
+
+- [x] Added authenticated `POST /analysis/market-map` over the same `WatchlistSource` inputs.
+      It resolves personal, managed, canonical index/market-group, and ETF-proxy sources locally,
+      deduplicates canonical members, and performs one bounded OHLCV/metadata batch without
+      provider fan-out.
+- [x] The response returns source/membership lineage, completed-session period bounds, independent
+      area and colour metrics, tile cells, flattened sector/industry nodes, aggregate weighting
+      method, coverage, freshness, cache identity, and exact missing-data/classification warnings.
+- [ ] Persistent result caching, custom Python/breadth colour outputs, point-in-time market-cap
+      area, richer classifications, renderer, hover/zoom/drill interactions, publication, and the
+      full eight-root population remain open. Current market-cap area is explicitly labelled as
+      latest stored metadata rather than historical truth.
+
 ### 2026-08-17 — US market family/style analysis matrix (latest user requirement)
 
 The top-down workstation must support the following US market perspectives as one

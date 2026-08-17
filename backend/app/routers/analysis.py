@@ -103,6 +103,7 @@ from app.schemas.analysis import (
     RelativeStrengthOut,
     TechnicalSnapshotOut,
 )
+from app.schemas.market_map import MarketMapOut, MarketMapRequest
 from app.services.breadth import (
     BreadthMember,
     build_equal_reference_series,
@@ -112,6 +113,7 @@ from app.services.breadth import (
     evaluate_breadth_history,
 )
 from app.services.indicators import OHLCVSeries, get_latest_value
+from app.services.market_map import build_market_map
 from app.services.parameter_validation import validate_parameter_values
 from app.services.research_jobs import (
     collect_research_result,
@@ -130,6 +132,29 @@ _HOLDING_EXCLUSION_MESSAGES = {
     "unresolved_holding": "The holding has no resolved canonical equity instrument.",
     "non_equity_holding": "The holding is not a supported equity security.",
 }
+
+
+@router.post("/market-map", response_model=MarketMapOut)
+async def market_map(
+    body: MarketMapRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Return one local batch map for any resolved watchlist source.
+
+    This endpoint deliberately never calls a provider.  The source resolver and
+    persisted OHLCV/metadata tables are the only inputs, so a map can expose
+    exact coverage and exclusions rather than hiding per-tile provider fan-out.
+    """
+    try:
+        return await build_market_map(db, current_user.id, body)
+    except ValueError as exc:
+        code = str(exc)
+        if code == "invalid_timeframe":
+            raise HTTPException(422, detail={"code": code, "timeframe": body.timeframe}) from exc
+        if code.endswith("not_found") or code == "unsupported_watchlist_source_kind":
+            raise HTTPException(404, detail={"code": code, "source_id": body.source_id}) from exc
+        raise HTTPException(422, detail={"code": code}) from exc
 
 
 def _aggregate_series_cells(

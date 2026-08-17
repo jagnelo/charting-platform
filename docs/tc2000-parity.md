@@ -30,6 +30,14 @@ index/ETF semantics, user isolation, dated membership exclusions, and ETF-proxy 
 is an enabling contract only; the map calculation and renderer remain unaccepted until their own
 batch, rollup, period, and interaction gates pass.
 
+The first local batch map implementation now exists at `POST /analysis/market-map`. It accepts the
+same source IDs, calculates independent area and colour values from persisted bars/metadata, and
+returns cells plus sector/industry nodes with coverage, weighting, freshness, cache identity, and
+warnings. It is intentionally a backend enabling slice: persistent caching, Python/breadth colour
+assets, historical market-cap weights, the treemap renderer, and map-to-tool publication are not
+claimed complete. A current market-cap area warning is returned instead of implying point-in-time
+truth.
+
 ## 2026-08-17 — US family/style and Nasdaq cap/equal acceptance matrix (latest requirement)
 
 The workstation's top-down entry points are the S&P 500, S&P MidCap 400, S&P SmallCap 600,

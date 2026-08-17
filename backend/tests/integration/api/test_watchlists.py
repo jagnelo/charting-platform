@@ -1,4 +1,4 @@
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 from app.models.screener import ScreenerDefinition
 from app.models.watchlist import Watchlist
@@ -12,6 +12,101 @@ class TestWatchlistsAuth:
 
 
 class TestWatchlistsCrud:
+    def test_market_map_accepts_personal_source_and_rolls_up_constituents(
+        self, client, auth_headers, db, watchlist, instrument, instrument_b
+    ):
+        from app.models.instrument import EquityDetail
+        from app.models.instrument_stats import InstrumentStats
+        from app.models.ohlcv import OHLCVBar, Timeframe
+        from app.models.watchlist import WatchlistItem
+
+        db.add_all(
+            [
+                WatchlistItem(watchlist_id=watchlist.id, instrument_id=instrument.id, position=0),
+                WatchlistItem(watchlist_id=watchlist.id, instrument_id=instrument_b.id, position=1),
+                EquityDetail(instrument_id=instrument.id, sector="Technology", industry="Hardware"),
+                EquityDetail(instrument_id=instrument_b.id, sector="Technology", industry="Software"),
+                InstrumentStats(instrument_id=instrument.id, market_cap=100),
+                InstrumentStats(instrument_id=instrument_b.id, market_cap=50),
+            ]
+        )
+        base = datetime(2024, 1, 1, tzinfo=UTC)
+        for offset, price in enumerate((100, 101, 102, 103, 104, 105, 106)):
+            for member, multiplier in ((instrument, 1), (instrument_b, 2)):
+                db.add(
+                    OHLCVBar(
+                        instrument_id=member.id,
+                        timeframe=Timeframe.D1,
+                        ts=base + timedelta(days=offset),
+                        open=price * multiplier,
+                        high=price * multiplier + 1,
+                        low=price * multiplier - 1,
+                        close=price * multiplier,
+                        volume=1_000_000,
+                        is_adjusted=True,
+                    )
+                )
+        db.flush()
+
+        response = client.post(
+            "/api/v1/analysis/market-map",
+            headers=auth_headers,
+            json={
+                "source_id": f"watchlist:{watchlist.id}",
+                "group_by": "sector_industry",
+                "period": "1W",
+                "area_metric": "market_cap",
+                "color_metric": "return",
+                "end": "2024-01-07T00:00:00Z",
+            },
+        )
+
+        assert response.status_code == 200, response.text
+        body = response.json()
+        assert body["source"]["source_id"] == f"watchlist:{watchlist.id}"
+        assert body["requested_count"] == 2
+        assert body["evaluated_count"] == 2
+        assert body["coverage"] == 1
+        assert {cell["symbol"] for cell in body["cells"]} == {"AAPL", "MSFT"}
+        assert {node["label"] for node in body["nodes"]} >= {"Technology", "Hardware", "Software"}
+        assert body["nodes"][-1]["aggregation_method"] == "area_weighted_mean"
+
+    def test_market_map_reports_missing_local_data_without_provider_fanout(
+        self, client, auth_headers, watchlist, instrument
+    ):
+        from app.models.watchlist import WatchlistItem
+
+        watchlist.items.append(WatchlistItem(instrument_id=instrument.id, position=0))
+        response = client.post(
+            "/api/v1/analysis/market-map",
+            headers=auth_headers,
+            json={
+                "source_id": f"watchlist:{watchlist.id}",
+                "group_by": "none",
+                "period": "1D",
+                "area_metric": "equal",
+                "color_metric": "return",
+            },
+        )
+
+        assert response.status_code == 200
+        body = response.json()
+        assert body["coverage"] == 0
+        assert body["cells"][0]["warnings"][0]["code"] == "no_bars"
+
+    def test_market_map_rejects_relative_colour_without_reference(
+        self, client, auth_headers, watchlist
+    ):
+        response = client.post(
+            "/api/v1/analysis/market-map",
+            headers=auth_headers,
+            json={
+                "source_id": f"watchlist:{watchlist.id}",
+                "color_metric": "relative_return",
+            },
+        )
+        assert response.status_code == 422
+
     def test_sources_unify_personal_and_locked_index_universes(
         self, client, auth_headers, db, watchlist, instrument
     ):

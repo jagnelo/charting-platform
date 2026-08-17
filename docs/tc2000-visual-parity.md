@@ -10,6 +10,12 @@ weight/equal area modes, breadth/Python colour modes, stale/coverage disclosures
 publication are not visually accepted until represented by a deterministic fixture or an explicit
 interim oracle.
 
+The backend now exposes the first data contract needed to drive that board-guided surface at
+`POST /analysis/market-map`. It is not a visual baseline and does not close the board gaps: no
+treemap renderer, hover/zoom/pan, map publication, Python/breadth colour state, persistent cache,
+or point-in-time market-cap area visual has been accepted yet. These remain tracked gaps rather
+than silently inferred from the Finviz references.
+
 ## 2026-08-17 — Family/style analysis visual states (latest requirement)
 
 The visual acceptance matrix must include the same workstation states for each of the eight US
