@@ -30266,7 +30266,8 @@ indefinite soak; longer endurance remains an explicit open gap.
   family/provider population, and final audit remain open.
 - Implementation/docs commit `97d050ec` is clean locally. Its one exact push attempt was rejected
   before Git by the private-origin safeguard; no workaround, alternate transport, rewrite, reset,
-  stash, or retry was attempted. Operational checkpoint is being committed separately.
+  stash, or retry was attempted. Operational checkpoint `26128ca6` is committed locally and
+  verified with `git rev-parse`; its push was rejected by the same safeguard.
 - Next context: recursive visual-tree Python leaves and promotion across compatible targets.
 
 # 2026-08-18 — Stale cross-sectional gap documentation correction

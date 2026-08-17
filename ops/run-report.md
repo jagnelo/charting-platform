@@ -28442,5 +28442,6 @@ and strict visual gaps remain explicitly tracked.
   frontend Vitest `870/870`; `vue-tsc`; Vite build; Ruff; compileall; and `git diff --check`.
 - No acceptance flexibility or visual/provider rule changed. Recursive AST Python leaves, direct
   series/reference relations, promotion fan-out, family/provider population, and final audit remain.
-- Implementation/docs commit `97d050ec`; one exact push attempt was rejected before Git by the
-  private-origin safeguard. No retry or workaround. Operational checkpoint follows separately.
+- Implementation/docs commit `97d050ec`; operational checkpoint `26128ca6`. Each exact push attempt
+  was rejected before Git by the private-origin safeguard. No retry or workaround; both commits are
+  clean locally and verified with `git rev-parse`.
