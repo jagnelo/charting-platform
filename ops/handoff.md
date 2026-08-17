@@ -30421,3 +30421,18 @@ indefinite soak; longer endurance remains an explicit open gap.
   `origin/feat/tc2000-frontend-rework` was rejected before Git transport by the private-origin
   safeguard. No workaround, alternate transport, or retry was used; this is transport-only and
   not a product blocker.
+
+# 2026-08-19 — Member numeric breadth EasyScan promotion checkpoint
+
+- Extended `POST /analysis/breadth/python/runs/{run_id}/promote-scan` to accept a completed
+  member-scoped numeric series with a finite operator/threshold. It creates a distinct immutable
+  Boolean condition CodeVersion with the isolated `series_target_to_boolean` adapter; the source
+  numeric version remains unchanged.
+- Scan provenance retains source run/code/definition/reproducibility/dataset/universe lineage,
+  operator, threshold, and adapter semantics. Cross-sectional and recursive trees reject this
+  per-symbol target explicitly.
+- Validation passed: runner adapter `9/9`, API promotion `2/2`, backend unit `1204/1204`, full
+  frontend Vitest `874/874`, type/build, Ruff, compileall, and YAML/JSON/diff checks. No acceptance
+  flexibility was used.
+- Next gaps remain filters, gauges, alerts, Study Lab, Strategy Lab, richer derived composition,
+  complete family/provider population, exact V25 visual evidence, and final audit.

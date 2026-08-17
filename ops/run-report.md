@@ -28549,3 +28549,14 @@ and strict visual gaps remain explicitly tracked.
 - The single exact push attempt for the clean `2c1f0ede..078bb65d` range was rejected before Git
   transport by the private-origin safeguard. No workaround or repeat was attempted; transport is
   recorded as an operational hold, not a product blocker.
+
+# 2026-08-19 — Member numeric breadth EasyScan promotion checkpoint
+
+- Thresholded member numeric breadth can now be promoted into a reusable EasyScan condition via
+  an isolated `series_target_to_boolean` adapter. The source series CodeVersion remains immutable;
+  generated Boolean diagnostics retain run, target, dataset, universe, and reproducibility lineage.
+- Cross-sectional aggregates and recursive trees reject the per-symbol scan contract explicitly.
+- Evidence: runner `9/9`; API `2/2`; backend unit `1204/1204`; frontend Vitest `874/874`;
+  type/build; Ruff; compileall; YAML/JSON; and `git diff --check`.
+- No acceptance flexibility was used. Filters, gauges, alerts, Study Lab, Strategy Lab, richer
+  chaining, family/provider population, exact V25 visual coverage, and final audit remain open.

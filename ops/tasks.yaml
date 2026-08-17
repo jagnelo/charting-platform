@@ -11503,3 +11503,35 @@ tasks:
         and must not block the product goal. Filters, gauges, alerts, Study Lab, Strategy Lab,
         richer derived chaining, complete family/provider population, exact V25 visual evidence,
         and final functional/visual/security/performance audit remain open.
+  - id: tc2000-python-breadth-scan-promotion-20260819
+    title: Promote member-level numeric breadth thresholds into EasyScan conditions
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Extend EasyScan promotion to thresholded member-scoped numeric breadth runs through a
+      dedicated isolated series_target_to_boolean adapter. Preserve the original numeric source,
+      create a distinct immutable Boolean condition version, and reject cross-sectional/tree
+      semantics that cannot be represented per symbol.
+    definition_of_done:
+      - Numeric member series with a validated operator/threshold creates a distinct Boolean condition asset
+      - The adapter requests series and applies the relation only in the isolated runner
+      - Scan provenance retains source run, target, dataset, universe, and reproducibility lineage
+      - Existing Boolean breadth promotion remains backward compatible
+      - Cross-sectional and recursive tree targets return explicit capability errors
+      - Runner/API/backend/frontend gates and diff checks pass
+    validation:
+      - runner-series-to-boolean-adapter-9-of-9
+      - api-python-breadth-promotion-2-of-2
+      - backend-unit-1204-of-1204
+      - frontend-vitest-874-of-874
+      - frontend-typecheck-build
+      - ruff-compileall-diff-check
+      - yaml-json-diff-check
+    notes:
+      - >-
+        No acceptance flexibility was used. The adapter is deliberately limited to member scope
+        and an explicit finite threshold; cross-sectional aggregates and recursive trees retain
+        structured rejection. Existing Boolean promotion and numeric plot/column promotion remain
+        unchanged. Filters, gauges, alerts, Study Lab, Strategy Lab, richer chaining, family/provider
+        population, exact V25 visual evidence, and the final audit remain open.
