@@ -29740,3 +29740,34 @@ indefinite soak; longer endurance remains an explicit open gap.
 - Remaining gaps: map-to-breadth/Study-Lab publication, persistent snapshots/cache, Python/breadth
   colour assets, point-in-time market-cap, all-root population, and final board-guided visual
   acceptance.
+
+# 2026-08-17 — Universal watchlist-source breadth checkpoint
+
+- Context scope: `backend/app/routers/analysis.py`, `backend/app/schemas/analysis.py`, the generic
+  breadth integration fixture, the authenticated breadth composer, and the four controlling parity/
+  TODO documents. This context is self-contained and has no mixed unfinished implementation edits.
+- Generic breadth now accepts canonical `/watchlists/sources` IDs (`watchlist:*`, `market-group:*`,
+  `etf-holdings:*`) as well as numeric personal-list compatibility. It resolves through the local
+  provenance-aware source service with user isolation, point-in-time membership, locked/editable
+  semantics, exclusions, and no provider fan-out. The main and history paths, including Python
+  breadth preparation and peer reference resolution, pass the authenticated user context.
+- The breadth composer loads the unified source catalog and exposes a `Watchlist source` selector
+  with locked labels. It persists the canonical source ID and applies the same predicate/target/
+  timeframe/adjustment contract to arbitrary personal, managed, index/ETF, market-group, combo, and
+  explicit-source workflows. Market Map already consumes the same source contract.
+- Validation: canonical watchlist-source integration `2/2`; watchlist descriptor/resolution
+  integration `2/2`; backend compileall and Ruff; frontend full Vitest `853/853`; `vue-tsc`;
+  production build; and `git diff --check`. The default uv cache was inaccessible in the sandbox, so
+  the backend reruns used `/private/tmp/charting-platform-uv-cache`; this is an environment
+  workaround, not acceptance flexibility. Expected fixture deprecation warnings only.
+- Implementation/docs commit: `b18cad74 feat: support arbitrary watchlist breadth sources`, clean
+  locally. Exact elevated push to `origin/feat/tc2000-frontend-rework` was attempted once and
+  rejected before Git by the private-origin safeguard; no workaround or repeat. This is transport
+  only and not a product-goal blocker. Ops record is pending as a separate commit.
+- Remaining gaps: direct map selection launching breadth/Study Lab definitions; persistent map
+  snapshots/cache; all requested map colour/area calculations; complete provider-backed population,
+  historical membership/bar continuity, and final board-guided visual approval. These remain named
+  acceptance gaps and were not relaxed.
+- Exact next context: implement direct map-to-breadth/Study-Lab publication using the persisted
+  source ID and condition definition, then add focused interaction/browser coverage before moving to
+  durable snapshots/cache.

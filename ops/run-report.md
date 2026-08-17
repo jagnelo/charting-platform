@@ -28016,3 +28016,23 @@ in 4.6 minutes. No failure was suppressed or reclassified as product success.
   rejected before Git by the private-origin safeguard; no workaround or repeat. Transport-only.
 - Remaining: map-to-breadth/Study-Lab publication, persistent snapshots/cache, Python/breadth colour
   assets, point-in-time market-cap, all-root population, and final visual acceptance.
+
+# 2026-08-17 — Universal watchlist-source breadth checkpoint
+
+- Implemented one breadth-universe contract over canonical watchlist source IDs. Personal numeric
+  IDs remain compatible; canonical `watchlist:*`, `market-group:*`, and `etf-holdings:*` sources are
+  resolved locally through the shared provenance-aware resolver. User isolation, `as_of` membership,
+  locked/editable state, exclusions, and descriptor lineage are retained without provider fan-out.
+- Added the breadth composer source selector, locked labels, source loading, and canonical source-ID
+  persistence. The same predicate, target, timeframe, adjustment, current/history, and Python-breadth
+  preparation paths now work against arbitrary personal or system-managed lists. Market Map already
+  uses this same source abstraction, so heatmap behavior is not index-only.
+- Validation: watchlist/source and breadth integration `2/2` each; backend compileall and Ruff;
+  frontend Vitest `853/853`; `vue-tsc`; production build; `git diff --check`. The standard uv cache
+  was inaccessible, so backend tests used an isolated `/private/tmp` cache. This was an environment
+  workaround; no acceptance flexibility was used.
+- Commit `b18cad74` is clean locally. The one required exact push attempt was rejected before Git by
+  the private-origin safeguard; no retry or workaround. This is transport-only. Ops updates are the
+  pending separate checkpoint commit.
+- Remaining: direct map→breadth/Study-Lab publication, durable map snapshots/cache, all map metrics,
+  full provider-backed root/history population, and final board-guided visual approval.
