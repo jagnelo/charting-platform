@@ -152,6 +152,92 @@ class TestWatchlistsCrud:
             headers=auth_headers,
         ).status_code == 404
 
+    def test_market_map_uses_locked_market_group_source_through_same_contract(
+        self, client, auth_headers, db, instrument, instrument_b
+    ):
+        from app.models.instrument import EquityDetail
+        from app.models.instrument_stats import InstrumentStats
+        from app.models.ohlcv import OHLCVBar, Timeframe
+
+        now = datetime(2024, 1, 1, tzinfo=UTC)
+        group = MarketGroup(
+            stable_key="locked-sp500-fixture",
+            group_type="benchmark_family",
+            name="Locked S&P 500 fixture",
+            source="controlled_fixture",
+            effective_at=now,
+            known_at=now,
+        )
+        db.add(group)
+        db.flush()
+        db.add_all(
+            [
+                MarketGroupMember(
+                    market_group_id=group.id,
+                    instrument_id=instrument.id,
+                    position=0,
+                    relationship_type="constituent",
+                    source="controlled_fixture",
+                    verification_state="verified",
+                    effective_at=now,
+                    known_at=now,
+                ),
+                MarketGroupMember(
+                    market_group_id=group.id,
+                    instrument_id=instrument_b.id,
+                    position=1,
+                    relationship_type="constituent",
+                    source="controlled_fixture",
+                    verification_state="verified",
+                    effective_at=now,
+                    known_at=now,
+                ),
+                EquityDetail(instrument_id=instrument.id, sector="Technology", industry="Hardware"),
+                EquityDetail(instrument_id=instrument_b.id, sector="Industrials", industry="Machinery"),
+                InstrumentStats(instrument_id=instrument.id, market_cap=125),
+                InstrumentStats(instrument_id=instrument_b.id, market_cap=75),
+            ]
+        )
+        for offset, price in enumerate((100, 101, 102, 103, 104, 105, 106)):
+            for member, multiplier in ((instrument, 1), (instrument_b, 2)):
+                db.add(
+                    OHLCVBar(
+                        instrument_id=member.id,
+                        timeframe=Timeframe.D1,
+                        ts=now + timedelta(days=offset),
+                        open=price * multiplier,
+                        high=price * multiplier + 1,
+                        low=price * multiplier - 1,
+                        close=price * multiplier,
+                        volume=1_000_000,
+                        is_adjusted=True,
+                    )
+                )
+        db.flush()
+
+        response = client.post(
+            "/api/v1/analysis/market-map",
+            headers=auth_headers,
+            json={
+                "source_id": "market-group:locked-sp500-fixture",
+                "group_by": "sector_industry",
+                "period": "1W",
+                "area_metric": "market_cap",
+                "color_metric": "return",
+                "end": "2024-01-07T00:00:00Z",
+            },
+        )
+
+        assert response.status_code == 200, response.text
+        body = response.json()
+        assert body["source"]["source_id"] == "market-group:locked-sp500-fixture"
+        assert body["source"]["locked"] is True
+        assert body["source"]["can_edit_membership"] is False
+        assert body["requested_count"] == 2
+        assert body["evaluated_count"] == 2
+        assert {cell["symbol"] for cell in body["cells"]} == {"AAPL", "MSFT"}
+        assert {node["label"] for node in body["nodes"]} >= {"Technology", "Hardware", "Industrials", "Machinery"}
+
     def test_market_map_reports_missing_local_data_without_provider_fanout(
         self, client, auth_headers, watchlist, instrument
     ):
