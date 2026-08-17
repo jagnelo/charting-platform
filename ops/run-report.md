@@ -28130,3 +28130,23 @@ and strict visual gaps remain explicitly tracked.
 - No acceptance flexibility was used. Remaining gaps are event/peer/group-derived map predicates,
   custom numeric area fields, point-in-time market-cap weights, provider/history population, exact
   V25 visual baselines, and the authorized Docker integration rerun.
+
+# 2026-08-17 — Event predicate Market Map checkpoint
+
+- Added event predicate colouring to the generalized Market Map breadth contract. The backend reads
+  local `InstrumentEvent` rows plus fetch-state records, supports nested event conditions, and
+  preserves loaded-empty false results versus `event_data_unavailable` exclusions. Event/fetch
+  timestamps now participate in cache identity so a refreshed calendar cannot reuse an old map.
+- Added workstation controls for any event, earnings, dividend, ex-dividend, split, and trailing
+  lookback days. The same source-agnostic heatmap works for personal, managed, locked index/group,
+  ETF-holdings, combo, and explicit-symbol sources.
+- Docker integration initially found a real Python-colour tuple-order defect; it was fixed and
+  regression-tested for both numeric and Boolean output. Final gates passed: watchlist integration
+  `27/27`, focused Market Map `9/9`, full frontend Vitest `858/858`, type-check, production build,
+  Ruff, compileall, and diff-check. Expected dependency deprecation warnings only.
+- Implementation/docs commit `88bae84992122802ccb74c7db012dc499df1b64d` is clean locally. Its one
+  exact push attempt was rejected by the private-origin safeguard; no retry or workaround. No
+  acceptance flexibility was used.
+- Remaining gaps: reference-group/peer-derived map predicates, custom numeric area fields,
+  point-in-time market-cap weights, complete provider/history population, broader family matrix,
+  and exact V25 visual baselines.

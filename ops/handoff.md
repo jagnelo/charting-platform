@@ -29912,3 +29912,27 @@ indefinite soak; longer endurance remains an explicit open gap.
 - Exact next context: close the remaining Market Map metric matrix from this clean implementation
   boundary, beginning with a runtime-available backend integration rerun or the next independent
   source-agnostic metric slice.
+
+# 2026-08-17 — Event predicate Market Map checkpoint
+
+- Context scope: event-calendar predicates in source-agnostic Market Map breadth colouring,
+  loaded-empty versus unavailable event state, event/fetch watermark cache identity, workstation
+  event controls, Python colour tuple-contract repair, regression tests, and controlling docs.
+- Implementation commit `88bae84992122802ccb74c7db012dc499df1b64d` is clean locally. The map reads
+  only local `InstrumentEvent`/`InstrumentEventFetchState` data and never performs provider fan-out.
+- A Docker-backed integration run exposed a real defect in the previous Python slice: numeric output
+  was incorrectly assigned to the Boolean `condition_value` field. The tuple contract was corrected,
+  numeric and Boolean regression coverage was added, and the unchanged rerun passed. Final
+  validation: watchlist integration `27/27`; focused Market Map component `9/9`; full frontend
+  Vitest `858/858`; `vue-tsc`; production build; Ruff; compileall; and `git diff --check`.
+- The one exact elevated push attempt for `rtk git push origin feat/tc2000-frontend-rework` was
+  rejected by the private-origin safeguard because the accumulated private history would be
+  exported without explicit authorization for that exact payload/destination. No retry, alternate
+  transport, rewrite, reset, stash, or workaround will be attempted; transport-only and not a
+  product-goal blocker.
+- No acceptance flexibility was used. Remaining gaps: reference-group/peer-derived predicates,
+  custom numeric area fields, point-in-time market-cap weights, complete provider/history population,
+  exact V25 visual baselines, and the broader family matrix.
+- Exact next context: implement the next independent Market Map analytical gap from this clean
+  boundary, prioritizing reference-universe/group-derived predicate colours or point-in-time area
+  semantics.
