@@ -32,7 +32,10 @@ logger = logging.getLogger(__name__)
 _ASSET_CONTRACTS = {
     "plot": {"series"},
     "column": {"scalar"},
-    "condition": {"boolean"},
+    # A numeric series is also a valid condition source for the isolated
+    # breadth target path; it is never accepted by the Boolean-only EasyScan
+    # promotion path without an explicit target relation.
+    "condition": {"boolean", "series"},
     "signal": {"boolean", "events"},
     # Study Lab is intentionally the only polymorphic/artifact-producing surface.
     "study": {

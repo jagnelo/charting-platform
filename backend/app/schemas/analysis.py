@@ -853,11 +853,13 @@ class BreadthDefinitionHistoryOut(AnalysisResponseMetadata):
 
 
 class BreadthPythonRunRequest(BaseModel):
-    """Queue one user-authored Boolean predicate through the isolated runner."""
+    """Queue one user-authored Boolean or numeric-series breadth target."""
 
     code_version_id: int = Field(ge=1)
     universe: BreadthUniverseRequest
     parameters: dict[str, object] = Field(default_factory=dict)
+    output_contract: Literal["boolean", "series"] = "boolean"
+    series_target: dict[str, object] | None = None
     timeframe: str = "D1"
     adjusted: bool = True
     session: Literal["regular", "all"] = "regular"
@@ -872,6 +874,8 @@ class BreadthPythonRunOut(BaseModel):
     code_version_id: int
     status: str
     execution_mode: Literal["breadth_current", "breadth_history"]
+    output_contract: Literal["boolean", "series"] = "boolean"
+    series_target: dict[str, object] | None = None
     definition_hash: str
     universe: dict[str, object] = Field(default_factory=dict)
     condition: dict[str, object] = Field(default_factory=dict)
@@ -899,6 +903,8 @@ class BreadthPythonResultOut(AnalysisResponseMetadata):
     code_version_id: int
     status: str
     execution_mode: Literal["breadth_current", "breadth_history"]
+    output_contract: Literal["boolean", "series"] = "boolean"
+    series_target: dict[str, object] | None = None
     definition_hash: str
     universe: dict[str, object] = Field(default_factory=dict)
     condition: dict[str, object] = Field(default_factory=dict)

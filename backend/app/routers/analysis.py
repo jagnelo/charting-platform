@@ -5616,7 +5616,11 @@ def _saved_condition_to_breadth(node: Mapping[str, object]) -> dict[str, object]
 
 
 def _python_breadth_condition_metadata(
-    version: CodeVersion, parameters: Mapping[str, object]
+    version: CodeVersion,
+    parameters: Mapping[str, object],
+    *,
+    output_contract: str = "boolean",
+    series_target: Mapping[str, object] | None = None,
 ) -> dict[str, object]:
     asset = version.asset
     return {
@@ -5624,11 +5628,12 @@ def _python_breadth_condition_metadata(
         "code_version_id": version.id,
         "asset_key": asset.stable_key if asset is not None else None,
         "asset_version": version.version_number,
-        "output_contract": version.output_contract,
+        "output_contract": output_contract,
         "sdk_version": version.sdk_version,
         "runtime_version": version.runtime_version,
         "lookback": version.lookback,
         "parameters": dict(parameters),
+        "series_target": dict(series_target) if isinstance(series_target, Mapping) else None,
     }
 
 
@@ -5743,6 +5748,12 @@ def _python_breadth_run_out(run: ResearchRun) -> BreadthPythonRunOut:
         code_version_id=run.code_version_id,
         status=run.status,
         execution_mode=config.get("execution_mode", "breadth_current"),
+        output_contract=str(config.get("output_contract") or "boolean"),
+        series_target=(
+            config.get("series_target")
+            if isinstance(config.get("series_target"), dict)
+            else None
+        ),
         definition_hash=str(config.get("definition_hash") or ""),
         universe=config.get("universe", {}),
         condition=config.get("condition", {}),
@@ -5828,7 +5839,7 @@ async def queue_python_breadth(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Queue an arbitrary Boolean breadth predicate in the isolated runner."""
+    """Queue an isolated Boolean predicate or numeric Python-series target."""
     try:
         timeframe = Timeframe(body.timeframe)
     except ValueError as exc:
@@ -5848,14 +5859,46 @@ async def queue_python_breadth(
             )
         )
     ).scalar_one_or_none()
-    if version is None or version.output_contract != "boolean":
+    if version is None or version.output_contract not in {"boolean", "series"}:
         raise HTTPException(
             422,
             detail={
                 "code": "python_breadth_condition_unavailable",
-                "message": "The selected user-owned code version must be an active Boolean condition.",
+                "message": "The selected user-owned code version must be an active Boolean or numeric-series condition.",
             },
         )
+    if body.output_contract != version.output_contract:
+        raise HTTPException(
+            422,
+            detail={
+                "code": "python_breadth_output_contract_mismatch",
+                "declared": body.output_contract,
+                "stored": version.output_contract,
+            },
+        )
+    series_target = body.series_target
+    if body.output_contract == "series":
+        if not isinstance(series_target, dict):
+            raise HTTPException(
+                422,
+                detail={
+                    "code": "python_series_target_required",
+                    "message": "Numeric-series breadth requires an operator and threshold target.",
+                },
+            )
+        operator = str(series_target.get("operator", "gte")).lower()
+        threshold = series_target.get("threshold")
+        if (
+            operator not in {"gt", "gte", "lt", "lte", "eq", "ne"}
+            or not isinstance(threshold, int | float)
+            or isinstance(threshold, bool)
+            or not math.isfinite(float(threshold))
+        ):
+            raise HTTPException(
+                422,
+                detail={"code": "invalid_python_series_target"},
+            )
+        series_target = {"operator": operator, "threshold": float(threshold)}
     if not isinstance(body.parameters, dict):
         raise HTTPException(422, detail={"code": "parameters_must_be_object"})
 
@@ -5879,7 +5922,12 @@ async def queue_python_breadth(
             422,
             detail={"code": "parameter_validation_failed", "errors": parameter_errors},
         )
-    condition_metadata = _python_breadth_condition_metadata(version, parameters)
+    condition_metadata = _python_breadth_condition_metadata(
+        version,
+        parameters,
+        output_contract=body.output_contract,
+        series_target=series_target,
+    )
     execution_mode = "breadth_history" if body.history else "breadth_current"
     definition_payload = {
         "universe": universe_provenance,
@@ -5892,6 +5940,8 @@ async def queue_python_breadth(
         "benchmark": body.benchmark.upper() if body.benchmark else None,
         "execution_mode": execution_mode,
         "history_limit": body.history_limit,
+        "output_contract": body.output_contract,
+        "series_target": series_target,
     }
     run_config = {
         "symbols": [member.symbol for member in members],
@@ -5913,6 +5963,8 @@ async def queue_python_breadth(
             "warnings": [warning.model_dump() for warning in universe_warnings],
         },
         "condition": condition_metadata,
+        "output_contract": body.output_contract,
+        "series_target": series_target,
     }
     from app.routers.research import _materialize_declared_dataset
 
@@ -6017,6 +6069,12 @@ async def get_python_breadth_result(
         code_version_id=run.code_version_id,
         status=run.status,
         execution_mode=execution_mode,
+        output_contract=str(config.get("output_contract") or "boolean"),
+        series_target=(
+            config.get("series_target")
+            if isinstance(config.get("series_target"), dict)
+            else None
+        ),
         definition_hash=str(config.get("definition_hash") or ""),
         universe=config.get("universe", {}),
         condition=config.get("condition", {}),

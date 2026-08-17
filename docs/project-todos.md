@@ -104,6 +104,25 @@ snapshot, or SPY/QQQ substitution is evidence for a missing relationship.
 - [ ] Event-series output remains to be promoted into every compatible plot/column/filter/gauge/
       alert/Study Lab/Strategy Lab surface; arbitrary derived-Python target series remain open.
 
+### 2026-08-17 — Isolated Python-derived series breadth target
+
+- [x] Extended the isolated breadth runner to accept a user-owned `condition` CodeVersion whose
+      output contract is `series`. The runner reads the latest finite numeric value at each member
+      observation, applies a declared `gt/gte/lt/lte/eq/ne` threshold relation outside user code,
+      and returns the same eligible/pass/fail/metric/current-history contract as Boolean breadth.
+- [x] Preserved the canonical declared dataset manifest, code/runtime/SDK version, series target,
+      membership version, exact timestamp alignment, exclusions, and reproducibility hash. Source
+      execution remains confined to the dedicated isolated runner; FastAPI and the browser never
+      execute the user source.
+- [x] Added runner unit coverage for current and aligned historical series targets plus a
+      Docker-backed API test covering CodeVersion creation, queue payload, persisted job, execution,
+      collection, and numeric member metrics. A missing response field and an initially unseeded
+      test fixture were repaired at their owning boundaries before the unchanged rerun passed.
+- [ ] This is the first numeric-series target slice, not the full breadth language: direct
+      target-series-to-target-series/benchmark relations, visual condition-tree authoring,
+      generic synchronous `python_series` leaves, and promotion into every plot/column/filter/
+      gauge/alert/Study Lab/Strategy Lab surface remain open.
+
 ### 2026-08-17 — Prior high/low breadth target
 
 - [x] Added the reusable `prior_high_low` predicate to the generic breadth contract. It compares

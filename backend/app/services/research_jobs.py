@@ -41,6 +41,7 @@ def enqueue_research_run(run: ResearchRun) -> None:
         "output_name": run.code_version.output_name,
         "execution_mode": run.run_config.get("execution_mode"),
         "history_limit": run.run_config.get("history_limit"),
+        "series_target": run.run_config.get("series_target"),
     }
     destination = Path(settings.RESEARCH_JOB_DIR) / f"{run.id}.json"
     temporary = destination.with_suffix(".tmp")

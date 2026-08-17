@@ -2885,6 +2885,78 @@ class TestWorkspaces:
                 assert not_history.status_code == 422
                 assert not_history.json()["detail"]["code"] == "breadth_promotion_requires_history"
 
+    def test_python_breadth_accepts_numeric_series_targets(
+        self, client, auth_headers, instrument, ohlcv_bars, tmp_path, monkeypatch
+    ):
+        import json
+
+        from research_runner.runner import execute_job
+
+        monkeypatch.setattr(
+            "app.services.research_jobs.settings.RESEARCH_JOB_DIR", str(tmp_path / "jobs")
+        )
+        monkeypatch.setattr(
+            "app.services.research_jobs.settings.RESEARCH_RESULT_DIR", str(tmp_path / "results")
+        )
+        asset_response = client.post(
+            "/api/v1/code/assets",
+            headers=auth_headers,
+            json={
+                "stable_key": "python-breadth-derived-series",
+                "name": "Python breadth derived series",
+                "kind": "condition",
+                "initial_version": {
+                    "source": "output.series('target', market.close())",
+                    "output_contract": "series",
+                    "output_name": "target",
+                },
+            },
+        )
+        assert asset_response.status_code == 201, asset_response.text
+        version_id = asset_response.json()["versions"][0]["id"]
+
+        queued = client.post(
+            "/api/v1/analysis/breadth/python",
+            headers=auth_headers,
+            json={
+                "code_version_id": version_id,
+                "universe": {"kind": "symbols", "symbols": [instrument.symbol]},
+                "output_contract": "series",
+                "series_target": {"operator": "gte", "threshold": 0},
+                "session": "all",
+                "history": True,
+                "history_limit": 20,
+            },
+        )
+        assert queued.status_code == 202, queued.text
+        queued_payload = queued.json()
+        assert queued_payload["output_contract"] == "series"
+        assert queued_payload["series_target"] == {"operator": "gte", "threshold": 0.0}
+        job_path = tmp_path / "jobs" / f"{queued_payload['run_id']}.json"
+        job = json.loads(job_path.read_text())
+        assert job["output_contract"] == "series"
+        assert job["series_target"] == {"operator": "gte", "threshold": 0.0}
+        result = execute_job(job)
+        assert result["status"] == "completed", result
+        assert result["artifacts"]["breadth_history"]["value"]["points"], job["dataset"].get(
+            "exclusions"
+        )
+        (tmp_path / "results").mkdir(exist_ok=True)
+        (tmp_path / "results" / f"{queued_payload['run_id']}.json").write_text(json.dumps(result))
+
+        collected = client.get(
+            f"/api/v1/analysis/breadth/python/runs/{queued_payload['run_id']}",
+            headers=auth_headers,
+        )
+        assert collected.status_code == 200, collected.text
+        payload = collected.json()
+        assert payload["status"] == "completed"
+        assert payload["output_contract"] == "series"
+        assert payload["series_target"] == {"operator": "gte", "threshold": 0.0}
+        assert payload["points"]
+        assert payload["points"][-1]["members"][0]["value"] is True
+        assert payload["points"][-1]["members"][0]["metric"] is not None
+
     def test_etf_constituent_snapshot_is_point_in_time_and_source_labelled(
         self, client, auth_headers, db, instrument, instrument_type, ohlcv_bars
     ):

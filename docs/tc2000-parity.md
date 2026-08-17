@@ -72,6 +72,18 @@ occurrences, and definition lineage. The compact editor exposes symbol versus eq
 aggregate selection, and rebuilt authenticated Chromium coverage proves the serialized request.
 Event targets, arbitrary derived-Python target series, and complete promotion fan-out remain open.
 
+## 2026-08-17 — Isolated Python-derived series breadth target
+
+The isolated breadth path now accepts a user-owned condition CodeVersion with `series` output. At
+each member observation it extracts the latest finite numeric value and evaluates an explicit
+threshold operator (`gt`, `gte`, `lt`, `lte`, `eq`, or `ne`) outside user code. Current and aligned
+historical results retain the normal member metric, pass/fail, percentage, coverage, exclusions,
+occurrences, code version, dataset manifest, membership/as-of, and reproducibility lineage.
+
+The runner remains the sole execution boundary and receives only the declared canonical dataset.
+This slice does not yet represent a visual `python_series` breadth leaf or direct series-to-series
+target relation; those remain named parity gaps alongside full promotion fan-out.
+
 ## 2026-08-17 — Event-calendar breadth target
 
 Generic breadth now supports an `event` leaf backed by the canonical local instrument-event

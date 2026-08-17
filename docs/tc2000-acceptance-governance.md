@@ -39,6 +39,15 @@ be selectable independently, produce aligned technical/ratio/spread values, and 
 breadth definition so that leadership and participation differences are observable. The SPY/RSP
 fixture is the behavioral template, not a substitute for Nasdaq or the other seven families.
 
+## 2026-08-17 — Numeric Python-series breadth sub-gate
+
+Acceptance now includes a bounded isolated-runner fixture whose condition CodeVersion emits a
+numeric series and whose breadth definition declares a threshold relation. The run must verify
+current and exact-timestamp historical output, numeric per-member metrics, Boolean pass/fail
+projection, denominator/coverage/exclusions, code and dataset lineage, and reproducibility. The
+source must execute only in the dedicated sandbox. Direct series-to-series/reference targets,
+visual authoring, and full promotion fan-out remain open gates and are not implied by this slice.
+
 ## 2026-08-17 — Prior high/low breadth sub-gate
 
 Acceptance now includes a reusable prior-window extreme predicate: for every eligible member, the

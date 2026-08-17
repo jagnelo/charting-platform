@@ -302,6 +302,56 @@ def test_runner_executes_arbitrary_python_breadth_predicate_over_aligned_history
     assert [cell["value"] for cell in points[-1]["cells"]] == [True, False]
 
 
+def test_runner_evaluates_numeric_python_series_target_in_current_batch_mode():
+    result = execute_job(
+        {
+            "source": "output.series('target', market.close())",
+            "output_contract": "series",
+            "series_target": {"operator": "gte", "threshold": 100},
+            "dataset": {
+                "datasets": [
+                    {"instrument_id": 1, "symbol": "A", "closes": [100, 101]},
+                    {"instrument_id": 2, "symbol": "B", "closes": [99, 98]},
+                ]
+            },
+        }
+    )
+
+    assert result["status"] == "completed"
+    cells = result["artifacts"]["batch_cells"]["value"]["cells"]
+    assert [cell["value"] for cell in cells] == [True, False]
+    assert [cell["metric"] for cell in cells] == [101.0, 98.0]
+
+
+def test_runner_evaluates_numeric_python_series_target_over_aligned_history():
+    timestamps = ["2026-01-01", "2026-01-02", "2026-01-03"]
+    result = execute_job(
+        {
+            "source": "output.series('target', market.close())",
+            "output_contract": "series",
+            "execution_mode": "breadth_history",
+            "history_limit": 3,
+            "series_target": {"operator": "gte", "threshold": 100.5},
+            "dataset": {
+                "datasets": [
+                    {
+                        "instrument_id": 1,
+                        "symbol": "A",
+                        "timestamps": timestamps,
+                        "closes": [100, 101, 102],
+                    }
+                ]
+            },
+        }
+    )
+
+    assert result["status"] == "completed"
+    points = result["artifacts"]["breadth_history"]["value"]["points"]
+    assert [cell["value"] for cell in points[0]["cells"]] == [False]
+    assert [cell["value"] for cell in points[1]["cells"]] == [True]
+    assert [cell["metric"] for cell in points[-1]["cells"]] == [102.0]
+
+
 def test_runner_computes_transparent_ninety_ninety_breadth_and_exclusions():
     result = execute_job(
         {

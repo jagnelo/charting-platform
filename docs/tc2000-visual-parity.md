@@ -37,6 +37,12 @@ group aggregate, or Python-derived series. The board does not yet contain author
 for every one of these combinations; each absent combination stays in the reference-board gap
 ledger and uses the documented browser/component oracle until superseded by stronger evidence.
 
+The numeric Python-series breadth state is currently a represented backend contract but not yet a
+complete board-backed visual state. Until the board contains an authoritative example, the visual
+gap remains explicit: the interim oracle must show the series output contract, threshold relation,
+numeric member metric, percentage result, coverage/exclusion lineage, and current/history status
+without inventing a Version 25 screenshot comparison.
+
 Status: `Controlling implementation plan`
 
 Current audit state (2026-08-10T06:40:00Z): all four seeded workstation environments pass the

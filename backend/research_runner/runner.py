@@ -244,6 +244,86 @@ def _boolean_artifact(
     return value, None, metric
 
 
+def _series_artifact(
+    result: dict, output_name: str | None
+) -> tuple[float | None, str | None]:
+    """Extract the latest finite value from one isolated numeric series."""
+    matches = [
+        artifact
+        for name, artifact in result.get("artifacts", {}).items()
+        if isinstance(artifact, dict)
+        and artifact.get("type") == "series"
+        and (output_name is None or name == output_name)
+    ]
+    if len(matches) != 1:
+        return (
+            None,
+            f"Expected exactly one series output{f' named {output_name!r}' if output_name else ''}.",
+        )
+    raw = matches[0].get("value")
+    values = raw.get("values") if isinstance(raw, dict) else raw
+    if not isinstance(values, list):
+        return None, "Series output must contain a numeric list."
+    for value in reversed(values):
+        if (
+            isinstance(value, int | float)
+            and not isinstance(value, bool)
+            and math.isfinite(float(value))
+        ):
+            return float(value), None
+    return None, "Series output has no finite value at the observation timestamp."
+
+
+def _series_target_value(
+    metric: float | None, target: object
+) -> tuple[bool | None, str | None]:
+    """Apply the declared numeric-series target relation without executing user code."""
+    if metric is None or not isinstance(target, dict):
+        return None, "python_series_target_unavailable"
+    operator = str(target.get("operator", "gte")).lower()
+    threshold = target.get("threshold")
+    if (
+        operator not in {"gt", "gte", "lt", "lte", "eq", "ne"}
+        or not isinstance(threshold, int | float)
+        or isinstance(threshold, bool)
+        or not math.isfinite(float(threshold))
+    ):
+        return None, "invalid_python_series_target"
+    threshold = float(threshold)
+    if operator == "gt":
+        return metric > threshold, None
+    if operator == "gte":
+        return metric >= threshold, None
+    if operator == "lt":
+        return metric < threshold, None
+    if operator == "lte":
+        return metric <= threshold, None
+    if operator == "eq":
+        return metric == threshold, None
+    return metric != threshold, None
+
+
+def _output_value(
+    result: dict,
+    output_contract: str,
+    output_name: str | None,
+    series_target: object,
+) -> tuple[bool | None, str | None, float | None]:
+    if result.get("status") != "completed":
+        diagnostics = result.get("diagnostics", [])
+        message = (
+            diagnostics[0].get("message")
+            if diagnostics and isinstance(diagnostics[0], dict)
+            else "Isolated cell failed"
+        )
+        return None, message, None
+    if output_contract == "boolean":
+        return _boolean_artifact(result, output_name)
+    metric, error = _series_artifact(result, output_name)
+    value, target_error = _series_target_value(metric, series_target)
+    return value, target_error or error, metric
+
+
 def _execute_breadth_history(
     source: str,
     datasets: list[object],
@@ -321,7 +401,12 @@ def _execute_breadth_history(
                 },
                 manage_timeout=False,
             )
-            value, error, metric = _boolean_artifact(result, output_name)
+            value, error, metric = _output_value(
+                result,
+                str(hash_input.get("output_contract") or "boolean"),
+                output_name,
+                hash_input.get("series_target"),
+            )
             cell = {
                 "instrument_id": candidate.get("instrument_id"),
                 "symbol": str(candidate.get("symbol") or "").upper(),
@@ -470,13 +555,13 @@ def _execute_batch(
     progress_callback: Callable[[dict], None] | None = None,
     cancellation_check: Callable[[], bool] | None = None,
 ) -> dict:
-    if output_contract not in {"scalar", "boolean", "events"}:
+    if output_contract not in {"scalar", "boolean", "series", "events"}:
         return {
             "status": "failed",
             "diagnostics": [
                 {
                     "code": "batch_output_contract_unsupported",
-                    "message": "Batch execution requires scalar, boolean, or events output.",
+                    "message": "Batch execution requires scalar, series, boolean, or events output.",
                 }
             ],
         }
@@ -536,23 +621,22 @@ def _execute_batch(
                     }
                 )
                 continue
+            matches = [
+                artifact
+                for name, artifact in result.get("artifacts", {}).items()
+                if isinstance(artifact, dict)
+                and artifact.get("type") == output_contract
+                and (output_name is None or name == output_name)
+            ]
             if output_contract == "boolean":
                 value, extraction_error, extracted_metric = _boolean_artifact(result, output_name)
-                matches = [
-                    artifact
-                    for name, artifact in result.get("artifacts", {}).items()
-                    if isinstance(artifact, dict)
-                    and artifact.get("type") == output_contract
-                    and (output_name is None or name == output_name)
-                ]
+            elif output_contract == "series":
+                extracted_metric, extraction_error = _series_artifact(result, output_name)
+                value, target_error = _series_target_value(
+                    extracted_metric, hash_input.get("series_target")
+                )
+                extraction_error = extraction_error or target_error
             else:
-                matches = [
-                    artifact
-                    for name, artifact in result.get("artifacts", {}).items()
-                    if isinstance(artifact, dict)
-                    and artifact.get("type") == output_contract
-                    and (output_name is None or name == output_name)
-                ]
                 extraction_error = None
                 if len(matches) != 1:
                     extraction_error = f"Expected exactly one {output_contract} output."
@@ -592,6 +676,8 @@ def _execute_batch(
                     cell["metric"] = extracted_metric
                 if matches[0].get("exclusion") is not None:
                     cell["exclusion"] = matches[0]["exclusion"]
+            elif output_contract == "series" and extracted_metric is not None:
+                cell["metric"] = extracted_metric
             cells.append(cell)
             if progress_callback and (len(cells) == total or len(cells) % 50 == 0):
                 progress_callback(
