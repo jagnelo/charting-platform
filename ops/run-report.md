@@ -13,6 +13,20 @@
 - Follow-up scope clarification uses one `WatchlistSource` contract for index/ETF, screener,
   personal, combo, and explicit-symbol inputs; index/ETF sources are locked and versioned.
 
+## 2026-08-17 — WatchlistSource implementation
+
+- Implemented source descriptors and member resolution in `backend/app/services/watchlist_sources.py`
+  plus authenticated watchlist routes and frontend store/types.
+- Verified user isolation, locked index metadata, dated membership exclusion, ETF proxy labels,
+  and non-equity/unresolved holding exclusion.
+- Validation passed: backend integration `21/21` (`--no-cov`), backend unit `4/4`, frontend store
+  `22/22`, full Vitest `848/848`, type-check, Ruff, compileall, and diff-check.
+- The source contract is an enabling slice only. Market Map calculations/rendering and publication
+  are still open. No acceptance flexibility used; the initial unprivileged Docker attempt was an
+  environment permission failure and the elevated unchanged rerun passed.
+- Implementation/docs commit `675dbe9a` is clean locally. Exact push was attempted once and
+  rejected before Git by the private-origin safeguard; no workaround or repeat.
+
 ## 2026-08-17 — Isolated Python-series breadth target
 
 - Implemented numeric `series` output as an isolated Python breadth target with explicit threshold

@@ -22,6 +22,23 @@ WatchlistSources that users may follow/pin/select/clone and reuse across map, gr
 alert, and chart tools. Refreshes create versioned membership snapshots; screener and personal
 lists retain separate mutation rules.
 
+## 2026-08-17 — WatchlistSource implementation checkpoint
+
+- Added `GET /watchlists/sources` and `GET /watchlists/sources/{source_id}`.
+- Descriptors unify personal, screener-managed, canonical market-group/index, and ETF-holdings
+  universes. Index/ETF sources are locked and carry membership/version/provenance metadata.
+- Resolution enforces user ownership for personal lists, applies historical `as_of` filtering,
+  returns explicit exclusions, excludes non-equity/unresolved ETF rows, and performs no provider
+  calls. Frontend store/types now load and resolve the same contract.
+- Validation: backend watchlist integration `21/21` with `--no-cov`, backend router unit `4/4`,
+  frontend watchlist store `22/22`, full frontend Vitest `848/848`, frontend type-check, Ruff,
+  compileall, and `git diff --check` pass. The default focused backend invocation also showed
+  the expected repository-wide coverage threshold failure; it is not a code failure.
+- Remaining map gaps: batch period/metric calculations, hierarchical rollups, treemap renderer,
+  interaction/publication, large-universe performance, and full provider/history population.
+- Implementation/docs commit: `675dbe9a` (clean locally). Its exact push was attempted once and
+  rejected before Git by the private-origin safeguard; no workaround or repeat will be attempted.
+
 ## 2026-08-17 — Numeric Python-series breadth composer checkpoint
 
 - The authenticated Market Breadth composer now loads the latest user-owned condition assets with

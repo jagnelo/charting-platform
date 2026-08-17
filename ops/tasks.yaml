@@ -1,7 +1,7 @@
 tasks:
   - id: tc2000-universe-performance-map-20260817
     title: Add universe-scoped Finviz-style performance-map contract and workstation surface
-    status: pending
+    status: in_progress
     priority: high
     branch: feat/tc2000-frontend-rework
     scope: >-
@@ -14,9 +14,15 @@ tasks:
       - Project TODO, parity, acceptance, visual-parity, and active goal objective record the map contract
       - Legacy dashboard heatmap limitation is explicitly tracked as a compatibility precursor
       - Future implementation has batch, cache, point-in-time, coverage, rollup, interaction, and no-fanout gates
+      - Shared WatchlistSource descriptors and dated member resolution feed user and managed universes
     validation:
       - git-diff-check
       - ruby-yaml-json-parse
+      - backend-watchlists-integration-21-of-21
+      - backend-watchlists-unit-4-of-4
+      - frontend-watchlist-store-22-of-22
+      - frontend-vitest-848-of-848
+      - frontend-type-check
     notes:
       - >-
         Documentation/planning checkpoint only. No map implementation or acceptance flexibility
@@ -28,6 +34,14 @@ tasks:
         Follow-up design clarification: index/ETF universes use the same WatchlistSource as
         personal, screener, combo, and explicit-symbol inputs, but are locked system-managed
         watchlists with versioned membership snapshots and no manual edits.
+      - >-
+        Enabling source slice implemented in 8c0ab84d: /watchlists/sources descriptors and
+        /watchlists/sources/{source_id} resolution. Focused integration passed with --no-cov;
+        the default focused run's repository-wide 55% coverage gate is not a product failure.
+        Workstation Market Map batch metrics/rendering remain open.
+      - >-
+        Implementation/docs commit 675dbe9a is clean locally. Its exact push was attempted once
+        and rejected before Git by the private-origin safeguard; no workaround or repeat.
 
   - id: tc2000-breadth-python-series-composer-20260817
     title: Wire numeric Python-series condition assets into the breadth workstation
