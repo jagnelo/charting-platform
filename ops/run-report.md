@@ -28107,4 +28107,26 @@ in 4.6 minutes. No failure was suppressed or reclassified as product success.
 - Implementation/docs commit `5c489e7b` is clean locally. Its one exact push attempt was rejected
   before Git by the private-origin safeguard; no retry or workaround. Python colour assets,
   event/peer/group predicates, custom numeric areas, point-in-time weighting, provider/history,
-  and strict visual gaps remain explicitly tracked.
+and strict visual gaps remain explicitly tracked.
+
+# 2026-08-17 — Isolated Python Market Map colour checkpoint
+
+- Added `color_metric=python` to the canonical Market Map request/response and persisted tool
+  configuration. The backend validates a user-owned completed ResearchRun, reads only its
+  immutable `batch_cells` artifact, renders finite numeric outputs or Boolean `+1/-1` values, and
+  retains per-cell failure codes and coverage. No user code executes in FastAPI or the map path.
+- The workstation discovers active condition assets, converts the selected canonical source into
+  the existing point-in-time breadth universe contract, queues/polls the isolated run with a
+  bounded 60-second deadline, and submits the completed run ID for map rendering. This applies to
+  personal, managed, locked index/market-group, ETF-holdings, and other canonical source kinds.
+- Tests: focused Market Map component `8/8`; full frontend Vitest `857/857`; `vue-tsc`; production
+  build; targeted Ruff; backend compileall; and `git diff --check` passed. The Docker-backed
+  integration command collected 26 tests but all failed during fixture setup because the sandbox
+  denied the Docker socket; this is recorded as an environmental blocker only. The system Python
+  3.9 command was not used as evidence because it lacks `datetime.UTC`.
+- Implementation/docs commit `47a5626bda44e411a638de394532401f3461a37a` is clean locally. The one
+  exact push attempt was rejected before Git by the private-origin safeguard; no retry or workaround
+  was attempted. Ops updates are the pending separate checkpoint.
+- No acceptance flexibility was used. Remaining gaps are event/peer/group-derived map predicates,
+  custom numeric area fields, point-in-time market-cap weights, provider/history population, exact
+  V25 visual baselines, and the authorized Docker integration rerun.

@@ -29884,3 +29884,31 @@ indefinite soak; longer endurance remains an explicit open gap.
   strict board-guided visual approval. These remain explicit and were not relaxed.
 - Exact next context: expose isolated Python numeric-series outputs as a safe, reusable Market Map
   colour source while preserving the sandbox and dataset-manifest contract.
+
+# 2026-08-17 — Isolated Python Market Map colour checkpoint
+
+- Context scope: run-backed `color_metric=python` for the source-agnostic Market Map, including
+  user-owned completed-run validation, numeric/Boolean artifact parsing, per-cell warnings and
+  coverage, workstation asset discovery, bounded queue/poll flow, persisted run identity, tests,
+  and controlling parity/acceptance/visual documentation.
+- Implementation commit `47a5626bda44e411a638de394532401f3461a37a` is clean locally. It consumes
+  only the existing isolated research runner's immutable `batch_cells` artifact; no Python runs in
+  FastAPI or the Market Map request and no provider fan-out was added.
+- Validation passed: focused Market Map component `8/8`; full frontend Vitest `857/857`;
+  `vue-tsc --noEmit`; production build; targeted Ruff; backend compileall; and `git diff --check`.
+  Docker-backed watchlist integration was attempted with the repository Python 3.12 environment,
+  but all fixtures were blocked at setup because the sandbox denied the Docker socket. The earlier
+  plain-system-Python attempt was rejected by Python 3.9's missing `datetime.UTC`; neither is
+  product evidence. No acceptance flexibility was used.
+- The one exact elevated push attempt for `rtk git push origin feat/tc2000-frontend-rework` was
+  rejected by the private-origin safeguard because the accumulated private history would be
+  exported without explicit authorization for that exact payload/destination. No retry, alternate
+  transport, rewrite, reset, stash, or workaround will be attempted; this is transport-only and
+  not a product-goal blocker.
+- Remaining gaps: event/peer/group-derived map predicates, custom numeric area fields,
+  point-in-time market-cap weights, complete provider/history population, exact V25 visual
+  baselines, and Docker-backed integration rerun when an authorized runtime is available. These
+  remain named gaps and were not relaxed.
+- Exact next context: close the remaining Market Map metric matrix from this clean implementation
+  boundary, beginning with a runtime-available backend integration rerun or the next independent
+  source-agnostic metric slice.
