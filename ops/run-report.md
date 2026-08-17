@@ -16,7 +16,9 @@
   completion.
 - Implementation/docs commit `8339b74c658d82b868de55013fc41be4d6b087ef` is clean locally. Its
   exact push was attempted once and rejected before Git by the private-origin safeguard; no
-  workaround, alternate transport, rewrite, reset, stash, or repeat.
+  workaround, alternate transport, rewrite, reset, stash, or repeat. The separate operational
+  checkpoint `a4b31648d42237128706b3d11ca3e71d2bf6307c` is also clean locally; its one exact push
+  attempt was rejected by the same safeguard. No further push attempt is made.
 
 ## 2026-08-17 — Recursive breadth diagnostics and latest US-family scope clarification
 

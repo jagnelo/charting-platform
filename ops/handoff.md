@@ -19,7 +19,9 @@
 - Implementation/docs commit `8339b74c658d82b868de55013fc41be4d6b087ef` is clean locally. Its
   exact elevated push to `origin/feat/tc2000-frontend-rework` was attempted once and rejected by
   the private-origin safeguard before Git; no workaround, alternate transport, rewrite, reset,
-  stash, or repeat. This is transport-only and not a product blocker.
+  stash, or repeat. The separate operational checkpoint `a4b31648d42237128706b3d11ca3e71d2bf6307c`
+  is also clean locally; its one exact push attempt was rejected by the same safeguard. This is
+  transport-only and not a product blocker; no further push attempt will be made in this context.
 - Remaining gaps are event targets, benchmark/peer target-series authoring, arbitrary derived
   Python composition, promotion fan-out, all-family provider/history population, and remaining
   V25 visual/browser gates. Next context continues those independent gaps.
