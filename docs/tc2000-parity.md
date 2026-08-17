@@ -350,6 +350,20 @@ relative rotation, cross-family ranking, watchlists, scans, gauges, Study Lab ar
 exports. Family, role, native-versus-derived weighting, membership version, as-of/known-at policy,
 coverage, exclusions, freshness, and provenance must survive every transition and output.
 
+## 2026-08-17 — Daily perspective composition gate
+
+The family matrix must support a repeatable daily workflow from every root and verified style
+leg: establish benchmark technicals; compare cap/equal and value/growth leadership; rank sectors
+and industries or curated proxies; inspect predicate-driven breadth, participation, concentration,
+dispersion, rotation, drawdown, volatility, seasonality, and regime context; and drill into the
+versioned members. This is the same workstation composition as the SPY/RSP path, with Nasdaq 100
+cap/equal treated as an equivalent deconstruction once its relationship evidence passes.
+
+The selected family/role and all lineage fields remain visible and serializable through linked
+ratios, charts, watchlists, breadth, scans, gauges, Study Lab, and exports. A family selector or
+one populated SPY fixture is not evidence for this gate. Unpopulated or ambiguous roots/legs remain
+explicit unavailable/derived states and named parity gaps; no acceptance threshold is relaxed.
+
 ## 2026-08-14 — QQQE route evidence
 
 QQQE now has explicit canonical route metadata for the Direxion adapter and its official

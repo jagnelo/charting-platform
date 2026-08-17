@@ -81,6 +81,22 @@ The reference generation is therefore:
 - excluded reference surfaces: brokerage, trading, options, news, analyst ratings,
   earnings, full financial statements, and any other capability excluded by section 14.
 
+## US family perspective visual composition
+
+The visual target is the same dense Version 25 workstation composition when the user starts from
+any of the eight US roots—S&P 500, S&P MidCap 400, S&P SmallCap 600, S&P Composite 1500, Russell
+1000, Russell 2000, Russell 3000, or Nasdaq 100—or from an evidenced cap/equal/value/growth leg.
+The represented journey is benchmark technicals, cap/equal and value/growth comparison, sector and
+industry/proxy ranking, predicate breadth and participation, concentration/dispersion and rotation,
+drawdown/volatility and regime context, then constituent drill-down. Nasdaq 100 cap/equal must use
+the same composition as SPY/RSP once its relationship is verified.
+
+Family and role labels, ratios, weighting method, membership/as-of state, coverage, exclusions,
+freshness, and provenance are part of the visible state in charts, grids, watchlists, and research
+surfaces. A missing or ambiguous role is rendered as an explicit unavailable/derived state and is
+recorded as a visual gap; it is never hidden by substituting another family. This is a scope
+clarification, not a visual-threshold relaxation.
+
 ## Evidence hierarchy
 
 Resolve visual or behavioral ambiguity in this order:

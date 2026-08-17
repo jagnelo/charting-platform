@@ -384,6 +384,23 @@
       current-only snapshot, or a name-based relationship. This clarification adds no acceptance
       relaxation; unresolved provider, historical, visual, and browser gaps remain tracked below.
 
+### 2026-08-17 — Interchangeable daily US analysis perspectives
+
+- [ ] Treat each benchmark root and each evidenced style leg as a complete daily analysis entry
+      point, not a selector-only universe. From any selected root/leg, the user must be able to
+      move through the same fast sequence: benchmark trend/technicals; cap-versus-equal and
+      value-versus-growth leadership; sector and industry/proxy ranking; member breadth,
+      participation, concentration, dispersion, relative rotation, drawdown, volatility,
+      seasonality, and regime context; then constituent drill-down.
+- [ ] The Nasdaq 100 cap/equal view must be usable as the same kind of deconstruction as SPY/RSP,
+      while direct parent/peer/cross-family ratios remain first-class linked comparisons. Every
+      surface must preserve the selected family/role, membership and as-of policy, weighting
+      method, coverage, exclusions, freshness, and provenance so a breadth percentage or ranking
+      cannot lose the universe and semantics that produced it.
+- [ ] This is a clarification of the existing eight-family completion bar, not a new optional
+      screen or acceptance relaxation. Missing or ambiguous providers, style/equal relationships,
+      historical memberships, visual references, and browser population remain named gaps.
+
 ### 2026-08-14 — Family-leg relative-strength ratio contract
 
 - [x] Added `GET /analysis/benchmark-families/{family_key}/ratios` with explicit role selection

@@ -109,6 +109,18 @@ occurrences, charts, lists, filters, scans, gauges, alerts, Study Lab, and expor
 coverage or a single SPY fixture does not satisfy this gate; missing provider/history/style/equal,
 visual, and browser-population evidence remains an explicit tracked gap.
 
+### Daily perspective workflow acceptance
+
+For each of the eight roots and every verified cap/equal/value/growth leg, the acceptance run must
+exercise the same user journey rather than only loading a family row: benchmark technicals;
+cap/equal and value/growth leadership; sector and industry/proxy ranking; condition-driven breadth
+and participation; concentration/dispersion; relative rotation; drawdown/volatility; seasonality
+and regime context; and constituent drill-down. The Nasdaq 100 cap/equal fixture must be usable in
+the same way as SPY/RSP after canonical relationship and holdings evidence is verified. Ratios and
+linked views must retain family/role, membership/as-of, weighting, coverage, exclusions, freshness,
+and provenance throughout. This is a clarification of the existing completion bar, not an
+acceptance relaxation; missing or unrepresented states stay in the gap ledger.
+
 ## 2026-08-17 — Research Results occurrence-filter sub-gate
 
 The persisted Python breadth occurrence browser now supports an accessible symbol substring

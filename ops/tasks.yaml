@@ -331,6 +331,14 @@ tasks:
         alerts, and exports). This is a completion-bar clarification, not a new optional screen
         and not an acceptance relaxation.
       - >-
+        Daily perspective clarification (2026-08-17): every root and evidenced style leg is a
+        complete entry point for the same rapid sequence—technicals, cap/equal and value/growth
+        leadership, sector/industry/proxy ranking, breadth/participation, concentration/
+        dispersion, rotation, drawdown/volatility, seasonality/regime, and constituent drill-down.
+        Nasdaq 100 cap/equal must work as an SPY/RSP-style deconstruction when verified. Family,
+        role, membership/as-of, weighting, coverage, exclusions, freshness, and provenance remain
+        attached through every linked view; this is a clarification, not acceptance flexibility.
+      - >-
         Analytics bridge implemented locally: `GET /analysis/benchmark-families/{family_key}/overview`
         returns official identity, independent cap/equal/value/growth mappings, canonical
         availability, derived-equal metadata, snapshot lineage, coverage, freshness, and exact
