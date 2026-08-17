@@ -29713,3 +29713,17 @@ indefinite soak; longer endurance remains an explicit open gap.
 - Remaining gaps: nested hierarchy navigation, zoom/pan, map-to-watchlist/breadth/Study-Lab
   publication, persistent snapshots/cache, Python/breadth colour assets, point-in-time market-cap,
   all-root population, and final board-guided visual acceptance.
+
+# 2026-08-17 — Market Map hierarchy and viewport checkpoint
+
+- Added nested parent/child navigation with breadcrumbs and an explicit Up action, plus wheel/button
+  zoom from 100% to 400% and pointer panning of the zoomed canvas. Viewport and hierarchy changes
+  are local, source-agnostic, and do not issue provider requests or change routes. Fixed the
+  misleading successful-load empty-state message and added regression coverage.
+- Validation passed: focused component/layout interaction `4/4`, full frontend Vitest `852/852`,
+  `vue-tsc --noEmit`, production build, and `git diff --check`. No acceptance flexibility used.
+- Implementation/docs commit `5d59cf5e` is clean locally. Its exact elevated push was attempted once
+  and rejected before Git by the private-origin safeguard; no workaround or repeat. Transport-only.
+- Remaining gaps: map-to-watchlist/breadth/Study-Lab publication beyond linked-symbol selection,
+  persistent snapshots/cache, Python/breadth colour assets, point-in-time market-cap, all-root
+  population, and final board-guided visual acceptance.

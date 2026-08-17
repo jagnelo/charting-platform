@@ -72,6 +72,15 @@ tasks:
         zoom/pan, map-to-watchlist/breadth/Study-Lab publication, persistent snapshots, Python/
         breadth colour assets, point-in-time market-cap, all-root population, and final visual
         acceptance remain open.
+      - >-
+        Follow-up implementation/docs commit 5d59cf5e is clean locally. Added nested parent/child
+        breadcrumbs, an explicit Up action, wheel/button zoom from 100% to 400%, pointer panning,
+        and a regression for the successful-load empty-state defect. Focused component/layout tests
+        pass 4/4 and full frontend Vitest passes 852/852; type-check, production build, and
+        diff-check pass. Its exact push was attempted once and rejected before Git by the
+        private-origin safeguard; no workaround or repeat. Map-to-watchlist/breadth/Study-Lab
+        publication beyond linked-symbol selection, persistent snapshots, Python/breadth colour,
+        point-in-time market-cap, all-root population, and final visual acceptance remain open.
 
   - id: tc2000-breadth-python-series-composer-20260817
     title: Wire numeric Python-series condition assets into the breadth workstation
