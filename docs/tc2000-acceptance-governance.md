@@ -9,6 +9,12 @@ point-in-time weight, equal, or declared numeric field) and colour (absolute/rel
 technical, breadth, or compatible Python series), exact rollups, weighting method,
 coverage/exclusions, freshness/provenance, and point-in-time semantics.
 
+The same run must prove that an index/ETF universe is a locked system-managed watchlist: it can be
+followed, pinned, selected, cloned as a dated snapshot, and reused by the map, grid, scans,
+breadth, alerts, and linked charts, while direct membership edits are rejected and a refreshed
+composition creates a new version with effective/known-at/source lineage. Screener-managed and
+personal lists must continue to use the same source contract with their own mutation rules.
+
 The browser gate covers hover detail, palette/legend, zoom/pan, sort, drill-down, selection,
 multi-selection, map-to-chart/watchlist/breadth/Study-Lab publication, loading/partial/stale/
 unavailable/error/recovery states, and large-universe rendering without one provider request per

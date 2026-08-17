@@ -17,6 +17,11 @@ Finviz captures are behavioural references, not TC2000 artwork baselines.
 - Exact push was attempted once and rejected before Git by the private-origin safeguard; no
   workaround or repeat will be attempted. This is transport-only and not a product blocker.
 
+The watchlist abstraction is now explicit: index/ETF constituent lists are locked, system-managed
+WatchlistSources that users may follow/pin/select/clone and reuse across map, grid, scan, breadth,
+alert, and chart tools. Refreshes create versioned membership snapshots; screener and personal
+lists retain separate mutation rules.
+
 ## 2026-08-17 — Numeric Python-series breadth composer checkpoint
 
 - The authenticated Market Breadth composer now loads the latest user-owned condition assets with

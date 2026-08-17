@@ -24,6 +24,10 @@ tasks:
       - >-
         Planning/docs commit 4c0c6b3d is clean locally. Its exact push was attempted once and
         rejected before Git by the private-origin safeguard; no workaround or repeat.
+      - >-
+        Follow-up design clarification: index/ETF universes use the same WatchlistSource as
+        personal, screener, combo, and explicit-symbol inputs, but are locked system-managed
+        watchlists with versioned membership snapshots and no manual edits.
 
   - id: tc2000-breadth-python-series-composer-20260817
     title: Wire numeric Python-series condition assets into the breadth workstation

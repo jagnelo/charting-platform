@@ -9,6 +9,12 @@ index/style/watchlist universes, sector and industry hierarchy, completed-sessio
 independent tile area and colour, and explicit data lineage; the legacy dashboard heat map is not
 an equivalent.
 
+Index and ETF constituent universes are represented as locked system-managed watchlists behind the
+same `WatchlistSource` contract as personal lists, combos, screeners, and explicit symbols. A user
+can follow, pin, select, clone, and analyse such a list, but cannot edit its canonical membership;
+refreshes produce versioned membership snapshots with source and as-of lineage. The map therefore
+does not need a separate index-only interaction model.
+
 Required states include loading, partial/stale, unavailable, empty, grouped/ungrouped, zoomed,
 drilled, hovered, selected, multi-selected, sorted, and linked-chart states. Each node/cell
 carries canonical identity, point-in-time membership/classification version, period bounds, area

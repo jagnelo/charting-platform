@@ -10,6 +10,8 @@
 - Validation before commit: `git diff --check` and YAML/JSON parser gate.
 - Planning/docs commit `4c0c6b3d` is clean locally. Its exact push was attempted once and rejected
   before Git by the private-origin safeguard; no workaround or repeat.
+- Follow-up scope clarification uses one `WatchlistSource` contract for index/ETF, screener,
+  personal, combo, and explicit-symbol inputs; index/ETF sources are locked and versioned.
 
 ## 2026-08-17 — Isolated Python-series breadth target
 
