@@ -749,3 +749,9 @@ locked canonical index/ETF/group source available for direct analysis. The refer
 authoritative exact-build capture for this preference composition; the focused component and
 settings tests are therefore the interim interaction oracle and the exact geometry remains a named
 visual gap.
+
+The represented map-to-analysis state now includes full-source launch actions for Breadth and Study
+Lab. The action remains available with no tile selected and shows selected-member context only when
+one exists. The board has no authoritative exact-build reference for this specific action row, so
+its geometry remains an interim board-guided interaction state; immutable definition creation from
+the current map configuration is still a separate open state.

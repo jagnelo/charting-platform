@@ -118,6 +118,11 @@
     <div v-if="map" class="market-map-tool__summary">
       <span>{{ map.source.name }}</span><span>{{ map.evaluated_count }}/{{ map.requested_count }} combined covered</span><span>Colour {{ coveragePercent(map.color_coverage, map.coverage) }}%</span><span>Area {{ coveragePercent(map.area_coverage, map.coverage) }}%</span><span>{{ formatFreshness(map.freshness) }}</span><span v-if="activeSnapshotName">Snapshot · {{ activeSnapshotName }}</span><span v-else-if="map.cache_hit">Cached result · {{ map.cached_at ? new Date(map.cached_at).toLocaleTimeString() : 'saved' }}</span><span v-if="map.source.locked">Locked source · {{ map.source.membership_version }}</span>
     </div>
+    <div v-if="map" class="market-map-tool__source-analysis-actions" aria-label="Market Map source analysis actions">
+      <span v-if="selectedIds.length">{{ selectedIds.length }} selected members will be included as context</span>
+      <button type="button" aria-label="Open full source in Market Breadth" @click="publishAnalysis('breadth')">Open full source in Breadth</button>
+      <button type="button" aria-label="Open full source in Study Lab" @click="publishAnalysis('study_lab')">Open full source in Study Lab</button>
+    </div>
     <div v-if="map" class="market-map-tool__nodes" aria-label="Market Map groups">
       <button v-if="selectedNode" type="button" aria-label="Market Map parent group" @click="selectNode(activeNode?.parent_id ?? null)">← Up</button>
       <button v-for="node in visibleNodes" :key="node.node_id" type="button" :class="{ active: selectedNode === node.node_id }" @click="selectNode(node.node_id)">{{ node.label }} <small>{{ node.member_count }}</small></button>
@@ -444,7 +449,7 @@ async function publishSelection() {
 }
 
 function publishAnalysis(target: 'breadth' | 'study_lab') {
-  if (!sourceId.value || !selectedIds.value.length) return
+  if (!sourceId.value) return
   const selectedSymbols = selectedIds.value
     .map(instrumentId => map.value?.cells.find(cell => cell.instrument_id === instrumentId)?.symbol)
     .filter((symbol): symbol is string => Boolean(symbol))
@@ -584,7 +589,9 @@ onMounted(async () => {
 .market-map-tool__run:disabled { opacity: .55; cursor: default; }
 .market-map-tool__status { margin: 0; padding: 6px 9px; color: #aeb8c7; }
 .market-map-tool__status--error { color: #ff9898; }
-.market-map-tool__summary, .market-map-tool__nodes, .market-map-tool__breadcrumbs, .market-map-tool__viewport-controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding: 0 8px; color: #9eabbb; }
+.market-map-tool__summary, .market-map-tool__nodes, .market-map-tool__breadcrumbs, .market-map-tool__viewport-controls, .market-map-tool__source-analysis-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding: 0 8px; color: #9eabbb; }
+.market-map-tool__source-analysis-actions { padding-top: 2px; padding-bottom: 2px; }
+.market-map-tool__source-analysis-actions button { cursor: pointer; }
 .market-map-tool__summary span:first-child { color: #f1f4f8; font-weight: 700; }
 .market-map-tool__nodes button { cursor: pointer; }
 .market-map-tool__nodes button.active { border-color: #70b4ff; color: #fff; }

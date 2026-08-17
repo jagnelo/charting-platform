@@ -1073,3 +1073,8 @@ orders pinned sources first and retains unfollowed locked index/ETF/group source
 selection and analysis. Focused Market Map coverage and dedicated user-settings tests pass; this
 closes preference persistence only and does not close point-in-time weighting, family population,
 direct definition promotion, or visual-board gaps.
+
+The source-publication gate now also accepts a full-source launch from Market Map without a tile
+selection. The launched Breadth or Study Lab tool receives the canonical source as its complete
+universe and optional selected-member context; explicit creation of a new immutable reusable
+definition from the map configuration remains an open versioning/promotion gate.

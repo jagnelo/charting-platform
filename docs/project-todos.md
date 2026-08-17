@@ -13364,3 +13364,9 @@ The current source also passes the focused authenticated top-down browser slice 
 - [x] Persist user-isolated follow and pin preferences for every source descriptor that permits
       them. Pinned sources sort first in the universal picker; unfollowing a source never removes
       its canonical existence or prevents direct selection, mapping, or analysis.
+- [x] Allow Market Map to open the complete canonical source directly in Breadth or Study Lab with
+      optional selected-member context. Tile selection remains an additive subset/context action;
+      full-source launch no longer requires selecting a tile first.
+- [ ] Create a reusable immutable breadth/Study-Lab definition directly from the map's current
+      condition/configuration; source launch and context publication are implemented, but explicit
+      definition creation/versioning and promotion fan-out remain open.

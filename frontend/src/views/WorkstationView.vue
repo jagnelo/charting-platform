@@ -1283,7 +1283,7 @@ type MapAnalysisPublication = {
 }
 
 async function publishMapAnalysis(publication: MapAnalysisPublication) {
-  if (!publication.sourceId || !publication.selectedIds.length) return
+  if (!publication.sourceId) return
   const selectedConfiguration = {
     source_id: publication.sourceId,
     selected_member_ids: [...publication.selectedIds],

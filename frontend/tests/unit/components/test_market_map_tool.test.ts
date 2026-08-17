@@ -138,6 +138,19 @@ describe('MarketMapTool', () => {
     ])
   })
 
+  it('opens the full canonical source without requiring a tile selection', async () => {
+    const wrapper = mount(MarketMapTool)
+    await flushPromises()
+
+    await wrapper.get('[aria-label="Open full source in Market Breadth"]').trigger('click')
+    await wrapper.get('[aria-label="Open full source in Study Lab"]').trigger('click')
+
+    expect(wrapper.emitted('publishAnalysis')).toEqual([
+      [{ target: 'breadth', sourceId: 'market-group:sp500', selectedIds: [], selectedSymbols: [] }],
+      [{ target: 'study_lab', sourceId: 'market-group:sp500', selectedIds: [], selectedSymbols: [] }],
+    ])
+  })
+
   it('saves and reopens a named snapshot without changing the source contract', async () => {
     const snapshot = { id: 12, name: 'Morning leaders', source_id: 'market-group:sp500', membership_version: 'v1', cache_key: 'a'.repeat(64), snapshot_hash: 'b'.repeat(64), created_at: '2026-08-07T15:30:00Z', updated_at: '2026-08-07T15:30:00Z', map: response }
     apiPost.mockReset()
