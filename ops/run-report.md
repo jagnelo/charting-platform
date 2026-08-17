@@ -1,5 +1,20 @@
 # Run Report
 
+## 2026-08-17 — Isolated Python-series breadth target
+
+- Implemented numeric `series` output as an isolated Python breadth target with explicit threshold
+  operators and current/history exact-timestamp semantics.
+- Validation: research-runner focused `91/91`; numeric-series Docker-backed API `1/1`; Ruff and
+  compileall pass. Known dependency deprecation warnings only.
+- Fix-first evidence: the initial API assertion exposed a missing result response field; the
+  initial integration fixture also lacked seeded OHLCV bars. Both were repaired at the owning
+  boundaries and the unchanged focused rerun passed. No acceptance flexibility used.
+- This is a bounded backend slice. Visual authoring, direct reference-series comparison, generic
+  synchronous condition integration, and all promotion targets remain open.
+- Implementation/docs commit: `3e1254c780982931bc39f2f3dec501b55ee580da`.
+- Its exact push was attempted once and rejected before Git by the private-origin safeguard; no
+  workaround or repeat. The local commit remains the source of truth.
+
 ## 2026-08-17 — Multi-family breadth/deconstruction vision transport checkpoint
 
 - Documentation commit `66610890f5efbfc1deafa86e7f6bc0c84911a336` is clean locally.

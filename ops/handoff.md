@@ -1,5 +1,24 @@
 # Active Handoff
 
+## 2026-08-17 — Isolated Python-series breadth target checkpoint
+
+- Added `series` output support for owned condition CodeVersions on the isolated Python breadth
+  path. The runner extracts the latest finite numeric member value and applies a declared threshold
+  relation outside user code for current and aligned historical runs.
+- Responses preserve output contract, threshold target, numeric member metric, Boolean projection,
+  coverage, exclusions, occurrences, code/runtime/SDK, dataset manifest, membership/as-of, and
+  reproducibility lineage. FastAPI and browser contexts never execute user source.
+- Focused runner suite `91/91` and Docker-backed numeric-series API integration `1/1` pass, with
+  only known nautilus deprecation warnings. A missing response field and an unseeded fixture were
+  repaired at their owning boundaries; unchanged rerun passed. No acceptance flexibility used.
+- Remaining gaps: visual `python_series` authoring, direct series-to-series/reference targets,
+  generic synchronous condition integration, and promotion to every compatible surface.
+- Implementation/docs commit `3e1254c780982931bc39f2f3dec501b55ee580da` is clean locally. Its
+  exact push to `origin/feat/tc2000-frontend-rework` was attempted once and rejected before Git by
+  the private-origin safeguard because trusted authorization for this accumulated payload/destination
+  was unavailable. No workaround, alternate transport, rewrite, reset, stash, or repeat will be
+  attempted; transport-only and not a product blocker. No acceptance flexibility used.
+
 ## 2026-08-17 — Multi-family breadth/deconstruction vision transport checkpoint
 
 - Documentation refinement commit `66610890f5efbfc1deafa86e7f6bc0c84911a336` is clean locally.

@@ -1,4 +1,28 @@
 tasks:
+  - id: tc2000-breadth-python-series-target-20260817
+    title: Add isolated numeric Python-series breadth targets
+    status: completed
+    priority: high
+    scope: >-
+      Allow an owned condition CodeVersion with series output to serve as a numeric breadth target
+      over the declared canonical universe. Apply an explicit threshold relation outside user code
+      for current and aligned historical runs and retain the normal metric/pass/fail/coverage and
+      reproducibility lineage.
+    definition_of_done:
+      - Series output contract is accepted only for owned condition assets and explicit series targets
+      - Dedicated runner supports current and historical exact-timestamp evaluation without FastAPI/browser execution
+      - API responses retain output contract, target, numeric member metric, coverage, exclusions, and manifest lineage
+      - Focused runner and Docker-backed API regressions pass
+      - Remaining visual/direct-series/promotion gaps are documented rather than silently closed
+    validation:
+      - research-runner-series-current-history-2-of-2
+      - numeric-series-breadth-api-1-of-1
+      - ruff-compileall
+    notes:
+      - >-
+        A missing result response field and an unseeded integration fixture were fixed at their
+        owning boundaries before the unchanged rerun passed. No acceptance flexibility used.
+
   - id: tc2000-multi-family-breadth-deconstruction-20260817
     title: Expand family vision to explicit breadth targets and cap/equal deconstructions
     status: completed
