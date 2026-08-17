@@ -14,9 +14,10 @@ The isolated-Python sub-gate now covers a recursive tree containing member and c
 numeric-series Python leaves plus built-in predicates. It verifies owned-code resolution,
 Boolean-contract handoff, job-file preservation, once-per-timestamp cross-sectional materialization,
 timestamp-aligned member/benchmark history execution, and compatibility with existing scalar/Boolean/series/event batch
-paths. No provider access is permitted. Direct series-to-series relationships and universal
-promotion fan-out remain named capability gaps; they cannot be represented as passing through a
-member-only fallback.
+paths. No provider access is permitted. The gate now also verifies direct member-level comparison
+of two owned numeric-series outputs using difference and ratio-minus-one semantics, including a
+benchmark-derived source. Cross-sectional-to-derived relationships and universal promotion fan-out
+remain named capability gaps; they cannot be represented as passing through a member-only fallback.
 
 ## 2026-08-17 — Mixed-scope breadth sub-gate
 

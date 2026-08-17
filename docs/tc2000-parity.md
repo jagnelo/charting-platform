@@ -20,8 +20,9 @@ Current and historical results preserve metrics, exclusions, and no-provider-fan
 Existing non-tree batch contracts remain unchanged.
 
 Functional parity is accepted for this backend slice. Exact V25 visual parity for recursive
-Python authoring/results is still an explicit board gap; direct series-to-series relationships and
-promotion fan-out are not silently claimed complete.
+Python authoring/results is still an explicit board gap; direct member-level Python series
+comparisons (difference and ratio-minus-one, including benchmark-derived sources) are implemented,
+while cross-sectional-to-derived relationships and universal promotion fan-out remain open.
 
 ## 2026-08-18 — Cross-sectional Python numeric-series targets
 
@@ -31,8 +32,9 @@ selected same-timestamp mean, median, minimum, maximum, or population standard d
 returns each member's series-minus-group delta before applying the operator and threshold. Current
 batch and aligned historical results retain `group_value`, member metrics, exclusions, coverage,
 and the existing code/dataset reproducibility lineage. Member-scoped Python targets remain
-backward-compatible. Recursive visual-tree Python leaves, direct series/reference relations, and
-complete promotion fan-out remain open.
+backward-compatible. Recursive visual-tree Python leaves and direct member-level series/reference
+relations are implemented; cross-sectional-to-derived relationships and complete promotion fan-out
+remain open.
 
 ## 2026-08-17 — Mixed-scope breadth trees
 

@@ -135,4 +135,23 @@ describe('BreadthConditionTreeEditor', () => {
     expect(crossSectionalPayload.params.scope).toBe('cross_sectional')
     expect(crossSectionalPayload.params.statistic).toBe('median')
   })
+
+  it('serializes a direct isolated Python series comparison', async () => {
+    const wrapper = mount(BreadthConditionTreeEditor, {
+      props: {
+        modelValue: { kind: 'python_series_comparison', params: { left_code_version_id: 11, right_code_version_id: 12, relation: 'difference', operator: 'gte', threshold: 0 } },
+        pythonSeriesAssets: [{ versionId: 11, name: 'Member return' }, { versionId: 12, name: 'Benchmark return' }],
+      },
+    })
+    await wrapper.get('[aria-label="Breadth Python series relation 1"]').setValue('ratio')
+    const relationPayload = wrapper.emitted('update:modelValue')?.at(-1)?.[0] as { params: Record<string, unknown> }
+    await wrapper.setProps({ modelValue: relationPayload })
+    await wrapper.get('[aria-label="Breadth Python comparison threshold 1"]').setValue('0.05')
+    const payload = wrapper.emitted('update:modelValue')?.at(-1)?.[0] as { kind: string; params: Record<string, unknown> }
+    expect(payload.kind).toBe('python_series_comparison')
+    expect(payload.params.left_code_version_id).toBe(11)
+    expect(payload.params.right_code_version_id).toBe(12)
+    expect(payload.params.relation).toBe('ratio')
+    expect(payload.params.threshold).toBe(0.05)
+  })
 })

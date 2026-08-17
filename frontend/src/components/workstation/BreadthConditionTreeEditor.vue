@@ -137,6 +137,29 @@
         <small class="breadth-condition-tree__hint">Cross-sectional leaves compare each member's isolated series with the selected same-timestamp group statistic.</small>
       </template>
 
+      <template v-else-if="leafKind === 'python_series_comparison'">
+        <label>
+          <span class="field-label">Left Python series</span>
+          <select :value="numberParam('left_code_version_id', 0) || ''" :aria-label="`Breadth Python left series asset ${path}`" @change="setParam('left_code_version_id', numberValue($event, 0, 1))">
+            <option value="">Select numeric series…</option>
+            <option v-for="asset in pythonSeriesAssets" :key="`left-${asset.versionId}`" :value="asset.versionId">{{ asset.name }}</option>
+          </select>
+        </label>
+        <label>
+          <span class="field-label">Right Python series</span>
+          <select :value="numberParam('right_code_version_id', 0) || ''" :aria-label="`Breadth Python right series asset ${path}`" @change="setParam('right_code_version_id', numberValue($event, 0, 1))">
+            <option value="">Select numeric series…</option>
+            <option v-for="asset in pythonSeriesAssets" :key="`right-${asset.versionId}`" :value="asset.versionId">{{ asset.name }}</option>
+          </select>
+        </label>
+        <label><span class="field-label">Relation</span><select :value="stringParam('relation', 'difference')" :aria-label="`Breadth Python series relation ${path}`" @change="setParam('relation', ($event.target as HTMLSelectElement).value)"><option value="difference">Difference</option><option value="ratio">Ratio minus one</option></select></label>
+        <label><span class="field-label">Operator</span><select :value="stringParam('operator', 'gte')" :aria-label="`Breadth Python comparison operator ${path}`" @change="setParam('operator', ($event.target as HTMLSelectElement).value)"><option value="gte">At or above</option><option value="gt">Above</option><option value="lte">At or below</option><option value="lt">Below</option><option value="eq">Equal to</option><option value="ne">Not equal</option></select></label>
+        <label><span class="field-label">Threshold</span><input :value="numberParam('threshold', 0)" :aria-label="`Breadth Python comparison threshold ${path}`" type="number" step="0.001" @change="setParam('threshold', numberValue($event, 0))" /></label>
+        <small v-if="pythonSeriesAssetsLoading" role="status">Loading Python assets…</small>
+        <small v-else-if="!pythonSeriesAssets.length" class="breadth-condition-tree__warning">No numeric-series condition assets available.</small>
+        <small class="breadth-condition-tree__hint">Both isolated series are evaluated on the same prepared member and timestamp; either series may use its declared benchmark dataset.</small>
+      </template>
+
       <template v-else-if="leafKind === 'range'">
         <label><span class="field-label">Field</span><select :value="stringParam('field', 'close')" :aria-label="`Breadth range field ${path}`" @change="setParam('field', ($event.target as HTMLSelectElement).value)"><option value="close">Close</option><option value="return">Return</option><option value="volume">Volume</option><option value="distance_to_52w_high">Distance to 52-week high</option></select></label>
         <label><span class="field-label">Minimum</span><input :value="numberParam('lower', 0)" :aria-label="`Breadth range minimum ${path}`" type="number" step="0.001" @change="setParam('lower', numberValue($event, 0))" /></label>
@@ -181,6 +204,7 @@ export type BreadthLeafKind =
   | 'relative_strength'
   | 'series_comparison'
   | 'python_series'
+  | 'python_series_comparison'
   | 'event'
   | 'comparison'
   | 'range'
@@ -205,6 +229,7 @@ const LEAF_OPTIONS: Array<{ value: BreadthLeafKind; label: string }> = [
   { value: 'relative_strength', label: 'Relative strength threshold' },
   { value: 'series_comparison', label: 'Member versus reference series' },
   { value: 'python_series', label: 'Python numeric series target' },
+  { value: 'python_series_comparison', label: 'Python series versus Python series' },
   { value: 'event', label: 'Event occurred in trailing window' },
   { value: 'comparison', label: 'Measured-field comparison' },
   { value: 'range', label: 'Measured-field range' },
@@ -246,6 +271,7 @@ function defaultLeaf(kind: BreadthLeafKind = 'above_moving_average'): BreadthCon
     relative_strength: { lookback: 20, operator: 'gte', threshold: 1 },
     series_comparison: { field: 'return', target_field: 'return', relation: 'difference', operator: 'gte', threshold: 0 },
     python_series: { code_version_id: null, scope: 'member', statistic: 'mean', operator: 'gte', threshold: 0 },
+    python_series_comparison: { left_code_version_id: null, right_code_version_id: null, relation: 'difference', operator: 'gte', threshold: 0 },
     event: { event_type: 'any', lookback_days: 0, include_estimates: false, operator: 'gte', threshold: 1 },
     comparison: { field: 'close', operator: 'gte', threshold: 0 },
     range: { field: 'close', lower: 0, upper: 1, inclusive: true },

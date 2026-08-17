@@ -5941,6 +5941,57 @@ async def _resolve_python_condition_tree(
                     "parameters": params.get("parameters", {}) if isinstance(params.get("parameters"), Mapping) else {},
                 },
             }
+        if kind == "python_series_comparison":
+            async def resolve_series_version(parameter_name: str) -> CodeVersion:
+                code_version_id = params.get(parameter_name)
+                if not isinstance(code_version_id, int) or isinstance(code_version_id, bool) or code_version_id < 1:
+                    raise HTTPException(422, detail={"code": "python_series_comparison_code_version_required", "side": parameter_name})
+                version = (
+                    await db.execute(
+                        select(CodeVersion)
+                        .join(CodeAsset)
+                        .where(
+                            CodeVersion.id == code_version_id,
+                            CodeAsset.user_id == user_id,
+                            CodeAsset.kind == "condition",
+                            CodeAsset.is_archived.is_(False),
+                        )
+                    )
+                ).scalar_one_or_none()
+                if version is None or version.output_contract != "series":
+                    raise HTTPException(422, detail={"code": "python_series_comparison_condition_unavailable", "side": parameter_name})
+                return version
+
+            left_version = await resolve_series_version("left_code_version_id")
+            right_version = await resolve_series_version("right_code_version_id")
+            relation = str(params.get("relation", "difference")).lower()
+            operator = str(params.get("operator", "gte")).lower()
+            threshold = params.get("threshold", 0)
+            if relation not in {"difference", "ratio"}:
+                raise HTTPException(422, detail={"code": "invalid_python_series_comparison_relation"})
+            if operator not in {"gt", "gte", "lt", "lte", "eq", "ne"} or not isinstance(threshold, int | float) or isinstance(threshold, bool) or not math.isfinite(float(threshold)):
+                raise HTTPException(422, detail={"code": "invalid_python_series_comparison_target"})
+            resolved_ids.extend([left_version.id, right_version.id])
+            left_asset = left_version.asset
+            right_asset = right_version.asset
+            return {
+                "kind": "python_series_comparison",
+                "params": {
+                    "left_code_version_id": left_version.id,
+                    "right_code_version_id": right_version.id,
+                    "left_source": left_version.source,
+                    "right_source": right_version.source,
+                    "left_output_name": left_version.output_name,
+                    "right_output_name": right_version.output_name,
+                    "left_parameters": params.get("left_parameters", {}) if isinstance(params.get("left_parameters"), Mapping) else {},
+                    "right_parameters": params.get("right_parameters", {}) if isinstance(params.get("right_parameters"), Mapping) else {},
+                    "relation": relation,
+                    "operator": operator,
+                    "threshold": float(threshold),
+                    "left_asset_key": left_asset.stable_key if left_asset is not None else None,
+                    "right_asset_key": right_asset.stable_key if right_asset is not None else None,
+                },
+            }
         try:
             condition = BreadthConditionRequest.model_validate(dict(node))
         except Exception as exc:

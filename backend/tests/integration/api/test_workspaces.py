@@ -2950,6 +2950,22 @@ class TestWorkspaces:
         )
         assert asset_response.status_code == 201, asset_response.text
         version_id = asset_response.json()["versions"][0]["id"]
+        comparison_asset_response = client.post(
+            "/api/v1/code/assets",
+            headers=auth_headers,
+            json={
+                "stable_key": "python-breadth-comparison-series",
+                "name": "Python breadth comparison series",
+                "kind": "condition",
+                "initial_version": {
+                    "source": "output.series('reference', market.close())",
+                    "output_contract": "series",
+                    "output_name": "reference",
+                },
+            },
+        )
+        assert comparison_asset_response.status_code == 201, comparison_asset_response.text
+        comparison_version_id = comparison_asset_response.json()["versions"][0]["id"]
 
         queued = client.post(
             "/api/v1/analysis/breadth/python",
@@ -3064,6 +3080,37 @@ class TestWorkspaces:
         cross_tree_result = execute_job(cross_tree_job)
         assert cross_tree_result["status"] == "completed", cross_tree_result
         assert cross_tree_result["artifacts"]["batch_cells"]["value"]["cells"][0]["value"] is True
+
+        comparison_tree_queued = client.post(
+            "/api/v1/analysis/breadth/python",
+            headers=auth_headers,
+            json={
+                "code_version_id": version_id,
+                "universe": {"kind": "symbols", "symbols": [instrument.symbol]},
+                "output_contract": "boolean",
+                "condition_tree": {
+                    "kind": "python_series_comparison",
+                    "params": {
+                        "left_code_version_id": version_id,
+                        "right_code_version_id": comparison_version_id,
+                        "relation": "difference",
+                        "operator": "gte",
+                        "threshold": 0,
+                    },
+                },
+            },
+        )
+        assert comparison_tree_queued.status_code == 202, comparison_tree_queued.text
+        comparison_tree_job = json.loads(
+            (tmp_path / "jobs" / f"{comparison_tree_queued.json()['run_id']}.json").read_text()
+        )
+        comparison_leaf = comparison_tree_job["condition_tree"]["params"]
+        assert comparison_leaf["left_code_version_id"] == version_id
+        assert comparison_leaf["right_code_version_id"] == comparison_version_id
+        assert comparison_leaf["left_source"] and comparison_leaf["right_source"]
+        comparison_tree_result = execute_job(comparison_tree_job)
+        assert comparison_tree_result["status"] == "completed", comparison_tree_result
+        assert comparison_tree_result["artifacts"]["batch_cells"]["value"]["cells"][0]["value"] is True
 
         cross_queued = client.post(
             "/api/v1/analysis/breadth/python",

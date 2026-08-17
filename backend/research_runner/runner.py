@@ -321,6 +321,22 @@ def _series_target_value(
     return metric != threshold, None
 
 
+def _python_series_comparison_metric(
+    left: float | None, right: float | None, relation: object
+) -> tuple[float | None, str | None]:
+    """Combine two isolated numeric-series observations without executing user code."""
+    if left is None or right is None:
+        return None, "python_series_comparison_target_unavailable"
+    relation_name = str(relation or "difference").lower()
+    if relation_name == "difference":
+        return left - right, None
+    if relation_name == "ratio":
+        if right == 0:
+            return None, "python_series_comparison_zero_reference"
+        return (left / right) - 1.0, None
+    return None, "invalid_python_series_comparison_relation"
+
+
 def _is_cross_sectional_series_target(target: object) -> bool:
     return isinstance(target, dict) and str(target.get("scope", "member")).lower() == "cross_sectional"
 
@@ -350,7 +366,7 @@ def _condition_tree_python_leaves(
 ) -> list[tuple[str, dict]]:
     if not isinstance(node, dict) or not isinstance(node.get("kind"), str):
         return []
-    if str(node["kind"]).lower() == "python_series":
+    if str(node["kind"]).lower() in {"python_series", "python_series_comparison"}:
         return [(path, node)]
     params = node.get("params") if isinstance(node.get("params"), dict) else {}
     children = params.get("conditions")
@@ -594,6 +610,50 @@ def _execute_condition_tree(
             },
         )
         return value, metric, target_error or error
+    if kind == "python_series_comparison":
+        left_source = params.get("left_source")
+        right_source = params.get("right_source")
+        if not isinstance(left_source, str) or not left_source.strip() or not isinstance(right_source, str) or not right_source.strip():
+            return None, None, "python_series_comparison_source_unavailable"
+        left_result = _execute_single(
+            left_source,
+            dataset,
+            {
+                "source": left_source,
+                "dataset": dataset,
+                "output_contract": "series",
+                "parameters": params.get("left_parameters", {}) if isinstance(params.get("left_parameters"), dict) else {},
+                "timestamp": timestamp,
+            },
+            manage_timeout=False,
+        )
+        right_result = _execute_single(
+            right_source,
+            dataset,
+            {
+                "source": right_source,
+                "dataset": dataset,
+                "output_contract": "series",
+                "parameters": params.get("right_parameters", {}) if isinstance(params.get("right_parameters"), dict) else {},
+                "timestamp": timestamp,
+            },
+            manage_timeout=False,
+        )
+        left_metric, left_error = _series_artifact(left_result, str(params.get("left_output_name") or "") or None)
+        right_metric, right_error = _series_artifact(right_result, str(params.get("right_output_name") or "") or None)
+        if left_error or right_error:
+            return None, None, left_error or right_error
+        metric, relation_error = _python_series_comparison_metric(
+            left_metric, right_metric, params.get("relation", "difference")
+        )
+        value, target_error = _series_target_value(
+            metric,
+            {
+                "operator": params.get("operator", "gte"),
+                "threshold": params.get("threshold", 0.0),
+            },
+        )
+        return value, metric, relation_error or target_error
     benchmark_item = dataset.get("benchmark_dataset") if isinstance(dataset.get("benchmark_dataset"), dict) else None
     return _Research._breadth_condition_result(dataset, node, index, benchmark_item)
 

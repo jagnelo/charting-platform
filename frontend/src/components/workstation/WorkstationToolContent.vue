@@ -616,7 +616,7 @@
           <label>Target <input :value="breadthSecondaryThreshold" aria-label="Breadth second target threshold" type="number" step="0.001" @change="setBreadthConfiguration({ breadth_secondary_threshold: Number(($event.target as HTMLInputElement).value) })" /></label>
         </template>
         </template>
-        <button type="button" :disabled="(breadthConditionKind === 'python_series' && breadthPythonSeriesCodeVersionId == null) || (breadthComposition === 'tree' && breadthTreePythonSeriesLeaf !== null && (!Number.isInteger(Number(breadthTreePythonSeriesLeaf.params.code_version_id)) || Number(breadthTreePythonSeriesLeaf.params.code_version_id) < 1))" @click="runGenericBreadth">Evaluate</button>
+        <button type="button" :disabled="(breadthConditionKind === 'python_series' && breadthPythonSeriesCodeVersionId == null) || (breadthComposition === 'tree' && breadthTreePythonSeriesLeaf !== null && pythonLeafAnchorId(breadthTreePythonSeriesLeaf) == null)" @click="runGenericBreadth">Evaluate</button>
         <span v-if="genericBreadthLoading" role="status" aria-live="polite">Evaluating…</span>
         <span v-else-if="genericBreadthError" class="breadth-tool__status--error" role="alert">{{ genericBreadthError }}</span>
         <span v-else-if="genericBreadth" class="breadth-tool__custom-result"><b>{{ genericBreadthPercentage }}</b> · {{ genericBreadth.pass_count }}/{{ genericBreadth.eligible_count }} eligible · {{ genericBreadthCoverage }} coverage<span v-if="genericBreadth.group_value != null"> · group {{ genericBreadth.group_value.toFixed(4) }}</span></span>
@@ -1994,7 +1994,7 @@ const breadthPythonSeriesRequest = computed<Record<string, unknown>>(() => ({
   history_limit: 500,
 }))
 function findPythonSeriesLeaf(node: BreadthTreeNode): BreadthTreeNode | null {
-  if (node.kind === 'python_series') return node
+  if (node.kind === 'python_series' || node.kind === 'python_series_comparison') return node
   const children = Array.isArray(node.params?.conditions) ? node.params.conditions : []
   for (const child of children) {
     if (isBreadthTreeNode(child)) {
@@ -2004,14 +2004,20 @@ function findPythonSeriesLeaf(node: BreadthTreeNode): BreadthTreeNode | null {
   }
   return null
 }
+function pythonLeafAnchorId(node: BreadthTreeNode | null): number | null {
+  if (!node) return null
+  const raw = node.kind === 'python_series_comparison' ? node.params.left_code_version_id : node.params.code_version_id
+  const value = Number(raw)
+  return Number.isInteger(value) && value > 0 ? value : null
+}
 const breadthTreePythonSeriesLeaf = computed(() => breadthComposition.value === 'tree' ? findPythonSeriesLeaf(breadthTreeCondition.value) : null)
 const breadthUsesPython = computed(() => breadthConditionKind.value === 'python_series' || breadthTreePythonSeriesLeaf.value !== null)
 const breadthPythonRequest = computed<Record<string, unknown>>(() => {
   const leaf = breadthTreePythonSeriesLeaf.value
   if (!leaf) return breadthPythonSeriesRequest.value
-  const codeVersionId = Number(leaf.params.code_version_id)
+  const codeVersionId = pythonLeafAnchorId(leaf)
   return {
-    code_version_id: Number.isInteger(codeVersionId) && codeVersionId > 0 ? codeVersionId : 0,
+    code_version_id: codeVersionId ?? 0,
     universe: breadthPythonSeriesUniverse.value,
     parameters: {},
     output_contract: 'boolean',
@@ -2070,7 +2076,7 @@ function asGenericBreadthHistory(state: NonNullable<typeof breadthPythonSeriesSt
   }
 }
 type BreadthTreeNode = {
-  kind: 'all' | 'any' | 'not' | 'above_moving_average' | 'within_52_week_high' | 'new_high_low' | 'prior_high_low' | 'trend' | 'rsi' | 'volume_ratio' | 'relative_strength' | 'series_comparison' | 'python_series' | 'event' | 'comparison' | 'range' | 'percentile' | 'cross_sectional_statistic'
+  kind: 'all' | 'any' | 'not' | 'above_moving_average' | 'within_52_week_high' | 'new_high_low' | 'prior_high_low' | 'trend' | 'rsi' | 'volume_ratio' | 'relative_strength' | 'series_comparison' | 'python_series' | 'python_series_comparison' | 'event' | 'comparison' | 'range' | 'percentile' | 'cross_sectional_statistic'
   target_scope?: 'member' | 'cross_sectional'
   params: Record<string, unknown>
 }
@@ -2283,7 +2289,7 @@ function genericBreadthDiagnosticLabel(diagnostic: { path: string; kind: string;
 async function runGenericBreadth() {
   if (breadthUsesPython.value) {
     const anchor = breadthTreePythonSeriesLeaf.value
-    if (anchor && (!Number.isInteger(Number(anchor.params.code_version_id)) || Number(anchor.params.code_version_id) < 1)) return
+    if (anchor && pythonLeafAnchorId(anchor) == null) return
     if (!anchor && breadthPythonSeriesCodeVersionId.value == null) return
     await workspaceStore.loadPythonBreadth(breadthPythonRequest.value, breadthPythonRequestKey.value)
     return

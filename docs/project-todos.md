@@ -2,6 +2,11 @@
 
 ### 2026-08-18 — Recursive Python member condition trees and universal heatmap sources
 
+- [x] Add a direct `python_series_comparison` leaf for two user-owned isolated numeric-series
+      outputs. Difference and ratio-minus-one relations run on the same prepared member and
+      timestamp, so either side may use the declared benchmark dataset for cross-derived studies;
+      source IDs, output names, parameters, relation, threshold, and lineage are persisted.
+
 - [x] Carry a validated recursive `all`/`any`/`not` condition tree through the Python breadth
       API, persisted run configuration, job-file handoff, and isolated runner. Python numeric
       series leaves are resolved only from user-owned condition versions, execute against the
@@ -41,8 +46,10 @@
       keeping the existing member-value behavior backward compatible.
 - [x] Cross-sectional Python series now works as a recursive visual AST leaf with explicit scope
       and statistic, including current/history isolated evaluation and visual authoring.
-- [ ] Direct series-to-series or cross-sectional-to-derived-series relationships and promotion
-      fan-out to every compatible target remain open.
+- [x] Direct member-level series-to-series and cross-derived comparisons now work as a recursive
+      visual AST leaf with difference or ratio-minus-one semantics and isolated browser coverage.
+- [ ] Cross-sectional-to-derived-series relationships and promotion fan-out to every compatible
+      target remain open.
 
 ### 2026-08-17 — Mixed-scope breadth condition trees
 
