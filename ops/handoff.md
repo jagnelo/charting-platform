@@ -30243,6 +30243,7 @@ indefinite soak; longer endurance remains an explicit open gap.
   functional/visual/security/performance audit remain open.
 - Implementation/docs commit `d00236c5` is clean locally. Its one exact push attempt was rejected
   before Git by the private-origin safeguard; no workaround, alternate transport, rewrite, reset,
-  stash, or retry was attempted. This is transport-only and not a product blocker. The operational
-  checkpoint is being committed separately; its enclosing commit will be verified with `git rev-parse`.
+  stash, or retry was attempted. This is transport-only and not a product blocker. Operational
+  checkpoint `841597a8` is committed locally and verified with `git rev-parse`; its push was rejected
+  by the same safeguard.
 - Next context: Python target-series leaves and promotion across compatible targets.

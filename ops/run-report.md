@@ -28422,6 +28422,6 @@ and strict visual gaps remain explicitly tracked.
 - No acceptance flexibility was used. No visual threshold, baseline, mask, provider rule, or
   completion criterion changed. Exact V25 group-statistic visual evidence remains a tracked board
   gap; arbitrary Python target-series, complete family/provider population, and final audit remain.
-- Implementation/docs commit: `d00236c5`. One exact push attempt was rejected before Git by the
-  private-origin safeguard. No retry, workaround, alternate transport, rewrite, reset, or stash.
-  Operational checkpoint follows as a separate commit.
+- Implementation/docs commit: `d00236c5`; operational checkpoint `841597a8`. Each exact push attempt
+  was rejected before Git by the private-origin safeguard. No retry, workaround, alternate transport,
+  rewrite, reset, or stash was used. Both commits are clean locally and verified with `git rev-parse`.
