@@ -27935,6 +27935,16 @@ in 4.6 minutes. No failure was suppressed or reclassified as product success.
   rejected before Git by the private-origin safeguard; no workaround or repeat. This is
   transport-only and not a product-goal blocker.
 
+# 2026-08-17 — Workstation Market Map consumer checkpoint
+
+- Added the primary workstation Market Map consumer, typed request/response models, registry entry,
+  configuration persistence, source/group/period/area/colour controls, locked-source summary,
+  tile selection publication, and explicit loading/empty/error/warning states.
+- Validation passed: component `2/2`, full frontend Vitest `850/850`, `vue-tsc --noEmit`, and
+  production build. No acceptance flexibility used. The current dense flex-tile renderer is an
+  interim component/browser oracle; proportional treemap and full interaction/publication/visual
+  gates remain tracked.
+
 # 2026-08-17 — Expanded US family role-matrix documentation
 
 - Added an explicit eight-root role matrix to the controlling TODO and repeated the latest scope
@@ -27961,3 +27971,8 @@ in 4.6 minutes. No failure was suppressed or reclassified as product success.
   open and are documented in the parity/acceptance records.
 - Implementation/docs commit `ce64e718` was created cleanly. Exact push was attempted once and
   rejected before Git by the private-origin safeguard; no workaround or repeat.
+
+# 2026-08-17 — Workstation Market Map consumer transport checkpoint
+
+- Implementation/docs commit `95e8f385` is clean locally. Its exact push was attempted once and
+  rejected before Git by the private-origin safeguard; no workaround or repeat. Transport-only.

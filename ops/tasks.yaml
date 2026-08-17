@@ -22,6 +22,9 @@ tasks:
       - backend-watchlists-unit-4-of-4
       - backend-market-map-watchlists-integration-24-of-24
       - backend-market-map-ruff-compileall
+      - frontend-market-map-component-2-of-2
+      - frontend-vitest-850-of-850
+      - frontend-market-map-typecheck-build
       - frontend-watchlist-store-22-of-22
       - frontend-vitest-848-of-848
       - frontend-type-check
@@ -51,6 +54,15 @@ tasks:
         and destination was unavailable; no workaround or repeat. The endpoint is an enabling
         contract only: persistent caching, Python/breadth colour assets, historical market-cap
         area, renderer, interactions, publication, and full root population remain open.
+      - >-
+        Workstation consumer implementation is in the next local context: Market Map tool source,
+        grouping, period, area/colour controls, locked-source lineage, tile selection publication,
+        serializable configuration, and failed/empty states. Component 2/2, full Vitest 850/850,
+        type-check, and production build pass. Final proportional treemap/visual and richer
+        publication gates remain open.
+      - >-
+        Implementation/docs commit 95e8f385 is clean locally. Its exact push was attempted once
+        and rejected before Git by the private-origin safeguard; no workaround or repeat.
 
   - id: tc2000-breadth-python-series-composer-20260817
     title: Wire numeric Python-series condition assets into the breadth workstation

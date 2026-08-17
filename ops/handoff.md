@@ -29679,3 +29679,21 @@ indefinite soak; longer endurance remains an explicit open gap.
 - Remaining map gaps: persistent cache storage, full period/metric matrix, Python/breadth colour
   outputs, point-in-time market-cap area, all eight-root population, treemap renderer, hover/zoom/
   drill interactions, publication to linked tools, and browser/visual acceptance.
+
+# 2026-08-17 — Workstation Market Map consumer checkpoint
+
+- Added `MarketMapTool.vue` and the typed `fetchMarketMap` client. The primary workstation tool
+  selects any loaded source, grouping, period, independent area/colour metric, and relative-return
+  reference; shows locked-source membership/freshness/coverage lineage and explicit error/empty
+  states; persists JSON configuration; and emits tile symbol selection into the existing link bus.
+- Added the `market_map` tool registry entry and shared frontend contracts. Component interaction
+  coverage passes `2/2`; full frontend Vitest passes `850/850`; `vue-tsc --noEmit` and production
+  build pass. Existing expected error-test stderr remains unchanged. No acceptance flexibility used.
+- This is an interim dense flex-tile/browser oracle, not final visual parity. Proportional hierarchy,
+  hover/zoom/pan, palette legend, multi-select, map-to-watchlist/breadth/Study-Lab publication,
+  persistent caching, Python/breadth colour assets, point-in-time market-cap area, and complete
+  root population remain open.
+- Implementation/docs commit `95e8f385` is clean locally. The exact elevated push was attempted
+  once and rejected before Git by the private-origin safeguard because trusted authorization for
+  the exact accumulated payload and destination was unavailable; no workaround or repeat. This
+  transport issue is recorded separately and is not a product-goal blocker.
