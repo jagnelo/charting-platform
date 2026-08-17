@@ -1,5 +1,22 @@
 # Active Handoff
 
+## 2026-08-17 — US family view matrix clarification checkpoint
+
+- Updated the active goal objective and controlling TODO, parity, acceptance-governance, and
+  visual-parity records to make the requested view-completeness matrix explicit for S&P 500/400/
+  600/1500, Russell 1000/2000/3000, and Nasdaq 100. Every evidenced cap/equal/value/growth leg
+  must exercise technicals, spreads/ratios, configurable breadth, leadership, concentration and
+  dispersion, rotation, risk/regime context, taxonomy drill-down, and compatible scans, gauges,
+  Study Lab, plots, alerts, and exports.
+- Missing or unproven roles remain explicit unavailable, derived, or `No verified mapped proxy`
+  states with evidence and closure conditions; no acceptance flexibility or silent fallback was
+  introduced. This is documentation only; provider/history population and implementation gates
+  remain open.
+- Documentation commit `2a86e105284f594792fa44a4df15fd7fb59f4c72` is clean locally. Its exact
+  elevated push to `origin/feat/tc2000-frontend-rework` was attempted once and rejected before
+  Git by the private-origin safeguard; no workaround, alternate transport, rewrite, reset, stash,
+  or repeat. The final operational record will be committed separately and not pushed again.
+
 ## 2026-08-17 — Prior high/low breadth target checkpoint
 
 - Added `prior_high_low` to the reusable breadth condition contract. It evaluates the latest

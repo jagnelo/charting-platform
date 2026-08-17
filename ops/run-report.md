@@ -1,5 +1,19 @@
 # Run Report
 
+## 2026-08-17 — US family view matrix clarification
+
+- Updated the active goal objective plus the controlling project TODO, parity, acceptance,
+  and visual-parity documents. The eight roots (S&P 500/400/600/1500, Russell 1000/2000/3000,
+  Nasdaq 100) and every evidenced cap/equal/value/growth role now explicitly share one view matrix:
+  technicals, spreads/ratios, predicate breadth, leadership, concentration/dispersion, rotation,
+  risk/regime, drill-down, and compatible reusable research/alert surfaces.
+- Missing role evidence remains an explicit unavailable/derived/`No verified mapped proxy` state;
+  no acceptance threshold or provider rule was relaxed. YAML/JSON parsing and `git diff --check`
+  passed before commit. Implementation remains open.
+- Documentation commit `2a86e105284f594792fa44a4df15fd7fb59f4c72` is clean locally. Its exact push
+  was attempted once and rejected before Git by the private-origin safeguard; no workaround or
+  repeat. No further push attempt is made.
+
 ## 2026-08-17 — Prior high/low breadth target
 
 - Added a reusable `prior_high_low` breadth leaf across the backend schema/evaluator, current and
