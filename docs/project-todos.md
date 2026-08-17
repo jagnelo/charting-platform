@@ -30,8 +30,8 @@
       contradictory `params.target_scope` beside the authoritative node field.
 - [x] Nested mixed-scope groups now retain explicit leaf scope and clause diagnostics rather than
       being inferred from a member predicate.
-- [ ] Cross-sectional group statistics beyond percentile and Python target-series leaves remain
-      open.
+- [x] Explicit cross-sectional group-statistic leaves now support mean, median, minimum, maximum,
+      and standard deviation; arbitrary Python target-series leaves remain open.
 
 ### 2026-08-17 — Universe-scoped Finviz-style performance maps (new required surface)
 
@@ -501,8 +501,8 @@ analysis vocabulary rather than a family-specific shortcut:
       silently falling back to member semantics. Runner tests cover current and historical ranks,
       deterministic ties, and per-member pass state; Study Lab component coverage verifies the
       factory selector and parameter controls. Full research-runner and frontend gates pass.
-- [ ] Arbitrary user-authored cross-sectional derived/Python series, mixed-scope composition,
-      group statistics, and promotion of this Study Lab output into every compatible plot/column/
+- [ ] Arbitrary user-authored cross-sectional derived/Python series and promotion of this Study Lab
+      output into every compatible plot/column/
       filter/gauge/alert/scan/Strategy Lab target remain open and must retain the same lineage.
 
 ### 2026-08-17 — Explicit cross-sectional breadth target scope
@@ -520,8 +520,8 @@ analysis vocabulary rather than a family-specific shortcut:
 - [x] The workstation percentile editor now exposes “Member rolling percentile” versus
       “Cross-sectional rank percentile” and persists the selected scope. Backend unit/API,
       frontend type/build, and rebuilt authenticated browser acceptance cover both paths.
-- [ ] Cross-sectional rank over richer derived/Python series, cross-sectional group statistics,
-      nested mixed-scope composition, and promotion into every compatible plot/column/filter/
+- [ ] Cross-sectional rank over richer derived/Python series and promotion into every compatible
+      plot/column/filter/
       gauge/alert/Study Lab target remain open. These are tracked capability gaps, not relaxed
       acceptance criteria.
 

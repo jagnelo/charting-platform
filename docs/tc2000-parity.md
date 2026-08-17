@@ -18,8 +18,9 @@ Market Map breadth colour now accepts the same explicit cross-sectional percenti
 generic breadth contract. A `percentile` condition with `target_scope: cross_sectional` ranks each
 eligible member's declared field at the aligned observation timestamp, returns the member rank and
 pass/fail state, and colours tiles through the same source-agnostic renderer. Member-level and
-cross-sectional scope remain distinct in the persisted definition. Mixed-scope groups, richer group
-statistics, and Python target-series leaves remain tracked gaps.
+cross-sectional scope remain distinct in the persisted definition. Mixed-scope groups and the
+explicit group-statistic leaf are implemented; arbitrary Python target-series leaves remain a
+tracked gap.
 
 ## 2026-08-17 — Finviz-style universe-scoped market-map parity
 
@@ -314,9 +315,9 @@ before applying the percentile operator, exposing current/history percentages, m
 exclusions, and a reusable uPlot series/table contract through unified Python. This is the same
 scope-aware research helper used by the workstation/API and does not silently fall back to a
 member rolling percentile. Runner and component gates pass. Arbitrary derived/Python
-cross-sectional expressions beyond percentile and complete promotion fan-out remain explicit
-parity gaps; nested mixed-scope composition is implemented in the isolated runner and shared
-workstation/API evaluator.
+cross-sectional expressions and complete promotion fan-out remain explicit parity gaps; nested
+mixed-scope composition and the declared group-statistic leaf are implemented in the isolated
+runner and shared workstation/API evaluator.
 
 ## 2026-08-17 — Explicit cross-sectional breadth scope
 

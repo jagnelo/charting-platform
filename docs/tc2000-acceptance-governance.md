@@ -18,8 +18,9 @@ The Market Map breadth gate now includes a cross-sectional fixture: a locked or 
 colour tiles from a root or nested percentile condition using the same local, aligned member
 metrics as the generic breadth endpoint. Acceptance checks rank, threshold, pass/fail colour,
 exclusion, clause diagnostics, and no provider fan-out. The visual editor serializes
-`target_scope` at the condition node and does not leave contradictory nested scope state. Richer
-group statistics and Python target-series leaves remain open; no acceptance flexibility was used.
+`target_scope` at the condition node and does not leave contradictory nested scope state. The
+declared group-statistic set is now covered; arbitrary Python target-series leaves and richer
+derived statistics remain open; no acceptance flexibility was used.
 
 ## 2026-08-17 — Market-map acceptance sub-gate
 
@@ -241,8 +242,8 @@ preserve scope, rank metric, membership/timestamp alignment, coverage, and occur
 An unsupported cross-sectional condition must be visibly rejected/excluded and must not fall back
 to member semantics. The implemented sub-gate passes backend unit/API, frontend type/build, and
 rebuilt authenticated browser evidence. No visual threshold, provider rule, or acceptance
-flexibility changed. Cross-sectional Python/derived-series, mixed-scope composition, richer group
-statistics, and remaining promotion targets remain tracked gaps.
+flexibility changed. Cross-sectional Python/derived-series, richer derived statistics, and
+remaining promotion targets remain tracked gaps.
 
 ## 2026-08-17 — Breadth range and rolling-percentile sub-gate
 
