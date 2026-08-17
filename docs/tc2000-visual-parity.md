@@ -16,6 +16,12 @@ treemap renderer, hover/zoom/pan, map publication, Python/breadth colour state, 
 or point-in-time market-cap area visual has been accepted yet. These remain tracked gaps rather
 than silently inferred from the Finviz references.
 
+The current `Market Map` tool is the interim browser/component oracle for the represented data
+workflow: source/group/period/area/colour controls, dense tiles, locked-source badge, freshness,
+coverage, warnings, and linked-symbol selection. It deliberately does not promote its flex-tile
+layout to a visual baseline. The reference-board gaps for proportional treemap geometry, palette
+legend, hover detail, zoom/pan, multi-selection, and map-to-analysis publication remain open.
+
 ## 2026-08-17 — Family/style analysis visual states (latest requirement)
 
 The visual acceptance matrix must include the same workstation states for each of the eight US

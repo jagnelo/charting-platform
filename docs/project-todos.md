@@ -69,6 +69,19 @@ The captures are behavioural/product references; Finviz artwork and branding are
       full eight-root population remain open. Current market-cap area is explicitly labelled as
       latest stored metadata rather than historical truth.
 
+#### Implementation checkpoint — workstation Market Map tool
+
+- [x] Added a primary-workstation `Market Map` tool backed by the batch contract. It lets the user
+      choose any loaded source, sector/industry/ungrouped mode, completed-session period, tile
+      area, and colour metric, preserves serializable configuration, and publishes a selected tile
+      into the linked symbol workflow.
+- [x] Locked/system-managed source state, coverage/freshness, membership version, warnings, and
+      unavailable/error states are visible in the dense tool surface. The tool is covered by a
+      component interaction regression and does not copy Finviz/TC2000 branding or artwork.
+- [ ] The current renderer is an enabling dense tile surface, not the final TC2000/board-guided
+      treemap. Proportional hierarchy layout, hover detail, zoom/pan, palette legend, multi-select,
+      map-to-watchlist/breadth/Study-Lab publication, and visual baselines remain open.
+
 ### 2026-08-17 — US market family/style analysis matrix (latest user requirement)
 
 The top-down workstation must support the following US market perspectives as one

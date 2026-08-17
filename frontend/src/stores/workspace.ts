@@ -53,7 +53,7 @@ export interface WorkspaceSummary {
  * primary-workstation tools. It is not a substitute for a runtime component registry.
  */
 export interface OpenableToolDefinition {
-  tool_type: 'chart' | 'watchlist' | 'notes' | 'alerts' | 'scan' | 'gauge' | 'study_lab' | 'research_results' | 'relative_rotation' | 'breadth' | 'technical_summary' | 'coverage' | 'report' | 'code_library'
+  tool_type: 'chart' | 'watchlist' | 'notes' | 'alerts' | 'scan' | 'gauge' | 'study_lab' | 'research_results' | 'relative_rotation' | 'breadth' | 'market_map' | 'technical_summary' | 'coverage' | 'report' | 'code_library'
   title: string
   instance_prefix: string
   configuration?: Record<string, unknown>
@@ -70,6 +70,7 @@ export const OPENABLE_WORKSTATION_TOOLS: readonly OpenableToolDefinition[] = [
   { tool_type: 'research_results', title: 'Study Results', instance_prefix: 'research-results', configuration: {} },
   { tool_type: 'relative_rotation', title: 'Relative Rotation', instance_prefix: 'relative-rotation', configuration: { group_key: 'sp500-sectors', benchmark: 'SPY', timeframe: 'D1', sampling: 1, lookback: 20, tail_length: 10, adjusted: true } },
   { tool_type: 'breadth', title: 'Market Breadth', instance_prefix: 'breadth', configuration: { group_key: 'sp500-sectors' } },
+  { tool_type: 'market_map', title: 'Market Map', instance_prefix: 'market-map', configuration: { group_by: 'sector_industry', period: '1D', area_metric: 'market_cap', color_metric: 'return' } },
   { tool_type: 'technical_summary', title: 'Technical Summary', instance_prefix: 'technical-summary', configuration: {} },
   { tool_type: 'coverage', title: 'Coverage', instance_prefix: 'coverage', configuration: {} },
   { tool_type: 'report', title: 'Instrument Report', instance_prefix: 'report', configuration: {} },

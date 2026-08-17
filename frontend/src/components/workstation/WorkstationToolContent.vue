@@ -765,6 +765,7 @@
       <BreadthHistoryUPlot :history="breadthHistory" />
     </div>
     <RelativeRotationTool v-else-if="tool.instance_key === 'relative-rotation' || tool.tool_type === 'relative_rotation'" :configuration="tool.configuration" @select="selectRotationSymbol" @configuration="emit('configuration', tool.instance_key, $event)" />
+    <MarketMapTool v-else-if="tool.tool_type === 'market_map'" :configuration="tool.configuration" @configuration="emit('configuration', tool.instance_key, $event)" @select="(symbol, instrumentId) => selectSymbol(symbol, instrumentId)" />
     <div v-else-if="tool.instance_key === 'technical-summary' || tool.tool_type === 'technical_summary'" class="metrics">
       <span>RSI(14)</span><b>{{ formatNumber(technical?.rsi14) }}</b>
       <span>20 / 50 / 200 MA</span><b>{{ technicalMAs }}</b>
@@ -812,6 +813,7 @@ import UnknownToolRecovery from './UnknownToolRecovery.vue'
 import BreadthHistoryUPlot from './BreadthHistoryUPlot.vue'
 import GenericBreadthHistoryUPlot from './GenericBreadthHistoryUPlot.vue'
 import RelativeRotationTool from './RelativeRotationTool.vue'
+import MarketMapTool from './MarketMapTool.vue'
 import InstrumentInfoPanel from '@/components/chart/InstrumentInfoPanel.vue'
 import ResearchResultsTool from './ResearchResultsTool.vue'
 import CodeLibraryTool from './CodeLibraryTool.vue'

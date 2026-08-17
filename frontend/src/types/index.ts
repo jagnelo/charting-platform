@@ -850,6 +850,87 @@ export interface WatchlistSourceResolved {
   exclusions: Array<Record<string, unknown>>
 }
 
+export type MarketMapGroupBy = 'none' | 'sector' | 'industry' | 'sector_industry'
+export type MarketMapAreaMetric = 'equal' | 'market_cap' | 'weight' | 'volume'
+export type MarketMapColorMetric = 'return' | 'relative_return' | 'rsi_14' | 'relative_volume' | 'distance_52w_high' | 'distance_52w_low'
+
+export interface MarketMapRequest {
+  source_id: string
+  group_by?: MarketMapGroupBy
+  period?: string
+  start?: string | null
+  end?: string | null
+  timeframe?: Timeframe
+  adjusted?: boolean
+  area_metric?: MarketMapAreaMetric
+  color_metric?: MarketMapColorMetric
+  reference_symbol?: string | null
+  as_of?: string | null
+  limit?: number
+}
+
+export interface MarketMapWarning {
+  code: string
+  message: string
+  instrument_id?: number | null
+  node_id?: string | null
+}
+
+export interface MarketMapCell {
+  instrument_id: number
+  symbol: string
+  name: string
+  sector?: string | null
+  industry?: string | null
+  group_path: string[]
+  area_value?: number | null
+  color_value?: number | null
+  return_value?: number | null
+  observation_time?: string | null
+  coverage: number
+  warnings: MarketMapWarning[]
+}
+
+export interface MarketMapNode {
+  node_id: string
+  parent_id?: string | null
+  level: string
+  label: string
+  group_path: string[]
+  member_count: number
+  covered_count: number
+  area_total?: number | null
+  color_value?: number | null
+  coverage: number
+  aggregation_method: string
+  warnings: MarketMapWarning[]
+}
+
+export interface MarketMap {
+  source: WatchlistSource
+  group_by: MarketMapGroupBy
+  period: string
+  period_start?: string | null
+  period_end?: string | null
+  timeframe: Timeframe
+  adjustment: string
+  area_metric: MarketMapAreaMetric
+  color_metric: MarketMapColorMetric
+  reference_symbol?: string | null
+  membership_version?: string | null
+  calculation_version: string
+  cache_key: string
+  freshness: string
+  freshness_detail: Record<string, number>
+  requested_count: number
+  evaluated_count: number
+  coverage: number
+  nodes: MarketMapNode[]
+  cells: MarketMapCell[]
+  exclusions: MarketMapWarning[]
+  warnings: MarketMapWarning[]
+}
+
 export type ScreenerAlertTriggerType = 'entered' | 'left' | 'both'
 export type ScreenerAlertStatus = 'active' | 'triggered' | 'paused' | 'disabled'
 

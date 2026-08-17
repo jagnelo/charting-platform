@@ -27,6 +27,12 @@ This is not visual acceptance: persistent caching, all requested periods/metrics
 colour outputs, point-in-time market-cap area, the renderer, and map publication remain explicit
 open gates. No acceptance flexibility was used for this slice.
 
+The workstation consumer sub-gate now passes component coverage for source selection, locked-source
+lineage, batch request configuration, tile rendering, configuration persistence, tile-to-symbol
+publication, and failed-map status. This is an interaction/component oracle, not a Version 25
+visual pass: the current dense flex-tile renderer does not yet satisfy proportional treemap,
+hover/zoom/pan, palette, multi-select, or map-to-tool publication gates.
+
 The browser gate covers hover detail, palette/legend, zoom/pan, sort, drill-down, selection,
 multi-selection, map-to-chart/watchlist/breadth/Study-Lab publication, loading/partial/stale/
 unavailable/error/recovery states, and large-universe rendering without one provider request per
