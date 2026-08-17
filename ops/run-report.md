@@ -28094,3 +28094,17 @@ in 4.6 minutes. No failure was suppressed or reclassified as product success.
   before Git by the private-origin safeguard; no retry or workaround. Remaining metric, Python/
   breadth-colour, point-in-time weighting, provider/history, browser, and strict visual gaps remain
   explicitly tracked.
+
+# 2026-08-17 — Breadth predicate Market Map checkpoint
+
+- Added `color_metric=breadth` to the source-agnostic Market Map. The existing breadth evaluator
+  now provides pass/fail tile colour, underlying condition metric, condition lineage, exact
+  exclusions, and canonical reference alignment. The workstation exposes moving-average,
+  52-week proximity, new-high, RSI, volume-ratio, and relative-strength controls.
+- Validation passed: complete watchlist integration `25/25`, focused Market Map `4/4`, frontend
+  component `7/7`, full Vitest `856/856`, `vue-tsc`, production build, Ruff, compileall, and
+  diff-check. No acceptance flexibility was used.
+- Implementation/docs commit `5c489e7b` is clean locally. Its one exact push attempt was rejected
+  before Git by the private-origin safeguard; no retry or workaround. Python colour assets,
+  event/peer/group predicates, custom numeric areas, point-in-time weighting, provider/history,
+  and strict visual gaps remain explicitly tracked.

@@ -105,6 +105,17 @@ tasks:
         safeguard; no retry or workaround. Direct map-to-breadth/Study-Lab publication is already
         implemented; complete metric/Python/breadth matrix, point-in-time weights, provider/history
         population, and board-guided visual approval remain open.
+      - >-
+        Implementation/docs commit 5c489e7b adds `color_metric=breadth` to the Market Map batch
+        and workstation. The shared breadth evaluator supplies pass/fail tile colour, condition
+        metrics, serialized condition lineage, exact exclusions, and canonical reference alignment;
+        built-in moving-average, 52-week, new-high, RSI, volume-ratio, and relative-strength
+        authoring is covered. Watchlist integration 25/25, focused Market Map 4/4 then 25/25,
+        frontend component 7/7, full Vitest 856/856, type-check/build, Ruff, compileall, and
+        diff-check pass. The exact push was attempted once and rejected before Git by the private-
+        origin safeguard; no retry/workaround. Python colour assets, event/peer/group predicates,
+        custom numeric areas, point-in-time weights, provider/history population, and strict visual
+        approval remain open.
 
   - id: tc2000-breadth-python-series-composer-20260817
     title: Wire numeric Python-series condition assets into the breadth workstation

@@ -29860,3 +29860,27 @@ indefinite soak; longer endurance remains an explicit open gap.
   implemented.
 - Exact next context: close the remaining Market Map metric matrix, starting from a clean ops
   checkpoint and retaining the generalized arbitrary-watchlist source contract.
+
+# 2026-08-17 — Breadth predicate Market Map checkpoint
+
+- Context scope: extend the source-agnostic Market Map with built-in breadth-predicate colouring,
+  shared condition evaluation, per-cell pass/fail/metric lineage, workstation authoring, tests, and
+  controlling documentation. Implementation/docs commit `5c489e7b` is clean locally; only ops
+  files remain dirty.
+- `POST /analysis/market-map` accepts `color_metric=breadth` and a versioned condition AST. The
+  response keeps the condition, `condition_value`, `condition_metric`, exact exclusion codes,
+  coverage, observation time, reference-bar alignment, and condition-inclusive cache identity.
+  Built-in authoring covers moving-average, 52-week proximity, new-high, RSI, volume-ratio, and
+  relative-strength predicates for arbitrary personal, managed, combo, explicit-symbol, and locked
+  index/ETF watchlist sources.
+- Validation: focused Market Map integration `4/4`, complete watchlist integration `25/25`, focused
+  component `7/7`, full frontend Vitest `856/856`, `vue-tsc`, production build, Ruff, compileall,
+  and `git diff --check`. No acceptance flexibility was used.
+- The one exact push to `origin/feat/tc2000-frontend-rework` was rejected before Git by the private-
+  origin safeguard; no retry, alternate transport, rewrite, reset, stash, or workaround will be
+  attempted. This is transport-only and not a product-goal blocker.
+- Remaining gaps: isolated Python colour assets, event/peer/group-derived map predicates, custom
+  numeric area fields, point-in-time market-cap weights, complete provider/history population, and
+  strict board-guided visual approval. These remain explicit and were not relaxed.
+- Exact next context: expose isolated Python numeric-series outputs as a safe, reusable Market Map
+  colour source while preserving the sandbox and dataset-manifest contract.
