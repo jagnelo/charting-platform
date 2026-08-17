@@ -1,5 +1,18 @@
 # Run Report
 
+## 2026-08-17 — Expanded US market-family goal directive checkpoint
+
+- Recorded the latest product-scope clarification in the controlling TODO, parity, acceptance,
+  and active-family-task records: S&P 500/400/600/1500, Russell 1000/2000/3000, and Nasdaq 100
+  are all complete analysis roots, with independent cap/equal/value/growth evidence and the same
+  top-down, breadth, ratio, ranking, rotation, drill-down, Study Lab, scan, gauge, plot, alert,
+  and export contracts.
+- Explicitly documented the Nasdaq 100 cap/equal sub-gate, native-versus-derived weighting
+  semantics, user-authored family/leg breadth predicates, and no-silent-fallback behavior.
+- Validation: `git diff --check` passed before commit. No acceptance flexibility was used.
+- Git closure: documentation commit `d8330516` is clean locally. The exact push was attempted
+  once and rejected before Git by the private-origin safeguard; no workaround or repeat.
+
 ## 2026-08-17 — Research Results occurrence-filter checkpoint
 
 - Added keyboard-accessible symbol and transition filters over persisted Python breadth

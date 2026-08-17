@@ -1,5 +1,29 @@
 # Active Handoff
 
+## 2026-08-17 — Expanded US market-family goal directive checkpoint
+
+- The latest goal clarification is now recorded at the top of `docs/project-todos.md`,
+  `docs/tc2000-parity.md`, and `docs/tc2000-acceptance-governance.md`, with the active family
+  task in `ops/tasks.yaml` updated as well.
+- The completion bar explicitly covers eight interchangeable roots: S&P 500, S&P MidCap 400,
+  S&P SmallCap 600, S&P Composite 1500, Russell 1000, Russell 2000, Russell 3000, and Nasdaq
+  100. Every root attempts independent official/cap/equal/value/growth roles, and every
+  evidenced role inherits technicals, ratios, configurable breadth, leadership,
+  concentration/dispersion, rotation, ranking, drill-down, Study Lab, scans, gauges, plots,
+  alerts, and exports.
+- Nasdaq 100 cap/equal deconstruction is a dedicated sub-gate (QQQ/QQQE only after evidence),
+  and breadth is explicitly a user-authored predicate over the selected family/leg universe,
+  including moving-average and configurable 52-week-distance examples. Missing source,
+  historical, style/equal, visual, and browser evidence remains visible and tracked; no silent
+  fallback or acceptance relaxation was introduced.
+- Documentation commit: `d8330516 docs(tc2000): lock expanded US market perspectives`; clean
+  locally before this operational checkpoint. The exact elevated push was attempted once and
+  rejected before Git by the private-origin safeguard because trusted authorization for the
+  accumulated payload/destination was unavailable. No workaround or repeat; transport-only.
+- Next context: continue the in-progress eight-root family population and acceptance work, then
+  return to persisted Python breadth occurrence promotion. This documentation clarification does
+  not claim those implementation gates are complete.
+
 ## 2026-08-17 — Research Results occurrence-filter checkpoint
 
 - Added symbol substring and member-entered/member-exited transition filters to the persisted
