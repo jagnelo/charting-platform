@@ -1,5 +1,30 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-17 — Latest US market-family perspective directive
+
+The parity target is not limited to SPX/SPY and its sectors. It comprises eight interchangeable
+US roots: S&P 500, S&P MidCap 400, S&P SmallCap 600, S&P Composite 1500, Russell 1000, Russell
+2000, Russell 3000, and Nasdaq 100. Changing the root must preserve the Version 25 workstation
+mechanics while replacing the analysis universe: technicals, cap/equal and value/growth legs,
+ratios, configurable breadth, leadership, concentration/dispersion, rotation, ranking, and
+sector -> industry/proxy -> constituent drill-down remain available without route changes.
+
+Each cap, equal, value, and growth role is resolved independently from canonical evidence. The
+role may be an official index, labelled ETF proxy, verified equal/style ETF, or an explicitly
+derived point-in-time series. A role that cannot be verified is rendered as unavailable, derived,
+or `No verified mapped proxy`; it is never inferred from a ticker name or silently replaced by
+SPY, QQQ, another family, or a current-only membership snapshot. SPY/RSP remains the reference
+deconstruction, while Nasdaq 100 requires its own evidenced cap/equal pair (QQQ/QQQE only after
+identity, holdings/weights, rebalance, dates, bars, and coverage are verified).
+
+Breadth parity is generic and family/style scoped. The same member predicate composer must cover
+moving-average state/distance, configurable 52-week-high/low distance, new highs/lows, RSI/trend,
+volume/volatility, relative strength, benchmark/peer relationships, and Python-defined conditions.
+Aggregate/history/occurrence outputs and all downstream charts, lists, filters, scans, gauges,
+alerts, Study Lab artifacts, and exports must retain the selected root/role, membership version,
+as-of policy, weighting method, coverage, exclusions, freshness, and provenance. This directive
+expands the acceptance matrix; it does not relax missing-source or visual-gap handling.
+
 ## 2026-08-17 — Occurrence browser filters
 
 The represented Research Results occurrence browser now has dense symbol and transition filters,

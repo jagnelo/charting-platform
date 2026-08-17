@@ -1,5 +1,34 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-08-17 — Expanded US-family acceptance directive
+
+The active completion bar covers eight complete US market perspectives: S&P 500, S&P MidCap 400,
+S&P SmallCap 600, S&P Composite 1500, Russell 1000, Russell 2000, Russell 3000, and Nasdaq 100.
+For each root, acceptance must attempt the official identity (when entitled), cap-weighted proxy,
+equal-weight vehicle or point-in-time derived equal series, and independently evidenced value and
+growth variants. It must then exercise benchmark technicals, cap/equal/style spreads, direct and
+cross-family ratios, generic predicate breadth, participation/leadership, concentration/dispersion,
+correlation, drawdown/volatility, relative rotation, ranking, seasonality/regime, and the
+sector -> industry/proxy -> constituent workflow, including reusable plots, scans, gauges, Study
+Lab artifacts, alerts, and exports.
+
+The Nasdaq 100 has a dedicated cap/equal sub-gate equivalent to the SPY/RSP behavior. QQQ/QQQE is
+only a candidate until canonical identity, issuer relationship, holdings or derived membership,
+weighting/rebalance method, effective/known-at dates, bars, coverage, exclusions, and provenance
+are verified. Native ETF weights and locally derived equal weights must remain visibly distinct.
+Every family/style leg is independent; a missing or unverified role must produce `No verified
+mapped proxy`, unavailable, or derived state and must never silently fall back to SPY, QQQ,
+another family, or current-only membership.
+
+Breadth acceptance is parameterised by the selected root and leg. It must prove that a user-authored
+predicate (for example moving-average state/distance, configurable distance to a 52-week high/low,
+new highs/lows, RSI/trend, volume/volatility, relative strength, benchmark/peer comparison, or
+unified Python) is evaluated over that exact point-in-time universe and retains scope, membership,
+weighting, as-of/known-at, coverage, exclusions, freshness, and provenance through history,
+occurrences, charts, lists, filters, scans, gauges, alerts, Study Lab, and export. Selector-only
+coverage or a single SPY fixture does not satisfy this gate; missing provider/history/style/equal,
+visual, and browser-population evidence remains an explicit tracked gap.
+
 ## 2026-08-17 — Research Results occurrence-filter sub-gate
 
 The persisted Python breadth occurrence browser now supports an accessible symbol substring

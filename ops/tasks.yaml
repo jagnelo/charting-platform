@@ -169,6 +169,14 @@ tasks:
         cap/equal deconstruction, and family/leg-parameterised predicate breadth. Missing source
         and unrepresented visual/browser states remain explicit gaps; this is not a relaxation.
       - >-
+        Latest goal directive (2026-08-17) explicitly includes S&P 500/400/600/1500, Russell
+        1000/2000/3000, and Nasdaq 100 value/growth sub-ETFs or sub-indices wherever they are
+        evidenced, plus all companion views (technicals, ratios, generic breadth/history/
+        occurrences, participation, leadership, concentration/dispersion, rotation, ranking,
+        drawdown/volatility, seasonality/regime, drill-down, scans, gauges, Study Lab, plots,
+        alerts, and exports). This is a completion-bar clarification, not a new optional screen
+        and not an acceptance relaxation.
+      - >-
         Analytics bridge implemented locally: `GET /analysis/benchmark-families/{family_key}/overview`
         returns official identity, independent cap/equal/value/growth mappings, canonical
         availability, derived-equal metadata, snapshot lineage, coverage, freshness, and exact

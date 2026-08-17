@@ -1,5 +1,41 @@
 # Project TODO Memory
 
+### 2026-08-17 — Expanded US market-family analysis directive (latest goal scope)
+
+- [ ] Treat the following as the complete set of interchangeable US top-down analysis
+      perspectives: S&P 500, S&P MidCap 400, S&P SmallCap 600, S&P Composite 1500, Russell
+      1000, Russell 2000, Russell 3000, and Nasdaq 100. The user must be able to start from any
+      root and remain in the same workstation while moving through benchmark technicals,
+      cap-versus-equal decomposition, value/growth style legs, sector and industry/proxy
+      ranking, constituents, ratios, breadth, and the other companion views.
+- [ ] For each root, attempt the official index identity, cap-weighted tradable proxy,
+      equal-weight ETF or reproducible point-in-time derived equal series, and value/growth
+      sub-index or ETF independently. “If it exists” means the security master must verify the
+      relationship and its historical/data evidence; it does not permit a guessed mapping.
+      Missing or unverified roles must remain visibly unavailable, derived, or `No verified
+      mapped proxy`, with no silent SPY/QQQ/other-family/current-snapshot fallback.
+- [ ] Generalise the SPY/RSP deconstruction to every family for which the evidence supports it.
+      Nasdaq 100 must receive an equivalent cap/equal comparison (QQQ/QQQE is a candidate
+      fixture, not an assumption), with native ETF weighting separated from local equal
+      reconstruction and with membership, rebalance, effective/known-at, coverage, exclusions,
+      freshness, and provenance exposed.
+- [ ] Apply the same analysis contract to every selected family or style leg: aligned
+      technicals and normalized performance; direct parent/peer/cross-family ratios; configurable
+      member predicates; breadth history and occurrences; participation and leadership;
+      concentration and dispersion; correlation; drawdown and volatility; relative rotation;
+      ranking and seasonality/regime studies; sector -> industry/proxy -> constituent drill-down;
+      watchlists, scans, gauges, Study Lab, reusable plots, alerts, and exports.
+- [ ] Breadth must quantify a user-authored predicate over the selected family/leg universe,
+      not a SPY-only metric. Required examples include percentage above a chosen moving average,
+      percentage within a configurable distance of 52-week highs/lows, new highs/lows,
+      RSI/trend, volume/volatility, relative strength, benchmark/peer relationships, and
+      unified-Python combinations. Every result retains family/role, membership/as-of,
+      weighting method, coverage, exclusions, freshness, and provenance.
+- [ ] Acceptance must attempt all eight roots and every evidenced cap/equal/value/growth leg as
+      populated analysis perspectives. Selector presence, one SPY fixture, or a candidate ticker
+      is not completion; unavailable source, historical membership, style/equal mapping, visual,
+      and browser-population gaps remain tracked explicitly.
+
 ### 2026-08-17 — Research Results occurrence filtering
 
 - [x] Added keyboard-accessible symbol substring and entered/exited transition filters to the
