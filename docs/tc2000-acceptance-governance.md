@@ -1076,5 +1076,7 @@ direct definition promotion, or visual-board gaps.
 
 The source-publication gate now also accepts a full-source launch from Market Map without a tile
 selection. The launched Breadth or Study Lab tool receives the canonical source as its complete
-universe and optional selected-member context; explicit creation of a new immutable reusable
-definition from the map configuration remains an open versioning/promotion gate.
+universe and optional selected-member context. A breadth map can additionally create an immutable
+Study-Lab asset from its current condition/configuration, preserving the condition tree, source ID,
+period/timeframe/adjustment defaults, and generated Python source. Promotion of that definition to
+every compatible target remains an open versioning/promotion fan-out gate.

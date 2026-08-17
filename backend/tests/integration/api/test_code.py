@@ -62,6 +62,54 @@ def test_code_assets_are_immutable_versions(client, auth_headers):
     assert next_version.json()["version_number"] == 2
 
 
+def test_market_map_breadth_definition_preserves_condition_and_source_defaults(client, auth_headers):
+    source = (
+        "condition = parameters.get('condition', {'kind': 'within_52_week_high', "
+        "'params': {'threshold_percent': 1.0}})\n"
+        "snapshot = research.breadth_condition(dataset, condition)\n"
+        "history = research.breadth_condition(dataset, condition, True)\n"
+        "output.scalar('current_percentage', snapshot['percentage'])\n"
+        "output.series('percentage_history', [point['percentage'] for point in history['points']])\n"
+        "output.table('breadth_members', snapshot['rows'])"
+    )
+    created = client.post(
+        "/api/v1/code/assets",
+        headers=auth_headers,
+        json={
+            "stable_key": "market-map-spy-within-highs",
+            "name": "SPY within one percent of highs",
+            "kind": "study",
+            "initial_version": {
+                "source": source,
+                "output_contract": "study",
+                "parameter_schema": {
+                    "properties": {
+                        "condition": {"type": "object"},
+                        "source_id": {"type": "string"},
+                    },
+                    "required": ["condition", "source_id"],
+                },
+                "default_parameters": {
+                    "condition": {
+                        "kind": "within_52_week_high",
+                        "params": {"threshold_percent": 1.0},
+                    },
+                    "source_id": "market-group:sp500",
+                    "period": "1D",
+                    "timeframe": "D1",
+                    "adjustment": "split_adjusted",
+                },
+            },
+        },
+    )
+    assert created.status_code == 201, created.text
+    version = created.json()["versions"][0]
+    assert version["output_contract"] == "study"
+    assert version["source"] == source
+    assert version["default_parameters"]["source_id"] == "market-group:sp500"
+    assert version["default_parameters"]["condition"]["kind"] == "within_52_week_high"
+
+
 def test_code_assets_support_archive_clone_and_round_trip_import(client, auth_headers):
     created = client.post(
         "/api/v1/code/assets",

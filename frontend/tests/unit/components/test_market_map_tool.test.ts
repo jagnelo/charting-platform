@@ -1,7 +1,7 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { apiGet, apiPost, loadWatchlistSources, loadWatchlists, createWatchlist, addItem, loadUserSettings, toggleFollowedSource, togglePinnedSource } = vi.hoisted(() => ({ apiGet: vi.fn(), apiPost: vi.fn(), loadWatchlistSources: vi.fn(), loadWatchlists: vi.fn(), createWatchlist: vi.fn(), addItem: vi.fn(), loadUserSettings: vi.fn(), toggleFollowedSource: vi.fn(), togglePinnedSource: vi.fn() }))
+const { apiGet, apiPost, loadWatchlistSources, loadWatchlists, createWatchlist, addItem, loadUserSettings, toggleFollowedSource, togglePinnedSource, invalidateQueries } = vi.hoisted(() => ({ apiGet: vi.fn(), apiPost: vi.fn(), loadWatchlistSources: vi.fn(), loadWatchlists: vi.fn(), createWatchlist: vi.fn(), addItem: vi.fn(), loadUserSettings: vi.fn(), toggleFollowedSource: vi.fn(), togglePinnedSource: vi.fn(), invalidateQueries: vi.fn() }))
 const sourceState = vi.hoisted(() => ({
   sources: [{ source_id: 'market-group:sp500', source_kind: 'index_membership', name: 'S&P 500', locked: true, can_follow: true, can_clone: true, can_edit_membership: false, member_count: 2, provenance: {} }],
   watchlists: [],
@@ -10,6 +10,7 @@ const sourceState = vi.hoisted(() => ({
 }))
 
 vi.mock('@/lib/api', () => ({ api: { get: apiGet, post: apiPost, delete: vi.fn() } }))
+vi.mock('@tanstack/vue-query', () => ({ useQueryClient: () => ({ invalidateQueries }) }))
 vi.mock('@/stores/watchlist', () => ({ useWatchlistStore: () => ({ watchlistSources: sourceState.sources, watchlistSourcesLoading: sourceState.loading, watchlistSourcesError: sourceState.error, watchlists: sourceState.watchlists, loadWatchlistSources, loadWatchlists, createWatchlist, addItem }) }))
 vi.mock('@/stores/userSettings', () => ({ useUserSettingsStore: () => ({ followedSourceIds: [], pinnedSourceIds: [], loadSettings: loadUserSettings, toggleFollowedSource, togglePinnedSource }) }))
 
@@ -32,6 +33,7 @@ describe('MarketMapTool', () => {
     loadUserSettings.mockReset()
     toggleFollowedSource.mockReset()
     togglePinnedSource.mockReset()
+    invalidateQueries.mockReset()
     sourceState.watchlists = []
     apiPost.mockResolvedValue(response)
     apiGet.mockResolvedValue([])
@@ -188,6 +190,29 @@ describe('MarketMapTool', () => {
       color_metric: 'breadth',
       condition: { kind: 'above_moving_average', params: { period: 3, average: 'sma', comparator: 'above' } },
     }))
+  })
+
+  it('saves the current breadth condition as an immutable Study Lab definition', async () => {
+    apiPost.mockImplementation((path: string, body?: Record<string, unknown>) => {
+      if (path === '/analysis/market-map') return Promise.resolve(response)
+      if (path === '/code/assets') return Promise.resolve({ versions: [{ id: 91 }] })
+      return Promise.resolve(body ?? {})
+    })
+    const wrapper = mount(MarketMapTool, { props: { configuration: { source_id: 'market-group:sp500' } } })
+    await flushPromises()
+
+    await wrapper.get('select[aria-label="Market Map colour metric"]').setValue('breadth')
+    await wrapper.get('[aria-label="Market Map breadth definition name"]').setValue('SPY within one percent of highs')
+    await wrapper.get('[aria-label="Save as Study Lab definition"]').trigger('click')
+    await flushPromises()
+
+    const request = apiPost.mock.calls.find(call => call[0] === '/code/assets')?.[1] as Record<string, any>
+    expect(request).toEqual(expect.objectContaining({ kind: 'study', name: 'SPY within one percent of highs' }))
+    expect(request.initial_version.output_contract).toBe('study')
+    expect(request.initial_version.source).toContain('research.breadth_condition')
+    expect(request.initial_version.default_parameters).toEqual(expect.objectContaining({ source_id: 'market-group:sp500' }))
+    expect(wrapper.text()).toContain('Saved immutable Study Lab definition.')
+    expect(invalidateQueries).toHaveBeenCalled()
   })
 
   it('supports the reusable nested breadth condition editor for heatmap colours', async () => {

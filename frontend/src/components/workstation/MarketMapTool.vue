@@ -123,6 +123,12 @@
       <button type="button" aria-label="Open full source in Market Breadth" @click="publishAnalysis('breadth')">Open full source in Breadth</button>
       <button type="button" aria-label="Open full source in Study Lab" @click="publishAnalysis('study_lab')">Open full source in Study Lab</button>
     </div>
+    <div v-if="map && colorMetric === 'breadth'" class="market-map-tool__definition-actions" aria-label="Market Map reusable definition actions">
+      <input v-model.trim="definitionName" aria-label="Market Map breadth definition name" placeholder="Reusable breadth definition name" maxlength="160" />
+      <button type="button" aria-label="Save as Study Lab definition" :disabled="definitionSaving || !definitionName" @click="saveBreadthDefinition">{{ definitionSaving ? 'Saving…' : 'Save as Study Lab definition' }}</button>
+      <span v-if="definitionMessage" role="status">{{ definitionMessage }}</span>
+      <span v-if="definitionError" class="market-map-tool__status--error" role="alert">{{ definitionError }}</span>
+    </div>
     <div v-if="map" class="market-map-tool__nodes" aria-label="Market Map groups">
       <button v-if="selectedNode" type="button" aria-label="Market Map parent group" @click="selectNode(activeNode?.parent_id ?? null)">← Up</button>
       <button v-for="node in visibleNodes" :key="node.node_id" type="button" :class="{ active: selectedNode === node.node_id }" @click="selectNode(node.node_id)">{{ node.label }} <small>{{ node.member_count }}</small></button>
@@ -171,9 +177,11 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
+import { useQueryClient } from '@tanstack/vue-query'
 import { api } from '@/lib/api'
 import { useWatchlistStore } from '@/stores/watchlist'
 import { useUserSettingsStore } from '@/stores/userSettings'
+import { invalidateCodeAssets } from '@/lib/workstation/libraryQueries'
 import BreadthConditionTreeEditor, { type BreadthConditionNode } from './BreadthConditionTreeEditor.vue'
 import { deleteMarketMapSnapshot, fetchMarketMap, fetchMarketMapSnapshot, fetchMarketMapSnapshots, layoutMarketMapCells, saveMarketMapSnapshot, type MarketMapLayoutCell } from '@/lib/workstation/marketMap'
 import type { MarketMap, MarketMapAreaMetric, MarketMapCell, MarketMapColorMetric, MarketMapGroupBy, MarketMapNumericAreaField, MarketMapSnapshotSummary, WatchlistSource } from '@/types'
@@ -188,6 +196,7 @@ const emit = defineEmits<{
 }>()
 const watchlistStore = useWatchlistStore()
 const userSettingsStore = useUserSettingsStore()
+const queryClient = useQueryClient()
 const sources = computed(() => [...watchlistStore.watchlistSources]
   .map(source => ({ ...source, pinned: userSettingsStore.pinnedSourceIds.includes(source.source_id) }))
   .sort((left, right) => Number(right.pinned) - Number(left.pinned) || left.name.localeCompare(right.name)))
@@ -236,6 +245,10 @@ const snapshotName = ref('')
 const activeSnapshotName = ref('')
 const snapshotLoading = ref(false)
 const snapshotError = ref('')
+const definitionName = ref(String(props.configuration.definition_name ?? ''))
+const definitionSaving = ref(false)
+const definitionMessage = ref('')
+const definitionError = ref('')
 const skipNextSourceRun = ref(false)
 const loadingSources = computed(() => watchlistStore.watchlistSourcesLoading)
 const sourcesError = computed(() => watchlistStore.watchlistSourcesError)
@@ -461,6 +474,77 @@ function publishAnalysis(target: 'breadth' | 'study_lab') {
   })
 }
 
+function pythonLiteral(value: unknown): string {
+  if (value === null) return 'None'
+  if (value === true) return 'True'
+  if (value === false) return 'False'
+  if (typeof value === 'number' && Number.isFinite(value)) return String(value)
+  if (typeof value === 'string') return JSON.stringify(value)
+  if (Array.isArray(value)) return `[${value.map(item => pythonLiteral(item)).join(', ')}]`
+  if (value && typeof value === 'object') {
+    return `{${Object.entries(value as Record<string, unknown>).map(([key, item]) => `${JSON.stringify(key)}: ${pythonLiteral(item)}`).join(', ')}}`
+  }
+  return 'None'
+}
+
+function definitionStableKey(name: string) {
+  const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 54) || 'breadth'
+  return `market-map-${slug}-${Date.now().toString(36)}`.slice(0, 80)
+}
+
+async function saveBreadthDefinition() {
+  if (definitionSaving.value || colorMetric.value !== 'breadth' || !definitionName.value || !breadthCondition.value) return
+  definitionSaving.value = true
+  definitionMessage.value = ''
+  definitionError.value = ''
+  try {
+    const source = [
+      `condition = parameters.get('condition', ${pythonLiteral(breadthCondition.value)})`,
+      "snapshot = research.breadth_condition(dataset, condition)",
+      "history = research.breadth_condition(dataset, condition, True)",
+      "output.scalar('current_percentage', snapshot['percentage'] if snapshot['percentage'] is not None else 0)",
+      "output.scalar('current_pass_count', snapshot['pass_count'])",
+      "output.scalar('current_eligible_count', snapshot['eligible_count'])",
+      "output.series('percentage_history', [point['percentage'] for point in history['points']])",
+      "output.table('breadth_members', snapshot['rows'])",
+      "output.table('breadth_exclusions', snapshot['exclusions'])",
+      "output.table('historical_breadth', history['points'])",
+    ].join('\n')
+    await api.post('/code/assets', {
+      stable_key: definitionStableKey(definitionName.value),
+      name: definitionName.value,
+      kind: 'study',
+      initial_version: {
+        source,
+        output_contract: 'study',
+        parameter_schema: {
+          properties: {
+            condition: { type: 'object' },
+            source_id: { type: 'string' },
+            period: { type: 'string' },
+            timeframe: { type: 'string' },
+            adjustment: { type: 'string' },
+          },
+          required: ['condition', 'source_id'],
+        },
+        default_parameters: {
+          condition: breadthCondition.value,
+          source_id: sourceId.value,
+          period: period.value,
+          timeframe: 'D1',
+          adjustment: 'split_adjusted',
+        },
+      },
+    })
+    await invalidateCodeAssets(queryClient)
+    definitionMessage.value = 'Saved immutable Study Lab definition.'
+  } catch (cause) {
+    definitionError.value = cause instanceof Error ? cause.message : 'Unable to save reusable breadth definition'
+  } finally {
+    definitionSaving.value = false
+  }
+}
+
 async function loadSnapshot() {
   const snapshotId = Number(snapshotSelectionId.value)
   if (!Number.isInteger(snapshotId) || snapshotId <= 0) {
@@ -548,9 +632,9 @@ async function run() {
   }
 }
 function persist() {
-  emit('configuration', { ...props.configuration, source_id: sourceId.value, group_by: groupBy.value, sort_by: sortBy.value, period: period.value, area_metric: areaMetric.value, area_field: areaMetric.value === 'field' ? areaField.value : null, color_metric: colorMetric.value, condition: colorMetric.value === 'breadth' ? breadthCondition.value : null, advanced_breadth_editor: advancedBreadthEditor.value, python_code_version_id: pythonCodeVersionId.value, python_run_id: pythonRunId.value, breadth_condition_kind: breadthConditionKind.value, breadth_condition_period: breadthConditionPeriod.value, breadth_condition_threshold: breadthConditionThreshold.value, breadth_event_type: breadthEventType.value, breadth_event_lookback: breadthEventLookback.value, reference_symbol: referenceSymbol.value, reference_source_id: referenceSourceId.value })
+  emit('configuration', { ...props.configuration, source_id: sourceId.value, group_by: groupBy.value, sort_by: sortBy.value, period: period.value, area_metric: areaMetric.value, area_field: areaMetric.value === 'field' ? areaField.value : null, color_metric: colorMetric.value, condition: colorMetric.value === 'breadth' ? breadthCondition.value : null, advanced_breadth_editor: advancedBreadthEditor.value, python_code_version_id: pythonCodeVersionId.value, python_run_id: pythonRunId.value, breadth_condition_kind: breadthConditionKind.value, breadth_condition_period: breadthConditionPeriod.value, breadth_condition_threshold: breadthConditionThreshold.value, breadth_event_type: breadthEventType.value, breadth_event_lookback: breadthEventLookback.value, reference_symbol: referenceSymbol.value, reference_source_id: referenceSourceId.value, definition_name: definitionName.value })
 }
-watch([sourceId, groupBy, sortBy, period, areaMetric, areaField, colorMetric, referenceSymbol, referenceSourceId, pythonCodeVersionId, pythonRunId, breadthConditionKind, breadthConditionPeriod, breadthConditionThreshold, breadthEventType, breadthEventLookback, advancedBreadthEditor, breadthConditionTree], persist, { deep: true })
+watch([sourceId, groupBy, sortBy, period, areaMetric, areaField, colorMetric, referenceSymbol, referenceSourceId, pythonCodeVersionId, pythonRunId, breadthConditionKind, breadthConditionPeriod, breadthConditionThreshold, breadthEventType, breadthEventLookback, advancedBreadthEditor, breadthConditionTree, definitionName], persist, { deep: true })
 watch(sourceId, () => {
   if (skipNextSourceRun.value) {
     skipNextSourceRun.value = false
@@ -591,7 +675,8 @@ onMounted(async () => {
 .market-map-tool__status--error { color: #ff9898; }
 .market-map-tool__summary, .market-map-tool__nodes, .market-map-tool__breadcrumbs, .market-map-tool__viewport-controls, .market-map-tool__source-analysis-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding: 0 8px; color: #9eabbb; }
 .market-map-tool__source-analysis-actions { padding-top: 2px; padding-bottom: 2px; }
-.market-map-tool__source-analysis-actions button { cursor: pointer; }
+.market-map-tool__source-analysis-actions button, .market-map-tool__definition-actions button { cursor: pointer; }
+.market-map-tool__definition-actions { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; padding: 2px 8px; }
 .market-map-tool__summary span:first-child { color: #f1f4f8; font-weight: 700; }
 .market-map-tool__nodes button { cursor: pointer; }
 .market-map-tool__nodes button.active { border-color: #70b4ff; color: #fff; }

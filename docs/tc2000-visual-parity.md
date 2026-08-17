@@ -752,6 +752,7 @@ visual gap.
 
 The represented map-to-analysis state now includes full-source launch actions for Breadth and Study
 Lab. The action remains available with no tile selected and shows selected-member context only when
-one exists. The board has no authoritative exact-build reference for this specific action row, so
-its geometry remains an interim board-guided interaction state; immutable definition creation from
-the current map configuration is still a separate open state.
+one exists. A breadth map also exposes the reusable-definition name/input and save action, producing
+an immutable Study-Lab asset from the current condition/configuration. The board has no authoritative
+exact-build reference for these specific action rows, so their geometry remains an interim
+board-guided interaction state; promotion fan-out remains a tracked gap.

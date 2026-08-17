@@ -13348,8 +13348,8 @@ The current source also passes the focused authenticated top-down browser slice 
 - [x] Expose separate colour, area, and combined coverage so a missing area metric cannot appear as
       a fully covered heatmap merely because its colour metric is available. Aggregate coverage is
       the member mean and every unavailable cell retains its exact warning/provenance state.
-- [ ] Add direct map-to-breadth/Study-Lab definition creation, richer cross-sectional metrics,
-      point-in-time market-cap/weight areas, full family population, and final V25 visual approval.
+- [ ] Add richer cross-sectional metrics, point-in-time market-cap/weight areas, full family
+      population, promotion fan-out to every compatible target, and final V25 visual approval.
 
 - [x] Surface colour, area, and combined coverage in the Market Map summary, legend, and tile hover
       state, with compatibility fallback for older cached responses that only contain combined
@@ -13367,6 +13367,9 @@ The current source also passes the focused authenticated top-down browser slice 
 - [x] Allow Market Map to open the complete canonical source directly in Breadth or Study Lab with
       optional selected-member context. Tile selection remains an additive subset/context action;
       full-source launch no longer requires selecting a tile first.
-- [ ] Create a reusable immutable breadth/Study-Lab definition directly from the map's current
-      condition/configuration; source launch and context publication are implemented, but explicit
-      definition creation/versioning and promotion fan-out remain open.
+- [x] Create a reusable immutable Study-Lab definition directly from the map's current breadth
+      condition/configuration. The generated asset captures the condition tree, canonical source
+      ID, period, timeframe, adjustment, and immutable Python source through the existing
+      `/code/assets` contract; Python remains authoritative for edits beyond the visual subset.
+- [ ] Promote the resulting definition fan-out to every compatible target (column, filter, scan,
+      alert, gauge, chart plot, and Strategy Lab signal) with target-specific output validation.

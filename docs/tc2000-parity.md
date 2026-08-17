@@ -65,9 +65,10 @@ resolvable, and usable by the map, breadth, scans, alerts, and linked tools.
 
 The map also exposes full-source launch actions for Breadth and Study Lab. These actions preserve
 the canonical source as the analysis universe and may include zero or more selected member IDs as
-context; tile selection is therefore optional for opening the analysis surface. Explicit creation
-of a new immutable reusable definition from the map's current condition/configuration remains a
-separate open library/versioning gate.
+context; tile selection is therefore optional for opening the analysis surface. A breadth map can
+also create an immutable Study-Lab asset directly: the asset stores the condition tree, canonical
+source ID, period/timeframe/adjustment defaults, and generated Python source through `/code/assets`.
+Promotion of that definition into every compatible target remains a separate open fan-out gate.
 
 ## 2026-08-17 — US family/style and Nasdaq cap/equal acceptance matrix (latest requirement)
 
