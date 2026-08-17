@@ -1,5 +1,29 @@
 # Run Report
 
+## 2026-08-17 — Recursive breadth diagnostics and latest US-family scope clarification
+
+- Added structured recursive diagnostics to generic breadth current/history member results and
+  rendered them in the authenticated workstation. Each evaluated root/nested clause reports a
+  stable path, kind, pass/fail/excluded state, metric, and exact exclusion code; aggregate,
+  denominator, and point-in-time semantics are unchanged.
+- Recorded the latest user-confirmed family matrix in the active goal objective and controlling
+  TODO/parity/governance records: S&P 500/400/600/1500, Russell 1000/2000/3000, and Nasdaq 100,
+  with independent cap/equal/value/growth legs where evidenced and Nasdaq cap/equal deconstruction
+  matching the SPY/RSP contract only after canonical evidence passes.
+- Fix-first repair: full backend unit validation found that the cross-sectional breadth Study Lab
+  factory was omitted from the prepared-universe fixture. Adding it to that fixture preserved the
+  declared-universe contract; no product behavior or acceptance criterion was weakened.
+- Validation: factory `4/4`; backend unit `1181/1181`; current/history API integration `2/2`;
+  frontend Vitest `842/842`; type-check; production build; targeted Ruff; compileall; rebuilt
+  authenticated Chromium `F8s-breadth-family-ratio 1/1`; and `git diff --check`. Only existing
+  dependency deprecation warnings remain. No acceptance flexibility used.
+- Implementation/docs commit `fcda70d96328c27f583aeca03877363b88d66f7d` is clean locally. The
+  exact elevated push was attempted once and rejected before Git by the private-origin safeguard;
+  no workaround, alternate transport, rewrite, reset, stash, or repeat. This is transport-only.
+- Remaining work is unchanged in substance: populate and validate all family/style histories and
+  provider evidence, complete family analytics/drill-down/browser/visual gates, add richer breadth
+  targets and promotion fan-out, and close remaining V25 reference-board gaps.
+
 ## 2026-08-17 — Expanded US index/factor perspective vision
 
 - Updated the controlling project TODO, parity matrix, acceptance governance, visual-parity

@@ -1,5 +1,31 @@
 # Active Handoff
 
+## 2026-08-17 — Recursive breadth diagnostics and expanded family-scope checkpoint
+
+- Added deterministic per-clause diagnostics to generic breadth current/history member results.
+  Every root and nested `all`/`any`/`not` clause carries a stable path, kind, pass/fail/excluded
+  status, metric, and exact exclusion code. The authenticated workstation renders the trace in
+  the dense diagnostics and member drill-down surfaces without changing denominator semantics.
+- The active goal and repository vision records now explicitly confirm the requested eight-root
+  scope: S&P 500/400/600/1500, Russell 1000/2000/3000, and Nasdaq 100, with independently
+  evidenced cap/equal/value/growth legs and Nasdaq cap/equal deconstruction. Missing evidence
+  remains unavailable/derived/`No verified mapped proxy`; no fallback or acceptance relaxation.
+- Fix-first repair: the full backend unit gate exposed a test fixture that omitted the new
+  cross-sectional breadth factory from the prepared-universe set. The fixture was corrected at
+  its owning boundary; product semantics were not weakened.
+- Validation: focused factory `4/4`; full backend unit `1181/1181`; prior current/history API
+  integration `2/2`; frontend Vitest `842/842`; type-check; production build; targeted Ruff;
+  compileall; rebuilt authenticated Chromium `F8s-breadth-family-ratio 1/1`; and diff-check.
+  Existing dependency deprecation warnings only. No acceptance flexibility used.
+- Implementation/docs commit `fcda70d96328c27f583aeca03877363b88d66f7d` is clean locally. The
+  exact elevated push to `origin/feat/tc2000-frontend-rework` was attempted once and rejected by
+  the private-origin safeguard before Git; no workaround, alternate transport, rewrite, reset,
+  stash, or repeat. This is transport-only and not a product blocker.
+- Remaining gaps: populated all-family historical/provider evidence, full family breadth/ratio/
+  ranking/rotation/concentration/dispersion and member drill-down acceptance, richer breadth
+  targets and promotion fan-out, and remaining board/unrepresented V25 visual/browser gates.
+  Next context is to continue those independent implementation gaps from the clean boundary.
+
 ## 2026-08-17 — Expanded US index/factor perspective vision checkpoint
 
 - Added a dedicated controlling directive for the requested US analysis matrix: S&P 500/400/600/1500,
