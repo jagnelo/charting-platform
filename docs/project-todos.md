@@ -1,5 +1,18 @@
 # Project TODO Memory
 
+### 2026-08-17 — Prior high/low breadth target
+
+- [x] Added the reusable `prior_high_low` predicate to the generic breadth contract. It compares
+      the latest member close with an explicitly prior high or low window (the current bar is
+      excluded), exposes signed distance plus operator/threshold, and works through current,
+      historical, occurrence, diagnostic, and recursive-condition paths.
+- [x] Added compact and recursive-tree authoring controls, API/integration coverage, component
+      coverage, and authenticated Chromium request coverage. Full backend unit `1183/1183`,
+      frontend Vitest `843/843`, type-check/build, targeted browser, Ruff, compileall, and diff
+      checks pass. No acceptance flexibility used.
+- [ ] Event targets, benchmark/peer target-series authoring, arbitrary derived-Python composition,
+      and complete promotion fan-out remain open; this slice does not imply those capabilities.
+
 ### 2026-08-17 — Expanded US index/factor and Nasdaq deconstruction vision
 
 This is the current user-confirmed expansion of the top-down vision. It is part of the active

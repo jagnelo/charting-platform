@@ -1,5 +1,15 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-08-17 — Prior high/low breadth sub-gate
+
+Acceptance now includes a reusable prior-window extreme predicate: for every eligible member, the
+latest close is compared against the high or low of a declared preceding window, with the current
+bar excluded and signed distance/operator/threshold retained in the definition. Current,
+historical, recursive, diagnostic, and occurrence paths are covered by the backend, workstation,
+integration, and authenticated-browser gates. Event/benchmark-peer targets, arbitrary derived
+Python composition, and promotion fan-out remain open gates. No visual, provider, or acceptance
+flexibility changed.
+
 ## 2026-08-17 — Recursive breadth diagnostics sub-gate
 
 Current and historical generic breadth acceptance must return a structured trace for every

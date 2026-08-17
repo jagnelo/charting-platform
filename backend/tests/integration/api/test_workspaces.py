@@ -2379,6 +2379,27 @@ class TestWorkspaces:
         assert bounded_payload["condition"]["kind"] == "range"
         assert bounded_payload["eligible_count"] == 1
 
+        prior_extreme = client.post(
+            "/api/v1/analysis/breadth",
+            headers=auth_headers,
+            json={
+                "universe": {"kind": "symbols", "symbols": [instrument.symbol]},
+                "condition": {
+                    "kind": "prior_high_low",
+                    "params": {
+                        "direction": "high",
+                        "lookback": 20,
+                        "operator": ">=",
+                        "threshold": -1,
+                    },
+                },
+            },
+        )
+        assert prior_extreme.status_code == 200
+        prior_extreme_payload = prior_extreme.json()
+        assert prior_extreme_payload["condition"]["kind"] == "prior_high_low"
+        assert prior_extreme_payload["members"][0]["diagnostics"][0]["kind"] == "prior_high_low"
+
         percentile = client.post(
             "/api/v1/analysis/breadth",
             headers=auth_headers,

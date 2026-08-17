@@ -426,6 +426,7 @@
           <option value="above_moving_average">Above moving average</option>
           <option value="within_52_week_high">Within distance of 52-week high/low</option>
           <option value="new_high_low">New high/low versus prior window</option>
+          <option value="prior_high_low">Compare with prior high/low</option>
           <option value="trend">Trend state</option>
           <option value="rsi">RSI threshold</option>
           <option value="volume_ratio">Volume ratio threshold</option>
@@ -446,6 +447,12 @@
         <template v-else-if="breadthConditionKind === 'new_high_low'">
           <select :value="breadthHighLowDirection" aria-label="Breadth new high low direction" @change="setBreadthConfiguration({ breadth_condition_high_low_direction: ($event.target as HTMLSelectElement).value })"><option value="high">New high</option><option value="low">New low</option></select>
           <label>Lookback <input :value="breadthConditionLookback" aria-label="Breadth condition new high low lookback" type="number" min="2" max="252" @change="setBreadthConfiguration({ breadth_condition_lookback: Number(($event.target as HTMLInputElement).value) })" /></label>
+        </template>
+        <template v-else-if="breadthConditionKind === 'prior_high_low'">
+          <select :value="breadthHighLowDirection" aria-label="Breadth prior high low direction" @change="setBreadthConfiguration({ breadth_condition_high_low_direction: ($event.target as HTMLSelectElement).value })"><option value="high">Prior high</option><option value="low">Prior low</option></select>
+          <label>Lookback <input :value="breadthConditionLookback" aria-label="Breadth prior high low lookback" type="number" min="2" max="5000" @change="setBreadthConfiguration({ breadth_condition_lookback: Number(($event.target as HTMLInputElement).value) })" /></label>
+          <select :value="breadthComparisonOperator" aria-label="Breadth prior high low operator" @change="setBreadthConfiguration({ breadth_comparison_operator: ($event.target as HTMLSelectElement).value })"><option value="gte">At or above</option><option value="lte">At or below</option><option value="gt">Above</option><option value="lt">Below</option><option value="eq">Equal</option></select>
+          <label>Distance <input :value="breadthComparisonThreshold" aria-label="Breadth prior high low threshold" type="number" step="0.001" @change="setBreadthConfiguration({ breadth_comparison_threshold: Number(($event.target as HTMLInputElement).value) })" /></label>
         </template>
         <template v-else-if="breadthConditionKind === 'trend'">
           <label>Fast <input :value="breadthConditionFastPeriod" aria-label="Breadth trend fast period" type="number" min="2" max="100" @change="setBreadthConfiguration({ breadth_condition_fast_period: Number(($event.target as HTMLInputElement).value) })" /></label>
@@ -1763,7 +1770,7 @@ const breadthComposition = computed(() => {
 })
 const breadthConditionKind = computed(() => {
   const candidate = String(props.tool.configuration.breadth_condition ?? 'above_moving_average')
-  return ['above_moving_average', 'within_52_week_high', 'new_high_low', 'trend', 'rsi', 'volume_ratio', 'relative_strength', 'comparison', 'range', 'percentile'].includes(candidate) ? candidate : 'above_moving_average'
+  return ['above_moving_average', 'within_52_week_high', 'new_high_low', 'prior_high_low', 'trend', 'rsi', 'volume_ratio', 'relative_strength', 'comparison', 'range', 'percentile'].includes(candidate) ? candidate : 'above_moving_average'
 })
 const breadthConditionPeriod = computed(() => Math.min(252, Math.max(2, Number(props.tool.configuration.breadth_condition_period ?? 200) || 200)))
 const breadthConditionAverage = computed(() => props.tool.configuration.breadth_condition_average === 'ema' ? 'ema' : 'sma')
@@ -1807,7 +1814,7 @@ const breadthBenchmark = computed(() => {
   return candidate || 'SPY'
 })
 type BreadthTreeNode = {
-  kind: 'all' | 'any' | 'not' | 'above_moving_average' | 'within_52_week_high' | 'new_high_low' | 'trend' | 'rsi' | 'volume_ratio' | 'relative_strength' | 'comparison' | 'range' | 'percentile'
+  kind: 'all' | 'any' | 'not' | 'above_moving_average' | 'within_52_week_high' | 'new_high_low' | 'prior_high_low' | 'trend' | 'rsi' | 'volume_ratio' | 'relative_strength' | 'comparison' | 'range' | 'percentile'
   target_scope?: 'member' | 'cross_sectional'
   params: Record<string, unknown>
 }
@@ -1921,6 +1928,9 @@ function primaryBreadthCondition() {
   }
   if (breadthConditionKind.value === 'new_high_low') {
     return { kind: 'new_high_low', params: { lookback: breadthConditionLookback.value, direction: breadthHighLowDirection.value } }
+  }
+  if (breadthConditionKind.value === 'prior_high_low') {
+    return { kind: 'prior_high_low', params: { lookback: breadthConditionLookback.value, direction: breadthHighLowDirection.value, operator: breadthComparisonOperator.value, threshold: breadthComparisonThreshold.value } }
   }
   if (breadthConditionKind.value === 'trend') {
     return { kind: 'trend', params: { fast_period: breadthConditionFastPeriod.value, slow_period: breadthConditionSlowPeriod.value, direction: breadthConditionDirection.value } }

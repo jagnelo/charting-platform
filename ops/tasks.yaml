@@ -1,4 +1,29 @@
 tasks:
+  - id: tc2000-breadth-prior-high-low-20260817
+    title: Add reusable prior-high/low breadth target
+    status: completed
+    priority: high
+    scope: >-
+      Add a generic current/history breadth predicate that compares each member's latest close
+      with an explicitly prior high or low window, excluding the current bar and retaining signed
+      distance, operator, threshold, diagnostics, occurrences, and lineage.
+    definition_of_done:
+      - Schema accepts prior_high_low in compact and recursive condition definitions
+      - Evaluator excludes the current bar from the prior extreme and supports high/low direction, operator, and threshold
+      - Current/history API and diagnostics preserve the reusable condition semantics
+      - Compact composer, recursive tree, component tests, and authenticated browser request coverage pass
+      - Event, benchmark/peer, derived-Python, and promotion gaps remain explicitly open
+    validation:
+      - breadth-unit-19-of-19
+      - generic-breadth-current-history-integration-2-of-2
+      - frontend-vitest-843-of-843
+      - frontend-type-check-production-build
+      - authenticated-F8s-breadth-family-ratio-1-of-1
+      - ruff-compileall-diff-check
+    notes:
+      - >-
+        No acceptance flexibility used. The first component assertion modeled a stale controlled
+        prop; it was corrected to feed the emitted value back through the parent update cycle.
   - id: tc2000-breadth-clause-diagnostics-20260817
     title: Add structured recursive breadth clause diagnostics
     status: completed

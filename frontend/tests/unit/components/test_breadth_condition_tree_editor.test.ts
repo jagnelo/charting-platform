@@ -49,4 +49,18 @@ describe('BreadthConditionTreeEditor', () => {
     expect(payload.kind).toBe('all')
     expect(payload.params.conditions).toEqual([initial])
   })
+
+  it('serializes the prior high/low target leaf', async () => {
+    const wrapper = mount(BreadthConditionTreeEditor, {
+      props: { modelValue: { kind: 'prior_high_low', params: { direction: 'high', lookback: 20, operator: 'gte', threshold: 0 } } },
+    })
+    await wrapper.get('[aria-label="Breadth prior high low direction 1"]').setValue('low')
+    const directionPayload = wrapper.emitted('update:modelValue')?.at(-1)?.[0] as { kind: string; params: Record<string, unknown> }
+    await wrapper.setProps({ modelValue: directionPayload })
+    await wrapper.get('[aria-label="Breadth prior high low lookback 1"]').setValue('30')
+    const payload = wrapper.emitted('update:modelValue')?.at(-1)?.[0] as { kind: string; params: Record<string, unknown> }
+    expect(payload.kind).toBe('prior_high_low')
+    expect(payload.params.direction).toBe('low')
+    expect(payload.params.lookback).toBe(30)
+  })
 })

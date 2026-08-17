@@ -49,6 +49,61 @@ def test_within_one_percent_of_52_week_high_uses_the_declared_threshold():
     assert warning is None
 
 
+def test_prior_high_low_excludes_current_bar_and_supports_signed_distance_operator():
+    high_value, high_metric, high_warning = evaluate_condition(
+        _bars([100, 102, 105, 106]),
+        {
+            "kind": "prior_high_low",
+            "params": {
+                "lookback": 3,
+                "direction": "high",
+                "operator": "gte",
+                "threshold": 0.0,
+            },
+        },
+    )
+    low_value, low_metric, low_warning = evaluate_condition(
+        _bars([100, 98, 95, 94]),
+        {
+            "kind": "prior_high_low",
+            "params": {
+                "lookback": 3,
+                "direction": "low",
+                "operator": "lte",
+                "threshold": 0.0,
+            },
+        },
+    )
+
+    assert high_value is True
+    assert high_metric is not None and abs(high_metric - (106 / 105 - 1)) < 1e-12
+    assert high_warning is None
+    assert low_value is True
+    assert low_metric is not None and abs(low_metric - (94 / 95 - 1)) < 1e-12
+    assert low_warning is None
+
+
+def test_prior_high_low_history_preserves_exclusions_and_state_changes():
+    points = evaluate_breadth_history(
+        [BreadthMember(1, "A", "A")],
+        {1: _bars([100, 101, 103, 102, 105])},
+        {
+            "kind": "prior_high_low",
+            "params": {
+                "lookback": 2,
+                "direction": "high",
+                "operator": "gte",
+                "threshold": 0.0,
+            },
+        },
+        limit=10,
+    )
+
+    assert points[0]["members"][0].exclusion_code == "insufficient_history"
+    assert points[-1]["members"][0].value is True
+    assert points[-1]["members"][0].diagnostics[0].kind == "prior_high_low"
+
+
 def test_breadth_keeps_insufficient_history_out_of_the_denominator():
     members = [
         BreadthMember(1, "A", "A"),

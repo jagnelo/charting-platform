@@ -603,6 +603,34 @@ def evaluate_condition(
             return None, None, "invalid_reference"
         return (latest >= reference if direction == "high" else latest <= reference), metric, None
 
+    if kind == "prior_high_low":
+        # The current bar is deliberately excluded from the reference window.
+        # The signed percentage distance lets the same operator contract express
+        # breakouts, breakdowns, retests, and rejection thresholds.
+        lookback = int(params.get("lookback", 20))
+        direction = str(params.get("direction", "high")).lower()
+        if direction not in {"high", "low"}:
+            return None, None, "invalid_condition_params"
+        if lookback < 2 or lookback > 5_000 or len(closes) <= lookback:
+            return None, None, "insufficient_history"
+        previous = closes[-(lookback + 1) : -1]
+        reference = max(previous) if direction == "high" else min(previous)
+        if not _finite(reference) or reference <= 0:
+            return None, None, "invalid_reference"
+        metric = latest / reference - 1
+        if not _finite(metric):
+            return None, None, "invalid_reference"
+        default_operator = "gte" if direction == "high" else "lte"
+        comparison_params = {
+            "operator": params.get("operator", default_operator),
+            "threshold": params.get("threshold", 0),
+        }
+        try:
+            value = _comparison(metric, comparison_params)
+        except (TypeError, ValueError):
+            return None, None, "invalid_condition_params"
+        return value, metric, None
+
     if kind == "trend":
         fast = int(params.get("fast_period", 20))
         slow = int(params.get("slow_period", 50))

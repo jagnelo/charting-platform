@@ -57,6 +57,13 @@
         <label><span class="field-label">Lookback</span><input :value="numberParam('lookback', 20)" :aria-label="`Breadth new high low lookback ${path}`" type="number" min="2" max="252" @change="setParam('lookback', numberValue($event, 20, 2, 252))" /></label>
       </template>
 
+      <template v-else-if="leafKind === 'prior_high_low'">
+        <label><span class="field-label">Direction</span><select :value="stringParam('direction', 'high')" :aria-label="`Breadth prior high low direction ${path}`" @change="setParam('direction', ($event.target as HTMLSelectElement).value)"><option value="high">Prior high</option><option value="low">Prior low</option></select></label>
+        <label><span class="field-label">Lookback</span><input :value="numberParam('lookback', 20)" :aria-label="`Breadth prior high low lookback ${path}`" type="number" min="2" max="5000" @change="setParam('lookback', numberValue($event, 20, 2, 5000))" /></label>
+        <label><span class="field-label">Operator</span><select :value="stringParam('operator', 'gte')" :aria-label="`Breadth prior high low operator ${path}`" @change="setParam('operator', ($event.target as HTMLSelectElement).value)"><option value="gte">At or above</option><option value="lte">At or below</option><option value="gt">Above</option><option value="lt">Below</option><option value="eq">Equal</option></select></label>
+        <label><span class="field-label">Distance</span><input :value="numberParam('threshold', 0)" :aria-label="`Breadth prior high low threshold ${path}`" type="number" step="0.001" @change="setParam('threshold', numberValue($event, 0))" /></label>
+      </template>
+
       <template v-else-if="leafKind === 'trend'">
         <label><span class="field-label">Fast period</span><input :value="numberParam('fast_period', 20)" :aria-label="`Breadth trend fast period ${path}`" type="number" min="2" max="100" @change="setParam('fast_period', numberValue($event, 20, 2, 100))" /></label>
         <label><span class="field-label">Slow period</span><input :value="numberParam('slow_period', 50)" :aria-label="`Breadth trend slow period ${path}`" type="number" min="3" max="252" @change="setParam('slow_period', numberValue($event, 50, 3, 252))" /></label>
@@ -106,6 +113,7 @@ type BreadthLeafKind =
   | 'above_moving_average'
   | 'within_52_week_high'
   | 'new_high_low'
+  | 'prior_high_low'
   | 'trend'
   | 'rsi'
   | 'volume_ratio'
@@ -125,6 +133,7 @@ const LEAF_OPTIONS: Array<{ value: BreadthLeafKind; label: string }> = [
   { value: 'above_moving_average', label: 'Above moving average' },
   { value: 'within_52_week_high', label: 'Within 52-week high/low distance' },
   { value: 'new_high_low', label: 'New high/low' },
+  { value: 'prior_high_low', label: 'Prior high/low target' },
   { value: 'trend', label: 'Trend state' },
   { value: 'rsi', label: 'RSI threshold' },
   { value: 'volume_ratio', label: 'Volume ratio threshold' },
@@ -157,6 +166,7 @@ function defaultLeaf(kind: BreadthLeafKind = 'above_moving_average'): BreadthCon
     above_moving_average: { period: 200, average: 'sma', comparator: 'above' },
     within_52_week_high: { lookback: 252, threshold: 0.01, direction: 'high' },
     new_high_low: { lookback: 20, direction: 'high' },
+    prior_high_low: { lookback: 20, direction: 'high', operator: 'gte', threshold: 0 },
     trend: { fast_period: 20, slow_period: 50, direction: 'up' },
     rsi: { period: 14, operator: 'gte', threshold: 50 },
     volume_ratio: { period: 20, operator: 'gte', threshold: 1 },

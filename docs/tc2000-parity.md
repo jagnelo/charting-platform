@@ -1,5 +1,16 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-17 — Prior high/low breadth target
+
+Generic breadth now supports a versioned `prior_high_low` leaf in both the compact composer and
+recursive condition tree. The evaluator excludes the current bar from the prior-window extreme,
+returns signed distance from the selected prior high/low, and applies the declared operator and
+threshold for current and historical results. Diagnostics, occurrences, and API lineage remain
+unchanged. Backend unit `1183/1183`, generic current/history integration `2/2`, frontend Vitest
+`843/843`, type/build, and rebuilt authenticated Chromium breadth-family coverage pass. Event
+targets, benchmark/peer target series, arbitrary derived Python, and promotion fan-out remain
+explicit gaps; no acceptance flexibility was used.
+
 ## 2026-08-17 — Recursive breadth clause diagnostics
 
 The canonical recursive breadth evaluator now emits a deterministic diagnostic trace for the

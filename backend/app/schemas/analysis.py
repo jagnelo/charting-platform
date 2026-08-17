@@ -727,6 +727,7 @@ class BreadthConditionRequest(BaseModel):
         "above_moving_average",
         "within_52_week_high",
         "new_high_low",
+        "prior_high_low",
         "trend",
         "rsi",
         "volume_ratio",
