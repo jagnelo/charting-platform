@@ -1332,6 +1332,17 @@ class _Research:
     """Deterministic, point-in-time study helpers over the prepared dataset."""
 
     @staticmethod
+    def _target_scope(condition: dict) -> str:
+        params = condition.get("params", {})
+        if not isinstance(params, dict):
+            params = {}
+        return str(condition.get("target_scope", params.get("target_scope", "member"))).lower()
+
+    @staticmethod
+    def _percentile_rank(values: list[float], target: float) -> float:
+        return sum(value <= target for value in values) / len(values) if values else math.nan
+
+    @staticmethod
     def _breadth_condition_result(
         item: dict, condition: dict, index: int | None = None, benchmark_item: dict | None = None
     ) -> tuple[bool | None, float | None, str | None]:
@@ -1356,6 +1367,9 @@ class _Research:
         ):
             return None, None, "invalid_close"
         kind = str(condition.get("kind") or "").lower()
+
+        if _Research._target_scope(condition) == "cross_sectional":
+            return None, None, "cross_sectional_requires_universe"
 
         def finite_window(window: list[object]) -> bool:
             return all(
@@ -1630,6 +1644,8 @@ class _Research:
             benchmark_item = None
 
         def evaluate_at(index: int, timestamp: str | None = None) -> dict:
+            if self._target_scope(condition) == "cross_sectional":
+                return self._evaluate_cross_sectional_at(dataset, condition, timestamp)
             rows: list[dict] = []
             exclusions: list[dict] = []
             for item in datasets:
@@ -1708,6 +1724,161 @@ class _Research:
             "current": points[-1] if points else None,
             "sample_size": len(points),
         }
+
+    def _evaluate_cross_sectional_at(
+        self, dataset: dict, condition: dict, timestamp: str | None = None
+    ) -> dict:
+        """Evaluate a cross-sectional percentile over one aligned timestamp."""
+
+        datasets = dataset.get("datasets")
+        params = condition.get("params", condition)
+        if not isinstance(datasets, list) or not isinstance(params, dict):
+            raise ValueError("Declared prepared universe is unavailable")
+        if str(condition.get("kind") or "").lower() != "percentile":
+            return {
+                "timestamp": timestamp,
+                "requested_count": len(datasets),
+                "eligible_count": 0,
+                "pass_count": 0,
+                "excluded_count": len(datasets),
+                "percentage": None,
+                "coverage": 0,
+                "rows": [
+                    {"status": "excluded", "exclusion": "cross_sectional_unsupported_condition"}
+                    for _ in datasets
+                ],
+                "exclusions": [{"code": "cross_sectional_unsupported_condition"}],
+            }
+        field = params.get("field")
+        try:
+            percentile = float(params.get("percentile", 0.8))
+        except (TypeError, ValueError):
+            percentile = math.nan
+        if (
+            not isinstance(field, str)
+            or not field.strip()
+            or not math.isfinite(percentile)
+            or not 0 <= percentile <= 1
+        ):
+            invalid = "invalid_condition_params"
+            return {
+                "timestamp": timestamp,
+                "requested_count": len(datasets),
+                "eligible_count": 0,
+                "pass_count": 0,
+                "excluded_count": len(datasets),
+                "percentage": None,
+                "coverage": 0,
+                "rows": [{"status": "excluded", "exclusion": invalid} for _ in datasets],
+                "exclusions": [{"code": invalid}],
+            }
+        base_params = {
+            key: value
+            for key, value in params.items()
+            if key not in {"percentile", "operator", "target_scope"}
+        }
+        base_condition = {"kind": "comparison", "params": base_params}
+        pending: list[tuple[dict, float, str | None]] = []
+        rows: list[dict] = []
+        exclusions: list[dict] = []
+        for item in datasets:
+            if not isinstance(item, dict):
+                exclusions.append({"code": "invalid_dataset_row"})
+                continue
+            timestamps = item.get("timestamps")
+            closes = item.get("closes")
+            symbol = str(item.get("symbol") or "").upper()
+            if not isinstance(closes, list) or not closes:
+                warning = "no_bars"
+                rows.append(
+                    {
+                        "symbol": symbol,
+                        "instrument_id": item.get("instrument_id"),
+                        "value": None,
+                        "metric": None,
+                        "timestamp": timestamp,
+                        "exclusion": warning,
+                    }
+                )
+                exclusions.append({"symbol": symbol, "timestamp": timestamp, "code": warning})
+                continue
+            if timestamp is None:
+                index = len(closes) - 1
+            elif isinstance(timestamps, list) and timestamp in timestamps:
+                index = timestamps.index(timestamp)
+            else:
+                warning = "missing_bar_at_timestamp"
+                rows.append(
+                    {
+                        "symbol": symbol,
+                        "instrument_id": item.get("instrument_id"),
+                        "value": None,
+                        "metric": None,
+                        "timestamp": timestamp,
+                        "exclusion": warning,
+                    }
+                )
+                exclusions.append({"symbol": symbol, "timestamp": timestamp, "code": warning})
+                continue
+            value, metric, warning = self._breadth_condition_result(
+                item, base_condition, index, dataset.get("benchmark_dataset")
+            )
+            if warning or metric is None:
+                code = warning or "invalid_condition_params"
+                rows.append(
+                    {
+                        "symbol": symbol,
+                        "instrument_id": item.get("instrument_id"),
+                        "value": None,
+                        "metric": None,
+                        "timestamp": timestamp,
+                        "exclusion": code,
+                    }
+                )
+                exclusions.append({"symbol": symbol, "timestamp": timestamp, "code": code})
+                continue
+            pending.append((item, float(metric), symbol))
+        ranks = [metric for _, metric, _ in pending]
+        for item, metric, symbol in pending:
+            rank = self._percentile_rank(ranks, metric)
+            value = self._compare_percentile(rank, params)
+            rows.append(
+                {
+                    "symbol": symbol,
+                    "instrument_id": item.get("instrument_id"),
+                    "value": value,
+                    "metric": rank,
+                    "timestamp": timestamp,
+                }
+            )
+        eligible = sum(row.get("value") is not None for row in rows)
+        passed = sum(row.get("value") is True for row in rows)
+        requested = len(rows)
+        return {
+            "timestamp": timestamp,
+            "requested_count": requested,
+            "eligible_count": eligible,
+            "pass_count": passed,
+            "excluded_count": requested - eligible,
+            "percentage": passed / eligible if eligible else None,
+            "coverage": eligible / requested if requested else 0,
+            "rows": rows,
+            "exclusions": exclusions,
+        }
+
+    @staticmethod
+    def _compare_percentile(metric: float, params: dict) -> bool:
+        operator = str(params.get("operator", "gte")).lower()
+        threshold = float(params.get("percentile", 0.8))
+        if operator in {"below", "lt", "<"}:
+            return metric < threshold
+        if operator in {"at_or_below", "lte", "<="}:
+            return metric <= threshold
+        if operator in {"equal", "eq", "=="}:
+            return metric == threshold
+        if operator in {"not_equal", "neq", "ne", "!="}:
+            return metric != threshold
+        return metric >= threshold
 
     def cross_sectional_rank(self, dataset: dict, lookback: int = 20) -> list[dict]:
         """Rank a declared universe by trailing price return without external access."""

@@ -170,6 +170,40 @@ def test_runner_computes_generic_breadth_snapshot_and_history_from_one_condition
     assert result["artifacts"]["current_rows"]["value"][-1]["value"] is False
 
 
+def test_runner_computes_cross_sectional_percentile_breadth_for_snapshot_and_history():
+    timestamps = ["2026-01-01", "2026-01-02", "2026-01-03"]
+    result = execute_job(
+        {
+            "source": (
+                "condition = {'kind': 'percentile', 'target_scope': 'cross_sectional', 'params': "
+                "{'field': 'close', 'percentile': 0.5, 'operator': 'gte'}}\n"
+                "snapshot = research.breadth_condition(dataset, condition)\n"
+                "history = research.breadth_condition(dataset, condition, True)\n"
+                "output.scalar('snapshot_percentage', snapshot['percentage'])\n"
+                "output.series('history_percentage', [point['percentage'] for point in history['points']])\n"
+                "output.table('snapshot_rows', snapshot['rows'])"
+            ),
+            "output_contract": "study",
+            "dataset": {
+                "timestamps": timestamps,
+                "datasets": [
+                    {"instrument_id": 1, "symbol": "A", "timestamps": timestamps, "closes": [1, 2, 3]},
+                    {"instrument_id": 2, "symbol": "B", "timestamps": timestamps, "closes": [3, 2, 1]},
+                    {"instrument_id": 3, "symbol": "C", "timestamps": timestamps, "closes": [2, 2, 2]},
+                ],
+            },
+        }
+    )
+
+    assert result["status"] == "completed"
+    assert result["artifacts"]["snapshot_percentage"]["value"] == 2 / 3
+    assert result["artifacts"]["history_percentage"]["value"]["values"] == [2 / 3, 1.0, 2 / 3]
+    rows = {row["symbol"]: row for row in result["artifacts"]["snapshot_rows"]["value"]}
+    assert rows["A"]["metric"] == 1.0
+    assert rows["A"]["value"] is True
+    assert rows["B"]["value"] is False
+
+
 def test_runner_supports_composite_breadth_conditions_and_scalar_comparisons():
     result = execute_job(
         {

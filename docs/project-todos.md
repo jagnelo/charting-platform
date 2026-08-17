@@ -1,5 +1,20 @@
 # Project TODO Memory
 
+### 2026-08-17 — Cross-sectional percentile breadth in isolated Python Study Lab
+
+- [x] Added a unified-Python Study Lab factory starter that evaluates a declared
+      `target_scope: cross_sectional` percentile condition over the explicit universe at each
+      timestamp, exposing current percentage/pass/eligible metrics, aligned history, member rows,
+      exclusions, and reusable table/series outputs. The source is editable Python and uses the
+      same `research.breadth_condition` contract as the workstation/API path.
+- [x] Unsupported cross-sectional condition kinds remain explicit runner exclusions rather than
+      silently falling back to member semantics. Runner tests cover current and historical ranks,
+      deterministic ties, and per-member pass state; Study Lab component coverage verifies the
+      factory selector and parameter controls. Full research-runner and frontend gates pass.
+- [ ] Arbitrary user-authored cross-sectional derived/Python series, mixed-scope composition,
+      group statistics, and promotion of this Study Lab output into every compatible plot/column/
+      filter/gauge/alert/scan/Strategy Lab target remain open and must retain the same lineage.
+
 ### 2026-08-17 — Explicit cross-sectional breadth target scope
 
 - [x] Added `target_scope: member | cross_sectional` to the versioned breadth condition

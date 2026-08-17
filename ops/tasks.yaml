@@ -1,4 +1,30 @@
 tasks:
+  - id: tc2000-cross-sectional-python-study-breadth-20260817
+    title: Expose cross-sectional percentile breadth in isolated Python Study Lab
+    status: completed
+    priority: high
+    scope: >-
+      Reuse the scope-aware breadth contract inside the isolated Python runner and expose an
+      editable Study Lab factory starter for current/history cross-sectional percentile breadth.
+    definition_of_done:
+      - Cross-sectional percentile evaluates valid same-timestamp member scalars with deterministic inclusive ranks
+      - Current and historical outputs retain percentage, counts, rows, exclusions, and aligned timestamps
+      - Unsupported cross-sectional condition kinds return explicit exclusions rather than member fallback
+      - Study Lab factory selector and parameter controls generate the unified-Python source
+      - Runner, Study Lab component, full frontend type/test/build, Ruff, compile, and diff checks pass
+      - Derived/Python cross-sectional composition, mixed scope, group statistics, and promotion fan-out remain documented
+    validation:
+      - research-runner-focused-2-of-2
+      - research-runner-full-89-of-89
+      - study-lab-component-22-of-22
+      - frontend-vitest-839-of-839
+      - frontend-type-check-production-build
+      - ruff-compileall-diff-check
+    notes:
+      - >-
+        No acceptance flexibility used. This slice adds a reusable represented Study Lab starter;
+        it does not claim arbitrary custom cross-sectional Python, mixed-scope composition, or
+        downstream promotion beyond the existing lineage-preserving EasyScan path.
   - id: tc2000-cross-sectional-breadth-scope-20260817
     title: Add explicit cross-sectional breadth percentile scope
     status: completed

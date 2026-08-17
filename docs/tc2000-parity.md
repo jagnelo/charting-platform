@@ -1,5 +1,16 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-17 — Cross-sectional percentile Study Lab starter
+
+Study Lab now includes an editable factory study for cross-sectional percentile breadth. It uses
+the declared universe and computes the selected scalar field's same-timestamp inclusive rank
+before applying the percentile operator, exposing current/history percentages, member rows,
+exclusions, and a reusable uPlot series/table contract through unified Python. This is the same
+scope-aware research helper used by the workstation/API and does not silently fall back to a
+member rolling percentile. Runner and component gates pass. Arbitrary derived/Python
+cross-sectional expressions, mixed-scope/group statistics, and complete promotion fan-out remain
+explicit parity gaps.
+
 ## 2026-08-17 — Explicit cross-sectional breadth scope
 
 The breadth composer now distinguishes a member rolling percentile from a cross-sectional rank

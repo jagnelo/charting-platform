@@ -196,6 +196,7 @@ describe('StudyLabTool', () => {
       { value: 'breadth_participation', label: 'Breadth participation' },
       { value: 'breadth_thrust_90_90', label: '90/90 breadth thrust' },
       { value: 'breadth_thrust_history_90_90', label: 'Historical 90/90 breadth thrust' },
+      { value: 'generic_breadth_cross_sectional_percentile', label: 'Cross-sectional percentile breadth' },
       { value: 'current_history_comparison', label: 'Current versus history' },
     ]))
 
@@ -226,6 +227,12 @@ describe('StudyLabTool', () => {
     expect(breadthHistorySource).toContain("output.histogram('volume_participation_distribution'")
     expect(breadthHistorySource).toContain("price_history[-1] if price_history else None")
     expect(breadthHistorySource).toContain("output.events('breadth_thrust_occurrences'")
+    await selector.setValue('generic_breadth_cross_sectional_percentile')
+    const crossSectionalBreadthSource = (wrapper.find('[aria-label="Study Python source"]').element as HTMLTextAreaElement).value
+    expect(crossSectionalBreadthSource).toContain("'target_scope': 'cross_sectional'")
+    expect(crossSectionalBreadthSource).toContain('research.breadth_condition(dataset, condition, True)')
+    expect(wrapper.find('[aria-label="Study parameter field"]').element).toHaveProperty('value', 'close')
+    expect(wrapper.find('[aria-label="Study parameter percentile"]').element).toHaveProperty('value', '0.5')
     await selector.setValue('seasonality')
     const seasonalitySource = (wrapper.find('[aria-label="Study Python source"]').element as HTMLTextAreaElement).value
     expect(seasonalitySource).toContain('average_day_of_week_return')

@@ -1,5 +1,17 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-08-17 — Cross-sectional percentile Study Lab sub-gate
+
+The Study Lab factory must expose an editable unified-Python starter for cross-sectional
+percentile breadth. Given an explicit declared universe, it must rank valid member scalar values
+at each timestamp, apply the selected percentile/operator, and expose current percentage,
+pass/eligible counts, aligned historical series, member rows, and exact exclusions. The runner
+must reject unsupported cross-sectional kinds explicitly; it must not evaluate them as member
+conditions. Focused runner, full runner, Study Lab component, frontend type-check, production
+build, and full Vitest evidence pass. No acceptance threshold, visual mask, provider rule, or
+completion criterion was relaxed. Derived Python/mixed-scope/group-statistics and promotion
+targets remain tracked gaps.
+
 ## 2026-08-17 — Cross-sectional breadth scope sub-gate
 
 Acceptance must distinguish `target_scope=member` from `target_scope=cross_sectional`. For the
