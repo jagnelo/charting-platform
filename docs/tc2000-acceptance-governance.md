@@ -2,11 +2,12 @@
 
 ## 2026-08-17 — Mixed-scope breadth sub-gate
 
-The breadth/Market Map runner must accept a compound tree containing both a cross-sectional
-percentile leaf and member-level leaves. It verifies one universe-wide rank pass, member predicate
-evaluation, tri-state `all`/`any`/`not` composition, clause diagnostics, denominator/exclusion
-semantics, current-bar alignment, historical no-forward-fill behavior, and no provider fan-out.
-The same condition must serialize through the visual tree editor and authenticated browser flow.
+The breadth/Market Map and isolated Study Lab runners must accept a compound tree containing both a
+cross-sectional percentile leaf and member-level leaves. They verify one universe-wide rank pass,
+member predicate evaluation, tri-state `all`/`any`/`not` composition, clause diagnostics,
+denominator/exclusion semantics, current-bar alignment, historical no-forward-fill behavior, and
+no provider fan-out. The same condition must serialize through the visual tree editor and
+authenticated browser flow.
 Cross-sectional group statistics beyond percentile and arbitrary Python target-series leaves remain
 open and cannot be treated as silently equivalent.
 
@@ -223,8 +224,9 @@ pass/eligible counts, aligned historical series, member rows, and exact exclusio
 must reject unsupported cross-sectional kinds explicitly; it must not evaluate them as member
 conditions. Focused runner, full runner, Study Lab component, frontend type-check, production
 build, and full Vitest evidence pass. No acceptance threshold, visual mask, provider rule, or
-completion criterion was relaxed. Derived Python/mixed-scope/group-statistics and promotion
-targets remain tracked gaps.
+completion criterion was relaxed. Derived Python target-series/group-statistics and promotion
+targets remain tracked gaps; mixed-scope composition is now covered by the shared local and
+isolated evaluators.
 
 ## 2026-08-17 — Cross-sectional breadth scope sub-gate
 

@@ -1425,6 +1425,20 @@ class _Research:
         return str(condition.get("target_scope", params.get("target_scope", "member"))).lower()
 
     @staticmethod
+    def _contains_cross_sectional(condition: dict) -> bool:
+        """Return whether any node in a breadth AST targets the full universe."""
+        if _Research._target_scope(condition) == "cross_sectional":
+            return True
+        params = condition.get("params", {})
+        if not isinstance(params, dict):
+            return False
+        children = params.get("conditions")
+        return isinstance(children, list) and any(
+            isinstance(child, dict) and _Research._contains_cross_sectional(child)
+            for child in children
+        )
+
+    @staticmethod
     def _percentile_rank(values: list[float], target: float) -> float:
         return sum(value <= target for value in values) / len(values) if values else math.nan
 
@@ -1732,6 +1746,8 @@ class _Research:
         def evaluate_at(index: int, timestamp: str | None = None) -> dict:
             if self._target_scope(condition) == "cross_sectional":
                 return self._evaluate_cross_sectional_at(dataset, condition, timestamp)
+            if self._contains_cross_sectional(condition):
+                return self._evaluate_cross_sectional_tree_at(dataset, condition, index, timestamp)
             rows: list[dict] = []
             exclusions: list[dict] = []
             for item in datasets:
@@ -1809,6 +1825,159 @@ class _Research:
             "points": points,
             "current": points[-1] if points else None,
             "sample_size": len(points),
+        }
+
+    def _evaluate_cross_sectional_tree_at(
+        self,
+        dataset: dict,
+        condition: dict,
+        index: int,
+        timestamp: str | None = None,
+    ) -> dict:
+        """Evaluate nested cross-sectional and member leaves over one timestamp.
+
+        Cross-sectional leaves are materialised once for the complete prepared
+        universe.  The resulting per-member values are then composed with the
+        ordinary member evaluator using the same tri-state all/any/not rules as
+        the local breadth service.  This keeps Study Lab and Market Map aligned
+        without exposing provider access to the sandbox.
+        """
+        datasets = dataset.get("datasets")
+        if not isinstance(datasets, list):
+            raise ValueError("Declared prepared universe is unavailable")
+        benchmark_item = dataset.get("benchmark_dataset")
+        if not isinstance(benchmark_item, dict):
+            benchmark_item = None
+
+        def row_key(row: dict) -> tuple[object, str]:
+            return row.get("instrument_id"), str(row.get("symbol") or "").upper()
+
+        scoped_results: dict[str, dict[tuple[object, str], dict]] = {}
+
+        def collect(node: dict, path: str) -> None:
+            if self._target_scope(node) == "cross_sectional":
+                result = self._evaluate_cross_sectional_at(dataset, node, timestamp)
+                scoped_results[path] = {
+                    row_key(row): row
+                    for row in result.get("rows", [])
+                    if isinstance(row, dict) and ("instrument_id" in row or row.get("symbol"))
+                }
+            params = node.get("params", {})
+            if not isinstance(params, dict):
+                return
+            children = params.get("conditions")
+            if isinstance(children, list):
+                for child_index, child in enumerate(children):
+                    if isinstance(child, dict):
+                        collect(child, f"{path}.conditions[{child_index}]")
+
+        collect(condition, "$")
+
+        def item_index(item: dict) -> int | None:
+            closes = item.get("closes")
+            if not isinstance(closes, list) or not closes:
+                return None
+            if timestamp is None:
+                return len(closes) - 1
+            timestamps = item.get("timestamps")
+            if isinstance(timestamps, list) and timestamp in timestamps:
+                return timestamps.index(timestamp)
+            return None
+
+        def visit(item: dict, node: dict, path: str) -> tuple[bool | None, float | None, str | None]:
+            key = row_key(item)
+            if self._target_scope(node) == "cross_sectional":
+                row = scoped_results.get(path, {}).get(key)
+                if row is None:
+                    return None, None, "cross_sectional_member_missing"
+                return row.get("value"), row.get("metric"), row.get("exclusion")
+
+            params = node.get("params", {})
+            kind = str(node.get("kind") or "").lower()
+            children = params.get("conditions") if isinstance(params, dict) else None
+            if kind in {"all", "any", "not"} and isinstance(children, list):
+                contains_scoped_child = any(
+                    isinstance(child, dict) and self._contains_cross_sectional(child)
+                    for child in children
+                )
+                if contains_scoped_child:
+                    evaluated = [
+                        visit(item, child, f"{path}.conditions[{child_index}]")
+                        for child_index, child in enumerate(children)
+                        if isinstance(child, dict)
+                    ]
+                    if len(evaluated) != len(children):
+                        return None, None, "invalid_condition_params"
+                    metrics = [metric for _, metric, _ in evaluated if metric is not None]
+                    if kind == "all":
+                        missing = next(
+                            (child_index for child_index, (value, _, _) in enumerate(evaluated) if value is None),
+                            None,
+                        )
+                        if missing is not None:
+                            return None, min(metrics) if metrics else None, (
+                                f"condition_clause_excluded:{missing}:"
+                                f"{evaluated[missing][2] or 'unknown'}"
+                            )
+                        return all(value is True for value, _, _ in evaluated), min(metrics) if metrics else None, None
+                    if kind == "any":
+                        if any(value is True for value, _, _ in evaluated):
+                            true_metrics = [
+                                metric for value, metric, _ in evaluated if value is True and metric is not None
+                            ]
+                            return True, max(true_metrics) if true_metrics else None, None
+                        if all(value is False for value, _, _ in evaluated):
+                            return False, max(metrics) if metrics else None, None
+                        missing = next(
+                            child_index for child_index, (value, _, _) in enumerate(evaluated) if value is None
+                        )
+                        return None, None, (
+                            f"condition_clause_excluded:{missing}:"
+                            f"{evaluated[missing][2] or 'unknown'}"
+                        )
+                    if len(evaluated) != 1:
+                        return None, None, "invalid_condition_params"
+                    value, metric, warning = evaluated[0]
+                    if warning:
+                        return None, metric, f"condition_clause_excluded:0:{warning}"
+                    return (not value) if value is not None else None, metric, None
+
+            current_index = item_index(item)
+            if current_index is None:
+                return None, None, "missing_bar_at_timestamp" if timestamp is not None else "no_bars"
+            return self._breadth_condition_result(item, node, current_index, benchmark_item)
+
+        rows: list[dict] = []
+        exclusions: list[dict] = []
+        for item in datasets:
+            if not isinstance(item, dict):
+                exclusions.append({"code": "invalid_dataset_row"})
+                continue
+            symbol = str(item.get("symbol") or "").upper()
+            value, metric, exclusion = visit(item, condition, "$")
+            row = {
+                "symbol": symbol,
+                "instrument_id": item.get("instrument_id"),
+                "value": value,
+                "metric": metric,
+                "timestamp": timestamp,
+            }
+            if exclusion:
+                row["exclusion"] = exclusion
+                exclusions.append({"symbol": symbol, "timestamp": timestamp, "code": exclusion})
+            rows.append(row)
+        eligible = sum(row["value"] is not None for row in rows)
+        passed = sum(row["value"] is True for row in rows)
+        return {
+            "timestamp": timestamp,
+            "requested_count": len(rows),
+            "eligible_count": eligible,
+            "pass_count": passed,
+            "excluded_count": len(rows) - eligible,
+            "percentage": passed / eligible if eligible else None,
+            "coverage": eligible / len(rows) if rows else 0,
+            "rows": rows,
+            "exclusions": exclusions,
         }
 
     def _evaluate_cross_sectional_at(

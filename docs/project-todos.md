@@ -9,6 +9,9 @@
       breadth history, retaining clause paths, exclusions, timestamps, and no-forward-fill rules.
 - [x] Add backend unit/integration, Market Map component, and authenticated browser regressions for
       mixed member/cross-sectional authoring and evaluation.
+- [x] Apply the same nested evaluator inside the isolated Study Lab runner, so current and
+      historical Python studies compose cross-sectional leaves with member predicates using the
+      prepared dataset only and preserve exact timestamp exclusions.
 - [ ] Cross-sectional statistics beyond percentile, arbitrary Python target-series leaves, and
       cross-sectional-to-derived-series relationships remain open and must retain explicit scope
       and diagnostics.

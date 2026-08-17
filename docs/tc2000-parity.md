@@ -6,8 +6,10 @@ The generic breadth AST now composes a cross-sectional percentile leaf with ordi
 predicates through the same `all`/`any`/`not` tree. Cross-sectional leaves are evaluated once over
 the aligned eligible universe, while member leaves retain their own coverage and exclusion rules;
 the resulting Market Map tiles and historical breadth points preserve clause paths, ranks,
-pass/fail state, denominator, and no-forward-fill semantics. Cross-sectional statistics beyond
-percentile and arbitrary Python target-series leaves remain explicit gaps.
+pass/fail state, denominator, and no-forward-fill semantics. The isolated Study Lab runner now
+uses the same nested evaluator for current and historical Python studies over the declared
+prepared dataset. Cross-sectional statistics beyond percentile and arbitrary Python target-series
+leaves remain explicit gaps.
 
 ## 2026-08-17 — Cross-sectional Market Map breadth colour
 
@@ -311,8 +313,9 @@ before applying the percentile operator, exposing current/history percentages, m
 exclusions, and a reusable uPlot series/table contract through unified Python. This is the same
 scope-aware research helper used by the workstation/API and does not silently fall back to a
 member rolling percentile. Runner and component gates pass. Arbitrary derived/Python
-cross-sectional expressions, mixed-scope/group statistics, and complete promotion fan-out remain
-explicit parity gaps.
+cross-sectional expressions beyond percentile and complete promotion fan-out remain explicit
+parity gaps; nested mixed-scope composition is implemented in the isolated runner and shared
+workstation/API evaluator.
 
 ## 2026-08-17 — Explicit cross-sectional breadth scope
 
@@ -326,8 +329,8 @@ changes; missing current bars are never forward-filled.
 The workstation exposes the scope choice and persists it with the condition definition. An
 unsupported cross-sectional condition is returned as an explicit exclusion rather than silently
 using member-level semantics. Unit/API, frontend, and rebuilt authenticated browser coverage pass.
-Richer derived/Python cross-sectional fields, mixed-scope nested composition, and complete
-promotion fan-out remain explicit parity gaps.
+Richer derived/Python cross-sectional fields and complete promotion fan-out remain explicit parity
+gaps; mixed-scope nested composition is implemented in the shared evaluator and isolated runner.
 
 ## 2026-08-17 — Generic breadth range and percentile controls
 

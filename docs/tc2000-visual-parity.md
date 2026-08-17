@@ -6,7 +6,8 @@ The interim Market Map/breadth oracle now covers a nested tree that combines mem
 cross-sectional percentile leaves. The board guides the same dense condition-editor composition,
 scope label, group nesting, tile pass/fail colouring, and diagnostic placement. No authoritative
 V25 capture covers this exact mixed statistical state, so its geometry remains a named board gap;
-the browser/component/backend contract is accepted only as the explicit interim oracle. Richer
+the browser/component/backend contract is accepted only as the explicit interim oracle. The local
+API and isolated Study Lab runner now use the same nested evaluator for this state; richer
 cross-sectional statistics and Python target-series visuals remain separately tracked gaps.
 
 ## 2026-08-17 — Cross-sectional breadth colour state
