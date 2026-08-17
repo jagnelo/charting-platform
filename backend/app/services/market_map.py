@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.models.instrument import Instrument
+from app.models.market_map import MarketMapCache
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.schemas.market_map import (
     MarketMapCell,
@@ -143,6 +144,54 @@ def _node_metric(cells: list[MarketMapCell], area_metric: str) -> tuple[float | 
     return sum(cell.color_value or 0 for cell in values) / len(values), "equal_mean"
 
 
+def _cache_key(
+    request: MarketMapRequest,
+    membership_version: str | None,
+    member_ids: list[int],
+    bar_watermark: datetime | None,
+    reference_watermark: datetime | None,
+) -> str:
+    """Build a deterministic identity for one source/data snapshot.
+
+    The source membership and local bar watermarks are deliberately part of the
+    identity. A refreshed composition or newly ingested completed-session bar
+    therefore cannot silently reuse an older map result.
+    """
+
+    payload = request.model_dump(mode="json") | {
+        "calculation_version": "market-map-v1",
+        "membership_version": membership_version,
+        "member_ids": sorted(member_ids),
+        "bar_watermark": bar_watermark.isoformat() if bar_watermark else None,
+        "reference_bar_watermark": (
+            reference_watermark.isoformat() if reference_watermark else None
+        ),
+    }
+    return hashlib.sha256(json.dumps(payload, sort_keys=True, default=str).encode()).hexdigest()
+
+
+async def read_market_map_cache(
+    db: AsyncSession, user_id: int, cache_key: str
+) -> MarketMapOut | None:
+    """Read one user-isolated persisted map result without provider access."""
+
+    cached = (
+        await db.execute(
+            select(MarketMapCache).where(
+                MarketMapCache.user_id == user_id,
+                MarketMapCache.cache_key == cache_key,
+            )
+        )
+    ).scalar_one_or_none()
+    if cached is None:
+        return None
+    cached.last_accessed_at = datetime.now(UTC)
+    result = MarketMapOut.model_validate(cached.response_json)
+    result.cache_hit = True
+    result.cached_at = cached.computed_at
+    return result
+
+
 async def build_market_map(db: AsyncSession, user_id: int, request: MarketMapRequest) -> MarketMapOut:
     # Imported lazily to avoid the analysis router/service import cycle.  The
     # existing helper is intentionally reused so freshness semantics stay
@@ -225,6 +274,18 @@ async def build_market_map(db: AsyncSession, user_id: int, request: MarketMapReq
         else:
             exclusions.append(_warning("reference_not_found", "The relative-return reference is not canonical."))
     ref_return, _, _, _ = _return(reference_bars, request.period, period_start, period_end) if reference else (None, None, None, None)
+    source_bar_watermark = max((bar.ts for rows in bars_by_id.values() for bar in rows), default=None)
+    reference_bar_watermark = max((bar.ts for bar in reference_bars), default=None)
+    cache_key = _cache_key(
+        request,
+        resolved.descriptor.membership_version,
+        member_ids,
+        source_bar_watermark,
+        reference_bar_watermark,
+    )
+    cached_result = await read_market_map_cache(db, user_id, cache_key)
+    if cached_result is not None:
+        return cached_result
     cells: list[MarketMapCell] = []
     for instrument_id in member_ids[: request.limit]:
         instrument = instruments.get(instrument_id)
@@ -332,10 +393,8 @@ async def build_market_map(db: AsyncSession, user_id: int, request: MarketMapReq
         )
         nodes = [root, *nodes]
     freshness, freshness_detail = await _batch_freshness(db, member_ids, timeframe, request.adjusted)
-    payload = request.model_dump(mode="json") | {"membership_version": resolved.descriptor.membership_version}
-    cache_key = hashlib.sha256(json.dumps(payload, sort_keys=True, default=str).encode()).hexdigest()
     exclusions.extend(_warning(item.get("reason", "source_exclusion"), "Member excluded while resolving the source.", item.get("instrument_id")) for item in resolved.exclusions)
-    return MarketMapOut(
+    result = MarketMapOut(
         source=resolved.descriptor,
         group_by=request.group_by,
         period=request.period.upper(),
@@ -358,3 +417,17 @@ async def build_market_map(db: AsyncSession, user_id: int, request: MarketMapReq
         exclusions=exclusions,
         warnings=[_warning("current_area_not_point_in_time", "Market-cap area values are current stored metadata.")] if request.area_metric == "market_cap" else [],
     )
+    cache_row = MarketMapCache(
+        user_id=user_id,
+        source_id=request.source_id,
+        membership_version=resolved.descriptor.membership_version,
+        cache_key=cache_key,
+        request_json=request.model_dump(mode="json"),
+        response_json=result.model_dump(mode="json"),
+        bar_watermark=source_bar_watermark,
+        computed_at=datetime.now(UTC),
+        last_accessed_at=datetime.now(UTC),
+    )
+    db.add(cache_row)
+    await db.flush()
+    return result

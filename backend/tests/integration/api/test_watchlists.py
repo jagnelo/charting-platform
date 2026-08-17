@@ -13,7 +13,7 @@ class TestWatchlistsAuth:
 
 class TestWatchlistsCrud:
     def test_market_map_accepts_personal_source_and_rolls_up_constituents(
-        self, client, auth_headers, db, watchlist, instrument, instrument_b
+        self, client, auth_headers, admin_headers, db, watchlist, instrument, instrument_b
     ):
         from app.models.instrument import EquityDetail
         from app.models.instrument_stats import InstrumentStats
@@ -70,6 +70,42 @@ class TestWatchlistsCrud:
         assert {cell["symbol"] for cell in body["cells"]} == {"AAPL", "MSFT"}
         assert {node["label"] for node in body["nodes"]} >= {"Technology", "Hardware", "Software"}
         assert body["nodes"][-1]["aggregation_method"] == "area_weighted_mean"
+        assert body["cache_hit"] is False
+
+        cached_response = client.post(
+            "/api/v1/analysis/market-map",
+            headers=auth_headers,
+            json={
+                "source_id": f"watchlist:{watchlist.id}",
+                "group_by": "sector_industry",
+                "period": "1W",
+                "area_metric": "market_cap",
+                "color_metric": "return",
+                "end": "2024-01-07T00:00:00Z",
+            },
+        )
+        assert cached_response.status_code == 200, cached_response.text
+        cached_body = cached_response.json()
+        assert cached_body["cache_hit"] is True
+        assert cached_body["cache_key"] == body["cache_key"]
+        from app.models.market_map import MarketMapCache
+
+        assert db.query(MarketMapCache).count() == 1
+        restored = client.get(
+            f"/api/v1/analysis/market-map/cache/{body['cache_key']}", headers=auth_headers
+        )
+        assert restored.status_code == 200
+        assert restored.json()["cache_hit"] is True
+        assert restored.json()["source"]["source_id"] == f"watchlist:{watchlist.id}"
+
+        invalid_key = client.get(
+            "/api/v1/analysis/market-map/cache/not-a-cache-key", headers=auth_headers
+        )
+        assert invalid_key.status_code == 422
+        foreign = client.get(
+            f"/api/v1/analysis/market-map/cache/{body['cache_key']}", headers=admin_headers
+        )
+        assert foreign.status_code == 404
 
     def test_market_map_reports_missing_local_data_without_provider_fanout(
         self, client, auth_headers, watchlist, instrument

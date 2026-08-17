@@ -920,6 +920,8 @@ export interface MarketMap {
   membership_version?: string | null
   calculation_version: string
   cache_key: string
+  cache_hit?: boolean
+  cached_at?: string | null
   freshness: string
   freshness_detail: Record<string, number>
   requested_count: number

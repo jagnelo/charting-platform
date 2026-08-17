@@ -64,10 +64,13 @@ The captures are behavioural/product references; Finviz artwork and branding are
 - [x] The response returns source/membership lineage, completed-session period bounds, independent
       area and colour metrics, tile cells, flattened sector/industry nodes, aggregate weighting
       method, coverage, freshness, cache identity, and exact missing-data/classification warnings.
-- [ ] Persistent result caching, custom Python/breadth colour outputs, point-in-time market-cap
-      area, richer classifications, renderer, hover/zoom/drill interactions, publication, and the
-      full eight-root population remain open. Current market-cap area is explicitly labelled as
-      latest stored metadata rather than historical truth.
+- [x] Persistent result caching now stores the complete source-aware response by user, request,
+      membership version, member IDs, and local bar watermark. Identical requests can be restored
+      through the cache endpoint without provider fan-out; new source membership or completed bars
+      produce a different cache identity.
+- [ ] Named user snapshots, custom Python/breadth colour outputs, point-in-time market-cap area,
+      richer classifications, renderer, and the full eight-root population remain open. Current
+      market-cap area is explicitly labelled as latest stored metadata rather than historical truth.
 
 #### Implementation checkpoint — workstation Market Map tool
 
@@ -94,8 +97,9 @@ The captures are behavioural/product references; Finviz artwork and branding are
       `universe_source_id`; the source remains locked when the originating index/ETF or market
       group is locked. The full source is intentionally preserved for analysis; selected tiles are
       context metadata, while subset extraction continues through the editable-list action.
-- [ ] Persistent snapshots, board-approved visual baselines, durable map cache, all requested map
-      metrics, point-in-time area weights, and complete provider-backed root population remain open.
+- [x] Durable map caching is implemented and exposes cache-hit/computed-at state in the workstation.
+- [ ] Named map snapshots, board-approved visual baselines, all requested map metrics, point-in-time
+      area weights, and complete provider-backed root population remain open.
 
 ### 2026-08-17 — US market family/style analysis matrix (latest user requirement)
 
@@ -13232,3 +13236,16 @@ The current source also passes the focused authenticated top-down browser slice 
 - [ ] Still open: map selection directly launching the breadth/Study Lab definition, durable map
       snapshots/cache, all requested map colour/area calculations, provider-backed population and
       point-in-time continuity for every root, and final board-guided visual approval.
+
+### 2026-08-17 — Durable Market Map result cache
+
+- [x] Persist complete Market Map responses by authenticated user, canonical source, request
+      semantics, membership version, member IDs, and local completed-session bar watermark.
+- [x] Repeated identical requests return a persisted cache result with explicit `cache_hit` and
+      `cached_at` state; `GET /analysis/market-map/cache/{cache_key}` restores the same result without
+      provider fan-out or cross-user access.
+- [x] Add migration/model coverage and regression assertions for cache identity, restoration, and
+      existing no-data/source behavior.
+- [ ] Named user snapshots, all requested area/colour metrics, Python/breadth outputs,
+      point-in-time market-cap weights, complete root population, and board-guided visual approval
+      remain open.

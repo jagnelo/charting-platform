@@ -100,6 +100,8 @@ class MarketMapOut(BaseModel):
     membership_version: str | None = None
     calculation_version: str = "market-map-v1"
     cache_key: str
+    cache_hit: bool = False
+    cached_at: datetime | None = None
     freshness: str
     freshness_detail: dict[str, int] = Field(default_factory=dict)
     requested_count: int = 0

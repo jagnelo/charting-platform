@@ -41,7 +41,7 @@
     <p v-if="error" class="market-map-tool__status market-map-tool__status--error" role="alert">{{ error }}</p>
     <p v-if="map?.warnings.length" class="market-map-tool__status" role="status">{{ map.warnings.map(item => item.message).join(' · ') }}</p>
     <div v-if="map" class="market-map-tool__summary">
-      <span>{{ map.source.name }}</span><span>{{ map.evaluated_count }}/{{ map.requested_count }} covered</span><span>{{ formatFreshness(map.freshness) }}</span><span v-if="map.source.locked">Locked source · {{ map.source.membership_version }}</span>
+      <span>{{ map.source.name }}</span><span>{{ map.evaluated_count }}/{{ map.requested_count }} covered</span><span>{{ formatFreshness(map.freshness) }}</span><span v-if="map.cache_hit">Cached result · {{ map.cached_at ? new Date(map.cached_at).toLocaleTimeString() : 'saved' }}</span><span v-if="map.source.locked">Locked source · {{ map.source.membership_version }}</span>
     </div>
     <div v-if="map" class="market-map-tool__nodes" aria-label="Market Map groups">
       <button v-if="selectedNode" type="button" aria-label="Market Map parent group" @click="selectNode(activeNode?.parent_id ?? null)">← Up</button>

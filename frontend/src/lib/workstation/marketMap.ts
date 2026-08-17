@@ -5,6 +5,10 @@ export function fetchMarketMap(request: MarketMapRequest): Promise<MarketMap> {
   return api.post<MarketMap>('/analysis/market-map', request)
 }
 
+export function fetchMarketMapCache(cacheKey: string): Promise<MarketMap> {
+  return api.get<MarketMap>(`/analysis/market-map/cache/${encodeURIComponent(cacheKey)}`)
+}
+
 export interface MarketMapLayoutCell extends MarketMapCell {
   x: number
   y: number

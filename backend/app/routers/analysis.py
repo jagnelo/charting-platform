@@ -113,7 +113,7 @@ from app.services.breadth import (
     evaluate_breadth_history,
 )
 from app.services.indicators import OHLCVSeries, get_latest_value
-from app.services.market_map import build_market_map
+from app.services.market_map import build_market_map, read_market_map_cache
 from app.services.parameter_validation import validate_parameter_values
 from app.services.research_jobs import (
     collect_research_result,
@@ -156,6 +156,22 @@ async def market_map(
         if code.endswith("not_found") or code == "unsupported_watchlist_source_kind":
             raise HTTPException(404, detail={"code": code, "source_id": body.source_id}) from exc
         raise HTTPException(422, detail={"code": code}) from exc
+
+
+@router.get("/market-map/cache/{cache_key}", response_model=MarketMapOut)
+async def read_market_map_snapshot(
+    cache_key: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Restore one persisted Market Map result for the authenticated user."""
+
+    if len(cache_key) != 64 or any(character not in "0123456789abcdef" for character in cache_key):
+        raise HTTPException(422, detail={"code": "invalid_market_map_cache_key"})
+    result = await read_market_map_cache(db, current_user.id, cache_key)
+    if result is None:
+        raise HTTPException(404, detail={"code": "market_map_cache_not_found", "cache_key": cache_key})
+    return result
 
 
 def _aggregate_series_cells(

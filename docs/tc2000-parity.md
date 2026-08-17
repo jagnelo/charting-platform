@@ -33,10 +33,11 @@ batch, rollup, period, and interaction gates pass.
 The first local batch map implementation now exists at `POST /analysis/market-map`. It accepts the
 same source IDs, calculates independent area and colour values from persisted bars/metadata, and
 returns cells plus sector/industry nodes with coverage, weighting, freshness, cache identity, and
-warnings. It is intentionally a backend enabling slice: persistent caching, Python/breadth colour
+warnings. It is intentionally a backend enabling slice: named snapshots, Python/breadth colour
 assets, historical market-cap weights, and the treemap renderer are not claimed complete. The
-workstation now supplies the map-to-tool publication layer on top of this contract; a current
-market-cap area warning is still returned instead of implying point-in-time truth.
+workstation now supplies the map-to-tool publication layer and a durable source-aware cache on top
+of this contract; identical requests can be restored by cache key without provider fan-out. A
+current market-cap area warning is still returned instead of implying point-in-time truth.
 
 The first workstation consumer now exists as the `Market Map` tool. It uses serializable tool
 configuration to select a `WatchlistSource`, grouping, period, area, and colour; renders covered
@@ -51,9 +52,9 @@ selections now also publish the canonical source and selected-member context dir
 existing or newly opened Breadth or Study Lab tool without a route change. Breadth receives the
 source as a watchlist universe; Study Lab receives `universe_source_id` and materializes it through
 the point-in-time canonical resolver. The full source remains the analysis universe; selected
-members are context metadata, while the existing editable-list action creates a subset. Persistent
-snapshots, durable map caching, all requested metrics, complete historical population, and
-board-guided visual parity remain explicit acceptance gaps.
+members are context metadata, while the existing editable-list action creates a subset. Named
+snapshots, all requested metrics, complete historical population, and board-guided visual parity
+remain explicit acceptance gaps; durable result caching is implemented and exposes cache-hit state.
 
 ## 2026-08-17 — US family/style and Nasdaq cap/equal acceptance matrix (latest requirement)
 
@@ -7412,3 +7413,12 @@ lock state, effective/known-at dates, coverage, exclusions, and freshness remain
 This closes the source-selection and resolver contract, not the complete acceptance gate. Direct
 map-to-breadth/Study-Lab launch, durable map snapshots, all requested metrics, complete historical
 provider population, and final board-guided visual approval remain explicit gaps.
+
+## 2026-08-17 — Durable Market Map result cache
+
+Market Map responses are now persisted in `market_map_cache` with authenticated-user isolation.
+The cache identity includes the serialized request, canonical source membership version, ordered
+member IDs, and local bar watermarks. Repeating a request or calling
+`GET /analysis/market-map/cache/{cache_key}` restores the full response without provider fan-out;
+the workstation exposes `cache_hit`/`cached_at` alongside freshness and coverage. This closes
+durable result caching, not named user snapshots, all area/colour metrics, or final visual parity.

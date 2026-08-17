@@ -23,20 +23,23 @@ treemap metrics, rollups, periods, rendering, and publication remain open.
 The backend batch sub-gate now has a deterministic contract at `POST /analysis/market-map`. Its
 fixture coverage proves that a personal source can produce sector/industry nodes and independently
 weighted tiles from local bars and metadata, while missing bars remain visible as cell warnings.
-This is not visual acceptance: persistent caching, all requested periods/metrics, Python/breadth
-colour outputs, point-in-time market-cap area, the renderer, and map publication remain explicit
-open gates. No acceptance flexibility was used for this slice.
+The complete response is persisted by a user-isolated cache identity containing request semantics,
+membership version, member IDs, and local bar watermarks; repeated requests and the explicit cache
+restore route return the persisted result without provider fan-out. This is not visual acceptance:
+named snapshots, all requested periods/metrics, Python/breadth colour outputs, point-in-time
+market-cap area, the renderer, and complete historical population remain explicit open gates. No
+acceptance flexibility was used for this slice.
 
 The workstation consumer sub-gate now passes component coverage for source selection, locked-source
 lineage, batch request configuration, deterministic proportional tile geometry, configuration
 persistence, tile-to-symbol publication, hover detail, palette/coverage legend, additive
 multi-selection, nested breadcrumbs, wheel/button zoom, pointer panning, failed-map status, and
-direct publication into Breadth and Study Lab. The same interaction contract applies to arbitrary
+direct publication into Breadth and Study Lab, plus visible persisted-cache status. The same interaction contract applies to arbitrary
 watchlist sources; index/ETF sources are locked only for membership mutation. Direct publication
 preserves the full canonical source as the analysis universe and carries selected members as
 context; subset extraction remains the editable-list action. This is still an interaction/
-component oracle, not a Version 25 visual pass: persistent snapshots, durable caching, and
-board-guided visual gates remain open. The watchlist publication gate covers creating/populating an
+component oracle, not a Version 25 visual pass: named snapshots and board-guided visual gates
+remain open. The watchlist publication gate covers creating/populating an
 editable personal list and rejecting managed/locked targets.
 
 The browser gate covers hover detail, palette/legend, zoom/pan, sort, drill-down, selection,
@@ -968,5 +971,6 @@ list and one locked index/ETF source, including member denominator, pass/fail dr
 historical output, source lock/provenance, freshness, coverage, and no provider fan-out. The UI must
 show source selection and lock status rather than presenting a fixed SPY-only breadth universe.
 This sub-gate is implemented and covered by canonical watchlist-source integration `2/2`, frontend
-full-suite `853/853`, `vue-tsc`, and production build. It does not close direct map-to-breadth/Study
-Lab launch, snapshots/cache, complete historical population, or final visual board approval.
+full-suite `853/853`, `vue-tsc`, and production build. The subsequent Market Map publication and
+durable-cache checkpoints close the direct launch and result-cache portions; named snapshots,
+complete historical population, and final visual board approval remain open.
