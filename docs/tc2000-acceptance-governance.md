@@ -1,5 +1,9 @@
 # TC2000 Workstation Acceptance Governance
 
+Market Map acceptance must also verify CSV export from a loaded map. The export must contain every
+returned cell and its canonical grouping, metric, coverage, observation-time, and warning fields;
+it must work for locked and editable sources without mutating selection, membership, or route state.
+
 ## 2026-08-19 — Arbitrary Market Map period sub-gate
 
 For every canonical WatchlistSource, acceptance must verify the Market Map preset periods and a

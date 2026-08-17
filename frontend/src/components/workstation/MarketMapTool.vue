@@ -115,6 +115,7 @@
       </label>
       <input v-model="snapshotName" aria-label="Market Map snapshot name" placeholder="Snapshot name" maxlength="160" />
       <button type="button" :disabled="snapshotLoading || !map || !snapshotName.trim()" @click="saveSnapshot">{{ snapshotLoading ? 'Saving…' : 'Save snapshot' }}</button>
+      <button type="button" :disabled="!map" @click="exportCsv">Export CSV</button>
       <button v-if="snapshotSelectionId" type="button" :disabled="snapshotLoading" @click="deleteSnapshot">Delete snapshot</button>
     </div>
     <p v-if="sourcesError" class="market-map-tool__status market-map-tool__status--error" role="alert">{{ sourcesError }}</p>
@@ -621,6 +622,38 @@ async function deleteSnapshot() {
   } finally {
     snapshotLoading.value = false
   }
+}
+
+function csvCell(value: unknown): string {
+  const text = value == null ? '' : String(value)
+  return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text
+}
+
+function exportCsv() {
+  if (!map.value) return
+  const header = ['symbol', 'name', 'sector', 'industry', 'group_path', 'area_value', 'color_value', 'return_value', 'coverage', 'color_coverage', 'area_coverage', 'observation_time', 'warnings']
+  const rows = map.value.cells.map(cell => [
+    cell.symbol,
+    cell.name,
+    cell.sector,
+    cell.industry,
+    cell.group_path.join(' / '),
+    cell.area_value,
+    cell.color_value,
+    cell.return_value,
+    cell.coverage,
+    cell.color_coverage,
+    cell.area_coverage,
+    cell.observation_time,
+    cell.warnings.map(warning => warning.code).join('|'),
+  ])
+  const csv = [header, ...rows].map(row => row.map(csvCell).join(',')).join('\n')
+  const url = URL.createObjectURL(new Blob([`${csv}\n`], { type: 'text/csv;charset=utf-8' }))
+  const anchor = document.createElement('a')
+  anchor.href = url
+  anchor.download = `market-map-${map.value.source.source_id.replace(/[^a-z0-9_-]+/gi, '-') || 'universe'}.csv`
+  anchor.click()
+  URL.revokeObjectURL(url)
 }
 
 async function run() {

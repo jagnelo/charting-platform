@@ -172,6 +172,25 @@ describe('MarketMapTool', () => {
     expect(wrapper.get('[aria-label="Market Map snapshot"]').element.value).toBe('12')
   })
 
+  it('exports the current source-agnostic map cells as CSV', async () => {
+    const createObjectURL = vi.fn(() => 'blob:market-map')
+    const revokeObjectURL = vi.fn()
+    vi.stubGlobal('URL', { ...URL, createObjectURL, revokeObjectURL })
+    const anchorClick = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+    const wrapper = mount(MarketMapTool)
+    await flushPromises()
+
+    const exportButton = wrapper.findAll('button').find(button => button.text() === 'Export CSV')
+    expect(exportButton).toBeDefined()
+    await exportButton!.trigger('click')
+
+    expect(createObjectURL).toHaveBeenCalledOnce()
+    expect(anchorClick).toHaveBeenCalledOnce()
+    expect(revokeObjectURL).toHaveBeenCalledWith('blob:market-map')
+    anchorClick.mockRestore()
+    vi.unstubAllGlobals()
+  })
+
   it('authors a breadth condition and sends it as the map colour definition', async () => {
     apiPost.mockImplementation((path: string, body?: Record<string, unknown>) => {
       if (path === '/analysis/market-map') return Promise.resolve({ ...response, color_metric: body?.color_metric, condition: body?.condition })

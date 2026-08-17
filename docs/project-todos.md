@@ -276,6 +276,9 @@ The captures are behavioural/product references; Finviz artwork and branding are
       persistence and snapshot restoration.
 - [x] Named map snapshots have durable create/list/restore/delete contracts and a workstation
       save/load/delete control; deleting a named snapshot never deletes its underlying cache result.
+- [x] The workstation exports current source-agnostic map cells as CSV with canonical identity,
+      grouping, area/colour values, coverage, observation time, and warning columns without
+      changing selection or route state.
 - [ ] Board-approved visual baselines, all requested map metrics, point-in-time area weights, and
       complete provider-backed root population remain open.
 
