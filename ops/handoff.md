@@ -1,5 +1,21 @@
 # Active Handoff
 
+## 2026-08-17 — Multi-family breadth/deconstruction vision refinement
+
+- Refined the controlling goal and repository plan to make the eight-root market matrix a full
+  breadth/deconstruction contract, not merely a family selector: every evidenced cap/equal/value/
+  growth role must accept a user-selected member population and configurable target predicate.
+- Named representative targets (moving-average state, prior/52-week extreme distance, within-X%
+  of an extreme, volume, RSI, volatility, relative strength, events, benchmark/peer/group series,
+  and supported Python) and required member-level/cross-sectional scope, exact alignment,
+  denominator, membership/as-of version, coverage, exclusions, freshness, and provenance.
+- Made Nasdaq 100 cap/equal a mandatory SPY/RSP-equivalent deconstruction for breadth, spread,
+  ratios, concentration/dispersion, leadership, and participation; missing roles remain explicit
+  unavailable/derived/No verified mapped proxy states.
+- Updated `docs/project-todos.md`, `docs/tc2000-parity.md`, `docs/tc2000-acceptance-governance.md`,
+  `docs/tc2000-visual-parity.md`, the active goal objective, and the task ledger. No acceptance
+  flexibility was used; provider/history population and family-wide implementation remain open.
+
 ## 2026-08-17 — Event-calendar breadth target checkpoint
 
 - Added the `event` generic breadth leaf backed exclusively by locally persisted canonical

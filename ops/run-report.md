@@ -1,5 +1,18 @@
 # Run Report
 
+## 2026-08-17 — Multi-family breadth/deconstruction vision refinement
+
+- Updated the active goal and controlling product documents to explicitly require configurable
+  breadth and cap/equal deconstruction across S&P 500/400/600/1500, Russell 1000/2000/3000, and
+  Nasdaq 100, including every evidenced value/growth leg.
+- Added explicit target examples and acceptance semantics for member-level versus cross-sectional
+  breadth, exact timestamp alignment, denominator, membership/as-of lineage, coverage, exclusions,
+  freshness, and provenance. Nasdaq 100 cap/equal must accept the same breadth definition and
+  expose spread/ratio/leadership/participation context.
+- Validation pending for this documentation checkpoint: Ruby YAML/JSON parsing and `git diff
+  --check`; no product acceptance flexibility used. Implementation/provider population and
+  family-wide browser/visual gates remain open.
+
 ## 2026-08-17 — Event-calendar breadth target
 
 - Implemented an `event` breadth predicate over the canonical local instrument-event calendar for

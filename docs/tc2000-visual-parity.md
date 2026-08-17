@@ -29,6 +29,14 @@ show the provenance/freshness/coverage and membership/as-of labels needed to dis
 ETF weights, locally derived equal weights, and proxy membership. Family/style visuals remain
 board-guided where represented and remain named gaps where the board has no authoritative state.
 
+The family visual acceptance also checks the breadth target as part of the composed workstation
+state. A root/role selector, member-universe selector, target/condition editor, percentage result,
+member pass/fail drill-down, and lineage/status strip must remain visually coherent when the target
+is an SMA, extreme-distance, volume, RSI, volatility, relative-strength, event, benchmark/peer,
+group aggregate, or Python-derived series. The board does not yet contain authoritative captures
+for every one of these combinations; each absent combination stays in the reference-board gap
+ledger and uses the documented browser/component oracle until superseded by stronger evidence.
+
 Status: `Controlling implementation plan`
 
 Current audit state (2026-08-10T06:40:00Z): all four seeded workstation environments pass the

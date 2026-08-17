@@ -22,6 +22,22 @@ ratios, sector/industry/proxy ranking, participation, leadership, concentration/
 rotation, drawdown/volatility, seasonality/regimes, watchlists, filters, scans, gauges, alerts,
 Study Lab, plots, and exports.
 
+### Breadth target scope across the family matrix
+
+The parity contract applies the breadth composer to each selected root/role and to each resolved
+sector, industry/proxy, or constituent universe. The user chooses the population and the measured
+target independently: moving-average state, prior/high-low distance, within-X-percent-of-high/low,
+volume, RSI, volatility, relative strength, event calendar, benchmark/peer difference or ratio,
+or a supported Python-derived series. A result is the percentage of eligible members satisfying
+the declared predicate at the observation timestamp; it is not a fixed “above SMA” widget.
+
+The UI and API must preserve whether the target is member-level or cross-sectional, the exact
+operator/threshold/window, membership and as-of versions, denominator, exclusions, coverage,
+freshness, and no-forward-fill alignment. These semantics must remain intact when the result is
+shown as a chart series, breadth grid, ranking column, scan, gauge, alert, Study Lab artifact, or
+linked drill-down. Nasdaq 100 cap/equal acceptance specifically checks the same breadth definition
+against both legs and exposes the resulting spread/ratio and participation context.
+
 ## 2026-08-17 — Prior high/low breadth target
 
 Generic breadth now supports a versioned `prior_high_low` leaf in both the compact composer and

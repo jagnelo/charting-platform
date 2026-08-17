@@ -24,6 +24,21 @@ holdings relationship cannot be verified, the expected result is an explicit una
 or `No verified mapped proxy` state with a closure condition in the gap ledger. Selector presence,
 name similarity, another family's product, or a current-only snapshot never satisfies this gate.
 
+### Required breadth/deconstruction traversal
+
+The family run is incomplete unless it exercises user-authored breadth against every available
+root/role and against the resolved sector, industry/proxy, and constituent universes. At minimum,
+fixtures cover moving-average participation, configurable distance to prior/52-week extremes,
+volume, RSI, volatility, relative-strength, event, benchmark/peer, group-aggregate, and Python
+targets. The assertion is the declared percentage of eligible members satisfying the predicate,
+with member-versus-cross-sectional scope, exact alignment, denominator, membership/as-of version,
+coverage, exclusions, and provenance checked in both current and historical results.
+
+Nasdaq 100 has an additional mandatory cap/equal deconstruction gate: the cap and equal legs must
+be selectable independently, produce aligned technical/ratio/spread values, and accept the same
+breadth definition so that leadership and participation differences are observable. The SPY/RSP
+fixture is the behavioral template, not a substitute for Nasdaq or the other seven families.
+
 ## 2026-08-17 — Prior high/low breadth sub-gate
 
 Acceptance now includes a reusable prior-window extreme predicate: for every eligible member, the

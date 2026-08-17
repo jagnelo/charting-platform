@@ -42,6 +42,34 @@ occurrences, member pass/fail sets, cross-sectional views, and promotion into ev
 chart/list/filter/scan/gauge/alert/Study Lab/export target. Family/style/provider, historical,
 visual, and browser gaps remain named in the gap ledger until closed.
 
+### 2026-08-17 — Explicit multi-family breadth and deconstruction vision
+
+The family matrix is also a breadth-and-deconstruction requirement, not only a benchmark
+navigation requirement. For every root and every evidenced role, the user must be able to choose
+the member universe and then author the condition being counted. Examples include percentage of
+members above a selected SMA, within a configurable distance of a prior or 52-week high/low,
+meeting a volume/RSI/volatility/relative-strength threshold, satisfying an event rule, or passing
+an arbitrary supported Python predicate. The same definition must work for the parent root, its
+cap/equal/value/growth legs, a sector or industry/proxy group, and a constituent list, while
+retaining member-level versus cross-sectional target scope, exact timestamp alignment, denominator,
+membership version, coverage, exclusions, freshness, and provenance.
+
+The Nasdaq 100 cap/equal view is a required deconstruction alongside the S&P 500 SPY/RSP
+reference. It must expose cap-versus-equal spread, aligned ratio, concentration/dispersion,
+leadership, participation, and configurable breadth—not merely two symbols in a comparison chart.
+The same deconstruction contract applies to each other family when an equal vehicle or an
+explicitly labelled point-in-time derived equal series is evidenced. Value/growth legs are
+independent style perspectives: where a verified sub-ETF or index exists, it inherits the same
+technical, ratio, breadth, ranking, rotation, risk, drill-down, Study Lab, and export surfaces;
+where it does not, the family remains usable and the missing role is recorded as an explicit gap.
+
+Daily analysis must remain route-free and fast across all eight roots. A selected root/role can be
+compared to its parent, peers, or another family; ranked by performance and relative strength;
+viewed through sector/industry/proxy and constituent drill-down; and inspected with additional
+useful views such as advance/decline participation, concentration, dispersion, drawdown,
+volatility, correlation, seasonality, and regime context. No candidate ticker, current-only
+snapshot, or SPY/QQQ substitution is evidence for a missing relationship.
+
 ### 2026-08-17 — Group/peer aggregate breadth target series
 
 - [x] Added an explicit `reference_universe` to generic breadth definitions. A group, benchmark

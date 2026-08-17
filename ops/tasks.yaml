@@ -1,4 +1,29 @@
 tasks:
+  - id: tc2000-multi-family-breadth-deconstruction-20260817
+    title: Expand family vision to explicit breadth targets and cap/equal deconstructions
+    status: completed
+    priority: high
+    scope: >-
+      Make the S&P 500/400/600/1500, Russell 1000/2000/3000, and Nasdaq 100 matrix explicitly
+      require user-selected member populations and configurable breadth targets across every
+      evidenced cap/equal/value/growth role. Require Nasdaq cap/equal breadth/spread/deconstruction
+      parity with SPY/RSP and preserve target scope, alignment, denominator, provenance, and gap
+      states through every compatible workstation surface.
+    definition_of_done:
+      - Project TODO, parity, acceptance-governance, visual-parity, and active goal documents state the expanded breadth/deconstruction contract
+      - All eight roots and every evidenced role inherit configurable member-level and cross-sectional breadth semantics
+      - Nasdaq 100 cap/equal is a dedicated mandatory acceptance case, with no guessed or silent fallback
+      - Missing relationships remain explicit unavailable/derived/No verified mapped proxy gaps
+      - Documentation parses cleanly and the work is committed as one self-contained checkpoint
+    validation:
+      - ruby-yaml-json-parse
+      - git-diff-check
+    notes:
+      - >-
+        Documentation-only scope refinement. No acceptance flexibility used; implementation,
+        provider/history population, and family-wide browser/visual gates remain open under the
+        active goal.
+
   - id: tc2000-us-family-style-matrix-scope-20260817
     title: Record expanded US family, style, and Nasdaq cap/equal scope
     status: completed
