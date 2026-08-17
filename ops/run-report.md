@@ -1,5 +1,22 @@
 # Run Report
 
+## 2026-08-17 — Expanded US index/factor perspective vision
+
+- Updated the controlling project TODO, parity matrix, acceptance governance, visual-parity
+  specification, and benchmark-family task to explicitly capture the requested full matrix of
+  S&P 500/400/600/1500, Russell 1000/2000/3000, and Nasdaq 100 analysis roots, including every
+  evidenced value/growth sub-index or ETF and Nasdaq cap/equal deconstruction.
+- The records require the same technical, ratio, configurable breadth, participation,
+  concentration/dispersion, rotation, drawdown/volatility, seasonality/regime, ranking,
+  sector/industry/proxy, constituent, Study Lab, scan, gauge, plot, alert, and export contracts
+  for each available root/leg, with family/role/membership/weighting/coverage/exclusions/freshness/
+  provenance retained throughout.
+- Missing or unverified legs remain explicit unavailable/derived/`No verified mapped proxy` states;
+  no acceptance flexibility was used. YAML/JSON parsing and `git diff --check` pass.
+- Documentation commit `2ce0f770` is clean locally. Exact push was attempted once and rejected
+  before Git by the private-origin safeguard; no workaround or repeat. Provider, historical,
+  style/equal population, browser, visual, and implementation gates remain open.
+
 ## 2026-08-17 — Recursive breadth condition tree
 
 - Added the authenticated recursive breadth condition editor and canonical AST serialization for

@@ -328,6 +328,8 @@ tasks:
       - Discovery candidates such as SPY/RSP, SPYG/SPYV, MDY/MDYG/MDYV, SLY/SLYG/SLYV, IWB/IWF/IWD, IWM/IWO/IWN, IWV, and QQQ/QQQE remain unaccepted until issuer/source, relationship, membership/weight method, effective/known-at, bars, and coverage evidence is recorded
       - Free-source/provider gaps and absent style/equal proxies remain explicit rather than fabricated
       - The eight roots are accepted as complete analysis perspectives, with the same benchmark technicals, cap/equal/style spreads, parent/peer and cross-family ratios, configurable breadth, participation/leadership, concentration/dispersion, correlation, drawdown/volatility, relative rotation, ranking, seasonality/regime, drill-down, scans, gauges, Study Lab, reusable plots, and exports; selector presence alone is insufficient
+      - The acceptance fixture explicitly attempts every evidenced value and growth sub-index/ETF for S&P 500/400/600/1500 and Russell 1000/2000/3000, while recording No verified mapped proxy or unavailable/derived state where a leg does not exist or cannot be proven
+      - Nasdaq 100 cap/equal acceptance is equivalent in scope to SPY/RSP and keeps native ETF weights distinct from locally derived point-in-time equal weights
     validation:
       - benchmark-family-taxonomy-and-provenance-contract
       - official-versus-etf-proxy-membership-semantics

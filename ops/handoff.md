@@ -1,5 +1,25 @@
 # Active Handoff
 
+## 2026-08-17 — Expanded US index/factor perspective vision checkpoint
+
+- Added a dedicated controlling directive for the requested US analysis matrix: S&P 500/400/600/1500,
+  Russell 1000/2000/3000, and Nasdaq 100 are complete interchangeable workstation roots, and
+  every evidenced cap, equal, value, and growth sub-index/ETF is a first-class linked analysis leg.
+- The documented daily path now explicitly covers benchmark technicals -> cap/equal and
+  value/growth leadership -> sector and industry/proxy ranking -> predicate breadth and
+  participation -> concentration/dispersion, rotation, drawdown/volatility, seasonality/regime
+  -> constituent drill-down, plus ratios, scans, gauges, Study Lab, plots, alerts, and exports.
+- Nasdaq-100 cap/equal is required to match the SPY/RSP deconstruction once its own QQQ/QQQE-style
+  identity, holdings, rebalance, date, bars, and coverage evidence passes. ETF-native weights and
+  locally-derived point-in-time equal weights remain distinct.
+- Missing or ambiguous style/equal evidence must remain `No verified mapped proxy`, unavailable, or
+  derived and visible in the gap ledger. No naming-based relationship, silent cross-family fallback,
+  visual-threshold change, provider relaxation, or completion claim was introduced.
+- Validation: YAML/JSON parsing and `git diff --check` pass. Documentation commit `2ce0f770`
+  is clean locally; its exact push was attempted once and rejected before Git by the private-origin
+  safeguard. No workaround or repeat. Next context remains implementation of populated family/style
+  data and the corresponding technical, breadth, ratio, ranking, drill-down, browser, and visual gates.
+
 ## 2026-08-17 — Recursive breadth condition-tree checkpoint
 
 - Added `BreadthConditionTreeEditor.vue` and an optional `Nested condition tree` mode to the
