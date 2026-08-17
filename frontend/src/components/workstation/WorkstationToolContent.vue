@@ -438,6 +438,8 @@
         <BreadthConditionTreeEditor
           v-if="breadthComposition === 'tree'"
           :model-value="breadthTreeCondition"
+          :python-series-assets="breadthPythonSeriesAssets"
+          :python-series-assets-loading="breadthPythonSeriesAssetsLoading"
           @update:model-value="setBreadthTreeCondition"
         />
         <template v-else>
@@ -614,7 +616,7 @@
           <label>Target <input :value="breadthSecondaryThreshold" aria-label="Breadth second target threshold" type="number" step="0.001" @change="setBreadthConfiguration({ breadth_secondary_threshold: Number(($event.target as HTMLInputElement).value) })" /></label>
         </template>
         </template>
-        <button type="button" :disabled="breadthConditionKind === 'python_series' && breadthPythonSeriesCodeVersionId == null" @click="runGenericBreadth">Evaluate</button>
+        <button type="button" :disabled="(breadthConditionKind === 'python_series' && breadthPythonSeriesCodeVersionId == null) || (breadthComposition === 'tree' && breadthTreePythonSeriesLeaf !== null && (!Number.isInteger(Number(breadthTreePythonSeriesLeaf.params.code_version_id)) || Number(breadthTreePythonSeriesLeaf.params.code_version_id) < 1))" @click="runGenericBreadth">Evaluate</button>
         <span v-if="genericBreadthLoading" role="status" aria-live="polite">Evaluating…</span>
         <span v-else-if="genericBreadthError" class="breadth-tool__status--error" role="alert">{{ genericBreadthError }}</span>
         <span v-else-if="genericBreadth" class="breadth-tool__custom-result"><b>{{ genericBreadthPercentage }}</b> · {{ genericBreadth.pass_count }}/{{ genericBreadth.eligible_count }} eligible · {{ genericBreadthCoverage }} coverage<span v-if="genericBreadth.group_value != null"> · group {{ genericBreadth.group_value.toFixed(4) }}</span></span>
@@ -1991,10 +1993,42 @@ const breadthPythonSeriesRequest = computed<Record<string, unknown>>(() => ({
   history: true,
   history_limit: 500,
 }))
-const breadthPythonSeriesKey = computed(() => JSON.stringify(breadthPythonSeriesRequest.value))
-const breadthPythonSeriesState = computed(() => workspaceStore.pythonBreadth[breadthPythonSeriesKey.value] ?? null)
-const breadthPythonSeriesLoading = computed(() => workspaceStore.pythonBreadthLoading[breadthPythonSeriesKey.value] === true)
-const breadthPythonSeriesError = computed(() => workspaceStore.pythonBreadthErrors[breadthPythonSeriesKey.value] ?? null)
+function findPythonSeriesLeaf(node: BreadthTreeNode): BreadthTreeNode | null {
+  if (node.kind === 'python_series') return node
+  const children = Array.isArray(node.params?.conditions) ? node.params.conditions : []
+  for (const child of children) {
+    if (isBreadthTreeNode(child)) {
+      const found = findPythonSeriesLeaf(child)
+      if (found) return found
+    }
+  }
+  return null
+}
+const breadthTreePythonSeriesLeaf = computed(() => breadthComposition.value === 'tree' ? findPythonSeriesLeaf(breadthTreeCondition.value) : null)
+const breadthUsesPython = computed(() => breadthConditionKind.value === 'python_series' || breadthTreePythonSeriesLeaf.value !== null)
+const breadthPythonRequest = computed<Record<string, unknown>>(() => {
+  const leaf = breadthTreePythonSeriesLeaf.value
+  if (!leaf) return breadthPythonSeriesRequest.value
+  const codeVersionId = Number(leaf.params.code_version_id)
+  return {
+    code_version_id: Number.isInteger(codeVersionId) && codeVersionId > 0 ? codeVersionId : 0,
+    universe: breadthPythonSeriesUniverse.value,
+    parameters: {},
+    output_contract: 'boolean',
+    condition_tree: breadthTreeCondition.value,
+    timeframe: breadthTimeframe.value,
+    adjusted: breadthAdjusted.value,
+    session: 'regular',
+    ...(typeof breadthConfigurationValue('as_of') === 'string' && breadthConfigurationValue('as_of') ? { as_of: breadthConfigurationValue('as_of') } : {}),
+    ...(breadthReferenceTarget.value === 'symbol' ? { benchmark: breadthBenchmark.value } : {}),
+    history: true,
+    history_limit: 500,
+  }
+})
+const breadthPythonRequestKey = computed(() => JSON.stringify(breadthPythonRequest.value))
+const breadthPythonSeriesState = computed(() => workspaceStore.pythonBreadth[breadthPythonRequestKey.value] ?? null)
+const breadthPythonSeriesLoading = computed(() => workspaceStore.pythonBreadthLoading[breadthPythonRequestKey.value] === true)
+const breadthPythonSeriesError = computed(() => workspaceStore.pythonBreadthErrors[breadthPythonRequestKey.value] ?? null)
 const breadthPythonSeriesStatus = computed(() => breadthPythonSeriesState.value?.status ?? null)
 
 function asGenericBreadthState(state: NonNullable<typeof breadthPythonSeriesState.value>): GenericBreadthState {
@@ -2036,7 +2070,7 @@ function asGenericBreadthHistory(state: NonNullable<typeof breadthPythonSeriesSt
   }
 }
 type BreadthTreeNode = {
-  kind: 'all' | 'any' | 'not' | 'above_moving_average' | 'within_52_week_high' | 'new_high_low' | 'prior_high_low' | 'trend' | 'rsi' | 'volume_ratio' | 'relative_strength' | 'series_comparison' | 'event' | 'comparison' | 'range' | 'percentile' | 'cross_sectional_statistic'
+  kind: 'all' | 'any' | 'not' | 'above_moving_average' | 'within_52_week_high' | 'new_high_low' | 'prior_high_low' | 'trend' | 'rsi' | 'volume_ratio' | 'relative_strength' | 'series_comparison' | 'python_series' | 'event' | 'comparison' | 'range' | 'percentile' | 'cross_sectional_statistic'
   target_scope?: 'member' | 'cross_sectional'
   params: Record<string, unknown>
 }
@@ -2206,24 +2240,24 @@ const genericBreadthDefinition = computed(() => ({
     ? { reference_universe: { kind: 'group', key: breadthReferenceGroup.value, point_in_time: true } }
     : { benchmark: breadthBenchmark.value }),
 }))
-const genericBreadthKey = computed(() => breadthConditionKind.value === 'python_series' ? breadthPythonSeriesKey.value : JSON.stringify(genericBreadthDefinition.value))
+const genericBreadthKey = computed(() => breadthUsesPython.value ? breadthPythonRequestKey.value : JSON.stringify(genericBreadthDefinition.value))
 const genericBreadth = computed<GenericBreadthState | null>(() => {
-  if (breadthConditionKind.value === 'python_series') {
+  if (breadthUsesPython.value) {
     return breadthPythonSeriesState.value?.current ? asGenericBreadthState(breadthPythonSeriesState.value) : null
   }
   return workspaceStore.genericBreadth[genericBreadthKey.value] ?? null
 })
 const genericBreadthHistory = computed<GenericBreadthHistoryState | null>(() => {
-  if (breadthConditionKind.value === 'python_series') {
+  if (breadthUsesPython.value) {
     return breadthPythonSeriesState.value ? asGenericBreadthHistory(breadthPythonSeriesState.value) : null
   }
   return workspaceStore.genericBreadthHistory[genericBreadthKey.value] ?? null
 })
-const genericBreadthLoading = computed(() => breadthConditionKind.value === 'python_series'
+const genericBreadthLoading = computed(() => breadthUsesPython.value
   ? breadthPythonSeriesLoading.value
   : workspaceStore.genericBreadthLoading[genericBreadthKey.value] === true || workspaceStore.genericBreadthHistoryLoading[genericBreadthKey.value] === true)
 const genericBreadthError = computed(() => {
-  if (breadthConditionKind.value === 'python_series') {
+  if (breadthUsesPython.value) {
     if (breadthPythonSeriesError.value) return breadthPythonSeriesError.value
     if (breadthPythonSeriesStatus.value === 'failed') return 'The isolated Python breadth run failed.'
     if (breadthPythonSeriesStatus.value === 'canceled') return 'The isolated Python breadth run was canceled.'
@@ -2247,9 +2281,11 @@ function genericBreadthDiagnosticLabel(diagnostic: { path: string; kind: string;
   return `${diagnostic.path} ${diagnostic.kind} ${state}${diagnostic.code ? ` (${diagnostic.code})` : ''}`
 }
 async function runGenericBreadth() {
-  if (breadthConditionKind.value === 'python_series') {
-    if (breadthPythonSeriesCodeVersionId.value == null) return
-    await workspaceStore.loadPythonBreadth(breadthPythonSeriesRequest.value, breadthPythonSeriesKey.value)
+  if (breadthUsesPython.value) {
+    const anchor = breadthTreePythonSeriesLeaf.value
+    if (anchor && (!Number.isInteger(Number(anchor.params.code_version_id)) || Number(anchor.params.code_version_id) < 1)) return
+    if (!anchor && breadthPythonSeriesCodeVersionId.value == null) return
+    await workspaceStore.loadPythonBreadth(breadthPythonRequest.value, breadthPythonRequestKey.value)
     return
   }
   await Promise.all([

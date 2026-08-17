@@ -5907,14 +5907,22 @@ async def _resolve_python_condition_tree(
             if version is None or version.output_contract != "series":
                 raise HTTPException(422, detail={"code": "python_series_condition_unavailable"})
             scope = str(params.get("scope", "member")).lower()
-            if scope != "member":
+            if scope not in {"member", "cross_sectional"}:
                 raise HTTPException(
                     422,
                     detail={
-                        "code": "python_series_cross_sectional_tree_unsupported",
-                        "message": "Cross-sectional Python leaves require the universe-level series target path.",
+                        "code": "invalid_python_series_target_scope",
                     },
                 )
+            statistic = str(params.get("statistic", "mean")).lower()
+            if scope == "cross_sectional" and statistic not in {
+                "mean",
+                "median",
+                "min",
+                "max",
+                "std",
+            }:
+                raise HTTPException(422, detail={"code": "invalid_python_series_statistic"})
             operator = str(params.get("operator", "gte")).lower()
             threshold = params.get("threshold", 0)
             if operator not in {"gt", "gte", "lt", "lte", "eq", "ne"} or not isinstance(threshold, int | float) or isinstance(threshold, bool) or not math.isfinite(float(threshold)):
@@ -5928,7 +5936,8 @@ async def _resolve_python_condition_tree(
                     "output_name": version.output_name,
                     "operator": operator,
                     "threshold": float(threshold),
-                    "scope": "member",
+                    "scope": scope,
+                    **({"statistic": statistic} if scope == "cross_sectional" else {}),
                     "parameters": params.get("parameters", {}) if isinstance(params.get("parameters"), Mapping) else {},
                 },
             }

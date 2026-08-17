@@ -10,17 +10,18 @@ it is an immutable membership input that can be followed, selected, compared, ma
 scanned, used for breadth, or published to linked charts. Users may clone a dated snapshot when
 they need editable membership. This is the intended TC2000-style behavior for arbitrary lists.
 
-The Python breadth API and isolated runner now carry a recursive member-level `all`/`any`/`not`
-tree containing owned numeric-series leaves plus built-in predicates. Source ownership,
-condition-kind, output contract, operator, threshold, and member scope are validated before the
-job is queued; the job handoff retains the tree and requested Boolean contract; the isolated
-runner evaluates each leaf only against the prepared member dataset. Current and historical
-results preserve metrics, exclusions, and no-provider-fan-out lineage. Existing non-tree batch
-contracts remain unchanged.
+The Python breadth API and isolated runner now carry a recursive `all`/`any`/`not` tree containing
+owned numeric-series leaves plus built-in predicates. Source ownership, condition-kind, output
+contract, operator, threshold, and scope/statistic are validated before the job is queued; the
+job handoff retains the tree and requested Boolean contract; the isolated runner materializes
+cross-sectional leaves once per timestamp, aligns declared member benchmarks by timestamp, and
+evaluates member leaves only against prepared data.
+Current and historical results preserve metrics, exclusions, and no-provider-fan-out lineage.
+Existing non-tree batch contracts remain unchanged.
 
 Functional parity is accepted for this backend slice. Exact V25 visual parity for recursive
-Python authoring/results is still an explicit board gap, and universe-level Python leaves nested
-inside a member tree plus promotion fan-out are not silently claimed complete.
+Python authoring/results is still an explicit board gap; direct series-to-series relationships and
+promotion fan-out are not silently claimed complete.
 
 ## 2026-08-18 — Cross-sectional Python numeric-series targets
 

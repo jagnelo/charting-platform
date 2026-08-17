@@ -106,4 +106,33 @@ describe('BreadthConditionTreeEditor', () => {
     expect(payload.params.event_type).toBe('dividend')
     expect(payload.params.lookback_days).toBe(7)
   })
+
+  it('serializes an owned member-level Python series leaf and exposes its asset', async () => {
+    const wrapper = mount(BreadthConditionTreeEditor, {
+      props: {
+        modelValue: { kind: 'python_series', params: { code_version_id: 11, scope: 'member', operator: 'gte', threshold: 0 } },
+        pythonSeriesAssets: [{ versionId: 11, name: 'Distance v2' }],
+      },
+    })
+    expect(wrapper.get('[aria-label="Breadth Python series condition asset 1"]').text()).toContain('Distance v2')
+    await wrapper.get('[aria-label="Breadth Python series operator 1"]').setValue('gt')
+    const operatorPayload = wrapper.emitted('update:modelValue')?.at(-1)?.[0] as { params: Record<string, unknown> }
+    await wrapper.setProps({ modelValue: operatorPayload })
+    await wrapper.get('[aria-label="Breadth Python series threshold 1"]').setValue('1.5')
+    const payload = wrapper.emitted('update:modelValue')?.at(-1)?.[0] as { kind: string; params: Record<string, unknown> }
+    expect(payload.kind).toBe('python_series')
+    expect(payload.params.code_version_id).toBe(11)
+    expect(payload.params.scope).toBe('member')
+    expect(payload.params.operator).toBe('gt')
+    expect(payload.params.threshold).toBe(1.5)
+
+    await wrapper.setProps({ modelValue: payload })
+    await wrapper.get('[aria-label="Breadth Python series scope 1"]').setValue('cross_sectional')
+    const scopePayload = wrapper.emitted('update:modelValue')?.at(-1)?.[0] as { params: Record<string, unknown> }
+    await wrapper.setProps({ modelValue: scopePayload })
+    await wrapper.get('[aria-label="Breadth Python series group statistic 1"]').setValue('median')
+    const crossSectionalPayload = wrapper.emitted('update:modelValue')?.at(-1)?.[0] as { params: Record<string, unknown> }
+    expect(crossSectionalPayload.params.scope).toBe('cross_sectional')
+    expect(crossSectionalPayload.params.statistic).toBe('median')
+  })
 })

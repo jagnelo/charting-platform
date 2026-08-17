@@ -10,12 +10,13 @@ combo, sector, industry, proxy, and explicit-symbol sources. Following or pinnin
 must never hide the source from analysis or force a route change; cloning is the explicit editable
 operation.
 
-The isolated-Python sub-gate now covers a recursive member tree containing numeric-series Python
-leaves and built-in predicates. It verifies owned-code resolution, Boolean-contract handoff,
-job-file preservation, current execution, and compatibility with existing scalar/Boolean/series/
-event batch paths. No provider access is permitted. Cross-sectional Python leaves nested within
-the member tree and universal promotion fan-out remain named capability gaps with structured
-errors; they cannot be represented as passing through a member-only fallback.
+The isolated-Python sub-gate now covers a recursive tree containing member and cross-sectional
+numeric-series Python leaves plus built-in predicates. It verifies owned-code resolution,
+Boolean-contract handoff, job-file preservation, once-per-timestamp cross-sectional materialization,
+timestamp-aligned member/benchmark history execution, and compatibility with existing scalar/Boolean/series/event batch
+paths. No provider access is permitted. Direct series-to-series relationships and universal
+promotion fan-out remain named capability gaps; they cannot be represented as passing through a
+member-only fallback.
 
 ## 2026-08-17 — Mixed-scope breadth sub-gate
 

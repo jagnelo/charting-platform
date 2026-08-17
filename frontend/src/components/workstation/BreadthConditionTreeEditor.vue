@@ -23,6 +23,8 @@
           :model-value="child"
           :path="`${path}.${index + 1}`"
           :root="false"
+          :python-series-assets="pythonSeriesAssets"
+          :python-series-assets-loading="pythonSeriesAssetsLoading"
           @update:model-value="updateChild(index, $event)"
           @remove="removeChild(index)"
         />
@@ -99,6 +101,42 @@
         <label><span class="field-label">Operator</span><select :value="stringParam('operator', 'gte')" :aria-label="`Breadth event operator ${path}`" @change="setParam('operator', ($event.target as HTMLSelectElement).value)"><option value="gte">Occurred</option><option value="lt">Did not occur</option></select></label>
       </template>
 
+      <template v-else-if="leafKind === 'python_series'">
+        <label>
+          <span class="field-label">Python series asset</span>
+          <select
+            :value="numberParam('code_version_id', 0) || ''"
+            :aria-label="`Breadth Python series condition asset ${path}`"
+            @change="setParam('code_version_id', numberValue($event, 0, 1))"
+          >
+            <option value="">Select numeric series…</option>
+            <option v-for="asset in pythonSeriesAssets" :key="asset.versionId" :value="asset.versionId">{{ asset.name }}</option>
+          </select>
+        </label>
+        <label>
+          <span class="field-label">Scope</span>
+          <select :value="stringParam('scope', 'member')" :aria-label="`Breadth Python series scope ${path}`" @change="setParam('scope', ($event.target as HTMLSelectElement).value)">
+            <option value="member">Member value</option><option value="cross_sectional">Cross-sectional group</option>
+          </select>
+        </label>
+        <label v-if="stringParam('scope', 'member') === 'cross_sectional'">
+          <span class="field-label">Statistic</span>
+          <select :value="stringParam('statistic', 'mean')" :aria-label="`Breadth Python series group statistic ${path}`" @change="setParam('statistic', ($event.target as HTMLSelectElement).value)">
+            <option value="mean">Mean</option><option value="median">Median</option><option value="min">Minimum</option><option value="max">Maximum</option><option value="std">Standard deviation</option>
+          </select>
+        </label>
+        <label>
+          <span class="field-label">Operator</span>
+          <select :value="stringParam('operator', 'gte')" :aria-label="`Breadth Python series operator ${path}`" @change="setParam('operator', ($event.target as HTMLSelectElement).value)">
+            <option value="gte">At or above</option><option value="gt">Above</option><option value="lte">At or below</option><option value="lt">Below</option><option value="eq">Equal to</option><option value="ne">Not equal</option>
+          </select>
+        </label>
+        <label><span class="field-label">Threshold</span><input :value="numberParam('threshold', 0)" :aria-label="`Breadth Python series threshold ${path}`" type="number" step="0.001" @change="setParam('threshold', numberValue($event, 0))" /></label>
+        <small v-if="pythonSeriesAssetsLoading" role="status">Loading Python assets…</small>
+        <small v-else-if="!pythonSeriesAssets.length" class="breadth-condition-tree__warning">No numeric-series condition assets available.</small>
+        <small class="breadth-condition-tree__hint">Cross-sectional leaves compare each member's isolated series with the selected same-timestamp group statistic.</small>
+      </template>
+
       <template v-else-if="leafKind === 'range'">
         <label><span class="field-label">Field</span><select :value="stringParam('field', 'close')" :aria-label="`Breadth range field ${path}`" @change="setParam('field', ($event.target as HTMLSelectElement).value)"><option value="close">Close</option><option value="return">Return</option><option value="volume">Volume</option><option value="distance_to_52w_high">Distance to 52-week high</option></select></label>
         <label><span class="field-label">Minimum</span><input :value="numberParam('lower', 0)" :aria-label="`Breadth range minimum ${path}`" type="number" step="0.001" @change="setParam('lower', numberValue($event, 0))" /></label>
@@ -142,6 +180,7 @@ export type BreadthLeafKind =
   | 'volume_ratio'
   | 'relative_strength'
   | 'series_comparison'
+  | 'python_series'
   | 'event'
   | 'comparison'
   | 'range'
@@ -165,6 +204,7 @@ const LEAF_OPTIONS: Array<{ value: BreadthLeafKind; label: string }> = [
   { value: 'volume_ratio', label: 'Volume ratio threshold' },
   { value: 'relative_strength', label: 'Relative strength threshold' },
   { value: 'series_comparison', label: 'Member versus reference series' },
+  { value: 'python_series', label: 'Python numeric series target' },
   { value: 'event', label: 'Event occurred in trailing window' },
   { value: 'comparison', label: 'Measured-field comparison' },
   { value: 'range', label: 'Measured-field range' },
@@ -176,6 +216,8 @@ const props = withDefaults(defineProps<{
   modelValue: BreadthConditionNode
   path?: string
   root?: boolean
+  pythonSeriesAssets?: Array<{ versionId: number; name: string }>
+  pythonSeriesAssetsLoading?: boolean
 }>(), { path: '1', root: true })
 const emit = defineEmits<{
   'update:modelValue': [value: BreadthConditionNode]
@@ -183,6 +225,8 @@ const emit = defineEmits<{
 }>()
 
 const node = computed(() => props.modelValue)
+const pythonSeriesAssets = computed(() => props.pythonSeriesAssets ?? [])
+const pythonSeriesAssetsLoading = computed(() => props.pythonSeriesAssetsLoading === true)
 const isGroupNode = computed(() => ['all', 'any', 'not'].includes(node.value.kind))
 const conditions = computed(() => Array.isArray(node.value.params?.conditions) ? node.value.params.conditions as BreadthConditionNode[] : [])
 const leafKind = computed(() => (node.value.kind as BreadthLeafKind))
@@ -201,6 +245,7 @@ function defaultLeaf(kind: BreadthLeafKind = 'above_moving_average'): BreadthCon
     volume_ratio: { period: 20, operator: 'gte', threshold: 1 },
     relative_strength: { lookback: 20, operator: 'gte', threshold: 1 },
     series_comparison: { field: 'return', target_field: 'return', relation: 'difference', operator: 'gte', threshold: 0 },
+    python_series: { code_version_id: null, scope: 'member', statistic: 'mean', operator: 'gte', threshold: 0 },
     event: { event_type: 'any', lookback_days: 0, include_estimates: false, operator: 'gte', threshold: 1 },
     comparison: { field: 'close', operator: 'gte', threshold: 0 },
     range: { field: 'close', lower: 0, upper: 1, inclusive: true },

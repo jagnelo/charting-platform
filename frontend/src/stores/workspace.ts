@@ -670,6 +670,7 @@ export interface PythonBreadthState {
   execution_mode: 'breadth_current' | 'breadth_history'
   output_contract: 'boolean' | 'series'
   series_target?: Record<string, unknown> | null
+  condition_tree?: Record<string, unknown> | null
   definition_hash: string
   universe: Record<string, unknown>
   condition: Record<string, unknown>
@@ -688,6 +689,7 @@ export interface PythonBreadthRunState {
   execution_mode: 'breadth_current' | 'breadth_history'
   output_contract: 'boolean' | 'series'
   series_target?: Record<string, unknown> | null
+  condition_tree?: Record<string, unknown> | null
   definition_hash: string
   universe: Record<string, unknown>
   condition: Record<string, unknown>

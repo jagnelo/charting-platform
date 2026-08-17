@@ -3710,6 +3710,53 @@ test.describe('TC2000 workstation', () => {
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
+  test('F8s-breadth-python-tree — recursive member and cross-sectional Python leaves retain one tree contract', async ({ page, browserDiagnostics }) => {
+    const queuedRequests: Array<Record<string, unknown>> = []
+    await page.route('**/api/v1/code/assets', async route => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify([{ kind: 'condition', name: 'Close distance study', versions: [{ id: 17, version_number: 1, output_contract: 'series' }] }]),
+      })
+    })
+    await page.route('**/api/v1/analysis/breadth/python', async route => {
+      if (route.request().method() !== 'POST') return route.continue()
+      queuedRequests.push(JSON.parse(route.request().postData() ?? '{}') as Record<string, unknown>)
+      await route.fulfill({
+        status: 202,
+        contentType: 'application/json',
+        body: JSON.stringify({ run_id: 92, code_version_id: 17, status: 'queued', execution_mode: 'breadth_history', output_contract: 'boolean', condition_tree: { kind: 'all' }, definition_hash: 'python-tree', universe: { kind: 'group', key: 'sp500-sectors' }, condition: { output_contract: 'boolean' }, dataset_manifest: {}, progress: {}, diagnostics: [] }),
+      })
+    })
+    await page.route('**/api/v1/analysis/breadth/python/runs/92', async route => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ run_id: 92, code_version_id: 17, status: 'completed', execution_mode: 'breadth_history', output_contract: 'boolean', condition_tree: { kind: 'all' }, definition_hash: 'python-tree', universe: { kind: 'group', key: 'sp500-sectors' }, condition: { output_contract: 'boolean' }, dataset_manifest: { timeframe: 'D1', adjustment: 'split_adjusted' }, current: { timestamp: '2026-08-17T00:00:00Z', requested_count: 2, eligible_count: 2, pass_count: 1, excluded_count: 0, percentage: 0.5, coverage: 1, members: [{ instrument_id: 1, symbol: 'SPY', name: 'SPDR S&P 500 ETF Trust', value: true, metric: 0.01, observation_time: '2026-08-17T00:00:00Z', diagnostics: [] }], exclusions: [] }, points: [], occurrences: [], progress: {}, diagnostics: [] }),
+      })
+    })
+    await page.goto('/chart/SPY')
+    await expect(page.locator('.workspace-layout-host')).toBeVisible({ timeout: 10_000 })
+    await page.getByRole('button', { name: 'Add tool' }).click()
+    await page.getByRole('menuitem', { name: 'Market Breadth', exact: true }).click()
+    const breadth = page.locator('.tool-window:visible').filter({ has: page.locator('.breadth-tool') }).last()
+    await expect(breadth).toBeVisible({ timeout: 10_000 })
+    await breadth.locator('select[aria-label="Breadth condition composition"]').selectOption('tree')
+    const tree = breadth.locator('[aria-label="Breadth condition tree"]')
+    await tree.getByRole('combobox', { name: 'Breadth condition type 1.1' }).selectOption('python_series')
+    await tree.getByLabel('Breadth Python series condition asset 1.1').selectOption('17')
+    await tree.getByLabel('Breadth Python series scope 1.1').selectOption('cross_sectional')
+    await tree.getByLabel('Breadth Python series group statistic 1.1').selectOption('median')
+    await tree.getByLabel('Breadth Python series operator 1.1').selectOption('gte')
+    await tree.getByLabel('Breadth Python series threshold 1.1').fill('0')
+    await tree.getByLabel('Breadth Python series threshold 1.1').press('Tab')
+    await breadth.getByRole('button', { name: 'Evaluate' }).click()
+    await expect.poll(() => queuedRequests.length, { timeout: 10_000 }).toBe(1)
+    expect(queuedRequests[0]).toMatchObject({ code_version_id: 17, output_contract: 'boolean', history: true, condition_tree: { kind: 'all', params: { conditions: [{ kind: 'python_series', params: { code_version_id: 17, scope: 'cross_sectional', statistic: 'median', operator: 'gte', threshold: 0 } }] } } })
+    await expect(breadth.locator('.breadth-tool__custom-result')).toContainText('50.0%', { timeout: 15_000 })
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
   test('F8s-rotation — Relative Rotation exposes benchmark-scoped state semantics', async ({ page, browserDiagnostics }) => {
     await page.goto('/chart/SPY')
     await expect(page.locator('.workspace-layout-host')).toBeVisible({ timeout: 10_000 })

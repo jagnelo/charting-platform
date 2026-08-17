@@ -9,8 +9,9 @@ drill-down surfaces apply. It does not contain an authoritative V25 capture of t
 locked-source lineage affordance or the recursive Python condition authoring/result state.
 
 Those states therefore use the board's dense list/map/editor language plus deterministic
-functional oracles. They remain tracked visual gaps; no screenshot threshold, mask, or older
-generation reference is being promoted silently to close them.
+functional oracles. The functional tree path now supports both member and cross-sectional Python
+leaves, but the exact V25 authoring/result geometry remains a tracked visual gap; no screenshot
+threshold, mask, or older-generation reference is being promoted silently to close it.
 
 ## 2026-08-18 cross-sectional Python-series reference gap
 

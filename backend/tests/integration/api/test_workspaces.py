@@ -3030,6 +3030,41 @@ class TestWorkspaces:
         assert tree_result["status"] == "completed", tree_result
         assert tree_result["artifacts"]["batch_cells"]["value"]["cells"][0]["value"] is True
 
+        cross_tree_queued = client.post(
+            "/api/v1/analysis/breadth/python",
+            headers=auth_headers,
+            json={
+                "code_version_id": version_id,
+                "universe": {"kind": "symbols", "symbols": [instrument.symbol]},
+                "output_contract": "boolean",
+                "condition_tree": {
+                    "kind": "all",
+                    "params": {
+                        "conditions": [
+                            {
+                                "kind": "python_series",
+                                "params": {
+                                    "code_version_id": version_id,
+                                    "scope": "cross_sectional",
+                                    "statistic": "mean",
+                                    "operator": "gte",
+                                    "threshold": 0,
+                                },
+                            },
+                        ]
+                    },
+                },
+            },
+        )
+        assert cross_tree_queued.status_code == 202, cross_tree_queued.text
+        cross_tree_job = json.loads(
+            (tmp_path / "jobs" / f"{cross_tree_queued.json()['run_id']}.json").read_text()
+        )
+        assert cross_tree_job["condition_tree"]["params"]["conditions"][0]["params"]["scope"] == "cross_sectional"
+        cross_tree_result = execute_job(cross_tree_job)
+        assert cross_tree_result["status"] == "completed", cross_tree_result
+        assert cross_tree_result["artifacts"]["batch_cells"]["value"]["cells"][0]["value"] is True
+
         cross_queued = client.post(
             "/api/v1/analysis/breadth/python",
             headers=auth_headers,

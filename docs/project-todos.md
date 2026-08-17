@@ -15,10 +15,17 @@
 - [x] Validate the job protocol and legacy paths together: the runner receives the resolved tree
       and requested Boolean contract even when the required anchor CodeVersion is a numeric
       series; existing scalar/Boolean/series/events batch behavior remains unchanged.
-- [ ] Add visual-tree authoring and promotion fan-out for Python leaves across every compatible
-      target. Cross-sectional Python leaves nested inside a member tree remain explicitly rejected
-      with a capability diagnostic until a universe-level evaluator can preserve denominator and
-      timestamp semantics. Record this as a gap, not as an implicit fallback.
+- [x] Add visual-tree authoring for owned member and cross-sectional Python series leaves. The
+      tree editor carries the selected CodeVersion, scope, statistic, operator, and threshold into
+      the isolated Boolean breadth request for any canonical source.
+- [x] Materialize cross-sectional Python leaves once per current or historical timestamp in the
+      isolated runner, then compose their member-minus-group result with built-in predicates while
+      preserving exact member/benchmark timestamp alignment, exclusions, and tri-state group
+      semantics. Benchmark histories with different leading dates are sliced by the observation
+      timestamp, never by array position.
+- [ ] Promotion fan-out for Python leaves across every compatible target remains open. The tree
+      API and UI must retain exact condition/code/dataset/membership lineage when promoted to
+      columns, filters, scans, gauges, alerts, plots, and Study Lab artifacts.
 
 ### 2026-08-18 — Cross-sectional Python numeric-series targets
 
@@ -32,8 +39,10 @@
       no Python executes in FastAPI or through provider fan-out.
 - [x] Expose scope/statistic controls in the workstation's Python-series breadth composer while
       keeping the existing member-value behavior backward compatible.
-- [ ] Cross-sectional Python series as a recursive visual AST leaf, direct series-to-series or
-      benchmark relations, and promotion fan-out to every compatible target remain open.
+- [x] Cross-sectional Python series now works as a recursive visual AST leaf with explicit scope
+      and statistic, including current/history isolated evaluation and visual authoring.
+- [ ] Direct series-to-series or cross-sectional-to-derived-series relationships and promotion
+      fan-out to every compatible target remain open.
 
 ### 2026-08-17 — Mixed-scope breadth condition trees
 

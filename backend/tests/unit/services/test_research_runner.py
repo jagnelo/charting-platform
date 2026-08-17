@@ -518,6 +518,101 @@ def test_runner_composes_isolated_python_series_leaf_with_member_predicate_tree(
     assert [cell["value"] for cell in cells] == [True, False]
 
 
+def test_runner_composes_cross_sectional_python_series_leaf_with_member_predicate_tree():
+    result = execute_job(
+        {
+            "source": "output.scalar('unused', 1)",
+            "output_contract": "boolean",
+            "condition_tree": {
+                "kind": "all",
+                "params": {
+                    "conditions": [
+                        {
+                            "kind": "python_series",
+                            "params": {
+                                "source": "output.series('target', market.close())",
+                                "scope": "cross_sectional",
+                                "statistic": "mean",
+                                "operator": "gte",
+                                "threshold": 0,
+                            },
+                        },
+                        {
+                            "kind": "comparison",
+                            "params": {"field": "return", "operator": "gte", "threshold": 0},
+                        },
+                    ]
+                },
+            },
+            "dataset": {
+                "datasets": [
+                    {"instrument_id": 1, "symbol": "A", "closes": [100, 101]},
+                    {"instrument_id": 2, "symbol": "B", "closes": [100, 99]},
+                ]
+            },
+        }
+    )
+
+    assert result["status"] == "completed"
+    cells = result["artifacts"]["batch_cells"]["value"]["cells"]
+    assert [cell["value"] for cell in cells] == [True, False]
+    assert [cell["metric"] for cell in cells] == pytest.approx([0.01, -1.0])
+
+
+def test_runner_recomputes_cross_sectional_python_tree_at_each_history_timestamp():
+    result = execute_job(
+        {
+            "source": "output.scalar('unused', 1)",
+            "output_contract": "boolean",
+            "execution_mode": "breadth_history",
+            "history_limit": 2,
+            "condition_tree": {
+                "kind": "python_series",
+                "params": {
+                    "source": "output.series('target', market.benchmark_close())",
+                    "scope": "cross_sectional",
+                    "statistic": "mean",
+                    "operator": "gte",
+                    "threshold": 0,
+                },
+            },
+            "dataset": {
+                "datasets": [
+                    {
+                        "instrument_id": 1,
+                        "symbol": "A",
+                        "timestamps": ["2026-01-01", "2026-01-02"],
+                        "closes": [100, 101],
+                        "benchmark_dataset": {
+                            "symbol": "SPY",
+                            "timestamps": ["2025-12-31", "2026-01-01", "2026-01-02"],
+                            "closes": [100, 10, 20],
+                        },
+                    },
+                    {
+                        "instrument_id": 2,
+                        "symbol": "B",
+                        "timestamps": ["2026-01-01", "2026-01-02"],
+                        "closes": [102, 99],
+                        "benchmark_dataset": {
+                            "symbol": "SPY",
+                            "timestamps": ["2026-01-01", "2026-01-02"],
+                            "closes": [30, 10],
+                        },
+                    },
+                ]
+            },
+        }
+    )
+
+    assert result["status"] == "completed"
+    points = result["artifacts"]["breadth_history"]["value"]["points"]
+    assert [[cell["value"] for cell in point["cells"]] for point in points] == [
+        [False, True],
+        [True, False],
+    ]
+
+
 def test_runner_computes_transparent_ninety_ninety_breadth_and_exclusions():
     result = execute_job(
         {

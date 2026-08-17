@@ -220,6 +220,24 @@ def _truncate_dataset(dataset: dict, index: int) -> dict:
     return truncated
 
 
+def _truncate_dataset_at_timestamp(dataset: dict, timestamp: object) -> dict | None:
+    """Slice a member and its benchmark at the same aligned observation time."""
+    timestamps = dataset.get("timestamps")
+    if not isinstance(timestamps, list) or timestamp not in timestamps:
+        return None
+    truncated = _truncate_dataset(dataset, timestamps.index(timestamp))
+    benchmark = dataset.get("benchmark_dataset")
+    if isinstance(benchmark, dict):
+        benchmark_timestamps = benchmark.get("timestamps")
+        if isinstance(benchmark_timestamps, list) and timestamp in benchmark_timestamps:
+            truncated["benchmark_dataset"] = _truncate_dataset(
+                benchmark, benchmark_timestamps.index(timestamp)
+            )
+        else:
+            truncated.pop("benchmark_dataset", None)
+    return truncated
+
+
 def _boolean_artifact(
     result: dict, output_name: str | None
 ) -> tuple[bool | None, str | None, float | None]:
@@ -327,6 +345,94 @@ def _cross_sectional_series_statistic(values: list[float], target: dict) -> floa
     return math.nan
 
 
+def _condition_tree_python_leaves(
+    node: object, path: str = "$"
+) -> list[tuple[str, dict]]:
+    if not isinstance(node, dict) or not isinstance(node.get("kind"), str):
+        return []
+    if str(node["kind"]).lower() == "python_series":
+        return [(path, node)]
+    params = node.get("params") if isinstance(node.get("params"), dict) else {}
+    children = params.get("conditions")
+    if not isinstance(children, list):
+        return []
+    leaves: list[tuple[str, dict]] = []
+    for index, child in enumerate(children):
+        leaves.extend(_condition_tree_python_leaves(child, f"{path}.conditions[{index}]"))
+    return leaves
+
+
+def _prepare_condition_tree_context(
+    datasets: list[object], condition_tree: object
+) -> dict[str, dict[int, tuple[bool | None, float | None, str | None]]]:
+    """Materialize cross-sectional Python leaves once for the current universe."""
+    context: dict[str, dict[int, tuple[bool | None, float | None, str | None]]] = {}
+    for path, leaf in _condition_tree_python_leaves(condition_tree):
+        params = leaf.get("params") if isinstance(leaf.get("params"), dict) else {}
+        if str(params.get("scope", "member")).lower() != "cross_sectional":
+            continue
+        source = params.get("source")
+        if not isinstance(source, str) or not source.strip():
+            context[path] = {}
+            continue
+        output_name = str(params.get("output_name") or "") or None
+        metrics: dict[int, float] = {}
+        errors: dict[int, str] = {}
+        for candidate in datasets:
+            if not isinstance(candidate, dict):
+                continue
+            instrument_id = candidate.get("instrument_id")
+            if not isinstance(instrument_id, int) or isinstance(instrument_id, bool):
+                continue
+            result = _execute_single(
+                source,
+                candidate,
+                {
+                    "source": source,
+                    "dataset": candidate,
+                    "output_contract": "series",
+                    "parameters": params.get("parameters", {})
+                    if isinstance(params.get("parameters"), dict)
+                    else {},
+                },
+                manage_timeout=False,
+            )
+            metric, error = _series_artifact(result, output_name)
+            if error or metric is None:
+                errors[instrument_id] = error or "python_series_target_unavailable"
+            else:
+                metrics[instrument_id] = metric
+        group_value = _cross_sectional_series_statistic(
+            list(metrics.values()),
+            {"statistic": params.get("statistic", "mean")},
+        )
+        values: dict[int, tuple[bool | None, float | None, str | None]] = {}
+        for candidate in datasets:
+            if not isinstance(candidate, dict):
+                continue
+            instrument_id = candidate.get("instrument_id")
+            if not isinstance(instrument_id, int) or isinstance(instrument_id, bool):
+                continue
+            if instrument_id in errors:
+                values[instrument_id] = (None, None, errors[instrument_id])
+                continue
+            metric = metrics.get(instrument_id)
+            if metric is None or not math.isfinite(group_value):
+                values[instrument_id] = (None, None, "cross_sectional_group_unavailable")
+                continue
+            delta = metric - group_value
+            value, error = _series_target_value(
+                delta,
+                {
+                    "operator": params.get("operator", "gte"),
+                    "threshold": params.get("threshold", 0.0),
+                },
+            )
+            values[instrument_id] = (value, delta, error)
+        context[path] = values
+    return context
+
+
 def _apply_cross_sectional_series_target(
     cells: list[dict], target: object
 ) -> float | None:
@@ -404,6 +510,8 @@ def _execute_condition_tree(
     *,
     index: int | None = None,
     timestamp: str | None = None,
+    context: dict[str, dict[int, tuple[bool | None, float | None, str | None]]] | None = None,
+    path: str = "$",
 ) -> tuple[bool | None, float | None, str | None]:
     """Evaluate a bounded member-level tree whose Python leaves are isolated sources.
 
@@ -424,8 +532,15 @@ def _execute_condition_tree(
         ):
             return None, None, "invalid_condition_params"
         evaluated = [
-            _execute_condition_tree(dataset, child, index=index, timestamp=timestamp)
-            for child in children
+            _execute_condition_tree(
+                dataset,
+                child,
+                index=index,
+                timestamp=timestamp,
+                context=context,
+                path=f"{path}.conditions[{child_index}]",
+            )
+            for child_index, child in enumerate(children)
         ]
         if kind == "not":
             value, metric, error = evaluated[0]
@@ -452,8 +567,12 @@ def _execute_condition_tree(
         leaf_source = params.get("source")
         if not isinstance(leaf_source, str) or not leaf_source.strip():
             return None, None, "python_series_source_unavailable"
-        if str(params.get("scope", "member")).lower() != "member":
-            return None, None, "python_series_cross_sectional_requires_universe"
+        if str(params.get("scope", "member")).lower() == "cross_sectional":
+            instrument_id = dataset.get("instrument_id")
+            scoped = context.get(path, {}).get(instrument_id) if context else None
+            if scoped is None:
+                return None, None, "python_series_cross_sectional_requires_universe"
+            return scoped
         result = _execute_single(
             leaf_source,
             dataset,
@@ -484,6 +603,7 @@ def _evaluate_job_cell(
     dataset: dict,
     hash_input: dict,
     output_name: str | None,
+    condition_context: dict[str, dict[int, tuple[bool | None, float | None, str | None]]] | None = None,
 ) -> tuple[bool | None, str | None, float | None]:
     tree = hash_input.get("condition_tree")
     if tree is not None:
@@ -492,6 +612,7 @@ def _evaluate_job_cell(
             tree,
             index=None,
             timestamp=hash_input.get("timestamp") if isinstance(hash_input.get("timestamp"), str) else None,
+            context=condition_context,
         )
         return value, error, metric
     result = _execute_single(
@@ -551,6 +672,16 @@ def _execute_breadth_history(
                 "artifacts": {"breadth_history": {"type": "breadth_history", "value": {"points": points}}},
             }
         cells: list[dict] = []
+        condition_context = _prepare_condition_tree_context(
+            [
+                truncated
+                for candidate in datasets
+                if isinstance(candidate, dict)
+                and isinstance(candidate.get("timestamps"), list)
+                and (truncated := _truncate_dataset_at_timestamp(candidate, timestamp)) is not None
+            ],
+            hash_input.get("condition_tree"),
+        )
         for candidate in datasets:
             if not isinstance(candidate, dict):
                 cells.append(
@@ -568,19 +699,25 @@ def _execute_breadth_history(
                     "timestamp": timestamp,
                 })
                 continue
-            index = candidate_timestamps.index(timestamp)
-            cell_dataset = _truncate_dataset(candidate, index)
-            benchmark = candidate.get("benchmark_dataset")
-            if isinstance(benchmark, dict):
-                benchmark_timestamps = benchmark.get("timestamps")
-                if isinstance(benchmark_timestamps, list) and timestamp in benchmark_timestamps:
-                    cell_dataset["benchmark_dataset"] = _truncate_dataset(
-                        benchmark, benchmark_timestamps.index(timestamp)
-                    )
-                else:
-                    cell_dataset.pop("benchmark_dataset", None)
+            cell_dataset = _truncate_dataset_at_timestamp(candidate, timestamp)
+            if cell_dataset is None:
+                cells.append({
+                    "instrument_id": candidate.get("instrument_id"),
+                    "symbol": str(candidate.get("symbol") or "").upper(),
+                    "name": str((candidate.get("metadata") or {}).get("name") or candidate.get("symbol") or "").strip(),
+                    "status": "excluded",
+                    "error": "missing_bar_at_timestamp",
+                    "timestamp": timestamp,
+                })
+                continue
             cell_hash_input = {**hash_input, "timestamp": timestamp}
-            value, error, metric = _evaluate_job_cell(source, cell_dataset, cell_hash_input, output_name)
+            value, error, metric = _evaluate_job_cell(
+                source,
+                cell_dataset,
+                cell_hash_input,
+                output_name,
+                condition_context,
+            )
             cell = {
                 "instrument_id": candidate.get("instrument_id"),
                 "symbol": str(candidate.get("symbol") or "").upper(),
@@ -746,6 +883,9 @@ def _execute_batch(
     signal.signal(signal.SIGALRM, _timeout)
     signal.alarm(MAX_SECONDS)
     try:
+        condition_context = _prepare_condition_tree_context(
+            datasets, hash_input.get("condition_tree")
+        )
         for candidate in datasets:
             if cancellation_check and cancellation_check():
                 return {
@@ -768,7 +908,11 @@ def _execute_batch(
             extracted_metric: float | None = None
             if hash_input.get("condition_tree") is not None:
                 value, error, extracted_metric = _evaluate_job_cell(
-                    source, candidate, hash_input, output_name
+                    source,
+                    candidate,
+                    hash_input,
+                    output_name,
+                    condition_context,
                 )
                 matches = []
             else:
