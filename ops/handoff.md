@@ -30247,3 +30247,13 @@ indefinite soak; longer endurance remains an explicit open gap.
   checkpoint `841597a8` is committed locally and verified with `git rev-parse`; its push was rejected
   by the same safeguard.
 - Next context: Python target-series leaves and promotion across compatible targets.
+
+# 2026-08-18 — Stale cross-sectional gap documentation correction
+
+- Corrected the controlling TODO, parity, and acceptance-governance wording that still described
+  the now-implemented declared group-statistic leaf as wholly open. The remaining gap is limited
+  to arbitrary Python/derived target series and richer statistics beyond the explicit supported set.
+- Documentation-only commit `71d3d7c5` is clean locally. No product acceptance, visual threshold,
+  baseline, mask, provider, or goal criterion changed; no acceptance flexibility was used.
+- The next implementation context remains Python target-series leaves and promotion across
+  compatible targets. Operational state is being refreshed before that context begins.

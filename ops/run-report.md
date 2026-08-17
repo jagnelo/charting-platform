@@ -28425,3 +28425,10 @@ and strict visual gaps remain explicitly tracked.
 - Implementation/docs commit: `d00236c5`; operational checkpoint `841597a8`. Each exact push attempt
   was rejected before Git by the private-origin safeguard. No retry, workaround, alternate transport,
   rewrite, reset, or stash was used. Both commits are clean locally and verified with `git rev-parse`.
+
+# 2026-08-18 — Stale cross-sectional gap documentation correction
+
+- Updated the controlling project TODO, parity matrix, and acceptance-governance records so they
+  no longer claim that the implemented mean/median/min/max/std group-statistic leaf is still open.
+  Arbitrary Python/derived target series and richer statistics beyond the declared set remain open.
+- Documentation commit `71d3d7c5` is clean locally. No acceptance flexibility or product rule changed.
