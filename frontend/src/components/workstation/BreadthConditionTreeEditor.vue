@@ -124,7 +124,7 @@ import { computed } from 'vue'
 
 defineOptions({ name: 'BreadthConditionTreeEditor' })
 
-type BreadthLeafKind =
+export type BreadthLeafKind =
   | 'above_moving_average'
   | 'within_52_week_high'
   | 'new_high_low'
@@ -138,9 +138,9 @@ type BreadthLeafKind =
   | 'comparison'
   | 'range'
   | 'percentile'
-type BreadthGroupKind = 'all' | 'any' | 'not'
+export type BreadthGroupKind = 'all' | 'any' | 'not'
 type GroupKind = BreadthGroupKind
-interface BreadthConditionNode {
+export interface BreadthConditionNode {
   kind: BreadthLeafKind | BreadthGroupKind
   target_scope?: 'member' | 'cross_sectional'
   params: Record<string, unknown>

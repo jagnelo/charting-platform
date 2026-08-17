@@ -13357,3 +13357,7 @@ The current source also passes the focused authenticated top-down browser slice 
 - [x] Keep cells with missing, non-finite, or non-positive area in response/coverage detail but
       exclude them from treemap geometry; the workstation reports how many members are omitted from
       the drawable map instead of inventing fallback unit tiles.
+- [x] Expose the shared nested breadth-condition editor from Market Map as an advanced authoring
+      path. The same immutable condition tree can now drive heatmap colour, including AND/OR/NOT,
+      measured-field, range, percentile, event, trend, RSI, volume, relative-strength, and
+      member/reference-series leaves; its tree and advanced-mode state persist with the tool.

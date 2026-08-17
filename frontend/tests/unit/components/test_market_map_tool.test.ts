@@ -159,6 +159,28 @@ describe('MarketMapTool', () => {
     }))
   })
 
+  it('supports the reusable nested breadth condition editor for heatmap colours', async () => {
+    apiPost.mockImplementation((path: string, body?: Record<string, unknown>) => {
+      if (path === '/analysis/market-map') return Promise.resolve({ ...response, color_metric: body?.color_metric, condition: body?.condition })
+      return Promise.resolve([])
+    })
+    const wrapper = mount(MarketMapTool, { props: { configuration: { source_id: 'market-group:sp500' } } })
+    await flushPromises()
+
+    await wrapper.get('select[aria-label="Market Map colour metric"]').setValue('breadth')
+    await wrapper.get('input[aria-label="Use advanced Market Map breadth condition editor"]').setValue(true)
+    await wrapper.get('select[aria-label="Breadth condition type 1"]').setValue('within_52_week_high')
+    await wrapper.get('select[aria-label="Breadth 52-week direction 1"]').setValue('low')
+    await wrapper.get('.market-map-tool__run').trigger('click')
+    await flushPromises()
+
+    const request = apiPost.mock.calls.map(call => call[1]).find(body => body?.color_metric === 'breadth')
+    expect(request).toEqual(expect.objectContaining({
+      color_metric: 'breadth',
+      condition: { kind: 'within_52_week_high', params: { direction: 'low', threshold: 0.01, lookback: 252 } },
+    }))
+  })
+
   it('runs a completed isolated Python output before colouring the map', async () => {
     apiGet.mockImplementation((path: string) => {
       if (path === '/code/assets') return Promise.resolve([{ kind: 'condition', name: 'Momentum score', versions: [{ id: 17, version_number: 2, output_contract: 'series' }] }])

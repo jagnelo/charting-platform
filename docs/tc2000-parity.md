@@ -7550,6 +7550,12 @@ The renderer applies the same contract: only finite positive area values receive
 Members with unavailable sizing remain in the response and hover/warning context but are not given
 invented unit tiles; the map reports their omission explicitly.
 
+Market Map also exposes the shared nested breadth-condition editor behind an advanced authoring
+toggle. Presets remain a convenience path, while the reusable condition tree is authoritative for
+compound AND/OR/NOT predicates and the supported measured-field, range, percentile, event, trend,
+RSI, volume, relative-strength, and member/reference-series leaves. The serialized tree is retained
+in tool configuration and submitted unchanged to the canonical map contract.
+
 ## 2026-08-17 — Market Map ordering controls
 
 The workstation now offers stable, persisted ordering within the active map node: largest area,

@@ -722,6 +722,11 @@ The map's partial-area state is therefore represented by an explicit omission me
 detail, not by a misleading tiny tile. Exact V25 imagery for this unavailable-area state remains a
 tracked board gap.
 
+The interim board-guided Market Map oracle now includes the advanced breadth-authoring toggle and
+the dense nested condition editor. Its exact V25 styling/state is not represented independently in
+the board, so the shared condition-editor and Market Map references guide density and interaction;
+the missing exact state remains a named visual gap.
+
 ## 2026-08-17 — Universal locked-watchlist heatmap state
 
 The visual board now treats a heatmap source as a watchlist regardless of origin. The same dense map

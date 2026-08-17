@@ -1043,6 +1043,12 @@ The layout acceptance additionally proves that null, non-finite, and non-positiv
 no drawable geometry while remaining available for warning and coverage inspection. This prevents
 the frontend from undoing the backend's honest partial-data semantics.
 
+The Market Map breadth gate now also requires the advanced editor to submit a nested condition tree,
+not merely a named preset. Focused component acceptance proves a configurable 52-week predicate is
+serialized into the same `color_metric=breadth` request; the shared condition-editor suite covers
+the recursive add/remove/group mechanics. Python-derived leaves and full promotion fan-out remain
+separate open gates.
+
 ## 2026-08-17 — Universal locked-watchlist heatmap evidence
 
 The heatmap acceptance gate is source-polymorphic: the same request and renderer must work for an
