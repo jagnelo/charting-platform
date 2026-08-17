@@ -12,6 +12,7 @@ tasks:
       - Series output contract is accepted only for owned condition assets and explicit series targets
       - Dedicated runner supports current and historical exact-timestamp evaluation without FastAPI/browser execution
       - API responses retain output contract, target, numeric member metric, coverage, exclusions, and manifest lineage
+      - Authenticated Python Library exposes Numeric series target when creating a condition asset
       - Focused runner and Docker-backed API regressions pass
       - Remaining visual/direct-series/promotion gaps are documented rather than silently closed
     validation:

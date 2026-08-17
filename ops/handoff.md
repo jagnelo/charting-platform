@@ -18,6 +18,13 @@
   the private-origin safeguard because trusted authorization for this accumulated payload/destination
   was unavailable. No workaround, alternate transport, rewrite, reset, stash, or repeat will be
   attempted; transport-only and not a product blocker. No acceptance flexibility used.
+- The authenticated Python Library now exposes the `Numeric series target` condition output
+  contract. Focused component `5/5`, full Vitest `846/846`, and type-check pass; breadth-composer
+  selection/run/result wiring remains open.
+- Follow-on frontend/docs commit `085c7db3cb82768f0b56640c47cd6d1dd1aa85ea` is clean locally;
+  its exact push to `origin/feat/tc2000-frontend-rework` was attempted once and rejected before Git
+  by the private-origin safeguard. No workaround, alternate transport, rewrite, reset, stash, or
+  repeat will be attempted; transport-only and not a product blocker.
 
 ## 2026-08-17 — Multi-family breadth/deconstruction vision transport checkpoint
 

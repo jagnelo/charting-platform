@@ -14,6 +14,12 @@
 - Implementation/docs commit: `3e1254c780982931bc39f2f3dec501b55ee580da`.
 - Its exact push was attempted once and rejected before Git by the private-origin safeguard; no
   workaround or repeat. The local commit remains the source of truth.
+- Follow-on frontend authoring support exposes `Numeric series target` in the Python Library;
+  focused component `5/5`, full Vitest `846/846`, and type-check pass. No visual acceptance
+  flexibility used; breadth-composer wiring remains open.
+- Follow-on frontend/docs commit: `085c7db3cb82768f0b56640c47cd6d1dd1aa85ea`.
+- Its exact push was attempted once and rejected before Git by the private-origin safeguard; no
+  workaround or repeat. The local commit remains the source of truth.
 
 ## 2026-08-17 — Multi-family breadth/deconstruction vision transport checkpoint
 
