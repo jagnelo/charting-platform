@@ -1,5 +1,22 @@
 # Run Report
 
+## 2026-08-17 — Cross-sectional percentile Study Lab
+
+- Implemented isolated-runner cross-sectional percentile breadth for explicit universes. The
+  runner ranks valid same-timestamp scalar members with inclusive deterministic ties, applies the
+  declared operator/threshold, preserves current/history counts and exclusions, and rejects
+  unsupported cross-sectional kinds explicitly.
+- Added the editable Study Lab factory starter and parameter controls for field, percentile, and
+  operator. It reuses the same scope-aware `research.breadth_condition` contract and outputs
+  current metrics, aligned history, member rows, and exclusions.
+- Validation: focused runner 2/2; full runner 89/89; Study Lab component 22/22; frontend Vitest
+  839/839; type-check; production build; Ruff; compileall; and diff-check. No acceptance
+  flexibility or visual threshold/mask change.
+- Remaining custom derived/Python cross-sectional composition, mixed-scope/group statistics, and
+  complete promotion fan-out remain open and are explicitly documented.
+- Implementation/docs commit `600a69d2` is clean locally. Exact push was attempted once and
+  rejected before Git by the private-origin safeguard; no workaround or repeat.
+
 ## 2026-08-17 — Explicit cross-sectional breadth scope
 
 - Added persisted `target_scope=member|cross_sectional` to breadth conditions. Cross-sectional

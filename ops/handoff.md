@@ -1,5 +1,26 @@
 # Active Handoff
 
+## 2026-08-17 — Cross-sectional percentile Study Lab checkpoint
+
+- Added `research.breadth_condition` cross-sectional percentile execution to the isolated Python
+  runner. Valid same-timestamp member scalar values receive deterministic inclusive empirical
+  ranks; current/history output preserves counts, percentages, rows, exclusions, and aligned
+  timestamps. Unsupported cross-sectional kinds return explicit exclusions and never fall back to
+  member evaluation.
+- Added the editable `Cross-sectional percentile breadth` Study Lab factory starter with field,
+  percentile, and operator parameters. It uses the same scope-aware research contract as the
+  workstation/API and emits scalar, series, and table outputs suitable for the existing renderers.
+- Validation passed: focused runner 2/2; complete runner 89/89; Study Lab component 22/22; full
+  frontend Vitest 839/839; `vue-tsc`; production build; Ruff; compileall; and diff-check. No
+  acceptance flexibility, visual threshold, mask, provider rule, or completion criterion changed.
+- Remaining gaps are arbitrary custom cross-sectional derived/Python series, mixed-scope/group
+  statistics, and promotion into every compatible plot/column/filter/gauge/alert/Study Lab/
+  Strategy Lab target. These remain documented and are not implied closed by the factory starter.
+- Implementation/docs commit `600a69d2 feat(research): add cross-sectional Study Lab breadth` is
+  clean locally. Its exact push was attempted once and rejected before Git by the private-origin
+  safeguard; no workaround or repeat. The separate operational checkpoint below records this
+  transport-only state.
+
 ## 2026-08-17 — Cross-sectional breadth scope checkpoint
 
 - Added explicit `target_scope` to breadth conditions. `member` retains rolling percentile
