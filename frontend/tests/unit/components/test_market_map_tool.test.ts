@@ -152,4 +152,27 @@ describe('MarketMapTool', () => {
       condition: { kind: 'above_moving_average', params: { period: 3, average: 'sma', comparator: 'above' } },
     }))
   })
+
+  it('runs a completed isolated Python output before colouring the map', async () => {
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/code/assets') return Promise.resolve([{ kind: 'condition', name: 'Momentum score', versions: [{ id: 17, version_number: 2, output_contract: 'series' }] }])
+      return Promise.resolve([])
+    })
+    apiPost.mockImplementation((path: string, body?: Record<string, unknown>) => {
+      if (path === '/analysis/breadth/python') return Promise.resolve({ run_id: 42 })
+      if (path === '/analysis/market-map') return Promise.resolve({ ...response, color_metric: body?.color_metric, python_run_id: body?.python_run_id })
+      return Promise.resolve([])
+    })
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/code/assets') return Promise.resolve([{ kind: 'condition', name: 'Momentum score', versions: [{ id: 17, version_number: 2, output_contract: 'series' }] }])
+      if (path === '/analysis/breadth/python/runs/42') return Promise.resolve({ status: 'completed' })
+      return Promise.resolve([])
+    })
+    const wrapper = mount(MarketMapTool, { props: { configuration: { source_id: 'market-group:sp500', color_metric: 'python', python_code_version_id: 17 } } })
+    await flushPromises()
+    await wrapper.get('.market-map-tool__run').trigger('click')
+    await flushPromises()
+    const request = apiPost.mock.calls.map(call => call[1]).find(body => body?.color_metric === 'python')
+    expect(request).toEqual(expect.objectContaining({ color_metric: 'python', python_run_id: 42 }))
+  })
 })

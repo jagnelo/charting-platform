@@ -655,3 +655,82 @@ class TestWatchlistsCrud:
         client.post(f"/api/v1/watchlists/{watchlist.id}/lock", headers=auth_headers)
         res = client.delete(f"/api/v1/watchlists/{watchlist.id}", headers=auth_headers)
         assert res.status_code == 403
+
+    def test_market_map_consumes_completed_isolated_python_output(
+        self, client, auth_headers, db, user, watchlist, instrument, instrument_b
+    ):
+        from app.models.research import CodeAsset, CodeVersion, ResearchArtifact, ResearchRun
+        from app.models.watchlist import WatchlistItem
+
+        db.add_all(
+            [
+                WatchlistItem(watchlist_id=watchlist.id, instrument_id=instrument.id, position=0),
+                WatchlistItem(watchlist_id=watchlist.id, instrument_id=instrument_b.id, position=1),
+            ]
+        )
+        asset = CodeAsset(user_id=user.id, stable_key="map-colour", name="Map colour", kind="condition")
+        db.add(asset)
+        db.flush()
+        version = CodeVersion(
+            code_asset_id=asset.id,
+            version_number=1,
+            source="return 1.0",
+            output_contract="series",
+            parameter_schema={},
+            default_parameters={},
+        )
+        db.add(version)
+        db.flush()
+        run = ResearchRun(
+            user_id=user.id,
+            code_version_id=version.id,
+            status="completed",
+            run_config={"output_contract": "series"},
+            dataset_manifest={"dataset_version": "test"},
+        )
+        run.artifacts.append(
+            ResearchArtifact(
+                artifact_type="batch",
+                name="batch_cells",
+                payload={
+                    "value": {
+                        "cells": [
+                            {"instrument_id": instrument.id, "status": "completed", "value": 2.5},
+                            {"instrument_id": instrument_b.id, "status": "completed", "value": -0.5},
+                        ]
+                    }
+                },
+            )
+        )
+        db.add(run)
+        db.flush()
+
+        response = client.post(
+            "/api/v1/analysis/market-map",
+            headers=auth_headers,
+            json={
+                "source_id": f"watchlist:{watchlist.id}",
+                "group_by": "none",
+                "color_metric": "python",
+                "python_run_id": run.id,
+                "area_metric": "equal",
+                "period": "1D",
+            },
+        )
+
+        assert response.status_code == 200, response.text
+        body = response.json()
+        assert body["python_run_id"] == run.id
+        assert {cell["color_value"] for cell in body["cells"]} == {2.5, -0.5}
+        assert body["coverage"] == 1
+
+        invalid = client.post(
+            "/api/v1/analysis/market-map",
+            headers=auth_headers,
+            json={
+                "source_id": f"watchlist:{watchlist.id}",
+                "color_metric": "python",
+                "python_run_id": run.id + 100_000,
+            },
+        )
+        assert invalid.status_code == 422

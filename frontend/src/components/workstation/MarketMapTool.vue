@@ -29,7 +29,7 @@
       </label>
       <label>Colour
         <select v-model="colorMetric" aria-label="Market Map colour metric">
-          <option value="return">Return</option><option value="relative_return">Relative return</option><option value="breadth">Breadth condition</option><option value="rsi_14">RSI(14)</option><option value="relative_volume">Relative volume</option><option value="distance_52w_high">Distance to 52W high</option><option value="distance_52w_low">Distance to 52W low</option>
+          <option value="return">Return</option><option value="relative_return">Relative return</option><option value="breadth">Breadth condition</option><option value="python">Python output</option><option value="rsi_14">RSI(14)</option><option value="relative_volume">Relative volume</option><option value="distance_52w_high">Distance to 52W high</option><option value="distance_52w_low">Distance to 52W low</option>
         </select>
       </label>
       <label v-if="colorMetric === 'relative_return' || (colorMetric === 'breadth' && breadthConditionKind === 'relative_strength')">Reference
@@ -54,6 +54,14 @@
       <label v-if="colorMetric === 'breadth' && (breadthConditionKind === 'rsi' || breadthConditionKind === 'volume_ratio')">Threshold
         <input v-model.number="breadthConditionThreshold" aria-label="Market Map breadth threshold" type="number" step="0.01" />
       </label>
+      <label v-if="colorMetric === 'python'">Python output
+        <select v-model="pythonCodeVersionId" aria-label="Market Map Python colour asset" :disabled="pythonAssetsLoading || pythonRunLoading">
+          <option :value="null">Select a Boolean or numeric-series asset</option>
+          <option v-for="asset in pythonAssets" :key="asset.versionId" :value="asset.versionId">{{ asset.name }} · {{ asset.outputContract }}</option>
+        </select>
+      </label>
+      <span v-if="colorMetric === 'python' && pythonRunLoading" class="market-map-tool__status">Evaluating isolated Python…</span>
+      <span v-if="colorMetric === 'python' && pythonRunError" class="market-map-tool__status--error" role="alert">{{ pythonRunError }}</span>
       <button type="button" class="market-map-tool__run" :disabled="loading || !sourceId" @click="run">{{ loading ? 'Loading…' : 'Refresh' }}</button>
       <label>Snapshot
         <select v-model="snapshotSelectionId" aria-label="Market Map snapshot" :disabled="snapshotLoading">
@@ -119,6 +127,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
+import { api } from '@/lib/api'
 import { useWatchlistStore } from '@/stores/watchlist'
 import { deleteMarketMapSnapshot, fetchMarketMap, fetchMarketMapSnapshot, fetchMarketMapSnapshots, layoutMarketMapCells, saveMarketMapSnapshot, type MarketMapLayoutCell } from '@/lib/workstation/marketMap'
 import type { MarketMap, MarketMapAreaMetric, MarketMapCell, MarketMapColorMetric, MarketMapGroupBy, MarketMapSnapshotSummary, WatchlistSource } from '@/types'
@@ -140,6 +149,12 @@ const referenceSymbol = ref(String(props.configuration.reference_symbol ?? ''))
 const breadthConditionKind = ref(String(props.configuration.breadth_condition_kind ?? 'above_moving_average'))
 const breadthConditionPeriod = ref(Number(props.configuration.breadth_condition_period ?? 200))
 const breadthConditionThreshold = ref(Number(props.configuration.breadth_condition_threshold ?? 0.01))
+const pythonCodeVersionId = ref<number | null>(Number(props.configuration.python_code_version_id ?? 0) || null)
+const pythonRunId = ref<number | null>(Number(props.configuration.python_run_id ?? 0) || null)
+const pythonAssets = ref<Array<{ versionId: number; name: string; outputContract: 'boolean' | 'series' }>>([])
+const pythonAssetsLoading = ref(false)
+const pythonRunLoading = ref(false)
+const pythonRunError = ref('')
 const periods = ['1D', '1W', 'MTD', 'YTD', '1M', '3M', '6M', '1Y']
 const loading = ref(false)
 const error = ref('')
@@ -218,6 +233,61 @@ const breadthCondition = computed<Record<string, unknown> | null>(() => {
 })
 const colorLabel = computed(() => colorMetric.value.replace(/_/g, ' '))
 const canvasStyle = computed(() => ({ transform: `translate(${panX.value}%, ${panY.value}%) scale(${viewportZoom.value})` }))
+
+function pythonUniverse() {
+  const [kind, key] = sourceId.value.split(':', 2)
+  if (kind === 'watchlist' && key) return { kind: 'watchlist', key, point_in_time: true }
+  if (kind === 'market-group' && key) return { kind: 'group', key, point_in_time: true }
+  if (kind === 'etf-holdings' && key) return { kind: 'etf_holdings', key, point_in_time: true }
+  throw new Error('Python Market Map colours require a canonical watchlist, market group, or ETF holdings source.')
+}
+
+async function loadPythonAssets() {
+  pythonAssetsLoading.value = true
+  try {
+    const assets = await api.get<Array<{ kind: string; name: string; versions: Array<{ id?: number; version_number: number; output_contract?: string }> }>>('/code/assets')
+    pythonAssets.value = (assets ?? []).filter(asset => asset.kind === 'condition').flatMap(asset => {
+      const version = asset.versions.slice(-1)[0]
+      if (version?.id == null || (version.output_contract !== 'boolean' && version.output_contract !== 'series')) return []
+      return [{ versionId: version.id, name: `${asset.name} v${version.version_number}`, outputContract: version.output_contract }]
+    })
+  } catch (cause) {
+    pythonRunError.value = cause instanceof Error ? cause.message : 'Unable to load Python code assets'
+  } finally {
+    pythonAssetsLoading.value = false
+  }
+}
+
+async function resolvePythonRun() {
+  pythonRunError.value = ''
+  if (pythonCodeVersionId.value == null) throw new Error('Select a Boolean or numeric-series Python asset first.')
+  const selected = pythonAssets.value.find(asset => asset.versionId === pythonCodeVersionId.value)
+  if (!selected) throw new Error('The selected Python asset is unavailable or no longer active.')
+  const queued = await api.post<{ run_id: number }>('/analysis/breadth/python', {
+    code_version_id: selected.versionId,
+    universe: pythonUniverse(),
+    output_contract: selected.outputContract,
+    series_target: selected.outputContract === 'series' ? { operator: 'gte', threshold: 0 } : null,
+    timeframe: 'D1',
+    adjusted: true,
+    history: false,
+  })
+  pythonRunLoading.value = true
+  try {
+    for (let attempt = 0; attempt < 240; attempt += 1) {
+      const result = await api.get<{ status: string }>(`/analysis/breadth/python/runs/${queued.run_id}`)
+      if (result.status === 'completed') {
+        pythonRunId.value = queued.run_id
+        return
+      }
+      if (result.status === 'failed' || result.status === 'canceled') throw new Error(`Python colour run ${result.status}.`)
+      await new Promise(resolve => setTimeout(resolve, 250))
+    }
+    throw new Error('Python colour run did not finish within 60 seconds; its run remains available for retry.')
+  } finally {
+    pythonRunLoading.value = false
+  }
+}
 
 function selectNode(nodeId: string | null) {
   selectedNode.value = nodeId
@@ -312,6 +382,7 @@ async function loadSnapshot() {
     skipNextSourceRun.value = true
     sourceId.value = snapshot.source_id
     map.value = snapshot.map
+    pythonRunId.value = snapshot.map.python_run_id ?? null
     activeSnapshotName.value = snapshot.name
     snapshotName.value = snapshot.name
     selectedNode.value = null
@@ -364,7 +435,8 @@ async function run() {
   loading.value = true
   error.value = ''
   try {
-    map.value = await fetchMarketMap({ source_id: sourceId.value, group_by: groupBy.value, period: period.value, area_metric: areaMetric.value, color_metric: colorMetric.value, condition: breadthCondition.value, reference_symbol: colorMetric.value === 'relative_return' || (colorMetric.value === 'breadth' && breadthConditionKind.value === 'relative_strength') ? referenceSymbol.value.toUpperCase() : null, timeframe: 'D1', adjusted: true })
+    if (colorMetric.value === 'python') await resolvePythonRun()
+    map.value = await fetchMarketMap({ source_id: sourceId.value, group_by: groupBy.value, period: period.value, area_metric: areaMetric.value, color_metric: colorMetric.value, condition: colorMetric.value === 'breadth' ? breadthCondition.value : null, python_run_id: colorMetric.value === 'python' ? pythonRunId.value : null, reference_symbol: colorMetric.value === 'relative_return' || (colorMetric.value === 'breadth' && breadthConditionKind.value === 'relative_strength') ? referenceSymbol.value.toUpperCase() : null, timeframe: 'D1', adjusted: true })
     snapshotSelectionId.value = ''
     activeSnapshotName.value = ''
     selectedNode.value = null
@@ -377,9 +449,9 @@ async function run() {
   }
 }
 function persist() {
-  emit('configuration', { ...props.configuration, source_id: sourceId.value, group_by: groupBy.value, period: period.value, area_metric: areaMetric.value, color_metric: colorMetric.value, condition: breadthCondition.value, breadth_condition_kind: breadthConditionKind.value, breadth_condition_period: breadthConditionPeriod.value, breadth_condition_threshold: breadthConditionThreshold.value, reference_symbol: referenceSymbol.value })
+  emit('configuration', { ...props.configuration, source_id: sourceId.value, group_by: groupBy.value, period: period.value, area_metric: areaMetric.value, color_metric: colorMetric.value, condition: colorMetric.value === 'breadth' ? breadthCondition.value : null, python_code_version_id: pythonCodeVersionId.value, python_run_id: pythonRunId.value, breadth_condition_kind: breadthConditionKind.value, breadth_condition_period: breadthConditionPeriod.value, breadth_condition_threshold: breadthConditionThreshold.value, reference_symbol: referenceSymbol.value })
 }
-watch([sourceId, groupBy, period, areaMetric, colorMetric, referenceSymbol, breadthConditionKind, breadthConditionPeriod, breadthConditionThreshold], persist)
+watch([sourceId, groupBy, period, areaMetric, colorMetric, referenceSymbol, pythonCodeVersionId, pythonRunId, breadthConditionKind, breadthConditionPeriod, breadthConditionThreshold], persist)
 watch(sourceId, () => {
   if (skipNextSourceRun.value) {
     skipNextSourceRun.value = false
@@ -391,6 +463,7 @@ watch(snapshotSelectionId, () => { void loadSnapshot() })
 onMounted(async () => {
   if (!sources.value.length) await watchlistStore.loadWatchlistSources()
   if (!watchlistStore.watchlists.length) await watchlistStore.loadWatchlists()
+  await loadPythonAssets()
   try {
     snapshots.value = await fetchMarketMapSnapshots()
   } catch (cause) {

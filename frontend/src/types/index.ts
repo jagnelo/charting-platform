@@ -852,7 +852,7 @@ export interface WatchlistSourceResolved {
 
 export type MarketMapGroupBy = 'none' | 'sector' | 'industry' | 'sector_industry'
 export type MarketMapAreaMetric = 'equal' | 'market_cap' | 'weight' | 'volume'
-export type MarketMapColorMetric = 'return' | 'relative_return' | 'breadth' | 'rsi_14' | 'relative_volume' | 'distance_52w_high' | 'distance_52w_low'
+export type MarketMapColorMetric = 'return' | 'relative_return' | 'breadth' | 'python' | 'rsi_14' | 'relative_volume' | 'distance_52w_high' | 'distance_52w_low'
 
 export interface MarketMapRequest {
   source_id: string
@@ -865,6 +865,7 @@ export interface MarketMapRequest {
   area_metric?: MarketMapAreaMetric
   color_metric?: MarketMapColorMetric
   condition?: Record<string, unknown> | null
+  python_run_id?: number | null
   reference_symbol?: string | null
   as_of?: string | null
   limit?: number
@@ -920,6 +921,7 @@ export interface MarketMap {
   area_metric: MarketMapAreaMetric
   color_metric: MarketMapColorMetric
   condition?: Record<string, unknown> | null
+  python_run_id?: number | null
   reference_symbol?: string | null
   membership_version?: string | null
   calculation_version: string

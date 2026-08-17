@@ -21,8 +21,9 @@ The captures are behavioural/product references; Finviz artwork and branding are
 - [ ] Support 1D, 1W, MTD, YTD, 1M, 3M, 6M, 1Y, and arbitrary completed-session periods with
       explicit adjustment and session semantics.
 - [ ] Support colour by absolute/relative return, RSI, relative volume, distance to 52-week
-      extremes, and compatible Python numeric outputs. Built-in breadth predicates are now
-      available through the same condition AST; compatible Python numeric outputs remain open.
+      extremes, built-in breadth predicates, and completed isolated Python Boolean/numeric outputs.
+      Event/peer/group-derived predicates, custom numeric area fields, and point-in-time weights
+      remain open.
       Support area by
       market cap, point-in-time index/ETF weight, equal area, volume, or a declared numeric
       field. Rollups must state weighting and coverage.
@@ -86,8 +87,14 @@ The captures are behavioural/product references; Finviz artwork and branding are
 - [x] The workstation exposes built-in moving-average, 52-week proximity, new-high, RSI,
       volume-ratio, and relative-strength condition controls. Relative-strength predicates use
       the same canonical reference-symbol bars and alignment rules as other map comparisons.
-- [ ] Arbitrary isolated Python colour assets, event/peer/group-derived map predicates, custom
-      numeric area fields, point-in-time market-cap weights, and final visual approval remain open.
+- [x] Completed user-owned isolated Python Boolean/numeric-series condition runs can now be used
+      as map colour values. The map consumes only the completed `batch_cells` artifact, enforces
+      run ownership/completion, preserves per-cell failure codes, and never executes user code in
+      the map request. The workstation loads condition assets, queues the existing sandboxed run
+      over the selected canonical source, polls its bounded terminal state, then submits the
+      immutable run ID for deterministic map rendering and persistence.
+- [ ] Event/peer/group-derived map predicates, custom numeric area fields, point-in-time market-cap
+      weights, and final visual approval remain open.
 
 #### Implementation checkpoint — workstation Market Map tool
 

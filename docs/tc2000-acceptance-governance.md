@@ -976,3 +976,15 @@ This sub-gate is implemented and covered by canonical watchlist-source integrati
 full-suite `853/853`, `vue-tsc`, and production build. The subsequent Market Map publication and
 durable-cache checkpoints close the direct launch and result-cache portions; named snapshots,
 complete historical population, and final visual board approval remain open.
+
+## 2026-08-17 — Isolated Python map-colour evidence
+
+The Market Map Python-colour slice is accepted only as a completed-run consumer: the selected
+condition asset must be user-owned and active, the run must be completed by the dedicated isolated
+runner, and the map request may consume only its immutable `batch_cells` artifact. Focused frontend
+coverage proves asset selection, queue/poll ordering, and run-ID submission; backend compile/schema
+checks prove request validation, ownership/completion checks, numeric/Boolean validation, per-cell
+warning preservation, and cache serialization. Docker-backed integration could not run in the
+current sandbox because the Docker socket is permission-denied; this is an environmental validation
+gap, not acceptance evidence. Event/peer/group predicates, richer Python output promotion,
+point-in-time area weights, and exact visual baselines remain open.

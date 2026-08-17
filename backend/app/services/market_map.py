@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 from collections import defaultdict
 from datetime import UTC, datetime, timedelta
 
@@ -14,6 +15,7 @@ from sqlalchemy.orm import selectinload
 from app.models.instrument import Instrument
 from app.models.market_map import MarketMapCache
 from app.models.ohlcv import OHLCVBar, Timeframe
+from app.models.research import ResearchRun
 from app.schemas.market_map import (
     MarketMapCell,
     MarketMapNode,
@@ -144,6 +146,73 @@ def _group_path(request: MarketMapRequest, instrument: Instrument) -> list[str]:
     if request.group_by == "industry":
         return [industry]
     return [sector, industry]
+
+
+async def _python_colour_values(
+    db: AsyncSession,
+    user_id: int,
+    run_id: int,
+) -> dict[int, tuple[float | None, bool | None, float | None, str | None]]:
+    """Read completed isolated batch cells for one user-owned Python run.
+
+    Python is never executed by the Market Map request. The run must already be
+    completed by the dedicated research worker; this method only consumes its
+    immutable artifact and preserves per-cell failures as explicit warnings.
+    """
+
+    run = (
+        await db.execute(
+            select(ResearchRun)
+            .options(selectinload(ResearchRun.artifacts))
+            .where(ResearchRun.id == run_id, ResearchRun.user_id == user_id)
+        )
+    ).scalar_one_or_none()
+    if run is None:
+        raise ValueError("python_run_not_found")
+    if run.status != "completed":
+        raise ValueError("python_run_not_completed")
+    config = run.run_config if isinstance(run.run_config, dict) else {}
+    output_contract = str(config.get("output_contract") or "series")
+    artifact = next(
+        (item for item in run.artifacts if item.name == "batch_cells" and isinstance(item.payload, dict)),
+        None,
+    )
+    if artifact is None or not isinstance(artifact.payload.get("value"), dict):
+        raise ValueError("python_run_artifact_unavailable")
+    raw_cells = artifact.payload["value"].get("cells")
+    if not isinstance(raw_cells, list):
+        raise ValueError("python_run_artifact_unavailable")
+    values: dict[int, tuple[float | None, bool | None, float | None, str | None]] = {}
+    for raw in raw_cells:
+        if not isinstance(raw, dict) or not isinstance(raw.get("instrument_id"), int):
+            continue
+        instrument_id = raw["instrument_id"]
+        if raw.get("status") != "completed":
+            values[instrument_id] = (None, None, None, "python_cell_failed")
+            continue
+        value = raw.get("value")
+        metric = raw.get("metric")
+        numeric_metric = (
+            float(metric)
+            if isinstance(metric, int | float) and not isinstance(metric, bool) and math.isfinite(float(metric))
+            else None
+        )
+        if output_contract == "boolean":
+            if not isinstance(value, bool):
+                values[instrument_id] = (None, None, numeric_metric, "python_boolean_invalid")
+                continue
+            values[instrument_id] = (1.0 if value else -1.0, value, numeric_metric, None)
+            continue
+        numeric_value = (
+            float(value)
+            if isinstance(value, int | float) and not isinstance(value, bool) and math.isfinite(float(value))
+            else numeric_metric
+        )
+        if numeric_value is None:
+            values[instrument_id] = (None, None, numeric_metric, "python_numeric_invalid")
+        else:
+            values[instrument_id] = (numeric_value, None, numeric_value, None)
+    return values
 
 
 def _node_metric(cells: list[MarketMapCell], area_metric: str) -> tuple[float | None, str]:
@@ -297,6 +366,11 @@ async def build_market_map(db: AsyncSession, user_id: int, request: MarketMapReq
         source_bar_watermark,
         reference_bar_watermark,
     )
+    python_values = (
+        await _python_colour_values(db, user_id, request.python_run_id)
+        if request.color_metric == "python" and request.python_run_id is not None
+        else {}
+    )
     cached_result = await read_market_map_cache(db, user_id, cache_key)
     if cached_result is not None:
         return cached_result
@@ -310,12 +384,18 @@ async def build_market_map(db: AsyncSession, user_id: int, request: MarketMapReq
         warnings: list[MarketMapWarning] = []
         if code:
             warnings.append(_warning(code, message or code, instrument_id=instrument_id))
-        colour, colour_code, condition_value, condition_metric = _colour(
-            request,
-            rows,
-            result,
-            reference_bars=reference_bars,
-        )
+        if request.color_metric == "python":
+            colour, colour_code, condition_value, condition_metric = python_values.get(
+                instrument_id,
+                (None, None, None, "python_member_missing"),
+            )
+        else:
+            colour, colour_code, condition_value, condition_metric = _colour(
+                request,
+                rows,
+                result,
+                reference_bars=reference_bars,
+            )
         if request.color_metric == "relative_return":
             if result is None or ref_return is None:
                 colour = None
@@ -323,7 +403,12 @@ async def build_market_map(db: AsyncSession, user_id: int, request: MarketMapReq
             else:
                 colour = result - ref_return
         if colour_code:
-            warnings.append(_warning(colour_code, "The requested colour metric is not covered by available local data.", instrument_id=instrument_id))
+            message = (
+                "The isolated Python colour output is unavailable for this member."
+                if request.color_metric == "python"
+                else "The requested colour metric is not covered by available local data."
+            )
+            warnings.append(_warning(colour_code, message, instrument_id=instrument_id))
         member = members_by_id[instrument_id]
         area: float | None
         if request.area_metric == "equal":
@@ -343,7 +428,11 @@ async def build_market_map(db: AsyncSession, user_id: int, request: MarketMapReq
         path = _group_path(request, instrument)
         if path and "Unclassified" in path:
             warnings.append(_warning("missing_classification", "Sector or industry classification is unavailable; grouped under Unclassified.", instrument_id=instrument_id))
-        coverage = 1.0 if result is not None else 0.0
+        coverage = (
+            1.0 if colour is not None else 0.0
+            if request.color_metric in {"breadth", "python"}
+            else 1.0 if result is not None else 0.0
+        )
         cells.append(MarketMapCell(
             instrument_id=instrument_id,
             symbol=instrument.symbol,
@@ -426,6 +515,7 @@ async def build_market_map(db: AsyncSession, user_id: int, request: MarketMapReq
         area_metric=request.area_metric,
         color_metric=request.color_metric,
         condition=request.condition,
+        python_run_id=request.python_run_id,
         reference_symbol=request.reference_symbol.upper() if request.reference_symbol else None,
         membership_version=resolved.descriptor.membership_version,
         cache_key=cache_key,

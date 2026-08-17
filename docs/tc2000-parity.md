@@ -7450,3 +7450,22 @@ relative-strength using the canonical reference-symbol bars.
 This closes built-in predicate colour maps for arbitrary watchlist sources, not isolated Python
 colour assets, event/peer/group-derived map predicates, custom numeric area fields, point-in-time
 market-cap area, full root population, or strict board-guided visual approval.
+
+## 2026-08-17 — Isolated Python Market Map colour outputs
+
+Market Map now accepts `color_metric=python` with a user-owned completed isolated Python condition
+run. The workstation discovers the latest Boolean or numeric-series condition asset, submits the
+selected canonical watchlist source to the existing `/analysis/breadth/python` sandbox route, polls
+the bounded job state, and passes only the completed run ID to `/analysis/market-map`. The map
+service reads the immutable `batch_cells` artifact after checking user ownership and terminal
+completion; it never executes Python, contacts providers, or bypasses the dataset manifest.
+
+Numeric outputs retain their value as tile colour and node aggregation. Boolean outputs are rendered
+as `+1`/`-1` pass/fail colours while preserving `condition_value`; invalid or failed cells remain
+visible with explicit warning codes and reduce coverage. The run ID, selected code version, source
+configuration, and cache identity are serializable and survive named snapshot restore.
+
+This closes run-backed isolated Python Boolean/numeric colour output for arbitrary supported
+watchlist sources. Event/peer/group-derived map predicates, custom numeric area fields,
+point-in-time market-cap weights, complete provider/history population, exact V25 visual baselines,
+and the broader multi-output Python map authoring surface remain open.

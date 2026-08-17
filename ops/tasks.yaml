@@ -116,6 +116,15 @@ tasks:
         origin safeguard; no retry/workaround. Python colour assets, event/peer/group predicates,
         custom numeric areas, point-in-time weights, provider/history population, and strict visual
         approval remain open.
+      - >-
+        Follow-up implementation/docs commit for the next context adds `color_metric=python`.
+        Completed user-owned Boolean/numeric-series condition runs are queued through the existing
+        isolated `/analysis/breadth/python` route over any canonical watchlist source, then consumed
+        by the map only as an immutable completed `batch_cells` artifact. Focused Market Map frontend
+        8/8, full frontend Vitest 857/857, vue-tsc/build, Ruff, compileall, and diff-check pass.
+        Docker-backed integration is currently unavailable because the sandbox denies the Docker
+        socket; this is an environmental validation gap. Event/peer/group predicates, custom areas,
+        point-in-time weights, provider/history population, and strict visual approval remain open.
 
   - id: tc2000-breadth-python-series-composer-20260817
     title: Wire numeric Python-series condition assets into the breadth workstation

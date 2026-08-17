@@ -13,6 +13,7 @@ MarketMapColorMetric = Literal[
     "return",
     "relative_return",
     "breadth",
+    "python",
     "rsi_14",
     "relative_volume",
     "distance_52w_high",
@@ -33,6 +34,7 @@ class MarketMapRequest(BaseModel):
     area_metric: MarketMapAreaMetric = "market_cap"
     color_metric: MarketMapColorMetric = "return"
     condition: dict[str, object] | None = None
+    python_run_id: int | None = Field(default=None, ge=1)
     reference_symbol: str | None = Field(default=None, max_length=80)
     as_of: datetime | None = None
     limit: int = Field(default=10_000, ge=1, le=50_000)
@@ -50,6 +52,8 @@ class MarketMapRequest(BaseModel):
             raise ValueError("relative_return requires reference_symbol")
         if self.color_metric == "breadth" and not self.condition:
             raise ValueError("breadth requires condition")
+        if self.color_metric == "python" and self.python_run_id is None:
+            raise ValueError("python requires python_run_id")
         return self
 
 
@@ -103,6 +107,7 @@ class MarketMapOut(BaseModel):
     area_metric: MarketMapAreaMetric
     color_metric: MarketMapColorMetric
     condition: dict[str, object] | None = None
+    python_run_id: int | None = None
     reference_symbol: str | None = None
     membership_version: str | None = None
     calculation_version: str = "market-map-v1"

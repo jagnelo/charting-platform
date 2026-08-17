@@ -664,3 +664,12 @@ lineage, and the direct map actions that open Breadth or Study Lab with the sour
 board has no exact V25 capture for every source-kind combination or publication confirmation state,
 so those absent states remain named board gaps; this is a documented interim visual reference, not
 a silent screenshot pass.
+
+## 2026-08-17 — Python-colour Market Map state
+
+The current component visual oracle also includes the Python-output colour state: an asset selector,
+isolated-run loading/status messaging, explicit unavailable-output warnings, numeric/Boolean tile
+colouring, and the persisted run-backed map state. No exact V25 capture has been located for this
+specific programmable heatmap workflow; the board therefore guides density, control ordering,
+locked-source treatment, warning placement, and tile interaction only. The missing exact reference
+is tracked as a named visual gap and cannot be silently converted into a strict pixel-pass claim.
