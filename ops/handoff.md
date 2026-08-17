@@ -29697,3 +29697,19 @@ indefinite soak; longer endurance remains an explicit open gap.
   once and rejected before Git by the private-origin safeguard because trusted authorization for
   the exact accumulated payload and destination was unavailable; no workaround or repeat. This
   transport issue is recorded separately and is not a product-goal blocker.
+
+# 2026-08-17 — Workstation Market Map interaction refinement checkpoint
+
+- Refined the shared-source Market Map renderer with deterministic proportional slice-and-dice
+  geometry, hover detail, colour/coverage legend, and additive Ctrl/Shift multi-selection. The
+  source-agnostic contract is unchanged: personal, managed, index, ETF, combo, sector, industry,
+  and explicit-symbol lists use the same map interaction model; locked sources only restrict
+  canonical membership mutation.
+- Validation passed: focused component/layout interaction `3/3`, full frontend Vitest `851/851`,
+  `vue-tsc --noEmit`, production build, and `git diff --check`. No acceptance flexibility used.
+- Implementation/docs commit `e1312eb3` is clean locally. Its exact elevated push was attempted once
+  and rejected before Git by the private-origin safeguard; no workaround or repeat. This is
+  transport-only and not a product-goal blocker.
+- Remaining gaps: nested hierarchy navigation, zoom/pan, map-to-watchlist/breadth/Study-Lab
+  publication, persistent snapshots/cache, Python/breadth colour assets, point-in-time market-cap,
+  all-root population, and final board-guided visual acceptance.

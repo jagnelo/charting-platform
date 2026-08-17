@@ -27976,3 +27976,17 @@ in 4.6 minutes. No failure was suppressed or reclassified as product success.
 
 - Implementation/docs commit `95e8f385` is clean locally. Its exact push was attempted once and
   rejected before Git by the private-origin safeguard; no workaround or repeat. Transport-only.
+
+# 2026-08-17 — Workstation Market Map interaction refinement checkpoint
+
+- Refined the source-agnostic Market Map renderer with deterministic proportional slice-and-dice
+  geometry, hover detail, colour/coverage legend, and additive Ctrl/Shift multi-selection. Locked
+  index/ETF sources share the same map contract as personal, managed, combo, sector, industry, and
+  explicit-symbol watchlists; only canonical membership mutation is restricted.
+- Focused component/layout interaction `3/3`, full frontend Vitest `851/851`, `vue-tsc --noEmit`,
+  production build, and `git diff --check` pass. No acceptance flexibility used.
+- Implementation/docs commit `e1312eb3` is clean locally. Its exact push was attempted once and
+  rejected before Git by the private-origin safeguard; no workaround or repeat. Transport-only.
+- Remaining: nested hierarchy, zoom/pan, broader map publication, persistent snapshots/cache,
+  Python/breadth colour assets, point-in-time market-cap, all-root population, and final visual
+  acceptance.
