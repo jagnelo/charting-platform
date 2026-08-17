@@ -1,5 +1,25 @@
 # Active Handoff
 
+## 2026-08-17 — Isolated Python breadth occurrence contract checkpoint
+
+- Extended `BreadthPythonResultOut` with the shared typed historical occurrence stream. The API
+  projects `member_entered`/`member_exited` events only after collecting persisted aligned runner
+  points, preserving canonical instrument identity, timestamp, metric, aggregate counts, stable
+  identity, and the existing code-version/dataset-manifest lineage.
+- The isolated runner now retains Boolean output metrics while building history cells; FastAPI
+  still only parses persisted results and never executes user source. Added a router projection
+  helper and regression proving a false-to-true transition carries metric and timestamp lineage.
+- Validation: analysis-router `19/19`, research-runner `88/88`, database-backed generic/Python
+  integration `4/4`, Ruff, Python compilation, JSON/YAML parsing, and diff checks pass. No
+  acceptance flexibility used.
+- Implementation/docs commit: `919bb074 feat(breadth): expose Python history occurrences`.
+  Worktree was clean before the operational update. Exact push was attempted once and rejected
+  before Git by the private-origin safeguard; no workaround or repeat. Transport-only and not a
+  goal-wide blocker.
+- Next context: render/filter these Python-run occurrences in the workstation/Research Results
+  surface and wire compatible promotions into plots, columns, filters, scans, gauges, alerts, and
+  Study Lab while continuing the eight-root provider/history population and final V25 gates.
+
 ## 2026-08-15 — Generic breadth occurrence browser checkpoint
 
 - Added a bounded, dense occurrence browser beneath the generic breadth history uPlot. It lists

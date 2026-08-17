@@ -1,5 +1,18 @@
 # Run Report
 
+## 2026-08-17 — Isolated Python breadth occurrence contract checkpoint
+
+- Added shared occurrence projection for aligned isolated Python breadth history. Persisted runner
+  output now retains Boolean metrics, and the API returns typed member-entered/member-exited events
+  with canonical IDs, timestamps, aggregate counts, stable IDs, and immutable run lineage.
+- Validation: router `19/19`, runner `88/88`, generic/Python integration `4/4`, Ruff, compileall,
+  JSON/YAML parsing, and diff checks. No source execution moved into FastAPI and no acceptance
+  flexibility was used.
+- Git closure: implementation/docs commit `919bb074` is clean locally. Exact push was attempted
+  once and rejected before Git by the private-origin safeguard; no workaround or repeat. Remaining
+  gaps are direct UI rendering/filtering, promotion targets, provider/historical population, and
+  final V25 visual/reference coverage.
+
 ## 2026-08-15 — Generic breadth occurrence browser checkpoint
 
 - Implemented the workstation occurrence browser for generic breadth history and connected clicks
