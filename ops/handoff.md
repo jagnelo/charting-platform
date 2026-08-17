@@ -1,5 +1,24 @@
 # Active Handoff
 
+## 2026-08-17 — New-high/new-low breadth authoring checkpoint
+
+- The generic breadth composer now exposes the backend-supported `new_high_low` predicate with
+  explicit high/low direction and prior-window controls. The existing `within_52_week_high`
+  predicate also exposes near-high versus near-low direction. Both serialize through the existing
+  versioned condition definition and reuse current/history/no-forward-fill evaluation.
+- Validation passed: backend breadth unit 14/14; frontend Vitest 839/839; `vue-tsc`; production
+  build; Ruff; compileall; diff-check; rebuilt seeded authenticated Chromium
+  `F8s-breadth-family-ratio` 1/1. The browser proves near-low and new-low request payloads.
+- The first browser run exposed duplicate accessible labels on the global and custom lookback
+  inputs. Labels were separated at the component boundary and the unchanged oracle passed. This
+  was a localized repository defect; no acceptance flexibility, visual threshold, or mask change.
+- Remaining gaps are prior/event composition, benchmark/peer target series, arbitrary derived
+  Python visual composition, complete promotion fan-out, eight-root provider/history population,
+  and the remaining V25 visual/browser acceptance matrix.
+- Implementation/docs commit `a86f3133 feat(breadth): add high-low predicate controls` is clean
+  locally. Its exact push was attempted once and rejected before Git by the private-origin
+  safeguard; no workaround or repeat. The operational checkpoint is being committed separately.
+
 ## 2026-08-17 — Cross-sectional percentile Study Lab checkpoint
 
 - Added `research.breadth_condition` cross-sectional percentile execution to the isolated Python

@@ -1,5 +1,19 @@
 # Run Report
 
+## 2026-08-17 — New-high/new-low breadth authoring
+
+- Added explicit high/low direction and prior-window controls for `new_high_low`, plus near-low
+  support for the existing 52-week-distance predicate. Requests use the same versioned generic
+  breadth contract and preserve current/history/no-forward-fill semantics.
+- Validation passed: breadth unit 14/14; frontend Vitest 839/839; type-check; production build;
+  Ruff; compileall; diff-check; and rebuilt seeded authenticated Chromium
+  `F8s-breadth-family-ratio` 1/1. The browser proved exact near-low and new-low payloads.
+- First browser attempt found an ambiguous duplicate lookback label. The labels were separated,
+  the stack rebuilt, and the unchanged oracle passed. No acceptance flexibility or visual rule
+  changed. Event/benchmark-peer/derived-Python authoring and full promotion remain open.
+- Implementation/docs commit `a86f3133` is clean locally; exact push was attempted once and
+  rejected before Git by the private-origin safeguard, with no workaround or repeat.
+
 ## 2026-08-17 — Cross-sectional percentile Study Lab
 
 - Implemented isolated-runner cross-sectional percentile breadth for explicit universes. The
