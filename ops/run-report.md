@@ -28348,3 +28348,17 @@ and strict visual gaps remain explicitly tracked.
   direct multi-output promotion from arbitrary map/study assets, point-in-time weights, complete
   family/provider population, exact V25 action-row geometry, and final audit. Ops is recorded in a
   separate checkpoint.
+
+# 2026-08-17 — Structured Study artifact promotion checkpoint
+
+- Structured Study Lab Boolean artifacts now expose filter, scan, Market Gauge, and alert targets,
+  with artifact-specific immutable condition versions and one shared EasyScan lineage. Scalar,
+  series, and event artifact promotions remain available through their compatible targets.
+- Validation passed: focused Study Lab plus Market Map `37/37`, full frontend Vitest `867/867`,
+  `vue-tsc`, production build, `git diff --check`, and rebuilt authenticated F8o `1/1`.
+- The stack was force-rebuilt before the unchanged browser flow. No acceptance criterion,
+  threshold, baseline, or mask was relaxed.
+- Implementation/docs commit `4b412de2` is clean locally. Its one exact push attempt was rejected
+  before Git by the private-origin safeguard; no retry or workaround will be attempted. Open: full
+  artifact/target fan-out, direct map-created definitions, point-in-time weights, family/provider
+  population, exact V25 promotion geometry, and final audit. Ops is recorded separately.

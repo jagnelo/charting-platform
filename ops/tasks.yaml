@@ -11115,3 +11115,31 @@ tasks:
         rejected before Git by the private-origin safeguard and will not be retried. Direct
         multi-output fan-out, exact V25 action geometry, provider/family population, and final
         audit remain open.
+  - id: tc2000-structured-study-artifact-promotion-20260817
+    title: Promote Boolean artifacts from structured Study Lab results
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Give each Boolean artifact in a multi-output Study Lab result filter, scan, Market-Gauge,
+      and alert targets without losing output-specific immutable version lineage.
+    definition_of_done:
+      - Structured Boolean artifacts expose filter, scan, Gauge, and alert actions
+      - Artifact-specific condition versions preserve output_name and Boolean contract
+      - The resulting targets reuse one EasyScan lineage
+      - Scalar, series, and event artifact promotions remain compatible
+      - Focused/full frontend, type/build, and rebuilt browser checks pass
+      - Full artifact/target fan-out remains explicitly tracked where not yet implemented
+    validation:
+      - study-lab-market-map-37-of-37
+      - frontend-vitest-867-of-867
+      - frontend-typecheck-build
+      - rebuilt-authenticated-f8o-1-of-1
+      - git-diff-check
+    notes:
+      - >-
+        The current stack was force-rebuilt before the unchanged F8o rerun; no acceptance
+        flexibility was used. Implementation/docs commit 4b412de2 is clean locally; its one exact
+        push attempt was rejected before Git by the private-origin safeguard and will not be
+        retried. Direct map-created fan-out, full artifact matrix, exact V25 geometry,
+        provider/family population, and final audit remain open.

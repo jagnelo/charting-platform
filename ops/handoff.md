@@ -30157,3 +30157,19 @@ indefinite soak; longer endurance remains an explicit open gap.
   direct multi-output fan-out from arbitrary map/study
   artifacts, point-in-time weights, complete family/provider population, exact V25 action geometry,
   and final functional/visual/security/performance audit gates.
+
+# 2026-08-17 — Structured Study artifact promotion checkpoint
+
+- Boolean artifacts inside multi-output Study Lab runs now expose `Save filter`, `Promote scan`,
+  `Use Gauge`, and `Promote alert` actions. Each adapter creates an immutable condition version
+  carrying the artifact output name, then reuses one EasyScan lineage across the Boolean targets;
+  scalar, series, and event artifacts retain their compatible column, plot, and signal paths.
+- Focused Study Lab plus Market Map coverage passed `37/37`; full frontend Vitest passed `867/867`;
+  `vue-tsc`, production build, `git diff --check`, and rebuilt authenticated Chromium F8o passed
+  `1/1`. The current stack was force-rebuilt before the browser rerun. No acceptance flexibility,
+  visual threshold, or mask relaxation was used.
+- Implementation/docs commit `4b412de2` is clean locally. Its one exact push attempt was rejected
+  before Git by the private-origin safeguard; no retry or workaround will be attempted. Open: full
+  multi-output fan-out across every artifact and
+  target, direct map-created definitions, point-in-time weights, complete family/provider
+  population, exact V25 promotion geometry, and final audit gates.
