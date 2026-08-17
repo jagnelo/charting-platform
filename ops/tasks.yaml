@@ -1,4 +1,26 @@
 tasks:
+  - id: tc2000-generic-breadth-range-percentile-20260817
+    title: Add range and rolling-percentile breadth predicates
+    status: completed
+    priority: high
+    scope: >-
+      Extend the generic member-level breadth composer and evaluator with explicit measured-field
+      range and rolling empirical percentile predicates for current and historical analysis.
+    definition_of_done:
+      - Range supports declared field, inclusive bounds, metric, Boolean result, and structured invalid-bound exclusions
+      - Percentile supports declared field, rolling window, target, operator, metric, Boolean result, and validation exclusions
+      - Workstation controls persist both condition families through the existing breadth API
+      - Unit, database-backed API, frontend type/build, and authenticated browser regressions pass
+      - Cross-sectional rank, prior/event, benchmark/peer, richer derived-series, and remaining promotion gaps stay documented
+    validation:
+      - breadth-unit-11-of-11
+      - generic-breadth-api-integration-1-of-1
+      - frontend-vitest-839-of-839
+      - frontend-type-check-production-build
+      - authenticated-F8s-breadth-family-ratio-1-of-1
+      - ruff-compileall-diff-check
+    notes:
+      - No acceptance flexibility used; this is a semantic predicate expansion and does not alter visual thresholds or provider requirements.
   - id: tc2000-python-breadth-occurrence-filtering-20260817
     title: Filter persisted Python breadth occurrences
     status: completed

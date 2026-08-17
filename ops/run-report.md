@@ -1,5 +1,25 @@
 # Run Report
 
+## 2026-08-17 — Generic breadth range and rolling-percentile predicates
+
+- Extended the generic breadth API and evaluator with validated inclusive range and rolling
+  empirical percentile predicates. The implementation remains member-level and feeds both current
+  and historical aggregate/member outputs without provider access or forward-fill semantics.
+- Added dense workstation controls for field/bounds and field/window/target/operator, persisted
+  through the existing condition payload. Added unit, database-backed API, and authenticated
+  browser assertions.
+- Validation: breadth unit 11/11; generic API integration 1/1; frontend Vitest 839/839;
+  type-check; production build; Ruff; compileall; diff-check; seeded authenticated Chromium
+  `F8s-breadth-family-ratio` 1/1. Stack build/migrations/services were healthy before the
+  authoritative browser rerun. The initial no-stack browser attempt is recorded as setup-only.
+- No acceptance flexibility used. This semantic slice does not alter visual thresholds, masks,
+  provider rules, or the eight-root completion bar. Cross-sectional rank, prior/event,
+  benchmark-peer, richer derived-series, promotion, provider/history, and remaining V25 visual
+  gaps remain explicitly open.
+- Changeset closure: implementation/docs commit `2e32f6d0` is clean locally. Its exact push was
+  attempted once and rejected before Git by the private-origin safeguard; no workaround or
+  repeat. The operational checkpoint remains separate and records this transport-only state.
+
 ## 2026-08-17 — Python breadth history to EasyScan promotion checkpoint
 
 - Implemented provenance-preserving promotion of eligible completed isolated-Python breadth

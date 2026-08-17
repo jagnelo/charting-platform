@@ -1,5 +1,26 @@
 # Active Handoff
 
+## 2026-08-17 — Generic breadth range and rolling-percentile checkpoint
+
+- Added `range` and `percentile` to the shared `BreadthConditionRequest` and evaluator. Range
+  predicates calculate an inclusive member-level bound over close, return, volume, or distance to
+  the 52-week high. Percentile predicates calculate an empirical rolling rank over close, return,
+  volume, or moving-average distance with a declared window, target, and operator.
+- Current and historical generic breadth reuse the same evaluator. Invalid bounds/parameters and
+  unsupported benchmark-dependent fields return structured exclusions; no provider calls or
+  forward-filling were added. The workstation composer exposes and persists both target families.
+- Validation passed: breadth unit 11/11; generic API integration 1/1; frontend Vitest 839/839;
+  vue-tsc; production build; Ruff; compileall; diff-check; authenticated seeded Chromium
+  `F8s-breadth-family-ratio` 1/1. The first browser invocation was setup-only (stack absent,
+  localhost connection refused); after the branch-scoped seeded stack built, migrated, and became
+  healthy, the authoritative rerun passed. No acceptance flexibility or visual threshold change.
+- Implementation/docs commit `2e32f6d0 feat(breadth): add range and percentile predicates` is
+  clean locally. The required exact push was attempted once and rejected before Git by the
+  private-origin safeguard; no workaround or repeat. The remaining operational checkpoint is
+  being updated separately, after which its exact push will be attempted once. Open gaps remain
+  cross-sectional rank/percentile, prior/event/benchmark-peer and richer derived targets,
+  complete promotion fan-out, eight-root data population, and remaining V25 visual/browser gates.
+
 ## 2026-08-17 — Python breadth history to EasyScan promotion checkpoint
 
 - Completed the first compatible promotion target for persisted isolated-Python breadth history:
