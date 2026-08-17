@@ -20,7 +20,9 @@
 - Implementation/docs commit `fcda70d96328c27f583aeca03877363b88d66f7d` is clean locally. The
   exact elevated push to `origin/feat/tc2000-frontend-rework` was attempted once and rejected by
   the private-origin safeguard before Git; no workaround, alternate transport, rewrite, reset,
-  stash, or repeat. This is transport-only and not a product blocker.
+  stash, or repeat. The separate operational checkpoint `beb7ff1eb65be70ed50e898f572cf10fc0c693bb`
+  is also clean locally; its one exact push attempt was rejected by the same safeguard. This is
+  transport-only and not a product blocker; no further push attempt will be made in this context.
 - Remaining gaps: populated all-family historical/provider evidence, full family breadth/ratio/
   ranking/rotation/concentration/dispersion and member drill-down acceptance, richer breadth
   targets and promotion fan-out, and remaining board/unrepresented V25 visual/browser gates.

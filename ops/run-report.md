@@ -19,7 +19,9 @@
   dependency deprecation warnings remain. No acceptance flexibility used.
 - Implementation/docs commit `fcda70d96328c27f583aeca03877363b88d66f7d` is clean locally. The
   exact elevated push was attempted once and rejected before Git by the private-origin safeguard;
-  no workaround, alternate transport, rewrite, reset, stash, or repeat. This is transport-only.
+  no workaround, alternate transport, rewrite, reset, stash, or repeat. The separate operational
+  checkpoint `beb7ff1eb65be70ed50e898f572cf10fc0c693bb` is clean locally; its one exact push attempt
+  was rejected by the same safeguard. This is transport-only; no further push attempt is made.
 - Remaining work is unchanged in substance: populate and validate all family/style histories and
   provider evidence, complete family analytics/drill-down/browser/visual gates, add richer breadth
   targets and promotion fan-out, and close remaining V25 reference-board gaps.
