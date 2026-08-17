@@ -16,6 +16,12 @@
 - No implementation or acceptance flexibility was introduced. Provider/history population,
   family-wide analytics, complete breadth/promotion, and browser/visual coverage remain open under
   the existing implementation task.
+- Documentation implementation commit `f55366db` is clean locally. Its exact push to
+  `origin/feat/tc2000-frontend-rework` was attempted once and rejected before Git by the private-
+  origin safeguard because trusted authorization for this exact private payload and destination
+  was unavailable. No workaround, alternate transport, rewrite, reset, stash, or repeat will be
+  attempted; transport-only and not a product blocker. This operational update is committed
+  separately and will not trigger a second push attempt.
 
 ## 2026-08-17 — Isolated Python-series breadth target checkpoint
 
