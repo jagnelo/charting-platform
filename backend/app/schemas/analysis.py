@@ -891,6 +891,15 @@ class BreadthPythonResultOut(AnalysisResponseMetadata):
     diagnostics: list[dict[str, object]] = Field(default_factory=list)
 
 
+class BreadthPythonPromotionRequest(BaseModel):
+    """Create a reusable EasyScan from a completed historical Python breadth run."""
+
+    name: str | None = Field(default=None, min_length=1, max_length=100)
+    description: str | None = Field(default=None, max_length=2_000)
+    schedule: str | None = Field(default=None, max_length=50)
+    is_active: bool = True
+
+
 class IndicatorBatchRequest(BaseModel):
     symbols: list[str] = Field(min_length=1, max_length=10_000)
     indicator: str = Field(min_length=1, max_length=64)

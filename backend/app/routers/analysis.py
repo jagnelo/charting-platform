@@ -10,7 +10,7 @@ from collections.abc import Mapping
 from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -32,6 +32,7 @@ from app.routers.market_groups import (
     etf_industry_proxies,
     holdings_snapshot_source_filter,
 )
+from app.routers.screener import ScreenerOut
 from app.schemas.analysis import (
     AnalysisCell,
     AnalysisPoint,
@@ -72,6 +73,7 @@ from app.schemas.analysis import (
     BreadthHistoryRequest,
     BreadthMemberResultOut,
     BreadthOut,
+    BreadthPythonPromotionRequest,
     BreadthPythonResultOut,
     BreadthPythonResultPointOut,
     BreadthPythonRunOut,
@@ -5608,6 +5610,76 @@ def _python_breadth_run_out(run: ResearchRun) -> BreadthPythonRunOut:
     )
 
 
+def _python_breadth_manifest_fingerprint(manifest: Mapping[str, object]) -> str:
+    """Hash the exact persisted dataset manifest used by the isolated run."""
+    payload = json.dumps(manifest, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def _python_breadth_manifest_summary(manifest: Mapping[str, object]) -> dict[str, object]:
+    """Keep small, human-readable manifest fields beside the immutable run link."""
+    keys = (
+        "source",
+        "timeframe",
+        "adjustment",
+        "session",
+        "start_date",
+        "end_date",
+        "as_of",
+        "membership_version",
+        "requested_symbols",
+        "batch_history_limit",
+        "exclusions",
+    )
+    return {key: manifest[key] for key in keys if key in manifest}
+
+
+async def _python_breadth_source_instrument_ids(
+    db: AsyncSession, run: ResearchRun
+) -> list[int]:
+    """Resolve the source run's declared symbols without falling back to a broad universe."""
+    config = run.run_config if isinstance(run.run_config, dict) else {}
+    raw_symbols = config.get("symbols")
+    if not isinstance(raw_symbols, list):
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "breadth_promotion_universe_unavailable",
+                "message": "The breadth run has no declared member universe to promote.",
+            },
+        )
+    symbols = list(dict.fromkeys(str(symbol).strip().upper() for symbol in raw_symbols if str(symbol).strip()))
+    if not symbols:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "breadth_promotion_universe_unavailable",
+                "message": "The breadth run declared an empty member universe.",
+            },
+        )
+    instruments = (
+        (
+            await db.execute(
+                select(Instrument).where(Instrument.symbol.in_(symbols))
+            )
+        )
+        .scalars()
+        .all()
+    )
+    by_symbol = {instrument.symbol.upper(): instrument for instrument in instruments}
+    missing = [symbol for symbol in symbols if symbol not in by_symbol]
+    if missing:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "breadth_promotion_universe_incomplete",
+                "message": "The source member universe cannot be represented as a stable scan universe.",
+                "missing_symbols": missing,
+            },
+        )
+    return [by_symbol[symbol].id for symbol in symbols]
+
+
 @router.post("/breadth/python", response_model=BreadthPythonRunOut, status_code=202)
 async def queue_python_breadth(
     body: BreadthPythonRunRequest,
@@ -5813,6 +5885,124 @@ async def get_python_breadth_result(
         progress=run.progress if isinstance(getattr(run, "progress", {}), dict) else {},
         diagnostics=run.diagnostics if isinstance(run.diagnostics, list) else [],
     )
+
+
+@router.post(
+    "/breadth/python/runs/{run_id}/promote-scan",
+    response_model=ScreenerOut,
+    status_code=201,
+)
+async def promote_python_breadth_run_to_scan(
+    run_id: int,
+    body: BreadthPythonPromotionRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Promote a completed breadth history without losing its source lineage.
+
+    The resulting EasyScan is an explicitly labelled reusable current-data target over the
+    source run's declared member IDs.  The source run ID and exact manifest fingerprint remain
+    in the immutable conditions metadata; the promotion never claims that a current scan is a
+    historical point-in-time replay.
+    """
+    run = await _load_python_breadth_run(db, run_id, current_user)
+    config = run.run_config if isinstance(run.run_config, dict) else {}
+    if config.get("execution_mode") != "breadth_history":
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "breadth_promotion_requires_history",
+                "message": "Only completed historical breadth runs can be promoted to a scan.",
+            },
+        )
+    if run.status != "completed":
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": "breadth_promotion_requires_completed_run",
+                "status": run.status,
+            },
+        )
+    version = run.code_version
+    if (
+        version is None
+        or version.output_contract != "boolean"
+        or version.asset is None
+        or version.asset.user_id != current_user.id
+        or version.asset.kind != "condition"
+    ):
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "breadth_promotion_condition_unavailable",
+                "message": "The source run does not reference an owned Boolean condition version.",
+            },
+        )
+    artifact = next(
+        (item for item in run.artifacts if item.artifact_type == "breadth_history"),
+        None,
+    )
+    if artifact is None:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "breadth_promotion_artifact_unavailable",
+                "message": "The completed run has no persisted breadth history artifact.",
+            },
+        )
+    instrument_ids = await _python_breadth_source_instrument_ids(db, run)
+    name = body.name or f"Python breadth run {run.id}"
+    existing = (
+        await db.execute(
+            select(ScreenerDefinition)
+            .where(
+                ScreenerDefinition.user_id == current_user.id,
+                func.lower(ScreenerDefinition.name) == name.lower(),
+            )
+        )
+    ).scalar_one_or_none()
+    if existing is not None:
+        raise HTTPException(status_code=409, detail=f"A screener named '{name}' already exists")
+    manifest = run.dataset_manifest if isinstance(run.dataset_manifest, dict) else {}
+    universe = config.get("universe") if isinstance(config.get("universe"), dict) else {}
+    source_metadata = {
+        "type": "python_breadth_research_run",
+        "source_run_id": run.id,
+        "source_execution_mode": config.get("execution_mode"),
+        "source_code_version_id": run.code_version_id,
+        "source_definition_hash": str(config.get("definition_hash") or ""),
+        "source_reproducibility_hash": run.reproducibility_hash,
+        "source_dataset_manifest_sha256": _python_breadth_manifest_fingerprint(manifest),
+        "source_dataset_manifest": _python_breadth_manifest_summary(manifest),
+        "source_universe": universe,
+        "target_semantics": "re_evaluate_current_data_over_source_member_ids",
+        "point_in_time_source_preserved": True,
+    }
+    timeframe_value = str(config.get("timeframe") or Timeframe.D1.value)
+    try:
+        timeframe = Timeframe(timeframe_value)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail={"code": "invalid_source_timeframe"}) from exc
+    screener = ScreenerDefinition(
+        user_id=current_user.id,
+        name=name,
+        description=body.description
+        or f"Reusable current-data scan promoted from historical breadth run #{run.id}; source membership and manifest are retained.",
+        universe_type="custom",
+        universe_instrument_ids=instrument_ids,
+        timeframe=timeframe,
+        conditions={
+            "type": "python_condition",
+            "code_version_id": run.code_version_id,
+            "provenance": source_metadata,
+        },
+        schedule=body.schedule,
+        is_active=body.is_active,
+    )
+    db.add(screener)
+    await db.flush()
+    await db.refresh(screener)
+    return screener
 
 
 @router.post("/breadth", response_model=BreadthDefinitionOut)

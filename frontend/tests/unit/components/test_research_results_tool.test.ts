@@ -218,6 +218,23 @@ describe('ResearchResultsTool', () => {
     })
   })
 
+  it('promotes only a completed Python breadth history and reports the lineage-preserving scan', async () => {
+    apiGet.mockResolvedValue([{ id: 20, status: 'completed', code_version_id: 4, run_config: { execution_mode: 'breadth_history' }, dataset_manifest: {}, diagnostics: [], artifacts: [
+      { id: 11, name: 'breadth_history', artifact_type: 'breadth_history', payload: { value: { points: [{ timestamp: '2026-01-01T00:00:00Z', percentage: 1, requested_count: 1, eligible_count: 1, pass_count: 1, excluded_count: 0, coverage: 1 }], occurrences: [] } } },
+    ] }])
+    apiPost.mockResolvedValue({ id: 31, name: 'Python breadth run 20' })
+    const wrapper = mountTool()
+    await flushPromises()
+
+    const promoteButton = wrapper.findAll('button').find(button => button.text() === 'Promote to EasyScan')
+    expect(promoteButton).toBeDefined()
+    await promoteButton!.trigger('click')
+    await flushPromises()
+
+    expect(apiPost).toHaveBeenCalledWith('/analysis/breadth/python/runs/20/promote-scan', {})
+    expect(wrapper.text()).toContain('EasyScan “Python breadth run 20” (#31) created')
+  })
+
   it('keeps malformed dashboard layouts in the structured fallback instead of leaking invalid grid spans', async () => {
     apiGet.mockResolvedValue([{ id: 18, status: 'completed', code_version_id: 4, run_config: {}, dataset_manifest: {}, diagnostics: [], artifacts: [
       { id: 9, name: 'unsafe_layout', artifact_type: 'dashboard', payload: { value: { panels: [{ artifact: 'sample', title: 'Sample', span: 99 }] } } },

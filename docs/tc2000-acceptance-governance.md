@@ -1,5 +1,19 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-08-17 — Python breadth EasyScan promotion sub-gate
+
+For a completed isolated Python breadth-history run, acceptance must verify that Research Results
+can create an EasyScan without executing source in FastAPI or contacting a provider. The scan must
+reuse the immutable Boolean code version and source member IDs, preserve the source run ID,
+definition/reproducibility identifiers, exact dataset-manifest fingerprint, membership/as-of
+metadata, and explicitly state that the target re-evaluates current data over those source IDs.
+It must not claim historical replay semantics or silently substitute an all-instruments universe.
+
+Acceptance also verifies structured rejection for current-only, incomplete, artifact-less,
+foreign/non-Boolean, and incomplete-universe runs, plus duplicate-name conflict handling and the
+visible Research Results success/error state. Other compatible promotion targets remain open and
+must use the same lineage contract when implemented.
+
 ## 2026-08-17 — Expanded US-family acceptance directive
 
 The active completion bar covers eight complete US market perspectives: S&P 500, S&P MidCap 400,
@@ -36,7 +50,8 @@ filter and entered/exited transition filter, with a live visible-count and expli
 state. Filtering operates on the immutable persisted occurrence rows and does not alter the
 definition, denominator, or provenance. The filtered click path continues through the existing
 canonical occurrence/link bus. Component and type-check evidence passes; filtering for other
-event artifact classes and all promotion targets remain open gates.
+event artifact classes and promotion beyond the lineage-preserving EasyScan target remain open
+gates.
 
 ## 2026-08-17 — Persisted Python breadth occurrence sub-gate
 
@@ -48,7 +63,7 @@ canonical instrument ID, symbol, transition kind, metric, percentage, pass count
 count. The result tool must render the uPlot history and a bounded event browser; clicking an event
 must publish through the existing workstation occurrence/link bus with canonical identity and
 timestamp. Unit, router/service, database-backed integration, frontend component, type/build, and
-full Vitest evidence now pass. Filtering and promotion targets remain open gates.
+full Vitest evidence now pass. Filtering and promotion beyond EasyScan remain open gates.
 
 ## 2026-08-17 — Current US family perspective completion bar
 
@@ -90,8 +105,8 @@ missing-bar, and excluded observations must not create transitions. The workstat
 bounded occurrence browser and route a click through the existing occurrence/link bus with the
 canonical instrument ID and timestamp, updating the linked chart context. The service/API and
 represented authenticated browser fixtures pass this sub-gate. Occurrence filtering, isolated-
-Python artifacts, Study Lab promotion, and unrepresented Version-25 occurrence states remain open
-gates.
+Python artifacts, promotion beyond EasyScan, and unrepresented Version-25 occurrence states
+remain open gates.
 
 The first browser attempt exposed a localized, recoverable overlap between the unavailable generic
 history state and the occurrence list, plus an exact-route fixture that did not match query
@@ -105,7 +120,7 @@ same occurrence schema after collection: two known member states, canonical inst
 timestamp, metric when supplied, aggregate counts, stable ID, and immutable code/dataset lineage.
 The source must remain isolated; FastAPI may project the persisted result but may not execute user
 code. Router `19/19`, runner `88/88`, and database-backed generic/Python integration `4/4` pass.
-Direct UI rendering and promotion of these artifacts remain explicit open gates.
+Direct UI rendering is covered; promotion beyond EasyScan remains an explicit open gate.
 
 ## 2026-08-15 — Eight-root US analysis and Nasdaq-100 cap/equal gate
 

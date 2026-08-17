@@ -1,5 +1,19 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-17 — Python breadth promotion parity slice
+
+Research Results now exposes a promotion action for completed Python breadth-history artifacts.
+The resulting EasyScan uses the immutable Boolean code version and a custom universe made from
+the source run's declared canonical member IDs. Its condition metadata retains the source run,
+definition/reproducibility identifiers, exact dataset-manifest fingerprint, membership/universe
+metadata, and explicit current-data re-evaluation semantics. This prevents a point-in-time study
+from being presented as a historical scan replay or silently widened to the full market.
+
+The represented UI shows the action only for completed breadth-history runs and reports the
+created scan and its lineage-preserving semantics. Current-only, incomplete, missing-artifact,
+foreign, non-Boolean, and incomplete-universe paths are rejected. Promotion into plots, columns,
+filters, gauges, alerts, Study Lab assets, and Strategy Lab signals remains an explicit parity gap.
+
 ## 2026-08-17 — Latest US market-family perspective directive
 
 The parity target is not limited to SPX/SPY and its sectors. It comprises eight interchangeable
@@ -39,7 +53,8 @@ Study Lab artifacts: a uPlot percentage history followed by a bounded occurrence
 event click publishes canonical instrument identity and timestamp through the workstation link
 bus. Runner cells are normalized at the persistence boundary and retain the direct-analysis
 aggregate/timestamp semantics. This closes the represented result-surface state; occurrence
-filtering, promotion, and unrepresented exact Version-25 states remain explicit gaps.
+filtering beyond this artifact, promotion beyond EasyScan, and unrepresented exact Version-25
+states remain explicit gaps.
 
 ## 2026-08-17 — Current US family perspective vision
 
@@ -82,13 +97,14 @@ The focused authenticated browser fixture passes the represented click-to-chart 
 first run a real pointer-overlap defect in the unavailable-history state and a query-string route
 fixture mismatch were found and fixed; the unchanged acceptance then passed. This closes the
 represented backend/browser occurrence path, not occurrence filtering, isolated-Python occurrence
-artifacts, full Study Lab promotion, or unrepresented Version-25 visual states.
+artifacts, promotion beyond EasyScan, or unrepresented Version-25 visual states.
 
 The isolated Python breadth result now carries the same typed occurrence stream for aligned
 historical Boolean runs. Events are projected after the runner result is collected, so source code
 still executes only in the no-network runner and the response retains the immutable code-version,
 dataset-manifest, membership, as-of, and reproducibility lineage. This is an API/result-contract
-parity slice; direct workstation rendering and promotion of those run artifacts remain open.
+parity slice; direct workstation rendering is covered, while promotion beyond the
+lineage-preserving EasyScan target remains open.
 
 ## 2026-08-15 — Full US benchmark-family perspective matrix reaffirmed
 

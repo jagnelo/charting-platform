@@ -98,6 +98,7 @@ def test_manifest_gap_ids_are_documented_and_attached_to_required_surfaces():
     manifest = load_visual_manifest(MANIFEST)
     board_doc = (MANIFEST.parents[4] / "docs/tc2000-reference-board.md").read_text()
     expected_gap_ids = {
+        "REF-BREADTH-COMPOSER-V25",
         "REF-SHELL-V25",
         "REF-STATE-VARIANTS",
         "REF-LINKING-V25",

@@ -2594,8 +2594,38 @@ class TestWorkspaces:
                     if item["artifact_type"] == "breadth_history"
                 )
                 assert history_artifact["payload"]["value"]["occurrences"] == collected_payload["occurrences"]
+                promoted = client.post(
+                    f"/api/v1/analysis/breadth/python/runs/{queued_payload['run_id']}/promote-scan",
+                    headers=auth_headers,
+                    json={"name": "Historical Python breadth scan"},
+                )
+                assert promoted.status_code == 201, promoted.text
+                promoted_payload = promoted.json()
+                assert promoted_payload["universe_type"] == "custom"
+                assert promoted_payload["universe_instrument_ids"] == [instrument.id]
+                assert promoted_payload["conditions"]["type"] == "python_condition"
+                assert promoted_payload["conditions"]["code_version_id"] == version_id
+                source = promoted_payload["conditions"]["provenance"]
+                assert source["type"] == "python_breadth_research_run"
+                assert source["source_run_id"] == queued_payload["run_id"]
+                assert source["source_execution_mode"] == "breadth_history"
+                assert source["point_in_time_source_preserved"] is True
+                assert len(source["source_dataset_manifest_sha256"]) == 64
+                duplicate = client.post(
+                    f"/api/v1/analysis/breadth/python/runs/{queued_payload['run_id']}/promote-scan",
+                    headers=auth_headers,
+                    json={"name": "Historical Python breadth scan"},
+                )
+                assert duplicate.status_code == 409
             else:
                 assert collected_payload["current"]["requested_count"] == 1
+                not_history = client.post(
+                    f"/api/v1/analysis/breadth/python/runs/{queued_payload['run_id']}/promote-scan",
+                    headers=auth_headers,
+                    json={"name": "Current Python breadth scan"},
+                )
+                assert not_history.status_code == 422
+                assert not_history.json()["detail"]["code"] == "breadth_promotion_requires_history"
 
     def test_etf_constituent_snapshot_is_point_in_time_and_source_labelled(
         self, client, auth_headers, db, instrument, instrument_type, ohlcv_bars

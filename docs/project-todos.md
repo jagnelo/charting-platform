@@ -1,5 +1,25 @@
 # Project TODO Memory
 
+### 2026-08-17 — Python breadth occurrence promotion to EasyScan
+
+- [x] Completed historical Python breadth runs can now be promoted from Research Results into
+      an EasyScan. The target reuses the immutable Boolean code version and the source run's
+      declared canonical member IDs; it never falls back to `all` or silently changes the source
+      universe.
+- [x] The EasyScan condition retains source run ID, execution mode, definition hash,
+      reproducibility hash, exact dataset-manifest SHA-256, a compact manifest summary, source
+      universe/membership metadata, and an explicit `re_evaluate_current_data_over_source_member_ids`
+      semantic. This preserves the point-in-time study lineage without misrepresenting the scan
+      as a historical replay.
+- [x] Promotion rejects current-only, incomplete, artifact-less, foreign, non-Boolean, or
+      incomplete-universe runs with structured errors and rejects duplicate scan names. Backend
+      integration and Research Results component regressions, full frontend tests, type-check,
+      production build, Ruff, compile, and diff checks pass.
+- [ ] Promotion remains to be added for compatible chart plots, watchlist columns/filters,
+      Market Gauges, alerts, reusable Study Lab artifacts, and Strategy Lab signals. Those paths
+      must carry the same immutable source-run and dataset lineage rather than copying only a
+      code-version ID.
+
 ### 2026-08-17 — Expanded US market-family analysis directive (latest goal scope)
 
 - [ ] Treat the following as the complete set of interchangeable US top-down analysis
@@ -46,8 +66,8 @@
       and canonical occurrence emission. Focused component and type-check gates pass; no
       acceptance flexibility used.
 - [ ] Filtering remains to be applied consistently to other event-bearing Study Lab artifacts,
-      and occurrence promotion into compatible chart/list/filter/scan/gauge/alert/Study Lab
-      targets remains open.
+      and occurrence promotion into compatible chart/list/filter/gauge/alert/Study Lab targets
+      remains open; EasyScan promotion is now covered by the dedicated slice above.
 
 ### 2026-08-17 — Persisted Python breadth occurrence result surface
 
@@ -125,9 +145,9 @@
       metric, aggregate counts, stable ID, and the immutable code/dataset run lineage. Focused
       router `19/19`, isolated runner `88/88`, and database-backed generic/Python integration
       `4/4` pass; no arbitrary source executes in FastAPI.
-- [ ] Still open: occurrence filtering, direct rendering of Python-run occurrence artifacts in
-      the workstation/Research Results surface, and promotion into every compatible chart/list/
-      filter/scan/gauge/alert/Study Lab target. The browser acceptance covers the represented
+- [ ] Still open: occurrence filtering for other event artifacts and promotion from persisted
+      Python results into every compatible chart/list/filter/gauge/alert/Study Lab target; the
+      lineage-preserving EasyScan target is now covered. The browser acceptance covers the represented
       visual-history click-to-chart path; unrepresented Version-25 occurrence states remain in
       the visual gap ledger.
 
