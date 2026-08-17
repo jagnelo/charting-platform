@@ -18,11 +18,12 @@ These remain tracked gaps rather than silently inferred from the Finviz referenc
 
 The current `Market Map` tool is the interim browser/component oracle for the represented data
 workflow: source/group/period/area/colour controls, deterministic proportional tiles, locked-source
-badge, freshness, coverage, warnings, legend, hover detail, additive multi-selection, and
-linked-symbol selection. The map is intentionally source-agnostic: a locked index/ETF watchlist,
+badge, freshness, coverage, warnings, legend, hover detail, additive multi-selection, nested
+breadcrumbs, wheel/button zoom, pointer panning, and linked-symbol selection. The map is
+intentionally source-agnostic: a locked index/ETF watchlist,
 managed scan, personal list, combo, or explicit-symbol list uses the same visual and interaction
-contract. The reference-board gaps for nested hierarchy, zoom/pan, broader map-to-analysis
-publication, persistent snapshots, and final visual baselines remain open.
+contract. The reference-board gaps for map-to-analysis publication beyond linked-symbol selection,
+persistent snapshots, and final visual baselines remain open.
 
 ## 2026-08-17 — Family/style analysis visual states (latest requirement)
 

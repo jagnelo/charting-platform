@@ -83,8 +83,11 @@ The captures are behavioural/product references; Finviz artwork and branding are
       publication. The same surface is therefore applicable to personal, managed, index, ETF,
       combo, sector, industry, and explicit-symbol sources; locked membership changes only the
       source mutation rules, not the map interaction model.
-- [ ] Final nested hierarchy navigation, zoom/pan, map-to-watchlist/breadth/Study-Lab publication,
-      persistent snapshots, and board-approved visual baselines remain open.
+- [x] Added nested hierarchy navigation with parent breadcrumbs, wheel/button zoom, and pointer
+      panning. These interactions are source-agnostic and preserve selection/publication without a
+      route change.
+- [ ] Map-to-watchlist/breadth/Study-Lab publication beyond linked-symbol selection, persistent
+      snapshots, and board-approved visual baselines remain open.
 
 ### 2026-08-17 — US market family/style analysis matrix (latest user requirement)
 

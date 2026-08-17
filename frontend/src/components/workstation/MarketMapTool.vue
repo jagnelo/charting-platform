@@ -44,17 +44,34 @@
       <span>{{ map.source.name }}</span><span>{{ map.evaluated_count }}/{{ map.requested_count }} covered</span><span>{{ formatFreshness(map.freshness) }}</span><span v-if="map.source.locked">Locked source · {{ map.source.membership_version }}</span>
     </div>
     <div v-if="map" class="market-map-tool__nodes" aria-label="Market Map groups">
-      <button v-for="node in visibleNodes" :key="node.node_id" type="button" :class="{ active: selectedNode === node.node_id }" @click="selectedNode = selectedNode === node.node_id ? null : node.node_id">{{ node.label }} <small>{{ node.member_count }}</small></button>
+      <button v-if="selectedNode" type="button" aria-label="Market Map parent group" @click="selectNode(activeNode?.parent_id ?? null)">← Up</button>
+      <button v-for="node in visibleNodes" :key="node.node_id" type="button" :class="{ active: selectedNode === node.node_id }" @click="selectNode(node.node_id)">{{ node.label }} <small>{{ node.member_count }}</small></button>
     </div>
+    <nav v-if="map" class="market-map-tool__breadcrumbs" aria-label="Market Map hierarchy">
+      <button type="button" :class="{ active: !selectedNode }" @click="selectNode(null)">All members</button>
+      <template v-for="node in breadcrumbs" :key="node.node_id">
+        <span aria-hidden="true">›</span>
+        <button type="button" :class="{ active: selectedNode === node.node_id }" @click="selectNode(node.node_id)">{{ node.label }}</button>
+      </template>
+    </nav>
     <div v-if="map" class="market-map-tool__legend" aria-label="Market Map colour legend"><span class="market-map-tool__legend--negative">−</span><span>{{ colorLabel }}</span><span class="market-map-tool__legend--positive">+</span><span class="market-map-tool__legend__coverage">Coverage {{ Math.round(map.coverage * 100) }}%</span></div>
-    <div v-if="map" class="market-map-tool__tiles" aria-label="Market Map tiles">
-      <button v-for="cell in visibleLayoutCells" :key="cell.instrument_id" type="button" class="market-map-tool__tile" :class="[tileClass(cell.color_value), { 'market-map-tool__tile--selected': selectedIds.includes(cell.instrument_id) }]" :style="tileStyle(cell)" :title="`${cell.symbol} · ${cell.name}`" @mouseenter="hoveredCell = cell" @mouseleave="hoveredCell = null" @click="selectCell($event, cell)">
-        <strong>{{ cell.symbol }}</strong><span>{{ formatMetric(cell.color_value) }}</span><small>{{ cell.group_path.join(' · ') || 'All members' }}</small>
-      </button>
-      <p v-if="!visibleCells.length" class="market-map-tool__status">No covered members match this group.</p>
+    <div v-if="map" class="market-map-tool__viewport-controls" aria-label="Market Map viewport controls">
+      <button type="button" aria-label="Zoom out Market Map" :disabled="viewportZoom <= 1" @click="zoomBy(-0.25)">−</button>
+      <span aria-live="polite">{{ Math.round(viewportZoom * 100) }}%</span>
+      <button type="button" aria-label="Zoom in Market Map" :disabled="viewportZoom >= 4" @click="zoomBy(0.25)">+</button>
+      <button type="button" aria-label="Reset Market Map viewport" :disabled="viewportZoom === 1 && !panX && !panY" @click="resetViewport">Reset</button>
+      <small v-if="viewportZoom > 1">Drag empty map space or use the wheel to pan and zoom.</small>
+    </div>
+    <div v-if="map" ref="viewportRef" class="market-map-tool__tiles" aria-label="Market Map tiles" @wheel.prevent="zoomByWheel" @pointerdown="startPan" @pointermove="movePan" @pointerup="endPan" @pointercancel="endPan">
+      <div class="market-map-tool__canvas" :style="canvasStyle">
+        <button v-for="cell in visibleLayoutCells" :key="cell.instrument_id" type="button" class="market-map-tool__tile" :class="[tileClass(cell.color_value), { 'market-map-tool__tile--selected': selectedIds.includes(cell.instrument_id) }]" :style="tileStyle(cell)" :title="`${cell.symbol} · ${cell.name}`" @pointerdown.stop @mouseenter="hoveredCell = cell" @mouseleave="hoveredCell = null" @click="selectCell($event, cell)">
+          <strong>{{ cell.symbol }}</strong><span>{{ formatMetric(cell.color_value) }}</span><small>{{ cell.group_path.join(' · ') || 'All members' }}</small>
+        </button>
+        <p v-if="!visibleCells.length" class="market-map-tool__status">No covered members match this group.</p>
+      </div>
     </div>
     <aside v-if="hoveredCell" class="market-map-tool__hover" role="status"><strong>{{ hoveredCell.symbol }}</strong><span>{{ hoveredCell.name }}</span><span>{{ hoveredCell.group_path.join(' · ') || 'All members' }}</span><span v-if="hoveredCell.warnings.length">{{ hoveredCell.warnings.map(item => item.message).join(' · ') }}</span></aside>
-    <p v-else-if="!loading" class="market-map-tool__status">Choose a managed index/ETF universe or personal watchlist to build a map.</p>
+    <p v-if="!map && !loading" class="market-map-tool__status">Choose a managed index/ETF universe or personal watchlist to build a map.</p>
   </section>
 </template>
 
@@ -81,6 +98,11 @@ const map = ref<MarketMap | null>(null)
 const selectedNode = ref<string | null>(null)
 const selectedIds = ref<number[]>([])
 const hoveredCell = ref<MarketMapCell | null>(null)
+const viewportRef = ref<HTMLElement | null>(null)
+const viewportZoom = ref(1)
+const panX = ref(0)
+const panY = ref(0)
+const panStart = ref<{ pointerX: number; pointerY: number; x: number; y: number } | null>(null)
 const loadingSources = computed(() => watchlistStore.watchlistSourcesLoading)
 const sourcesError = computed(() => watchlistStore.watchlistSourcesError)
 
@@ -104,14 +126,70 @@ function selectCell(event: MouseEvent, cell: MarketMapCell) {
     : [cell.instrument_id]
   emit('select', cell.symbol, cell.instrument_id)
 }
-const visibleNodes = computed(() => (map.value?.nodes ?? []).filter(node => node.level !== 'root'))
+const activeNode = computed(() => map.value?.nodes.find(node => node.node_id === selectedNode.value) ?? null)
+const visibleNodes = computed(() => {
+  const parentId = selectedNode.value ?? 'root'
+  return (map.value?.nodes ?? []).filter(node => node.node_id !== 'root' && (node.parent_id ?? 'root') === parentId)
+})
+const breadcrumbs = computed(() => {
+  if (!activeNode.value || !map.value) return []
+  return activeNode.value.group_path
+    .map((_, index) => activeNode.value?.group_path.slice(0, index + 1) ?? [])
+    .map(path => map.value?.nodes.find(node => node.group_path.length === path.length && node.group_path.every((part, index) => part === path[index])))
+    .filter((node): node is NonNullable<typeof node> => Boolean(node))
+})
 const visibleCells = computed(() => {
   if (!map.value) return []
-  if (!selectedNode.value || selectedNode.value === 'root') return map.value.cells
-  return map.value.cells.filter(cell => cell.group_path.length && (`group:${cell.group_path.join('/')}` === selectedNode.value || `group:${cell.group_path[0]}` === selectedNode.value))
+  const path = activeNode.value?.group_path ?? []
+  if (!path.length) return map.value.cells
+  return map.value.cells.filter(cell => path.every((part, index) => cell.group_path[index] === part))
 })
 const visibleLayoutCells = computed<MarketMapLayoutCell[]>(() => layoutMarketMapCells(visibleCells.value))
 const colorLabel = computed(() => colorMetric.value.replace(/_/g, ' '))
+const canvasStyle = computed(() => ({ transform: `translate(${panX.value}%, ${panY.value}%) scale(${viewportZoom.value})` }))
+
+function selectNode(nodeId: string | null) {
+  selectedNode.value = nodeId
+  selectedIds.value = []
+  resetViewport()
+}
+function clampPan(value: number) {
+  const limit = (viewportZoom.value - 1) * 100
+  return Math.max(-limit, Math.min(0, value))
+}
+function resetViewport() {
+  viewportZoom.value = 1
+  panX.value = 0
+  panY.value = 0
+  panStart.value = null
+}
+function zoomBy(delta: number) {
+  const next = Math.max(1, Math.min(4, Number((viewportZoom.value + delta).toFixed(2))))
+  viewportZoom.value = next
+  panX.value = clampPan(panX.value)
+  panY.value = clampPan(panY.value)
+}
+function zoomByWheel(event: WheelEvent) {
+  zoomBy(event.deltaY > 0 ? -0.25 : 0.25)
+}
+function startPan(event: PointerEvent) {
+  if (viewportZoom.value <= 1 || (event.target instanceof Element && event.target.closest('button'))) return
+  const element = event.currentTarget
+  if (!(element instanceof HTMLElement)) return
+  panStart.value = { pointerX: event.clientX, pointerY: event.clientY, x: panX.value, y: panY.value }
+  element.setPointerCapture(event.pointerId)
+}
+function movePan(event: PointerEvent) {
+  if (!panStart.value || !viewportRef.value) return
+  const bounds = viewportRef.value.getBoundingClientRect()
+  panX.value = clampPan(panStart.value.x + ((event.clientX - panStart.value.pointerX) / Math.max(bounds.width, 1)) * 100)
+  panY.value = clampPan(panStart.value.y + ((event.clientY - panStart.value.pointerY) / Math.max(bounds.height, 1)) * 100)
+}
+function endPan(event: PointerEvent) {
+  const element = event.currentTarget
+  if (element instanceof HTMLElement && element.hasPointerCapture(event.pointerId)) element.releasePointerCapture(event.pointerId)
+  panStart.value = null
+}
 
 async function run() {
   if (!sourceId.value) return
@@ -121,6 +199,7 @@ async function run() {
     map.value = await fetchMarketMap({ source_id: sourceId.value, group_by: groupBy.value, period: period.value, area_metric: areaMetric.value, color_metric: colorMetric.value, reference_symbol: colorMetric.value === 'relative_return' ? referenceSymbol.value.toUpperCase() : null, timeframe: 'D1', adjusted: true })
     selectedNode.value = null
     selectedIds.value = []
+    resetViewport()
   } catch (cause) {
     error.value = cause instanceof Error ? cause.message : 'Unable to load Market Map'
   } finally {
@@ -151,14 +230,23 @@ onMounted(async () => {
 .market-map-tool__run:disabled { opacity: .55; cursor: default; }
 .market-map-tool__status { margin: 0; padding: 6px 9px; color: #aeb8c7; }
 .market-map-tool__status--error { color: #ff9898; }
-.market-map-tool__summary, .market-map-tool__nodes { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding: 0 8px; color: #9eabbb; }
+.market-map-tool__summary, .market-map-tool__nodes, .market-map-tool__breadcrumbs, .market-map-tool__viewport-controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding: 0 8px; color: #9eabbb; }
 .market-map-tool__summary span:first-child { color: #f1f4f8; font-weight: 700; }
 .market-map-tool__nodes button { cursor: pointer; }
 .market-map-tool__nodes button.active { border-color: #70b4ff; color: #fff; }
 .market-map-tool__nodes small { color: #8e9bad; }
+.market-map-tool__breadcrumbs { gap: 5px; color: #8e9bad; }
+.market-map-tool__breadcrumbs button { padding: 3px 5px; cursor: pointer; }
+.market-map-tool__breadcrumbs button.active { border-color: #70b4ff; color: #fff; }
+.market-map-tool__viewport-controls { justify-content: flex-end; }
+.market-map-tool__viewport-controls button { min-width: 26px; padding: 3px 6px; cursor: pointer; }
+.market-map-tool__viewport-controls button:disabled { cursor: default; opacity: .5; }
+.market-map-tool__viewport-controls small { margin-left: auto; color: #7d8a9b; }
 .market-map-tool__legend { display: flex; gap: 8px; align-items: center; padding: 2px 8px; color: #aeb8c7; text-transform: capitalize; }
 .market-map-tool__legend--negative { color: #ff9a9a; font-weight: 800; }.market-map-tool__legend--positive { color: #82e2ac; font-weight: 800; }.market-map-tool__legend__coverage { margin-left: auto; text-transform: none; }
-.market-map-tool__tiles { position: relative; min-height: 300px; margin: 0 8px 8px; border: 1px solid #303a48; background: #0d1218; }
+.market-map-tool__tiles { position: relative; min-height: 300px; margin: 0 8px 8px; overflow: hidden; border: 1px solid #303a48; background: #0d1218; cursor: grab; touch-action: none; }
+.market-map-tool__tiles:active { cursor: grabbing; }
+.market-map-tool__canvas { position: absolute; inset: 0; transform-origin: top left; transition: transform 120ms ease-out; }
 .market-map-tool__tile { position: absolute; display: flex; min-width: 28px; min-height: 28px; flex-direction: column; justify-content: center; align-items: center; gap: 3px; cursor: pointer; color: #fff !important; overflow: hidden; border-radius: 0 !important; }
 .market-map-tool__tile strong { font-size: 16px; }
 .market-map-tool__tile small { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; opacity: .75; }

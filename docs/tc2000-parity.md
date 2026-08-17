@@ -42,11 +42,12 @@ The first workstation consumer now exists as the `Market Map` tool. It uses seri
 configuration to select a `WatchlistSource`, grouping, period, area, and colour; renders covered
 cells and hierarchy labels; exposes locked-source and freshness lineage; and publishes tile
 selection through the existing linked-symbol event. Its deterministic slice-and-dice geometry,
-legend, hover detail, and additive multi-selection are shared by personal, managed, index, ETF,
+legend, hover detail, additive multi-selection, nested breadcrumbs, wheel/button zoom, and pointer
+panning are shared by personal, managed, index, ETF,
 combo, sector, industry, and explicit-symbol sources. Locked/system-managed sources retain their
-membership governance while using this same map interaction model. Final nested hierarchy,
-zoom/pan, map-to-watchlist/breadth/Study-Lab publication, persistent snapshots, and board-guided
-visual parity remain explicit acceptance gaps.
+membership governance while using this same map interaction model. Map-to-watchlist/breadth/
+Study-Lab publication, persistent snapshots, and board-guided visual parity remain explicit
+acceptance gaps.
 
 ## 2026-08-17 — US family/style and Nasdaq cap/equal acceptance matrix (latest requirement)
 

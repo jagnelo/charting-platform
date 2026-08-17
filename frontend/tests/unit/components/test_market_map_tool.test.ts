@@ -33,6 +33,7 @@ describe('MarketMapTool', () => {
     expect(apiPost).toHaveBeenCalledWith('/analysis/market-map', expect.objectContaining({ source_id: 'market-group:sp500', group_by: 'sector_industry' }))
     expect(wrapper.text()).toContain('Locked source')
     expect(wrapper.text()).toContain('NVDA')
+    expect(wrapper.text()).not.toContain('Choose a managed index/ETF universe')
     expect(wrapper.findAll('.market-map-tool__tile')).toHaveLength(2)
 
     await wrapper.get('select[aria-label="Market Map grouping"]').setValue('sector')
@@ -54,5 +55,20 @@ describe('MarketMapTool', () => {
     await flushPromises()
     expect(wrapper.find('[role="alert"]').text()).toContain('map unavailable')
     expect(wrapper.find('select[aria-label="Market Map universe"]').exists()).toBe(true)
+  })
+
+  it('drills hierarchy and controls the map viewport without changing the source', async () => {
+    const wrapper = mount(MarketMapTool)
+    await flushPromises()
+
+    await wrapper.find('.market-map-tool__nodes button').trigger('click')
+    expect(wrapper.find('.market-map-tool__breadcrumbs').text()).toContain('Technology')
+    expect(wrapper.find('.market-map-tool__tiles').exists()).toBe(true)
+
+    await wrapper.get('[aria-label="Zoom in Market Map"]').trigger('click')
+    expect(wrapper.find('[aria-live="polite"]').text()).toBe('125%')
+    await wrapper.get('[aria-label="Reset Market Map viewport"]').trigger('click')
+    expect(wrapper.find('[aria-live="polite"]').text()).toBe('100%')
+    expect(apiPost.mock.calls.length).toBeGreaterThan(0)
   })
 })
