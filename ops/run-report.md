@@ -28271,3 +28271,18 @@ and strict visual gaps remain explicitly tracked.
   constraint only and was not retried or worked around.
 - Remaining goal gaps include exact V25 editor imagery, arbitrary Python predicate/promotion
   fan-out, point-in-time weights, full index-family population, provider breadth, and final audit.
+
+# 2026-08-17 — Locked Market Map source regression checkpoint
+
+- Added a Docker-backed integration regression proving a locked market-group/index source uses the
+  same Market Map batch contract as a personal watchlist. It verifies locked/non-editable source
+  metadata, canonical identity, local bar evaluation, market-cap area weighting, and
+  sector/industry rollup.
+- Validation: targeted integration `1/1`; Ruff and `git diff --check` passed. The unprivileged run
+  was a Docker-socket setup failure and was superseded by the unchanged host-permitted rerun. No
+  acceptance flexibility or visual threshold/mask relaxation was used.
+- Commit `b9436d45 test: cover locked market map universes` is clean locally. Its one exact push
+  attempt was rejected before Git by the private-origin safeguard; this is transport-only and was
+  not retried or worked around.
+- Remaining gaps: ETF-holdings-family execution, point-in-time weights, Python/promotion fan-out,
+  exact V25 visual evidence, provider breadth, and final audit.

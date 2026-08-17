@@ -30073,3 +30073,19 @@ indefinite soak; longer endurance remains an explicit open gap.
   reset, or stash will be attempted. This is transport-only and not a product blocker.
 - Open: exact V25 editor imagery, arbitrary Python predicate and promotion fan-out, point-in-time
   weights and family population, provider breadth, and the final functional/visual/security audit.
+
+# 2026-08-17 — Locked Market Map source regression checkpoint
+
+- Added Docker-backed integration coverage for a locked market-group/index source. It asserts that
+  the source is canonical, locked, and non-editable while still using the exact same Market Map
+  batch calculation as a personal watchlist: local bars, market-cap area weighting, and
+  sector/industry rollup all execute through one contract.
+- Targeted integration passed `1/1` with only existing third-party deprecation warnings; Ruff and
+  `git diff --check` passed. The first unprivileged run failed before test setup on Docker-socket
+  permission and was superseded by the unchanged host-permitted rerun. No acceptance flexibility,
+  visual mask, threshold, or source substitution was used.
+- Implementation commit `b9436d45` is clean locally. Its one exact push attempt was rejected before
+  Git by the private-origin safeguard; no retry, workaround, alternate transport, rewrite, reset,
+  or stash will be attempted. This is transport-only and not a product blocker.
+- Open: ETF-holdings-family execution coverage, point-in-time weights, arbitrary Python/promotion
+  fan-out, exact V25 visual references, provider breadth, and final audit gates.
