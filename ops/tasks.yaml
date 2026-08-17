@@ -11361,3 +11361,37 @@ tasks:
         acceptance relaxations. No visual threshold, mask, provider, scope, or lineage rule was
         relaxed. This implementation remains short of direct series relationships, promotion
         fan-out, complete family/provider population, and final V25 visual acceptance.
+  - id: tc2000-python-series-comparison-20260818
+    title: Compare two isolated Python series inside recursive breadth trees
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Add a direct python_series_comparison leaf to the unified Python breadth tree. Two owned
+      numeric-series CodeVersions are evaluated against the same prepared member/timestamp and
+      combined as difference or ratio-minus-one before the declared Boolean threshold relation.
+      Either side may use the member's declared benchmark dataset for cross-derived comparisons.
+    definition_of_done:
+      - API resolves both owned series versions and persists source, output, parameter, relation, and lineage metadata
+      - Isolated runner evaluates both series without provider, network, or browser execution and returns numeric comparison metrics
+      - Difference and ratio-minus-one relations handle invalid and zero-reference values explicitly
+      - Recursive visual authoring exposes both series assets, relation, operator, and threshold
+      - Current/history member results retain the normal exclusions, alignment, and reproducibility contract
+      - Cross-sectional-to-derived relationships and promotion fan-out remain explicit next gaps
+    validation:
+      - runner-python-tree-series-7-of-7
+      - api-python-series-comparison-1-of-1
+      - backend-unit-1201-of-1201
+      - frontend-editor-comparison-9-of-9
+      - frontend-vitest-872-of-872
+      - frontend-typecheck-build
+      - rebuilt-browser-python-comparison-1-of-1
+      - rebuilt-browser-python-neighbor-regression-2-of-2
+      - ruff-compileall-diff-check
+    notes:
+      - >-
+        This context contains no acceptance flexibility. The browser stack was rebuilt from the
+        current branch before the comparison flow; the new flow and unchanged Python-series/tree
+        neighbors then passed. Direct member-level comparison is implemented; cross-sectional
+        derived relationships, universal promotion fan-out, complete family/provider population,
+        and final V25 visual acceptance remain tracked gaps.

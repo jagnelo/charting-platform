@@ -30326,3 +30326,27 @@ indefinite soak; longer endurance remains an explicit open gap.
 - Remaining gaps: direct series-to-series/cross-derived relationships, universal promotion fan-out,
   complete family/provider population, exact V25 visual evidence, and the final functional/visual/
   security/performance audit. Next context is Python target-series AST and promotion.
+
+# 2026-08-18 — Direct Python series-comparison checkpoint
+
+- Added `python_series_comparison` to the recursive breadth tree. It resolves two user-owned
+  numeric-series CodeVersions, evaluates both in the isolated runner against the same prepared
+  member and timestamp, then applies difference or ratio-minus-one plus the declared threshold
+  relation. Either source may use the member's declared benchmark dataset, enabling cross-derived
+  comparisons without provider fan-out.
+- The visual tree editor exposes left/right series assets, relation, operator, and threshold.
+  Current and historical member cells retain metrics, exclusions, exact alignment, and normal
+  reproducibility lineage.
+- Validation passed: runner tree/series `7/7`; API integration `1/1`; backend unit `1201/1201`;
+  frontend editor `9/9`; frontend Vitest `872/872`; `vue-tsc`; Vite build; rebuilt browser
+  comparison flow `1/1`; unchanged Python-series/tree browser neighbors `2/2`; Ruff; compileall;
+  and diff-check.
+- No acceptance flexibility, visual threshold, mask, provider, scope, or lineage rule was
+  relaxed. The branch stack was rebuilt before browser validation. The configured private-origin
+  push was attempted once for this changeset and rejected by the execution policy before Git
+  transport because it would send the accumulated private payload externally; no workaround or
+  retry was attempted.
+- Implementation commit `dd2e9374` is clean locally. Operational closure follows separately.
+  Remaining gaps are cross-sectional-to-derived relationships, universal promotion fan-out,
+  complete family/provider population, exact V25 visual evidence, and the final audit.
+- Next context: promotion fan-out and cross-sectional derived-series relationships.

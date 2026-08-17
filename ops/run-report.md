@@ -28485,3 +28485,18 @@ and strict visual gaps remain explicitly tracked.
   population, exact V25 evidence, and final audit remain open and tracked.
 - Git: implementation/docs commit `0b59925f` is clean locally. Push is not claimed because the
   private-origin safeguard rejects the destination before Git transport.
+
+# 2026-08-18 — Direct Python series-comparison checkpoint
+
+- Scope: recursive breadth predicates comparing two owned isolated Python numeric series on the
+  same prepared member/timestamp, including benchmark-derived source code.
+- Implementation: API resolution of both CodeVersions, persisted left/right source and output
+  metadata, isolated difference/ratio-minus-one evaluation, explicit zero-reference handling,
+  recursive visual authoring, and browser request wiring.
+- Validation: runner `7/7`; API `1/1`; backend unit `1201/1201`; editor `9/9`; frontend Vitest
+  `872/872`; type-check/build; rebuilt browser comparison `1/1`; unchanged neighboring browser
+  flows `2/2`; Ruff; compileall; and diff-check.
+- No acceptance flexibility was used. The private-origin push attempt was rejected before Git
+  transport by the execution policy; no workaround or retry was attempted.
+- Implementation commit `dd2e9374` is clean locally. Cross-sectional derived relationships,
+  promotion fan-out, full family/provider population, exact V25 evidence, and final audit remain.
