@@ -5584,6 +5584,14 @@ def _manifest_exclusion_warnings(manifest: Mapping[str, object]) -> list[Analysi
     ]
 
 
+def _python_breadth_occurrences(
+    points: list[BreadthPythonResultPointOut],
+) -> list[BreadthDefinitionHistoryOccurrenceOut]:
+    """Project isolated Python history points into the shared occurrence contract."""
+    rows = detect_breadth_occurrences([point.model_dump() for point in points])
+    return [BreadthDefinitionHistoryOccurrenceOut(**row) for row in rows]
+
+
 def _python_breadth_run_out(run: ResearchRun) -> BreadthPythonRunOut:
     config = run.run_config if isinstance(run.run_config, dict) else {}
     return BreadthPythonRunOut(
@@ -5763,6 +5771,7 @@ async def get_python_breadth_result(
                 },
                 requested_count,
             )
+    occurrences = _python_breadth_occurrences(points)
     manifest_warnings = _manifest_exclusion_warnings(
         run.dataset_manifest if isinstance(run.dataset_manifest, dict) else {}
     )
@@ -5800,6 +5809,7 @@ async def get_python_breadth_result(
         dataset_manifest=run.dataset_manifest if isinstance(run.dataset_manifest, dict) else {},
         current=current,
         points=points,
+        occurrences=occurrences,
         progress=run.progress if isinstance(getattr(run, "progress", {}), dict) else {},
         diagnostics=run.diagnostics if isinstance(run.diagnostics, list) else [],
     )

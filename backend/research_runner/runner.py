@@ -222,7 +222,7 @@ def _truncate_dataset(dataset: dict, index: int) -> dict:
 
 def _boolean_artifact(
     result: dict, output_name: str | None
-) -> tuple[bool | None, str | None]:
+) -> tuple[bool | None, str | None, float | None]:
     """Extract one Boolean output while preserving a bounded cell diagnostic."""
     matches = [
         artifact
@@ -232,14 +232,16 @@ def _boolean_artifact(
         and (output_name is None or name == output_name)
     ]
     if len(matches) != 1:
-        return None, f"Expected exactly one boolean output{f' named {output_name!r}' if output_name else ''}."
+        return None, f"Expected exactly one boolean output{f' named {output_name!r}' if output_name else ''}.", None
     value = matches[0].get("value")
     if not isinstance(value, bool):
-        return None, "Boolean output must be true or false."
+        return None, "Boolean output must be true or false.", None
     exclusion = matches[0].get("exclusion")
     if isinstance(exclusion, str) and exclusion:
-        return None, exclusion
-    return value, None
+        return None, exclusion, None
+    metric = matches[0].get("metric")
+    metric = float(metric) if isinstance(metric, int | float) and not isinstance(metric, bool) else None
+    return value, None, metric
 
 
 def _execute_breadth_history(
@@ -319,13 +321,14 @@ def _execute_breadth_history(
                 },
                 manage_timeout=False,
             )
-            value, error = _boolean_artifact(result, output_name)
+            value, error, metric = _boolean_artifact(result, output_name)
             cell = {
                 "instrument_id": candidate.get("instrument_id"),
                 "symbol": str(candidate.get("symbol") or "").upper(),
                 "name": str((candidate.get("metadata") or {}).get("name") or candidate.get("symbol") or "").strip(),
                 "status": "completed" if error is None else "excluded",
                 "value": value,
+                "metric": metric,
                 "timestamp": timestamp,
             }
             if error:
@@ -534,7 +537,7 @@ def _execute_batch(
                 )
                 continue
             if output_contract == "boolean":
-                value, extraction_error = _boolean_artifact(result, output_name)
+                value, extraction_error, extracted_metric = _boolean_artifact(result, output_name)
                 matches = [
                     artifact
                     for name, artifact in result.get("artifacts", {}).items()
@@ -585,8 +588,8 @@ def _execute_batch(
                 "value": value,
             }
             if output_contract == "boolean" and matches:
-                if matches[0].get("metric") is not None:
-                    cell["metric"] = matches[0]["metric"]
+                if extracted_metric is not None:
+                    cell["metric"] = extracted_metric
                 if matches[0].get("exclusion") is not None:
                     cell["exclusion"] = matches[0]["exclusion"]
             cells.append(cell)

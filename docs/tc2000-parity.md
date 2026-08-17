@@ -17,6 +17,12 @@ fixture mismatch were found and fixed; the unchanged acceptance then passed. Thi
 represented backend/browser occurrence path, not occurrence filtering, isolated-Python occurrence
 artifacts, full Study Lab promotion, or unrepresented Version-25 visual states.
 
+The isolated Python breadth result now carries the same typed occurrence stream for aligned
+historical Boolean runs. Events are projected after the runner result is collected, so source code
+still executes only in the no-network runner and the response retains the immutable code-version,
+dataset-manifest, membership, as-of, and reproducibility lineage. This is an API/result-contract
+parity slice; direct workstation rendering and promotion of those run artifacts remain open.
+
 ## 2026-08-15 — Full US benchmark-family perspective matrix reaffirmed
 
 The completion bar now explicitly covers eight independently selectable US roots: S&P 500,

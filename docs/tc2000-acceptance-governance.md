@@ -20,6 +20,13 @@ full frontend unit suite, type-check, production build, and diff checks were rer
 threshold or flexibility was changed; the residual risk is limited to unrepresented visual states
 tracked in the board/manifest gap ledger.
 
+The isolated-Python sub-gate additionally requires aligned historical Boolean runs to expose the
+same occurrence schema after collection: two known member states, canonical instrument identity,
+timestamp, metric when supplied, aggregate counts, stable ID, and immutable code/dataset lineage.
+The source must remain isolated; FastAPI may project the persisted result but may not execute user
+code. Router `19/19`, runner `88/88`, and database-backed generic/Python integration `4/4` pass.
+Direct UI rendering and promotion of these artifacts remain explicit open gates.
+
 ## 2026-08-15 — Eight-root US analysis and Nasdaq-100 cap/equal gate
 
 The family acceptance matrix consists of S&P 500, S&P MidCap 400, S&P SmallCap 600, S&P

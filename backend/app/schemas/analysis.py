@@ -886,6 +886,7 @@ class BreadthPythonResultOut(AnalysisResponseMetadata):
     dataset_manifest: dict[str, object] = Field(default_factory=dict)
     current: BreadthPythonResultPointOut | None = None
     points: list[BreadthPythonResultPointOut] = Field(default_factory=list)
+    occurrences: list[BreadthDefinitionHistoryOccurrenceOut] = Field(default_factory=list)
     progress: dict[str, object] = Field(default_factory=dict)
     diagnostics: list[dict[str, object]] = Field(default_factory=list)
 

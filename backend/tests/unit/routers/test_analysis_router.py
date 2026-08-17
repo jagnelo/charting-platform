@@ -18,6 +18,8 @@ from app.routers.analysis import (
     _is_known_at,
     _mean,
     _performance_cells,
+    _python_breadth_occurrences,
+    _python_breadth_point,
     _rotation_state,
     _sample_aligned_points,
     _technical_cells_for_series,
@@ -52,6 +54,37 @@ def test_volume_ratio_returns_structured_warning_for_missing_provider_volume():
     assert value is None
     assert warning is not None
     assert warning.code == "missing_volume"
+
+
+def test_python_breadth_history_projects_member_transitions_with_metric_lineage():
+    points = [
+        _python_breadth_point(
+            {
+                "timestamp": "2026-01-02T00:00:00Z",
+                "cells": [
+                    {"instrument_id": 7, "symbol": "A", "name": "A", "value": False, "metric": -0.02},
+                ],
+            },
+            1,
+        ),
+        _python_breadth_point(
+            {
+                "timestamp": "2026-01-03T00:00:00Z",
+                "cells": [
+                    {"instrument_id": 7, "symbol": "A", "name": "A", "value": True, "metric": 0.03},
+                ],
+            },
+            1,
+        ),
+    ]
+
+    occurrences = _python_breadth_occurrences(points)
+
+    assert len(occurrences) == 1
+    assert occurrences[0].kind == "member_entered"
+    assert occurrences[0].instrument_id == 7
+    assert occurrences[0].metric == 0.03
+    assert occurrences[0].timestamp == datetime(2026, 1, 3, tzinfo=UTC)
 
 
 def test_calendar_year_cells_are_non_forward_filled_and_observed_at_year_end():

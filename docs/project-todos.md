@@ -16,9 +16,15 @@
       `F8s-breadth-family-ratio 1/1`, Ruff, compileall, and diff checks pass. The first syntax
       failure in the backend helper and the first browser pointer-overlap/fixture-route defects
       were repaired before authoritative reruns; no acceptance flexibility used.
-- [ ] Still open: occurrence filtering and equivalent occurrence artifacts for isolated Python
-      breadth runs and Study Lab promotion. The browser acceptance now covers the represented
-      generic-history click-to-chart path; unrepresented Version-25 occurrence states remain in
+- [x] Isolated Python breadth history now projects the same member-entered/member-exited events
+      from its aligned Boolean result points, preserving canonical instrument ID, timestamp,
+      metric, aggregate counts, stable ID, and the immutable code/dataset run lineage. Focused
+      router `19/19`, isolated runner `88/88`, and database-backed generic/Python integration
+      `4/4` pass; no arbitrary source executes in FastAPI.
+- [ ] Still open: occurrence filtering, direct rendering of Python-run occurrence artifacts in
+      the workstation/Research Results surface, and promotion into every compatible chart/list/
+      filter/scan/gauge/alert/Study Lab target. The browser acceptance covers the represented
+      visual-history click-to-chart path; unrepresented Version-25 occurrence states remain in
       the visual gap ledger.
 
 ### 2026-08-15 — Expanded US benchmark-family and Nasdaq-100 decomposition scope

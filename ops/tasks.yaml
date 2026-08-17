@@ -1,4 +1,28 @@
 tasks:
+  - id: tc2000-python-breadth-occurrence-contract-20260817
+    title: Project isolated Python breadth history into the shared occurrence contract
+    status: completed
+    priority: high
+    scope: >-
+      Derive member-entered/member-exited events from collected isolated Python breadth history
+      points using the same canonical occurrence schema as visual breadth, while preserving metric,
+      aggregate counts, immutable code/dataset lineage, and no-network execution boundaries.
+    definition_of_done:
+      - BreadthPythonResultOut exposes typed historical occurrences
+      - Events are derived only after persisted runner output is collected
+      - Canonical instrument ID, timestamp, metric, counts, and stable ID are preserved
+      - FastAPI never executes user source
+      - Router, runner, and database-backed regressions pass
+      - Direct UI rendering and promotion gaps remain explicitly documented
+    validation:
+      - analysis-router-19-of-19
+      - research-runner-88-of-88
+      - generic-python-integration-4-of-4
+      - ruff-compileall-diff-check
+    notes:
+      - >-
+        No acceptance flexibility used. This closes the persisted API/result contract only; direct
+        workstation rendering, filtering, and promotion remain open work.
   - id: tc2000-generic-breadth-occurrence-browser-20260815
     title: Browse and publish generic breadth historical occurrences
     status: completed
