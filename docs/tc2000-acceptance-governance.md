@@ -33,8 +33,9 @@ persistence, tile-to-symbol publication, hover detail, palette/coverage legend, 
 multi-selection, nested breadcrumbs, wheel/button zoom, pointer panning, and failed-map status.
 The same interaction contract applies to arbitrary
 watchlist sources; index/ETF sources are locked only for membership mutation. This is still an
-interaction/component oracle, not a Version 25 visual pass: map-to-watchlist/breadth/Study-Lab
-publication, persistent snapshots, and board-guided visual gates remain open.
+interaction/component oracle, not a Version 25 visual pass: map-to-breadth/Study-Lab publication,
+persistent snapshots, and board-guided visual gates remain open. The watchlist publication gate now
+covers creating/populating an editable personal list and rejecting managed/locked targets.
 
 The browser gate covers hover detail, palette/legend, zoom/pan, sort, drill-down, selection,
 multi-selection, map-to-chart/watchlist/breadth/Study-Lab publication, loading/partial/stale/

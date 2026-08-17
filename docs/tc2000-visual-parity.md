@@ -22,8 +22,9 @@ badge, freshness, coverage, warnings, legend, hover detail, additive multi-selec
 breadcrumbs, wheel/button zoom, pointer panning, and linked-symbol selection. The map is
 intentionally source-agnostic: a locked index/ETF watchlist,
 managed scan, personal list, combo, or explicit-symbol list uses the same visual and interaction
-contract. The reference-board gaps for map-to-analysis publication beyond linked-symbol selection,
-persistent snapshots, and final visual baselines remain open.
+contract. Multi-selection can create/populate an editable personal watchlist. The reference-board
+gaps for map-to-breadth/Study-Lab publication, persistent snapshots, and final visual baselines
+remain open.
 
 ## 2026-08-17 — Family/style analysis visual states (latest requirement)
 

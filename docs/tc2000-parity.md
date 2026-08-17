@@ -45,8 +45,9 @@ selection through the existing linked-symbol event. Its deterministic slice-and-
 legend, hover detail, additive multi-selection, nested breadcrumbs, wheel/button zoom, and pointer
 panning are shared by personal, managed, index, ETF,
 combo, sector, industry, and explicit-symbol sources. Locked/system-managed sources retain their
-membership governance while using this same map interaction model. Map-to-watchlist/breadth/
-Study-Lab publication, persistent snapshots, and board-guided visual parity remain explicit
+membership governance while using this same map interaction model. Multi-selection can create or
+populate an editable personal watchlist, while managed/locked targets remain unavailable. Map-to-
+breadth/Study-Lab publication, persistent snapshots, and board-guided visual parity remain explicit
 acceptance gaps.
 
 ## 2026-08-17 — US family/style and Nasdaq cap/equal acceptance matrix (latest requirement)

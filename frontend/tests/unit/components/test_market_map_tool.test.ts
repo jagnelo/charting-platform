@@ -1,15 +1,16 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { apiPost, loadWatchlistSources } = vi.hoisted(() => ({ apiPost: vi.fn(), loadWatchlistSources: vi.fn() }))
+const { apiPost, loadWatchlistSources, loadWatchlists, createWatchlist, addItem } = vi.hoisted(() => ({ apiPost: vi.fn(), loadWatchlistSources: vi.fn(), loadWatchlists: vi.fn(), createWatchlist: vi.fn(), addItem: vi.fn() }))
 const sourceState = vi.hoisted(() => ({
   sources: [{ source_id: 'market-group:sp500', source_kind: 'index_membership', name: 'S&P 500', locked: true, can_follow: true, can_clone: true, can_edit_membership: false, member_count: 2, provenance: {} }],
+  watchlists: [],
   loading: false,
   error: '',
 }))
 
 vi.mock('@/lib/api', () => ({ api: { post: apiPost } }))
-vi.mock('@/stores/watchlist', () => ({ useWatchlistStore: () => ({ watchlistSources: sourceState.sources, watchlistSourcesLoading: sourceState.loading, watchlistSourcesError: sourceState.error, loadWatchlistSources }) }))
+vi.mock('@/stores/watchlist', () => ({ useWatchlistStore: () => ({ watchlistSources: sourceState.sources, watchlistSourcesLoading: sourceState.loading, watchlistSourcesError: sourceState.error, watchlists: sourceState.watchlists, loadWatchlistSources, loadWatchlists, createWatchlist, addItem }) }))
 
 import MarketMapTool from '@/components/workstation/MarketMapTool.vue'
 
@@ -23,6 +24,10 @@ describe('MarketMapTool', () => {
   beforeEach(() => {
     apiPost.mockReset()
     loadWatchlistSources.mockReset()
+    loadWatchlists.mockReset()
+    createWatchlist.mockReset()
+    addItem.mockReset()
+    sourceState.watchlists = []
     apiPost.mockResolvedValue(response)
   })
 
@@ -70,5 +75,25 @@ describe('MarketMapTool', () => {
     await wrapper.get('[aria-label="Reset Market Map viewport"]').trigger('click')
     expect(wrapper.find('[aria-live="polite"]').text()).toBe('100%')
     expect(apiPost.mock.calls.length).toBeGreaterThan(0)
+  })
+
+  it('publishes an additive selection into a new personal watchlist', async () => {
+    createWatchlist.mockResolvedValue({ id: 9, name: 'XLK leaders', is_managed: false, is_locked: false, items: [] })
+    addItem.mockResolvedValue({ id: 90, instrument_id: 1 })
+    const wrapper = mount(MarketMapTool)
+    await flushPromises()
+
+    await wrapper.get('.market-map-tool__tile').trigger('click')
+    await wrapper.get('.market-map-tool__tile:nth-child(2)').trigger('click', { shiftKey: true })
+    await wrapper.get('[aria-label="Market Map new watchlist name"]').setValue('XLK leaders')
+    const saveButton = wrapper.findAll('button').find(button => button.text() === 'Save selection')
+    expect(saveButton).toBeDefined()
+    await saveButton!.trigger('click')
+    await flushPromises()
+
+    expect(createWatchlist).toHaveBeenCalledWith('XLK leaders')
+    expect(addItem).toHaveBeenCalledWith(9, 1)
+    expect(addItem).toHaveBeenCalledWith(9, 2)
+    expect(wrapper.find('[role="status"]').text()).toContain('2 selected members saved')
   })
 })

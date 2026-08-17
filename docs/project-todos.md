@@ -86,8 +86,10 @@ The captures are behavioural/product references; Finviz artwork and branding are
 - [x] Added nested hierarchy navigation with parent breadcrumbs, wheel/button zoom, and pointer
       panning. These interactions are source-agnostic and preserve selection/publication without a
       route change.
-- [ ] Map-to-watchlist/breadth/Study-Lab publication beyond linked-symbol selection, persistent
-      snapshots, and board-approved visual baselines remain open.
+- [x] Multi-selection can create a personal watchlist or add to an existing editable personal list;
+      managed/locked targets remain unavailable and linked-symbol publication is preserved.
+- [ ] Map-to-breadth/Study-Lab publication, persistent snapshots, and board-approved visual
+      baselines remain open.
 
 ### 2026-08-17 — US market family/style analysis matrix (latest user requirement)
 

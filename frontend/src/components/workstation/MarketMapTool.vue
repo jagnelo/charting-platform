@@ -62,6 +62,17 @@
       <button type="button" aria-label="Reset Market Map viewport" :disabled="viewportZoom === 1 && !panX && !panY" @click="resetViewport">Reset</button>
       <small v-if="viewportZoom > 1">Drag empty map space or use the wheel to pan and zoom.</small>
     </div>
+    <div v-if="map && selectedIds.length" class="market-map-tool__selection-actions" aria-label="Market Map selection actions">
+      <strong>{{ selectedIds.length }} selected</strong>
+      <select v-model="publicationTargetId" aria-label="Market Map target watchlist">
+        <option value="">New personal watchlist…</option>
+        <option v-for="target in publicationTargets" :key="target.id" :value="String(target.id)">{{ target.name }}</option>
+      </select>
+      <input v-if="!publicationTargetId" v-model="newPublicationName" aria-label="Market Map new watchlist name" placeholder="Watchlist name" maxlength="80" @keydown.enter.prevent="publishSelection" />
+      <button type="button" :disabled="publishing || (!publicationTargetId && !newPublicationName.trim())" @click="publishSelection">{{ publishing ? 'Saving…' : 'Save selection' }}</button>
+      <span v-if="publicationMessage" role="status">{{ publicationMessage }}</span>
+      <span v-if="publicationError" class="market-map-tool__status--error" role="alert">{{ publicationError }}</span>
+    </div>
     <div v-if="map" ref="viewportRef" class="market-map-tool__tiles" aria-label="Market Map tiles" @wheel.prevent="zoomByWheel" @pointerdown="startPan" @pointermove="movePan" @pointerup="endPan" @pointercancel="endPan">
       <div class="market-map-tool__canvas" :style="canvasStyle">
         <button v-for="cell in visibleLayoutCells" :key="cell.instrument_id" type="button" class="market-map-tool__tile" :class="[tileClass(cell.color_value), { 'market-map-tool__tile--selected': selectedIds.includes(cell.instrument_id) }]" :style="tileStyle(cell)" :title="`${cell.symbol} · ${cell.name}`" @pointerdown.stop @mouseenter="hoveredCell = cell" @mouseleave="hoveredCell = null" @click="selectCell($event, cell)">
@@ -103,8 +114,14 @@ const viewportZoom = ref(1)
 const panX = ref(0)
 const panY = ref(0)
 const panStart = ref<{ pointerX: number; pointerY: number; x: number; y: number } | null>(null)
+const publicationTargetId = ref('')
+const newPublicationName = ref('')
+const publishing = ref(false)
+const publicationMessage = ref('')
+const publicationError = ref('')
 const loadingSources = computed(() => watchlistStore.watchlistSourcesLoading)
 const sourcesError = computed(() => watchlistStore.watchlistSourcesError)
+const publicationTargets = computed(() => watchlistStore.watchlists.filter(watchlist => !watchlist.is_managed && !watchlist.is_locked))
 
 function formatFreshness(value: string) { return value.replace(/_/g, ' ') }
 function formatMetric(value: number | null | undefined) {
@@ -190,6 +207,30 @@ function endPan(event: PointerEvent) {
   if (element instanceof HTMLElement && element.hasPointerCapture(event.pointerId)) element.releasePointerCapture(event.pointerId)
   panStart.value = null
 }
+async function publishSelection() {
+  if (!selectedIds.value.length || publishing.value) return
+  publishing.value = true
+  publicationMessage.value = ''
+  publicationError.value = ''
+  try {
+    let targetId = Number(publicationTargetId.value)
+    if (!Number.isInteger(targetId) || targetId <= 0) {
+      const name = newPublicationName.value.trim()
+      if (!name) return
+      const created = await watchlistStore.createWatchlist(name)
+      if (!created) throw new Error('Unable to create personal watchlist')
+      targetId = created.id
+      publicationTargetId.value = String(targetId)
+    }
+    const results = await Promise.all(selectedIds.value.map(instrumentId => watchlistStore.addItem(targetId, instrumentId)))
+    const added = results.filter(Boolean).length
+    publicationMessage.value = `${added} selected member${added === 1 ? '' : 's'} saved`
+  } catch (cause) {
+    publicationError.value = cause instanceof Error ? cause.message : 'Unable to save selected members'
+  } finally {
+    publishing.value = false
+  }
+}
 
 async function run() {
   if (!sourceId.value) return
@@ -213,6 +254,7 @@ watch([sourceId, groupBy, period, areaMetric, colorMetric, referenceSymbol], per
 watch(sourceId, () => { if (sourceId.value) void run() })
 onMounted(async () => {
   if (!sources.value.length) await watchlistStore.loadWatchlistSources()
+  if (!watchlistStore.watchlists.length) await watchlistStore.loadWatchlists()
   if (!sourceId.value) {
     const preferred = sources.value.find((item: WatchlistSource) => item.source_kind === 'index_membership' || item.source_kind === 'etf_holdings') ?? sources.value[0]
     if (preferred) sourceId.value = preferred.source_id
@@ -242,6 +284,11 @@ onMounted(async () => {
 .market-map-tool__viewport-controls button { min-width: 26px; padding: 3px 6px; cursor: pointer; }
 .market-map-tool__viewport-controls button:disabled { cursor: default; opacity: .5; }
 .market-map-tool__viewport-controls small { margin-left: auto; color: #7d8a9b; }
+.market-map-tool__selection-actions { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; padding: 4px 8px; border-top: 1px solid #303a48; border-bottom: 1px solid #303a48; background: #18212c; }
+.market-map-tool__selection-actions strong { color: #f7d87b; }
+.market-map-tool__selection-actions button { cursor: pointer; }
+.market-map-tool__selection-actions button:disabled { cursor: default; opacity: .55; }
+.market-map-tool__selection-actions span[role="status"] { color: #82e2ac; }
 .market-map-tool__legend { display: flex; gap: 8px; align-items: center; padding: 2px 8px; color: #aeb8c7; text-transform: capitalize; }
 .market-map-tool__legend--negative { color: #ff9a9a; font-weight: 800; }.market-map-tool__legend--positive { color: #82e2ac; font-weight: 800; }.market-map-tool__legend__coverage { margin-left: auto; text-transform: none; }
 .market-map-tool__tiles { position: relative; min-height: 300px; margin: 0 8px 8px; overflow: hidden; border: 1px solid #303a48; background: #0d1218; cursor: grab; touch-action: none; }
