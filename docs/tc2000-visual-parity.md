@@ -83,6 +83,15 @@ The reference generation is therefore:
 
 ## US family perspective visual composition
 
+The visual matrix must also cover the factor/style decomposition requested for each of the eight
+roots. When a verified value or growth sub-index/ETF exists for S&P 500/400/600/1500 or Russell
+1000/2000/3000, it is rendered as a first-class linked leg with the same dense tool chrome,
+technical panes, ratios, breadth grids, ranking and drill-down states as its parent. Nasdaq 100
+must show a cap/equal composition equivalent to SPY/RSP after QQQ/QQQE (or another evidenced pair)
+passes canonical identity, holdings, rebalance, date, bar, and coverage checks. Missing or
+ambiguous style/equal legs use an explicit unavailable/derived/`No verified mapped proxy` state;
+the visual harness must record that state rather than silently substituting a different family.
+
 The visual target is the same dense Version 25 workstation composition when the user starts from
 any of the eight US roots—S&P 500, S&P MidCap 400, S&P SmallCap 600, S&P Composite 1500, Russell
 1000, Russell 2000, Russell 3000, or Nasdaq 100—or from an evidenced cap/equal/value/growth leg.

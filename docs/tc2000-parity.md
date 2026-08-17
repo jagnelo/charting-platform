@@ -1,5 +1,30 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-17 — Expanded US index/factor matrix and Nasdaq cap/equal parity
+
+The top-down workstation vision now explicitly covers eight interchangeable US roots: S&P 500,
+S&P MidCap 400, S&P SmallCap 600, S&P Composite 1500, Russell 1000, Russell 2000, Russell 3000,
+and Nasdaq 100. Each root is a complete analysis perspective, not a selector label. The user can
+start from the root or any evidenced cap-weighted, equal-weight, value, or growth leg and retain
+the same linked technical, ratio, breadth, ranking, rotation, concentration/dispersion, and
+sector -> industry/proxy -> constituent workflow.
+
+Value and growth legs are conditional on evidence for the requested family. The security master
+must verify the sub-index/ETF relationship, issuer/source, membership or weighting method,
+effective/known-at dates, historical bars, coverage, and freshness. A missing or ambiguous leg is
+shown as unavailable, derived, or `No verified mapped proxy`; it is never inferred from a ticker
+name or replaced with another family. Nasdaq 100 receives the same cap/equal deconstruction as
+SPY/RSP once its own relationship evidence passes (QQQ/QQQE is a candidate fixture, not an
+assumption), and native ETF weights remain distinct from locally-derived point-in-time equal
+weights.
+
+Acceptance must exercise every evidenced leg through benchmark technicals, normalized and direct
+ratios, configurable predicate breadth, participation/leadership, concentration/dispersion,
+drawdown/volatility, relative rotation, cross-family comparisons, Study Lab, and member
+drill-down. All outputs retain the selected root/role, membership and as-of policy, weighting
+method, coverage, exclusions, freshness, and provenance. This expands the scope of the parity
+matrix without relaxing any visual, historical, provider, or no-fallback criterion.
+
 ## 2026-08-17 — Recursive breadth condition tree
 
 The generic breadth surface now includes a nested condition-tree mode. Users can add arbitrary

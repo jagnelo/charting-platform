@@ -1,5 +1,26 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-08-17 — Eight-root factor/style acceptance matrix
+
+The top-down acceptance run must treat S&P 500, S&P MidCap 400, S&P SmallCap 600, S&P Composite
+1500, Russell 1000, Russell 2000, Russell 3000, and Nasdaq 100 as eight complete, interchangeable
+workstation perspectives. For each root, the run must attempt the official identity, cap proxy,
+equal-weight vehicle or reproducible point-in-time derived series, and every evidenced value and
+growth sub-index/ETF. It must exercise each available leg through technicals, cap/equal and
+value/growth comparisons, parent/peer/cross-family ratios, generic predicate breadth, participation,
+concentration/dispersion, rotation, drawdown/volatility, ranking, seasonality/regime context,
+sector -> industry/proxy -> constituent drill-down, Study Lab, scans, gauges, plots, alerts, and
+exports.
+
+The phrase “if they exist” is resolved by canonical evidence, not by guessing likely tickers. A
+candidate leg is selectable only after issuer/source, relationship role, membership or weighting
+method, effective/known-at dates, historical bars, coverage, and freshness are present. Missing or
+ambiguous legs must render `No verified mapped proxy`, unavailable, or derived and must stay in the
+gap ledger. The run must never substitute SPY/QQQ, another root, or a current-only snapshot. Nasdaq
+100 has a mandatory cap/equal deconstruction equivalent to SPY/RSP (QQQ/QQQE only after its own
+identity, holdings, rebalance, date, and bar evidence passes). No visual, provenance, provider, or
+historical acceptance threshold is relaxed by this expansion.
+
 ## 2026-08-17 — Recursive breadth condition-tree sub-gate
 
 The authenticated breadth editor must support arbitrary nested `all`/`any` groups and exactly

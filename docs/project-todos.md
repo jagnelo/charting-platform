@@ -1,5 +1,32 @@
 # Project TODO Memory
 
+### 2026-08-17 — Expanded US index/factor and Nasdaq deconstruction vision
+
+- [ ] Treat the US analysis universe as a matrix of interchangeable roots and style legs,
+      not a single SPY workflow: S&P 500, S&P MidCap 400, S&P SmallCap 600, S&P Composite 1500,
+      Russell 1000, Russell 2000, Russell 3000, and Nasdaq 100. Each root must be launchable from
+      the same Version 25 workstation without route changes.
+- [ ] For every root, independently discover and verify the official index identity, a cap-weighted
+      tradable proxy, an equal-weight ETF or point-in-time derived equal series, and any value and
+      growth sub-index/ETF that genuinely exists. “If it exists” is an evidence-backed data result:
+      issuer/source, relationship, holdings or weight method, effective/known-at dates, bars,
+      membership, coverage, and freshness must be recorded before a leg is selectable.
+- [ ] Generalise the SPY/RSP decomposition to every evidenced family. Nasdaq 100 must have an
+      equivalent cap-versus-equal comparison (QQQ/QQQE only after canonical identity, holdings,
+      rebalance, and historical evidence pass), with ETF-native and locally-derived weighting
+      methods visibly distinguished.
+- [ ] Apply the complete daily workflow to every available root and leg: benchmark technicals;
+      cap/equal and value/growth leadership; sector and industry/proxy ranking; configurable
+      predicate breadth and participation; concentration/dispersion, rotation, drawdown,
+      volatility, seasonality and regime context; then versioned constituent drill-down.
+      Ratios, watchlists, scans, gauges, Study Lab studies, reusable plots, alerts, and exports
+      must preserve family, role, membership/as-of, weighting, coverage, exclusions, freshness,
+      and provenance.
+- [ ] Missing or unverified equal/value/growth relationships must remain visibly unavailable,
+      derived, or `No verified mapped proxy`; never infer a relationship from names or silently
+      substitute SPY, QQQ, another family, or a current-only snapshot. Acceptance must attempt
+      all eight roots and every evidenced style/equal leg; selector presence alone is insufficient.
+
 ### 2026-08-17 — Recursive breadth condition-tree authoring
 
 - [x] Added a dedicated authenticated breadth condition-tree editor with nested `all`, `any`,
