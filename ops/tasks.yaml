@@ -20,6 +20,8 @@ tasks:
       - ruby-yaml-json-parse
       - backend-watchlists-integration-21-of-21
       - backend-watchlists-unit-4-of-4
+      - backend-market-map-watchlists-integration-24-of-24
+      - backend-market-map-ruff-compileall
       - frontend-watchlist-store-22-of-22
       - frontend-vitest-848-of-848
       - frontend-type-check
@@ -42,6 +44,13 @@ tasks:
       - >-
         Implementation/docs commit 675dbe9a is clean locally. Its exact push was attempted once
         and rejected before Git by the private-origin safeguard; no workaround or repeat.
+      - >-
+        Implementation/docs commit 830edf69 is clean locally. The exact elevated push to
+        origin/feat/tc2000-frontend-rework was attempted once and rejected before Git by the
+        private-origin safeguard because trusted authorization for the exact accumulated payload
+        and destination was unavailable; no workaround or repeat. The endpoint is an enabling
+        contract only: persistent caching, Python/breadth colour assets, historical market-cap
+        area, renderer, interactions, publication, and full root population remain open.
 
   - id: tc2000-breadth-python-series-composer-20260817
     title: Wire numeric Python-series condition assets into the breadth workstation

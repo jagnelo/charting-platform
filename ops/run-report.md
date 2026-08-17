@@ -27918,6 +27918,23 @@ in 4.6 minutes. No failure was suppressed or reclassified as product success.
 - Historical bars/holdings, full family breadth/ranking/rotation/dispersion, browser population,
   and exact/unrepresented V25 gaps remain open.
 
+# 2026-08-17 — Universe-scoped Market Map batch checkpoint
+
+- Added the first local batch map contract: `POST /analysis/market-map` resolves the common
+  `WatchlistSource` universe and returns canonical cells plus sector/industry rollups. Area and
+  colour are independent, period bounds are explicit, and provenance/freshness/coverage/warnings
+  remain in the response.
+- Focused validation: Docker-backed watchlist/Market Map integration `24/24`, Ruff, compileall,
+  and `git diff --check`. The first unprivileged Docker run was an environment socket permission
+  failure; the unchanged elevated rerun passed. A missing test `timedelta` import was fixed and
+  the unchanged suite rerun passed. Acceptance flexibility used: none.
+- This is a backend enabling slice, not a completion claim. Persistent caching, richer Python or
+  breadth colour outputs, point-in-time market-cap area, renderer/interactions/publication, full
+  root population, and browser/visual gates remain tracked.
+- Implementation/docs commit `830edf69` is clean locally. Its exact push was attempted once and
+  rejected before Git by the private-origin safeguard; no workaround or repeat. This is
+  transport-only and not a product-goal blocker.
+
 # 2026-08-17 — Expanded US family role-matrix documentation
 
 - Added an explicit eight-root role matrix to the controlling TODO and repeated the latest scope

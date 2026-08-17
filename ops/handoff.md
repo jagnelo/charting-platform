@@ -29651,3 +29651,31 @@ indefinite soak; longer endurance remains an explicit open gap.
   rejected before Git by the private-origin safeguard; no workaround or repeat.
 - Remaining gaps: historical bars/holdings, family-wide breadth/ranking/rotation/dispersion,
   complete browser population, and exact/unrepresented V25 visual states.
+
+# 2026-08-17 — Universe-scoped Market Map batch checkpoint
+
+- Implemented `POST /analysis/market-map` over the shared `WatchlistSource` resolver. Personal,
+  screener-managed, canonical market-group/index, and ETF-holdings sources are resolved locally;
+  canonical members are deduplicated and OHLCV/metadata are loaded in bounded batches with no
+  provider fan-out.
+- The response carries source/membership lineage, completed-session period bounds (including
+  MTD/YTD and custom), independent tile area and colour metrics, sector/industry hierarchy nodes,
+  aggregate weighting method, coverage, freshness, deterministic cache identity, and exact
+  missing-bar/classification/weight warnings. Current market-cap area is explicitly labelled as
+  latest stored metadata rather than point-in-time truth.
+- Validation: unchanged Docker-backed `test_watchlists.py` passed `24/24` after a first fixture
+  import defect was fixed; Ruff, compileall, and diff-check pass. The initial unprivileged run
+  failed only at Docker socket setup and the unchanged elevated rerun passed. No acceptance
+  flexibility was used.
+- Implementation/docs commit `830edf69` is clean locally. Its exact elevated push to
+  `origin/feat/tc2000-frontend-rework` was attempted once and rejected before Git by the
+  private-origin safeguard because trusted authorization for the exact accumulated payload and
+  destination was unavailable; no workaround or repeat. Current changeset files were
+  `backend/app/schemas/market_map.py`,
+  `backend/app/services/market_map.py`, the analysis router, the watchlist integration tests,
+  and controlling map docs/goal/ops records. They must be committed as one implementation/docs
+  context before the next context begins; the implementation/docs portion is now committed and
+  only this operational checkpoint remains uncommitted.
+- Remaining map gaps: persistent cache storage, full period/metric matrix, Python/breadth colour
+  outputs, point-in-time market-cap area, all eight-root population, treemap renderer, hover/zoom/
+  drill interactions, publication to linked tools, and browser/visual acceptance.
