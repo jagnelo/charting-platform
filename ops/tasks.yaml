@@ -1,4 +1,33 @@
 tasks:
+  - id: tc2000-cross-sectional-breadth-scope-20260817
+    title: Add explicit cross-sectional breadth percentile scope
+    status: completed
+    priority: high
+    scope: >-
+      Distinguish member rolling percentile semantics from cross-sectional rank percentile
+      semantics and carry the selected scope through current/history API responses and the
+      workstation composer.
+    definition_of_done:
+      - Breadth conditions persist target_scope as member or cross_sectional
+      - Cross-sectional percentile ranks valid member scalars at the same timestamp with deterministic ties
+      - Missing bars and invalid fields remain explicit exclusions in current and historical runs
+      - Unsupported cross-sectional kinds never silently fall back to member evaluation
+      - Workstation scope selector, backend unit/API, frontend gates, and rebuilt browser flow pass
+      - Richer cross-sectional derived/Python, mixed-scope, statistics, and promotion gaps remain documented
+    validation:
+      - breadth-unit-14-of-14
+      - generic-breadth-api-integration-1-of-1
+      - frontend-vitest-839-of-839
+      - frontend-type-check-production-build
+      - authenticated-F8s-breadth-family-ratio-1-of-1
+      - ruff-compileall-diff-check
+    notes:
+      - >-
+        A first API run exposed the router omitting target_scope from its manually reconstructed
+        response; the owning boundary was repaired and the unchanged integration oracle passed.
+        Browser runs also exposed an ambiguous accessible label and stale-request assertions;
+        exact locators, per-action request baselines, and explicit numeric blur were added before
+        the authoritative 1/1 rerun. No acceptance flexibility used.
   - id: tc2000-generic-breadth-range-percentile-20260817
     title: Add range and rolling-percentile breadth predicates
     status: completed

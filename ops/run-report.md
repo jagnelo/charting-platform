@@ -1,5 +1,23 @@
 # Run Report
 
+## 2026-08-17 — Explicit cross-sectional breadth scope
+
+- Added persisted `target_scope=member|cross_sectional` to breadth conditions. Cross-sectional
+  percentile ranks valid same-timestamp member scalar values with inclusive deterministic ties;
+  missing bars/invalid fields are excluded from rank and denominator, and history never forward
+  fills. Unsupported cross-sectional kinds are explicit exclusions.
+- Added workstation scope selector and request/response coverage. Validation passed: breadth unit
+  14/14; generic API integration 1/1; frontend Vitest 839/839; type-check; production build;
+  Ruff; compileall; diff-check; rebuilt authenticated `F8s-breadth-family-ratio` 1/1.
+- Fix-first defects: router response reconstruction initially dropped `target_scope`; browser
+  coverage initially had an ambiguous label and stale request-count assertions. Both were repaired
+  and the unchanged oracles passed. No acceptance flexibility, visual mask, or threshold change.
+- Richer cross-sectional/Python derived fields, mixed-scope composition, group statistics,
+  promotion targets, provider/history population, and remaining V25 visual/browser gaps stay open.
+- Changeset closure: implementation/docs commit `9576762e` is clean locally. Its exact push was
+  attempted once and rejected before Git by the private-origin safeguard; no workaround or repeat.
+  The operational checkpoint remains separate and records this transport-only outcome.
+
 ## 2026-08-17 — Generic breadth range and rolling-percentile predicates
 
 - Extended the generic breadth API and evaluator with validated inclusive range and rolling

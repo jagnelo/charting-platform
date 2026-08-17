@@ -1,5 +1,27 @@
 # Active Handoff
 
+## 2026-08-17 — Cross-sectional breadth scope checkpoint
+
+- Added explicit `target_scope` to breadth conditions. `member` retains rolling percentile
+  semantics; `cross_sectional` ranks the declared scalar field across valid members at the same
+  timestamp with deterministic inclusive empirical ranks, then applies the operator/threshold.
+- Current and historical paths preserve no-forward-fill exclusions, denominator/coverage, rank
+  metrics, and occurrence transitions. Relative-strength fields use the existing benchmark
+  resolution. Unsupported cross-sectional condition kinds return structured exclusions rather than
+  falling back to member evaluation. The workstation selector persists the scope.
+- Validation passed: breadth unit 14/14; generic API integration 1/1; frontend Vitest 839/839;
+  vue-tsc; production build; Ruff; compileall; diff-check; rebuilt authenticated Chromium
+  `F8s-breadth-family-ratio` 1/1. The first API run exposed an omitted response scope field and
+  was repaired at the router boundary. Browser runs exposed an ambiguous label and stale request
+  baselines; exact locators, per-action request baselines, and explicit numeric blur were added
+  before the unchanged flow passed. No acceptance flexibility or visual threshold change.
+- Implementation/docs commit `9576762e feat(breadth): add cross-sectional target scope` is clean
+  locally. Its exact push was attempted once and rejected before Git by the private-origin
+  safeguard; no workaround or repeat. The operational checkpoint remains separate and will record
+  this transport-only state. Open gaps remain richer cross-sectional/Python derived fields,
+  mixed-scope composition, group statistics, promotion fan-out, provider/history population, and
+  V25 visual/browser gates.
+
 ## 2026-08-17 — Generic breadth range and rolling-percentile checkpoint
 
 - Added `range` and `percentile` to the shared `BreadthConditionRequest` and evaluator. Range
