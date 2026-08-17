@@ -1,5 +1,26 @@
 # Active Handoff
 
+## 2026-08-17 — Benchmark/peer series breadth target checkpoint
+
+- Added the `series_comparison` condition across the canonical breadth schema/evaluator, current
+  and historical APIs, compact composer, recursive condition tree, diagnostics, occurrences, and
+  reference-symbol lineage. Member and benchmark/peer fields support explicit difference or
+  ratio-minus-one semantics; exact timestamp alignment is required and stale references are never
+  forward-filled.
+- Validation: focused current/history service `2/2`; generic API current/history `1/1`; full
+  backend unit `1185/1185`; full frontend Vitest `844/844`; type-check; production Docker build;
+  authenticated Chromium F8s breadth-family request flow `1/1`; Ruff; compileall; YAML/JSON
+  parsing; and `git diff --check`. Existing dependency deprecation warnings only.
+- Fix-first note: the first historical assertion exposed a real diagnostic mismatch (`no_bars`
+  versus `benchmark_missing_at_timestamp`). The shared diagnostic rewrite now covers the series
+  leaf and the unchanged focused tests pass. No acceptance flexibility used.
+- Implementation/docs commit `1519bdc33c7e6d3e9126effde457f913b7a3c1e7` is clean locally. Its
+  exact elevated push to `origin/feat/tc2000-frontend-rework` was attempted once and rejected
+  before Git by the private-origin safeguard; no workaround, alternate transport, rewrite, reset,
+  stash, or repeat. The final operational record will be committed separately and not pushed again.
+- Remaining gaps are event/group target series, arbitrary derived-Python target series, promotion
+  fan-out, all-family provider/history population, and remaining V25 visual/browser gates.
+
 ## 2026-08-17 — US family view matrix clarification checkpoint
 
 - Updated the active goal objective and controlling TODO, parity, acceptance-governance, and

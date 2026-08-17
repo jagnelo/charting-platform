@@ -1,5 +1,18 @@
 # Run Report
 
+## 2026-08-17 — Benchmark/peer series breadth target
+
+- Implemented and validated `series_comparison` for member-versus-canonical benchmark/peer field
+  targets. The definition carries member/reference fields, difference or ratio-minus-one relation,
+  operator, threshold, and reference symbol; current/history require exact timestamp alignment.
+- Evidence: focused service current/history `2/2`; generic API current/history `1/1`; backend unit
+  `1185/1185`; frontend Vitest `844/844`; type-check/build; rebuilt-stack authenticated Chromium
+  `1/1`; Ruff, compileall, YAML/JSON, and diff checks. The initial historical diagnostic mismatch
+  was repaired before the unchanged focused rerun; no acceptance flexibility used.
+- Implementation/docs commit `1519bdc33c7e6d3e9126effde457f913b7a3c1e7` is clean locally. Its
+  exact push was attempted once and rejected before Git by the private-origin safeguard; no
+  workaround or repeat. No further push attempt is made.
+
 ## 2026-08-17 — US family view matrix clarification
 
 - Updated the active goal objective plus the controlling project TODO, parity, acceptance,
