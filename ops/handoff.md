@@ -1,5 +1,30 @@
 # Active Handoff
 
+## 2026-08-17 — Group/peer aggregate breadth target checkpoint
+
+- Added `reference_universe` to generic breadth series comparisons. Canonical groups, benchmark
+  families, ETF-proxy holdings, and explicit peer sets resolve through local point-in-time
+  membership rather than ticker aliases. Their reference is a labelled derived equal-weight
+  return index using exact observed timestamps, no forward-fill, and retained membership,
+  coverage, method, and alignment lineage in current/history responses.
+- Added compact workstation authoring that distinguishes a symbol reference from an equal-weight
+  group aggregate and emits the same immutable definition in current and historical requests.
+- Validation: breadth unit 22/22; focused Docker-backed generic API integration 1/1; full backend
+  unit 1186/1186; full frontend Vitest 844/844; type-check; production Docker build; authenticated
+  Chromium F8s breadth-family flow 1/1; Ruff; compileall; and `git diff --check`. Existing
+  dependency deprecation warnings only.
+- Fix-first/setup note: the initial browser attempt served a stale pre-change bundle. Rebuilding
+  the branch-scoped stack fixed the setup defect; the unchanged browser oracle then passed. No
+  acceptance threshold, provider rule, or visual mask was relaxed.
+- Implementation/docs commit `03fb81b7a8a14ede925758f3537e1e9c9adf969b` is clean locally. Its
+  exact push to `origin/feat/tc2000-frontend-rework` was attempted once and rejected before Git
+  by the private-origin safeguard because trusted authorization for the accumulated private
+  commit range was unavailable. No workaround, alternate transport, rewrite, reset, stash, or
+  repeat will be attempted. This is transport-only and not a product blocker.
+- Remaining gaps: event-series targets, arbitrary derived-Python target series, full promotion
+  fan-out, all-family provider/history population, and the remaining Version 25 browser/visual
+  acceptance gates.
+
 ## 2026-08-17 — US family/style matrix scope checkpoint
 
 - Added the latest explicit user requirement to the active goal and controlling repository

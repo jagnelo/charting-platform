@@ -1,5 +1,23 @@
 # Run Report
 
+## 2026-08-17 — Group/peer aggregate breadth target
+
+- Implemented `reference_universe` for generic breadth series comparisons. Canonical groups,
+  benchmark families, ETF-proxy holdings, and explicit peer sets resolve through the local
+  point-in-time membership contract and become a labelled derived equal-weight return index.
+  Exact timestamp alignment, no-forward-fill behavior, partial-member coverage, method, and
+  membership lineage are retained through current/history responses.
+- Added compact workstation authoring for symbol versus equal-weight group aggregate targets.
+- Validation: breadth unit 22/22; generic API integration 1/1; backend unit 1186/1186; frontend
+  Vitest 844/844; type-check; production build; authenticated Chromium F8s flow 1/1; Ruff;
+  compileall; and `git diff --check`. No product acceptance flexibility used.
+- The first browser run used a stale served bundle and was rerun unchanged after rebuilding the
+  branch stack. This was a setup correction, not a relaxed acceptance criterion.
+- Implementation/docs commit `03fb81b7a8a14ede925758f3537e1e9c9adf969b` is clean locally. Exact
+  push was attempted once and rejected before Git by the private-origin safeguard; no workaround
+  or repeat. Remaining event/Python-target/promotion, all-family data, and V25 visual/browser
+  gaps remain open.
+
 ## 2026-08-17 — US family/style matrix scope checkpoint
 
 - Updated the active goal objective and four controlling product documents with the explicit US

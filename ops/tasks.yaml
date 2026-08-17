@@ -24,6 +24,40 @@ tasks:
         alternate transport, rewrite, reset, stash, or repeat. Provider/history population and
         implementation/browser/visual acceptance remain open; no acceptance flexibility used.
 
+  - id: tc2000-breadth-group-reference-series-20260817
+    title: Add provider-neutral group aggregate reference targets to generic breadth
+    status: completed
+    priority: high
+    scope: >-
+      Allow generic breadth series comparisons to target a canonical local group, benchmark
+      family, ETF-proxy holdings universe, or explicit peer set. Materialize a labelled
+      equal-weight return index from exact observed member returns and preserve membership,
+      coverage, alignment, and provenance through current/history responses and workstation
+      authoring.
+    definition_of_done:
+      - reference_universe is resolved through the canonical point-in-time universe path
+      - Derived reference output declares method, membership version, covered-member summary, and no-forward-fill alignment
+      - Current/history series comparisons retain reference lineage and structured missing-reference diagnostics
+      - Compact workstation authoring distinguishes symbol and equal-weight group aggregate targets
+      - Focused service/API/component/browser tests and broader backend/frontend gates pass
+      - Event targets, arbitrary derived-Python target series, and complete promotion fan-out remain explicit gaps
+    validation:
+      - breadth-unit-22-of-22
+      - generic-breadth-group-reference-integration-1-of-1
+      - frontend-breadth-condition-component-5-of-5
+      - authenticated-f8s-breadth-family-ratio-1-of-1
+      - frontend-full-vitest-844-of-844
+      - backend-full-unit-1186-of-1186
+      - frontend-type-check-production-build
+      - ruff-compileall-diff-check
+    notes:
+      - >-
+        No product acceptance flexibility used. The first browser attempt hit a stale served
+        bundle that lacked the new control; the branch-scoped stack was rebuilt and the unchanged
+        authenticated flow passed. Implementation/docs commit 03fb81b7 is clean locally. Its
+        exact push was attempted once and rejected before Git by the private-origin safeguard;
+        no workaround or repeat.
+
   - id: tc2000-breadth-series-comparison-20260817
     title: Add aligned benchmark and peer series targets to generic breadth
     status: completed
