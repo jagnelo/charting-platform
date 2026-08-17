@@ -28230,3 +28230,15 @@ and strict visual gaps remain explicitly tracked.
   blocker.
 - Open: point-in-time market-cap/weight areas, richer cross-sectional fields, complete family
   population, direct definition promotion, exact V25 visual approval, and final audit gates.
+
+# 2026-08-17 — Market Map coverage visibility checkpoint
+
+- Added visible colour, area, and combined coverage labels to the Market Map summary, legend, and
+  tile hover, with compatibility fallback for older cached responses.
+- Focused Market Map `11/11`, full frontend Vitest `860/860`, `vue-tsc`, production build, and
+  `git diff --check` passed. No acceptance flexibility or visual threshold/mask relaxation was used.
+- Implementation/docs commit `9c607367` is clean locally. Its one exact push attempt was rejected
+  before Git by the private-origin safeguard; no retry or workaround. Transport-only, not a product
+  blocker.
+- Open: point-in-time market-cap/weight areas, richer cross-sectional fields, complete family
+  population, direct definition promotion, exact V25 coverage imagery, and final audit gates.

@@ -10922,3 +10922,25 @@ tasks:
         the private-origin safeguard. No acceptance flexibility was used. Open gaps are point-in-time
         market-cap/weight areas, richer cross-sectional fields, family population, direct definition
         promotion, and exact V25 visual approval.
+  - id: tc2000-market-map-coverage-visibility-20260817
+    title: Expose Market Map coverage states in the workstation
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Make the separate colour, area, and combined coverage contract visible in dense Market Map
+      chrome and tile detail while retaining compatibility with older cached responses.
+    definition_of_done:
+      - Summary, legend, and tile hover show colour, area, and combined coverage
+      - Older responses without the new fields remain readable
+      - Focused/full frontend, type/build, and diff checks pass
+      - Exact V25 imagery gaps and broader backend gaps remain tracked
+    validation:
+      - market-map-component-11-of-11
+      - frontend-vitest-860-of-860
+      - frontend-typecheck-build
+      - git-diff-check
+    notes:
+      - >-
+        Implementation/docs commit 9c607367 is clean locally; its one exact push attempt was
+        rejected before Git by the private-origin safeguard. No acceptance flexibility was used.

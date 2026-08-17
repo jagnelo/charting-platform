@@ -30027,3 +30027,15 @@ indefinite soak; longer endurance remains an explicit open gap.
 - Open: historical point-in-time market-cap/weight areas, richer cross-sectional fields, complete
   family population, direct map-to-definition promotion, exact V25 visual approval, and final
   functional/performance/security audit.
+
+# 2026-08-17 — Market Map coverage visibility checkpoint
+
+- The workstation now exposes colour, area, and combined coverage in the summary, legend, and tile
+  hover. Older cached responses remain readable through a combined-coverage fallback.
+- Focused Market Map `11/11`, full frontend Vitest `860/860`, `vue-tsc`, production build, and
+  `git diff --check` pass. No acceptance flexibility or visual threshold/mask relaxation was used.
+- Implementation/docs commit `9c607367` is clean locally. Its one exact push attempt was rejected
+  before Git by the private-origin safeguard; no retry, workaround, alternate transport, rewrite,
+  reset, or stash will be attempted. This is transport-only and not a product blocker.
+- Open: point-in-time market-cap/weight areas, richer cross-sectional fields, complete family
+  population, direct definition promotion, exact V25 coverage imagery, and final audit gates.
