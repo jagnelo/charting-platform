@@ -28256,3 +28256,18 @@ and strict visual gaps remain explicitly tracked.
   blocker.
 - Open: point-in-time market-cap/weight areas, richer cross-sectional fields, family population,
   direct definition promotion, exact V25 unavailable-area imagery, and final audit gates.
+
+# 2026-08-17 — Nested Market Map breadth authoring checkpoint
+
+- Market Map now has an advanced shared breadth-condition editor in addition to quick presets.
+  Nested AND/OR/NOT groups and the supported breadth leaves are serialized, persisted, restored,
+  and submitted against the canonical locked/watchlist-source universe.
+- Validation: focused Market Map component `12/12`; full frontend Vitest `862/862`; `vue-tsc`,
+  production build, and `git diff --check` passed. Initial type/restore defects were corrected
+  before the unchanged rerun. No acceptance flexibility or visual threshold/mask relaxation was
+  used.
+- Commit `db1a95e6 feat: add nested market map breadth authoring` is clean locally. The one exact
+  push attempt was rejected before Git by the private-origin safeguard; this remains a transport
+  constraint only and was not retried or worked around.
+- Remaining goal gaps include exact V25 editor imagery, arbitrary Python predicate/promotion
+  fan-out, point-in-time weights, full index-family population, provider breadth, and final audit.

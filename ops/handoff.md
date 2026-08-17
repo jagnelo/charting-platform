@@ -30053,3 +30053,23 @@ indefinite soak; longer endurance remains an explicit open gap.
   reset, or stash will be attempted. This is transport-only and not a product blocker.
 - Open: point-in-time market-cap/weight areas, richer cross-sectional fields, family population,
   direct definition promotion, exact V25 unavailable-area imagery, and final audit gates.
+
+# 2026-08-17 — Nested Market Map breadth authoring checkpoint
+
+- Added an advanced mode to Market Map using the shared nested breadth condition editor. Users can
+  compose reusable AND/OR/NOT trees from the supported moving-average, extremes, trend, RSI,
+  volume, relative-strength, series-comparison, event, measured-comparison, range, and percentile
+  leaves, while quick presets remain available for fast daily analysis.
+- The canonical condition tree is serialized into the Market Map request and persisted tool state;
+  nested reference requirements are detected recursively, and snapshot restore reconstructs the
+  editor state. This keeps every arbitrary canonical watchlist source on the same heatmap/breadth
+  path rather than creating a separate index/ETF implementation.
+- Focused Market Map component coverage passed `12/12`; full frontend Vitest passed `862/862`;
+  `vue-tsc`, production build, and `git diff --check` passed. Initial shared-type and snapshot
+  restore defects were fixed at their owning boundaries before the unchanged rerun. No acceptance
+  flexibility, visual threshold, or mask relaxation was used.
+- Implementation/docs commit `db1a95e6` is clean locally. Its one exact push attempt was rejected
+  before Git by the private-origin safeguard; no retry, workaround, alternate transport, rewrite,
+  reset, or stash will be attempted. This is transport-only and not a product blocker.
+- Open: exact V25 editor imagery, arbitrary Python predicate and promotion fan-out, point-in-time
+  weights and family population, provider breadth, and the final functional/visual/security audit.

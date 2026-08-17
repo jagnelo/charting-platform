@@ -10966,3 +10966,27 @@ tasks:
       - >-
         Implementation/docs commit 94f57e1e is clean locally; its one exact push attempt was
         rejected before Git by the private-origin safeguard. No acceptance flexibility was used.
+  - id: tc2000-market-map-breadth-editor-20260817
+    title: Add nested reusable breadth authoring to the universal Market Map
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Let every canonical locked/watchlist-source heatmap author reusable nested breadth
+      conditions while retaining fast presets for daily top-down analysis.
+    definition_of_done:
+      - Advanced mode composes supported AND, OR, and NOT breadth trees
+      - Nested conditions serialize into requests and persist through workspace/snapshot restore
+      - Recursive reference detection requests the required benchmark/reference universe
+      - Existing quick presets remain available and no alternate watchlist heatmap path is created
+      - Focused/full frontend, type/build, and diff checks pass
+      - Exact V25 editor imagery and unsupported Python/promotion capabilities remain explicit gaps
+    validation:
+      - market-map-component-12-of-12
+      - frontend-vitest-862-of-862
+      - frontend-typecheck-build
+      - git-diff-check
+    notes:
+      - >-
+        Implementation/docs commit db1a95e6 is clean locally; its one exact push attempt was
+        rejected before Git by the private-origin safeguard. No acceptance flexibility was used.
