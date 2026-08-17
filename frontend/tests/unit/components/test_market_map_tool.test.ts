@@ -175,4 +175,25 @@ describe('MarketMapTool', () => {
     const request = apiPost.mock.calls.map(call => call[1]).find(body => body?.color_metric === 'python')
     expect(request).toEqual(expect.objectContaining({ color_metric: 'python', python_run_id: 42 }))
   })
+
+  it('authors an event predicate for Market Map breadth colouring', async () => {
+    apiPost.mockImplementation((path: string, body?: Record<string, unknown>) => {
+      if (path === '/analysis/market-map') return Promise.resolve({ ...response, color_metric: body?.color_metric, condition: body?.condition })
+      return Promise.resolve([])
+    })
+    const wrapper = mount(MarketMapTool, { props: { configuration: { source_id: 'market-group:sp500' } } })
+    await flushPromises()
+
+    await wrapper.get('select[aria-label="Market Map colour metric"]').setValue('breadth')
+    await wrapper.get('select[aria-label="Market Map breadth condition"]').setValue('event')
+    await wrapper.get('select[aria-label="Market Map breadth event type"]').setValue('dividend')
+    await wrapper.get('input[aria-label="Market Map breadth event lookback"]').setValue('5')
+    await wrapper.get('.market-map-tool__run').trigger('click')
+    await flushPromises()
+
+    const request = apiPost.mock.calls.map(call => call[1]).find(body => body?.color_metric === 'breadth' && body?.condition?.kind === 'event')
+    expect(request).toEqual(expect.objectContaining({
+      condition: { kind: 'event', params: { event_type: 'dividend', lookback_days: 5, include_estimates: false } },
+    }))
+  })
 })

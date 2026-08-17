@@ -96,6 +96,16 @@ The captures are behavioural/product references; Finviz artwork and branding are
 - [ ] Event/peer/group-derived map predicates, custom numeric area fields, point-in-time market-cap
       weights, and final visual approval remain open.
 
+#### Implementation checkpoint — event predicate colour maps
+
+- [x] Market Map breadth colouring now reuses the canonical local event calendar for nested event
+      predicates. Loaded event-fetch state distinguishes a known event-free member from an
+      unavailable calendar; event type, trailing lookback, and exact observation alignment are
+      preserved through pass/fail tile colour, condition metrics, exclusions, coverage, and cache
+      identity. The workstation exposes any, earnings, dividend, ex-dividend, and split controls.
+- [ ] Reference-universe/group-derived predicates, custom numeric area fields, point-in-time
+      market-cap weights, and final visual approval remain open.
+
 #### Implementation checkpoint — workstation Market Map tool
 
 - [x] Added a primary-workstation `Market Map` tool backed by the batch contract. It lets the user

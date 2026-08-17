@@ -673,3 +673,11 @@ colouring, and the persisted run-backed map state. No exact V25 capture has been
 specific programmable heatmap workflow; the board therefore guides density, control ordering,
 locked-source treatment, warning placement, and tile interaction only. The missing exact reference
 is tracked as a named visual gap and cannot be silently converted into a strict pixel-pass claim.
+
+## 2026-08-17 — Event predicate Market Map state
+
+The interim board-guided oracle now includes the event predicate controls and states: event type,
+lookback, loaded/empty versus unavailable calendar messaging, pass/fail tiles, and explicit
+coverage/warning status. The board has no authoritative exact-build capture for this programmable
+event-colour state, so density, control ordering, warning treatment, and interaction are guided by
+the represented Market Map/breadth surfaces while the event-specific visual gap remains tracked.

@@ -7469,3 +7469,17 @@ This closes run-backed isolated Python Boolean/numeric colour output for arbitra
 watchlist sources. Event/peer/group-derived map predicates, custom numeric area fields,
 point-in-time market-cap weights, complete provider/history population, exact V25 visual baselines,
 and the broader multi-output Python map authoring surface remain open.
+
+## 2026-08-17 — Event predicate Market Map colours
+
+Market Map breadth colouring now accepts the existing canonical `event` condition leaf, including
+nested `all`/`any`/`not` compositions. It reads persisted local event rows and fetch-state records
+through the same loaded-versus-unavailable semantics as the breadth API. A loaded empty calendar is
+therefore a valid false result, while a member with no local fetch state remains an explicit
+`event_data_unavailable` exclusion. The workstation exposes event type (`any`, earnings, dividend,
+ex-dividend, split) and trailing lookback controls; no provider call is made by the map request.
+
+This closes event-calendar predicate colouring for arbitrary canonical watchlist sources. Exact
+V25 visual references for this programmable heatmap state remain a board gap, and reference-group
+derived predicates, custom numeric area fields, point-in-time market-cap weights, complete
+provider/history population, and full visual approval remain open.

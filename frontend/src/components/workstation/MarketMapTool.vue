@@ -42,6 +42,7 @@
           <option value="new_high_low">New high/low</option>
           <option value="rsi">RSI threshold</option>
           <option value="volume_ratio">Volume ratio</option>
+          <option value="event">Event occurrence</option>
           <option value="relative_strength">Relative strength</option>
         </select>
       </label>
@@ -53,6 +54,14 @@
       </label>
       <label v-if="colorMetric === 'breadth' && (breadthConditionKind === 'rsi' || breadthConditionKind === 'volume_ratio')">Threshold
         <input v-model.number="breadthConditionThreshold" aria-label="Market Map breadth threshold" type="number" step="0.01" />
+      </label>
+      <label v-if="colorMetric === 'breadth' && breadthConditionKind === 'event'">Event
+        <select v-model="breadthEventType" aria-label="Market Map breadth event type">
+          <option value="any">Any event</option><option value="earnings">Earnings</option><option value="dividend">Dividend</option><option value="ex_dividend">Ex-dividend</option><option value="split">Split</option>
+        </select>
+      </label>
+      <label v-if="colorMetric === 'breadth' && breadthConditionKind === 'event'">Lookback days
+        <input v-model.number="breadthEventLookback" aria-label="Market Map breadth event lookback" type="number" min="0" max="3660" />
       </label>
       <label v-if="colorMetric === 'python'">Python output
         <select v-model="pythonCodeVersionId" aria-label="Market Map Python colour asset" :disabled="pythonAssetsLoading || pythonRunLoading">
@@ -149,6 +158,8 @@ const referenceSymbol = ref(String(props.configuration.reference_symbol ?? ''))
 const breadthConditionKind = ref(String(props.configuration.breadth_condition_kind ?? 'above_moving_average'))
 const breadthConditionPeriod = ref(Number(props.configuration.breadth_condition_period ?? 200))
 const breadthConditionThreshold = ref(Number(props.configuration.breadth_condition_threshold ?? 0.01))
+const breadthEventType = ref(String(props.configuration.breadth_event_type ?? 'any'))
+const breadthEventLookback = ref(Number(props.configuration.breadth_event_lookback ?? 0))
 const pythonCodeVersionId = ref<number | null>(Number(props.configuration.python_code_version_id ?? 0) || null)
 const pythonRunId = ref<number | null>(Number(props.configuration.python_run_id ?? 0) || null)
 const pythonAssets = ref<Array<{ versionId: number; name: string; outputContract: 'boolean' | 'series' }>>([])
@@ -229,6 +240,7 @@ const breadthCondition = computed<Record<string, unknown> | null>(() => {
   if (breadthConditionKind.value === 'new_high_low') return { kind: 'new_high_low', params: { lookback: breadthConditionPeriod.value, direction: 'high' } }
   if (breadthConditionKind.value === 'rsi') return { kind: 'rsi', params: { period: 14, operator: 'gte', threshold: breadthConditionThreshold.value } }
   if (breadthConditionKind.value === 'volume_ratio') return { kind: 'volume_ratio', params: { period: 50, operator: 'gte', threshold: breadthConditionThreshold.value } }
+  if (breadthConditionKind.value === 'event') return { kind: 'event', params: { event_type: breadthEventType.value, lookback_days: breadthEventLookback.value, include_estimates: false } }
   return { kind: 'relative_strength', params: { lookback: breadthConditionPeriod.value, operator: 'gte', threshold: 0 } }
 })
 const colorLabel = computed(() => colorMetric.value.replace(/_/g, ' '))
@@ -449,9 +461,9 @@ async function run() {
   }
 }
 function persist() {
-  emit('configuration', { ...props.configuration, source_id: sourceId.value, group_by: groupBy.value, period: period.value, area_metric: areaMetric.value, color_metric: colorMetric.value, condition: colorMetric.value === 'breadth' ? breadthCondition.value : null, python_code_version_id: pythonCodeVersionId.value, python_run_id: pythonRunId.value, breadth_condition_kind: breadthConditionKind.value, breadth_condition_period: breadthConditionPeriod.value, breadth_condition_threshold: breadthConditionThreshold.value, reference_symbol: referenceSymbol.value })
+  emit('configuration', { ...props.configuration, source_id: sourceId.value, group_by: groupBy.value, period: period.value, area_metric: areaMetric.value, color_metric: colorMetric.value, condition: colorMetric.value === 'breadth' ? breadthCondition.value : null, python_code_version_id: pythonCodeVersionId.value, python_run_id: pythonRunId.value, breadth_condition_kind: breadthConditionKind.value, breadth_condition_period: breadthConditionPeriod.value, breadth_condition_threshold: breadthConditionThreshold.value, breadth_event_type: breadthEventType.value, breadth_event_lookback: breadthEventLookback.value, reference_symbol: referenceSymbol.value })
 }
-watch([sourceId, groupBy, period, areaMetric, colorMetric, referenceSymbol, pythonCodeVersionId, pythonRunId, breadthConditionKind, breadthConditionPeriod, breadthConditionThreshold], persist)
+watch([sourceId, groupBy, period, areaMetric, colorMetric, referenceSymbol, pythonCodeVersionId, pythonRunId, breadthConditionKind, breadthConditionPeriod, breadthConditionThreshold, breadthEventType, breadthEventLookback], persist)
 watch(sourceId, () => {
   if (skipNextSourceRun.value) {
     skipNextSourceRun.value = false

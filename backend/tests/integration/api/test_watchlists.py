@@ -251,6 +251,126 @@ class TestWatchlistsCrud:
         )
         assert missing_condition.status_code == 422
 
+    def test_market_map_colours_tiles_by_event_predicate_with_loaded_state(
+        self, client, auth_headers, db, watchlist, instrument, instrument_b
+    ):
+        from app.models.instrument_event import (
+            InstrumentEvent,
+            InstrumentEventFetchState,
+            InstrumentEventType,
+        )
+        from app.models.ohlcv import OHLCVBar, Timeframe
+        from app.models.watchlist import WatchlistItem
+
+        watchlist.items.extend(
+            [
+                WatchlistItem(instrument_id=instrument.id, position=0),
+                WatchlistItem(instrument_id=instrument_b.id, position=1),
+            ]
+        )
+        base = datetime(2024, 1, 1, tzinfo=UTC)
+        for offset in range(6):
+            for member in (instrument, instrument_b):
+                price = 100 + offset
+                db.add(
+                    OHLCVBar(
+                        instrument_id=member.id,
+                        timeframe=Timeframe.D1,
+                        ts=base + timedelta(days=offset),
+                        open=price,
+                        high=price + 1,
+                        low=price - 1,
+                        close=price,
+                        volume=1_000_000,
+                        is_adjusted=True,
+                    )
+                )
+        db.add_all(
+            [
+                InstrumentEvent(
+                    instrument_id=instrument.id,
+                    event_type=InstrumentEventType.DIVIDEND,
+                    event_time=base + timedelta(days=4),
+                    title="Fixture dividend",
+                    source="controlled_fixture",
+                    source_event_key="div-1",
+                    fetched_at=base + timedelta(days=4),
+                ),
+                InstrumentEventFetchState(
+                    instrument_id=instrument.id,
+                    source="controlled_fixture",
+                    fetched_at=base + timedelta(days=5),
+                ),
+                InstrumentEventFetchState(
+                    instrument_id=instrument_b.id,
+                    source="controlled_fixture",
+                    fetched_at=base + timedelta(days=5),
+                ),
+            ]
+        )
+        db.flush()
+
+        response = client.post(
+            "/api/v1/analysis/market-map",
+            headers=auth_headers,
+            json={
+                "source_id": f"watchlist:{watchlist.id}",
+                "group_by": "none",
+                "period": "1D",
+                "area_metric": "equal",
+                "color_metric": "breadth",
+                "condition": {
+                    "kind": "event",
+                    "params": {"event_type": "dividend", "lookback_days": 2},
+                },
+                "end": "2024-01-06T00:00:00Z",
+            },
+        )
+
+        assert response.status_code == 200, response.text
+        body = response.json()
+        cells = {cell["symbol"]: cell for cell in body["cells"]}
+        assert cells["AAPL"]["condition_value"] is True
+        assert cells["AAPL"]["color_value"] == 1
+        assert cells["MSFT"]["condition_value"] is False
+        assert cells["MSFT"]["color_value"] == -1
+
+        db.add(
+            InstrumentEvent(
+                instrument_id=instrument.id,
+                event_type=InstrumentEventType.DIVIDEND,
+                event_time=base + timedelta(days=5),
+                title="Later fixture dividend",
+                source="controlled_fixture",
+                source_event_key="div-2",
+                fetched_at=base + timedelta(days=6, hours=1),
+            )
+        )
+        db.query(InstrumentEventFetchState).filter(
+            InstrumentEventFetchState.instrument_id == instrument.id,
+            InstrumentEventFetchState.source == "controlled_fixture",
+        ).one().fetched_at = base + timedelta(days=6, hours=1)
+        db.flush()
+        refreshed = client.post(
+            "/api/v1/analysis/market-map",
+            headers=auth_headers,
+            json={
+                "source_id": f"watchlist:{watchlist.id}",
+                "group_by": "none",
+                "period": "1D",
+                "area_metric": "equal",
+                "color_metric": "breadth",
+                "condition": {
+                    "kind": "event",
+                    "params": {"event_type": "dividend", "lookback_days": 2},
+                },
+                "end": "2024-01-06T00:00:00Z",
+            },
+        )
+        assert refreshed.status_code == 200, refreshed.text
+        assert refreshed.json()["cache_hit"] is False
+        assert refreshed.json()["cache_key"] != body["cache_key"]
+
     def test_sources_unify_personal_and_locked_index_universes(
         self, client, auth_headers, db, watchlist, instrument
     ):
@@ -724,6 +844,48 @@ class TestWatchlistsCrud:
         assert {cell["color_value"] for cell in body["cells"]} == {2.5, -0.5}
         assert body["coverage"] == 1
 
+        boolean_run = ResearchRun(
+            user_id=user.id,
+            code_version_id=version.id,
+            status="completed",
+            run_config={"output_contract": "boolean"},
+            dataset_manifest={"dataset_version": "test"},
+        )
+        boolean_run.artifacts.append(
+            ResearchArtifact(
+                artifact_type="batch",
+                name="batch_cells",
+                payload={
+                    "value": {
+                        "cells": [
+                            {"instrument_id": instrument.id, "status": "completed", "value": True},
+                            {"instrument_id": instrument_b.id, "status": "completed", "value": False},
+                        ]
+                    }
+                },
+            )
+        )
+        db.add(boolean_run)
+        db.flush()
+        boolean_response = client.post(
+            "/api/v1/analysis/market-map",
+            headers=auth_headers,
+            json={
+                "source_id": f"watchlist:{watchlist.id}",
+                "group_by": "none",
+                "color_metric": "python",
+                "python_run_id": boolean_run.id,
+                "area_metric": "equal",
+                "period": "1D",
+            },
+        )
+        assert boolean_response.status_code == 200, boolean_response.text
+        boolean_cells = {cell["symbol"]: cell for cell in boolean_response.json()["cells"]}
+        assert boolean_cells["AAPL"]["condition_value"] is True
+        assert boolean_cells["AAPL"]["color_value"] == 1
+        assert boolean_cells["MSFT"]["condition_value"] is False
+        assert boolean_cells["MSFT"]["color_value"] == -1
+
         invalid = client.post(
             "/api/v1/analysis/market-map",
             headers=auth_headers,
@@ -733,4 +895,4 @@ class TestWatchlistsCrud:
                 "python_run_id": run.id + 100_000,
             },
         )
-        assert invalid.status_code == 422
+        assert invalid.status_code == 404

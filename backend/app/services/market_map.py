@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.models.instrument import Instrument
+from app.models.instrument_event import InstrumentEvent, InstrumentEventFetchState
 from app.models.market_map import MarketMapCache
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.research import ResearchRun
@@ -105,6 +106,7 @@ def _colour(
     return_value: float | None,
     *,
     reference_bars: list[OHLCVBar] | None = None,
+    events: list[InstrumentEvent] | None = None,
 ) -> tuple[float | None, str | None, bool | None, float | None]:
     metric = request.color_metric
     if metric in {"return", "relative_return"}:
@@ -114,6 +116,7 @@ def _colour(
             bars,
             request.condition or {},
             benchmark_bars=reference_bars,
+            events=events,
         )
         return (1.0 if value else -1.0) if value is not None else None, warning, value, condition_metric
     if not bars:
@@ -148,11 +151,69 @@ def _group_path(request: MarketMapRequest, instrument: Instrument) -> list[str]:
     return [sector, industry]
 
 
+def _condition_requires_events(condition: object) -> bool:
+    if not isinstance(condition, dict):
+        return False
+    if str(condition.get("kind", "")).lower() == "event":
+        return True
+    params = condition.get("params")
+    if not isinstance(params, dict):
+        return False
+    children = params.get("conditions")
+    return isinstance(children, list) and any(_condition_requires_events(child) for child in children)
+
+
+async def _events_by_instrument(
+    db: AsyncSession,
+    instrument_ids: list[int],
+    period_end: datetime,
+) -> tuple[dict[int, list[InstrumentEvent] | None], datetime | None]:
+    """Read the local event calendar with the same loaded/unavailable semantics as breadth."""
+
+    if not instrument_ids:
+        return {}, None
+    rows = (
+        await db.execute(
+            select(InstrumentEvent)
+            .where(
+                InstrumentEvent.instrument_id.in_(instrument_ids),
+                InstrumentEvent.event_time <= period_end,
+            )
+            .order_by(InstrumentEvent.instrument_id, InstrumentEvent.event_time)
+        )
+    ).scalars().all()
+    fetch_states = (
+        (
+            await db.execute(
+                select(InstrumentEventFetchState).where(
+                    InstrumentEventFetchState.instrument_id.in_(instrument_ids)
+                )
+            )
+        ).scalars().all()
+    )
+    loaded_ids = {int(state.instrument_id) for state in fetch_states}
+    events: dict[int, list[InstrumentEvent] | None] = {
+        instrument_id: [] if instrument_id in loaded_ids else None
+        for instrument_id in instrument_ids
+    }
+    for event in rows:
+        events.setdefault(event.instrument_id, []).append(event)
+    timestamps = [
+        timestamp
+        for timestamp in [
+            *(getattr(event, "fetched_at", None) for event in rows),
+            *(getattr(state, "fetched_at", None) for state in fetch_states),
+        ]
+        if isinstance(timestamp, datetime)
+    ]
+    return events, max(timestamps, default=None)
+
+
 async def _python_colour_values(
     db: AsyncSession,
     user_id: int,
     run_id: int,
-) -> dict[int, tuple[float | None, bool | None, float | None, str | None]]:
+) -> dict[int, tuple[float | None, str | None, bool | None, float | None]]:
     """Read completed isolated batch cells for one user-owned Python run.
 
     Python is never executed by the Market Map request. The run must already be
@@ -182,13 +243,13 @@ async def _python_colour_values(
     raw_cells = artifact.payload["value"].get("cells")
     if not isinstance(raw_cells, list):
         raise ValueError("python_run_artifact_unavailable")
-    values: dict[int, tuple[float | None, bool | None, float | None, str | None]] = {}
+    values: dict[int, tuple[float | None, str | None, bool | None, float | None]] = {}
     for raw in raw_cells:
         if not isinstance(raw, dict) or not isinstance(raw.get("instrument_id"), int):
             continue
         instrument_id = raw["instrument_id"]
         if raw.get("status") != "completed":
-            values[instrument_id] = (None, None, None, "python_cell_failed")
+            values[instrument_id] = (None, "python_cell_failed", None, None)
             continue
         value = raw.get("value")
         metric = raw.get("metric")
@@ -199,9 +260,9 @@ async def _python_colour_values(
         )
         if output_contract == "boolean":
             if not isinstance(value, bool):
-                values[instrument_id] = (None, None, numeric_metric, "python_boolean_invalid")
+                values[instrument_id] = (None, "python_boolean_invalid", None, numeric_metric)
                 continue
-            values[instrument_id] = (1.0 if value else -1.0, value, numeric_metric, None)
+            values[instrument_id] = (1.0 if value else -1.0, None, value, numeric_metric)
             continue
         numeric_value = (
             float(value)
@@ -209,9 +270,9 @@ async def _python_colour_values(
             else numeric_metric
         )
         if numeric_value is None:
-            values[instrument_id] = (None, None, numeric_metric, "python_numeric_invalid")
+            values[instrument_id] = (None, "python_numeric_invalid", None, numeric_metric)
         else:
-            values[instrument_id] = (numeric_value, None, numeric_value, None)
+            values[instrument_id] = (numeric_value, None, None, numeric_value)
     return values
 
 
@@ -233,6 +294,7 @@ def _cache_key(
     member_ids: list[int],
     bar_watermark: datetime | None,
     reference_watermark: datetime | None,
+    event_watermark: datetime | None = None,
 ) -> str:
     """Build a deterministic identity for one source/data snapshot.
 
@@ -249,6 +311,7 @@ def _cache_key(
         "reference_bar_watermark": (
             reference_watermark.isoformat() if reference_watermark else None
         ),
+        "event_watermark": event_watermark.isoformat() if event_watermark else None,
     }
     return hashlib.sha256(json.dumps(payload, sort_keys=True, default=str).encode()).hexdigest()
 
@@ -359,12 +422,18 @@ async def build_market_map(db: AsyncSession, user_id: int, request: MarketMapReq
     ref_return, _, _, _ = _return(reference_bars, request.period, period_start, period_end) if reference else (None, None, None, None)
     source_bar_watermark = max((bar.ts for rows in bars_by_id.values() for bar in rows), default=None)
     reference_bar_watermark = max((bar.ts for bar in reference_bars), default=None)
+    events_by_id, event_watermark = (
+        await _events_by_instrument(db, member_ids, period_end)
+        if request.color_metric == "breadth" and _condition_requires_events(request.condition)
+        else ({}, None)
+    )
     cache_key = _cache_key(
         request,
         resolved.descriptor.membership_version,
         member_ids,
         source_bar_watermark,
         reference_bar_watermark,
+        event_watermark,
     )
     python_values = (
         await _python_colour_values(db, user_id, request.python_run_id)
@@ -387,7 +456,7 @@ async def build_market_map(db: AsyncSession, user_id: int, request: MarketMapReq
         if request.color_metric == "python":
             colour, colour_code, condition_value, condition_metric = python_values.get(
                 instrument_id,
-                (None, None, None, "python_member_missing"),
+                (None, "python_member_missing", None, None),
             )
         else:
             colour, colour_code, condition_value, condition_metric = _colour(
@@ -395,6 +464,7 @@ async def build_market_map(db: AsyncSession, user_id: int, request: MarketMapReq
                 rows,
                 result,
                 reference_bars=reference_bars,
+                events=events_by_id.get(instrument_id),
             )
         if request.color_metric == "relative_return":
             if result is None or ref_return is None:

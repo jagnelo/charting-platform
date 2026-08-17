@@ -988,3 +988,13 @@ warning preservation, and cache serialization. Docker-backed integration could n
 current sandbox because the Docker socket is permission-denied; this is an environmental validation
 gap, not acceptance evidence. Event/peer/group predicates, richer Python output promotion,
 point-in-time area weights, and exact visual baselines remain open.
+
+## 2026-08-17 — Event predicate Market Map evidence
+
+Event-colour acceptance uses the canonical local event calendar rather than provider fan-out. The
+fixture must distinguish a member with a loaded empty calendar (eligible false) from a member whose
+event data has never been loaded (`event_data_unavailable`), and must verify event type, lookback,
+observation-time alignment, pass/fail colour, denominator, coverage, and cache identity. Focused
+component/static checks cover authoring and contract wiring; Docker-backed integration remains
+required when the authorized runtime is available. The exact event-programmable V25 visual state is
+not represented in the board and remains an explicit visual gap.
