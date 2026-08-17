@@ -2393,6 +2393,28 @@ class TestWorkspaces:
         assert percentile_payload["condition"]["kind"] == "percentile"
         assert percentile_payload["eligible_count"] == 1
 
+        cross_sectional = client.post(
+            "/api/v1/analysis/breadth",
+            headers=auth_headers,
+            json={
+                "universe": {"kind": "symbols", "symbols": [instrument.symbol]},
+                "condition": {
+                    "kind": "percentile",
+                    "target_scope": "cross_sectional",
+                    "params": {
+                        "field": "close",
+                        "percentile": 0.5,
+                        "operator": ">=",
+                    },
+                },
+            },
+        )
+        assert cross_sectional.status_code == 200
+        cross_payload = cross_sectional.json()
+        assert cross_payload["condition"]["target_scope"] == "cross_sectional"
+        assert cross_payload["eligible_count"] == 1
+        assert cross_payload["members"][0]["metric"] == 1.0
+
     def test_generic_breadth_resolves_benchmark_family_style_leg_from_holdings_snapshot(
         self, client, auth_headers, db, instrument, instrument_type, ohlcv_bars
     ):

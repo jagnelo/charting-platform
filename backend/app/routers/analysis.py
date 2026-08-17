@@ -5030,6 +5030,8 @@ _GENERIC_BREADTH_EXCLUSION_MESSAGES = {
     "zero_average_volume": "The volume baseline is zero.",
     "benchmark_required": "This condition requires a benchmark.",
     "unsupported_condition": "The requested condition is not supported by this runtime.",
+    "cross_sectional_unsupported_condition": "The selected cross-sectional target is only supported for percentile conditions.",
+    "cross_sectional_requires_universe": "A cross-sectional condition must be evaluated with its complete universe.",
     "invalid_condition_params": "The condition parameters are invalid.",
     "unsupported_field": "The requested comparison field is not supported by this runtime.",
     "condition_clause_excluded": "A nested breadth condition could not be evaluated for this member.",
@@ -5060,6 +5062,11 @@ def _generic_condition_requires_benchmark(condition: Mapping[str, object]) -> bo
     if not isinstance(params, Mapping):
         return False
     if kind == "relative_strength":
+        return True
+    if kind == "percentile" and str(params.get("field", "")).lower() in {
+        "relative_strength",
+        "relative_return",
+    }:
         return True
     if kind == "comparison" and str(params.get("field", "")).lower() in {
         "relative_strength",
@@ -6211,6 +6218,7 @@ async def evaluate_generic_breadth(
 
     condition = {
         "kind": condition_definition.kind,
+        "target_scope": condition_definition.target_scope,
         "params": condition_definition.params,
         **condition_metadata,
     }
@@ -6317,6 +6325,7 @@ async def evaluate_generic_breadth_history(
         ).get(benchmark.id, [])
     condition = {
         "kind": condition_definition.kind,
+        "target_scope": condition_definition.target_scope,
         "params": condition_definition.params,
         **condition_metadata,
     }

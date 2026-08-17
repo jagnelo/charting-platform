@@ -1,5 +1,25 @@
 # Project TODO Memory
 
+### 2026-08-17 — Explicit cross-sectional breadth target scope
+
+- [x] Added `target_scope: member | cross_sectional` to the versioned breadth condition
+      contract. A cross-sectional percentile first calculates the declared scalar field for every
+      member at the same timestamp, ranks valid members with deterministic inclusive empirical
+      ranks, and then applies the declared operator/percentile threshold. It is not conflated with
+      a member's rolling historical percentile.
+- [x] Current and historical engines preserve eligible denominator, missing-current-bar
+      exclusions, per-member rank metrics, percentages, and occurrence state changes. Relative
+      strength fields request the benchmark through the existing canonical boundary. Unsupported
+      cross-sectional condition kinds return explicit exclusions rather than silently falling back
+      to member evaluation.
+- [x] The workstation percentile editor now exposes “Member rolling percentile” versus
+      “Cross-sectional rank percentile” and persists the selected scope. Backend unit/API,
+      frontend type/build, and rebuilt authenticated browser acceptance cover both paths.
+- [ ] Cross-sectional rank over richer derived/Python series, cross-sectional group statistics,
+      nested mixed-scope composition, and promotion into every compatible plot/column/filter/
+      gauge/alert/Study Lab target remain open. These are tracked capability gaps, not relaxed
+      acceptance criteria.
+
 ### 2026-08-17 — Generic breadth range and rolling-percentile predicates
 
 - [x] Extended the shared breadth condition contract with `range` and `percentile` targets.

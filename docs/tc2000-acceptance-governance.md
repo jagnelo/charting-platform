@@ -1,5 +1,20 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-08-17 — Cross-sectional breadth scope sub-gate
+
+Acceptance must distinguish `target_scope=member` from `target_scope=cross_sectional`. For the
+cross-sectional percentile path, all members observed at the same timestamp are ranked from the
+declared scalar field before the operator/percentile threshold is applied. Ties use deterministic
+inclusive empirical ranks; members without a current bar or valid scalar are excluded from both
+the rank universe and pass denominator with exact reasons. Current and historical responses must
+preserve scope, rank metric, membership/timestamp alignment, coverage, and occurrences.
+
+An unsupported cross-sectional condition must be visibly rejected/excluded and must not fall back
+to member semantics. The implemented sub-gate passes backend unit/API, frontend type/build, and
+rebuilt authenticated browser evidence. No visual threshold, provider rule, or acceptance
+flexibility changed. Cross-sectional Python/derived-series, mixed-scope composition, richer group
+statistics, and remaining promotion targets remain tracked gaps.
+
 ## 2026-08-17 — Breadth range and rolling-percentile sub-gate
 
 For the selected family/style/watchlist universe, acceptance must prove that a range predicate

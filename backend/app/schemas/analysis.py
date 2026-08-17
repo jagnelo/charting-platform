@@ -721,7 +721,7 @@ class BreadthUniverseRequest(BaseModel):
 
 
 class BreadthConditionRequest(BaseModel):
-    """One condition evaluated independently for every eligible member."""
+    """A member-level condition or an explicit cross-sectional target."""
 
     kind: Literal[
         "above_moving_average",
@@ -738,6 +738,7 @@ class BreadthConditionRequest(BaseModel):
         "any",
         "not",
     ]
+    target_scope: Literal["member", "cross_sectional"] = "member"
     params: dict[str, object] = Field(default_factory=dict)
 
 

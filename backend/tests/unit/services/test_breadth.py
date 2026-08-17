@@ -202,3 +202,66 @@ def test_invalid_range_bounds_are_excluded_instead_of_becoming_false():
     assert value is None
     assert metric is None
     assert warning == "invalid_condition_params"
+
+
+def test_cross_sectional_percentile_ranks_members_before_aggregation():
+    members = [
+        BreadthMember(1, "LOW", "Low"),
+        BreadthMember(2, "MID", "Mid"),
+        BreadthMember(3, "HIGH", "High"),
+    ]
+    results, aggregate = evaluate_breadth(
+        members,
+        {1: _bars([1]), 2: _bars([2]), 3: _bars([3])},
+        {
+            "kind": "percentile",
+            "target_scope": "cross_sectional",
+            "params": {"field": "close", "percentile": 0.5, "operator": "gte"},
+        },
+    )
+
+    assert [result.metric for result in results] == [1 / 3, 2 / 3, 1.0]
+    assert [result.value for result in results] == [False, True, True]
+    assert aggregate["eligible_count"] == 3
+    assert aggregate["pass_count"] == 2
+    assert aggregate["percentage"] == 2 / 3
+
+
+def test_cross_sectional_history_ranks_only_members_with_a_current_bar():
+    first = _bars([1, 2, 3])
+    second = _bars([3, 2, 1])
+    second = second[:2]
+    points = evaluate_breadth_history(
+        [BreadthMember(1, "A", "A"), BreadthMember(2, "B", "B")],
+        {1: first, 2: second},
+        {
+            "kind": "percentile",
+            "target_scope": "cross_sectional",
+            "params": {"field": "close", "percentile": 0.5, "operator": "gte"},
+        },
+        limit=10,
+    )
+
+    latest = points[-1]
+    assert latest["timestamp"] == first[-1].ts
+    assert latest["eligible_count"] == 1
+    by_symbol = {result.symbol: result for result in latest["members"]}
+    assert by_symbol["A"].value is True
+    assert by_symbol["B"].value is None
+    assert by_symbol["B"].exclusion_code == "missing_bar_at_timestamp"
+
+
+def test_cross_sectional_scope_never_silently_falls_back_to_member_evaluation():
+    results, aggregate = evaluate_breadth(
+        [BreadthMember(1, "A", "A")],
+        {1: _bars([1, 2])},
+        {
+            "kind": "comparison",
+            "target_scope": "cross_sectional",
+            "params": {"field": "close", "operator": "gte", "threshold": 1},
+        },
+    )
+
+    assert results[0].value is None
+    assert results[0].exclusion_code == "cross_sectional_unsupported_condition"
+    assert aggregate["eligible_count"] == 0

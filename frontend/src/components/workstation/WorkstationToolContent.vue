@@ -482,6 +482,10 @@
           <label>Max <input :value="breadthRangeUpper" aria-label="Breadth range upper bound" type="number" step="0.001" @change="setBreadthConfiguration({ breadth_range_upper: Number(($event.target as HTMLInputElement).value) })" /></label>
         </template>
         <template v-else-if="breadthConditionKind === 'percentile'">
+          <select :value="breadthPercentileScope" aria-label="Breadth percentile target scope" @change="setBreadthConfiguration({ breadth_percentile_scope: ($event.target as HTMLSelectElement).value })">
+            <option value="member">Member rolling percentile</option>
+            <option value="cross_sectional">Cross-sectional rank percentile</option>
+          </select>
           <select :value="breadthPercentileField" aria-label="Breadth percentile measured field" @change="setBreadthConfiguration({ breadth_percentile_field: ($event.target as HTMLSelectElement).value })">
             <option value="close">Close</option>
             <option value="return">One-period return</option>
@@ -1765,6 +1769,7 @@ const breadthPercentileField = computed(() => {
   const candidate = String(props.tool.configuration.breadth_percentile_field ?? 'close')
   return ['close', 'return', 'volume', 'moving_average_distance'].includes(candidate) ? candidate : 'close'
 })
+const breadthPercentileScope = computed(() => props.tool.configuration.breadth_percentile_scope === 'cross_sectional' ? 'cross_sectional' : 'member')
 const breadthPercentilePeriod = computed(() => Math.min(5000, Math.max(2, Number(props.tool.configuration.breadth_percentile_period ?? 252) || 252)))
 const breadthPercentileTarget = computed(() => Math.min(1, Math.max(0, Number(props.tool.configuration.breadth_percentile_target ?? 0.8) || 0.8)))
 const breadthSecondaryField = computed(() => {
@@ -1866,7 +1871,7 @@ function primaryBreadthCondition() {
     return { kind: 'range', params: { field: breadthRangeField.value, lower: breadthRangeLower.value, upper: breadthRangeUpper.value, inclusive: true } }
   }
   if (breadthConditionKind.value === 'percentile') {
-    return { kind: 'percentile', params: { field: breadthPercentileField.value, period: breadthPercentilePeriod.value, percentile: breadthPercentileTarget.value, operator: breadthComparisonOperator.value } }
+    return { kind: 'percentile', target_scope: breadthPercentileScope.value, params: { field: breadthPercentileField.value, period: breadthPercentilePeriod.value, percentile: breadthPercentileTarget.value, operator: breadthComparisonOperator.value } }
   }
   if (breadthConditionKind.value === 'within_52_week_high') {
     return { kind: 'within_52_week_high', params: { lookback: breadthConditionLookback.value, threshold: breadthConditionThreshold.value, direction: 'high' } }

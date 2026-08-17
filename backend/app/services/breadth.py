@@ -260,6 +260,131 @@ def _percentile_rank(values: list[float], target: float) -> float:
     return sum(value <= target for value in values) / len(values)
 
 
+def _target_scope(condition: Mapping[str, Any]) -> str:
+    params = condition.get("params", {})
+    if not isinstance(params, Mapping):
+        params = {}
+    return str(condition.get("target_scope", params.get("target_scope", "member"))).lower()
+
+
+def _is_cross_sectional(condition: Mapping[str, Any]) -> bool:
+    return _target_scope(condition) == "cross_sectional"
+
+
+def evaluate_cross_sectional_percentile(
+    members: list[BreadthMember],
+    bars_by_instrument: Mapping[int, list[Any]],
+    condition: Mapping[str, Any],
+    *,
+    benchmark_bars: list[Any] | None = None,
+    forced_exclusions: Mapping[int, str] | None = None,
+) -> tuple[list[BreadthMemberResult], dict[str, int | float]]:
+    """Rank one declared scalar field across the eligible members.
+
+    Cross-sectional ranking is deliberately a separate target scope from a
+    member's rolling percentile.  Each member first produces a scalar at the
+    same observation timestamp; only valid scalars participate in the rank
+    denominator.  Ties use the inclusive empirical rank so the result remains
+    deterministic and explainable.
+    """
+
+    params = condition.get("params", condition)
+    if not isinstance(params, Mapping) or str(condition.get("kind", "")).lower() != "percentile":
+        return [
+            BreadthMemberResult(
+                instrument_id=member.instrument_id,
+                symbol=member.symbol,
+                name=member.name,
+                value=None,
+                metric=None,
+                observation_time=None,
+                exclusion_code="cross_sectional_unsupported_condition",
+            )
+            for member in members
+        ], {
+            "requested_count": len(members),
+            "eligible_count": 0,
+            "pass_count": 0,
+            "excluded_count": len(members),
+            "coverage": 0.0,
+            "percentage": None,
+        }
+    field = params.get("field")
+    if not isinstance(field, str) or not field.strip():
+        invalid_code = "invalid_condition_params"
+    else:
+        invalid_code = None
+    try:
+        percentile = float(params.get("percentile", 0.8))
+    except (TypeError, ValueError):
+        percentile = math.nan
+    if invalid_code is None and (not _finite(percentile) or not 0 <= percentile <= 1):
+        invalid_code = "invalid_condition_params"
+
+    metrics: dict[int, float] = {}
+    exclusions: dict[int, str] = {}
+    for member in members:
+        bars = list(bars_by_instrument.get(member.instrument_id, []))
+        if forced_exclusions and member.instrument_id in forced_exclusions:
+            exclusions[member.instrument_id] = forced_exclusions[member.instrument_id]
+            continue
+        if invalid_code:
+            exclusions[member.instrument_id] = invalid_code
+            continue
+        metric, warning = _comparison_metric(
+            bars, field, params, benchmark_bars=benchmark_bars
+        )
+        if warning or metric is None:
+            exclusions[member.instrument_id] = warning or "invalid_condition_params"
+        else:
+            metrics[member.instrument_id] = metric
+
+    ranks = list(metrics.values())
+    results: list[BreadthMemberResult] = []
+    for member in members:
+        bars = list(bars_by_instrument.get(member.instrument_id, []))
+        warning = exclusions.get(member.instrument_id)
+        if warning:
+            results.append(
+                BreadthMemberResult(
+                    instrument_id=member.instrument_id,
+                    symbol=member.symbol,
+                    name=member.name,
+                    value=None,
+                    metric=None,
+                    observation_time=None,
+                    exclusion_code=warning,
+                )
+            )
+            continue
+        rank = _percentile_rank(ranks, metrics[member.instrument_id])
+        value = _comparison(
+            rank,
+            {"operator": params.get("operator", "gte"), "threshold": percentile},
+        )
+        results.append(
+            BreadthMemberResult(
+                instrument_id=member.instrument_id,
+                symbol=member.symbol,
+                name=member.name,
+                value=value,
+                metric=rank,
+                observation_time=getattr(bars[-1], "ts", None) if bars else None,
+            )
+        )
+    eligible = sum(result.value is not None for result in results)
+    passed = sum(result.value is True for result in results)
+    requested = len(results)
+    return results, {
+        "requested_count": requested,
+        "eligible_count": eligible,
+        "pass_count": passed,
+        "excluded_count": requested - eligible,
+        "coverage": eligible / requested if requested else 0.0,
+        "percentage": passed / eligible if eligible else None,
+    }
+
+
 def evaluate_condition(
     bars: list[Any],
     condition: Mapping[str, Any],
@@ -285,6 +410,9 @@ def evaluate_condition(
     latest = closes[-1]
     if not _finite(latest):
         return None, None, "invalid_close"
+
+    if _is_cross_sectional(condition):
+        return None, None, "cross_sectional_requires_universe"
 
     if kind in {"all", "any"}:
         children = _nested_conditions(params)
@@ -477,6 +605,13 @@ def evaluate_breadth(
 ) -> tuple[list[BreadthMemberResult], dict[str, int | float]]:
     """Evaluate one condition across a universe and return aggregate metadata."""
 
+    if _is_cross_sectional(condition):
+        return evaluate_cross_sectional_percentile(
+            members,
+            bars_by_instrument,
+            condition,
+            benchmark_bars=benchmark_bars,
+        )
     results: list[BreadthMemberResult] = []
     for member in members:
         bars = list(bars_by_instrument.get(member.instrument_id, []))
@@ -537,6 +672,8 @@ def evaluate_breadth_history(
         return []
     points: list[dict[str, Any]] = []
     for timestamp in timestamps:
+        snapshot_bars_by_instrument: dict[int, list[Any]] = {}
+        snapshot_exclusions: dict[int, str] = {}
         member_results: list[BreadthMemberResult] = []
         for member in members:
             member_bars = list(bars_by_instrument.get(member.instrument_id, []))
@@ -544,6 +681,7 @@ def evaluate_breadth_history(
             has_current_bar = bool(observed and getattr(observed[-1], "ts", None) == timestamp)
             if not has_current_bar:
                 exclusion = "missing_bar_at_timestamp" if observed else "no_bars"
+                snapshot_exclusions[member.instrument_id] = exclusion
                 member_results.append(
                     BreadthMemberResult(
                         instrument_id=member.instrument_id,
@@ -556,6 +694,7 @@ def evaluate_breadth_history(
                     )
                 )
                 continue
+            snapshot_bars_by_instrument[member.instrument_id] = observed
             benchmark_at_timestamp = benchmark_bars
             if benchmark_bars is not None:
                 benchmark_observed = [
@@ -566,10 +705,13 @@ def evaluate_breadth_history(
                     or getattr(benchmark_observed[-1], "ts", None) != timestamp
                 ):
                     benchmark_at_timestamp = []
+            if _is_cross_sectional(condition):
+                # The second pass below ranks all members at this timestamp;
+                # retain the observed bars here only to preserve the strict
+                # no-forward-fill membership boundary.
+                continue
             value, metric, exclusion = evaluate_condition(
-                observed,
-                condition,
-                benchmark_bars=benchmark_at_timestamp,
+                observed, condition, benchmark_bars=benchmark_at_timestamp
             )
             if exclusion == "benchmark_required" and benchmark_bars is not None:
                 exclusion = "benchmark_missing_at_timestamp"
@@ -583,6 +725,24 @@ def evaluate_breadth_history(
                     observation_time=timestamp if value is not None else None,
                     exclusion_code=exclusion,
                 )
+            )
+        if _is_cross_sectional(condition):
+            benchmark_at_timestamp = benchmark_bars
+            if benchmark_bars is not None:
+                benchmark_observed = [
+                    bar for bar in benchmark_bars if getattr(bar, "ts", None) <= timestamp
+                ]
+                if (
+                    not benchmark_observed
+                    or getattr(benchmark_observed[-1], "ts", None) != timestamp
+                ):
+                    benchmark_at_timestamp = []
+            member_results, _ = evaluate_cross_sectional_percentile(
+                members,
+                snapshot_bars_by_instrument,
+                condition,
+                benchmark_bars=benchmark_at_timestamp,
+                forced_exclusions=snapshot_exclusions,
             )
         eligible = sum(result.value is not None for result in member_results)
         passed = sum(result.value is True for result in member_results)

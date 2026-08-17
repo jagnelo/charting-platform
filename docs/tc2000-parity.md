@@ -1,5 +1,20 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-17 — Explicit cross-sectional breadth scope
+
+The breadth composer now distinguishes a member rolling percentile from a cross-sectional rank
+percentile. In the latter mode, each eligible member produces the selected scalar field at the
+same observation timestamp, inclusive empirical ranks are calculated over valid members only, and
+the declared operator/threshold determines each member's pass state. The response exposes the
+selected `target_scope`, rank metric, denominator, coverage, exclusions, and historical state
+changes; missing current bars are never forward-filled.
+
+The workstation exposes the scope choice and persists it with the condition definition. An
+unsupported cross-sectional condition is returned as an explicit exclusion rather than silently
+using member-level semantics. Unit/API, frontend, and rebuilt authenticated browser coverage pass.
+Richer derived/Python cross-sectional fields, mixed-scope nested composition, and complete
+promotion fan-out remain explicit parity gaps.
+
 ## 2026-08-17 — Generic breadth range and percentile controls
 
 The represented breadth composer now exposes two additional user-authored predicate families:
