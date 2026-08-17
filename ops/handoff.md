@@ -1,5 +1,24 @@
 # Active Handoff
 
+## 2026-08-17 — Breadth OR/NOT composition checkpoint
+
+- The generic breadth composer now exposes single, `all`, `any`, and `not` modes. `all`/`any`
+  serialize two explicit child conditions; `not` serializes exactly one child and reuses the
+  backend recursive evaluator. Current/history, denominator, exclusion, and provenance behavior
+  remain unchanged.
+- Validation passed: frontend Vitest 839/839; `vue-tsc`; production build; diff-check; and
+  rebuilt seeded authenticated Chromium `F8s-breadth-family-ratio` 1/1. The browser proves OR
+  and NOT request trees as well as the existing high/low and percentile paths.
+- First rerun exposed an order-dependent test oracle that left NOT composition active during a
+  later independent percentile assertion. The oracle now resets composition explicitly and the
+  unchanged flow passes. No acceptance flexibility, visual threshold, or mask change.
+- Remaining gaps are arbitrary recursive visual groups, per-clause diagnostics, event and
+  benchmark/peer target series, derived Python visual composition, complete promotion fan-out,
+  provider/history population, and remaining V25 visual/browser gates.
+- Implementation/docs commit `be7a003b feat(breadth): add logical composition controls` is clean
+  locally. Its exact push was attempted once and rejected before Git by the private-origin
+  safeguard; no workaround or repeat. The operational checkpoint is being committed separately.
+
 ## 2026-08-17 — New-high/new-low breadth authoring checkpoint
 
 - The generic breadth composer now exposes the backend-supported `new_high_low` predicate with

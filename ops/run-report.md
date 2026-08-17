@@ -1,5 +1,19 @@
 # Run Report
 
+## 2026-08-17 — Breadth OR/NOT composition
+
+- Extended the generic breadth editor to serialize single, `all`, `any`, and `not` condition
+  trees, using the existing recursive backend evaluator and preserving history/exclusion semantics.
+- Validation passed: frontend Vitest 839/839, type-check, production build, diff-check, and
+  rebuilt seeded authenticated Chromium `F8s-breadth-family-ratio` 1/1. Browser coverage proves
+  nested OR and NOT payloads and the independent single percentile path.
+- A first rerun found an order-dependent test oracle; composition is now explicitly reset before
+  the later percentile assertion and the unchanged 1/1 flow passes. No acceptance flexibility or
+  visual rule changed. Recursive visual groups, richer targets, derived Python, and promotion
+  fan-out remain open.
+- Implementation/docs commit `be7a003b` is clean locally; exact push was attempted once and
+  rejected before Git by the private-origin safeguard, with no workaround or repeat.
+
 ## 2026-08-17 — New-high/new-low breadth authoring
 
 - Added explicit high/low direction and prior-window controls for `new_high_low`, plus near-low
