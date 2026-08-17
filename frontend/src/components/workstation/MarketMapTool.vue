@@ -150,6 +150,7 @@
           <strong>{{ cell.symbol }}</strong><span>{{ formatMetric(cell.color_value) }}</span><small>{{ cell.group_path.join(' · ') || 'All members' }}</small>
         </button>
         <p v-if="!visibleCells.length" class="market-map-tool__status">No covered members match this group.</p>
+        <p v-else-if="visibleLayoutCells.length < visibleCells.length" class="market-map-tool__status">{{ visibleCells.length - visibleLayoutCells.length }} member(s) have no valid area value and are excluded from tile geometry.</p>
       </div>
     </div>
     <aside v-if="hoveredCell" class="market-map-tool__hover" role="status"><strong>{{ hoveredCell.symbol }}</strong><span>{{ hoveredCell.name }}</span><span>{{ hoveredCell.group_path.join(' · ') || 'All members' }}</span><span>Combined {{ coveragePercent(hoveredCell.coverage, 0) }}% · Colour {{ coveragePercent(hoveredCell.color_coverage, hoveredCell.coverage) }}% · Area {{ coveragePercent(hoveredCell.area_coverage, hoveredCell.coverage) }}%</span><span v-if="hoveredCell.warnings.length">{{ hoveredCell.warnings.map(item => item.message).join(' · ') }}</span></aside>

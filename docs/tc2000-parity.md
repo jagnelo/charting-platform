@@ -7546,6 +7546,10 @@ The workstation now carries that distinction into the visible tool chrome: summa
 tile hover expose colour, area, and combined coverage independently. Older cached responses remain
 readable through a combined-coverage fallback, while new responses always provide the three values.
 
+The renderer applies the same contract: only finite positive area values receive treemap geometry.
+Members with unavailable sizing remain in the response and hover/warning context but are not given
+invented unit tiles; the map reports their omission explicitly.
+
 ## 2026-08-17 — Market Map ordering controls
 
 The workstation now offers stable, persisted ordering within the active map node: largest area,

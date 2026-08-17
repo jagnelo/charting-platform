@@ -1039,6 +1039,10 @@ workstation summary, legend, and tile detail. The focused Market Map suite now a
 colour, and area coverage labels for a fully covered map; partial fixtures must retain the same
 labels with the appropriate reduced values.
 
+The layout acceptance additionally proves that null, non-finite, and non-positive area cells produce
+no drawable geometry while remaining available for warning and coverage inspection. This prevents
+the frontend from undoing the backend's honest partial-data semantics.
+
 ## 2026-08-17 — Universal locked-watchlist heatmap evidence
 
 The heatmap acceptance gate is source-polymorphic: the same request and renderer must work for an

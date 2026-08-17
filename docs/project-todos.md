@@ -13354,3 +13354,6 @@ The current source also passes the focused authenticated top-down browser slice 
 - [x] Surface colour, area, and combined coverage in the Market Map summary, legend, and tile hover
       state, with compatibility fallback for older cached responses that only contain combined
       coverage. Partial area data is therefore visible to the user rather than hidden in the API.
+- [x] Keep cells with missing, non-finite, or non-positive area in response/coverage detail but
+      exclude them from treemap geometry; the workstation reports how many members are omitted from
+      the drawable map instead of inventing fallback unit tiles.

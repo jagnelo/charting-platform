@@ -34,7 +34,11 @@ export interface MarketMapLayoutCell extends MarketMapCell {
 
 /** Deterministic slice-and-dice geometry with no DOM/provider-dependent inputs. */
 export function layoutMarketMapCells(cells: MarketMapCell[], width = 100, height = 100): MarketMapLayoutCell[] {
-  const weighted = cells.map(cell => ({ cell, area: Math.max(cell.area_value ?? 1, 0.0001) }))
+  // A cell without a finite positive area has no drawable treemap geometry. Keep it
+  // in the source response for warning/coverage detail, but do not invent a unit tile.
+  const weighted = cells
+    .filter(cell => cell.area_value != null && Number.isFinite(cell.area_value) && cell.area_value > 0)
+    .map(cell => ({ cell, area: cell.area_value as number }))
   const total = weighted.reduce((sum, item) => sum + item.area, 0) || 1
   let x = 0
   let y = 0

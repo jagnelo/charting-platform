@@ -718,6 +718,10 @@ The interim component oracle includes the visible three-part coverage treatment 
 and hover detail. This is board-guided for source-kind/partial-data combinations lacking exact V25
 captures; it is not claimed as an approved pixel baseline.
 
+The map's partial-area state is therefore represented by an explicit omission message and coverage
+detail, not by a misleading tiny tile. Exact V25 imagery for this unavailable-area state remains a
+tracked board gap.
+
 ## 2026-08-17 — Universal locked-watchlist heatmap state
 
 The visual board now treats a heatmap source as a watchlist regardless of origin. The same dense map
