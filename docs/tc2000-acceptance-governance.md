@@ -1,5 +1,22 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-08-18 — Universal source and recursive Python sub-gate
+
+The heatmap/breadth acceptance oracle treats every canonical source as one universe contract.
+For a locked index or ETF source, acceptance checks immutable membership, versioned composition
+lineage, and rejection of direct membership edits; it then exercises the same map, hierarchy,
+selection, linked-chart, breadth, scan, alert, and Study Lab actions used by personal, managed,
+combo, sector, industry, proxy, and explicit-symbol sources. Following or pinning a locked source
+must never hide the source from analysis or force a route change; cloning is the explicit editable
+operation.
+
+The isolated-Python sub-gate now covers a recursive member tree containing numeric-series Python
+leaves and built-in predicates. It verifies owned-code resolution, Boolean-contract handoff,
+job-file preservation, current execution, and compatibility with existing scalar/Boolean/series/
+event batch paths. No provider access is permitted. Cross-sectional Python leaves nested within
+the member tree and universal promotion fan-out remain named capability gaps with structured
+errors; they cannot be represented as passing through a member-only fallback.
+
 ## 2026-08-17 — Mixed-scope breadth sub-gate
 
 The breadth/Market Map and isolated Study Lab runners must accept a compound tree containing both a

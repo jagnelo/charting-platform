@@ -1,5 +1,17 @@
 # TC2000 Version 25 composite reference board
 
+## 2026-08-18 universal-source and recursive-Python visual gap
+
+The composed board supports the product decision that a locked index/ETF constituent list should
+look and behave like any other TC2000 watchlist source when opened in a map: the membership is
+managed and immutable, but the same dense heatmap, grouping, selection, linking, filtering, and
+drill-down surfaces apply. It does not contain an authoritative V25 capture of the exact
+locked-source lineage affordance or the recursive Python condition authoring/result state.
+
+Those states therefore use the board's dense list/map/editor language plus deterministic
+functional oracles. They remain tracked visual gaps; no screenshot threshold, mask, or older
+generation reference is being promoted silently to close them.
+
 ## 2026-08-18 cross-sectional Python-series reference gap
 
 The backend and isolated runner now support a Python numeric-series target whose comparison is

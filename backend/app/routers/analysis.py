@@ -5870,6 +5870,79 @@ def _python_breadth_condition_metadata(
     }
 
 
+async def _resolve_python_condition_tree(
+    raw: Mapping[str, object], db: AsyncSession, user_id: int
+) -> tuple[dict[str, object], list[int]]:
+    """Resolve owned numeric-series CodeVersions embedded in a member condition tree."""
+    resolved_ids: list[int] = []
+
+    async def resolve(node: object) -> dict[str, object]:
+        if not isinstance(node, Mapping):
+            raise HTTPException(422, detail={"code": "invalid_python_condition_tree"})
+        kind = str(node.get("kind") or "").lower()
+        params = node.get("params") if isinstance(node.get("params"), Mapping) else {}
+        if kind in {"all", "any", "not"}:
+            children = params.get("conditions")
+            if not isinstance(children, list) or not children or any(not isinstance(child, Mapping) for child in children):
+                raise HTTPException(422, detail={"code": "invalid_python_condition_tree"})
+            if kind == "not" and len(children) != 1:
+                raise HTTPException(422, detail={"code": "invalid_python_condition_tree"})
+            return {"kind": kind, "params": {"conditions": [await resolve(child) for child in children]}}
+        if kind == "python_series":
+            code_version_id = params.get("code_version_id")
+            if not isinstance(code_version_id, int) or isinstance(code_version_id, bool) or code_version_id < 1:
+                raise HTTPException(422, detail={"code": "python_series_code_version_required"})
+            version = (
+                await db.execute(
+                    select(CodeVersion)
+                    .join(CodeAsset)
+                    .where(
+                        CodeVersion.id == code_version_id,
+                        CodeAsset.user_id == user_id,
+                        CodeAsset.kind == "condition",
+                        CodeAsset.is_archived.is_(False),
+                    )
+                )
+            ).scalar_one_or_none()
+            if version is None or version.output_contract != "series":
+                raise HTTPException(422, detail={"code": "python_series_condition_unavailable"})
+            scope = str(params.get("scope", "member")).lower()
+            if scope != "member":
+                raise HTTPException(
+                    422,
+                    detail={
+                        "code": "python_series_cross_sectional_tree_unsupported",
+                        "message": "Cross-sectional Python leaves require the universe-level series target path.",
+                    },
+                )
+            operator = str(params.get("operator", "gte")).lower()
+            threshold = params.get("threshold", 0)
+            if operator not in {"gt", "gte", "lt", "lte", "eq", "ne"} or not isinstance(threshold, int | float) or isinstance(threshold, bool) or not math.isfinite(float(threshold)):
+                raise HTTPException(422, detail={"code": "invalid_python_series_target"})
+            resolved_ids.append(version.id)
+            return {
+                "kind": "python_series",
+                "params": {
+                    "code_version_id": version.id,
+                    "source": version.source,
+                    "output_name": version.output_name,
+                    "operator": operator,
+                    "threshold": float(threshold),
+                    "scope": "member",
+                    "parameters": params.get("parameters", {}) if isinstance(params.get("parameters"), Mapping) else {},
+                },
+            }
+        try:
+            condition = BreadthConditionRequest.model_validate(dict(node))
+        except Exception as exc:
+            raise HTTPException(422, detail={"code": "unsupported_python_condition_tree_leaf"}) from exc
+        if condition.target_scope != "member":
+            raise HTTPException(422, detail={"code": "cross_sectional_tree_leaf_unsupported"})
+        return condition.model_dump(mode="json")
+
+    return await resolve(raw), resolved_ids
+
+
 async def _load_python_breadth_run(
     db: AsyncSession, run_id: int, current_user: User
 ) -> ResearchRun:
@@ -5996,6 +6069,11 @@ def _python_breadth_run_out(run: ResearchRun) -> BreadthPythonRunOut:
             if isinstance(config.get("series_target"), dict)
             else None
         ),
+        condition_tree=(
+            config.get("condition_tree")
+            if isinstance(config.get("condition_tree"), dict)
+            else None
+        ),
         definition_hash=str(config.get("definition_hash") or ""),
         universe=config.get("universe", {}),
         condition=config.get("condition", {}),
@@ -6109,7 +6187,7 @@ async def queue_python_breadth(
                 "message": "The selected user-owned code version must be an active Boolean or numeric-series condition.",
             },
         )
-    if body.output_contract != version.output_contract:
+    if body.condition_tree is None and body.output_contract != version.output_contract:
         raise HTTPException(
             422,
             detail={
@@ -6118,6 +6196,21 @@ async def queue_python_breadth(
                 "stored": version.output_contract,
             },
         )
+    resolved_condition_tree: dict[str, object] | None = None
+    if body.condition_tree is not None:
+        if body.output_contract != "boolean":
+            raise HTTPException(
+                422,
+                detail={"code": "python_condition_tree_requires_boolean_output"},
+            )
+        resolved_condition_tree, _ = await _resolve_python_condition_tree(
+            body.condition_tree, db, current_user.id
+        )
+        if body.series_target is not None:
+            raise HTTPException(
+                422,
+                detail={"code": "python_condition_tree_series_target_conflict"},
+            )
     series_target = body.series_target
     if body.output_contract == "series":
         if not isinstance(series_target, dict):
@@ -6178,6 +6271,8 @@ async def queue_python_breadth(
         output_contract=body.output_contract,
         series_target=series_target,
     )
+    if resolved_condition_tree is not None:
+        condition_metadata["condition_tree"] = resolved_condition_tree
     execution_mode = "breadth_history" if body.history else "breadth_current"
     definition_payload = {
         "universe": universe_provenance,
@@ -6192,6 +6287,7 @@ async def queue_python_breadth(
         "history_limit": body.history_limit,
         "output_contract": body.output_contract,
         "series_target": series_target,
+        "condition_tree": resolved_condition_tree,
     }
     run_config = {
         "symbols": [member.symbol for member in members],
@@ -6215,6 +6311,7 @@ async def queue_python_breadth(
         "condition": condition_metadata,
         "output_contract": body.output_contract,
         "series_target": series_target,
+        "condition_tree": resolved_condition_tree,
     }
     from app.routers.research import _materialize_declared_dataset
 
@@ -6323,6 +6420,11 @@ async def get_python_breadth_result(
         series_target=(
             config.get("series_target")
             if isinstance(config.get("series_target"), dict)
+            else None
+        ),
+        condition_tree=(
+            config.get("condition_tree")
+            if isinstance(config.get("condition_tree"), dict)
             else None
         ),
         definition_hash=str(config.get("definition_hash") or ""),

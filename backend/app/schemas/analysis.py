@@ -861,6 +861,7 @@ class BreadthPythonRunRequest(BaseModel):
     parameters: dict[str, object] = Field(default_factory=dict)
     output_contract: Literal["boolean", "series"] = "boolean"
     series_target: dict[str, object] | None = None
+    condition_tree: dict[str, object] | None = None
     timeframe: str = "D1"
     adjusted: bool = True
     session: Literal["regular", "all"] = "regular"
@@ -877,6 +878,7 @@ class BreadthPythonRunOut(BaseModel):
     execution_mode: Literal["breadth_current", "breadth_history"]
     output_contract: Literal["boolean", "series"] = "boolean"
     series_target: dict[str, object] | None = None
+    condition_tree: dict[str, object] | None = None
     definition_hash: str
     universe: dict[str, object] = Field(default_factory=dict)
     condition: dict[str, object] = Field(default_factory=dict)
@@ -907,6 +909,7 @@ class BreadthPythonResultOut(AnalysisResponseMetadata):
     execution_mode: Literal["breadth_current", "breadth_history"]
     output_contract: Literal["boolean", "series"] = "boolean"
     series_target: dict[str, object] | None = None
+    condition_tree: dict[str, object] | None = None
     definition_hash: str
     universe: dict[str, object] = Field(default_factory=dict)
     condition: dict[str, object] = Field(default_factory=dict)

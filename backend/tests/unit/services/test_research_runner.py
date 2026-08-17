@@ -480,6 +480,44 @@ def test_runner_applies_cross_sectional_group_statistic_to_python_series_history
     ]
 
 
+def test_runner_composes_isolated_python_series_leaf_with_member_predicate_tree():
+    result = execute_job(
+        {
+            "source": "output.scalar('unused', 1)",
+            "output_contract": "boolean",
+            "condition_tree": {
+                "kind": "all",
+                "params": {
+                    "conditions": [
+                        {
+                            "kind": "python_series",
+                            "params": {
+                                "source": "output.series('target', market.close())",
+                                "operator": "gte",
+                                "threshold": 100,
+                            },
+                        },
+                        {
+                            "kind": "comparison",
+                            "params": {"field": "return", "operator": "gte", "threshold": 0},
+                        },
+                    ]
+                },
+            },
+            "dataset": {
+                "datasets": [
+                    {"instrument_id": 1, "symbol": "A", "closes": [100, 101]},
+                    {"instrument_id": 2, "symbol": "B", "closes": [100, 99]},
+                ]
+            },
+        }
+    )
+
+    assert result["status"] == "completed"
+    cells = result["artifacts"]["batch_cells"]["value"]["cells"]
+    assert [cell["value"] for cell in cells] == [True, False]
+
+
 def test_runner_computes_transparent_ninety_ninety_breadth_and_exclusions():
     result = execute_job(
         {

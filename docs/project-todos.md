@@ -1,5 +1,25 @@
 # Project TODO Memory
 
+### 2026-08-18 — Recursive Python member condition trees and universal heatmap sources
+
+- [x] Carry a validated recursive `all`/`any`/`not` condition tree through the Python breadth
+      API, persisted run configuration, job-file handoff, and isolated runner. Python numeric
+      series leaves are resolved only from user-owned condition versions, execute against the
+      declared member dataset, and compose with built-in member predicates without provider
+      fan-out. Current batch and historical outputs retain tri-state exclusions, metrics, and
+      reproducibility lineage.
+- [x] Keep the tree compatible with the universal `WatchlistSource` model: a locked index/ETF,
+      sector/industry/proxy, managed scan, personal list, combo, or explicit-symbol source is
+      still one heatmap/breadth universe. Locked sources restrict membership mutation only; the
+      same map, selection, linked-chart, scan, alert, and Study Lab actions remain available.
+- [x] Validate the job protocol and legacy paths together: the runner receives the resolved tree
+      and requested Boolean contract even when the required anchor CodeVersion is a numeric
+      series; existing scalar/Boolean/series/events batch behavior remains unchanged.
+- [ ] Add visual-tree authoring and promotion fan-out for Python leaves across every compatible
+      target. Cross-sectional Python leaves nested inside a member tree remain explicitly rejected
+      with a capability diagnostic until a universe-level evaluator can preserve denominator and
+      timestamp semantics. Record this as a gap, not as an implicit fallback.
+
 ### 2026-08-18 — Cross-sectional Python numeric-series targets
 
 - [x] Extend the existing isolated Python numeric-series breadth target with an explicit

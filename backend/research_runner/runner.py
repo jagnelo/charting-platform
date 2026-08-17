@@ -398,6 +398,122 @@ def _output_value(
     return value, target_error or error, metric
 
 
+def _execute_condition_tree(
+    dataset: dict,
+    node: object,
+    *,
+    index: int | None = None,
+    timestamp: str | None = None,
+) -> tuple[bool | None, float | None, str | None]:
+    """Evaluate a bounded member-level tree whose Python leaves are isolated sources.
+
+    The API resolves and injects owned CodeVersion sources before the job reaches this
+    process. The runner still validates the leaf shape and executes each source with only
+    the declared member dataset; no provider or host access is available.
+    """
+    if not isinstance(node, dict) or not isinstance(node.get("kind"), str):
+        return None, None, "invalid_condition_params"
+    kind = str(node["kind"]).lower()
+    params = node.get("params") if isinstance(node.get("params"), dict) else {}
+    if kind in {"all", "any", "not"}:
+        children = params.get("conditions")
+        if (
+            not isinstance(children, list)
+            or not children
+            or any(not isinstance(child, dict) for child in children)
+        ):
+            return None, None, "invalid_condition_params"
+        evaluated = [
+            _execute_condition_tree(dataset, child, index=index, timestamp=timestamp)
+            for child in children
+        ]
+        if kind == "not":
+            value, metric, error = evaluated[0]
+            if error:
+                return None, metric, f"condition_clause_excluded:0:{error}"
+            return (not value) if value is not None else None, metric, None
+        if kind == "all":
+            for child_index, (value, _, error) in enumerate(evaluated):
+                if error or value is None:
+                    return None, None, f"condition_clause_excluded:{child_index}:{error or 'unknown'}"
+            metrics = [metric for _, metric, _ in evaluated if metric is not None]
+            return all(value is True for value, _, _ in evaluated), min(metrics) if metrics else None, None
+        if any(value is True for value, _, _ in evaluated):
+            metrics = [metric for value, metric, _ in evaluated if value is True and metric is not None]
+            return True, max(metrics) if metrics else None, None
+        if all(value is False for value, _, _ in evaluated):
+            metrics = [metric for _, metric, _ in evaluated if metric is not None]
+            return False, max(metrics) if metrics else None, None
+        for child_index, (value, _, error) in enumerate(evaluated):
+            if error or value is None:
+                return None, None, f"condition_clause_excluded:{child_index}:{error or 'unknown'}"
+        return None, None, "invalid_condition_params"
+    if kind == "python_series":
+        leaf_source = params.get("source")
+        if not isinstance(leaf_source, str) or not leaf_source.strip():
+            return None, None, "python_series_source_unavailable"
+        if str(params.get("scope", "member")).lower() != "member":
+            return None, None, "python_series_cross_sectional_requires_universe"
+        result = _execute_single(
+            leaf_source,
+            dataset,
+            {
+                "source": leaf_source,
+                "dataset": dataset,
+                "output_contract": "series",
+                "parameters": params.get("parameters", {}) if isinstance(params.get("parameters"), dict) else {},
+                "timestamp": timestamp,
+            },
+            manage_timeout=False,
+        )
+        metric, error = _series_artifact(result, str(params.get("output_name") or "") or None)
+        value, target_error = _series_target_value(
+            metric,
+            {
+                "operator": params.get("operator", "gte"),
+                "threshold": params.get("threshold", 0.0),
+            },
+        )
+        return value, metric, target_error or error
+    benchmark_item = dataset.get("benchmark_dataset") if isinstance(dataset.get("benchmark_dataset"), dict) else None
+    return _Research._breadth_condition_result(dataset, node, index, benchmark_item)
+
+
+def _evaluate_job_cell(
+    source: str,
+    dataset: dict,
+    hash_input: dict,
+    output_name: str | None,
+) -> tuple[bool | None, str | None, float | None]:
+    tree = hash_input.get("condition_tree")
+    if tree is not None:
+        value, metric, error = _execute_condition_tree(
+            dataset,
+            tree,
+            index=None,
+            timestamp=hash_input.get("timestamp") if isinstance(hash_input.get("timestamp"), str) else None,
+        )
+        return value, error, metric
+    result = _execute_single(
+        source,
+        dataset,
+        {
+            "source": source,
+            "dataset": dataset,
+            "output_contract": hash_input.get("output_contract"),
+            "parameters": hash_input.get("parameters", {}),
+            "timestamp": hash_input.get("timestamp"),
+        },
+        manage_timeout=False,
+    )
+    return _output_value(
+        result,
+        str(hash_input.get("output_contract") or "boolean"),
+        output_name,
+        hash_input.get("series_target"),
+    )
+
+
 def _execute_breadth_history(
     source: str,
     datasets: list[object],
@@ -463,24 +579,8 @@ def _execute_breadth_history(
                     )
                 else:
                     cell_dataset.pop("benchmark_dataset", None)
-            result = _execute_single(
-                source,
-                cell_dataset,
-                {
-                    "source": source,
-                    "dataset": cell_dataset,
-                    "output_contract": hash_input.get("output_contract"),
-                    "parameters": hash_input.get("parameters", {}),
-                    "timestamp": timestamp,
-                },
-                manage_timeout=False,
-            )
-            value, error, metric = _output_value(
-                result,
-                str(hash_input.get("output_contract") or "boolean"),
-                output_name,
-                hash_input.get("series_target"),
-            )
+            cell_hash_input = {**hash_input, "timestamp": timestamp}
+            value, error, metric = _evaluate_job_cell(source, cell_dataset, cell_hash_input, output_name)
             cell = {
                 "instrument_id": candidate.get("instrument_id"),
                 "symbol": str(candidate.get("symbol") or "").upper(),
@@ -491,13 +591,7 @@ def _execute_breadth_history(
                 "timestamp": timestamp,
             }
             if error:
-                cell["error"] = (
-                    result.get("diagnostics", [{}])[0].get("message")
-                    if result.get("status") != "completed"
-                    and result.get("diagnostics")
-                    and isinstance(result.get("diagnostics")[0], dict)
-                    else error
-                )
+                cell["error"] = error
             cells.append(cell)
         group_value = _apply_cross_sectional_series_target(
             cells, hash_input.get("series_target")
@@ -671,65 +765,77 @@ def _execute_batch(
             symbol = str(candidate.get("symbol") or "").upper()
             if not isinstance(instrument_id, int) or not symbol:
                 continue
-            result = _execute_single(
-                source,
-                candidate,
-                {
-                    "source": source,
-                    "dataset": candidate,
-                    "output_contract": output_contract,
-                    "parameters": hash_input.get("parameters", {}),
-                },
-                manage_timeout=False,
-            )
-            if result.get("status") != "completed":
-                diagnostics = result.get("diagnostics", [])
-                message = (
-                    diagnostics[0].get("message")
-                    if diagnostics and isinstance(diagnostics[0], dict)
-                    else "Batch cell failed"
+            extracted_metric: float | None = None
+            if hash_input.get("condition_tree") is not None:
+                value, error, extracted_metric = _evaluate_job_cell(
+                    source, candidate, hash_input, output_name
                 )
-                cells.append(
-                    {
-                        "instrument_id": instrument_id,
-                        "symbol": symbol,
-                        "status": "failed",
-                        "error": message,
-                    }
-                )
-                continue
-            matches = [
-                artifact
-                for name, artifact in result.get("artifacts", {}).items()
-                if isinstance(artifact, dict)
-                and artifact.get("type") == output_contract
-                and (output_name is None or name == output_name)
-            ]
-            if output_contract == "boolean":
-                value, extraction_error, extracted_metric = _boolean_artifact(result, output_name)
-            elif output_contract == "series":
-                extracted_metric, extraction_error = _series_artifact(result, output_name)
-                if _is_cross_sectional_series_target(hash_input.get("series_target")):
-                    value, target_error = None, None
-                else:
-                    value, target_error = _series_target_value(
-                        extracted_metric, hash_input.get("series_target")
-                    )
-                extraction_error = extraction_error or target_error
+                matches = []
             else:
-                extraction_error = None
-                if len(matches) != 1:
-                    extraction_error = f"Expected exactly one {output_contract} output."
-                    value = None
+                result = _execute_single(
+                    source,
+                    candidate,
+                    {
+                        "source": source,
+                        "dataset": candidate,
+                        "output_contract": output_contract,
+                        "parameters": hash_input.get("parameters", {}),
+                    },
+                    manage_timeout=False,
+                )
+                if result.get("status") != "completed":
+                    diagnostics = result.get("diagnostics", [])
+                    message = (
+                        diagnostics[0].get("message")
+                        if diagnostics and isinstance(diagnostics[0], dict)
+                        else "Batch cell failed"
+                    )
+                    cells.append(
+                        {
+                            "instrument_id": instrument_id,
+                            "symbol": symbol,
+                            "status": "failed",
+                            "error": message,
+                        }
+                    )
+                    continue
+                matches = [
+                    artifact
+                    for name, artifact in result.get("artifacts", {}).items()
+                    if isinstance(artifact, dict)
+                    and artifact.get("type") == output_contract
+                    and (output_name is None or name == output_name)
+                ]
+                if output_contract == "boolean":
+                    value, error, extracted_metric = _boolean_artifact(result, output_name)
+                elif output_contract == "series":
+                    extracted_metric, extraction_error = _series_artifact(result, output_name)
+                    if _is_cross_sectional_series_target(hash_input.get("series_target")):
+                        value, target_error = None, None
+                    else:
+                        value, target_error = _series_target_value(
+                            extracted_metric, hash_input.get("series_target")
+                        )
+                    error = extraction_error or target_error
                 else:
-                    value = matches[0].get("value")
-            if extraction_error:
+                    error = None
+                    if len(matches) != 1:
+                        error = f"Expected exactly one {output_contract} output."
+                        value = None
+                    else:
+                        value = matches[0].get("value")
+            if error:
                 cells.append(
                     {
                         "instrument_id": instrument_id,
                         "symbol": symbol,
-                        "status": "excluded" if output_contract == "boolean" else "failed",
-                        "error": extraction_error,
+                        "status": (
+                            "excluded"
+                            if output_contract == "boolean"
+                            or hash_input.get("condition_tree") is not None
+                            else "failed"
+                        ),
+                        "error": error,
                     }
                 )
                 continue
@@ -751,13 +857,11 @@ def _execute_batch(
                 "status": "completed",
                 "value": value,
             }
+            if extracted_metric is not None:
+                cell["metric"] = extracted_metric
             if output_contract == "boolean" and matches:
-                if extracted_metric is not None:
-                    cell["metric"] = extracted_metric
                 if matches[0].get("exclusion") is not None:
                     cell["exclusion"] = matches[0]["exclusion"]
-            elif output_contract == "series" and extracted_metric is not None:
-                cell["metric"] = extracted_metric
             cells.append(cell)
             if progress_callback and (len(cells) == total or len(cells) % 50 == 0):
                 progress_callback(
@@ -782,12 +886,14 @@ def _execute_batch(
         signal.alarm(0)
         signal.signal(signal.SIGALRM, previous_alarm_handler)
         _restore_resources(previous_limits)
-    group_value = _apply_cross_sectional_series_target(
-        cells, hash_input.get("series_target")
-    )
+    batch_value: dict[str, object] = {"cells": cells}
+    if _is_cross_sectional_series_target(hash_input.get("series_target")):
+        batch_value["group_value"] = _apply_cross_sectional_series_target(
+            cells, hash_input.get("series_target")
+        )
     return {
         "status": "completed",
-        "artifacts": {"batch_cells": {"type": "batch", "value": {"cells": cells, "group_value": group_value}}},
+        "artifacts": {"batch_cells": {"type": "batch", "value": batch_value}},
         "resource_usage": {
             "cell_count": len(cells),
             "wall_ms": round((time.monotonic() - started) * 1000, 3),

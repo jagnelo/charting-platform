@@ -37,11 +37,14 @@ def enqueue_research_run(run: ResearchRun) -> None:
         "source": run.code_version.source,
         "dataset": run.dataset_manifest,
         "parameters": run.run_config.get("parameters", {}),
-        "output_contract": run.code_version.output_contract,
-        "output_name": run.code_version.output_name,
+        "output_contract": run.run_config.get(
+            "output_contract", run.code_version.output_contract
+        ),
+        "output_name": run.run_config.get("output_name", run.code_version.output_name),
         "execution_mode": run.run_config.get("execution_mode"),
         "history_limit": run.run_config.get("history_limit"),
         "series_target": run.run_config.get("series_target"),
+        "condition_tree": run.run_config.get("condition_tree"),
     }
     destination = Path(settings.RESEARCH_JOB_DIR) / f"{run.id}.json"
     temporary = destination.with_suffix(".tmp")

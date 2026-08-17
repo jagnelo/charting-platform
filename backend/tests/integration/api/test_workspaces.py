@@ -2993,6 +2993,43 @@ class TestWorkspaces:
         assert payload["points"][-1]["members"][0]["value"] is True
         assert payload["points"][-1]["members"][0]["metric"] is not None
 
+        tree_queued = client.post(
+            "/api/v1/analysis/breadth/python",
+            headers=auth_headers,
+            json={
+                "code_version_id": version_id,
+                "universe": {"kind": "symbols", "symbols": [instrument.symbol]},
+                "output_contract": "boolean",
+                "condition_tree": {
+                    "kind": "all",
+                    "params": {
+                        "conditions": [
+                            {
+                                "kind": "python_series",
+                                "params": {
+                                    "code_version_id": version_id,
+                                    "operator": "gte",
+                                    "threshold": 0,
+                                },
+                            },
+                            {
+                                "kind": "comparison",
+                                "params": {"field": "close", "operator": "gte", "threshold": 0},
+                            },
+                        ]
+                    },
+                },
+            },
+        )
+        assert tree_queued.status_code == 202, tree_queued.text
+        tree_job = json.loads(
+            (tmp_path / "jobs" / f"{tree_queued.json()['run_id']}.json").read_text()
+        )
+        assert tree_job["condition_tree"]["params"]["conditions"][0]["params"]["source"]
+        tree_result = execute_job(tree_job)
+        assert tree_result["status"] == "completed", tree_result
+        assert tree_result["artifacts"]["batch_cells"]["value"]["cells"][0]["value"] is True
+
         cross_queued = client.post(
             "/api/v1/analysis/breadth/python",
             headers=auth_headers,
