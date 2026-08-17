@@ -28212,3 +28212,21 @@ and strict visual gaps remain explicitly tracked.
   blocker.
 - Open: exact V25 ordering imagery, historical point-in-time market-cap/weight semantics, richer
   cross-sectional fields, complete family population, and exact V25 visual baselines.
+# 2026-08-17 — Universal locked-watchlist heatmap and coverage checkpoint
+
+- Market Map is now explicitly governed as one heatmap over any canonical watchlist source:
+  personal, managed, locked index/ETF, sector, industry, combo, market-group, or explicit symbols.
+  Locking affects membership mutation only; all sources retain the same analysis and publication
+  mechanics.
+- Added `color_coverage`, `area_coverage`, and combined `coverage` to Market Map cell/node/root
+  responses. Unproven or invalid area values remain visible as warnings but contribute no geometry
+  or combined coverage.
+- Validation passed: Docker-backed watchlist integration `29/29`, focused Market Map `11/11`, full
+  frontend Vitest `860/860`, `vue-tsc`, production build, Ruff, compileall, and `git diff --check`.
+  A real missing top-level schema field was fixed before the unchanged rerun. No acceptance
+  flexibility, visual threshold, or mask relaxation was used.
+- Implementation/docs commit `1773e0d5` is clean locally. Its one exact push attempt was rejected
+  before Git by the private-origin safeguard; no retry or workaround. Transport-only, not a product
+  blocker.
+- Open: point-in-time market-cap/weight areas, richer cross-sectional fields, complete family
+  population, direct definition promotion, exact V25 visual approval, and final audit gates.

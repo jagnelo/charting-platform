@@ -10894,3 +10894,31 @@ tasks:
         Historical snapshot/bar population, rebalance continuity, complete eight-family analytics,
         and final V25 visual gaps remain open. The initial unprivileged browser Mach-port failure
         was an environment-only boundary and was validated through the required elevated rerun.
+  - id: tc2000-market-map-coverage-20260817
+    title: Make universal watchlist heatmap coverage honest
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Distinguish colour, area, and combined coverage for every Market Map source kind so locked
+      index/ETF constituent lists and editable personal lists share one truthful heatmap contract.
+    definition_of_done:
+      - Cell, node, and root responses expose colour, area, and combined coverage
+      - Missing/unproven/non-positive area retains warning/provenance and contributes no geometry
+      - The same semantics apply to locked and editable canonical watchlist sources
+      - Backend integration, frontend focused/full tests, type/build, lint, compile, and diff checks pass
+      - Remaining point-in-time, population, and visual gaps remain explicitly documented
+    validation:
+      - docker-watchlist-integration-29-of-29
+      - market-map-component-11-of-11
+      - frontend-vitest-860-of-860
+      - frontend-typecheck-build
+      - ruff-compile-diff-check
+    notes:
+      - >-
+        A first integration rerun exposed a real missing MarketMapOut.area_coverage schema field;
+        the field was added at the owning boundary and the unchanged rerun passed. Implementation/
+        docs commit 1773e0d5 is clean locally; its one exact push attempt was rejected before Git by
+        the private-origin safeguard. No acceptance flexibility was used. Open gaps are point-in-time
+        market-cap/weight areas, richer cross-sectional fields, family population, direct definition
+        promotion, and exact V25 visual approval.

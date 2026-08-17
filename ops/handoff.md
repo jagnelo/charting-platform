@@ -30007,3 +30007,23 @@ indefinite soak; longer endurance remains an explicit open gap.
   eight-family matrix, and exact V25 visual baselines.
 - Exact next context: continue from this clean boundary with the next independent map/family slice,
   prioritizing point-in-time area semantics or broader family population/selection.
+# 2026-08-17 — Universal locked-watchlist heatmap and coverage checkpoint
+
+- Generalized the product rule: index/index-ETF, sector, industry, managed, combo, explicit-symbol,
+  and personal constituent sets are all canonical watchlist sources rendered by one Market Map
+  pipeline. Locked sources cannot have membership edited but remain followable, selectable,
+  sortable, drillable, cacheable, snapshot-able, and publishable into Breadth/Study Lab.
+- Corrected coverage semantics so colour, area, and combined coverage are separately returned at
+  cell, node, and root level. Missing or unproven area no longer looks fully covered when colour is
+  available; the tile keeps its warning/provenance and contributes no geometry.
+- Docker-backed watchlist integration passed `29/29`; focused Market Map passed `11/11`; full
+  frontend Vitest passed `860/860`; `vue-tsc`, production build, Ruff, compileall, and diff-check
+  passed. The first rerun exposed a real missing `MarketMapOut.area_coverage` schema field; it was
+  added at the owning boundary and the unchanged integration rerun passed. No acceptance
+  flexibility or visual threshold/mask relaxation was used.
+- Implementation/docs commit `1773e0d5` is clean locally. Its one exact push attempt was rejected
+  before Git by the private-origin safeguard; no retry, workaround, alternate transport, rewrite,
+  reset, or stash will be attempted. This is transport-only and not a product blocker.
+- Open: historical point-in-time market-cap/weight areas, richer cross-sectional fields, complete
+  family population, direct map-to-definition promotion, exact V25 visual approval, and final
+  functional/performance/security audit.
