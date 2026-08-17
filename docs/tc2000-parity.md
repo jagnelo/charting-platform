@@ -1,5 +1,16 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-17 — Recursive breadth condition tree
+
+The generic breadth surface now includes a nested condition-tree mode. Users can add arbitrary
+AND/OR groups, nested groups, and single-child NOT groups, then edit the supported breadth leaves
+inside each node. The tree emits the canonical recursive condition AST, so the same definition
+drives current/history evaluation and retains denominator, exclusion, occurrence, and provenance
+semantics. Authenticated Chromium proves `all(any(new_high_low))`; component coverage proves the
+tree’s recursive editing and immutable updates. Per-clause diagnostics, event and benchmark/peer
+targets, arbitrary derived-Python composition, and complete promotion fan-out remain explicit
+parity gaps. No acceptance threshold or visual mask was relaxed.
+
 ## 2026-08-17 — Breadth OR/NOT composition
 
 The generic breadth editor now exposes `all`, `any`, and `not` composition. The first two emit a

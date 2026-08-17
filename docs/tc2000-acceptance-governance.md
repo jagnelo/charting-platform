@@ -1,5 +1,18 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-08-17 — Recursive breadth condition-tree sub-gate
+
+The authenticated breadth editor must support arbitrary nested `all`/`any` groups and exactly
+one child for `not`, not only a fixed primary-plus-secondary pair. Every supported visual leaf
+predicate must remain editable inside any group, and the serialized AST must be the same versioned
+condition contract used by current evaluation, history, occurrences, denominators, exclusions,
+and provenance. The rebuilt Chromium flow proves a nested `all(any(new_high_low))` payload and the
+component suite covers recursive add/remove/operator behavior, NOT cardinality, and leaf editing.
+The first rerun exposed stale range-input and inherited-leaf test fixtures; explicit value/reset
+assertions fixed the oracle and the unchanged flow passed. No product criterion, visual limit,
+provider rule, or acceptance flexibility changed. Per-clause diagnostics, event/benchmark-peer
+targets, derived Python composition, and full promotion fan-out remain open gates.
+
 ## 2026-08-17 — Breadth OR/NOT composition sub-gate
 
 The breadth editor must distinguish single, `all`, `any`, and `not` composition. `all` and `any`

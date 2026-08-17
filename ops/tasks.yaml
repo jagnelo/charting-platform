@@ -1,4 +1,33 @@
 tasks:
+  - id: tc2000-breadth-recursive-condition-tree-20260817
+    title: Add recursive breadth condition-tree authoring
+    status: completed
+    priority: high
+    scope: >-
+      Replace the bounded breadth primary/secondary composition authoring with an optional
+      recursive visual tree that serializes nested all/any/not groups and supported leaf
+      predicates through the existing generic breadth contract.
+    definition_of_done:
+      - Authenticated breadth tool exposes nested condition-tree mode
+      - Users can add nested groups and leaf conditions and edit every supported visual leaf
+      - NOT groups serialize exactly one child and all/any groups serialize arbitrary children
+      - Current/history requests carry the recursive AST without changing denominator/provenance semantics
+      - Component and authenticated browser coverage prove nested AST serialization
+      - Frontend type-check, full Vitest, production build, backend breadth/router tests, and diff checks pass
+      - Per-clause diagnostics, event/benchmark-peer, derived Python, and promotion gaps remain documented
+    validation:
+      - breadth-condition-tree-component-2-of-2
+      - focused-authenticated-F8s-breadth-family-ratio-1-of-1
+      - frontend-vitest-841-of-841
+      - frontend-type-check-production-build
+      - breadth-unit-14-of-14
+      - analysis-router-breadth-1-of-1
+      - diff-check
+    notes:
+      - >-
+        No acceptance flexibility used. The first browser rerun exposed a stale range-input
+        oracle and inherited-percentile tree fixture; explicit post-edit/reset assertions fixed
+        both and the unchanged 1/1 flow passed.
   - id: tc2000-breadth-or-not-composition-20260817
     title: Expose OR and NOT breadth composition controls
     status: completed

@@ -3559,10 +3559,14 @@ test.describe('TC2000 workstation', () => {
     const volumeRequest = await evaluateCustomBreadth()
     expect(volumeRequest?.condition).toMatchObject({ kind: 'volume_ratio', params: { threshold: 1.5 } })
     await condition.selectOption('range')
-    await breadth.getByLabel('Breadth range lower bound').fill('-0.1')
-    await breadth.getByLabel('Breadth range lower bound').press('Tab')
-    await breadth.getByLabel('Breadth range upper bound').fill('0.1')
-    await breadth.getByLabel('Breadth range upper bound').press('Tab')
+    const rangeLower = breadth.getByLabel('Breadth range lower bound')
+    const rangeUpper = breadth.getByLabel('Breadth range upper bound')
+    await rangeLower.fill('-0.1')
+    await rangeLower.press('Tab')
+    await expect(rangeLower).toHaveValue('-0.1')
+    await rangeUpper.fill('0.1')
+    await rangeUpper.press('Tab')
+    await expect(rangeUpper).toHaveValue('0.1')
     const rangeRequest = await evaluateCustomBreadth()
     expect(rangeRequest?.condition).toMatchObject({ kind: 'range', params: { lower: -0.1, upper: 0.1, inclusive: true } })
     await condition.selectOption('within_52_week_high')
@@ -3592,6 +3596,26 @@ test.describe('TC2000 workstation', () => {
     await breadth.getByLabel('Breadth percentile target scope').selectOption('cross_sectional')
     const crossSectionalRequest = await evaluateCustomBreadth()
     expect(crossSectionalRequest?.condition).toMatchObject({ kind: 'percentile', target_scope: 'cross_sectional' })
+    await breadth.locator('select[aria-label="Breadth condition composition"]').selectOption('tree')
+    const conditionTree = breadth.locator('[aria-label="Breadth condition tree"]')
+    await expect(conditionTree).toBeVisible()
+    await conditionTree.getByRole('combobox', { name: 'Breadth group operator 1' }).selectOption('all')
+    await conditionTree.getByRole('combobox', { name: 'Breadth condition type 1.1' }).selectOption('above_moving_average')
+    await conditionTree.getByRole('button', { name: '+ Group' }).click()
+    const nestedGroup = conditionTree.locator('.breadth-condition-tree--nested').last()
+    await expect(nestedGroup).toBeVisible()
+    await conditionTree.getByRole('combobox', { name: 'Breadth group operator 1.2' }).selectOption('any')
+    await conditionTree.getByRole('combobox', { name: 'Breadth condition type 1.2.1' }).selectOption('new_high_low')
+    const treeRequest = await evaluateCustomBreadth()
+    expect(treeRequest?.condition).toMatchObject({
+      kind: 'all',
+      params: {
+        conditions: [
+          expect.objectContaining({ kind: 'above_moving_average' }),
+          { kind: 'any', params: { conditions: [expect.objectContaining({ kind: 'new_high_low' })] } },
+        ],
+      },
+    })
     await browserDiagnostics.expectNoCriticalIssues()
   })
 

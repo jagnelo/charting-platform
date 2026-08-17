@@ -413,8 +413,15 @@
           <option value="all">All conditions</option>
           <option value="any">Any condition</option>
           <option value="not">Not condition</option>
+          <option value="tree">Nested condition tree</option>
         </select>
         <label>Benchmark <input :value="breadthBenchmark" aria-label="Breadth benchmark" maxlength="12" @change="setBreadthConfiguration({ breadth_benchmark: ($event.target as HTMLInputElement).value.toUpperCase() })" /></label>
+        <BreadthConditionTreeEditor
+          v-if="breadthComposition === 'tree'"
+          :model-value="breadthTreeCondition"
+          @update:model-value="setBreadthTreeCondition"
+        />
+        <template v-else>
         <select :value="breadthConditionKind" aria-label="Breadth condition" @change="setBreadthConfiguration({ breadth_condition: ($event.target as HTMLSelectElement).value })">
           <option value="above_moving_average">Above moving average</option>
           <option value="within_52_week_high">Within distance of 52-week high/low</option>
@@ -516,6 +523,7 @@
             <option value="relative_strength">Relative strength</option>
           </select>
           <label>Target <input :value="breadthSecondaryThreshold" aria-label="Breadth second target threshold" type="number" step="0.001" @change="setBreadthConfiguration({ breadth_secondary_threshold: Number(($event.target as HTMLInputElement).value) })" /></label>
+        </template>
         </template>
         <button type="button" @click="runGenericBreadth">Evaluate</button>
         <span v-if="genericBreadthLoading" role="status" aria-live="polite">Evaluating…</span>
@@ -744,6 +752,7 @@ import InstrumentInfoPanel from '@/components/chart/InstrumentInfoPanel.vue'
 import ResearchResultsTool from './ResearchResultsTool.vue'
 import CodeLibraryTool from './CodeLibraryTool.vue'
 import CoverageSummaryTool from './CoverageSummaryTool.vue'
+import BreadthConditionTreeEditor from './BreadthConditionTreeEditor.vue'
 import { calendarYearKeys } from '@/lib/workstation/calendarYears'
 import { buildNormalizedComparisonSeries, type ComparisonTarget } from '@/lib/workstation/comparison'
 import { normalizeNumericSeries } from '@/lib/workstation/numericSeries'
@@ -1746,7 +1755,7 @@ const breadthCustomUniverseKind = computed(() => {
 })
 const breadthComposition = computed(() => {
   const candidate = String(props.tool.configuration.breadth_condition_composition ?? 'single')
-  return ['all', 'any', 'not'].includes(candidate) ? candidate : 'single'
+  return ['all', 'any', 'not', 'tree'].includes(candidate) ? candidate : 'single'
 })
 const breadthConditionKind = computed(() => {
   const candidate = String(props.tool.configuration.breadth_condition ?? 'above_moving_average')
@@ -1793,6 +1802,24 @@ const breadthBenchmark = computed(() => {
   const candidate = String(props.tool.configuration.breadth_benchmark ?? 'SPY').trim().toUpperCase()
   return candidate || 'SPY'
 })
+type BreadthTreeNode = {
+  kind: 'all' | 'any' | 'not' | 'above_moving_average' | 'within_52_week_high' | 'new_high_low' | 'trend' | 'rsi' | 'volume_ratio' | 'relative_strength' | 'comparison' | 'range' | 'percentile'
+  target_scope?: 'member' | 'cross_sectional'
+  params: Record<string, unknown>
+}
+function isBreadthTreeNode(value: unknown): value is BreadthTreeNode {
+  if (!value || typeof value !== 'object') return false
+  const candidate = value as Record<string, unknown>
+  return typeof candidate.kind === 'string' && Boolean(candidate.params && typeof candidate.params === 'object')
+}
+const breadthTreeCondition = computed<BreadthTreeNode>(() => {
+  const configured = props.tool.configuration.breadth_condition_tree
+  if (isBreadthTreeNode(configured)) return configured
+  return { kind: 'all', params: { conditions: [primaryBreadthCondition()] } }
+})
+function setBreadthTreeCondition(value: BreadthTreeNode) {
+  setBreadthConfiguration({ breadth_condition_tree: value })
+}
 const familyRatioRole = computed(() => {
   const candidate = String(props.tool.configuration.family_ratio_role ?? 'equal_weight')
   return ['cap_weight', 'equal_weight', 'value', 'growth'].includes(candidate) ? candidate as 'cap_weight' | 'equal_weight' | 'value' | 'growth' : 'equal_weight'
@@ -1916,7 +1943,9 @@ const genericBreadthDefinition = computed(() => ({
         : { key: 'SPY' }),
     point_in_time: true,
   },
-  condition: breadthComposition.value === 'all' || breadthComposition.value === 'any'
+  condition: breadthComposition.value === 'tree'
+    ? breadthTreeCondition.value
+    : breadthComposition.value === 'all' || breadthComposition.value === 'any'
     ? { kind: breadthComposition.value, params: { conditions: [primaryBreadthCondition(), comparisonCondition(breadthSecondaryField.value, 'gte', breadthSecondaryThreshold.value)] } }
     : breadthComposition.value === 'not'
       ? { kind: 'not', params: { conditions: [primaryBreadthCondition()] } }

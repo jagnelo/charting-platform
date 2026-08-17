@@ -1,5 +1,22 @@
 # Project TODO Memory
 
+### 2026-08-17 — Recursive breadth condition-tree authoring
+
+- [x] Added a dedicated authenticated breadth condition-tree editor with nested `all`, `any`,
+      and single-child `not` groups. It edits every currently supported visual leaf predicate
+      (moving average, high/low distance, new highs/lows, trend, RSI, volume ratio, relative
+      strength, comparison, range, and percentile) and emits an immutable condition AST through
+      the existing generic breadth current/history contract.
+- [x] Authenticated Chromium proves a nested `all(any(new_high_low))` request, while component
+      coverage proves recursive add/remove/operator behavior, NOT cardinality, leaf parameter
+      editing, and no mutation of the input AST. Frontend type-check, 841 Vitest tests, build,
+      backend breadth 14/14, router breadth 1/1, and diff checks pass.
+- [ ] Per-clause visual diagnostics, event targets, benchmark/peer target-series authoring,
+      arbitrary derived-Python composition, and promotion fan-out remain open. The first browser
+      rerun exposed a stale range-edit oracle and a fixture that inherited the prior percentile
+      leaf; both were corrected with explicit value/reset assertions and the unchanged flow passed.
+      No acceptance flexibility was used.
+
 ### 2026-08-17 — Breadth OR/NOT composition controls
 
 - [x] Expanded the generic breadth composer from single/all-only to explicit `all`, `any`, and
