@@ -59,7 +59,9 @@
       <div v-if="promotableKind || artifactPromotions.length" class="study-lab-tool__promotions" aria-label="Promote study result">
         <button v-if="promotableKind === 'scalar'" type="button" :disabled="promotionBusy" @click="promote('column')">{{ promotionBusy ? 'Promoting…' : 'Save as column' }}</button>
         <button v-if="promotableKind === 'series'" type="button" :disabled="promotionBusy" @click="promote('plot')">{{ promotionBusy ? 'Promoting…' : 'Save as chart plot' }}</button>
+        <button v-if="promotableKind === 'boolean'" type="button" :disabled="promotionBusy" @click="promote('filter')">{{ promotionBusy ? 'Promoting…' : 'Save as watchlist filter' }}</button>
         <button v-if="promotableKind === 'boolean'" type="button" :disabled="promotionBusy" @click="promote('scan')">{{ promotionBusy ? 'Promoting…' : 'Promote to scan' }}</button>
+        <button v-if="promotableKind === 'boolean'" type="button" :disabled="promotionBusy" @click="promote('gauge')">{{ promotionBusy ? 'Promoting…' : 'Use as Market Gauge' }}</button>
         <button v-if="promotableKind === 'boolean'" type="button" :disabled="promotionBusy" @click="promote('alert')">{{ promotionBusy ? 'Promoting…' : 'Promote to alert' }}</button>
         <button v-if="promotableKind === 'boolean' || promotableKind === 'events'" type="button" :disabled="promotionBusy" @click="promote('signal')">{{ promotionBusy ? 'Promoting…' : 'Save as Strategy signal' }}</button>
         <template v-for="item in artifactPromotions" :key="`promote-${item.artifact.id}-${item.target}`">
@@ -328,7 +330,7 @@ const progressLabel = computed(() => {
 })
 const metricArtifacts = computed(() => (run.value?.artifacts ?? []).filter(artifact => ['scalar', 'boolean'].includes(artifact.artifact_type)))
 const nonScalarArtifacts = computed(() => (run.value?.artifacts ?? []).filter(artifact => !['scalar', 'boolean'].includes(artifact.artifact_type)))
-type PromotionTarget = 'column' | 'plot' | 'scan' | 'alert' | 'signal'
+type PromotionTarget = 'column' | 'plot' | 'filter' | 'scan' | 'gauge' | 'alert' | 'signal'
 type ArtifactPromotion = { artifact: Artifact; target: PromotionTarget; label: string }
 const artifactPromotions = computed<ArtifactPromotion[]>(() => {
   if (!run.value || run.value.status !== 'completed' || !runSource.value) return []
@@ -621,13 +623,13 @@ async function promote(target: PromotionTarget, selectedOutputName?: string) {
   promotionBusy.value = true
   promotionStatus.value = ''
   try {
-    const isBooleanTarget = target === 'scan' || target === 'alert'
+    const isBooleanTarget = target === 'filter' || target === 'scan' || target === 'gauge' || target === 'alert'
     const requiredContract = isBooleanTarget ? 'boolean' : contract
     const canReuseRunVersion = !selectedOutputName && runCodeVersionId.value != null
       && (requiredContract === runContract.value || (target === 'signal' && (runContract.value === 'boolean' || runContract.value === 'events')))
     let versionId = canReuseRunVersion ? runCodeVersionId.value : null
     if (!versionId) {
-      const kind = target === 'scan' || target === 'alert' ? 'condition' : target
+      const kind = isBooleanTarget ? 'condition' : target
       const asset = await api.post<{ versions: Array<{ id: number }> }>('/code/assets', {
         stable_key: uniqueAssetKey(name.value, kind),
         name: `${name.value} ${kind}`,
@@ -665,6 +667,10 @@ async function promote(target: PromotionTarget, selectedOutputName?: string) {
         await api.post('/alerts/screener', { screener_id: scanId, trigger_type: 'entered', repeat: true })
         if (disposed) return
         promotionStatus.value = 'Promoted to an active scan alert.'
+      } else if (target === 'filter') {
+        promotionStatus.value = 'Saved as a reusable watchlist filter through EasyScan.'
+      } else if (target === 'gauge') {
+        promotionStatus.value = 'Available as a Market Gauge from the saved EasyScan.'
       } else promotionStatus.value = 'Promoted to a reusable scan.'
     }
   } catch (cause: any) {

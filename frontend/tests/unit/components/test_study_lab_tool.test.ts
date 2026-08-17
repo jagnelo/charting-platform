@@ -496,8 +496,13 @@ describe('StudyLabTool', () => {
     await wrapper.findAll('button')[1].trigger('click')
     await vi.waitFor(() => expect(wrapper.text()).toContain('Run #90'))
 
-    expect(wrapper.find('[aria-label="Promote study result"]').text()).toContain('Promote to scan')
-    await wrapper.get('[aria-label="Promote study result"] button').trigger('click')
+    expect(wrapper.find('[aria-label="Promote study result"]').text()).toContain('Save as watchlist filter')
+    expect(wrapper.find('[aria-label="Promote study result"]').text()).toContain('Use as Market Gauge')
+    await wrapper.findAll('[aria-label="Promote study result"] button').find(button => button.text() === 'Save as watchlist filter')!.trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Saved as a reusable watchlist filter through EasyScan.'))
+    expect(apiPost).toHaveBeenCalledWith('/screeners/from-python-condition/42', expect.objectContaining({ name: 'Consecutive Positive Closes Scan', universe_type: 'all', timeframe: 'D1' }))
+
+    await wrapper.findAll('[aria-label="Promote study result"] button').find(button => button.text() === 'Promote to scan')!.trigger('click')
     await vi.waitFor(() => expect(wrapper.text()).toContain('Promoted to a reusable scan.'))
     expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({ kind: 'study', initial_version: expect.objectContaining({ source: "output.boolean('qualifies', True)", output_contract: 'boolean' }) }))
     expect(apiPost).toHaveBeenCalledWith('/screeners/from-python-condition/42', expect.objectContaining({ name: 'Consecutive Positive Closes Scan', universe_type: 'all', timeframe: 'D1' }))
@@ -505,6 +510,10 @@ describe('StudyLabTool', () => {
     await wrapper.findAll('[aria-label="Promote study result"] button').find(button => button.text() === 'Promote to alert')!.trigger('click')
     await vi.waitFor(() => expect(wrapper.text()).toContain('Promoted to an active scan alert.'))
     expect(apiPost).toHaveBeenCalledWith('/alerts/screener', { screener_id: 77, trigger_type: 'entered', repeat: true })
+    expect(apiPost.mock.calls.filter(call => String(call[0]).startsWith('/screeners/from-python-condition/'))).toHaveLength(1)
+
+    await wrapper.findAll('[aria-label="Promote study result"] button').find(button => button.text() === 'Use as Market Gauge')!.trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Available as a Market Gauge from the saved EasyScan.'))
     expect(apiPost.mock.calls.filter(call => String(call[0]).startsWith('/screeners/from-python-condition/'))).toHaveLength(1)
 
     await wrapper.findAll('[aria-label="Promote study result"] button').find(button => button.text() === 'Save as Strategy signal')!.trigger('click')

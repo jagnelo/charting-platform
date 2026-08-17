@@ -70,6 +70,12 @@ also create an immutable Study-Lab asset directly: the asset stores the conditio
 source ID, period/timeframe/adjustment defaults, and generated Python source through `/code/assets`.
 Promotion of that definition into every compatible target remains a separate open fan-out gate.
 
+Study Lab Boolean results now expose explicit watchlist-filter and Market-Gauge actions in addition
+to scan and alert promotion. Those actions reuse one user-owned EasyScan created from the immutable
+Boolean code version, so the filter, scan, gauge, and alert views retain identical source/version
+lineage. Direct promotion of a multi-output map-created Study asset into every compatible target
+without first selecting/running a compatible output remains open.
+
 ## 2026-08-17 — US family/style and Nasdaq cap/equal acceptance matrix (latest requirement)
 
 The workstation's top-down entry points are the S&P 500, S&P MidCap 400, S&P SmallCap 600,

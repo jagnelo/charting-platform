@@ -2639,7 +2639,7 @@ test.describe('TC2000 workstation', () => {
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
-  test('F8q — Study Lab promotes a Boolean result into a reusable scan and active scan alert', async ({ page, browserDiagnostics }) => {
+  test('F8q — Study Lab promotes a Boolean result into filter, scan, gauge, alert, and signal targets', async ({ page, browserDiagnostics }) => {
     // Promotion writes are durable and can briefly queue behind the shared
     // workspace/code-asset database workload in a long serial acceptance run.
     // Keep the assertion bounded, but allow the product's explicit
@@ -2661,8 +2661,12 @@ test.describe('TC2000 workstation', () => {
     await study.getByRole('button', { name: 'Run', exact: true }).click()
     await expect(study.locator('.study-lab-tool__run-status--completed')).toBeVisible({ timeout: 90_000 })
     await expect(study.locator('.study-lab-tool__metrics article').filter({ hasText: 'qualifies' })).toHaveClass(/study-lab-tool__metric--true/)
+    await study.getByRole('button', { name: 'Save as watchlist filter' }).click()
+    await expect(study).toContainText('Saved as a reusable watchlist filter through EasyScan.', { timeout: 30_000 })
     await study.getByRole('button', { name: 'Promote to scan' }).click()
     await expect(study).toContainText('Promoted to a reusable scan.', { timeout: 30_000 })
+    await study.getByRole('button', { name: 'Use as Market Gauge' }).click()
+    await expect(study).toContainText('Available as a Market Gauge from the saved EasyScan.', { timeout: 30_000 })
     await study.getByRole('button', { name: 'Promote to alert' }).click()
     await expect(study).toContainText('Promoted to an active scan alert.', { timeout: 30_000 })
     // The durable configuration update can remount a virtual Study Lab while

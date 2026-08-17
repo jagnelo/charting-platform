@@ -1080,3 +1080,9 @@ universe and optional selected-member context. A breadth map can additionally cr
 Study-Lab asset from its current condition/configuration, preserving the condition tree, source ID,
 period/timeframe/adjustment defaults, and generated Python source. Promotion of that definition to
 every compatible target remains an open versioning/promotion fan-out gate.
+
+The promotion gate has partial closure: completed Boolean Study results visibly offer watchlist
+filter and Market Gauge actions, and both reuse the same persisted EasyScan created from the
+immutable Boolean code version. This is not treated as complete direct fan-out for arbitrary
+multi-output Market Map/Study assets; target-specific output selection and lineage-preserving
+promotion to every compatible target remain tracked.

@@ -756,3 +756,8 @@ one exists. A breadth map also exposes the reusable-definition name/input and sa
 an immutable Study-Lab asset from the current condition/configuration. The board has no authoritative
 exact-build reference for these specific action rows, so their geometry remains an interim
 board-guided interaction state; promotion fan-out remains a tracked gap.
+
+The Study Lab promotion state now includes “Save as watchlist filter” and “Use as Market Gauge”
+for completed Boolean studies. No authoritative V25 capture represents these exact labels or their
+composition, so the interaction is board-guided and component-tested; direct multi-output map
+definition fan-out remains a named visual and functional gap.

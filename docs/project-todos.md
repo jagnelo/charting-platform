@@ -13371,5 +13371,8 @@ The current source also passes the focused authenticated top-down browser slice 
       condition/configuration. The generated asset captures the condition tree, canonical source
       ID, period, timeframe, adjustment, and immutable Python source through the existing
       `/code/assets` contract; Python remains authoritative for edits beyond the visual subset.
+- [x] Extend completed Boolean Study Lab result promotion with explicit watchlist-filter and
+      Market-Gauge targets. Both targets reuse one user-owned EasyScan created from the immutable
+      Boolean code version, preserving the exact source/version and avoiding duplicate scans.
 - [ ] Promote the resulting definition fan-out to every compatible target (column, filter, scan,
       alert, gauge, chart plot, and Strategy Lab signal) with target-specific output validation.
