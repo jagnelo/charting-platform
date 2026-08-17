@@ -1,4 +1,29 @@
 tasks:
+  - id: tc2000-us-family-style-matrix-scope-20260817
+    title: Record expanded US family, style, and Nasdaq cap/equal scope
+    status: completed
+    priority: high
+    scope: >-
+      Make S&P 500/400/600/1500, Russell 1000/2000/3000, and Nasdaq 100 complete interchangeable
+      top-down roots. Attempt independently evidenced cap/equal/value/growth roles, require Nasdaq
+      cap/equal deconstruction equivalent to SPY/RSP, and carry the same technical, ratio, breadth,
+      ranking, rotation, drill-down, Study Lab, and export contracts through every role.
+    definition_of_done:
+      - Controlling TODO, parity, acceptance, and visual-parity documents state the eight-root matrix
+      - Value/growth/equal legs are evidence-gated and missing roles are explicit unavailable/derived/No verified mapped proxy
+      - Nasdaq cap/equal is mandatory but QQQ/QQQE remains a candidate pending independent evidence
+      - Active goal objective contains the same requirement and no fallback or acceptance relaxation
+      - YAML/JSON parsing and git diff checks pass; documentation commit is clean
+    validation:
+      - ruby-yaml-json-parse
+      - git-diff-check
+    notes:
+      - >-
+        Documentation-only scope checkpoint 40a4e051aa4acc4565682d92c263ddd0c08bc96a. Exact push
+        was attempted once and rejected before Git by the private-origin safeguard; no workaround,
+        alternate transport, rewrite, reset, stash, or repeat. Provider/history population and
+        implementation/browser/visual acceptance remain open; no acceptance flexibility used.
+
   - id: tc2000-breadth-series-comparison-20260817
     title: Add aligned benchmark and peer series targets to generic breadth
     status: completed

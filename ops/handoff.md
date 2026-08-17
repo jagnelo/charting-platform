@@ -1,5 +1,27 @@
 # Active Handoff
 
+## 2026-08-17 — US family/style matrix scope checkpoint
+
+- Added the latest explicit user requirement to the active goal and controlling repository
+  documents: S&P 500/400/600/1500, Russell 1000/2000/3000, and Nasdaq 100 are eight complete,
+  interchangeable roots. Every independently evidenced cap/equal/value/growth role inherits the
+  same technical, ratio, predicate-breadth, participation, leadership, concentration/dispersion,
+  rotation, risk/regime, taxonomy drill-down, watchlist/filter/scan/gauge/alert/Study Lab/plot/
+  export contract.
+- “If it exists” is now explicit evidence gating: identity, issuer/source relationship, holdings or
+  weighting method, rebalance/composition dates, historical bars, point-in-time membership,
+  coverage, freshness, and effective/known-at semantics. Missing roles remain visible as
+  unavailable, derived, or `No verified mapped proxy`; no name-based mapping or silent fallback.
+- Nasdaq 100 cap/equal deconstruction is mandatory and QQQ/QQQE remains a candidate fixture only
+  after independent evidence passes. No acceptance flexibility was used.
+- Validation: Ruby YAML/JSON parsing and `git diff --check` pass. Documentation commit
+  `40a4e051aa4acc4565682d92c263ddd0c08bc96a` is clean locally. Its exact elevated push was
+  attempted once and rejected before Git by the private-origin safeguard; no workaround, alternate
+  transport, rewrite, reset, stash, or repeat. This is transport-only and not a goal blocker.
+- Continue with implementation gaps: provider/history population for all roots and roles, family-wide
+  technical/ratio/breadth/ranking/rotation/concentration views, browser/visual acceptance, and
+  remaining target-series/promotion fan-out.
+
 ## 2026-08-17 — Benchmark/peer series breadth target checkpoint
 
 - Added the `series_comparison` condition across the canonical breadth schema/evaluator, current

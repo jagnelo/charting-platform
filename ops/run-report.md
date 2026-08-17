@@ -1,5 +1,21 @@
 # Run Report
 
+## 2026-08-17 — US family/style matrix scope checkpoint
+
+- Updated the active goal objective and four controlling product documents with the explicit US
+  matrix: S&P 500/400/600/1500, Russell 1000/2000/3000, and Nasdaq 100; each available cap/equal/
+  value/growth role must support the same daily top-down, breadth, ratio, ranking, rotation,
+  drill-down, and reusable research workflows.
+- Added evidence-gated “if it exists” semantics and a mandatory Nasdaq cap/equal deconstruction
+  equivalent to SPY/RSP. Missing roles remain explicit unavailable/derived/`No verified mapped proxy`
+  states with closure conditions. No acceptance flexibility was used.
+- Validation: Ruby YAML/JSON parsing and `git diff --check` pass. Documentation commit
+  `40a4e051aa4acc4565682d92c263ddd0c08bc96a` is clean locally; exact push attempted once and
+  rejected before Git by the private-origin safeguard. No workaround or repeat.
+- This is a scope/documentation checkpoint, not implementation completion. Provider and historical
+  population, family-wide analytics, browser/visual coverage, and remaining generic breadth target
+  and promotion gaps remain open.
+
 ## 2026-08-17 — Benchmark/peer series breadth target
 
 - Implemented and validated `series_comparison` for member-versus-canonical benchmark/peer field
