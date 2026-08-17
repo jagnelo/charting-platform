@@ -96,6 +96,15 @@ tasks:
         integration passes 24/24, full frontend Vitest 854/854, type/build, Ruff, compileall, and
         diff-check pass. Named snapshots, full metric matrix, point-in-time area weights, provider/
         history population, and final visual acceptance remain open; no acceptance flexibility used.
+      - >-
+        Implementation/docs commit bc25f84e adds user-isolated named Market Map snapshot
+        create/list/restore/delete APIs, migration f8a9b0c1d2e3, and workstation save/load/delete
+        controls. Full watchlist integration 24/24, focused Market Map lifecycle 1/1, frontend
+        component 6/6, full Vitest 855/855, vue-tsc/build, Ruff, compileall, Alembic head, and
+        diff-check pass. The one exact push attempt was rejected before Git by the private-origin
+        safeguard; no retry or workaround. Direct map-to-breadth/Study-Lab publication, complete
+        metric/Python/breadth matrix, point-in-time weights, provider/history population, and
+        board-guided visual approval remain open.
 
   - id: tc2000-breadth-python-series-composer-20260817
     title: Wire numeric Python-series condition assets into the breadth workstation

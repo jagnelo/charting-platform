@@ -29833,3 +29833,29 @@ indefinite soak; longer endurance remains an explicit open gap.
   were not relaxed.
 - Exact next context: implement named Market Map snapshots and then close the remaining area/colour
   metric matrix, beginning from a clean operational checkpoint.
+
+# 2026-08-17 — Named Market Map snapshots checkpoint
+
+- Context scope: user-isolated named Market Map snapshot persistence, migration `f8a9b0c1d2e3`,
+  restore/list/delete APIs, workstation controls, component/integration regressions, and the
+  controlling project/parity/visual documents. The implementation/docs commit is self-contained;
+  only the operational files remain dirty.
+- A snapshot is an immutable copy of an already-materialized automatic cache result. It preserves
+  source ID, membership version, coverage, freshness, warnings, tile metrics, and a deterministic
+  hash. Restoring a snapshot does not call providers; deleting it leaves the automatic cache
+  available. Duplicate names and cross-user access are rejected.
+- Validation: full watchlist integration `24/24`; focused Market Map lifecycle `1/1`; focused
+  component `6/6`; full frontend Vitest `855/855`; `vue-tsc --noEmit`; production build; Ruff;
+  compileall; Alembic head `f8a9b0c1d2e3`; and `git diff --check`. The first type-check invocation
+  used an invalid script name and was immediately rerun with `npm run type-check`; no product
+  acceptance flexibility was used.
+- Implementation/docs commit `bc25f84e` is clean locally. Its one required exact push to
+  `origin/feat/tc2000-frontend-rework` was rejected before Git by the private-origin safeguard;
+  no retry, alternate transport, rewrite, reset, stash, or workaround will be attempted. This is
+  transport-only and not a product-goal blocker.
+- Remaining gaps: direct map-to-breadth/Study-Lab publication, all requested area/colour metrics
+  including Python/breadth outputs, point-in-time market-cap weights, complete provider/history
+  population, browser snapshot/metric acceptance, and final board-guided visual approval. These
+  remain explicit and were not relaxed.
+- Exact next context: close the remaining Market Map metric matrix, starting from a clean ops
+  checkpoint and retaining the generalized arbitrary-watchlist source contract.

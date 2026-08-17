@@ -28078,3 +28078,19 @@ in 4.6 minutes. No failure was suppressed or reclassified as product success.
 - Commit `ae8ae608d88d0a6beaac053ea243c076869cb96a feat: persist market map results` was created
   cleanly. Its one exact push attempt was rejected before Git by the private-origin safeguard; no
   retry or workaround. Ops state is the pending separate checkpoint.
+
+# 2026-08-17 — Named Market Map snapshots checkpoint
+
+- Added durable user-owned named Market Map snapshots over the automatic cache. The API supports
+  create/list/restore/delete, preserves source/membership/coverage/freshness/warning/tile lineage,
+  rejects duplicate names and cross-user access, and leaves automatic cache rows intact on delete.
+- Added the workstation snapshot selector, save name, active snapshot status, restore, and delete
+  controls. The source-agnostic map remains usable for locked index/ETF, managed, personal, combo,
+  and explicit-symbol watchlists through the same heatmap contract.
+- Validation passed: watchlist integration `24/24`, focused Market Map lifecycle `1/1`, component
+  `6/6`, full Vitest `855/855`, `vue-tsc`, production build, Ruff, compileall, Alembic head
+  `f8a9b0c1d2e3`, and `git diff --check`. No acceptance flexibility was used.
+- Implementation/docs commit `bc25f84e` is clean locally. Its one exact push attempt was rejected
+  before Git by the private-origin safeguard; no retry or workaround. Remaining metric, Python/
+  breadth-colour, point-in-time weighting, provider/history, browser, and strict visual gaps remain
+  explicitly tracked.
