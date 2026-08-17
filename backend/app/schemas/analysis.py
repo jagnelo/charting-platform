@@ -893,6 +893,7 @@ class BreadthPythonResultPointOut(BaseModel):
     excluded_count: int = Field(ge=0)
     percentage: float | None = Field(default=None, ge=0, le=1)
     coverage: float = Field(ge=0, le=1)
+    group_value: float | None = None
     members: list[BreadthMemberResultOut] = Field(default_factory=list)
     exclusions: list[AnalysisWarning] = Field(default_factory=list)
 

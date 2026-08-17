@@ -587,6 +587,7 @@ export interface GenericBreadthState {
   excluded_count: number
   percentage: number | null
   coverage: number
+  group_value?: number | null
   diagnostics?: Array<{
     path: string
     kind: string
@@ -655,6 +656,7 @@ export interface PythonBreadthPointState {
   excluded_count: number
   percentage: number | null
   coverage: number
+  group_value?: number | null
   members: GenericBreadthState['members']
   exclusions: GenericBreadthState['exclusions']
 }

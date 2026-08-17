@@ -5939,6 +5939,14 @@ def _python_breadth_point(
     eligible = sum(member.value is not None for member in members)
     passed = sum(member.value is True for member in members)
     requested = max(requested_count, len(members))
+    group_value = raw.get("group_value")
+    group_value = (
+        float(group_value)
+        if isinstance(group_value, int | float)
+        and not isinstance(group_value, bool)
+        and math.isfinite(float(group_value))
+        else None
+    )
     return BreadthPythonResultPointOut(
         timestamp=timestamp,
         requested_count=requested,
@@ -5947,6 +5955,7 @@ def _python_breadth_point(
         excluded_count=max(requested - eligible, 0),
         percentage=passed / eligible if eligible else None,
         coverage=eligible / requested if requested else 0,
+        group_value=group_value,
         members=members,
         exclusions=exclusions,
     )
@@ -6131,7 +6140,15 @@ async def queue_python_breadth(
                 422,
                 detail={"code": "invalid_python_series_target"},
             )
+        scope = str(series_target.get("scope", "member")).lower()
+        statistic = str(series_target.get("statistic", "mean")).lower()
+        if scope not in {"member", "cross_sectional"}:
+            raise HTTPException(422, detail={"code": "invalid_python_series_target_scope"})
+        if scope == "cross_sectional" and statistic not in {"mean", "median", "min", "max", "std"}:
+            raise HTTPException(422, detail={"code": "invalid_python_series_statistic"})
         series_target = {"operator": operator, "threshold": float(threshold)}
+        if scope == "cross_sectional":
+            series_target.update({"scope": scope, "statistic": statistic})
     if not isinstance(body.parameters, dict):
         raise HTTPException(422, detail={"code": "parameters_must_be_object"})
 

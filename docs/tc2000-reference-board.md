@@ -1,5 +1,12 @@
 # TC2000 Version 25 composite reference board
 
+## 2026-08-18 cross-sectional Python-series reference gap
+
+The backend and isolated runner now support a Python numeric-series target whose comparison is
+member-minus-group statistic, but the board has no authoritative V25 capture of that exact
+authoring/result state. Functional acceptance is therefore covered by deterministic API/runner
+oracles; exact visual acceptance remains a named gap until a complementary reference is found.
+
 ## 2026-08-17 mixed-scope breadth reference gap
 
 The current board has no sufficiently authoritative Version 25 capture of a recursive breadth

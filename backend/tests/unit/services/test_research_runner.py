@@ -419,6 +419,67 @@ def test_runner_evaluates_numeric_python_series_target_over_aligned_history():
     assert [cell["metric"] for cell in points[-1]["cells"]] == [102.0]
 
 
+def test_runner_applies_cross_sectional_group_statistic_to_python_series_current_batch():
+    result = execute_job(
+        {
+            "source": "output.series('target', market.close())",
+            "output_contract": "series",
+            "series_target": {
+                "scope": "cross_sectional",
+                "statistic": "mean",
+                "operator": "gte",
+                "threshold": 0,
+            },
+            "dataset": {
+                "datasets": [
+                    {"instrument_id": 1, "symbol": "A", "closes": [99, 101]},
+                    {"instrument_id": 2, "symbol": "B", "closes": [100, 100]},
+                    {"instrument_id": 3, "symbol": "C", "closes": [101, 99]},
+                ]
+            },
+        }
+    )
+
+    assert result["status"] == "completed"
+    payload = result["artifacts"]["batch_cells"]["value"]
+    assert payload["group_value"] == 100.0
+    assert [cell["metric"] for cell in payload["cells"]] == [1.0, 0.0, -1.0]
+    assert [cell["value"] for cell in payload["cells"]] == [True, True, False]
+
+
+def test_runner_applies_cross_sectional_group_statistic_to_python_series_history():
+    timestamps = ["2026-01-01", "2026-01-02"]
+    result = execute_job(
+        {
+            "source": "output.series('target', market.close())",
+            "output_contract": "series",
+            "execution_mode": "breadth_history",
+            "history_limit": 2,
+            "series_target": {
+                "scope": "cross_sectional",
+                "statistic": "median",
+                "operator": "gte",
+                "threshold": 0,
+            },
+            "dataset": {
+                "datasets": [
+                    {"instrument_id": 1, "symbol": "A", "timestamps": timestamps, "closes": [10, 12]},
+                    {"instrument_id": 2, "symbol": "B", "timestamps": timestamps, "closes": [10, 10]},
+                    {"instrument_id": 3, "symbol": "C", "timestamps": timestamps, "closes": [10, 8]},
+                ]
+            },
+        }
+    )
+
+    assert result["status"] == "completed"
+    points = result["artifacts"]["breadth_history"]["value"]["points"]
+    assert [point["group_value"] for point in points] == [10.0, 10.0]
+    assert [[cell["value"] for cell in point["cells"]] for point in points] == [
+        [True, True, True],
+        [True, True, False],
+    ]
+
+
 def test_runner_computes_transparent_ninety_ninety_breadth_and_exclusions():
     result = execute_job(
         {

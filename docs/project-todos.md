@@ -1,5 +1,20 @@
 # Project TODO Memory
 
+### 2026-08-18 — Cross-sectional Python numeric-series targets
+
+- [x] Extend the existing isolated Python numeric-series breadth target with an explicit
+      `scope: cross_sectional` mode. The runner materializes each member's numeric output first,
+      computes a same-timestamp mean, median, minimum, maximum, or population standard deviation,
+      then compares each member-minus-group delta to the declared operator/threshold.
+- [x] Preserve the same target in current batch and aligned history outputs, including group value,
+      member metrics, pass/fail, exclusions, coverage, and the existing reproducibility manifest.
+      The API still resolves user-owned code and datasets through the isolated execution boundary;
+      no Python executes in FastAPI or through provider fan-out.
+- [x] Expose scope/statistic controls in the workstation's Python-series breadth composer while
+      keeping the existing member-value behavior backward compatible.
+- [ ] Cross-sectional Python series as a recursive visual AST leaf, direct series-to-series or
+      benchmark relations, and promotion fan-out to every compatible target remain open.
+
 ### 2026-08-17 — Mixed-scope breadth condition trees
 
 - [x] Compose a cross-sectional percentile leaf with ordinary member predicates inside the same

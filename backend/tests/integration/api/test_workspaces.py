@@ -2993,6 +2993,32 @@ class TestWorkspaces:
         assert payload["points"][-1]["members"][0]["value"] is True
         assert payload["points"][-1]["members"][0]["metric"] is not None
 
+        cross_queued = client.post(
+            "/api/v1/analysis/breadth/python",
+            headers=auth_headers,
+            json={
+                "code_version_id": version_id,
+                "universe": {"kind": "symbols", "symbols": [instrument.symbol]},
+                "output_contract": "series",
+                "series_target": {
+                    "scope": "cross_sectional",
+                    "statistic": "mean",
+                    "operator": "gte",
+                    "threshold": 0,
+                },
+                "session": "all",
+            },
+        )
+        assert cross_queued.status_code == 202, cross_queued.text
+        cross_job = json.loads(
+            (tmp_path / "jobs" / f"{cross_queued.json()['run_id']}.json").read_text()
+        )
+        cross_result = execute_job(cross_job)
+        assert cross_result["status"] == "completed", cross_result
+        cross_artifact = cross_result["artifacts"]["batch_cells"]["value"]
+        assert cross_artifact["group_value"] is not None
+        assert cross_artifact["cells"][0]["metric"] == 0.0
+
     def test_etf_constituent_snapshot_is_point_in_time_and_source_labelled(
         self, client, auth_headers, db, instrument, instrument_type, ohlcv_bars
     ):

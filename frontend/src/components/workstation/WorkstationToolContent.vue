@@ -466,6 +466,8 @@
           <select :value="breadthPythonSeriesOperator" aria-label="Breadth Python series operator" @change="setBreadthConfiguration({ breadth_python_series_operator: ($event.target as HTMLSelectElement).value })">
             <option value="gte">At or above</option><option value="gt">Above</option><option value="lte">At or below</option><option value="lt">Below</option><option value="eq">Equal to</option><option value="ne">Not equal</option>
           </select>
+          <select :value="breadthPythonSeriesScope" aria-label="Breadth Python series target scope" @change="setBreadthConfiguration({ breadth_python_series_scope: ($event.target as HTMLSelectElement).value })"><option value="member">Member value</option><option value="cross_sectional">Cross-sectional group</option></select>
+          <select v-if="breadthPythonSeriesScope === 'cross_sectional'" :value="breadthPythonSeriesStatistic" aria-label="Breadth Python series group statistic" @change="setBreadthConfiguration({ breadth_python_series_statistic: ($event.target as HTMLSelectElement).value })"><option value="mean">Mean</option><option value="median">Median</option><option value="min">Minimum</option><option value="max">Maximum</option><option value="std">Standard deviation</option></select>
           <label>Threshold <input :value="breadthPythonSeriesThreshold" aria-label="Breadth Python series threshold" type="number" step="0.001" @change="setBreadthConfiguration({ breadth_python_series_threshold: Number(($event.target as HTMLInputElement).value) })" /></label>
           <small v-if="breadthPythonSeriesAssetsLoading" role="status">Loading Python assets…</small>
           <small v-else-if="!breadthPythonSeriesAssets.length" class="breadth-tool__status--error">No numeric-series condition assets available.</small>
@@ -615,7 +617,7 @@
         <button type="button" :disabled="breadthConditionKind === 'python_series' && breadthPythonSeriesCodeVersionId == null" @click="runGenericBreadth">Evaluate</button>
         <span v-if="genericBreadthLoading" role="status" aria-live="polite">Evaluating…</span>
         <span v-else-if="genericBreadthError" class="breadth-tool__status--error" role="alert">{{ genericBreadthError }}</span>
-        <span v-else-if="genericBreadth" class="breadth-tool__custom-result"><b>{{ genericBreadthPercentage }}</b> · {{ genericBreadth.pass_count }}/{{ genericBreadth.eligible_count }} eligible · {{ genericBreadthCoverage }} coverage</span>
+        <span v-else-if="genericBreadth" class="breadth-tool__custom-result"><b>{{ genericBreadthPercentage }}</b> · {{ genericBreadth.pass_count }}/{{ genericBreadth.eligible_count }} eligible · {{ genericBreadthCoverage }} coverage<span v-if="genericBreadth.group_value != null"> · group {{ genericBreadth.group_value.toFixed(4) }}</span></span>
       </div>
       <div v-if="isBenchmarkFamily" class="breadth-tool__family-ratios" aria-label="Benchmark family relative strength">
         <strong>Family relative strength</strong>
@@ -1950,6 +1952,11 @@ const breadthPythonSeriesOperator = computed(() => {
   const candidate = String(breadthConfigurationValue('breadth_python_series_operator', 'gte'))
   return ['gt', 'gte', 'lt', 'lte', 'eq', 'ne'].includes(candidate) ? candidate : 'gte'
 })
+const breadthPythonSeriesScope = computed(() => breadthConfigurationValue('breadth_python_series_scope') === 'cross_sectional' ? 'cross_sectional' : 'member')
+const breadthPythonSeriesStatistic = computed(() => {
+  const candidate = String(breadthConfigurationValue('breadth_python_series_statistic', 'mean'))
+  return ['mean', 'median', 'min', 'max', 'std'].includes(candidate) ? candidate : 'mean'
+})
 const breadthPythonSeriesThreshold = computed(() => {
   const value = Number(breadthConfigurationValue('breadth_python_series_threshold', 0))
   return Number.isFinite(value) ? value : 0
@@ -1970,7 +1977,12 @@ const breadthPythonSeriesRequest = computed<Record<string, unknown>>(() => ({
   universe: breadthPythonSeriesUniverse.value,
   parameters: {},
   output_contract: 'series',
-  series_target: { operator: breadthPythonSeriesOperator.value, threshold: breadthPythonSeriesThreshold.value },
+  series_target: {
+    operator: breadthPythonSeriesOperator.value,
+    threshold: breadthPythonSeriesThreshold.value,
+    scope: breadthPythonSeriesScope.value,
+    ...(breadthPythonSeriesScope.value === 'cross_sectional' ? { statistic: breadthPythonSeriesStatistic.value } : {}),
+  },
   timeframe: breadthTimeframe.value,
   adjusted: breadthAdjusted.value,
   session: 'regular',
@@ -2001,6 +2013,7 @@ function asGenericBreadthState(state: NonNullable<typeof breadthPythonSeriesStat
     excluded_count: current?.excluded_count ?? 0,
     percentage: current?.percentage ?? null,
     coverage: current?.coverage ?? 0,
+    group_value: current?.group_value ?? null,
     members: current?.members ?? [],
     exclusions: current?.exclusions ?? [],
     freshness: 'coverage_limited',

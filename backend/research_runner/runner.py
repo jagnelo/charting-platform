@@ -303,6 +303,78 @@ def _series_target_value(
     return metric != threshold, None
 
 
+def _is_cross_sectional_series_target(target: object) -> bool:
+    return isinstance(target, dict) and str(target.get("scope", "member")).lower() == "cross_sectional"
+
+
+def _cross_sectional_series_statistic(values: list[float], target: dict) -> float:
+    statistic = str(target.get("statistic", "mean")).lower()
+    if not values:
+        return math.nan
+    if statistic == "mean":
+        return sum(values) / len(values)
+    if statistic == "median":
+        ordered = sorted(values)
+        middle = len(ordered) // 2
+        return ordered[middle] if len(ordered) % 2 else (ordered[middle - 1] + ordered[middle]) / 2
+    if statistic == "min":
+        return min(values)
+    if statistic == "max":
+        return max(values)
+    if statistic == "std":
+        mean = sum(values) / len(values)
+        return math.sqrt(sum((value - mean) ** 2 for value in values) / len(values))
+    return math.nan
+
+
+def _apply_cross_sectional_series_target(
+    cells: list[dict], target: object
+) -> float | None:
+    """Apply one group statistic to already materialised numeric-series cells."""
+    if not _is_cross_sectional_series_target(target):
+        return None
+    assert isinstance(target, dict)
+    metrics = [
+        float(cell["metric"])
+        for cell in cells
+        if cell.get("status") == "completed"
+        and isinstance(cell.get("metric"), int | float)
+        and not isinstance(cell.get("metric"), bool)
+        and math.isfinite(float(cell["metric"]))
+    ]
+    group_value = _cross_sectional_series_statistic(metrics, target)
+    if not math.isfinite(group_value):
+        for cell in cells:
+            if cell.get("status") == "completed":
+                cell["status"] = "excluded"
+                cell["value"] = None
+                cell["error"] = "cross_sectional_group_unavailable"
+        return None
+    for cell in cells:
+        metric = cell.get("metric")
+        if (
+            cell.get("status") != "completed"
+            or not isinstance(metric, int | float)
+            or isinstance(metric, bool)
+            or not math.isfinite(float(metric))
+        ):
+            continue
+        delta = float(metric) - group_value
+        value, error = _series_target_value(
+            delta,
+            {
+                "operator": target.get("operator", "gte"),
+                "threshold": target.get("threshold", 0.0),
+            },
+        )
+        cell["metric"] = delta
+        cell["value"] = value
+        if error:
+            cell["status"] = "excluded"
+            cell["error"] = error
+    return group_value
+
+
 def _output_value(
     result: dict,
     output_contract: str,
@@ -320,6 +392,8 @@ def _output_value(
     if output_contract == "boolean":
         return _boolean_artifact(result, output_name)
     metric, error = _series_artifact(result, output_name)
+    if _is_cross_sectional_series_target(series_target):
+        return None, error, metric
     value, target_error = _series_target_value(metric, series_target)
     return value, target_error or error, metric
 
@@ -425,7 +499,10 @@ def _execute_breadth_history(
                     else error
                 )
             cells.append(cell)
-        points.append({"timestamp": timestamp, "cells": cells})
+        group_value = _apply_cross_sectional_series_target(
+            cells, hash_input.get("series_target")
+        )
+        points.append({"timestamp": timestamp, "cells": cells, "group_value": group_value})
         if progress_callback and (point_index + 1 == total or (point_index + 1) % 10 == 0):
             progress_callback({"completed_cells": point_index + 1, "total_cells": total, "status": "running"})
     return {
@@ -632,9 +709,12 @@ def _execute_batch(
                 value, extraction_error, extracted_metric = _boolean_artifact(result, output_name)
             elif output_contract == "series":
                 extracted_metric, extraction_error = _series_artifact(result, output_name)
-                value, target_error = _series_target_value(
-                    extracted_metric, hash_input.get("series_target")
-                )
+                if _is_cross_sectional_series_target(hash_input.get("series_target")):
+                    value, target_error = None, None
+                else:
+                    value, target_error = _series_target_value(
+                        extracted_metric, hash_input.get("series_target")
+                    )
                 extraction_error = extraction_error or target_error
             else:
                 extraction_error = None
@@ -702,9 +782,12 @@ def _execute_batch(
         signal.alarm(0)
         signal.signal(signal.SIGALRM, previous_alarm_handler)
         _restore_resources(previous_limits)
+    group_value = _apply_cross_sectional_series_target(
+        cells, hash_input.get("series_target")
+    )
     return {
         "status": "completed",
-        "artifacts": {"batch_cells": {"type": "batch", "value": {"cells": cells}}},
+        "artifacts": {"batch_cells": {"type": "batch", "value": {"cells": cells, "group_value": group_value}}},
         "resource_usage": {
             "cell_count": len(cells),
             "wall_ms": round((time.monotonic() - started) * 1000, 3),

@@ -1,5 +1,16 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-18 — Cross-sectional Python numeric-series targets
+
+The isolated Python breadth path now supports an explicit cross-sectional numeric-series target.
+The runner evaluates the user-owned series independently for each declared member, computes the
+selected same-timestamp mean, median, minimum, maximum, or population standard deviation, and
+returns each member's series-minus-group delta before applying the operator and threshold. Current
+batch and aligned historical results retain `group_value`, member metrics, exclusions, coverage,
+and the existing code/dataset reproducibility lineage. Member-scoped Python targets remain
+backward-compatible. Recursive visual-tree Python leaves, direct series/reference relations, and
+complete promotion fan-out remain open.
+
 ## 2026-08-17 — Mixed-scope breadth trees
 
 The generic breadth AST now composes a cross-sectional percentile leaf with ordinary member-level
