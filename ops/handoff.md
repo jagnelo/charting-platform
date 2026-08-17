@@ -30302,3 +30302,27 @@ indefinite soak; longer endurance remains an explicit open gap.
   cross-sectional Python leaves, visual authoring, promotion fan-out, full family/provider
   population, exact V25 visual evidence, and final audit. Next context is cross-sectional Python
   leaves inside recursive trees and promotion fan-out.
+
+# 2026-08-18 — Cross-sectional Python recursive-tree checkpoint
+
+- Extended the recursive Python breadth tree with owned numeric-series leaves in both member and
+  cross-sectional scope. The visual editor persists code version, scope, statistic, operator, and
+  threshold; current and historical jobs materialize cross-sectional leaves once per timestamp and
+  compose them with built-in predicates over any canonical WatchlistSource.
+- Historical member benchmark datasets are now aligned by the requested timestamp rather than by
+  array position. A regression with different leading benchmark dates proves the corrected result.
+- Validation passed: runner tree/series `6/6`; benchmark-alignment history `1/1`; Docker-backed
+  Python breadth `2/2`; backend unit `1200/1200`; frontend Vitest `871/871`; rebuilt browser tree
+  flow `1/1`; neighboring breadth browser regressions `2/2`; `vue-tsc`; Vite build; Ruff;
+  compileall; and diff-check.
+- The first new browser attempt served a stale branch image; rebuilding the current stack fixed
+  that setup defect. A separate unprivileged Chromium run hit macOS Mach-port permissions; the
+  unchanged neighboring tests passed with the required elevated browser launch. These are
+  explicitly setup/environment notes, not acceptance flexibility. No visual threshold, mask,
+  provider, scope, or lineage criterion was relaxed.
+- Implementation/docs commit `0b59925f` is clean locally. The operational checkpoint follows
+  separately. No push is claimed because the private-origin safeguard rejects the destination
+  before Git transport; no workaround or retry is being used.
+- Remaining gaps: direct series-to-series/cross-derived relationships, universal promotion fan-out,
+  complete family/provider population, exact V25 visual evidence, and the final functional/visual/
+  security/performance audit. Next context is Python target-series AST and promotion.

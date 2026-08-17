@@ -11323,3 +11323,41 @@ tasks:
         Implementation/docs commit 3289d7cb is clean locally. Exact push is not claimed; the
         repository's private-origin safeguard rejects the destination before Git transport.
         Next context is cross-sectional Python leaves inside recursive trees and promotion fan-out.
+  - id: tc2000-python-cross-sectional-tree-20260818
+    title: Compose cross-sectional Python leaves in recursive breadth trees
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Extend the recursive Python breadth condition tree so owned numeric-series leaves can be
+      evaluated either per member or cross-sectionally inside all/any/not groups, from the same
+      visual authoring surface and universal WatchlistSource contract. Preserve current/history
+      semantics, exact timestamp alignment for member and benchmark histories, exclusions, metrics,
+      and reproducibility through the isolated runner.
+    definition_of_done:
+      - API accepts owned Python series leaves with member or cross-sectional scope and validates the declared statistic
+      - Visual tree authoring persists code version, scope, statistic, operator, and threshold recursively
+      - Current and historical jobs materialize cross-sectional leaves once per timestamp and compose them with built-in predicates
+      - Benchmark histories with different leading dates align by timestamp rather than array position
+      - Existing member-only trees and non-tree scalar/Boolean/series/events paths remain compatible
+      - Direct series-to-series relationships and universal promotion fan-out remain explicit gaps
+    validation:
+      - runner-python-tree-series-6-of-6
+      - runner-history-benchmark-alignment-1-of-1
+      - backend-unit-1200-of-1200
+      - docker-python-breadth-integration-2-of-2
+      - frontend-breadth-tree-editor-8-of-8
+      - frontend-vitest-871-of-871
+      - frontend-typecheck-build
+      - rebuilt-browser-python-tree-1-of-1
+      - rebuilt-browser-neighbor-regression-2-of-2
+      - ruff-compileall-diff-check
+    notes:
+      - >-
+        The first new browser attempt served a stale branch image; rebuilding the current stack
+        fixed the setup boundary and the unchanged tree flow passed. A separate unprivileged
+        Chromium run was blocked by macOS Mach-port permissions; the unchanged neighboring tests
+        passed with the required elevated browser launch. These are setup/environment notes, not
+        acceptance relaxations. No visual threshold, mask, provider, scope, or lineage rule was
+        relaxed. This implementation remains short of direct series relationships, promotion
+        fan-out, complete family/provider population, and final V25 visual acceptance.

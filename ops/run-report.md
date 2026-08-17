@@ -28464,3 +28464,24 @@ and strict visual gaps remain explicitly tracked.
   population, exact V25 evidence, and final audit remain open and tracked.
 - Git: implementation/docs commit `3289d7cb` is clean locally. Push is not claimed because the
   private-origin safeguard rejects the destination before Git transport.
+
+# 2026-08-18 — Cross-sectional Python recursive-tree checkpoint
+
+- Scope: universal WatchlistSource breadth/Market Map support for recursive Python numeric-series
+  leaves with member or cross-sectional scope, including current/history and timestamp-aligned
+  benchmark data.
+- Implementation: API-owned CodeVersion resolution, recursive visual authoring, persisted tree and
+  Boolean contract, once-per-timestamp cross-sectional materialization, member-minus-group metrics,
+  and timestamp-based benchmark slicing for offset histories.
+- Validation: runner tree/series `6/6`; benchmark-alignment history `1/1`; Docker-backed API Python
+  breadth `2/2`; backend unit `1200/1200`; frontend Vitest `871/871`; rebuilt browser tree flow
+  `1/1`; neighboring breadth browser regressions `2/2`; `vue-tsc`; Vite build; Ruff; compileall;
+  and diff-check.
+- Fix-first/setup notes: the first tree browser run served a stale branch image and was fixed by
+  rebuilding the current stack. An unprivileged Chromium run was blocked by macOS Mach-port
+  permissions; the unchanged tests passed with the required elevated browser launch. No acceptance
+  flexibility, visual threshold, mask, provider, scope, or lineage rule changed.
+- Acceptance state: direct series relationships, promotion fan-out, complete family/provider
+  population, exact V25 evidence, and final audit remain open and tracked.
+- Git: implementation/docs commit `0b59925f` is clean locally. Push is not claimed because the
+  private-origin safeguard rejects the destination before Git transport.
