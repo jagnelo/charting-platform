@@ -28362,3 +28362,16 @@ and strict visual gaps remain explicitly tracked.
   before Git by the private-origin safeguard; no retry or workaround will be attempted. Open: full
   artifact/target fan-out, direct map-created definitions, point-in-time weights, family/provider
   population, exact V25 promotion geometry, and final audit. Ops is recorded separately.
+
+# 2026-08-17 — Cross-sectional Market Map breadth checkpoint
+
+- Market Map now supports root cross-sectional percentile colouring with explicit condition scope,
+  aligned member rank/pass/fail metrics, exclusions, and shared watchlist-source lineage.
+- Validation passed: Docker-backed backend integration `1/1`, focused frontend Market Map/condition/
+  Study tests `44/44`, and `git diff --check`.
+- The initial backend invocation failed only at Docker-socket setup; the unchanged elevated rerun
+  passed. No acceptance criterion, visual threshold, baseline, or mask was relaxed.
+- Open: mixed-scope trees, richer group statistics, Python target-series leaves, full family/provider
+  population, exact V25 condition/map geometry, and final audit. Implementation/docs commit
+  `c4cf6d7c` is clean locally; its one exact push attempt was rejected before Git by the private-origin
+  safeguard. Ops follows separately.

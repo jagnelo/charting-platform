@@ -30173,3 +30173,19 @@ indefinite soak; longer endurance remains an explicit open gap.
   multi-output fan-out across every artifact and
   target, direct map-created definitions, point-in-time weights, complete family/provider
   population, exact V25 promotion geometry, and final audit gates.
+
+# 2026-08-17 — Cross-sectional Market Map breadth checkpoint
+
+- Market Map breadth colour now supports a root percentile condition with explicit
+  `target_scope: cross_sectional`. The local batch ranks each member's aligned field, returns
+  member rank/pass/fail/exclusion detail, and colours the same universal watchlist heatmap without
+  provider fan-out.
+- The condition editor now stores scope at the condition node and removes stale nested scope state.
+  Docker-backed backend integration passed `1/1`; focused frontend Market Map/condition/Study tests
+  passed `44/44`; `git diff --check` passed. The first unprivileged backend run was a Docker-socket
+  setup failure and the unchanged elevated rerun passed. No acceptance flexibility or visual
+  threshold/mask relaxation was used.
+- Implementation/docs commit `c4cf6d7c` is clean locally. The one exact push attempt was rejected
+  before Git by the private-origin safeguard; no workaround or retry was attempted. Separate ops
+  is being committed now. Open: mixed-scope trees, richer cross-sectional group statistics, Python
+  target-series leaves, family/provider population, exact V25 geometry, and final audit.

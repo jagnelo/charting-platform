@@ -11143,3 +11143,30 @@ tasks:
         push attempt was rejected before Git by the private-origin safeguard and will not be
         retried. Direct map-created fan-out, full artifact matrix, exact V25 geometry,
         provider/family population, and final audit remain open.
+  - id: tc2000-cross-sectional-market-map-breadth-20260817
+    title: Colour universal Market Maps by cross-sectional percentile breadth
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Apply the generic breadth engine's explicit cross-sectional percentile target to the same
+      locked/editable watchlist heatmap contract.
+    definition_of_done:
+      - Root percentile conditions accept target_scope=cross_sectional
+      - Member rank, pass/fail, metric, exclusion, and coverage are returned and rendered
+      - The condition editor keeps scope at the authoritative node field
+      - Local batch evaluation performs no per-cell provider fan-out
+      - Backend/frontend focused regressions and diff checks pass
+      - Mixed-scope/Python target-series/group-statistic gaps remain explicitly tracked
+    validation:
+      - docker-market-map-cross-sectional-percentile-1-of-1
+      - frontend-market-map-condition-study-44-of-44
+      - git-diff-check
+    notes:
+      - >-
+        The initial backend run was blocked by the unprivileged Docker socket and the unchanged
+        elevated rerun passed. No acceptance flexibility was used. Implementation/docs commit
+        c4cf6d7c is clean locally; its one exact push attempt was rejected before Git by the
+        private-origin safeguard, with no workaround or retry. Mixed-scope trees, richer group
+        statistics, Python target-series leaves, exact V25 geometry, provider/family population,
+        and final audit remain.
