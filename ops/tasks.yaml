@@ -11202,3 +11202,28 @@ tasks:
         safeguard, with no workaround or retry. Richer cross-sectional statistics, Python
         target-series, family/provider population, exact V25 mixed-statistics geometry, and final
         audit remain.
+  - id: tc2000-study-runner-mixed-scope-20260818
+    title: Align isolated Study Lab runner with mixed breadth scopes
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Apply the shared nested cross-sectional/member breadth semantics to isolated current and
+      historical Study Lab execution over prepared datasets.
+    definition_of_done:
+      - Nested cross-sectional percentile leaves are evaluated once over the declared universe
+      - Member predicates compose through tri-state all/any/not semantics
+      - Current/history timestamp alignment, exclusions, denominator, and no-forward-fill rules persist
+      - Focused, complete runner, and full backend unit regressions pass
+      - Richer cross-sectional statistics and Python target-series remain explicit gaps
+    validation:
+      - focused-mixed-runner-3-of-3
+      - research-runner-92-of-92
+      - backend-unit-1193-of-1193
+      - ruff-compileall-diff-check
+    notes:
+      - >-
+        No acceptance flexibility, visual threshold, baseline, or mask relaxation was used. The
+        exact V25 mixed-statistics visual state remains a documented board gap. Implementation/docs
+        commit 8f252ca0 is clean locally; the one exact push attempt was rejected before Git by the
+        private-origin safeguard with no workaround or retry. Ops checkpoint is pending.

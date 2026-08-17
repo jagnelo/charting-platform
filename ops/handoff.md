@@ -30204,3 +30204,20 @@ indefinite soak; longer endurance remains an explicit open gap.
   before Git by the private-origin safeguard; no workaround or retry was attempted. Open:
   cross-sectional statistics beyond percentile, Python target-series leaves, full family/provider
   population, exact V25 mixed-statistics geometry, and final audit.
+
+# 2026-08-18 — Isolated Study runner mixed-scope checkpoint
+
+- The isolated Study Lab runner now shares the mixed-scope breadth contract: it detects nested
+  cross-sectional percentile leaves, evaluates each once over the prepared universe, and composes
+  them with member predicates through tri-state `all`/`any`/`not` semantics for current and
+  historical Python studies. Timestamp membership, exclusions, denominator, and no-forward-fill
+  behavior remain explicit and no provider access is available to user code.
+- Validation passed: focused mixed runner `3/3`, complete research-runner suite `92/92`, full
+  backend unit suite `1193/1193`, Ruff, compileall, and `git diff --check`. No acceptance
+  flexibility, visual threshold, baseline, or mask relaxation was used.
+- Implementation/docs commit `8f252ca0` is clean locally. Its one exact push attempt was rejected
+  before Git by the private-origin safeguard; no workaround, alternate transport, rewrite, reset,
+  stash, or retry was attempted. This is transport-only, not a product blocker.
+- The separate ops checkpoint is pending. Next context: richer cross-sectional statistics and
+  Python target-series leaves. Remaining gaps include full family/provider population, exact V25
+  mixed-statistics visual evidence, and final audit.

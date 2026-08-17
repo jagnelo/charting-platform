@@ -28391,3 +28391,17 @@ and strict visual gaps remain explicitly tracked.
   exact V25 mixed-statistics visual evidence, and final audit. Implementation/docs commit
   `5cc6082c` is clean locally; its one exact push attempt was rejected before Git by the
   private-origin safeguard. Ops follows separately.
+
+# 2026-08-18 — Isolated Study runner mixed-scope checkpoint
+
+- Added nested cross-sectional/member breadth evaluation to `backend/research_runner/runner.py`.
+  Cross-sectional percentile leaves are materialized once over the prepared universe and composed
+  with member-level predicates using aligned tri-state `all`/`any`/`not` semantics in both current
+  and historical Study Lab runs.
+- Validation: focused mixed runner `3/3`; complete research-runner `92/92`; full backend unit
+  suite `1193/1193`; Ruff; compileall; and `git diff --check`.
+- No acceptance flexibility, visual threshold, baseline, mask, provider rule, or completion
+  criterion changed. The exact mixed-statistics V25 visual reference remains a documented board
+  gap; richer cross-sectional statistics and Python target-series leaves remain open.
+- Implementation/docs commit `8f252ca0` is clean locally. Exactly one push attempt was made and
+  rejected before Git by the private-origin safeguard; no workaround or retry. Ops commit follows.
