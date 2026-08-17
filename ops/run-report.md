@@ -28560,3 +28560,5 @@ and strict visual gaps remain explicitly tracked.
   type/build; Ruff; compileall; YAML/JSON; and `git diff --check`.
 - No acceptance flexibility was used. Filters, gauges, alerts, Study Lab, Strategy Lab, richer
   chaining, family/provider population, exact V25 visual coverage, and final audit remain open.
+- The exact push attempt for the clean `27353f08..ff7bc08c` range was rejected before Git
+  transport by the private-origin safeguard; no workaround or repeat was attempted.

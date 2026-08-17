@@ -30436,3 +30436,6 @@ indefinite soak; longer endurance remains an explicit open gap.
   flexibility was used.
 - Next gaps remain filters, gauges, alerts, Study Lab, Strategy Lab, richer derived composition,
   complete family/provider population, exact V25 visual evidence, and final audit.
+- Git transport: the single exact push attempt for `27353f08..ff7bc08c` was rejected before Git
+  transport by the private-origin safeguard. No workaround, alternate transport, or retry was
+  used; this is transport-only and not a product blocker.
