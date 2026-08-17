@@ -1,5 +1,8 @@
+from datetime import UTC, datetime
+
 from app.models.screener import ScreenerDefinition
 from app.models.watchlist import Watchlist
+from app.models.workstation import MarketGroup, MarketGroupMember
 
 
 class TestWatchlistsAuth:
@@ -9,6 +12,63 @@ class TestWatchlistsAuth:
 
 
 class TestWatchlistsCrud:
+    def test_sources_unify_personal_and_locked_index_universes(
+        self, client, auth_headers, db, watchlist, instrument
+    ):
+        now = datetime(2024, 1, 1, tzinfo=UTC)
+        group = MarketGroup(
+            stable_key="test-index",
+            group_type="benchmark_family",
+            name="Test Index",
+            source="controlled_fixture",
+            effective_at=now,
+            known_at=now,
+        )
+        db.add(group)
+        db.flush()
+        db.add(
+            MarketGroupMember(
+                market_group_id=group.id,
+                instrument_id=instrument.id,
+                position=0,
+                relationship_type="constituent",
+                source="controlled_fixture",
+                verification_state="verified",
+                effective_at=now,
+                known_at=now,
+            )
+        )
+        db.flush()
+
+        response = client.get("/api/v1/watchlists/sources", headers=auth_headers)
+
+        assert response.status_code == 200
+        sources = {item["source_id"]: item for item in response.json()}
+        assert sources[f"watchlist:{watchlist.id}"]["source_kind"] == "personal"
+        assert sources[f"watchlist:{watchlist.id}"]["can_edit_membership"] is True
+        assert sources["market-group:test-index"]["source_kind"] == "index_membership"
+        assert sources["market-group:test-index"]["locked"] is True
+        assert sources["market-group:test-index"]["can_edit_membership"] is False
+        assert sources["market-group:test-index"]["member_count"] == 1
+
+        current = client.get(
+            "/api/v1/watchlists/sources/market-group:test-index",
+            headers=auth_headers,
+            params={"as_of": "2024-01-02T00:00:00Z"},
+        )
+        assert current.status_code == 200
+        assert [member["instrument_id"] for member in current.json()["members"]] == [instrument.id]
+        assert current.json()["exclusions"] == []
+
+        historical = client.get(
+            "/api/v1/watchlists/sources/market-group:test-index",
+            headers=auth_headers,
+            params={"as_of": "2023-12-31T00:00:00Z"},
+        )
+        assert historical.status_code == 200
+        assert historical.json()["members"] == []
+        assert historical.json()["exclusions"][0]["reason"] == "membership_not_known_at_as_of"
+
     def test_list_returns_existing_watchlists(self, client, auth_headers, watchlist):
         res = client.get("/api/v1/watchlists", headers=auth_headers)
         assert res.status_code == 200

@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import type { Watchlist, WatchlistItem } from '@/types'
+import type { Watchlist, WatchlistItem, WatchlistSource, WatchlistSourceResolved } from '@/types'
 import { api } from '@/lib/api'
 import { ensureKnownInstrumentSymbol } from '@/lib/instruments'
 
@@ -32,6 +32,9 @@ function markWatchlistCreateResult(watchlist: Watchlist, created: boolean): Watc
 
 export const useWatchlistStore = defineStore('watchlist', () => {
   const watchlists = ref<Watchlist[]>([])
+  const watchlistSources = ref<WatchlistSource[]>([])
+  const watchlistSourcesLoading = ref(false)
+  const watchlistSourcesError = ref('')
   const loading = ref(false)
   const loadError = ref('')
   const priceMap = ref<Record<string, WatchlistQuote>>({})
@@ -123,6 +126,28 @@ export const useWatchlistStore = defineStore('watchlist', () => {
       loadError.value = e instanceof Error ? e.message : 'Unable to load watchlists'
     } finally {
       loading.value = false
+    }
+  }
+
+  async function loadWatchlistSources() {
+    watchlistSourcesLoading.value = true
+    watchlistSourcesError.value = ''
+    try {
+      watchlistSources.value = (await api.get<WatchlistSource[]>('/watchlists/sources')) ?? []
+    } catch (error) {
+      watchlistSourcesError.value = error instanceof Error ? error.message : 'Unable to load watchlist sources'
+    } finally {
+      watchlistSourcesLoading.value = false
+    }
+  }
+
+  async function resolveWatchlistSource(sourceId: string, asOf?: string | null): Promise<WatchlistSourceResolved | null> {
+    try {
+      const query = asOf ? `?as_of=${encodeURIComponent(asOf)}` : ''
+      return await api.get<WatchlistSourceResolved>(`/watchlists/sources/${encodeURIComponent(sourceId)}${query}`)
+    } catch (error) {
+      watchlistSourcesError.value = error instanceof Error ? error.message : 'Unable to resolve watchlist source'
+      return null
     }
   }
 
@@ -528,6 +553,9 @@ export const useWatchlistStore = defineStore('watchlist', () => {
 
   return {
     watchlists,
+    watchlistSources,
+    watchlistSourcesLoading,
+    watchlistSourcesError,
     loading,
     loadError,
     priceMap,
@@ -536,6 +564,8 @@ export const useWatchlistStore = defineStore('watchlist', () => {
     requestFocusWatchlist,
     clearFocusRequest,
     loadWatchlists,
+    loadWatchlistSources,
+    resolveWatchlistSource,
     createWatchlist,
     deleteWatchlist,
     addItem,

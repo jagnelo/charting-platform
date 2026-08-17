@@ -803,6 +803,53 @@ export interface Watchlist {
   items: WatchlistItem[]
 }
 
+export type WatchlistSourceKind =
+  | 'personal'
+  | 'screener_managed'
+  | 'index_membership'
+  | 'market_group'
+  | 'etf_holdings'
+  | 'combo'
+  | 'explicit'
+
+export interface WatchlistSource {
+  source_id: string
+  source_kind: WatchlistSourceKind
+  name: string
+  description?: string | null
+  locked: boolean
+  can_follow: boolean
+  can_clone: boolean
+  can_edit_membership: boolean
+  watchlist_id?: number | null
+  stable_key?: string | null
+  instrument_id?: number | null
+  symbol?: string | null
+  membership_version?: string | null
+  member_count?: number | null
+  source?: string | null
+  provenance: Record<string, unknown>
+  effective_at?: string | null
+  known_at?: string | null
+  composition_date?: string | null
+}
+
+export interface WatchlistSourceMember {
+  instrument_id: number
+  position: number
+  weight?: number | null
+  relationship_type: string
+  source?: string | null
+  effective_at?: string | null
+  known_at?: string | null
+}
+
+export interface WatchlistSourceResolved {
+  source: WatchlistSource
+  members: WatchlistSourceMember[]
+  exclusions: Array<Record<string, unknown>>
+}
+
 export type ScreenerAlertTriggerType = 'entered' | 'left' | 'both'
 export type ScreenerAlertStatus = 'active' | 'triggered' | 'paused' | 'disabled'
 

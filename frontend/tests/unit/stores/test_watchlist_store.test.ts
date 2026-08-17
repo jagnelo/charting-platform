@@ -52,6 +52,37 @@ describe('useWatchlistStore', () => {
     expect(store.watchlists.some(w => w.id === 2)).toBe(false)
   })
 
+  it('loads unified source descriptors and resolves a dated managed universe', async () => {
+    const store = useWatchlistStore()
+    const source = {
+      source_id: 'market-group:sp500',
+      source_kind: 'index_membership',
+      name: 'S&P 500',
+      locked: true,
+      can_follow: true,
+      can_clone: true,
+      can_edit_membership: false,
+      membership_version: 'market-group:sp500:2024-01-01T00:00:00+00:00',
+      member_count: 1,
+      provenance: { membership_semantics: 'index_proxy' },
+    }
+    const resolved = {
+      source,
+      members: [{ instrument_id: 10, position: 0, weight: 0.25, relationship_type: 'constituent' }],
+      exclusions: [],
+    }
+    ;(api.get as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce([source])
+      .mockResolvedValueOnce(resolved)
+
+    await store.loadWatchlistSources()
+    const result = await store.resolveWatchlistSource(source.source_id, '2024-01-02T00:00:00Z')
+
+    expect(store.watchlistSources).toEqual([source])
+    expect(result).toEqual(resolved)
+    expect(api.get).toHaveBeenNthCalledWith(2, '/watchlists/sources/market-group%3Asp500?as_of=2024-01-02T00%3A00%3A00Z')
+  })
+
   it('retains a load error without clearing existing watchlists', async () => {
     const store = useWatchlistStore()
     store.watchlists = [makeWatchlist()] as any

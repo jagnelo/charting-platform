@@ -47,3 +47,46 @@ class WatchlistRead(BaseModel):
     position: int = 0
     created_at: datetime
     items: list[WatchlistItemRead] = []
+
+
+WatchlistSourceKind = str
+
+
+class WatchlistSourceRead(BaseModel):
+    """Common descriptor for every selectable list universe."""
+
+    source_id: str
+    source_kind: WatchlistSourceKind
+    name: str
+    description: str | None = None
+    locked: bool = False
+    can_follow: bool = True
+    can_clone: bool = True
+    can_edit_membership: bool = False
+    watchlist_id: int | None = None
+    stable_key: str | None = None
+    instrument_id: int | None = None
+    symbol: str | None = None
+    membership_version: str | None = None
+    member_count: int | None = None
+    source: str | None = None
+    provenance: dict = {}
+    effective_at: datetime | None = None
+    known_at: datetime | None = None
+    composition_date: str | None = None
+
+
+class WatchlistSourceMemberRead(BaseModel):
+    instrument_id: int
+    position: int
+    weight: float | None = None
+    relationship_type: str
+    source: str | None = None
+    effective_at: datetime | None = None
+    known_at: datetime | None = None
+
+
+class WatchlistSourceResolvedRead(BaseModel):
+    source: WatchlistSourceRead
+    members: list[WatchlistSourceMemberRead] = []
+    exclusions: list[dict] = []

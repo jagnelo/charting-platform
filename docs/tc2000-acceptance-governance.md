@@ -15,6 +15,11 @@ breadth, alerts, and linked charts, while direct membership edits are rejected a
 composition creates a new version with effective/known-at/source lineage. Screener-managed and
 personal lists must continue to use the same source contract with their own mutation rules.
 
+The source-contract sub-gate now passes backend integration and frontend store coverage for
+descriptor listing, locked index-source metadata, user isolation, member resolution, and exact
+historical exclusion of members not known at `as_of`. This does not satisfy the parent map gate;
+treemap metrics, rollups, periods, rendering, and publication remain open.
+
 The browser gate covers hover detail, palette/legend, zoom/pan, sort, drill-down, selection,
 multi-selection, map-to-chart/watchlist/breadth/Study-Lab publication, loading/partial/stale/
 unavailable/error/recovery states, and large-universe rendering without one provider request per

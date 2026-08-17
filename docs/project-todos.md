@@ -45,6 +45,16 @@ The captures are behavioural/product references; Finviz artwork and branding are
       map-to-watchlist, map-to-breadth, and map-to-Study-Lab publication. Missing data remains
       visible exclusion with a closure condition.
 
+#### Implementation checkpoint — unified source contract
+
+- [x] Added authenticated `GET /watchlists/sources` descriptors for personal, screener-managed,
+      canonical index/market-group, and ETF-holdings sources.
+- [x] Added `GET /watchlists/sources/{source_id}` member resolution with user isolation,
+      historical `as_of` filtering, explicit membership exclusions, ETF proxy labels, and no
+      provider calls. The frontend store now loads/resolves the same contract.
+- [ ] The Market Map batch calculation/rendering contract remains open; this source slice does
+      not claim treemap, period metrics, rollups, or map interaction completion.
+
 ### 2026-08-17 — US market family/style analysis matrix (latest user requirement)
 
 The top-down workstation must support the following US market perspectives as one

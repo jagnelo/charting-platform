@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException
+from datetime import datetime
+
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -16,9 +18,56 @@ from app.schemas.watchlist import (
     WatchlistItemRead,
     WatchlistItemUpdate,
     WatchlistRead,
+    WatchlistSourceMemberRead,
+    WatchlistSourceRead,
+    WatchlistSourceResolvedRead,
 )
+from app.services.watchlist_sources import list_watchlist_sources, resolve_watchlist_source
 
 router = APIRouter(prefix="/watchlists", tags=["watchlists"])
+
+
+@router.get("/sources", response_model=list[WatchlistSourceRead])
+async def get_watchlist_sources(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """List every selectable universe through one watchlist-source contract."""
+
+    return await list_watchlist_sources(db, current_user)
+
+
+@router.get("/sources/{source_id:path}", response_model=WatchlistSourceResolvedRead)
+async def get_watchlist_source_members(
+    source_id: str,
+    as_of: datetime | None = Query(default=None),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Resolve a source for batch tools while preserving historical exclusions."""
+
+    try:
+        resolved = await resolve_watchlist_source(db, current_user.id, source_id, as_of=as_of)
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return WatchlistSourceResolvedRead(
+        source=resolved.descriptor,
+        members=[
+            WatchlistSourceMemberRead(
+                instrument_id=member.instrument_id,
+                position=member.position,
+                weight=member.weight,
+                relationship_type=member.relationship_type,
+                source=member.source,
+                effective_at=member.effective_at,
+                known_at=member.known_at,
+            )
+            for member in resolved.members
+        ],
+        exclusions=list(resolved.exclusions),
+    )
 
 
 def _item_to_read(item: WatchlistItem, instr: Instrument | None) -> WatchlistItemRead:

@@ -24,6 +24,12 @@ The current legacy endpoint is capped at 500 IDs and fixed row metrics; a new ba
 resolve local canonical data and cache by membership, period, metrics, adjustment, and dataset
 versions rather than fan out to providers per tile.
 
+The first enabling slice now exists: authenticated source descriptors and member resolution are
+available through `/watchlists/sources` and `/watchlists/sources/{source_id}`. It preserves locked
+index/ETF semantics, user isolation, dated membership exclusions, and ETF-proxy provenance. This
+is an enabling contract only; the map calculation and renderer remain unaccepted until their own
+batch, rollup, period, and interaction gates pass.
+
 ## 2026-08-17 — US family/style and Nasdaq cap/equal acceptance matrix (latest requirement)
 
 The workstation's top-down entry points are the S&P 500, S&P MidCap 400, S&P SmallCap 600,
