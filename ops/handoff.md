@@ -1,5 +1,29 @@
 # Active Handoff
 
+## 2026-08-17 — Prior high/low breadth target checkpoint
+
+- Added `prior_high_low` to the reusable breadth condition contract. It evaluates the latest
+  member close against the high or low of a declared preceding window, explicitly excluding the
+  current bar, and applies a signed-distance operator/threshold. Current/history evaluation,
+  nested diagnostics, occurrence detection, and definition lineage reuse the existing paths.
+- Added compact workstation and recursive-tree authoring controls, plus API/integration,
+  component, and authenticated-browser request coverage. The current-source stack was rebuilt
+  before browser validation; the unchanged F8s breadth-family flow passed.
+- Validation: focused breadth `19/19`; generic current/history integration `2/2`; full backend
+  unit `1183/1183`; full frontend Vitest `843/843`; frontend type-check; production build;
+  targeted authenticated Chromium `1/1`; Ruff; compileall; and `git diff --check`. Existing
+  dependency deprecation warnings only. No acceptance flexibility used.
+- Fix-first note: the initial component test did not feed a controlled prop update back into the
+  editor before changing a second field, so it observed stale direction state. The test now models
+  the real parent update cycle and passes; no product code or acceptance rule was relaxed.
+- Implementation/docs commit `8339b74c658d82b868de55013fc41be4d6b087ef` is clean locally. Its
+  exact elevated push to `origin/feat/tc2000-frontend-rework` was attempted once and rejected by
+  the private-origin safeguard before Git; no workaround, alternate transport, rewrite, reset,
+  stash, or repeat. This is transport-only and not a product blocker.
+- Remaining gaps are event targets, benchmark/peer target-series authoring, arbitrary derived
+  Python composition, promotion fan-out, all-family provider/history population, and remaining
+  V25 visual/browser gates. Next context continues those independent gaps.
+
 ## 2026-08-17 — Recursive breadth diagnostics and expanded family-scope checkpoint
 
 - Added deterministic per-clause diagnostics to generic breadth current/history member results.

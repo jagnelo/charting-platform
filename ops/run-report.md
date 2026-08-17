@@ -1,5 +1,23 @@
 # Run Report
 
+## 2026-08-17 — Prior high/low breadth target
+
+- Added a reusable `prior_high_low` breadth leaf across the backend schema/evaluator, current and
+  historical APIs, compact composer, recursive tree, diagnostics, and occurrence-compatible
+  history. The prior reference window excludes the current bar; signed distance and operator/
+  threshold remain explicit in the saved definition.
+- Validation: breadth unit `19/19`; generic current/history integration `2/2`; backend unit
+  `1183/1183`; frontend Vitest `843/843`; type-check; production build; rebuilt authenticated
+  Chromium F8s breadth-family flow `1/1`; Ruff; compileall; and diff-check. No acceptance
+  flexibility used. The first component test exposed a stale controlled-prop oracle and was
+  corrected before the authoritative rerun.
+- Remaining event/peer target-series, arbitrary derived-Python, promotion, provider/history, and
+  V25 visual/browser gaps remain open and documented. This slice does not claim overall goal
+  completion.
+- Implementation/docs commit `8339b74c658d82b868de55013fc41be4d6b087ef` is clean locally. Its
+  exact push was attempted once and rejected before Git by the private-origin safeguard; no
+  workaround, alternate transport, rewrite, reset, stash, or repeat.
+
 ## 2026-08-17 — Recursive breadth diagnostics and latest US-family scope clarification
 
 - Added structured recursive diagnostics to generic breadth current/history member results and
