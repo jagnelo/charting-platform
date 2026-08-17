@@ -28242,3 +28242,17 @@ and strict visual gaps remain explicitly tracked.
   blocker.
 - Open: point-in-time market-cap/weight areas, richer cross-sectional fields, complete family
   population, direct definition promotion, exact V25 coverage imagery, and final audit gates.
+
+# 2026-08-17 — Market Map unavailable-area geometry checkpoint
+
+- Fixed the treemap layout to omit missing, non-finite, and non-positive area cells rather than
+  assigning fallback unit tiles. Members remain visible in coverage/warning detail and the map
+  reports the omission count.
+- Validation passed: focused layout plus Market Map component `13/13`, full frontend Vitest
+  `861/861`, `vue-tsc`, production build, and `git diff --check`. No acceptance flexibility or
+  visual threshold/mask relaxation was used.
+- Implementation/docs commit `94f57e1e` is clean locally. Its one exact push attempt was rejected
+  before Git by the private-origin safeguard; no retry or workaround. Transport-only, not a product
+  blocker.
+- Open: point-in-time market-cap/weight areas, richer cross-sectional fields, family population,
+  direct definition promotion, exact V25 unavailable-area imagery, and final audit gates.

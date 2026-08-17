@@ -30039,3 +30039,17 @@ indefinite soak; longer endurance remains an explicit open gap.
   reset, or stash will be attempted. This is transport-only and not a product blocker.
 - Open: point-in-time market-cap/weight areas, richer cross-sectional fields, complete family
   population, direct definition promotion, exact V25 coverage imagery, and final audit gates.
+
+# 2026-08-17 — Market Map unavailable-area geometry checkpoint
+
+- Fixed the frontend renderer boundary: cells with missing, non-finite, or non-positive area remain
+  in the response and warning/coverage detail but receive no fabricated treemap geometry.
+- The map now reports how many members are omitted from drawable geometry. Focused layout plus
+  Market Map component coverage passed `13/13`; full frontend Vitest passed `861/861`; `vue-tsc`,
+  production build, and diff-check passed. No acceptance flexibility or visual threshold/mask
+  relaxation was used.
+- Implementation/docs commit `94f57e1e` is clean locally. Its one exact push attempt was rejected
+  before Git by the private-origin safeguard; no retry, workaround, alternate transport, rewrite,
+  reset, or stash will be attempted. This is transport-only and not a product blocker.
+- Open: point-in-time market-cap/weight areas, richer cross-sectional fields, family population,
+  direct definition promotion, exact V25 unavailable-area imagery, and final audit gates.

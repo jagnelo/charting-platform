@@ -10944,3 +10944,25 @@ tasks:
       - >-
         Implementation/docs commit 9c607367 is clean locally; its one exact push attempt was
         rejected before Git by the private-origin safeguard. No acceptance flexibility was used.
+  - id: tc2000-market-map-geometry-20260817
+    title: Do not fabricate geometry for unavailable Market Map area values
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Keep partial-data members in Market Map diagnostics while excluding cells without finite
+      positive area from the drawable treemap.
+    definition_of_done:
+      - Missing, non-finite, and non-positive area values receive no invented tile geometry
+      - Members remain available for coverage, warnings, hover detail, and omission messaging
+      - Layout, component, full frontend, type/build, and diff checks pass
+      - Exact V25 unavailable-area references remain explicitly tracked
+    validation:
+      - market-map-layout-and-component-13-of-13
+      - frontend-vitest-861-of-861
+      - frontend-typecheck-build
+      - git-diff-check
+    notes:
+      - >-
+        Implementation/docs commit 94f57e1e is clean locally; its one exact push attempt was
+        rejected before Git by the private-origin safeguard. No acceptance flexibility was used.
