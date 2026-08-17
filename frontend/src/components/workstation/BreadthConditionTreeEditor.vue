@@ -194,7 +194,7 @@ function defaultLeaf(kind: BreadthLeafKind = 'above_moving_average'): BreadthCon
     event: { event_type: 'any', lookback_days: 0, include_estimates: false, operator: 'gte', threshold: 1 },
     comparison: { field: 'close', operator: 'gte', threshold: 0 },
     range: { field: 'close', lower: 0, upper: 1, inclusive: true },
-    percentile: { target_scope: 'member', field: 'close', period: 252, operator: 'gte', percentile: 0.8 },
+    percentile: { field: 'close', period: 252, operator: 'gte', percentile: 0.8 },
   }
   const next = { kind, params: { ...defaults[kind] } } as BreadthConditionNode
   if (kind === 'percentile') next.target_scope = 'member'
@@ -213,7 +213,16 @@ function setGroupKind(kind: GroupKind) {
   update(next)
 }
 function setLeafKind(kind: BreadthLeafKind) { update(defaultLeaf(kind)) }
-function setNodeField(key: string, value: unknown) { update({ ...cloneNode(node.value), [key]: value }) }
+function setNodeField(key: string, value: unknown) {
+  const next = cloneNode(node.value)
+  if (key === 'target_scope') {
+    const params = { ...next.params }
+    delete params.target_scope
+    update({ ...next, params, [key]: value as BreadthConditionNode['target_scope'] })
+    return
+  }
+  update({ ...next, [key]: value })
+}
 function setParam(key: string, value: unknown) { update({ ...cloneNode(node.value), params: { ...node.value.params, [key]: value } }) }
 function updateChild(index: number, value: BreadthConditionNode) {
   const next = cloneNode(node.value)

@@ -1,5 +1,14 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-08-17 — Cross-sectional Market Map breadth sub-gate
+
+The Market Map breadth gate now includes a cross-sectional fixture: a locked or editable source can
+colour tiles from a root percentile condition using the same local, aligned member metrics as the
+generic breadth endpoint. Acceptance checks rank, threshold, pass/fail colour, exclusion, and no
+provider fan-out. The visual editor serializes `target_scope` at the condition node and does not
+leave contradictory nested scope state. Mixed-scope trees, richer group statistics, and Python
+target-series leaves remain open; no acceptance flexibility was used.
+
 ## 2026-08-17 — Market-map acceptance sub-gate
 
 For every available S&P 500/400/600/1500, Russell 1000/2000/3000, and Nasdaq 100 root/role, the

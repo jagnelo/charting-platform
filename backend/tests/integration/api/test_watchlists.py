@@ -389,6 +389,68 @@ class TestWatchlistsCrud:
         )
         assert missing_condition.status_code == 422
 
+    def test_market_map_colours_tiles_by_cross_sectional_percentile_condition(
+        self, client, auth_headers, db, watchlist, instrument, instrument_b
+    ):
+        from app.models.ohlcv import OHLCVBar, Timeframe
+        from app.models.watchlist import WatchlistItem
+
+        watchlist.items.extend(
+            [
+                WatchlistItem(instrument_id=instrument.id, position=0),
+                WatchlistItem(instrument_id=instrument_b.id, position=1),
+            ]
+        )
+        base = datetime(2024, 1, 1, tzinfo=UTC)
+        closes_by_member = {
+            instrument.id: (100, 101, 102, 103, 104, 110),
+            instrument_b.id: (100, 100.5, 101, 101.5, 102, 102.5),
+        }
+        for member_id, closes in closes_by_member.items():
+            for offset, close in enumerate(closes):
+                db.add(
+                    OHLCVBar(
+                        instrument_id=member_id,
+                        timeframe=Timeframe.D1,
+                        ts=base + timedelta(days=offset),
+                        open=close,
+                        high=close + 1,
+                        low=close - 1,
+                        close=close,
+                        volume=1_000_000,
+                        is_adjusted=True,
+                    )
+                )
+        db.flush()
+
+        response = client.post(
+            "/api/v1/analysis/market-map",
+            headers=auth_headers,
+            json={
+                "source_id": f"watchlist:{watchlist.id}",
+                "group_by": "none",
+                "period": "1D",
+                "area_metric": "equal",
+                "color_metric": "breadth",
+                "condition": {
+                    "kind": "percentile",
+                    "target_scope": "cross_sectional",
+                    "params": {"field": "return", "operator": "gte", "percentile": 0.8},
+                },
+                "end": "2024-01-06T00:00:00Z",
+            },
+        )
+
+        assert response.status_code == 200, response.text
+        body = response.json()
+        cells = {cell["instrument_id"]: cell for cell in body["cells"]}
+        assert cells[instrument.id]["condition_value"] is True
+        assert cells[instrument.id]["condition_metric"] == pytest.approx(1.0)
+        assert cells[instrument.id]["color_value"] == pytest.approx(1.0)
+        assert cells[instrument_b.id]["condition_value"] is False
+        assert cells[instrument_b.id]["condition_metric"] == pytest.approx(0.5)
+        assert cells[instrument_b.id]["color_value"] == pytest.approx(-1.0)
+
     def test_market_map_colours_tiles_by_event_predicate_with_loaded_state(
         self, client, auth_headers, db, watchlist, instrument, instrument_b
     ):

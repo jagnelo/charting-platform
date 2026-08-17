@@ -25,7 +25,12 @@ from app.schemas.market_map import (
     MarketMapRequest,
     MarketMapWarning,
 )
-from app.services.breadth import build_equal_reference_series, evaluate_condition
+from app.services.breadth import (
+    BreadthMember,
+    build_equal_reference_series,
+    evaluate_condition,
+    evaluate_cross_sectional_percentile,
+)
 from app.services.watchlist_sources import resolve_watchlist_source
 
 _OFFSETS = {"1D": 1, "1W": 5, "1M": 21, "3M": 63, "6M": 126, "1Y": 252}
@@ -162,6 +167,15 @@ def _condition_requires_events(condition: object) -> bool:
         return False
     children = params.get("conditions")
     return isinstance(children, list) and any(_condition_requires_events(child) for child in children)
+
+
+def _is_cross_sectional_condition(condition: object) -> bool:
+    if not isinstance(condition, dict):
+        return False
+    params = condition.get("params")
+    if not isinstance(params, dict):
+        params = {}
+    return str(condition.get("target_scope", params.get("target_scope", "member"))).lower() == "cross_sectional"
 
 
 async def _events_by_instrument(
@@ -515,6 +529,30 @@ async def build_market_map(db: AsyncSession, user_id: int, request: MarketMapReq
         if request.color_metric == "breadth" and _condition_requires_events(request.condition)
         else ({}, None)
     )
+    cross_sectional_condition = (
+        request.color_metric == "breadth"
+        and _is_cross_sectional_condition(request.condition)
+    )
+    cross_sectional_results = {}
+    if cross_sectional_condition:
+        breadth_members = [
+            BreadthMember(
+                instrument_id=instrument_id,
+                symbol=instruments[instrument_id].symbol,
+                name=instruments[instrument_id].name,
+            )
+            for instrument_id in member_ids
+            if instrument_id in instruments
+        ]
+        cross_sectional_results, _ = evaluate_cross_sectional_percentile(
+            breadth_members,
+            bars_by_id,
+            request.condition or {},
+            benchmark_bars=reference_bars,
+        )
+        cross_sectional_results = {
+            item.instrument_id: item for item in cross_sectional_results
+        }
     cache_key = _cache_key(
         request,
         resolved.descriptor.membership_version,
@@ -548,7 +586,21 @@ async def build_market_map(db: AsyncSession, user_id: int, request: MarketMapReq
         warnings: list[MarketMapWarning] = []
         if code:
             warnings.append(_warning(code, message or code, instrument_id=instrument_id))
-        if request.color_metric == "python":
+        if cross_sectional_condition:
+            cross_sectional_result = cross_sectional_results.get(instrument_id)
+            if cross_sectional_result is None:
+                colour, colour_code, condition_value, condition_metric = (
+                    None,
+                    "cross_sectional_member_missing",
+                    None,
+                    None,
+                )
+            else:
+                condition_value = cross_sectional_result.value
+                condition_metric = cross_sectional_result.metric
+                colour = (1.0 if condition_value else -1.0) if condition_value is not None else None
+                colour_code = cross_sectional_result.exclusion_code
+        elif request.color_metric == "python":
             colour, colour_code, condition_value, condition_metric = python_values.get(
                 instrument_id,
                 (None, "python_member_missing", None, None),
@@ -569,6 +621,9 @@ async def build_market_map(db: AsyncSession, user_id: int, request: MarketMapReq
                 colour = result - ref_return
         if colour_code:
             message = (
+                "The cross-sectional breadth target is unavailable for this member."
+                if cross_sectional_condition
+                else
                 "The isolated Python colour output is unavailable for this member."
                 if request.color_metric == "python"
                 else "The requested colour metric is not covered by available local data."

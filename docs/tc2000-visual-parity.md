@@ -1,5 +1,13 @@
 # TC2000 Version 25 Visual-Parity Specification
 
+## 2026-08-17 — Cross-sectional breadth colour state
+
+The board-guided Market Map state now includes an explicit cross-sectional percentile mode. Its
+source/lock chrome and dense tile presentation reuse the existing heatmap reference; the condition
+editor visibly distinguishes member rolling percentile from cross-sectional percentile. No exact V25
+capture represents this specific breadth-colour state, so geometry remains an identified board gap;
+interaction and serialization are component-tested rather than silently treated as pixel-approved.
+
 ## Product-reference addition — universe-scoped performance maps
 
 The supplied Finviz captures are retained as behavioural/layout references for the new map surface

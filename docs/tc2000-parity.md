@@ -1,5 +1,14 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-17 — Cross-sectional Market Map breadth colour
+
+Market Map breadth colour now accepts the same explicit cross-sectional percentile semantics as the
+generic breadth contract. A `percentile` condition with `target_scope: cross_sectional` ranks each
+eligible member's declared field at the aligned observation timestamp, returns the member rank and
+pass/fail state, and colours tiles through the same source-agnostic renderer. Member-level and
+cross-sectional scope remain distinct in the persisted definition. Mixed-scope groups, richer group
+statistics, and Python target-series leaves remain tracked gaps.
+
 ## 2026-08-17 — Finviz-style universe-scoped market-map parity
 
 The workstation adds a Market Map surface inspired by the supplied Finviz references while

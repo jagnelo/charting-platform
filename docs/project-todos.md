@@ -1,5 +1,18 @@
 # Project TODO Memory
 
+### 2026-08-17 — Cross-sectional Market Map breadth colouring
+
+- [x] Extend breadth-coloured Market Maps to evaluate a root `percentile` condition with
+      `target_scope: cross_sectional`. The local batch computes each member's same-timestamp
+      metric/rank through the existing breadth engine, returns rank/pass/fail/exclusion details,
+      and colours member tiles without per-cell provider requests.
+- [x] Keep member-level and cross-sectional scope distinct in the serialized condition. The visual
+      editor now removes stale nested scope state when the user changes scope, preventing a
+      contradictory `params.target_scope` beside the authoritative node field.
+- [ ] Nested mixed-scope groups, cross-sectional group statistics beyond percentile, and Python
+      target-series leaves remain open; they must retain explicit scope/diagnostics rather than
+      being inferred from a member predicate.
+
 ### 2026-08-17 — Universe-scoped Finviz-style performance maps (new required surface)
 
 The workstation must provide a first-class, route-free **Market Map** tool for the supplied
