@@ -7,6 +7,7 @@ import json
 import math
 from collections import defaultdict
 from datetime import UTC, datetime, timedelta
+from types import SimpleNamespace
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -24,7 +25,7 @@ from app.schemas.market_map import (
     MarketMapRequest,
     MarketMapWarning,
 )
-from app.services.breadth import evaluate_condition
+from app.services.breadth import build_equal_reference_series, evaluate_condition
 from app.services.watchlist_sources import resolve_watchlist_source
 
 _OFFSETS = {"1D": 1, "1W": 5, "1M": 21, "3M": 63, "6M": 126, "1Y": 252}
@@ -295,6 +296,8 @@ def _cache_key(
     bar_watermark: datetime | None,
     reference_watermark: datetime | None,
     event_watermark: datetime | None = None,
+    reference_membership_version: str | None = None,
+    reference_member_ids: list[int] | None = None,
 ) -> str:
     """Build a deterministic identity for one source/data snapshot.
 
@@ -312,6 +315,8 @@ def _cache_key(
             reference_watermark.isoformat() if reference_watermark else None
         ),
         "event_watermark": event_watermark.isoformat() if event_watermark else None,
+        "reference_membership_version": reference_membership_version,
+        "reference_member_ids": sorted(reference_member_ids or []),
     }
     return hashlib.sha256(json.dumps(payload, sort_keys=True, default=str).encode()).hexdigest()
 
@@ -395,8 +400,12 @@ async def build_market_map(db: AsyncSession, user_id: int, request: MarketMapReq
     if latest is None:
         latest = end_hint
     period_start, period_end = _period_bounds(request, latest)
-    reference_bars: list[OHLCVBar] = []
+    reference_bars: list[object] = []
     reference = None
+    reference_source = None
+    reference_source_member_ids: list[int] = []
+    reference_source_membership_version: str | None = None
+    reference_series_method: str | None = None
     if request.reference_symbol:
         reference = (
             await db.execute(
@@ -419,7 +428,64 @@ async def build_market_map(db: AsyncSession, user_id: int, request: MarketMapReq
             ).scalars().all()
         else:
             exclusions.append(_warning("reference_not_found", "The relative-return reference is not canonical."))
-    ref_return, _, _, _ = _return(reference_bars, request.period, period_start, period_end) if reference else (None, None, None, None)
+    elif request.reference_source_id:
+        try:
+            reference_resolved = await resolve_watchlist_source(
+                db, user_id, request.reference_source_id, as_of=request.as_of
+            )
+        except LookupError as exc:
+            raise ValueError(str(exc)) from exc
+        except ValueError as exc:
+            raise ValueError(str(exc)) from exc
+        reference_source = reference_resolved.descriptor
+        reference_source_membership_version = reference_source.membership_version
+        exclusions.extend(
+            _warning(
+                "reference_source_exclusion",
+                str(item.get("reason", "Reference source member was excluded.")),
+                item.get("instrument_id") if isinstance(item, dict) else None,
+            )
+            for item in reference_resolved.exclusions
+        )
+        reference_source_member_ids = list(
+            dict.fromkeys(member.instrument_id for member in reference_resolved.members)
+        )
+        reference_source_bars = (
+            await db.execute(
+                select(OHLCVBar)
+                .where(
+                    OHLCVBar.instrument_id.in_(reference_source_member_ids),
+                    OHLCVBar.timeframe == timeframe,
+                    OHLCVBar.is_adjusted.is_(request.adjusted),
+                    OHLCVBar.ts >= history_start,
+                    OHLCVBar.ts <= period_end,
+                )
+                .order_by(OHLCVBar.instrument_id, OHLCVBar.ts)
+            )
+        ).scalars().all()
+        reference_bars_by_id: dict[int, list[OHLCVBar]] = defaultdict(list)
+        for bar in reference_source_bars:
+            reference_bars_by_id[bar.instrument_id].append(bar)
+        reference_bars, reference_summary = build_equal_reference_series(reference_bars_by_id)
+        reference_series_method = str(reference_summary.get("method"))
+        if reference_bars and reference_source_bars:
+            first_timestamp = min(bar.ts for bar in reference_source_bars)
+            reference_bars = [
+                SimpleNamespace(ts=first_timestamp, close=100.0, volume=None),
+                *reference_bars,
+            ]
+        if not reference_bars:
+            exclusions.append(
+                _warning(
+                    "reference_source_no_bars",
+                    "The reference source has no aligned local bars for this map.",
+                )
+            )
+    ref_return, _, _, _ = (
+        _return(reference_bars, request.period, period_start, period_end)
+        if reference or reference_source
+        else (None, None, None, None)
+    )
     source_bar_watermark = max((bar.ts for rows in bars_by_id.values() for bar in rows), default=None)
     reference_bar_watermark = max((bar.ts for bar in reference_bars), default=None)
     events_by_id, event_watermark = (
@@ -434,6 +500,8 @@ async def build_market_map(db: AsyncSession, user_id: int, request: MarketMapReq
         source_bar_watermark,
         reference_bar_watermark,
         event_watermark,
+        reference_source_membership_version,
+        reference_source_member_ids,
     )
     python_values = (
         await _python_colour_values(db, user_id, request.python_run_id)
@@ -587,6 +655,10 @@ async def build_market_map(db: AsyncSession, user_id: int, request: MarketMapReq
         condition=request.condition,
         python_run_id=request.python_run_id,
         reference_symbol=request.reference_symbol.upper() if request.reference_symbol else None,
+        reference_source=reference_source,
+        reference_source_id=request.reference_source_id,
+        reference_membership_version=reference_source_membership_version,
+        reference_series_method=reference_series_method,
         membership_version=resolved.descriptor.membership_version,
         cache_key=cache_key,
         freshness=freshness,

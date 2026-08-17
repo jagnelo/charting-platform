@@ -867,6 +867,7 @@ export interface MarketMapRequest {
   condition?: Record<string, unknown> | null
   python_run_id?: number | null
   reference_symbol?: string | null
+  reference_source_id?: string | null
   as_of?: string | null
   limit?: number
 }
@@ -923,6 +924,10 @@ export interface MarketMap {
   condition?: Record<string, unknown> | null
   python_run_id?: number | null
   reference_symbol?: string | null
+  reference_source?: WatchlistSource
+  reference_source_id?: string | null
+  reference_membership_version?: string | null
+  reference_series_method?: string | null
   membership_version?: string | null
   calculation_version: string
   cache_key: string

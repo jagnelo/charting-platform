@@ -106,6 +106,18 @@ The captures are behavioural/product references; Finviz artwork and branding are
 - [ ] Reference-universe/group-derived predicates, custom numeric area fields, point-in-time
       market-cap weights, and final visual approval remain open.
 
+#### Implementation checkpoint — reference-source map comparisons
+
+- [x] Relative-return maps and benchmark-dependent breadth conditions may now select another
+      canonical watchlist source as the reference. Its members are resolved point-in-time through
+      the same source contract, locally materialized into a labelled derived equal-weight return
+      index with an explicit baseline, exact timestamp/no-forward-fill semantics, membership
+      version, method, and reference watermark. The response and cache identity retain reference
+      descriptor/lineage, and the workstation exposes a source selector alongside single-symbol
+      references.
+- [ ] Cross-sectional reference predicates beyond the derived equal-weight series, custom numeric
+      area fields, point-in-time market-cap weights, and final visual approval remain open.
+
 #### Implementation checkpoint — workstation Market Map tool
 
 - [x] Added a primary-workstation `Market Map` tool backed by the batch contract. It lets the user

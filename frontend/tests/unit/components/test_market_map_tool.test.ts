@@ -196,4 +196,20 @@ describe('MarketMapTool', () => {
       condition: { kind: 'event', params: { event_type: 'dividend', lookback_days: 5, include_estimates: false } },
     }))
   })
+
+  it('uses a canonical reference source for relative-return map colouring', async () => {
+    sourceState.sources.push({ source_id: 'watchlist:reference', source_kind: 'personal', name: 'Reference group', locked: false, can_follow: true, can_clone: true, can_edit_membership: true, member_count: 2, provenance: {} })
+    apiPost.mockImplementation((path: string, body?: Record<string, unknown>) => {
+      if (path === '/analysis/market-map') return Promise.resolve({ ...response, color_metric: body?.color_metric, reference_source_id: body?.reference_source_id, reference_source: sourceState.sources[1], reference_series_method: 'derived_equal_weight_return_index' })
+      return Promise.resolve([])
+    })
+    const wrapper = mount(MarketMapTool, { props: { configuration: { source_id: 'market-group:sp500', color_metric: 'relative_return', reference_source_id: 'watchlist:reference' } } })
+    await flushPromises()
+    await wrapper.get('[aria-label="Market Map reference universe"]').setValue('watchlist:reference')
+    await wrapper.get('.market-map-tool__run').trigger('click')
+    await flushPromises()
+
+    const request = apiPost.mock.calls.map(call => call[1]).find(body => body?.color_metric === 'relative_return')
+    expect(request).toEqual(expect.objectContaining({ reference_source_id: 'watchlist:reference', reference_symbol: null }))
+  })
 })

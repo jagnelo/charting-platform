@@ -36,6 +36,7 @@ class MarketMapRequest(BaseModel):
     condition: dict[str, object] | None = None
     python_run_id: int | None = Field(default=None, ge=1)
     reference_symbol: str | None = Field(default=None, max_length=80)
+    reference_source_id: str | None = Field(default=None, max_length=240)
     as_of: datetime | None = None
     limit: int = Field(default=10_000, ge=1, le=50_000)
 
@@ -49,7 +50,10 @@ class MarketMapRequest(BaseModel):
         if self.start is not None and self.end is not None and self.start >= self.end:
             raise ValueError("start must be before end")
         if self.color_metric == "relative_return" and not self.reference_symbol:
-            raise ValueError("relative_return requires reference_symbol")
+            if not self.reference_source_id:
+                raise ValueError("relative_return requires reference_symbol or reference_source_id")
+        if self.reference_symbol and self.reference_source_id:
+            raise ValueError("reference_symbol and reference_source_id are mutually exclusive")
         if self.color_metric == "breadth" and not self.condition:
             raise ValueError("breadth requires condition")
         if self.color_metric == "python" and self.python_run_id is None:
@@ -109,6 +113,10 @@ class MarketMapOut(BaseModel):
     condition: dict[str, object] | None = None
     python_run_id: int | None = None
     reference_symbol: str | None = None
+    reference_source: WatchlistSourceRead | None = None
+    reference_source_id: str | None = None
+    reference_membership_version: str | None = None
+    reference_series_method: str | None = None
     membership_version: str | None = None
     calculation_version: str = "market-map-v1"
     cache_key: str

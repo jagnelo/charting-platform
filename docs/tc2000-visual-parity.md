@@ -681,3 +681,11 @@ lookback, loaded/empty versus unavailable calendar messaging, pass/fail tiles, a
 coverage/warning status. The board has no authoritative exact-build capture for this programmable
 event-colour state, so density, control ordering, warning treatment, and interaction are guided by
 the represented Market Map/breadth surfaces while the event-specific visual gap remains tracked.
+
+## 2026-08-17 — Reference-source Market Map state
+
+The interim visual oracle now includes the second-source reference selector, managed/locked source
+labeling, derived-series method/coverage status, and reference warning states. The board has no
+exact V25 capture for source-to-source heatmap comparison, so this state is judged against the
+represented dense source-picker, comparison, and breadth surfaces; the missing exact reference is
+retained as a named visual gap.

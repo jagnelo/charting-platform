@@ -998,3 +998,13 @@ observation-time alignment, pass/fail colour, denominator, coverage, and cache i
 component/static checks cover authoring and contract wiring; Docker-backed integration remains
 required when the authorized runtime is available. The exact event-programmable V25 visual state is
 not represented in the board and remains an explicit visual gap.
+
+## 2026-08-17 — Reference-source map comparison evidence
+
+Reference-source acceptance verifies that a second canonical source is resolved independently,
+that its membership version and source descriptor remain in the response, and that its derived
+equal-weight series uses an explicit baseline, exact timestamp alignment, and no forward-fill.
+Short-window relative-return maps must produce a value when two valid sessions exist, while missing
+or unaligned reference bars remain explicit warnings. The focused Docker-backed integration fixture
+passes this contract; richer cross-sectional group statistics and point-in-time area semantics
+remain open.

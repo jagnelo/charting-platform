@@ -7483,3 +7483,18 @@ This closes event-calendar predicate colouring for arbitrary canonical watchlist
 V25 visual references for this programmable heatmap state remain a board gap, and reference-group
 derived predicates, custom numeric area fields, point-in-time market-cap weights, complete
 provider/history population, and full visual approval remain open.
+
+## 2026-08-17 — Reference-source Market Map comparisons
+
+Relative-return maps and benchmark-dependent breadth conditions now accept either a canonical
+reference symbol or a second canonical watchlist source. The reference source is resolved with its
+own point-in-time membership descriptor, bars are locally materialized into an explicit
+`derived_equal_weight_return_index`, and a baseline at the first source timestamp makes short map
+windows reproducible. Exact timestamp alignment and no-forward-fill semantics are retained; the
+response includes the reference descriptor, source ID, membership version, method, and cache
+watermark lineage. The workstation exposes the same source catalog for selecting the reference.
+
+This closes source-to-source relative-return and derived-group reference colouring for supported
+maps. More sophisticated cross-sectional group statistics, custom numeric area fields,
+point-in-time market-cap weights, complete provider/history population, and exact V25 visual
+approval remain open.

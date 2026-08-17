@@ -32,7 +32,13 @@
           <option value="return">Return</option><option value="relative_return">Relative return</option><option value="breadth">Breadth condition</option><option value="python">Python output</option><option value="rsi_14">RSI(14)</option><option value="relative_volume">Relative volume</option><option value="distance_52w_high">Distance to 52W high</option><option value="distance_52w_low">Distance to 52W low</option>
         </select>
       </label>
-      <label v-if="colorMetric === 'relative_return' || (colorMetric === 'breadth' && breadthConditionKind === 'relative_strength')">Reference
+      <label v-if="colorMetric === 'relative_return' || (colorMetric === 'breadth' && breadthConditionKind === 'relative_strength')">Reference universe
+        <select v-model="referenceSourceId" aria-label="Market Map reference universe">
+          <option value="">Single symbol…</option>
+          <option v-for="source in sources" :key="`reference-${source.source_id}`" :value="source.source_id">{{ source.name }}{{ source.locked ? ' · Managed' : '' }}</option>
+        </select>
+      </label>
+      <label v-if="(colorMetric === 'relative_return' || (colorMetric === 'breadth' && breadthConditionKind === 'relative_strength')) && !referenceSourceId">Reference
         <input v-model="referenceSymbol" aria-label="Market Map relative-return reference" placeholder="SPY" maxlength="20" />
       </label>
       <label v-if="colorMetric === 'breadth'">Condition
@@ -155,6 +161,7 @@ const period = ref(String(props.configuration.period ?? '1D'))
 const areaMetric = ref<MarketMapAreaMetric>((props.configuration.area_metric as MarketMapAreaMetric) ?? 'market_cap')
 const colorMetric = ref<MarketMapColorMetric>((props.configuration.color_metric as MarketMapColorMetric) ?? 'return')
 const referenceSymbol = ref(String(props.configuration.reference_symbol ?? ''))
+const referenceSourceId = ref(String(props.configuration.reference_source_id ?? ''))
 const breadthConditionKind = ref(String(props.configuration.breadth_condition_kind ?? 'above_moving_average'))
 const breadthConditionPeriod = ref(Number(props.configuration.breadth_condition_period ?? 200))
 const breadthConditionThreshold = ref(Number(props.configuration.breadth_condition_threshold ?? 0.01))
@@ -448,7 +455,7 @@ async function run() {
   error.value = ''
   try {
     if (colorMetric.value === 'python') await resolvePythonRun()
-    map.value = await fetchMarketMap({ source_id: sourceId.value, group_by: groupBy.value, period: period.value, area_metric: areaMetric.value, color_metric: colorMetric.value, condition: colorMetric.value === 'breadth' ? breadthCondition.value : null, python_run_id: colorMetric.value === 'python' ? pythonRunId.value : null, reference_symbol: colorMetric.value === 'relative_return' || (colorMetric.value === 'breadth' && breadthConditionKind.value === 'relative_strength') ? referenceSymbol.value.toUpperCase() : null, timeframe: 'D1', adjusted: true })
+    map.value = await fetchMarketMap({ source_id: sourceId.value, group_by: groupBy.value, period: period.value, area_metric: areaMetric.value, color_metric: colorMetric.value, condition: colorMetric.value === 'breadth' ? breadthCondition.value : null, python_run_id: colorMetric.value === 'python' ? pythonRunId.value : null, reference_symbol: (colorMetric.value === 'relative_return' || (colorMetric.value === 'breadth' && breadthConditionKind.value === 'relative_strength')) && !referenceSourceId.value ? referenceSymbol.value.toUpperCase() : null, reference_source_id: (colorMetric.value === 'relative_return' || (colorMetric.value === 'breadth' && breadthConditionKind.value === 'relative_strength')) && referenceSourceId.value ? referenceSourceId.value : null, timeframe: 'D1', adjusted: true })
     snapshotSelectionId.value = ''
     activeSnapshotName.value = ''
     selectedNode.value = null
@@ -461,9 +468,9 @@ async function run() {
   }
 }
 function persist() {
-  emit('configuration', { ...props.configuration, source_id: sourceId.value, group_by: groupBy.value, period: period.value, area_metric: areaMetric.value, color_metric: colorMetric.value, condition: colorMetric.value === 'breadth' ? breadthCondition.value : null, python_code_version_id: pythonCodeVersionId.value, python_run_id: pythonRunId.value, breadth_condition_kind: breadthConditionKind.value, breadth_condition_period: breadthConditionPeriod.value, breadth_condition_threshold: breadthConditionThreshold.value, breadth_event_type: breadthEventType.value, breadth_event_lookback: breadthEventLookback.value, reference_symbol: referenceSymbol.value })
+  emit('configuration', { ...props.configuration, source_id: sourceId.value, group_by: groupBy.value, period: period.value, area_metric: areaMetric.value, color_metric: colorMetric.value, condition: colorMetric.value === 'breadth' ? breadthCondition.value : null, python_code_version_id: pythonCodeVersionId.value, python_run_id: pythonRunId.value, breadth_condition_kind: breadthConditionKind.value, breadth_condition_period: breadthConditionPeriod.value, breadth_condition_threshold: breadthConditionThreshold.value, breadth_event_type: breadthEventType.value, breadth_event_lookback: breadthEventLookback.value, reference_symbol: referenceSymbol.value, reference_source_id: referenceSourceId.value })
 }
-watch([sourceId, groupBy, period, areaMetric, colorMetric, referenceSymbol, pythonCodeVersionId, pythonRunId, breadthConditionKind, breadthConditionPeriod, breadthConditionThreshold, breadthEventType, breadthEventLookback], persist)
+watch([sourceId, groupBy, period, areaMetric, colorMetric, referenceSymbol, referenceSourceId, pythonCodeVersionId, pythonRunId, breadthConditionKind, breadthConditionPeriod, breadthConditionThreshold, breadthEventType, breadthEventLookback], persist)
 watch(sourceId, () => {
   if (skipNextSourceRun.value) {
     skipNextSourceRun.value = false

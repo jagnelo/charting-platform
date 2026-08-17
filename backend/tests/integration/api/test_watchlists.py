@@ -1,5 +1,7 @@
 from datetime import UTC, datetime, timedelta
 
+import pytest
+
 from app.models.screener import ScreenerDefinition
 from app.models.watchlist import Watchlist
 from app.models.workstation import MarketGroup, MarketGroupMember
@@ -185,6 +187,56 @@ class TestWatchlistsCrud:
             },
         )
         assert response.status_code == 422
+
+    def test_market_map_compares_against_a_reference_watchlist_series(
+        self, client, auth_headers, db, user, watchlist, instrument, instrument_b
+    ):
+        from app.models.ohlcv import OHLCVBar, Timeframe
+        from app.models.watchlist import WatchlistItem
+
+        reference_watchlist = Watchlist(user_id=user.id, name="Reference group", position=1)
+        db.add(reference_watchlist)
+        db.flush()
+        watchlist.items.append(WatchlistItem(instrument_id=instrument.id, position=0))
+        reference_watchlist.items.append(WatchlistItem(instrument_id=instrument_b.id, position=0))
+        base = datetime(2024, 1, 1, tzinfo=UTC)
+        for member, closes in ((instrument, (100, 110)), (instrument_b, (200, 210))):
+            for offset, close in enumerate(closes):
+                db.add(
+                    OHLCVBar(
+                        instrument_id=member.id,
+                        timeframe=Timeframe.D1,
+                        ts=base + timedelta(days=offset),
+                        open=close,
+                        high=close + 1,
+                        low=close - 1,
+                        close=close,
+                        volume=1_000_000,
+                        is_adjusted=True,
+                    )
+                )
+        db.flush()
+
+        response = client.post(
+            "/api/v1/analysis/market-map",
+            headers=auth_headers,
+            json={
+                "source_id": f"watchlist:{watchlist.id}",
+                "group_by": "none",
+                "period": "1D",
+                "area_metric": "equal",
+                "color_metric": "relative_return",
+                "reference_source_id": f"watchlist:{reference_watchlist.id}",
+                "end": "2024-01-02T00:00:00Z",
+            },
+        )
+
+        assert response.status_code == 200, response.text
+        body = response.json()
+        assert body["reference_source_id"] == f"watchlist:{reference_watchlist.id}"
+        assert body["reference_source"]["source_id"] == f"watchlist:{reference_watchlist.id}"
+        assert body["reference_series_method"] == "derived_equal_weight_return_index"
+        assert body["cells"][0]["color_value"] == pytest.approx(0.05)
 
     def test_market_map_colours_tiles_by_reusable_breadth_condition(
         self, client, auth_headers, db, watchlist, instrument, instrument_b
