@@ -13,6 +13,15 @@ Cross-sectional aggregates and recursive Boolean trees return structured capabil
 target and remain tracked for compatible promotion surfaces. The represented UI and browser flow
 are covered; complete promotion fan-out is still open.
 
+## 2026-08-19 — Member numeric breadth to EasyScan promotion
+
+Member-scoped numeric breadth runs with an explicit threshold relation can now be promoted to a
+reusable EasyScan. The API creates a distinct immutable Boolean condition version that retains the
+numeric source and applies `series_target_to_boolean` only inside the isolated runner. Source run,
+definition, reproducibility, dataset, universe, operator, and threshold provenance are retained;
+the original numeric CodeVersion is never mutated. Cross-sectional aggregates and recursive trees
+reject this per-symbol scan contract and remain open for compatible promotion surfaces.
+
 ## 2026-08-18 — Universal heatmap sources and recursive Python member predicates
 
 Every canonical `WatchlistSource` now has the same Market Map contract: index/ETF roots and

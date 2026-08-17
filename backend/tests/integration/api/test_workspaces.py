@@ -3051,6 +3051,18 @@ class TestWorkspaces:
             json={"name": "Duplicate historical Python breadth column"},
         )
         assert column_duplicate.status_code == 409
+        promoted_scan = client.post(
+            f"/api/v1/analysis/breadth/python/runs/{queued_payload['run_id']}/promote-scan",
+            headers=auth_headers,
+            json={"name": "Historical Python numeric breadth scan"},
+        )
+        assert promoted_scan.status_code == 201, promoted_scan.text
+        promoted_scan_payload = promoted_scan.json()
+        assert promoted_scan_payload["conditions"]["type"] == "python_condition"
+        assert promoted_scan_payload["conditions"]["code_version_id"] != version_id
+        scan_lineage = promoted_scan_payload["conditions"]["provenance"]
+        assert scan_lineage["output_adapter"] == "series_target_to_boolean"
+        assert scan_lineage["series_target"] == {"operator": "gte", "threshold": 0.0}
 
         tree_queued = client.post(
             "/api/v1/analysis/breadth/python",

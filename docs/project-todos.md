@@ -10,8 +10,14 @@
       target with explicit capability errors; they remain valid inputs for their compatible plot,
       filter, gauge, alert, Study Lab, or Strategy Lab targets rather than being misrepresented as
       a per-symbol column.
+- [x] Promote a completed member-level numeric breadth series with an explicit operator and
+      threshold into an EasyScan Boolean condition through the isolated `series_target_to_boolean`
+      adapter. The original numeric CodeVersion remains immutable and source/target/dataset/
+      universe lineage is retained on the generated condition.
+- [x] Reject cross-sectional and recursive-tree results for this per-member scan target rather
+      than flattening their group semantics into a Boolean condition.
 - [ ] Continue the remaining promotion fan-out: cross-sectional/recursive condition promotion,
-      filters, EasyScan, Market Gauges, alerts, Study Lab artifacts, and Strategy Lab signals.
+      filters, Market Gauges, alerts, Study Lab artifacts, and Strategy Lab signals.
 
 - [x] Add a direct `python_series_comparison` leaf for two user-owned isolated numeric-series
       outputs. Difference and ratio-minus-one relations run on the same prepared member and

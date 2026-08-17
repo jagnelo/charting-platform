@@ -12,6 +12,17 @@ errors rather than being silently projected into per-symbol values. This sub-gat
 the represented member scope; filters, gauges, alerts, Study Lab, Strategy Lab, and broader
 cross-sectional promotion remain named open gates.
 
+## 2026-08-19 — Numeric breadth to EasyScan sub-gate
+
+For a completed member-scoped numeric breadth run with a validated finite operator and threshold,
+acceptance must verify that “Promote to EasyScan” creates a distinct immutable Boolean condition
+version. Its diagnostics must retain source lineage and declare `series_target_to_boolean`; the
+isolated runner must request the numeric series, apply the declared relation, and return a Boolean
+cell without API-side execution. The original series version remains unchanged. Cross-sectional
+aggregates and recursive Boolean trees must return structured capability errors for this target.
+This gate does not claim filters, gauges, alerts, Study Lab, Strategy Lab, or richer multi-output
+fan-out complete.
+
 ## 2026-08-18 — Universal source and recursive Python sub-gate
 
 The heatmap/breadth acceptance oracle treats every canonical source as one universe contract.

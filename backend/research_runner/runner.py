@@ -1038,7 +1038,10 @@ def _execute_batch(
             else:
                 output_adapter = hash_input.get("output_adapter")
                 requested_contract = (
-                    "series" if output_contract == "scalar" and output_adapter == "latest_series_to_scalar" else output_contract
+                    "series"
+                    if output_adapter in {"latest_series_to_scalar", "series_target_to_boolean"}
+                    and output_contract in {"scalar", "boolean"}
+                    else output_contract
                 )
                 result = _execute_single(
                     source,
@@ -1074,7 +1077,13 @@ def _execute_batch(
                     and artifact.get("type") == requested_contract
                     and (output_name is None or name == output_name)
                 ]
-                if output_contract == "boolean":
+                if output_adapter == "series_target_to_boolean":
+                    extracted_metric, extraction_error = _series_artifact(result, output_name)
+                    value, target_error = _series_target_value(
+                        extracted_metric, hash_input.get("series_target")
+                    )
+                    error = extraction_error or target_error
+                elif output_contract == "boolean":
                     value, error, extracted_metric = _boolean_artifact(result, output_name)
                 elif output_contract == "series":
                     extracted_metric, extraction_error = _series_artifact(result, output_name)

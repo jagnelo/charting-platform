@@ -6549,7 +6549,6 @@ async def promote_python_breadth_run_to_scan(
     version = run.code_version
     if (
         version is None
-        or version.output_contract != "boolean"
         or version.asset is None
         or version.asset.user_id != current_user.id
         or version.asset.kind != "condition"
@@ -6558,7 +6557,36 @@ async def promote_python_breadth_run_to_scan(
             status_code=422,
             detail={
                 "code": "breadth_promotion_condition_unavailable",
-                "message": "The source run does not reference an owned Boolean condition version.",
+                "message": "The source run does not reference an owned condition version.",
+            },
+        )
+    source_contract = str(version.output_contract or "")
+    output_adapter: str | None = None
+    series_target = config.get("series_target")
+    if source_contract == "series":
+        if not isinstance(series_target, dict) or str(series_target.get("scope", "member")).lower() != "member":
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "code": "breadth_promotion_scan_requires_member_series",
+                    "message": "Only member-scoped numeric breadth targets can become Boolean scans.",
+                },
+            )
+        if config.get("condition_tree") is not None:
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "code": "breadth_promotion_scan_requires_member_series",
+                    "message": "Recursive trees must remain structured breadth or Study Lab artifacts.",
+                },
+            )
+        output_adapter = "series_target_to_boolean"
+    elif source_contract != "boolean":
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "breadth_promotion_condition_unavailable",
+                "message": "The source run does not provide a Boolean or thresholded numeric condition.",
             },
         )
     artifact = next(
@@ -6601,6 +6629,49 @@ async def promote_python_breadth_run_to_scan(
         "target_semantics": "re_evaluate_current_data_over_source_member_ids",
         "point_in_time_source_preserved": True,
     }
+    promoted_code_version_id = run.code_version_id
+    if output_adapter is not None:
+        source_metadata["output_adapter"] = output_adapter
+        source_metadata["series_target"] = series_target
+        stable_key = f"breadth-run-{run.id}-scan-condition"
+        existing_asset = (
+            await db.execute(
+                select(CodeAsset).where(
+                    CodeAsset.user_id == current_user.id,
+                    CodeAsset.stable_key == stable_key,
+                )
+            )
+        ).scalar_one_or_none()
+        if existing_asset is not None:
+            raise HTTPException(status_code=409, detail={"code": "breadth_promotion_already_exists"})
+        promoted_asset = CodeAsset(
+            user_id=current_user.id,
+            stable_key=stable_key,
+            name=f"Breadth scan condition run {run.id}",
+            kind="condition",
+        )
+        promoted_asset.versions.append(
+            CodeVersion(
+                version_number=1,
+                source=version.source,
+                output_contract="boolean",
+                output_name="match",
+                parameter_schema=dict(version.parameter_schema or {}),
+                default_parameters=dict(version.default_parameters or {}),
+                sdk_version=version.sdk_version,
+                runtime_version=version.runtime_version,
+                dependencies=list(version.dependencies or []),
+                lookback=version.lookback,
+                diagnostics=[
+                    *(version.diagnostics or []),
+                    {"output_adapter": output_adapter, "series_target": series_target},
+                    {"promotion_lineage": source_metadata},
+                ],
+            )
+        )
+        db.add(promoted_asset)
+        await db.flush()
+        promoted_code_version_id = promoted_asset.versions[0].id
     timeframe_value = str(config.get("timeframe") or Timeframe.D1.value)
     try:
         timeframe = Timeframe(timeframe_value)
@@ -6616,7 +6687,7 @@ async def promote_python_breadth_run_to_scan(
         timeframe=timeframe,
         conditions={
             "type": "python_condition",
-            "code_version_id": run.code_version_id,
+            "code_version_id": promoted_code_version_id,
             "provenance": source_metadata,
         },
         schedule=body.schedule,
