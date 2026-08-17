@@ -1025,3 +1025,11 @@ provenance. The fixture proves a provenance-bearing value sizes a tile and that 
 excluded with `unproven_area_field`; missing or malformed values follow the same explicit-warning
 path. Workstation authoring and persistence are covered by the 11-case Market Map component suite.
 Point-in-time market-cap/weight semantics and exact V25 visual approval remain open.
+
+## 2026-08-17 — Market Map ordering evidence
+
+Ordering acceptance covers largest-area, strongest-colour, and symbol A–Z modes inside the active
+hierarchy node, null-last behavior, deterministic symbol tie-breaking, configuration persistence,
+and unchanged canonical selection/publication. Focused component coverage is 11/11 and the full
+frontend suite remains 860/860. Exact V25 ordering-control imagery is not represented and remains a
+tracked visual gap.

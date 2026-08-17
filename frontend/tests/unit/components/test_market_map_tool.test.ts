@@ -55,6 +55,9 @@ describe('MarketMapTool', () => {
     await wrapper.findAll('.market-map-tool__tile')[1].trigger('click', { shiftKey: true })
     expect(wrapper.findAll('.market-map-tool__tile--selected')).toHaveLength(2)
     expect(wrapper.emitted('select')).toEqual([['NVDA', 1], ['MSFT', 2]])
+
+    await wrapper.get('select[aria-label="Market Map sort order"]').setValue('symbol_asc')
+    expect(wrapper.emitted('configuration')?.at(-1)?.[0]).toEqual(expect.objectContaining({ sort_by: 'symbol_asc' }))
   })
 
   it('shows empty and failed map states without hiding the source controls', async () => {

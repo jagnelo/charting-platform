@@ -149,6 +149,9 @@ The captures are behavioural/product references; Finviz artwork and branding are
 - [x] Added nested hierarchy navigation with parent breadcrumbs, wheel/button zoom, and pointer
       panning. These interactions are source-agnostic and preserve selection/publication without a
       route change.
+- [x] Added persisted client-side tile ordering controls for largest area, strongest colour, and
+      symbol A–Z. Sorting is stable, null-safe, applies within the active hierarchy node, and does
+      not change canonical selection or source membership.
 - [x] Multi-selection can create a personal watchlist or add to an existing editable personal list;
       managed/locked targets remain unavailable and linked-symbol publication is preserved.
 - [x] Map selections can publish the canonical source ID and selected member metadata directly

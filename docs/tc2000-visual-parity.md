@@ -706,3 +706,10 @@ status, covered/unproven tile treatment, and explicit missing-field warnings. No
 for provider metadata-driven treemap sizing is present; control density and warning placement are
 therefore guided by the represented map/source-picker states. This absent exact state remains a
 named visual gap and is not treated as pixel-approved.
+
+## 2026-08-17 — Market Map ordering state
+
+The interim board-guided oracle includes the compact Sort control and its largest-area,
+strongest-colour, and symbol A–Z states. No exact V25 capture for this specific map ordering control
+is present; density, placement, focus, and persistence are therefore board-guided and the missing
+state remains explicitly unapproved.

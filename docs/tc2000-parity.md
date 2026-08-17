@@ -7522,3 +7522,11 @@ structured warnings. The workstation persists the field selection and restores i
 This closes provider-declared numeric metadata sizing for the currently modelled fields. Historical
 point-in-time market-cap/weight data, richer cross-sectional fields, complete family population, and
 exact V25 visual approval remain open.
+
+## 2026-08-17 — Market Map ordering controls
+
+The workstation now offers stable, persisted ordering within the active map node: largest area,
+strongest colour, or symbol A–Z. Null values sort last for metric modes, ties resolve by symbol, and
+changing order does not alter canonical source membership, selected IDs, or publication semantics.
+This is board-guided interaction evidence; no exact V25 capture for the specific ordering control is
+present and remains a named visual gap.

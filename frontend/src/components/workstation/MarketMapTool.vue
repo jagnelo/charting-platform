@@ -17,6 +17,13 @@
           <option value="none">Ungrouped</option>
         </select>
       </label>
+      <label>Sort
+        <select v-model="sortBy" aria-label="Market Map sort order">
+          <option value="area_desc">Largest area</option>
+          <option value="color_desc">Strongest colour</option>
+          <option value="symbol_asc">Symbol A–Z</option>
+        </select>
+      </label>
       <label>Period
         <select v-model="period" aria-label="Market Map period">
           <option v-for="value in periods" :key="value" :value="value">{{ value }}</option>
@@ -157,6 +164,8 @@ import { useWatchlistStore } from '@/stores/watchlist'
 import { deleteMarketMapSnapshot, fetchMarketMap, fetchMarketMapSnapshot, fetchMarketMapSnapshots, layoutMarketMapCells, saveMarketMapSnapshot, type MarketMapLayoutCell } from '@/lib/workstation/marketMap'
 import type { MarketMap, MarketMapAreaMetric, MarketMapCell, MarketMapColorMetric, MarketMapGroupBy, MarketMapNumericAreaField, MarketMapSnapshotSummary, WatchlistSource } from '@/types'
 
+type MarketMapSort = 'area_desc' | 'color_desc' | 'symbol_asc'
+
 const props = withDefaults(defineProps<{ configuration?: Record<string, unknown> }>(), { configuration: () => ({}) })
 const emit = defineEmits<{
   configuration: [value: Record<string, unknown>]
@@ -167,6 +176,7 @@ const watchlistStore = useWatchlistStore()
 const sources = computed(() => watchlistStore.watchlistSources)
 const sourceId = ref(String(props.configuration.source_id ?? ''))
 const groupBy = ref<MarketMapGroupBy>((props.configuration.group_by as MarketMapGroupBy) ?? 'sector_industry')
+const sortBy = ref<MarketMapSort>((props.configuration.sort_by as MarketMapSort) ?? 'area_desc')
 const period = ref(String(props.configuration.period ?? '1D'))
 const areaMetric = ref<MarketMapAreaMetric>((props.configuration.area_metric as MarketMapAreaMetric) ?? 'market_cap')
 const areaField = ref<MarketMapNumericAreaField>((props.configuration.area_field as MarketMapNumericAreaField) ?? 'avg_volume_30d')
@@ -247,8 +257,18 @@ const breadcrumbs = computed(() => {
 const visibleCells = computed(() => {
   if (!map.value) return []
   const path = activeNode.value?.group_path ?? []
-  if (!path.length) return map.value.cells
-  return map.value.cells.filter(cell => path.every((part, index) => cell.group_path[index] === part))
+  const cells = path.length
+    ? map.value.cells.filter(cell => path.every((part, index) => cell.group_path[index] === part))
+    : map.value.cells
+  return [...cells].sort((left, right) => {
+    if (sortBy.value === 'symbol_asc') return left.symbol.localeCompare(right.symbol)
+    const leftValue = sortBy.value === 'color_desc' ? left.color_value : left.area_value
+    const rightValue = sortBy.value === 'color_desc' ? right.color_value : right.area_value
+    if (leftValue == null && rightValue == null) return left.symbol.localeCompare(right.symbol)
+    if (leftValue == null) return 1
+    if (rightValue == null) return -1
+    return rightValue - leftValue || left.symbol.localeCompare(right.symbol)
+  })
 })
 const visibleLayoutCells = computed<MarketMapLayoutCell[]>(() => layoutMarketMapCells(visibleCells.value))
 const breadthCondition = computed<Record<string, unknown> | null>(() => {
@@ -482,9 +502,9 @@ async function run() {
   }
 }
 function persist() {
-  emit('configuration', { ...props.configuration, source_id: sourceId.value, group_by: groupBy.value, period: period.value, area_metric: areaMetric.value, area_field: areaMetric.value === 'field' ? areaField.value : null, color_metric: colorMetric.value, condition: colorMetric.value === 'breadth' ? breadthCondition.value : null, python_code_version_id: pythonCodeVersionId.value, python_run_id: pythonRunId.value, breadth_condition_kind: breadthConditionKind.value, breadth_condition_period: breadthConditionPeriod.value, breadth_condition_threshold: breadthConditionThreshold.value, breadth_event_type: breadthEventType.value, breadth_event_lookback: breadthEventLookback.value, reference_symbol: referenceSymbol.value, reference_source_id: referenceSourceId.value })
+  emit('configuration', { ...props.configuration, source_id: sourceId.value, group_by: groupBy.value, sort_by: sortBy.value, period: period.value, area_metric: areaMetric.value, area_field: areaMetric.value === 'field' ? areaField.value : null, color_metric: colorMetric.value, condition: colorMetric.value === 'breadth' ? breadthCondition.value : null, python_code_version_id: pythonCodeVersionId.value, python_run_id: pythonRunId.value, breadth_condition_kind: breadthConditionKind.value, breadth_condition_period: breadthConditionPeriod.value, breadth_condition_threshold: breadthConditionThreshold.value, breadth_event_type: breadthEventType.value, breadth_event_lookback: breadthEventLookback.value, reference_symbol: referenceSymbol.value, reference_source_id: referenceSourceId.value })
 }
-watch([sourceId, groupBy, period, areaMetric, areaField, colorMetric, referenceSymbol, referenceSourceId, pythonCodeVersionId, pythonRunId, breadthConditionKind, breadthConditionPeriod, breadthConditionThreshold, breadthEventType, breadthEventLookback], persist)
+watch([sourceId, groupBy, sortBy, period, areaMetric, areaField, colorMetric, referenceSymbol, referenceSourceId, pythonCodeVersionId, pythonRunId, breadthConditionKind, breadthConditionPeriod, breadthConditionThreshold, breadthEventType, breadthEventLookback], persist)
 watch(sourceId, () => {
   if (skipNextSourceRun.value) {
     skipNextSourceRun.value = false
