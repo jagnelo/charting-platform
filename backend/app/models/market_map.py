@@ -40,3 +40,30 @@ class MarketMapCache(Base):
     last_accessed_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=lambda: datetime.now(UTC)
     )
+
+
+class MarketMapSnapshot(Base):
+    """A user-named immutable copy of a completed Market Map result."""
+
+    __tablename__ = "market_map_snapshot"
+    __table_args__ = (
+        UniqueConstraint("user_id", "name", name="uq_market_map_snapshot_user_name"),
+        Index("ix_market_map_snapshot_user_created", "user_id", "created_at"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("user.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    name: Mapped[str] = mapped_column(String(160), nullable=False)
+    source_id: Mapped[str] = mapped_column(String(240), nullable=False)
+    membership_version: Mapped[str | None] = mapped_column(String(160), nullable=True)
+    cache_key: Mapped[str] = mapped_column(String(64), nullable=False)
+    snapshot_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    map_json: Mapped[dict] = mapped_column(JSON, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=lambda: datetime.now(UTC)
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=lambda: datetime.now(UTC)
+    )

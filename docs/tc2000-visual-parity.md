@@ -13,10 +13,10 @@ interim oracle.
 The backend now exposes the first data contract needed to drive that board-guided surface at
 `POST /analysis/market-map`. It is not a visual baseline and does not close the board gaps: nested
 treemap navigation, zoom/pan, map publication beyond linked-symbol selection, Python/breadth colour
-state, named snapshots, or point-in-time market-cap area visual has not been accepted yet. Durable
-result caching exists and its computed/cache-hit status is visible, but cache persistence is not a
-visual substitute for named snapshot acceptance. These remain tracked gaps rather than silently
-inferred from the Finviz references.
+state, or point-in-time market-cap area visual has not been accepted yet. Durable result caching
+and named snapshot controls now have deterministic interim component oracles, but neither
+persistence contract is a substitute for exact-build visual evidence. These remain tracked gaps
+rather than silently inferred from the Finviz references.
 
 The current `Market Map` tool is the interim browser/component oracle for the represented data
 workflow: source/group/period/area/colour controls, deterministic proportional tiles, locked-source
@@ -25,8 +25,20 @@ breadcrumbs, wheel/button zoom, pointer panning, and linked-symbol selection. Th
 intentionally source-agnostic: a locked index/ETF watchlist,
 managed scan, personal list, combo, or explicit-symbol list uses the same visual and interaction
 contract. Multi-selection can create/populate an editable personal watchlist. The reference-board
-gaps for named snapshots and final visual baselines remain open; direct map-to-breadth/Study-Lab
-publication and persisted-cache status are represented by the current interim oracle.
+gap for final visual baselines remains open; direct map-to-breadth/Study-Lab publication,
+persisted-cache status, and named snapshot status are represented by the current interim oracle.
+
+## 2026-08-17 — Named Market Map snapshot visual state
+
+The interim Market Map oracle now includes a dense snapshot selector with live/cached state,
+user-authored name input, save action, restore selection, active snapshot labelling, and delete
+action. Component coverage verifies the lifecycle and user-visible status while the restored map
+retains source, coverage, freshness, warnings, and tile metrics.
+
+The visual reference board has no authoritative Version 25 capture for this exact named-snapshot
+control composition. Therefore it is accepted only as a documented interim functional oracle;
+the missing exact-build geometry, typography, and interaction state remain in the gap ledger and
+must be superseded by a stronger reference before strict visual approval.
 
 ## 2026-08-17 — Family/style analysis visual states (latest requirement)
 

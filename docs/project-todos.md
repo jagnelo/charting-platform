@@ -68,7 +68,9 @@ The captures are behavioural/product references; Finviz artwork and branding are
       membership version, member IDs, and local bar watermark. Identical requests can be restored
       through the cache endpoint without provider fan-out; new source membership or completed bars
       produce a different cache identity.
-- [ ] Named user snapshots, custom Python/breadth colour outputs, point-in-time market-cap area,
+- [x] Named user snapshots can save and restore a complete cached map with source, membership,
+      coverage, provenance, and rendered metrics preserved; names are user-isolated and duplicate
+      names are rejected. Custom Python/breadth colour outputs, point-in-time market-cap area,
       richer classifications, renderer, and the full eight-root population remain open. Current
       market-cap area is explicitly labelled as latest stored metadata rather than historical truth.
 
@@ -98,8 +100,10 @@ The captures are behavioural/product references; Finviz artwork and branding are
       group is locked. The full source is intentionally preserved for analysis; selected tiles are
       context metadata, while subset extraction continues through the editable-list action.
 - [x] Durable map caching is implemented and exposes cache-hit/computed-at state in the workstation.
-- [ ] Named map snapshots, board-approved visual baselines, all requested map metrics, point-in-time
-      area weights, and complete provider-backed root population remain open.
+- [x] Named map snapshots have durable create/list/restore/delete contracts and a workstation
+      save/load/delete control; deleting a named snapshot never deletes its underlying cache result.
+- [ ] Board-approved visual baselines, all requested map metrics, point-in-time area weights, and
+      complete provider-backed root population remain open.
 
 ### 2026-08-17 — US market family/style analysis matrix (latest user requirement)
 
@@ -13233,8 +13237,8 @@ The current source also passes the focused authenticated top-down browser slice 
       frontend Vitest `853/853`, `vue-tsc`, and production build. The isolated uv-cache rerun was
       required because the default cache directory was sandbox-inaccessible; this is an environment
       workaround, not a product acceptance relaxation.
-- [ ] Still open: map selection directly launching the breadth/Study Lab definition, durable map
-      snapshots/cache, all requested map colour/area calculations, provider-backed population and
+- [ ] Still open: map selection directly launching the breadth/Study Lab definition, all requested
+      map colour/area calculations, provider-backed population and
       point-in-time continuity for every root, and final board-guided visual approval.
 
 ### 2026-08-17 — Durable Market Map result cache
@@ -13246,6 +13250,24 @@ The current source also passes the focused authenticated top-down browser slice 
       provider fan-out or cross-user access.
 - [x] Add migration/model coverage and regression assertions for cache identity, restoration, and
       existing no-data/source behavior.
-- [ ] Named user snapshots, all requested area/colour metrics, Python/breadth outputs,
-      point-in-time market-cap weights, complete root population, and board-guided visual approval
-      remain open.
+- [x] Named user snapshots can save and restore a complete cached map with source, membership,
+      coverage, provenance, and rendered metrics preserved; names are user-isolated and duplicate
+      names are rejected. Custom Python/breadth colour outputs, point-in-time market-cap area,
+      richer classifications, renderer, and the full eight-root population remain open. Current
+      market-cap area is explicitly labelled as latest stored metadata rather than historical truth.
+- [ ] All requested area/colour metrics, Python/breadth outputs, point-in-time market-cap weights,
+      complete root population, and board-guided visual approval remain open.
+
+### 2026-08-17 — Named Market Map snapshots
+
+- [x] Named snapshots now persist a complete cached Market Map result per authenticated user,
+      including source identity, membership version, coverage, freshness, warnings, tile metrics,
+      and a deterministic snapshot hash.
+- [x] The workstation can save, list, restore, and delete named snapshots. Snapshot restoration
+      does not trigger a live provider request, applying the saved map to the current tool while
+      preserving source lineage; deleting a snapshot leaves the reusable automatic cache intact.
+- [x] Duplicate names, missing cache keys, malformed IDs, and cross-user access return structured
+      errors; integration and component tests cover the complete lifecycle.
+- [ ] Direct map-to-breadth/Study-Lab publication, all requested area/colour metrics, Python and
+      predicate breadth outputs, point-in-time market-cap weights, complete root population, and
+      board-guided visual approval remain open.

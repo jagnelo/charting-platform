@@ -37,7 +37,7 @@ from app.models.instrument_reconciliation import InstrumentReconciliationIssue
 from app.models.instrument_stats import InstrumentStats
 from app.models.instrument_sync_run import InstrumentSyncRun
 from app.models.listing import InstrumentListing
-from app.models.market_map import MarketMapCache
+from app.models.market_map import MarketMapCache, MarketMapSnapshot
 from app.models.ohlcv import TIMEFRAME_SECONDS, OHLCVBar, Timeframe
 from app.models.price_alert import AlertCondition, AlertStatus, PriceAlert
 from app.models.provider_observation import (
@@ -147,6 +147,7 @@ __all__ = [
     "ForexDetail",
     "InstrumentListing",
     "MarketMapCache",
+    "MarketMapSnapshot",
     "DataSource",
     "ETFProfile",
     "ETFHoldingsRawArtifact",

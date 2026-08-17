@@ -19,6 +19,7 @@ from app.database import get_db
 from app.models.etf_holdings import ETFHolding, ETFHoldingsSnapshot, ETFProfile
 from app.models.instrument import Instrument
 from app.models.instrument_event import InstrumentEvent, InstrumentEventFetchState
+from app.models.market_map import MarketMapSnapshot
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.provider_observation import DatasetStatus, InstrumentDatasetState
 from app.models.research import CodeAsset, CodeVersion, ResearchRun
@@ -103,7 +104,13 @@ from app.schemas.analysis import (
     RelativeStrengthOut,
     TechnicalSnapshotOut,
 )
-from app.schemas.market_map import MarketMapOut, MarketMapRequest
+from app.schemas.market_map import (
+    MarketMapOut,
+    MarketMapRequest,
+    MarketMapSnapshotCreate,
+    MarketMapSnapshotOut,
+    MarketMapSnapshotSummary,
+)
 from app.services.breadth import (
     BreadthMember,
     build_equal_reference_series,
@@ -172,6 +179,110 @@ async def read_market_map_snapshot(
     if result is None:
         raise HTTPException(404, detail={"code": "market_map_cache_not_found", "cache_key": cache_key})
     return result
+
+
+@router.get("/market-map/snapshots", response_model=list[MarketMapSnapshotSummary])
+async def list_market_map_snapshots(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """List named Market Map snapshots owned by the authenticated user."""
+
+    return (
+        await db.execute(
+            select(MarketMapSnapshot)
+            .where(MarketMapSnapshot.user_id == current_user.id)
+            .order_by(MarketMapSnapshot.created_at.desc())
+        )
+    ).scalars().all()
+
+
+@router.post("/market-map/snapshots", response_model=MarketMapSnapshotOut)
+async def create_market_map_snapshot(
+    body: MarketMapSnapshotCreate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Save a named immutable copy of one already-materialized map result."""
+
+    name = body.name.strip()
+    if not name:
+        raise HTTPException(422, detail={"code": "snapshot_name_required"})
+    existing = (
+        await db.execute(
+            select(MarketMapSnapshot).where(
+                MarketMapSnapshot.user_id == current_user.id,
+                MarketMapSnapshot.name == name,
+            )
+        )
+    ).scalar_one_or_none()
+    if existing is not None:
+        raise HTTPException(409, detail={"code": "market_map_snapshot_name_exists"})
+    cached = await read_market_map_cache(db, current_user.id, body.cache_key)
+    if cached is None:
+        raise HTTPException(404, detail={"code": "market_map_cache_not_found", "cache_key": body.cache_key})
+    snapshot_map = cached.model_copy(update={"cache_hit": False, "cached_at": None})
+    map_json = snapshot_map.model_dump(mode="json")
+    snapshot_hash = hashlib.sha256(
+        json.dumps(map_json, sort_keys=True, default=str).encode()
+    ).hexdigest()
+    row = MarketMapSnapshot(
+        user_id=current_user.id,
+        name=name,
+        source_id=snapshot_map.source.source_id,
+        membership_version=snapshot_map.membership_version,
+        cache_key=body.cache_key,
+        snapshot_hash=snapshot_hash,
+        map_json=map_json,
+    )
+    db.add(row)
+    await db.flush()
+    summary = MarketMapSnapshotSummary.model_validate(row)
+    return MarketMapSnapshotOut(**summary.model_dump(), map=snapshot_map)
+
+
+@router.get("/market-map/snapshots/{snapshot_id:int}", response_model=MarketMapSnapshotOut)
+async def read_market_map_snapshot_by_id(
+    snapshot_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Restore one named Market Map snapshot owned by the authenticated user."""
+
+    row = (
+        await db.execute(
+            select(MarketMapSnapshot).where(
+                MarketMapSnapshot.id == snapshot_id,
+                MarketMapSnapshot.user_id == current_user.id,
+            )
+        )
+    ).scalar_one_or_none()
+    if row is None:
+        raise HTTPException(404, detail={"code": "market_map_snapshot_not_found"})
+    snapshot_map = MarketMapOut.model_validate(row.map_json)
+    summary = MarketMapSnapshotSummary.model_validate(row)
+    return MarketMapSnapshotOut(**summary.model_dump(), map=snapshot_map)
+
+
+@router.delete("/market-map/snapshots/{snapshot_id:int}", status_code=204)
+async def delete_market_map_snapshot(
+    snapshot_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Delete one named Market Map snapshot without deleting its cache result."""
+
+    row = (
+        await db.execute(
+            select(MarketMapSnapshot).where(
+                MarketMapSnapshot.id == snapshot_id,
+                MarketMapSnapshot.user_id == current_user.id,
+            )
+        )
+    ).scalar_one_or_none()
+    if row is None:
+        raise HTTPException(404, detail={"code": "market_map_snapshot_not_found"})
+    await db.delete(row)
 
 
 def _aggregate_series_cells(

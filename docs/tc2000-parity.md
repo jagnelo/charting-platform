@@ -7411,8 +7411,8 @@ is applied to whichever list is selected rather than to a fixed SPY-only univers
 lock state, effective/known-at dates, coverage, exclusions, and freshness remain visible.
 
 This closes the source-selection and resolver contract, not the complete acceptance gate. Direct
-map-to-breadth/Study-Lab launch, durable map snapshots, all requested metrics, complete historical
-provider population, and final board-guided visual approval remain explicit gaps.
+map-to-breadth/Study-Lab launch, all requested metrics, complete historical provider population,
+and final board-guided visual approval remain explicit gaps.
 
 ## 2026-08-17 — Durable Market Map result cache
 
@@ -7421,4 +7421,18 @@ The cache identity includes the serialized request, canonical source membership 
 member IDs, and local bar watermarks. Repeating a request or calling
 `GET /analysis/market-map/cache/{cache_key}` restores the full response without provider fan-out;
 the workstation exposes `cache_hit`/`cached_at` alongside freshness and coverage. This closes
-durable result caching, not named user snapshots, all area/colour metrics, or final visual parity.
+durable result caching, not all area/colour metrics or final visual parity.
+
+## 2026-08-17 — Named Market Map snapshots
+
+Named Market Map snapshots are now durable, user-isolated copies of a complete cached map result.
+The API supports create/list/restore/delete with duplicate-name and ownership checks, and retains
+source identity, membership version, coverage, freshness, warnings, rendered tile metrics, and a
+stable snapshot hash. The workstation exposes save, snapshot selection, restore, and delete controls;
+restoring a named snapshot does not fan out to providers and deleting it does not invalidate the
+underlying automatic cache. Focused backend lifecycle and frontend component coverage pass.
+
+This closes the named-snapshot persistence contract only. Direct map-to-breadth/Study-Lab launch,
+all requested map periods and area/colour modes, Python/breadth outputs, point-in-time market-cap
+weights, complete provider-backed root population, and board-guided visual approval remain explicit
+gaps.

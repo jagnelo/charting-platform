@@ -36,12 +36,22 @@
         <input v-model="referenceSymbol" aria-label="Market Map relative-return reference" placeholder="SPY" maxlength="20" />
       </label>
       <button type="button" class="market-map-tool__run" :disabled="loading || !sourceId" @click="run">{{ loading ? 'Loading…' : 'Refresh' }}</button>
+      <label>Snapshot
+        <select v-model="snapshotSelectionId" aria-label="Market Map snapshot" :disabled="snapshotLoading">
+          <option value="">Live / cached result</option>
+          <option v-for="snapshot in snapshots" :key="snapshot.id" :value="String(snapshot.id)">{{ snapshot.name }}</option>
+        </select>
+      </label>
+      <input v-model="snapshotName" aria-label="Market Map snapshot name" placeholder="Snapshot name" maxlength="160" />
+      <button type="button" :disabled="snapshotLoading || !map || !snapshotName.trim()" @click="saveSnapshot">{{ snapshotLoading ? 'Saving…' : 'Save snapshot' }}</button>
+      <button v-if="snapshotSelectionId" type="button" :disabled="snapshotLoading" @click="deleteSnapshot">Delete snapshot</button>
     </div>
     <p v-if="sourcesError" class="market-map-tool__status market-map-tool__status--error" role="alert">{{ sourcesError }}</p>
     <p v-if="error" class="market-map-tool__status market-map-tool__status--error" role="alert">{{ error }}</p>
+    <p v-if="snapshotError" class="market-map-tool__status market-map-tool__status--error" role="alert">{{ snapshotError }}</p>
     <p v-if="map?.warnings.length" class="market-map-tool__status" role="status">{{ map.warnings.map(item => item.message).join(' · ') }}</p>
     <div v-if="map" class="market-map-tool__summary">
-      <span>{{ map.source.name }}</span><span>{{ map.evaluated_count }}/{{ map.requested_count }} covered</span><span>{{ formatFreshness(map.freshness) }}</span><span v-if="map.cache_hit">Cached result · {{ map.cached_at ? new Date(map.cached_at).toLocaleTimeString() : 'saved' }}</span><span v-if="map.source.locked">Locked source · {{ map.source.membership_version }}</span>
+      <span>{{ map.source.name }}</span><span>{{ map.evaluated_count }}/{{ map.requested_count }} covered</span><span>{{ formatFreshness(map.freshness) }}</span><span v-if="activeSnapshotName">Snapshot · {{ activeSnapshotName }}</span><span v-else-if="map.cache_hit">Cached result · {{ map.cached_at ? new Date(map.cached_at).toLocaleTimeString() : 'saved' }}</span><span v-if="map.source.locked">Locked source · {{ map.source.membership_version }}</span>
     </div>
     <div v-if="map" class="market-map-tool__nodes" aria-label="Market Map groups">
       <button v-if="selectedNode" type="button" aria-label="Market Map parent group" @click="selectNode(activeNode?.parent_id ?? null)">← Up</button>
@@ -91,8 +101,8 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { useWatchlistStore } from '@/stores/watchlist'
-import { fetchMarketMap, layoutMarketMapCells, type MarketMapLayoutCell } from '@/lib/workstation/marketMap'
-import type { MarketMap, MarketMapAreaMetric, MarketMapCell, MarketMapColorMetric, MarketMapGroupBy, WatchlistSource } from '@/types'
+import { deleteMarketMapSnapshot, fetchMarketMap, fetchMarketMapSnapshot, fetchMarketMapSnapshots, layoutMarketMapCells, saveMarketMapSnapshot, type MarketMapLayoutCell } from '@/lib/workstation/marketMap'
+import type { MarketMap, MarketMapAreaMetric, MarketMapCell, MarketMapColorMetric, MarketMapGroupBy, MarketMapSnapshotSummary, WatchlistSource } from '@/types'
 
 const props = withDefaults(defineProps<{ configuration?: Record<string, unknown> }>(), { configuration: () => ({}) })
 const emit = defineEmits<{
@@ -125,6 +135,13 @@ const newPublicationName = ref('')
 const publishing = ref(false)
 const publicationMessage = ref('')
 const publicationError = ref('')
+const snapshots = ref<MarketMapSnapshotSummary[]>([])
+const snapshotSelectionId = ref('')
+const snapshotName = ref('')
+const activeSnapshotName = ref('')
+const snapshotLoading = ref(false)
+const snapshotError = ref('')
+const skipNextSourceRun = ref(false)
 const loadingSources = computed(() => watchlistStore.watchlistSourcesLoading)
 const sourcesError = computed(() => watchlistStore.watchlistSourcesError)
 const publicationTargets = computed(() => watchlistStore.watchlists.filter(watchlist => !watchlist.is_managed && !watchlist.is_locked))
@@ -251,12 +268,74 @@ function publishAnalysis(target: 'breadth' | 'study_lab') {
   })
 }
 
+async function loadSnapshot() {
+  const snapshotId = Number(snapshotSelectionId.value)
+  if (!Number.isInteger(snapshotId) || snapshotId <= 0) {
+    activeSnapshotName.value = ''
+    return
+  }
+  snapshotLoading.value = true
+  snapshotError.value = ''
+  try {
+    const snapshot = await fetchMarketMapSnapshot(snapshotId)
+    skipNextSourceRun.value = true
+    sourceId.value = snapshot.source_id
+    map.value = snapshot.map
+    activeSnapshotName.value = snapshot.name
+    snapshotName.value = snapshot.name
+    selectedNode.value = null
+    selectedIds.value = []
+    resetViewport()
+  } catch (cause) {
+    snapshotError.value = cause instanceof Error ? cause.message : 'Unable to load Market Map snapshot'
+  } finally {
+    snapshotLoading.value = false
+  }
+}
+
+async function saveSnapshot() {
+  if (!map.value || !snapshotName.value.trim() || snapshotLoading.value) return
+  snapshotLoading.value = true
+  snapshotError.value = ''
+  try {
+    const snapshot = await saveMarketMapSnapshot(snapshotName.value.trim(), map.value.cache_key)
+    snapshots.value = [snapshot, ...snapshots.value.filter(item => item.id !== snapshot.id)]
+    snapshotSelectionId.value = String(snapshot.id)
+    activeSnapshotName.value = snapshot.name
+    snapshotName.value = snapshot.name
+  } catch (cause) {
+    snapshotError.value = cause instanceof Error ? cause.message : 'Unable to save Market Map snapshot'
+  } finally {
+    snapshotLoading.value = false
+  }
+}
+
+async function deleteSnapshot() {
+  const snapshotId = Number(snapshotSelectionId.value)
+  if (!Number.isInteger(snapshotId) || snapshotId <= 0 || snapshotLoading.value) return
+  snapshotLoading.value = true
+  snapshotError.value = ''
+  try {
+    await deleteMarketMapSnapshot(snapshotId)
+    snapshots.value = snapshots.value.filter(item => item.id !== snapshotId)
+    snapshotSelectionId.value = ''
+    activeSnapshotName.value = ''
+    snapshotName.value = ''
+  } catch (cause) {
+    snapshotError.value = cause instanceof Error ? cause.message : 'Unable to delete Market Map snapshot'
+  } finally {
+    snapshotLoading.value = false
+  }
+}
+
 async function run() {
   if (!sourceId.value) return
   loading.value = true
   error.value = ''
   try {
     map.value = await fetchMarketMap({ source_id: sourceId.value, group_by: groupBy.value, period: period.value, area_metric: areaMetric.value, color_metric: colorMetric.value, reference_symbol: colorMetric.value === 'relative_return' ? referenceSymbol.value.toUpperCase() : null, timeframe: 'D1', adjusted: true })
+    snapshotSelectionId.value = ''
+    activeSnapshotName.value = ''
     selectedNode.value = null
     selectedIds.value = []
     resetViewport()
@@ -270,10 +349,22 @@ function persist() {
   emit('configuration', { ...props.configuration, source_id: sourceId.value, group_by: groupBy.value, period: period.value, area_metric: areaMetric.value, color_metric: colorMetric.value, reference_symbol: referenceSymbol.value })
 }
 watch([sourceId, groupBy, period, areaMetric, colorMetric, referenceSymbol], persist)
-watch(sourceId, () => { if (sourceId.value) void run() })
+watch(sourceId, () => {
+  if (skipNextSourceRun.value) {
+    skipNextSourceRun.value = false
+    return
+  }
+  if (sourceId.value) void run()
+})
+watch(snapshotSelectionId, () => { void loadSnapshot() })
 onMounted(async () => {
   if (!sources.value.length) await watchlistStore.loadWatchlistSources()
   if (!watchlistStore.watchlists.length) await watchlistStore.loadWatchlists()
+  try {
+    snapshots.value = await fetchMarketMapSnapshots()
+  } catch (cause) {
+    snapshotError.value = cause instanceof Error ? cause.message : 'Unable to load Market Map snapshots'
+  }
   if (!sourceId.value) {
     const preferred = sources.value.find((item: WatchlistSource) => item.source_kind === 'index_membership' || item.source_kind === 'etf_holdings') ?? sources.value[0]
     if (preferred) sourceId.value = preferred.source_id

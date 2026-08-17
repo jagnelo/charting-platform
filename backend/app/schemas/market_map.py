@@ -3,7 +3,7 @@
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from app.schemas.watchlist import WatchlistSourceRead
 
@@ -111,3 +111,25 @@ class MarketMapOut(BaseModel):
     cells: list[MarketMapCell] = Field(default_factory=list)
     exclusions: list[MarketMapWarning] = Field(default_factory=list)
     warnings: list[MarketMapWarning] = Field(default_factory=list)
+
+
+class MarketMapSnapshotCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=160)
+    cache_key: str = Field(min_length=64, max_length=64, pattern=r"^[0-9a-f]{64}$")
+
+
+class MarketMapSnapshotSummary(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    name: str
+    source_id: str
+    membership_version: str | None = None
+    cache_key: str
+    snapshot_hash: str
+    created_at: datetime
+    updated_at: datetime
+
+
+class MarketMapSnapshotOut(MarketMapSnapshotSummary):
+    map: MarketMapOut

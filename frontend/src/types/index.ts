@@ -933,6 +933,21 @@ export interface MarketMap {
   warnings: MarketMapWarning[]
 }
 
+export interface MarketMapSnapshotSummary {
+  id: number
+  name: string
+  source_id: string
+  membership_version?: string | null
+  cache_key: string
+  snapshot_hash: string
+  created_at: string
+  updated_at: string
+}
+
+export interface MarketMapSnapshot extends MarketMapSnapshotSummary {
+  map: MarketMap
+}
+
 export type ScreenerAlertTriggerType = 'entered' | 'left' | 'both'
 export type ScreenerAlertStatus = 'active' | 'triggered' | 'paused' | 'disabled'
 

@@ -1,7 +1,7 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { apiPost, loadWatchlistSources, loadWatchlists, createWatchlist, addItem } = vi.hoisted(() => ({ apiPost: vi.fn(), loadWatchlistSources: vi.fn(), loadWatchlists: vi.fn(), createWatchlist: vi.fn(), addItem: vi.fn() }))
+const { apiGet, apiPost, loadWatchlistSources, loadWatchlists, createWatchlist, addItem } = vi.hoisted(() => ({ apiGet: vi.fn(), apiPost: vi.fn(), loadWatchlistSources: vi.fn(), loadWatchlists: vi.fn(), createWatchlist: vi.fn(), addItem: vi.fn() }))
 const sourceState = vi.hoisted(() => ({
   sources: [{ source_id: 'market-group:sp500', source_kind: 'index_membership', name: 'S&P 500', locked: true, can_follow: true, can_clone: true, can_edit_membership: false, member_count: 2, provenance: {} }],
   watchlists: [],
@@ -9,7 +9,7 @@ const sourceState = vi.hoisted(() => ({
   error: '',
 }))
 
-vi.mock('@/lib/api', () => ({ api: { post: apiPost } }))
+vi.mock('@/lib/api', () => ({ api: { get: apiGet, post: apiPost, delete: vi.fn() } }))
 vi.mock('@/stores/watchlist', () => ({ useWatchlistStore: () => ({ watchlistSources: sourceState.sources, watchlistSourcesLoading: sourceState.loading, watchlistSourcesError: sourceState.error, watchlists: sourceState.watchlists, loadWatchlistSources, loadWatchlists, createWatchlist, addItem }) }))
 
 import MarketMapTool from '@/components/workstation/MarketMapTool.vue'
@@ -23,12 +23,14 @@ const response = {
 describe('MarketMapTool', () => {
   beforeEach(() => {
     apiPost.mockReset()
+    apiGet.mockReset()
     loadWatchlistSources.mockReset()
     loadWatchlists.mockReset()
     createWatchlist.mockReset()
     addItem.mockReset()
     sourceState.watchlists = []
     apiPost.mockResolvedValue(response)
+    apiGet.mockResolvedValue([])
   })
 
   it('loads a locked source, renders tiles, persists controls, and publishes a selected symbol', async () => {
@@ -110,5 +112,24 @@ describe('MarketMapTool', () => {
       [{ target: 'breadth', sourceId: 'market-group:sp500', selectedIds: [1], selectedSymbols: ['NVDA'] }],
       [{ target: 'study_lab', sourceId: 'market-group:sp500', selectedIds: [1], selectedSymbols: ['NVDA'] }],
     ])
+  })
+
+  it('saves and reopens a named snapshot without changing the source contract', async () => {
+    const snapshot = { id: 12, name: 'Morning leaders', source_id: 'market-group:sp500', membership_version: 'v1', cache_key: 'a'.repeat(64), snapshot_hash: 'b'.repeat(64), created_at: '2026-08-07T15:30:00Z', updated_at: '2026-08-07T15:30:00Z', map: response }
+    apiPost.mockReset()
+    apiPost.mockImplementation((path: string) => Promise.resolve(path === '/analysis/market-map' ? response : snapshot))
+    apiGet.mockImplementation((path: string) => Promise.resolve(path.includes('/snapshots/12') ? snapshot : []))
+    const wrapper = mount(MarketMapTool)
+    await flushPromises()
+
+    await wrapper.get('[aria-label="Market Map snapshot name"]').setValue('Morning leaders')
+    const saveSnapshotButton = wrapper.findAll('button').find(button => button.text() === 'Save snapshot')
+    expect(saveSnapshotButton).toBeDefined()
+    await saveSnapshotButton!.trigger('click')
+    await flushPromises()
+
+    expect(apiPost).toHaveBeenCalledWith('/analysis/market-map/snapshots', { name: 'Morning leaders', cache_key: response.cache_key })
+    expect(wrapper.text()).toContain('Snapshot · Morning leaders')
+    expect(wrapper.get('[aria-label="Market Map snapshot"]').element.value).toBe('12')
   })
 })

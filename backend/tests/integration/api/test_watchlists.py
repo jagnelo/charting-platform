@@ -107,6 +107,49 @@ class TestWatchlistsCrud:
         )
         assert foreign.status_code == 404
 
+        created_snapshot = client.post(
+            "/api/v1/analysis/market-map/snapshots",
+            headers=auth_headers,
+            json={"name": "S&P leaders", "cache_key": body["cache_key"]},
+        )
+        assert created_snapshot.status_code == 200, created_snapshot.text
+        snapshot_body = created_snapshot.json()
+        assert snapshot_body["name"] == "S&P leaders"
+        assert snapshot_body["map"]["source"]["source_id"] == f"watchlist:{watchlist.id}"
+        assert snapshot_body["map"]["cache_hit"] is False
+
+        listed_snapshots = client.get(
+            "/api/v1/analysis/market-map/snapshots", headers=auth_headers
+        )
+        assert listed_snapshots.status_code == 200
+        assert [item["name"] for item in listed_snapshots.json()] == ["S&P leaders"]
+
+        duplicate = client.post(
+            "/api/v1/analysis/market-map/snapshots",
+            headers=auth_headers,
+            json={"name": "S&P leaders", "cache_key": body["cache_key"]},
+        )
+        assert duplicate.status_code == 409
+        restored_snapshot = client.get(
+            f"/api/v1/analysis/market-map/snapshots/{snapshot_body['id']}",
+            headers=auth_headers,
+        )
+        assert restored_snapshot.status_code == 200
+        assert restored_snapshot.json()["snapshot_hash"] == snapshot_body["snapshot_hash"]
+        assert client.get(
+            f"/api/v1/analysis/market-map/snapshots/{snapshot_body['id']}",
+            headers=admin_headers,
+        ).status_code == 404
+        deleted = client.delete(
+            f"/api/v1/analysis/market-map/snapshots/{snapshot_body['id']}",
+            headers=auth_headers,
+        )
+        assert deleted.status_code == 204
+        assert client.get(
+            f"/api/v1/analysis/market-map/snapshots/{snapshot_body['id']}",
+            headers=auth_headers,
+        ).status_code == 404
+
     def test_market_map_reports_missing_local_data_without_provider_fanout(
         self, client, auth_headers, watchlist, instrument
     ):

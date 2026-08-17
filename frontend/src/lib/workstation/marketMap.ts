@@ -1,5 +1,5 @@
 import { api } from '@/lib/api'
-import type { MarketMap, MarketMapCell, MarketMapRequest } from '@/types'
+import type { MarketMap, MarketMapCell, MarketMapRequest, MarketMapSnapshot, MarketMapSnapshotSummary } from '@/types'
 
 export function fetchMarketMap(request: MarketMapRequest): Promise<MarketMap> {
   return api.post<MarketMap>('/analysis/market-map', request)
@@ -7,6 +7,22 @@ export function fetchMarketMap(request: MarketMapRequest): Promise<MarketMap> {
 
 export function fetchMarketMapCache(cacheKey: string): Promise<MarketMap> {
   return api.get<MarketMap>(`/analysis/market-map/cache/${encodeURIComponent(cacheKey)}`)
+}
+
+export function fetchMarketMapSnapshots(): Promise<MarketMapSnapshotSummary[]> {
+  return api.get<MarketMapSnapshotSummary[]>('/analysis/market-map/snapshots')
+}
+
+export function saveMarketMapSnapshot(name: string, cacheKey: string): Promise<MarketMapSnapshot> {
+  return api.post<MarketMapSnapshot>('/analysis/market-map/snapshots', { name, cache_key: cacheKey })
+}
+
+export function fetchMarketMapSnapshot(snapshotId: number): Promise<MarketMapSnapshot> {
+  return api.get<MarketMapSnapshot>(`/analysis/market-map/snapshots/${snapshotId}`)
+}
+
+export function deleteMarketMapSnapshot(snapshotId: number): Promise<void> {
+  return api.delete<void>(`/analysis/market-map/snapshots/${snapshotId}`)
 }
 
 export interface MarketMapLayoutCell extends MarketMapCell {
