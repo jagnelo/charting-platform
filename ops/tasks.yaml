@@ -11564,3 +11564,34 @@ tasks:
         assertion was corrected to account for distinct period identity and the unchanged oracle
         passed. Point-in-time weights, complete root population, remaining map metrics, exact V25
         visual approval, and final audit remain open.
+  - id: tc2000-market-map-csv-export-20260819
+    title: Export source-agnostic Market Map cells for arbitrary locked or editable universes
+    status: completed
+    priority: medium
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Add a workstation CSV export for the currently loaded universal Market Map. Export canonical
+      member identity, hierarchy, rendered metrics, coverage, observation time, and warning codes
+      for both system-managed locked index/ETF sources and editable watchlists without changing
+      selection, membership, or route state.
+    definition_of_done:
+      - Export CSV is available only when a map is loaded and emits every returned cell
+      - CSV includes canonical identity, grouping, area/colour/return metrics, coverage, observation time, and warnings
+      - Values are escaped safely for commas, quotes, and newlines and the download name is source-specific
+      - Export works through the same source-neutral Market Map contract for locked and editable sources
+      - Focused/full frontend, type/build, parsing, and diff gates pass
+      - Remaining point-in-time, provider, visual, and final-audit gaps remain explicit
+    validation:
+      - market-map-component-19-of-19
+      - frontend-vitest-876-of-876
+      - frontend-typecheck-build
+      - yaml-json-diff-check
+    notes:
+      - >-
+        No acceptance flexibility was used. The initial test used an unsupported wrapper.get().filter()
+        shape and was corrected to the supported findAll().find() boundary before the unchanged 19/19
+        rerun passed. This was a test-oracle correction, not a product, visual, or scope relaxation.
+      - >-
+        Implementation/docs commit 119c81d1 is clean locally. The single exact push attempt was rejected
+        before Git transport by the private-origin safeguard; no workaround or retry was used. This is
+        transport-only and does not block the product goal.

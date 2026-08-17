@@ -28574,3 +28574,21 @@ and strict visual gaps remain explicitly tracked.
   population, remaining map metrics, exact V25 visual coverage, and final audit remain open.
 - The exact push attempt for the clean `066d92d4..9e7cf84c` range was rejected before Git
   transport by the private-origin safeguard; no workaround or repeat was attempted.
+
+# 2026-08-19 — Source-agnostic Market Map CSV export checkpoint
+
+- Implemented CSV export for the loaded universal Market Map. Each returned cell is exported with
+  canonical identity, sector/industry/group hierarchy, area/colour/return metrics, coverage,
+  observation time, and warning codes. The export uses the same source-neutral contract for locked
+  index/ETF WatchlistSources and editable personal sources and leaves selection/route state intact.
+- Validation passed: focused Market Map `19/19`; full frontend Vitest `876/876`; frontend
+  type-check; Vite production build; YAML/JSON parsing; and `git diff --check`.
+- Fix-first note: the initial unit test used an unsupported Vue Test Utils `get().filter()` shape.
+  It was corrected to `findAll().find()` and the unchanged 19/19 focused oracle passed. No
+  acceptance flexibility, visual threshold, mask, provider, or scope rule changed.
+- Implementation/docs commit `119c81d1` is clean locally. The required single exact push attempt was
+  rejected before Git transport by the private-origin safeguard; no workaround or retry was used.
+  This is an operational transport hold only and does not block continued product work.
+- Remaining open goal gaps: point-in-time market-cap/weight semantics, complete family/provider
+  population, exact/unrepresented V25 visual evidence, and final functional/visual/security/
+  performance/migration/end-to-end audit.

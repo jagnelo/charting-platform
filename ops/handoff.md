@@ -30454,3 +30454,26 @@ indefinite soak; longer endurance remains an explicit open gap.
 - Git transport: the single exact push attempt for `066d92d4..9e7cf84c` was rejected before Git
   transport by the private-origin safeguard. No workaround, alternate transport, or retry was
   used; this is transport-only and not a product blocker.
+
+# 2026-08-19 — Source-agnostic Market Map CSV export checkpoint
+
+- Added an `Export CSV` action to the universal Market Map. It exports every loaded cell with
+  canonical symbol/name, sector/industry/group path, area/colour/return values, colour/area/
+  combined coverage, observation time, and warning codes. CSV escaping handles commas, quotes,
+  and newlines; the filename is derived from the canonical source ID.
+- The action is shared by locked system-managed index/ETF sources and editable personal/watchlist
+  sources. It does not change selection, membership, route, or tool configuration state.
+- Validation passed: focused Market Map `19/19`; full frontend Vitest `876/876`; type-check;
+  production build; YAML/JSON parsing; and `git diff --check`.
+- No acceptance flexibility was used. The new test first used an unsupported `wrapper.get().filter()`
+  shape and was corrected to `findAll().find()` at the test boundary; the unchanged 19/19 oracle
+  then passed. This did not relax any product, visual, scope, or lineage criterion.
+- Implementation/docs commit `119c81d1` is clean locally. The single exact push attempt to
+  `origin/feat/tc2000-frontend-rework` was rejected before Git transport by the private-origin
+  safeguard. No workaround or retry was used; this remains transport-only and not a product
+  blocker. Operational checkpoint is pending.
+- Remaining gaps are unchanged: point-in-time market-cap/weight semantics, complete family/provider
+  population, exact V25 visual evidence for uncovered states, and final functional/visual/security/
+  performance/migration audit.
+- Next context: continue the unified Python promotion fan-out/derived-series work from a clean
+  operational boundary.
