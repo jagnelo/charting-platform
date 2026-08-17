@@ -1,5 +1,27 @@
 # Active Handoff
 
+## 2026-08-17 — Expanded US family perspective vision checkpoint
+
+- Updated the controlling product records to make S&P 500, S&P MidCap 400, S&P SmallCap 600,
+  S&P Composite 1500, Russell 1000, Russell 2000, Russell 3000, and Nasdaq 100 complete,
+  interchangeable top-down analysis roots. The scope now explicitly includes independent
+  cap/equal/value/growth legs where evidenced, Nasdaq-100 cap/equal deconstruction, and the same
+  technical, ratio, configurable breadth, participation, concentration/dispersion, rotation,
+  ranking, sector/industry/proxy/constituent, Study Lab, scan, gauge, plot, and export paths.
+- Reaffirmed that breadth is a user-authored predicate over the selected point-in-time family or
+  style universe, including moving-average state/distance, configurable distance to 52-week
+  highs/lows, new highs/lows, RSI/trend, volume/volatility, relative strength, peer/benchmark,
+  and unified-Python combinations. Family/role, weighting, membership/as-of, coverage,
+  exclusions, freshness, and provenance must survive every output.
+- Missing or unverified legs remain `No verified mapped proxy`, unavailable, or derived; no silent
+  SPY/QQQ/other-family/current-snapshot fallback is permitted. Provider, historical, visual,
+  and browser population gaps remain in the ledger. No acceptance flexibility used.
+- Documentation commit: `eeaecaae docs(tc2000): expand US family analysis vision`; worktree is
+  clean locally. Exact push was attempted once and rejected before Git by the private-origin
+  safeguard; no workaround or repeat. Transport-only and not a goal-wide blocker.
+- Next context: render/filter isolated-Python occurrence artifacts in Research Results, then
+  continue family population and full V25 acceptance.
+
 ## 2026-08-17 — Isolated Python breadth occurrence contract checkpoint
 
 - Extended `BreadthPythonResultOut` with the shared typed historical occurrence stream. The API

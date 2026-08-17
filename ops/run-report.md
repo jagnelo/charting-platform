@@ -1,5 +1,20 @@
 # Run Report
 
+## 2026-08-17 — Expanded US family perspective vision checkpoint
+
+- Documented the current completion-bar expansion across S&P 500/400/600/1500, Russell
+  1000/2000/3000, and Nasdaq 100. Each root must be a complete top-down/breadth perspective with
+  independently evidenced cap/equal/value/growth roles, and Nasdaq 100 must have its own verified
+  cap/equal deconstruction rather than borrowing QQQ/SPY semantics.
+- Documented family/leg-parameterised predicate breadth and lineage requirements for moving
+  averages, high/low distance, new highs/lows, RSI/trend, volume/volatility, relative strength,
+  peer/benchmark, and unified-Python conditions across charts, lists, scans, gauges, alerts,
+  Study Lab, and exports.
+- Validation: `git diff --check` passed. No acceptance flexibility used; missing source,
+  historical, style/equal, visual, and browser evidence remains explicitly tracked.
+- Git closure: documentation commit `eeaecaae` is clean locally. Exact push was attempted once
+  and rejected before Git by the private-origin safeguard; no workaround or repeat.
+
 ## 2026-08-17 — Isolated Python breadth occurrence contract checkpoint
 
 - Added shared occurrence projection for aligned isolated Python breadth history. Persisted runner

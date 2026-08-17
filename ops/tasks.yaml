@@ -118,6 +118,11 @@ tasks:
         breadth universe options. Focused taxonomy/bootstrap `13/13`, API integration `2/2`, Ruff,
         frontend type-check, and Vitest `821/821` pass. Provider verification, point-in-time
         membership/holdings, derived weights, family-wide analytics, and populated browser
+      - >-
+        Current vision clarification (2026-08-17) makes all eight roots complete interchangeable
+        perspectives, including independently evidenced cap/equal/value/growth legs, Nasdaq-100
+        cap/equal deconstruction, and family/leg-parameterised predicate breadth. Missing source
+        and unrepresented visual/browser states remain explicit gaps; this is not a relaxation.
         acceptance remain open; acceptance flexibility used: none.
       - >-
         Analytics bridge implemented locally: `GET /analysis/benchmark-families/{family_key}/overview`
