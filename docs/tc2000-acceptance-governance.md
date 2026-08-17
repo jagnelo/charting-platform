@@ -180,6 +180,23 @@ linked views must retain family/role, membership/as-of, weighting, coverage, exc
 and provenance throughout. This is a clarification of the existing completion bar, not an
 acceptance relaxation; missing or unrepresented states stay in the gap ledger.
 
+### US family view-matrix acceptance
+
+The daily workflow test is parameterised by `(family, role)` and must run for every verified
+cap/equal/value/growth role under each of S&P 500/400/600/1500, Russell 1000/2000/3000, and
+Nasdaq 100. The required sequence is benchmark/leg technicals; cap/equal and value/growth
+spreads; direct and cross-family ratios; sector/industry/proxy ranking; user-authored breadth and
+participation; concentration/dispersion; relative rotation; drawdown/volatility/correlation;
+seasonality/regime context; and constituent drill-down. The same role must then be usable as a
+watchlist column/filter, EasyScan, Market Gauge, alert, Study Lab study, reusable uPlot plot, and
+export artifact where the output contract permits.
+
+The fixture records an explicit result for every requested role. A role with no independently
+verified instrument or reproducible point-in-time series is `No verified mapped proxy`, unavailable,
+or derived, with source/effective/known-at/coverage evidence and a closure condition. It is not a
+silent omission or cross-family fallback, and it does not prevent independent roots with valid
+evidence from continuing through their own acceptance runs.
+
 ## 2026-08-17 — Research Results occurrence-filter sub-gate
 
 The persisted Python breadth occurrence browser now supports an accessible symbol substring

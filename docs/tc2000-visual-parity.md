@@ -106,6 +106,15 @@ surfaces. A missing or ambiguous role is rendered as an explicit unavailable/der
 recorded as a visual gap; it is never hidden by substituting another family. This is a scope
 clarification, not a visual-threshold relaxation.
 
+The visual fixture must repeat the represented workstation composition for every populated
+`family/role` pair, not only SPY/RSP: dense technical charts, linked comparison/ratio panes,
+ranking and breadth grids, concentration/dispersion and rotation panels, drill-down lists, and
+Study Lab/scan/gauge result surfaces. The family/role label, weighting method, membership/as-of,
+freshness, coverage, exclusions, and provenance are part of the visible state and are included in
+the screenshot and interaction assertions. Empty or unverified value/growth/equal roles receive
+their explicit unavailable/derived/`No verified mapped proxy` visual state and remain in the board
+gap ledger until evidence closes them; the fixture must not hide them by dropping the row.
+
 ## Evidence hierarchy
 
 Resolve visual or behavioral ambiguity in this order:

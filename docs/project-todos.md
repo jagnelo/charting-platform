@@ -45,6 +45,29 @@ deconstruction alongside the original SPY/RSP workflow.
       substitute SPY, QQQ, another family, or a current-only snapshot. Acceptance must attempt
       all eight roots and every evidenced style/equal leg; selector presence alone is insufficient.
 
+### 2026-08-17 — US family view matrix clarified
+
+The eight-root expansion is also a view-completeness requirement. For each root and each
+independently verified cap/equal/value/growth leg, the workstation must provide the same reusable
+analysis vocabulary rather than a family-specific shortcut:
+
+- [ ] Benchmark and leg technicals: OHLCV, supported indicators, normalized performance,
+      drawdown, volatility, correlation, and timeframe-linked charts.
+- [ ] Structure and leadership: cap-versus-equal and value-versus-growth spreads, direct and
+      cross-family ratios, sector/industry/proxy rankings where the taxonomy exists, and
+      constituent drill-down with stable point-in-time membership.
+- [ ] Breadth and participation: user-authored member predicates (moving-average state/distance,
+      52-week proximity, new highs/lows, RSI/trend, volume/volatility, relative-strength,
+      benchmark/peer, and unified Python), historical series, occurrences, member sets,
+      exclusions, and explicit denominator/coverage semantics.
+- [ ] Context and reuse: concentration/dispersion, relative rotation, seasonality/regimes,
+      watchlist columns/filters, scans, Market Gauges, alerts, Study Lab artifacts, reusable
+      plots, and exports. Every output preserves root, role, membership/as-of, weighting,
+      coverage, exclusions, freshness, and provenance.
+- [ ] The acceptance fixture must iterate S&P 500/400/600/1500, Russell 1000/2000/3000, and
+      Nasdaq 100. A missing product is a recorded unavailable, derived, or `No verified mapped
+      proxy` result with a closure condition; it is not silently skipped.
+
 ### 2026-08-17 — Recursive breadth condition-tree authoring
 
 - [x] Added a dedicated authenticated breadth condition-tree editor with nested `all`, `any`,

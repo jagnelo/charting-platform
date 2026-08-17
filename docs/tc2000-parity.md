@@ -51,6 +51,22 @@ drill-down. All outputs retain the selected root/role, membership and as-of poli
 method, coverage, exclusions, freshness, and provenance. This expands the scope of the parity
 matrix without relaxing any visual, historical, provider, or no-fallback criterion.
 
+## 2026-08-17 — Per-family view completeness
+
+The family matrix is accepted only when each available root/leg can drive the same complete view
+set. The acceptance harness iterates S&P 500/400/600/1500, Russell 1000/2000/3000, and Nasdaq 100
+and, for every evidenced cap/equal/value/growth leg, checks benchmark technicals and linked
+timeframes; cap/equal and value/growth spreads; direct and cross-family ratios; sector,
+industry/proxy, and constituent drill-down; configurable predicate breadth with historical
+occurrences and member sets; leadership/ranking; concentration/dispersion; relative rotation;
+drawdown/volatility/correlation; seasonality/regime context; and reuse as watchlist columns,
+filters, scans, gauges, alerts, Study Lab outputs, plots, and exports.
+
+The same canonical identity, weighting, membership/as-of, coverage, exclusions, freshness, and
+provenance must travel through every view. If a value, growth, or equal product cannot be proven,
+the parity state is explicitly unavailable, derived, or `No verified mapped proxy`, with missing
+evidence and a closure condition recorded; it is never silently omitted or substituted.
+
 ## 2026-08-17 — Recursive breadth condition tree
 
 The generic breadth surface now includes a nested condition-tree mode. Users can add arbitrary
