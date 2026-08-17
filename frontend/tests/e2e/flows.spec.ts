@@ -2868,6 +2868,9 @@ test.describe('TC2000 workstation', () => {
     await page.route(/\/api\/v1\/analysis\/breadth\/python\/runs\/883\/promote-plot$/, async route => {
       await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: 41, name: 'Member breadth plot 883', kind: 'plot', versions: [{ id: 41, output_contract: 'series', diagnostics: [] }] }) })
     })
+    await page.route(/\/api\/v1\/analysis\/breadth\/python\/runs\/883\/promote-column$/, async route => {
+      await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: 42, name: 'Member breadth column 883', kind: 'column', versions: [{ id: 42, output_contract: 'scalar', diagnostics: [{ output_adapter: 'latest_series_to_scalar' }] }] }) })
+    })
     await page.goto('/chart')
     await expect(page.locator('.workstation')).toBeVisible()
     const studyLayoutTab = page.locator('.workstation__tabs > button').filter({ hasText: 'Study Lab' }).last()
@@ -2889,6 +2892,8 @@ test.describe('TC2000 workstation', () => {
     await expect(results.getByRole('button', { name: 'Save as chart plot' })).toBeVisible()
     await results.getByRole('button', { name: 'Save as chart plot' }).click()
     await expect(results).toContainText('Chart plot “Member breadth plot 883” (#41) created')
+    await results.getByRole('button', { name: 'Save as watchlist column' }).click()
+    await expect(results).toContainText('Watchlist column “Member breadth column 883” (#42) created')
     await browserDiagnostics.expectNoCriticalIssues()
   })
 

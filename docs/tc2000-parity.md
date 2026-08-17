@@ -1,5 +1,18 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-19 — Member breadth column promotion
+
+Research Results now exposes a guarded “Save as watchlist column” action for completed
+member-scoped numeric breadth series. The API creates an immutable user-owned scalar CodeAsset
+whose isolated execution adapter requests the source numeric series and projects its latest finite
+value for the selected symbol. Source run, code version, definition, reproducibility hash, dataset
+manifest, universe, and adapter semantics remain attached to the asset. This is a deliberate
+per-symbol column contract, not a generic conversion of every study result.
+
+Cross-sectional aggregates and recursive Boolean trees return structured capability errors for this
+target and remain tracked for compatible promotion surfaces. The represented UI and browser flow
+are covered; complete promotion fan-out is still open.
+
 ## 2026-08-18 — Universal heatmap sources and recursive Python member predicates
 
 Every canonical `WatchlistSource` now has the same Market Map contract: index/ETF roots and

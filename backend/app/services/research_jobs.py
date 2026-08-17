@@ -32,6 +32,22 @@ def enqueue_research_run(run: ResearchRun) -> None:
     # The runner image/Compose volume owns this directory. In local API tests the
     # result directory is intentionally created by the result fixture instead.
     _prepare_shared_directory(result_directory, create=False)
+    output_adapter = run.run_config.get("output_adapter")
+    if not isinstance(output_adapter, str):
+        diagnostics = (
+            getattr(run.code_version, "diagnostics", [])
+            if run.code_version is not None
+            else []
+        )
+        if isinstance(diagnostics, list):
+            output_adapter = next(
+                (
+                    item.get("output_adapter")
+                    for item in diagnostics
+                    if isinstance(item, dict) and isinstance(item.get("output_adapter"), str)
+                ),
+                None,
+            )
     payload = {
         "run_id": run.id,
         "source": run.code_version.source,
@@ -45,6 +61,7 @@ def enqueue_research_run(run: ResearchRun) -> None:
         "history_limit": run.run_config.get("history_limit"),
         "series_target": run.run_config.get("series_target"),
         "condition_tree": run.run_config.get("condition_tree"),
+        "output_adapter": output_adapter,
     }
     destination = Path(settings.RESEARCH_JOB_DIR) / f"{run.id}.json"
     temporary = destination.with_suffix(".tmp")

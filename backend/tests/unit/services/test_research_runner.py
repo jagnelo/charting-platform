@@ -48,6 +48,26 @@ def test_runner_injects_json_parameters_into_single_and_batch_runs():
     assert batch["artifacts"]["batch_cells"]["value"]["cells"][0]["value"] == 7.0
 
 
+def test_runner_adapts_latest_numeric_series_value_to_scalar_column_contract():
+    result = execute_job(
+        {
+            "source": "output.series('target', market.close())",
+            "output_contract": "scalar",
+            "output_name": "target",
+            "output_adapter": "latest_series_to_scalar",
+            "dataset": {
+                "datasets": [
+                    {"instrument_id": 1, "symbol": "SPY", "closes": [10, 11, 12]},
+                ]
+            },
+        }
+    )
+    assert result["status"] == "completed"
+    assert result["artifacts"]["batch_cells"]["value"]["cells"] == [
+        {"instrument_id": 1, "symbol": "SPY", "status": "completed", "value": 12.0, "metric": 12.0},
+    ]
+
+
 def test_runner_executes_declared_event_signals_across_prepared_universe_cells():
     result = execute_job(
         {

@@ -1036,13 +1036,17 @@ def _execute_batch(
                 )
                 matches = []
             else:
+                output_adapter = hash_input.get("output_adapter")
+                requested_contract = (
+                    "series" if output_contract == "scalar" and output_adapter == "latest_series_to_scalar" else output_contract
+                )
                 result = _execute_single(
                     source,
                     candidate,
                     {
                         "source": source,
                         "dataset": candidate,
-                        "output_contract": output_contract,
+                        "output_contract": requested_contract,
                         "parameters": hash_input.get("parameters", {}),
                     },
                     manage_timeout=False,
@@ -1067,7 +1071,7 @@ def _execute_batch(
                     artifact
                     for name, artifact in result.get("artifacts", {}).items()
                     if isinstance(artifact, dict)
-                    and artifact.get("type") == output_contract
+                    and artifact.get("type") == requested_contract
                     and (output_name is None or name == output_name)
                 ]
                 if output_contract == "boolean":
@@ -1081,6 +1085,9 @@ def _execute_batch(
                             extracted_metric, hash_input.get("series_target")
                         )
                     error = extraction_error or target_error
+                elif output_adapter == "latest_series_to_scalar":
+                    extracted_metric, error = _series_artifact(result, output_name)
+                    value = extracted_metric
                 else:
                     error = None
                     if len(matches) != 1:

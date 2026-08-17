@@ -34,7 +34,7 @@
       <div><span>Reproducibility</span><b :class="comparisonClass('reproducibility_hash')">{{ comparisonRuns[0].reproducibility_hash ?? '—' }} / {{ comparisonRuns[1].reproducibility_hash ?? '—' }}</b></div>
     </section>
     <article v-if="selectedRun" class="research-results-tool__detail" :aria-label="`Research run ${selectedRun.id} details`">
-      <div class="research-results-tool__detail-header"><strong>Run #{{ selectedRun.id }}</strong><button v-if="canCancel(selectedRun)" type="button" :disabled="canceling" @click="cancel(selectedRun)">Cancel</button><button v-if="canPromoteBreadth(selectedRun)" type="button" :disabled="rerunning || canceling || promoting" @click="promoteScan(selectedRun)">{{ promoting ? 'Promoting…' : 'Promote to EasyScan' }}</button><button v-if="canPromoteBreadthPlot(selectedRun)" type="button" :disabled="rerunning || canceling || promoting" @click="promotePlot(selectedRun)">{{ promoting ? 'Promoting…' : 'Save as chart plot' }}</button><button type="button" :disabled="rerunning || canceling || promoting" @click="rerun(selectedRun, true)">Rerun snapshot</button><button type="button" :disabled="rerunning || canceling || promoting" @click="rerun(selectedRun, false)">Rerun latest</button></div>
+      <div class="research-results-tool__detail-header"><strong>Run #{{ selectedRun.id }}</strong><button v-if="canCancel(selectedRun)" type="button" :disabled="canceling" @click="cancel(selectedRun)">Cancel</button><button v-if="canPromoteBreadth(selectedRun)" type="button" :disabled="rerunning || canceling || promoting" @click="promoteScan(selectedRun)">{{ promoting ? 'Promoting…' : 'Promote to EasyScan' }}</button><button v-if="canPromoteBreadthPlot(selectedRun)" type="button" :disabled="rerunning || canceling || promoting" @click="promotePlot(selectedRun)">{{ promoting ? 'Promoting…' : 'Save as chart plot' }}</button><button v-if="canPromoteBreadthColumn(selectedRun)" type="button" :disabled="rerunning || canceling || promoting" @click="promoteColumn(selectedRun)">{{ promoting ? 'Promoting…' : 'Save as watchlist column' }}</button><button type="button" :disabled="rerunning || canceling || promoting" @click="rerun(selectedRun, true)">Rerun snapshot</button><button type="button" :disabled="rerunning || canceling || promoting" @click="rerun(selectedRun, false)">Rerun latest</button></div>
       <p class="research-results-tool__run-guidance" role="status" aria-live="polite" aria-atomic="true">{{ statusGuidance(selectedRun.status) }}</p>
       <p v-if="promotionMessage" class="research-results-tool__run-guidance" role="status" aria-live="polite" aria-atomic="true">{{ promotionMessage }}</p>
       <small v-if="selectedRun.reproducibility_hash">{{ selectedRun.reproducibility_hash }}</small>
@@ -349,6 +349,9 @@ function canPromoteBreadthPlot(run: ResearchRunSummary) {
     && (!target || typeof target !== 'object' || String((target as Record<string, unknown>).scope ?? 'member') === 'member')
     && !run.run_config?.condition_tree
 }
+function canPromoteBreadthColumn(run: ResearchRunSummary) {
+  return canPromoteBreadthPlot(run)
+}
 
 async function refresh() {
   error.value = ''
@@ -414,6 +417,18 @@ async function promotePlot(run: ResearchRunSummary) {
     promotionMessage.value = `Chart plot “${promoted.name}” (#${promoted.id}) created. It re-evaluates the member series on the selected symbol; the breadth run lineage remains attached.`
   } catch (cause: any) {
     promotionMessage.value = cause?.message ?? 'Unable to promote the breadth run to a chart plot'
+  } finally {
+    promoting.value = false
+  }
+}
+async function promoteColumn(run: ResearchRunSummary) {
+  promoting.value = true
+  promotionMessage.value = ''
+  try {
+    const promoted = await api.post<{ id: number; name: string }>(`/analysis/breadth/python/runs/${run.id}/promote-column`, {})
+    promotionMessage.value = `Watchlist column “${promoted.name}” (#${promoted.id}) created. It re-evaluates the latest member-series value; the breadth run lineage remains attached.`
+  } catch (cause: any) {
+    promotionMessage.value = cause?.message ?? 'Unable to promote the breadth run to a watchlist column'
   } finally {
     promoting.value = false
   }

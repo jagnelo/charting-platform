@@ -250,6 +250,21 @@ describe('ResearchResultsTool', () => {
     expect(wrapper.text()).toContain('Chart plot “Member breadth plot 21” (#41) created')
   })
 
+  it('promotes a completed member-level numeric breadth run into a scalar watchlist column adapter', async () => {
+    apiGet.mockResolvedValue([{ id: 22, status: 'completed', code_version_id: 9, run_config: { execution_mode: 'breadth_history', output_contract: 'series', series_target: { scope: 'member', operator: 'gte', threshold: 0 } }, dataset_manifest: {}, diagnostics: [], artifacts: [] }])
+    apiPost.mockResolvedValue({ id: 42, name: 'Member breadth column 22' })
+    const wrapper = mountTool()
+    await flushPromises()
+
+    const columnButton = wrapper.findAll('button').find(button => button.text() === 'Save as watchlist column')
+    expect(columnButton).toBeDefined()
+    await columnButton!.trigger('click')
+    await flushPromises()
+
+    expect(apiPost).toHaveBeenCalledWith('/analysis/breadth/python/runs/22/promote-column', {})
+    expect(wrapper.text()).toContain('Watchlist column “Member breadth column 22” (#42) created')
+  })
+
   it('keeps malformed dashboard layouts in the structured fallback instead of leaking invalid grid spans', async () => {
     apiGet.mockResolvedValue([{ id: 18, status: 'completed', code_version_id: 4, run_config: {}, dataset_manifest: {}, diagnostics: [], artifacts: [
       { id: 9, name: 'unsafe_layout', artifact_type: 'dashboard', payload: { value: { panels: [{ artifact: 'sample', title: 'Sample', span: 99 }] } } },

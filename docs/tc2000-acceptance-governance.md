@@ -1,5 +1,17 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-08-19 — Member-series-to-column promotion sub-gate
+
+For a completed isolated Python breadth-history run, acceptance must verify that a member-scoped
+numeric series can be saved as a reusable watchlist column. The persisted scalar CodeVersion must
+retain the source run/code/definition/reproducibility/dataset/universe lineage and declare the
+`latest_series_to_scalar` adapter; the isolated runner must request the series and return the latest
+finite value without API-side Python execution. Research Results must expose success and duplicate
+states. Cross-sectional aggregates and recursive Boolean trees must return explicit capability
+errors rather than being silently projected into per-symbol values. This sub-gate passes only for
+the represented member scope; filters, gauges, alerts, Study Lab, Strategy Lab, and broader
+cross-sectional promotion remain named open gates.
+
 ## 2026-08-18 — Universal source and recursive Python sub-gate
 
 The heatmap/breadth acceptance oracle treats every canonical source as one universe contract.

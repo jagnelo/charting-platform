@@ -2,6 +2,17 @@
 
 ### 2026-08-18 — Recursive Python member condition trees and universal heatmap sources
 
+- [x] Promote a completed member-level numeric breadth series into a reusable watchlist
+      `column` asset through the isolated runner. The adapter extracts the latest finite value
+      from the declared member series at evaluation time, retains source run/code/definition/
+      reproducibility/dataset/universe lineage, and never executes Python in the API.
+- [x] Reject cross-sectional aggregate and recursive Boolean-tree results for this scalar column
+      target with explicit capability errors; they remain valid inputs for their compatible plot,
+      filter, gauge, alert, Study Lab, or Strategy Lab targets rather than being misrepresented as
+      a per-symbol column.
+- [ ] Continue the remaining promotion fan-out: cross-sectional/recursive condition promotion,
+      filters, EasyScan, Market Gauges, alerts, Study Lab artifacts, and Strategy Lab signals.
+
 - [x] Add a direct `python_series_comparison` leaf for two user-owned isolated numeric-series
       outputs. Difference and ratio-minus-one relations run on the same prepared member and
       timestamp, so either side may use the declared benchmark dataset for cross-derived studies;

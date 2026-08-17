@@ -3031,6 +3031,26 @@ class TestWorkspaces:
             json={"name": "Duplicate historical Python breadth plot"},
         )
         assert duplicate_plot.status_code == 409
+        promoted_column = client.post(
+            f"/api/v1/analysis/breadth/python/runs/{queued_payload['run_id']}/promote-column",
+            headers=auth_headers,
+            json={"name": "Historical Python breadth column"},
+        )
+        assert promoted_column.status_code == 201, promoted_column.text
+        promoted_column_payload = promoted_column.json()
+        assert promoted_column_payload["kind"] == "column"
+        assert promoted_column_payload["versions"][0]["output_contract"] == "scalar"
+        assert any(
+            item.get("output_adapter") == "latest_series_to_scalar"
+            for item in promoted_column_payload["versions"][0]["diagnostics"]
+            if isinstance(item, dict)
+        )
+        column_duplicate = client.post(
+            f"/api/v1/analysis/breadth/python/runs/{queued_payload['run_id']}/promote-column",
+            headers=auth_headers,
+            json={"name": "Duplicate historical Python breadth column"},
+        )
+        assert column_duplicate.status_code == 409
 
         tree_queued = client.post(
             "/api/v1/analysis/breadth/python",
@@ -3179,6 +3199,13 @@ class TestWorkspaces:
         )
         assert cross_plot.status_code == 422
         assert cross_plot.json()["detail"]["code"] == "breadth_plot_promotion_requires_member_scope"
+        cross_column = client.post(
+            f"/api/v1/analysis/breadth/python/runs/{cross_queued.json()['run_id']}/promote-column",
+            headers=auth_headers,
+            json={"name": "Cross-sectional breadth column"},
+        )
+        assert cross_column.status_code == 422
+        assert cross_column.json()["detail"]["code"] == "breadth_column_promotion_requires_member_scope"
 
     def test_etf_constituent_snapshot_is_point_in_time_and_source_labelled(
         self, client, auth_headers, db, instrument, instrument_type, ohlcv_bars
