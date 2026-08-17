@@ -1,5 +1,16 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-17 — Breadth OR/NOT composition
+
+The generic breadth editor now exposes `all`, `any`, and `not` composition. The first two emit a
+two-clause nested condition tree; `not` emits a single-child negation, all using the same backend
+recursive evaluator and current/history contract. Rebuilt authenticated Chromium coverage proves
+the OR and NOT payloads. A test-oracle ordering defect was fixed by explicitly returning to single
+composition before the independent percentile assertions; the unchanged flow then passed. The
+visual editor is intentionally still a bounded subset, with arbitrary recursive groups, event and
+benchmark/peer targets, derived Python composition, and complete promotion fan-out tracked as
+gaps.
+
 ## 2026-08-17 — New-high/new-low breadth authoring
 
 The generic breadth composer now exposes the backend-supported `new_high_low` predicate with

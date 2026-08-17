@@ -411,6 +411,8 @@
         <select :value="breadthComposition" aria-label="Breadth condition composition" @change="setBreadthConfiguration({ breadth_condition_composition: ($event.target as HTMLSelectElement).value })">
           <option value="single">Single condition</option>
           <option value="all">All conditions</option>
+          <option value="any">Any condition</option>
+          <option value="not">Not condition</option>
         </select>
         <label>Benchmark <input :value="breadthBenchmark" aria-label="Breadth benchmark" maxlength="12" @change="setBreadthConfiguration({ breadth_benchmark: ($event.target as HTMLInputElement).value.toUpperCase() })" /></label>
         <select :value="breadthConditionKind" aria-label="Breadth condition" @change="setBreadthConfiguration({ breadth_condition: ($event.target as HTMLSelectElement).value })">
@@ -502,7 +504,7 @@
           <select :value="breadthComparisonOperator" aria-label="Breadth percentile operator" @change="setBreadthConfiguration({ breadth_comparison_operator: ($event.target as HTMLSelectElement).value })"><option value="gte">At or above</option><option value="lte">At or below</option><option value="gt">Above</option><option value="lt">Below</option></select>
           <label>Percentile <input :value="breadthPercentileTarget" aria-label="Breadth percentile target" type="number" min="0" max="1" step="0.01" @change="setBreadthConfiguration({ breadth_percentile_target: Number(($event.target as HTMLInputElement).value) })" /></label>
         </template>
-        <template v-if="breadthComposition === 'all'">
+        <template v-if="breadthComposition === 'all' || breadthComposition === 'any'">
           <span class="breadth-tool__composition-note">+ measured-field target</span>
           <select :value="breadthSecondaryField" aria-label="Breadth second measured field" @change="setBreadthConfiguration({ breadth_secondary_field: ($event.target as HTMLSelectElement).value })">
             <option value="return">Return</option>
@@ -1742,7 +1744,10 @@ const breadthCustomUniverseKind = computed(() => {
   const candidate = props.tool.configuration.custom_universe_kind
   return candidate === 'etf_holdings' || candidate === 'benchmark_family' ? candidate : 'group'
 })
-const breadthComposition = computed(() => props.tool.configuration.breadth_condition_composition === 'all' ? 'all' : 'single')
+const breadthComposition = computed(() => {
+  const candidate = String(props.tool.configuration.breadth_condition_composition ?? 'single')
+  return ['all', 'any', 'not'].includes(candidate) ? candidate : 'single'
+})
 const breadthConditionKind = computed(() => {
   const candidate = String(props.tool.configuration.breadth_condition ?? 'above_moving_average')
   return ['above_moving_average', 'within_52_week_high', 'new_high_low', 'trend', 'rsi', 'volume_ratio', 'relative_strength', 'comparison', 'range', 'percentile'].includes(candidate) ? candidate : 'above_moving_average'
@@ -1911,9 +1916,11 @@ const genericBreadthDefinition = computed(() => ({
         : { key: 'SPY' }),
     point_in_time: true,
   },
-  condition: breadthComposition.value === 'all'
-    ? { kind: 'all', params: { conditions: [primaryBreadthCondition(), comparisonCondition(breadthSecondaryField.value, 'gte', breadthSecondaryThreshold.value)] } }
-    : primaryBreadthCondition(),
+  condition: breadthComposition.value === 'all' || breadthComposition.value === 'any'
+    ? { kind: breadthComposition.value, params: { conditions: [primaryBreadthCondition(), comparisonCondition(breadthSecondaryField.value, 'gte', breadthSecondaryThreshold.value)] } }
+    : breadthComposition.value === 'not'
+      ? { kind: 'not', params: { conditions: [primaryBreadthCondition()] } }
+      : primaryBreadthCondition(),
   timeframe: breadthTimeframe.value,
   adjusted: breadthAdjusted.value,
   ...(familyAsOf.value ? { as_of: familyAsOf.value } : {}),

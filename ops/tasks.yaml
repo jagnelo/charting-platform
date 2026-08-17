@@ -1,4 +1,28 @@
 tasks:
+  - id: tc2000-breadth-or-not-composition-20260817
+    title: Expose OR and NOT breadth composition controls
+    status: completed
+    priority: high
+    scope: >-
+      Extend the generic breadth editor to serialize explicit all/any/not condition trees while
+      reusing the recursive backend evaluator.
+    definition_of_done:
+      - Composer exposes single, all, any, and not choices
+      - all and any serialize two child conditions; not serializes one child
+      - Authenticated browser coverage proves any and not requests
+      - Existing single/percentile paths remain independently testable
+      - Frontend type/test/build and diff checks pass
+      - Recursive visual authoring and richer target/promotion gaps remain documented
+    validation:
+      - focused-authenticated-F8s-breadth-family-ratio-1-of-1
+      - frontend-vitest-839-of-839
+      - frontend-type-check-production-build
+      - diff-check
+    notes:
+      - >-
+        No acceptance flexibility used. A first rerun exposed an order-dependent test oracle that
+        inherited NOT composition into the later percentile assertion; the test now resets to
+        single explicitly and the unchanged browser flow passes.
   - id: tc2000-breadth-new-high-low-authoring-20260817
     title: Expose new-high/new-low breadth authoring controls
     status: completed

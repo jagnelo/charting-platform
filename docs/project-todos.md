@@ -1,5 +1,20 @@
 # Project TODO Memory
 
+### 2026-08-17 — Breadth OR/NOT composition controls
+
+- [x] Expanded the generic breadth composer from single/all-only to explicit `all`, `any`, and
+      `not` composition. OR and NOT definitions are serialized as nested condition trees and
+      reuse the backend's existing recursive evaluator, denominator, exclusions, and history
+      contract.
+- [x] Authenticated Chromium coverage proves `any` and `not` request payloads, alongside the
+      existing single-condition breadth cases. Full frontend type-check, build, Vitest, and
+      diff checks pass.
+- [ ] The editor remains a bounded two-clause visual subset; arbitrary recursive nested groups,
+      per-clause visual diagnostics, event targets, benchmark/peer target series, and derived
+      Python composition remain open. The first rerun exposed an order-dependent test oracle
+      that failed to reset composition before a percentile assertion; the test was corrected and
+      the unchanged 1/1 flow passed. No acceptance flexibility was used.
+
 ### 2026-08-17 — Breadth new-high/new-low authoring surface
 
 - [x] Exposed `new_high_low` in the workstation's generic breadth composer with explicit high/

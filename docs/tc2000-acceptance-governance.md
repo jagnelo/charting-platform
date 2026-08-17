@@ -1,5 +1,16 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-08-17 — Breadth OR/NOT composition sub-gate
+
+The breadth editor must distinguish single, `all`, `any`, and `not` composition. `all` and `any`
+must serialize two explicit child conditions, while `not` must serialize exactly one child; the
+backend remains authoritative for recursive evaluation, exclusions, and historical semantics.
+Authenticated Chromium verifies both nested request shapes. The initial rerun found a test-order
+defect where the percentile assertion inherited `not`; the oracle was corrected to reset to single
+before that independent case and the unchanged flow passed. No product criterion, visual limit,
+mask, or provider rule was relaxed. Recursive visual authoring, event/benchmark-peer targets,
+derived Python composition, and promotion fan-out remain open gates.
+
 ## 2026-08-17 — New-high/new-low breadth sub-gate
 
 The breadth editor must allow the user to select `new_high_low` versus a configurable prior
