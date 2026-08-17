@@ -28004,3 +28004,15 @@ in 4.6 minutes. No failure was suppressed or reclassified as product success.
 - Remaining: map-to-watchlist/breadth/Study-Lab publication beyond linked-symbol selection,
   persistent snapshots/cache, Python/breadth colour assets, point-in-time market-cap, all-root
   population, and final visual acceptance.
+
+# 2026-08-17 — Market Map watchlist publication checkpoint
+
+- Added personal-list publication for additive map selections: create a new editable personal
+  watchlist or append canonical selected members to an existing editable list. Managed/locked
+  targets remain excluded and linked-symbol publication is unchanged.
+- Focused component `4/4`, full frontend Vitest `853/853`, `vue-tsc --noEmit`, production build,
+  and `git diff --check` pass. No acceptance flexibility used.
+- Implementation/docs commit `9820a5b9` is clean locally. Its exact push was attempted once and
+  rejected before Git by the private-origin safeguard; no workaround or repeat. Transport-only.
+- Remaining: map-to-breadth/Study-Lab publication, persistent snapshots/cache, Python/breadth colour
+  assets, point-in-time market-cap, all-root population, and final visual acceptance.

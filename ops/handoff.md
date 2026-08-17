@@ -29727,3 +29727,16 @@ indefinite soak; longer endurance remains an explicit open gap.
 - Remaining gaps: map-to-watchlist/breadth/Study-Lab publication beyond linked-symbol selection,
   persistent snapshots/cache, Python/breadth colour assets, point-in-time market-cap, all-root
   population, and final board-guided visual acceptance.
+
+# 2026-08-17 — Market Map watchlist publication checkpoint
+
+- Added a selection action that creates a personal watchlist or adds canonical selected member IDs
+  to an existing editable personal list. Managed and locked watchlists are excluded from targets;
+  source membership governance is not bypassed. Existing linked-symbol publication remains intact.
+- Validation passed: focused Market Map component `4/4`, full frontend Vitest `853/853`,
+  `vue-tsc --noEmit`, production build, and `git diff --check`. No acceptance flexibility used.
+- Implementation/docs commit `9820a5b9` is clean locally. Its exact elevated push was attempted once
+  and rejected before Git by the private-origin safeguard; no workaround or repeat. Transport-only.
+- Remaining gaps: map-to-breadth/Study-Lab publication, persistent snapshots/cache, Python/breadth
+  colour assets, point-in-time market-cap, all-root population, and final board-guided visual
+  acceptance.
