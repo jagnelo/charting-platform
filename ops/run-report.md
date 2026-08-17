@@ -28546,3 +28546,6 @@ and strict visual gaps remain explicitly tracked.
 - Product status remains continuous/in progress. Filters, gauges, alerts, Study Lab, Strategy Lab,
   richer derived chaining, full family/provider population, exact V25 visual coverage, and the
   final audit remain open.
+- The single exact push attempt for the clean `2c1f0ede..078bb65d` range was rejected before Git
+  transport by the private-origin safeguard. No workaround or repeat was attempted; transport is
+  recorded as an operational hold, not a product blocker.

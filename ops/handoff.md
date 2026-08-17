@@ -30417,3 +30417,7 @@ indefinite soak; longer endurance remains an explicit open gap.
   push remains subject to the existing private-origin safeguard; no push success is claimed.
 - Remaining gaps: universal promotion fan-out, richer derived composition, complete family/provider
   population, exact V25 visual evidence, and final functional/visual/security/performance audit.
+- Git transport: the single exact push attempt for `2c1f0ede..078bb65d` to
+  `origin/feat/tc2000-frontend-rework` was rejected before Git transport by the private-origin
+  safeguard. No workaround, alternate transport, or retry was used; this is transport-only and
+  not a product blocker.
