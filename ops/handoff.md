@@ -1,5 +1,18 @@
 # Active Handoff
 
+## 2026-08-17 — Universe-scoped performance-map requirement
+
+The active goal now includes a first-class workstation Market Map for the supplied Finviz-style
+workflow. It must accept supported index/style/group/watchlist universes, group holdings by
+sector/industry, support preset and custom completed-session periods, independent area and colour
+metrics, canonical point-in-time lineage, and map-to-chart/watchlist/breadth/Study-Lab publication.
+The existing dashboard heat map is only a compatibility precursor (500-ID cap, watchlist/screener
+input, fixed metrics) and is not completion.
+
+No implementation or acceptance flexibility was claimed in this planning checkpoint. The docs
+record batch/cache/no-provider-fanout, rollup/coverage, large-universe, and interaction gates.
+Finviz captures are behavioural references, not TC2000 artwork baselines.
+
 ## 2026-08-17 — Numeric Python-series breadth composer checkpoint
 
 - The authenticated Market Breadth composer now loads the latest user-owned condition assets with

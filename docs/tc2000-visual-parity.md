@@ -1,5 +1,15 @@
 # TC2000 Version 25 Visual-Parity Specification
 
+## Product-reference addition — universe-scoped performance maps
+
+The supplied Finviz captures are retained as behavioural/layout references for the new map surface
+(hierarchical sector/industry composition, dense tiles, period colour scale, legend, hover, and
+drill interactions). They are not TC2000 trademark/artwork baselines. The board must record which
+states are represented and which remain gaps: arbitrary index/style roots, custom periods,
+weight/equal area modes, breadth/Python colour modes, stale/coverage disclosures, and map-to-tool
+publication are not visually accepted until represented by a deterministic fixture or an explicit
+interim oracle.
+
 ## 2026-08-17 — Family/style analysis visual states (latest requirement)
 
 The visual acceptance matrix must include the same workstation states for each of the eight US

@@ -1,5 +1,20 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-08-17 — Market-map acceptance sub-gate
+
+For every available S&P 500/400/600/1500, Russell 1000/2000/3000, and Nasdaq 100 root/role, the
+runner must select the universe, render sector and industry hierarchy, and exercise 1D, 1W, MTD,
+YTD, 1Y, and custom completed-session periods. It must verify independent area (market cap,
+point-in-time weight, equal, or declared numeric field) and colour (absolute/relative return,
+technical, breadth, or compatible Python series), exact rollups, weighting method,
+coverage/exclusions, freshness/provenance, and point-in-time semantics.
+
+The browser gate covers hover detail, palette/legend, zoom/pan, sort, drill-down, selection,
+multi-selection, map-to-chart/watchlist/breadth/Study-Lab publication, loading/partial/stale/
+unavailable/error/recovery states, and large-universe rendering without one provider request per
+tile. The old dashboard heat map is not an acceptance substitute: its 500-ID cap and fixed metrics
+remain a compatibility gap until the workstation batch map contract exists.
+
 ## 2026-08-17 — Eight-root US family/style acceptance (latest requirement)
 
 The complete top-down acceptance matrix contains eight interchangeable roots: S&P 500, S&P

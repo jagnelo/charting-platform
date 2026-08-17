@@ -1,5 +1,14 @@
 # Run Report
 
+## 2026-08-17 — Market-map scope checkpoint
+
+- Added the universe-scoped Finviz-style performance-map requirement to the controlling TODO,
+  parity, acceptance-governance, visual-parity, active goal objective, and task records.
+- Confirmed legacy `/instruments/heatmap-data` is capped at 500 IDs and fixed-metric
+  watchlist/screener input; it remains a precursor, not workstation completion.
+- No acceptance flexibility used. No map implementation or provider-capacity claim made.
+- Validation before commit: `git diff --check` and YAML/JSON parser gate.
+
 ## 2026-08-17 — Isolated Python-series breadth target
 
 - Implemented numeric `series` output as an isolated Python breadth target with explicit threshold

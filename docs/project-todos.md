@@ -1,5 +1,44 @@
 # Project TODO Memory
 
+### 2026-08-17 — Universe-scoped Finviz-style performance maps (new required surface)
+
+The workstation must provide a first-class, route-free **Market Map** tool for the supplied
+Finviz-style workflow: a hierarchical treemap of holdings grouped by sector and industry, with
+independent tile area and colour metrics and canonical instrument publication to linked tools.
+The captures are behavioural/product references; Finviz artwork and branding are not copied.
+
+- [ ] Accept any versioned canonical universe: S&P 500/400/600/1500, Russell 1000/2000/3000,
+      Nasdaq 100, evidenced cap/equal/value/growth legs, sector/industry groups, ETF-proxy
+      holdings, personal/managed watchlists, combos, or explicit symbols.
+- [ ] Support sector, industry, sector→industry, and ungrouped modes; retain classification
+      source and point-in-time membership version in every response.
+- [ ] Support 1D, 1W, MTD, YTD, 1M, 3M, 6M, 1Y, and arbitrary completed-session periods with
+      explicit adjustment and session semantics.
+- [ ] Support colour by absolute/relative return, RSI, relative volume, distance to 52-week
+      extremes, breadth predicates, and compatible Python numeric outputs. Support area by
+      market cap, point-in-time index/ETF weight, equal area, volume, or a declared numeric
+      field. Rollups must state weighting and coverage.
+- [ ] Add zoom/pan, hover detail, legend/palette, sorting, drill-down, tile selection,
+      multi-select comparison, linked-symbol publication, stale/partial/unavailable states,
+      export/snapshot, and no-route-change integration with charts, rankings, breadth, and Study Lab.
+- [ ] Add a batch `analysis/market-map` contract. Resolve the universe server-side from the
+      local canonical database, never one provider request per tile. Return hierarchy nodes and
+      cells with IDs, area/metric values, period bounds, aggregation method, counts, coverage,
+      freshness, provenance, membership/classification versions, and exact warning reasons.
+- [ ] Cache by universe/membership/classification version, period/as-of, adjustment, area/colour
+      metric, code/indicator version, and dataset versions. Precompute or batch-fetch history so
+      rendering is independent of free-provider request fanout.
+- [ ] Enforce point-in-time membership/classification and reject future-bar, future-membership,
+      survivorship, and invalid-forward-horizon leakage. Label ETF holdings as proxy membership
+      unless an official constituent entitlement exists.
+- [ ] Treat `/instruments/heatmap-data` and the legacy dashboard widget as a precursor only: it
+      accepts at most 500 IDs, is watchlist/screener-oriented, has fixed metrics, and is not the
+      workstation map contract. Replace or wrap it without breaking legacy routes.
+- [ ] Acceptance must iterate every available root/role and period, verify sector/industry
+      rollups against fixtures, assert no per-cell provider fanout, and test map-to-chart,
+      map-to-watchlist, map-to-breadth, and map-to-Study-Lab publication. Missing data remains
+      visible exclusion with a closure condition.
+
 ### 2026-08-17 — US market family/style analysis matrix (latest user requirement)
 
 The top-down workstation must support the following US market perspectives as one

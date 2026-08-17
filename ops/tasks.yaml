@@ -1,4 +1,27 @@
 tasks:
+  - id: tc2000-universe-performance-map-20260817
+    title: Add universe-scoped Finviz-style performance-map contract and workstation surface
+    status: pending
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Extend the TC2000 workstation plan with a first-class hierarchical map for arbitrary
+      supported index/style/group/watchlist universes, sector/industry rollups, arbitrary
+      completed-session periods, independent tile area/colour metrics, canonical provenance,
+      and map-to-tool publication. Replace the legacy 500-ID heat-map limitation through a
+      local batch/cached market-map contract with no per-tile provider fanout.
+    definition_of_done:
+      - Project TODO, parity, acceptance, visual-parity, and active goal objective record the map contract
+      - Legacy dashboard heatmap limitation is explicitly tracked as a compatibility precursor
+      - Future implementation has batch, cache, point-in-time, coverage, rollup, interaction, and no-fanout gates
+    validation:
+      - git-diff-check
+      - ruby-yaml-json-parse
+    notes:
+      - >-
+        Documentation/planning checkpoint only. No map implementation or acceptance flexibility
+        was claimed; Finviz captures are behavioural references and not TC2000 artwork baselines.
+
   - id: tc2000-breadth-python-series-composer-20260817
     title: Wire numeric Python-series condition assets into the breadth workstation
     status: completed

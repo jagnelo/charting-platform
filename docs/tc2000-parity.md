@@ -1,5 +1,23 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-17 — Finviz-style universe-scoped market-map parity
+
+The workstation adds a Market Map surface inspired by the supplied Finviz references while
+retaining the TC2000 interaction model: arbitrary watchlist/group universes, linked symbol
+publication, drill-down, filters, and dense tool-window use. Parity requires arbitrary canonical
+index/style/watchlist universes, sector and industry hierarchy, completed-session periods,
+independent tile area and colour, and explicit data lineage; the legacy dashboard heat map is not
+an equivalent.
+
+Required states include loading, partial/stale, unavailable, empty, grouped/ungrouped, zoomed,
+drilled, hovered, selected, multi-selected, sorted, and linked-chart states. Each node/cell
+carries canonical identity, point-in-time membership/classification version, period bounds, area
+and colour definitions, aggregate weighting, coverage, exclusions, freshness, and provenance.
+Selections publish to chart, watchlist, breadth, ratio, and Study Lab tools without changing route.
+The current legacy endpoint is capped at 500 IDs and fixed row metrics; a new batch contract must
+resolve local canonical data and cache by membership, period, metrics, adjustment, and dataset
+versions rather than fan out to providers per tile.
+
 ## 2026-08-17 — US family/style and Nasdaq cap/equal acceptance matrix (latest requirement)
 
 The workstation's top-down entry points are the S&P 500, S&P MidCap 400, S&P SmallCap 600,
