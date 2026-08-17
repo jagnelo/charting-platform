@@ -1,5 +1,21 @@
 # Run Report
 
+## 2026-08-17 — Persisted Python breadth occurrence result checkpoint
+
+- Added collection-boundary projection of isolated Python breadth-history runner cells into the
+  shared member occurrence contract. Aggregate counts/percentages and UTC timestamp serialization
+  now match the direct analysis response; no source execution or provider access was added to
+  FastAPI.
+- Added Research Results uPlot history plus bounded occurrence browser, preserving canonical
+  symbol/timestamp/kind/instrument ID through the existing workstation link bus.
+- Validation: research-jobs/breadth unit 30/30, Python breadth workspace integration 4/4,
+  Research Results component 12/12, frontend Vitest 838/838, type-check, production build,
+  Ruff, compileall, JSON/YAML, and diff checks. Initial integration failures were real
+  cells/members and aggregate/timestamp parity defects; both were fixed and the unchanged oracle
+  passed. No acceptance flexibility.
+- Git closure: implementation/docs commit dae1ead9 is clean locally. Exact push was attempted
+  once and rejected before Git by the private-origin safeguard; no workaround or repeat.
+
 ## 2026-08-17 — Expanded US family perspective vision checkpoint
 
 - Documented the current completion-bar expansion across S&P 500/400/600/1500, Russell

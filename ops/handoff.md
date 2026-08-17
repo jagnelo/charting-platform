@@ -1,5 +1,28 @@
 # Active Handoff
 
+## 2026-08-17 — Persisted Python breadth occurrence result checkpoint
+
+- Closed the Research Results boundary gap for isolated Python breadth history. The collection
+  service now normalizes runner cells into the canonical breadth member schema, derives
+  member-entered/member-exited occurrences from persisted output only, and aligns aggregate counts,
+  percentages, stable IDs, and UTC timestamp serialization with the direct analysis response.
+  FastAPI still never executes user source or contacts a provider.
+- ResearchResultsTool renders the persisted percentage history using the existing uPlot history
+  component and a bounded occurrence browser. Clicking an event emits symbol, timestamp, kind,
+  and canonical instrument ID through the existing workstation occurrence/link bus; the parent
+  forwards that ID into selectOccurrence.
+- Validation: research-jobs/breadth unit 30/30; Python breadth workspace integration 4/4;
+  Research Results component 12/12; full frontend Vitest 838/838; vue-tsc; production
+  build; Ruff; compileall; JSON/YAML parsing; and diff checks pass. The first unchanged
+  integration oracle exposed runner cells/API members and aggregate/timestamp parity defects;
+  both were repaired before the passing rerun. No acceptance flexibility used.
+- Implementation/docs commit: dae1ead9 feat(research): surface Python breadth occurrences.
+  Worktree is clean locally. Exact push was attempted once and rejected before Git by the
+  private-origin safeguard; no workaround or repeat. Transport-only and not a goal-wide blocker.
+- Next context: add occurrence filtering and promotion into compatible chart/list/filter/scan/
+  gauge/alert/Study Lab targets, then continue all-root provider/history population and remaining
+  V25 acceptance.
+
 ## 2026-08-17 — Expanded US family perspective vision checkpoint
 
 - Updated the controlling product records to make S&P 500, S&P MidCap 400, S&P SmallCap 600,

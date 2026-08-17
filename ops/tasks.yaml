@@ -1,4 +1,29 @@
 tasks:
+  - id: tc2000-python-breadth-occurrence-results-20260817
+    title: Surface collected Python breadth history in Research Results
+    status: completed
+    priority: high
+    scope: >-
+      Project persisted isolated-runner breadth_history cells into the shared occurrence schema
+      and render the aligned uPlot history plus bounded canonical event browser in Research Results.
+    definition_of_done:
+      - Collection normalizes runner cells and preserves direct-analysis aggregate/timestamp semantics
+      - FastAPI never executes source or contacts providers while projecting occurrences
+      - Research Results renders history and emits symbol, timestamp, kind, and canonical instrument ID
+      - Unit, frontend, and database-backed integration regressions prove the contract
+      - Filtering and promotion gaps remain explicitly documented
+    validation:
+      - research-jobs-and-breadth-unit-30-of-30
+      - python-breadth-workspace-integration-4-of-4
+      - research-results-component-12-of-12
+      - frontend-vitest-838-of-838
+      - frontend-type-check-production-build
+      - ruff-compileall-json-yaml-diff-check
+    notes:
+      - >-
+        The first integration run exposed runner cells versus API members and aggregate/timestamp
+        parity defects; both were fixed at the owning collection boundary and the unchanged oracle
+        passed. No acceptance flexibility used.
   - id: tc2000-python-breadth-occurrence-contract-20260817
     title: Project isolated Python breadth history into the shared occurrence contract
     status: completed
