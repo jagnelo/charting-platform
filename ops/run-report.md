@@ -28331,3 +28331,20 @@ and strict visual gaps remain explicitly tracked.
   rejected before Git by the private-origin safeguard; no retry or workaround. Remaining gaps are
   promotion fan-out, point-in-time weights, family/provider population, exact V25 action geometry,
   and final audit.
+
+# 2026-08-17 — Study Lab filter and Market Gauge promotion checkpoint
+
+- Boolean Study Lab result promotion now includes a reusable watchlist filter and Market Gauge.
+  Both are backed by the same user-owned EasyScan and immutable Boolean code version already used
+  for scan/alert promotion; Strategy signal promotion remains available.
+- Validation passed: focused Study Lab plus Market Map `37/37`, full frontend Vitest `867/867`,
+  `vue-tsc`, production build, `git diff --check`, and rebuilt authenticated F8q `1/1`.
+- The first unprivileged browser invocation failed at Mach-port setup; the first permitted run
+  showed the old frontend image. Rebuilding the current branch stack with force-recreate and
+  rerunning the unchanged flow passed. This is setup evidence only; no acceptance criterion,
+  threshold, baseline, or mask was relaxed.
+- Implementation/docs commit `a422aa30` is clean locally. Its one exact push attempt was rejected
+  before Git by the private-origin safeguard; no retry or workaround will be attempted. Open:
+  direct multi-output promotion from arbitrary map/study assets, point-in-time weights, complete
+  family/provider population, exact V25 action-row geometry, and final audit. Ops is recorded in a
+  separate checkpoint.

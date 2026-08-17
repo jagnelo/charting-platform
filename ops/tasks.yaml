@@ -11086,3 +11086,32 @@ tasks:
       - >-
         Implementation/docs commit 8609057f is clean locally. Its one exact push attempt was
         rejected before Git by the private-origin safeguard; no acceptance flexibility was used.
+  - id: tc2000-study-result-filter-gauge-promotion-20260817
+    title: Promote Boolean Study Lab results into reusable filters and Market Gauges
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Expose filter and Market Gauge targets for completed Boolean Study Lab results while
+      preserving one immutable code-version and EasyScan lineage across filter, scan, gauge, and
+      alert promotion.
+    definition_of_done:
+      - Boolean Study Lab results show watchlist-filter and Market-Gauge actions
+      - Both targets reuse one user-owned EasyScan from the immutable Boolean code version
+      - Existing scan, alert, and Strategy signal promotion remains available
+      - Focused/full frontend, type/build, and rebuilt authenticated browser checks pass
+      - Direct multi-output fan-out from arbitrary map/study artifacts remains explicitly tracked
+    validation:
+      - study-lab-market-map-37-of-37
+      - frontend-vitest-867-of-867
+      - frontend-typecheck-build
+      - rebuilt-authenticated-f8q-1-of-1
+      - git-diff-check
+    notes:
+      - >-
+        Initial Mach-port launch and stale-image failures were setup defects. The current stack
+        was force-rebuilt and the unchanged browser flow passed; no acceptance flexibility was
+        used. Implementation/docs commit a422aa30 is clean locally; its one exact push attempt was
+        rejected before Git by the private-origin safeguard and will not be retried. Direct
+        multi-output fan-out, exact V25 action geometry, provider/family population, and final
+        audit remain open.

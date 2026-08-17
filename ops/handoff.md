@@ -30139,3 +30139,21 @@ indefinite soak; longer endurance remains an explicit open gap.
 - Open: promotion fan-out into columns/filters/scans/alerts/gauges/plots/Strategy Lab, point-in-time
   weights, complete index-family population, provider breadth, exact V25 action-row geometry, and
   final functional/visual/security/performance audit gates.
+
+# 2026-08-17 — Study Lab filter and Market Gauge promotion checkpoint
+
+- Completed Boolean Study Lab results now expose `Save as watchlist filter` and `Use as Market
+  Gauge` alongside scan, alert, and Strategy signal promotion. Filter, scan, gauge, and alert
+  actions reuse one user-owned EasyScan created from the immutable Boolean code version, so source
+  and version lineage remain identical across targets.
+- Focused Study Lab plus Market Map coverage passed `37/37`; full frontend Vitest passed `867/867`;
+  `vue-tsc`, production build, `git diff --check`, and rebuilt authenticated Chromium F8q passed
+  `1/1`. The first browser attempt was blocked before page creation by the macOS Mach-port
+  permission boundary; the first permitted run exposed a stale frontend image. The current stack
+  was force-rebuilt and the unchanged test then passed. These were setup defects and no acceptance
+  flexibility, visual threshold, or mask relaxation was used.
+- Implementation/docs commit `a422aa30` is clean locally. Its one exact push attempt was rejected
+  before Git by the private-origin safeguard; no retry or workaround will be attempted. Open:
+  direct multi-output fan-out from arbitrary map/study
+  artifacts, point-in-time weights, complete family/provider population, exact V25 action geometry,
+  and final functional/visual/security/performance audit gates.
