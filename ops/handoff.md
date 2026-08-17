@@ -30218,6 +30218,8 @@ indefinite soak; longer endurance remains an explicit open gap.
 - Implementation/docs commit `8f252ca0` is clean locally. Its one exact push attempt was rejected
   before Git by the private-origin safeguard; no workaround, alternate transport, rewrite, reset,
   stash, or retry was attempted. This is transport-only, not a product blocker.
-- The separate ops checkpoint is pending. Next context: richer cross-sectional statistics and
-  Python target-series leaves. Remaining gaps include full family/provider population, exact V25
-  mixed-statistics visual evidence, and final audit.
+- Operational checkpoint `7011d078` is committed and the worktree is clean. Its one exact push
+  attempt was rejected before Git by the private-origin safeguard; no workaround or retry was
+  attempted. Next context: richer cross-sectional statistics and Python target-series leaves.
+  Remaining gaps include full family/provider population, exact V25 mixed-statistics visual
+  evidence, and final audit.

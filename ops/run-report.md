@@ -28404,4 +28404,7 @@ and strict visual gaps remain explicitly tracked.
   criterion changed. The exact mixed-statistics V25 visual reference remains a documented board
   gap; richer cross-sectional statistics and Python target-series leaves remain open.
 - Implementation/docs commit `8f252ca0` is clean locally. Exactly one push attempt was made and
-  rejected before Git by the private-origin safeguard; no workaround or retry. Ops commit follows.
+  rejected before Git by the private-origin safeguard; no workaround or retry. Operational
+  checkpoint `7011d078` is now committed and the worktree is clean; its exact push attempt was
+  rejected by the same safeguard. Next context is richer cross-sectional statistics and Python
+  target-series leaves.

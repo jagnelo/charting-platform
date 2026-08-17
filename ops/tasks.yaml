@@ -11226,4 +11226,6 @@ tasks:
         No acceptance flexibility, visual threshold, baseline, or mask relaxation was used. The
         exact V25 mixed-statistics visual state remains a documented board gap. Implementation/docs
         commit 8f252ca0 is clean locally; the one exact push attempt was rejected before Git by the
-        private-origin safeguard with no workaround or retry. Ops checkpoint is pending.
+        private-origin safeguard with no workaround or retry. Operational checkpoint 7011d078 is
+        committed and the worktree is clean; its push was rejected by the same safeguard. The next
+        context is richer cross-sectional statistics and Python target-series leaves.
