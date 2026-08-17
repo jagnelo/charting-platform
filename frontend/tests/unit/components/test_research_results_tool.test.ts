@@ -10,6 +10,7 @@ vi.mock('@/components/workstation/StudyRangeUPlot.vue', () => ({ default: { temp
 vi.mock('@/components/workstation/StudyScatterUPlot.vue', () => ({ default: { template: '<div class="scatter-chart" />', props: ['name', 'x', 'y'] } }))
 vi.mock('@/components/workstation/StudyHeatmap.vue', () => ({ default: { template: '<div class="heatmap-chart" />', props: ['name', 'rows', 'columns', 'values'] } }))
 vi.mock('@/components/workstation/StudyDashboard.vue', () => ({ default: { template: '<div class="dashboard-chart" />', props: ['name', 'panels', 'artifacts'] } }))
+vi.mock('@/components/workstation/GenericBreadthHistoryUPlot.vue', () => ({ default: { template: '<div class="breadth-history-chart" />', props: ['history'] } }))
 
 import ResearchResultsTool from '@/components/workstation/ResearchResultsTool.vue'
 
@@ -156,6 +157,49 @@ describe('ResearchResultsTool', () => {
     await flushPromises()
 
     expect(wrapper.find('.dashboard-chart').exists()).toBe(true)
+  })
+
+  it('renders collected Python breadth history and publishes canonical occurrence identity', async () => {
+    apiGet.mockResolvedValue([{ id: 19, status: 'completed', code_version_id: 4, run_config: {}, dataset_manifest: {}, diagnostics: [], artifacts: [
+      {
+        id: 10,
+        name: 'breadth_history',
+        artifact_type: 'breadth_history',
+        payload: {
+          value: {
+            points: [
+              { timestamp: '2026-01-01T00:00:00Z', percentage: 0, requested_count: 1, eligible_count: 1, pass_count: 0, excluded_count: 0, coverage: 1 },
+              { timestamp: '2026-01-02T00:00:00Z', percentage: 1, requested_count: 1, eligible_count: 1, pass_count: 1, excluded_count: 0, coverage: 1 },
+            ],
+            occurrences: [{
+              occurrence_id: '7:2026-01-02T00:00:00+00:00:member_entered',
+              timestamp: '2026-01-02T00:00:00+00:00',
+              kind: 'member_entered',
+              instrument_id: 7,
+              symbol: 'SPY',
+              name: 'SPY',
+              value: true,
+              metric: 0.04,
+              percentage: 1,
+              pass_count: 1,
+              eligible_count: 1,
+            }],
+          },
+        },
+      },
+    ] }])
+    const wrapper = mountTool()
+    await flushPromises()
+
+    expect(wrapper.find('.breadth-history-chart').exists()).toBe(true)
+    const occurrence = wrapper.get('[aria-label="SPY entered 2026-01-02T00:00:00+00:00"]')
+    await occurrence.trigger('click')
+    expect(wrapper.emitted('occurrence')?.[0]?.[0]).toMatchObject({
+      symbol: 'SPY',
+      timestamp: '2026-01-02T00:00:00+00:00',
+      instrument_id: 7,
+      kind: 'member_entered',
+    })
   })
 
   it('keeps malformed dashboard layouts in the structured fallback instead of leaking invalid grid spans', async () => {

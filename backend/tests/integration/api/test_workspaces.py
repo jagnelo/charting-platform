@@ -2583,6 +2583,17 @@ class TestWorkspaces:
             if history:
                 assert collected_payload["points"], collected_payload
                 assert collected_payload["current"] is not None
+                research_detail = client.get(
+                    f"/api/v1/research/runs/{queued_payload['run_id']}",
+                    headers=auth_headers,
+                )
+                assert research_detail.status_code == 200
+                history_artifact = next(
+                    item
+                    for item in research_detail.json()["artifacts"]
+                    if item["artifact_type"] == "breadth_history"
+                )
+                assert history_artifact["payload"]["value"]["occurrences"] == collected_payload["occurrences"]
             else:
                 assert collected_payload["current"]["requested_count"] == 1
 

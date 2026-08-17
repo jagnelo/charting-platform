@@ -535,10 +535,15 @@ def detect_breadth_occurrences(points: list[Mapping[str, Any]]) -> list[dict[str
             prior = previous.get(instrument_id)
             if prior is not None and current is not None and prior is not current:
                 kind = "member_entered" if current else "member_exited"
+                occurrence_timestamp = (
+                    timestamp.isoformat()
+                    if hasattr(timestamp, "isoformat")
+                    else str(timestamp)
+                )
                 occurrences.append(
                     {
                         "occurrence_id": (
-                            f"{instrument_id}:{timestamp.isoformat() if timestamp else 'unknown'}:{kind}"
+                            f"{instrument_id}:{occurrence_timestamp if timestamp else 'unknown'}:{kind}"
                         ),
                         "timestamp": timestamp,
                         "kind": kind,

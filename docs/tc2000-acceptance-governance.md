@@ -1,5 +1,17 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-08-17 — Persisted Python breadth occurrence sub-gate
+
+When an isolated Python breadth-history run is collected, the generic Research Results surface
+must receive the same occurrence contract as the direct analysis endpoint. The collection boundary
+may normalize runner cells into canonical member rows and derive aggregate counts, but it must
+not execute source or fetch market data. Persisted events must retain stable ID, UTC timestamp,
+canonical instrument ID, symbol, transition kind, metric, percentage, pass count, and eligible
+count. The result tool must render the uPlot history and a bounded event browser; clicking an event
+must publish through the existing workstation occurrence/link bus with canonical identity and
+timestamp. Unit, router/service, database-backed integration, frontend component, type/build, and
+full Vitest evidence now pass. Filtering and promotion targets remain open gates.
+
 ## 2026-08-17 — Current US family perspective completion bar
 
 The active product vision now requires eight interchangeable US top-down roots: S&P 500, S&P

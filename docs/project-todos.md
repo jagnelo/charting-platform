@@ -1,5 +1,24 @@
 # Project TODO Memory
 
+### 2026-08-17 — Persisted Python breadth occurrence result surface
+
+- [x] The research-result collection boundary now normalizes isolated-runner breadth_history
+      cells into the shared member-entered/member-exited occurrence schema. It derives only from
+      persisted runner output, aligns aggregate counts/percentages and UTC timestamps with the
+      direct Python breadth response, and never executes user code or contacts a provider in
+      FastAPI.
+- [x] ResearchResultsTool renders the persisted Python breadth percentage history through the
+      existing uPlot history component and exposes a bounded occurrence browser. Clicking an event
+      emits the existing workstation occurrence bus with symbol, timestamp, kind, and canonical
+      instrument ID; no alternate navigation path was introduced.
+- [x] Unit, router/service, database-backed workspace integration, frontend component, full
+      Vitest, type-check, production build, Ruff, compileall, JSON/YAML, and diff checks pass.
+      The first integration run exposed the runner cells/API members shape mismatch and then
+      an aggregate/timestamp parity mismatch; both were repaired at the owning boundary and the
+      unchanged focused oracle passed. No acceptance flexibility used.
+- [ ] Occurrence filtering and promotion from persisted Python results into every compatible
+      chart/list/filter/scan/gauge/alert/Study Lab target remain open.
+
 ### 2026-08-17 — Expanded US index/style perspectives and Nasdaq-100 deconstruction (current vision clarification)
 
 - [ ] The top-down workstation must treat the S&P 500, S&P MidCap 400, S&P SmallCap 600,

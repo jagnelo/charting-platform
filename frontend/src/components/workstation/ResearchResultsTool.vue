@@ -53,6 +53,16 @@
           <StudyScatterUPlot v-else-if="artifact.artifact_type === 'scatter' && scatterData(artifact)" :name="artifact.name" :x="scatterData(artifact)!.x" :y="scatterData(artifact)!.y" />
           <StudyHeatmap v-else-if="artifact.artifact_type === 'heatmap' && heatmapData(artifact)" :name="artifact.name" :rows="heatmapData(artifact)!.rows" :columns="heatmapData(artifact)!.columns" :values="heatmapData(artifact)!.values" />
           <StudyDashboard v-else-if="artifact.artifact_type === 'dashboard' && dashboardData(artifact)" :name="artifact.name" :panels="dashboardData(artifact)!" :artifacts="selectedRun.artifacts" @occurrence="emit('occurrence', $event)" />
+          <section v-else-if="artifact.artifact_type === 'breadth_history' && breadthHistoryData(artifact)" class="research-results-tool__breadth-history" aria-label="Historical breadth">
+            <GenericBreadthHistoryUPlot :history="breadthHistoryData(artifact)!" />
+            <div class="research-results-tool__events" role="list" aria-label="Historical breadth occurrences">
+              <button v-for="(event, index) in breadthHistoryOccurrences(artifact).slice().reverse().slice(0, 100)" :key="event.occurrence_id + '-' + index" type="button" role="listitem" :aria-label="event.symbol + ' ' + (event.kind === 'member_entered' ? 'entered' : 'exited') + ' ' + event.timestamp" @click="emit('occurrence', event)">
+                <strong>{{ event.symbol }}</strong><span>{{ event.kind === 'member_entered' ? 'Entered condition' : 'Exited condition' }} · {{ event.timestamp }}</span>
+                <small v-if="event.percentage != null">{{ (event.percentage * 100).toFixed(1) }}%</small>
+              </button>
+              <small v-if="!breadthHistoryOccurrences(artifact).length">No member state changes were recorded for this history.</small>
+            </div>
+          </section>
           <div v-else-if="artifact.artifact_type === 'events'" class="research-results-tool__events" role="list" :aria-label="`${artifact.name} occurrences`"><button v-for="(event, index) in eventRows(artifact)" :key="`${event.symbol}-${event.timestamp}-${index}`" type="button" role="listitem" :aria-label="`${event.symbol} ${event.timestamp} occurrence`" @click="emit('occurrence', event)"><strong>{{ event.symbol }}</strong><span>{{ event.timestamp }}</span></button></div>
           <pre v-else>{{ artifactText(artifact.payload) }}</pre>
         </article>
@@ -76,6 +86,8 @@ import StudyScatterUPlot from './StudyScatterUPlot.vue'
 import StudyHeatmap from './StudyHeatmap.vue'
 import StudyDashboard from './StudyDashboard.vue'
 import StudyRangeUPlot from './StudyRangeUPlot.vue'
+import GenericBreadthHistoryUPlot from './GenericBreadthHistoryUPlot.vue'
+import type { GenericBreadthHistoryState } from '@/stores/workspace'
 
 interface ResearchRunSummary {
   id: number
@@ -100,7 +112,7 @@ const comparisonOpen = ref(false)
 const error = ref('')
 const rerunning = ref(false)
 const canceling = ref(false)
-const emit = defineEmits<{ occurrence: [event: { symbol: string; timestamp: string; kind?: string }] }>()
+const emit = defineEmits<{ occurrence: [event: { symbol: string; timestamp: string; kind?: string; instrument_id?: number }] }>()
 const comparisonRuns = computed(() => comparisonIds.value.map(id => runs.value.find(run => run.id === id)).filter((run): run is ResearchRunSummary => Boolean(run)))
 const surfaceVisible = ref(true)
 const documentVisible = ref(typeof document === 'undefined' || document.visibilityState !== 'hidden')
@@ -225,6 +237,68 @@ function heatmapData(artifact: ResearchRunSummary['artifacts'][number]): { rows:
 function dashboardData(artifact: ResearchRunSummary['artifacts'][number]): Array<{ artifact: string; title: string; span: number }> | null {
   return normalizeStudyDashboardPanels(artifact.payload.value)
 }
+type BreadthHistoryOccurrence = {
+  occurrence_id: string
+  timestamp: string
+  kind: 'member_entered' | 'member_exited'
+  instrument_id: number
+  symbol: string
+  name: string
+  value: boolean
+  metric?: number | null
+  percentage?: number | null
+  pass_count: number
+  eligible_count: number
+}
+function breadthHistoryData(artifact: ResearchRunSummary['artifacts'][number]): GenericBreadthHistoryState | null {
+  const value = artifact.payload.value
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null
+  const candidate = value as { points?: unknown }
+  if (!Array.isArray(candidate.points) || !candidate.points.length) return null
+  const points = candidate.points.filter((point): point is Record<string, unknown> => Boolean(point) && typeof point === 'object' && !Array.isArray(point))
+  if (!points.length) return null
+  return {
+    definition_version: 1,
+    definition_hash: 'research-run-' + artifact.id,
+    universe: {},
+    condition: {},
+    timeframe: 'D1',
+    adjustment: 'split_adjusted',
+    points: points.flatMap(point => {
+      const timestamp = point.timestamp
+      const percentage = point.percentage
+      if (typeof timestamp !== 'string' || !Number.isFinite(Date.parse(timestamp)) || (percentage != null && (typeof percentage !== 'number' || !Number.isFinite(percentage)))) return []
+      return [{
+        timestamp,
+        requested_count: typeof point.requested_count === 'number' ? point.requested_count : 0,
+        eligible_count: typeof point.eligible_count === 'number' ? point.eligible_count : 0,
+        pass_count: typeof point.pass_count === 'number' ? point.pass_count : 0,
+        excluded_count: typeof point.excluded_count === 'number' ? point.excluded_count : 0,
+        percentage: percentage as number | null,
+        coverage: typeof point.coverage === 'number' ? point.coverage : 0,
+        members: [],
+        exclusions: [],
+      }]
+    }),
+    occurrences: breadthHistoryOccurrences(artifact),
+    exclusions: [],
+  }
+}
+function breadthHistoryOccurrences(artifact: ResearchRunSummary['artifacts'][number]): BreadthHistoryOccurrence[] {
+  const value = artifact.payload.value
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return []
+  const raw = (value as { occurrences?: unknown }).occurrences
+  if (!Array.isArray(raw)) return []
+  return raw.filter((event): event is BreadthHistoryOccurrence => {
+    if (!event || typeof event !== 'object') return false
+    const candidate = event as Record<string, unknown>
+    return typeof candidate.occurrence_id === 'string'
+      && typeof candidate.timestamp === 'string'
+      && (candidate.kind === 'member_entered' || candidate.kind === 'member_exited')
+      && typeof candidate.instrument_id === 'number'
+      && typeof candidate.symbol === 'string'
+  })
+}
 function eventRows(artifact: ResearchRunSummary['artifacts'][number]): Array<{ symbol: string; timestamp: string; kind?: string }> {
   const value = artifact.payload.value
   return Array.isArray(value) ? value.filter((item): item is { symbol: string; timestamp: string; kind?: string } => Boolean(item) && typeof item === 'object' && typeof (item as Record<string, unknown>).symbol === 'string' && typeof (item as Record<string, unknown>).timestamp === 'string') : []
@@ -311,4 +385,5 @@ onBeforeUnmount(() => {
 .research-results-tool { display:grid; grid-template-rows:auto minmax(55px,.35fr) minmax(0,1fr); gap:6px; height:100%; min-height:0; padding:6px; color:#cbd5dc; background:#11161b; font:10px "Segoe UI",Arial,sans-serif; }.research-results-tool header { display:flex; align-items:center; gap:6px; }.research-results-tool header button { margin-left:auto; }.research-results-tool header button + button { margin-left:0; }.research-results-tool button { border:1px solid #3a4954; background:#172027; color:#dce6ed; font:inherit; cursor:pointer; }.research-results-tool button:disabled { opacity:.55; cursor:default; }.research-results-tool__runs { overflow:auto; display:grid; align-content:start; gap:3px; }.research-results-tool__run { display:grid; grid-template-columns:14px minmax(55px,1fr) auto auto; gap:5px; padding:5px; text-align:left; }.research-results-tool__run:hover,.research-results-tool__run--selected { background:#1d3543; border-color:#52748a; }.research-results-tool__run small,.research-results-tool__detail small,.research-results-tool__notice { color:#8195a3; }.research-results-tool__comparison { overflow:auto; border:1px solid #34424c; padding:5px; }.research-results-tool__comparison div { display:grid; grid-template-columns:70px 1fr; gap:5px; margin-top:3px; }.research-results-tool__comparison b { overflow-wrap:anywhere; font-weight:500; }.research-results-tool__same { color:#82c49b; }.research-results-tool__changed { color:#e7c274; }.research-results-tool__detail { border-top:1px solid #34424c; padding-top:5px; overflow:auto; }.research-results-tool__detail-header { display:flex; align-items:center; gap:4px; }.research-results-tool__detail-header button { padding:1px 4px; }.research-results-tool__detail-header button:first-of-type { margin-left:auto; }.research-results-tool__detail p { margin:4px 0; }.research-results-tool__artifacts { display:grid; gap:5px; }.research-results-tool__artifacts article { display:grid; gap:3px; border-top:1px solid #29343c; padding-top:4px; }.research-results-tool__artifact-header { display:flex; align-items:center; gap:4px; }.research-results-tool__artifact-header small { color:#8195a3; }.research-results-tool__artifact-header button { margin-left:auto; padding:1px 4px; }.research-results-tool__artifacts table { border-collapse:collapse; width:100%; }.research-results-tool__artifacts th,.research-results-tool__artifacts td { padding:2px 4px; border:1px solid #2c3943; text-align:left; }.research-results-tool__events { display:grid; gap:2px; }.research-results-tool__events button { display:grid; grid-template-columns:50px 1fr; padding:3px 4px; text-align:left; }.research-results-tool__events span { color:#91a8b4; }.research-results-tool__artifacts pre { margin:0; max-height:100px; overflow:auto; white-space:pre-wrap; }.research-results-tool__boolean--true { color:#80d5a5; }.research-results-tool__boolean--false { color:#f0a0a0; }.research-results-tool__error { color:#f0a2a2; }.research-results-tool__status--completed { color:#82c49b; }.research-results-tool__status--failed,.research-results-tool__status--canceled { color:#ed9696; }.research-results-tool__status--queued,.research-results-tool__status--running { color:#80bce8; }
 .research-results-tool__run-details { margin:4px 0; border-top:1px solid #29343c; padding-top:3px; }.research-results-tool__run-details summary { color:#9db0bc; cursor:pointer; }.research-results-tool__run-details pre { margin:3px 0 0; max-height:90px; overflow:auto; white-space:pre-wrap; }
 .research-results-tool__run-guidance { margin:3px 0; color:#91a8b4; line-height:1.35; }.research-results-tool__status--failed,.research-results-tool__status--canceled { color:#ed9696; }
+.research-results-tool__events small { grid-column:2; color:#91a8b4; }.research-results-tool__breadth-history { display:grid; gap:3px; }.research-results-tool__breadth-history :deep(.generic-breadth-history) { height:150px; }
 </style>

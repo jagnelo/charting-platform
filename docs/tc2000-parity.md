@@ -1,5 +1,14 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-17 — Python breadth history in Research Results
+
+Collected isolated Python breadth histories now use the same dense result composition as other
+Study Lab artifacts: a uPlot percentage history followed by a bounded occurrence browser. The
+event click publishes canonical instrument identity and timestamp through the workstation link
+bus. Runner cells are normalized at the persistence boundary and retain the direct-analysis
+aggregate/timestamp semantics. This closes the represented result-surface state; occurrence
+filtering, promotion, and unrepresented exact Version-25 states remain explicit gaps.
+
 ## 2026-08-17 — Current US family perspective vision
 
 The workstation parity target is an interchangeable set of eight US market roots: S&P 500, S&P
