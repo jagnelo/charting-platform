@@ -1,5 +1,26 @@
 # Run Report
 
+## 2026-08-17 — Event-calendar breadth target
+
+- Implemented an `event` breadth predicate over the canonical local instrument-event calendar for
+  any event, earnings, dividends, ex-dividends, and splits. It exposes trailing-day window,
+  estimate inclusion, and occurred/not-occurred semantics.
+- Current/history results align event timestamps at or before each observation with no
+  forward-fill. Loaded empty calendars are eligible false values; absent fetch state is the
+  explicit `event_data_unavailable` exclusion. Dataset kind, loaded/unavailable coverage, event
+  count, and alignment lineage remain in the response condition.
+- Added compact and recursive authoring, pure/API/integration/component/browser coverage, and a
+  local draft guard for rapid configuration updates. Full backend unit `1188/1188`, frontend
+  Vitest `845/845`, type-check, production build, rebuilt authenticated Chromium F8s `1/1`, Ruff,
+  compileall, and diff-check pass.
+- Fix-first evidence: an initial rebuilt browser run serialized RSI threshold `0` during a rapid
+  edit sequence. The owning local draft boundary was repaired and the unchanged flow passed; no
+  acceptance flexibility was used.
+- Implementation/docs commit `9179ab92c53f437c9df7ec8e4210fed5e42224e4` is clean locally. Exact
+  push was attempted once and rejected before Git by the private-origin safeguard; no workaround
+  or repeat. Event promotion, arbitrary Python targets, family data population, and remaining V25
+  visual/browser gaps remain open.
+
 ## 2026-08-17 — Group/peer aggregate breadth target
 
 - Implemented `reference_universe` for generic breadth series comparisons. Canonical groups,

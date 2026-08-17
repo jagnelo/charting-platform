@@ -58,6 +58,40 @@ tasks:
         exact push was attempted once and rejected before Git by the private-origin safeguard;
         no workaround or repeat.
 
+  - id: tc2000-breadth-event-calendar-target-20260817
+    title: Add canonical event-calendar targets to generic breadth
+    status: completed
+    priority: high
+    scope: >-
+      Add an event breadth leaf over locally persisted instrument events with explicit event type,
+      trailing-day window, estimate policy, occurred/not-occurred operator, current/history
+      point-in-time semantics, coverage, and response lineage. Wire compact and recursive authoring
+      and repair rapid configuration serialization races at the owning boundary.
+    definition_of_done:
+      - Schema and evaluator support any event, earnings, dividend, ex-dividend, and split targets
+      - Loaded empty calendars are eligible false results; missing fetch state is event_data_unavailable
+      - Current/history evaluation is at-or-before-observation and never forward-fills events
+      - Event dataset coverage/count/alignment lineage survives the response and definition
+      - Compact/recursive authoring, API/integration/component/browser tests pass
+      - Event promotion fan-out and arbitrary derived-Python target series remain explicit gaps
+    validation:
+      - breadth-unit-24-of-24
+      - generic-breadth-event-integration-1-of-1
+      - frontend-event-tree-component-6-of-6
+      - frontend-full-vitest-845-of-845
+      - frontend-type-check-production-build
+      - authenticated-f8s-breadth-family-ratio-1-of-1-after-race-fix
+      - backend-full-unit-1188-of-1188
+      - ruff-compileall-diff-check
+    notes:
+      - >-
+        Fix-first evidence: the first rebuilt browser run serialized an RSI threshold as 0 after
+        a rapid select/edit/evaluate sequence. A local breadth configuration draft was added at
+        the owning boundary; the unchanged browser flow passed on the rebuilt stack. No acceptance
+        threshold, provider rule, visual mask, or test oracle was relaxed. Implementation/docs
+        commit 9179ab92 is clean locally; its exact push was attempted once and rejected before
+        Git by the private-origin safeguard, with no workaround or repeat.
+
   - id: tc2000-breadth-series-comparison-20260817
     title: Add aligned benchmark and peer series targets to generic breadth
     status: completed

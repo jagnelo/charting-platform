@@ -1,5 +1,28 @@
 # Active Handoff
 
+## 2026-08-17 — Event-calendar breadth target checkpoint
+
+- Added the `event` generic breadth leaf backed exclusively by locally persisted canonical
+  instrument-event calendars. It supports any event, earnings, dividends, ex-dividends, and splits
+  with trailing-day window, estimate inclusion, and occurred/not-occurred operator controls.
+- Current/history evaluation is point-in-time: event timestamps must be within the declared window
+  and at or before the observed bar. Loaded empty calendars evaluate as eligible false; members with
+  no local fetch state return `event_data_unavailable` and leave the denominator honest. Responses
+  retain event dataset kind, loaded/unavailable coverage, event count, and alignment lineage.
+- Added compact and recursive-tree authoring plus focused pure/API/integration/component/browser
+  coverage. Full backend unit `1188/1188`, full frontend Vitest `845/845`, type-check, production
+  Docker build, authenticated Chromium F8s flow `1/1`, Ruff, compileall, and diff-check pass.
+- Fix-first note: the first rebuilt browser run found a real rapid configuration race where an RSI
+  threshold serialized as `0` after select/edit/evaluate. A local draft configuration guard repaired
+  the owning boundary; the unchanged broader flow passed on the rebuilt stack. No acceptance
+  criterion, provider rule, visual mask, or test oracle was relaxed.
+- Implementation/docs commit `9179ab92c53f437c9df7ec8e4210fed5e42224e4` is clean locally. Its exact
+  push to `origin/feat/tc2000-frontend-rework` was attempted once and rejected before Git by the
+  private-origin safeguard. No workaround, alternate transport, rewrite, reset, stash, or repeat.
+- Remaining gaps: event promotion fan-out, arbitrary derived-Python target series, all-family
+  provider/history population, family-wide analytics/browser coverage, and remaining V25 visual
+  reference/acceptance gaps.
+
 ## 2026-08-17 — Group/peer aggregate breadth target checkpoint
 
 - Added `reference_universe` to generic breadth series comparisons. Canonical groups, benchmark
