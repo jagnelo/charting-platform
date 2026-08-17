@@ -92,6 +92,13 @@
         <label><span class="field-label">Threshold</span><input :value="numberParam('threshold', 0)" :aria-label="`Breadth series threshold ${path}`" type="number" step="0.001" @change="setParam('threshold', numberValue($event, 0))" /></label>
       </template>
 
+      <template v-else-if="leafKind === 'event'">
+        <label><span class="field-label">Event type</span><select :value="stringParam('event_type', 'any')" :aria-label="`Breadth event type ${path}`" @change="setParam('event_type', ($event.target as HTMLSelectElement).value)"><option value="any">Any event</option><option value="earnings">Earnings</option><option value="dividend">Dividend</option><option value="ex_dividend">Ex-dividend</option><option value="split">Split</option></select></label>
+        <label><span class="field-label">Lookback days</span><input :value="numberParam('lookback_days', 0)" :aria-label="`Breadth event lookback days ${path}`" type="number" min="0" max="3660" @change="setParam('lookback_days', numberValue($event, 0, 0, 3660))" /></label>
+        <label class="breadth-condition-tree__check"><input :checked="booleanParam('include_estimates', false)" :aria-label="`Breadth include event estimates ${path}`" type="checkbox" @change="setParam('include_estimates', ($event.target as HTMLInputElement).checked)" /> Include estimates</label>
+        <label><span class="field-label">Operator</span><select :value="stringParam('operator', 'gte')" :aria-label="`Breadth event operator ${path}`" @change="setParam('operator', ($event.target as HTMLSelectElement).value)"><option value="gte">Occurred</option><option value="lt">Did not occur</option></select></label>
+      </template>
+
       <template v-else-if="leafKind === 'range'">
         <label><span class="field-label">Field</span><select :value="stringParam('field', 'close')" :aria-label="`Breadth range field ${path}`" @change="setParam('field', ($event.target as HTMLSelectElement).value)"><option value="close">Close</option><option value="return">Return</option><option value="volume">Volume</option><option value="distance_to_52w_high">Distance to 52-week high</option></select></label>
         <label><span class="field-label">Minimum</span><input :value="numberParam('lower', 0)" :aria-label="`Breadth range minimum ${path}`" type="number" step="0.001" @change="setParam('lower', numberValue($event, 0))" /></label>
@@ -127,6 +134,7 @@ type BreadthLeafKind =
   | 'volume_ratio'
   | 'relative_strength'
   | 'series_comparison'
+  | 'event'
   | 'comparison'
   | 'range'
   | 'percentile'
@@ -148,6 +156,7 @@ const LEAF_OPTIONS: Array<{ value: BreadthLeafKind; label: string }> = [
   { value: 'volume_ratio', label: 'Volume ratio threshold' },
   { value: 'relative_strength', label: 'Relative strength threshold' },
   { value: 'series_comparison', label: 'Member versus reference series' },
+  { value: 'event', label: 'Event occurred in trailing window' },
   { value: 'comparison', label: 'Measured-field comparison' },
   { value: 'range', label: 'Measured-field range' },
   { value: 'percentile', label: 'Measured-field percentile' },
@@ -182,6 +191,7 @@ function defaultLeaf(kind: BreadthLeafKind = 'above_moving_average'): BreadthCon
     volume_ratio: { period: 20, operator: 'gte', threshold: 1 },
     relative_strength: { lookback: 20, operator: 'gte', threshold: 1 },
     series_comparison: { field: 'return', target_field: 'return', relation: 'difference', operator: 'gte', threshold: 0 },
+    event: { event_type: 'any', lookback_days: 0, include_estimates: false, operator: 'gte', threshold: 1 },
     comparison: { field: 'close', operator: 'gte', threshold: 0 },
     range: { field: 'close', lower: 0, upper: 1, inclusive: true },
     percentile: { target_scope: 'member', field: 'close', period: 252, operator: 'gte', percentile: 0.8 },

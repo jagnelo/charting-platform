@@ -77,4 +77,18 @@ describe('BreadthConditionTreeEditor', () => {
     expect(payload.params.relation).toBe('ratio')
     expect(payload.params.target_field).toBe('close')
   })
+
+  it('serializes an event target leaf with a bounded lookback', async () => {
+    const wrapper = mount(BreadthConditionTreeEditor, {
+      props: { modelValue: { kind: 'event', params: { event_type: 'any', lookback_days: 0, operator: 'gte', threshold: 1 } } },
+    })
+    await wrapper.get('[aria-label="Breadth event type 1"]').setValue('dividend')
+    const typePayload = wrapper.emitted('update:modelValue')?.at(-1)?.[0] as { params: Record<string, unknown> }
+    await wrapper.setProps({ modelValue: typePayload })
+    await wrapper.get('[aria-label="Breadth event lookback days 1"]').setValue('7')
+    const payload = wrapper.emitted('update:modelValue')?.at(-1)?.[0] as { kind: string; params: Record<string, unknown> }
+    expect(payload.kind).toBe('event')
+    expect(payload.params.event_type).toBe('dividend')
+    expect(payload.params.lookback_days).toBe(7)
+  })
 })

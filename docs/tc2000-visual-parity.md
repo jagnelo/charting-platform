@@ -17,6 +17,12 @@ browser interaction is accepted against the current board-guided dense composer;
 V25 group-target visual remains a named reference-board gap rather than an unreviewed screenshot
 pass.
 
+The represented breadth authoring states now also include the event-calendar target: event type,
+lookback, estimate policy, occurred/not-occurred operator, and explicit local-calendar coverage
+or unavailable state. The visual board does not yet provide an authoritative Version 25 event-target
+capture; browser interaction and dense control composition are therefore the interim oracle, and
+that unrepresented visual state remains a named board gap rather than an implied visual pass.
+
 The Nasdaq 100 cap/equal view must visibly behave like the SPY/RSP deconstruction when its
 independent QQQ/QQQE (or other verified pair) evidence is approved. Visual references must also
 show the provenance/freshness/coverage and membership/as-of labels needed to distinguish native

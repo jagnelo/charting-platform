@@ -56,6 +56,19 @@ occurrences, and definition lineage. The compact editor exposes symbol versus eq
 aggregate selection, and rebuilt authenticated Chromium coverage proves the serialized request.
 Event targets, arbitrary derived-Python target series, and complete promotion fan-out remain open.
 
+## 2026-08-17 — Event-calendar breadth target
+
+Generic breadth now supports an `event` leaf backed by the canonical local instrument-event
+calendar. The compact and recursive editors expose any event, earnings, dividend, ex-dividend,
+and split targets, trailing-day lookback, estimate inclusion, and occurred/not-occurred semantics.
+Current and historical runs align event time to the observation timestamp without forward-fill;
+loaded empty calendars are eligible false values and calendars without local fetch state return
+`event_data_unavailable`. The response carries event-dataset kind, loaded/unavailable coverage,
+event count, and alignment lineage. Unit/API/integration/component/type/build and rebuilt
+authenticated browser coverage pass. A rapid configuration race that once serialized an RSI
+threshold from stale props was repaired with a local draft and covered by the unchanged browser
+flow. Event promotion fan-out and arbitrary derived-Python target series remain open parity gaps.
+
 ## 2026-08-17 — Recursive breadth clause diagnostics
 
 The canonical recursive breadth evaluator now emits a deterministic diagnostic trace for the

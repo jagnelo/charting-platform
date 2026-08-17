@@ -171,6 +171,51 @@ def test_equal_reference_series_is_normalized_and_never_forward_fills_members():
     assert summary["member_count"] == 2
 
 
+def test_event_condition_targets_local_events_and_distinguishes_unavailable_data():
+    bars = _bars([100, 101])
+    event_time = bars[-1].ts
+    events = [SimpleNamespace(event_type="dividend", event_time=event_time)]
+    value, metric, warning = evaluate_condition(
+        bars,
+        {
+            "kind": "event",
+            "params": {
+                "event_type": "dividend",
+                "lookback_days": 0,
+                "operator": "gte",
+                "threshold": 1,
+            },
+        },
+        events=events,
+    )
+    assert value is True
+    assert metric == 1.0
+    assert warning is None
+
+    missing_value, _, missing_warning = evaluate_condition(
+        bars,
+        {"kind": "event", "params": {"event_type": "any"}},
+        events=None,
+    )
+    assert missing_value is None
+    assert missing_warning == "event_data_unavailable"
+
+
+def test_event_breadth_history_is_point_in_time_and_never_forward_fills_events():
+    bars = _bars([100, 101, 102])
+    events = [SimpleNamespace(event_type="split", event_time=bars[1].ts)]
+    points = evaluate_breadth_history(
+        [BreadthMember(1, "A", "A")],
+        {1: bars},
+        {"kind": "event", "params": {"event_type": "split"}},
+        limit=10,
+        events_by_instrument={1: events},
+    )
+    assert points[0]["members"][0].value is False
+    assert points[1]["members"][0].value is True
+    assert points[2]["members"][0].value is False
+
+
 def test_breadth_keeps_insufficient_history_out_of_the_denominator():
     members = [
         BreadthMember(1, "A", "A"),

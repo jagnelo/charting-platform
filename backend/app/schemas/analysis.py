@@ -733,6 +733,7 @@ class BreadthConditionRequest(BaseModel):
         "volume_ratio",
         "relative_strength",
         "series_comparison",
+        "event",
         "comparison",
         "range",
         "percentile",

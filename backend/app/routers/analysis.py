@@ -18,6 +18,7 @@ from app.auth.dependencies import get_current_user
 from app.database import get_db
 from app.models.etf_holdings import ETFHolding, ETFHoldingsSnapshot, ETFProfile
 from app.models.instrument import Instrument
+from app.models.instrument_event import InstrumentEvent, InstrumentEventFetchState
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.provider_observation import DatasetStatus, InstrumentDatasetState
 from app.models.research import CodeAsset, CodeVersion, ResearchRun
@@ -5040,6 +5041,7 @@ _GENERIC_BREADTH_EXCLUSION_MESSAGES = {
     "missing_bar_at_timestamp": "The member has no bar at this timestamp and was excluded without forward-fill.",
     "benchmark_missing_at_timestamp": "The benchmark has no bar at this timestamp.",
     "unaligned_reference": "The member and benchmark/peer have no bar at the same timestamp.",
+    "event_data_unavailable": "No local event calendar has been loaded for this member.",
     "unresolved_member": "The universe member has no resolved canonical instrument.",
     "non_equity_holding": "Non-equity ETF exposure is excluded from breadth.",
     "instrument_not_found": "No canonical instrument exists for this requested symbol.",
@@ -5083,6 +5085,63 @@ def _generic_condition_requires_benchmark(condition: Mapping[str, object]) -> bo
         isinstance(child, Mapping) and _generic_condition_requires_benchmark(child)
         for child in children
     )
+
+
+def _generic_condition_requires_events(condition: Mapping[str, object]) -> bool:
+    """Detect event-calendar leaves in a nested breadth definition."""
+
+    if str(condition.get("kind", "")).lower() == "event":
+        return True
+    params = condition.get("params")
+    if not isinstance(params, Mapping):
+        return False
+    children = params.get("conditions")
+    return isinstance(children, list) and any(
+        isinstance(child, Mapping) and _generic_condition_requires_events(child)
+        for child in children
+    )
+
+
+async def _breadth_events_by_instrument(
+    db: AsyncSession, instrument_ids: list[int]
+) -> tuple[dict[int, list[InstrumentEvent] | None], dict[str, object]]:
+    """Read locally persisted event calendars without provider fan-out."""
+
+    if not instrument_ids:
+        return {}, {
+            "kind": "instrument_event_calendar",
+            "membership_semantics": "canonical_local_instruments",
+            "loaded_member_count": 0,
+            "unavailable_member_count": 0,
+        }
+    rows = (
+        await db.execute(
+            select(InstrumentEvent)
+            .where(InstrumentEvent.instrument_id.in_(instrument_ids))
+            .order_by(InstrumentEvent.instrument_id, InstrumentEvent.event_time)
+        )
+    ).scalars().all()
+    states = (
+        await db.execute(
+            select(InstrumentEventFetchState.instrument_id)
+            .where(InstrumentEventFetchState.instrument_id.in_(instrument_ids))
+        )
+    ).scalars().all()
+    loaded_ids = {int(instrument_id) for instrument_id in states}
+    by_id: dict[int, list[InstrumentEvent] | None] = {
+        instrument_id: [] if instrument_id in loaded_ids else None
+        for instrument_id in instrument_ids
+    }
+    for event in rows:
+        by_id.setdefault(event.instrument_id, []).append(event)
+    return by_id, {
+        "kind": "instrument_event_calendar",
+        "membership_semantics": "canonical_local_instruments",
+        "loaded_member_count": sum(events is not None for events in by_id.values()),
+        "unavailable_member_count": sum(events is None for events in by_id.values()),
+        "event_count": len(rows),
+        "alignment": "event_time_at_or_before_observation",
+    }
 
 
 def _generic_membership_version(payload: object) -> int:
@@ -6282,6 +6341,10 @@ async def evaluate_generic_breadth(
     bars_by_id = _truncate_bars_at(
         await _bars_by_instrument(db, member_ids, timeframe, definition.adjusted), definition.as_of
     )
+    events_by_id: dict[int, list[InstrumentEvent] | None] | None = None
+    event_provenance: dict[str, object] = {}
+    if _generic_condition_requires_events(condition_definition.model_dump()):
+        events_by_id, event_provenance = await _breadth_events_by_instrument(db, member_ids)
     benchmark_bars = None
     reference_member_ids: list[int] = []
     reference_warnings: list[AnalysisWarning] = []
@@ -6324,8 +6387,14 @@ async def evaluate_generic_breadth(
     if definition.reference_universe is not None:
         condition["reference_universe"] = definition.reference_universe.model_dump(mode="json")
         condition["reference_target"] = reference_provenance
+    if event_provenance:
+        condition["event_target"] = event_provenance
     results, aggregate = evaluate_breadth(
-        members, bars_by_id, condition, benchmark_bars=benchmark_bars
+        members,
+        bars_by_id,
+        condition,
+        benchmark_bars=benchmark_bars,
+        events_by_instrument=events_by_id,
     )
     warnings = [*universe_warnings, *reference_warnings]
     member_outputs: list[BreadthMemberResultOut] = []
@@ -6427,6 +6496,10 @@ async def evaluate_generic_breadth_history(
     ) = await _resolve_generic_breadth_universe(definition, db)
     bars_by_id = await _bars_by_instrument(db, member_ids, timeframe, definition.adjusted)
     bars_by_id = _truncate_bars_at(bars_by_id, definition.as_of)
+    events_by_id: dict[int, list[InstrumentEvent] | None] | None = None
+    event_provenance: dict[str, object] = {}
+    if _generic_condition_requires_events(condition_definition.model_dump()):
+        events_by_id, event_provenance = await _breadth_events_by_instrument(db, member_ids)
     benchmark_bars = None
     reference_member_ids: list[int] = []
     reference_warnings: list[AnalysisWarning] = []
@@ -6468,12 +6541,15 @@ async def evaluate_generic_breadth_history(
     if definition.reference_universe is not None:
         condition["reference_universe"] = definition.reference_universe.model_dump(mode="json")
         condition["reference_target"] = reference_provenance
+    if event_provenance:
+        condition["event_target"] = event_provenance
     raw_points = evaluate_breadth_history(
         members,
         bars_by_id,
         condition,
         limit=definition.limit,
         benchmark_bars=benchmark_bars,
+        events_by_instrument=events_by_id,
     )
     occurrence_rows = detect_breadth_occurrences(raw_points)
     warnings = [*universe_warnings, *reference_warnings]

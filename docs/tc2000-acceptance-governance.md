@@ -244,6 +244,21 @@ coverage metadata rather than silently filled. The workstation must expose symbo
 equal-weight group aggregate authoring and emit the same immutable definition in both requests.
 Event targets, arbitrary Python target series, and full promotion fan-out remain open.
 
+### Event-calendar target sub-gate
+
+For an `event` condition, acceptance must verify that the target is resolved from the canonical
+local instrument-event dataset, not a provider call made during ordinary breadth evaluation. The
+definition must preserve event type, trailing-day window, estimate policy, operator, event-dataset
+kind, loaded/unavailable member coverage, event count, and `event_time_at_or_before_observation`
+alignment. A loaded empty calendar is an eligible false result; no fetch state is an explicit
+`event_data_unavailable` exclusion. Current and historical results must agree at each timestamp,
+never carry an event forward, and retain diagnostics/denominator semantics. Compact and recursive
+authoring plus authenticated browser coverage must serialize the same immutable event definition.
+Promotion into plots, columns, filters, gauges, alerts, Study Lab, and Strategy Lab remains a
+separate open gate. The first browser run exposed a stale sibling-configuration race; it was fixed
+at the local draft boundary and the unchanged broader flow passed. No acceptance flexibility was
+used.
+
 ## 2026-08-17 — Research Results occurrence-filter sub-gate
 
 The persisted Python breadth occurrence browser now supports an accessible symbol substring

@@ -2549,6 +2549,65 @@ class TestWorkspaces:
         assert history_payload["condition"]["reference_target"]["member_count"] == 1
         assert history_payload["points"]
 
+        from app.models.instrument_event import (
+            InstrumentEvent,
+            InstrumentEventFetchState,
+            InstrumentEventType,
+        )
+
+        event_time = ohlcv_bars[-1].ts
+        db.add(
+            InstrumentEvent(
+                instrument_id=instrument.id,
+                event_type=InstrumentEventType.DIVIDEND,
+                event_time=event_time,
+                title="Test dividend",
+                source="test",
+                source_event_key="generic-breadth-event",
+                fetched_at=event_time,
+            )
+        )
+        db.add(
+            InstrumentEventFetchState(
+                instrument_id=instrument.id,
+                source="test",
+                fetched_at=event_time,
+                event_count=1,
+                earnings_count=0,
+                fetch_version=2,
+            )
+        )
+        db.flush()
+        event_definition = {
+            "universe": {"kind": "symbols", "symbols": [instrument.symbol]},
+            "condition": {
+                "kind": "event",
+                "params": {
+                    "event_type": "dividend",
+                    "lookback_days": 0,
+                    "operator": ">=",
+                    "threshold": 1,
+                },
+            },
+        }
+        event_current = client.post(
+            "/api/v1/analysis/breadth", headers=auth_headers, json=event_definition
+        )
+        assert event_current.status_code == 200, event_current.text
+        event_payload = event_current.json()
+        assert event_payload["condition"]["kind"] == "event"
+        assert event_payload["condition"]["event_target"]["loaded_member_count"] == 1
+        assert event_payload["members"][0]["value"] is True
+        event_history = client.post(
+            "/api/v1/analysis/breadth/history",
+            headers=auth_headers,
+            json={**event_definition, "limit": 20},
+        )
+        assert event_history.status_code == 200, event_history.text
+        event_history_payload = event_history.json()
+        assert event_history_payload["condition"]["event_target"]["event_count"] == 1
+        assert event_history_payload["points"]
+
     def test_generic_breadth_resolves_benchmark_family_style_leg_from_holdings_snapshot(
         self, client, auth_headers, db, instrument, instrument_type, ohlcv_bars
     ):

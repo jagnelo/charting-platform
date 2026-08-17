@@ -15,7 +15,7 @@ import json
 import math
 from collections.abc import Mapping
 from dataclasses import dataclass, replace
-from datetime import datetime
+from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 from typing import Any
 
@@ -333,6 +333,68 @@ def _series_comparison_metric(
     return (metric if _finite(metric) else None), (None if _finite(metric) else "invalid_reference")
 
 
+def _event_condition_metric(
+    events: list[Any] | None,
+    params: Mapping[str, Any],
+    as_of: datetime | None,
+) -> tuple[bool | None, float | None, str | None]:
+    """Evaluate whether a declared event occurred in the trailing window.
+
+    ``None`` events means the local event dataset is unavailable; an empty list is
+    a known event-free observation.  This distinction keeps missing calendar data
+    out of the eligible denominator instead of turning it into a false signal.
+    Event timestamps are compared in UTC and are never forward-filled.
+    """
+
+    if events is None:
+        return None, None, "event_data_unavailable"
+    if as_of is None:
+        return None, None, "invalid_condition_params"
+    event_type = str(params.get("event_type", "any")).strip().lower()
+    if not event_type:
+        event_type = "any"
+    include_estimates = bool(params.get("include_estimates", False))
+    try:
+        lookback_days = int(params.get("lookback_days", 0))
+    except (TypeError, ValueError):
+        return None, None, "invalid_condition_params"
+    if lookback_days < 0 or lookback_days > 3_660:
+        return None, None, "invalid_condition_params"
+    as_of_utc = as_of if as_of.tzinfo is not None else as_of.replace(tzinfo=UTC)
+    as_of_utc = as_of_utc.astimezone(UTC)
+    start = as_of_utc - timedelta(days=lookback_days)
+    matching = False
+    for event in events:
+        raw_time = getattr(event, "event_time", None)
+        if not isinstance(raw_time, datetime):
+            continue
+        event_time = raw_time if raw_time.tzinfo is not None else raw_time.replace(tzinfo=UTC)
+        event_time = event_time.astimezone(UTC)
+        if event_time < start or event_time > as_of_utc:
+            continue
+        raw_type = getattr(getattr(event, "event_type", None), "value", None)
+        raw_type = raw_type or getattr(event, "event_type", None)
+        actual_type = str(raw_type or "").lower()
+        if not include_estimates and actual_type.endswith("_estimate"):
+            continue
+        if event_type != "any" and actual_type != event_type:
+            continue
+        matching = True
+        break
+    metric = 1.0 if matching else 0.0
+    try:
+        value = _comparison(
+            metric,
+            {
+                "operator": params.get("operator", "gte"),
+                "threshold": params.get("threshold", 1),
+            },
+        )
+    except (TypeError, ValueError):
+        return None, None, "invalid_condition_params"
+    return value, metric, None
+
+
 def _field_series(
     bars: list[Any],
     field: str,
@@ -567,6 +629,7 @@ def evaluate_condition(
     condition: Mapping[str, Any],
     *,
     benchmark_bars: list[Any] | None = None,
+    events: list[Any] | None = None,
 ) -> tuple[bool | None, float | None, str | None]:
     """Evaluate a supported condition at the last available bar.
 
@@ -596,7 +659,10 @@ def evaluate_condition(
         if children is None:
             return None, None, "invalid_condition_params"
         evaluated = [
-            evaluate_condition(bars, child, benchmark_bars=benchmark_bars) for child in children
+            evaluate_condition(
+                bars, child, benchmark_bars=benchmark_bars, events=events
+            )
+            for child in children
         ]
         if kind == "all":
             for index, (value, _, warning) in enumerate(evaluated):
@@ -619,7 +685,7 @@ def evaluate_condition(
         if children is None or len(children) != 1:
             return None, None, "invalid_condition_params"
         value, metric, warning = evaluate_condition(
-            bars, children[0], benchmark_bars=benchmark_bars
+            bars, children[0], benchmark_bars=benchmark_bars, events=events
         )
         if warning:
             return None, None, f"condition_clause_excluded:0:{warning}"
@@ -644,6 +710,10 @@ def evaluate_condition(
             return _comparison(metric, params), metric, None
         except (TypeError, ValueError):
             return None, None, "invalid_condition_params"
+
+    if kind == "event":
+        as_of = getattr(bars[-1], "ts", None) if bars else None
+        return _event_condition_metric(events, params, as_of)
 
     if kind == "range":
         field = params.get("field")
@@ -815,6 +885,7 @@ def evaluate_condition_with_diagnostics(
     condition: Mapping[str, Any],
     *,
     benchmark_bars: list[Any] | None = None,
+    events: list[Any] | None = None,
 ) -> tuple[bool | None, float | None, str | None, tuple[BreadthConditionDiagnostic, ...]]:
     """Evaluate a condition and retain a deterministic trace for every clause.
 
@@ -825,13 +896,13 @@ def evaluate_condition_with_diagnostics(
     """
 
     value, metric, exclusion = evaluate_condition(
-        bars, condition, benchmark_bars=benchmark_bars
+        bars, condition, benchmark_bars=benchmark_bars, events=events
     )
     diagnostics: list[BreadthConditionDiagnostic] = []
 
     def visit(node: Mapping[str, Any], path: str) -> None:
         node_value, node_metric, node_exclusion = evaluate_condition(
-            bars, node, benchmark_bars=benchmark_bars
+            bars, node, benchmark_bars=benchmark_bars, events=events
         )
         diagnostics.append(
             BreadthConditionDiagnostic(
@@ -870,6 +941,7 @@ def evaluate_breadth(
     condition: Mapping[str, Any],
     *,
     benchmark_bars: list[Any] | None = None,
+    events_by_instrument: Mapping[int, list[Any] | None] | None = None,
 ) -> tuple[list[BreadthMemberResult], dict[str, int | float]]:
     """Evaluate one condition across a universe and return aggregate metadata."""
 
@@ -884,7 +956,12 @@ def evaluate_breadth(
     for member in members:
         bars = list(bars_by_instrument.get(member.instrument_id, []))
         value, metric, exclusion, diagnostics = evaluate_condition_with_diagnostics(
-            bars, condition, benchmark_bars=benchmark_bars
+            bars,
+            condition,
+            benchmark_bars=benchmark_bars,
+            events=(events_by_instrument or {}).get(member.instrument_id)
+            if events_by_instrument is not None
+            else None,
         )
         results.append(
             BreadthMemberResult(
@@ -919,6 +996,7 @@ def evaluate_breadth_history(
     *,
     limit: int = 500,
     benchmark_bars: list[Any] | None = None,
+    events_by_instrument: Mapping[int, list[Any] | None] | None = None,
 ) -> list[dict[str, Any]]:
     """Evaluate one condition on aligned observed timestamps.
 
@@ -990,7 +1068,12 @@ def evaluate_breadth_history(
                 # no-forward-fill membership boundary.
                 continue
             value, metric, exclusion, diagnostics = evaluate_condition_with_diagnostics(
-                observed, condition, benchmark_bars=benchmark_at_timestamp
+                observed,
+                condition,
+                benchmark_bars=benchmark_at_timestamp,
+                events=(events_by_instrument or {}).get(member.instrument_id)
+                if events_by_instrument is not None
+                else None,
             )
             if (
                 benchmark_bars is not None

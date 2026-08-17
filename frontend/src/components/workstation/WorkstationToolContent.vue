@@ -437,6 +437,7 @@
           <option value="volume_ratio">Volume ratio threshold</option>
           <option value="relative_strength">Relative strength threshold</option>
           <option value="series_comparison">Member versus reference series</option>
+          <option value="event">Event occurred in trailing window</option>
           <option value="comparison">Compare a measured field</option>
           <option value="range">Measured field within a range</option>
           <option value="percentile">Measured field percentile</option>
@@ -519,6 +520,18 @@
           <select :value="breadthSeriesRelation" aria-label="Breadth series relation" @change="setBreadthConfiguration({ breadth_series_relation: ($event.target as HTMLSelectElement).value })"><option value="difference">Difference</option><option value="ratio">Ratio minus one</option></select>
           <select :value="breadthComparisonOperator" aria-label="Breadth series operator" @change="setBreadthConfiguration({ breadth_comparison_operator: ($event.target as HTMLSelectElement).value })"><option value="gte">At or above</option><option value="lte">At or below</option><option value="gt">Above</option><option value="lt">Below</option><option value="eq">Equal to</option></select>
           <label>Threshold <input :value="breadthComparisonThreshold" aria-label="Breadth series threshold" type="number" step="0.001" @change="setBreadthConfiguration({ breadth_comparison_threshold: Number(($event.target as HTMLInputElement).value) })" /></label>
+        </template>
+        <template v-else-if="breadthConditionKind === 'event'">
+          <select :value="breadthEventType" aria-label="Breadth event type" @change="setBreadthConfiguration({ breadth_event_type: ($event.target as HTMLSelectElement).value })">
+            <option value="any">Any event</option>
+            <option value="earnings">Earnings</option>
+            <option value="dividend">Dividend</option>
+            <option value="ex_dividend">Ex-dividend</option>
+            <option value="split">Split</option>
+          </select>
+          <label>Lookback days <input :value="breadthEventLookbackDays" aria-label="Breadth event lookback days" type="number" min="0" max="3660" @change="setBreadthConfiguration({ breadth_event_lookback_days: Number(($event.target as HTMLInputElement).value) })" /></label>
+          <label><input type="checkbox" :checked="breadthEventIncludeEstimates" aria-label="Breadth include event estimates" @change="setBreadthConfiguration({ breadth_event_include_estimates: ($event.target as HTMLInputElement).checked })" /> Include estimates</label>
+          <select :value="breadthComparisonOperator" aria-label="Breadth event operator" @change="setBreadthConfiguration({ breadth_comparison_operator: ($event.target as HTMLSelectElement).value })"><option value="gte">Occurred</option><option value="lt">Did not occur</option></select>
         </template>
         <template v-else-if="breadthConditionKind === 'range'">
           <select :value="breadthRangeField" aria-label="Breadth range measured field" @change="setBreadthConfiguration({ breadth_range_field: ($event.target as HTMLSelectElement).value })">
@@ -827,6 +840,19 @@ const props = defineProps<{
   factoryLayout?: string | null
 }>()
 const emit = defineEmits<{ select: [symbol: string, instrumentId?: number | null]; compare: [symbols: string[]]; reorder: [watchlistId: number, itemIds: number[]]; rowAction: [action: 'chart' | 'compare' | 'ratio' | 'note' | 'alert' | 'copy', row: { symbol: string; instrumentId: number | null }]; occurrence: [symbol: string, timestamp: string, instrumentId?: number | null]; selectIndustry: [industry: string, etf: string]; selectProxy: [symbol: string, instrumentId?: number | null]; columns: [windowKey: string, keys: string[]]; filter: [windowKey: string, value: string]; conditionFilter: [windowKey: string, screenerId: number | null]; conditionFilterMode: [windowKey: string, mode: 'active' | 'inactive' | 'off']; pinnedBooleanKeys: [windowKey: string, keys: string[]]; columnGroups: [windowKey: string, groups: Record<string, string>]; stackedColumnKeys: [windowKey: string, keys: string[]]; configuration: [windowKey: string, configuration: Record<string, unknown>]; timeframe: [value: string, group: LinkGroup]; float: [windowKey: string]; maximize: [windowKey: string]; close: [windowKey: string]; updateLinkGroup: [windowKey: string, group: LinkGroup, displayedSymbol?: string] }>()
+// Inputs in dense breadth authoring can emit several configuration updates before
+// Golden Layout delivers the parent prop patch. Keep a local draft so a rapid
+// select/edit/evaluate sequence cannot serialize a stale sibling value.
+const breadthDraftConfiguration = ref<Record<string, unknown>>({})
+function breadthConfigurationValue(key: string, fallback?: unknown) {
+  if (Object.prototype.hasOwnProperty.call(breadthDraftConfiguration.value, key)) {
+    return breadthDraftConfiguration.value[key]
+  }
+  return props.tool.configuration[key] ?? fallback
+}
+watch(() => props.tool.configuration, () => {
+  breadthDraftConfiguration.value = {}
+}, { deep: true })
 // uPlot already consumes a panel-scoped store through injection. Give every persisted
 // workstation chart its own stable store identity so red/grey/yellow charts cannot
 // accidentally render the shell's blue/default data.
@@ -1788,74 +1814,80 @@ const breadthHistory = computed(() => workspaceStore.breadthHistory[breadthGroup
 const breadthBusy = computed(() => workspaceStore.breadthLoading[breadthGroupKey.value] === true || workspaceStore.breadthHistoryLoading[breadthGroupKey.value] === true)
 const breadthError = computed(() => workspaceStore.breadthErrors[breadthGroupKey.value] ?? workspaceStore.breadthHistoryErrors[breadthGroupKey.value] ?? null)
 const breadthCustomUniverseKind = computed(() => {
-  const candidate = props.tool.configuration.custom_universe_kind
+  const candidate = breadthConfigurationValue('custom_universe_kind')
   return candidate === 'etf_holdings' || candidate === 'benchmark_family' ? candidate : 'group'
 })
 const breadthComposition = computed(() => {
-  const candidate = String(props.tool.configuration.breadth_condition_composition ?? 'single')
+  const candidate = String(breadthConfigurationValue('breadth_condition_composition', 'single'))
   return ['all', 'any', 'not', 'tree'].includes(candidate) ? candidate : 'single'
 })
 const breadthConditionKind = computed(() => {
-  const candidate = String(props.tool.configuration.breadth_condition ?? 'above_moving_average')
-  return ['above_moving_average', 'within_52_week_high', 'new_high_low', 'prior_high_low', 'trend', 'rsi', 'volume_ratio', 'relative_strength', 'series_comparison', 'comparison', 'range', 'percentile'].includes(candidate) ? candidate : 'above_moving_average'
+  const candidate = String(breadthConfigurationValue('breadth_condition', 'above_moving_average'))
+  return ['above_moving_average', 'within_52_week_high', 'new_high_low', 'prior_high_low', 'trend', 'rsi', 'volume_ratio', 'relative_strength', 'series_comparison', 'event', 'comparison', 'range', 'percentile'].includes(candidate) ? candidate : 'above_moving_average'
 })
-const breadthConditionPeriod = computed(() => Math.min(252, Math.max(2, Number(props.tool.configuration.breadth_condition_period ?? 200) || 200)))
-const breadthConditionAverage = computed(() => props.tool.configuration.breadth_condition_average === 'ema' ? 'ema' : 'sma')
-const breadthConditionThreshold = computed(() => Math.min(0.5, Math.max(0.001, Number(props.tool.configuration.breadth_condition_threshold ?? 0.01) || 0.01)))
-const breadthConditionLookback = computed(() => Math.min(504, Math.max(2, Number(props.tool.configuration.breadth_condition_lookback ?? 252) || 252)))
-const breadthConditionRsiPeriod = computed(() => Math.min(252, Math.max(2, Number(props.tool.configuration.breadth_condition_rsi_period ?? 14) || 14)))
-const breadthConditionVolumePeriod = computed(() => Math.min(252, Math.max(2, Number(props.tool.configuration.breadth_condition_volume_period ?? 20) || 20)))
-const breadthConditionFastPeriod = computed(() => Math.min(100, Math.max(2, Number(props.tool.configuration.breadth_condition_fast_period ?? 20) || 20)))
-const breadthConditionSlowPeriod = computed(() => Math.min(252, Math.max(3, Number(props.tool.configuration.breadth_condition_slow_period ?? 50) || 50)))
-const breadthConditionDirection = computed(() => props.tool.configuration.breadth_condition_direction === 'down' ? 'down' : 'up')
-const breadthHighLowDirection = computed(() => props.tool.configuration.breadth_condition_high_low_direction === 'low' ? 'low' : 'high')
+const breadthConditionPeriod = computed(() => Math.min(252, Math.max(2, Number(breadthConfigurationValue('breadth_condition_period', 200)) || 200)))
+const breadthConditionAverage = computed(() => breadthConfigurationValue('breadth_condition_average') === 'ema' ? 'ema' : 'sma')
+const breadthConditionThreshold = computed(() => Math.min(0.5, Math.max(0.001, Number(breadthConfigurationValue('breadth_condition_threshold', 0.01)) || 0.01)))
+const breadthConditionLookback = computed(() => Math.min(504, Math.max(2, Number(breadthConfigurationValue('breadth_condition_lookback', 252)) || 252)))
+const breadthConditionRsiPeriod = computed(() => Math.min(252, Math.max(2, Number(breadthConfigurationValue('breadth_condition_rsi_period', 14)) || 14)))
+const breadthConditionVolumePeriod = computed(() => Math.min(252, Math.max(2, Number(breadthConfigurationValue('breadth_condition_volume_period', 20)) || 20)))
+const breadthConditionFastPeriod = computed(() => Math.min(100, Math.max(2, Number(breadthConfigurationValue('breadth_condition_fast_period', 20)) || 20)))
+const breadthConditionSlowPeriod = computed(() => Math.min(252, Math.max(3, Number(breadthConfigurationValue('breadth_condition_slow_period', 50)) || 50)))
+const breadthConditionDirection = computed(() => breadthConfigurationValue('breadth_condition_direction') === 'down' ? 'down' : 'up')
+const breadthHighLowDirection = computed(() => breadthConfigurationValue('breadth_condition_high_low_direction') === 'low' ? 'low' : 'high')
 const breadthComparisonField = computed(() => {
-  const candidate = String(props.tool.configuration.breadth_comparison_field ?? 'close')
+  const candidate = String(breadthConfigurationValue('breadth_comparison_field', 'close'))
   return ['close', 'return', 'volume', 'rsi', 'distance_to_52w_high', 'distance_to_52w_low', 'relative_strength'].includes(candidate) ? candidate : 'close'
 })
 const breadthComparisonOperator = computed(() => {
-  const candidate = String(props.tool.configuration.breadth_comparison_operator ?? 'gte')
+  const candidate = String(breadthConfigurationValue('breadth_comparison_operator', 'gte'))
   return ['gte', 'lte', 'gt', 'lt', 'eq'].includes(candidate) ? candidate : 'gte'
 })
-const breadthComparisonThreshold = computed(() => Number.isFinite(Number(props.tool.configuration.breadth_comparison_threshold)) ? Number(props.tool.configuration.breadth_comparison_threshold) : 0)
+const breadthComparisonThreshold = computed(() => Number.isFinite(Number(breadthConfigurationValue('breadth_comparison_threshold'))) ? Number(breadthConfigurationValue('breadth_comparison_threshold')) : 0)
 const breadthSeriesMemberField = computed(() => {
-  const candidate = String(props.tool.configuration.breadth_series_member_field ?? 'return')
+  const candidate = String(breadthConfigurationValue('breadth_series_member_field', 'return'))
   return ['close', 'return', 'volume', 'rsi', 'distance_to_52w_high', 'distance_to_52w_low'].includes(candidate) ? candidate : 'return'
 })
 const breadthSeriesReferenceField = computed(() => {
-  const candidate = String(props.tool.configuration.breadth_series_reference_field ?? 'return')
+  const candidate = String(breadthConfigurationValue('breadth_series_reference_field', 'return'))
   return ['close', 'return', 'volume', 'rsi', 'distance_to_52w_high', 'distance_to_52w_low'].includes(candidate) ? candidate : 'return'
 })
-const breadthSeriesRelation = computed(() => props.tool.configuration.breadth_series_relation === 'ratio' ? 'ratio' : 'difference')
+const breadthSeriesRelation = computed(() => breadthConfigurationValue('breadth_series_relation') === 'ratio' ? 'ratio' : 'difference')
+const breadthEventType = computed(() => {
+  const candidate = String(breadthConfigurationValue('breadth_event_type', 'any'))
+  return ['any', 'earnings', 'dividend', 'ex_dividend', 'split'].includes(candidate) ? candidate : 'any'
+})
+const breadthEventLookbackDays = computed(() => Math.min(3660, Math.max(0, Number(breadthConfigurationValue('breadth_event_lookback_days', 0)) || 0)))
+const breadthEventIncludeEstimates = computed(() => breadthConfigurationValue('breadth_event_include_estimates') === true)
 const breadthRangeField = computed(() => {
-  const candidate = String(props.tool.configuration.breadth_range_field ?? 'close')
+  const candidate = String(breadthConfigurationValue('breadth_range_field', 'close'))
   return ['close', 'return', 'volume', 'distance_to_52w_high'].includes(candidate) ? candidate : 'close'
 })
-const breadthRangeLower = computed(() => Number.isFinite(Number(props.tool.configuration.breadth_range_lower)) ? Number(props.tool.configuration.breadth_range_lower) : 0)
-const breadthRangeUpper = computed(() => Number.isFinite(Number(props.tool.configuration.breadth_range_upper)) ? Number(props.tool.configuration.breadth_range_upper) : 1)
+const breadthRangeLower = computed(() => Number.isFinite(Number(breadthConfigurationValue('breadth_range_lower'))) ? Number(breadthConfigurationValue('breadth_range_lower')) : 0)
+const breadthRangeUpper = computed(() => Number.isFinite(Number(breadthConfigurationValue('breadth_range_upper'))) ? Number(breadthConfigurationValue('breadth_range_upper')) : 1)
 const breadthPercentileField = computed(() => {
-  const candidate = String(props.tool.configuration.breadth_percentile_field ?? 'close')
+  const candidate = String(breadthConfigurationValue('breadth_percentile_field', 'close'))
   return ['close', 'return', 'volume', 'moving_average_distance'].includes(candidate) ? candidate : 'close'
 })
-const breadthPercentileScope = computed(() => props.tool.configuration.breadth_percentile_scope === 'cross_sectional' ? 'cross_sectional' : 'member')
-const breadthPercentilePeriod = computed(() => Math.min(5000, Math.max(2, Number(props.tool.configuration.breadth_percentile_period ?? 252) || 252)))
-const breadthPercentileTarget = computed(() => Math.min(1, Math.max(0, Number(props.tool.configuration.breadth_percentile_target ?? 0.8) || 0.8)))
+const breadthPercentileScope = computed(() => breadthConfigurationValue('breadth_percentile_scope') === 'cross_sectional' ? 'cross_sectional' : 'member')
+const breadthPercentilePeriod = computed(() => Math.min(5000, Math.max(2, Number(breadthConfigurationValue('breadth_percentile_period', 252)) || 252)))
+const breadthPercentileTarget = computed(() => Math.min(1, Math.max(0, Number(breadthConfigurationValue('breadth_percentile_target', 0.8)) || 0.8)))
 const breadthSecondaryField = computed(() => {
-  const candidate = String(props.tool.configuration.breadth_secondary_field ?? 'return')
+  const candidate = String(breadthConfigurationValue('breadth_secondary_field', 'return'))
   return ['close', 'return', 'volume', 'rsi', 'volume_ratio', 'distance_to_52w_high', 'relative_strength'].includes(candidate) ? candidate : 'return'
 })
-const breadthSecondaryThreshold = computed(() => Number.isFinite(Number(props.tool.configuration.breadth_secondary_threshold)) ? Number(props.tool.configuration.breadth_secondary_threshold) : 0)
+const breadthSecondaryThreshold = computed(() => Number.isFinite(Number(breadthConfigurationValue('breadth_secondary_threshold'))) ? Number(breadthConfigurationValue('breadth_secondary_threshold')) : 0)
 const breadthBenchmark = computed(() => {
-  const candidate = String(props.tool.configuration.breadth_benchmark ?? 'SPY').trim().toUpperCase()
+  const candidate = String(breadthConfigurationValue('breadth_benchmark', 'SPY')).trim().toUpperCase()
   return candidate || 'SPY'
 })
-const breadthReferenceTarget = computed(() => props.tool.configuration.breadth_reference_target === 'group' ? 'group' : 'symbol')
+const breadthReferenceTarget = computed(() => breadthConfigurationValue('breadth_reference_target') === 'group' ? 'group' : 'symbol')
 const breadthReferenceGroup = computed(() => {
-  const candidate = String(props.tool.configuration.breadth_reference_group ?? 'sp500-sectors').trim()
+  const candidate = String(breadthConfigurationValue('breadth_reference_group', 'sp500-sectors')).trim()
   return candidate || 'sp500-sectors'
 })
 type BreadthTreeNode = {
-  kind: 'all' | 'any' | 'not' | 'above_moving_average' | 'within_52_week_high' | 'new_high_low' | 'prior_high_low' | 'trend' | 'rsi' | 'volume_ratio' | 'relative_strength' | 'series_comparison' | 'comparison' | 'range' | 'percentile'
+  kind: 'all' | 'any' | 'not' | 'above_moving_average' | 'within_52_week_high' | 'new_high_low' | 'prior_high_low' | 'trend' | 'rsi' | 'volume_ratio' | 'relative_strength' | 'series_comparison' | 'event' | 'comparison' | 'range' | 'percentile'
   target_scope?: 'member' | 'cross_sectional'
   params: Record<string, unknown>
 }
@@ -1865,7 +1897,7 @@ function isBreadthTreeNode(value: unknown): value is BreadthTreeNode {
   return typeof candidate.kind === 'string' && Boolean(candidate.params && typeof candidate.params === 'object')
 }
 const breadthTreeCondition = computed<BreadthTreeNode>(() => {
-  const configured = props.tool.configuration.breadth_condition_tree
+  const configured = breadthConfigurationValue('breadth_condition_tree')
   if (isBreadthTreeNode(configured)) return configured
   return { kind: 'all', params: { conditions: [primaryBreadthCondition()] } }
 })
@@ -1957,6 +1989,9 @@ function comparisonCondition(field: string, operator: string, threshold: number)
 function primaryBreadthCondition() {
   if (breadthConditionKind.value === 'series_comparison') {
     return { kind: 'series_comparison', params: { field: breadthSeriesMemberField.value, target_field: breadthSeriesReferenceField.value, relation: breadthSeriesRelation.value, operator: breadthComparisonOperator.value, threshold: breadthComparisonThreshold.value } }
+  }
+  if (breadthConditionKind.value === 'event') {
+    return { kind: 'event', params: { event_type: breadthEventType.value, lookback_days: breadthEventLookbackDays.value, include_estimates: breadthEventIncludeEstimates.value, operator: breadthComparisonOperator.value, threshold: 1 } }
   }
   if (breadthConditionKind.value === 'comparison') {
     return comparisonCondition(breadthComparisonField.value, breadthComparisonOperator.value, breadthComparisonThreshold.value)
@@ -2756,7 +2791,8 @@ function setBreadthGroup(groupKey: string) {
   setBreadthConfiguration({ group_key: normalized })
 }
 function setBreadthConfiguration(configuration: Record<string, unknown>) {
-  emit('configuration', props.tool.instance_key, { ...props.tool.configuration, ...configuration })
+  breadthDraftConfiguration.value = { ...breadthDraftConfiguration.value, ...configuration }
+  emit('configuration', props.tool.instance_key, { ...props.tool.configuration, ...breadthDraftConfiguration.value })
 }
 async function loadBreadthUniverse(groupKey: string, timeframe = breadthTimeframe.value, adjusted = breadthAdjusted.value, lookback = breadthLookback.value) {
   const options = { ...(timeframe !== 'D1' ? { timeframe } : {}), ...(adjusted !== true ? { adjusted } : {}), ...(lookback !== 20 ? { new_high_lookback: lookback } : {}), ...(familyAsOf.value ? { as_of: familyAsOf.value } : {}) }

@@ -58,6 +58,24 @@ visual, and browser gaps remain named in the gap ledger until closed.
 - [ ] Event-series targets, arbitrary derived-Python target series, and promotion into every
       compatible plot/column/filter/gauge/alert/Study Lab/Strategy Lab surface remain open.
 
+### 2026-08-17 — Event-calendar breadth target
+
+- [x] Added an `event` breadth leaf backed by the canonical locally persisted instrument-event
+      calendar. Users can target any event, earnings, dividends, ex-dividends, or splits with an
+      explicit trailing-day window, estimate inclusion policy, and occurred/not-occurred operator.
+- [x] Current and historical evaluation is point-in-time: event timestamps must fall within the
+      declared window and at or before the observation; no event is forward-filled. A loaded empty
+      calendar is an eligible false result, while an instrument with no local fetch state is an
+      explicit `event_data_unavailable` exclusion. Response condition lineage records event-dataset
+      coverage and alignment metadata.
+- [x] Added compact and recursive-tree authoring, pure/API/integration/component/browser coverage,
+      and a local draft configuration guard for rapid select/edit/evaluate sequences. The first
+      browser run exposed a stale RSI threshold serialization race; the owning draft boundary was
+      repaired and the unchanged rebuilt flow passed. No acceptance threshold or provider rule was
+      relaxed.
+- [ ] Event-series output remains to be promoted into every compatible plot/column/filter/gauge/
+      alert/Study Lab/Strategy Lab surface; arbitrary derived-Python target series remain open.
+
 ### 2026-08-17 — Prior high/low breadth target
 
 - [x] Added the reusable `prior_high_low` predicate to the generic breadth contract. It compares
