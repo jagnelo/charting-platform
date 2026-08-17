@@ -753,6 +753,7 @@ class BreadthDefinitionRequest(BaseModel):
     adjusted: bool = True
     as_of: datetime | None = None
     benchmark: str | None = Field(default=None, max_length=80)
+    reference_universe: BreadthUniverseRequest | None = None
 
 
 class BreadthConditionDiagnosticOut(BaseModel):

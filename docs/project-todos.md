@@ -42,6 +42,22 @@ occurrences, member pass/fail sets, cross-sectional views, and promotion into ev
 chart/list/filter/scan/gauge/alert/Study Lab/export target. Family/style/provider, historical,
 visual, and browser gaps remain named in the gap ledger until closed.
 
+### 2026-08-17 — Group/peer aggregate breadth target series
+
+- [x] Added an explicit `reference_universe` to generic breadth definitions. A group, benchmark
+      family, ETF-proxy holdings universe, or explicit-symbol peer set is resolved through the
+      canonical local point-in-time membership path rather than being encoded as a ticker alias.
+- [x] Materialized the reference universe as a labelled derived equal-weight return index. Member
+      returns are aligned on exact observed timestamps, missing bars are never forward-filled, and
+      current/history `series_comparison` responses retain reference membership, method, coverage,
+      and alignment provenance.
+- [x] Added compact workstation authoring for symbol versus equal-weight group aggregate targets,
+      backend service/API regressions, full backend/frontend gates, and authenticated browser
+      request coverage. No acceptance flexibility used; the first browser timeout was a stale
+      served bundle and passed unchanged after rebuilding the branch stack.
+- [ ] Event-series targets, arbitrary derived-Python target series, and promotion into every
+      compatible plot/column/filter/gauge/alert/Study Lab/Strategy Lab surface remain open.
+
 ### 2026-08-17 — Prior high/low breadth target
 
 - [x] Added the reusable `prior_high_low` predicate to the generic breadth contract. It compares
@@ -52,7 +68,7 @@ visual, and browser gaps remain named in the gap ledger until closed.
       coverage, and authenticated Chromium request coverage. Full backend unit `1183/1183`,
       frontend Vitest `843/843`, type-check/build, targeted browser, Ruff, compileall, and diff
       checks pass. No acceptance flexibility used.
-- [ ] Event targets, benchmark/peer target-series authoring, arbitrary derived-Python composition,
+- [ ] Event targets, arbitrary derived-Python composition,
       and complete promotion fan-out remain open; this slice does not imply those capabilities.
 
 ### 2026-08-17 — Benchmark/peer series breadth target
@@ -69,8 +85,9 @@ visual, and browser gaps remain named in the gap ledger until closed.
       Vitest, type-check, production build, and authenticated browser request serialization pass.
       A historical diagnostic mismatch was fixed at the owning boundary and the unchanged focused
       tests passed; no acceptance criterion was relaxed.
-- [ ] Event-series targets, group/peer aggregates, arbitrary derived-Python target series, and
-      promotion into every compatible surface remain open and must retain the same lineage.
+- [ ] Event-series targets, arbitrary derived-Python target series, and promotion into every
+      compatible surface remain open and must retain the same lineage. Group/peer aggregate
+      targets are now represented by the explicit `reference_universe` slice above.
 
 ### 2026-08-17 — Expanded US index/factor and Nasdaq deconstruction vision
 

@@ -104,6 +104,7 @@ from app.schemas.analysis import (
 )
 from app.services.breadth import (
     BreadthMember,
+    build_equal_reference_series,
     definition_hash,
     detect_breadth_occurrences,
     evaluate_breadth,
@@ -5089,6 +5090,77 @@ def _generic_membership_version(payload: object) -> int:
     return int(hashlib.sha256(encoded.encode()).hexdigest()[:15], 16)
 
 
+def _series_reference_fields(condition: Mapping[str, object]) -> set[str]:
+    """Return fields that must be materialized on a derived reference series."""
+
+    fields: set[str] = set()
+    if str(condition.get("kind", "")).lower() == "series_comparison":
+        params = condition.get("params")
+        if isinstance(params, Mapping):
+            target = params.get("target_field", params.get("field", "close"))
+            if isinstance(target, str):
+                fields.add(target.lower().strip())
+    params = condition.get("params")
+    if isinstance(params, Mapping):
+        children = params.get("conditions")
+        if isinstance(children, list):
+            for child in children:
+                if isinstance(child, Mapping):
+                    fields.update(_series_reference_fields(child))
+    return fields
+
+
+async def _resolve_generic_breadth_reference(
+    definition: BreadthDefinitionRequest,
+    condition: Mapping[str, object],
+    timeframe: Timeframe,
+    db: AsyncSession,
+) -> tuple[list[object] | None, list[int], list[AnalysisWarning], dict[str, object]]:
+    """Resolve a group/peer aggregate target without provider fan-out.
+
+    A symbol benchmark remains the direct reference path. A ``reference_universe``
+    instead resolves the same canonical local universe machinery as the member
+    universe and materializes a labelled equal-weight return index. This keeps
+    group comparisons point-in-time and makes missing/asynchronous bars visible.
+    """
+
+    if definition.reference_universe is None:
+        return None, [], [], {}
+    unsupported = _series_reference_fields(condition) - {"close", "price", "last", "return", "return_1"}
+    if unsupported:
+        raise HTTPException(
+            422,
+            detail={
+                "code": "reference_aggregate_unsupported_field",
+                "fields": sorted(unsupported),
+                "supported_fields": ["close", "return"],
+            },
+        )
+    reference_definition = definition.model_copy(update={"universe": definition.reference_universe})
+    (
+        reference_members,
+        reference_ids,
+        reference_warnings,
+        reference_universe_provenance,
+        reference_membership_payload,
+    ) = await _resolve_generic_breadth_universe(reference_definition, db)
+    reference_bars_by_id = _truncate_bars_at(
+        await _bars_by_instrument(db, reference_ids, timeframe, definition.adjusted),
+        definition.as_of,
+    )
+    reference_series, series_summary = build_equal_reference_series(reference_bars_by_id)
+    reference_membership_version = _generic_membership_version(reference_membership_payload)
+    provenance: dict[str, object] = {
+        "kind": "derived_reference_series",
+        "target": "equal_weight_member_return_index",
+        "universe": reference_universe_provenance,
+        "membership_version": reference_membership_version,
+        "member_count": len(reference_members),
+        **series_summary,
+    }
+    return reference_series, reference_ids, reference_warnings, provenance
+
+
 async def _resolve_benchmark_family_breadth_universe(
     definition: BreadthDefinitionRequest, db: AsyncSession
 ) -> tuple[list[BreadthMember], list[int], list[AnalysisWarning], dict[str, object], object]:
@@ -6211,14 +6283,35 @@ async def evaluate_generic_breadth(
         await _bars_by_instrument(db, member_ids, timeframe, definition.adjusted), definition.as_of
     )
     benchmark_bars = None
+    reference_member_ids: list[int] = []
+    reference_warnings: list[AnalysisWarning] = []
+    reference_provenance: dict[str, object] = {}
     if _generic_condition_requires_benchmark(condition_definition.model_dump()):
-        if not definition.benchmark:
-            raise HTTPException(422, detail={"code": "benchmark_required"})
-        benchmark = await _instrument(db, definition.benchmark)
-        benchmark_bars = _truncate_bars_at(
-            await _bars_by_instrument(db, [benchmark.id], timeframe, definition.adjusted),
-            definition.as_of,
-        ).get(benchmark.id, [])
+        if definition.reference_universe is not None:
+            (
+                benchmark_bars,
+                reference_member_ids,
+                reference_warnings,
+                reference_provenance,
+            ) = await _resolve_generic_breadth_reference(
+                definition, condition_definition.model_dump(), timeframe, db
+            )
+        else:
+            if not definition.benchmark:
+                raise HTTPException(422, detail={"code": "benchmark_required"})
+            benchmark = await _instrument(db, definition.benchmark)
+            benchmark_bars = _truncate_bars_at(
+                await _bars_by_instrument(db, [benchmark.id], timeframe, definition.adjusted),
+                definition.as_of,
+            ).get(benchmark.id, [])
+    elif definition.reference_universe is not None:
+        raise HTTPException(
+            422,
+            detail={
+                "code": "reference_universe_requires_series_condition",
+                "message": "A reference universe is only meaningful for a benchmark/peer-dependent condition.",
+            },
+        )
 
     condition = {
         "kind": condition_definition.kind,
@@ -6228,10 +6321,13 @@ async def evaluate_generic_breadth(
     }
     if definition.benchmark:
         condition["reference_symbol"] = definition.benchmark.upper()
+    if definition.reference_universe is not None:
+        condition["reference_universe"] = definition.reference_universe.model_dump(mode="json")
+        condition["reference_target"] = reference_provenance
     results, aggregate = evaluate_breadth(
         members, bars_by_id, condition, benchmark_bars=benchmark_bars
     )
-    warnings = list(universe_warnings)
+    warnings = [*universe_warnings, *reference_warnings]
     member_outputs: list[BreadthMemberResultOut] = []
     for result in results:
         warning = (
@@ -6270,7 +6366,7 @@ async def evaluate_generic_breadth(
     if definition.benchmark:
         definition_payload["benchmark"] = definition.benchmark.upper()
     freshness, freshness_detail = await _batch_freshness(
-        db, member_ids, timeframe, definition.adjusted
+        db, [*member_ids, *reference_member_ids], timeframe, definition.adjusted
     )
     latest_as_of = max(
         (result.observation_time for result in results if result.observation_time), default=None
@@ -6332,14 +6428,35 @@ async def evaluate_generic_breadth_history(
     bars_by_id = await _bars_by_instrument(db, member_ids, timeframe, definition.adjusted)
     bars_by_id = _truncate_bars_at(bars_by_id, definition.as_of)
     benchmark_bars = None
+    reference_member_ids: list[int] = []
+    reference_warnings: list[AnalysisWarning] = []
+    reference_provenance: dict[str, object] = {}
     if _generic_condition_requires_benchmark(condition_definition.model_dump()):
-        if not definition.benchmark:
-            raise HTTPException(422, detail={"code": "benchmark_required"})
-        benchmark = await _instrument(db, definition.benchmark)
-        benchmark_bars = _truncate_bars_at(
-            await _bars_by_instrument(db, [benchmark.id], timeframe, definition.adjusted),
-            definition.as_of,
-        ).get(benchmark.id, [])
+        if definition.reference_universe is not None:
+            (
+                benchmark_bars,
+                reference_member_ids,
+                reference_warnings,
+                reference_provenance,
+            ) = await _resolve_generic_breadth_reference(
+                definition, condition_definition.model_dump(), timeframe, db
+            )
+        else:
+            if not definition.benchmark:
+                raise HTTPException(422, detail={"code": "benchmark_required"})
+            benchmark = await _instrument(db, definition.benchmark)
+            benchmark_bars = _truncate_bars_at(
+                await _bars_by_instrument(db, [benchmark.id], timeframe, definition.adjusted),
+                definition.as_of,
+            ).get(benchmark.id, [])
+    elif definition.reference_universe is not None:
+        raise HTTPException(
+            422,
+            detail={
+                "code": "reference_universe_requires_series_condition",
+                "message": "A reference universe is only meaningful for a benchmark/peer-dependent condition.",
+            },
+        )
     condition = {
         "kind": condition_definition.kind,
         "target_scope": condition_definition.target_scope,
@@ -6348,6 +6465,9 @@ async def evaluate_generic_breadth_history(
     }
     if definition.benchmark:
         condition["reference_symbol"] = definition.benchmark.upper()
+    if definition.reference_universe is not None:
+        condition["reference_universe"] = definition.reference_universe.model_dump(mode="json")
+        condition["reference_target"] = reference_provenance
     raw_points = evaluate_breadth_history(
         members,
         bars_by_id,
@@ -6356,7 +6476,7 @@ async def evaluate_generic_breadth_history(
         benchmark_bars=benchmark_bars,
     )
     occurrence_rows = detect_breadth_occurrences(raw_points)
-    warnings = list(universe_warnings)
+    warnings = [*universe_warnings, *reference_warnings]
     points: list[BreadthDefinitionHistoryPointOut] = []
     for raw_point in raw_points:
         member_outputs: list[BreadthMemberResultOut] = []
@@ -6412,7 +6532,7 @@ async def evaluate_generic_breadth_history(
     if definition.benchmark:
         definition_payload["benchmark"] = definition.benchmark.upper()
     freshness, freshness_detail = await _batch_freshness(
-        db, member_ids, timeframe, definition.adjusted
+        db, [*member_ids, *reference_member_ids], timeframe, definition.adjusted
     )
     return BreadthDefinitionHistoryOut(
         definition_version=definition.version,

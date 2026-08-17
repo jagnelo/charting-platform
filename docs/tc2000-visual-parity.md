@@ -10,6 +10,13 @@ sector/industry/proxy ranking, concentration/dispersion and rotation panels, and
 drill-down states. Missing or unverified roles must have an explicit unavailable/derived/`No
 verified mapped proxy` visual; an empty selector or silent fallback is not an accepted state.
 
+The breadth visual state also includes the reference-target selector: a canonical symbol path and
+an equal-weight group aggregate path must be visibly distinct, with the latter showing its
+derived-method, membership, coverage, freshness, and exact-alignment lineage. The represented
+browser interaction is accepted against the current board-guided dense composer; any absent exact
+V25 group-target visual remains a named reference-board gap rather than an unreviewed screenshot
+pass.
+
 The Nasdaq 100 cap/equal view must visibly behave like the SPY/RSP deconstruction when its
 independent QQQ/QQQE (or other verified pair) evidence is approved. Visual references must also
 show the provenance/freshness/coverage and membership/as-of labels needed to distinguish native

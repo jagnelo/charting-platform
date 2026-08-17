@@ -41,9 +41,20 @@ peer symbol supplies a second field series; the member and reference fields, `di
 Current and historical evaluation require exact timestamp alignment and report
 `benchmark_missing_at_timestamp` instead of carrying a stale reference forward. Compact and
 recursive editors, diagnostics, occurrences, API lineage, focused current/history tests, full
-backend/frontend gates, and the represented authenticated browser request path pass. Event and
-group-derived targets, arbitrary Python target series, and complete promotion fan-out remain
-explicit parity gaps.
+backend/frontend gates, and the represented authenticated browser request path pass. Event,
+arbitrary Python target series, and complete promotion fan-out remain explicit parity gaps.
+
+## 2026-08-17 — Group/peer aggregate breadth target
+
+Generic `series_comparison` can now use an explicit `reference_universe` instead of a benchmark
+ticker. The reference group/family/ETF-proxy/symbol set is resolved with the same canonical
+point-in-time membership contract, then materialized as a clearly labelled derived equal-weight
+return index. Exact timestamps and partial member coverage are retained; no stale member bar is
+forward-filled. Current/history responses expose the reference membership version, method,
+covered-member summary, supported fields (`close` and `return`), alignment semantics, diagnostics,
+occurrences, and definition lineage. The compact editor exposes symbol versus equal-weight group
+aggregate selection, and rebuilt authenticated Chromium coverage proves the serialized request.
+Event targets, arbitrary derived-Python target series, and complete promotion fan-out remain open.
 
 ## 2026-08-17 — Recursive breadth clause diagnostics
 

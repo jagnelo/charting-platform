@@ -229,8 +229,20 @@ canonical `reference_symbol`. Current and historical runs must align member and 
 the exact observation timestamp, exclude missing/misaligned references with
 `benchmark_missing_at_timestamp`, and preserve the same diagnostics, occurrences, denominator,
 coverage, and definition hash. A browser request must prove that the compact editor emits the
-selected fields and relation. Event-series, group aggregate, arbitrary derived-Python, and full
-promotion targets remain tracked gaps rather than being implied by this sub-gate.
+selected fields and relation. Event-series, arbitrary derived-Python, and full promotion targets
+remain tracked gaps rather than being implied by this sub-gate.
+
+### Group/peer aggregate target sub-gate
+
+When `reference_universe` is supplied, acceptance must verify that it is resolved through the
+canonical local universe and point-in-time membership path, not interpreted as a symbol. The
+derived reference must declare `derived_equal_weight_return_index`, exact-timestamp/no-forward-fill
+alignment, member count, covered-member summary, membership version, and supported target fields.
+Current and historical `series_comparison` results must retain that lineage and treat an absent
+reference point as `benchmark_missing_at_timestamp`; partial reference membership is reported as
+coverage metadata rather than silently filled. The workstation must expose symbol versus
+equal-weight group aggregate authoring and emit the same immutable definition in both requests.
+Event targets, arbitrary Python target series, and full promotion fan-out remain open.
 
 ## 2026-08-17 — Research Results occurrence-filter sub-gate
 

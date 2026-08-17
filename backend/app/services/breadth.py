@@ -16,6 +16,7 @@ import math
 from collections.abc import Mapping
 from dataclasses import dataclass, replace
 from datetime import datetime
+from types import SimpleNamespace
 from typing import Any
 
 
@@ -48,6 +49,69 @@ class BreadthMemberResult:
     observation_time: datetime | None
     exclusion_code: str | None = None
     diagnostics: tuple[BreadthConditionDiagnostic, ...] = ()
+
+
+def build_equal_reference_series(
+    bars_by_instrument: Mapping[int, list[Any]],
+) -> tuple[list[Any], dict[str, int | float | str]]:
+    """Materialize an aligned, equal-weight reference index from local member bars.
+
+    This is deliberately a derived target series, not a claim that the group is an
+    official index. Each timestamp contributes the simple mean of member returns for
+    members with an exact current bar and a prior bar. No bar is carried forward. The
+    resulting normalized index can therefore be compared using the existing ``close``
+    or ``return`` field semantics while retaining explicit coverage metadata at the
+    router boundary.
+    """
+
+    by_timestamp: dict[datetime, list[tuple[float, float]]] = {}
+    member_count = 0
+    for raw_bars in bars_by_instrument.values():
+        bars = sorted(
+            [bar for bar in raw_bars if getattr(bar, "ts", None) is not None],
+            key=lambda bar: getattr(bar, "ts"),
+        )
+        if not bars:
+            continue
+        member_count += 1
+        for previous, current in zip(bars, bars[1:]):
+            previous_close = getattr(previous, "close", None)
+            current_close = getattr(current, "close", None)
+            if not _finite(previous_close) or not _finite(current_close):
+                continue
+            previous_value = float(previous_close)
+            current_value = float(current_close)
+            if previous_value <= 0 or current_value <= 0:
+                continue
+            timestamp = getattr(current, "ts")
+            by_timestamp.setdefault(timestamp, []).append(
+                (current_value / previous_value) - 1
+            )
+
+    index_value = 100.0
+    points: list[Any] = []
+    covered_counts: list[int] = []
+    for timestamp in sorted(by_timestamp):
+        returns = by_timestamp[timestamp]
+        if not returns:
+            continue
+        index_value *= 1 + (sum(returns) / len(returns))
+        points.append(SimpleNamespace(ts=timestamp, close=index_value, volume=None))
+        covered_counts.append(len(returns))
+
+    summary: dict[str, int | float | str] = {
+        "method": "derived_equal_weight_return_index",
+        "membership_semantics": "reference_universe_member_returns",
+        "member_count": member_count,
+        "point_count": len(points),
+        "covered_member_points": sum(covered_counts),
+        "mean_covered_members": (
+            sum(covered_counts) / len(covered_counts) if covered_counts else 0.0
+        ),
+        "supported_fields": "close,return",
+        "alignment": "exact_timestamp_no_forward_fill",
+    }
+    return points, summary
 
 
 def normalized_definition(definition: Mapping[str, Any]) -> dict[str, Any]:

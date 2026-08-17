@@ -3,6 +3,7 @@ from types import SimpleNamespace
 
 from app.services.breadth import (
     BreadthMember,
+    build_equal_reference_series,
     definition_hash,
     detect_breadth_occurrences,
     evaluate_breadth,
@@ -152,6 +153,22 @@ def test_series_comparison_history_requires_reference_at_each_timestamp():
 
     assert points[-1]["members"][0].exclusion_code == "benchmark_missing_at_timestamp"
     assert points[-1]["members"][0].diagnostics[0].code == "benchmark_missing_at_timestamp"
+
+
+def test_equal_reference_series_is_normalized_and_never_forward_fills_members():
+    first = _bars([100, 110, 99])
+    second = _bars([200, 210, 231])
+    second[-1].ts = second[-1].ts + timedelta(days=1)
+    series, summary = build_equal_reference_series({1: first, 2: second})
+
+    # The first aligned return averages 10% and 5%; the later timestamp only has
+    # the first member, so it remains a valid partial aggregate rather than using
+    # the second member's stale prior bar.
+    assert [point.ts for point in series] == [first[1].ts, first[2].ts, second[2].ts]
+    assert abs(series[0].close - 107.5) < 1e-12
+    assert summary["method"] == "derived_equal_weight_return_index"
+    assert summary["alignment"] == "exact_timestamp_no_forward_fill"
+    assert summary["member_count"] == 2
 
 
 def test_breadth_keeps_insufficient_history_out_of_the_denominator():

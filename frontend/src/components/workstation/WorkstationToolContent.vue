@@ -415,7 +415,12 @@
           <option value="not">Not condition</option>
           <option value="tree">Nested condition tree</option>
         </select>
-        <label>Benchmark <input :value="breadthBenchmark" aria-label="Breadth benchmark" maxlength="12" @change="setBreadthConfiguration({ breadth_benchmark: ($event.target as HTMLInputElement).value.toUpperCase() })" /></label>
+        <select :value="breadthReferenceTarget" aria-label="Breadth reference target" @change="setBreadthConfiguration({ breadth_reference_target: ($event.target as HTMLSelectElement).value })">
+          <option value="symbol">Reference symbol</option>
+          <option value="group">Equal-weight group aggregate</option>
+        </select>
+        <label v-if="breadthReferenceTarget === 'symbol'">Benchmark <input :value="breadthBenchmark" aria-label="Breadth benchmark" maxlength="12" @change="setBreadthConfiguration({ breadth_benchmark: ($event.target as HTMLInputElement).value.toUpperCase() })" /></label>
+        <label v-else>Reference group <input :value="breadthReferenceGroup" aria-label="Breadth reference group" maxlength="160" @change="setBreadthConfiguration({ breadth_reference_group: ($event.target as HTMLInputElement).value.trim() })" /></label>
         <BreadthConditionTreeEditor
           v-if="breadthComposition === 'tree'"
           :model-value="breadthTreeCondition"
@@ -1844,6 +1849,11 @@ const breadthBenchmark = computed(() => {
   const candidate = String(props.tool.configuration.breadth_benchmark ?? 'SPY').trim().toUpperCase()
   return candidate || 'SPY'
 })
+const breadthReferenceTarget = computed(() => props.tool.configuration.breadth_reference_target === 'group' ? 'group' : 'symbol')
+const breadthReferenceGroup = computed(() => {
+  const candidate = String(props.tool.configuration.breadth_reference_group ?? 'sp500-sectors').trim()
+  return candidate || 'sp500-sectors'
+})
 type BreadthTreeNode = {
   kind: 'all' | 'any' | 'not' | 'above_moving_average' | 'within_52_week_high' | 'new_high_low' | 'prior_high_low' | 'trend' | 'rsi' | 'volume_ratio' | 'relative_strength' | 'series_comparison' | 'comparison' | 'range' | 'percentile'
   target_scope?: 'member' | 'cross_sectional'
@@ -2001,7 +2011,9 @@ const genericBreadthDefinition = computed(() => ({
   timeframe: breadthTimeframe.value,
   adjusted: breadthAdjusted.value,
   ...(familyAsOf.value ? { as_of: familyAsOf.value } : {}),
-  benchmark: breadthBenchmark.value,
+  ...(breadthReferenceTarget.value === 'group'
+    ? { reference_universe: { kind: 'group', key: breadthReferenceGroup.value, point_in_time: true } }
+    : { benchmark: breadthBenchmark.value }),
 }))
 const genericBreadthKey = computed(() => JSON.stringify(genericBreadthDefinition.value))
 const genericBreadth = computed(() => workspaceStore.genericBreadth[genericBreadthKey.value])

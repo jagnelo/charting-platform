@@ -2483,6 +2483,72 @@ class TestWorkspaces:
         assert series_history.json()["condition"]["reference_symbol"] == instrument.symbol
         assert series_history.json()["points"]
 
+        reference_group = MarketGroup(
+            stable_key="generic-breadth-reference-group",
+            group_type="test",
+            name="Generic breadth reference group",
+        )
+        db.add(reference_group)
+        db.flush()
+        db.add(
+            MarketGroupMember(
+                market_group_id=reference_group.id,
+                instrument_id=instrument.id,
+                position=0,
+            )
+        )
+        db.flush()
+        group_reference = client.post(
+            "/api/v1/analysis/breadth",
+            headers=auth_headers,
+            json={
+                "universe": {"kind": "symbols", "symbols": [instrument.symbol]},
+                "reference_universe": {
+                    "kind": "group",
+                    "key": reference_group.stable_key,
+                    "point_in_time": True,
+                },
+                "condition": {
+                    "kind": "series_comparison",
+                    "params": {
+                        "field": "return",
+                        "target_field": "return",
+                        "relation": "difference",
+                        "operator": ">=",
+                        "threshold": 0,
+                    },
+                },
+                "limit": 20,
+            },
+        )
+        assert group_reference.status_code == 200, group_reference.text
+        group_reference_payload = group_reference.json()
+        assert group_reference_payload["condition"]["reference_universe"]["key"] == reference_group.stable_key
+        assert group_reference_payload["condition"]["reference_target"]["method"] == "derived_equal_weight_return_index"
+        assert group_reference_payload["condition"]["reference_target"]["alignment"] == "exact_timestamp_no_forward_fill"
+        assert group_reference_payload["members"][0]["value"] is True
+        group_reference_history = client.post(
+            "/api/v1/analysis/breadth/history",
+            headers=auth_headers,
+            json={
+                "universe": {"kind": "symbols", "symbols": [instrument.symbol]},
+                "reference_universe": {
+                    "kind": "group",
+                    "key": reference_group.stable_key,
+                    "point_in_time": True,
+                },
+                "condition": {
+                    "kind": "series_comparison",
+                    "params": {"field": "return", "target_field": "return", "operator": ">=", "threshold": 0},
+                },
+                "limit": 20,
+            },
+        )
+        assert group_reference_history.status_code == 200, group_reference_history.text
+        history_payload = group_reference_history.json()
+        assert history_payload["condition"]["reference_target"]["member_count"] == 1
+        assert history_payload["points"]
+
     def test_generic_breadth_resolves_benchmark_family_style_leg_from_holdings_snapshot(
         self, client, auth_headers, db, instrument, instrument_type, ohlcv_bars
     ):
