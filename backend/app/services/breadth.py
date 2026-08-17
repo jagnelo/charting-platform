@@ -206,6 +206,60 @@ def _comparison_metric(
     return None, "unsupported_field"
 
 
+def _field_series(
+    bars: list[Any],
+    field: str,
+    params: Mapping[str, Any],
+    *,
+    benchmark_bars: list[Any] | None,
+) -> tuple[list[float] | None, str | None]:
+    """Build a deterministic member-level series for rolling target tests.
+
+    The series is intentionally derived from already materialised local bars.  It
+    is not a second programming language or a provider access path; Python-defined
+    fields continue to use the isolated runner.  Keeping the supported vocabulary
+    here makes the persisted breadth definition explicit and reproducible.
+    """
+
+    normalized = str(field).lower().strip()
+    closes = _close_values(bars)
+    if closes is None or not closes:
+        return None, "invalid_close"
+    if normalized in {"close", "price", "last"}:
+        return closes, None
+    if normalized in {"return", "return_1"}:
+        if len(closes) < 2 or any(closes[index - 1] == 0 for index in range(1, len(closes))):
+            return None, "invalid_reference"
+        return [closes[index] / closes[index - 1] - 1 for index in range(1, len(closes))], None
+    if normalized == "volume":
+        volumes = [getattr(bar, "volume", None) for bar in bars]
+        if any(not _finite(value) for value in volumes):
+            return None, "missing_volume"
+        return [float(value) for value in volumes], None
+    if normalized in {"moving_average_distance", "ma_distance"}:
+        period = int(params.get("period", 200))
+        if period < 2 or len(closes) < period:
+            return None, "insufficient_history"
+        return [
+            closes[index] / _mean(closes[index - period + 1 : index + 1]) - 1
+            for index in range(period - 1, len(closes))
+        ], None
+    # Relative strength is inherently a two-series operation and is already
+    # exposed as a direct condition; a rolling percentile of it belongs in the
+    # isolated Python path until aligned pair-series support is declared.
+    if normalized in {"relative_strength", "relative_return"} and benchmark_bars is None:
+        return None, "benchmark_required"
+    return None, "unsupported_field"
+
+
+def _percentile_rank(values: list[float], target: float) -> float:
+    """Return the inclusive empirical percentile rank in [0, 1]."""
+
+    if not values:
+        return math.nan
+    return sum(value <= target for value in values) / len(values)
+
+
 def evaluate_condition(
     bars: list[Any],
     condition: Mapping[str, Any],
@@ -276,6 +330,49 @@ def evaluate_condition(
         if warning or metric is None:
             return None, metric, warning or "invalid_condition_params"
         return _comparison(metric, params), metric, None
+
+    if kind == "range":
+        field = params.get("field")
+        if not isinstance(field, str) or not field.strip():
+            return None, None, "invalid_condition_params"
+        metric, warning = _comparison_metric(
+            bars, field, params, benchmark_bars=benchmark_bars
+        )
+        if warning or metric is None:
+            return None, metric, warning or "invalid_condition_params"
+        try:
+            lower = float(params["lower"])
+            upper = float(params["upper"])
+        except (KeyError, TypeError, ValueError):
+            return None, None, "invalid_condition_params"
+        if not _finite(lower) or not _finite(upper) or lower > upper:
+            return None, None, "invalid_condition_params"
+        inclusive = bool(params.get("inclusive", True))
+        value = lower <= metric <= upper if inclusive else lower < metric < upper
+        return value, metric, None
+
+    if kind == "percentile":
+        field = params.get("field")
+        if not isinstance(field, str) or not field.strip():
+            return None, None, "invalid_condition_params"
+        period = int(params.get("period", 252))
+        percentile = float(params.get("percentile", 0.8))
+        if period < 2 or period > 5_000 or not 0 <= percentile <= 1:
+            return None, None, "invalid_condition_params"
+        series, warning = _field_series(
+            bars, field, params, benchmark_bars=benchmark_bars
+        )
+        if warning or series is None:
+            return None, None, warning or "invalid_condition_params"
+        if len(series) < period:
+            return None, None, "insufficient_history"
+        window = series[-period:]
+        rank = _percentile_rank(window, window[-1])
+        comparison_params = {
+            "operator": params.get("operator", "gte"),
+            "threshold": percentile,
+        }
+        return _comparison(rank, comparison_params), rank, None
 
     if kind == "above_moving_average":
         period = int(params.get("period", 200))

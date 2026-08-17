@@ -163,3 +163,42 @@ def test_composite_condition_preserves_nested_exclusion_path():
     assert value is None
     assert metric is None
     assert warning == "condition_clause_excluded:0:insufficient_history"
+
+
+def test_range_condition_exposes_member_level_bounds_and_metric():
+    value, metric, warning = evaluate_condition(
+        _bars([100, 102, 105]),
+        {
+            "kind": "range",
+            "params": {"field": "return", "lower": 0.02, "upper": 0.04},
+        },
+    )
+
+    assert value is True
+    assert metric == (105 / 102) - 1
+    assert warning is None
+
+
+def test_percentile_condition_uses_the_declared_rolling_window_and_operator():
+    value, metric, warning = evaluate_condition(
+        _bars([1, 2, 3, 4, 5]),
+        {
+            "kind": "percentile",
+            "params": {"field": "close", "period": 4, "percentile": 0.75, "operator": "gte"},
+        },
+    )
+
+    assert value is True
+    assert metric == 1.0
+    assert warning is None
+
+
+def test_invalid_range_bounds_are_excluded_instead_of_becoming_false():
+    value, metric, warning = evaluate_condition(
+        _bars([100, 101]),
+        {"kind": "range", "params": {"field": "close", "lower": 2, "upper": 1}},
+    )
+
+    assert value is None
+    assert metric is None
+    assert warning == "invalid_condition_params"

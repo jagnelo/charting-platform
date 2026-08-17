@@ -421,6 +421,8 @@
           <option value="volume_ratio">Volume ratio threshold</option>
           <option value="relative_strength">Relative strength threshold</option>
           <option value="comparison">Compare a measured field</option>
+          <option value="range">Measured field within a range</option>
+          <option value="percentile">Measured field percentile</option>
         </select>
         <template v-if="breadthConditionKind === 'above_moving_average'">
           <label>Period <input :value="breadthConditionPeriod" aria-label="Breadth condition moving average period" type="number" min="2" max="252" @change="setBreadthConfiguration({ breadth_condition_period: Number(($event.target as HTMLInputElement).value) })" /></label>
@@ -468,6 +470,27 @@
             <option value="eq">Equal to</option>
           </select>
           <label>Target <input :value="breadthComparisonThreshold" aria-label="Breadth target threshold" type="number" step="0.001" @change="setBreadthConfiguration({ breadth_comparison_threshold: Number(($event.target as HTMLInputElement).value) })" /></label>
+        </template>
+        <template v-else-if="breadthConditionKind === 'range'">
+          <select :value="breadthRangeField" aria-label="Breadth range measured field" @change="setBreadthConfiguration({ breadth_range_field: ($event.target as HTMLSelectElement).value })">
+            <option value="close">Close</option>
+            <option value="return">One-period return</option>
+            <option value="volume">Volume</option>
+            <option value="distance_to_52w_high">Distance to 52-week high</option>
+          </select>
+          <label>Min <input :value="breadthRangeLower" aria-label="Breadth range lower bound" type="number" step="0.001" @change="setBreadthConfiguration({ breadth_range_lower: Number(($event.target as HTMLInputElement).value) })" /></label>
+          <label>Max <input :value="breadthRangeUpper" aria-label="Breadth range upper bound" type="number" step="0.001" @change="setBreadthConfiguration({ breadth_range_upper: Number(($event.target as HTMLInputElement).value) })" /></label>
+        </template>
+        <template v-else-if="breadthConditionKind === 'percentile'">
+          <select :value="breadthPercentileField" aria-label="Breadth percentile measured field" @change="setBreadthConfiguration({ breadth_percentile_field: ($event.target as HTMLSelectElement).value })">
+            <option value="close">Close</option>
+            <option value="return">One-period return</option>
+            <option value="volume">Volume</option>
+            <option value="moving_average_distance">Moving-average distance</option>
+          </select>
+          <label>Window <input :value="breadthPercentilePeriod" aria-label="Breadth percentile rolling window" type="number" min="2" max="5000" @change="setBreadthConfiguration({ breadth_percentile_period: Number(($event.target as HTMLInputElement).value) })" /></label>
+          <select :value="breadthComparisonOperator" aria-label="Breadth percentile operator" @change="setBreadthConfiguration({ breadth_comparison_operator: ($event.target as HTMLSelectElement).value })"><option value="gte">At or above</option><option value="lte">At or below</option><option value="gt">Above</option><option value="lt">Below</option></select>
+          <label>Percentile <input :value="breadthPercentileTarget" aria-label="Breadth percentile target" type="number" min="0" max="1" step="0.01" @change="setBreadthConfiguration({ breadth_percentile_target: Number(($event.target as HTMLInputElement).value) })" /></label>
         </template>
         <template v-if="breadthComposition === 'all'">
           <span class="breadth-tool__composition-note">+ measured-field target</span>
@@ -1712,7 +1735,7 @@ const breadthCustomUniverseKind = computed(() => {
 const breadthComposition = computed(() => props.tool.configuration.breadth_condition_composition === 'all' ? 'all' : 'single')
 const breadthConditionKind = computed(() => {
   const candidate = String(props.tool.configuration.breadth_condition ?? 'above_moving_average')
-  return ['above_moving_average', 'within_52_week_high', 'trend', 'rsi', 'volume_ratio', 'relative_strength', 'comparison'].includes(candidate) ? candidate : 'above_moving_average'
+  return ['above_moving_average', 'within_52_week_high', 'trend', 'rsi', 'volume_ratio', 'relative_strength', 'comparison', 'range', 'percentile'].includes(candidate) ? candidate : 'above_moving_average'
 })
 const breadthConditionPeriod = computed(() => Math.min(252, Math.max(2, Number(props.tool.configuration.breadth_condition_period ?? 200) || 200)))
 const breadthConditionAverage = computed(() => props.tool.configuration.breadth_condition_average === 'ema' ? 'ema' : 'sma')
@@ -1732,6 +1755,18 @@ const breadthComparisonOperator = computed(() => {
   return ['gte', 'lte', 'gt', 'lt', 'eq'].includes(candidate) ? candidate : 'gte'
 })
 const breadthComparisonThreshold = computed(() => Number.isFinite(Number(props.tool.configuration.breadth_comparison_threshold)) ? Number(props.tool.configuration.breadth_comparison_threshold) : 0)
+const breadthRangeField = computed(() => {
+  const candidate = String(props.tool.configuration.breadth_range_field ?? 'close')
+  return ['close', 'return', 'volume', 'distance_to_52w_high'].includes(candidate) ? candidate : 'close'
+})
+const breadthRangeLower = computed(() => Number.isFinite(Number(props.tool.configuration.breadth_range_lower)) ? Number(props.tool.configuration.breadth_range_lower) : 0)
+const breadthRangeUpper = computed(() => Number.isFinite(Number(props.tool.configuration.breadth_range_upper)) ? Number(props.tool.configuration.breadth_range_upper) : 1)
+const breadthPercentileField = computed(() => {
+  const candidate = String(props.tool.configuration.breadth_percentile_field ?? 'close')
+  return ['close', 'return', 'volume', 'moving_average_distance'].includes(candidate) ? candidate : 'close'
+})
+const breadthPercentilePeriod = computed(() => Math.min(5000, Math.max(2, Number(props.tool.configuration.breadth_percentile_period ?? 252) || 252)))
+const breadthPercentileTarget = computed(() => Math.min(1, Math.max(0, Number(props.tool.configuration.breadth_percentile_target ?? 0.8) || 0.8)))
 const breadthSecondaryField = computed(() => {
   const candidate = String(props.tool.configuration.breadth_secondary_field ?? 'return')
   return ['close', 'return', 'volume', 'rsi', 'volume_ratio', 'distance_to_52w_high', 'relative_strength'].includes(candidate) ? candidate : 'return'
@@ -1826,6 +1861,12 @@ function comparisonCondition(field: string, operator: string, threshold: number)
 function primaryBreadthCondition() {
   if (breadthConditionKind.value === 'comparison') {
     return comparisonCondition(breadthComparisonField.value, breadthComparisonOperator.value, breadthComparisonThreshold.value)
+  }
+  if (breadthConditionKind.value === 'range') {
+    return { kind: 'range', params: { field: breadthRangeField.value, lower: breadthRangeLower.value, upper: breadthRangeUpper.value, inclusive: true } }
+  }
+  if (breadthConditionKind.value === 'percentile') {
+    return { kind: 'percentile', params: { field: breadthPercentileField.value, period: breadthPercentilePeriod.value, percentile: breadthPercentileTarget.value, operator: breadthComparisonOperator.value } }
   }
   if (breadthConditionKind.value === 'within_52_week_high') {
     return { kind: 'within_52_week_high', params: { lookback: breadthConditionLookback.value, threshold: breadthConditionThreshold.value, direction: 'high' } }

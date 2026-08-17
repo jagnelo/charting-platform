@@ -1,5 +1,20 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-17 — Generic breadth range and percentile controls
+
+The represented breadth composer now exposes two additional user-authored predicate families:
+an inclusive measured-field range and a rolling empirical percentile comparison. They operate on
+the selected member universe and are not SPY-specific metric labels. Current and historical
+responses retain the existing member metric/Boolean values, denominator, coverage, exclusions,
+and occurrence lineage. The workstation exposes field, bounds/window, target, and operator
+controls and sends the same versioned condition payload used by the API.
+
+The focused backend unit/API checks, frontend type-check/build, and authenticated seeded browser
+slice pass. This is a semantic parity slice rather than a visual-reference change. Cross-sectional
+rank semantics, prior high/low/event/benchmark-peer targets, richer derived-series composition,
+and promotion into all compatible outputs remain explicit parity gaps; no unsupported role or
+family is silently substituted.
+
 ## 2026-08-17 — Python breadth promotion parity slice
 
 Research Results now exposes a promotion action for completed Python breadth-history artifacts.

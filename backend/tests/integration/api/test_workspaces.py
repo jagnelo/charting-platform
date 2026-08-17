@@ -2356,6 +2356,43 @@ class TestWorkspaces:
         assert composite_payload["eligible_count"] == 1
         assert composite_payload["members"][0]["value"] is True
 
+        bounded = client.post(
+            "/api/v1/analysis/breadth",
+            headers=auth_headers,
+            json={
+                "universe": {"kind": "symbols", "symbols": [instrument.symbol]},
+                "condition": {
+                    "kind": "range",
+                    "params": {"field": "return", "lower": -1, "upper": 1},
+                },
+            },
+        )
+        assert bounded.status_code == 200
+        bounded_payload = bounded.json()
+        assert bounded_payload["condition"]["kind"] == "range"
+        assert bounded_payload["eligible_count"] == 1
+
+        percentile = client.post(
+            "/api/v1/analysis/breadth",
+            headers=auth_headers,
+            json={
+                "universe": {"kind": "symbols", "symbols": [instrument.symbol]},
+                "condition": {
+                    "kind": "percentile",
+                    "params": {
+                        "field": "close",
+                        "period": 20,
+                        "percentile": 0.5,
+                        "operator": ">=",
+                    },
+                },
+            },
+        )
+        assert percentile.status_code == 200
+        percentile_payload = percentile.json()
+        assert percentile_payload["condition"]["kind"] == "percentile"
+        assert percentile_payload["eligible_count"] == 1
+
     def test_generic_breadth_resolves_benchmark_family_style_leg_from_holdings_snapshot(
         self, client, auth_headers, db, instrument, instrument_type, ohlcv_bars
     ):

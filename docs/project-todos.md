@@ -1,5 +1,25 @@
 # Project TODO Memory
 
+### 2026-08-17 — Generic breadth range and rolling-percentile predicates
+
+- [x] Extended the shared breadth condition contract with `range` and `percentile` targets.
+      Range predicates support explicit inclusive bounds over close, return, volume, and
+      distance-to-52-week-high fields. Percentile predicates support a bounded rolling window,
+      percentile target, and comparison operator over close, return, volume, and moving-average
+      distance fields.
+- [x] Reused the same evaluator for current and historical member-level breadth. Invalid bounds,
+      unsupported relative-strength-without-benchmark requests, and invalid percentile settings
+      return structured exclusions rather than silently becoming false. Metrics and Boolean
+      results remain per-member and feed the existing aggregate/history/occurrence contract.
+- [x] Added workstation controls and persisted request payloads for both targets, plus backend
+      unit, database-backed API, type-check/build, and authenticated Chromium coverage. The
+      focused browser run passed 1/1 after the seeded branch stack completed migrations and all
+      services became healthy.
+- [ ] Cross-sectional rank/percentile targets, prior-high/low and event targets, benchmark/peer
+      ratio targets, richer derived-series composition, and promotion into every compatible
+      plot/column/filter/gauge/alert/Study Lab surface remain open. These are tracked breadth
+      implementation gaps, not acceptance relaxations.
+
 ### 2026-08-17 — Python breadth occurrence promotion to EasyScan
 
 - [x] Completed historical Python breadth runs can now be promoted from Research Results into

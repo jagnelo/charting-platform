@@ -1,5 +1,21 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-08-17 — Breadth range and rolling-percentile sub-gate
+
+For the selected family/style/watchlist universe, acceptance must prove that a range predicate
+uses the declared field and inclusive lower/upper bounds and that a percentile predicate uses the
+declared rolling window, percentile target, and operator. Both current and historical paths must
+retain eligible denominator, coverage, member-level metric/Boolean values, exclusions, and
+occurrence semantics. Invalid bounds or parameters must be structured exclusions, never implicit
+false values. The same condition payload must be visible in the workstation request and API
+response.
+
+This sub-gate is implemented and validated by backend unit/API checks, frontend type/build, and
+the authenticated seeded browser flow. It does not relax visual thresholds, provenance rules,
+provider rules, or the eight-root completion bar. Cross-sectional percentile/rank, prior/event,
+benchmark/peer, richer derived-series, and remaining promotion targets are named open gaps and
+must be closed or explicitly reported in later checkpoints.
+
 ## 2026-08-17 — Python breadth EasyScan promotion sub-gate
 
 For a completed isolated Python breadth-history run, acceptance must verify that Research Results
