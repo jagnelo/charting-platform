@@ -28286,3 +28286,18 @@ and strict visual gaps remain explicitly tracked.
   not retried or worked around.
 - Remaining gaps: ETF-holdings-family execution, point-in-time weights, Python/promotion fan-out,
   exact V25 visual evidence, provider breadth, and final audit.
+
+# 2026-08-17 — Market Map source preference checkpoint
+
+- Implemented authenticated user-isolated Follow/Following and Pin/Pinned state for every
+  followable/clonable Market Map source. Pinned sources sort first; canonical locked sources remain
+  available and immutable when unfollowed.
+- Validation: focused Market Map/settings `15/15`; full frontend Vitest `865/865`; `vue-tsc`,
+  production build, and `git diff --check` passed. The incorrect `npm run test:unit` invocation was
+  setup evidence only and was superseded by the repository's `npm run test -- --run` command. No
+  acceptance flexibility or visual threshold/mask relaxation was used.
+- Commit `d57c9dd8 feat: persist market map source preferences` is clean locally. The one exact push
+  attempt was rejected before Git by the private-origin safeguard; this is transport-only and was
+  not retried or worked around.
+- Remaining gaps: exact V25 preference geometry, point-in-time weights, complete family population,
+  Python promotion fan-out, provider breadth, and final audit.

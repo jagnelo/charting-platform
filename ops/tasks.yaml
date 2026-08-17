@@ -11012,3 +11012,27 @@ tasks:
       - >-
         Implementation commit b9436d45 is clean locally; its one exact push attempt was rejected
         before Git by the private-origin safeguard. No acceptance flexibility was used.
+  - id: tc2000-market-map-source-preferences-20260817
+    title: Persist universal Market Map source follow and pin preferences
+    status: completed
+    priority: medium
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Let users follow or pin any permitted canonical source while retaining every source's
+      independent existence and locked membership governance.
+    definition_of_done:
+      - Follow/Following and Pin/Pinned controls are visible for permitted sources
+      - Preferences are user-isolated and persisted through authenticated settings
+      - Pinned sources sort first without changing canonical source identity or membership
+      - Unfollowing does not remove locked index/ETF/group sources from analysis
+      - Focused and full frontend, type/build, and diff checks pass
+      - Exact V25 preference geometry remains explicitly tracked if the board does not represent it
+    validation:
+      - market-map-and-settings-15-of-15
+      - frontend-vitest-865-of-865
+      - frontend-typecheck-build
+      - git-diff-check
+    notes:
+      - >-
+        Implementation/docs commit d57c9dd8 is clean locally; its one exact push attempt was
+        rejected before Git by the private-origin safeguard. No acceptance flexibility was used.

@@ -30089,3 +30089,19 @@ indefinite soak; longer endurance remains an explicit open gap.
   or stash will be attempted. This is transport-only and not a product blocker.
 - Open: ETF-holdings-family execution coverage, point-in-time weights, arbitrary Python/promotion
   fan-out, exact V25 visual references, provider breadth, and final audit gates.
+
+# 2026-08-17 — Market Map source preference checkpoint
+
+- Added user-isolated Follow/Following and Pin/Pinned controls to the universal Market Map source
+  picker. Preferences are persisted through authenticated `/auth/settings`; pinned sources sort
+  first, while unfollowing never removes a canonical locked source or changes its membership.
+- Focused Market Map plus settings tests passed `15/15`; full frontend Vitest passed `865/865`;
+  `vue-tsc`, production build, and `git diff --check` passed. The initial `npm run test:unit`
+  invocation was a repository-script setup error and was superseded by the documented `npm run
+  test -- --run` authoritative suite. No acceptance flexibility, visual threshold, or mask
+  relaxation was used.
+- Implementation/docs commit `d57c9dd8` is clean locally. Its one exact push attempt was rejected
+  before Git by the private-origin safeguard; no retry, workaround, alternate transport, rewrite,
+  reset, or stash will be attempted. This is transport-only and not a product blocker.
+- Open: exact V25 preference geometry, point-in-time weights, complete family population, Python
+  promotion fan-out, provider breadth, and final functional/visual/security audit.
