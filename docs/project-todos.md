@@ -88,8 +88,14 @@ The captures are behavioural/product references; Finviz artwork and branding are
       route change.
 - [x] Multi-selection can create a personal watchlist or add to an existing editable personal list;
       managed/locked targets remain unavailable and linked-symbol publication is preserved.
-- [ ] Map-to-breadth/Study-Lab publication, persistent snapshots, and board-approved visual
-      baselines remain open.
+- [x] Map selections can publish the canonical source ID and selected member metadata directly
+      into an existing or newly opened Breadth or Study Lab tool without changing routes. Breadth
+      receives the source as a watchlist universe and Study Lab receives it as a declared
+      `universe_source_id`; the source remains locked when the originating index/ETF or market
+      group is locked. The full source is intentionally preserved for analysis; selected tiles are
+      context metadata, while subset extraction continues through the editable-list action.
+- [ ] Persistent snapshots, board-approved visual baselines, durable map cache, all requested map
+      metrics, point-in-time area weights, and complete provider-backed root population remain open.
 
 ### 2026-08-17 — US market family/style analysis matrix (latest user requirement)
 

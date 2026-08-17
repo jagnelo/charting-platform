@@ -30,12 +30,14 @@ open gates. No acceptance flexibility was used for this slice.
 The workstation consumer sub-gate now passes component coverage for source selection, locked-source
 lineage, batch request configuration, deterministic proportional tile geometry, configuration
 persistence, tile-to-symbol publication, hover detail, palette/coverage legend, additive
-multi-selection, nested breadcrumbs, wheel/button zoom, pointer panning, and failed-map status.
-The same interaction contract applies to arbitrary
-watchlist sources; index/ETF sources are locked only for membership mutation. This is still an
-interaction/component oracle, not a Version 25 visual pass: map-to-breadth/Study-Lab publication,
-persistent snapshots, and board-guided visual gates remain open. The watchlist publication gate now
-covers creating/populating an editable personal list and rejecting managed/locked targets.
+multi-selection, nested breadcrumbs, wheel/button zoom, pointer panning, failed-map status, and
+direct publication into Breadth and Study Lab. The same interaction contract applies to arbitrary
+watchlist sources; index/ETF sources are locked only for membership mutation. Direct publication
+preserves the full canonical source as the analysis universe and carries selected members as
+context; subset extraction remains the editable-list action. This is still an interaction/
+component oracle, not a Version 25 visual pass: persistent snapshots, durable caching, and
+board-guided visual gates remain open. The watchlist publication gate covers creating/populating an
+editable personal list and rejecting managed/locked targets.
 
 The browser gate covers hover detail, palette/legend, zoom/pan, sort, drill-down, selection,
 multi-selection, map-to-chart/watchlist/breadth/Study-Lab publication, loading/partial/stale/

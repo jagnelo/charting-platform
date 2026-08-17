@@ -34,9 +34,9 @@ The first local batch map implementation now exists at `POST /analysis/market-ma
 same source IDs, calculates independent area and colour values from persisted bars/metadata, and
 returns cells plus sector/industry nodes with coverage, weighting, freshness, cache identity, and
 warnings. It is intentionally a backend enabling slice: persistent caching, Python/breadth colour
-assets, historical market-cap weights, the treemap renderer, and map-to-tool publication are not
-claimed complete. A current market-cap area warning is returned instead of implying point-in-time
-truth.
+assets, historical market-cap weights, and the treemap renderer are not claimed complete. The
+workstation now supplies the map-to-tool publication layer on top of this contract; a current
+market-cap area warning is still returned instead of implying point-in-time truth.
 
 The first workstation consumer now exists as the `Market Map` tool. It uses serializable tool
 configuration to select a `WatchlistSource`, grouping, period, area, and colour; renders covered
@@ -46,9 +46,14 @@ legend, hover detail, additive multi-selection, nested breadcrumbs, wheel/button
 panning are shared by personal, managed, index, ETF,
 combo, sector, industry, and explicit-symbol sources. Locked/system-managed sources retain their
 membership governance while using this same map interaction model. Multi-selection can create or
-populate an editable personal watchlist, while managed/locked targets remain unavailable. Map-to-
-breadth/Study-Lab publication, persistent snapshots, and board-guided visual parity remain explicit
-acceptance gaps.
+populate an editable personal watchlist, while managed/locked targets remain unavailable. Map
+selections now also publish the canonical source and selected-member context directly into an
+existing or newly opened Breadth or Study Lab tool without a route change. Breadth receives the
+source as a watchlist universe; Study Lab receives `universe_source_id` and materializes it through
+the point-in-time canonical resolver. The full source remains the analysis universe; selected
+members are context metadata, while the existing editable-list action creates a subset. Persistent
+snapshots, durable map caching, all requested metrics, complete historical population, and
+board-guided visual parity remain explicit acceptance gaps.
 
 ## 2026-08-17 — US family/style and Nasdaq cap/equal acceptance matrix (latest requirement)
 

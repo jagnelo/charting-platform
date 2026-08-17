@@ -631,6 +631,8 @@ membership affordance changes. Locked sources show their lock/provenance state a
 membership edits, while remaining selectable, followable, mappable, and usable for breadth.
 
 The accepted browser/component oracle covers the source selector, locked label, canonical source ID,
-custom predicate target, denominator, member drill-down, coverage, exclusions, freshness, and source
-lineage. The board has no exact V25 capture for every source-kind combination, so those absent states
-remain named board gaps; this is a documented interim visual reference, not a silent screenshot pass.
+custom predicate target, denominator, member drill-down, coverage, exclusions, freshness, source
+lineage, and the direct map actions that open Breadth or Study Lab with the source preserved. The
+board has no exact V25 capture for every source-kind combination or publication confirmation state,
+so those absent states remain named board gaps; this is a documented interim visual reference, not
+a silent screenshot pass.

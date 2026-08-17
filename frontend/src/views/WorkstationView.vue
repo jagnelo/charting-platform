@@ -182,6 +182,7 @@
         @column-groups="updateColumnGroups"
         @stacked-column-keys="updateStackedColumnKeys"
         @configuration="updateToolConfiguration"
+        @publish-analysis="publishMapAnalysis"
         @update-link-group="updateLinkGroup"
         @timeframe="setLinkedTimeframe"
         @close="closePopoutTool"
@@ -1124,6 +1125,7 @@ async function openTool(tool: OpenableToolDefinition) {
     }
     await new Promise(resolve => setTimeout(resolve, 25))
   }
+  return opened
 }
 
 async function openStudyLab() {
@@ -1271,6 +1273,71 @@ async function importWorkspace(event: Event) {
 function openAlertsTool() {
   const alerts = OPENABLE_WORKSTATION_TOOLS.find(tool => tool.tool_type === 'alerts')
   if (alerts) openTool(alerts)
+}
+
+type MapAnalysisPublication = {
+  target: 'breadth' | 'study_lab'
+  sourceId: string
+  selectedIds: number[]
+  selectedSymbols: string[]
+}
+
+async function publishMapAnalysis(publication: MapAnalysisPublication) {
+  if (!publication.sourceId || !publication.selectedIds.length) return
+  const selectedConfiguration = {
+    source_id: publication.sourceId,
+    selected_member_ids: [...publication.selectedIds],
+    selected_member_symbols: [...publication.selectedSymbols],
+    publication_origin: 'market_map',
+  }
+  if (publication.target === 'breadth') {
+    const existing = workspaceStore.activeTab?.windows.find(window => window.tool_type === 'breadth')
+    if (existing) {
+      workspaceStore.setActiveWindow(existing.instance_key)
+      updateToolConfiguration(existing.instance_key, {
+        ...existing.configuration,
+        custom_universe_kind: 'watchlist',
+        custom_universe_watchlist_id: publication.sourceId,
+        ...selectedConfiguration,
+      })
+      return
+    }
+    const definition = OPENABLE_WORKSTATION_TOOLS.find(tool => tool.tool_type === 'breadth')
+    if (!definition) return
+    const opened = await openTool(definition)
+    if (!opened) return
+    updateToolConfiguration(opened.instance_key, {
+      ...opened.configuration,
+      custom_universe_kind: 'watchlist',
+      custom_universe_watchlist_id: publication.sourceId,
+      ...selectedConfiguration,
+    })
+    return
+  }
+
+  const existing = workspaceStore.activeTab?.windows.find(window => window.tool_type === 'study_lab')
+  if (existing) {
+    workspaceStore.setActiveWindow(existing.instance_key)
+    updateToolConfiguration(existing.instance_key, {
+      ...existing.configuration,
+      universe_source_id: publication.sourceId,
+      selected_member_ids: [...publication.selectedIds],
+      selected_member_symbols: [...publication.selectedSymbols],
+      publication_origin: 'market_map',
+    })
+    return
+  }
+  const definition = OPENABLE_WORKSTATION_TOOLS.find(tool => tool.tool_type === 'study_lab')
+  if (!definition) return
+  const opened = await openTool(definition)
+  if (!opened) return
+  updateToolConfiguration(opened.instance_key, {
+    ...opened.configuration,
+    universe_source_id: publication.sourceId,
+    selected_member_ids: [...publication.selectedIds],
+    selected_member_symbols: [...publication.selectedSymbols],
+    publication_origin: 'market_map',
+  })
 }
 
 function updateLinkGroup(windowKey: string, group: LinkGroup, displayedSymbol?: string) {
@@ -1491,6 +1558,7 @@ function renderDockTool(dockTool: { instance_key: string; title: string; tool_ty
     onColumnGroups: (windowKey: string, groups: Record<string, string>) => updateColumnGroups(windowKey, groups),
     onStackedColumnKeys: (windowKey: string, keys: string[]) => updateStackedColumnKeys(windowKey, keys),
     onConfiguration: (windowKey: string, configuration: Record<string, unknown>) => updateToolConfiguration(windowKey, configuration),
+    onPublishAnalysis: (publication: MapAnalysisPublication) => void publishMapAnalysis(publication),
     onTimeframe: (timeframe: string, group: LinkGroup) => setLinkedTimeframe(timeframe, group),
     onFloat: (windowKey: string) => floatTool(windowKey),
     onMaximize: () => actions.toggleMaximize(),

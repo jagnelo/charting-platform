@@ -21,6 +21,7 @@ from app.services.research_jobs import (
     enqueue_research_run,
     read_research_progress,
 )
+from app.services.watchlist_sources import resolve_watchlist_source
 
 router = APIRouter(prefix="/research", tags=["research"])
 
@@ -284,7 +285,12 @@ async def _materialize_benchmark_dataset(
 
 
 async def _materialize_declared_dataset(
-    db: AsyncSession, manifest: dict, run_config: dict, *, lookback: int | None = None
+    db: AsyncSession,
+    manifest: dict,
+    run_config: dict,
+    *,
+    lookback: int | None = None,
+    user_id: int | None = None,
 ) -> dict:
     """Materialize only an explicitly declared canonical local dataset for the runner."""
     options = _dataset_options(run_config, manifest)
@@ -312,7 +318,50 @@ async def _materialize_declared_dataset(
     benchmark_dataset = await _materialize_benchmark_dataset(
         db, options, history_limit=benchmark_history_limit
     )
-    symbols = run_config.get("symbols")
+    source_metadata: dict[str, object] = {}
+    source_id_value = run_config.get("universe_source_id")
+    if source_id_value not in (None, ""):
+        if user_id is None:
+            raise HTTPException(status_code=422, detail={"code": "universe_source_user_context_required"})
+        source_id = str(source_id_value).strip()
+        if source_id.isdigit():
+            source_id = f"watchlist:{source_id}"
+        try:
+            resolved_source = await resolve_watchlist_source(
+                db,
+                user_id,
+                source_id,
+                as_of=options["as_of"],
+            )
+        except LookupError as exc:
+            raise HTTPException(status_code=404, detail={"code": str(exc), "source_id": source_id}) from exc
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail={"code": str(exc), "source_id": source_id}) from exc
+        source_member_ids = list(dict.fromkeys(member.instrument_id for member in resolved_source.members))
+        source_instruments = (
+            (await db.execute(
+                select(Instrument)
+                .options(selectinload(Instrument.equity_detail), selectinload(Instrument.stats))
+                .where(Instrument.id.in_(source_member_ids))
+            )).scalars().all()
+        ) if source_member_ids else []
+        source_by_id = {instrument.id: instrument for instrument in source_instruments}
+        source_symbols = [
+            source_by_id[member.instrument_id].symbol
+            for member in resolved_source.members
+            if member.instrument_id in source_by_id
+        ]
+        source_metadata = {
+            "universe_source_id": source_id,
+            "universe_source": resolved_source.descriptor.model_dump(mode="json"),
+            "universe_membership_version": resolved_source.descriptor.membership_version,
+            "universe_source_exclusions": list(resolved_source.exclusions),
+        }
+        # A source declaration is authoritative. Do not let stale/manual symbols
+        # in an imported configuration silently widen or replace its membership.
+        symbols = source_symbols
+    else:
+        symbols = run_config.get("symbols")
     if isinstance(symbols, list):
         requested = list(
             dict.fromkeys(str(item).strip().upper() for item in symbols if str(item).strip())
@@ -320,6 +369,7 @@ async def _materialize_declared_dataset(
         if not requested:
             result = {
                 **_dataset_manifest_fields(manifest, options),
+                **source_metadata,
                 "datasets": [],
                 "exclusions": [],
             }
@@ -426,6 +476,7 @@ async def _materialize_declared_dataset(
             )
         result = {
             **_dataset_manifest_fields(manifest, options),
+            **source_metadata,
             "datasets": datasets,
             "requested_symbols": requested,
             "batch_history_limit": history_limit,
@@ -451,6 +502,7 @@ async def _materialize_declared_dataset(
     result = await _materialize_instrument_dataset(
         db, instrument, manifest, options, history_limit=benchmark_history_limit
     )
+    result.update(source_metadata)
     if benchmark_dataset is not None:
         result["benchmark_coverage"] = benchmark_dataset
         if benchmark_dataset.get("status") == "ready":
@@ -486,7 +538,7 @@ async def create_run(
         )
     run_config["parameters"] = parameters
     dataset_manifest = await _materialize_declared_dataset(
-        db, body.dataset_manifest, run_config, lookback=version.lookback
+        db, body.dataset_manifest, run_config, lookback=version.lookback, user_id=current_user.id
     )
     run = ResearchRun(
         user_id=current_user.id,
@@ -644,6 +696,7 @@ async def rerun(
             {},
             dict(source.run_config),
             lookback=source.code_version.lookback if source.code_version else None,
+            user_id=current_user.id,
         )
     )
     run = ResearchRun(

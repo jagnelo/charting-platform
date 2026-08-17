@@ -96,4 +96,18 @@ describe('MarketMapTool', () => {
     expect(addItem).toHaveBeenCalledWith(9, 2)
     expect(wrapper.find('[role="status"]').text()).toContain('2 selected members saved')
   })
+
+  it('publishes the canonical source and selected members into breadth and Study Lab', async () => {
+    const wrapper = mount(MarketMapTool)
+    await flushPromises()
+
+    await wrapper.get('.market-map-tool__tile').trigger('click')
+    await wrapper.get('[aria-label="Open source in Market Breadth"]').trigger('click')
+    await wrapper.get('[aria-label="Open source in Study Lab"]').trigger('click')
+
+    expect(wrapper.emitted('publishAnalysis')).toEqual([
+      [{ target: 'breadth', sourceId: 'market-group:sp500', selectedIds: [1], selectedSymbols: ['NVDA'] }],
+      [{ target: 'study_lab', sourceId: 'market-group:sp500', selectedIds: [1], selectedSymbols: ['NVDA'] }],
+    ])
+  })
 })

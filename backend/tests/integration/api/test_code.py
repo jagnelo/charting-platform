@@ -529,6 +529,60 @@ def test_research_run_materializes_structured_study_universe_with_exclusions(
     ]
 
 
+def test_research_run_materializes_a_canonical_watchlist_source(
+    client, auth_headers, tmp_path, monkeypatch, instrument, ohlcv_bars
+):
+    monkeypatch.setattr(
+        "app.services.research_jobs.settings.RESEARCH_JOB_DIR", str(tmp_path / "jobs")
+    )
+    monkeypatch.setattr(
+        "app.services.research_jobs.settings.RESEARCH_RESULT_DIR", str(tmp_path / "results")
+    )
+    created = client.post(
+        "/api/v1/watchlists",
+        headers=auth_headers,
+        json={"name": "Study source watchlist"},
+    )
+    assert created.status_code == 200
+    watchlist_id = created.json()["id"]
+    added = client.post(
+        f"/api/v1/watchlists/{watchlist_id}/items",
+        headers=auth_headers,
+        json={"instrument_id": instrument.id},
+    )
+    assert added.status_code == 200
+    asset = client.post(
+        "/api/v1/code/assets",
+        headers=auth_headers,
+        json={
+            "stable_key": "watchlist-source-study",
+            "name": "Watchlist source study",
+            "kind": "study",
+            "initial_version": {
+                "source": "output.scalar('member_count', len(market.universe()))",
+                "output_contract": "study",
+            },
+        },
+    ).json()
+
+    response = client.post(
+        "/api/v1/research/runs",
+        headers=auth_headers,
+        json={
+            "code_version_id": asset["versions"][0]["id"],
+            "run_config": {"universe_source_id": f"watchlist:{watchlist_id}"},
+        },
+    )
+
+    assert response.status_code == 202
+    manifest = response.json()["dataset_manifest"]
+    assert manifest["universe_source_id"] == f"watchlist:{watchlist_id}"
+    assert manifest["universe_source"]["watchlist_id"] == watchlist_id
+    assert manifest["universe_source"]["source_kind"] == "personal"
+    assert manifest["requested_symbols"] == [instrument.symbol]
+    assert [item["symbol"] for item in manifest["datasets"]] == [instrument.symbol]
+
+
 def test_research_run_honors_study_dataset_controls_and_records_them(
     client, auth_headers, db, tmp_path, monkeypatch, instrument, ohlcv_bars
 ):

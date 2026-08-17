@@ -11,7 +11,8 @@
       <div class="study-lab-tool__dataset" aria-label="Study dataset controls">
         <label>Timeframe <select v-model="timeframe" aria-label="Study timeframe"><option v-for="option in timeframeOptions" :key="option.value" :value="option.value">{{ option.label }}</option></select></label>
         <label>Benchmark <input v-model.trim="benchmark" aria-label="Study benchmark" placeholder="SPY" /></label>
-        <label>Universe <input v-model.trim="universeSymbols" aria-label="Study universe" placeholder="SPY, XLK, XLE" /></label>
+        <label>Universe source <input v-model.trim="universeSourceId" aria-label="Study universe source" placeholder="watchlist:123 or market-group:sp500" /></label>
+        <label>Universe <input v-model.trim="universeSymbols" aria-label="Study universe" :disabled="Boolean(universeSourceId)" placeholder="SPY, XLK, XLE" /></label>
         <label>Adjustment <select v-model="adjustment" aria-label="Study adjustment"><option value="split_adjusted">Split adjusted</option><option value="raw">Raw</option></select></label>
         <label>Session <select v-model="session" aria-label="Study session"><option value="regular">Regular</option><option value="all">All</option></select></label>
         <label>From <input v-model.trim="startDate" aria-label="Study start date" type="date" /></label>
@@ -66,7 +67,7 @@
         </template>
       </div>
       <p v-if="run.reproducibility_hash">Reproducibility {{ run.reproducibility_hash }}</p>
-      <p class="study-lab-tool__dataset-summary">Dataset: {{ universeSymbols || symbol }} · {{ timeframe }} · {{ adjustment === 'split_adjusted' ? 'split adjusted' : 'raw' }} · {{ session }} session · benchmark {{ benchmark || 'none' }} ({{ benchmarkCoverageLabel }}) · {{ startDate || 'earliest available' }} → {{ endDate || 'latest available' }}</p>
+      <p class="study-lab-tool__dataset-summary">Dataset: {{ universeSourceId || universeSymbols || symbol }} · {{ timeframe }} · {{ adjustment === 'split_adjusted' ? 'split adjusted' : 'raw' }} · {{ session }} session · benchmark {{ benchmark || 'none' }} ({{ benchmarkCoverageLabel }}) · {{ startDate || 'earliest available' }} → {{ endDate || 'latest available' }}</p>
       <details v-if="run.diagnostics?.length" class="study-lab-tool__run-details"><summary>Diagnostics ({{ run.diagnostics.length }})</summary><pre>{{ formatMessages(run.diagnostics) }}</pre></details>
       <details v-if="run.warnings?.length" class="study-lab-tool__run-details"><summary>Warnings ({{ run.warnings.length }})</summary><pre>{{ formatMessages(run.warnings) }}</pre></details>
       <details v-if="run.logs" class="study-lab-tool__run-details"><summary>Execution log</summary><pre>{{ run.logs }}</pre></details>
@@ -171,6 +172,7 @@ const requiresDeclaredUniverse = computed(() => selectedFactoryStudy.value?.requ
 const normaliseTimeframe = (value: string) => value === 'MN1' ? 'MN' : timeframeOptions.some(option => option.value === value) ? value : 'D1'
 const timeframe = ref(normaliseTimeframe(configString('timeframe', 'D1')))
 const benchmark = ref(configString('benchmark', 'SPY'))
+const universeSourceId = ref(configString('universe_source_id', ''))
 const universeSymbols = ref(configString('symbols', ''))
 const adjustment = ref<'split_adjusted' | 'raw'>(configString('adjustment', 'split_adjusted') === 'raw' ? 'raw' : 'split_adjusted')
 const session = ref<'regular' | 'all'>(configString('session', 'regular') === 'all' ? 'all' : 'regular')
@@ -379,15 +381,19 @@ watch(() => props.configuration, configuration => {
   else if (typeof configuration?.end_date === 'string') endDate.value = configuration.end_date
   if (configuration && !('as_of' in configuration)) asOf.value = ''
   else if (typeof configuration?.as_of === 'string') asOf.value = configuration.as_of.slice(0, 16)
+  if (configuration && !('universe_source_id' in configuration)) universeSourceId.value = ''
+  else if (typeof configuration?.universe_source_id === 'string') universeSourceId.value = configuration.universe_source_id
   if (configuration && !('symbols' in configuration)) universeSymbols.value = ''
   else if (typeof configuration?.symbols === 'string') universeSymbols.value = configuration.symbols
   if (configuration && !('parameter_schema' in configuration)) parameterSchemaText.value = ''
   else if (typeof configuration?.parameter_schema === 'string') parameterSchemaText.value = configuration.parameter_schema
 }, { deep: true })
-watch([timeframe, benchmark, universeSymbols, adjustment, session, startDate, endDate, asOf], () => {
+watch([timeframe, benchmark, universeSourceId, universeSymbols, adjustment, session, startDate, endDate, asOf], () => {
   const configuration: Record<string, unknown> = { ...(props.configuration ?? {}), timeframe: timeframe.value, adjustment: adjustment.value, session: session.value }
   if (benchmark.value) configuration.benchmark = benchmark.value.toUpperCase()
   else delete configuration.benchmark
+  if (universeSourceId.value) configuration.universe_source_id = universeSourceId.value
+  else delete configuration.universe_source_id
   if (startDate.value) configuration.start_date = startDate.value
   else delete configuration.start_date
   if (endDate.value) configuration.end_date = endDate.value
@@ -573,7 +579,11 @@ async function saveAndRun() {
     if (endDate.value) datasetControls.end_date = endDate.value
     if (asOf.value) datasetControls.as_of = new Date(asOf.value).toISOString()
     const symbols = universeSymbols.value.split(',').map(value => value.trim().toUpperCase()).filter(Boolean)
-    const runConfig: Record<string, unknown> = symbols.length ? { symbols, parameters, ...datasetControls } : { symbol: symbol.value.toUpperCase(), parameters, ...datasetControls }
+    const runConfig: Record<string, unknown> = universeSourceId.value
+      ? { universe_source_id: universeSourceId.value, parameters, ...datasetControls }
+      : symbols.length
+        ? { symbols, parameters, ...datasetControls }
+        : { symbol: symbol.value.toUpperCase(), parameters, ...datasetControls }
     const createdRun = await api.post<Run>('/research/runs', {
       code_version_id: asset.versions[0].id,
       run_config: runConfig,

@@ -70,6 +70,8 @@
       </select>
       <input v-if="!publicationTargetId" v-model="newPublicationName" aria-label="Market Map new watchlist name" placeholder="Watchlist name" maxlength="80" @keydown.enter.prevent="publishSelection" />
       <button type="button" :disabled="publishing || (!publicationTargetId && !newPublicationName.trim())" @click="publishSelection">{{ publishing ? 'Saving…' : 'Save selection' }}</button>
+      <button type="button" aria-label="Open source in Market Breadth" @click="publishAnalysis('breadth')">Open source in Breadth</button>
+      <button type="button" aria-label="Open source in Study Lab" @click="publishAnalysis('study_lab')">Open source in Study Lab</button>
       <span v-if="publicationMessage" role="status">{{ publicationMessage }}</span>
       <span v-if="publicationError" class="market-map-tool__status--error" role="alert">{{ publicationError }}</span>
     </div>
@@ -93,7 +95,11 @@ import { fetchMarketMap, layoutMarketMapCells, type MarketMapLayoutCell } from '
 import type { MarketMap, MarketMapAreaMetric, MarketMapCell, MarketMapColorMetric, MarketMapGroupBy, WatchlistSource } from '@/types'
 
 const props = withDefaults(defineProps<{ configuration?: Record<string, unknown> }>(), { configuration: () => ({}) })
-const emit = defineEmits<{ configuration: [value: Record<string, unknown>]; select: [symbol: string, instrumentId: number] }>()
+const emit = defineEmits<{
+  configuration: [value: Record<string, unknown>]
+  select: [symbol: string, instrumentId: number]
+  publishAnalysis: [payload: { target: 'breadth' | 'study_lab'; sourceId: string; selectedIds: number[]; selectedSymbols: string[] }]
+}>()
 const watchlistStore = useWatchlistStore()
 const sources = computed(() => watchlistStore.watchlistSources)
 const sourceId = ref(String(props.configuration.source_id ?? ''))
@@ -230,6 +236,19 @@ async function publishSelection() {
   } finally {
     publishing.value = false
   }
+}
+
+function publishAnalysis(target: 'breadth' | 'study_lab') {
+  if (!sourceId.value || !selectedIds.value.length) return
+  const selectedSymbols = selectedIds.value
+    .map(instrumentId => map.value?.cells.find(cell => cell.instrument_id === instrumentId)?.symbol)
+    .filter((symbol): symbol is string => Boolean(symbol))
+  emit('publishAnalysis', {
+    target,
+    sourceId: sourceId.value,
+    selectedIds: [...selectedIds.value],
+    selectedSymbols,
+  })
 }
 
 async function run() {
