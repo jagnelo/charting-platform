@@ -29936,3 +29936,26 @@ indefinite soak; longer endurance remains an explicit open gap.
 - Exact next context: implement the next independent Market Map analytical gap from this clean
   boundary, prioritizing reference-universe/group-derived predicate colours or point-in-time area
   semantics.
+
+# 2026-08-17 — Reference-source Market Map checkpoint
+
+- Context scope: canonical reference-source support for relative-return maps and benchmark-dependent
+  breadth, derived equal-weight baseline/alignment, reference provenance/exclusions/cache identity,
+  workstation source selection, integration regressions, and controlling docs.
+- Implementation commit `9193cbf56b7428eb9d3ae5a19fa7893dd19220a` is clean locally. Reference members
+  are resolved through the same local point-in-time source service; no provider fan-out was added.
+- Integration exposed and repaired a real short-window defect: the derived reference series lacked
+  an initial baseline, causing a valid one-day comparison to be marked insufficient-history. The
+  baseline was added, a tolerance-based numeric assertion was used for floating-point output, and
+  the unchanged full suite passed: Docker-backed watchlist integration `28/28`; focused Market Map
+  component `10/10`; full frontend Vitest `859/859`; type-check/build; Ruff; compileall; and
+  diff-check.
+- The one exact elevated push attempt was rejected by the private-origin safeguard because the
+  accumulated private history would be exported without authorization for that exact payload and
+  destination. No retry, alternate transport, rewrite, reset, stash, or workaround will be attempted;
+  transport-only and not a product-goal blocker.
+- No acceptance flexibility was used. Remaining gaps: richer cross-sectional group statistics,
+  custom numeric area fields, point-in-time market-cap weights, provider/history population, the
+  eight-family matrix, and exact V25 visual baselines.
+- Exact next context: continue from this clean boundary with the next independent map/family slice,
+  prioritizing point-in-time area semantics or broader family population/selection.

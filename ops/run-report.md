@@ -28150,3 +28150,20 @@ and strict visual gaps remain explicitly tracked.
 - Remaining gaps: reference-group/peer-derived map predicates, custom numeric area fields,
   point-in-time market-cap weights, complete provider/history population, broader family matrix,
   and exact V25 visual baselines.
+
+# 2026-08-17 — Reference-source Market Map checkpoint
+
+- Added a second-source reference contract to Market Map. Relative-return maps and benchmark-
+  dependent breadth can select any canonical watchlist source; its point-in-time members are
+  materialized into a labelled derived equal-weight return index with an explicit baseline, exact
+  timestamp/no-forward-fill alignment, source descriptor, exclusions, membership version, and data
+  watermark. The workstation exposes the shared source catalog as the reference selector.
+- Integration found a real short-window baseline defect and the owning service was repaired before
+  the final rerun. Docker-backed watchlist integration `28/28`, focused Market Map `10/10`, full
+  frontend Vitest `859/859`, type-check/build, Ruff, compileall, and diff-check pass. Expected
+  dependency deprecation warnings only; no acceptance flexibility used.
+- Implementation/docs commit `9193cbf56b7428eb9d3ae5a19fa7893dd19220a` is clean locally. The one
+  exact push attempt was rejected by the private-origin safeguard; no retry or workaround.
+- Remaining gaps: richer cross-sectional group statistics, custom numeric area fields, point-in-time
+  market-cap weights, provider/history population, eight-family matrix completion, and exact V25
+  visual baselines.
