@@ -102,9 +102,9 @@ tasks:
         controls. Full watchlist integration 24/24, focused Market Map lifecycle 1/1, frontend
         component 6/6, full Vitest 855/855, vue-tsc/build, Ruff, compileall, Alembic head, and
         diff-check pass. The one exact push attempt was rejected before Git by the private-origin
-        safeguard; no retry or workaround. Direct map-to-breadth/Study-Lab publication, complete
-        metric/Python/breadth matrix, point-in-time weights, provider/history population, and
-        board-guided visual approval remain open.
+        safeguard; no retry or workaround. Direct map-to-breadth/Study-Lab publication is already
+        implemented; complete metric/Python/breadth matrix, point-in-time weights, provider/history
+        population, and board-guided visual approval remain open.
 
   - id: tc2000-breadth-python-series-composer-20260817
     title: Wire numeric Python-series condition assets into the breadth workstation

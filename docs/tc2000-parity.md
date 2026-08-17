@@ -7432,7 +7432,7 @@ stable snapshot hash. The workstation exposes save, snapshot selection, restore,
 restoring a named snapshot does not fan out to providers and deleting it does not invalidate the
 underlying automatic cache. Focused backend lifecycle and frontend component coverage pass.
 
-This closes the named-snapshot persistence contract only. Direct map-to-breadth/Study-Lab launch,
-all requested map periods and area/colour modes, Python/breadth outputs, point-in-time market-cap
-weights, complete provider-backed root population, and board-guided visual approval remain explicit
-gaps.
+This closes the named-snapshot persistence contract only. All requested map periods and area/colour
+modes, Python/breadth outputs, point-in-time market-cap weights, complete provider-backed root
+population, and board-guided visual approval remain explicit gaps; direct map-to-breadth/Study-Lab
+publication is already covered by the preceding workstation slice.

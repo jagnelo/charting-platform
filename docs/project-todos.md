@@ -13268,6 +13268,7 @@ The current source also passes the focused authenticated top-down browser slice 
       preserving source lineage; deleting a snapshot leaves the reusable automatic cache intact.
 - [x] Duplicate names, missing cache keys, malformed IDs, and cross-user access return structured
       errors; integration and component tests cover the complete lifecycle.
-- [ ] Direct map-to-breadth/Study-Lab publication, all requested area/colour metrics, Python and
-      predicate breadth outputs, point-in-time market-cap weights, complete root population, and
-      board-guided visual approval remain open.
+- [x] Direct map-to-breadth/Study-Lab publication preserves the canonical source and selected
+      member context without changing routes; editable-list publication remains the subset path.
+- [ ] All requested area/colour metrics, Python and predicate breadth outputs, point-in-time
+      market-cap weights, complete root population, and board-guided visual approval remain open.

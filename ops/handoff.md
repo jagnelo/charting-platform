@@ -29853,9 +29853,10 @@ indefinite soak; longer endurance remains an explicit open gap.
   `origin/feat/tc2000-frontend-rework` was rejected before Git by the private-origin safeguard;
   no retry, alternate transport, rewrite, reset, stash, or workaround will be attempted. This is
   transport-only and not a product-goal blocker.
-- Remaining gaps: direct map-to-breadth/Study-Lab publication, all requested area/colour metrics
-  including Python/breadth outputs, point-in-time market-cap weights, complete provider/history
+- Remaining gaps: all requested area/colour metrics including Python/breadth outputs, point-in-time
+  market-cap weights, complete provider/history
   population, browser snapshot/metric acceptance, and final board-guided visual approval. These
-  remain explicit and were not relaxed.
+  remain explicit and were not relaxed. Direct map-to-breadth/Study-Lab publication is already
+  implemented.
 - Exact next context: close the remaining Market Map metric matrix, starting from a clean ops
   checkpoint and retaining the generalized arbitrary-watchlist source contract.
