@@ -28167,3 +28167,19 @@ and strict visual gaps remain explicitly tracked.
 - Remaining gaps: richer cross-sectional group statistics, custom numeric area fields, point-in-time
   market-cap weights, provider/history population, eight-family matrix completion, and exact V25
   visual baselines.
+
+# 2026-08-17 — Numeric Python Market Map area checkpoint
+
+- Added `area_metric=python` over the unified isolated Python output path. Numeric series values are
+  accepted only after a completed user-owned run; finite positive values size tiles, while missing,
+  invalid, and non-positive results remain explicit warnings. Boolean runs return a capability
+  validation error instead of being coerced into treemap geometry.
+- Validation: Docker-backed watchlist integration `28/28`, focused Market Map `10/10`, full
+  frontend Vitest `859/859`, `vue-tsc`, production build, Ruff, compileall, and `git diff --check`.
+  Only the existing two Nautilus deprecation warnings appeared. No acceptance flexibility or visual
+  threshold/mask relaxation was used.
+- Implementation/docs commit `2b842290` is clean locally. The one exact push attempt was rejected
+  before Git by the private-origin safeguard; no retry/workaround. Transport-only, not a product
+  blocker.
+- Open: provider-declared numeric fields, point-in-time market-cap/weight semantics, richer group
+  statistics, complete family population, and exact V25 visual baselines.

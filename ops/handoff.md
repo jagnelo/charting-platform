@@ -22,6 +22,23 @@ WatchlistSources that users may follow/pin/select/clone and reuse across map, gr
 alert, and chart tools. Refreshes create versioned membership snapshots; screener and personal
 lists retain separate mutation rules.
 
+## 2026-08-17 — Numeric Python Market Map area checkpoint
+
+- Added `area_metric=python` to the source-agnostic Market Map. The backend consumes only a
+  completed user-owned isolated numeric-series run, rejects Boolean output contracts, requires
+  finite positive values for tile geometry, and preserves explicit missing/invalid/non-positive
+  warnings. The workstation reuses the Python asset/run flow for colour and area and persists the
+  run-backed configuration.
+- Validation passed: Docker-backed watchlist integration `28/28`, focused Market Map `10/10`,
+  full frontend Vitest `859/859`, `vue-tsc`, production build, Ruff, compileall, and
+  `git diff --check`. Expected Nautilus dependency deprecation warnings only. No acceptance
+  flexibility used.
+- Implementation/docs commit `2b842290` is clean locally. Its one exact push attempt was rejected
+  before Git by the private-origin safeguard; no workaround, alternate transport, rewrite, reset,
+  stash, or repeat will be attempted. This is transport-only and not a product blocker.
+- Remaining gaps: provider-declared numeric fields, point-in-time market-cap/weight areas, richer
+  cross-sectional group statistics, full eight-family population, and exact V25 visual approval.
+
 ## 2026-08-17 — WatchlistSource implementation checkpoint
 
 - Added `GET /watchlists/sources` and `GET /watchlists/sources/{source_id}`.
