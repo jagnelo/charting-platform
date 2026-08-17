@@ -335,6 +335,33 @@ describe('MarketMapTool', () => {
     expect(wrapper.emitted('configuration')?.at(-1)?.[0]).toEqual(expect.objectContaining({ area_metric: 'field', area_field: 'beta' }))
   })
 
+  it('sends an arbitrary completed-session custom period for any watchlist source', async () => {
+    const wrapper = mount(MarketMapTool, {
+      props: {
+        configuration: {
+          source_id: 'market-group:sp500',
+          period: 'CUSTOM',
+          start_date: '2026-01-05',
+          end_date: '2026-02-06',
+        },
+      },
+    })
+    await flushPromises()
+
+    const request = apiPost.mock.calls.map(call => call[1]).find(body => body?.period === 'CUSTOM')
+    expect(request).toEqual(expect.objectContaining({
+      period: 'CUSTOM',
+      start: '2026-01-05',
+      end: '2026-02-06T23:59:59Z',
+    }))
+    await wrapper.get('[aria-label="Market Map custom start date"]').setValue('2026-01-06')
+    expect(wrapper.emitted('configuration')?.at(-1)?.[0]).toEqual(expect.objectContaining({
+      period: 'CUSTOM',
+      start_date: '2026-01-06',
+      end_date: '2026-02-06',
+    }))
+  })
+
   it('authors an event predicate for Market Map breadth colouring', async () => {
     apiPost.mockImplementation((path: string, body?: Record<string, unknown>) => {
       if (path === '/analysis/market-map') return Promise.resolve({ ...response, color_metric: body?.color_metric, condition: body?.condition })

@@ -1,5 +1,13 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-08-19 — Arbitrary Market Map period sub-gate
+
+For every canonical WatchlistSource, acceptance must verify the Market Map preset periods and a
+`CUSTOM` completed-session range. Start/end dates must reach the batch request, produce matching
+period bounds and a distinct cache identity, persist through tool configuration, and remain
+available for locked and editable sources alike. Assertions must account for each distinct period
+request; no period may silently reuse a different range.
+
 ## 2026-08-19 — Member-series-to-column promotion sub-gate
 
 For a completed isolated Python breadth-history run, acceptance must verify that a member-scoped

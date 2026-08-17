@@ -1,5 +1,13 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-19 — Arbitrary Market Map period control
+
+Market Map exposes the supported preset periods plus a `CUSTOM` period with explicit start and
+end dates. The dates flow through the canonical batch contract, returned period bounds, and cache
+identity, and are persisted in serializable tool configuration. The same period control applies
+to locked index/ETF sources and editable or personal watchlists; source membership governance does
+not change map interaction semantics.
+
 ## 2026-08-19 — Member breadth column promotion
 
 Research Results now exposes a guarded “Save as watchlist column” action for completed

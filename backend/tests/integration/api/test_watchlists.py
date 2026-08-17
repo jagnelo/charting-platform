@@ -74,6 +74,24 @@ class TestWatchlistsCrud:
         assert body["nodes"][-1]["aggregation_method"] == "area_weighted_mean"
         assert body["cache_hit"] is False
 
+        custom_response = client.post(
+            "/api/v1/analysis/market-map",
+            headers=auth_headers,
+            json={
+                "source_id": f"watchlist:{watchlist.id}",
+                "group_by": "sector_industry",
+                "period": "CUSTOM",
+                "start": "2024-01-03T00:00:00Z",
+                "end": "2024-01-07T00:00:00Z",
+                "area_metric": "equal",
+                "color_metric": "return",
+            },
+        )
+        assert custom_response.status_code == 200, custom_response.text
+        custom_body = custom_response.json()
+        assert custom_body["period_start"].startswith("2024-01-03")
+        assert custom_body["period_end"].startswith("2024-01-07")
+
         cached_response = client.post(
             "/api/v1/analysis/market-map",
             headers=auth_headers,
@@ -92,7 +110,7 @@ class TestWatchlistsCrud:
         assert cached_body["cache_key"] == body["cache_key"]
         from app.models.market_map import MarketMapCache
 
-        assert db.query(MarketMapCache).count() == 1
+        assert db.query(MarketMapCache).count() == 2
         restored = client.get(
             f"/api/v1/analysis/market-map/cache/{body['cache_key']}", headers=auth_headers
         )
