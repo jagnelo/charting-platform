@@ -135,6 +135,12 @@ tasks:
         Git by the private-origin safeguard; no workaround or retry. Point-in-time market-cap/
         weight data, richer cross-sectional fields, family population, and exact V25 visual
         approval remain open; no acceptance flexibility used.
+      - >-
+        Implementation/docs commit a297b17d adds stable persisted largest-area, strongest-colour,
+        and symbol A-Z ordering within the active hierarchy node. Focused Market Map 11/11, full
+        frontend Vitest 860/860, type-check/build, and diff-check pass. A test-ordering regression
+        was repaired before the unchanged rerun; no acceptance flexibility used. The exact push
+        was rejected once before Git by the private-origin safeguard; no workaround or retry.
 
   - id: tc2000-breadth-python-series-composer-20260817
     title: Wire numeric Python-series condition assets into the breadth workstation

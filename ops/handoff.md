@@ -55,6 +55,21 @@ lists retain separate mutation rules.
 - Remaining gaps: historical point-in-time market-cap/weight data, richer cross-sectional fields,
   complete eight-family population, and exact V25 visual approval.
 
+## 2026-08-17 — Market Map ordering checkpoint
+
+- Added stable persisted ordering inside the active hierarchy node: largest area, strongest colour,
+  and symbol A–Z. Null metric values sort last and ties resolve by symbol; canonical source
+  membership, selected IDs, and map-to-tool publication remain unchanged.
+- Validation passed: focused Market Map `11/11`, full frontend Vitest `860/860`, `vue-tsc`,
+  production build, and `git diff --check`. A real test-ordering regression caused by changing the
+  sort before an old first-tile assertion was repaired by moving the assertion after the intended
+  pre-sort interaction; the unchanged focused suite then passed. No acceptance flexibility used.
+- Implementation/docs commit `a297b17d` is clean locally. Its one exact push attempt was rejected
+  before Git by the private-origin safeguard; no workaround, alternate transport, rewrite, reset,
+  stash, or repeat will be attempted. This is transport-only and not a product blocker.
+- Remaining gaps: exact V25 ordering imagery, historical point-in-time market-cap/weight data,
+  richer cross-sectional fields, complete eight-family population, and exact visual approval.
+
 ## 2026-08-17 — WatchlistSource implementation checkpoint
 
 - Added `GET /watchlists/sources` and `GET /watchlists/sources/{source_id}`.

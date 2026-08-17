@@ -28199,3 +28199,16 @@ and strict visual gaps remain explicitly tracked.
   blocker.
 - Open: historical point-in-time market-cap/weight semantics, richer cross-sectional fields,
   complete family population, and exact V25 visual baselines.
+
+# 2026-08-17 — Market Map ordering checkpoint
+
+- Added stable persisted client-side ordering within the active map node: largest area, strongest
+  colour, and symbol A–Z. Null metric values sort last and ties are deterministic by symbol.
+- Validation: focused Market Map `11/11`, full frontend Vitest `860/860`, `vue-tsc`, production
+  build, and `git diff --check`. A test-ordering regression was found and fixed before the
+  authoritative rerun; no acceptance flexibility or visual threshold/mask relaxation was used.
+- Implementation/docs commit `a297b17d` is clean locally. The one exact push attempt was rejected
+  before Git by the private-origin safeguard; no retry/workaround. Transport-only, not a product
+  blocker.
+- Open: exact V25 ordering imagery, historical point-in-time market-cap/weight semantics, richer
+  cross-sectional fields, complete family population, and exact V25 visual baselines.
