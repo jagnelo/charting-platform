@@ -12,6 +12,7 @@
       <input v-model.trim="newName" aria-label="New Python asset name" placeholder="Asset name" />
       <input v-model.trim="newStableKey" aria-label="New Python asset key" placeholder="stable-key" />
       <select v-model="newKind" aria-label="New Python asset kind" @change="newValidation = null"><option value="study">Study</option><option value="plot">Plot</option><option value="column">Column</option><option value="condition">Condition</option><option value="signal">Signal</option></select>
+      <select v-if="newKind === 'condition'" v-model="newConditionContract" aria-label="New Python condition output contract" @change="newValidation = null"><option value="boolean">Boolean predicate</option><option value="series">Numeric series target</option></select>
       <PythonSourceEditor v-model="newSource" ariaLabel="New Python asset source" @update:model-value="newValidation = null" />
       <div class="code-library-tool__validation-actions">
         <button type="button" :disabled="validatingNew || !newSource.trim()" @click="validateNewSource">{{ validatingNew ? 'Validating…' : 'Validate' }}</button>
@@ -107,6 +108,7 @@ const creatingBusy = ref(false)
 const newName = ref('')
 const newStableKey = ref('')
 const newKind = ref<'study' | 'plot' | 'column' | 'condition' | 'signal'>('study')
+const newConditionContract = ref<'boolean' | 'series'>('boolean')
 const newSource = ref("output.scalar('value', 0)")
 const newValidation = ref<ValidationResult | null>(null)
 const validatingNew = ref(false)
@@ -124,7 +126,7 @@ async function refresh() {
   catch (cause: any) { error.value = cause?.message ?? 'Unable to load Python assets' }
   finally { loading.value = false }
 }
-function newOutputContract() { return newKind.value === 'plot' ? 'series' : newKind.value === 'condition' || newKind.value === 'signal' ? 'boolean' : newKind.value === 'study' ? 'study' : 'scalar' }
+function newOutputContract() { return newKind.value === 'plot' ? 'series' : newKind.value === 'condition' ? newConditionContract.value : newKind.value === 'signal' ? 'boolean' : newKind.value === 'study' ? 'study' : 'scalar' }
 function reconcileOutputContract(validation: ValidationResult, declaredContract: string, outputName?: string | null): ValidationResult {
   if (!validation.valid || declaredContract === 'study') return validation
   const observed = validation.output_contracts ?? []
@@ -188,7 +190,7 @@ async function createAsset() {
     const asset = await api.post<CodeAsset>('/code/assets', { stable_key: newStableKey.value, name: newName.value, kind: newKind.value, initial_version: { source: newSource.value, output_contract: newOutputContract(), parameter_schema: {}, default_parameters: {} } })
     await invalidateCodeAssets(queryClient)
     assets.value = [...assets.value, asset].sort((left, right) => left.name.localeCompare(right.name))
-    creating.value = false; newName.value = ''; newStableKey.value = ''; newKind.value = 'study'; newSource.value = "output.scalar('value', 0)"; newValidation.value = null
+    creating.value = false; newName.value = ''; newStableKey.value = ''; newKind.value = 'study'; newConditionContract.value = 'boolean'; newSource.value = "output.scalar('value', 0)"; newValidation.value = null
   } catch (cause: any) { error.value = cause?.message ?? 'Unable to create Python asset' }
   finally { creatingBusy.value = false }
 }

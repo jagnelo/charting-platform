@@ -63,6 +63,27 @@ describe('CodeLibraryTool', () => {
     expect(wrapper.text()).toContain('Breadth study')
   })
 
+  it('creates a numeric-series condition asset for isolated breadth targets', async () => {
+    apiPost.mockImplementation((path: string) => path === '/code/validate'
+      ? Promise.resolve({ valid: true, diagnostics: [], dependencies: [], output_contracts: ['series'] })
+      : path === '/code/assets' ? Promise.resolve({ ...asset, id: 12, stable_key: 'derived-breadth', name: 'Derived breadth' }) : Promise.resolve({}))
+    const wrapper = mount(CodeLibraryTool)
+    await flushPromises()
+    await wrapper.findAll('button').find(button => button.text() === 'New')!.trigger('click')
+    await wrapper.find('[aria-label="New Python asset name"]').setValue('Derived breadth')
+    await wrapper.find('[aria-label="New Python asset key"]').setValue('derived-breadth')
+    await wrapper.find('[aria-label="New Python asset kind"]').setValue('condition')
+    await wrapper.find('[aria-label="New Python condition output contract"]').setValue('series')
+    await wrapper.find('[aria-label="New Python asset source"]').setValue("output.series('target', market.close())")
+    await wrapper.find('form').trigger('submit')
+    await flushPromises()
+    expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({
+      stable_key: 'derived-breadth',
+      kind: 'condition',
+      initial_version: expect.objectContaining({ output_contract: 'series' }),
+    }))
+  })
+
   it('shows source diagnostics and blocks persistence when validation fails', async () => {
     apiPost.mockImplementation((path: string) => path === '/code/validate'
       ? Promise.resolve({ valid: false, diagnostics: [{ code: 'forbidden_import', message: 'Imports are not permitted', line: 1, column: 1 }], dependencies: [], output_contracts: [] })

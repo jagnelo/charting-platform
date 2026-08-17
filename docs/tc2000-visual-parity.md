@@ -42,6 +42,9 @@ complete board-backed visual state. Until the board contains an authoritative ex
 gap remains explicit: the interim oracle must show the series output contract, threshold relation,
 numeric member metric, percentage result, coverage/exclusion lineage, and current/history status
 without inventing a Version 25 screenshot comparison.
+The authenticated Python Library now represents the output-contract choice; the end-to-end breadth
+composer/run state remains an explicit visual gap until its dedicated controls and result wiring
+are implemented and board-guided.
 
 Status: `Controlling implementation plan`
 

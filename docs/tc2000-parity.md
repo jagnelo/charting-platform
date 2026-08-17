@@ -83,6 +83,9 @@ occurrences, code version, dataset manifest, membership/as-of, and reproducibili
 The runner remains the sole execution boundary and receives only the declared canonical dataset.
 This slice does not yet represent a visual `python_series` breadth leaf or direct series-to-series
 target relation; those remain named parity gaps alongside full promotion fan-out.
+The Python Library does, however, now expose `Numeric series target` when creating a condition asset,
+so the contract can be authored and versioned without hand-editing API payloads. Selecting and
+running that asset from the breadth composer remains a separate open workstation integration.
 
 ## 2026-08-17 — Event-calendar breadth target
 

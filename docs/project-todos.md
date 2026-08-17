@@ -118,6 +118,10 @@ snapshot, or SPY/QQQ substitution is evidence for a missing relationship.
       Docker-backed API test covering CodeVersion creation, queue payload, persisted job, execution,
       collection, and numeric member metrics. A missing response field and an initially unseeded
       test fixture were repaired at their owning boundaries before the unchanged rerun passed.
+- [x] Exposed `Numeric series target` as an explicit output-contract choice when creating a
+      condition in the authenticated Python Library, with component coverage. The breadth composer
+      still needs a dedicated run/target authoring surface; the library control is not presented as
+      that missing integration.
 - [ ] This is the first numeric-series target slice, not the full breadth language: direct
       target-series-to-target-series/benchmark relations, visual condition-tree authoring,
       generic synchronous `python_series` leaves, and promotion into every plot/column/filter/
