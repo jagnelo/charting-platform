@@ -24,7 +24,17 @@
       </label>
       <label>Area
         <select v-model="areaMetric" aria-label="Market Map area metric">
-          <option value="market_cap">Market cap</option><option value="weight">Source weight</option><option value="equal">Equal</option><option value="volume">Volume</option><option value="python">Python numeric output</option>
+          <option value="market_cap">Market cap</option><option value="weight">Source weight</option><option value="equal">Equal</option><option value="volume">Volume</option><option value="field">Provider numeric field</option><option value="python">Python numeric output</option>
+        </select>
+      </label>
+      <label v-if="areaMetric === 'field'">Field
+        <select v-model="areaField" aria-label="Market Map provider numeric area field">
+          <option value="avg_volume_30d">Average volume (30D)</option>
+          <option value="pe_ratio">P/E ratio</option>
+          <option value="beta">Beta</option>
+          <option value="dividend_yield">Dividend yield</option>
+          <option value="week52_high">52-week high</option>
+          <option value="week52_low">52-week low</option>
         </select>
       </label>
       <label>Colour
@@ -145,7 +155,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { api } from '@/lib/api'
 import { useWatchlistStore } from '@/stores/watchlist'
 import { deleteMarketMapSnapshot, fetchMarketMap, fetchMarketMapSnapshot, fetchMarketMapSnapshots, layoutMarketMapCells, saveMarketMapSnapshot, type MarketMapLayoutCell } from '@/lib/workstation/marketMap'
-import type { MarketMap, MarketMapAreaMetric, MarketMapCell, MarketMapColorMetric, MarketMapGroupBy, MarketMapSnapshotSummary, WatchlistSource } from '@/types'
+import type { MarketMap, MarketMapAreaMetric, MarketMapCell, MarketMapColorMetric, MarketMapGroupBy, MarketMapNumericAreaField, MarketMapSnapshotSummary, WatchlistSource } from '@/types'
 
 const props = withDefaults(defineProps<{ configuration?: Record<string, unknown> }>(), { configuration: () => ({}) })
 const emit = defineEmits<{
@@ -159,6 +169,7 @@ const sourceId = ref(String(props.configuration.source_id ?? ''))
 const groupBy = ref<MarketMapGroupBy>((props.configuration.group_by as MarketMapGroupBy) ?? 'sector_industry')
 const period = ref(String(props.configuration.period ?? '1D'))
 const areaMetric = ref<MarketMapAreaMetric>((props.configuration.area_metric as MarketMapAreaMetric) ?? 'market_cap')
+const areaField = ref<MarketMapNumericAreaField>((props.configuration.area_field as MarketMapNumericAreaField) ?? 'avg_volume_30d')
 const colorMetric = ref<MarketMapColorMetric>((props.configuration.color_metric as MarketMapColorMetric) ?? 'return')
 const referenceSymbol = ref(String(props.configuration.reference_symbol ?? ''))
 const referenceSourceId = ref(String(props.configuration.reference_source_id ?? ''))
@@ -401,6 +412,9 @@ async function loadSnapshot() {
     skipNextSourceRun.value = true
     sourceId.value = snapshot.source_id
     map.value = snapshot.map
+    areaMetric.value = snapshot.map.area_metric
+    areaField.value = snapshot.map.area_field ?? 'avg_volume_30d'
+    colorMetric.value = snapshot.map.color_metric
     pythonRunId.value = snapshot.map.python_run_id ?? null
     activeSnapshotName.value = snapshot.name
     snapshotName.value = snapshot.name
@@ -455,7 +469,7 @@ async function run() {
   error.value = ''
   try {
     if (colorMetric.value === 'python' || areaMetric.value === 'python') await resolvePythonRun()
-    map.value = await fetchMarketMap({ source_id: sourceId.value, group_by: groupBy.value, period: period.value, area_metric: areaMetric.value, color_metric: colorMetric.value, condition: colorMetric.value === 'breadth' ? breadthCondition.value : null, python_run_id: colorMetric.value === 'python' || areaMetric.value === 'python' ? pythonRunId.value : null, reference_symbol: (colorMetric.value === 'relative_return' || (colorMetric.value === 'breadth' && breadthConditionKind.value === 'relative_strength')) && !referenceSourceId.value ? referenceSymbol.value.toUpperCase() : null, reference_source_id: (colorMetric.value === 'relative_return' || (colorMetric.value === 'breadth' && breadthConditionKind.value === 'relative_strength')) && referenceSourceId.value ? referenceSourceId.value : null, timeframe: 'D1', adjusted: true })
+    map.value = await fetchMarketMap({ source_id: sourceId.value, group_by: groupBy.value, period: period.value, area_metric: areaMetric.value, area_field: areaMetric.value === 'field' ? areaField.value : null, color_metric: colorMetric.value, condition: colorMetric.value === 'breadth' ? breadthCondition.value : null, python_run_id: colorMetric.value === 'python' || areaMetric.value === 'python' ? pythonRunId.value : null, reference_symbol: (colorMetric.value === 'relative_return' || (colorMetric.value === 'breadth' && breadthConditionKind.value === 'relative_strength')) && !referenceSourceId.value ? referenceSymbol.value.toUpperCase() : null, reference_source_id: (colorMetric.value === 'relative_return' || (colorMetric.value === 'breadth' && breadthConditionKind.value === 'relative_strength')) && referenceSourceId.value ? referenceSourceId.value : null, timeframe: 'D1', adjusted: true })
     snapshotSelectionId.value = ''
     activeSnapshotName.value = ''
     selectedNode.value = null
@@ -468,9 +482,9 @@ async function run() {
   }
 }
 function persist() {
-  emit('configuration', { ...props.configuration, source_id: sourceId.value, group_by: groupBy.value, period: period.value, area_metric: areaMetric.value, color_metric: colorMetric.value, condition: colorMetric.value === 'breadth' ? breadthCondition.value : null, python_code_version_id: pythonCodeVersionId.value, python_run_id: pythonRunId.value, breadth_condition_kind: breadthConditionKind.value, breadth_condition_period: breadthConditionPeriod.value, breadth_condition_threshold: breadthConditionThreshold.value, breadth_event_type: breadthEventType.value, breadth_event_lookback: breadthEventLookback.value, reference_symbol: referenceSymbol.value, reference_source_id: referenceSourceId.value })
+  emit('configuration', { ...props.configuration, source_id: sourceId.value, group_by: groupBy.value, period: period.value, area_metric: areaMetric.value, area_field: areaMetric.value === 'field' ? areaField.value : null, color_metric: colorMetric.value, condition: colorMetric.value === 'breadth' ? breadthCondition.value : null, python_code_version_id: pythonCodeVersionId.value, python_run_id: pythonRunId.value, breadth_condition_kind: breadthConditionKind.value, breadth_condition_period: breadthConditionPeriod.value, breadth_condition_threshold: breadthConditionThreshold.value, breadth_event_type: breadthEventType.value, breadth_event_lookback: breadthEventLookback.value, reference_symbol: referenceSymbol.value, reference_source_id: referenceSourceId.value })
 }
-watch([sourceId, groupBy, period, areaMetric, colorMetric, referenceSymbol, referenceSourceId, pythonCodeVersionId, pythonRunId, breadthConditionKind, breadthConditionPeriod, breadthConditionThreshold, breadthEventType, breadthEventLookback], persist)
+watch([sourceId, groupBy, period, areaMetric, areaField, colorMetric, referenceSymbol, referenceSourceId, pythonCodeVersionId, pythonRunId, breadthConditionKind, breadthConditionPeriod, breadthConditionThreshold, breadthEventType, breadthEventLookback], persist)
 watch(sourceId, () => {
   if (skipNextSourceRun.value) {
     skipNextSourceRun.value = false

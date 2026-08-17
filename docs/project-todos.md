@@ -125,8 +125,12 @@ The captures are behavioural/product references; Finviz artwork and branding are
       missing/non-positive members retain explicit warnings without inflating coverage. The run ID
       and output contract remain part of the serialized request/cache identity; the workstation
       exposes the same asset/run controls for colour and area.
-- [ ] Provider-declared numeric fields, point-in-time market-cap/weight semantics across every
-      family, and final visual approval remain open.
+- [x] `area_metric=field` now accepts the allow-listed provider fields `avg_volume_30d`, `pe_ratio`,
+      `beta`, `dividend_yield`, `week52_high`, and `week52_low`. Values are read only from local
+      `InstrumentStats`, require field-level provenance, and return that provenance per tile.
+      Missing, invalid, and unproven fields are excluded from geometry with explicit warnings.
+- [ ] Point-in-time market-cap/weight semantics across every family, richer cross-sectional fields,
+      and final visual approval remain open.
 
 #### Implementation checkpoint — workstation Market Map tool
 

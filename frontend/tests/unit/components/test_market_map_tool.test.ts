@@ -183,6 +183,20 @@ describe('MarketMapTool', () => {
     expect(areaRequest).toEqual(expect.objectContaining({ area_metric: 'python', python_run_id: 42 }))
   })
 
+  it('authors a provider numeric area field and persists its selection', async () => {
+    const wrapper = mount(MarketMapTool, { props: { configuration: { source_id: 'market-group:sp500' } } })
+    await flushPromises()
+
+    await wrapper.get('select[aria-label="Market Map area metric"]').setValue('field')
+    await wrapper.get('select[aria-label="Market Map provider numeric area field"]').setValue('beta')
+    await wrapper.get('.market-map-tool__run').trigger('click')
+    await flushPromises()
+
+    const request = apiPost.mock.calls.map(call => call[1]).find(body => body?.area_metric === 'field')
+    expect(request).toEqual(expect.objectContaining({ area_metric: 'field', area_field: 'beta' }))
+    expect(wrapper.emitted('configuration')?.at(-1)?.[0]).toEqual(expect.objectContaining({ area_metric: 'field', area_field: 'beta' }))
+  })
+
   it('authors an event predicate for Market Map breadth colouring', async () => {
     apiPost.mockImplementation((path: string, body?: Record<string, unknown>) => {
       if (path === '/analysis/market-map') return Promise.resolve({ ...response, color_metric: body?.color_metric, condition: body?.condition })

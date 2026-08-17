@@ -7510,3 +7510,15 @@ colour and area, and request/cache persistence retains the run ID and output con
 This closes user-declared numeric-series sizing through the unified Python path. Provider-declared
 numeric metadata fields, complete point-in-time market-cap/weight semantics, family population, and
 exact V25 visual approval remain open.
+
+## 2026-08-17 — Provenance-aware provider numeric map areas
+
+Market Map now exposes a `field` area mode for the allow-listed local provider-stat fields
+`avg_volume_30d`, `pe_ratio`, `beta`, `dividend_yield`, `week52_high`, and `week52_low`. The API
+requires the selected field, reads no provider at request time, carries the field provenance into
+each covered cell, and excludes missing, malformed, or unproven values from treemap geometry with
+structured warnings. The workstation persists the field selection and restores it with snapshots.
+
+This closes provider-declared numeric metadata sizing for the currently modelled fields. Historical
+point-in-time market-cap/weight data, richer cross-sectional fields, complete family population, and
+exact V25 visual approval remain open.

@@ -978,3 +978,82 @@ class TestWatchlistsCrud:
             },
         )
         assert invalid.status_code == 404
+
+    def test_market_map_uses_provenance_aware_numeric_area_fields(
+        self, client, auth_headers, db, user, watchlist, instrument, instrument_b
+    ):
+        from app.models.instrument_stats import InstrumentStats
+        from app.models.research import CodeAsset, CodeVersion, ResearchArtifact, ResearchRun
+        from app.models.watchlist import WatchlistItem
+
+        db.add_all(
+            [
+                WatchlistItem(watchlist_id=watchlist.id, instrument_id=instrument.id, position=0),
+                WatchlistItem(watchlist_id=watchlist.id, instrument_id=instrument_b.id, position=1),
+                InstrumentStats(
+                    instrument_id=instrument.id,
+                    avg_volume_30d=2500,
+                    field_provenance={"avg_volume_30d": {"source": "fixture", "observed_at": "2024-01-05T00:00:00Z"}},
+                ),
+                InstrumentStats(instrument_id=instrument_b.id, avg_volume_30d=1500, field_provenance={}),
+            ]
+        )
+        asset = CodeAsset(user_id=user.id, stable_key="map-field-colour", name="Map field", kind="condition")
+        db.add(asset)
+        db.flush()
+        version = CodeVersion(
+            code_asset_id=asset.id,
+            version_number=1,
+            source="return 1.0",
+            output_contract="series",
+            parameter_schema={},
+            default_parameters={},
+        )
+        db.add(version)
+        db.flush()
+        run = ResearchRun(
+            user_id=user.id,
+            code_version_id=version.id,
+            status="completed",
+            run_config={"output_contract": "series"},
+            dataset_manifest={"dataset_version": "test"},
+        )
+        run.artifacts.append(
+            ResearchArtifact(
+                artifact_type="batch",
+                name="batch_cells",
+                payload={"value": {"cells": [{"instrument_id": instrument.id, "status": "completed", "value": 1.0}, {"instrument_id": instrument_b.id, "status": "completed", "value": 1.0}]}},
+            )
+        )
+        db.add(run)
+        db.flush()
+
+        response = client.post(
+            "/api/v1/analysis/market-map",
+            headers=auth_headers,
+            json={
+                "source_id": f"watchlist:{watchlist.id}",
+                "group_by": "none",
+                "color_metric": "python",
+                "python_run_id": run.id,
+                "area_metric": "field",
+                "area_field": "avg_volume_30d",
+                "period": "1D",
+            },
+        )
+        assert response.status_code == 200, response.text
+        body = response.json()
+        assert body["area_metric"] == "field"
+        assert body["area_field"] == "avg_volume_30d"
+        cells = {cell["symbol"]: cell for cell in body["cells"]}
+        assert cells["AAPL"]["area_value"] == 2500
+        assert cells["AAPL"]["area_provenance"]["source"] == "fixture"
+        assert cells["MSFT"]["area_value"] is None
+        assert any(item["code"] == "unproven_area_field" for item in cells["MSFT"]["warnings"])
+
+        invalid = client.post(
+            "/api/v1/analysis/market-map",
+            headers=auth_headers,
+            json={"source_id": f"watchlist:{watchlist.id}", "area_metric": "field", "period": "1D"},
+        )
+        assert invalid.status_code == 422

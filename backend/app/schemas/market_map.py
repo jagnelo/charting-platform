@@ -8,7 +8,15 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 from app.schemas.watchlist import WatchlistSourceRead
 
 MarketMapGroupBy = Literal["none", "sector", "industry", "sector_industry"]
-MarketMapAreaMetric = Literal["equal", "market_cap", "weight", "volume", "python"]
+MarketMapAreaMetric = Literal["equal", "market_cap", "weight", "volume", "field", "python"]
+MarketMapNumericAreaField = Literal[
+    "avg_volume_30d",
+    "pe_ratio",
+    "beta",
+    "dividend_yield",
+    "week52_high",
+    "week52_low",
+]
 MarketMapColorMetric = Literal[
     "return",
     "relative_return",
@@ -32,6 +40,7 @@ class MarketMapRequest(BaseModel):
     timeframe: str = "D1"
     adjusted: bool = True
     area_metric: MarketMapAreaMetric = "market_cap"
+    area_field: MarketMapNumericAreaField | None = None
     color_metric: MarketMapColorMetric = "return"
     condition: dict[str, object] | None = None
     python_run_id: int | None = Field(default=None, ge=1)
@@ -58,6 +67,10 @@ class MarketMapRequest(BaseModel):
             raise ValueError("breadth requires condition")
         if (self.color_metric == "python" or self.area_metric == "python") and self.python_run_id is None:
             raise ValueError("python map output requires python_run_id")
+        if self.area_metric == "field" and self.area_field is None:
+            raise ValueError("field area requires area_field")
+        if self.area_metric != "field" and self.area_field is not None:
+            raise ValueError("area_field requires field area metric")
         return self
 
 
@@ -76,6 +89,7 @@ class MarketMapCell(BaseModel):
     industry: str | None = None
     group_path: list[str] = Field(default_factory=list)
     area_value: float | None = None
+    area_provenance: dict[str, object] | None = None
     color_value: float | None = None
     return_value: float | None = None
     condition_value: bool | None = None
@@ -109,6 +123,7 @@ class MarketMapOut(BaseModel):
     timeframe: str
     adjustment: str
     area_metric: MarketMapAreaMetric
+    area_field: MarketMapNumericAreaField | None = None
     color_metric: MarketMapColorMetric
     condition: dict[str, object] | None = None
     python_run_id: int | None = None

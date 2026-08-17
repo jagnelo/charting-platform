@@ -851,7 +851,8 @@ export interface WatchlistSourceResolved {
 }
 
 export type MarketMapGroupBy = 'none' | 'sector' | 'industry' | 'sector_industry'
-export type MarketMapAreaMetric = 'equal' | 'market_cap' | 'weight' | 'volume' | 'python'
+export type MarketMapAreaMetric = 'equal' | 'market_cap' | 'weight' | 'volume' | 'field' | 'python'
+export type MarketMapNumericAreaField = 'avg_volume_30d' | 'pe_ratio' | 'beta' | 'dividend_yield' | 'week52_high' | 'week52_low'
 export type MarketMapColorMetric = 'return' | 'relative_return' | 'breadth' | 'python' | 'rsi_14' | 'relative_volume' | 'distance_52w_high' | 'distance_52w_low'
 
 export interface MarketMapRequest {
@@ -863,6 +864,7 @@ export interface MarketMapRequest {
   timeframe?: Timeframe
   adjusted?: boolean
   area_metric?: MarketMapAreaMetric
+  area_field?: MarketMapNumericAreaField | null
   color_metric?: MarketMapColorMetric
   condition?: Record<string, unknown> | null
   python_run_id?: number | null
@@ -887,6 +889,7 @@ export interface MarketMapCell {
   industry?: string | null
   group_path: string[]
   area_value?: number | null
+  area_provenance?: Record<string, unknown> | null
   color_value?: number | null
   return_value?: number | null
   condition_value?: boolean | null
@@ -920,6 +923,7 @@ export interface MarketMap {
   timeframe: Timeframe
   adjustment: string
   area_metric: MarketMapAreaMetric
+  area_field?: MarketMapNumericAreaField | null
   color_metric: MarketMapColorMetric
   condition?: Record<string, unknown> | null
   python_run_id?: number | null

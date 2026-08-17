@@ -1017,3 +1017,11 @@ Boolean runs must be rejected rather than coerced into geometry. The Docker-back
 passes numeric sizing and Boolean rejection, with frontend authoring/persistence covered by the
 Market Map component suite. Provider-declared numeric fields and point-in-time market-cap/weight
 semantics remain open.
+
+## 2026-08-17 — Provider numeric area evidence
+
+Provider-field area acceptance requires an allow-listed field, local persisted value, and field-level
+provenance. The fixture proves a provenance-bearing value sizes a tile and that an unproven value is
+excluded with `unproven_area_field`; missing or malformed values follow the same explicit-warning
+path. Workstation authoring and persistence are covered by the 11-case Market Map component suite.
+Point-in-time market-cap/weight semantics and exact V25 visual approval remain open.

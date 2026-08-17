@@ -289,6 +289,28 @@ def _node_metric(cells: list[MarketMapCell], area_metric: str) -> tuple[float | 
     return sum(cell.color_value or 0 for cell in values) / len(values), "equal_mean"
 
 
+def _numeric_area_field(
+    instrument: Instrument,
+    field: str | None,
+) -> tuple[float | None, dict[str, object] | None, str | None]:
+    """Read one allow-listed provider field without triggering a provider call."""
+
+    if not field or instrument.stats is None:
+        return None, None, "missing_area_field"
+    value = getattr(instrument.stats, field, None)
+    provenance = (instrument.stats.field_provenance or {}).get(field)
+    provenance_value = provenance if isinstance(provenance, dict) else None
+    if value is None:
+        return None, provenance_value, "missing_area_field"
+    if provenance_value is None:
+        return None, None, "unproven_area_field"
+    try:
+        numeric = float(value)
+    except (TypeError, ValueError):
+        return None, provenance_value, "invalid_area_field"
+    return numeric, provenance_value, None
+
+
 def _cache_key(
     request: MarketMapRequest,
     membership_version: str | None,
@@ -554,6 +576,7 @@ async def build_market_map(db: AsyncSession, user_id: int, request: MarketMapReq
             warnings.append(_warning(colour_code, message, instrument_id=instrument_id))
         member = members_by_id[instrument_id]
         area: float | None
+        area_provenance: dict[str, object] | None = None
         if request.area_metric == "equal":
             area = 1.0
         elif request.area_metric == "python":
@@ -585,6 +608,18 @@ async def build_market_map(db: AsyncSession, user_id: int, request: MarketMapReq
                 warnings.append(_warning("missing_weight", "No point-in-time source weight is available.", instrument_id=instrument_id))
         elif request.area_metric == "volume":
             area = float(rows[-1].volume) if rows and rows[-1].volume is not None else None
+            if area is None:
+                warnings.append(_warning("missing_volume", "No local volume is available for area sizing.", instrument_id=instrument_id))
+        elif request.area_metric == "field":
+            area, area_provenance, area_code = _numeric_area_field(instrument, request.area_field)
+            if area_code:
+                warnings.append(
+                    _warning(
+                        area_code,
+                        f"The provider numeric field {request.area_field or 'unknown'} is unavailable or unproven.",
+                        instrument_id=instrument_id,
+                    )
+                )
         else:
             area = float(instrument.stats.market_cap) if instrument.stats and instrument.stats.market_cap is not None else None
             if area is None:
@@ -607,6 +642,7 @@ async def build_market_map(db: AsyncSession, user_id: int, request: MarketMapReq
             industry=instrument.equity_detail.industry if instrument.equity_detail else None,
             group_path=path,
             area_value=area,
+            area_provenance=area_provenance,
             color_value=colour,
             return_value=result,
             condition_value=condition_value,
@@ -679,6 +715,7 @@ async def build_market_map(db: AsyncSession, user_id: int, request: MarketMapReq
         timeframe=timeframe.value,
         adjustment="split_adjusted" if request.adjusted else "raw",
         area_metric=request.area_metric,
+        area_field=request.area_field,
         color_metric=request.color_metric,
         condition=request.condition,
         python_run_id=request.python_run_id,

@@ -698,3 +698,11 @@ Boolean output is rejected with a clear validation state rather than being coerc
 No exact V25 capture for programmable treemap sizing is present; density, control ordering,
 source-lock treatment, and warning placement therefore remain board-guided. The absent exact state
 is a tracked visual gap and is not treated as pixel-approved.
+
+## 2026-08-17 — Provider numeric area state
+
+The interim board-guided oracle now includes the provider-field selector, field choices, provenance
+status, covered/unproven tile treatment, and explicit missing-field warnings. No exact V25 capture
+for provider metadata-driven treemap sizing is present; control density and warning placement are
+therefore guided by the represented map/source-picker states. This absent exact state remains a
+named visual gap and is not treated as pixel-approved.
