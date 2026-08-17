@@ -1,5 +1,22 @@
 # Run Report
 
+## 2026-08-17 — Interchangeable US daily perspective scope
+
+- Updated the active goal attachment and controlling TODO, parity, visual-parity, acceptance, and
+  benchmark-family task records to make all eight US roots and every evidenced style leg complete
+  daily analysis entry points. The required sequence now explicitly covers technicals,
+  cap/equal and value/growth leadership, sector/industry/proxy ranking, predicate breadth,
+  participation, concentration/dispersion, rotation, drawdown/volatility, seasonality/regime,
+  and constituent drill-down, with Nasdaq-100 cap/equal matching the SPY/RSP composition when
+  verified.
+- Required lineage (family/role, membership/as-of, weighting, coverage, exclusions, freshness,
+  provenance) is explicitly retained through linked ratios, charts, grids, watchlists, scans,
+  gauges, Study Lab, and exports. Missing evidence remains a tracked gap and no acceptance
+  threshold was relaxed.
+- Validation passed: YAML/JSON/visual-manifest parsing and `git diff --check`.
+- Documentation commit: `7f13851a`. Exact push attempted once and rejected before Git by the
+  private-origin safeguard; no workaround or repeat. Worktree remains clean.
+
 ## 2026-08-17 — Breadth OR/NOT composition
 
 - Extended the generic breadth editor to serialize single, `all`, `any`, and `not` condition

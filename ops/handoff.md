@@ -1,5 +1,25 @@
 # Active Handoff
 
+## 2026-08-17 — Interchangeable US daily perspective scope checkpoint
+
+- Reaffirmed the active goal in the external goal attachment and controlling repository records:
+  S&P 500/400/600/1500, Russell 1000/2000/3000, and Nasdaq 100 are complete interchangeable
+  analysis roots, with every evidenced cap/equal/value/growth leg treated as its own entry point.
+- The required daily workflow is now explicit across TODO, parity, visual-parity, governance, and
+  task records: benchmark technicals -> cap/equal and value/growth leadership -> sector and
+  industry/proxy ranking -> predicate breadth/participation -> concentration/dispersion,
+  rotation, drawdown/volatility, seasonality/regime -> constituent drill-down. Nasdaq-100
+  cap/equal must behave like SPY/RSP once relationship evidence passes.
+- All linked views must retain family/role, membership/as-of, weighting, coverage, exclusions,
+  freshness, and provenance. Missing provider, style/equal, historical, visual, or browser
+  evidence remains a named gap; no acceptance flexibility was used.
+- YAML, JSON, manifest parsing, and `git diff --check` pass. Documentation commit `7f13851a`
+  is clean locally. The exact required push was attempted once and rejected before Git by the
+  private-origin safeguard; no workaround or repeat.
+- Next context: continue implementation of the existing `tc2000-us-benchmark-family-expansion`
+  task, prioritising populated family/style data and the corresponding technical, breadth, ratio,
+  ranking, drill-down, browser, and visual acceptance paths.
+
 ## 2026-08-17 — Breadth OR/NOT composition checkpoint
 
 - The generic breadth composer now exposes single, `all`, `any`, and `not` modes. `all`/`any`
