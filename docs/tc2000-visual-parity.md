@@ -11,16 +11,18 @@ publication are not visually accepted until represented by a deterministic fixtu
 interim oracle.
 
 The backend now exposes the first data contract needed to drive that board-guided surface at
-`POST /analysis/market-map`. It is not a visual baseline and does not close the board gaps: no
-treemap renderer, hover/zoom/pan, map publication, Python/breadth colour state, persistent cache,
-or point-in-time market-cap area visual has been accepted yet. These remain tracked gaps rather
-than silently inferred from the Finviz references.
+`POST /analysis/market-map`. It is not a visual baseline and does not close the board gaps: nested
+treemap navigation, zoom/pan, map publication beyond linked-symbol selection, Python/breadth colour
+state, persistent snapshots, or point-in-time market-cap area visual has not been accepted yet.
+These remain tracked gaps rather than silently inferred from the Finviz references.
 
 The current `Market Map` tool is the interim browser/component oracle for the represented data
-workflow: source/group/period/area/colour controls, dense tiles, locked-source badge, freshness,
-coverage, warnings, and linked-symbol selection. It deliberately does not promote its flex-tile
-layout to a visual baseline. The reference-board gaps for proportional treemap geometry, palette
-legend, hover detail, zoom/pan, multi-selection, and map-to-analysis publication remain open.
+workflow: source/group/period/area/colour controls, deterministic proportional tiles, locked-source
+badge, freshness, coverage, warnings, legend, hover detail, additive multi-selection, and
+linked-symbol selection. The map is intentionally source-agnostic: a locked index/ETF watchlist,
+managed scan, personal list, combo, or explicit-symbol list uses the same visual and interaction
+contract. The reference-board gaps for nested hierarchy, zoom/pan, broader map-to-analysis
+publication, persistent snapshots, and final visual baselines remain open.
 
 ## 2026-08-17 — Family/style analysis visual states (latest requirement)
 

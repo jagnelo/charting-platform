@@ -41,6 +41,11 @@ describe('MarketMapTool', () => {
 
     await wrapper.get('.market-map-tool__tile').trigger('click')
     expect(wrapper.emitted('select')).toEqual([['NVDA', 1]])
+    await wrapper.get('.market-map-tool__tile').trigger('mouseenter')
+    expect(wrapper.find('.market-map-tool__hover').text()).toContain('NVDA')
+    await wrapper.findAll('.market-map-tool__tile')[1].trigger('click', { shiftKey: true })
+    expect(wrapper.findAll('.market-map-tool__tile--selected')).toHaveLength(2)
+    expect(wrapper.emitted('select')).toEqual([['NVDA', 1], ['MSFT', 2]])
   })
 
   it('shows empty and failed map states without hiding the source controls', async () => {

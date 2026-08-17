@@ -78,9 +78,13 @@ The captures are behavioural/product references; Finviz artwork and branding are
 - [x] Locked/system-managed source state, coverage/freshness, membership version, warnings, and
       unavailable/error states are visible in the dense tool surface. The tool is covered by a
       component interaction regression and does not copy Finviz/TC2000 branding or artwork.
-- [ ] The current renderer is an enabling dense tile surface, not the final TC2000/board-guided
-      treemap. Proportional hierarchy layout, hover detail, zoom/pan, palette legend, multi-select,
-      map-to-watchlist/breadth/Study-Lab publication, and visual baselines remain open.
+- [x] The renderer now uses deterministic proportional slice-and-dice geometry, a colour/coverage
+      legend, hover detail, and additive Ctrl/Shift multi-selection while preserving linked-symbol
+      publication. The same surface is therefore applicable to personal, managed, index, ETF,
+      combo, sector, industry, and explicit-symbol sources; locked membership changes only the
+      source mutation rules, not the map interaction model.
+- [ ] Final nested hierarchy navigation, zoom/pan, map-to-watchlist/breadth/Study-Lab publication,
+      persistent snapshots, and board-approved visual baselines remain open.
 
 ### 2026-08-17 — US market family/style analysis matrix (latest user requirement)
 

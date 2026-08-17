@@ -46,12 +46,14 @@
     <div v-if="map" class="market-map-tool__nodes" aria-label="Market Map groups">
       <button v-for="node in visibleNodes" :key="node.node_id" type="button" :class="{ active: selectedNode === node.node_id }" @click="selectedNode = selectedNode === node.node_id ? null : node.node_id">{{ node.label }} <small>{{ node.member_count }}</small></button>
     </div>
+    <div v-if="map" class="market-map-tool__legend" aria-label="Market Map colour legend"><span class="market-map-tool__legend--negative">−</span><span>{{ colorLabel }}</span><span class="market-map-tool__legend--positive">+</span><span class="market-map-tool__legend__coverage">Coverage {{ Math.round(map.coverage * 100) }}%</span></div>
     <div v-if="map" class="market-map-tool__tiles" aria-label="Market Map tiles">
-      <button v-for="cell in visibleCells" :key="cell.instrument_id" type="button" class="market-map-tool__tile" :class="tileClass(cell.color_value)" :style="tileStyle(cell)" :title="`${cell.symbol} · ${cell.name}`" @click="emit('select', cell.symbol, cell.instrument_id)">
+      <button v-for="cell in visibleLayoutCells" :key="cell.instrument_id" type="button" class="market-map-tool__tile" :class="[tileClass(cell.color_value), { 'market-map-tool__tile--selected': selectedIds.includes(cell.instrument_id) }]" :style="tileStyle(cell)" :title="`${cell.symbol} · ${cell.name}`" @mouseenter="hoveredCell = cell" @mouseleave="hoveredCell = null" @click="selectCell($event, cell)">
         <strong>{{ cell.symbol }}</strong><span>{{ formatMetric(cell.color_value) }}</span><small>{{ cell.group_path.join(' · ') || 'All members' }}</small>
       </button>
       <p v-if="!visibleCells.length" class="market-map-tool__status">No covered members match this group.</p>
     </div>
+    <aside v-if="hoveredCell" class="market-map-tool__hover" role="status"><strong>{{ hoveredCell.symbol }}</strong><span>{{ hoveredCell.name }}</span><span>{{ hoveredCell.group_path.join(' · ') || 'All members' }}</span><span v-if="hoveredCell.warnings.length">{{ hoveredCell.warnings.map(item => item.message).join(' · ') }}</span></aside>
     <p v-else-if="!loading" class="market-map-tool__status">Choose a managed index/ETF universe or personal watchlist to build a map.</p>
   </section>
 </template>
@@ -59,7 +61,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { useWatchlistStore } from '@/stores/watchlist'
-import { fetchMarketMap } from '@/lib/workstation/marketMap'
+import { fetchMarketMap, layoutMarketMapCells, type MarketMapLayoutCell } from '@/lib/workstation/marketMap'
 import type { MarketMap, MarketMapAreaMetric, MarketMapCell, MarketMapColorMetric, MarketMapGroupBy, WatchlistSource } from '@/types'
 
 const props = withDefaults(defineProps<{ configuration?: Record<string, unknown> }>(), { configuration: () => ({}) })
@@ -77,6 +79,8 @@ const loading = ref(false)
 const error = ref('')
 const map = ref<MarketMap | null>(null)
 const selectedNode = ref<string | null>(null)
+const selectedIds = ref<number[]>([])
+const hoveredCell = ref<MarketMapCell | null>(null)
 const loadingSources = computed(() => watchlistStore.watchlistSourcesLoading)
 const sourcesError = computed(() => watchlistStore.watchlistSourcesError)
 
@@ -90,10 +94,15 @@ function tileClass(value: number | null | undefined) {
   if (value == null) return 'market-map-tool__tile--unknown'
   return value >= 0 ? 'market-map-tool__tile--positive' : 'market-map-tool__tile--negative'
 }
-function tileStyle(cell: MarketMapCell) {
-  const area = cell.area_value ?? 1
-  const max = Math.max(...(map.value?.cells.map(item => item.area_value ?? 1) ?? [1]))
-  return { flex: `1 1 ${Math.max(8, Math.sqrt(Math.max(area, 1) / Math.max(max, 1)) * 28)}%` }
+function tileStyle(cell: MarketMapLayoutCell) {
+  return { left: `${cell.x}%`, top: `${cell.y}%`, width: `${cell.width}%`, height: `${cell.height}%` }
+}
+function selectCell(event: MouseEvent, cell: MarketMapCell) {
+  const additive = event.shiftKey || event.ctrlKey || event.metaKey
+  selectedIds.value = additive
+    ? (selectedIds.value.includes(cell.instrument_id) ? selectedIds.value.filter(id => id !== cell.instrument_id) : [...selectedIds.value, cell.instrument_id])
+    : [cell.instrument_id]
+  emit('select', cell.symbol, cell.instrument_id)
 }
 const visibleNodes = computed(() => (map.value?.nodes ?? []).filter(node => node.level !== 'root'))
 const visibleCells = computed(() => {
@@ -101,6 +110,8 @@ const visibleCells = computed(() => {
   if (!selectedNode.value || selectedNode.value === 'root') return map.value.cells
   return map.value.cells.filter(cell => cell.group_path.length && (`group:${cell.group_path.join('/')}` === selectedNode.value || `group:${cell.group_path[0]}` === selectedNode.value))
 })
+const visibleLayoutCells = computed<MarketMapLayoutCell[]>(() => layoutMarketMapCells(visibleCells.value))
+const colorLabel = computed(() => colorMetric.value.replace(/_/g, ' '))
 
 async function run() {
   if (!sourceId.value) return
@@ -109,6 +120,7 @@ async function run() {
   try {
     map.value = await fetchMarketMap({ source_id: sourceId.value, group_by: groupBy.value, period: period.value, area_metric: areaMetric.value, color_metric: colorMetric.value, reference_symbol: colorMetric.value === 'relative_return' ? referenceSymbol.value.toUpperCase() : null, timeframe: 'D1', adjusted: true })
     selectedNode.value = null
+    selectedIds.value = []
   } catch (cause) {
     error.value = cause instanceof Error ? cause.message : 'Unable to load Market Map'
   } finally {
@@ -144,11 +156,15 @@ onMounted(async () => {
 .market-map-tool__nodes button { cursor: pointer; }
 .market-map-tool__nodes button.active { border-color: #70b4ff; color: #fff; }
 .market-map-tool__nodes small { color: #8e9bad; }
-.market-map-tool__tiles { display: flex; flex-wrap: wrap; align-content: stretch; gap: 2px; padding: 8px; min-height: 260px; }
-.market-map-tool__tile { display: flex; min-width: 90px; min-height: 70px; flex-direction: column; justify-content: center; align-items: center; gap: 3px; cursor: pointer; color: #fff !important; overflow: hidden; }
+.market-map-tool__legend { display: flex; gap: 8px; align-items: center; padding: 2px 8px; color: #aeb8c7; text-transform: capitalize; }
+.market-map-tool__legend--negative { color: #ff9a9a; font-weight: 800; }.market-map-tool__legend--positive { color: #82e2ac; font-weight: 800; }.market-map-tool__legend__coverage { margin-left: auto; text-transform: none; }
+.market-map-tool__tiles { position: relative; min-height: 300px; margin: 0 8px 8px; border: 1px solid #303a48; background: #0d1218; }
+.market-map-tool__tile { position: absolute; display: flex; min-width: 28px; min-height: 28px; flex-direction: column; justify-content: center; align-items: center; gap: 3px; cursor: pointer; color: #fff !important; overflow: hidden; border-radius: 0 !important; }
 .market-map-tool__tile strong { font-size: 16px; }
 .market-map-tool__tile small { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; opacity: .75; }
 .market-map-tool__tile--positive { background: #207d56 !important; }
 .market-map-tool__tile--negative { background: #843f50 !important; }
 .market-map-tool__tile--unknown { background: #3c4652 !important; }
+.market-map-tool__tile--selected { outline: 2px solid #f7d87b; outline-offset: -2px; z-index: 2; }
+.market-map-tool__hover { position: absolute; right: 12px; bottom: 12px; z-index: 5; display: flex; flex-direction: column; gap: 2px; max-width: 300px; padding: 8px 10px; border: 1px solid #60758d; background: #18222e; box-shadow: 0 4px 18px #0008; }
 </style>
