@@ -5965,10 +5965,16 @@ async def _resolve_python_condition_tree(
             left_version = await resolve_series_version("left_code_version_id")
             right_version = await resolve_series_version("right_code_version_id")
             relation = str(params.get("relation", "difference")).lower()
+            scope = str(params.get("scope", "member")).lower()
+            statistic = str(params.get("statistic", "mean")).lower()
             operator = str(params.get("operator", "gte")).lower()
             threshold = params.get("threshold", 0)
             if relation not in {"difference", "ratio"}:
                 raise HTTPException(422, detail={"code": "invalid_python_series_comparison_relation"})
+            if scope not in {"member", "cross_sectional"}:
+                raise HTTPException(422, detail={"code": "invalid_python_series_comparison_scope"})
+            if scope == "cross_sectional" and statistic not in {"mean", "median", "min", "max", "std"}:
+                raise HTTPException(422, detail={"code": "invalid_python_series_comparison_statistic"})
             if operator not in {"gt", "gte", "lt", "lte", "eq", "ne"} or not isinstance(threshold, int | float) or isinstance(threshold, bool) or not math.isfinite(float(threshold)):
                 raise HTTPException(422, detail={"code": "invalid_python_series_comparison_target"})
             resolved_ids.extend([left_version.id, right_version.id])
@@ -5986,6 +5992,8 @@ async def _resolve_python_condition_tree(
                     "left_parameters": params.get("left_parameters", {}) if isinstance(params.get("left_parameters"), Mapping) else {},
                     "right_parameters": params.get("right_parameters", {}) if isinstance(params.get("right_parameters"), Mapping) else {},
                     "relation": relation,
+                    "scope": scope,
+                    "statistic": statistic,
                     "operator": operator,
                     "threshold": float(threshold),
                     "left_asset_key": left_asset.stable_key if left_asset is not None else None,

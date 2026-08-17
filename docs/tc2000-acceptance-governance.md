@@ -14,9 +14,11 @@ The isolated-Python sub-gate now covers a recursive tree containing member and c
 numeric-series Python leaves plus built-in predicates. It verifies owned-code resolution,
 Boolean-contract handoff, job-file preservation, once-per-timestamp cross-sectional materialization,
 timestamp-aligned member/benchmark history execution, and compatibility with existing scalar/Boolean/series/event batch
-paths. No provider access is permitted. The gate now also verifies direct member-level comparison
-of two owned numeric-series outputs using difference and ratio-minus-one semantics, including a
-benchmark-derived source. Cross-sectional-to-derived relationships and universal promotion fan-out
+paths. No provider access is permitted. The gate now also verifies direct member-level and
+cross-sectional comparison of two owned numeric-series outputs using difference and ratio-minus-one
+semantics, including a benchmark-derived source. Cross-sectional acceptance derives the pair per
+member, applies the declared same-timestamp group statistic, and retains the member-minus-group
+metric and exclusions. Richer multi-stage derived composition and universal promotion fan-out
 remain named capability gaps; they cannot be represented as passing through a member-only fallback.
 
 ## 2026-08-17 — Mixed-scope breadth sub-gate
@@ -29,7 +31,8 @@ no provider fan-out. The same condition must serialize through the visual tree e
 authenticated browser flow.
 Arbitrary Python target-series leaves remain open and cannot be treated as silently equivalent. The
 explicit group-statistic leaf is accepted only for its declared mean, median, minimum, maximum, and
-standard-deviation set, with the member-minus-group metric retained.
+standard-deviation set, with the member-minus-group metric retained. A two-series comparison is
+accepted only when both owned series pass the isolated series contract before aggregation.
 
 ## 2026-08-17 — Cross-sectional Market Map breadth sub-gate
 

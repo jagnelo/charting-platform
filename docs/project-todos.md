@@ -48,8 +48,11 @@
       and statistic, including current/history isolated evaluation and visual authoring.
 - [x] Direct member-level series-to-series and cross-derived comparisons now work as a recursive
       visual AST leaf with difference or ratio-minus-one semantics and isolated browser coverage.
-- [ ] Cross-sectional-to-derived-series relationships and promotion fan-out to every compatible
-      target remain open.
+- [x] Cross-sectional two-series comparisons now derive difference or ratio-minus-one per member,
+      apply a same-timestamp mean/median/min/max/population-standard-deviation group statistic,
+      and preserve the member-minus-group metric through current and historical breadth jobs.
+- [ ] Richer multi-stage cross-sectional-to-derived-series composition and promotion fan-out to
+      every compatible target remain open; unsupported chaining must continue to fail explicitly.
 
 ### 2026-08-17 — Mixed-scope breadth condition trees
 

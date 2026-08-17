@@ -153,5 +153,13 @@ describe('BreadthConditionTreeEditor', () => {
     expect(payload.params.right_code_version_id).toBe(12)
     expect(payload.params.relation).toBe('ratio')
     expect(payload.params.threshold).toBe(0.05)
+    await wrapper.setProps({ modelValue: payload })
+    await wrapper.get('[aria-label="Breadth Python comparison scope 1"]').setValue('cross_sectional')
+    const scopePayload = wrapper.emitted('update:modelValue')?.at(-1)?.[0] as { params: Record<string, unknown> }
+    await wrapper.setProps({ modelValue: scopePayload })
+    await wrapper.get('[aria-label="Breadth Python comparison group statistic 1"]').setValue('median')
+    const crossPayload = wrapper.emitted('update:modelValue')?.at(-1)?.[0] as { params: Record<string, unknown> }
+    expect(crossPayload.params.scope).toBe('cross_sectional')
+    expect(crossPayload.params.statistic).toBe('median')
   })
 })

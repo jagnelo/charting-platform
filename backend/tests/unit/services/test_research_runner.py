@@ -663,6 +663,56 @@ def test_runner_compares_two_isolated_python_series_with_timestamp_aligned_bench
     assert [cell["metric"] for cell in cells] == pytest.approx([0.1, -0.1])
 
 
+def test_runner_composes_cross_sectional_python_series_comparison_leaf():
+    result = execute_job(
+        {
+            "source": "output.scalar('unused', 1)",
+            "output_contract": "boolean",
+            "condition_tree": {
+                "kind": "python_series_comparison",
+                "params": {
+                    "left_source": "output.series('left', market.close())",
+                    "right_source": "output.series('right', market.benchmark_close())",
+                    "left_output_name": "left",
+                    "right_output_name": "right",
+                    "relation": "difference",
+                    "scope": "cross_sectional",
+                    "statistic": "median",
+                    "operator": "gte",
+                    "threshold": 0,
+                },
+            },
+            "dataset": {
+                "datasets": [
+                    {
+                        "instrument_id": 1,
+                        "symbol": "A",
+                        "closes": [110],
+                        "benchmark_dataset": {"symbol": "SPY", "closes": [100]},
+                    },
+                    {
+                        "instrument_id": 2,
+                        "symbol": "B",
+                        "closes": [100],
+                        "benchmark_dataset": {"symbol": "SPY", "closes": [100]},
+                    },
+                    {
+                        "instrument_id": 3,
+                        "symbol": "C",
+                        "closes": [90],
+                        "benchmark_dataset": {"symbol": "SPY", "closes": [100]},
+                    },
+                ]
+            },
+        }
+    )
+
+    assert result["status"] == "completed"
+    cells = result["artifacts"]["batch_cells"]["value"]["cells"]
+    assert [cell["value"] for cell in cells] == [True, True, False]
+    assert [cell["metric"] for cell in cells] == pytest.approx([10.0, 0.0, -10.0])
+
+
 def test_runner_computes_transparent_ninety_ninety_breadth_and_exclusions():
     result = execute_job(
         {

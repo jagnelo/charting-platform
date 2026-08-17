@@ -20,16 +20,21 @@ Current and historical results preserve metrics, exclusions, and no-provider-fan
 Existing non-tree batch contracts remain unchanged.
 
 Functional parity is accepted for this backend slice. Exact V25 visual parity for recursive
-Python authoring/results is still an explicit board gap; direct member-level Python series
-comparisons (difference and ratio-minus-one, including benchmark-derived sources) are implemented,
-while cross-sectional-to-derived relationships and universal promotion fan-out remain open.
+Python authoring/results is still an explicit board gap. Direct member-level Python series
+comparisons (difference and ratio-minus-one, including benchmark-derived sources) and their
+cross-sectional form are implemented: the runner derives each member's pair first, computes a
+same-timestamp group statistic, and evaluates the member-minus-group result. Richer multi-stage
+derived composition and universal promotion fan-out remain open.
 
 ## 2026-08-18 — Cross-sectional Python numeric-series targets
 
-The isolated Python breadth path now supports an explicit cross-sectional numeric-series target.
+The isolated Python breadth path now supports explicit cross-sectional numeric-series and
+two-series-comparison targets.
 The runner evaluates the user-owned series independently for each declared member, computes the
 selected same-timestamp mean, median, minimum, maximum, or population standard deviation, and
-returns each member's series-minus-group delta before applying the operator and threshold. Current
+returns each member's series-minus-group delta before applying the operator and threshold. For a
+comparison leaf, difference or ratio-minus-one is calculated per member before the group statistic
+is applied. Current
 batch and aligned historical results retain `group_value`, member metrics, exclusions, coverage,
 and the existing code/dataset reproducibility lineage. Member-scoped Python targets remain
 backward-compatible. Recursive visual-tree Python leaves and direct member-level series/reference
@@ -239,7 +244,8 @@ CodeVersion and target relation. Focused store coverage, full frontend unit/type
 authenticated Chromium select → configure → evaluate coverage pass; the first browser attempt
 served a stale bundle and was repaired by rebuilding the branch stack before the unchanged rerun.
 Direct series-to-series/benchmark target relations, visual condition-tree composition with Python
-series leaves, and promotion into every compatible surface remain named parity gaps.
+series leaves, richer multi-stage derived composition, and promotion into every compatible surface
+remain named parity gaps.
 
 ## 2026-08-17 — Event-calendar breadth target
 

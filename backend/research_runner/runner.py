@@ -387,11 +387,21 @@ def _prepare_condition_tree_context(
         params = leaf.get("params") if isinstance(leaf.get("params"), dict) else {}
         if str(params.get("scope", "member")).lower() != "cross_sectional":
             continue
+        kind = str(leaf.get("kind") or "").lower()
         source = params.get("source")
-        if not isinstance(source, str) or not source.strip():
+        left_source = params.get("left_source")
+        right_source = params.get("right_source")
+        if kind == "python_series" and (not isinstance(source, str) or not source.strip()):
             context[path] = {}
             continue
-        output_name = str(params.get("output_name") or "") or None
+        if kind == "python_series_comparison" and (
+            not isinstance(left_source, str)
+            or not left_source.strip()
+            or not isinstance(right_source, str)
+            or not right_source.strip()
+        ):
+            context[path] = {}
+            continue
         metrics: dict[int, float] = {}
         errors: dict[int, str] = {}
         for candidate in datasets:
@@ -400,22 +410,66 @@ def _prepare_condition_tree_context(
             instrument_id = candidate.get("instrument_id")
             if not isinstance(instrument_id, int) or isinstance(instrument_id, bool):
                 continue
-            result = _execute_single(
-                source,
-                candidate,
-                {
-                    "source": source,
-                    "dataset": candidate,
-                    "output_contract": "series",
-                    "parameters": params.get("parameters", {})
-                    if isinstance(params.get("parameters"), dict)
-                    else {},
-                },
-                manage_timeout=False,
-            )
-            metric, error = _series_artifact(result, output_name)
+            if kind == "python_series":
+                result = _execute_single(
+                    source,
+                    candidate,
+                    {
+                        "source": source,
+                        "dataset": candidate,
+                        "output_contract": "series",
+                        "parameters": params.get("parameters", {})
+                        if isinstance(params.get("parameters"), dict)
+                        else {},
+                    },
+                    manage_timeout=False,
+                )
+                metric, error = _series_artifact(
+                    result, str(params.get("output_name") or "") or None
+                )
+            else:
+                left_result = _execute_single(
+                    left_source,
+                    candidate,
+                    {
+                        "source": left_source,
+                        "dataset": candidate,
+                        "output_contract": "series",
+                        "parameters": params.get("left_parameters", {})
+                        if isinstance(params.get("left_parameters"), dict)
+                        else {},
+                    },
+                    manage_timeout=False,
+                )
+                right_result = _execute_single(
+                    right_source,
+                    candidate,
+                    {
+                        "source": right_source,
+                        "dataset": candidate,
+                        "output_contract": "series",
+                        "parameters": params.get("right_parameters", {})
+                        if isinstance(params.get("right_parameters"), dict)
+                        else {},
+                    },
+                    manage_timeout=False,
+                )
+                left_metric, left_error = _series_artifact(
+                    left_result, str(params.get("left_output_name") or "") or None
+                )
+                right_metric, right_error = _series_artifact(
+                    right_result, str(params.get("right_output_name") or "") or None
+                )
+                metric, relation_error = _python_series_comparison_metric(
+                    left_metric, right_metric, params.get("relation", "difference")
+                )
+                error = left_error or right_error or relation_error
             if error or metric is None:
-                errors[instrument_id] = error or "python_series_target_unavailable"
+                errors[instrument_id] = error or (
+                    "python_series_comparison_target_unavailable"
+                    if kind == "python_series_comparison"
+                    else "python_series_target_unavailable"
+                )
             else:
                 metrics[instrument_id] = metric
         group_value = _cross_sectional_series_statistic(
@@ -611,6 +665,12 @@ def _execute_condition_tree(
         )
         return value, metric, target_error or error
     if kind == "python_series_comparison":
+        if str(params.get("scope", "member")).lower() == "cross_sectional":
+            instrument_id = dataset.get("instrument_id")
+            scoped = context.get(path, {}).get(instrument_id) if context else None
+            if scoped is None:
+                return None, None, "python_series_comparison_cross_sectional_requires_universe"
+            return scoped
         left_source = params.get("left_source")
         right_source = params.get("right_source")
         if not isinstance(left_source, str) or not left_source.strip() or not isinstance(right_source, str) or not right_source.strip():
