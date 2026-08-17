@@ -11036,3 +11036,27 @@ tasks:
       - >-
         Implementation/docs commit d57c9dd8 is clean locally; its one exact push attempt was
         rejected before Git by the private-origin safeguard. No acceptance flexibility was used.
+  - id: tc2000-market-map-full-source-publication-20260817
+    title: Launch complete Market Map universes into Breadth and Study Lab
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Allow route-free analysis launch from any canonical Market Map source without requiring a
+      selected tile, while retaining selected members as optional context.
+    definition_of_done:
+      - Full-source Breadth and Study Lab actions remain visible with zero selected tiles
+      - The canonical source remains the complete analysis universe on handoff
+      - Selected member IDs and symbols are optional context and do not replace the source
+      - Existing selected-tile publication and subset watchlist actions remain intact
+      - Focused/full frontend, type/build, and diff checks pass
+      - Immutable definition creation/versioning remains a separate explicit open gate
+    validation:
+      - market-map-component-14-of-14
+      - frontend-vitest-866-of-866
+      - frontend-typecheck-build
+      - git-diff-check
+    notes:
+      - >-
+        Implementation/docs commit f2d65c7b is clean locally; its one exact push attempt was
+        rejected before Git by the private-origin safeguard. No acceptance flexibility was used.

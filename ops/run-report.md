@@ -28301,3 +28301,17 @@ and strict visual gaps remain explicitly tracked.
   not retried or worked around.
 - Remaining gaps: exact V25 preference geometry, point-in-time weights, complete family population,
   Python promotion fan-out, provider breadth, and final audit.
+
+# 2026-08-17 — Full-source Market Map publication checkpoint
+
+- Added route-free full-source launch actions from Market Map into Breadth and Study Lab. A tile
+  selection is optional; the complete canonical source remains the analysis universe and selected
+  members are optional context.
+- Validation: focused Market Map component `14/14`; full frontend Vitest `866/866`; `vue-tsc`,
+  production build, and `git diff --check` passed. No acceptance flexibility or visual threshold/
+  mask relaxation was used.
+- Commit `f2d65c7b feat: launch full map sources into analysis tools` is clean locally. The one exact
+  push attempt was rejected before Git by the private-origin safeguard; this is transport-only and
+  was not retried or worked around.
+- Remaining gaps: immutable definition creation/versioning, promotion fan-out, point-in-time
+  weights, family population, provider breadth, exact V25 action-row geometry, and final audit.

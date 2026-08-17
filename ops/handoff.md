@@ -30105,3 +30105,18 @@ indefinite soak; longer endurance remains an explicit open gap.
   reset, or stash will be attempted. This is transport-only and not a product blocker.
 - Open: exact V25 preference geometry, point-in-time weights, complete family population, Python
   promotion fan-out, provider breadth, and final functional/visual/security audit.
+
+# 2026-08-17 — Full-source Market Map publication checkpoint
+
+- Market Map now exposes full-source launch actions for Breadth and Study Lab. They work with no
+  tile selected, pass the complete canonical source as the analysis universe, and preserve selected
+  member IDs/symbols only as optional context. Existing selected-tile publication remains intact.
+- Focused Market Map component coverage passed `14/14`; full frontend Vitest passed `866/866`;
+  `vue-tsc`, production build, and `git diff --check` passed. No acceptance flexibility, visual
+  threshold, or mask relaxation was used.
+- Implementation/docs commit `f2d65c7b` is clean locally. Its one exact push attempt was rejected
+  before Git by the private-origin safeguard; no retry, workaround, alternate transport, rewrite,
+  reset, or stash will be attempted. This is transport-only and not a product blocker.
+- Open: immutable definition creation/versioning from map configuration, promotion fan-out,
+  point-in-time weights, complete family population, provider breadth, exact V25 action-row
+  geometry, and final audit gates.
