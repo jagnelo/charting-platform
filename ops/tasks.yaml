@@ -11291,3 +11291,35 @@ tasks:
         its one exact push attempt was rejected before Git by the private-origin safeguard, with no
         workaround or retry. Operational checkpoint follows separately. Next context is recursive
         visual-tree Python leaves and promotion across compatible targets.
+  - id: tc2000-python-condition-tree-20260818
+    title: Compose isolated Python series leaves in recursive breadth condition trees
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Carry owned member-level Python numeric-series leaves through the universal locked/editable
+      WatchlistSource breadth contract, persisted run configuration, shared job-file protocol, and
+      isolated runner, while preserving existing non-tree batch contracts.
+    definition_of_done:
+      - API validates recursive all/any/not groups, owned condition CodeVersions, member scope, operators, and thresholds
+      - The job handoff retains the resolved tree and requested Boolean contract even when the anchor version is numeric-series
+      - Current member cells evaluate Python leaves against prepared data and compose with built-in predicates with tri-state exclusions
+      - Existing scalar/Boolean/series/events batch behavior remains unchanged
+      - Universal locked index/ETF and editable/personal/managed/combo sources use the same tree contract
+      - Cross-sectional Python leaves inside member trees and promotion fan-out remain explicit structured capability gaps
+    validation:
+      - runner-python-series-condition-tree-5-of-5
+      - docker-python-breadth-integration-2-of-2
+      - backend-unit-1198-of-1198
+      - frontend-vitest-870-of-870
+      - frontend-typecheck-build
+      - ruff-compileall-diff-check
+    notes:
+      - >-
+        A real job-protocol omission was found by the focused Docker integration test: the API
+        persisted the tree but enqueue_research_run dropped it and used the anchor output contract.
+        The owning protocol was fixed, and the unchanged focused rerun passed. No acceptance
+        flexibility, visual threshold, baseline, mask, provider, or scope rule was relaxed.
+        Implementation/docs commit 3289d7cb is clean locally. Exact push is not claimed; the
+        repository's private-origin safeguard rejects the destination before Git transport.
+        Next context is cross-sectional Python leaves inside recursive trees and promotion fan-out.

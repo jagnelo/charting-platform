@@ -30279,3 +30279,26 @@ indefinite soak; longer endurance remains an explicit open gap.
   baseline, mask, provider, or goal criterion changed; no acceptance flexibility was used.
 - The next implementation context remains Python target-series leaves and promotion across
   compatible targets. Operational state is being refreshed before that context begins.
+
+# 2026-08-18 — Recursive Python member condition-tree checkpoint
+
+- Added a validated recursive `all`/`any`/`not` tree path to isolated Python breadth. The API
+  resolves only user-owned condition CodeVersions with series output and member scope, persists
+  the resolved source in the run configuration, and the shared job protocol now retains both the
+  tree and requested Boolean contract even when the anchor version is numeric-series.
+- The isolated runner evaluates Python leaves only against each prepared member dataset and
+  composes them with built-in member predicates. Existing scalar, Boolean, series, and event batch
+  behavior remains covered; universal locked index/ETF and editable/personal/managed/combo sources
+  share the same source contract and only differ in membership mutation rules.
+- Validation passed: runner Python-series/tree `5/5`; Docker-backed Python breadth integration
+  `2/2`; full backend unit `1198/1198`; frontend Vitest `870/870`; `vue-tsc`; Vite production
+  build; Ruff; compileall; and `git diff --check`.
+- The first focused Docker run found a real protocol omission (tree persisted in the API but not
+  emitted to the job file, with the anchor output contract also being selected); the owning job
+  protocol was repaired and the unchanged rerun passed. This was a product defect fix, not
+  acceptance flexibility. No visual threshold, baseline, mask, provider, or scope rule changed.
+- Implementation/docs commit `3289d7cb` is clean locally. No push is claimed: the private-origin
+  safeguard rejects the destination before Git transport. Remaining gaps are nested
+  cross-sectional Python leaves, visual authoring, promotion fan-out, full family/provider
+  population, exact V25 visual evidence, and final audit. Next context is cross-sectional Python
+  leaves inside recursive trees and promotion fan-out.

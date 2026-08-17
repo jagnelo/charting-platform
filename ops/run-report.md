@@ -28445,3 +28445,22 @@ and strict visual gaps remain explicitly tracked.
 - Implementation/docs commit `97d050ec`; operational checkpoint `26128ca6`. Each exact push attempt
   was rejected before Git by the private-origin safeguard. No retry or workaround; both commits are
   clean locally and verified with `git rev-parse`.
+
+# 2026-08-18 — Recursive Python member condition-tree checkpoint
+
+- Scope: universal `WatchlistSource` breadth/Market Map backend support for recursive member
+  Python numeric-series leaves composed with built-in predicates.
+- Implementation: API-owned CodeVersion resolution, persisted condition-tree contract, corrected
+  isolated job-file handoff, runner `all`/`any`/`not` evaluation, member-only scope diagnostics,
+  and compatibility-preserving batch extraction.
+- Validation: runner focused `5/5`; Docker-backed API Python breadth `2/2`; backend unit
+  `1198/1198`; frontend Vitest `870/870`; `vue-tsc`; Vite build; Ruff; compileall; and diff-check.
+- Defect/fix: initial Docker integration exposed that enqueueing discarded the tree and selected
+  the anchor series contract. The protocol was repaired at its source and the unchanged rerun
+  passed. This is explicitly recorded as a normal implementation correction, not relaxed
+  acceptance.
+- Acceptance state: no visual threshold, baseline, mask, provider, or scope criterion was relaxed.
+  Nested cross-sectional Python leaves, visual authoring, promotion fan-out, full family/provider
+  population, exact V25 evidence, and final audit remain open and tracked.
+- Git: implementation/docs commit `3289d7cb` is clean locally. Push is not claimed because the
+  private-origin safeguard rejects the destination before Git transport.
