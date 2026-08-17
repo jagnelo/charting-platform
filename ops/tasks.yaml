@@ -11429,3 +11429,36 @@ tasks:
         intentionally limited to one two-series derivation followed by one transparent group
         statistic; richer chaining, promotion fan-out, full family/provider population, and final
         V25 visual acceptance remain tracked gaps.
+  - id: tc2000-python-breadth-plot-promotion-20260818
+    title: Promote member-level Python breadth runs into reusable uPlot plots
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Add a lineage-preserving promotion from completed member-level numeric-series breadth runs
+      to reusable plot CodeAssets. Expose it in Research Results and reject cross-sectional
+      aggregates or recursive Boolean trees when the per-symbol plot contract does not apply.
+    definition_of_done:
+      - API creates a user-owned plot CodeAsset with series output and immutable source lineage
+      - Source run, code version, definition/reproducibility hashes, manifest fingerprint, universe, and semantics are retained
+      - Cross-sectional aggregate and recursive Boolean run promotions return structured capability errors
+      - Research Results exposes Save as chart plot and preserves error/status messaging
+      - Unit, API integration, rebuilt browser, type/build, lint, compile, and diff gates pass
+      - Remaining promotion targets stay explicit rather than being silently claimed complete
+    validation:
+      - api-python-breadth-promotion-2-of-2
+      - frontend-research-results-14-of-14
+      - frontend-vitest-873-of-873
+      - rebuilt-browser-research-results-2-of-2
+      - frontend-typecheck-build
+      - ruff-compileall-diff-check
+    notes:
+      - >-
+        No acceptance flexibility was used. The first browser attempt exposed a selector oracle
+        mismatch between visible row text and its aria-label; the selector was corrected to the
+        rendered row contract and the unchanged two-flow rerun passed. The first negative API
+        assertion also exposed a fixture that had not persisted the isolated result; the fixture
+        was repaired and the unchanged API rerun passed. These were test-boundary corrections,
+        not product or visual acceptance relaxations. Columns, filters, gauges, alerts, Study Lab,
+        Strategy Lab, richer chained composition, full family/provider population, and final V25
+        visual acceptance remain open.

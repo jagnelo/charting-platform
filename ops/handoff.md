@@ -30372,3 +30372,28 @@ indefinite soak; longer endurance remains an explicit open gap.
   exact V25 visual evidence, and the final functional/visual/security/performance audit.
 - Next context: promote unified Python results across compatible targets and extend derived-series
   composition without introducing a second language or a member-only fallback.
+
+# 2026-08-18 — Member-level Python breadth plot promotion checkpoint
+
+- Added `POST /analysis/breadth/python/runs/{run_id}/promote-plot` for completed member-level
+  numeric-series breadth runs. It creates a user-owned `plot` CodeAsset with series output and
+  stores source run/code/definition/reproducibility/manifest/universe lineage in immutable
+  diagnostics. The plot explicitly re-evaluates the member series on the selected symbol.
+- Cross-sectional aggregate series and recursive Boolean trees return structured capability errors
+  instead of being misrepresented as per-symbol plots. Research Results exposes the action and
+  reports the returned asset identity.
+- Validation passed: API promotion regressions `2/2`; Research Results unit `14/14`; full Vitest
+  `873/873`; rebuilt browser Research Results `2/2`; `vue-tsc`; Vite build; Ruff; compileall;
+  YAML/JSON; and diff-check.
+- No acceptance flexibility was used. The first browser attempt found a selector mismatch between
+  visible row text and its aria-label; the selector was corrected and the unchanged focused slice
+  passed. The first negative API assertion found an unpersisted test result fixture; it was repaired
+  and the unchanged API slice passed. These are recorded test-boundary fixes, not product or visual
+  relaxations.
+- Implementation/docs commit `52de8574` is clean locally. Its exact push attempt was rejected
+  before Git transport by the private-origin execution safeguard; no workaround or retry was
+  attempted. This is transport-only and not a product blocker.
+- Remaining gaps: promotion to columns/filters/gauges/alerts/Study Lab/Strategy Lab, richer chained
+  derived composition, complete family/provider population, exact V25 visual evidence, and final
+  functional/visual/security/performance audit.
+- Next context: broaden promotion adapters while retaining strict output-contract semantics.

@@ -28516,3 +28516,17 @@ and strict visual gaps remain explicitly tracked.
 - Implementation commit `20e2809d` is clean locally. Open capability gaps remain richer chained
   derived-series composition, universal promotion fan-out, full family/provider population,
   exact V25 visual coverage, and the final acceptance audit.
+
+# 2026-08-18 — Member-level Python breadth plot promotion checkpoint
+
+- Added a lineage-preserving member-level breadth promotion to reusable uPlot `plot` CodeAssets.
+  Source run/code/definition/reproducibility/manifest/universe metadata and explicit re-evaluation
+  semantics remain attached; cross-sectional aggregates and recursive Boolean trees are rejected.
+- Validation: API `2/2`; Research Results unit `14/14`; full Vitest `873/873`; rebuilt browser
+  Research Results `2/2`; type-check/build; Ruff; compileall; YAML/JSON; and diff-check.
+- No acceptance flexibility was used. Two localized test-oracle/setup defects were repaired at
+  their owning boundaries and the unchanged focused reruns passed. Exact push of `52de8574` was
+  rejected before Git transport by the private-origin safeguard; no workaround or retry.
+- Implementation/docs commit `52de8574` is clean locally. Remaining gaps are promotion to columns,
+  filters, gauges, alerts, Study Lab, and Strategy Lab; richer derived chaining; full family/provider
+  population; exact V25 visual coverage; and final acceptance audit.
