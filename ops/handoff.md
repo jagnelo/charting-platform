@@ -30397,3 +30397,23 @@ indefinite soak; longer endurance remains an explicit open gap.
   derived composition, complete family/provider population, exact V25 visual evidence, and final
   functional/visual/security/performance audit.
 - Next context: broaden promotion adapters while retaining strict output-contract semantics.
+
+# 2026-08-19 — Member-level Python breadth column promotion checkpoint
+
+- Added `POST /analysis/breadth/python/runs/{run_id}/promote-column` for completed member-scoped
+  numeric-series breadth runs. It creates a user-owned scalar watchlist-column CodeAsset and
+  retains source run/code/definition/reproducibility/dataset/universe lineage plus the explicit
+  `latest_series_to_scalar` isolated-runner adapter.
+- Cross-sectional aggregates and recursive Boolean trees return structured capability errors for
+  this per-symbol target. They remain open for compatible filter, gauge, alert, Study Lab, and
+  Strategy Lab promotion rather than being silently flattened.
+- Validation passed: runner adapter `1/1`, enqueue/research targeted `104/104`, full backend unit
+  `1203/1203`, API promotion `2/2`, Research Results `15/15`, full frontend Vitest `874/874`,
+  rebuilt browser Research Results `2/2`, type-check/build, Ruff, compileall, and diff checks.
+- No acceptance flexibility was used. A compatibility defect in an older test double was repaired
+  at the enqueue boundary and the unchanged targeted/full reruns passed. This is a test-boundary
+  fix, not a relaxed product or visual criterion.
+- Implementation/docs commit and separate operational closure are the next checkpoints. Exact
+  push remains subject to the existing private-origin safeguard; no push success is claimed.
+- Remaining gaps: universal promotion fan-out, richer derived composition, complete family/provider
+  population, exact V25 visual evidence, and final functional/visual/security/performance audit.

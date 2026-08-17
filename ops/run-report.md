@@ -28530,3 +28530,19 @@ and strict visual gaps remain explicitly tracked.
 - Implementation/docs commit `52de8574` is clean locally. Remaining gaps are promotion to columns,
   filters, gauges, alerts, Study Lab, and Strategy Lab; richer derived chaining; full family/provider
   population; exact V25 visual coverage; and final acceptance audit.
+
+# 2026-08-19 — Member-level Python breadth column promotion checkpoint
+
+- Completed member-level numeric breadth to reusable scalar watchlist-column promotion with an
+  isolated `latest_series_to_scalar` adapter and complete immutable lineage. Cross-sectional and
+  recursive Boolean results reject this target explicitly.
+- Green evidence: runner adapter `1/1`; targeted enqueue/research `104/104`; backend unit
+  `1203/1203`; API `2/2`; Research Results `15/15`; frontend Vitest `874/874`; rebuilt browser
+  `2/2`; `vue-tsc`; production build; Ruff; compileall; YAML/JSON; and `git diff --check`.
+- Fix-first note: the full backend run exposed a missing `diagnostics` attribute on a legacy test
+  double. `getattr(..., [])` was added at the enqueue boundary and the unchanged targeted/full
+  suites passed. No acceptance flexibility, visual threshold, mask, scope, lineage, or provider
+  rule changed.
+- Product status remains continuous/in progress. Filters, gauges, alerts, Study Lab, Strategy Lab,
+  richer derived chaining, full family/provider population, exact V25 visual coverage, and the
+  final audit remain open.

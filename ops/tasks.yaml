@@ -11462,3 +11462,44 @@ tasks:
         not product or visual acceptance relaxations. Columns, filters, gauges, alerts, Study Lab,
         Strategy Lab, richer chained composition, full family/provider population, and final V25
         visual acceptance remain open.
+  - id: tc2000-python-breadth-column-promotion-20260819
+    title: Promote member-level Python breadth runs into reusable watchlist columns
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Add a strict lineage-preserving promotion from completed member-scoped numeric-series
+      breadth runs to reusable scalar watchlist column CodeAssets. The isolated runner projects
+      the latest finite member-series value only for the selected symbol; cross-sectional and
+      recursive results remain explicit capability errors.
+    definition_of_done:
+      - API creates a user-owned scalar column CodeAsset with immutable source lineage
+      - The output adapter is declared and evaluated only inside the isolated runner
+      - Research Results exposes Save as watchlist column and duplicate/error states
+      - Cross-sectional aggregate and recursive Boolean promotions are rejected explicitly
+      - Unit, integration, browser, type/build, lint, compile, and diff gates pass
+      - Remaining promotion targets stay tracked rather than being silently claimed complete
+    validation:
+      - runner-column-adapter-1-of-1
+      - runner-targeted-regression-104-of-104
+      - backend-unit-1203-of-1203
+      - api-python-breadth-promotion-2-of-2
+      - frontend-research-results-15-of-15
+      - frontend-vitest-874-of-874
+      - rebuilt-browser-research-results-2-of-2
+      - frontend-typecheck-build
+      - ruff-compileall-diff-check
+      - yaml-json-diff-check
+    notes:
+      - >-
+        No acceptance flexibility was used. The full unit run first exposed a compatibility defect
+        in an older lightweight enqueue test double lacking diagnostics; the production boundary
+        was repaired with a safe getattr default and the unchanged targeted/full suites passed.
+        The prior browser selector and result-fixture corrections remain recorded with the plot
+        promotion task; none changed product, visual, scope, lineage, or provider criteria.
+      - >-
+        Implementation/docs are committed locally in the focused changeset. The exact push may be
+        attempted once after the worktree is clean; a private-origin rejection is transport-only
+        and must not block the product goal. Filters, gauges, alerts, Study Lab, Strategy Lab,
+        richer derived chaining, complete family/provider population, exact V25 visual evidence,
+        and final functional/visual/security/performance audit remain open.
