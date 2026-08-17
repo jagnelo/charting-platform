@@ -3009,6 +3009,29 @@ class TestWorkspaces:
         assert payload["points"][-1]["members"][0]["value"] is True
         assert payload["points"][-1]["members"][0]["metric"] is not None
 
+        promoted_plot = client.post(
+            f"/api/v1/analysis/breadth/python/runs/{queued_payload['run_id']}/promote-plot",
+            headers=auth_headers,
+            json={"name": "Historical Python breadth plot"},
+        )
+        assert promoted_plot.status_code == 201, promoted_plot.text
+        promoted_plot_payload = promoted_plot.json()
+        assert promoted_plot_payload["kind"] == "plot"
+        assert promoted_plot_payload["versions"][0]["output_contract"] == "series"
+        lineage = next(
+            item["promotion_lineage"]
+            for item in promoted_plot_payload["versions"][0]["diagnostics"]
+            if isinstance(item, dict) and "promotion_lineage" in item
+        )
+        assert lineage["source_run_id"] == queued_payload["run_id"]
+        assert lineage["semantics"] == "re_evaluate_member_numeric_series_on_selected_symbol"
+        duplicate_plot = client.post(
+            f"/api/v1/analysis/breadth/python/runs/{queued_payload['run_id']}/promote-plot",
+            headers=auth_headers,
+            json={"name": "Duplicate historical Python breadth plot"},
+        )
+        assert duplicate_plot.status_code == 409
+
         tree_queued = client.post(
             "/api/v1/analysis/breadth/python",
             headers=auth_headers,
@@ -3138,9 +3161,24 @@ class TestWorkspaces:
         )
         cross_result = execute_job(cross_job)
         assert cross_result["status"] == "completed", cross_result
+        (tmp_path / "results" / f"{cross_queued.json()['run_id']}.json").write_text(
+            json.dumps(cross_result)
+        )
+        cross_collected = client.get(
+            f"/api/v1/analysis/breadth/python/runs/{cross_queued.json()['run_id']}",
+            headers=auth_headers,
+        )
+        assert cross_collected.status_code == 200, cross_collected.text
         cross_artifact = cross_result["artifacts"]["batch_cells"]["value"]
         assert cross_artifact["group_value"] is not None
         assert cross_artifact["cells"][0]["metric"] == 0.0
+        cross_plot = client.post(
+            f"/api/v1/analysis/breadth/python/runs/{cross_queued.json()['run_id']}/promote-plot",
+            headers=auth_headers,
+            json={"name": "Cross-sectional breadth plot"},
+        )
+        assert cross_plot.status_code == 422
+        assert cross_plot.json()["detail"]["code"] == "breadth_plot_promotion_requires_member_scope"
 
     def test_etf_constituent_snapshot_is_point_in_time_and_source_labelled(
         self, client, auth_headers, db, instrument, instrument_type, ohlcv_bars

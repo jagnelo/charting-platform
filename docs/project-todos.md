@@ -31,6 +31,11 @@
 - [ ] Promotion fan-out for Python leaves across every compatible target remains open. The tree
       API and UI must retain exact condition/code/dataset/membership lineage when promoted to
       columns, filters, scans, gauges, alerts, plots, and Study Lab artifacts.
+- [x] Completed member-level numeric breadth runs can now be promoted into reusable `plot` code
+      assets for uPlot. The immutable asset retains source run/code/definition/reproducibility/
+      manifest/universe lineage and explicitly re-evaluates the member series on the selected
+      symbol; cross-sectional aggregates and recursive Boolean trees reject this target rather
+      than being misrepresented as per-symbol plots.
 
 ### 2026-08-18 — Cross-sectional Python numeric-series targets
 

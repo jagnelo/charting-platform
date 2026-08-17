@@ -930,6 +930,13 @@ class BreadthPythonPromotionRequest(BaseModel):
     is_active: bool = True
 
 
+class BreadthPythonPlotPromotionRequest(BaseModel):
+    """Create a reusable plot asset from a completed member-level series run."""
+
+    name: str | None = Field(default=None, min_length=1, max_length=160)
+    description: str | None = Field(default=None, max_length=2_000)
+
+
 class IndicatorBatchRequest(BaseModel):
     symbols: list[str] = Field(min_length=1, max_length=10_000)
     indicator: str = Field(min_length=1, max_length=64)

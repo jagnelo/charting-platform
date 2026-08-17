@@ -93,6 +93,17 @@ index/ETF semantics, user isolation, dated membership exclusions, and ETF-proxy 
 is an enabling contract only; the map calculation and renderer remain unaccepted until their own
 batch, rollup, period, and interaction gates pass.
 
+## 2026-08-18 — Member-level Python breadth plot promotion
+
+Completed member-level numeric-series breadth runs can now be saved as reusable `plot` assets for
+the uPlot chart library. The promotion copies the immutable source contract without executing user
+code in the API, records source run/code/definition/reproducibility/manifest/universe lineage in
+the new version diagnostics, and labels the semantics as re-evaluating the member series on the
+selected symbol. Cross-sectional aggregate runs and recursive Boolean trees are rejected with
+structured capability errors because they are not per-symbol numeric plots; they remain Study Lab
+or condition-promotion work. The authenticated Research Results surface exposes the action and
+the represented browser flow is covered. Universal promotion fan-out remains open.
+
 The first local batch map implementation now exists at `POST /analysis/market-map`. It accepts the
 same source IDs, calculates independent area and colour values from persisted bars/metadata, and
 returns cells plus sector/industry nodes with coverage, weighting, freshness, cache identity, and

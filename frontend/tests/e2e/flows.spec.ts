@@ -2842,7 +2842,31 @@ test.describe('TC2000 workstation', () => {
         reproducibility_hash: 'sha256:study-results-2',
         artifact_count: 1,
         artifacts: [{ id: 2, name: 'current_streak', artifact_type: 'scalar', payload: { value: 6 } }],
+      }, {
+        id: 883,
+        status: 'completed',
+        code_version_id: 883,
+        run_config: { execution_mode: 'breadth_history', output_contract: 'series', series_target: { scope: 'member', operator: 'gte', threshold: 0 } },
+        dataset_manifest: { source: 'canonical_database', timeframe: 'D1' },
+        reproducibility_hash: 'sha256:breadth-plot',
+        artifact_count: 0,
+        artifacts: [],
       }]) })
+    })
+    await page.route(/\/api\/v1\/research\/runs\/883$/, async route => {
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+        id: 883,
+        status: 'completed',
+        code_version_id: 883,
+        run_config: { execution_mode: 'breadth_history', output_contract: 'series', series_target: { scope: 'member', operator: 'gte', threshold: 0 } },
+        dataset_manifest: { source: 'canonical_database', timeframe: 'D1' },
+        reproducibility_hash: 'sha256:breadth-plot',
+        artifact_count: 0,
+        artifacts: [],
+      }) })
+    })
+    await page.route(/\/api\/v1\/analysis\/breadth\/python\/runs\/883\/promote-plot$/, async route => {
+      await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: 41, name: 'Member breadth plot 883', kind: 'plot', versions: [{ id: 41, output_contract: 'series', diagnostics: [] }] }) })
     })
     await page.goto('/chart')
     await expect(page.locator('.workstation')).toBeVisible()
@@ -2861,6 +2885,10 @@ test.describe('TC2000 workstation', () => {
     await results.getByRole('button', { name: 'Compare', exact: true }).click()
     await expect(results.locator('.research-results-tool__comparison')).toContainText('Run 881 vs 882')
     await expect(results.locator('.research-results-tool__comparison')).toContainText('lookback')
+    await results.locator('.research-results-tool__run').filter({ hasText: 'Run #883' }).click()
+    await expect(results.getByRole('button', { name: 'Save as chart plot' })).toBeVisible()
+    await results.getByRole('button', { name: 'Save as chart plot' }).click()
+    await expect(results).toContainText('Chart plot “Member breadth plot 883” (#41) created')
     await browserDiagnostics.expectNoCriticalIssues()
   })
 

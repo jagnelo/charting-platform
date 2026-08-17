@@ -235,6 +235,21 @@ describe('ResearchResultsTool', () => {
     expect(wrapper.text()).toContain('EasyScan “Python breadth run 20” (#31) created')
   })
 
+  it('promotes a completed member-level numeric breadth run into a reusable chart plot', async () => {
+    apiGet.mockResolvedValue([{ id: 21, status: 'completed', code_version_id: 8, run_config: { execution_mode: 'breadth_history', output_contract: 'series', series_target: { scope: 'member', operator: 'gte', threshold: 0 } }, dataset_manifest: {}, diagnostics: [], artifacts: [] }])
+    apiPost.mockResolvedValue({ id: 41, name: 'Member breadth plot 21' })
+    const wrapper = mountTool()
+    await flushPromises()
+
+    const plotButton = wrapper.findAll('button').find(button => button.text() === 'Save as chart plot')
+    expect(plotButton).toBeDefined()
+    await plotButton!.trigger('click')
+    await flushPromises()
+
+    expect(apiPost).toHaveBeenCalledWith('/analysis/breadth/python/runs/21/promote-plot', {})
+    expect(wrapper.text()).toContain('Chart plot “Member breadth plot 21” (#41) created')
+  })
+
   it('keeps malformed dashboard layouts in the structured fallback instead of leaking invalid grid spans', async () => {
     apiGet.mockResolvedValue([{ id: 18, status: 'completed', code_version_id: 4, run_config: {}, dataset_manifest: {}, diagnostics: [], artifacts: [
       { id: 9, name: 'unsafe_layout', artifact_type: 'dashboard', payload: { value: { panels: [{ artifact: 'sample', title: 'Sample', span: 99 }] } } },

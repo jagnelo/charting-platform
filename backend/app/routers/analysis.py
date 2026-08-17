@@ -76,6 +76,7 @@ from app.schemas.analysis import (
     BreadthHistoryRequest,
     BreadthMemberResultOut,
     BreadthOut,
+    BreadthPythonPlotPromotionRequest,
     BreadthPythonPromotionRequest,
     BreadthPythonResultOut,
     BreadthPythonResultPointOut,
@@ -104,6 +105,7 @@ from app.schemas.analysis import (
     RelativeStrengthOut,
     TechnicalSnapshotOut,
 )
+from app.schemas.code import CodeAssetOut
 from app.schemas.market_map import (
     MarketMapOut,
     MarketMapRequest,
@@ -6623,6 +6625,115 @@ async def promote_python_breadth_run_to_scan(
     await db.flush()
     await db.refresh(screener)
     return screener
+
+
+@router.post(
+    "/breadth/python/runs/{run_id}/promote-plot",
+    response_model=CodeAssetOut,
+    status_code=201,
+)
+async def promote_python_breadth_run_to_plot(
+    run_id: int,
+    body: BreadthPythonPlotPromotionRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Promote a completed member-level numeric breadth source into a reusable uPlot asset."""
+    run = await _load_python_breadth_run(db, run_id, current_user)
+    config = run.run_config if isinstance(run.run_config, dict) else {}
+    if run.status != "completed":
+        raise HTTPException(
+            status_code=409,
+            detail={"code": "breadth_promotion_requires_completed_run", "status": run.status},
+        )
+    if config.get("execution_mode") not in {"breadth_current", "breadth_history"}:
+        raise HTTPException(status_code=422, detail={"code": "breadth_plot_promotion_mode_unavailable"})
+    if config.get("output_contract") != "series":
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "breadth_plot_promotion_requires_series",
+                "message": "Only numeric-series breadth runs can be promoted to a chart plot.",
+            },
+        )
+    series_target = config.get("series_target")
+    if isinstance(series_target, dict) and str(series_target.get("scope", "member")).lower() != "member":
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "breadth_plot_promotion_requires_member_scope",
+                "message": "A cross-sectional aggregate must remain a Study Lab series artifact.",
+            },
+        )
+    if config.get("condition_tree") is not None:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "breadth_plot_promotion_requires_member_series",
+                "message": "Recursive Boolean trees are not numeric member plot sources.",
+            },
+        )
+    version = run.code_version
+    if (
+        version is None
+        or version.asset is None
+        or version.asset.user_id != current_user.id
+        or version.asset.kind != "condition"
+        or version.output_contract != "series"
+    ):
+        raise HTTPException(
+            status_code=422,
+            detail={"code": "breadth_plot_promotion_source_unavailable"},
+        )
+    name = body.name or f"Breadth plot run {run.id}"
+    stable_key = f"breadth-run-{run.id}-plot"
+    existing = (
+        await db.execute(
+            select(CodeAsset).where(
+                CodeAsset.user_id == current_user.id,
+                CodeAsset.stable_key == stable_key,
+            )
+        )
+    ).scalar_one_or_none()
+    if existing is not None:
+        raise HTTPException(status_code=409, detail={"code": "breadth_plot_promotion_already_exists"})
+    manifest = run.dataset_manifest if isinstance(run.dataset_manifest, dict) else {}
+    lineage = {
+        "promotion_lineage": {
+            "source_run_id": run.id,
+            "source_code_version_id": run.code_version_id,
+            "source_definition_hash": str(config.get("definition_hash") or ""),
+            "source_reproducibility_hash": run.reproducibility_hash,
+            "source_dataset_manifest_sha256": _python_breadth_manifest_fingerprint(manifest),
+            "source_universe": config.get("universe", {}),
+            "semantics": "re_evaluate_member_numeric_series_on_selected_symbol",
+        }
+    }
+    asset = CodeAsset(
+        user_id=current_user.id,
+        stable_key=stable_key,
+        name=name,
+        kind="plot",
+    )
+    asset.versions.append(
+        CodeVersion(
+            version_number=1,
+            source=version.source,
+            output_contract="series",
+            output_name=version.output_name,
+            parameter_schema=dict(version.parameter_schema or {}),
+            default_parameters=dict(version.default_parameters or {}),
+            sdk_version=version.sdk_version,
+            runtime_version=version.runtime_version,
+            dependencies=list(version.dependencies or []),
+            lookback=version.lookback,
+            diagnostics=[*(version.diagnostics or []), lineage],
+        )
+    )
+    db.add(asset)
+    await db.flush()
+    await db.refresh(asset)
+    return asset
 
 
 @router.post("/breadth", response_model=BreadthDefinitionOut)

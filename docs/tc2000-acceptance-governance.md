@@ -64,6 +64,13 @@ descriptor listing, locked index-source metadata, user isolation, member resolut
 historical exclusion of members not known at `as_of`. This does not satisfy the parent map gate;
 treemap metrics, rollups, periods, rendering, and publication remain open.
 
+The Python breadth promotion sub-gate now verifies that a completed member-level numeric-series
+run creates a reusable uPlot `plot` asset with source-run, code-version, definition, reproducibility,
+manifest, and universe lineage. It also verifies explicit rejection of cross-sectional aggregate
+runs and recursive Boolean trees, preventing a group result from being silently presented as a
+per-symbol plot. Promotion to columns, filters, gauges, alerts, Study Lab artifacts, and Strategy
+Lab signals remains separately tracked.
+
 The backend batch sub-gate now has a deterministic contract at `POST /analysis/market-map`. Its
 fixture coverage proves that a personal source can produce sector/industry nodes and independently
 weighted tiles from local bars and metadata, while missing bars remain visible as cell warnings.
