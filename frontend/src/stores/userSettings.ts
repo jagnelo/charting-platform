@@ -14,6 +14,10 @@ interface ChartSettings {
 
 interface UserSettings {
   chart?: ChartSettings
+  marketMap?: {
+    followedSourceIds?: string[]
+    pinnedSourceIds?: string[]
+  }
 }
 
 export const useUserSettingsStore = defineStore('userSettings', () => {
@@ -21,8 +25,15 @@ export const useUserSettingsStore = defineStore('userSettings', () => {
   const showHighLowProjection = ref(false)
   const showApproxVolumeProfile = ref(false)
   const chartType = ref<ChartBarType>('candles')
+  const followedSourceIds = ref<string[]>([])
+  const pinnedSourceIds = ref<string[]>([])
   const loaded = ref(false)
   let saveTimer: ReturnType<typeof setTimeout> | null = null
+
+  function sourceIds(value: unknown): string[] {
+    if (!Array.isArray(value)) return []
+    return [...new Set(value.filter((item): item is string => typeof item === 'string' && item.trim().length > 0))]
+  }
 
   async function loadSettings() {
     if (loaded.value) return
@@ -32,6 +43,8 @@ export const useUserSettingsStore = defineStore('userSettings', () => {
     showApproxVolumeProfile.value = !!settings.chart?.showApproxVolumeProfile
     const saved = settings.chart?.chartType
     chartType.value = saved && VALID_BAR_TYPES.includes(saved) ? saved : 'candles'
+    followedSourceIds.value = sourceIds(settings.marketMap?.followedSourceIds)
+    pinnedSourceIds.value = sourceIds(settings.marketMap?.pinnedSourceIds)
     loaded.value = true
   }
 
@@ -44,11 +57,31 @@ export const useUserSettingsStore = defineStore('userSettings', () => {
           showApproxVolumeProfile: showApproxVolumeProfile.value,
           chartType: chartType.value,
         },
+        marketMap: {
+          followedSourceIds: followedSourceIds.value,
+          pinnedSourceIds: pinnedSourceIds.value,
+        },
       },
     })
   }
 
-  watch([showCurrentPriceProjection, showHighLowProjection, showApproxVolumeProfile, chartType], () => {
+  function toggleSourceId(target: typeof followedSourceIds, sourceId: string) {
+    const normalized = sourceId.trim()
+    if (!normalized) return
+    target.value = target.value.includes(normalized)
+      ? target.value.filter(item => item !== normalized)
+      : [...target.value, normalized]
+  }
+
+  function toggleFollowedSource(sourceId: string) {
+    toggleSourceId(followedSourceIds, sourceId)
+  }
+
+  function togglePinnedSource(sourceId: string) {
+    toggleSourceId(pinnedSourceIds, sourceId)
+  }
+
+  watch([showCurrentPriceProjection, showHighLowProjection, showApproxVolumeProfile, chartType, followedSourceIds, pinnedSourceIds], () => {
     if (!loaded.value) return
     if (saveTimer) clearTimeout(saveTimer)
     saveTimer = setTimeout(() => { saveSettings().catch(console.error) }, 350)
@@ -59,6 +92,10 @@ export const useUserSettingsStore = defineStore('userSettings', () => {
     showHighLowProjection,
     showApproxVolumeProfile,
     chartType,
+    followedSourceIds,
+    pinnedSourceIds,
+    toggleFollowedSource,
+    togglePinnedSource,
     loadSettings,
     saveSettings,
   }

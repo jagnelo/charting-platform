@@ -5,10 +5,14 @@
         <select v-model="sourceId" aria-label="Market Map universe" :disabled="loadingSources">
           <option value="">Select a universe</option>
           <option v-for="source in sources" :key="source.source_id" :value="source.source_id">
-            {{ source.name }}{{ source.locked ? ' · Managed' : '' }}
+            {{ source.pinned ? '★ ' : '' }}{{ source.name }}{{ source.locked ? ' · Managed' : '' }}
           </option>
         </select>
       </label>
+      <div v-if="activeSource" class="market-map-tool__source-actions" aria-label="Market Map source preferences">
+        <button v-if="activeSource.can_follow" type="button" :aria-pressed="sourceFollowed" :aria-label="sourceFollowed ? `Unfollow ${activeSource.name}` : `Follow ${activeSource.name}`" @click="toggleSourceFollow">{{ sourceFollowed ? 'Following' : 'Follow' }}</button>
+        <button v-if="activeSource.can_clone" type="button" :aria-pressed="sourcePinned" :aria-label="sourcePinned ? `Unpin ${activeSource.name}` : `Pin ${activeSource.name}`" @click="toggleSourcePin">{{ sourcePinned ? 'Pinned' : 'Pin' }}</button>
+      </div>
       <label>Group
         <select v-model="groupBy" aria-label="Market Map grouping">
           <option value="sector_industry">Sector → Industry</option>
@@ -164,6 +168,7 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { api } from '@/lib/api'
 import { useWatchlistStore } from '@/stores/watchlist'
+import { useUserSettingsStore } from '@/stores/userSettings'
 import BreadthConditionTreeEditor, { type BreadthConditionNode } from './BreadthConditionTreeEditor.vue'
 import { deleteMarketMapSnapshot, fetchMarketMap, fetchMarketMapSnapshot, fetchMarketMapSnapshots, layoutMarketMapCells, saveMarketMapSnapshot, type MarketMapLayoutCell } from '@/lib/workstation/marketMap'
 import type { MarketMap, MarketMapAreaMetric, MarketMapCell, MarketMapColorMetric, MarketMapGroupBy, MarketMapNumericAreaField, MarketMapSnapshotSummary, WatchlistSource } from '@/types'
@@ -177,7 +182,10 @@ const emit = defineEmits<{
   publishAnalysis: [payload: { target: 'breadth' | 'study_lab'; sourceId: string; selectedIds: number[]; selectedSymbols: string[] }]
 }>()
 const watchlistStore = useWatchlistStore()
-const sources = computed(() => watchlistStore.watchlistSources)
+const userSettingsStore = useUserSettingsStore()
+const sources = computed(() => [...watchlistStore.watchlistSources]
+  .map(source => ({ ...source, pinned: userSettingsStore.pinnedSourceIds.includes(source.source_id) }))
+  .sort((left, right) => Number(right.pinned) - Number(left.pinned) || left.name.localeCompare(right.name)))
 const sourceId = ref(String(props.configuration.source_id ?? ''))
 const groupBy = ref<MarketMapGroupBy>((props.configuration.group_by as MarketMapGroupBy) ?? 'sector_industry')
 const sortBy = ref<MarketMapSort>((props.configuration.sort_by as MarketMapSort) ?? 'area_desc')
@@ -227,6 +235,17 @@ const skipNextSourceRun = ref(false)
 const loadingSources = computed(() => watchlistStore.watchlistSourcesLoading)
 const sourcesError = computed(() => watchlistStore.watchlistSourcesError)
 const publicationTargets = computed(() => watchlistStore.watchlists.filter(watchlist => !watchlist.is_managed && !watchlist.is_locked))
+const activeSource = computed(() => sources.value.find(source => source.source_id === sourceId.value) ?? null)
+const sourceFollowed = computed(() => Boolean(activeSource.value && userSettingsStore.followedSourceIds.includes(activeSource.value.source_id)))
+const sourcePinned = computed(() => Boolean(activeSource.value && userSettingsStore.pinnedSourceIds.includes(activeSource.value.source_id)))
+
+function toggleSourceFollow() {
+  if (activeSource.value?.can_follow) userSettingsStore.toggleFollowedSource(activeSource.value.source_id)
+}
+
+function toggleSourcePin() {
+  if (activeSource.value?.can_clone) userSettingsStore.togglePinnedSource(activeSource.value.source_id)
+}
 
 function formatFreshness(value: string) { return value.replace(/_/g, ' ') }
 function coveragePercent(value: number | null | undefined, fallback: number) {
@@ -536,6 +555,7 @@ watch(sourceId, () => {
 })
 watch(snapshotSelectionId, () => { void loadSnapshot() })
 onMounted(async () => {
+  await userSettingsStore.loadSettings()
   if (!sources.value.length) await watchlistStore.loadWatchlistSources()
   if (!watchlistStore.watchlists.length) await watchlistStore.loadWatchlists()
   await loadPythonAssets()
@@ -557,6 +577,9 @@ onMounted(async () => {
 .market-map-tool__controls { display: flex; flex-wrap: wrap; gap: 6px; align-items: end; padding: 8px; background: #1b222c; border-bottom: 1px solid #303a48; }
 .market-map-tool__controls label { display: flex; flex-direction: column; gap: 3px; color: #8e9bad; font-size: 10px; text-transform: uppercase; letter-spacing: .04em; }
 .market-map-tool select, .market-map-tool input, .market-map-tool button { border: 1px solid #3c4858; background: #151c25; color: #d4d9e2; border-radius: 2px; padding: 5px 7px; font: inherit; }
+.market-map-tool__source-actions { display: flex; gap: 4px; align-items: end; padding-bottom: 0; }
+.market-map-tool__source-actions button { cursor: pointer; min-width: 58px; }
+.market-map-tool__source-actions button[aria-pressed="true"] { border-color: #f7d87b; color: #f7d87b; }
 .market-map-tool__run { background: #2d8cff !important; border-color: #2d8cff !important; color: white !important; cursor: pointer; }
 .market-map-tool__run:disabled { opacity: .55; cursor: default; }
 .market-map-tool__status { margin: 0; padding: 6px 9px; color: #aeb8c7; }

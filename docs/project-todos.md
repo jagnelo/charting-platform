@@ -13361,3 +13361,6 @@ The current source also passes the focused authenticated top-down browser slice 
       path. The same immutable condition tree can now drive heatmap colour, including AND/OR/NOT,
       measured-field, range, percentile, event, trend, RSI, volume, relative-strength, and
       member/reference-series leaves; its tree and advanced-mode state persist with the tool.
+- [x] Persist user-isolated follow and pin preferences for every source descriptor that permits
+      them. Pinned sources sort first in the universal picker; unfollowing a source never removes
+      its canonical existence or prevents direct selection, mapping, or analysis.

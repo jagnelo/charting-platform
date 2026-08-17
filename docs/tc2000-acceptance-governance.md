@@ -1064,3 +1064,12 @@ missing sizing data while preserving the useful colour analysis. Docker-backed w
 passes `29/29`; focused Market Map component coverage is `11/11`; frontend type-check and production
 build pass. The remaining gate is point-in-time weighting, family population, direct definition
 promotion, and final visual-board approval.
+
+## 2026-08-17 — Source follow/pin governance evidence
+
+Canonical source descriptors may be followed or pinned without changing membership governance.
+Authenticated settings persist user-isolated followed and pinned source IDs; the Market Map picker
+orders pinned sources first and retains unfollowed locked index/ETF/group sources for direct
+selection and analysis. Focused Market Map coverage and dedicated user-settings tests pass; this
+closes preference persistence only and does not close point-in-time weighting, family population,
+direct definition promotion, or visual-board gaps.

@@ -57,6 +57,12 @@ members are context metadata, while the existing editable-list action creates a 
 snapshots, all requested metrics, complete historical population, and board-guided visual parity
 remain explicit acceptance gaps; durable result caching is implemented and exposes cache-hit state.
 
+Source following and pinning are user-isolated preferences rather than membership mutations. The
+Market Map source picker exposes Follow/Following and Pin/Pinned controls whenever the descriptor
+allows them, persists the source IDs through authenticated settings, and orders pinned sources
+first. Unfollowing never removes a canonical locked index/ETF/group source: it remains selectable,
+resolvable, and usable by the map, breadth, scans, alerts, and linked tools.
+
 ## 2026-08-17 — US family/style and Nasdaq cap/equal acceptance matrix (latest requirement)
 
 The workstation's top-down entry points are the S&P 500, S&P MidCap 400, S&P SmallCap 600,

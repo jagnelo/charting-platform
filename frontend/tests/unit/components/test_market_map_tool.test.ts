@@ -1,7 +1,7 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { apiGet, apiPost, loadWatchlistSources, loadWatchlists, createWatchlist, addItem } = vi.hoisted(() => ({ apiGet: vi.fn(), apiPost: vi.fn(), loadWatchlistSources: vi.fn(), loadWatchlists: vi.fn(), createWatchlist: vi.fn(), addItem: vi.fn() }))
+const { apiGet, apiPost, loadWatchlistSources, loadWatchlists, createWatchlist, addItem, loadUserSettings, toggleFollowedSource, togglePinnedSource } = vi.hoisted(() => ({ apiGet: vi.fn(), apiPost: vi.fn(), loadWatchlistSources: vi.fn(), loadWatchlists: vi.fn(), createWatchlist: vi.fn(), addItem: vi.fn(), loadUserSettings: vi.fn(), toggleFollowedSource: vi.fn(), togglePinnedSource: vi.fn() }))
 const sourceState = vi.hoisted(() => ({
   sources: [{ source_id: 'market-group:sp500', source_kind: 'index_membership', name: 'S&P 500', locked: true, can_follow: true, can_clone: true, can_edit_membership: false, member_count: 2, provenance: {} }],
   watchlists: [],
@@ -11,6 +11,7 @@ const sourceState = vi.hoisted(() => ({
 
 vi.mock('@/lib/api', () => ({ api: { get: apiGet, post: apiPost, delete: vi.fn() } }))
 vi.mock('@/stores/watchlist', () => ({ useWatchlistStore: () => ({ watchlistSources: sourceState.sources, watchlistSourcesLoading: sourceState.loading, watchlistSourcesError: sourceState.error, watchlists: sourceState.watchlists, loadWatchlistSources, loadWatchlists, createWatchlist, addItem }) }))
+vi.mock('@/stores/userSettings', () => ({ useUserSettingsStore: () => ({ followedSourceIds: [], pinnedSourceIds: [], loadSettings: loadUserSettings, toggleFollowedSource, togglePinnedSource }) }))
 
 import MarketMapTool from '@/components/workstation/MarketMapTool.vue'
 
@@ -28,9 +29,26 @@ describe('MarketMapTool', () => {
     loadWatchlists.mockReset()
     createWatchlist.mockReset()
     addItem.mockReset()
+    loadUserSettings.mockReset()
+    toggleFollowedSource.mockReset()
+    togglePinnedSource.mockReset()
     sourceState.watchlists = []
     apiPost.mockResolvedValue(response)
     apiGet.mockResolvedValue([])
+  })
+
+  it('persists follow and pin preferences without changing locked source membership', async () => {
+    const wrapper = mount(MarketMapTool)
+    await flushPromises()
+
+    expect(loadUserSettings).toHaveBeenCalled()
+    await wrapper.get('[aria-label="Follow S&P 500"]').trigger('click')
+    await wrapper.get('[aria-label="Pin S&P 500"]').trigger('click')
+
+    expect(toggleFollowedSource).toHaveBeenCalledWith('market-group:sp500')
+    expect(togglePinnedSource).toHaveBeenCalledWith('market-group:sp500')
+    expect(wrapper.text()).toContain('Locked source')
+    expect(wrapper.find('[aria-label="Market Map universe"]').element.value).toBe('market-group:sp500')
   })
 
   it('loads a locked source, renders tiles, persists controls, and publishes a selected symbol', async () => {

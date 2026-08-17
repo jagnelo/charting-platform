@@ -740,3 +740,12 @@ No exact V25 capture exists for every source-kind and partial-area combination. 
 board-guided interim states with named gaps, not pixel-approved V25 baselines. The implementation
 must continue to use the supplied V25 board for shared density/chrome/interaction decisions and keep
 each missing source-kind state in the manifest until an authoritative reference is available.
+
+## 2026-08-17 — Market Map source preference state
+
+The represented source-picker state now includes user-isolated Follow/Following and Pin/Pinned
+controls for any descriptor that permits them. Pinned sources sort first, while unfollowing keeps a
+locked canonical index/ETF/group source available for direct analysis. The reference board has no
+authoritative exact-build capture for this preference composition; the focused component and
+settings tests are therefore the interim interaction oracle and the exact geometry remains a named
+visual gap.
