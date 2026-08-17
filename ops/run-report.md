@@ -1,5 +1,21 @@
 # Run Report
 
+## 2026-08-17 — Recursive breadth condition tree
+
+- Added the authenticated recursive breadth condition editor and canonical AST serialization for
+  nested `all`/`any`/single-child `not` groups. Supported visual leaves retain the existing
+  current/history, denominator, exclusions, occurrence, and provenance contract.
+- Evidence: component `3/3`, frontend type-check, full Vitest `842/842`, production build, backend
+  breadth unit `14/14`, analysis-router breadth `1/1`, diff-check, and authenticated seeded
+  Chromium `F8s-breadth-family-ratio` `1/1` with nested `all(any(new_high_low))` payload.
+- Fix-first evidence: explicit range-input post-edit assertions and tree-fixture leaf reset
+  repaired two localized browser-oracle defects; `Wrap in group` was corrected to preserve the
+  original leaf and covered by a component regression. No acceptance flexibility was used.
+- Open gaps remain per-clause diagnostics, event/benchmark-peer targets, arbitrary derived Python,
+  all promotion targets, provider/history population, and remaining V25 visual/browser states.
+- Implementation/docs commit `bbf42d42`; exact push attempted once and rejected before Git by the
+  private-origin safeguard. Worktree is clean locally.
+
 ## 2026-08-17 — Interchangeable US daily perspective scope
 
 - Updated the active goal attachment and controlling TODO, parity, visual-parity, acceptance, and

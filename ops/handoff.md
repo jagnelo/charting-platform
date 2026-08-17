@@ -1,5 +1,30 @@
 # Active Handoff
 
+## 2026-08-17 — Recursive breadth condition-tree checkpoint
+
+- Added `BreadthConditionTreeEditor.vue` and an optional `Nested condition tree` mode to the
+  authenticated Market Breadth tool. Users can add arbitrary nested `all`/`any` groups, single-
+  child `not` groups, and supported leaves for moving averages, high/low distance, new highs/lows,
+  trend, RSI, volume ratio, relative strength, comparisons, ranges, and percentiles. The emitted
+  AST is stored in the tool configuration and sent unchanged through the existing generic
+  current/history breadth contract.
+- Validation passed: tree component `3/3`; frontend type-check; full Vitest `842/842`; production
+  build; backend breadth service `14/14`; analysis-router breadth `1/1`; diff-check; and rebuilt
+  authenticated Chromium `F8s-breadth-family-ratio` `1/1`, proving nested `all(any(new_high_low))`.
+- Fix-first repairs: the first browser rerun found a stale range upper-bound oracle and then an
+  inherited-percentile first tree leaf in the fixture. Explicit post-edit value and leaf-reset
+  assertions fixed both; the unchanged browser flow passed. The component test also caught and
+  fixed `Wrap in group` discarding the original leaf. No acceptance flexibility, visual threshold,
+  mask, provider rule, or goal criterion changed.
+- Remaining gaps: per-clause diagnostics, event targets, benchmark/peer target series, arbitrary
+  derived-Python composition, promotion fan-out, complete provider/history population, and the
+  remaining V25 visual/browser matrix. The board ledger retains `REF-BREADTH-COMPOSER-V25` because
+  the reference board still lacks authoritative recursive breadth visuals.
+- Implementation/docs commit `bbf42d42 feat(breadth): add recursive condition tree editor` is
+  clean locally. Its exact push was attempted once and rejected before Git by the private-origin
+  safeguard; no workaround or repeat. Next context: close this operational record, then continue
+  the existing benchmark-family and generic-breadth gaps.
+
 ## 2026-08-17 — Interchangeable US daily perspective scope checkpoint
 
 - Reaffirmed the active goal in the external goal attachment and controlling repository records:
