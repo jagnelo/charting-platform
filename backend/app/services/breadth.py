@@ -460,6 +460,24 @@ def _is_cross_sectional(condition: Mapping[str, Any]) -> bool:
     return _target_scope(condition) == "cross_sectional"
 
 
+def _contains_cross_sectional(condition: Mapping[str, Any]) -> bool:
+    """Return whether a condition tree contains a cross-sectional target.
+
+    Scope belongs to the individual AST node.  A compound condition may therefore
+    combine member-level leaves with a cross-sectional percentile leaf; treating
+    only the root as scoped would either reject a valid tree or silently evaluate
+    the scoped leaf as a member condition.
+    """
+
+    if _is_cross_sectional(condition):
+        return True
+    params = condition.get("params", {})
+    if not isinstance(params, Mapping):
+        return False
+    children = _nested_conditions(params)
+    return bool(children and any(_contains_cross_sectional(child) for child in children))
+
+
 def _condition_requires_benchmark(condition: Mapping[str, Any]) -> bool:
     kind = str(condition.get("kind", "")).lower()
     params = condition.get("params", {})
@@ -609,6 +627,228 @@ def evaluate_cross_sectional_percentile(
                         metric=rank,
                     ),
                 ),
+            )
+        )
+    eligible = sum(result.value is not None for result in results)
+    passed = sum(result.value is True for result in results)
+    requested = len(results)
+    return results, {
+        "requested_count": requested,
+        "eligible_count": eligible,
+        "pass_count": passed,
+        "excluded_count": requested - eligible,
+        "coverage": eligible / requested if requested else 0.0,
+        "percentage": passed / eligible if eligible else None,
+    }
+
+
+def _excluded_member_result(
+    member: BreadthMember,
+    condition: Mapping[str, Any],
+    code: str,
+    *,
+    observation_time: datetime | None = None,
+) -> BreadthMemberResult:
+    return BreadthMemberResult(
+        instrument_id=member.instrument_id,
+        symbol=member.symbol,
+        name=member.name,
+        value=None,
+        metric=None,
+        observation_time=observation_time,
+        exclusion_code=code,
+        diagnostics=(
+            BreadthConditionDiagnostic(
+                path="$",
+                kind=str(condition.get("kind", "")),
+                status="excluded",
+                value=None,
+                metric=None,
+                code=code,
+            ),
+        ),
+    )
+
+
+def _prefix_diagnostics(
+    diagnostics: tuple[BreadthConditionDiagnostic, ...], path: str
+) -> tuple[BreadthConditionDiagnostic, ...]:
+    """Move a scoped leaf's diagnostic paths under its AST location."""
+
+    prefixed: list[BreadthConditionDiagnostic] = []
+    for diagnostic in diagnostics:
+        suffix = diagnostic.path[1:] if diagnostic.path.startswith("$") else diagnostic.path
+        prefixed.append(replace(diagnostic, path=f"{path}{suffix}"))
+    return tuple(prefixed)
+
+
+def _evaluate_cross_sectional_tree(
+    members: list[BreadthMember],
+    bars_by_instrument: Mapping[int, list[Any]],
+    condition: Mapping[str, Any],
+    *,
+    benchmark_bars: list[Any] | None = None,
+    events_by_instrument: Mapping[int, list[Any] | None] | None = None,
+    forced_exclusions: Mapping[int, str] | None = None,
+) -> tuple[list[BreadthMemberResult], dict[str, int | float]]:
+    """Evaluate a mixed member/cross-sectional condition tree.
+
+    Cross-sectional leaves are materialised once for the complete eligible
+    universe, then composed with ordinary member leaves using the same tri-state
+    AND/OR/NOT semantics as ``evaluate_condition``.  This preserves the strict
+    denominator and lets a user author, for example, ``ALL(member above SMA,
+    member in the top return percentile)`` without a second condition language.
+    """
+
+    scoped_results: dict[str, dict[int, BreadthMemberResult]] = {}
+
+    def collect(node: Mapping[str, Any], path: str) -> None:
+        if _is_cross_sectional(node):
+            leaf_results, _ = evaluate_cross_sectional_percentile(
+                members,
+                bars_by_instrument,
+                node,
+                benchmark_bars=benchmark_bars,
+                forced_exclusions=forced_exclusions,
+            )
+            scoped_results[path] = {
+                result.instrument_id: result for result in leaf_results
+            }
+        params = node.get("params", {})
+        if not isinstance(params, Mapping):
+            return
+        children = _nested_conditions(params)
+        if children:
+            for index, child in enumerate(children):
+                collect(child, f"{path}.conditions[{index}]")
+
+    collect(condition, "$")
+
+    def visit(
+        member: BreadthMember,
+        bars: list[Any],
+        node: Mapping[str, Any],
+        path: str,
+    ) -> tuple[bool | None, float | None, str | None, tuple[BreadthConditionDiagnostic, ...]]:
+        if forced_exclusions and member.instrument_id in forced_exclusions:
+            code = forced_exclusions[member.instrument_id]
+            return None, None, code, _prefix_diagnostics(
+                _excluded_member_result(member, node, code).diagnostics, path
+            )
+
+        if _is_cross_sectional(node):
+            result = scoped_results.get(path, {}).get(member.instrument_id)
+            if result is None:
+                code = "cross_sectional_member_missing"
+                return None, None, code, _prefix_diagnostics(
+                    _excluded_member_result(member, node, code).diagnostics, path
+                )
+            return (
+                result.value,
+                result.metric,
+                result.exclusion_code,
+                _prefix_diagnostics(result.diagnostics, path),
+            )
+
+        kind = str(node.get("kind", "")).lower()
+        params = node.get("params", {})
+        children = _nested_conditions(params) if isinstance(params, Mapping) else None
+        if kind in {"all", "any", "not"} and children and any(
+            _contains_cross_sectional(child) for child in children
+        ):
+            evaluated = [
+                visit(member, bars, child, f"{path}.conditions[{index}]")
+                for index, child in enumerate(children)
+            ]
+            values = [item[0] for item in evaluated]
+            metrics = [item[1] for item in evaluated if item[1] is not None]
+            exclusion: str | None = None
+            if kind == "all":
+                missing = next(
+                    (index for index, value in enumerate(values) if value is None), None
+                )
+                value = None if missing is not None else all(item is True for item in values)
+                if missing is not None:
+                    exclusion = (
+                        f"condition_clause_excluded:{missing}:"
+                        f"{evaluated[missing][2] or 'unknown'}"
+                    )
+                metric = min(metrics) if metrics else None
+            elif kind == "any":
+                if any(item is True for item in values):
+                    value = True
+                    metric = max(
+                        item[1] for item in evaluated if item[0] is True and item[1] is not None
+                    ) if any(item[0] is True and item[1] is not None for item in evaluated) else None
+                elif all(item is False for item in values):
+                    value = False
+                    metric = max(metrics) if metrics else None
+                else:
+                    missing = next(index for index, item in enumerate(values) if item is None)
+                    value = None
+                    metric = None
+                    exclusion = (
+                        f"condition_clause_excluded:{missing}:"
+                        f"{evaluated[missing][2] or 'unknown'}"
+                    )
+            else:
+                if len(evaluated) != 1:
+                    return None, None, "invalid_condition_params", ()
+                value, metric, child_exclusion = evaluated[0][:3]
+                exclusion = (
+                    f"condition_clause_excluded:0:{child_exclusion}"
+                    if child_exclusion
+                    else None
+                )
+                value = (not value) if value is not None and not exclusion else None
+            diagnostics: list[BreadthConditionDiagnostic] = [
+                item
+                for evaluated_item in evaluated
+                for item in evaluated_item[3]
+            ]
+            diagnostics.insert(
+                0,
+                BreadthConditionDiagnostic(
+                    path=path,
+                    kind=kind,
+                    status=(
+                        "excluded"
+                        if exclusion or value is None
+                        else "pass"
+                        if value
+                        else "fail"
+                    ),
+                    value=value,
+                    metric=metric,
+                    code=exclusion,
+                ),
+            )
+            return value, metric, exclusion, tuple(diagnostics)
+
+        value, metric, exclusion, diagnostics = evaluate_condition_with_diagnostics(
+            bars,
+            node,
+            benchmark_bars=benchmark_bars,
+            events=(events_by_instrument or {}).get(member.instrument_id)
+            if events_by_instrument is not None
+            else None,
+        )
+        return value, metric, exclusion, _prefix_diagnostics(diagnostics, path)
+
+    results: list[BreadthMemberResult] = []
+    for member in members:
+        bars = list(bars_by_instrument.get(member.instrument_id, []))
+        value, metric, exclusion, diagnostics = visit(member, bars, condition, "$")
+        results.append(
+            BreadthMemberResult(
+                instrument_id=member.instrument_id,
+                symbol=member.symbol,
+                name=member.name,
+                value=value,
+                metric=metric,
+                observation_time=getattr(bars[-1], "ts", None) if value is not None else None,
+                exclusion_code=exclusion,
+                diagnostics=diagnostics,
             )
         )
     eligible = sum(result.value is not None for result in results)
@@ -945,12 +1185,13 @@ def evaluate_breadth(
 ) -> tuple[list[BreadthMemberResult], dict[str, int | float]]:
     """Evaluate one condition across a universe and return aggregate metadata."""
 
-    if _is_cross_sectional(condition):
-        return evaluate_cross_sectional_percentile(
+    if _contains_cross_sectional(condition):
+        return _evaluate_cross_sectional_tree(
             members,
             bars_by_instrument,
             condition,
             benchmark_bars=benchmark_bars,
+            events_by_instrument=events_by_instrument,
         )
     results: list[BreadthMemberResult] = []
     for member in members:
@@ -1062,7 +1303,7 @@ def evaluate_breadth_history(
                     or getattr(benchmark_observed[-1], "ts", None) != timestamp
                 ):
                     benchmark_at_timestamp = []
-            if _is_cross_sectional(condition):
+            if _contains_cross_sectional(condition):
                 # The second pass below ranks all members at this timestamp;
                 # retain the observed bars here only to preserve the strict
                 # no-forward-fill membership boundary.
@@ -1104,7 +1345,7 @@ def evaluate_breadth_history(
                     diagnostics=diagnostics,
                 )
             )
-        if _is_cross_sectional(condition):
+        if _contains_cross_sectional(condition):
             benchmark_at_timestamp = benchmark_bars
             if benchmark_bars is not None:
                 benchmark_observed = [
@@ -1115,11 +1356,12 @@ def evaluate_breadth_history(
                     or getattr(benchmark_observed[-1], "ts", None) != timestamp
                 ):
                     benchmark_at_timestamp = []
-            member_results, _ = evaluate_cross_sectional_percentile(
+            member_results, _ = _evaluate_cross_sectional_tree(
                 members,
                 snapshot_bars_by_instrument,
                 condition,
                 benchmark_bars=benchmark_at_timestamp,
+                events_by_instrument=events_by_instrument,
                 forced_exclusions=snapshot_exclusions,
             )
         eligible = sum(result.value is not None for result in member_results)

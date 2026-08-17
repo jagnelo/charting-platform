@@ -28,8 +28,8 @@ from app.schemas.market_map import (
 from app.services.breadth import (
     BreadthMember,
     build_equal_reference_series,
+    evaluate_breadth,
     evaluate_condition,
-    evaluate_cross_sectional_percentile,
 )
 from app.services.watchlist_sources import resolve_watchlist_source
 
@@ -175,7 +175,10 @@ def _is_cross_sectional_condition(condition: object) -> bool:
     params = condition.get("params")
     if not isinstance(params, dict):
         params = {}
-    return str(condition.get("target_scope", params.get("target_scope", "member"))).lower() == "cross_sectional"
+    if str(condition.get("target_scope", params.get("target_scope", "member"))).lower() == "cross_sectional":
+        return True
+    children = params.get("conditions")
+    return isinstance(children, list) and any(_is_cross_sectional_condition(child) for child in children)
 
 
 async def _events_by_instrument(
@@ -544,7 +547,7 @@ async def build_market_map(db: AsyncSession, user_id: int, request: MarketMapReq
             for instrument_id in member_ids
             if instrument_id in instruments
         ]
-        cross_sectional_results, _ = evaluate_cross_sectional_percentile(
+        cross_sectional_results, _ = evaluate_breadth(
             breadth_members,
             bars_by_id,
             request.condition or {},

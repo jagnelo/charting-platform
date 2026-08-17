@@ -3645,7 +3645,8 @@ test.describe('TC2000 workstation', () => {
     const conditionTree = breadth.locator('[aria-label="Breadth condition tree"]')
     await expect(conditionTree).toBeVisible()
     await conditionTree.getByRole('combobox', { name: 'Breadth group operator 1' }).selectOption('all')
-    await conditionTree.getByRole('combobox', { name: 'Breadth condition type 1.1' }).selectOption('above_moving_average')
+    await conditionTree.getByRole('combobox', { name: 'Breadth condition type 1.1' }).selectOption('percentile')
+    await conditionTree.getByRole('combobox', { name: 'Breadth percentile scope 1.1' }).selectOption('cross_sectional')
     await conditionTree.getByRole('button', { name: '+ Group' }).click()
     const nestedGroup = conditionTree.locator('.breadth-condition-tree--nested').last()
     await expect(nestedGroup).toBeVisible()
@@ -3656,7 +3657,7 @@ test.describe('TC2000 workstation', () => {
       kind: 'all',
       params: {
         conditions: [
-          expect.objectContaining({ kind: 'above_moving_average' }),
+          expect.objectContaining({ kind: 'percentile', target_scope: 'cross_sectional' }),
           { kind: 'any', params: { conditions: [expect.objectContaining({ kind: 'new_high_low' })] } },
         ],
       },

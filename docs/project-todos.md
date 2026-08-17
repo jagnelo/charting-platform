@@ -1,5 +1,18 @@
 # Project TODO Memory
 
+### 2026-08-17 — Mixed-scope breadth condition trees
+
+- [x] Compose a cross-sectional percentile leaf with ordinary member predicates inside the same
+      `all`/`any`/`not` AST. Cross-sectional leaves are ranked once over the eligible universe,
+      then combined with member-level tri-state results without changing denominator semantics.
+- [x] Apply the same mixed-scope evaluator to current Market Map colouring and point-in-time
+      breadth history, retaining clause paths, exclusions, timestamps, and no-forward-fill rules.
+- [x] Add backend unit/integration, Market Map component, and authenticated browser regressions for
+      mixed member/cross-sectional authoring and evaluation.
+- [ ] Cross-sectional statistics beyond percentile, arbitrary Python target-series leaves, and
+      cross-sectional-to-derived-series relationships remain open and must retain explicit scope
+      and diagnostics.
+
 ### 2026-08-17 — Cross-sectional Market Map breadth colouring
 
 - [x] Extend breadth-coloured Market Maps to evaluate a root `percentile` condition with
@@ -9,9 +22,10 @@
 - [x] Keep member-level and cross-sectional scope distinct in the serialized condition. The visual
       editor now removes stale nested scope state when the user changes scope, preventing a
       contradictory `params.target_scope` beside the authoritative node field.
-- [ ] Nested mixed-scope groups, cross-sectional group statistics beyond percentile, and Python
-      target-series leaves remain open; they must retain explicit scope/diagnostics rather than
+- [x] Nested mixed-scope groups now retain explicit leaf scope and clause diagnostics rather than
       being inferred from a member predicate.
+- [ ] Cross-sectional group statistics beyond percentile and Python target-series leaves remain
+      open.
 
 ### 2026-08-17 — Universe-scoped Finviz-style performance maps (new required surface)
 

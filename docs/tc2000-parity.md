@@ -1,5 +1,14 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-17 — Mixed-scope breadth trees
+
+The generic breadth AST now composes a cross-sectional percentile leaf with ordinary member-level
+predicates through the same `all`/`any`/`not` tree. Cross-sectional leaves are evaluated once over
+the aligned eligible universe, while member leaves retain their own coverage and exclusion rules;
+the resulting Market Map tiles and historical breadth points preserve clause paths, ranks,
+pass/fail state, denominator, and no-forward-fill semantics. Cross-sectional statistics beyond
+percentile and arbitrary Python target-series leaves remain explicit gaps.
+
 ## 2026-08-17 — Cross-sectional Market Map breadth colour
 
 Market Map breadth colour now accepts the same explicit cross-sectional percentile semantics as the

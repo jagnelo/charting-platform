@@ -1,13 +1,23 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-08-17 — Mixed-scope breadth sub-gate
+
+The breadth/Market Map runner must accept a compound tree containing both a cross-sectional
+percentile leaf and member-level leaves. It verifies one universe-wide rank pass, member predicate
+evaluation, tri-state `all`/`any`/`not` composition, clause diagnostics, denominator/exclusion
+semantics, current-bar alignment, historical no-forward-fill behavior, and no provider fan-out.
+The same condition must serialize through the visual tree editor and authenticated browser flow.
+Cross-sectional group statistics beyond percentile and arbitrary Python target-series leaves remain
+open and cannot be treated as silently equivalent.
+
 ## 2026-08-17 — Cross-sectional Market Map breadth sub-gate
 
 The Market Map breadth gate now includes a cross-sectional fixture: a locked or editable source can
-colour tiles from a root percentile condition using the same local, aligned member metrics as the
-generic breadth endpoint. Acceptance checks rank, threshold, pass/fail colour, exclusion, and no
-provider fan-out. The visual editor serializes `target_scope` at the condition node and does not
-leave contradictory nested scope state. Mixed-scope trees, richer group statistics, and Python
-target-series leaves remain open; no acceptance flexibility was used.
+colour tiles from a root or nested percentile condition using the same local, aligned member
+metrics as the generic breadth endpoint. Acceptance checks rank, threshold, pass/fail colour,
+exclusion, clause diagnostics, and no provider fan-out. The visual editor serializes
+`target_scope` at the condition node and does not leave contradictory nested scope state. Richer
+group statistics and Python target-series leaves remain open; no acceptance flexibility was used.
 
 ## 2026-08-17 — Market-map acceptance sub-gate
 

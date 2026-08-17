@@ -261,6 +261,36 @@ describe('MarketMapTool', () => {
     }))
   })
 
+  it('serializes a mixed member and cross-sectional breadth tree for the heatmap', async () => {
+    apiPost.mockImplementation((path: string, body?: Record<string, unknown>) => {
+      if (path === '/analysis/market-map') return Promise.resolve({ ...response, color_metric: body?.color_metric, condition: body?.condition })
+      return Promise.resolve([])
+    })
+    const wrapper = mount(MarketMapTool, { props: { configuration: { source_id: 'market-group:sp500' } } })
+    await flushPromises()
+
+    await wrapper.get('select[aria-label="Market Map colour metric"]').setValue('breadth')
+    await wrapper.get('input[aria-label="Use advanced Market Map breadth condition editor"]').setValue(true)
+    await wrapper.get('select[aria-label="Breadth condition type 1"]').setValue('percentile')
+    await wrapper.get('select[aria-label="Breadth percentile scope 1"]').setValue('cross_sectional')
+    await wrapper.get('button.breadth-condition-tree__wrap').trigger('click')
+    await wrapper.get('.breadth-condition-tree__footer button').trigger('click')
+    await wrapper.get('select[aria-label="Breadth condition type 1.2"]').setValue('comparison')
+    await wrapper.get('.market-map-tool__run').trigger('click')
+    await flushPromises()
+
+    const request = apiPost.mock.calls.map(call => call[1]).find(body => body?.color_metric === 'breadth' && body?.condition?.kind === 'all')
+    expect(request?.condition).toEqual({
+      kind: 'all',
+      params: {
+        conditions: [
+          { kind: 'percentile', target_scope: 'cross_sectional', params: { field: 'close', period: 252, operator: 'gte', percentile: 0.8 } },
+          { kind: 'comparison', params: { field: 'close', operator: 'gte', threshold: 0 } },
+        ],
+      },
+    })
+  })
+
   it('runs a completed isolated Python output before colouring the map', async () => {
     apiGet.mockImplementation((path: string) => {
       if (path === '/code/assets') return Promise.resolve([{ kind: 'condition', name: 'Momentum score', versions: [{ id: 17, version_number: 2, output_contract: 'series' }] }])

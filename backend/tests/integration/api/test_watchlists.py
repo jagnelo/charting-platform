@@ -451,6 +451,52 @@ class TestWatchlistsCrud:
         assert cells[instrument_b.id]["condition_metric"] == pytest.approx(0.5)
         assert cells[instrument_b.id]["color_value"] == pytest.approx(-1.0)
 
+        mixed_response = client.post(
+            "/api/v1/analysis/market-map",
+            headers=auth_headers,
+            json={
+                "source_id": f"watchlist:{watchlist.id}",
+                "group_by": "none",
+                "period": "1D",
+                "area_metric": "equal",
+                "color_metric": "breadth",
+                "condition": {
+                    "kind": "all",
+                    "params": {
+                        "conditions": [
+                            {
+                                "kind": "percentile",
+                                "target_scope": "cross_sectional",
+                                "params": {
+                                    "field": "return",
+                                    "operator": "gte",
+                                    "percentile": 0.8,
+                                },
+                            },
+                            {
+                                "kind": "comparison",
+                                "params": {
+                                    "field": "close",
+                                    "operator": "gte",
+                                    "threshold": 100,
+                                },
+                            },
+                        ]
+                    },
+                },
+                "end": "2024-01-06T00:00:00Z",
+            },
+        )
+
+        assert mixed_response.status_code == 200, mixed_response.text
+        mixed_cells = {
+            cell["instrument_id"]: cell for cell in mixed_response.json()["cells"]
+        }
+        assert mixed_cells[instrument.id]["condition_value"] is True
+        assert mixed_cells[instrument_b.id]["condition_value"] is False
+        assert mixed_cells[instrument.id]["condition_metric"] is not None
+        assert mixed_cells[instrument_b.id]["condition_metric"] is not None
+
     def test_market_map_colours_tiles_by_event_predicate_with_loaded_state(
         self, client, auth_headers, db, watchlist, instrument, instrument_b
     ):

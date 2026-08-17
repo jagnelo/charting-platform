@@ -1,5 +1,14 @@
 # TC2000 Version 25 Visual-Parity Specification
 
+## 2026-08-17 — Mixed-scope breadth condition state
+
+The interim Market Map/breadth oracle now covers a nested tree that combines member-level and
+cross-sectional percentile leaves. The board guides the same dense condition-editor composition,
+scope label, group nesting, tile pass/fail colouring, and diagnostic placement. No authoritative
+V25 capture covers this exact mixed statistical state, so its geometry remains a named board gap;
+the browser/component/backend contract is accepted only as the explicit interim oracle. Richer
+cross-sectional statistics and Python target-series visuals remain separately tracked gaps.
+
 ## 2026-08-17 — Cross-sectional breadth colour state
 
 The board-guided Market Map state now includes an explicit cross-sectional percentile mode. Its

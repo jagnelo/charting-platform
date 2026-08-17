@@ -1,5 +1,14 @@
 # TC2000 Version 25 composite reference board
 
+## 2026-08-17 mixed-scope breadth reference gap
+
+The current board has no sufficiently authoritative Version 25 capture of a recursive breadth
+condition that combines member-level and cross-sectional targets. The implementation uses the
+board-guided dense condition-editor language and existing heatmap composition, with a deterministic
+interim oracle covering scope labels, nested groups, clause diagnostics, pass/fail tiles, and
+historical exclusions. This remains a gap for exact visual judgement; closure requires a reviewed
+V25 capture or successor reference showing the mixed statistical authoring/result state.
+
 ## 2026-08-14 canonical workstation revalidation
 
 The current non-seeded branch deployment was revalidated against the board-guided interaction

@@ -510,3 +510,70 @@ def test_cross_sectional_scope_never_silently_falls_back_to_member_evaluation():
     assert results[0].value is None
     assert results[0].exclusion_code == "cross_sectional_unsupported_condition"
     assert aggregate["eligible_count"] == 0
+
+
+def test_mixed_scope_tree_composes_cross_sectional_and_member_predicates():
+    members = [
+        BreadthMember(1, "LOW", "Low"),
+        BreadthMember(2, "MID", "Mid"),
+        BreadthMember(3, "HIGH", "High"),
+    ]
+    results, aggregate = evaluate_breadth(
+        members,
+        {1: _bars([1]), 2: _bars([2]), 3: _bars([3])},
+        {
+            "kind": "all",
+            "params": {
+                "conditions": [
+                    {
+                        "kind": "percentile",
+                        "target_scope": "cross_sectional",
+                        "params": {
+                            "field": "close",
+                            "percentile": 0.5,
+                            "operator": "gte",
+                        },
+                    },
+                    {"kind": "comparison", "params": {"field": "close", "threshold": 1.5}},
+                ]
+            },
+        },
+    )
+
+    assert [result.value for result in results] == [False, True, True]
+    assert aggregate["eligible_count"] == 3
+    assert aggregate["pass_count"] == 2
+    assert aggregate["percentage"] == 2 / 3
+    assert [item.path for item in results[1].diagnostics] == [
+        "$",
+        "$.conditions[0]",
+        "$.conditions[1]",
+    ]
+
+
+def test_mixed_scope_history_preserves_current_bar_exclusions():
+    members = [BreadthMember(1, "A", "A"), BreadthMember(2, "B", "B")]
+    points = evaluate_breadth_history(
+        members,
+        {1: _bars([1, 2, 3]), 2: _bars([1, 2])},
+        {
+            "kind": "any",
+            "params": {
+                "conditions": [
+                    {
+                        "kind": "percentile",
+                        "target_scope": "cross_sectional",
+                        "params": {"field": "close", "percentile": 0.5, "operator": "gte"},
+                    },
+                    {"kind": "comparison", "params": {"field": "close", "threshold": 0}},
+                ]
+            },
+        },
+        limit=10,
+    )
+
+    latest = points[-1]
+    by_symbol = {result.symbol: result for result in latest["members"]}
+    assert by_symbol["A"].value is True
+    assert by_symbol["B"].value is None
+    assert by_symbol["B"].exclusion_code == "missing_bar_at_timestamp"
