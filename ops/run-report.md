@@ -1,5 +1,11 @@
 # Run Report
 
+## 2026-08-17 — Multi-family breadth/deconstruction vision transport checkpoint
+
+- Documentation commit `66610890f5efbfc1deafa86e7f6bc0c84911a336` is clean locally.
+- Exact push was attempted once and rejected before Git by the private-origin safeguard; no
+  workaround or repeat. The committed local checkpoint remains the source of truth.
+
 ## 2026-08-17 — Multi-family breadth/deconstruction vision refinement
 
 - Updated the active goal and controlling product documents to explicitly require configurable

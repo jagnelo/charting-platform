@@ -1,5 +1,13 @@
 # Active Handoff
 
+## 2026-08-17 — Multi-family breadth/deconstruction vision transport checkpoint
+
+- Documentation refinement commit `66610890f5efbfc1deafa86e7f6bc0c84911a336` is clean locally.
+- The exact push to `origin/feat/tc2000-frontend-rework` was attempted once and rejected before
+  Git by the private-origin safeguard because trusted authorization for this accumulated private
+  payload/destination was unavailable. No workaround, alternate transport, rewrite, reset, stash,
+  or repeat will be attempted; this is transport-only and not a product blocker.
+
 ## 2026-08-17 — Multi-family breadth/deconstruction vision refinement
 
 - Refined the controlling goal and repository plan to make the eight-root market matrix a full
