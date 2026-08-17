@@ -13374,5 +13374,10 @@ The current source also passes the focused authenticated top-down browser slice 
 - [x] Extend completed Boolean Study Lab result promotion with explicit watchlist-filter and
       Market-Gauge targets. Both targets reuse one user-owned EasyScan created from the immutable
       Boolean code version, preserving the exact source/version and avoiding duplicate scans.
+- [x] Extend structured/multi-output Study Lab promotion so each Boolean artifact exposes its own
+      watchlist-filter, scan, Market-Gauge, and alert targets. The adapter creates a condition
+      CodeVersion with the artifact output name, then reuses one EasyScan lineage for the remaining
+      targets; scalar, series, and event artifacts retain their compatible column, plot, and signal
+      paths.
 - [ ] Promote the resulting definition fan-out to every compatible target (column, filter, scan,
       alert, gauge, chart plot, and Strategy Lab signal) with target-specific output validation.

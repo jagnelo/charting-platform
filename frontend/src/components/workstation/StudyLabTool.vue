@@ -342,7 +342,12 @@ const artifactPromotions = computed<ArtifactPromotion[]>(() => {
     if (artifact.artifact_type === 'series') promotions.push({ artifact, target: 'plot', label: 'Save plot' })
     else if (artifact.artifact_type === 'scalar') promotions.push({ artifact, target: 'column', label: 'Save column' })
     else if (artifact.artifact_type === 'boolean') {
-      promotions.push({ artifact, target: 'scan', label: 'Promote scan' }, { artifact, target: 'alert', label: 'Promote alert' })
+      promotions.push(
+        { artifact, target: 'filter', label: 'Save filter' },
+        { artifact, target: 'scan', label: 'Promote scan' },
+        { artifact, target: 'gauge', label: 'Use Gauge' },
+        { artifact, target: 'alert', label: 'Promote alert' },
+      )
     } else if (artifact.artifact_type === 'events') promotions.push({ artifact, target: 'signal', label: 'Save signal' })
   }
   return promotions

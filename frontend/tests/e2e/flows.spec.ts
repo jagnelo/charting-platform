@@ -2427,7 +2427,7 @@ test.describe('TC2000 workstation', () => {
     await expect(study).toBeVisible({ timeout: 10_000 })
     await study.getByRole('textbox', { name: 'Study name' }).fill('E2E structured event study')
     await study.getByRole('textbox', { name: 'Study symbol' }).fill('SPY')
-    const structuredSource = "output.scalar('event_count', 4)\noutput.bar('monthly_frequency', ['2026-01', '2026-02'], [2, 2])\noutput.histogram('streak_distribution', [1, 2, 2, 3], 2, 2)\noutput.table('summary', [{'state': 'positive_close', 'count': 4}])\noutput.events('occurrences', [{'symbol': 'SPY', 'timestamp': '2026-01-02T00:00:00+00:00', 'kind': 'positive_close'}])"
+    const structuredSource = "output.scalar('event_count', 4)\noutput.boolean('qualifies', True)\noutput.bar('monthly_frequency', ['2026-01', '2026-02'], [2, 2])\noutput.histogram('streak_distribution', [1, 2, 2, 3], 2, 2)\noutput.table('summary', [{'state': 'positive_close', 'count': 4}])\noutput.events('occurrences', [{'symbol': 'SPY', 'timestamp': '2026-01-02T00:00:00+00:00', 'kind': 'positive_close'}])"
     const sourceEditor = study.getByRole('textbox', { name: 'Study Python source' })
     await sourceEditor.fill(structuredSource)
     // Persisted Study Lab windows can hydrate their configuration after the tool becomes
@@ -2446,6 +2446,16 @@ test.describe('TC2000 workstation', () => {
     await expect(occurrence).toBeVisible()
     await occurrence.click()
     await expect(page.getByRole('combobox', { name: 'Active symbol' })).toHaveValue('SPY')
+    await expect(study.getByRole('button', { name: 'Save filter: qualifies' })).toBeVisible()
+    await expect(study.getByRole('button', { name: 'Use Gauge: qualifies' })).toBeVisible()
+    await study.getByRole('button', { name: 'Save filter: qualifies' }).click()
+    await expect(study).toContainText('Saved as a reusable watchlist filter through EasyScan.', { timeout: 30_000 })
+    await study.getByRole('button', { name: 'Promote scan: qualifies' }).click()
+    await expect(study).toContainText('Promoted to a reusable scan.', { timeout: 30_000 })
+    await study.getByRole('button', { name: 'Use Gauge: qualifies' }).click()
+    await expect(study).toContainText('Available as a Market Gauge from the saved EasyScan.', { timeout: 30_000 })
+    await study.getByRole('button', { name: 'Promote alert: qualifies' }).click()
+    await expect(study).toContainText('Promoted to an active scan alert.', { timeout: 30_000 })
     await browserDiagnostics.expectNoCriticalIssues()
   })
 

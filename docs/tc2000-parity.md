@@ -76,6 +76,12 @@ Boolean code version, so the filter, scan, gauge, and alert views retain identic
 lineage. Direct promotion of a multi-output map-created Study asset into every compatible target
 without first selecting/running a compatible output remains open.
 
+Structured/multi-output Study Lab results now expose the same Boolean filter, scan, Gauge, and alert
+targets per Boolean artifact. The adapter creates an immutable condition version carrying the
+artifact `output_name`, then reuses the resulting EasyScan for the remaining Boolean targets. This
+closes the missing structured-artifact filter/Gauge path; arbitrary multi-output fan-out across all
+scalar, series, Boolean, event, and chart/list targets remains separately tracked.
+
 ## 2026-08-17 — US family/style and Nasdaq cap/equal acceptance matrix (latest requirement)
 
 The workstation's top-down entry points are the S&P 500, S&P MidCap 400, S&P SmallCap 600,

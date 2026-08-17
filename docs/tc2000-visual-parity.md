@@ -761,3 +761,8 @@ The Study Lab promotion state now includes “Save as watchlist filter” and �
 for completed Boolean studies. No authoritative V25 capture represents these exact labels or their
 composition, so the interaction is board-guided and component-tested; direct multi-output map
 definition fan-out remains a named visual and functional gap.
+
+Structured Study results now repeat the same filter/scan/Gauge/alert affordances beside each Boolean
+artifact (with the artifact name in the label). This is a board-guided extension because the board
+does not show the exact multi-output promotion row. The structured-artifact interaction is tested;
+the broader target matrix and exact V25 geometry remain named gaps rather than silently approved.

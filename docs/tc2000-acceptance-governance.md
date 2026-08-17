@@ -1086,3 +1086,9 @@ filter and Market Gauge actions, and both reuse the same persisted EasyScan crea
 immutable Boolean code version. This is not treated as complete direct fan-out for arbitrary
 multi-output Market Map/Study assets; target-specific output selection and lineage-preserving
 promotion to every compatible target remain tracked.
+
+The structured-artifact sub-gate now also passes: a completed multi-output Study exposes filter,
+scan, Gauge, and alert actions for each Boolean artifact, creates a condition version with the
+artifact output name, and reuses one EasyScan across those targets. Scalar/series/event artifacts
+retain their compatible column/plot/signal actions. Full fan-out across every artifact type and
+target, including direct map-created definitions, remains open; no acceptance flexibility was used.
