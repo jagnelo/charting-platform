@@ -45,14 +45,14 @@ group aggregate, or Python-derived series. The board does not yet contain author
 for every one of these combinations; each absent combination stays in the reference-board gap
 ledger and uses the documented browser/component oracle until superseded by stronger evidence.
 
-The numeric Python-series breadth state is currently a represented backend contract but not yet a
-complete board-backed visual state. Until the board contains an authoritative example, the visual
-gap remains explicit: the interim oracle must show the series output contract, threshold relation,
-numeric member metric, percentage result, coverage/exclusion lineage, and current/history status
-without inventing a Version 25 screenshot comparison.
-The authenticated Python Library now represents the output-contract choice; the end-to-end breadth
-composer/run state remains an explicit visual gap until its dedicated controls and result wiring
-are implemented and board-guided.
+The numeric Python-series breadth state is now represented in the authenticated UI: the Python
+Library output-contract choice feeds the breadth asset selector, operator/threshold controls,
+isolated queue/poll status, percentage result, numeric member metric, pass/fail drill-down, and
+current/history output. Rebuilt Chromium interaction coverage passes. The reference board still
+has no authoritative exact Version 25 capture for this state, so screenshot parity remains an
+explicit board gap; the deterministic browser/component oracle is the interim acceptance track.
+Direct series-to-series/reference targets and Python-series leaves inside recursive visual trees
+remain unrepresented implementation/visual gaps until they are built and board-reviewed.
 
 Status: `Controlling implementation plan`
 

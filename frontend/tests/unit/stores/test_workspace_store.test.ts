@@ -454,6 +454,60 @@ describe('workspace store layout tabs', () => {
     expect(store.breadthErrors['sp500-sectors']).toBe('breadth provider unavailable')
   })
 
+  it('queues and polls an isolated numeric Python-series breadth target with lineage', async () => {
+    apiPost.mockResolvedValue({
+      run_id: 91,
+      code_version_id: 17,
+      status: 'queued',
+      execution_mode: 'breadth_history',
+      output_contract: 'series',
+      series_target: { operator: 'gte', threshold: 0.02 },
+      definition_hash: 'python-definition',
+      universe: { kind: 'group', key: 'sp500-sectors', membership_version: 'm1' },
+      condition: { code_version_id: 17, output_contract: 'series' },
+      dataset_manifest: { timeframe: 'D1', adjustment: 'split_adjusted' },
+      progress: {},
+      diagnostics: [],
+    })
+    apiGet.mockResolvedValue({
+      run_id: 91,
+      code_version_id: 17,
+      status: 'completed',
+      execution_mode: 'breadth_history',
+      output_contract: 'series',
+      series_target: { operator: 'gte', threshold: 0.02 },
+      definition_hash: 'python-definition',
+      universe: { kind: 'group', key: 'sp500-sectors', membership_version: 'm1' },
+      condition: { code_version_id: 17, output_contract: 'series' },
+      dataset_manifest: { timeframe: 'D1', adjustment: 'split_adjusted' },
+      current: { timestamp: '2026-08-17T00:00:00Z', requested_count: 2, eligible_count: 2, pass_count: 1, excluded_count: 0, percentage: 0.5, coverage: 1, members: [], exclusions: [] },
+      points: [{ timestamp: '2026-08-16T00:00:00Z', requested_count: 2, eligible_count: 2, pass_count: 1, excluded_count: 0, percentage: 0.5, coverage: 1, members: [], exclusions: [] }],
+      occurrences: [],
+      progress: {},
+      diagnostics: [],
+    })
+    const store = useWorkspaceStore()
+    const request = {
+      code_version_id: 17,
+      universe: { kind: 'group', key: 'sp500-sectors', point_in_time: true },
+      output_contract: 'series',
+      series_target: { operator: 'gte', threshold: 0.02 },
+      timeframe: 'D1',
+      adjusted: true,
+      history: true,
+    }
+
+    const result = await store.loadPythonBreadth(request, 'python-series-key')
+
+    expect(apiPost).toHaveBeenCalledWith('/analysis/breadth/python', request)
+    expect(apiGet).toHaveBeenCalledWith('/analysis/breadth/python/runs/91')
+    expect(result?.status).toBe('completed')
+    expect(store.pythonBreadth['python-series-key']?.current?.percentage).toBe(0.5)
+    expect(store.pythonBreadth['python-series-key']?.series_target).toEqual({ operator: 'gte', threshold: 0.02 })
+    expect(store.pythonBreadthLoading['python-series-key']).toBe(false)
+    expect(store.pythonBreadthErrors['python-series-key']).toBeNull()
+  })
+
   it('ignores late shared-analysis snapshots after a newer timeframe request', async () => {
     const staleSnapshot = deferred<unknown>()
     const staleBreadth = deferred<unknown>()

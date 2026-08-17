@@ -646,6 +646,53 @@ export interface GenericBreadthHistoryState {
   freshness_detail?: Record<string, number>
 }
 
+export interface PythonBreadthPointState {
+  timestamp: string | null
+  requested_count: number
+  eligible_count: number
+  pass_count: number
+  excluded_count: number
+  percentage: number | null
+  coverage: number
+  members: GenericBreadthState['members']
+  exclusions: GenericBreadthState['exclusions']
+}
+
+export interface PythonBreadthState {
+  calculation_version?: string
+  data_provenance?: string
+  run_id: number
+  code_version_id: number
+  status: string
+  execution_mode: 'breadth_current' | 'breadth_history'
+  output_contract: 'boolean' | 'series'
+  series_target?: Record<string, unknown> | null
+  definition_hash: string
+  universe: Record<string, unknown>
+  condition: Record<string, unknown>
+  dataset_manifest: Record<string, unknown>
+  current: PythonBreadthPointState | null
+  points: PythonBreadthPointState[]
+  occurrences?: GenericBreadthHistoryState['occurrences']
+  progress: Record<string, unknown>
+  diagnostics: Array<Record<string, unknown>>
+}
+
+export interface PythonBreadthRunState {
+  run_id: number
+  code_version_id: number
+  status: string
+  execution_mode: 'breadth_current' | 'breadth_history'
+  output_contract: 'boolean' | 'series'
+  series_target?: Record<string, unknown> | null
+  definition_hash: string
+  universe: Record<string, unknown>
+  condition: Record<string, unknown>
+  dataset_manifest: Record<string, unknown>
+  progress: Record<string, unknown>
+  diagnostics: Array<Record<string, unknown>>
+}
+
 export interface ETFHoldingState {
   constituent_instrument_id: number | null
   constituent_symbol: string | null
@@ -916,6 +963,10 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   const genericBreadthHistory = ref<Record<string, GenericBreadthHistoryState>>({})
   const genericBreadthHistoryLoading = ref<Record<string, boolean>>({})
   const genericBreadthHistoryErrors = ref<Record<string, string | null>>({})
+  const pythonBreadth = ref<Record<string, PythonBreadthState | null>>({})
+  const pythonBreadthLoading = ref<Record<string, boolean>>({})
+  const pythonBreadthErrors = ref<Record<string, string | null>>({})
+  const pythonBreadthRunIds = ref<Record<string, number>>({})
   const etfHoldings = ref<Record<string, ETFHoldingsPageState | null>>({})
   const etfConstituentSnapshots = ref<Record<string, ETFConstituentSnapshotState | null>>({})
   const etfIndustries = ref<Record<string, ETFIndustryCompositionState | null>>({})
@@ -2130,6 +2181,66 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     }
   }
 
+  async function cancelPythonBreadth(cacheKey: string) {
+    const runId = pythonBreadthRunIds.value[cacheKey]
+    if (runId == null) return
+    pythonBreadthRunIds.value = Object.fromEntries(
+      Object.entries(pythonBreadthRunIds.value).filter(([key]) => key !== cacheKey),
+    )
+    try {
+      await api.post(`/research/runs/${runId}/cancel`, {})
+    } catch {
+      // The run may already have completed between polling and cancellation. The
+      // replacement request remains authoritative through its generation fence.
+    }
+  }
+
+  async function loadPythonBreadth(
+    request: Record<string, unknown>,
+    cacheKey: string,
+  ) {
+    const requestKey = `top-down:python-breadth:${cacheKey}`
+    const generation = beginAnalysisRequest(requestKey)
+    if (!documentIsVisible()) return null
+    await cancelPythonBreadth(cacheKey)
+    pythonBreadthLoading.value = { ...pythonBreadthLoading.value, [cacheKey]: true }
+    pythonBreadthErrors.value = { ...pythonBreadthErrors.value, [cacheKey]: null }
+    try {
+      const queued = await api.post<PythonBreadthRunState>('/analysis/breadth/python', request)
+      if (!isCurrentAnalysisRequest(requestKey, generation)) return null
+      pythonBreadthRunIds.value = { ...pythonBreadthRunIds.value, [cacheKey]: queued.run_id }
+      let result: PythonBreadthState | null = null
+      const terminal = new Set(['completed', 'failed', 'canceled'])
+      for (let attempt = 0; attempt < 240; attempt += 1) {
+        const collected = await api.get<PythonBreadthState>(`/analysis/breadth/python/runs/${queued.run_id}`)
+        if (!isCurrentAnalysisRequest(requestKey, generation)) return null
+        result = collected
+        pythonBreadth.value = { ...pythonBreadth.value, [cacheKey]: collected }
+        if (terminal.has(collected.status)) break
+        await new Promise(resolve => setTimeout(resolve, 250))
+      }
+      if (result && !terminal.has(result.status)) {
+        pythonBreadthErrors.value = {
+          ...pythonBreadthErrors.value,
+          [cacheKey]: 'Python breadth run did not finish within 60 seconds; its run remains available for retry.',
+        }
+      }
+      return result
+    } catch (cause: any) {
+      if (!isCurrentAnalysisRequest(requestKey, generation)) return null
+      const message = cause?.message ?? 'Unable to evaluate the Python breadth condition'
+      error.value = message
+      pythonBreadthErrors.value = { ...pythonBreadthErrors.value, [cacheKey]: message }
+      return null
+    } finally {
+      if (isCurrentAnalysisRequest(requestKey, generation)) {
+        pythonBreadthLoading.value = { ...pythonBreadthLoading.value, [cacheKey]: false }
+        const { [cacheKey]: _run, ...remainingRuns } = pythonBreadthRunIds.value
+        pythonBreadthRunIds.value = remainingRuns
+      }
+    }
+  }
+
   /**
    * Refresh the shared US top-down inputs in one deduplicated batch. The shell and
    * pop-outs call this method instead of fanning out one request per watchlist cell.
@@ -2908,6 +3019,10 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     genericBreadthHistory,
     genericBreadthHistoryLoading,
     genericBreadthHistoryErrors,
+    pythonBreadth,
+    pythonBreadthLoading,
+    pythonBreadthErrors,
+    pythonBreadthRunIds,
     etfHoldings,
     etfConstituentSnapshots,
     etfIndustries,
@@ -2955,6 +3070,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     loadBreadthHistory,
     loadGenericBreadth,
     loadGenericBreadthHistory,
+    loadPythonBreadth,
+    cancelPythonBreadth,
     refreshMarketAnalysis,
     loadETFHoldings,
     loadETFConstituentSnapshot,

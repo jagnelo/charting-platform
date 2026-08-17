@@ -441,7 +441,20 @@
           <option value="comparison">Compare a measured field</option>
           <option value="range">Measured field within a range</option>
           <option value="percentile">Measured field percentile</option>
+          <option v-if="breadthComposition === 'single'" value="python_series">Python numeric series target</option>
         </select>
+        <template v-if="breadthConditionKind === 'python_series'">
+          <select :value="breadthPythonSeriesCodeVersionId ?? ''" aria-label="Breadth Python series condition asset" @change="setBreadthConfiguration({ breadth_python_series_code_version_id: Number(($event.target as HTMLSelectElement).value) || null })">
+            <option value="">Select numeric series…</option>
+            <option v-for="asset in breadthPythonSeriesAssets" :key="asset.versionId" :value="asset.versionId">{{ asset.name }}</option>
+          </select>
+          <select :value="breadthPythonSeriesOperator" aria-label="Breadth Python series operator" @change="setBreadthConfiguration({ breadth_python_series_operator: ($event.target as HTMLSelectElement).value })">
+            <option value="gte">At or above</option><option value="gt">Above</option><option value="lte">At or below</option><option value="lt">Below</option><option value="eq">Equal to</option><option value="ne">Not equal</option>
+          </select>
+          <label>Threshold <input :value="breadthPythonSeriesThreshold" aria-label="Breadth Python series threshold" type="number" step="0.001" @change="setBreadthConfiguration({ breadth_python_series_threshold: Number(($event.target as HTMLInputElement).value) })" /></label>
+          <small v-if="breadthPythonSeriesAssetsLoading" role="status">Loading Python assets…</small>
+          <small v-else-if="!breadthPythonSeriesAssets.length" class="breadth-tool__status--error">No numeric-series condition assets available.</small>
+        </template>
         <template v-if="breadthConditionKind === 'above_moving_average'">
           <label>Period <input :value="breadthConditionPeriod" aria-label="Breadth condition moving average period" type="number" min="2" max="252" @change="setBreadthConfiguration({ breadth_condition_period: Number(($event.target as HTMLInputElement).value) })" /></label>
           <select :value="breadthConditionAverage" aria-label="Breadth condition average" @change="setBreadthConfiguration({ breadth_condition_average: ($event.target as HTMLSelectElement).value })"><option value="sma">SMA</option><option value="ema">EMA</option></select>
@@ -572,7 +585,7 @@
           <label>Target <input :value="breadthSecondaryThreshold" aria-label="Breadth second target threshold" type="number" step="0.001" @change="setBreadthConfiguration({ breadth_secondary_threshold: Number(($event.target as HTMLInputElement).value) })" /></label>
         </template>
         </template>
-        <button type="button" @click="runGenericBreadth">Evaluate</button>
+        <button type="button" :disabled="breadthConditionKind === 'python_series' && breadthPythonSeriesCodeVersionId == null" @click="runGenericBreadth">Evaluate</button>
         <span v-if="genericBreadthLoading" role="status" aria-live="polite">Evaluating…</span>
         <span v-else-if="genericBreadthError" class="breadth-tool__status--error" role="alert">{{ genericBreadthError }}</span>
         <span v-else-if="genericBreadth" class="breadth-tool__custom-result"><b>{{ genericBreadthPercentage }}</b> · {{ genericBreadth.pass_count }}/{{ genericBreadth.eligible_count }} eligible · {{ genericBreadthCoverage }} coverage</span>
@@ -713,7 +726,7 @@
         <button v-for="member in genericBreadthMembers.slice(0, 100)" :key="member.instrument_id" type="button" @click="emit('select', member.symbol, member.instrument_id)"><strong>{{ member.symbol }}</strong><span>{{ member.name }}</span><small v-if="member.metric != null">{{ member.metric.toFixed(3) }}</small><small v-if="member.diagnostics?.length" class="breadth-tool__member-diagnostics" :title="member.diagnostics.map(genericBreadthDiagnosticLabel).join(' · ')">{{ member.diagnostics.map(genericBreadthDiagnosticLabel).join(' · ') }}</small></button>
         <small v-if="!genericBreadthMembers.length">No {{ genericBreadthMemberState === 'pass' ? 'passing' : 'failing' }} members are eligible.</small>
       </div>
-      <GenericBreadthHistoryUPlot :history="genericBreadthHistory" />
+      <GenericBreadthHistoryUPlot :history="genericBreadthHistory ?? undefined" />
       <section v-if="genericBreadthHistory" class="breadth-tool__generic-history-events" aria-label="Generic breadth historical occurrences">
         <header>
           <strong>Member state changes</strong>
@@ -784,7 +797,7 @@ import ChartPlotLibrary from './ChartPlotLibrary.vue'
 import { usePanelStore } from '@/stores/chart'
 import { useDrawingsStore } from '@/stores/drawings'
 import { useAlertsStore } from '@/stores/alerts'
-import { useWorkspaceStore, type GroupSnapshotRow, type LinkGroup, type WorkspaceWindowState } from '@/stores/workspace'
+import { useWorkspaceStore, type GenericBreadthHistoryState, type GenericBreadthState, type GroupSnapshotRow, type LinkGroup, type WorkspaceWindowState } from '@/stores/workspace'
 import { useWatchlistStore } from '@/stores/watchlist'
 import type { Instrument, Watchlist } from '@/types'
 import ToolWindow from './ToolWindow.vue'
@@ -804,6 +817,7 @@ import ResearchResultsTool from './ResearchResultsTool.vue'
 import CodeLibraryTool from './CodeLibraryTool.vue'
 import CoverageSummaryTool from './CoverageSummaryTool.vue'
 import BreadthConditionTreeEditor from './BreadthConditionTreeEditor.vue'
+import { fetchCodeAssets, type CodeAssetSummary } from '@/lib/workstation/libraryQueries'
 import { calendarYearKeys } from '@/lib/workstation/calendarYears'
 import { buildNormalizedComparisonSeries, type ComparisonTarget } from '@/lib/workstation/comparison'
 import { normalizeNumericSeries } from '@/lib/workstation/numericSeries'
@@ -1226,6 +1240,7 @@ function handlePersonalRowAction(action: 'chart' | 'compare' | 'ratio' | 'note' 
 }
 
 onMounted(async () => {
+  void loadBreadthPythonSeriesAssets()
   if (!watchlistStore.watchlists.length && !watchlistStore.loading) await watchlistStore.loadWatchlists()
   if (props.tool.tool_type !== 'watchlist' || props.tool.configuration.personal !== true) return
   await loadComboLists()
@@ -1823,7 +1838,7 @@ const breadthComposition = computed(() => {
 })
 const breadthConditionKind = computed(() => {
   const candidate = String(breadthConfigurationValue('breadth_condition', 'above_moving_average'))
-  return ['above_moving_average', 'within_52_week_high', 'new_high_low', 'prior_high_low', 'trend', 'rsi', 'volume_ratio', 'relative_strength', 'series_comparison', 'event', 'comparison', 'range', 'percentile'].includes(candidate) ? candidate : 'above_moving_average'
+  return ['above_moving_average', 'within_52_week_high', 'new_high_low', 'prior_high_low', 'trend', 'rsi', 'volume_ratio', 'relative_strength', 'series_comparison', 'event', 'comparison', 'range', 'percentile', 'python_series'].includes(candidate) && (candidate !== 'python_series' || breadthComposition.value === 'single') ? candidate : 'above_moving_average'
 })
 const breadthConditionPeriod = computed(() => Math.min(252, Math.max(2, Number(breadthConfigurationValue('breadth_condition_period', 200)) || 200)))
 const breadthConditionAverage = computed(() => breadthConfigurationValue('breadth_condition_average') === 'ema' ? 'ema' : 'sma')
@@ -1886,6 +1901,87 @@ const breadthReferenceGroup = computed(() => {
   const candidate = String(breadthConfigurationValue('breadth_reference_group', 'sp500-sectors')).trim()
   return candidate || 'sp500-sectors'
 })
+type BreadthPythonSeriesAsset = { versionId: number; name: string }
+const breadthPythonSeriesAssets = ref<BreadthPythonSeriesAsset[]>([])
+const breadthPythonSeriesAssetsLoading = ref(false)
+const breadthPythonSeriesCodeVersionId = computed(() => {
+  const value = Number(breadthConfigurationValue('breadth_python_series_code_version_id'))
+  return Number.isInteger(value) && value > 0 ? value : null
+})
+const breadthPythonSeriesOperator = computed(() => {
+  const candidate = String(breadthConfigurationValue('breadth_python_series_operator', 'gte'))
+  return ['gt', 'gte', 'lt', 'lte', 'eq', 'ne'].includes(candidate) ? candidate : 'gte'
+})
+const breadthPythonSeriesThreshold = computed(() => {
+  const value = Number(breadthConfigurationValue('breadth_python_series_threshold', 0))
+  return Number.isFinite(value) ? value : 0
+})
+const breadthPythonSeriesUniverse = computed(() => ({
+  kind: breadthCustomUniverseKind.value,
+  ...(breadthCustomUniverseKind.value === 'group'
+    ? { key: breadthGroupKey.value }
+    : breadthCustomUniverseKind.value === 'benchmark_family'
+      ? { key: breadthGroupKey.value, role: String(breadthConfigurationValue('family_ratio_role', 'equal_weight')) }
+      : { key: 'SPY' }),
+  point_in_time: true,
+}))
+const breadthPythonSeriesRequest = computed<Record<string, unknown>>(() => ({
+  code_version_id: breadthPythonSeriesCodeVersionId.value ?? 0,
+  universe: breadthPythonSeriesUniverse.value,
+  parameters: {},
+  output_contract: 'series',
+  series_target: { operator: breadthPythonSeriesOperator.value, threshold: breadthPythonSeriesThreshold.value },
+  timeframe: breadthTimeframe.value,
+  adjusted: breadthAdjusted.value,
+  session: 'regular',
+  ...(typeof breadthConfigurationValue('as_of') === 'string' && breadthConfigurationValue('as_of') ? { as_of: breadthConfigurationValue('as_of') } : {}),
+  ...(breadthReferenceTarget.value === 'symbol' ? { benchmark: breadthBenchmark.value } : {}),
+  history: true,
+  history_limit: 500,
+}))
+const breadthPythonSeriesKey = computed(() => JSON.stringify(breadthPythonSeriesRequest.value))
+const breadthPythonSeriesState = computed(() => workspaceStore.pythonBreadth[breadthPythonSeriesKey.value] ?? null)
+const breadthPythonSeriesLoading = computed(() => workspaceStore.pythonBreadthLoading[breadthPythonSeriesKey.value] === true)
+const breadthPythonSeriesError = computed(() => workspaceStore.pythonBreadthErrors[breadthPythonSeriesKey.value] ?? null)
+const breadthPythonSeriesStatus = computed(() => breadthPythonSeriesState.value?.status ?? null)
+
+function asGenericBreadthState(state: NonNullable<typeof breadthPythonSeriesState.value>): GenericBreadthState {
+  const current = state.current
+  return {
+    definition_version: 1,
+    definition_hash: state.definition_hash,
+    universe: state.universe,
+    condition: state.condition,
+    timeframe: String(state.dataset_manifest.timeframe ?? breadthTimeframe.value),
+    adjustment: String(state.dataset_manifest.adjustment ?? (breadthAdjusted.value ? 'split_adjusted' : 'raw')),
+    as_of: typeof state.dataset_manifest.as_of === 'string' ? state.dataset_manifest.as_of : null,
+    requested_count: current?.requested_count ?? 0,
+    eligible_count: current?.eligible_count ?? 0,
+    pass_count: current?.pass_count ?? 0,
+    excluded_count: current?.excluded_count ?? 0,
+    percentage: current?.percentage ?? null,
+    coverage: current?.coverage ?? 0,
+    members: current?.members ?? [],
+    exclusions: current?.exclusions ?? [],
+    freshness: 'coverage_limited',
+  }
+}
+
+function asGenericBreadthHistory(state: NonNullable<typeof breadthPythonSeriesState.value>): GenericBreadthHistoryState {
+  return {
+    definition_version: 1,
+    definition_hash: state.definition_hash,
+    universe: state.universe,
+    condition: state.condition,
+    timeframe: String(state.dataset_manifest.timeframe ?? breadthTimeframe.value),
+    adjustment: String(state.dataset_manifest.adjustment ?? (breadthAdjusted.value ? 'split_adjusted' : 'raw')),
+    as_of: typeof state.dataset_manifest.as_of === 'string' ? state.dataset_manifest.as_of : null,
+    points: state.points.filter((point): point is typeof point & { timestamp: string } => typeof point.timestamp === 'string'),
+    occurrences: state.occurrences ?? [],
+    exclusions: state.points.flatMap(point => point.exclusions),
+    freshness: 'coverage_limited',
+  }
+}
 type BreadthTreeNode = {
   kind: 'all' | 'any' | 'not' | 'above_moving_average' | 'within_52_week_high' | 'new_high_low' | 'prior_high_low' | 'trend' | 'rsi' | 'volume_ratio' | 'relative_strength' | 'series_comparison' | 'event' | 'comparison' | 'range' | 'percentile'
   target_scope?: 'member' | 'cross_sectional'
@@ -2050,11 +2146,31 @@ const genericBreadthDefinition = computed(() => ({
     ? { reference_universe: { kind: 'group', key: breadthReferenceGroup.value, point_in_time: true } }
     : { benchmark: breadthBenchmark.value }),
 }))
-const genericBreadthKey = computed(() => JSON.stringify(genericBreadthDefinition.value))
-const genericBreadth = computed(() => workspaceStore.genericBreadth[genericBreadthKey.value])
-const genericBreadthHistory = computed(() => workspaceStore.genericBreadthHistory[genericBreadthKey.value])
-const genericBreadthLoading = computed(() => workspaceStore.genericBreadthLoading[genericBreadthKey.value] === true || workspaceStore.genericBreadthHistoryLoading[genericBreadthKey.value] === true)
-const genericBreadthError = computed(() => workspaceStore.genericBreadthErrors[genericBreadthKey.value] ?? workspaceStore.genericBreadthHistoryErrors[genericBreadthKey.value] ?? null)
+const genericBreadthKey = computed(() => breadthConditionKind.value === 'python_series' ? breadthPythonSeriesKey.value : JSON.stringify(genericBreadthDefinition.value))
+const genericBreadth = computed<GenericBreadthState | null>(() => {
+  if (breadthConditionKind.value === 'python_series') {
+    return breadthPythonSeriesState.value?.current ? asGenericBreadthState(breadthPythonSeriesState.value) : null
+  }
+  return workspaceStore.genericBreadth[genericBreadthKey.value] ?? null
+})
+const genericBreadthHistory = computed<GenericBreadthHistoryState | null>(() => {
+  if (breadthConditionKind.value === 'python_series') {
+    return breadthPythonSeriesState.value ? asGenericBreadthHistory(breadthPythonSeriesState.value) : null
+  }
+  return workspaceStore.genericBreadthHistory[genericBreadthKey.value] ?? null
+})
+const genericBreadthLoading = computed(() => breadthConditionKind.value === 'python_series'
+  ? breadthPythonSeriesLoading.value
+  : workspaceStore.genericBreadthLoading[genericBreadthKey.value] === true || workspaceStore.genericBreadthHistoryLoading[genericBreadthKey.value] === true)
+const genericBreadthError = computed(() => {
+  if (breadthConditionKind.value === 'python_series') {
+    if (breadthPythonSeriesError.value) return breadthPythonSeriesError.value
+    if (breadthPythonSeriesStatus.value === 'failed') return 'The isolated Python breadth run failed.'
+    if (breadthPythonSeriesStatus.value === 'canceled') return 'The isolated Python breadth run was canceled.'
+    return null
+  }
+  return workspaceStore.genericBreadthErrors[genericBreadthKey.value] ?? workspaceStore.genericBreadthHistoryErrors[genericBreadthKey.value] ?? null
+})
 const genericBreadthPercentage = computed(() => genericBreadth.value?.percentage == null ? 'Unavailable' : `${(genericBreadth.value.percentage * 100).toFixed(1)}%`)
 const genericBreadthCoverage = computed(() => genericBreadth.value == null ? 'Unavailable' : `${(genericBreadth.value.coverage * 100).toFixed(1)}%`)
 const genericBreadthMemberState = ref<'pass' | 'fail'>('pass')
@@ -2071,6 +2187,11 @@ function genericBreadthDiagnosticLabel(diagnostic: { path: string; kind: string;
   return `${diagnostic.path} ${diagnostic.kind} ${state}${diagnostic.code ? ` (${diagnostic.code})` : ''}`
 }
 async function runGenericBreadth() {
+  if (breadthConditionKind.value === 'python_series') {
+    if (breadthPythonSeriesCodeVersionId.value == null) return
+    await workspaceStore.loadPythonBreadth(breadthPythonSeriesRequest.value, breadthPythonSeriesKey.value)
+    return
+  }
   await Promise.all([
     workspaceStore.loadGenericBreadth(genericBreadthDefinition.value, genericBreadthKey.value),
     workspaceStore.loadGenericBreadthHistory(genericBreadthDefinition.value, genericBreadthKey.value),
@@ -2793,6 +2914,25 @@ function setBreadthGroup(groupKey: string) {
 function setBreadthConfiguration(configuration: Record<string, unknown>) {
   breadthDraftConfiguration.value = { ...breadthDraftConfiguration.value, ...configuration }
   emit('configuration', props.tool.instance_key, { ...props.tool.configuration, ...breadthDraftConfiguration.value })
+}
+async function loadBreadthPythonSeriesAssets() {
+  if (props.tool.instance_key !== 'breadth-summary' && props.tool.tool_type !== 'breadth') return
+  breadthPythonSeriesAssetsLoading.value = true
+  try {
+    const assets = await fetchCodeAssets(queryClient)
+    breadthPythonSeriesAssets.value = assets
+      .filter((asset: CodeAssetSummary) => asset.kind === 'condition')
+      .flatMap((asset: CodeAssetSummary) => {
+        const version = asset.versions[asset.versions.length - 1]
+        return version?.id != null && version.output_contract === 'series'
+          ? [{ versionId: version.id, name: `${asset.name} v${version.version_number}` }]
+          : []
+      })
+  } catch {
+    breadthPythonSeriesAssets.value = []
+  } finally {
+    breadthPythonSeriesAssetsLoading.value = false
+  }
 }
 async function loadBreadthUniverse(groupKey: string, timeframe = breadthTimeframe.value, adjusted = breadthAdjusted.value, lookback = breadthLookback.value) {
   const options = { ...(timeframe !== 'D1' ? { timeframe } : {}), ...(adjusted !== true ? { adjusted } : {}), ...(lookback !== 20 ? { new_high_lookback: lookback } : {}), ...(familyAsOf.value ? { as_of: familyAsOf.value } : {}) }

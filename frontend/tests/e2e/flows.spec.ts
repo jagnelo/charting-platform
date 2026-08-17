@@ -3650,6 +3650,51 @@ test.describe('TC2000 workstation', () => {
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
+  test('F8s-breadth-python-series — numeric Python condition assets run through isolated breadth', async ({ page, browserDiagnostics }) => {
+    const queuedRequests: Array<Record<string, unknown>> = []
+    await page.route('**/api/v1/code/assets', async route => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify([{ kind: 'condition', name: 'Close distance study', versions: [{ id: 17, version_number: 1, output_contract: 'series' }] }]),
+      })
+    })
+    await page.route('**/api/v1/analysis/breadth/python', async route => {
+      if (route.request().method() !== 'POST') return route.continue()
+      queuedRequests.push(JSON.parse(route.request().postData() ?? '{}') as Record<string, unknown>)
+      await route.fulfill({
+        status: 202,
+        contentType: 'application/json',
+        body: JSON.stringify({ run_id: 91, code_version_id: 17, status: 'queued', execution_mode: 'breadth_history', output_contract: 'series', series_target: { operator: 'gte', threshold: 0.02 }, definition_hash: 'python-series', universe: { kind: 'group', key: 'sp500-sectors' }, condition: { output_contract: 'series' }, dataset_manifest: {}, progress: {}, diagnostics: [] }),
+      })
+    })
+    await page.route('**/api/v1/analysis/breadth/python/runs/91', async route => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ run_id: 91, code_version_id: 17, status: 'completed', execution_mode: 'breadth_history', output_contract: 'series', series_target: { operator: 'gte', threshold: 0.02 }, definition_hash: 'python-series', universe: { kind: 'group', key: 'sp500-sectors' }, condition: { output_contract: 'series' }, dataset_manifest: { timeframe: 'D1', adjustment: 'split_adjusted' }, current: { timestamp: '2026-08-17T00:00:00Z', requested_count: 2, eligible_count: 2, pass_count: 1, excluded_count: 0, percentage: 0.5, coverage: 1, members: [{ instrument_id: 1, symbol: 'SPY', name: 'SPDR S&P 500 ETF Trust', value: true, metric: 0.025, observation_time: '2026-08-17T00:00:00Z', diagnostics: [] }], exclusions: [] }, points: [{ timestamp: '2026-08-16T00:00:00Z', requested_count: 2, eligible_count: 2, pass_count: 1, excluded_count: 0, percentage: 0.5, coverage: 1, members: [], exclusions: [] }], occurrences: [], progress: {}, diagnostics: [] }),
+      })
+    })
+    await page.goto('/chart/SPY')
+    await expect(page.locator('.workspace-layout-host')).toBeVisible({ timeout: 10_000 })
+    await page.getByRole('button', { name: 'Add tool' }).click()
+    await page.getByRole('menuitem', { name: 'Market Breadth', exact: true }).click()
+    const breadth = page.locator('.tool-window:visible').filter({ has: page.locator('.breadth-tool') }).last()
+    await expect(breadth).toBeVisible({ timeout: 10_000 })
+    const condition = breadth.locator('select[aria-label="Breadth condition"]')
+    await condition.selectOption('python_series')
+    await breadth.getByLabel('Breadth Python series condition asset').selectOption('17')
+    await breadth.getByLabel('Breadth Python series operator').selectOption('gte')
+    await breadth.getByLabel('Breadth Python series threshold').fill('0.02')
+    await breadth.getByLabel('Breadth Python series threshold').press('Tab')
+    await breadth.getByRole('button', { name: 'Evaluate' }).click()
+    await expect.poll(() => queuedRequests.length, { timeout: 10_000 }).toBe(1)
+    expect(queuedRequests[0]).toMatchObject({ code_version_id: 17, output_contract: 'series', series_target: { operator: 'gte', threshold: 0.02 }, history: true })
+    await expect(breadth.locator('.breadth-tool__custom-result')).toContainText('50.0%', { timeout: 15_000 })
+    await expect(breadth.locator('.breadth-tool__generic-drilldown')).toContainText('SPY')
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
   test('F8s-rotation — Relative Rotation exposes benchmark-scoped state semantics', async ({ page, browserDiagnostics }) => {
     await page.goto('/chart/SPY')
     await expect(page.locator('.workspace-layout-host')).toBeVisible({ timeout: 10_000 })

@@ -56,8 +56,12 @@ Acceptance now includes a bounded isolated-runner fixture whose condition CodeVe
 numeric series and whose breadth definition declares a threshold relation. The run must verify
 current and exact-timestamp historical output, numeric per-member metrics, Boolean pass/fail
 projection, denominator/coverage/exclusions, code and dataset lineage, and reproducibility. The
-source must execute only in the dedicated sandbox. Direct series-to-series/reference targets,
-visual authoring, and full promotion fan-out remain open gates and are not implied by this slice.
+source must execute only in the dedicated sandbox. The authenticated Python Library and breadth
+composer must also verify asset selection, operator/threshold authoring, durable queue/poll status,
+current/history rendering, numeric member metrics, pass/fail drill-down, and workspace retention;
+the rebuilt Chromium select → configure → evaluate path now passes. Direct series-to-series/
+reference targets, Python-series leaves inside recursive visual trees, and full promotion fan-out
+remain open gates and are not implied by this slice.
 
 ## 2026-08-17 — Prior high/low breadth sub-gate
 

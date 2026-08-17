@@ -140,9 +140,17 @@ snapshot, or SPY/QQQ substitution is evidence for a missing relationship.
       collection, and numeric member metrics. A missing response field and an initially unseeded
       test fixture were repaired at their owning boundaries before the unchanged rerun passed.
 - [x] Exposed `Numeric series target` as an explicit output-contract choice when creating a
-      condition in the authenticated Python Library, with component coverage. The breadth composer
-      still needs a dedicated run/target authoring surface; the library control is not presented as
-      that missing integration.
+      condition in the authenticated Python Library, with component coverage.
+- [x] Added the authenticated breadth composer integration: it loads the user's latest numeric
+      series condition assets, exposes operator/threshold controls, queues the isolated historical
+      run, polls durable status, and renders the current percentage, numeric member metrics,
+      pass/fail drill-down, history, and occurrence-compatible output through the existing result
+      surface. Workspace settings retain the selected CodeVersion and target relation.
+- [x] Added workspace-store polling/cancellation generation fences, focused store coverage, full
+      frontend unit/type validation, and rebuilt authenticated Chromium coverage for the real
+      select → configure → evaluate flow. The first browser attempt served a stale bundle and was
+      repaired by rebuilding the branch stack; the unchanged rerun passed. No acceptance
+      flexibility used.
 - [ ] This is the first numeric-series target slice, not the full breadth language: direct
       target-series-to-target-series/benchmark relations, visual condition-tree authoring,
       generic synchronous `python_series` leaves, and promotion into every plot/column/filter/

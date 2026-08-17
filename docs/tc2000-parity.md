@@ -92,11 +92,14 @@ historical results retain the normal member metric, pass/fail, percentage, cover
 occurrences, code version, dataset manifest, membership/as-of, and reproducibility lineage.
 
 The runner remains the sole execution boundary and receives only the declared canonical dataset.
-This slice does not yet represent a visual `python_series` breadth leaf or direct series-to-series
-target relation; those remain named parity gaps alongside full promotion fan-out.
-The Python Library does, however, now expose `Numeric series target` when creating a condition asset,
-so the contract can be authored and versioned without hand-editing API payloads. Selecting and
-running that asset from the breadth composer remains a separate open workstation integration.
+The authenticated Python Library and breadth composer now represent the numeric-series asset,
+operator/threshold target, isolated queue/poll lifecycle, current percentage, numeric member
+metrics, pass/fail drill-down, and historical output. Workspace persistence retains the selected
+CodeVersion and target relation. Focused store coverage, full frontend unit/type gates, and rebuilt
+authenticated Chromium select → configure → evaluate coverage pass; the first browser attempt
+served a stale bundle and was repaired by rebuilding the branch stack before the unchanged rerun.
+Direct series-to-series/benchmark target relations, visual condition-tree composition with Python
+series leaves, and promotion into every compatible surface remain named parity gaps.
 
 ## 2026-08-17 — Event-calendar breadth target
 
