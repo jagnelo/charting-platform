@@ -174,6 +174,13 @@ describe('MarketMapTool', () => {
     await flushPromises()
     const request = apiPost.mock.calls.map(call => call[1]).find(body => body?.color_metric === 'python')
     expect(request).toEqual(expect.objectContaining({ color_metric: 'python', python_run_id: 42 }))
+
+    await wrapper.get('select[aria-label="Market Map colour metric"]').setValue('return')
+    await wrapper.get('select[aria-label="Market Map area metric"]').setValue('python')
+    await wrapper.get('.market-map-tool__run').trigger('click')
+    await flushPromises()
+    const areaRequest = apiPost.mock.calls.map(call => call[1]).find(body => body?.area_metric === 'python')
+    expect(areaRequest).toEqual(expect.objectContaining({ area_metric: 'python', python_run_id: 42 }))
   })
 
   it('authors an event predicate for Market Map breadth colouring', async () => {

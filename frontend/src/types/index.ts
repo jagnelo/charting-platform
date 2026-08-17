@@ -851,7 +851,7 @@ export interface WatchlistSourceResolved {
 }
 
 export type MarketMapGroupBy = 'none' | 'sector' | 'industry' | 'sector_industry'
-export type MarketMapAreaMetric = 'equal' | 'market_cap' | 'weight' | 'volume'
+export type MarketMapAreaMetric = 'equal' | 'market_cap' | 'weight' | 'volume' | 'python'
 export type MarketMapColorMetric = 'return' | 'relative_return' | 'breadth' | 'python' | 'rsi_14' | 'relative_volume' | 'distance_52w_high' | 'distance_52w_low'
 
 export interface MarketMapRequest {

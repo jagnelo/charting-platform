@@ -1008,3 +1008,12 @@ Short-window relative-return maps must produce a value when two valid sessions e
 or unaligned reference bars remain explicit warnings. The focused Docker-backed integration fixture
 passes this contract; richer cross-sectional group statistics and point-in-time area semantics
 remain open.
+
+## 2026-08-17 — Numeric Python area evidence
+
+Area-output acceptance requires a completed user-owned isolated numeric-series run. Positive finite
+values must drive tile area; missing, invalid, and non-positive values must remain explicit warnings;
+Boolean runs must be rejected rather than coerced into geometry. The Docker-backed watchlist fixture
+passes numeric sizing and Boolean rejection, with frontend authoring/persistence covered by the
+Market Map component suite. Provider-declared numeric fields and point-in-time market-cap/weight
+semantics remain open.

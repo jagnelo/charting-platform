@@ -7498,3 +7498,15 @@ This closes source-to-source relative-return and derived-group reference colouri
 maps. More sophisticated cross-sectional group statistics, custom numeric area fields,
 point-in-time market-cap weights, complete provider/history population, and exact V25 visual
 approval remain open.
+
+## 2026-08-17 — Numeric Python area values
+
+Market Map now supports `area_metric=python` using a completed isolated numeric-series condition
+run. Boolean runs are rejected as an invalid area contract; numeric values must be finite and
+strictly positive. Missing, invalid, and non-positive members receive explicit warnings and no
+longer silently distort treemap geometry. The workstation reuses the same Python asset/run flow for
+colour and area, and request/cache persistence retains the run ID and output contract.
+
+This closes user-declared numeric-series sizing through the unified Python path. Provider-declared
+numeric metadata fields, complete point-in-time market-cap/weight semantics, family population, and
+exact V25 visual approval remain open.

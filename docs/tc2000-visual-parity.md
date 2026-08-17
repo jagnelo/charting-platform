@@ -689,3 +689,12 @@ labeling, derived-series method/coverage status, and reference warning states. T
 exact V25 capture for source-to-source heatmap comparison, so this state is judged against the
 represented dense source-picker, comparison, and breadth surfaces; the missing exact reference is
 retained as a named visual gap.
+
+## 2026-08-17 — Numeric Python area state
+
+The interim board-guided oracle now includes the Python numeric-area selector, completed-run
+loading/status, positive-value treemap sizing, and explicit missing/invalid/non-positive warnings.
+Boolean output is rejected with a clear validation state rather than being coerced into geometry.
+No exact V25 capture for programmable treemap sizing is present; density, control ordering,
+source-lock treatment, and warning placement therefore remain board-guided. The absent exact state
+is a tracked visual gap and is not treated as pixel-approved.

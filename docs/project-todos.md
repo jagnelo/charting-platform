@@ -118,6 +118,16 @@ The captures are behavioural/product references; Finviz artwork and branding are
 - [ ] Cross-sectional reference predicates beyond the derived equal-weight series, custom numeric
       area fields, point-in-time market-cap weights, and final visual approval remain open.
 
+#### Implementation checkpoint — numeric Python area values
+
+- [x] `area_metric=python` now reuses a completed isolated numeric-series condition run for tile
+      sizing. Boolean runs are rejected, numeric values must be finite and strictly positive, and
+      missing/non-positive members retain explicit warnings without inflating coverage. The run ID
+      and output contract remain part of the serialized request/cache identity; the workstation
+      exposes the same asset/run controls for colour and area.
+- [ ] Provider-declared numeric fields, point-in-time market-cap/weight semantics across every
+      family, and final visual approval remain open.
+
 #### Implementation checkpoint — workstation Market Map tool
 
 - [x] Added a primary-workstation `Market Map` tool backed by the batch contract. It lets the user

@@ -8,7 +8,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 from app.schemas.watchlist import WatchlistSourceRead
 
 MarketMapGroupBy = Literal["none", "sector", "industry", "sector_industry"]
-MarketMapAreaMetric = Literal["equal", "market_cap", "weight", "volume"]
+MarketMapAreaMetric = Literal["equal", "market_cap", "weight", "volume", "python"]
 MarketMapColorMetric = Literal[
     "return",
     "relative_return",
@@ -56,8 +56,8 @@ class MarketMapRequest(BaseModel):
             raise ValueError("reference_symbol and reference_source_id are mutually exclusive")
         if self.color_metric == "breadth" and not self.condition:
             raise ValueError("breadth requires condition")
-        if self.color_metric == "python" and self.python_run_id is None:
-            raise ValueError("python requires python_run_id")
+        if (self.color_metric == "python" or self.area_metric == "python") and self.python_run_id is None:
+            raise ValueError("python map output requires python_run_id")
         return self
 
 

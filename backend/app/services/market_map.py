@@ -214,7 +214,7 @@ async def _python_colour_values(
     db: AsyncSession,
     user_id: int,
     run_id: int,
-) -> dict[int, tuple[float | None, str | None, bool | None, float | None]]:
+) -> tuple[dict[int, tuple[float | None, str | None, bool | None, float | None]], str]:
     """Read completed isolated batch cells for one user-owned Python run.
 
     Python is never executed by the Market Map request. The run must already be
@@ -274,7 +274,7 @@ async def _python_colour_values(
             values[instrument_id] = (None, "python_numeric_invalid", None, numeric_metric)
         else:
             values[instrument_id] = (numeric_value, None, None, numeric_value)
-    return values
+    return values, output_contract
 
 
 def _node_metric(cells: list[MarketMapCell], area_metric: str) -> tuple[float | None, str]:
@@ -503,11 +503,16 @@ async def build_market_map(db: AsyncSession, user_id: int, request: MarketMapReq
         reference_source_membership_version,
         reference_source_member_ids,
     )
-    python_values = (
-        await _python_colour_values(db, user_id, request.python_run_id)
-        if request.color_metric == "python" and request.python_run_id is not None
-        else {}
-    )
+    python_values, python_output_contract = ({}, "")
+    if (
+        (request.color_metric == "python" or request.area_metric == "python")
+        and request.python_run_id is not None
+    ):
+        python_values, python_output_contract = await _python_colour_values(
+            db, user_id, request.python_run_id
+        )
+    if request.area_metric == "python" and python_output_contract != "series":
+        raise ValueError("python_area_requires_series")
     cached_result = await read_market_map_cache(db, user_id, cache_key)
     if cached_result is not None:
         return cached_result
@@ -551,6 +556,29 @@ async def build_market_map(db: AsyncSession, user_id: int, request: MarketMapReq
         area: float | None
         if request.area_metric == "equal":
             area = 1.0
+        elif request.area_metric == "python":
+            python_value, python_warning, _, _ = python_values.get(
+                instrument_id,
+                (None, "python_member_missing", None, None),
+            )
+            area = python_value if python_output_contract == "series" else None
+            if python_warning:
+                warnings.append(
+                    _warning(
+                        python_warning,
+                        "The isolated Python area output is unavailable for this member.",
+                        instrument_id=instrument_id,
+                    )
+                )
+            if area is None or not math.isfinite(area) or area <= 0:
+                area = None
+                warnings.append(
+                    _warning(
+                        "python_area_non_positive",
+                        "Python area values must be finite and greater than zero.",
+                        instrument_id=instrument_id,
+                    )
+                )
         elif request.area_metric == "weight":
             area = member.weight
             if area is None:

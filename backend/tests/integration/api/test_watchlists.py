@@ -896,6 +896,24 @@ class TestWatchlistsCrud:
         assert {cell["color_value"] for cell in body["cells"]} == {2.5, -0.5}
         assert body["coverage"] == 1
 
+        area_response = client.post(
+            "/api/v1/analysis/market-map",
+            headers=auth_headers,
+            json={
+                "source_id": f"watchlist:{watchlist.id}",
+                "group_by": "none",
+                "color_metric": "return",
+                "area_metric": "python",
+                "python_run_id": run.id,
+                "period": "1D",
+            },
+        )
+        assert area_response.status_code == 200, area_response.text
+        area_cells = {cell["symbol"]: cell for cell in area_response.json()["cells"]}
+        assert area_cells["AAPL"]["area_value"] == 2.5
+        assert area_cells["MSFT"]["area_value"] is None
+        assert any(item["code"] == "python_area_non_positive" for item in area_cells["MSFT"]["warnings"])
+
         boolean_run = ResearchRun(
             user_id=user.id,
             code_version_id=version.id,
@@ -937,6 +955,18 @@ class TestWatchlistsCrud:
         assert boolean_cells["AAPL"]["color_value"] == 1
         assert boolean_cells["MSFT"]["condition_value"] is False
         assert boolean_cells["MSFT"]["color_value"] == -1
+        boolean_area_response = client.post(
+            "/api/v1/analysis/market-map",
+            headers=auth_headers,
+            json={
+                "source_id": f"watchlist:{watchlist.id}",
+                "color_metric": "return",
+                "area_metric": "python",
+                "python_run_id": boolean_run.id,
+                "period": "1D",
+            },
+        )
+        assert boolean_area_response.status_code == 422
 
         invalid = client.post(
             "/api/v1/analysis/market-map",

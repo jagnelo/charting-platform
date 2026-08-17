@@ -24,7 +24,7 @@
       </label>
       <label>Area
         <select v-model="areaMetric" aria-label="Market Map area metric">
-          <option value="market_cap">Market cap</option><option value="weight">Source weight</option><option value="equal">Equal</option><option value="volume">Volume</option>
+          <option value="market_cap">Market cap</option><option value="weight">Source weight</option><option value="equal">Equal</option><option value="volume">Volume</option><option value="python">Python numeric output</option>
         </select>
       </label>
       <label>Colour
@@ -69,10 +69,10 @@
       <label v-if="colorMetric === 'breadth' && breadthConditionKind === 'event'">Lookback days
         <input v-model.number="breadthEventLookback" aria-label="Market Map breadth event lookback" type="number" min="0" max="3660" />
       </label>
-      <label v-if="colorMetric === 'python'">Python output
+      <label v-if="colorMetric === 'python' || areaMetric === 'python'">Python output
         <select v-model="pythonCodeVersionId" aria-label="Market Map Python colour asset" :disabled="pythonAssetsLoading || pythonRunLoading">
           <option :value="null">Select a Boolean or numeric-series asset</option>
-          <option v-for="asset in pythonAssets" :key="asset.versionId" :value="asset.versionId">{{ asset.name }} · {{ asset.outputContract }}</option>
+          <option v-for="asset in pythonAssets.filter(item => areaMetric !== 'python' || item.outputContract === 'series')" :key="asset.versionId" :value="asset.versionId">{{ asset.name }} · {{ asset.outputContract }}</option>
         </select>
       </label>
       <span v-if="colorMetric === 'python' && pythonRunLoading" class="market-map-tool__status">Evaluating isolated Python…</span>
@@ -454,8 +454,8 @@ async function run() {
   loading.value = true
   error.value = ''
   try {
-    if (colorMetric.value === 'python') await resolvePythonRun()
-    map.value = await fetchMarketMap({ source_id: sourceId.value, group_by: groupBy.value, period: period.value, area_metric: areaMetric.value, color_metric: colorMetric.value, condition: colorMetric.value === 'breadth' ? breadthCondition.value : null, python_run_id: colorMetric.value === 'python' ? pythonRunId.value : null, reference_symbol: (colorMetric.value === 'relative_return' || (colorMetric.value === 'breadth' && breadthConditionKind.value === 'relative_strength')) && !referenceSourceId.value ? referenceSymbol.value.toUpperCase() : null, reference_source_id: (colorMetric.value === 'relative_return' || (colorMetric.value === 'breadth' && breadthConditionKind.value === 'relative_strength')) && referenceSourceId.value ? referenceSourceId.value : null, timeframe: 'D1', adjusted: true })
+    if (colorMetric.value === 'python' || areaMetric.value === 'python') await resolvePythonRun()
+    map.value = await fetchMarketMap({ source_id: sourceId.value, group_by: groupBy.value, period: period.value, area_metric: areaMetric.value, color_metric: colorMetric.value, condition: colorMetric.value === 'breadth' ? breadthCondition.value : null, python_run_id: colorMetric.value === 'python' || areaMetric.value === 'python' ? pythonRunId.value : null, reference_symbol: (colorMetric.value === 'relative_return' || (colorMetric.value === 'breadth' && breadthConditionKind.value === 'relative_strength')) && !referenceSourceId.value ? referenceSymbol.value.toUpperCase() : null, reference_source_id: (colorMetric.value === 'relative_return' || (colorMetric.value === 'breadth' && breadthConditionKind.value === 'relative_strength')) && referenceSourceId.value ? referenceSourceId.value : null, timeframe: 'D1', adjusted: true })
     snapshotSelectionId.value = ''
     activeSnapshotName.value = ''
     selectedNode.value = null
