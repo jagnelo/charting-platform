@@ -1,5 +1,20 @@
 # Active Handoff
 
+## 2026-08-17 — Research Results occurrence-filter checkpoint
+
+- Added symbol substring and member-entered/member-exited transition filters to the persisted
+  Python breadth occurrence browser. Controls are keyboard-accessible, expose a live visible
+  count, and show an explicit no-match state. They filter immutable persisted rows only.
+- Filtered event clicks still emit symbol, timestamp, kind, and canonical instrument ID through
+  the existing occurrence/link bus. No alternate navigation or definition mutation was added.
+- Validation: Research Results component 12/12, full frontend Vitest 838/838, vue-tsc,
+  production build, and diff checks pass. No acceptance flexibility used.
+- Implementation/docs commit: 98dc8435 feat(research): filter breadth occurrences; worktree is
+  clean locally. Exact push was attempted once and rejected before Git by the private-origin
+  safeguard; no workaround or repeat. Transport-only and not a goal-wide blocker.
+- Next context: apply filtering consistently to other event artifacts and implement compatible
+  occurrence promotion targets.
+
 ## 2026-08-17 — Persisted Python breadth occurrence result checkpoint
 
 - Closed the Research Results boundary gap for isolated Python breadth history. The collection

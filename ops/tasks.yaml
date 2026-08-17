@@ -1,4 +1,23 @@
 tasks:
+  - id: tc2000-python-breadth-occurrence-filtering-20260817
+    title: Filter persisted Python breadth occurrences
+    status: completed
+    priority: high
+    scope: >-
+      Add keyboard-accessible symbol and entered/exited transition filters over persisted Python
+      breadth occurrence rows while preserving the canonical occurrence/link bus.
+    definition_of_done:
+      - Symbol substring and transition filters update visible count and no-match state
+      - Filtered clicks retain symbol, timestamp, kind, and canonical instrument ID
+      - Component, full frontend, type-check, and production build gates pass
+      - Other event artifact filtering and promotion gaps remain documented
+    validation:
+      - research-results-component-12-of-12
+      - frontend-vitest-838-of-838
+      - frontend-type-check-production-build
+      - diff-check
+    notes:
+      - No acceptance flexibility used; filtering is presentation state over immutable persisted rows.
   - id: tc2000-python-breadth-occurrence-results-20260817
     title: Surface collected Python breadth history in Research Results
     status: completed

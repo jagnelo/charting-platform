@@ -1,5 +1,14 @@
 # Run Report
 
+## 2026-08-17 — Research Results occurrence-filter checkpoint
+
+- Added keyboard-accessible symbol and transition filters over persisted Python breadth
+  occurrences, with live count, no-match state, and unchanged canonical link-bus events.
+- Validation: component 12/12, full frontend Vitest 838/838, type-check, production build,
+  and diff checks. No acceptance flexibility.
+- Git closure: implementation/docs commit 98dc8435 is clean locally. Exact push was attempted
+  once and rejected before Git by the private-origin safeguard; no workaround or repeat.
+
 ## 2026-08-17 — Persisted Python breadth occurrence result checkpoint
 
 - Added collection-boundary projection of isolated Python breadth-history runner cells into the
