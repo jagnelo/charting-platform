@@ -11229,3 +11229,35 @@ tasks:
         private-origin safeguard with no workaround or retry. Operational checkpoint 7011d078 is
         committed and the worktree is clean; its push was rejected by the same safeguard. The next
         context is richer cross-sectional statistics and Python target-series leaves.
+  - id: tc2000-richer-cross-sectional-statistics-20260818
+    title: Add explicit group-statistic breadth targets
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Extend the universal locked/editable watchlist, Market Map, and Study Lab breadth contract
+      with deterministic cross-sectional group statistics while preserving one canonical source
+      model, explicit exclusions, and member-minus-group diagnostics.
+    definition_of_done:
+      - Cross-sectional statistic leaves support mean, median, min, max, and population standard deviation
+      - Current API and isolated current/history runner share same semantic output and exclusions
+      - Market Map and breadth condition editors serialize the leaf without losing cross-sectional scope
+      - Backend, frontend, Docker-backed integration, build, lint, compile, and diff gates pass
+      - Arbitrary Python target-series, provider/family population, and exact V25 visual gaps remain explicit
+    validation:
+      - breadth-cross-sectional-5-of-5
+      - research-runner-cross-sectional-4-of-4
+      - docker-market-map-cross-sectional-statistic-1-of-1
+      - backend-unit-1195-of-1195
+      - frontend-focused-24-of-24
+      - frontend-vitest-870-of-870
+      - frontend-typecheck-build
+      - ruff-compileall-diff-check
+    notes:
+      - >-
+        The initial integration invocation was blocked only by the unprivileged Docker socket;
+        the unchanged elevated rerun passed. No acceptance flexibility, visual threshold, baseline,
+        mask, or provider rule was relaxed. Implementation/docs commit d00236c5 is clean locally;
+        its one exact push attempt was rejected before Git by the private-origin safeguard, with no
+        workaround or retry. The operational checkpoint is recorded separately. Next context is
+        Python target-series leaves and promotion across compatible targets.

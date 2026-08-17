@@ -30223,3 +30223,26 @@ indefinite soak; longer endurance remains an explicit open gap.
   attempted. Next context: richer cross-sectional statistics and Python target-series leaves.
   Remaining gaps include full family/provider population, exact V25 mixed-statistics visual
   evidence, and final audit.
+
+# 2026-08-18 — Cross-sectional group-statistic breadth checkpoint
+
+- Added one explicit `cross_sectional_statistic` leaf to the canonical breadth contract. It
+  supports mean, median, minimum, maximum, and population standard deviation over eligible
+  same-timestamp member scalars. Each result reports the member-minus-group delta, comparison
+  outcome, exclusion reason, coverage, and aggregate `group_value`.
+- The local API evaluator, nested mixed-scope Market Map evaluator, isolated Study Lab runner, and
+  both quick and advanced frontend condition editors now share this semantic contract. Locked
+  index/ETF/group sources remain selectable and map-able; only membership mutation stays disabled.
+- Validation passed: breadth cross-sectional `5/5`, runner cross-sectional `4/4`, Docker-backed
+  Market Map integration `1/1` after unchanged elevated rerun from the socket setup boundary, full
+  backend unit `1195/1195`, focused frontend `24/24`, full Vitest `870/870`, `vue-tsc`, Vite
+  production build, Ruff, compileall, and `git diff --check`.
+- No acceptance flexibility, visual threshold, baseline, mask, provider rule, or completion
+  criterion was relaxed. The exact V25 group-statistic visual state remains an explicit reference
+  board gap. Arbitrary Python target-series leaves, full family/provider population, and final
+  functional/visual/security/performance audit remain open.
+- Implementation/docs commit `d00236c5` is clean locally. Its one exact push attempt was rejected
+  before Git by the private-origin safeguard; no workaround, alternate transport, rewrite, reset,
+  stash, or retry was attempted. This is transport-only and not a product blocker. The operational
+  checkpoint is being committed separately; its enclosing commit will be verified with `git rev-parse`.
+- Next context: Python target-series leaves and promotion across compatible targets.

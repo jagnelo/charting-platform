@@ -28408,3 +28408,20 @@ and strict visual gaps remain explicitly tracked.
   checkpoint `7011d078` is now committed and the worktree is clean; its exact push attempt was
   rejected by the same safeguard. Next context is richer cross-sectional statistics and Python
   target-series leaves.
+
+# 2026-08-18 — Cross-sectional group-statistic breadth checkpoint
+
+- Added deterministic group-statistic targets to the universal breadth/Market Map/Study Lab path:
+  mean, median, min, max, and population standard deviation. Group values are computed from
+  eligible same-timestamp member scalars; each member exposes its scalar-minus-group delta,
+  pass/fail result, exclusion, and the aggregate group value.
+- Validation: breadth cross-sectional `5/5`; isolated runner cross-sectional `4/4`; Docker-backed
+  Market Map integration `1/1` after an unchanged elevated rerun from the unprivileged Docker
+  socket setup failure; full backend unit `1195/1195`; focused frontend `24/24`; full Vitest
+  `870/870`; `vue-tsc`; Vite production build; Ruff; compileall; and `git diff --check`.
+- No acceptance flexibility was used. No visual threshold, baseline, mask, provider rule, or
+  completion criterion changed. Exact V25 group-statistic visual evidence remains a tracked board
+  gap; arbitrary Python target-series, complete family/provider population, and final audit remain.
+- Implementation/docs commit: `d00236c5`. One exact push attempt was rejected before Git by the
+  private-origin safeguard. No retry, workaround, alternate transport, rewrite, reset, or stash.
+  Operational checkpoint follows as a separate commit.
