@@ -30248,6 +30248,27 @@ indefinite soak; longer endurance remains an explicit open gap.
   by the same safeguard.
 - Next context: Python target-series leaves and promotion across compatible targets.
 
+# 2026-08-18 — Cross-sectional Python numeric-series checkpoint
+
+- Extended the existing isolated Python numeric-series breadth path with `scope: cross_sectional`.
+  Each member's numeric output is materialized first; the runner computes a same-timestamp mean,
+  median, minimum, maximum, or population standard deviation, replaces the member metric with its
+  member-minus-group delta, and applies the declared operator/threshold.
+- Current batch and aligned history now return `group_value`, member pass/fail, delta metrics,
+  exclusions, coverage, and existing dataset/code reproducibility lineage. Member-scoped requests
+  remain backward-compatible. The workstation exposes scope and statistic controls.
+- Validation passed: runner Python-series `4/4`; Docker-backed API Python-breadth slice `2/2` after
+  unchanged elevated rerun from the Docker-socket setup boundary; full frontend Vitest `870/870`,
+  `vue-tsc`, production build, Ruff, compileall, and `git diff --check`.
+- No acceptance flexibility, visual threshold, baseline, mask, provider rule, or completion
+  criterion was relaxed. Exact V25 visual evidence for this state remains a reference-board gap.
+  Recursive visual-tree Python leaves, direct series/reference relations, promotion fan-out, full
+  family/provider population, and final audit remain open.
+- Implementation/docs commit `97d050ec` is clean locally. Its one exact push attempt was rejected
+  before Git by the private-origin safeguard; no workaround, alternate transport, rewrite, reset,
+  stash, or retry was attempted. Operational checkpoint is being committed separately.
+- Next context: recursive visual-tree Python leaves and promotion across compatible targets.
+
 # 2026-08-18 — Stale cross-sectional gap documentation correction
 
 - Corrected the controlling TODO, parity, and acceptance-governance wording that still described

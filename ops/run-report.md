@@ -28432,3 +28432,15 @@ and strict visual gaps remain explicitly tracked.
   no longer claim that the implemented mean/median/min/max/std group-statistic leaf is still open.
   Arbitrary Python/derived target series and richer statistics beyond the declared set remain open.
 - Documentation commit `71d3d7c5` is clean locally. No acceptance flexibility or product rule changed.
+
+# 2026-08-18 — Cross-sectional Python numeric-series checkpoint
+
+- The isolated Python numeric-series breadth path now supports cross-sectional mean, median, min,
+  max, and population-standard-deviation targets. It computes `group_value` and member-minus-group
+  deltas after materializing user code output, for both current and aligned historical results.
+- Validation: runner `4/4`; Docker-backed API Python-breadth `2/2` after unchanged elevated rerun;
+  frontend Vitest `870/870`; `vue-tsc`; Vite build; Ruff; compileall; and `git diff --check`.
+- No acceptance flexibility or visual/provider rule changed. Recursive AST Python leaves, direct
+  series/reference relations, promotion fan-out, family/provider population, and final audit remain.
+- Implementation/docs commit `97d050ec`; one exact push attempt was rejected before Git by the
+  private-origin safeguard. No retry or workaround. Operational checkpoint follows separately.

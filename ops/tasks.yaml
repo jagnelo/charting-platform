@@ -11261,3 +11261,33 @@ tasks:
         its one exact push attempt was rejected before Git by the private-origin safeguard, with no
         workaround or retry. The operational checkpoint is recorded separately. Next context is
         Python target-series leaves and promotion across compatible targets.
+  - id: tc2000-python-cross-sectional-series-20260818
+    title: Apply group statistics to isolated Python numeric-series breadth
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Extend the existing isolated numeric Python-series breadth path with a cross-sectional
+      target scope, preserving member values, exact group statistic, delta metrics, exclusions,
+      and reproducibility in current and historical results.
+    definition_of_done:
+      - Numeric-series targets support member and cross-sectional scopes
+      - Cross-sectional scope supports mean, median, min, max, and population standard deviation
+      - Current batch and aligned history apply member-minus-group threshold semantics
+      - API validates and persists scope/statistic; workstation exposes controls
+      - Runner, API integration, frontend type/build, lint, compile, and diff gates pass
+      - Recursive AST Python leaves, direct series/reference relations, and promotion fan-out remain explicit
+    validation:
+      - research-runner-python-series-4-of-4
+      - docker-python-breadth-2-of-2
+      - frontend-vitest-870-of-870
+      - frontend-typecheck-build
+      - ruff-compileall-diff-check
+    notes:
+      - >-
+        The first Docker-backed invocation failed only at the unprivileged socket boundary; the
+        unchanged elevated rerun passed. No acceptance flexibility, visual threshold, baseline,
+        mask, or provider rule was relaxed. Implementation/docs commit 97d050ec is clean locally;
+        its one exact push attempt was rejected before Git by the private-origin safeguard, with no
+        workaround or retry. Operational checkpoint follows separately. Next context is recursive
+        visual-tree Python leaves and promotion across compatible targets.
