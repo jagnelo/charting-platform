@@ -9,6 +9,19 @@ volume must identify its local observation bar, and current market-cap metadata 
 state that it is not point-in-time. This provenance gate does not waive the separate requirement
 for historical market-cap/weight reconstruction.
 
+## 2026-08-19 — Explicit canonical selection sub-gate
+
+Acceptance must allow a user to enter multiple symbols in Market Map, resolve each through the
+canonical security master, deduplicate the resulting instrument IDs, and submit an explicit source
+without provider fan-out. The backend must reject malformed/oversized IDs, report missing canonical
+instruments, mark the source locked and non-point-in-time, and preserve the same map metrics,
+coverage, cache, snapshot, and linked-analysis contract as other sources. The input must be
+persisted in tool state and offer the durable personal-watchlist save path. Historical membership
+versioning and exact V25 explicit-source visual geometry remain separate open gates.
+
+The migration gate must also exercise upgrade/downgrade of `fa0b1c2d3e4f` and verify that a
+near-limit explicit source ID survives cache and snapshot persistence without truncation.
+
 ## 2026-08-19 — Universal combo-source sub-gate
 
 Acceptance must treat a user-owned combo list as the same Market Map universe contract as an index,

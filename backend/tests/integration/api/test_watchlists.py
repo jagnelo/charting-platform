@@ -835,6 +835,67 @@ class TestWatchlistsCrud:
         assert market_map.json()["requested_count"] == 1
         assert [cell["symbol"] for cell in market_map.json()["cells"]] == [instrument.symbol]
 
+    def test_explicit_canonical_selection_is_a_locked_ephemeral_market_map_source(
+        self, client, auth_headers, db, instrument, instrument_b
+    ):
+        from app.models.ohlcv import OHLCVBar, Timeframe
+
+        base = datetime(2024, 1, 1, tzinfo=UTC)
+        for member in (instrument, instrument_b):
+            for day, close in enumerate((100, 101)):
+                db.add(
+                    OHLCVBar(
+                        instrument_id=member.id,
+                        timeframe=Timeframe.D1,
+                        ts=base + timedelta(days=day),
+                        open=close,
+                        high=close + 1,
+                        low=close - 1,
+                        close=close,
+                        volume=1000,
+                        is_adjusted=True,
+                    )
+                )
+        db.flush()
+        source_id = f"explicit:{instrument.id},{instrument_b.id},{instrument.id}"
+        resolved = client.get(
+            f"/api/v1/watchlists/sources/{source_id}", headers=auth_headers
+        )
+        assert resolved.status_code == 200, resolved.text
+        payload = resolved.json()
+        assert payload["source"]["source_kind"] == "explicit"
+        assert payload["source"]["locked"] is True
+        assert payload["source"]["provenance"]["point_in_time"] is False
+        assert [member["instrument_id"] for member in payload["members"]] == [
+            instrument.id,
+            instrument_b.id,
+        ]
+
+        market_map = client.post(
+            "/api/v1/analysis/market-map",
+            headers=auth_headers,
+            json={
+                "source_id": source_id,
+                "period": "1D",
+                "area_metric": "equal",
+                "color_metric": "return",
+                "end": "2024-01-03T00:00:00Z",
+            },
+        )
+        assert market_map.status_code == 200, market_map.text
+        assert market_map.json()["source"]["source_kind"] == "explicit"
+        assert market_map.json()["requested_count"] == 2
+
+        malformed = client.get(
+            "/api/v1/watchlists/sources/explicit:NVDA", headers=auth_headers
+        )
+        assert malformed.status_code == 400
+        oversized = client.get(
+            "/api/v1/watchlists/sources/explicit:" + ",".join(str(index) for index in range(1, 502)),
+            headers=auth_headers,
+        )
+        assert oversized.status_code == 400
+
     def test_list_returns_existing_watchlists(self, client, auth_headers, watchlist):
         res = client.get("/api/v1/watchlists", headers=auth_headers)
         assert res.status_code == 200

@@ -4,6 +4,21 @@ The current Market Map also exports its loaded canonical cells to CSV, including
 hierarchy, area/colour values, coverage, observation time, and warning codes. Export is source
 neutral for locked system-managed and editable watchlists and does not change route or selection.
 
+## 2026-08-19 — Explicit symbol selections use canonical WatchlistSource semantics
+
+Market Map now accepts an ephemeral `explicit:<canonical-instrument-id,...>` source. The
+workstation resolves comma/space-separated symbols through the canonical security master with
+`canonical_only=true`, deduplicates the IDs, and submits no provider-specific symbols to the batch
+API. The backend returns a locked `source_kind=explicit` descriptor, explicit missing-instrument
+exclusions, fixed-selection provenance, and the same map grouping, metrics, coverage, cache,
+snapshot, selection, and linked-analysis behavior as saved watchlists and index/ETF sources. The
+selection is clearly labelled non-point-in-time and can be saved as a durable personal watchlist;
+historical explicit membership/versioning remains an open gate.
+
+The explicit source identifier storage was widened in migration `fa0b1c2d3e4f`; the frontend and
+backend retain the same 500-member bound so cache and snapshot persistence cannot truncate the
+canonical selection.
+
 ## 2026-08-19 — Combo watchlists use the universal Market Map source contract
 
 User-owned combo lists are now exposed as `combo:<stable_key>` `WatchlistSource` descriptors. The

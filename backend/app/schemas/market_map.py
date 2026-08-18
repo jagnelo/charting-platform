@@ -32,7 +32,7 @@ MarketMapColorMetric = Literal[
 class MarketMapRequest(BaseModel):
     """A bounded, reproducible map calculation over one canonical source."""
 
-    source_id: str = Field(min_length=1, max_length=240)
+    source_id: str = Field(min_length=1, max_length=4096)
     group_by: MarketMapGroupBy = "sector_industry"
     period: str = Field(default="1D", min_length=1, max_length=24)
     start: datetime | None = None

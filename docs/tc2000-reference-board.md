@@ -1,5 +1,14 @@
 # TC2000 Version 25 composite reference board
 
+## 2026-08-19 explicit-source reference gap
+
+The board does not contain an authoritative V25 capture of the exact multi-symbol ad-hoc universe
+entry and its locked/ephemeral provenance treatment. The workstation now uses the board's dense
+universe-control language, resolves symbols to canonical IDs, and renders the same Market Map as
+saved lists and index/ETF sources. Functional resolution, deduplication, missing-symbol, and map
+orchestration tests are the interim oracle; historical explicit membership and exact visual
+geometry remain tracked gaps.
+
 ## 2026-08-19 universal derived-watchlist reference gap
 
 The board supports the product decision that a combo watchlist should render in the same dense

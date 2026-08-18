@@ -2,13 +2,18 @@
   <section class="market-map-tool" aria-label="Universe market map" :aria-busy="loading ? 'true' : 'false'">
     <div class="market-map-tool__controls">
       <label>Universe
-        <select v-model="sourceId" aria-label="Market Map universe" :disabled="loadingSources">
+        <select v-model="sourceId" aria-label="Market Map universe" :disabled="loadingSources" @change="explicitSymbols = ''">
           <option value="">Select a universe</option>
+          <option v-if="sourceId.startsWith('explicit:')" :value="sourceId">Explicit symbols · Locked</option>
           <option v-for="source in sources" :key="source.source_id" :value="source.source_id">
-            {{ source.pinned ? '★ ' : '' }}{{ source.name }}{{ source.locked ? ' · Managed' : '' }}
+            {{ source.pinned ? '★ ' : '' }}{{ source.name }}{{ source.locked ? ' · Locked' : '' }}
           </option>
         </select>
       </label>
+      <label>Explicit symbols
+        <input v-model.trim="explicitSymbols" aria-label="Market Map explicit symbols" placeholder="SPY, NVDA, MSFT" @keydown.enter.prevent="run" />
+      </label>
+      <small v-if="explicitSymbols.trim()" class="market-map-tool__explicit-hint">Canonical selection · save it as a personal watchlist for durable membership</small>
       <div v-if="activeSource" class="market-map-tool__source-actions" aria-label="Market Map source preferences">
         <button v-if="activeSource.can_follow" type="button" :aria-pressed="sourceFollowed" :aria-label="sourceFollowed ? `Unfollow ${activeSource.name}` : `Follow ${activeSource.name}`" @click="toggleSourceFollow">{{ sourceFollowed ? 'Following' : 'Follow' }}</button>
         <button v-if="activeSource.can_clone" type="button" :aria-pressed="sourcePinned" :aria-label="sourcePinned ? `Unpin ${activeSource.name}` : `Pin ${activeSource.name}`" @click="toggleSourcePin">{{ sourcePinned ? 'Pinned' : 'Pin' }}</button>
@@ -106,7 +111,7 @@
       </label>
       <span v-if="colorMetric === 'python' && pythonRunLoading" class="market-map-tool__status">Evaluating isolated Python…</span>
       <span v-if="colorMetric === 'python' && pythonRunError" class="market-map-tool__status--error" role="alert">{{ pythonRunError }}</span>
-      <button type="button" class="market-map-tool__run" :disabled="loading || !sourceId" @click="run">{{ loading ? 'Loading…' : 'Refresh' }}</button>
+      <button type="button" class="market-map-tool__run" :disabled="loading || (!sourceId && !explicitSymbols.trim())" @click="run">{{ loading ? 'Loading…' : 'Refresh' }}</button>
       <label>Snapshot
         <select v-model="snapshotSelectionId" aria-label="Market Map snapshot" :disabled="snapshotLoading">
           <option value="">Live / cached result</option>
@@ -178,7 +183,7 @@
       </div>
     </div>
     <aside v-if="hoveredCell" class="market-map-tool__hover" role="status"><strong>{{ hoveredCell.symbol }}</strong><span>{{ hoveredCell.name }}</span><span>{{ hoveredCell.group_path.join(' · ') || 'All members' }}</span><span>Combined {{ coveragePercent(hoveredCell.coverage, 0) }}% · Colour {{ coveragePercent(hoveredCell.color_coverage, hoveredCell.coverage) }}% · Area {{ coveragePercent(hoveredCell.area_coverage, hoveredCell.coverage) }}%</span><span v-if="hoveredCell.warnings.length">{{ hoveredCell.warnings.map(item => item.message).join(' · ') }}</span></aside>
-    <p v-if="!map && !loading" class="market-map-tool__status">Choose a managed index/ETF universe or personal watchlist to build a map.</p>
+    <p v-if="!map && !loading" class="market-map-tool__status">Choose a canonical universe, personal watchlist, or explicit symbols to build a map.</p>
   </section>
 </template>
 
@@ -189,6 +194,7 @@ import { api } from '@/lib/api'
 import { useWatchlistStore } from '@/stores/watchlist'
 import { useUserSettingsStore } from '@/stores/userSettings'
 import { invalidateCodeAssets } from '@/lib/workstation/libraryQueries'
+import { resolveKnownInstrument } from '@/lib/instruments'
 import BreadthConditionTreeEditor, { type BreadthConditionNode } from './BreadthConditionTreeEditor.vue'
 import { deleteMarketMapSnapshot, fetchMarketMap, fetchMarketMapSnapshot, fetchMarketMapSnapshots, layoutMarketMapCells, saveMarketMapSnapshot, type MarketMapLayoutCell } from '@/lib/workstation/marketMap'
 import type { MarketMap, MarketMapAreaMetric, MarketMapCell, MarketMapColorMetric, MarketMapGroupBy, MarketMapNumericAreaField, MarketMapSnapshotSummary, WatchlistSource } from '@/types'
@@ -208,6 +214,7 @@ const sources = computed(() => [...watchlistStore.watchlistSources]
   .map(source => ({ ...source, pinned: userSettingsStore.pinnedSourceIds.includes(source.source_id) }))
   .sort((left, right) => Number(right.pinned) - Number(left.pinned) || left.name.localeCompare(right.name)))
 const sourceId = ref(String(props.configuration.source_id ?? ''))
+const explicitSymbols = ref(String(props.configuration.explicit_symbols ?? ''))
 const groupBy = ref<MarketMapGroupBy>((props.configuration.group_by as MarketMapGroupBy) ?? 'sector_industry')
 const sortBy = ref<MarketMapSort>((props.configuration.sort_by as MarketMapSort) ?? 'area_desc')
 const period = ref(String(props.configuration.period ?? '1D'))
@@ -657,12 +664,25 @@ function exportCsv() {
 }
 
 async function run() {
-  if (!sourceId.value) return
+  if (!sourceId.value && !explicitSymbols.value.trim()) return
   loading.value = true
   error.value = ''
   try {
+    let requestSourceId = sourceId.value
+    if (explicitSymbols.value.trim()) {
+      const symbols = [...new Set(explicitSymbols.value.split(/[\s,]+/).map(item => item.trim().toUpperCase()).filter(Boolean))]
+      if (symbols.length > 500) throw new Error('Explicit Market Map selections are limited to 500 symbols; save a larger universe as a watchlist.')
+      const resolved = await Promise.all(symbols.map(symbol => resolveKnownInstrument(symbol, 'Explicit symbol', { canonicalOnly: true })))
+      const ids = resolved.map(item => item.id)
+      if (ids.some(id => id == null)) throw new Error('Every explicit symbol must resolve to a canonical instrument.')
+      requestSourceId = `explicit:${ids.join(',')}`
+      if (sourceId.value !== requestSourceId) {
+        skipNextSourceRun.value = true
+        sourceId.value = requestSourceId
+      }
+    }
     if (colorMetric.value === 'python' || areaMetric.value === 'python') await resolvePythonRun()
-    map.value = await fetchMarketMap({ source_id: sourceId.value, group_by: groupBy.value, period: period.value, start: period.value === 'CUSTOM' && startDate.value ? startDate.value : null, end: period.value === 'CUSTOM' && endDate.value ? `${endDate.value}T23:59:59Z` : null, area_metric: areaMetric.value, area_field: areaMetric.value === 'field' ? areaField.value : null, color_metric: colorMetric.value, condition: colorMetric.value === 'breadth' ? breadthCondition.value : null, python_run_id: colorMetric.value === 'python' || areaMetric.value === 'python' ? pythonRunId.value : null, reference_symbol: (colorMetric.value === 'relative_return' || referenceNeeded.value) && !referenceSourceId.value ? referenceSymbol.value.toUpperCase() : null, reference_source_id: (colorMetric.value === 'relative_return' || referenceNeeded.value) && referenceSourceId.value ? referenceSourceId.value : null, timeframe: 'D1', adjusted: true })
+    map.value = await fetchMarketMap({ source_id: requestSourceId, group_by: groupBy.value, period: period.value, start: period.value === 'CUSTOM' && startDate.value ? startDate.value : null, end: period.value === 'CUSTOM' && endDate.value ? `${endDate.value}T23:59:59Z` : null, area_metric: areaMetric.value, area_field: areaMetric.value === 'field' ? areaField.value : null, color_metric: colorMetric.value, condition: colorMetric.value === 'breadth' ? breadthCondition.value : null, python_run_id: colorMetric.value === 'python' || areaMetric.value === 'python' ? pythonRunId.value : null, reference_symbol: (colorMetric.value === 'relative_return' || referenceNeeded.value) && !referenceSourceId.value ? referenceSymbol.value.toUpperCase() : null, reference_source_id: (colorMetric.value === 'relative_return' || referenceNeeded.value) && referenceSourceId.value ? referenceSourceId.value : null, timeframe: 'D1', adjusted: true })
     snapshotSelectionId.value = ''
     activeSnapshotName.value = ''
     selectedNode.value = null
@@ -675,9 +695,9 @@ async function run() {
   }
 }
 function persist() {
-  emit('configuration', { ...props.configuration, source_id: sourceId.value, group_by: groupBy.value, sort_by: sortBy.value, period: period.value, start_date: period.value === 'CUSTOM' ? startDate.value : null, end_date: period.value === 'CUSTOM' ? endDate.value : null, area_metric: areaMetric.value, area_field: areaMetric.value === 'field' ? areaField.value : null, color_metric: colorMetric.value, condition: colorMetric.value === 'breadth' ? breadthCondition.value : null, advanced_breadth_editor: advancedBreadthEditor.value, python_code_version_id: pythonCodeVersionId.value, python_run_id: pythonRunId.value, breadth_condition_kind: breadthConditionKind.value, breadth_condition_period: breadthConditionPeriod.value, breadth_condition_threshold: breadthConditionThreshold.value, breadth_event_type: breadthEventType.value, breadth_event_lookback: breadthEventLookback.value, reference_symbol: referenceSymbol.value, reference_source_id: referenceSourceId.value, definition_name: definitionName.value })
+  emit('configuration', { ...props.configuration, source_id: sourceId.value, explicit_symbols: explicitSymbols.value || null, group_by: groupBy.value, sort_by: sortBy.value, period: period.value, start_date: period.value === 'CUSTOM' ? startDate.value : null, end_date: period.value === 'CUSTOM' ? endDate.value : null, area_metric: areaMetric.value, area_field: areaMetric.value === 'field' ? areaField.value : null, color_metric: colorMetric.value, condition: colorMetric.value === 'breadth' ? breadthCondition.value : null, advanced_breadth_editor: advancedBreadthEditor.value, python_code_version_id: pythonCodeVersionId.value, python_run_id: pythonRunId.value, breadth_condition_kind: breadthConditionKind.value, breadth_condition_period: breadthConditionPeriod.value, breadth_condition_threshold: breadthConditionThreshold.value, breadth_event_type: breadthEventType.value, breadth_event_lookback: breadthEventLookback.value, reference_symbol: referenceSymbol.value, reference_source_id: referenceSourceId.value, definition_name: definitionName.value })
 }
-watch([sourceId, groupBy, sortBy, period, startDate, endDate, areaMetric, areaField, colorMetric, referenceSymbol, referenceSourceId, pythonCodeVersionId, pythonRunId, breadthConditionKind, breadthConditionPeriod, breadthConditionThreshold, breadthEventType, breadthEventLookback, advancedBreadthEditor, breadthConditionTree, definitionName], persist, { deep: true })
+watch([sourceId, explicitSymbols, groupBy, sortBy, period, startDate, endDate, areaMetric, areaField, colorMetric, referenceSymbol, referenceSourceId, pythonCodeVersionId, pythonRunId, breadthConditionKind, breadthConditionPeriod, breadthConditionThreshold, breadthEventType, breadthEventLookback, advancedBreadthEditor, breadthConditionTree, definitionName], persist, { deep: true })
 watch(sourceId, () => {
   if (skipNextSourceRun.value) {
     skipNextSourceRun.value = false
@@ -696,11 +716,11 @@ onMounted(async () => {
   } catch (cause) {
     snapshotError.value = cause instanceof Error ? cause.message : 'Unable to load Market Map snapshots'
   }
-  if (!sourceId.value) {
+  if (!sourceId.value && !explicitSymbols.value.trim()) {
     const preferred = sources.value.find((item: WatchlistSource) => item.source_kind === 'index_membership' || item.source_kind === 'etf_holdings') ?? sources.value[0]
     if (preferred) sourceId.value = preferred.source_id
   }
-  if (sourceId.value) await run()
+  if (sourceId.value || explicitSymbols.value.trim()) await run()
 })
 </script>
 
@@ -708,6 +728,7 @@ onMounted(async () => {
 .market-map-tool { display: flex; flex-direction: column; gap: 8px; min-height: 100%; background: #11161d; color: #d4d9e2; font-size: 12px; }
 .market-map-tool__controls { display: flex; flex-wrap: wrap; gap: 6px; align-items: end; padding: 8px; background: #1b222c; border-bottom: 1px solid #303a48; }
 .market-map-tool__controls label { display: flex; flex-direction: column; gap: 3px; color: #8e9bad; font-size: 10px; text-transform: uppercase; letter-spacing: .04em; }
+.market-map-tool__explicit-hint { align-self: end; max-width: 260px; padding-bottom: 6px; color: #f7d87b; font-size: 10px; }
 .market-map-tool select, .market-map-tool input, .market-map-tool button { border: 1px solid #3c4858; background: #151c25; color: #d4d9e2; border-radius: 2px; padding: 5px 7px; font: inherit; }
 .market-map-tool__source-actions { display: flex; gap: 4px; align-items: end; padding-bottom: 0; }
 .market-map-tool__source-actions button { cursor: pointer; min-width: 58px; }

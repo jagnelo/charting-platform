@@ -381,6 +381,23 @@ describe('MarketMapTool', () => {
     }))
   })
 
+  it('resolves explicit symbols to canonical IDs before building an ephemeral map source', async () => {
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/instruments/NVDA') return Promise.resolve({ id: 1, symbol: 'NVDA', name: 'NVIDIA' })
+      if (path === '/instruments/MSFT') return Promise.resolve({ id: 2, symbol: 'MSFT', name: 'Microsoft' })
+      return Promise.resolve([])
+    })
+    const wrapper = mount(MarketMapTool, { props: { configuration: { explicit_symbols: 'NVDA, MSFT' } } })
+    await flushPromises()
+
+    const request = apiPost.mock.calls.map(call => call[1]).find(body => body?.source_id?.startsWith('explicit:'))
+    expect(request).toEqual(expect.objectContaining({ source_id: 'explicit:1,2' }))
+    expect(wrapper.emitted('configuration')?.at(-1)?.[0]).toEqual(expect.objectContaining({
+      explicit_symbols: 'NVDA, MSFT',
+      source_id: 'explicit:1,2',
+    }))
+  })
+
   it('authors an event predicate for Market Map breadth colouring', async () => {
     apiPost.mockImplementation((path: string, body?: Record<string, unknown>) => {
       if (path === '/analysis/market-map') return Promise.resolve({ ...response, color_metric: body?.color_metric, condition: body?.condition })

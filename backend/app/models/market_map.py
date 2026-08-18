@@ -28,7 +28,7 @@ class MarketMapCache(Base):
     user_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("user.id", ondelete="CASCADE"), nullable=False, index=True
     )
-    source_id: Mapped[str] = mapped_column(String(240), nullable=False)
+    source_id: Mapped[str] = mapped_column(String(4096), nullable=False)
     membership_version: Mapped[str | None] = mapped_column(String(160), nullable=True)
     cache_key: Mapped[str] = mapped_column(String(64), nullable=False)
     request_json: Mapped[dict] = mapped_column(JSON, nullable=False)
@@ -56,7 +56,7 @@ class MarketMapSnapshot(Base):
         Integer, ForeignKey("user.id", ondelete="CASCADE"), nullable=False, index=True
     )
     name: Mapped[str] = mapped_column(String(160), nullable=False)
-    source_id: Mapped[str] = mapped_column(String(240), nullable=False)
+    source_id: Mapped[str] = mapped_column(String(4096), nullable=False)
     membership_version: Mapped[str | None] = mapped_column(String(160), nullable=True)
     cache_key: Mapped[str] = mapped_column(String(64), nullable=False)
     snapshot_hash: Mapped[str] = mapped_column(String(64), nullable=False)

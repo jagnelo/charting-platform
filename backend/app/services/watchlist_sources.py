@@ -192,6 +192,43 @@ def _combo_member_ids(watchlists: dict[int, Watchlist], payload: dict) -> list[i
     return [instrument_id for _, _, instrument_id in ordered]
 
 
+def _explicit_instrument_ids(source_id: str) -> list[int]:
+    """Parse an ephemeral canonical-ID source without accepting ticker text."""
+
+    raw = source_id.split(":", 1)[1] if ":" in source_id else ""
+    tokens = raw.split(",") if raw else []
+    if not tokens or len(tokens) > 500:
+        raise ValueError("invalid_explicit_source_id")
+    try:
+        ids = [int(token) for token in tokens]
+    except ValueError as exc:
+        raise ValueError("invalid_explicit_source_id") from exc
+    if any(instrument_id <= 0 for instrument_id in ids):
+        raise ValueError("invalid_explicit_source_id")
+    return list(dict.fromkeys(ids))
+
+
+def _explicit_descriptor(instrument_ids: list[int]) -> WatchlistSourceRead:
+    membership = ",".join(str(instrument_id) for instrument_id in instrument_ids)
+    return WatchlistSourceRead(
+        source_id=f"explicit:{membership}",
+        source_kind="explicit",
+        name=f"Explicit symbols ({len(instrument_ids)})",
+        description="Ephemeral canonical-instrument selection; save it as a personal watchlist for durable membership.",
+        locked=True,
+        can_edit_membership=False,
+        membership_version=_version("explicit", membership),
+        member_count=len(instrument_ids),
+        source="explicit_canonical_selection",
+        provenance={
+            "membership_semantics": "explicit_canonical_instruments",
+            "point_in_time": False,
+            "instrument_ids": instrument_ids,
+            "durability": "ephemeral_until_saved_as_watchlist",
+        },
+    )
+
+
 async def list_watchlist_sources(db: AsyncSession, user: User) -> list[WatchlistSourceRead]:
     """List source descriptors without provider calls or member-level fan-out."""
 
@@ -328,6 +365,36 @@ async def resolve_watchlist_source(
                 for item in watchlist.items
                 if as_of is not None and item.added_at > as_of
             ),
+        )
+
+    if source_id.startswith("explicit:"):
+        instrument_ids = _explicit_instrument_ids(source_id)
+        instruments = (
+            await db.execute(select(Instrument).where(Instrument.id.in_(instrument_ids)))
+        ).scalars().all()
+        by_id = {instrument.id: instrument for instrument in instruments}
+        members = tuple(
+            ResolvedWatchlistMember(
+                instrument_id=instrument_id,
+                position=position,
+                weight=None,
+                relationship_type="explicit_symbol",
+                source="explicit_canonical_selection",
+                effective_at=None,
+                known_at=None,
+            )
+            for position, instrument_id in enumerate(instrument_ids)
+            if instrument_id in by_id
+        )
+        exclusions = tuple(
+            {"instrument_id": instrument_id, "reason": "canonical_instrument_not_found"}
+            for instrument_id in instrument_ids
+            if instrument_id not in by_id
+        )
+        return ResolvedWatchlistSource(
+            descriptor=_explicit_descriptor(instrument_ids),
+            members=members,
+            exclusions=exclusions,
         )
 
     if source_id.startswith("combo:"):

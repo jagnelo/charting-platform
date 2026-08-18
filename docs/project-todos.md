@@ -1,5 +1,23 @@
 # Project TODO Memory
 
+### 2026-08-19 — Explicit canonical-instrument Market Map sources
+
+- [x] Add an ephemeral `explicit:<canonical-instrument-id,...>` WatchlistSource resolver. It
+      accepts canonical IDs only, deduplicates them, preserves the requested order, reports
+      missing instruments explicitly, and never treats provider tickers as identity.
+- [x] Reuse the same local Market Map batch contract for explicit selections, including grouping,
+      area/colour metrics, cache, coverage, warnings, snapshots, selection, and linked analysis.
+- [x] Add a dense workstation control that resolves comma/space-separated symbols through the
+      canonical security master before submitting IDs to the backend. Persist the input and make
+      the ephemeral/non-point-in-time nature explicit; users can save the selection as a durable
+      personal watchlist.
+- [x] Add backend integration and Market Map component coverage for canonical resolution,
+      deduplication, locked provenance, and rendering.
+- [x] Widen Market Map request/cache/snapshot source identifiers to retain the bounded 500-ID
+      explicit selection without truncation (`fa0b1c2d3e4f`).
+- [ ] Continue explicit-selection durability/history beyond the personal-watchlist save path,
+      cross-window restoration of ephemeral selections, and final V25 visual approval.
+
 ### 2026-08-19 — Combo watchlists as universal Market Map sources
 
 - [x] Expose user-owned `combo_list` library definitions through the canonical
