@@ -1,5 +1,22 @@
 # Run Report
 
+## 2026-08-19 — Family holdings hand off exact snapshots to canonical member history
+
+- Added `queue_snapshot_member_history` for successful benchmark-family holdings snapshots. It
+  reads only persisted resolved rows, bounds/deduplicates canonical IDs, retains unresolved and
+  queue evidence, and never calls a provider.
+- Updated the durable family holdings worker to record the handoff inside each committed unit.
+  Historical composition dates use explicit snapshot IDs so `known_at` is not incorrectly moved
+  backward. Generic source refreshes and core bootstrap now use the shared
+  `watchlist-source-history:{instrument}:{timeframes}` job identity, eliminating duplicate jobs
+  across overlapping source types.
+- Validation: service/worker/bootstrap `21/21`; Docker-backed generic history-refresh `1/1`;
+  backend units `1236/1236`; Ruff, compileall, and `git diff --check` pass. No acceptance
+  flexibility, provider substitution, or interactive provider fan-out was introduced.
+- Remaining: live provider completeness, historical composition reconciliation, entitlement and
+  data-quality proof, large-list rendering, all-root acceptance, and exact V25 maintenance/progress
+  visuals.
+
 ## 2026-08-19 — Durable provider-backed family holdings refresh runs
 
 - Added a migration-backed `BenchmarkFamilyHoldingsRefreshRun` for bounded historical holdings

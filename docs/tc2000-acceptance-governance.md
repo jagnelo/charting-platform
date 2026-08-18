@@ -1,5 +1,20 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-08-19 — Family snapshot hydration must use the exact snapshot boundary
+
+When a provider-backed holdings run succeeds, acceptance requires the worker to queue canonical
+member history from the refreshed snapshot IDs, not by resolving the public source with the old
+composition date as `as_of` (the snapshot was learned now and must not leak backward in time).
+Queue evidence must retain available/selected/limited/unresolved counts and queue errors per unit.
+All canonical history paths must share one deterministic job identity so overlapping personal,
+locked index/ETF, bootstrap, and family refreshes deduplicate instead of creating parallel fetches.
+
+The service/worker/bootstrap suite is `21/21`, the Docker-backed generic refresh regression is
+`1/1`, backend units are `1236/1236`, and Ruff/compileall/diff checks pass. This gate proves the
+handoff and idempotence contract only; provider route completeness, all-root historical truth,
+entitlements, large-list rendering, and exact V25 maintenance/progress visuals remain open. No
+acceptance flexibility was used.
+
 ## 2026-08-19 — Family holdings maintenance must be durable and cancellable
 
 The provider-backed holdings maintenance gate now requires a persisted admin run before any

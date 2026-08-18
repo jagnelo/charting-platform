@@ -1,5 +1,26 @@
 # Active Handoff
 
+## 2026-08-19 — Family snapshot history handoff is implemented and validated
+
+- Added `queue_snapshot_member_history` in `backend/app/services/benchmark_family_history.py`.
+  It reads only persisted resolved rows for the exact snapshot IDs returned by a successful
+  holdings refresh, deduplicates/bounds canonical instrument IDs, preserves unresolved and queue
+  evidence, and never contacts a provider.
+- `task_refresh_benchmark_family_holdings_run` now records that queue result inside each committed
+  family/date unit. Using snapshot IDs is deliberate: a snapshot learned now must not be selected
+  through an old `as_of` boundary and presented as historically known.
+- Generic source history refresh, core bootstrap, and family snapshot hydration now share
+  `watchlist-source-history:{instrument}:{timeframes}` job IDs, preventing duplicate jobs when
+  the same constituent is present in overlapping locked/personal sources.
+- Owned implementation paths: benchmark-family history service, ARQ worker, generic watchlist
+  router, workstation bootstrap, and their unit regressions.
+- Validation: focused service/worker/bootstrap `21/21`; Docker-backed generic history-refresh
+  `1/1`; full backend units `1236/1236`; Ruff, compileall, and diff checks pass. Worktree was
+  clean before this context and no acceptance flexibility/provider substitution was used.
+- Remaining: commit/push this implementation and ops checkpoint, then continue live provider
+  completeness, all-root historical reconciliation, entitlements, large-list rendering, and exact
+  V25 maintenance/progress visuals. Next context remains provider-backed family population.
+
 ## 2026-08-19 — Durable provider-backed benchmark-family holdings refresh runs
 
 - Added `BenchmarkFamilyHoldingsRefreshRun` plus migration `fc2d3e4f5a6b`. The new admin

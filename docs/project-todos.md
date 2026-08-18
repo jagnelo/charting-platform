@@ -1,5 +1,25 @@
 # Project TODO Memory
 
+### 2026-08-19 — Holdings refresh now hands exact snapshots into canonical member history
+
+- [x] After each successful provider-backed benchmark-family holdings unit, collect the exact
+      resolved constituent IDs from the newly ingested snapshot and queue the existing bounded
+      `task_bulk_fetch_instrument` jobs. Historical composition dates are handled by snapshot ID
+      rather than an `as_of` resolver, so a snapshot learned today is never incorrectly presented
+      as known in the past.
+- [x] Deduplicate all canonical history hydration paths behind the shared
+      `watchlist-source-history:{instrument}:{timeframes}` job identity. Generic personal/managed,
+      index/ETF, bootstrap, and family-snapshot maintenance now converge on one idempotence key.
+      Queue status preserves selected/available/limited/unresolved evidence and queue errors remain
+      attached to the durable family unit.
+- [x] Add service and worker regressions. Focused history/worker/bootstrap coverage passes `21/21`;
+      the Docker-backed generic history-refresh regression passes `1/1`; full backend units pass
+      `1236/1236`; Ruff, compileall, and diff checks pass.
+- [ ] This closes the holdings-to-member-history handoff, not live provider completeness, all-root
+      historical reconciliation, entitlement/quality proof, large-list rendering, or exact V25
+      maintenance/progress visuals. No acceptance flexibility, provider substitution, or
+      interactive provider fan-out was used.
+
 ### 2026-08-19 — Durable provider-backed benchmark-family holdings refresh runs
 
 - [x] Add a migration-backed, admin-owned refresh-run model for bounded date × family holdings

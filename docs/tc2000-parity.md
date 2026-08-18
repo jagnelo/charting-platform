@@ -1,5 +1,19 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-19 — Refreshed family snapshots hand off to shared member-history jobs
+
+Successful benchmark-family holdings units now queue canonical constituent history from the exact
+snapshot IDs they ingested. This avoids treating a newly learned historical snapshot as if it had
+been known at its composition date, while still making the resulting locked watchlist usable by
+Market Map, breadth, scans, and linked charts. Generic source refreshes, core bootstrap, and this
+family path use the same `watchlist-source-history:{instrument}:{timeframes}` idempotence key, so
+overlapping sources do not create duplicate provider jobs.
+
+Focused service/worker/bootstrap coverage is `21/21`; the Docker-backed generic history-refresh
+regression is `1/1`; backend units are `1236/1236`; Ruff, compileall, and diff checks pass. This is
+an orchestration and deduplication gate, not proof of live route completeness, official historical
+membership, all-root bars, or exact V25 maintenance/progress geometry. Those remain open.
+
 ## 2026-08-19 — Provider-backed family holdings maintenance is durable
 
 Benchmark-family holdings backfill now has a migration-backed admin run boundary. A normalized

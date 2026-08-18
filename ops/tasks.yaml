@@ -1,4 +1,33 @@
 tasks:
+  - id: tc2000-family-snapshot-history-handoff-20260819
+    title: Hand refreshed family snapshots into shared canonical member history
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Queue canonical constituent history from the exact holdings snapshots produced by each
+      durable benchmark-family refresh unit and converge every source type on one idempotent job
+      identity.
+    definition_of_done:
+      - Read only persisted resolved snapshot rows; do not call providers from the handoff
+      - Preserve selected/available/limited/unresolved and queue-error evidence per unit
+      - Avoid historical as_of leakage by using explicit snapshot IDs for newly learned dates
+      - Share watchlist-source-history:{instrument}:{timeframes} IDs across generic, bootstrap, and family paths
+      - Add service and worker regressions and retain compatibility with existing routes
+      - Focused service/worker/bootstrap tests 21/21, Docker history-refresh 1/1, backend units 1236/1236, Ruff, compileall, diff checks pass
+      - Keep live provider completeness, all-root historical reconciliation, entitlements, and exact V25 visuals open
+    validation:
+      - backend-history-worker-bootstrap-focused-21-of-21
+      - backend-watchlist-history-refresh-integration-1-of-1
+      - backend-unit-suite-1236-of-1236
+      - backend-ruff
+      - backend-compileall
+      - git-diff-check
+    notes:
+      - >-
+        No acceptance flexibility, provider substitution, or interactive provider fan-out was
+        used. This closes the snapshot-to-bars handoff and shared job deduplication only.
+
   - id: tc2000-durable-family-holdings-runs-20260819
     title: Persist and cancel provider-backed benchmark-family holdings refresh runs
     status: completed
