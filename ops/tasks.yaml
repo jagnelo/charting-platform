@@ -19,6 +19,7 @@ tasks:
     validation:
       - backend-family-locked-source-regression-1-of-1
       - backend-family-breadth-regressions-3-of-3
+      - backend-family-breadth-point-in-time-flag-regression-2-of-2
       - backend-watchlists-and-workspaces-integration-88-of-88
       - backend-ruff-compileall
       - git-diff-check

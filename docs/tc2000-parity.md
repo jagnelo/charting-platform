@@ -1,5 +1,12 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-19 — Family breadth respects current versus point-in-time mode
+
+The direct benchmark-family derived-equal breadth path now applies the requested `as_of` only
+when the saved universe explicitly enables `point_in_time`; current mode follows the latest local
+holdings snapshot, matching the universal WatchlistSource resolver. Focused derived/direct family
+breadth regressions `2/2` pass. This localized semantic repair used no acceptance flexibility.
+
 ## 2026-08-19 — Family legs use the universal locked-watchlist surface
 
 The workstation now exposes each evidenced benchmark-family leg as a selectable locked source,

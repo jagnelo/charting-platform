@@ -1,5 +1,16 @@
 # Active Handoff
 
+## 2026-08-19 — Point-in-time flag repair after source context closure
+
+- Repaired the direct benchmark-family derived-equal breadth branch so it passes `as_of` to the
+  locked source resolver only when `universe.point_in_time` is enabled; current mode now follows
+  the latest local holdings snapshot like all other source kinds.
+- Focused derived-equal/direct family breadth regressions `2/2`, Ruff, compileall, and diff-check
+  pass. This was a localized defect under repository control: it was fixed, focused-tested, and
+  documented without blocking independent goal work or relaxing acceptance criteria.
+- Implementation commit `e70199928c943d84d4b61a2db69f51ed38e048f9` is pushed. Docs/ops and state
+  closure remain before the next context.
+
 ## 2026-08-19 — Benchmark-family legs are universal locked sources
 
 - Added canonical `benchmark-family:<family>:<role>` WatchlistSources for evidenced cap/equal/

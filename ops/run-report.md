@@ -1,5 +1,13 @@
 # Run Report
 
+## 2026-08-19 — Closed family breadth point-in-time mismatch
+
+- Corrected direct derived-equal benchmark-family breadth to honor the universe's
+  `point_in_time` flag: historical mode applies `as_of`; current mode does not.
+- Focused family breadth `2/2`, Ruff, compileall, and `git diff --check` pass. No acceptance
+  flexibility. Implementation `e70199928c943d84d4b61a2db69f51ed38e048f9` is pushed; docs/ops and
+  state closure follow.
+
 ## 2026-08-19 — Benchmark-family legs as locked universal watchlists
 
 - Implemented `benchmark-family:<family>:<role>` source descriptors and resolution. Every

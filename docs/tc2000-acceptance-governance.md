@@ -1,5 +1,13 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-08-19 — Family breadth current/as-of semantic tie-break
+
+The direct benchmark-family derived-equal breadth acceptance must assert both modes: a saved
+`point_in_time=true` universe uses its requested `as_of`, while current mode does not apply a
+historical cutoff merely because an optional timestamp is present. The shared source resolver and
+focused family regressions are the interim oracle. The localized mismatch was repaired and tested;
+it is recorded here as a closed defect, not a goal-wide blocker or acceptance waiver.
+
 ## 2026-08-19 — Locked benchmark-family source sub-gate
 
 Acceptance must treat every evidenced benchmark-family leg as a source-polymorphic locked

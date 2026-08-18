@@ -1,5 +1,14 @@
 # Project TODO Memory
 
+### 2026-08-19 — Family breadth honors source point-in-time policy
+
+- [x] Align the direct `benchmark_family` derived-equal breadth path with every other universe:
+      it applies `as_of` only when `universe.point_in_time=true`, while current mode resolves the
+      latest eligible local holdings snapshot.
+- [x] Focused derived-equal and direct family breadth regressions `2/2`, Ruff, compileall, and
+      diff-check pass. This was a localized code defect, fixed and regression-tested; it did not
+      block independent goal work and required no acceptance flexibility.
+
 ### 2026-08-19 — Benchmark-family legs are locked universal watchlist sources
 
 - [x] Expose each evidenced `(family, role)` leg as a canonical locked source ID such as
