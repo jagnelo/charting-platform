@@ -1,5 +1,14 @@
 # TC2000 Version 25 composite reference board
 
+## 2026-08-19 managed departure as-of gap narrowed
+
+The board has no authoritative capture of how Version 25 displays a managed constituent during its
+grace period versus after a historical departure. The implementation now keeps current grace
+visibility but excludes `left_screener_at <= as_of` from historical WatchlistSource resolution,
+returning the departure timestamp and a structured exclusion. The focused integration regression
+is the interim oracle. Exact badges, copy, and history controls remain unrepresented; combo
+re-entry and append-only membership history are separate backend gaps.
+
 ## 2026-08-19 locked market-group revision gap narrowed
 
 The board still has no authoritative capture of how Version 25 presents a refreshed locked index,

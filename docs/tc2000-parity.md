@@ -1,5 +1,17 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-19 — Managed departures are excluded at historical as-of
+
+Historical personal/managed WatchlistSource resolution now applies each membership's active
+interval. Members are included only after `added_at` and before `left_screener_at`; a departure
+at or before the requested `as_of` is excluded with its exact timestamp. Current views retain the
+existing grace-period visibility, while historical Market Map, breadth, and linked analysis no
+longer treat a departed managed member as active.
+
+The focused source/Market Map regression set passes `5/5`. This does not yet provide an append-only
+re-entry ledger or complete point-in-time semantics for derived combos, and the exact V25 departure
+badge/history treatment remains a reference-board gap.
+
 ## 2026-08-19 — Locked market-group revisions invalidate maps
 
 Locked `market-group:*` sources now fingerprint the member rows that actually define an index,

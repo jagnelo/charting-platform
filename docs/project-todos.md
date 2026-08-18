@@ -1,5 +1,15 @@
 # Project TODO Memory
 
+### 2026-08-19 — Historical managed-watchlist departure semantics
+
+- [x] Apply the canonical WatchlistSource active interval (`added_at <= as_of` and
+      `left_screener_at > as_of`) when resolving personal/managed sources historically.
+- [x] Return an explicit `membership_not_active_at_as_of` exclusion with the departure timestamp
+      instead of leaving a departed managed constituent in historical maps or breadth universes.
+- [x] Add a Docker-backed regression covering the same member before and on its departure date.
+- [ ] Keep append-only deletion/re-entry reconstruction, combo multi-source historical semantics,
+      complete provider population, and exact V25 revision visuals open.
+
 ### 2026-08-19 — Canonical market-group membership lineage
 
 - [x] Extend the shared membership fingerprint to include market-group member identity,

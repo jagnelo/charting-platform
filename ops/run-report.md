@@ -1,5 +1,16 @@
 # Run Report
 
+## 2026-08-19 — Historical managed-watchlist departure repair
+
+- Historical personal/managed WatchlistSource resolution now excludes members with
+  `left_screener_at <= as_of` and returns `membership_not_active_at_as_of` plus the departure
+  timestamp. Current views retain existing grace-period behavior.
+- Focused universal-source/Market Map integration set passes `5/5`; Ruff, compileall, and
+  `git diff --check` pass. No acceptance flexibility or visual threshold changed.
+- Implementation commit `6ed6d76b454d63b0df0b24d92b5ad8edea1393b5` is pushed. Append-only
+  deletion/re-entry, combo history, provider/family population, and exact V25 departure visuals
+  remain explicit gaps.
+
 ## 2026-08-19 — Locked market-group membership lineage repair
 
 - Extended the universal WatchlistSource membership fingerprint to locked market groups. It now

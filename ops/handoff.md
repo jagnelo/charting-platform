@@ -1,5 +1,21 @@
 # Active Handoff
 
+## 2026-08-19 — Historical managed-watchlist departure repair
+
+- Historical WatchlistSource resolution now applies the member active interval: an item is known
+  only after `added_at` and remains active only while `left_screener_at` is null or after `as_of`.
+  Departures at or before `as_of` produce `membership_not_active_at_as_of` with the exact time.
+- Current resolution remains grace-period compatible. A focused Docker-backed source/Market Map
+  regression proves the member is present before departure and excluded on departure; the full
+  universal-source subset passes `5/5`.
+- Ruff, compileall, and `git diff --check` pass. The first direct uv invocation was not repeated
+  after the prior known cache boundary; the exact elevated integration rerun passed. No
+  acceptance flexibility used.
+- Implementation commit `6ed6d76b454d63b0df0b24d92b5ad8edea1393b5` is pushed. Update docs/ops and
+  close the state checkpoint before beginning the next context.
+- Append-only deletion/re-entry, combo historical reconstruction, provider population, and exact
+  V25 departure visuals remain open.
+
 ## 2026-08-19 — Locked market-group membership lineage repair
 
 - Locked `market-group:*` descriptors now fingerprint the member rows that define the universe,

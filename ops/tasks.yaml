@@ -1,4 +1,27 @@
 tasks:
+  - id: tc2000-watchlist-departure-asof-20260819
+    title: Exclude departed managed members from historical universes
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Make historical personal/managed WatchlistSource resolution honor the member active window
+      so a constituent that left during a screener grace period is absent at and after departure.
+    definition_of_done:
+      - Historical resolution applies added_at and left_screener_at with exact as_of semantics
+      - Departed members return membership_not_active_at_as_of and the departure timestamp
+      - Current resolution preserves existing grace-period visibility
+      - Focused Docker-backed source/Market Map regressions, Ruff, compileall, and diff checks pass
+      - Combo re-entry history and exact V25 departure visuals remain tracked gaps
+    validation:
+      - backend-watchlist-source-regressions-5-of-5
+      - backend-ruff-compileall
+      - git-diff-check
+    notes:
+      - >-
+        No acceptance flexibility used. This closes the known departure-at-as_of defect only; it
+        does not claim a general append-only membership ledger.
+
   - id: tc2000-market-group-membership-lineage-20260819
     title: Invalidate locked index and group heatmaps on member-row revisions
     status: completed
