@@ -11666,3 +11666,32 @@ tasks:
         Implementation/docs commit 412d84bb was pushed successfully. Local HEAD and
         origin/feat/tc2000-frontend-rework both resolve to 412d84bb and the worktree is clean.
         The separate operational checkpoint must be committed and pushed before the next context.
+  - id: tc2000-combo-watchlist-market-map-20260819
+    title: Treat combo watchlists as universal locked Market Map sources
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Expose user-owned combo_list definitions through the canonical WatchlistSource resolver so
+      union/intersection/exclusion universes use the same Market Map contract as personal,
+      managed, index-membership, and ETF-proxy sources.
+    definition_of_done:
+      - Combo descriptors are user-isolated, derived, locked, and non-editable per member
+      - Union, intersection, exclusion, duplicate, and deterministic-order semantics match the UI
+      - as_of filtering reports explicit exclusions rather than future membership
+      - Combo sources run through the same local batch Market Map endpoint without provider fan-out
+      - Integration coverage proves descriptor, resolution, and rendered map behavior
+      - Remaining historical definition-version and explicit-symbol gaps stay documented
+    validation:
+      - combo-market-map-integration-1-of-1
+      - watchlists-integration-32-of-32
+      - ruff-compileall-diff-check
+    notes:
+      - >-
+        No acceptance flexibility was used. The combo source is a first-class derived universe;
+        it is locked for direct membership edits but remains editable through its library
+        definition. The only test adjustment was avoiding a model-constructor fallback in the
+        resolver helper; the unchanged combo and complete watchlist suite then passed.
+      - >-
+        Implementation/docs commit 26773105c69371be5edfb0afb07ac664266bba0b was pushed
+        successfully. The separate operational checkpoint remains to be committed and pushed.

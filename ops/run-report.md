@@ -28630,3 +28630,21 @@ and strict visual gaps remain explicitly tracked.
   and the worktree was clean. The required operational record is the only current changeset.
 - Open work remains direct non-Boolean fan-out, richer derived composition, family/provider and
   historical population, exact/unrepresented V25 visual references, and final full audit gates.
+
+# 2026-08-19 — Combo watchlists as universal Market Map sources
+
+- Added backend combo-source descriptors/resolution for `combo_list` library definitions. The
+  resolver applies user ownership, union/intersection/exclusion semantics, deterministic member
+  ordering, deduplication, and `as_of` exclusions; combo membership is explicitly derived/locked
+  rather than directly editable.
+- Reused the source-neutral local Market Map batch endpoint, so a combo can be heatmapped with the
+  same hierarchy, tile metrics, coverage/provenance, cache, snapshots, and publication actions as
+  an index/ETF or personal WatchlistSource.
+- Evidence: focused combo integration `1/1`; complete watchlists integration `32/32`; Ruff,
+  compileall, and `git diff --check` pass. Existing third-party deprecation warnings only.
+- No acceptance flexibility was used. The exact V25 combo lineage/badge is a visual-board gap and
+  remains documented; historical combo definition-version reconstruction, explicit-symbol source
+  descriptors, point-in-time market-cap/weight reconstruction, family/provider population, and
+  final acceptance remain open.
+- Implementation/docs commit `26773105c69371be5edfb0afb07ac664266bba0b` is committed and pushed;
+  the separate operational checkpoint is required before the next implementation context.

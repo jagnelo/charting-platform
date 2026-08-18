@@ -30522,3 +30522,26 @@ indefinite soak; longer endurance remains an explicit open gap.
   complete family/provider population, historical market-cap reconstruction, exact/unrepresented
   V25 visual evidence, and final functional/visual/security/performance/migration/end-to-end audit.
 - Next context: continue unified Python promotion fan-out for compatible non-Boolean targets.
+
+# 2026-08-19 — Combo watchlists as universal Market Map sources
+
+- Implemented `combo:<stable_key>` `WatchlistSource` descriptors and local resolution in
+  `backend/app/services/watchlist_sources.py`. Combo definitions are user-isolated, derived, and
+  locked for direct membership edits; union/intersection/exclusion semantics, deterministic
+  ordering, duplicate removal, and explicit `as_of` exclusions are retained.
+- The existing `POST /analysis/market-map` endpoint now accepts combo sources without provider
+  fan-out. This makes index/ETF, personal, managed, and combo universes interchangeable at the
+  map contract and preserves the same grouping, metrics, coverage, cache, snapshot, and linked
+  publication behavior.
+- Added integration coverage in `backend/tests/integration/api/test_watchlists.py`; updated
+  `docs/project-todos.md`, `docs/tc2000-parity.md`, `docs/tc2000-acceptance-governance.md`, and
+  `docs/tc2000-reference-board.md`.
+- Validation: combo integration `1/1`; complete watchlists integration `32/32` with two existing
+  third-party deprecation warnings; Ruff; compileall; diff-check. No acceptance flexibility or
+  visual threshold/mask/provider rule was changed. The exact source lineage/visual badge remains
+  a documented board gap, and historical combo definition versions, explicit-symbol sources,
+  point-in-time weights, and full V25 acceptance remain open.
+- Implementation/docs commit `26773105c69371be5edfb0afb07ac664266bba0b` was committed and pushed.
+  Create and push the separate operational checkpoint before beginning the next context.
+- Next context: continue compatible Python promotion fan-out or the next open universal-source
+  gate from the active goal, after verifying a clean synchronized boundary.
