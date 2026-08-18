@@ -1145,6 +1145,75 @@ class TestWatchlistsCrud:
         assert updated_body["requested_count"] == 2
         assert updated_body["cache_key"] != initial_body["cache_key"]
 
+    def test_combo_source_respects_departure_at_as_of(
+        self, client, auth_headers, db, user, instrument
+    ):
+        from app.models.watchlist import WatchlistItem
+        from app.models.workstation import WorkspaceLibraryItem
+
+        base = datetime(2024, 1, 1, tzinfo=UTC)
+        departed_at = datetime(2024, 1, 5, tzinfo=UTC)
+        managed = Watchlist(
+            user_id=user.id,
+            name="Managed combo dependency",
+            is_managed=True,
+            is_locked=True,
+        )
+        db.add(managed)
+        db.flush()
+        db.add(
+            WatchlistItem(
+                watchlist_id=managed.id,
+                instrument_id=instrument.id,
+                position=0,
+                added_at=base,
+                left_screener_at=departed_at,
+            )
+        )
+        db.flush()
+
+        combo = client.put(
+            "/api/v1/workspaces/library/items/combo_list/historical-combo",
+            headers=auth_headers,
+            json={
+                "kind": "combo_list",
+                "stable_key": "historical-combo",
+                "name": "Historical combo",
+                "payload": {"union_watchlist_ids": [managed.id]},
+                "dependency_metadata": {},
+            },
+        )
+        assert combo.status_code == 200, combo.text
+        combo_row = (
+            db.query(WorkspaceLibraryItem)
+            .filter(
+                WorkspaceLibraryItem.user_id == user.id,
+                WorkspaceLibraryItem.kind == "combo_list",
+                WorkspaceLibraryItem.stable_key == "historical-combo",
+            )
+            .one()
+        )
+        combo_row.updated_at = base
+        db.flush()
+
+        before_departure = client.get(
+            "/api/v1/watchlists/sources/combo:historical-combo",
+            headers=auth_headers,
+            params={"as_of": "2024-01-04T00:00:00Z"},
+        )
+        assert before_departure.status_code == 200, before_departure.text
+        assert [member["instrument_id"] for member in before_departure.json()["members"]] == [instrument.id]
+        assert before_departure.json()["exclusions"] == []
+
+        after_departure = client.get(
+            "/api/v1/watchlists/sources/combo:historical-combo",
+            headers=auth_headers,
+            params={"as_of": "2024-01-05T00:00:00Z"},
+        )
+        assert after_departure.status_code == 200, after_departure.text
+        assert after_departure.json()["members"] == []
+        assert after_departure.json()["exclusions"][0]["reason"] == "membership_not_active_at_as_of"
+
     def test_explicit_canonical_selection_is_a_locked_ephemeral_market_map_source(
         self, client, auth_headers, db, instrument, instrument_b
     ):

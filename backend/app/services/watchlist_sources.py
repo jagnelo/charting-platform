@@ -251,8 +251,18 @@ def _combo_ids(payload: dict, key: str) -> list[int]:
     return list(dict.fromkeys(value for value in values if isinstance(value, int) and value > 0))
 
 
-def _combo_member_ids(watchlists: dict[int, Watchlist], payload: dict) -> list[int]:
+def _combo_member_ids(
+    watchlists: dict[int, Watchlist], payload: dict, as_of: datetime | None = None
+) -> list[int]:
     """Apply the same union/intersection/exclusion semantics as the UI combo list."""
+
+    def member_ids(watchlist_id: int) -> set[int]:
+        watchlist = watchlists.get(watchlist_id)
+        return {
+            item.instrument_id
+            for item in (watchlist.items if watchlist else [])
+            if _watchlist_item_active_at(item, as_of)
+        }
 
     union_ids = _combo_ids(payload, "union_watchlist_ids")
     intersection_ids = _combo_ids(payload, "intersection_watchlist_ids")
@@ -261,28 +271,24 @@ def _combo_member_ids(watchlists: dict[int, Watchlist], payload: dict) -> list[i
     union: set[int]
     if union_ids:
         union = {
-            item.instrument_id
+            instrument_id
             for watchlist_id in union_ids
-            for item in (watchlists.get(watchlist_id).items if watchlists.get(watchlist_id) else [])
+            for instrument_id in member_ids(watchlist_id)
         }
     elif intersection_ids:
-        first = watchlists.get(intersection_ids[0])
-        union = {item.instrument_id for item in first.items} if first else set()
+        union = member_ids(intersection_ids[0])
     else:
         union = set()
 
     intersection: set[int] | None = None
     for watchlist_id in intersection_ids:
-        current = {
-            item.instrument_id
-            for item in (watchlists.get(watchlist_id).items if watchlists.get(watchlist_id) else [])
-        }
+        current = member_ids(watchlist_id)
         intersection = current if intersection is None else intersection & current
 
     excluded = {
-        item.instrument_id
+        instrument_id
         for watchlist_id in exclude_ids
-        for item in (watchlists.get(watchlist_id).items if watchlists.get(watchlist_id) else [])
+        for instrument_id in member_ids(watchlist_id)
     }
     selected = union - excluded
     if intersection is not None:
@@ -297,7 +303,7 @@ def _combo_member_ids(watchlists: dict[int, Watchlist], payload: dict) -> list[i
             for watchlist_id in [*union_ids, *intersection_ids]
             if (watchlist := watchlists.get(watchlist_id)) is not None
             for item in watchlist.items
-            if item.instrument_id == instrument_id
+            if item.instrument_id == instrument_id and _watchlist_item_active_at(item, as_of)
         ]
         position, item_position, _ = min(candidates) if candidates else (0, 0, 0)
         ordered.append((position, item_position, instrument_id))
@@ -550,6 +556,7 @@ async def resolve_watchlist_source(
         watchlists = {watchlist.id: watchlist for watchlist in referenced}
         dependency_versions = _combo_dependency_versions(watchlists, payload)
         selected_ids = _combo_member_ids(watchlists, payload)
+        selected_at_as_of = _combo_member_ids(watchlists, payload, as_of=as_of)
         as_of_exclusions: list[dict] = []
         if as_of is not None and combo.updated_at > as_of:
             return ResolvedWatchlistSource(
@@ -562,21 +569,36 @@ async def resolve_watchlist_source(
                     },
                 ),
             )
+        if as_of is not None:
+            for instrument_id in sorted(set(selected_ids) - set(selected_at_as_of)):
+                candidates = [
+                    item
+                    for watchlist in referenced
+                    for item in watchlist.items
+                    if item.instrument_id == instrument_id
+                ]
+                exclusion = next(
+                    (
+                        item_exclusion
+                        for item in candidates
+                        if (item_exclusion := _watchlist_item_as_of_exclusion(item, as_of))
+                        is not None
+                    ),
+                    {"instrument_id": instrument_id, "reason": "membership_not_known_at_as_of"},
+                )
+                as_of_exclusions.append(exclusion)
+
         items_by_instrument = {
             item.instrument_id: item
             for watchlist in referenced
             for item in watchlist.items
-            if item.instrument_id in selected_ids
+            if item.instrument_id in selected_at_as_of
+            and _watchlist_item_active_at(item, as_of)
         }
         members: list[ResolvedWatchlistMember] = []
-        for position, instrument_id in enumerate(selected_ids):
+        for position, instrument_id in enumerate(selected_at_as_of):
             item = items_by_instrument.get(instrument_id)
             if item is None:
-                continue
-            if as_of is not None and item.added_at > as_of:
-                as_of_exclusions.append(
-                    {"instrument_id": instrument_id, "reason": "membership_not_known_at_as_of"}
-                )
                 continue
             members.append(
                 ResolvedWatchlistMember(
