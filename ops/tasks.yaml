@@ -1,4 +1,37 @@
 tasks:
+  - id: tc2000-family-member-history-queue-20260819
+    title: Add bounded canonical history hydration for locked family watchlists
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Resolve local benchmark-family WatchlistSources, deduplicate their canonical constituent
+      instruments, and queue the existing provider-neutral bulk-history jobs without introducing
+      provider fan-out into workstation reads.
+    definition_of_done:
+      - Admin-only endpoint accepts validated family, role, timeframe, as-of, and instrument-bound inputs
+      - The planner uses the same locked point-in-time source resolver as Market Map and breadth
+      - Unknown roots/roles/timeframes fail explicitly; unavailable and empty legs are retained
+      - Overlapping family legs deduplicate canonical instrument IDs deterministically
+      - A hard 5,000-instrument bound reports truncation rather than silently widening the request
+      - Existing bulk-history jobs receive deterministic idempotent job IDs and requested timeframes
+      - Queue failures, partial queueing, already-queued jobs, membership versions, and exclusions remain visible
+      - Interactive workstation reads remain provider-fan-out-free
+      - Provider-backed family population, canonical bars, historical continuity, and exact V25 maintenance visuals remain open
+    validation:
+      - backend-family-history-planner-unit-2-of-2
+      - backend-etf-holdings-api-integration-62-of-62
+      - backend-unit-suite-1217-of-1217
+      - backend-ruff
+      - backend-compileall
+      - git-diff-check
+    notes:
+      - >-
+        No acceptance flexibility was used. The complete API file's isolated invocation reports
+        the repository-wide coverage threshold because it is not the full test suite; the tests
+        themselves pass 62/62. The queue is a maintenance mechanism and does not claim that every
+        family leg currently has provider-backed holdings or canonical history.
+
   - id: tc2000-topdown-ytd-baseline-20260819
     title: Align shared top-down YTD analytics to the prior year-end session
     status: completed

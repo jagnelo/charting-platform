@@ -1,5 +1,24 @@
 # Project TODO Memory
 
+### 2026-08-19 — Bounded canonical history hydration for locked family watchlists
+
+- [x] Add an admin-only `POST /api/v1/etf-holdings/benchmark-families/history-refresh` contract
+      that resolves the same local, point-in-time locked benchmark-family sources consumed by
+      Market Map and breadth, normalizes roots/roles/timeframes, deduplicates canonical instrument
+      IDs, applies a hard 5,000-instrument bound, and reports every unavailable/empty leg without
+      substituting another index, ETF, provider, or membership snapshot.
+- [x] Queue the existing provider-neutral per-instrument bulk-history jobs with deterministic
+      timeframes and idempotent job IDs; expose queued/already-queued/queue-unavailable outcomes,
+      membership versions, exclusions, and truncation evidence. Interactive workstation reads
+      remain local and provider-fan-out-free.
+- [x] Add planner unit coverage and a Docker-backed admin API regression; full backend units pass
+      `1217/1217`, the complete ETF holdings API file passes `62/62` (its isolated run reports the
+      expected repository-wide coverage-threshold failure), Ruff, compileall, and diff checks pass.
+- [ ] This is a maintenance/queue contract, not proof that all eight roots have provider-backed
+      membership, canonical bars, historical composition continuity, or complete provider
+      reconciliation. Those remain explicit open goal gaps and require subsequent evidence.
+
+
 ### 2026-08-19 — Shared top-down YTD helpers use the prior year-end session
 
 - [x] Align family/ranking/technical performance cells and historical return-series helpers with

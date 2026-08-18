@@ -1,5 +1,24 @@
 # Run Report
 
+## 2026-08-19 — Bounded canonical history hydration for locked family watchlists
+
+- Added the admin-only family history refresh endpoint and planner. It uses canonical local locked
+  membership, point-in-time `as_of` resolution, stable family/role/timeframe normalization,
+  cross-leg instrument deduplication, and a hard 5,000-member bound.
+- It queues existing `task_bulk_fetch_instrument` jobs with deterministic IDs and explicitly reports
+  unavailable legs, exclusions, membership versions, truncation, queue failures, and duplicate jobs.
+  Workstation reads remain local and provider-fan-out-free.
+- Validation: planner unit `2/2`; complete Docker-backed ETF holdings API `62/62`; full backend
+  unit suite `1217/1217`; Ruff, compileall, and diff-check pass. The focused API invocation's
+  coverage-threshold failure is an expected artifact of running one integration file instead of
+  the repository suite; the test result itself is 62/62. No acceptance flexibility or visual
+  threshold/mask/provider rule changed.
+- This closes a maintenance contract, not the data gap itself. Provider-backed membership/bar
+  population, historical continuity/reconciliation, and exact V25 maintenance/progress visuals
+  remain open and are carried into the next context.
+- Changeset context: `tc2000-family-member-history-queue-20260819`; implementation, docs/ops,
+  and state-closure commits must be pushed and synchronized before starting the next context.
+
 ## 2026-08-19 — Shared top-down YTD baseline consistency
 
 - Family/ranking/technical cells and historical return series now use the last aligned session

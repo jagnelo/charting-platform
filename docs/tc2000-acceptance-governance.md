@@ -1,5 +1,21 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-08-19 — Family constituent history hydration is explicit and bounded
+
+Locked index/index-ETF constituent watchlists are system-managed sources, not editable personal
+lists, but they must still be maintainable as data universes. The admin history-refresh contract
+resolves only locally evidenced membership, uses the same source IDs and point-in-time resolver as
+interactive Market Map/breadth, deduplicates overlapping roots/roles, and refuses unknown roots,
+roles, timeframes, or over-limit requests. It queues existing bulk-history jobs rather than making
+provider calls in the API request. Empty, unavailable, excluded, truncated, already-queued, and
+queue-failure outcomes remain visible in the response.
+
+The planner and API regressions pass, full backend units pass `1217/1217`, and the complete ETF
+holdings API file passes `62/62` under the Docker-backed environment. No visual threshold, mask,
+provider entitlement, or acceptance rule was relaxed. The remaining gap is substantive rather than
+semantic: all roots still need real provider-backed membership/bar continuity and historical
+reconciliation, and the exact V25 maintenance/progress presentation is not yet board-approved.
+
 ## 2026-08-19 — YTD consistency across top-down views
 
 Every shared family/ranking/technical YTD cell and historical return point must use the latest

@@ -1,5 +1,22 @@
 # Active Handoff
 
+## 2026-08-19 — Bounded canonical history hydration for locked family sources
+
+- Added `POST /api/v1/etf-holdings/benchmark-families/history-refresh`, an admin-only maintenance
+  contract that plans from the same local `benchmark-family:<family>:<role>` WatchlistSources used
+  by Market Map and breadth, normalizes roots/roles/timeframes, deduplicates canonical members,
+  enforces a 5,000-instrument cap, and queues existing provider-neutral bulk-history jobs.
+- The response retains per-leg membership versions/counts/exclusions/unavailable states plus queued,
+  already-queued, truncation, and queue-failure evidence. No interactive endpoint was changed to
+  fan out to providers. A compatibility ARQ batch task is registered for future scheduled callers.
+- Validation: planner units `2/2`; Docker-backed ETF holdings API `62/62`; full backend units
+  `1217/1217`; Ruff, compileall, and diff-check pass. The isolated API run only reports the expected
+  repository-wide coverage-threshold failure; no acceptance flexibility was used.
+- Remaining: provider-backed population, canonical OHLCV continuity, historical composition and
+  membership reconciliation for all eight roots/roles, and exact V25 maintenance/progress visuals.
+- Next context: checkpoint this changeset, then continue family population/continuity and universal
+  Market Map metric/visual gates.
+
 ## 2026-08-19 — Shared top-down YTD baseline consistency
 
 - Aligned `_performance_cells`, `_aggregate_series_cells`, and `_historical_return_series` with

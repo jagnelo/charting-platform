@@ -1,5 +1,22 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-19 — Locked family constituents can be hydrated through a bounded maintenance path
+
+The system-managed index/index-ETF constituent watchlists now have an explicit administrative
+history-maintenance contract. `POST /api/v1/etf-holdings/benchmark-families/history-refresh` resolves
+the same canonical `benchmark-family:<family>:<role>` sources used by the universal Market Map,
+breadth, scans, gauges, and linked charts; it deduplicates instrument IDs across overlapping legs,
+applies a hard 5,000-instrument bound, and queues the existing provider-neutral bulk OHLCV task.
+The response preserves each leg's source ID, membership version, member/selected/deduplicated/
+excluded counts, unavailable state, queue state, and truncation warning. It is admin-only and is
+never called by an interactive workstation read.
+
+Planner unit coverage passes `2/2`; the Docker-backed ETF holdings API regression passes `62/62`;
+full backend units pass `1217/1217`; Ruff, compileall, and diff checks pass. No acceptance
+flexibility was used. This proves the queue/maintenance contract only: provider-backed population,
+historical composition continuity, complete canonical bars, entitlement/reconciliation, and exact
+Version 25 maintenance/progress visuals remain open.
+
 ## 2026-08-19 — Family and ranking YTD agrees with Market Map
 
 Shared family/ranking/technical performance cells and historical return series now use the last
