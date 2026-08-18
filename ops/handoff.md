@@ -1,5 +1,23 @@
 # Active Handoff
 
+## 2026-08-19 — Research Results Boolean breadth promotion fan-out
+
+- Research Results now exposes `Promote to alert`, `Use as Market Gauge`, and `Save as Strategy
+  signal` for completed member-scoped Boolean breadth-history runs. Each action reuses one
+  lineage-preserving EasyScan created from the immutable Boolean condition; the alert targets that
+  scan and the Strategy signal receives its immutable Boolean code-version ID.
+- Cross-sectional aggregates, event outputs, and arbitrary derived-series outputs remain gated by
+  their declared contracts and are not flattened into per-symbol alerts. Direct map-created
+  definition promotion and complete artifact fan-out remain explicit open gaps.
+- Validation passed: focused Research Results `18/18`; full frontend Vitest `883/883`; `vue-tsc`;
+  production build; and `git diff --check`. Existing expected mocked 503/conflict logs and the
+  Vite large-workstation-chunk warning remain unchanged. No acceptance flexibility was used.
+- Implementation/docs commit `5104e1775bdca9fe02519788f2428dbb53260fed` is pushed. This context
+  remains open only for the separate operational checkpoint and final state closure.
+- The universal watchlist/heatmap contract remains unchanged: locked index/ETF/group/combo/explicit
+  sources are still present and followable, while membership mutation is the only distinction from
+  editable personal lists.
+
 ## 2026-08-19 — Explicit-source durability action
 
 - Added a direct `Save as watchlist` control whenever Market Map is in explicit-symbol mode. It

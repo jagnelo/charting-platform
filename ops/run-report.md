@@ -1,5 +1,18 @@
 # Run Report
 
+## 2026-08-19 — Research Results Boolean breadth promotion fan-out
+
+- Completed member-scoped Boolean breadth-history results now offer alert, Market Gauge, and
+  Strategy signal promotion in addition to EasyScan. One cached EasyScan per run preserves source
+  run, condition, universe, dataset, and reproducibility lineage across all targets.
+- Focused Research Results `18/18`, full frontend Vitest `883/883`, `vue-tsc`, production build,
+  and `git diff --check` pass. No acceptance flexibility or visual/provider/scope relaxation.
+- Exact V25 successive-promotion geometry is a named reference-board gap; cross-sectional,
+  event/derived-series, map-created-definition, and remaining universal fan-out contracts remain
+  open and are not represented as complete.
+- Implementation/docs commit `5104e1775bdca9fe02519788f2428dbb53260fed` is pushed. Operational
+  checkpoint and state closure are the remaining context bookkeeping steps.
+
 ## 2026-08-17 — Market-map scope checkpoint
 
 - Added the universe-scoped Finviz-style performance-map requirement to the controlling TODO,

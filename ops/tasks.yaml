@@ -11789,3 +11789,29 @@ tasks:
         preserving the ephemeral source until the user explicitly saves it. Members without current
         bars are included from source provenance. Implementation/docs commit and separate
         operational checkpoint are pending; no next context begins until both are pushed.
+  - id: tc2000-research-results-promotion-fanout-20260819
+    title: Extend Boolean breadth result promotion to alerts, gauges, and Strategy signals
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Reuse one lineage-preserving EasyScan for a completed member-scoped Boolean breadth-history
+      result and expose compatible Research Results actions for alert, Market Gauge, and Strategy
+      signal targets without flattening cross-sectional or non-Boolean outputs.
+    definition_of_done:
+      - Research Results exposes alert, Market Gauge, and Strategy signal actions only for completed Boolean-compatible member breadth history
+      - One promoted EasyScan is cached per run and reused by all three targets
+      - Alert targets the generated scan and Strategy signal uses its immutable Boolean code-version ID
+      - Focused component, full frontend, type/build, documentation, and diff gates pass
+      - Remaining cross-sectional/event/derived-series fan-out and exact V25 action geometry remain explicit gaps
+    validation:
+      - research-results-promotion-component-18-of-18
+      - frontend-vitest-883-of-883
+      - frontend-typecheck-build
+      - git-diff-check
+    notes:
+      - >-
+        No acceptance flexibility was used. The existing EasyScan, alert, Market Gauge, and
+        Strategy Lab APIs are reused; cross-sectional and non-Boolean outputs retain capability
+        gating. Implementation/docs commit 5104e1775bdca9fe02519788f2428dbb53260fed is pushed;
+        the separate operational checkpoint and state closure follow.
