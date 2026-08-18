@@ -17,9 +17,11 @@
 - Validation: focused service/worker/bootstrap `21/21`; Docker-backed generic history-refresh
   `1/1`; full backend units `1236/1236`; Ruff, compileall, and diff checks pass. Worktree was
   clean before this context and no acceptance flexibility/provider substitution was used.
-- Remaining: commit/push this implementation and ops checkpoint, then continue live provider
-  completeness, all-root historical reconciliation, entitlements, large-list rendering, and exact
-  V25 maintenance/progress visuals. Next context remains provider-backed family population.
+- Implementation commit `35cbaa97f5f1b5c30c5c3d46eab11f5d50952481` and documentation/ops checkpoint
+  `4968e3de6f2ac4e7c2aa84c0692d215fd45e108e` are pushed and synchronized. The final state-closure
+  commit will record this handoff; verify its enclosing SHA externally. Remaining work is live
+  provider completeness, all-root historical reconciliation, entitlements, large-list rendering,
+  and exact V25 maintenance/progress visuals. Next context remains provider-backed family population.
 
 ## 2026-08-19 — Durable provider-backed benchmark-family holdings refresh runs
 
