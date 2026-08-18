@@ -49,6 +49,10 @@ def _membership_digest(items: list[object] | tuple[object, ...]) -> str:
         {
             "instrument_id": getattr(item, "instrument_id", None),
             "position": getattr(item, "position", None),
+            "weight": getattr(item, "weight", None),
+            "relationship_type": getattr(item, "relationship_type", None),
+            "source": getattr(item, "source", None),
+            "verification_state": getattr(item, "verification_state", None),
             "added_at": (
                 getattr(item, "added_at", None).isoformat()
                 if getattr(item, "added_at", None) is not None
@@ -57,6 +61,16 @@ def _membership_digest(items: list[object] | tuple[object, ...]) -> str:
             "left_screener_at": (
                 getattr(item, "left_screener_at", None).isoformat()
                 if getattr(item, "left_screener_at", None) is not None
+                else None
+            ),
+            "effective_at": (
+                getattr(item, "effective_at", None).isoformat()
+                if getattr(item, "effective_at", None) is not None
+                else None
+            ),
+            "known_at": (
+                getattr(item, "known_at", None).isoformat()
+                if getattr(item, "known_at", None) is not None
                 else None
             ),
         }
@@ -98,6 +112,7 @@ def _watchlist_descriptor(watchlist: Watchlist) -> WatchlistSourceRead:
 
 
 def _market_group_descriptor(group: MarketGroup) -> WatchlistSourceRead:
+    membership_digest = _membership_digest(group.members)
     return WatchlistSourceRead(
         source_id=f"market-group:{group.stable_key}",
         source_kind="index_membership" if group.group_type == "benchmark_family" else "market_group",
@@ -105,7 +120,10 @@ def _market_group_descriptor(group: MarketGroup) -> WatchlistSourceRead:
         description=f"System-managed {group.group_type.replace('_', ' ')} universe",
         locked=True,
         stable_key=group.stable_key,
-        membership_version=_version("market-group", group.stable_key, group.effective_at),
+        membership_version=(
+            f"market-group:{group.stable_key}:"
+            f"{group.effective_at.isoformat() if group.effective_at else 'current'}:{membership_digest}"
+        ),
         member_count=len(group.members),
         source=group.source,
         provenance=dict(group.provenance or {}),

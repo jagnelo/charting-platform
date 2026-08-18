@@ -279,6 +279,40 @@ class TestWatchlistsCrud:
         assert weighted_cells["AAPL"]["area_provenance"]["kind"] == "point_in_time_membership"
         assert weighted_cells["AAPL"]["area_provenance"]["known_at"].startswith("2024-01-01")
 
+        # A locked market-group source is still mutable at the ingestion layer:
+        # membership weights and lifecycle metadata can be refreshed without
+        # touching the parent group row. Its canonical source version and map
+        # cache identity must therefore follow the member rows.
+        before_version = weighted.json()["membership_version"]
+        before_cache_key = weighted.json()["cache_key"]
+        group_member = (
+            db.query(MarketGroupMember)
+            .filter(MarketGroupMember.market_group_id == group.id)
+            .order_by(MarketGroupMember.position)
+            .first()
+        )
+        assert group_member is not None
+        group_member.weight = 0.7
+        db.flush()
+
+        refreshed = client.post(
+            "/api/v1/analysis/market-map",
+            headers=auth_headers,
+            json={
+                "source_id": "market-group:locked-sp500-fixture",
+                "group_by": "none",
+                "period": "1W",
+                "area_metric": "weight",
+                "color_metric": "return",
+                "end": "2024-01-07T00:00:00Z",
+            },
+        )
+        assert refreshed.status_code == 200, refreshed.text
+        refreshed_body = refreshed.json()
+        assert refreshed_body["membership_version"] != before_version
+        assert refreshed_body["cache_key"] != before_cache_key
+        assert {cell["symbol"]: cell["area_value"] for cell in refreshed_body["cells"]}["AAPL"] == 0.7
+
     def test_market_map_reports_missing_local_data_without_provider_fanout(
         self, client, auth_headers, watchlist, instrument
     ):
