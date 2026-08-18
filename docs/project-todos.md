@@ -1,5 +1,24 @@
 # Project TODO Memory
 
+### 2026-08-19 — Benchmark-family legs are locked universal watchlist sources
+
+- [x] Expose each evidenced `(family, role)` leg as a canonical locked source ID such as
+      `benchmark-family:sp500:cap_weight`; it uses the same descriptor, point-in-time membership,
+      provenance, exclusion, cache, Market Map, breadth, scan, gauge, and linked-analysis
+      contracts as personal, managed, combo, ETF-holdings, and explicit sources.
+- [x] Keep membership outside user mutation while retaining follow/clone affordances. Direct ETF
+      legs resolve their dated holdings snapshot; explicitly permitted equal-weight roles resolve
+      the cap-leg snapshot with equal member weights and a visible
+      `derived_equal_weight_point_in_time_membership` method.
+- [x] Preserve unavailable/unverified value, growth, or equal roles as locked descriptors with
+      `availability=unavailable` rather than inventing a mapping or silently substituting another
+      family. Generic breadth accepts the family-leg source ID without a family-only route.
+- [x] Add Docker-backed regressions proving source listing, historical resolution, equal weights,
+      Market Map reuse, generic breadth reuse, and the unaffected personal/ETF/combo contracts;
+      the complete watchlists and workspaces integration suites pass `88/88`.
+- [ ] Populate and independently evidence all family/role holdings snapshots, historical
+      continuity, and exact Version 25 source-picker/locked-list visual states.
+
 ### 2026-08-19 — Point-in-time provider-backed Market Map numeric fields
 
 - [x] Extend profile-snapshot selection beyond market cap to all allow-listed numeric area fields:

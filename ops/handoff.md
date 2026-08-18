@@ -1,5 +1,26 @@
 # Active Handoff
 
+## 2026-08-19 — Benchmark-family legs are universal locked sources
+
+- Added canonical `benchmark-family:<family>:<role>` WatchlistSources for evidenced cap/equal/
+  value/growth legs. They are locked against membership edits but retain follow/clone and linked
+  publication semantics, so Market Map, breadth, scans, gauges, and future tools share one source
+  contract with personal, managed, combo, ETF-holdings, and explicit lists.
+- Direct legs resolve their dated ETF-proxy holdings. Families with an explicitly allowed derived
+  equal-weight method resolve the cap-leg snapshot and assign equal member weights, retaining
+  `derived_equal_weight_point_in_time_membership`; missing or unverified roles remain unavailable.
+- Generic breadth accepts the family-leg source ID and direct family breadth reuses the same resolver
+  for derived equal roles. Implementation commit `f2986502b1924117e6031ddc3223bea39499fc79` is
+  pushed and synchronized.
+- Validation: focused family-source regression `1/1`, direct family breadth regressions `3/3`,
+  complete watchlists/workspaces integration `88/88`, Ruff, compileall, and diff-check pass. No
+  acceptance flexibility. The uv cache permission boundary required the approved elevated command.
+- Remaining gaps: provider-backed population and historical continuity for every family/role,
+  point-in-time membership episodes, compatible promotion fan-out, and exact V25 source-picker,
+  locked-list, derived-weight, unavailable-role, and revision visuals.
+- Next context: continue family/provider population and broad workstation acceptance after the
+  separate docs/ops and state-closure commits for this context.
+
 ## 2026-08-19 — Point-in-time provider-backed numeric area fields
 
 - Market Map `area_metric=field` now participates in the same profile-snapshot provider

@@ -1,5 +1,22 @@
 # Run Report
 
+## 2026-08-19 — Benchmark-family legs as locked universal watchlists
+
+- Implemented `benchmark-family:<family>:<role>` source descriptors and resolution. Every
+  evidenced family leg is now a locked source compatible with the existing Market Map/breadth
+  contract; users cannot edit membership, while follow/clone and linked publication remain
+  available.
+- Direct roles use dated ETF-proxy holdings. Explicitly permitted derived equal roles use the
+  cap-leg membership with equal weights and expose the derived methodology. Unavailable roles
+  remain explicit and never fall through to another family or ticker.
+- Focused source/map/breadth integration `1/1`, direct family breadth `3/3`, complete affected
+  watchlists/workspaces integration `88/88`, Ruff, compileall, and `git diff --check` pass. No
+  acceptance flexibility or visual threshold relaxation.
+- Implementation commit `f2986502b1924117e6031ddc3223bea39499fc79` is pushed. Docs/ops checkpoint
+  and state closure are the remaining bookkeeping for this context.
+- Open: complete provider-backed family/role population and history, promotion fan-out, and exact
+  Version 25 family-leg source-picker/list/unavailable/revision visual evidence.
+
 ## 2026-08-19 — Point-in-time provider-backed numeric area fields
 
 - Extended Market Map profile selection to all allow-listed numeric area fields using canonical

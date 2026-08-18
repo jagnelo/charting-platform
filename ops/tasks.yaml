@@ -1,4 +1,33 @@
 tasks:
+  - id: tc2000-benchmark-family-locked-sources-20260819
+    title: Expose benchmark-family legs as universal locked watchlist sources
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Treat every evidenced cap/equal/value/growth benchmark-family leg as a canonical locked
+      WatchlistSource so the same Market Map, breadth, scan, gauge, and linked-analysis surfaces
+      consume index and index-ETF constituent universes without feature-specific routes.
+    definition_of_done:
+      - Family role source IDs are listed with locked/editing/follow/clone and availability metadata
+      - Direct legs resolve point-in-time ETF holdings; permitted equal legs resolve declared cap
+        membership with equal weights and explicit derived methodology
+      - Missing/unverified roles remain unavailable and never silently substitute another mapping
+      - Generic breadth accepts family-leg sources and Market Map preserves source/cache lineage
+      - Focused family source regression and complete affected integration suites pass
+      - Full family/provider population, historical continuity, and exact V25 source-picker visuals remain tracked
+    validation:
+      - backend-family-locked-source-regression-1-of-1
+      - backend-family-breadth-regressions-3-of-3
+      - backend-watchlists-and-workspaces-integration-88-of-88
+      - backend-ruff-compileall
+      - git-diff-check
+    notes:
+      - >-
+        No acceptance flexibility used. The browsable reference board remains the interim visual
+        authority for represented heatmap/list composition; exact family-leg picker and unavailable
+        state visuals remain explicit board gaps.
+
   - id: tc2000-market-map-profile-numeric-fields-20260819
     title: Apply historical provider precedence to Market Map numeric area fields
     status: completed

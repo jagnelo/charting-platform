@@ -1,5 +1,19 @@
 # TC2000 Version 25 composite reference board
 
+## 2026-08-19 family-leg source composition gap narrowed
+
+The board supports a single dense heatmap language for arbitrary lists, but it does not show the
+exact Version 25 source-picker treatment for a benchmark family whose cap, equal, value, and
+growth legs are separately selectable locked lists. The implementation now composes those legs
+as `benchmark-family:<family>:<role>` sources, preserves the same map/list surface, labels
+derived equal-weight membership and unavailable roles, and reuses the canonical source lineage
+through Market Map and generic breadth. Source/resolver/cache and `88/88` integration assertions
+are the interim oracle.
+
+Still unrepresented: exact V25 labels/icons, follow/clone affordance placement, derived equal
+weight disclosure, unavailable-role styling, revision/freshness badges, and the populated visual
+appearance of every family. These remain tracked reference gaps rather than silent passes.
+
 ## 2026-08-19 numeric profile-area state gap narrowed
 
 The board has no authoritative Version 25 treatment for choosing a numeric tile-area field from

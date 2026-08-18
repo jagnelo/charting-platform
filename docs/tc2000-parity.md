@@ -1,5 +1,23 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-19 — Family legs use the universal locked-watchlist surface
+
+The workstation now exposes each evidenced benchmark-family leg as a selectable locked source,
+for example `benchmark-family:sp500:cap_weight` or `benchmark-family:nasdaq100:equal_weight`.
+The source catalog and resolver treat these exactly like other watchlists: the user can follow,
+clone, publish, filter, scan, gauge, or map them, but cannot edit their membership. Direct legs
+use their point-in-time ETF-proxy holdings; explicitly allowed derived equal legs use the same
+cap-leg membership with equal member weights and retain the derived methodology in provenance.
+
+Generic breadth and Market Map now consume the family-leg source ID through the shared resolver,
+including historical `as_of`, exclusions, membership version, and locked-source lineage. Missing
+or unverified roles remain visible as unavailable descriptors; no family or ticker substitution is
+performed. Focused family-source and breadth regressions plus the complete watchlists/workspaces
+integration suites pass `88/88`.
+
+Remaining gaps are data population and historical continuity for every family/role, plus exact
+Version 25 source-picker, locked-list, derived-weight, unavailable-state, and revision visuals.
+
 ## 2026-08-19 — Numeric Market Map areas use the point-in-time profile contract
 
 The provider-neutral profile-area contract now applies to the complete allow-listed numeric area
