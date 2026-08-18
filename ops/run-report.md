@@ -1,5 +1,18 @@
 # Run Report
 
+## 2026-08-19 — Market Map evaluation-time membership repair
+
+- System-managed benchmark-family, ETF-holdings, and market-group Map sources now resolve
+  composition at `end` when no explicit `as_of` is provided; personal/managed/combo lists retain
+  current membership unless explicitly cut off.
+- Two dated ETF snapshots prove the historical map selects the older weight and a later map selects
+  the newer weight. Focused compatibility cases passed `8/8`; complete affected backend suite
+  passed `104/104`.
+- Ruff, compileall, and `git diff --check` passed. Implementation `2f7653d0` is pushed. No
+  acceptance flexibility, visual threshold, or mask change was used.
+- Historical participation/ranking/rotation evaluation boundaries, provider composition continuity,
+  and exact V25 weight/revision disclosure visuals remain open.
+
 ## 2026-08-19 — Full benchmark-family fixture acceptance
 
 - The controlled browser fixture now derives every configured benchmark-family proxy identity and

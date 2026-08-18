@@ -1,5 +1,19 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-19 — Market Map weights honor the evaluation timestamp
+
+When a Market Map request supplies a historical `end` without a separate `as_of`, system-managed
+benchmark-family, ETF-holdings, and market-group sources now resolve the latest composition known
+at that timestamp. A historical map therefore cannot use a newer holdings weight with an older bar
+window. Personal/managed and combo lists retain current membership for chart-period requests and
+enter historical membership mode only with explicit `as_of`, preserving existing workstation
+behavior. The regression proves old/new ETF snapshots select `0.25` versus `0.75` at the matching
+ends, and the complete affected backend suite passes `104/104`.
+
+This closes the Market Map source-evaluation boundary only. Other historical participation,
+ranking, rotation, and provider-backed composition continuity still require the same audit; exact
+Version 25 weight badges and disclosure geometry remain unrepresented reference-board states.
+
 ## 2026-08-19 — Family-role source matrix is represented in controlled acceptance
 
 The opt-in browser fixture now derives its benchmark proxy identities from the canonical family

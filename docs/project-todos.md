@@ -1,5 +1,19 @@
 # Project TODO Memory
 
+### 2026-08-19 — Market Map evaluation-time membership boundary
+
+- [x] Resolve system-managed benchmark-family, ETF-holdings, and market-group sources at the
+      requested map `end` when no explicit `as_of` is supplied, so historical tile weights use
+      the latest snapshot known at the calculation timestamp rather than the current snapshot.
+- [x] Preserve current personal/managed and combo watchlist membership for chart-period requests;
+      these sources enter historical membership mode only when the caller explicitly sets `as_of`.
+- [x] Add a regression with two ETF snapshots proving an older map end selects the older weight and
+      a later end selects the newer weight; rerun the compatibility cases and complete affected
+      watchlists/workspaces/taxonomy suite `104/104`, plus Ruff, compileall, and diff check.
+- [ ] Extend the same evaluation-time contract to every historical participation/ranking/rotation
+      batch and complete provider-backed composition continuity; exact V25 weight badges remain
+      a reference-board gap.
+
 ### 2026-08-19 — Full benchmark-family fixture acceptance through universal watchlists
 
 - [x] Derive the opt-in browser fixture's benchmark proxy identities from the canonical taxonomy,

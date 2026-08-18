@@ -1,5 +1,16 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-08-19 — Market Map composition must match the requested evaluation time
+
+For a Market Map with `area_metric=weight`, acceptance must verify that a system-managed
+benchmark-family, ETF-holdings, or market-group source uses the latest composition known at the
+requested `end` when `as_of` is omitted, and uses the explicit `as_of` when supplied. A personal,
+managed, or combo watchlist remains a current selection for a chart-period request unless it has
+an explicit historical cutoff. The map response and tile provenance must retain the selected
+membership version, composition/effective/known timestamps, and exact exclusions. The two-snapshot
+ETF regression and full `104/104` affected backend suite are the interim oracle; this does not close
+historical participation/ranking/rotation batches or exact V25 weight-badge visuals.
+
 ## 2026-08-19 — Family breadth current/as-of semantic tie-break
 
 The direct benchmark-family derived-equal breadth acceptance must assert both modes: a saved

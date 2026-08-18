@@ -1,5 +1,21 @@
 # Active Handoff
 
+## 2026-08-19 — Market Map evaluation-time membership repair
+
+- Repaired Market Map source resolution so system-managed `benchmark-family:`, `etf-holdings:`,
+  and `market-group:` sources use the request `end` as their evaluation timestamp when `as_of`
+  is omitted. Historical maps now choose the dated holdings snapshot known at that point and keep
+  the selected weight/composition lineage in the response.
+- Personal/managed and combo lists intentionally retain current membership for chart-period
+  requests; explicit `as_of` remains authoritative for all source kinds. This avoids turning a
+  historical return window into an implicit historical user-list membership request.
+- Added a two-snapshot weight regression; the focused compatibility set passed `8/8`, and the
+  complete affected watchlists/workspaces/taxonomy suite passed `104/104`, with Ruff, compileall,
+  and `git diff --check` passing.
+- Implementation commit `2f7653d0` is pushed. Docs/ops checkpoint and state closure are next.
+- No acceptance flexibility was used. Historical participation/ranking/rotation parity, provider
+  composition continuity, and exact V25 weight/revision visuals remain explicit gaps.
+
 ## 2026-08-19 — Full benchmark-family fixture acceptance
 
 - Extended the opt-in controlled browser fixture from the original SPY/sector subset to every

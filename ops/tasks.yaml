@@ -1,4 +1,28 @@
 tasks:
+  - id: tc2000-market-map-evaluation-time-weights-20260819
+    title: Anchor managed Market Map weights to the evaluation timestamp
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Prevent historical system-managed Market Maps from combining an older price window with a
+      newer holdings composition, while preserving current personal/combo membership semantics.
+    definition_of_done:
+      - Benchmark-family, ETF-holdings, and market-group sources use end when as_of is omitted
+      - Explicit as_of remains authoritative for every source kind
+      - Personal/managed/combo chart-period requests retain current membership unless as_of is explicit
+      - Two-snapshot regression proves historical and later weights are selected correctly
+      - Compatibility suite, docs, and acceptance governance record the remaining visual/data gaps
+    validation:
+      - backend-market-map-historical-weight-regression-1-of-1
+      - backend-watchlists-workspaces-taxonomy-suite-104-of-104
+      - backend-ruff-compileall
+      - git-diff-check
+    notes:
+      - >-
+        No acceptance flexibility was used. Exact V25 weight/revision disclosure visuals and
+        analogous historical participation/ranking/rotation semantics remain open.
+
   - id: tc2000-family-role-fixture-acceptance-20260819
     title: Exercise every benchmark-family leg through universal watchlists
     status: completed

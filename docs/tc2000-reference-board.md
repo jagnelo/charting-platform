@@ -1,5 +1,13 @@
 # TC2000 Version 25 composite reference board
 
+## 2026-08-19 — Evaluation-time weight state is a backend acceptance gap
+
+The board does not contain an authoritative exact-build capture for a historical map switching
+between dated holdings weights. The backend now selects system-managed composition at the map's
+evaluation timestamp and preserves the selected snapshot lineage; personal/combo current-list
+semantics are intentionally distinct. Exact V25 weight badge, disclosure, stale/partial, and
+revision geometry remain unrepresented and must not be mistaken for visually approved parity.
+
 ## 2026-08-19 — Universal family-role acceptance coverage
 
 The controlled reference environment now represents every configured, available benchmark-family
