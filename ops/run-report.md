@@ -1,5 +1,18 @@
 # Run Report
 
+## 2026-08-19 — Arbitrary-watchlist membership lineage repair
+
+- Replaced row-timestamp-only membership versions with deterministic canonical membership
+  fingerprints for personal/managed watchlists. Derived combo versions now include all referenced
+  watchlist fingerprints, so union/intersection/exclusion changes invalidate dependent maps.
+- The focused integration adds a constituent to an arbitrary list and verifies descriptor changes,
+  combo resolution, expanded heatmap count, and a new cache key. Adjacent personal/combo/ETF map
+  regressions pass `3/3`.
+- Ruff, Python compilation, and `git diff --check` pass. The first integration attempt hit the
+  known Docker-socket permission boundary; the unchanged elevated rerun passed. No acceptance
+  flexibility or visual threshold changed.
+- Historical deletion/re-entry ledger and exact V25 revision/badge visuals remain explicitly open.
+
 ## 2026-08-19 — Boolean-tree aggregate plot promotion repair
 
 - Aggregate Python breadth plot promotion now accepts completed recursive Boolean condition trees;

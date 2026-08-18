@@ -1,5 +1,21 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-19 — Arbitrary watchlist membership invalidation
+
+Personal and managed watchlist sources now derive `membership_version` from their canonical
+instrument membership, ordering, and membership timestamps. This avoids treating a parent
+watchlist `updated_at` value as a membership ledger when relationship edits do not update that
+row. Combo sources include the membership fingerprints of every referenced union, intersection,
+and exclusion list, so the same locked heatmap source changes identity whenever an underlying
+arbitrary watchlist changes. The Market Map cache therefore cannot reuse a stale composition after
+a user adds, removes, or reorders a constituent.
+
+The current digest is a cache/provenance guard, not historical membership reconstruction. Deleted
+or re-entered constituents still need an append-only point-in-time membership ledger before old
+`as_of` requests can be reconstructed with full fidelity; that remains an explicit backend gap.
+The board has no exact V25 capture for this lineage/invalidation state, so deterministic source,
+resolver, and cache-key assertions are the interim acceptance oracle.
+
 ## 2026-08-19 — Cross-sectional breadth aggregate plot
 
 | Surface | Implementation | Backend contract | Validation | Visual/reference state |
@@ -55,8 +71,9 @@ were a personal list. The resolver applies user isolation, deterministic orderin
 elimination, exclusions, and explicit historical `as_of` exclusions. Market Map consumes the
 same source-neutral batch endpoint and therefore provides identical grouping, tile metrics,
 coverage/provenance, caching, snapshots, selection, linked-chart, breadth, scan, alert, and Study
-Lab publication actions for combo, personal, managed, index, and ETF-proxy sources. Explicit
-symbol descriptors and complete historical combo membership versions remain open gates.
+Lab publication actions for combo, personal, managed, index, and ETF-proxy sources. Current combo
+membership versions now include the content fingerprint of every referenced watchlist, while
+complete historical deletion/re-entry reconstruction remains an open gate.
 
 Map area values now expose per-cell provenance: equal-derived sizing, isolated Python output,
 point-in-time membership weights, local OHLCV volume, provider numeric fields, or current stored

@@ -1,5 +1,15 @@
 # TC2000 Version 25 composite reference board
 
+## 2026-08-19 arbitrary-watchlist lineage reference gap
+
+The composed board supports one heatmap language for locked index/ETF constituent universes,
+derived combo lists, managed scans, and editable personal watchlists, but it does not show the
+exact V25 visual treatment for a membership revision or a derived source invalidating a cached
+map. The implementation now uses deterministic membership fingerprints and preserves the same
+heatmap surface; source/resolver/cache assertions are the interim oracle. Exact badges, refresh
+copy, and revision-history geometry remain unrepresented and must stay tracked until a
+complementary reference is reviewed.
+
 ## 2026-08-19 aggregate breadth plot reference gap
 
 The board has no authoritative V25 capture of the complete flow from a cross-sectional breadth

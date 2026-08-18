@@ -1,5 +1,18 @@
 # Project TODO Memory
 
+### 2026-08-19 — Mutable and derived watchlist membership lineage
+
+- [x] Make personal and managed `WatchlistSource` membership versions content-derived from
+      canonical instrument membership, position, and membership timestamps instead of relying on
+      the parent row's `updated_at` (relationship mutations do not reliably touch that row).
+- [x] Include every referenced watchlist membership fingerprint in combo-source versions so a
+      locked derived universe changes identity when any union/intersection/exclusion input changes.
+- [x] Add an end-to-end Market Map regression proving a changed arbitrary watchlist updates the
+      personal and combo descriptors, resolves the new member, and invalidates the prior map cache.
+- [ ] Keep deletion/re-entry historical reconstruction and complete point-in-time membership
+      history open; the current digest prevents stale current maps but is not a substitute for an
+      append-only membership ledger.
+
 ### 2026-08-19 — Boolean-tree aggregate plot promotion repair
 
 - [x] Allow completed historical recursive Boolean breadth trees to promote to aggregate uPlot

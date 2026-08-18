@@ -1,5 +1,19 @@
 # Active Handoff
 
+## 2026-08-19 — Arbitrary-watchlist membership lineage repair
+
+- Personal and managed `WatchlistSource` descriptors now fingerprint canonical member IDs,
+  positions, and membership timestamps instead of relying on a parent `updated_at` that may not
+  change when a relationship row is edited.
+- Combo descriptors include each referenced union/intersection/exclusion watchlist fingerprint.
+  Adding a member to an arbitrary list therefore changes the locked derived source version,
+  resolves the new constituent, and invalidates the previous Market Map cache identity.
+- Validation passed: focused Docker-backed membership integration `1/1`, adjacent personal/combo/
+  ETF Market Map regressions `3/3`, Ruff, compileall, and `git diff --check`. Unprivileged runs
+  hit only the known Docker-socket setup boundary; unchanged elevated reruns passed.
+- No acceptance flexibility used. Historical deletion/re-entry membership reconstruction and
+  exact V25 revision/badge visuals remain open and are documented as gaps.
+
 ## 2026-08-19 — Boolean-tree aggregate plot promotion repair
 
 - Fixed the aggregate breadth-to-uPlot promotion guard in `analysis.py`: completed recursive

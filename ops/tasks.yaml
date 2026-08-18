@@ -1,4 +1,29 @@
 tasks:
+  - id: tc2000-watchlist-membership-lineage-20260819
+    title: Invalidate arbitrary-watchlist and combo heatmaps on membership changes
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Make mutable and derived WatchlistSource membership versions reflect canonical membership
+      content so the shared TC2000-style Market Map never serves a stale composition after an
+      arbitrary watchlist changes.
+    definition_of_done:
+      - Personal/managed source versions digest canonical member IDs, positions, and membership timestamps
+      - Combo versions include every referenced union/intersection/exclusion source fingerprint
+      - A changed watchlist resolves new members and invalidates the prior Market Map cache key
+      - Focused Docker-backed integration, Ruff, compileall, and diff checks pass
+      - Historical deletion/re-entry reconstruction and exact V25 lineage visuals remain tracked gaps
+    validation:
+      - backend-watchlist-membership-lineage-integration-1-of-1
+      - backend-watchlist-source-regressions-3-of-3
+      - backend-ruff-compileall
+      - git-diff-check
+    notes:
+      - >-
+        No acceptance flexibility used. This is a current-membership cache/provenance repair;
+        an append-only membership ledger is still required for complete historical as_of truth.
+
   - id: tc2000-boolean-tree-aggregate-plot-20260819
     title: Repair aggregate plot promotion for recursive Boolean breadth trees
     status: completed
