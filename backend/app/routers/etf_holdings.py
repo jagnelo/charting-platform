@@ -52,7 +52,12 @@ from app.schemas.etf_holdings import (
     ETFProfileUpdateRequest,
     ETFUnresolvedHoldingOut,
 )
+from app.schemas.etf_holdings_history import (
+    BenchmarkFamilyHistoryRefreshRequest,
+    BenchmarkFamilyHistoryRefreshSummary,
+)
 from app.services.baskets import basket_to_out, materialize_etf_holdings_basket
+from app.services.benchmark_family_history import plan_benchmark_family_history_refresh
 from app.services.etf_holdings import (
     coverage_summary,
     ensure_etf_profile,
@@ -103,6 +108,105 @@ from app.services.etf_holdings_refresh import (
 from app.services.etf_holdings_sec import parse_sec_legacy_holdings_xml, parse_sec_nport_xml
 
 router = APIRouter(prefix="/etf-holdings", tags=["etf-holdings"])
+
+
+@router.post(
+    "/benchmark-families/history-refresh",
+    response_model=BenchmarkFamilyHistoryRefreshSummary,
+)
+async def queue_benchmark_family_history_refresh(
+    body: BenchmarkFamilyHistoryRefreshRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    """Queue bounded OHLCV hydration for resolved locked-family constituents.
+
+    This endpoint is intentionally administrative.  It plans from local canonical
+    membership and queues the existing per-instrument bulk task; normal workstation
+    reads never call it and never fan out to providers.
+    """
+
+    from arq.connections import RedisSettings, create_pool
+
+    from app.config import settings
+
+    try:
+        plan = await plan_benchmark_family_history_refresh(
+            db,
+            family_keys=body.family_keys,
+            roles=body.roles,
+            as_of=body.as_of,
+            max_instruments=body.max_instruments,
+            timeframes=body.timeframes,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    queued = 0
+    already_queued = 0
+    queue_unavailable = False
+    try:
+        redis = await create_pool(RedisSettings.from_dsn(settings.REDIS_URL))
+        try:
+            for instrument_id in plan["instrument_ids"]:
+                job = await redis.enqueue_job(
+                    "task_bulk_fetch_instrument",
+                    instrument_id,
+                    plan["timeframes"],
+                    _job_id=(
+                        f"benchmark-family-history:{instrument_id}:"
+                        f"{','.join(plan['timeframes'])}"
+                    ),
+                )
+                if job is None:
+                    already_queued += 1
+                else:
+                    queued += 1
+        finally:
+            await redis.aclose()
+    except Exception as exc:  # noqa: BLE001 - queue outage is an explicit admin outcome.
+        queue_unavailable = True
+        return BenchmarkFamilyHistoryRefreshSummary(
+            **{key: plan[key] for key in (
+                "family_keys",
+                "roles",
+                "timeframes",
+                "as_of",
+                "max_instruments",
+                "available_instrument_count",
+                "selected_instrument_count",
+                "limited",
+                "legs",
+            )},
+            queued=queued,
+            already_queued=already_queued,
+            queue_unavailable=True,
+            message=(
+                f"History queue unavailable after {queued + already_queued} jobs: {exc}"
+            ),
+        )
+
+    return BenchmarkFamilyHistoryRefreshSummary(
+        **{key: plan[key] for key in (
+            "family_keys",
+            "roles",
+            "timeframes",
+            "as_of",
+            "max_instruments",
+            "available_instrument_count",
+            "selected_instrument_count",
+            "limited",
+            "legs",
+        )},
+        queued=queued,
+        already_queued=already_queued,
+        queue_unavailable=queue_unavailable,
+        message=(
+            "Selection was bounded by max_instruments."
+            if plan["limited"]
+            else None
+        ),
+    )
 
 
 @router.post(

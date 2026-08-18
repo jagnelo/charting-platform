@@ -45,6 +45,22 @@ async def task_bulk_fetch_instrument(
         return summary
 
 
+async def task_refresh_benchmark_family_history(ctx: dict, instrument_ids: list[int], timeframes: list[str] | None = None):
+    """Compatibility task for callers that submit a bounded family batch.
+
+    The HTTP maintenance route currently submits the existing per-instrument task
+    directly.  Keeping this small batch entry point makes scheduled/admin callers
+    able to use the same contract without adding provider logic to the router.
+    """
+
+    results = []
+    for instrument_id in instrument_ids:
+        results.append(
+            await task_bulk_fetch_instrument(ctx, instrument_id, timeframes=timeframes)
+        )
+    return {"instrument_count": len(instrument_ids), "results": results}
+
+
 async def task_run_screener(ctx: dict, screener_id: int):
     """ARQ task: run a screener by ID and persist results."""
     from app.database import AsyncSessionLocal
@@ -215,6 +231,7 @@ class WorkerSettings:
     redis_settings = RedisSettings.from_dsn(settings.REDIS_URL)
     functions = [
         task_bulk_fetch_instrument,
+        task_refresh_benchmark_family_history,
         task_run_screener,
         task_refresh_instrument_data,
         task_bootstrap_core_workstation,

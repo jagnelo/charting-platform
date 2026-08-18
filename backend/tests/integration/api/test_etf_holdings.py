@@ -108,6 +108,68 @@ def test_admin_can_refresh_ark_provider_route(client, admin_headers, auth_header
     assert body["row_count"] == 2
 
 
+def test_admin_family_history_refresh_queues_deduplicated_local_members(
+    client, admin_headers, monkeypatch
+):
+    async def fake_plan(*_args, **_kwargs):
+        return {
+            "family_keys": ["sp500"],
+            "roles": ["cap_weight"],
+            "timeframes": ["MN", "W1", "D1"],
+            "as_of": None,
+            "max_instruments": 5000,
+            "available_instrument_count": 2,
+            "selected_instrument_count": 2,
+            "limited": False,
+            "instrument_ids": [10, 20],
+            "legs": [
+                {
+                    "source_id": "benchmark-family:sp500:cap_weight",
+                    "family_key": "sp500",
+                    "role": "cap_weight",
+                    "status": "ready",
+                    "member_count": 2,
+                    "selected_count": 2,
+                    "deduplicated_count": 0,
+                    "excluded_count": 0,
+                    "membership_version": "sp500-v1",
+                }
+            ],
+        }
+
+    class FakeRedis:
+        def __init__(self):
+            self.calls = []
+
+        async def enqueue_job(self, *args, **kwargs):
+            self.calls.append((args, kwargs))
+            return object()
+
+        async def aclose(self):
+            return None
+
+    redis = FakeRedis()
+
+    async def fake_create_pool(*_args, **_kwargs):
+        return redis
+
+    monkeypatch.setattr("app.routers.etf_holdings.plan_benchmark_family_history_refresh", fake_plan)
+    monkeypatch.setattr("arq.connections.create_pool", fake_create_pool)
+
+    response = client.post(
+        "/api/v1/etf-holdings/benchmark-families/history-refresh",
+        json={},
+        headers=admin_headers,
+    )
+
+    assert response.status_code == 200
+    assert response.json()["queued"] == 2
+    assert response.json()["queue_unavailable"] is False
+    assert [call[0][1] for call in redis.calls] == [10, 20]
+    assert all(call[0][0] == "task_bulk_fetch_instrument" for call in redis.calls)
+    assert all(call[0][2] == ["MN", "W1", "D1"] for call in redis.calls)
+
+
 def test_bootstrap_endpoint_can_materialize_and_fetch_first_snapshot(
     client, auth_headers, monkeypatch
 ):
