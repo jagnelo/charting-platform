@@ -158,6 +158,82 @@ describe('MarketMapTool', () => {
     expect(wrapper.emitted('configuration')?.at(-1)?.[0]).toEqual(expect.objectContaining({ sort_by: 'symbol_asc' }))
   })
 
+  it('switches large arbitrary universes to one canvas without proportional tile DOM', async () => {
+    const largeResponse = {
+      ...response,
+      requested_count: 1501,
+      evaluated_count: 1501,
+      freshness_detail: { requested: 1501, current: 1501, stale: 0, other: 0 },
+      cells: Array.from({ length: 1501 }, (_, index) => ({
+        ...response.cells[0],
+        instrument_id: index + 1,
+        symbol: `SYM${index + 1}`,
+        name: `Synthetic ${index + 1}`,
+        area_value: 1,
+        color_value: index % 2 === 0 ? 0.01 : -0.01,
+      })),
+    }
+    apiPost.mockResolvedValue(largeResponse)
+    const context = {
+      setTransform: vi.fn(),
+      clearRect: vi.fn(),
+      fillRect: vi.fn(),
+      strokeRect: vi.fn(),
+      fillText: vi.fn(),
+      fillStyle: '',
+      strokeStyle: '',
+      lineWidth: 1,
+      font: '',
+      textAlign: 'center',
+      textBaseline: 'middle',
+    }
+    const canvasContext = vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(context as unknown as CanvasRenderingContext2D)
+    const previousAnimationFrame = window.requestAnimationFrame
+    const previousCancelAnimationFrame = window.cancelAnimationFrame
+    const animationFrames: FrameRequestCallback[] = []
+    Object.defineProperty(window, 'requestAnimationFrame', { configurable: true, value: (callback: FrameRequestCallback) => { animationFrames.push(callback); return animationFrames.length } })
+    Object.defineProperty(window, 'cancelAnimationFrame', { configurable: true, value: vi.fn() })
+
+    const wrapper = mount(MarketMapTool)
+    await flushPromises()
+    await wrapper.vm.$nextTick()
+    window.dispatchEvent(new Event('resize'))
+    for (const callback of animationFrames.splice(0)) callback(0)
+
+    expect(wrapper.find('canvas.market-map-tool__canvas-map').exists()).toBe(true)
+    expect(wrapper.find('canvas.market-map-tool__canvas-map').attributes('aria-label')).toBe('1501 Market Map members')
+    expect(wrapper.findAll('.market-map-tool__tile')).toHaveLength(0)
+    expect(wrapper.find('.market-map-tool__canvas-hint').text()).toContain('canvas rendering')
+    expect(context.fillRect).toHaveBeenCalled()
+
+    const previousSetPointerCapture = HTMLElement.prototype.setPointerCapture
+    const previousHasPointerCapture = HTMLElement.prototype.hasPointerCapture
+    const previousReleasePointerCapture = HTMLElement.prototype.releasePointerCapture
+    Object.defineProperty(HTMLElement.prototype, 'setPointerCapture', { configurable: true, value: vi.fn() })
+    Object.defineProperty(HTMLElement.prototype, 'hasPointerCapture', { configurable: true, value: vi.fn(() => true) })
+    Object.defineProperty(HTMLElement.prototype, 'releasePointerCapture', { configurable: true, value: vi.fn() })
+    vi.spyOn(HTMLCanvasElement.prototype, 'getBoundingClientRect').mockReturnValue({ left: 0, top: 0, width: 100, height: 100, right: 100, bottom: 100, x: 0, y: 0, toJSON: () => ({}) } as DOMRect)
+    await wrapper.get('[aria-label="Zoom in Market Map"]').trigger('click')
+    const viewport = wrapper.get('.market-map-tool__tiles')
+    await viewport.trigger('pointerdown', { pointerId: 1, clientX: 1, clientY: 1 })
+    await viewport.trigger('pointermove', { pointerId: 1, clientX: 20, clientY: 20 })
+    await viewport.trigger('pointerup', { pointerId: 1, clientX: 20, clientY: 20 })
+    await wrapper.get('canvas.market-map-tool__canvas-map').trigger('click', { clientX: 0, clientY: 0 })
+    expect(wrapper.emitted('select')).toBeUndefined()
+    await wrapper.get('[aria-label="Find Large Market Map member"]').setValue('SYM1501')
+    await wrapper.get('[aria-label="Find Large Market Map member"]').trigger('keydown', { key: 'Enter' })
+    expect(wrapper.emitted('select')).toEqual([['SYM1501', 1501]])
+
+    wrapper.unmount()
+    canvasContext.mockRestore()
+    vi.restoreAllMocks()
+    Object.defineProperty(HTMLElement.prototype, 'setPointerCapture', { configurable: true, value: previousSetPointerCapture })
+    Object.defineProperty(HTMLElement.prototype, 'hasPointerCapture', { configurable: true, value: previousHasPointerCapture })
+    Object.defineProperty(HTMLElement.prototype, 'releasePointerCapture', { configurable: true, value: previousReleasePointerCapture })
+    Object.defineProperty(window, 'requestAnimationFrame', { configurable: true, value: previousAnimationFrame })
+    Object.defineProperty(window, 'cancelAnimationFrame', { configurable: true, value: previousCancelAnimationFrame })
+  })
+
   it('shows empty and failed map states without hiding the source controls', async () => {
     apiPost.mockRejectedValue(new Error('map unavailable'))
     const wrapper = mount(MarketMapTool)

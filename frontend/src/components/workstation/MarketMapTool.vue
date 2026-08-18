@@ -186,6 +186,14 @@
       <button type="button" aria-label="Reset Market Map viewport" :disabled="viewportZoom === 1 && !panX && !panY" @click="resetViewport">Reset</button>
       <small v-if="viewportZoom > 1">Drag empty map space or use the wheel to pan and zoom.</small>
     </div>
+    <div v-if="map && useCanvasTiles" class="market-map-tool__canvas-access" aria-label="Large Market Map member selection">
+      <label>Find member
+        <input v-model.trim="canvasSearch" aria-label="Find Large Market Map member" placeholder="Symbol or name" @keydown.enter="selectCanvasSearch" />
+      </label>
+      <small v-if="canvasSearch && canvasSearchMatch">{{ canvasSearchMatch.symbol }} · press Enter to select</small>
+      <small v-else-if="canvasSearch">No matching member</small>
+      <small v-else>Canvas tiles remain selectable by pointer; use this field for keyboard selection.</small>
+    </div>
     <div v-if="map && selectedIds.length" class="market-map-tool__selection-actions" aria-label="Market Map selection actions">
       <strong>{{ selectedIds.length }} selected</strong>
       <select v-model="publicationTargetId" aria-label="Market Map target watchlist">
@@ -201,9 +209,20 @@
     </div>
     <div v-if="map" ref="viewportRef" class="market-map-tool__tiles" aria-label="Market Map tiles" @wheel.prevent="zoomByWheel" @pointerdown="startPan" @pointermove="movePan" @pointerup="endPan" @pointercancel="endPan">
       <div class="market-map-tool__canvas" :style="canvasStyle">
-        <button v-for="cell in visibleLayoutCells" :key="cell.instrument_id" type="button" class="market-map-tool__tile" :class="[tileClass(cell.color_value), { 'market-map-tool__tile--selected': selectedIds.includes(cell.instrument_id) }]" :style="tileStyle(cell)" :title="`${cell.symbol} · ${cell.name}`" @pointerdown.stop @mouseenter="hoveredCell = cell" @mouseleave="hoveredCell = null" @click="selectCell($event, cell)">
+        <canvas
+          v-if="useCanvasTiles"
+          ref="canvasRef"
+          class="market-map-tool__canvas-map"
+          role="img"
+          :aria-label="`${visibleLayoutCells.length} Market Map members`"
+          @mousemove="handleCanvasHover"
+          @mouseleave="hoveredCell = null"
+          @click="selectCanvasCell"
+        />
+        <button v-else v-for="cell in visibleLayoutCells" :key="cell.instrument_id" type="button" class="market-map-tool__tile" :class="[tileClass(cell.color_value), { 'market-map-tool__tile--selected': selectedIds.includes(cell.instrument_id) }]" :style="tileStyle(cell)" :title="`${cell.symbol} · ${cell.name}`" @pointerdown.stop @mouseenter="hoveredCell = cell" @mouseleave="hoveredCell = null" @click="selectCell($event, cell)">
           <strong>{{ cell.symbol }}</strong><span>{{ formatMetric(cell.color_value) }}</span><small>{{ cell.group_path.join(' · ') || 'All members' }}</small>
         </button>
+        <small v-if="useCanvasTiles" class="market-map-tool__canvas-hint">Large universe · canvas rendering · click a tile to select</small>
         <p v-if="!visibleCells.length" class="market-map-tool__status">No covered members match this group.</p>
         <p v-else-if="visibleLayoutCells.length < visibleCells.length" class="market-map-tool__status">{{ visibleCells.length - visibleLayoutCells.length }} member(s) have no valid area value and are excluded from tile geometry.</p>
       </div>
@@ -274,10 +293,13 @@ const selectedNode = ref<string | null>(null)
 const selectedIds = ref<number[]>([])
 const hoveredCell = ref<MarketMapCell | null>(null)
 const viewportRef = ref<HTMLElement | null>(null)
+const canvasRef = ref<HTMLCanvasElement | null>(null)
 const viewportZoom = ref(1)
 const panX = ref(0)
 const panY = ref(0)
 const panStart = ref<{ pointerX: number; pointerY: number; x: number; y: number } | null>(null)
+const panMoved = ref(false)
+const canvasSearch = ref('')
 const publicationTargetId = ref('')
 const newPublicationName = ref('')
 const publishing = ref(false)
@@ -311,6 +333,7 @@ const publicationTargets = computed(() => watchlistStore.watchlists.filter(watch
 const activeSource = computed(() => sources.value.find(source => source.source_id === sourceId.value) ?? null)
 const sourceFollowed = computed(() => Boolean(activeSource.value && userSettingsStore.followedSourceIds.includes(activeSource.value.source_id)))
 const sourcePinned = computed(() => Boolean(activeSource.value && userSettingsStore.pinnedSourceIds.includes(activeSource.value.source_id)))
+const LARGE_MAP_CANVAS_THRESHOLD = 1500
 
 function isSourceSelectable(source: WatchlistSource): boolean {
   const availability = source.provenance?.availability
@@ -470,6 +493,96 @@ const visibleCells = computed(() => {
   })
 })
 const visibleLayoutCells = computed<MarketMapLayoutCell[]>(() => layoutMarketMapCells(visibleCells.value))
+const useCanvasTiles = computed(() => visibleLayoutCells.value.length > LARGE_MAP_CANVAS_THRESHOLD)
+const canvasSearchMatch = computed(() => {
+  const query = canvasSearch.value.trim().toLowerCase()
+  if (!query) return null
+  return visibleCells.value.find(cell => cell.symbol.toLowerCase().includes(query) || cell.name.toLowerCase().includes(query)) ?? null
+})
+
+let canvasDrawFrame: number | null = null
+function canvasFill(value: number | null | undefined) {
+  if (value == null || !Number.isFinite(value)) return '#3c4652'
+  return value >= 0 ? '#207d56' : '#843f50'
+}
+function drawCanvas() {
+  canvasDrawFrame = null
+  const canvas = canvasRef.value
+  const viewport = viewportRef.value
+  if (!canvas || !viewport || !useCanvasTiles.value) return
+  const width = Math.max(1, viewport.clientWidth)
+  const height = Math.max(1, viewport.clientHeight)
+  const dpr = Math.min(2, Math.max(1, window.devicePixelRatio || 1))
+  canvas.width = Math.round(width * dpr)
+  canvas.height = Math.round(height * dpr)
+  const context = (() => {
+    try { return canvas.getContext('2d') } catch { return null }
+  })()
+  if (!context) return
+  context.setTransform(dpr, 0, 0, dpr, 0, 0)
+  context.clearRect(0, 0, width, height)
+  context.font = '600 11px Segoe UI, Arial, sans-serif'
+  context.textAlign = 'center'
+  context.textBaseline = 'middle'
+  for (const cell of visibleLayoutCells.value) {
+    const x = (cell.x / 100) * width
+    const y = (cell.y / 100) * height
+    const tileWidth = (cell.width / 100) * width
+    const tileHeight = (cell.height / 100) * height
+    context.fillStyle = canvasFill(cell.color_value)
+    context.fillRect(x, y, tileWidth, tileHeight)
+    if (selectedIds.value.includes(cell.instrument_id)) {
+      context.strokeStyle = '#f7d87b'
+      context.lineWidth = 2
+      context.strokeRect(x + 1, y + 1, Math.max(0, tileWidth - 2), Math.max(0, tileHeight - 2))
+    }
+    // At very small scales the symbol text would become unreadable and would
+    // dominate paint time. The hover card remains the authoritative detail.
+    if (tileWidth < 28 || tileHeight < 20) continue
+    context.fillStyle = '#ffffff'
+    context.font = `${tileWidth >= 54 && tileHeight >= 34 ? '600 13px' : '600 10px'} Segoe UI, Arial, sans-serif`
+    context.fillText(cell.symbol, x + tileWidth / 2, y + tileHeight / 2 - (tileHeight >= 34 ? 6 : 0), Math.max(10, tileWidth - 4))
+    if (tileWidth >= 54 && tileHeight >= 34) {
+      context.font = '10px Segoe UI, Arial, sans-serif'
+      context.fillText(formatMetric(cell.color_value), x + tileWidth / 2, y + tileHeight / 2 + 8, Math.max(10, tileWidth - 4))
+    }
+  }
+}
+function scheduleCanvasDraw() {
+  if (!useCanvasTiles.value || canvasDrawFrame != null) return
+  canvasDrawFrame = window.requestAnimationFrame(drawCanvas)
+}
+function canvasCellAt(event: MouseEvent): MarketMapLayoutCell | null {
+  const canvas = event.currentTarget instanceof HTMLCanvasElement ? event.currentTarget : null
+  if (!canvas) return null
+  const bounds = canvas.getBoundingClientRect()
+  if (!bounds.width || !bounds.height) return null
+  const x = ((event.clientX - bounds.left) / bounds.width) * 100
+  const y = ((event.clientY - bounds.top) / bounds.height) * 100
+  return visibleLayoutCells.value.find(cell => x >= cell.x && x <= cell.x + cell.width && y >= cell.y && y <= cell.y + cell.height) ?? null
+}
+function handleCanvasHover(event: MouseEvent) {
+  hoveredCell.value = canvasCellAt(event)
+}
+function selectCanvasCell(event: MouseEvent) {
+  if (panMoved.value) {
+    panMoved.value = false
+    return
+  }
+  const cell = canvasCellAt(event)
+  if (cell) selectCell(event, cell)
+}
+function selectCanvasSearch(event: KeyboardEvent) {
+  if (event.key !== 'Enter') return
+  const cell = canvasSearchMatch.value
+  if (!cell) return
+  selectedIds.value = [cell.instrument_id]
+  hoveredCell.value = cell
+  emit('select', cell.symbol, cell.instrument_id)
+}
+
+watch([visibleLayoutCells, selectedIds, useCanvasTiles], scheduleCanvasDraw, { deep: true })
+watch([viewportZoom, panX, panY], scheduleCanvasDraw)
 const breadthCondition = computed<Record<string, unknown> | null>(() => {
   if (colorMetric.value !== 'breadth') return null
   if (advancedBreadthEditor.value) return breadthConditionTree.value
@@ -575,6 +688,7 @@ function resetViewport() {
   panX.value = 0
   panY.value = 0
   panStart.value = null
+  panMoved.value = false
 }
 function zoomBy(delta: number) {
   const next = Math.max(1, Math.min(4, Number((viewportZoom.value + delta).toFixed(2))))
@@ -589,11 +703,13 @@ function startPan(event: PointerEvent) {
   if (viewportZoom.value <= 1 || (event.target instanceof Element && event.target.closest('button'))) return
   const element = event.currentTarget
   if (!(element instanceof HTMLElement)) return
+  panMoved.value = false
   panStart.value = { pointerX: event.clientX, pointerY: event.clientY, x: panX.value, y: panY.value }
   element.setPointerCapture(event.pointerId)
 }
 function movePan(event: PointerEvent) {
   if (!panStart.value || !viewportRef.value) return
+  if (Math.abs(event.clientX - panStart.value.pointerX) + Math.abs(event.clientY - panStart.value.pointerY) > 2) panMoved.value = true
   const bounds = viewportRef.value.getBoundingClientRect()
   panX.value = clampPan(panStart.value.x + ((event.clientX - panStart.value.pointerX) / Math.max(bounds.width, 1)) * 100)
   panY.value = clampPan(panStart.value.y + ((event.clientY - panStart.value.pointerY) / Math.max(bounds.height, 1)) * 100)
@@ -906,6 +1022,7 @@ watch(sourceId, () => {
 })
 watch(snapshotSelectionId, () => { void loadSnapshot() })
 onMounted(async () => {
+  window.addEventListener('resize', scheduleCanvasDraw)
   await userSettingsStore.loadSettings()
   if (!sources.value.length) await watchlistStore.loadWatchlistSources()
   if (!watchlistStore.watchlists.length) await watchlistStore.loadWatchlists()
@@ -923,7 +1040,12 @@ onMounted(async () => {
   if (sourceId.value || explicitSymbols.value.trim()) await run()
   if (sourceId.value) await loadHistoryStatus()
 })
-onUnmounted(clearHistoryPoll)
+onUnmounted(() => {
+  clearHistoryPoll()
+  window.removeEventListener('resize', scheduleCanvasDraw)
+  if (canvasDrawFrame != null) window.cancelAnimationFrame(canvasDrawFrame)
+  canvasDrawFrame = null
+})
 </script>
 
 <style scoped>
@@ -959,6 +1081,10 @@ onUnmounted(clearHistoryPoll)
 .market-map-tool__viewport-controls button { min-width: 26px; padding: 3px 6px; cursor: pointer; }
 .market-map-tool__viewport-controls button:disabled { cursor: default; opacity: .5; }
 .market-map-tool__viewport-controls small { margin-left: auto; color: #7d8a9b; }
+.market-map-tool__canvas-access { display: flex; gap: 8px; align-items: end; flex-wrap: wrap; padding: 3px 8px; color: #8e9bad; }
+.market-map-tool__canvas-access label { display: flex; flex-direction: column; gap: 3px; font-size: 10px; text-transform: uppercase; letter-spacing: .04em; }
+.market-map-tool__canvas-access input { min-width: 180px; }
+.market-map-tool__canvas-access small { padding-bottom: 6px; }
 .market-map-tool__selection-actions { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; padding: 4px 8px; border-top: 1px solid #303a48; border-bottom: 1px solid #303a48; background: #18212c; }
 .market-map-tool__selection-actions strong { color: #f7d87b; }
 .market-map-tool__selection-actions button { cursor: pointer; }
@@ -969,6 +1095,8 @@ onUnmounted(clearHistoryPoll)
 .market-map-tool__tiles { position: relative; min-height: 300px; margin: 0 8px 8px; overflow: hidden; border: 1px solid #303a48; background: #0d1218; cursor: grab; touch-action: none; }
 .market-map-tool__tiles:active { cursor: grabbing; }
 .market-map-tool__canvas { position: absolute; inset: 0; transform-origin: top left; transition: transform 120ms ease-out; }
+.market-map-tool__canvas-map { position: absolute; inset: 0; display: block; width: 100%; height: 100%; cursor: pointer; }
+.market-map-tool__canvas-hint { position: absolute; right: 6px; bottom: 5px; z-index: 1; padding: 2px 4px; color: #d4d9e2; background: #11161dcc; pointer-events: none; }
 .market-map-tool__tile { position: absolute; display: flex; min-width: 28px; min-height: 28px; flex-direction: column; justify-content: center; align-items: center; gap: 3px; cursor: pointer; color: #fff !important; overflow: hidden; border-radius: 0 !important; }
 .market-map-tool__tile strong { font-size: 16px; }
 .market-map-tool__tile small { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; opacity: .75; }
