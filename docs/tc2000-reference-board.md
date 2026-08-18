@@ -1,5 +1,18 @@
 # TC2000 Version 25 composite reference board
 
+## 2026-08-19 — Market Map period-boundary visual gap
+
+The universal Market Map now uses the last completed session before the calendar boundary for MTD
+and YTD, with explicit insufficient-history state when that baseline is unavailable. The browsable
+V25 board has no authoritative exact-build capture for the period selector's MTD/YTD boundary
+labels, prior-close disclosure, or insufficient-history cell/legend treatment.
+
+Gap status: `required_missing` for exact period-control geometry, boundary copy, baseline/detail
+tooltip, and uncovered-state styling. Interim functional oracle: period helper `5/5`, backend unit
+suite `1214/1214`, Docker-backed watchlist/Market Map integration `42/42`, focused Market Map
+component `24/24`, and type/build checks. No visual threshold or mask was changed; provider-backed
+family population and historical continuity remain separate gaps.
+
 ## 2026-08-18 — Relative Rotation history control gap
 
 The board currently has no sufficiently authoritative Version 25 capture for the full Relative

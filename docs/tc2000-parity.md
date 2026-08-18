@@ -1,5 +1,19 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-19 — Market Map MTD/YTD return baselines are calendar-correct
+
+The universal Market Map now calculates MTD and YTD performance from the last completed local
+session before the month/year boundary. The response still reports the calendar `period_start`,
+and a source with no eligible prior baseline remains explicitly uncovered with
+`insufficient_history`; no first-in-window or forward-filled baseline is used. This applies
+equally to personal, combo, market-group, ETF-holdings, benchmark-family, and explicit canonical
+sources because they all share the same batch contract.
+
+The backend unit suite passes `1214/1214`, Docker-backed watchlist/Market Map integration passes
+`42/42`, the focused Market Map component suite passes `24/24`, and Ruff, compileall, type/build,
+and diff checks are recorded for the context. No acceptance flexibility was used. Provider-backed
+family population/continuity and exact Version 25 period-control/coverage geometry remain open.
+
 ## 2026-08-18 — Relative Rotation exposes bounded historical curves
 
 Family and generic group Relative Rotation responses now expose an optional bounded

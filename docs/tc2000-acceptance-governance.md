@@ -1,5 +1,19 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-08-19 — Calendar-period Market Map return contract
+
+For `MTD` and `YTD`, the shared Market Map must use the most recent covered session strictly before
+the calendar month/year boundary as the denominator. The boundary shown in response metadata is
+still the requested calendar start. If that prior session is absent, the cell is excluded with
+`insufficient_history`; the evaluator must not quietly use the first in-window bar, forward-fill,
+or ask a provider during an interactive read. This rule is source-polymorphic and therefore covers
+arbitrary personal lists, locked index/ETF universes, combos, and explicit canonical selections.
+
+Unit coverage is `5/5` for the period helper, the Docker-backed watchlist/Market Map integration is
+`42/42`, and full backend units are `1214/1214`. No threshold, mask, provider entitlement, or
+acceptance criterion was relaxed. Exact V25 period selector, calendar-boundary, and insufficient
+history visuals remain a tracked reference-board gap.
+
 ## 2026-08-18 — Historical Relative Rotation semantics
 
 `history_length` is an optional bounded request/configuration field from `0` through `1000`.

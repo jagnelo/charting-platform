@@ -1,5 +1,19 @@
 # Project TODO Memory
 
+### 2026-08-19 — Finviz-style Market Map MTD/YTD baselines use the prior completed session
+
+- [x] Correct the shared `/analysis/market-map` return calculation so MTD and YTD compare the
+      latest covered bar with the last completed session before the calendar boundary, rather
+      than the first bar inside the selected month/year.
+- [x] Keep `period_start` as the requested calendar boundary and return explicit
+      `insufficient_history` exclusions when no prior baseline is available; never substitute an
+      in-window close or forward-fill a missing session.
+- [x] Add unit coverage for MTD, YTD, and missing-baseline behavior; the full backend unit suite
+      passes `1214/1214`, the Docker-backed watchlist/Market Map integration passes `42/42`, and
+      the focused Market Map component suite passes `24/24`.
+- [ ] Continue provider-backed family population, historical composition/bar continuity, and
+      exact Version 25 period-control/coverage visuals; no acceptance flexibility was used.
+
 ### 2026-08-18 — Historical relative-rotation curves are bounded and reproducible
 
 - [x] Add an optional `history_length` (0–1000) to family and generic group relative-rotation

@@ -1,4 +1,32 @@
 tasks:
+  - id: tc2000-market-map-calendar-baseline-20260819
+    title: Use prior completed sessions for MTD and YTD Market Map returns
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Correct the source-polymorphic Market Map period evaluator so MTD and YTD returns use the
+      last completed local session before the calendar boundary, while preserving explicit
+      insufficient-history states and avoiding provider fan-out or in-window substitutions.
+    definition_of_done:
+      - MTD uses the prior month-end session and YTD uses the prior year-end session when present
+      - missing prior baselines return insufficient_history rather than silently using first-window bars
+      - personal, combo, market-group, ETF-holdings, benchmark-family, and explicit sources share the fix
+      - focused helper, full backend unit, affected integration, frontend, and static checks pass
+      - exact V25 period-control and uncovered-state visuals remain tracked as board gaps
+    validation:
+      - backend-market-map-period-helper-5-of-5
+      - backend-unit-1214-of-1214
+      - backend-watchlists-integration-42-of-42
+      - frontend-market-map-component-24-of-24
+      - backend-ruff-check
+      - backend-compileall
+      - git-diff-check
+    notes:
+      - >-
+        This was a repository-controlled calculation defect and was fixed immediately. No
+        acceptance flexibility, threshold/mask, provider substitution, or interactive fan-out was used.
+
   - id: tc2000-relative-rotation-history-20260818
     title: Add bounded historical curves to family and generic Relative Rotation
     status: completed

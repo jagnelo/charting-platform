@@ -1,5 +1,24 @@
 # Active Handoff
 
+## 2026-08-19 — Finviz-style Market Map MTD/YTD baselines
+
+- Corrected the shared Market Map return evaluator: MTD and YTD now use the most recent covered
+  session strictly before the calendar month/year boundary. The response keeps the calendar
+  `period_start`; if that baseline is absent the cell is explicitly `insufficient_history` rather
+  than using the first in-window close or forward-filling.
+- This applies to all canonical source kinds because they share `/analysis/market-map`: personal,
+  managed, combo, market-group, ETF-holdings, benchmark-family, and explicit canonical sources.
+- Validation: helper `5/5`; full backend units `1214/1214`; Docker-backed watchlist/Market Map
+  integration `42/42`; focused Market Map component `24/24`; type/build had already passed for the
+  unchanged frontend; Ruff check, compileall, and diff-check pass. The first unprivileged integration
+  run failed at the Docker socket boundary; the unchanged elevated run passed. No acceptance
+  flexibility or visual threshold/mask change.
+- Implementation is ready for an implementation commit, then docs/ops checkpoint and state closure.
+  Exact V25 period selector, calendar-boundary, baseline disclosure, and insufficient-history visuals
+  remain reference-board gaps; provider-backed family population and historical continuity remain open.
+- Next context: close this changeset, then continue provider-backed family population/continuity and
+  the remaining universal Market Map metric/visual gates.
+
 ## 2026-08-18 — Bounded historical Relative Rotation curves
 
 - Added optional bounded `history_length` (`0..1000`) to family and generic group Relative

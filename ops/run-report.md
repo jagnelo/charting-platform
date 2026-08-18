@@ -1,5 +1,22 @@
 # Run Report
 
+## 2026-08-19 — Finviz-style Market Map MTD/YTD baselines
+
+- Fixed the shared Market Map period calculation so MTD/YTD performance uses the last completed
+  local session before the calendar boundary. `period_start` remains the calendar boundary, and
+  missing prior baselines produce explicit `insufficient_history` exclusions instead of an
+  in-window or forward-filled substitute.
+- Validation: period helper `5/5`; full backend unit suite `1214/1214`; Docker-backed
+  watchlist/Market Map integration `42/42`; focused Market Map component `24/24`; Ruff check,
+  compileall, and diff-check pass. The initial unprivileged integration attempt failed only at the
+  Docker socket boundary; the unchanged elevated run passed. No acceptance flexibility or visual
+  threshold/mask/provider rule changed.
+- Exact V25 period-control/boundary/insufficient-history visuals remain a required board gap.
+  Provider-backed family population, historical composition/bar continuity, and final visual parity
+  remain open.
+- Changeset context: `tc2000-market-map-calendar-baseline-20260819`; implementation commit and
+  separate docs/ops/state closure are required before starting the next context.
+
 ## 2026-08-18 — Bounded historical Relative Rotation curves
 
 - Family and generic group Relative Rotation now accept `history_length` from `0` to `1000` and
