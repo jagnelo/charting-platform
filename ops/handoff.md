@@ -13,9 +13,10 @@
   No acceptance flexibility was used. SEC filing cadence still leaves daily holdings, exact
   rebalance-day weights, official Nasdaq-100 membership, QQQE, provider population, canonical
   bars, and exact V25 historical-source visuals open.
-- Implementation commit `e127387b07f336c10020676c91d4dd2ff998fc64` is pushed. The separate
-  docs/ops checkpoint is the remaining commit for this context; do not begin a new implementation
-  context until it is pushed and local/origin are synchronized.
+- Implementation commit `e127387b07f336c10020676c91d4dd2ff998fc64` and docs/ops checkpoint
+  `60745f047e7db980bc83738c075450a4afccd823` are pushed. Local/origin synchronization is the
+  verified boundary for this context; the next implementation context is provider-backed family
+  population/quality reconciliation.
 
 ## 2026-08-18 — Explicit family-role provider routes
 

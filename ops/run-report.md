@@ -12,8 +12,9 @@
 - No acceptance flexibility, visual threshold, mask, provider entitlement, or source substitution
   was used. This is periodic SEC evidence only; it does not prove daily composition, rebalance-day
   weights, or official Nasdaq-100 membership. QQQE and the broader provider/visual gaps remain open.
-- Implementation commit `e127387b07f336c10020676c91d4dd2ff998fc64` is pushed; the separate
-  docs/ops checkpoint remains before the next implementation context.
+- Implementation commit `e127387b07f336c10020676c91d4dd2ff998fc64` and docs/ops checkpoint
+  `60745f047e7db980bc83738c075450a4afccd823` are pushed and synchronized before the next
+  implementation context.
 
 ## 2026-08-18 — Explicit family-role provider routes
 
