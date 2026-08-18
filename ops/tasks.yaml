@@ -1,4 +1,31 @@
 tasks:
+  - id: tc2000-topdown-ytd-baseline-20260819
+    title: Align shared top-down YTD analytics to the prior year-end session
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Make family/ranking/technical current cells and historical return series use the same
+      prior-calendar-boundary YTD baseline as the universal Market Map, preserving explicit
+      insufficient-history states and preventing in-year or forward-filled substitutions.
+    definition_of_done:
+      - current family/ranking YTD values use the latest aligned observation before the year
+      - historical YTD points use each point's prior year-end observation when available
+      - missing baselines remain structured insufficient_ytd_history exclusions
+      - focused, full-unit, affected integration, and static checks pass
+      - exact V25 YTD selector/baseline disclosure remains a tracked visual gap
+    validation:
+      - backend-analysis-router-focused-20-of-20
+      - backend-unit-1215-of-1215
+      - backend-watchlists-integration-42-of-42
+      - backend-ruff-check
+      - backend-compileall
+      - git-diff-check
+    notes:
+      - >-
+        This was a repository-controlled consistency defect and was repaired immediately. No
+        acceptance flexibility, threshold/mask, provider substitution, or interactive fan-out was used.
+
   - id: tc2000-market-map-calendar-baseline-20260819
     title: Use prior completed sessions for MTD and YTD Market Map returns
     status: completed

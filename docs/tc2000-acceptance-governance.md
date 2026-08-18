@@ -1,5 +1,18 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-08-19 — YTD consistency across top-down views
+
+Every shared family/ranking/technical YTD cell and historical return point must use the latest
+aligned observation strictly before the current calendar-year boundary. If it does not exist, the
+result is `insufficient_ytd_history`; a first-in-year close, forward-filled value, or provider read
+is forbidden. This is the same rule already required by `/analysis/market-map`, so switching between
+heatmaps, role rankings, breadth companion views, and linked charts cannot change the denominator.
+
+The focused analysis-router suite is `20/20`, full backend units are `1215/1215`, and the affected
+Docker-backed watchlist/Market Map integration is `42/42`. No acceptance flexibility, threshold,
+mask, or provider entitlement was changed. Exact V25 YTD selector/baseline disclosure remains a
+reference-board gap.
+
 ## 2026-08-19 — Calendar-period Market Map return contract
 
 For `MTD` and `YTD`, the shared Market Map must use the most recent covered session strictly before

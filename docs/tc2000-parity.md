@@ -1,5 +1,17 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-19 — Family and ranking YTD agrees with Market Map
+
+Shared family/ranking/technical performance cells and historical return series now use the last
+aligned observation before the current calendar year for YTD, matching the universal Market Map
+contract. A missing prior baseline is an explicit `insufficient_ytd_history` state; no first-in-year
+or forward-filled value is presented. This keeps benchmark-family top-down rankings, breadth
+supporting summaries, historical cross-sectional views, and arbitrary-source maps consistent.
+
+Focused analysis-router tests pass `20/20`, full backend units pass `1215/1215`, Docker-backed
+watchlist/Market Map integration passes `42/42`, and Ruff, compileall, and diff checks pass. No
+acceptance flexibility was used. Remaining visual parity and provider/history gaps are unchanged.
+
 ## 2026-08-19 — Market Map MTD/YTD return baselines are calendar-correct
 
 The universal Market Map now calculates MTD and YTD performance from the last completed local

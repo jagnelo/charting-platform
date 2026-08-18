@@ -1,5 +1,18 @@
 # TC2000 Version 25 composite reference board
 
+## 2026-08-19 — YTD baseline disclosure remains visually unrepresented
+
+The shared top-down analytics now use a prior-year-end session for YTD across Market Map, family
+role ranking, technical summaries, and historical return series, with explicit insufficient-history
+states when the baseline is missing. The composite board has no authoritative exact-build capture
+for the YTD denominator disclosure, tooltip copy, or the corresponding uncovered warning in these
+surfaces.
+
+Gap status: `required_missing` for exact selector/baseline/insufficient-history geometry and copy.
+Interim oracle: analysis-router `20/20`, backend units `1215/1215`, Docker-backed watchlist/Market
+Map integration `42/42`, Ruff, compileall, and diff checks. No visual threshold or mask changed;
+provider-backed family population and historical continuity remain separate gaps.
+
 ## 2026-08-19 — Market Map period-boundary visual gap
 
 The universal Market Map now uses the last completed session before the calendar boundary for MTD

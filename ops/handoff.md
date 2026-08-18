@@ -1,5 +1,20 @@
 # Active Handoff
 
+## 2026-08-19 — Shared top-down YTD baseline consistency
+
+- Aligned `_performance_cells`, `_aggregate_series_cells`, and `_historical_return_series` with
+  the corrected Market Map YTD rule: use the latest aligned session strictly before the current
+  calendar year. Missing prior history remains `insufficient_ytd_history`; no first-in-year close
+  or forward-fill is admitted.
+- Validation: focused analysis-router `20/20`; full backend units `1215/1215`; Docker-backed
+  watchlist/Market Map integration `42/42`; Ruff check, compileall, and diff-check pass. No
+  acceptance flexibility or visual threshold/mask/provider rule changed.
+- Implementation is ready for implementation commit, docs/ops checkpoint, and state closure.
+  Exact V25 YTD baseline/tooltip/insufficient-history visuals remain board gaps; provider-backed
+  family population and historical continuity remain open.
+- Next context: close this consistency changeset, then continue provider-backed family population,
+  historical composition/bar continuity, and remaining universal Market Map gates.
+
 ## 2026-08-19 — Finviz-style Market Map MTD/YTD baselines
 
 - Corrected the shared Market Map return evaluator: MTD and YTD now use the most recent covered

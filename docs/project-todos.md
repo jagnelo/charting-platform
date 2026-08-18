@@ -1,5 +1,19 @@
 # Project TODO Memory
 
+### 2026-08-19 — Shared top-down YTD helpers use the prior year-end session
+
+- [x] Align family/ranking/technical performance cells and historical return-series helpers with
+      the Market Map YTD contract: use the latest aligned observation strictly before the current
+      calendar year rather than the first bar inside the year.
+- [x] Preserve explicit `insufficient_ytd_history` warnings when that prior baseline is absent;
+      no forward-fill or first-in-year substitution is allowed.
+- [x] Add current and historical helper regressions; the focused analysis-router suite passes
+      `20/20`, the full backend unit suite passes `1215/1215`, the Docker-backed watchlist/Market
+      Map integration passes `42/42`, and Ruff, compileall, and diff checks pass.
+- [ ] Extend the same prior-boundary semantics to any remaining calendar-period analytics and
+      close the provider-backed family composition/bar continuity and exact V25 visual gaps; no
+      acceptance flexibility was used.
+
 ### 2026-08-19 — Finviz-style Market Map MTD/YTD baselines use the prior completed session
 
 - [x] Correct the shared `/analysis/market-map` return calculation so MTD and YTD compare the

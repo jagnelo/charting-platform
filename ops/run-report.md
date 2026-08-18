@@ -1,5 +1,18 @@
 # Run Report
 
+## 2026-08-19 — Shared top-down YTD baseline consistency
+
+- Family/ranking/technical cells and historical return series now use the last aligned session
+  before the current calendar year for YTD, matching Market Map. A missing baseline returns an
+  explicit `insufficient_ytd_history` state rather than substituting the first current-year bar.
+- Validation: analysis-router `20/20`; full backend unit suite `1215/1215`; Docker-backed
+  watchlist/Market Map integration `42/42`; Ruff check, compileall, and diff-check pass. No
+  acceptance flexibility, visual threshold/mask, provider substitution, or interactive fan-out.
+- Exact V25 YTD selector and baseline disclosure visuals remain required board gaps. Provider-backed
+  family population, historical composition/bar continuity, and final visual parity remain open.
+- Changeset context: `tc2000-topdown-ytd-baseline-20260819`; implementation and separate
+  docs/ops/state closure are required before starting the next context.
+
 ## 2026-08-19 — Finviz-style Market Map MTD/YTD baselines
 
 - Fixed the shared Market Map period calculation so MTD/YTD performance uses the last completed
