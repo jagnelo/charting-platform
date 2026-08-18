@@ -365,6 +365,9 @@ const canvasStyle = computed(() => ({ transform: `translate(${panX.value}%, ${pa
 
 function pythonUniverse() {
   const source = sourceId.value
+  if (source.startsWith('benchmark-family:') && source.length > 'benchmark-family:'.length) {
+    return { kind: 'watchlist', key: source, point_in_time: true }
+  }
   if (source.startsWith('watchlist:') && source.length > 'watchlist:'.length) {
     return { kind: 'watchlist', key: source, point_in_time: true }
   }

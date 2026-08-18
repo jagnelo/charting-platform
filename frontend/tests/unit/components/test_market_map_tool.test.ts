@@ -363,6 +363,37 @@ describe('MarketMapTool', () => {
     sourceState.sources = previousSources
   })
 
+  it('uses the same Python breadth source contract for benchmark-family legs', async () => {
+    const previousSources = sourceState.sources
+    sourceState.sources = [{
+      ...previousSources[0],
+      source_id: 'benchmark-family:sp500:cap_weight',
+      source_kind: 'index_membership',
+      name: 'S&P 500 — Cap weight',
+      locked: true,
+    }]
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/code/assets') return Promise.resolve([{ kind: 'condition', name: 'Momentum score', versions: [{ id: 17, version_number: 1, output_contract: 'boolean' }] }])
+      if (path === '/analysis/breadth/python/runs/42') return Promise.resolve({ status: 'completed' })
+      return Promise.resolve([])
+    })
+    apiPost.mockImplementation((path: string, body?: Record<string, unknown>) => {
+      if (path === '/analysis/breadth/python') return Promise.resolve({ run_id: 42 })
+      if (path === '/analysis/market-map') return Promise.resolve({ ...response, source: { ...response.source, source_id: body?.source_id }, color_metric: body?.color_metric, python_run_id: body?.python_run_id })
+      return Promise.resolve([])
+    })
+    const wrapper = mount(MarketMapTool, { props: { configuration: { source_id: 'benchmark-family:sp500:cap_weight', color_metric: 'python', python_code_version_id: 17 } } })
+    await flushPromises()
+    await wrapper.get('.market-map-tool__run').trigger('click')
+    await flushPromises()
+    const request = apiPost.mock.calls.find(call => call[0] === '/analysis/breadth/python')?.[1]
+    expect(request).toEqual(expect.objectContaining({
+      universe: { kind: 'watchlist', key: 'benchmark-family:sp500:cap_weight', point_in_time: true },
+    }))
+    wrapper.unmount()
+    sourceState.sources = previousSources
+  })
+
   it('authors a provider numeric area field and persists its selection', async () => {
     const wrapper = mount(MarketMapTool, { props: { configuration: { source_id: 'market-group:sp500' } } })
     await flushPromises()
