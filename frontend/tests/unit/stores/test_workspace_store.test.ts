@@ -1016,6 +1016,21 @@ describe('workspace store layout tabs', () => {
     expect(store.activeTab?.active_window_key).toBe(opened?.instance_key)
   })
 
+  it('opens a tool with a canonical source override for cross-surface launches', () => {
+    const store = useWorkspaceStore()
+    store.workspace = {
+      id: 10, user_id: 3, name: 'Personal', is_default: false, position: 0, revision: 4, schema_version: 1, settings: {},
+      tabs: [{ id: 20, stable_key: 'personal', name: 'Personal', position: 0, active_window_key: null, layout_config: { root: { type: 'row', content: [] } }, windows: [] }],
+    }
+
+    const opened = store.openTool(
+      { tool_type: 'market_map', title: 'Market Map', instance_prefix: 'market-map', configuration: { color_metric: 'return' } },
+      { source_id: 'watchlist:42' },
+    )
+
+    expect(opened?.configuration).toEqual({ color_metric: 'return', source_id: 'watchlist:42' })
+  })
+
   it('adds new tools to an existing Golden Layout stack instead of creating narrow root columns', () => {
     const store = useWorkspaceStore()
     store.workspace = {

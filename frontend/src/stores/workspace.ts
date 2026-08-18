@@ -2662,7 +2662,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     return layout.root as Record<string, unknown>
   }
 
-  function openTool(definition: OpenableToolDefinition) {
+  function openTool(definition: OpenableToolDefinition, configurationOverride: Record<string, unknown> = {}) {
     const tab = activeTab.value
     if (!tab) return null
     const instanceKey = `${definition.instance_prefix}-${Date.now().toString(36)}`
@@ -2672,7 +2672,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       tool_type: definition.tool_type,
       title: definition.title,
       link_group: 'blue',
-      configuration: { ...(definition.configuration ?? {}) },
+      configuration: { ...(definition.configuration ?? {}), ...configurationOverride },
       style: {},
       state_schema_version: 1,
       position: Math.max(-1, ...tab.windows.map(item => item.position)) + 1,

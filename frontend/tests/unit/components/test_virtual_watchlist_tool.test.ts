@@ -23,6 +23,18 @@ beforeEach(() => { apiGet.mockResolvedValue([]); apiPost.mockReset(); apiPut.moc
 afterEach(() => { apiGet.mockReset(); apiPost.mockReset(); apiPut.mockReset(); apiDelete.mockReset() })
 
 describe('VirtualWatchlistTool', () => {
+  it('launches the exact canonical source in Market Map, including locked universes', async () => {
+    const wrapper = mount(VirtualWatchlistTool, {
+      props: { label: 'S&P 500 constituents', rows, marketMapSourceId: 'benchmark-family:sp500:cap_weight' },
+    })
+
+    const map = wrapper.get('button[aria-label="Open Market Map"]')
+    expect(map.attributes('title')).toContain('S&P 500 constituents')
+    await map.trigger('click')
+
+    expect(wrapper.emitted('market-map')).toEqual([['benchmark-family:sp500:cap_weight']])
+  })
+
   it('opens column editors from the keyboard and restores trigger focus on Escape', async () => {
     const wrapper = mount(VirtualWatchlistTool, { props: { label: 'Sectors', rows } , attachTo: document.body })
     const columns = wrapper.get('button[aria-label="Columns"]')

@@ -32,6 +32,7 @@
       <button ref="columnSetMenuTrigger" class="watchlist__columns-button" type="button" aria-label="Column sets" aria-haspopup="dialog" :aria-expanded="columnSetMenuOpen" @click="toggleColumnSetMenu" @keydown="handleEditorTriggerKeydown('sets', $event)">Sets</button>
       <b>{{ selectedSymbols.length ? `${selectedSymbols.length} selected · ` : '' }}{{ filteredRows.length }}</b>
       <button v-if="selectedSymbols.length > 1" type="button" class="watchlist__compare-button" @click="emit('compare', selectedSymbols)">Compare</button>
+      <button v-if="marketMapSourceId" type="button" class="watchlist__map-button" aria-label="Open Market Map" :title="`Open ${label} in Market Map`" @click="emit('market-map', marketMapSourceId)">Map</button>
     </header>
     <p v-if="conditionFilterState" class="watchlist__condition-state">{{ conditionFilterState }}</p>
     <p v-if="pythonConditionState" class="watchlist__condition-state">{{ pythonConditionState }}<button v-if="pythonRunIds.python_condition" type="button" aria-label="Cancel Python condition" @click="cancelPythonRun('python_condition')">Cancel</button><button v-if="pythonCondition?.mode === 'active' && !pythonAlertBusy" type="button" aria-label="Create alert from Python condition" @click="createPythonConditionAlert">Alert</button><small v-if="pythonAlertState">{{ pythonAlertState }}</small></p>
@@ -205,6 +206,8 @@ const props = withDefaults(defineProps<{
   reorderable?: boolean
   allowRemove?: boolean
   sourceWatchlistId?: number | null
+  /** Canonical source consumed by Market Map; may be a locked system source. */
+  marketMapSourceId?: string | null
   membershipTargets?: WatchlistMembershipTarget[]
   columnOverrides?: Record<string, { label?: string; width?: string; format?: 'percent' | 'number'; decimals?: number }>
 }>(), {
@@ -235,11 +238,12 @@ const props = withDefaults(defineProps<{
   reorderable: false,
   allowRemove: false,
   sourceWatchlistId: null,
+  marketMapSourceId: null,
   membershipTargets: () => [],
   columnOverrides: () => ({}),
 })
 const queryClient = useQueryClient()
-const emit = defineEmits<{ select: [row: WatchlistRow]; compare: [symbols: string[]]; reorder: [itemIds: number[]]; 'plot-drop': [payload: ChartAnalysisDragPayload]; 'condition-drop': [payload: TechnicalConditionDragPayload]; 'row-action': [action: 'chart' | 'compare' | 'ratio' | 'note' | 'alert' | 'copy' | 'copy-to-watchlist' | 'move-to-watchlist' | 'flag' | 'remove', row: WatchlistRow, targetWatchlistId?: number, selectedRows?: WatchlistRow[]]; 'update:visibleColumnKeys': [keys: string[]]; 'update:filterText': [value: string]; 'update:conditionScreenerId': [id: number | null]; 'update:conditionFilterMode': [mode: 'active' | 'inactive' | 'off']; 'update:pinnedBooleanKeys': [keys: string[]]; 'update:columnGroups': [groups: Record<string, string>]; 'update:stackedColumnKeys': [keys: string[]]; 'update:columnOverrides': [overrides: Record<string, { label?: string; width?: string; format?: 'percent' | 'number'; decimals?: number }>]; 'update:pythonColumns': [columns: Array<{ code_version_id: number; name: string; timeframe?: string }>]; 'update:pythonCondition': [condition: { code_version_id: number; name: string; mode: 'active' | 'inactive' | 'off'; timeframe?: string } | null] }>()
+const emit = defineEmits<{ select: [row: WatchlistRow]; compare: [symbols: string[]]; 'market-map': [sourceId: string]; reorder: [itemIds: number[]]; 'plot-drop': [payload: ChartAnalysisDragPayload]; 'condition-drop': [payload: TechnicalConditionDragPayload]; 'row-action': [action: 'chart' | 'compare' | 'ratio' | 'note' | 'alert' | 'copy' | 'copy-to-watchlist' | 'move-to-watchlist' | 'flag' | 'remove', row: WatchlistRow, targetWatchlistId?: number, selectedRows?: WatchlistRow[]]; 'update:visibleColumnKeys': [keys: string[]]; 'update:filterText': [value: string]; 'update:conditionScreenerId': [id: number | null]; 'update:conditionFilterMode': [mode: 'active' | 'inactive' | 'off']; 'update:pinnedBooleanKeys': [keys: string[]]; 'update:columnGroups': [groups: Record<string, string>]; 'update:stackedColumnKeys': [keys: string[]]; 'update:columnOverrides': [overrides: Record<string, { label?: string; width?: string; format?: 'percent' | 'number'; decimals?: number }>]; 'update:pythonColumns': [columns: Array<{ code_version_id: number; name: string; timeframe?: string }>]; 'update:pythonCondition': [condition: { code_version_id: number; name: string; mode: 'active' | 'inactive' | 'off'; timeframe?: string } | null] }>()
 const scrollElement = ref<HTMLElement | null>(null)
 const filter = ref(props.filterText)
 const conditionFilter = ref(props.conditionScreenerId == null ? '' : String(props.conditionScreenerId))
@@ -1511,7 +1515,7 @@ function onCtrlWheel(event: WheelEvent) {
 .watchlist__controls input { min-width: 0; width: 80px; margin-left: auto; padding: 1px 4px; border: 1px solid #3d4a54; background: #11161b; color: #dce9f2; font: inherit; text-transform: none; }
 .watchlist__controls select { min-width: 0; max-width: 120px; padding: 1px 2px; border: 1px solid #3d4a54; background: #11161b; color: #a9c0d0; font: inherit; text-transform: none; }
 .watchlist__columns-button { border: 1px solid #3d4a54; background: #1b252d; color: #a9c0d0; font: inherit; cursor: pointer; }
-.watchlist__controls b { color: #78aac8; font-weight: 600; }.watchlist__compare-button { border: 1px solid #4b697b; background: #1e3b4c; color: #d9edf7; padding: 1px 5px; font: inherit; cursor: pointer; }.watchlist__compare-button:hover { background: #2a5268; }
+.watchlist__controls b { color: #78aac8; font-weight: 600; }.watchlist__compare-button,.watchlist__map-button { border: 1px solid #4b697b; background: #1e3b4c; color: #d9edf7; padding: 1px 5px; font: inherit; cursor: pointer; }.watchlist__compare-button:hover,.watchlist__map-button:hover { background: #2a5268; }
 .watchlist__column-menu { display: grid; grid-template-columns: minmax(0, 1fr); gap: 2px; min-height: 0; max-height: min(220px, 42vh); overflow: auto; padding: 3px 5px 4px; background: #151b20; border-bottom: 1px solid #384550; color: #b7c6d0; font-size: 10px; text-transform: none; letter-spacing: normal; }
 .watchlist__column-clipboard { position: sticky; z-index: 1; top: -3px; display: flex; align-items: center; gap: 4px; min-height: 20px; padding: 2px 0; background: #151b20; border-bottom: 1px solid #2d3942; }
 .watchlist__column-clipboard button { border: 1px solid #42515c; background: #1d2a33; color: #d7e3eb; padding: 2px 5px; font: inherit; cursor: pointer; }

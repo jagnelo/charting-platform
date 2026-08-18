@@ -171,6 +171,7 @@
         @compare="compareSymbols"
         @reorder="reorderWatchlistItems"
         @row-action="handleRowAction"
+        @market-map="openMarketMap"
         @occurrence="selectOccurrence"
         @select-industry="selectIndustryForContext"
         @select-proxy="selectIndustryProxy"
@@ -1050,7 +1051,7 @@ async function selectIndustryProxy(symbol: string, instrumentId?: number | null)
   ])
 }
 
-async function openTool(tool: OpenableToolDefinition) {
+async function openTool(tool: OpenableToolDefinition, configurationOverride: Record<string, unknown> = {}) {
   // The dock can already expose a fully usable active tab while the initial
   // workspace promise is still settling (notably after Golden Layout restores
   // a persisted snapshot). Do not strand an Add-tool click behind that promise
@@ -1069,7 +1070,7 @@ async function openTool(tool: OpenableToolDefinition) {
     workspaceStore.error = 'The workstation layout is not available yet; please retry the tool action.'
     return
   }
-  const opened = workspaceStore.openTool(tool)
+  const opened = workspaceStore.openTool(tool, configurationOverride)
   toolLibraryOpen.value = false
   if (!opened) return
   await nextTick()
@@ -1126,6 +1127,14 @@ async function openTool(tool: OpenableToolDefinition) {
     await new Promise(resolve => setTimeout(resolve, 25))
   }
   return opened
+}
+
+async function openMarketMap(sourceId: string) {
+  const normalized = sourceId.trim()
+  if (!normalized) return
+  const definition = OPENABLE_WORKSTATION_TOOLS.find(tool => tool.tool_type === 'market_map')
+  if (!definition) return
+  await openTool(definition, { source_id: normalized })
 }
 
 async function openStudyLab() {
@@ -1547,6 +1556,7 @@ function renderDockTool(dockTool: { instance_key: string; title: string; tool_ty
     onCompare: (symbols: string[]) => compareSymbols(symbols),
     onReorder: (watchlistId: number, itemIds: number[]) => reorderWatchlistItems(watchlistId, itemIds),
     onRowAction: (action: 'chart' | 'compare' | 'ratio' | 'note' | 'alert' | 'copy', row: { symbol: string; instrumentId: number | null }) => void handleRowAction(action, row),
+    onMarketMap: (sourceId: string) => void openMarketMap(sourceId),
     onOccurrence: (symbol: string, timestamp: string, instrumentId?: number | null) => void selectSymbol(symbol, timestamp, false, instrumentId),
     onSelectIndustry: (industry: string, etf: string) => selectIndustryForContext(industry, etf),
     onSelectProxy: (symbol: string, instrumentId?: number | null) => void selectIndustryProxy(symbol, instrumentId),

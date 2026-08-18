@@ -31,8 +31,10 @@
       :python-columns="configuredPythonColumns"
       :python-condition="configuredPythonCondition"
       :membership-targets="personalWatchlistTargets"
+      market-map-source-id="market-group:us-benchmarks"
       @select="selectSymbol($event.symbol, $event.instrumentId)"
       @compare="emit('compare', $event)"
+      @market-map="emit('marketMap', $event)"
       @row-action="handleRowAction"
       @update:visible-column-keys="emit('columns', tool.instance_key, $event)"
       @update:filter-text="emit('filter', tool.instance_key, $event)"
@@ -74,8 +76,10 @@
       :python-columns="configuredPythonColumns"
       :python-condition="configuredPythonCondition"
       :membership-targets="personalWatchlistTargets"
+      market-map-source-id="market-group:sp500-sectors"
       @select="selectSymbol($event.symbol, $event.instrumentId)"
       @compare="emit('compare', $event)"
+      @market-map="emit('marketMap', $event)"
       @row-action="handleRowAction"
       @update:visible-column-keys="emit('columns', tool.instance_key, $event)"
       @update:filter-text="emit('filter', tool.instance_key, $event)"
@@ -161,11 +165,13 @@
         :python-condition="configuredPythonCondition"
         :membership-targets="personalWatchlistTargets"
         :source-watchlist-id="selectedPersonalWatchlist?.id"
+        :market-map-source-id="personalMarketMapSourceId"
         :reorderable="Boolean(selectedPersonalWatchlist && !selectedPersonalWatchlist.is_locked && !selectedPersonalWatchlist.is_managed)"
         :allow-remove="Boolean(selectedPersonalWatchlist && !selectedPersonalWatchlist.is_locked && !selectedPersonalWatchlist.is_managed)"
         @select="selectSymbol($event.symbol, $event.instrumentId)"
         @reorder="selectedPersonalWatchlist && emit('reorder', selectedPersonalWatchlist.id, $event)"
         @compare="emit('compare', $event)"
+        @market-map="emit('marketMap', $event)"
       @row-action="handlePersonalRowAction"
         @update:visible-column-keys="emit('columns', tool.instance_key, $event)"
         @update:filter-text="emit('filter', tool.instance_key, $event)"
@@ -204,8 +210,10 @@
       :python-columns="configuredPythonColumns"
       :python-condition="configuredPythonCondition"
       :membership-targets="personalWatchlistTargets"
+      :market-map-source-id="factoryWatchlistSourceId"
       @select="tool.instance_key === 'industries' ? emit('selectIndustry', $event.symbol, industryETFContext) : selectSymbol($event.symbol, $event.instrumentId)"
       @compare="emit('compare', $event)"
+      @market-map="emit('marketMap', $event)"
       @row-action="handleRowAction"
       @update:visible-column-keys="emit('columns', tool.instance_key, $event)"
       @update:filter-text="emit('filter', tool.instance_key, $event)"
@@ -305,8 +313,10 @@
             :python-columns="configuredPythonColumns"
             :python-condition="configuredPythonCondition"
             :membership-targets="personalWatchlistTargets"
+            :market-map-source-id="proxyMarketMapSourceId"
             @select="selectProxy($event.symbol, $event.instrumentId)"
             @compare="emit('compare', $event)"
+            @market-map="emit('marketMap', $event)"
             @row-action="handleRowAction"
             @update:visible-column-keys="emit('columns', tool.instance_key, $event)"
             @update:filter-text="emit('filter', tool.instance_key, $event)"
@@ -360,8 +370,10 @@
         :python-columns="configuredPythonColumns"
         :python-condition="configuredPythonCondition"
         :membership-targets="personalWatchlistTargets"
+        :market-map-source-id="constituentMarketMapSourceId"
         @select="selectSymbol($event.symbol, $event.instrumentId)"
         @compare="emit('compare', $event)"
+        @market-map="emit('marketMap', $event)"
         @row-action="handleRowAction"
         @update:visible-column-keys="emit('columns', tool.instance_key, $event)"
         @update:filter-text="emit('filter', tool.instance_key, $event)"
@@ -886,7 +898,7 @@ const props = defineProps<{
   activeWindowKey?: string | null
   factoryLayout?: string | null
 }>()
-const emit = defineEmits<{ select: [symbol: string, instrumentId?: number | null]; compare: [symbols: string[]]; reorder: [watchlistId: number, itemIds: number[]]; rowAction: [action: 'chart' | 'compare' | 'ratio' | 'note' | 'alert' | 'copy', row: { symbol: string; instrumentId: number | null }]; occurrence: [symbol: string, timestamp: string, instrumentId?: number | null]; selectIndustry: [industry: string, etf: string]; selectProxy: [symbol: string, instrumentId?: number | null]; columns: [windowKey: string, keys: string[]]; filter: [windowKey: string, value: string]; conditionFilter: [windowKey: string, screenerId: number | null]; conditionFilterMode: [windowKey: string, mode: 'active' | 'inactive' | 'off']; pinnedBooleanKeys: [windowKey: string, keys: string[]]; columnGroups: [windowKey: string, groups: Record<string, string>]; stackedColumnKeys: [windowKey: string, keys: string[]]; configuration: [windowKey: string, configuration: Record<string, unknown>]; publishAnalysis: [payload: { target: 'breadth' | 'study_lab'; sourceId: string; selectedIds: number[]; selectedSymbols: string[] }]; timeframe: [value: string, group: LinkGroup]; float: [windowKey: string]; maximize: [windowKey: string]; close: [windowKey: string]; updateLinkGroup: [windowKey: string, group: LinkGroup, displayedSymbol?: string] }>()
+const emit = defineEmits<{ select: [symbol: string, instrumentId?: number | null]; compare: [symbols: string[]]; marketMap: [sourceId: string]; reorder: [watchlistId: number, itemIds: number[]]; rowAction: [action: 'chart' | 'compare' | 'ratio' | 'note' | 'alert' | 'copy', row: { symbol: string; instrumentId: number | null }]; occurrence: [symbol: string, timestamp: string, instrumentId?: number | null]; selectIndustry: [industry: string, etf: string]; selectProxy: [symbol: string, instrumentId?: number | null]; columns: [windowKey: string, keys: string[]]; filter: [windowKey: string, value: string]; conditionFilter: [windowKey: string, screenerId: number | null]; conditionFilterMode: [windowKey: string, mode: 'active' | 'inactive' | 'off']; pinnedBooleanKeys: [windowKey: string, keys: string[]]; columnGroups: [windowKey: string, groups: Record<string, string>]; stackedColumnKeys: [windowKey: string, keys: string[]]; configuration: [windowKey: string, configuration: Record<string, unknown>]; publishAnalysis: [payload: { target: 'breadth' | 'study_lab'; sourceId: string; selectedIds: number[]; selectedSymbols: string[] }]; timeframe: [value: string, group: LinkGroup]; float: [windowKey: string]; maximize: [windowKey: string]; close: [windowKey: string]; updateLinkGroup: [windowKey: string, group: LinkGroup, displayedSymbol?: string] }>()
 // Inputs in dense breadth authoring can emit several configuration updates before
 // Golden Layout delivers the parent prop patch. Keep a local draft so a rapid
 // select/edit/evaluate sequence cannot serialize a stale sibling value.
@@ -939,6 +951,10 @@ const personalWatchlistTargets = computed(() => personalWatchlists.value.map(wat
 })))
 const effectiveSelectedPersonalWatchlistId = computed(() => latestCreatedPersonalWatchlistId.value ?? selectedPersonalWatchlistId.value)
 const selectedPersonalWatchlist = computed<Watchlist | null>(() => personalWatchlists.value.find(watchlist => watchlist.id === effectiveSelectedPersonalWatchlistId.value) ?? null)
+function explicitMarketMapSourceId(rows: Array<{ instrumentId: number | null }>): string | null {
+  const ids = [...new Set(rows.map(row => row.instrumentId).filter(id => id != null && Number.isInteger(id) && id > 0))] as number[]
+  return ids.length ? `explicit:${ids.join(',')}` : null
+}
 const personalWatchlistRows = computed(() => (selectedPersonalWatchlist.value?.items ?? []).map(item => ({
   itemId: item.id,
   sourceWatchlistId: selectedPersonalWatchlist.value?.id,
@@ -955,6 +971,12 @@ const flaggedWatchlistRows = computed(() => buildFlaggedWatchlistRows(personalWa
 const comboWatchlistRows = computed(() => selectedCombo.value
   ? buildComboWatchlistRows(watchlistStore.watchlists, selectedCombo.value, watchlistStore.priceMap)
   : [])
+const personalMarketMapSourceId = computed(() => {
+  if (selectedCombo.value) return `combo:${selectedCombo.value.stable_key}`
+  if (selectedPersonalWatchlist.value) return `watchlist:${selectedPersonalWatchlist.value.id}`
+  if (flaggedItemsSelected.value) return explicitMarketMapSourceId(flaggedWatchlistRows.value)
+  return null
+})
 const personalWatchlistColumns: WatchlistColumn[] = [
   { key: 'symbol', label: 'Symbol', width: '72px' },
   { key: 'name', label: 'Name', width: 'minmax(130px, 1fr)' },
@@ -2391,6 +2413,7 @@ const proxyRows = computed(() => (industryProxySnapshot.value?.rows ?? []).map(r
     rsi14: cellWarning(row.technical.rsi14),
   },
 }}))
+const proxyMarketMapSourceId = computed(() => explicitMarketMapSourceId(proxyRows.value))
 const constituents = computed(() => {
   if (selectedETF.value && selectedIndustry.value) {
     return workspaceStore.industryConstituents[`${selectedETF.value}:${selectedIndustry.value}`]?.constituents.map(row => row.symbol) ?? []
@@ -2590,6 +2613,14 @@ const factoryWatchlistRows = computed(() => {
   if (title.includes('component') || title.includes('constituent')) return constituentRows.value
   return benchmarkRows.value
 })
+const factoryWatchlistSourceId = computed(() => {
+  const title = (props.tool.title ?? '').toLowerCase()
+  const factoryLayout = typeof props.tool.configuration.factory_layout === 'string' ? props.tool.configuration.factory_layout : ''
+  if (props.factoryLayout === 'sector-by-year' || factoryLayout === 'sector-by-year' || title.includes('sector')) return 'market-group:sp500-sectors'
+  if (title.includes('industry') || title.includes('industries')) return null
+  if (title.includes('component') || title.includes('constituent')) return constituentMarketMapSourceId.value
+  return 'market-group:us-benchmarks'
+})
 const factoryWatchlistColumns = computed<WatchlistColumn[]>(() => {
   const title = (props.tool.title ?? '').toLowerCase()
   const factoryLayout = typeof props.tool.configuration.factory_layout === 'string' ? props.tool.configuration.factory_layout : ''
@@ -2633,6 +2664,10 @@ const constituentRows = computed(() => {
       warnings: snapshotWarnings(analysis),
     }
   })
+})
+const constituentMarketMapSourceId = computed(() => {
+  if (selectedETF.value && !selectedIndustry.value) return `etf-holdings:${selectedETF.value}`
+  return explicitMarketMapSourceId(constituentRows.value)
 })
 const sectorColumns: WatchlistColumn[] = [
   { key: 'symbol', label: 'Symbol', width: '54px' },
