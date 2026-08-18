@@ -15,6 +15,10 @@
       request. The endpoint deduplicates/order-preserves up to 500 local symbols, returns resolved
       canonical IDs plus explicit missing symbols, and never discovers providers on a workstation
       request.
+- [x] Provide a direct `Save as watchlist` action for the complete explicit source, using the
+      source descriptor's canonical member IDs rather than only currently covered/visible map
+      cells. This turns the ephemeral selection into a durable personal watchlist without losing
+      members that have no current bar.
 - [x] Add backend integration and Market Map component coverage for canonical resolution,
       deduplication, locked provenance, rendering, batch ordering, missing members, and the 500-ID
       bound.

@@ -14,6 +14,10 @@ the board has no authoritative visual reference for request progress, partial mi
 feedback, or the 500-member validation state. Those states remain functional/performance gaps for
 visual comparison, not reasons to invent a V25 appearance or silently accept provider fallback.
 
+The board also has no authoritative capture of the explicit-source durability action. The interim
+oracle is the source-descriptor member-ID set plus the user-isolated personal-watchlist write and
+the explicit confirmation count; exact V25 button wording/placement remains a tracked visual gap.
+
 ## 2026-08-19 universal derived-watchlist reference gap
 
 The board supports the product decision that a combo watchlist should render in the same dense

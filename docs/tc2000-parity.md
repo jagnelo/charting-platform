@@ -24,6 +24,11 @@ than one GET per symbol. The response preserves input order after deduplication,
 IDs and missing symbols separately, and is explicitly local/canonical-only; a missing symbol cannot
 trigger provider discovery or be silently omitted from the rendered universe.
 
+The explicit-source controls also provide `Save as watchlist`. It writes every canonical member in
+the source descriptor, not merely cells with current data or visible tile geometry, and reports the
+number saved. This is the durable path for an ad-hoc locked selection; the ephemeral source remains
+available for immediate analysis until the user chooses to save it.
+
 ## 2026-08-19 — Combo watchlists use the universal Market Map source contract
 
 User-owned combo lists are now exposed as `combo:<stable_key>` `WatchlistSource` descriptors. The

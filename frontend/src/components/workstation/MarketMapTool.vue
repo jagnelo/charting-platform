@@ -14,6 +14,12 @@
         <input v-model.trim="explicitSymbols" aria-label="Market Map explicit symbols" placeholder="SPY, NVDA, MSFT" @keydown.enter.prevent="run" />
       </label>
       <small v-if="explicitSymbols.trim()" class="market-map-tool__explicit-hint">Canonical selection · save it as a personal watchlist for durable membership</small>
+      <template v-if="explicitSymbols.trim()">
+        <input v-model.trim="explicitWatchlistName" aria-label="Explicit source watchlist name" placeholder="Save watchlist as…" maxlength="80" />
+        <button type="button" :disabled="explicitSaving || !explicitWatchlistName" @click="saveExplicitSource">{{ explicitSaving ? 'Saving…' : 'Save as watchlist' }}</button>
+        <span v-if="publicationMessage" role="status">{{ publicationMessage }}</span>
+        <span v-if="publicationError" class="market-map-tool__status--error" role="alert">{{ publicationError }}</span>
+      </template>
       <div v-if="activeSource" class="market-map-tool__source-actions" aria-label="Market Map source preferences">
         <button v-if="activeSource.can_follow" type="button" :aria-pressed="sourceFollowed" :aria-label="sourceFollowed ? `Unfollow ${activeSource.name}` : `Follow ${activeSource.name}`" @click="toggleSourceFollow">{{ sourceFollowed ? 'Following' : 'Follow' }}</button>
         <button v-if="activeSource.can_clone" type="button" :aria-pressed="sourcePinned" :aria-label="sourcePinned ? `Unpin ${activeSource.name}` : `Pin ${activeSource.name}`" @click="toggleSourcePin">{{ sourcePinned ? 'Pinned' : 'Pin' }}</button>
@@ -255,6 +261,8 @@ const newPublicationName = ref('')
 const publishing = ref(false)
 const publicationMessage = ref('')
 const publicationError = ref('')
+const explicitWatchlistName = ref('')
+const explicitSaving = ref(false)
 const snapshots = ref<MarketMapSnapshotSummary[]>([])
 const snapshotSelectionId = ref('')
 const snapshotName = ref('')
@@ -474,6 +482,36 @@ async function publishSelection() {
     publicationError.value = cause instanceof Error ? cause.message : 'Unable to save selected members'
   } finally {
     publishing.value = false
+  }
+}
+
+function explicitSourceMemberIds(): number[] {
+  const raw = map.value?.source.provenance?.instrument_ids
+  return Array.isArray(raw)
+    ? [...new Set(raw.filter((value): value is number => typeof value === 'number' && Number.isInteger(value) && value > 0))]
+    : sourceId.value.startsWith('explicit:')
+      ? [...new Set(sourceId.value.slice('explicit:'.length).split(',').map(Number).filter(value => Number.isInteger(value) && value > 0))]
+      : []
+}
+
+async function saveExplicitSource() {
+  const memberIds = explicitSourceMemberIds()
+  const name = explicitWatchlistName.value.trim()
+  if (!memberIds.length || !name || explicitSaving.value) return
+  explicitSaving.value = true
+  publicationMessage.value = ''
+  publicationError.value = ''
+  try {
+    const created = await watchlistStore.createWatchlist(name)
+    if (!created) throw new Error('Unable to create personal watchlist')
+    const results = await Promise.all(memberIds.map(instrumentId => watchlistStore.addItem(created.id, instrumentId)))
+    const added = results.filter(Boolean).length
+    publicationMessage.value = `${added} canonical member${added === 1 ? '' : 's'} saved as ${created.name}`
+    explicitWatchlistName.value = ''
+  } catch (cause) {
+    publicationError.value = cause instanceof Error ? cause.message : 'Unable to save explicit source'
+  } finally {
+    explicitSaving.value = false
   }
 }
 

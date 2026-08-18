@@ -29,6 +29,10 @@ database/provider work. The configured local PostgreSQL service was unavailable 
 implementation checkpoint, so live migration upgrade/downgrade evidence remains a final audit gap;
 the missing service must not be presented as a passing migration test.
 
+The durability gate must exercise `Save as watchlist` from an explicit source and verify that every
+canonical member in the source descriptor is added, including a member whose map cell has no current
+bar/area geometry. The action must remain user-isolated and must not mutate the locked source.
+
 ## 2026-08-19 — Universal combo-source sub-gate
 
 Acceptance must treat a user-owned combo list as the same Market Map universe contract as an index,

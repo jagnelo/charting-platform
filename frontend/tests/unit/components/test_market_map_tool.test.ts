@@ -403,6 +403,31 @@ describe('MarketMapTool', () => {
     }))
   })
 
+  it('saves the complete explicit canonical selection as a personal watchlist', async () => {
+    const explicitResponse = {
+      ...response,
+      source: { ...response.source, source_id: 'explicit:1,2', source_kind: 'explicit', name: 'Explicit symbols (2)', can_follow: false, can_clone: false, provenance: { instrument_ids: [1, 2] } },
+    }
+    apiPost.mockImplementation((path: string, body?: Record<string, unknown>) => {
+      if (path === '/instruments/resolve-canonical') return Promise.resolve({ resolved: [{ symbol: 'NVDA', instrument_id: 1 }, { symbol: 'MSFT', instrument_id: 2 }], missing: [] })
+      if (path === '/analysis/market-map') return Promise.resolve(explicitResponse)
+      return Promise.resolve(response)
+    })
+    createWatchlist.mockResolvedValue({ id: 12, name: 'My explicit set', is_managed: false, is_locked: false, items: [] })
+    addItem.mockResolvedValue({ id: 120, instrument_id: 1 })
+    const wrapper = mount(MarketMapTool, { props: { configuration: { explicit_symbols: 'NVDA, MSFT' } } })
+    await flushPromises()
+
+    await wrapper.get('[aria-label="Explicit source watchlist name"]').setValue('My explicit set')
+    await wrapper.findAll('button').find(button => button.text() === 'Save as watchlist')!.trigger('click')
+    await flushPromises()
+
+    expect(createWatchlist).toHaveBeenCalledWith('My explicit set')
+    expect(addItem).toHaveBeenCalledWith(12, 1)
+    expect(addItem).toHaveBeenCalledWith(12, 2)
+    expect(wrapper.find('[role="status"]').text()).toContain('2 canonical members saved as My explicit set')
+  })
+
   it('authors an event predicate for Market Map breadth colouring', async () => {
     apiPost.mockImplementation((path: string, body?: Record<string, unknown>) => {
       if (path === '/analysis/market-map') return Promise.resolve({ ...response, color_metric: body?.color_metric, condition: body?.condition })
