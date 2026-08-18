@@ -747,6 +747,112 @@ class TestWatchlistsCrud:
         assert historical.json()["members"] == []
         assert historical.json()["exclusions"][0]["reason"] == "membership_not_known_at_as_of"
 
+    def test_etf_holdings_source_is_locked_watchlist_for_the_same_market_map_contract(
+        self, client, auth_headers, db, instrument, instrument_b
+    ):
+        from app.models.etf_holdings import ETFHolding, ETFHoldingsSnapshot, ETFProfile
+        from app.models.instrument import EquityDetail
+        from app.models.instrument_stats import InstrumentStats
+        from app.models.ohlcv import OHLCVBar, Timeframe
+
+        composition = datetime(2024, 1, 1, tzinfo=UTC)
+        profile = ETFProfile(
+            instrument_id=instrument.id,
+            issuer="Controlled issuer",
+            adapter_key="controlled_fixture",
+            adapter_status="resolved",
+        )
+        db.add(profile)
+        db.flush()
+        snapshot = ETFHoldingsSnapshot(
+            etf_profile_id=profile.id,
+            composition_date=composition.date(),
+            known_at=composition,
+            provenance="issuer_native",
+            source_provider="controlled_fixture",
+            source_quality="issuer_disclosed",
+            completeness_status="complete",
+            row_count=1,
+            resolved_count=1,
+            unresolved_count=0,
+            total_weight=1.0,
+            snapshot_hash="watchlist-etf-source-fixture",
+        )
+        db.add(snapshot)
+        db.flush()
+        db.add(
+            ETFHolding(
+                snapshot_id=snapshot.id,
+                constituent_instrument_id=instrument_b.id,
+                position=0,
+                reported_symbol=instrument_b.symbol,
+                reported_name=instrument_b.name,
+                weight=1.0,
+                holding_type="equity",
+                row_type="security",
+                source_row_hash="watchlist-etf-source-row",
+                is_resolved=True,
+            )
+        )
+        db.add_all(
+            [
+                EquityDetail(instrument_id=instrument_b.id, sector="Technology", industry="Software"),
+                InstrumentStats(instrument_id=instrument_b.id, market_cap=100),
+            ]
+        )
+        base = datetime(2024, 1, 1, tzinfo=UTC)
+        for day, close in enumerate((100, 101, 102)):
+            db.add(
+                OHLCVBar(
+                    instrument_id=instrument_b.id,
+                    timeframe=Timeframe.D1,
+                    ts=base + timedelta(days=day),
+                    open=close,
+                    high=close + 1,
+                    low=close - 1,
+                    close=close,
+                    volume=1000,
+                    is_adjusted=True,
+                )
+            )
+        db.flush()
+
+        source_id = f"etf-holdings:{instrument.symbol}"
+        descriptor = client.get("/api/v1/watchlists/sources", headers=auth_headers)
+        assert descriptor.status_code == 200
+        source = next(item for item in descriptor.json() if item["source_id"] == source_id)
+        assert source["source_kind"] == "etf_holdings"
+        assert source["locked"] is True
+        assert source["can_edit_membership"] is False
+        assert source["member_count"] == 1
+
+        resolved = client.get(
+            f"/api/v1/watchlists/sources/{source_id}",
+            headers=auth_headers,
+            params={"as_of": "2024-01-02T00:00:00Z"},
+        )
+        assert resolved.status_code == 200, resolved.text
+        assert [member["instrument_id"] for member in resolved.json()["members"]] == [instrument_b.id]
+        assert resolved.json()["members"][0]["weight"] == 1.0
+
+        market_map = client.post(
+            "/api/v1/analysis/market-map",
+            headers=auth_headers,
+            json={
+                "source_id": source_id,
+                "period": "1D",
+                "area_metric": "weight",
+                "color_metric": "return",
+                "end": "2024-01-03T00:00:00Z",
+            },
+        )
+        assert market_map.status_code == 200, market_map.text
+        body = market_map.json()
+        assert body["source"]["source_id"] == source_id
+        assert body["source"]["locked"] is True
+        assert body["cells"][0]["area_value"] == 1.0
+        assert body["cells"][0]["area_provenance"]["kind"] == "point_in_time_membership"
+
     def test_combo_source_is_locked_derived_universe_for_the_same_market_map_contract(
         self, client, auth_headers, db, instrument, instrument_b
     ):
