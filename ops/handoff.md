@@ -20,14 +20,15 @@
   repository-wide coverage threshold on an isolated subset; the unchanged no-cov rerun passed.
   No acceptance flexibility, visual threshold/mask, provider substitution, or interactive fan-out
   was introduced.
-- Implementation commit `aec7288b2073692b1f9c9a5ad111a485c4f8dff7` is pushed and synchronized.
-  The worktree is clean and `HEAD` equals `origin/feat/tc2000-frontend-rework`.
+- Implementation commit `aec7288b2073692b1f9c9a5ad111a485c4f8dff7` and documentation/ops
+  checkpoint `42fde631aa237046d9aee0650162d2fbb9922069` are pushed and synchronized. The
+  worktree is clean and `HEAD` equals `origin/feat/tc2000-frontend-rework`.
 - Remaining: provider-backed membership and canonical-bar population for all eight roots/roles,
   historical composition/rebalance reconciliation, durable batch progress/cancellation,
   entitlement/provider-quality closure, all-root view acceptance, and exact Version 25
   maintenance/progress visuals. These are substantive open gaps, not acceptance flexibility.
-- Next context: update operational/parity records for this implementation, close the record commit,
-  then continue provider-backed family population/continuity and universal Market Map gates.
+- Context closure is complete. Next context: continue provider-backed family population/continuity
+  and universal Market Map gates.
 
 ## 2026-08-19 — Bounded canonical history hydration for locked family sources
 
