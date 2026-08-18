@@ -181,7 +181,9 @@ async def read_market_map_snapshot(
         raise HTTPException(422, detail={"code": "invalid_market_map_cache_key"})
     result = await read_market_map_cache(db, current_user.id, cache_key)
     if result is None:
-        raise HTTPException(404, detail={"code": "market_map_cache_not_found", "cache_key": cache_key})
+        raise HTTPException(
+            404, detail={"code": "market_map_cache_not_found", "cache_key": cache_key}
+        )
     return result
 
 
@@ -193,12 +195,16 @@ async def list_market_map_snapshots(
     """List named Market Map snapshots owned by the authenticated user."""
 
     return (
-        await db.execute(
-            select(MarketMapSnapshot)
-            .where(MarketMapSnapshot.user_id == current_user.id)
-            .order_by(MarketMapSnapshot.created_at.desc())
+        (
+            await db.execute(
+                select(MarketMapSnapshot)
+                .where(MarketMapSnapshot.user_id == current_user.id)
+                .order_by(MarketMapSnapshot.created_at.desc())
+            )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
 
 
 @router.post("/market-map/snapshots", response_model=MarketMapSnapshotOut)
@@ -224,7 +230,9 @@ async def create_market_map_snapshot(
         raise HTTPException(409, detail={"code": "market_map_snapshot_name_exists"})
     cached = await read_market_map_cache(db, current_user.id, body.cache_key)
     if cached is None:
-        raise HTTPException(404, detail={"code": "market_map_cache_not_found", "cache_key": body.cache_key})
+        raise HTTPException(
+            404, detail={"code": "market_map_cache_not_found", "cache_key": body.cache_key}
+        )
     snapshot_map = cached.model_copy(update={"cache_hit": False, "cached_at": None})
     map_json = snapshot_map.model_dump(mode="json")
     snapshot_hash = hashlib.sha256(
@@ -344,9 +352,7 @@ def _historical_return_series(
         cells: dict[str, float | None] = {}
         for period, offset in _PERIODS.items():
             base_index = (
-                first_by_year[bar.ts.year]
-                if period == "YTD"
-                else index - (offset + 1)  # type: ignore[operator]
+                first_by_year[bar.ts.year] if period == "YTD" else index - (offset + 1)  # type: ignore[operator]
             )
             if base_index < 0 or base_index == index:
                 cells[period] = None
@@ -682,12 +688,8 @@ def _group_members_at(
     # no group-level known_at.  Their members still carry the authoritative
     # point-in-time boundary, so retain the static-root compatibility rule while
     # requiring each member's known_at below.
-    if (
-        not allow_late_registered_group
-        and (
-            not _is_known_at(group.effective_at, as_of)
-            or not _is_known_at(group.known_at, as_of)
-        )
+    if not allow_late_registered_group and (
+        not _is_known_at(group.effective_at, as_of) or not _is_known_at(group.known_at, as_of)
     ):
         raise HTTPException(
             404,
@@ -779,9 +781,7 @@ def _rotation_metrics(
             "distance": math.hypot(latest.trend, latest.momentum),
             "velocity": velocity,
             "transition": (
-                f"{previous_state}->{state}"
-                if previous_state and previous_state != state
-                else None
+                f"{previous_state}->{state}" if previous_state and previous_state != state else None
             ),
             "time_in_state": time_in_state,
         },
@@ -1159,7 +1159,9 @@ async def instrument_technical_snapshot(
 ):
     """Return local, reproducible technical values without a provider fetch."""
     instrument = await _instrument(db, symbol)
-    bars = (await _bars_by_instrument(db, [instrument.id], timeframe, adjusted)).get(instrument.id, [])
+    bars = (await _bars_by_instrument(db, [instrument.id], timeframe, adjusted)).get(
+        instrument.id, []
+    )
     if as_of is not None:
         bars = [bar for bar in bars if bar.ts <= as_of]
     latest = bars[-1] if bars else None
@@ -1329,7 +1331,9 @@ async def benchmark_family_relative_rotation(
         )
     ).scalar_one_or_none()
     if group is None:
-        raise HTTPException(404, detail={"code": "benchmark_family_not_found", "family_key": family_key})
+        raise HTTPException(
+            404, detail={"code": "benchmark_family_not_found", "family_key": family_key}
+        )
     provenance = dict(group.provenance or {})
     official = provenance.get("official_index")
     mappings = provenance.get("proxy_mappings")
@@ -1428,9 +1432,7 @@ async def benchmark_family_relative_rotation(
                     instrument_id=instrument.id,
                 )
             )
-        metrics, tail, metric_warnings = _rotation_metrics(
-            aligned, sampling, lookback, tail_length
-        )
+        metrics, tail, metric_warnings = _rotation_metrics(aligned, sampling, lookback, tail_length)
         if metrics is None:
             warnings.append(
                 AnalysisWarning(
@@ -1467,9 +1469,7 @@ async def benchmark_family_relative_rotation(
                 **metrics,
             )
         )
-    freshness, freshness_detail = await _batch_freshness(
-        db, instrument_ids, timeframe, adjusted
-    )
+    freshness, freshness_detail = await _batch_freshness(db, instrument_ids, timeframe, adjusted)
     members = _group_members_at(group, as_of)
     return BenchmarkFamilyRotationOut(
         family_key=family_key,
@@ -2436,7 +2436,12 @@ async def benchmark_family_concentration(
             continue
 
         performance_rows = [
-            (row, row.performance.get(rank_period).value if row.performance.get(rank_period) else None)
+            (
+                row,
+                row.performance.get(rank_period).value
+                if row.performance.get(rank_period)
+                else None,
+            )
             for row in snapshot.rows
         ]
         returns = [float(value) for _, value in performance_rows if value is not None]
@@ -2515,9 +2520,7 @@ async def benchmark_family_concentration(
             )
         ).scalars()
     ]
-    freshness, freshness_detail = await _batch_freshness(
-        db, freshness_ids, timeframe, adjusted
-    )
+    freshness, freshness_detail = await _batch_freshness(db, freshness_ids, timeframe, adjusted)
     return BenchmarkFamilyConcentrationOut(
         family_key=family_key,
         official_index_symbol=(
@@ -2588,11 +2591,7 @@ async def benchmark_family_concentration_history(
         symbol = str(mapping.get("symbol")).upper() if mapping.get("symbol") else None
         label = str(mapping.get("label") or "No verified mapped proxy")
         verification_state = str(mapping.get("verification_state") or "not_verified")
-        if (
-            role == "equal_weight"
-            and not symbol
-            and derived_equal_metadata.get("allowed") is True
-        ):
+        if role == "equal_weight" and not symbol and derived_equal_metadata.get("allowed") is True:
             # A derived equal leg has no ETF holdings snapshot.  Select the
             # point-in-time group members at each bar instead, so membership
             # changes cannot leak backwards into earlier concentration points.
@@ -2821,8 +2820,7 @@ async def benchmark_family_concentration_history(
                 holding.constituent_instrument_id
                 for snapshot in snapshots
                 for holding in snapshot.rows
-                if holding.constituent_instrument_id
-                and _holding_exclusion_code(holding) is None
+                if holding.constituent_instrument_id and _holding_exclusion_code(holding) is None
             }
         )
         freshness_ids.extend(instrument_ids)
@@ -2860,8 +2858,7 @@ async def benchmark_family_concentration_history(
             eligible_rows = [
                 holding
                 for holding in snapshot.rows
-                if holding.constituent_instrument_id
-                and _holding_exclusion_code(holding) is None
+                if holding.constituent_instrument_id and _holding_exclusion_code(holding) is None
             ]
             excluded_count = len(snapshot.rows) - len(eligible_rows)
             performance_values = [
@@ -2898,13 +2895,9 @@ async def benchmark_family_concentration_history(
                     composition_date=snapshot.composition_date,
                     known_at=snapshot.known_at,
                     membership_version=snapshot.id,
-                    weight_method=(
-                        "reported_holdings_weights" if weighted_rows else "unavailable"
-                    ),
+                    weight_method=("reported_holdings_weights" if weighted_rows else "unavailable"),
                     reported_weight_coverage=(
-                        min(max(reported_weight_total, 0.0), 1.0)
-                        if weighted_rows
-                        else None
+                        min(max(reported_weight_total, 0.0), 1.0) if weighted_rows else None
                     ),
                     top_n_weight=(
                         min(sum(float(holding.weight or 0) for holding in top_rows), 1.0)
@@ -3339,14 +3332,18 @@ async def benchmark_family_coverage(
             )
             statement = _holdings_snapshot_at(statement, as_of)
             rows = (
-                await db.execute(
-                    statement.order_by(
-                        ETFHoldingsSnapshot.composition_date.desc(),
-                        ETFHoldingsSnapshot.known_at.desc().nullslast(),
-                        ETFHoldingsSnapshot.id.desc(),
-                    ).limit(limit)
+                (
+                    await db.execute(
+                        statement.order_by(
+                            ETFHoldingsSnapshot.composition_date.desc(),
+                            ETFHoldingsSnapshot.known_at.desc().nullslast(),
+                            ETFHoldingsSnapshot.id.desc(),
+                        ).limit(limit)
+                    )
                 )
-            ).scalars().all()
+                .scalars()
+                .all()
+            )
             snapshots = [
                 BenchmarkFamilyCoverageSnapshotOut(
                     snapshot_id=row.id,
@@ -3485,7 +3482,9 @@ async def benchmark_family_overview(
                     ETFHoldingsSnapshot.id.desc(),
                 )
             )
-        ).scalars().all()
+        )
+        .scalars()
+        .all()
         if holdings_statement is not None
         else []
     )
@@ -3568,7 +3567,9 @@ async def benchmark_family_overview(
                     holdings_snapshot.completeness_status if holdings_snapshot else None
                 ),
                 holdings_row_count=holdings_snapshot.row_count if holdings_snapshot else None,
-                holdings_resolved_count=holdings_snapshot.resolved_count if holdings_snapshot else None,
+                holdings_resolved_count=holdings_snapshot.resolved_count
+                if holdings_snapshot
+                else None,
                 holdings_unresolved_count=(
                     holdings_snapshot.unresolved_count if holdings_snapshot else None
                 ),
@@ -3821,7 +3822,8 @@ async def benchmark_family_breadth(
     exclusions: list[AnalysisWarning] = []
 
     def metric(
-        results: list[object], aggregate: dict[str, int | float],
+        results: list[object],
+        aggregate: dict[str, int | float],
     ) -> BenchmarkFamilyBreadthMetricOut:
         metric_exclusions = [
             _generic_breadth_warning(str(result.exclusion_code), result.instrument_id)
@@ -3865,17 +3867,19 @@ async def benchmark_family_breadth(
             universe=BreadthUniverseRequest(
                 kind="benchmark_family", key=family_key, role=role, point_in_time=True
             ),
-            condition=BreadthConditionRequest(
-                kind="above_moving_average", params={"period": 20}
-            ),
+            condition=BreadthConditionRequest(kind="above_moving_average", params={"period": 20}),
             timeframe=timeframe.value,
             adjusted=adjusted,
             as_of=as_of,
         )
         try:
-            members, _, universe_warnings, universe_provenance, membership_payload = (
-                await _resolve_benchmark_family_breadth_universe(definition, db)
-            )
+            (
+                members,
+                _,
+                universe_warnings,
+                universe_provenance,
+                membership_payload,
+            ) = await _resolve_benchmark_family_breadth_universe(definition, db)
         except HTTPException as error:
             detail = error.detail if isinstance(error.detail, Mapping) else {}
             warning = AnalysisWarning(
@@ -3907,9 +3911,7 @@ async def benchmark_family_breadth(
             return metric(results, aggregate)
 
         above_ma = {
-            f"ma{period}": evaluate(
-                {"kind": "above_moving_average", "params": {"period": period}}
-            )
+            f"ma{period}": evaluate({"kind": "above_moving_average", "params": {"period": period}})
             for period in (20, 50, 200)
         }
         near_high = evaluate(
@@ -3979,7 +3981,10 @@ async def benchmark_family_breadth(
         roles=roles,
         exclusions=exclusions,
         freshness="available" if any(role.available for role in roles) else "unavailable",
-        freshness_detail={"role_count": 4, "available_roles": sum(role.available for role in roles)},
+        freshness_detail={
+            "role_count": 4,
+            "available_roles": sum(role.available for role in roles),
+        },
     )
 
 
@@ -4051,24 +4056,25 @@ async def benchmark_family_breadth_history(
             universe=BreadthUniverseRequest(
                 kind="benchmark_family", key=family_key, role=role, point_in_time=True
             ),
-            condition=BreadthConditionRequest(
-                kind="above_moving_average", params={"period": 20}
-            ),
+            condition=BreadthConditionRequest(kind="above_moving_average", params={"period": 20}),
             timeframe=timeframe.value,
             adjusted=adjusted,
             as_of=as_of,
         )
         try:
-            members, member_ids, universe_warnings, universe_provenance, membership_payload = (
-                await _resolve_benchmark_family_breadth_universe(definition, db)
-            )
+            (
+                members,
+                member_ids,
+                universe_warnings,
+                universe_provenance,
+                membership_payload,
+            ) = await _resolve_benchmark_family_breadth_universe(definition, db)
         except HTTPException as error:
             detail = error.detail if isinstance(error.detail, Mapping) else {}
             warning = AnalysisWarning(
                 code=str(detail.get("code") or "family_breadth_unavailable"),
                 message=str(
-                    detail.get("message")
-                    or f"Breadth history is unavailable for the {role} leg."
+                    detail.get("message") or f"Breadth history is unavailable for the {role} leg."
                 ),
             )
             exclusions.append(warning)
@@ -4108,9 +4114,7 @@ async def benchmark_family_breadth_history(
                     for result in raw_point["members"]
                     if result.exclusion_code
                     for warning in [
-                        _generic_breadth_warning(
-                            result.exclusion_code, result.instrument_id
-                        )
+                        _generic_breadth_warning(result.exclusion_code, result.instrument_id)
                     ]
                 )
         points = [
@@ -4175,11 +4179,7 @@ async def cross_family_ranking_history(
 ):
     """Return historical family performance/rank curves from observed local bars only."""
 
-    requested = {
-        item.strip()
-        for item in (families.split(",") if families else [])
-        if item.strip()
-    }
+    requested = {item.strip() for item in (families.split(",") if families else []) if item.strip()}
     query = select(MarketGroup).where(MarketGroup.group_type == "benchmark_family")
     if requested:
         query = query.where(MarketGroup.stable_key.in_(requested))
@@ -4286,9 +4286,7 @@ async def cross_family_ranking_history(
                 family_key=group.stable_key,
                 family_name=group.name,
                 official_index_symbol=(
-                    str(official.get("symbol") or "")
-                    if isinstance(official, Mapping)
-                    else ""
+                    str(official.get("symbol") or "") if isinstance(official, Mapping) else ""
                 ),
                 symbol=symbol,
                 label=label,
@@ -4311,9 +4309,7 @@ async def cross_family_ranking_history(
             rank_by_family = {family_key: index for index, (family_key, _) in enumerate(ranked, 1)}
             point.rank = rank_by_family.get(row.family_key)
         rows.append(row)
-    freshness, freshness_detail = await _batch_freshness(
-        db, instrument_ids, timeframe, adjusted
-    )
+    freshness, freshness_detail = await _batch_freshness(db, instrument_ids, timeframe, adjusted)
     return CrossFamilyRankingHistoryOut(
         timeframe=timeframe.value,
         adjustment="split_adjusted" if adjusted else "raw",
@@ -4344,19 +4340,11 @@ async def cross_family_ranking(
 ):
     """Rank all selected benchmark-family cap legs on one aligned contract."""
 
-    requested = {
-        item.strip()
-        for item in (families.split(",") if families else [])
-        if item.strip()
-    }
+    requested = {item.strip() for item in (families.split(",") if families else []) if item.strip()}
     query = select(MarketGroup).where(MarketGroup.group_type == "benchmark_family")
     if requested:
         query = query.where(MarketGroup.stable_key.in_(requested))
-    groups = list(
-        (
-            await db.execute(query.order_by(MarketGroup.stable_key))
-        ).scalars()
-    )
+    groups = list((await db.execute(query.order_by(MarketGroup.stable_key))).scalars())
     if requested and {group.stable_key for group in groups} != requested:
         missing = sorted(requested - {group.stable_key for group in groups})
         raise HTTPException(
@@ -4393,7 +4381,7 @@ async def cross_family_ranking(
             db,
             [
                 *[instrument.id for instrument in cap_instruments.values()],
-                *( [benchmark_instrument.id] if benchmark_instrument else [] ),
+                *([benchmark_instrument.id] if benchmark_instrument else []),
             ],
             timeframe,
             adjusted,
@@ -4423,7 +4411,9 @@ async def cross_family_ranking(
                 CrossFamilyRankingRowOut(
                     family_key=group.stable_key,
                     family_name=group.name,
-                    official_index_symbol=str(official.get("symbol") or "") if isinstance(official, Mapping) else "",
+                    official_index_symbol=str(official.get("symbol") or "")
+                    if isinstance(official, Mapping)
+                    else "",
                     symbol=symbol,
                     label=label,
                     available=False,
@@ -4444,7 +4434,9 @@ async def cross_family_ranking(
             CrossFamilyRankingRowOut(
                 family_key=group.stable_key,
                 family_name=group.name,
-                official_index_symbol=str(official.get("symbol") or "") if isinstance(official, Mapping) else "",
+                official_index_symbol=str(official.get("symbol") or "")
+                if isinstance(official, Mapping)
+                else "",
                 symbol=symbol,
                 label=label,
                 available=bool(cells),
@@ -4473,7 +4465,7 @@ async def cross_family_ranking(
         db,
         [
             *[instrument.id for instrument in cap_instruments.values()],
-            *( [benchmark_instrument.id] if benchmark_instrument else [] ),
+            *([benchmark_instrument.id] if benchmark_instrument else []),
         ],
         timeframe,
         adjusted,
@@ -4722,9 +4714,7 @@ async def benchmark_family_derived_equal_weight(
                 message="Members without local bars were excluded from the aligned series.",
             )
         )
-    freshness, freshness_detail = await _batch_freshness(
-        db, member_ids, timeframe, adjusted
-    )
+    freshness, freshness_detail = await _batch_freshness(db, member_ids, timeframe, adjusted)
     return BenchmarkFamilyDerivedEqualWeightOut(
         family_key=family_key,
         name=group.name,
@@ -5272,18 +5262,27 @@ async def _breadth_events_by_instrument(
             "unavailable_member_count": 0,
         }
     rows = (
-        await db.execute(
-            select(InstrumentEvent)
-            .where(InstrumentEvent.instrument_id.in_(instrument_ids))
-            .order_by(InstrumentEvent.instrument_id, InstrumentEvent.event_time)
+        (
+            await db.execute(
+                select(InstrumentEvent)
+                .where(InstrumentEvent.instrument_id.in_(instrument_ids))
+                .order_by(InstrumentEvent.instrument_id, InstrumentEvent.event_time)
+            )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     states = (
-        await db.execute(
-            select(InstrumentEventFetchState.instrument_id)
-            .where(InstrumentEventFetchState.instrument_id.in_(instrument_ids))
+        (
+            await db.execute(
+                select(InstrumentEventFetchState.instrument_id).where(
+                    InstrumentEventFetchState.instrument_id.in_(instrument_ids)
+                )
+            )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     loaded_ids = {int(instrument_id) for instrument_id in states}
     by_id: dict[int, list[InstrumentEvent] | None] = {
         instrument_id: [] if instrument_id in loaded_ids else None
@@ -5343,7 +5342,13 @@ async def _resolve_generic_breadth_reference(
 
     if definition.reference_universe is None:
         return None, [], [], {}
-    unsupported = _series_reference_fields(condition) - {"close", "price", "last", "return", "return_1"}
+    unsupported = _series_reference_fields(condition) - {
+        "close",
+        "price",
+        "last",
+        "return",
+        "return_1",
+    }
     if unsupported:
         raise HTTPException(
             422,
@@ -5415,7 +5420,11 @@ async def _resolve_benchmark_family_breadth_universe(
     if profile is None:
         raise HTTPException(
             404,
-            detail={"code": "etf_profile_not_found", "family_key": family_key, "symbol": proxy_symbol},
+            detail={
+                "code": "etf_profile_not_found",
+                "family_key": family_key,
+                "symbol": proxy_symbol,
+            },
         )
     statement = holdings_snapshot_source_filter(
         select(ETFHoldingsSnapshot).where(ETFHoldingsSnapshot.etf_profile_id == profile.id)
@@ -5527,10 +5536,14 @@ async def _resolve_user_watchlist_breadth_universe(
 
     instrument_ids = list(dict.fromkeys(member.instrument_id for member in resolved.members))
     instruments = (
-        (await db.execute(select(Instrument).where(Instrument.id.in_(instrument_ids))))
-        .scalars()
-        .all()
-    ) if instrument_ids else []
+        (
+            (await db.execute(select(Instrument).where(Instrument.id.in_(instrument_ids))))
+            .scalars()
+            .all()
+        )
+        if instrument_ids
+        else []
+    )
     by_id = {instrument.id: instrument for instrument in instruments}
     members: list[BreadthMember] = []
     member_ids: list[int] = []
@@ -5544,7 +5557,9 @@ async def _resolve_user_watchlist_breadth_universe(
         member_ids.append(instrument.id)
     for exclusion in resolved.exclusions:
         if isinstance(exclusion, Mapping):
-            warnings.append(_generic_breadth_warning(str(exclusion.get("reason", "membership_excluded"))))
+            warnings.append(
+                _generic_breadth_warning(str(exclusion.get("reason", "membership_excluded")))
+            )
     descriptor = resolved.descriptor.model_dump(mode="json")
     membership_payload = {
         "source_id": source_id,
@@ -5557,7 +5572,9 @@ async def _resolve_user_watchlist_breadth_universe(
         "source_id": source_id,
         "source_kind": resolved.descriptor.source_kind,
         "name": resolved.descriptor.name,
-        "membership_semantics": "locked_source_members" if resolved.descriptor.locked else "user_watchlist_members",
+        "membership_semantics": "locked_source_members"
+        if resolved.descriptor.locked
+        else "user_watchlist_members",
         "locked": resolved.descriptor.locked,
         "member_count": len(member_ids),
         "descriptor": descriptor,
@@ -5807,7 +5824,10 @@ async def _resolve_generic_breadth_condition(
     if definition.condition is None:
         raise HTTPException(
             422,
-            detail={"code": "condition_required", "message": "A condition or condition asset is required."},
+            detail={
+                "code": "condition_required",
+                "message": "A condition or condition asset is required.",
+            },
         )
     return definition.condition, {}
 
@@ -5887,14 +5907,25 @@ async def _resolve_python_condition_tree(
         params = node.get("params") if isinstance(node.get("params"), Mapping) else {}
         if kind in {"all", "any", "not"}:
             children = params.get("conditions")
-            if not isinstance(children, list) or not children or any(not isinstance(child, Mapping) for child in children):
+            if (
+                not isinstance(children, list)
+                or not children
+                or any(not isinstance(child, Mapping) for child in children)
+            ):
                 raise HTTPException(422, detail={"code": "invalid_python_condition_tree"})
             if kind == "not" and len(children) != 1:
                 raise HTTPException(422, detail={"code": "invalid_python_condition_tree"})
-            return {"kind": kind, "params": {"conditions": [await resolve(child) for child in children]}}
+            return {
+                "kind": kind,
+                "params": {"conditions": [await resolve(child) for child in children]},
+            }
         if kind == "python_series":
             code_version_id = params.get("code_version_id")
-            if not isinstance(code_version_id, int) or isinstance(code_version_id, bool) or code_version_id < 1:
+            if (
+                not isinstance(code_version_id, int)
+                or isinstance(code_version_id, bool)
+                or code_version_id < 1
+            ):
                 raise HTTPException(422, detail={"code": "python_series_code_version_required"})
             version = (
                 await db.execute(
@@ -5929,7 +5960,12 @@ async def _resolve_python_condition_tree(
                 raise HTTPException(422, detail={"code": "invalid_python_series_statistic"})
             operator = str(params.get("operator", "gte")).lower()
             threshold = params.get("threshold", 0)
-            if operator not in {"gt", "gte", "lt", "lte", "eq", "ne"} or not isinstance(threshold, int | float) or isinstance(threshold, bool) or not math.isfinite(float(threshold)):
+            if (
+                operator not in {"gt", "gte", "lt", "lte", "eq", "ne"}
+                or not isinstance(threshold, int | float)
+                or isinstance(threshold, bool)
+                or not math.isfinite(float(threshold))
+            ):
                 raise HTTPException(422, detail={"code": "invalid_python_series_target"})
             resolved_ids.append(version.id)
             return {
@@ -5942,14 +5978,27 @@ async def _resolve_python_condition_tree(
                     "threshold": float(threshold),
                     "scope": scope,
                     **({"statistic": statistic} if scope == "cross_sectional" else {}),
-                    "parameters": params.get("parameters", {}) if isinstance(params.get("parameters"), Mapping) else {},
+                    "parameters": params.get("parameters", {})
+                    if isinstance(params.get("parameters"), Mapping)
+                    else {},
                 },
             }
         if kind == "python_series_comparison":
+
             async def resolve_series_version(parameter_name: str) -> CodeVersion:
                 code_version_id = params.get(parameter_name)
-                if not isinstance(code_version_id, int) or isinstance(code_version_id, bool) or code_version_id < 1:
-                    raise HTTPException(422, detail={"code": "python_series_comparison_code_version_required", "side": parameter_name})
+                if (
+                    not isinstance(code_version_id, int)
+                    or isinstance(code_version_id, bool)
+                    or code_version_id < 1
+                ):
+                    raise HTTPException(
+                        422,
+                        detail={
+                            "code": "python_series_comparison_code_version_required",
+                            "side": parameter_name,
+                        },
+                    )
                 version = (
                     await db.execute(
                         select(CodeVersion)
@@ -5963,7 +6012,13 @@ async def _resolve_python_condition_tree(
                     )
                 ).scalar_one_or_none()
                 if version is None or version.output_contract != "series":
-                    raise HTTPException(422, detail={"code": "python_series_comparison_condition_unavailable", "side": parameter_name})
+                    raise HTTPException(
+                        422,
+                        detail={
+                            "code": "python_series_comparison_condition_unavailable",
+                            "side": parameter_name,
+                        },
+                    )
                 return version
 
             left_version = await resolve_series_version("left_code_version_id")
@@ -5974,12 +6029,27 @@ async def _resolve_python_condition_tree(
             operator = str(params.get("operator", "gte")).lower()
             threshold = params.get("threshold", 0)
             if relation not in {"difference", "ratio"}:
-                raise HTTPException(422, detail={"code": "invalid_python_series_comparison_relation"})
+                raise HTTPException(
+                    422, detail={"code": "invalid_python_series_comparison_relation"}
+                )
             if scope not in {"member", "cross_sectional"}:
                 raise HTTPException(422, detail={"code": "invalid_python_series_comparison_scope"})
-            if scope == "cross_sectional" and statistic not in {"mean", "median", "min", "max", "std"}:
-                raise HTTPException(422, detail={"code": "invalid_python_series_comparison_statistic"})
-            if operator not in {"gt", "gte", "lt", "lte", "eq", "ne"} or not isinstance(threshold, int | float) or isinstance(threshold, bool) or not math.isfinite(float(threshold)):
+            if scope == "cross_sectional" and statistic not in {
+                "mean",
+                "median",
+                "min",
+                "max",
+                "std",
+            }:
+                raise HTTPException(
+                    422, detail={"code": "invalid_python_series_comparison_statistic"}
+                )
+            if (
+                operator not in {"gt", "gte", "lt", "lte", "eq", "ne"}
+                or not isinstance(threshold, int | float)
+                or isinstance(threshold, bool)
+                or not math.isfinite(float(threshold))
+            ):
                 raise HTTPException(422, detail={"code": "invalid_python_series_comparison_target"})
             resolved_ids.extend([left_version.id, right_version.id])
             left_asset = left_version.asset
@@ -5993,8 +6063,12 @@ async def _resolve_python_condition_tree(
                     "right_source": right_version.source,
                     "left_output_name": left_version.output_name,
                     "right_output_name": right_version.output_name,
-                    "left_parameters": params.get("left_parameters", {}) if isinstance(params.get("left_parameters"), Mapping) else {},
-                    "right_parameters": params.get("right_parameters", {}) if isinstance(params.get("right_parameters"), Mapping) else {},
+                    "left_parameters": params.get("left_parameters", {})
+                    if isinstance(params.get("left_parameters"), Mapping)
+                    else {},
+                    "right_parameters": params.get("right_parameters", {})
+                    if isinstance(params.get("right_parameters"), Mapping)
+                    else {},
                     "relation": relation,
                     "scope": scope,
                     "statistic": statistic,
@@ -6007,7 +6081,9 @@ async def _resolve_python_condition_tree(
         try:
             condition = BreadthConditionRequest.model_validate(dict(node))
         except Exception as exc:
-            raise HTTPException(422, detail={"code": "unsupported_python_condition_tree_leaf"}) from exc
+            raise HTTPException(
+                422, detail={"code": "unsupported_python_condition_tree_leaf"}
+            ) from exc
         if condition.target_scope != "member":
             raise HTTPException(422, detail={"code": "cross_sectional_tree_leaf_unsupported"})
         return condition.model_dump(mode="json")
@@ -6137,14 +6213,10 @@ def _python_breadth_run_out(run: ResearchRun) -> BreadthPythonRunOut:
         execution_mode=config.get("execution_mode", "breadth_current"),
         output_contract=str(config.get("output_contract") or "boolean"),
         series_target=(
-            config.get("series_target")
-            if isinstance(config.get("series_target"), dict)
-            else None
+            config.get("series_target") if isinstance(config.get("series_target"), dict) else None
         ),
         condition_tree=(
-            config.get("condition_tree")
-            if isinstance(config.get("condition_tree"), dict)
-            else None
+            config.get("condition_tree") if isinstance(config.get("condition_tree"), dict) else None
         ),
         definition_hash=str(config.get("definition_hash") or ""),
         universe=config.get("universe", {}),
@@ -6179,9 +6251,7 @@ def _python_breadth_manifest_summary(manifest: Mapping[str, object]) -> dict[str
     return {key: manifest[key] for key in keys if key in manifest}
 
 
-async def _python_breadth_source_instrument_ids(
-    db: AsyncSession, run: ResearchRun
-) -> list[int]:
+async def _python_breadth_source_instrument_ids(db: AsyncSession, run: ResearchRun) -> list[int]:
     """Resolve the source run's declared symbols without falling back to a broad universe."""
     config = run.run_config if isinstance(run.run_config, dict) else {}
     raw_symbols = config.get("symbols")
@@ -6193,7 +6263,9 @@ async def _python_breadth_source_instrument_ids(
                 "message": "The breadth run has no declared member universe to promote.",
             },
         )
-    symbols = list(dict.fromkeys(str(symbol).strip().upper() for symbol in raw_symbols if str(symbol).strip()))
+    symbols = list(
+        dict.fromkeys(str(symbol).strip().upper() for symbol in raw_symbols if str(symbol).strip())
+    )
     if not symbols:
         raise HTTPException(
             status_code=422,
@@ -6203,13 +6275,7 @@ async def _python_breadth_source_instrument_ids(
             },
         )
     instruments = (
-        (
-            await db.execute(
-                select(Instrument).where(Instrument.symbol.in_(symbols))
-            )
-        )
-        .scalars()
-        .all()
+        (await db.execute(select(Instrument).where(Instrument.symbol.in_(symbols)))).scalars().all()
     )
     by_symbol = {instrument.symbol.upper(): instrument for instrument in instruments}
     missing = [symbol for symbol in symbols if symbol not in by_symbol]
@@ -6325,9 +6391,13 @@ async def queue_python_breadth(
         as_of=body.as_of,
         benchmark=body.benchmark,
     )
-    members, member_ids, universe_warnings, universe_provenance, membership_payload = (
-        await _resolve_generic_breadth_universe(placeholder, db, current_user.id)
-    )
+    (
+        members,
+        member_ids,
+        universe_warnings,
+        universe_provenance,
+        membership_payload,
+    ) = await _resolve_generic_breadth_universe(placeholder, db, current_user.id)
     membership_version = _generic_membership_version(membership_payload)
     parameters = dict(version.default_parameters or {})
     parameters.update(body.parameters)
@@ -6432,7 +6502,8 @@ async def get_python_breadth_result(
         (
             item
             for item in run.artifacts
-            if item.name == ("breadth_history" if execution_mode == "breadth_history" else "batch_cells")
+            if item.name
+            == ("breadth_history" if execution_mode == "breadth_history" else "batch_cells")
         ),
         None,
     )
@@ -6466,9 +6537,7 @@ async def get_python_breadth_result(
                 update={
                     "excluded_count": current.excluded_count + len(manifest_warnings),
                     "exclusions": [*current.exclusions, *manifest_warnings],
-                    "coverage": current.eligible_count / requested_count
-                    if requested_count
-                    else 0,
+                    "coverage": current.eligible_count / requested_count if requested_count else 0,
                 }
             )
         points = [
@@ -6490,14 +6559,10 @@ async def get_python_breadth_result(
         execution_mode=execution_mode,
         output_contract=str(config.get("output_contract") or "boolean"),
         series_target=(
-            config.get("series_target")
-            if isinstance(config.get("series_target"), dict)
-            else None
+            config.get("series_target") if isinstance(config.get("series_target"), dict) else None
         ),
         condition_tree=(
-            config.get("condition_tree")
-            if isinstance(config.get("condition_tree"), dict)
-            else None
+            config.get("condition_tree") if isinstance(config.get("condition_tree"), dict) else None
         ),
         definition_hash=str(config.get("definition_hash") or ""),
         universe=config.get("universe", {}),
@@ -6584,7 +6649,10 @@ async def promote_python_breadth_run_to_scan(
             )
         output_adapter = "condition_tree_to_boolean"
     elif source_contract == "series":
-        if not isinstance(series_target, dict) or str(series_target.get("scope", "member")).lower() != "member":
+        if (
+            not isinstance(series_target, dict)
+            or str(series_target.get("scope", "member")).lower() != "member"
+        ):
             raise HTTPException(
                 status_code=422,
                 detail={
@@ -6617,8 +6685,7 @@ async def promote_python_breadth_run_to_scan(
     name = body.name or f"Python breadth run {run.id}"
     existing = (
         await db.execute(
-            select(ScreenerDefinition)
-            .where(
+            select(ScreenerDefinition).where(
                 ScreenerDefinition.user_id == current_user.id,
                 func.lower(ScreenerDefinition.name) == name.lower(),
             )
@@ -6657,7 +6724,9 @@ async def promote_python_breadth_run_to_scan(
             )
         ).scalar_one_or_none()
         if existing_asset is not None:
-            raise HTTPException(status_code=409, detail={"code": "breadth_promotion_already_exists"})
+            raise HTTPException(
+                status_code=409, detail={"code": "breadth_promotion_already_exists"}
+            )
         promoted_asset = CodeAsset(
             user_id=current_user.id,
             stable_key=stable_key,
@@ -6729,7 +6798,13 @@ async def promote_python_breadth_run_to_plot(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Promote a completed member-level numeric breadth source into a reusable uPlot asset."""
+    """Promote a completed breadth source into a reusable uPlot asset.
+
+    Member-scoped numeric runs remain symbol-level plots.  An explicitly requested aggregate
+    promotion instead re-evaluates the historical breadth predicate and exposes its aggregate
+    percentage series, retaining cross-sectional/tree semantics rather than projecting them into a
+    per-symbol value.
+    """
     run = await _load_python_breadth_run(db, run_id, current_user)
     config = run.run_config if isinstance(run.run_config, dict) else {}
     if run.status != "completed":
@@ -6737,33 +6812,12 @@ async def promote_python_breadth_run_to_plot(
             status_code=409,
             detail={"code": "breadth_promotion_requires_completed_run", "status": run.status},
         )
-    if config.get("execution_mode") not in {"breadth_current", "breadth_history"}:
-        raise HTTPException(status_code=422, detail={"code": "breadth_plot_promotion_mode_unavailable"})
-    if config.get("output_contract") != "series":
+    execution_mode = config.get("execution_mode")
+    if execution_mode not in {"breadth_current", "breadth_history"}:
         raise HTTPException(
-            status_code=422,
-            detail={
-                "code": "breadth_plot_promotion_requires_series",
-                "message": "Only numeric-series breadth runs can be promoted to a chart plot.",
-            },
+            status_code=422, detail={"code": "breadth_plot_promotion_mode_unavailable"}
         )
     series_target = config.get("series_target")
-    if isinstance(series_target, dict) and str(series_target.get("scope", "member")).lower() != "member":
-        raise HTTPException(
-            status_code=422,
-            detail={
-                "code": "breadth_plot_promotion_requires_member_scope",
-                "message": "A cross-sectional aggregate must remain a Study Lab series artifact.",
-            },
-        )
-    if config.get("condition_tree") is not None:
-        raise HTTPException(
-            status_code=422,
-            detail={
-                "code": "breadth_plot_promotion_requires_member_series",
-                "message": "Recursive Boolean trees are not numeric member plot sources.",
-            },
-        )
     version = run.code_version
     if (
         version is None
@@ -6776,6 +6830,160 @@ async def promote_python_breadth_run_to_plot(
             status_code=422,
             detail={"code": "breadth_plot_promotion_source_unavailable"},
         )
+    condition_tree = config.get("condition_tree")
+    if condition_tree is not None and not isinstance(condition_tree, dict):
+        raise HTTPException(status_code=422, detail={"code": "invalid_python_condition_tree"})
+    aggregate = bool(body.aggregate)
+    if aggregate:
+        if execution_mode != "breadth_history":
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "code": "breadth_aggregate_plot_requires_history",
+                    "message": "Aggregate breadth plots require a completed historical run.",
+                },
+            )
+        has_cross_sectional_target = (
+            isinstance(series_target, dict)
+            and str(series_target.get("scope", "member")).lower() == "cross_sectional"
+        )
+        if condition_tree is None and not has_cross_sectional_target:
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "code": "breadth_aggregate_plot_requires_aggregate_source",
+                    "message": "Aggregate plots require a cross-sectional target or condition tree.",
+                },
+            )
+        if version.output_contract not in {"boolean", "series"}:
+            raise HTTPException(
+                status_code=422,
+                detail={"code": "breadth_aggregate_plot_source_unavailable"},
+            )
+        artifact = next(
+            (item for item in run.artifacts if item.artifact_type == "breadth_history"),
+            None,
+        )
+        if artifact is None:
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "code": "breadth_plot_promotion_artifact_unavailable",
+                    "message": "The completed run has no persisted breadth history artifact.",
+                },
+            )
+        parameters = config.get("parameters") if isinstance(config.get("parameters"), dict) else {}
+        source = "\n".join(
+            [
+                "study = research.breadth_python(",
+                f"    dataset, {version.source!r}, {version.output_contract!r}, {parameters!r},",
+                f"    {series_target!r}, {condition_tree!r}, True, {version.output_name!r}",
+                ")",
+                "points = study.get('points') or []",
+                "timestamps = study.get('timestamps') or []",
+                "output.series('percentage_history', {'timestamps': timestamps, 'values': [point.get('percentage') for point in points]})",
+            ]
+        )
+        if len(source) > 500_000:
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "code": "breadth_plot_promotion_source_too_large",
+                    "message": "The generated aggregate plot wrapper exceeds the source-size limit.",
+                },
+            )
+        stable_key = f"breadth-run-{run.id}-aggregate-plot"
+        existing = (
+            await db.execute(
+                select(CodeAsset).where(
+                    CodeAsset.user_id == current_user.id,
+                    CodeAsset.stable_key == stable_key,
+                )
+            )
+        ).scalar_one_or_none()
+        if existing is not None:
+            raise HTTPException(
+                status_code=409,
+                detail={"code": "breadth_aggregate_plot_promotion_already_exists"},
+            )
+        manifest = run.dataset_manifest if isinstance(run.dataset_manifest, dict) else {}
+        lineage = {
+            "promotion_lineage": {
+                "source_run_id": run.id,
+                "source_code_version_id": run.code_version_id,
+                "source_definition_hash": str(config.get("definition_hash") or ""),
+                "source_reproducibility_hash": run.reproducibility_hash,
+                "source_dataset_manifest_sha256": _python_breadth_manifest_fingerprint(manifest),
+                "source_universe": config.get("universe", {}),
+                "source_symbols": config.get("symbols", []),
+                "universe_source_id": (
+                    config.get("universe", {}).get("source_id")
+                    if isinstance(config.get("universe"), dict)
+                    else None
+                ),
+                "source_condition_tree": condition_tree,
+                "source_series_target": series_target,
+                "semantics": "re_evaluate_breadth_as_aggregate_percentage_plot",
+                "output_name": "percentage_history",
+            },
+            # The research job protocol carries this explicit adapter to the
+            # isolated runner.  A series plot remains a normal chart asset;
+            # only its prepared-universe execution mode is specialized.
+            "output_adapter": "breadth_aggregate_percentage",
+        }
+        asset = CodeAsset(
+            user_id=current_user.id,
+            stable_key=stable_key,
+            name=body.name or f"Breadth aggregate plot run {run.id}",
+            kind="plot",
+        )
+        asset.versions.append(
+            CodeVersion(
+                version_number=1,
+                source=source,
+                output_contract="series",
+                output_name="percentage_history",
+                parameter_schema={},
+                default_parameters={},
+                sdk_version=version.sdk_version,
+                runtime_version=version.runtime_version,
+                dependencies=list(version.dependencies or []),
+                lookback=version.lookback,
+                diagnostics=[*(version.diagnostics or []), lineage],
+            )
+        )
+        db.add(asset)
+        await db.flush()
+        await db.refresh(asset)
+        return asset
+
+    if config.get("output_contract") != "series":
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "breadth_plot_promotion_requires_series",
+                "message": "Only numeric-series breadth runs can be promoted to a member chart plot.",
+            },
+        )
+    if (
+        isinstance(series_target, dict)
+        and str(series_target.get("scope", "member")).lower() != "member"
+    ):
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "breadth_plot_promotion_requires_member_scope",
+                "message": "A cross-sectional aggregate requires an explicit aggregate plot target.",
+            },
+        )
+    if condition_tree is not None:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "breadth_plot_promotion_requires_member_series",
+                "message": "Recursive Boolean trees require an explicit aggregate plot target.",
+            },
+        )
     name = body.name or f"Breadth plot run {run.id}"
     stable_key = f"breadth-run-{run.id}-plot"
     existing = (
@@ -6787,7 +6995,9 @@ async def promote_python_breadth_run_to_plot(
         )
     ).scalar_one_or_none()
     if existing is not None:
-        raise HTTPException(status_code=409, detail={"code": "breadth_plot_promotion_already_exists"})
+        raise HTTPException(
+            status_code=409, detail={"code": "breadth_plot_promotion_already_exists"}
+        )
     manifest = run.dataset_manifest if isinstance(run.dataset_manifest, dict) else {}
     lineage = {
         "promotion_lineage": {
@@ -6847,9 +7057,14 @@ async def promote_python_breadth_run_to_column(
             detail={"code": "breadth_promotion_requires_completed_run", "status": run.status},
         )
     if config.get("output_contract") != "series":
-        raise HTTPException(status_code=422, detail={"code": "breadth_column_promotion_requires_series"})
+        raise HTTPException(
+            status_code=422, detail={"code": "breadth_column_promotion_requires_series"}
+        )
     series_target = config.get("series_target")
-    if isinstance(series_target, dict) and str(series_target.get("scope", "member")).lower() != "member":
+    if (
+        isinstance(series_target, dict)
+        and str(series_target.get("scope", "member")).lower() != "member"
+    ):
         raise HTTPException(
             status_code=422,
             detail={
@@ -6858,7 +7073,9 @@ async def promote_python_breadth_run_to_column(
             },
         )
     if config.get("condition_tree") is not None:
-        raise HTTPException(status_code=422, detail={"code": "breadth_column_promotion_requires_member_series"})
+        raise HTTPException(
+            status_code=422, detail={"code": "breadth_column_promotion_requires_member_series"}
+        )
     version = run.code_version
     if (
         version is None
@@ -6867,7 +7084,9 @@ async def promote_python_breadth_run_to_column(
         or version.asset.kind != "condition"
         or version.output_contract != "series"
     ):
-        raise HTTPException(status_code=422, detail={"code": "breadth_column_promotion_source_unavailable"})
+        raise HTTPException(
+            status_code=422, detail={"code": "breadth_column_promotion_source_unavailable"}
+        )
     stable_key = f"breadth-run-{run.id}-column"
     existing = (
         await db.execute(
@@ -6878,7 +7097,9 @@ async def promote_python_breadth_run_to_column(
         )
     ).scalar_one_or_none()
     if existing is not None:
-        raise HTTPException(status_code=409, detail={"code": "breadth_column_promotion_already_exists"})
+        raise HTTPException(
+            status_code=409, detail={"code": "breadth_column_promotion_already_exists"}
+        )
     manifest = run.dataset_manifest if isinstance(run.dataset_manifest, dict) else {}
     lineage = {
         "promotion_lineage": {
@@ -7561,8 +7782,7 @@ async def evaluate_generic_breadth_history(
         freshness_detail=freshness_detail,
         points=points,
         occurrences=[
-            BreadthDefinitionHistoryOccurrenceOut(**occurrence)
-            for occurrence in occurrence_rows
+            BreadthDefinitionHistoryOccurrenceOut(**occurrence) for occurrence in occurrence_rows
         ],
         exclusions=warnings,
     )

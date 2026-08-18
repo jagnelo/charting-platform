@@ -1,5 +1,23 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-08-19 — Cross-sectional breadth aggregate-plot sub-gate
+
+For a completed historical Python breadth run with a cross-sectional numeric target or recursive
+condition tree, acceptance must verify that Research Results can create one reusable `plot` asset
+whose declared output is the aligned aggregate `percentage_history` series. The generated asset
+must retain source run/code/definition/reproducibility/manifest/universe and target/tree lineage,
+declare the explicit `breadth_aggregate_percentage` isolated-run adapter, and reject duplicate
+promotion. A rerun through `/research/runs` must materialize the complete declared universe (not
+the active chart symbol), execute once inside the isolated runner, and return a finite series
+artifact suitable for uPlot. The chart library must retain the locked source ID or explicit source
+symbols when adding the plot, so changing the active symbol cannot silently collapse the aggregate
+to one member. Aggregate plots remain incompatible with scalar watchlist columns; no cross-section
+may be flattened into a per-member value.
+
+This closes the represented aggregate chart target only. Exact Version 25 promotion wording,
+placement, and chart-library visual state remain a tracked reference-board gap; they do not relax
+the lineage, full-universe, sandbox, or rerun acceptance requirements.
+
 Market Map acceptance must also verify CSV export from a loaded map. The export must contain every
 returned cell and its canonical grouping, metric, coverage, observation-time, and warning fields;
 it must work for locked and editable sources without mutating selection, membership, or route state.

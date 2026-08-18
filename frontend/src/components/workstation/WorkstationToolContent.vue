@@ -1456,11 +1456,11 @@ const configuredComparisonSymbols = computed(() => {
 const comparisonSeries = computed<ChartComparisonSeries[]>(() => {
   return buildNormalizedComparisonSeries(chartStore.bars, comparisonTargets.value)
 })
-type ConfiguredPythonPlot = { code_version_id: number; name: string; color?: string; timeframe?: string; hidden?: boolean; instance_key?: string }
+type ConfiguredPythonPlot = { code_version_id: number; name: string; color?: string; timeframe?: string; hidden?: boolean; instance_key?: string; universe_source_id?: string; symbols?: string[] }
 type ConfiguredScanPlot = { screener_id: number; name: string; metric: 'count' | 'percentage'; color?: string; hidden?: boolean; instance_key?: string }
 function parseConfiguredPythonPlots(value: unknown): ConfiguredPythonPlot[] {
   if (!Array.isArray(value)) return []
-  return value.filter((plot): plot is ConfiguredPythonPlot => Boolean(plot) && typeof plot === 'object' && Number.isInteger((plot as Record<string, unknown>).code_version_id) && typeof (plot as Record<string, unknown>).name === 'string' && (typeof (plot as Record<string, unknown>).color === 'undefined' || typeof (plot as Record<string, unknown>).color === 'string') && (typeof (plot as Record<string, unknown>).timeframe === 'undefined' || typeof (plot as Record<string, unknown>).timeframe === 'string') && (typeof (plot as Record<string, unknown>).hidden === 'undefined' || typeof (plot as Record<string, unknown>).hidden === 'boolean') && (typeof (plot as Record<string, unknown>).instance_key === 'undefined' || typeof (plot as Record<string, unknown>).instance_key === 'string'))
+  return value.filter((plot): plot is ConfiguredPythonPlot => Boolean(plot) && typeof plot === 'object' && Number.isInteger((plot as Record<string, unknown>).code_version_id) && typeof (plot as Record<string, unknown>).name === 'string' && (typeof (plot as Record<string, unknown>).color === 'undefined' || typeof (plot as Record<string, unknown>).color === 'string') && (typeof (plot as Record<string, unknown>).timeframe === 'undefined' || typeof (plot as Record<string, unknown>).timeframe === 'string') && (typeof (plot as Record<string, unknown>).hidden === 'undefined' || typeof (plot as Record<string, unknown>).hidden === 'boolean') && (typeof (plot as Record<string, unknown>).instance_key === 'undefined' || typeof (plot as Record<string, unknown>).instance_key === 'string') && (typeof (plot as Record<string, unknown>).universe_source_id === 'undefined' || typeof (plot as Record<string, unknown>).universe_source_id === 'string') && (typeof (plot as Record<string, unknown>).symbols === 'undefined' || (Array.isArray((plot as Record<string, unknown>).symbols) && ((plot as Record<string, unknown>).symbols as unknown[]).every((symbol: unknown) => typeof symbol === 'string'))))
 }
 function parseConfiguredScanPlots(value: unknown): ConfiguredScanPlot[] {
   if (!Array.isArray(value)) return []
@@ -1574,7 +1574,11 @@ async function loadPythonPlots() {
     const timeframe = plot.timeframe ?? activeTimeframe.value
     let runId: number | null = null
     try {
-      const queued = await api.post<{ id: number }>('/research/runs', { code_version_id: plot.code_version_id, run_config: { symbol: activeSymbol.value, timeframe }, dataset_manifest: { source: 'canonical_database', timeframe } })
+      const runConfig = {
+        timeframe,
+        ...(plot.universe_source_id ? { universe_source_id: plot.universe_source_id } : plot.symbols?.length ? { symbols: plot.symbols } : { symbol: activeSymbol.value }),
+      }
+      const queued = await api.post<{ id: number }>('/research/runs', { code_version_id: plot.code_version_id, run_config: runConfig, dataset_manifest: { source: 'canonical_database', timeframe } })
       runId = queued.id
       pythonPlotRunIds.add(queued.id)
       for (let attempt = 0; attempt < 30; attempt += 1) {

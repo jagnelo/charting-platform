@@ -295,6 +295,23 @@ describe('ResearchResultsTool', () => {
     expect(wrapper.text()).toContain('Study Lab study “Cross-sectional breadth study 24” (#44) created')
   })
 
+  it('offers an aggregate chart plot for cross-sectional breadth history', async () => {
+    apiGet.mockResolvedValue([{ id: 26, status: 'completed', code_version_id: 10, run_config: { execution_mode: 'breadth_history', output_contract: 'series', series_target: { scope: 'cross_sectional', statistic: 'mean', operator: 'gte', threshold: 0 } }, dataset_manifest: {}, diagnostics: [], artifacts: [
+      { id: 15, name: 'breadth_history', artifact_type: 'breadth_history', payload: { value: { points: [], occurrences: [] } } },
+    ] }])
+    apiPost.mockResolvedValue({ id: 45, name: 'Cross-sectional breadth plot 26' })
+    const wrapper = mountTool()
+    await flushPromises()
+
+    const promoteButton = wrapper.findAll('button').find(button => button.text() === 'Save as aggregate chart plot')
+    expect(promoteButton).toBeDefined()
+    await promoteButton!.trigger('click')
+    await flushPromises()
+
+    expect(apiPost).toHaveBeenCalledWith('/analysis/breadth/python/runs/26/promote-plot', { aggregate: true })
+    expect(wrapper.text()).toContain('Aggregate chart plot “Cross-sectional breadth plot 26” (#45) created')
+  })
+
   it('promotes a completed member-level numeric breadth run into a reusable chart plot', async () => {
     apiGet.mockResolvedValue([{ id: 21, status: 'completed', code_version_id: 8, run_config: { execution_mode: 'breadth_history', output_contract: 'series', series_target: { scope: 'member', operator: 'gte', threshold: 0 } }, dataset_manifest: {}, diagnostics: [], artifacts: [] }])
     apiPost.mockResolvedValue({ id: 41, name: 'Member breadth plot 21' })

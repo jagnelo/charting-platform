@@ -70,7 +70,16 @@ import type { IndicatorConfig, IndicatorType } from '@/types'
 import { clearAnalysisDrag, createChartPlotDragPayload, createPythonPlotDragPayload, scheduleAnalysisDragCleanup, writeChartPlotDrag, writePythonPlotDrag } from '@/lib/workstation/plotDrag'
 import { fetchCodeAssets } from '@/lib/workstation/libraryQueries'
 import WorkstationGlyph from './WorkstationGlyph.vue'
-type PythonPlot = { code_version_id: number; name: string; color?: string; timeframe?: string; hidden?: boolean; instance_key?: string }
+type PythonPlot = {
+  code_version_id: number
+  name: string
+  color?: string
+  timeframe?: string
+  hidden?: boolean
+  instance_key?: string
+  universe_source_id?: string
+  symbols?: string[]
+}
 type ScanPlot = { screener_id: number; name: string; metric: 'count' | 'percentage'; color?: string; hidden?: boolean; instance_key?: string }
 type ScanAsset = { screenerId: number; name: string; metric: 'count' | 'percentage'; points: number }
 const props = defineProps<{ sourceWindowKey: string; linkGroup: string; pythonPlots?: PythonPlot[]; scanPlots?: ScanPlot[] }>()
@@ -137,7 +146,8 @@ const promotionThreshold = ref(0)
 const promotionName = ref('')
 const promotionBusy = ref(false)
 const promotionStatus = ref('')
-const pythonAssets = ref<Array<{ versionId: number; name: string }>>([])
+type PythonAsset = { versionId: number; name: string; universeSourceId?: string; symbols?: string[] }
+const pythonAssets = ref<PythonAsset[]>([])
 const selectedPythonVersion = ref('')
 const pythonLoading = ref(false)
 const pythonStatus = ref('')
@@ -152,7 +162,18 @@ async function loadPythonAssets() {
   pythonLoading.value = true; pythonStatus.value = ''
   try {
     const assets = await fetchCodeAssets(queryClient)
-    pythonAssets.value = assets.filter(asset => asset.kind === 'plot' || asset.kind === 'study').flatMap(asset => asset.versions.slice(-1).flatMap(version => version.id && (version.output_contract === 'series' || asset.kind === 'plot') ? [{ versionId: version.id, name: `${asset.name} v${version.version_number}` }] : []))
+    pythonAssets.value = assets.filter(asset => asset.kind === 'plot' || asset.kind === 'study').flatMap(asset => asset.versions.slice(-1).flatMap(version => {
+      if (!version.id || (version.output_contract !== 'series' && asset.kind !== 'plot')) return []
+      const diagnostics = Array.isArray(version.diagnostics) ? version.diagnostics : []
+      const promotion = diagnostics.find(item => item && typeof item.promotion_lineage === 'object' && !Array.isArray(item.promotion_lineage))?.promotion_lineage as Record<string, unknown> | undefined
+      const sourceUniverse = promotion?.source_universe && typeof promotion.source_universe === 'object' && !Array.isArray(promotion.source_universe) ? promotion.source_universe as Record<string, unknown> : undefined
+      const promotionSourceId = typeof promotion?.universe_source_id === 'string' ? promotion.universe_source_id.trim() : ''
+      const universeSourceId = typeof sourceUniverse?.source_id === 'string' ? sourceUniverse.source_id.trim() : ''
+      const sourceId = promotionSourceId || universeSourceId || undefined
+      const symbolsValue = promotion?.source_symbols ?? sourceUniverse?.requested_symbols
+      const symbols = Array.isArray(symbolsValue) ? symbolsValue.filter((symbol): symbol is string => typeof symbol === 'string' && symbol.trim().length > 0).map(symbol => symbol.trim().toUpperCase()) : undefined
+      return [{ versionId: version.id, name: `${asset.name} v${version.version_number}`, ...(sourceId ? { universeSourceId: sourceId } : {}), ...(symbols?.length ? { symbols } : {}) }]
+    }))
     pythonStatus.value = pythonAssets.value.length ? `${pythonAssets.value.length} plot asset${pythonAssets.value.length === 1 ? '' : 's'} available` : 'No Python plot assets available'
   } catch (cause: any) { pythonStatus.value = cause?.message ?? 'Unable to load Python plot assets' }
   finally { pythonLoading.value = false }
@@ -162,7 +183,7 @@ function addPythonPlot() {
   const asset = pythonAssets.value.find(item => item.versionId === versionId)
   if (!asset || (props.pythonPlots ?? []).some(plot => plot.code_version_id === versionId)) return
   const colors = ['#ffb74d', '#81c784', '#ba68c8', '#f06292', '#4dd0e1']
-  const plot: PythonPlot = { code_version_id: versionId, name: asset.name, color: colors[(props.pythonPlots ?? []).length % colors.length], timeframe: chartStore.timeframe, instance_key: `${versionId}-${Date.now().toString(36)}` }
+  const plot: PythonPlot = { code_version_id: versionId, name: asset.name, color: colors[(props.pythonPlots ?? []).length % colors.length], timeframe: chartStore.timeframe, instance_key: `${versionId}-${Date.now().toString(36)}`, ...(asset.universeSourceId ? { universe_source_id: asset.universeSourceId } : {}), ...(asset.symbols?.length ? { symbols: [...asset.symbols] } : {}) }
   emit('update:python-plots', [...(props.pythonPlots ?? []), plot])
   selectedPythonVersion.value = ''
   pythonStatus.value = `Added ${asset.name}`

@@ -159,6 +159,28 @@ describe('ChartPlotLibrary', () => {
     expect(apiMock.get).toHaveBeenCalledWith('/code/assets')
   })
 
+  it('retains aggregate breadth universe lineage when adding a promoted plot', async () => {
+    apiMock.get.mockResolvedValue([{
+      kind: 'plot', name: 'Breadth aggregate', versions: [{
+        id: 92, version_number: 1, output_contract: 'series', diagnostics: [{
+          promotion_lineage: {
+            source_universe: { kind: 'watchlist', source_id: 'watchlist:sector-tech' },
+            semantics: 're_evaluate_breadth_as_aggregate_percentage_plot',
+          },
+          output_adapter: 'breadth_aggregate_percentage',
+        }],
+      }],
+    }])
+    const chart = usePanelStore('aggregate-python-plot-lineage-test')
+    const wrapper = mount(ChartPlotLibrary, { props: { sourceWindowKey: 'source', linkGroup: 'blue' }, global: { provide: { panelId: 'aggregate-python-plot-lineage-test' } } })
+    await wrapper.get('button[aria-label="Chart plot library"]').trigger('click')
+    await wrapper.findAll('button').find(button => button.text() === 'Load Python plots')!.trigger('click')
+    await flushPromises()
+    await wrapper.get('[aria-label="Python plot asset"]').setValue('92')
+    await wrapper.findAll('.chart-plots__python button').find(button => button.text() === 'Add')!.trigger('click')
+    expect(wrapper.emitted('update:python-plots')?.at(-1)).toEqual([[expect.objectContaining({ code_version_id: 92, universe_source_id: 'watchlist:sector-tech', timeframe: chart.timeframe })]])
+  })
+
   it('loads retained EasyScan history and adds a reusable numeric scan plot', async () => {
     apiMock.get.mockImplementation((path: string) => {
       if (path === '/screeners') return Promise.resolve([{ id: 17, name: 'Breadth scan' }])

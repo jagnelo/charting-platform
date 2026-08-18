@@ -1,5 +1,16 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-19 — Cross-sectional breadth aggregate plot
+
+| Surface | Implementation | Backend contract | Validation | Visual/reference state |
+|---|---|---|---|---|
+| Research Results → aggregate chart plot | Completed historical Python breadth results with a cross-sectional target or recursive tree expose `Save as aggregate chart plot`; duplicate promotion is rejected | Creates a user-owned `plot` CodeAsset with `percentage_history`, source/tree/target/universe lineage, and explicit `breadth_aggregate_percentage` runner adapter; reruns materialize the complete declared source universe | Docker-backed `test_python_breadth_accepts_numeric_series_targets`; focused ChartPlotLibrary/ResearchResults tests; Vue type-check; Ruff/compileall | Functional parity is accepted from deterministic contracts; exact V25 promotion and plot-library visuals remain a reference-board gap (`aggregate breadth plot reference gap`) |
+
+The aggregate asset is not a member-level scalar column. The chart library carries the original
+locked `universe_source_id` or explicit canonical symbols into each rerun, and the runner executes
+the prepared `datasets` wrapper once so the percentage history cannot silently change when the
+active chart symbol changes.
+
 The current Market Map also exports its loaded canonical cells to CSV, including identity,
 hierarchy, area/colour values, coverage, observation time, and warning codes. Export is source
 neutral for locked system-managed and editable watchlists and does not change route or selection.

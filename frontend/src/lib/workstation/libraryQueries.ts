@@ -4,7 +4,12 @@ import { api } from '@/lib/api'
 export type CodeAssetSummary = {
   kind: string
   name: string
-  versions: Array<{ id?: number; version_number: number; output_contract?: string }>
+  versions: Array<{
+    id?: number
+    version_number: number
+    output_contract?: string
+    diagnostics?: Array<Record<string, unknown>>
+  }>
 }
 
 export const CODE_ASSETS_QUERY_KEY = ['workstation', 'code-assets'] as const

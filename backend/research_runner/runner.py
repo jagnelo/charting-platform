@@ -181,6 +181,14 @@ def execute_job(
         }
     datasets = job.get("dataset", {}).get("datasets")
     if isinstance(datasets, list):
+        # Aggregate chart plots are series assets, but their source evaluates
+        # the complete prepared universe in one isolated invocation. Routing
+        # them through the ordinary series batch would execute once per member
+        # and strip the ``datasets`` wrapper required by research.breadth_python.
+        # Keep this as an explicit adapter rather than inferring aggregate
+        # behaviour from an output name or user source text.
+        if str(job.get("output_adapter") or "") == "breadth_aggregate_percentage":
+            return _execute_single(source, job.get("dataset", {}), job)
         if str(job.get("output_contract") or "") == "study":
             return _execute_single(source, job.get("dataset", {}), job)
         if str(job.get("execution_mode") or "") == "breadth_history":

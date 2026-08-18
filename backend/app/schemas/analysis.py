@@ -931,10 +931,11 @@ class BreadthPythonPromotionRequest(BaseModel):
 
 
 class BreadthPythonPlotPromotionRequest(BaseModel):
-    """Create a reusable plot asset from a completed member-level series run."""
+    """Create a reusable plot asset from a completed breadth series or aggregate history."""
 
     name: str | None = Field(default=None, min_length=1, max_length=160)
     description: str | None = Field(default=None, max_length=2_000)
+    aggregate: bool = False
 
 
 class BreadthPythonColumnPromotionRequest(BaseModel):

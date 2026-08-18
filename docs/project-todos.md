@@ -1,5 +1,21 @@
 # Project TODO Memory
 
+### 2026-08-19 — Cross-sectional breadth aggregate chart plots
+
+- [x] Add an explicit aggregate promotion target for completed historical Python breadth runs
+      whose source is cross-sectional or a recursive condition tree; preserve the aggregate
+      percentage history as a reusable `plot` CodeAsset rather than flattening it to members.
+- [x] Route the generated series asset through the isolated `breadth_aggregate_percentage`
+      adapter so the complete prepared universe is evaluated once and `percentage_history` is
+      returned for uPlot.
+- [x] Retain source-universe lineage in diagnostics and chart configuration: locked source IDs
+      are preferred, explicit canonical symbols are retained as fallback, and changing the active
+      chart symbol cannot collapse an aggregate plot to one member.
+- [x] Add duplicate-promotion, full-universe rerun, frontend lineage, focused type/test, Ruff,
+      compileall, and diff-check coverage.
+- [ ] Obtain an authoritative V25 capture of aggregate-promotion and plot-library target-mode
+      visuals; track exact wording/geometry as a board gap rather than relaxing functional gates.
+
 ### 2026-08-19 — Explicit canonical-instrument Market Map sources
 
 - [x] Add an ephemeral `explicit:<canonical-instrument-id,...>` WatchlistSource resolver. It

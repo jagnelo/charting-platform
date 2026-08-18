@@ -439,9 +439,7 @@ class TestWorkspaces:
         assert sp1500["value"]["label"] == "No verified mapped proxy"
         assert sp1500["growth"]["label"] == "No verified mapped proxy"
 
-        children = client.get(
-            "/api/v1/market-groups/us-benchmarks/children", headers=auth_headers
-        )
+        children = client.get("/api/v1/market-groups/us-benchmarks/children", headers=auth_headers)
         assert children.status_code == 200
         child_by_key = {group["stable_key"]: group for group in children.json()}
         assert set(child_by_key) == {family["logical_key"] for family in families}
@@ -954,14 +952,10 @@ class TestWorkspaces:
             "point_in_time_group_membership"
         }
         before_rebalance = [
-            point
-            for point in equal["points"]
-            if point["timestamp"] < "2024-03-02T00:00:00+00:00"
+            point for point in equal["points"] if point["timestamp"] < "2024-03-02T00:00:00+00:00"
         ][-1]
         after_rebalance = [
-            point
-            for point in equal["points"]
-            if point["timestamp"] >= "2024-03-02T00:00:00+00:00"
+            point for point in equal["points"] if point["timestamp"] >= "2024-03-02T00:00:00+00:00"
         ][0]
         assert before_rebalance["eligible_count"] == 1
         assert before_rebalance["hhi"] == 1
@@ -1557,9 +1551,7 @@ class TestWorkspaces:
         )
         assert historical.status_code == 200, historical.text
         assert historical.json()["member_count"] == 1
-        assert historical.json()["universe_provenance"]["membership_as_of"].startswith(
-            "2024-01-03"
-        )
+        assert historical.json()["universe_provenance"]["membership_as_of"].startswith("2024-01-03")
 
         unavailable = client.get(
             "/api/v1/analysis/benchmark-families/sp400/derived-equal-weight",
@@ -2341,7 +2333,11 @@ class TestWorkspaces:
                                     "conditions": [
                                         {
                                             "kind": "comparison",
-                                            "params": {"field": "close", "operator": "<", "threshold": 0},
+                                            "params": {
+                                                "field": "close",
+                                                "operator": "<",
+                                                "threshold": 0,
+                                            },
                                         }
                                     ]
                                 },
@@ -2474,7 +2470,12 @@ class TestWorkspaces:
                 "benchmark": instrument.symbol,
                 "condition": {
                     "kind": "series_comparison",
-                    "params": {"field": "return", "target_field": "return", "operator": ">=", "threshold": 0},
+                    "params": {
+                        "field": "return",
+                        "target_field": "return",
+                        "operator": ">=",
+                        "threshold": 0,
+                    },
                 },
                 "limit": 20,
             },
@@ -2523,9 +2524,18 @@ class TestWorkspaces:
         )
         assert group_reference.status_code == 200, group_reference.text
         group_reference_payload = group_reference.json()
-        assert group_reference_payload["condition"]["reference_universe"]["key"] == reference_group.stable_key
-        assert group_reference_payload["condition"]["reference_target"]["method"] == "derived_equal_weight_return_index"
-        assert group_reference_payload["condition"]["reference_target"]["alignment"] == "exact_timestamp_no_forward_fill"
+        assert (
+            group_reference_payload["condition"]["reference_universe"]["key"]
+            == reference_group.stable_key
+        )
+        assert (
+            group_reference_payload["condition"]["reference_target"]["method"]
+            == "derived_equal_weight_return_index"
+        )
+        assert (
+            group_reference_payload["condition"]["reference_target"]["alignment"]
+            == "exact_timestamp_no_forward_fill"
+        )
         assert group_reference_payload["members"][0]["value"] is True
         group_reference_history = client.post(
             "/api/v1/analysis/breadth/history",
@@ -2539,7 +2549,12 @@ class TestWorkspaces:
                 },
                 "condition": {
                     "kind": "series_comparison",
-                    "params": {"field": "return", "target_field": "return", "operator": ">=", "threshold": 0},
+                    "params": {
+                        "field": "return",
+                        "target_field": "return",
+                        "operator": ">=",
+                        "threshold": 0,
+                    },
                 },
                 "limit": 20,
             },
@@ -2629,7 +2644,11 @@ class TestWorkspaces:
             "/api/v1/analysis/breadth",
             headers=auth_headers,
             json={
-                "universe": {"kind": "watchlist", "key": f"watchlist:{watchlist_id}", "point_in_time": True},
+                "universe": {
+                    "kind": "watchlist",
+                    "key": f"watchlist:{watchlist_id}",
+                    "point_in_time": True,
+                },
                 "condition": {"kind": "above_moving_average", "params": {"period": 20}},
                 "timeframe": "D1",
                 "adjusted": True,
@@ -2887,7 +2906,10 @@ class TestWorkspaces:
                     for item in research_detail.json()["artifacts"]
                     if item["artifact_type"] == "breadth_history"
                 )
-                assert history_artifact["payload"]["value"]["occurrences"] == collected_payload["occurrences"]
+                assert (
+                    history_artifact["payload"]["value"]["occurrences"]
+                    == collected_payload["occurrences"]
+                )
                 promoted = client.post(
                     f"/api/v1/analysis/breadth/python/runs/{queued_payload['run_id']}/promote-scan",
                     headers=auth_headers,
@@ -3101,7 +3123,10 @@ class TestWorkspaces:
         assert tree_job["condition_tree"]["params"]["conditions"][0]["params"]["source"]
         tree_result = execute_job(tree_job)
         assert tree_result["status"] == "completed", tree_result
-        assert tree_result["artifacts"]["breadth_history"]["value"]["points"][-1]["cells"][0]["value"] is True
+        assert (
+            tree_result["artifacts"]["breadth_history"]["value"]["points"][-1]["cells"][0]["value"]
+            is True
+        )
         (tmp_path / "results" / f"{tree_queued.json()['run_id']}.json").write_text(
             json.dumps(tree_result)
         )
@@ -3129,12 +3154,18 @@ class TestWorkspaces:
         )
         assert tree_run.status_code == 200, tree_run.text
         tree_screener_job = json.loads(
-            (tmp_path / "jobs" / f"{tree_run.json()['result_data']['_python_research_run_id']}.json").read_text()
+            (
+                tmp_path
+                / "jobs"
+                / f"{tree_run.json()['result_data']['_python_research_run_id']}.json"
+            ).read_text()
         )
         assert tree_screener_job["condition_tree"]["kind"] == "all"
         tree_screener_result = execute_job(tree_screener_job)
         assert tree_screener_result["status"] == "completed"
-        assert tree_screener_result["artifacts"]["batch_cells"]["value"]["cells"][0]["value"] is True
+        assert (
+            tree_screener_result["artifacts"]["batch_cells"]["value"]["cells"][0]["value"] is True
+        )
 
         cross_tree_queued = client.post(
             "/api/v1/analysis/breadth/python",
@@ -3166,7 +3197,10 @@ class TestWorkspaces:
         cross_tree_job = json.loads(
             (tmp_path / "jobs" / f"{cross_tree_queued.json()['run_id']}.json").read_text()
         )
-        assert cross_tree_job["condition_tree"]["params"]["conditions"][0]["params"]["scope"] == "cross_sectional"
+        assert (
+            cross_tree_job["condition_tree"]["params"]["conditions"][0]["params"]["scope"]
+            == "cross_sectional"
+        )
         cross_tree_result = execute_job(cross_tree_job)
         assert cross_tree_result["status"] == "completed", cross_tree_result
         assert cross_tree_result["artifacts"]["batch_cells"]["value"]["cells"][0]["value"] is True
@@ -3204,7 +3238,9 @@ class TestWorkspaces:
         assert comparison_leaf["left_source"] and comparison_leaf["right_source"]
         comparison_tree_result = execute_job(comparison_tree_job)
         assert comparison_tree_result["status"] == "completed", comparison_tree_result
-        assert comparison_tree_result["artifacts"]["batch_cells"]["value"]["cells"][0]["value"] is True
+        assert (
+            comparison_tree_result["artifacts"]["batch_cells"]["value"]["cells"][0]["value"] is True
+        )
 
         cross_queued = client.post(
             "/api/v1/analysis/breadth/python",
@@ -3252,7 +3288,10 @@ class TestWorkspaces:
             json={"name": "Cross-sectional breadth column"},
         )
         assert cross_column.status_code == 422
-        assert cross_column.json()["detail"]["code"] == "breadth_column_promotion_requires_member_scope"
+        assert (
+            cross_column.json()["detail"]["code"]
+            == "breadth_column_promotion_requires_member_scope"
+        )
 
         cross_history_queued = client.post(
             "/api/v1/analysis/breadth/python",
@@ -3287,6 +3326,51 @@ class TestWorkspaces:
             headers=auth_headers,
         )
         assert cross_history_collected.status_code == 200, cross_history_collected.text
+        promoted_aggregate_plot = client.post(
+            f"/api/v1/analysis/breadth/python/runs/{cross_history_run_id}/promote-plot",
+            headers=auth_headers,
+            json={"name": "Cross-sectional breadth aggregate plot", "aggregate": True},
+        )
+        assert promoted_aggregate_plot.status_code == 201, promoted_aggregate_plot.text
+        promoted_aggregate_plot_payload = promoted_aggregate_plot.json()
+        assert promoted_aggregate_plot_payload["kind"] == "plot"
+        assert promoted_aggregate_plot_payload["versions"][0]["output_contract"] == "series"
+        assert promoted_aggregate_plot_payload["versions"][0]["output_name"] == "percentage_history"
+        aggregate_lineage = next(
+            item["promotion_lineage"]
+            for item in promoted_aggregate_plot_payload["versions"][0]["diagnostics"]
+            if isinstance(item, dict) and "promotion_lineage" in item
+        )
+        assert aggregate_lineage["source_run_id"] == cross_history_run_id
+        assert aggregate_lineage["semantics"] == "re_evaluate_breadth_as_aggregate_percentage_plot"
+        aggregate_plot_run = client.post(
+            "/api/v1/research/runs",
+            headers=auth_headers,
+            json={
+                "code_version_id": promoted_aggregate_plot_payload["versions"][0]["id"],
+                "run_config": {
+                    "symbols": [instrument.symbol],
+                    "timeframe": "D1",
+                    "adjustment": "split_adjusted",
+                    "session": "all",
+                },
+                "dataset_manifest": {"source": "canonical_database"},
+            },
+        )
+        assert aggregate_plot_run.status_code == 202, aggregate_plot_run.text
+        aggregate_plot_run_id = aggregate_plot_run.json()["id"]
+        aggregate_plot_job = json.loads(
+            (tmp_path / "jobs" / f"{aggregate_plot_run_id}.json").read_text()
+        )
+        aggregate_plot_result = execute_job(aggregate_plot_job)
+        assert aggregate_plot_result["status"] == "completed", aggregate_plot_result
+        assert aggregate_plot_result["artifacts"]["percentage_history"]["value"]["values"]
+        duplicate_aggregate_plot = client.post(
+            f"/api/v1/analysis/breadth/python/runs/{cross_history_run_id}/promote-plot",
+            headers=auth_headers,
+            json={"name": "Duplicate cross-sectional breadth aggregate plot", "aggregate": True},
+        )
+        assert duplicate_aggregate_plot.status_code == 409
         promoted_study = client.post(
             f"/api/v1/analysis/breadth/python/runs/{cross_history_run_id}/promote-study",
             headers=auth_headers,
@@ -3304,7 +3388,9 @@ class TestWorkspaces:
         )
         assert study_lineage["source_run_id"] == cross_history_run_id
         assert study_lineage["source_series_target"]["scope"] == "cross_sectional"
-        assert study_lineage["semantics"] == "re_evaluate_isolated_member_predicate_as_aggregate_study"
+        assert (
+            study_lineage["semantics"] == "re_evaluate_isolated_member_predicate_as_aggregate_study"
+        )
         promoted_study_run = client.post(
             "/api/v1/research/runs",
             headers=auth_headers,

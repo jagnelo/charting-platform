@@ -1,5 +1,15 @@
 # TC2000 Version 25 composite reference board
 
+## 2026-08-19 aggregate breadth plot reference gap
+
+The board has no authoritative V25 capture of the complete flow from a cross-sectional breadth
+result to a reusable chart plot, including its source-universe retention and aggregate-series
+rerun state. The interim oracle therefore checks the explicit `percentage_history` output contract,
+full declared-universe materialization, isolated `breadth_aggregate_percentage` adapter, and chart
+plot metadata carrying the locked source ID or explicit symbols. Exact button wording, placement,
+plot-library badges, and any V25 target-mode affordance remain a named visual gap and must not be
+silently inferred from the member-level plot surface.
+
 ## 2026-08-19 explicit-source reference gap
 
 The board does not contain an authoritative V25 capture of the exact multi-symbol ad-hoc universe
