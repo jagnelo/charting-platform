@@ -1,4 +1,32 @@
 tasks:
+  - id: tc2000-market-map-source-readiness-ui-20260819
+    title: Expose locked-source history readiness and refresh in Market Map
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Carry the source-polymorphic locked-watchlist contract into the workstation so every
+      index/ETF/sector/industry constituent heatmap and every personal/combo/explicit list can
+      show local history coverage and explicitly request bounded hydration without membership edits.
+    definition_of_done:
+      - Add typed status and refresh clients for the canonical watchlist-source history endpoints
+      - Render pending/partial/fetching/failed/ready/unavailable state, coverage, bounds, and queue feedback in Market Map
+      - Poll only pending/fetching status and clear polling on source change/tool teardown
+      - Preserve locked source labels and prove refresh does not mutate membership
+      - Market Map component tests 25/25, full frontend Vitest 890/890, type-check/build, and diff checks pass
+      - Keep provider population, canonical history continuity, large-list rendering, and exact V25 maintenance visuals open
+    validation:
+      - frontend-market-map-component-25-of-25
+      - frontend-vitest-890-of-890
+      - frontend-type-check
+      - frontend-build
+      - git-diff-check
+    notes:
+      - >-
+        No acceptance flexibility, provider substitution, or interactive provider fan-out was
+        used. This closes workstation actionability only; it does not claim data completeness or
+        exact Version 25 geometry.
+
   - id: tc2000-family-snapshot-history-handoff-20260819
     title: Hand refreshed family snapshots into shared canonical member history
     status: completed

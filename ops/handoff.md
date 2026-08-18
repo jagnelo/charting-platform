@@ -1,5 +1,24 @@
 # Active Handoff
 
+## 2026-08-19 — Market Map source history readiness is visible and actionable
+
+- Added typed clients in `frontend/src/lib/workstation/marketMap.ts` for source-level history
+  status and bounded refresh. They use the canonical provider-free status and explicit queue
+  endpoints for locked index/ETF/sector/industry sources as well as editable lists.
+- `MarketMapTool.vue` now shows local adjusted-bar coverage, pending/partial/fetching/failed/
+  ready/unavailable state, bounds, queue feedback, and a Refresh history action. Polling is
+  limited to pending/fetching status and is cleared when the source changes or the tool unmounts;
+  locked membership remains visibly immutable.
+- Owned implementation paths: `frontend/src/lib/workstation/marketMap.ts`,
+  `frontend/src/components/workstation/MarketMapTool.vue`, and its component regression.
+- Validation: component `25/25`; full frontend Vitest `890/890`; type-check/build; diff check.
+  Existing backend focused/full gates remain green from the preceding synchronized checkpoint.
+  No acceptance flexibility, provider substitution, or interactive provider fan-out was used.
+- Implementation commit is pending this context's separate implementation/docs/state closure.
+  Remaining substantive gaps are provider-backed family completeness, canonical bars and
+  historical reconciliation, durable aggregate progress/cancellation presentation, large-list
+  rendering, and exact V25 maintenance/progress geometry.
+
 ## 2026-08-19 — Family snapshot history handoff is implemented and validated
 
 - Added `queue_snapshot_member_history` in `backend/app/services/benchmark_family_history.py`.

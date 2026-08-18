@@ -1,5 +1,22 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-19 — Market Map makes source history readiness actionable
+
+The universal heatmap now exposes the same local-history contract for every selected source,
+including locked index/index-ETF/sector/industry constituent watchlists and editable personal,
+combo, or explicit lists. The Market Map status strip reports pending, partial, fetching, failed,
+ready, or unavailable state, covered-versus-member counts, bounded/truncated selection, and an
+explicit Refresh history action. Refresh uses the canonical source resolver and queues bounded
+provider-neutral hydration; it never edits a locked membership or fans out to a provider from the
+interactive read. Pending/fetching status is polled while the tool is alive and is canceled when
+the source changes or the tool is destroyed.
+
+The component regression proves partial coverage, the exact refresh payload, queue feedback, and
+locked membership preservation. Frontend Vitest passes `890/890`; type-check/build and diff checks
+pass. This is a functional readiness gate, not exact-build V25 visual approval: the board still
+needs approved maintenance/progress geometry, and provider-backed population, canonical bars,
+historical composition continuity, and large-list rendering remain open.
+
 ## 2026-08-19 — Refreshed family snapshots hand off to shared member-history jobs
 
 Successful benchmark-family holdings units now queue canonical constituent history from the exact

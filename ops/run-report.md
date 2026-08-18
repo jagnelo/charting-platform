@@ -1,5 +1,22 @@
 # Run Report
 
+## 2026-08-19 — Market Map source history readiness is visible and actionable
+
+- Added typed frontend clients for source history status and explicit bounded refresh, using the
+  existing canonical source endpoints for personal, managed, index, ETF, sector, industry, combo,
+  and explicit watchlists.
+- Added Market Map status/action UI for local adjusted-bar coverage, pending/partial/fetching/
+  failed/ready/unavailable states, bounded member counts, queue feedback, and locked-membership
+  preservation. Pending/fetching status polls only while the tool/source is active; teardown and
+  source changes clear the timer.
+- Validation: Market Map component `25/25`; full frontend Vitest `890/890`; type-check/build;
+  `git diff --check`. Existing backend focused/full gates remain green at the preceding
+  synchronized checkpoint. No acceptance flexibility, provider substitution, or interactive
+  provider fan-out was introduced.
+- Remaining: provider-backed family completeness, canonical bars and historical reconciliation,
+  durable aggregate progress/cancellation presentation, large-list virtualization, and exact V25
+  maintenance/progress visual parity.
+
 ## 2026-08-19 — Family holdings hand off exact snapshots to canonical member history
 
 - Added `queue_snapshot_member_history` for successful benchmark-family holdings snapshots. It

@@ -87,6 +87,23 @@ substantive open gaps.
 
 ## 2026-08-19 — Source-level heatmap readiness and progress is explicit
 
+### Market Map actionability gate
+
+The source-level readiness contract must be visible in the workstation, not only available through
+an API. When a Market Map has a canonical source selected, the tool must show its local adjusted-
+OHLCV readiness (`pending`, `partial`, `fetching`, `failed`, `ready`, or `unavailable`), covered
+member counts, and any hard bound/truncation. It must offer an explicit bounded Refresh history
+action that posts the same source ID without changing locked membership. While work is pending or
+fetching, the tool may poll the provider-free status endpoint; changing source or destroying the
+tool must stop polling. Queue failures and stale/partial coverage remain visible rather than being
+presented as complete data.
+
+The component gate proves the exact request payload, queue-count feedback, locked-source label,
+and partial-status rendering. Frontend Vitest `890/890`, type-check/build, and diff checks are
+required. This gate does not relax the visual board or data-quality criteria: exact V25 maintenance
+geometry, provider-backed population, canonical history continuity, and large-list performance
+remain open and must be tracked explicitly.
+
 The universal locked-watchlist gate now includes source-level history readiness. For every
 canonical source ID, `GET /api/v1/watchlists/sources/history-status/{source_id}` must use the
 same point-in-time membership resolver as Market Map, breadth, and explicit history refresh, and

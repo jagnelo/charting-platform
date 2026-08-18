@@ -1,5 +1,25 @@
 # Project TODO Memory
 
+### 2026-08-19 — Market Map exposes locked-source history readiness and refresh
+
+- [x] Add typed frontend clients for `GET /api/v1/watchlists/sources/history-status/{source_id}`
+      and bounded `POST /api/v1/watchlists/sources/history-refresh`. The clients preserve the
+      source-polymorphic contract: an index/index-ETF/sector/industry constituent universe is a
+      locked watchlist source, while personal/combo/explicit lists use the same endpoints.
+- [x] Add a compact Market Map history strip showing pending/partial/fetching/failed/ready/
+      unavailable state, covered-versus-member counts, truncation, and an explicit Refresh
+      history action. Refresh queues canonical local-source hydration without editing membership;
+      pending/fetching responses poll status and stop when the tool is destroyed or the source
+      changes. Locked-source labeling remains visible beside the action.
+- [x] Add a component regression proving partial readiness, the exact bounded refresh payload,
+      queue-count feedback, and unchanged locked membership. Frontend Vitest passes `890/890`;
+      type-check/build and `git diff --check` pass. Existing backend contracts and full backend
+      suite remain green from the preceding synchronized checkpoint.
+- [ ] This closes workstation-facing readiness/action feedback, not provider-backed population,
+      canonical bar continuity, historical composition reconciliation, large-list virtualization,
+      or exact Version 25 maintenance/progress geometry. No acceptance flexibility, provider
+      substitution, or interactive provider fan-out was introduced.
+
 ### 2026-08-19 — Holdings refresh now hands exact snapshots into canonical member history
 
 - [x] After each successful provider-backed benchmark-family holdings unit, collect the exact
