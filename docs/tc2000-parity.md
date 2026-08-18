@@ -196,6 +196,13 @@ artifact `output_name`, then reuses the resulting EasyScan for the remaining Boo
 closes the missing structured-artifact filter/Gauge path; arbitrary multi-output fan-out across all
 scalar, series, Boolean, event, and chart/list targets remains separately tracked.
 
+Recursive and cross-sectional Boolean breadth trees now join that same EasyScan path. A completed
+history run can be promoted into a distinct immutable Boolean condition whose diagnostics retain
+the resolved tree, source run/code version, dataset manifest, membership version, and output adapter.
+The screener queue carries the tree into the isolated runner, so execution does not silently fall
+back to the anchor source code. Direct fan-out from those trees into every non-Boolean target remains
+an explicit gap.
+
 ## 2026-08-17 — US family/style and Nasdaq cap/equal acceptance matrix (latest requirement)
 
 The workstation's top-down entry points are the S&P 500, S&P MidCap 400, S&P SmallCap 600,

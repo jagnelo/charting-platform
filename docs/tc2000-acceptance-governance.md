@@ -40,6 +40,16 @@ aggregates and recursive Boolean trees must return structured capability errors 
 This gate does not claim filters, gauges, alerts, Study Lab, Strategy Lab, or richer multi-output
 fan-out complete.
 
+## 2026-08-19 — Recursive/cross-sectional Boolean promotion sub-gate
+
+For a completed historical breadth run whose Boolean result is represented by a recursive or
+cross-sectional condition tree, acceptance must verify that `Promote to EasyScan` creates a
+distinct immutable Boolean code version rather than reusing or flattening the numeric anchor.
+The generated screener must retain the resolved tree, source run/code/dataset/universe lineage,
+and `condition_tree_to_boolean` adapter metadata. Running that screener must place the same tree in
+the isolated job payload and produce the expected Boolean member result. Direct promotion into
+non-Boolean targets remains a separate open gate.
+
 ## 2026-08-18 — Universal source and recursive Python sub-gate
 
 The heatmap/breadth acceptance oracle treats every canonical source as one universe contract.

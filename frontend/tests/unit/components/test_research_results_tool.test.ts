@@ -235,6 +235,23 @@ describe('ResearchResultsTool', () => {
     expect(wrapper.text()).toContain('EasyScan “Python breadth run 20” (#31) created')
   })
 
+  it('offers EasyScan promotion for recursive and cross-sectional Boolean breadth trees', async () => {
+    apiGet.mockResolvedValue([{ id: 23, status: 'completed', code_version_id: 8, run_config: { execution_mode: 'breadth_history', output_contract: 'boolean', condition_tree: { kind: 'all', params: { conditions: [] } } }, dataset_manifest: {}, diagnostics: [], artifacts: [
+      { id: 12, name: 'breadth_history', artifact_type: 'breadth_history', payload: { value: { points: [], occurrences: [] } } },
+    ] }])
+    apiPost.mockResolvedValue({ id: 43, name: 'Recursive breadth tree scan 23' })
+    const wrapper = mountTool()
+    await flushPromises()
+
+    const promoteButton = wrapper.findAll('button').find(button => button.text() === 'Promote to EasyScan')
+    expect(promoteButton).toBeDefined()
+    await promoteButton!.trigger('click')
+    await flushPromises()
+
+    expect(apiPost).toHaveBeenCalledWith('/analysis/breadth/python/runs/23/promote-scan', {})
+    expect(wrapper.text()).toContain('EasyScan “Recursive breadth tree scan 23” (#43) created')
+  })
+
   it('promotes a completed member-level numeric breadth run into a reusable chart plot', async () => {
     apiGet.mockResolvedValue([{ id: 21, status: 'completed', code_version_id: 8, run_config: { execution_mode: 'breadth_history', output_contract: 'series', series_target: { scope: 'member', operator: 'gte', threshold: 0 } }, dataset_manifest: {}, diagnostics: [], artifacts: [] }])
     apiPost.mockResolvedValue({ id: 41, name: 'Member breadth plot 21' })

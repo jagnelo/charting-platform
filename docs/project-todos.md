@@ -16,8 +16,13 @@
       universe lineage is retained on the generated condition.
 - [x] Reject cross-sectional and recursive-tree results for this per-member scan target rather
       than flattening their group semantics into a Boolean condition.
-- [ ] Continue the remaining promotion fan-out: cross-sectional/recursive condition promotion,
-      filters, Market Gauges, alerts, Study Lab artifacts, and Strategy Lab signals.
+- [x] Promote completed recursive or cross-sectional Boolean breadth trees into an immutable
+      Boolean EasyScan condition. The exact resolved tree, source code version, dataset, universe,
+      and point-in-time lineage are retained; the shared screener queue carries the tree into the
+      isolated runner rather than executing only the anchor source.
+- [ ] Continue the remaining promotion fan-out: direct cross-sectional condition promotion into
+      columns/plots where compatible, filters, Market Gauges, alerts, Study Lab artifacts, and
+      Strategy Lab signals beyond the shared EasyScan condition path.
 
 - [x] Add a direct `python_series_comparison` leaf for two user-owned isolated numeric-series
       outputs. Difference and ratio-minus-one relations run on the same prepared member and
@@ -45,9 +50,12 @@
       preserving exact member/benchmark timestamp alignment, exclusions, and tri-state group
       semantics. Benchmark histories with different leading dates are sliced by the observation
       timestamp, never by array position.
-- [ ] Promotion fan-out for Python leaves across every compatible target remains open. The tree
-      API and UI must retain exact condition/code/dataset/membership lineage when promoted to
-      columns, filters, scans, gauges, alerts, plots, and Study Lab artifacts.
+- [x] Recursive/cross-sectional Boolean trees retain exact condition/code/dataset/membership
+      lineage when promoted to an EasyScan condition and re-evaluated through its isolated
+      screener job; the tree is not flattened into an anchor member-only source.
+- [ ] Promotion fan-out for Python leaves across every other compatible target remains open. The
+      API and UI must retain exact lineage when promoted to columns, filters, gauges, alerts, plots,
+      and Study Lab artifacts where the output contract supports them.
 - [x] Completed member-level numeric breadth runs can now be promoted into reusable `plot` code
       assets for uPlot. The immutable asset retains source run/code/definition/reproducibility/
       manifest/universe lineage and explicitly re-evaluates the member series on the selected

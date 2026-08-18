@@ -698,6 +698,12 @@ async def queue_python_screener_run(
             "symbols": symbols,
             "screener_id": screener.id,
             "timeframe": screener.timeframe.value,
+            "output_contract": "boolean",
+            "condition_tree": (
+                condition.get("condition_tree")
+                if isinstance(condition.get("condition_tree"), dict)
+                else None
+            ),
         },
         dataset_manifest=manifest,
     )

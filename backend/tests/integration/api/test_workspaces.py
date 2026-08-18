@@ -3090,6 +3090,8 @@ class TestWorkspaces:
                         ]
                     },
                 },
+                "history": True,
+                "history_limit": 20,
             },
         )
         assert tree_queued.status_code == 202, tree_queued.text
@@ -3099,7 +3101,40 @@ class TestWorkspaces:
         assert tree_job["condition_tree"]["params"]["conditions"][0]["params"]["source"]
         tree_result = execute_job(tree_job)
         assert tree_result["status"] == "completed", tree_result
-        assert tree_result["artifacts"]["batch_cells"]["value"]["cells"][0]["value"] is True
+        assert tree_result["artifacts"]["breadth_history"]["value"]["points"][-1]["cells"][0]["value"] is True
+        (tmp_path / "results" / f"{tree_queued.json()['run_id']}.json").write_text(
+            json.dumps(tree_result)
+        )
+        tree_collected = client.get(
+            f"/api/v1/analysis/breadth/python/runs/{tree_queued.json()['run_id']}",
+            headers=auth_headers,
+        )
+        assert tree_collected.status_code == 200, tree_collected.text
+        assert tree_collected.json()["status"] == "completed"
+        promoted_tree_scan = client.post(
+            f"/api/v1/analysis/breadth/python/runs/{tree_queued.json()['run_id']}/promote-scan",
+            headers=auth_headers,
+            json={"name": "Historical Python tree scan"},
+        )
+        assert promoted_tree_scan.status_code == 201, promoted_tree_scan.text
+        promoted_tree_payload = promoted_tree_scan.json()
+        assert promoted_tree_payload["conditions"]["type"] == "python_condition"
+        assert "condition_tree" in promoted_tree_payload["conditions"]
+        tree_lineage = promoted_tree_payload["conditions"]["provenance"]
+        assert tree_lineage["output_adapter"] == "condition_tree_to_boolean"
+        assert tree_lineage["condition_tree"]["kind"] == "all"
+        tree_run = client.post(
+            f"/api/v1/screeners/{promoted_tree_payload['id']}/run",
+            headers=auth_headers,
+        )
+        assert tree_run.status_code == 200, tree_run.text
+        tree_screener_job = json.loads(
+            (tmp_path / "jobs" / f"{tree_run.json()['result_data']['_python_research_run_id']}.json").read_text()
+        )
+        assert tree_screener_job["condition_tree"]["kind"] == "all"
+        tree_screener_result = execute_job(tree_screener_job)
+        assert tree_screener_result["status"] == "completed"
+        assert tree_screener_result["artifacts"]["batch_cells"]["value"]["cells"][0]["value"] is True
 
         cross_tree_queued = client.post(
             "/api/v1/analysis/breadth/python",

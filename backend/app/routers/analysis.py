@@ -6563,21 +6563,32 @@ async def promote_python_breadth_run_to_scan(
     source_contract = str(version.output_contract or "")
     output_adapter: str | None = None
     series_target = config.get("series_target")
-    if source_contract == "series":
+    condition_tree = config.get("condition_tree")
+    if isinstance(condition_tree, dict):
+        if source_contract not in {"boolean", "series"}:
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "code": "breadth_promotion_tree_requires_boolean_source",
+                    "message": "A recursive breadth tree must be anchored by a Boolean or numeric condition version.",
+                },
+            )
+        if series_target is not None:
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "code": "breadth_promotion_tree_series_target_conflict",
+                    "message": "A recursive breadth tree cannot be combined with a numeric series target.",
+                },
+            )
+        output_adapter = "condition_tree_to_boolean"
+    elif source_contract == "series":
         if not isinstance(series_target, dict) or str(series_target.get("scope", "member")).lower() != "member":
             raise HTTPException(
                 status_code=422,
                 detail={
                     "code": "breadth_promotion_scan_requires_member_series",
                     "message": "Only member-scoped numeric breadth targets can become Boolean scans.",
-                },
-            )
-        if config.get("condition_tree") is not None:
-            raise HTTPException(
-                status_code=422,
-                detail={
-                    "code": "breadth_promotion_scan_requires_member_series",
-                    "message": "Recursive trees must remain structured breadth or Study Lab artifacts.",
                 },
             )
         output_adapter = "series_target_to_boolean"
@@ -6629,6 +6640,8 @@ async def promote_python_breadth_run_to_scan(
         "target_semantics": "re_evaluate_current_data_over_source_member_ids",
         "point_in_time_source_preserved": True,
     }
+    if isinstance(condition_tree, dict):
+        source_metadata["condition_tree"] = condition_tree
     promoted_code_version_id = run.code_version_id
     if output_adapter is not None:
         source_metadata["output_adapter"] = output_adapter
@@ -6664,7 +6677,11 @@ async def promote_python_breadth_run_to_scan(
                 lookback=version.lookback,
                 diagnostics=[
                     *(version.diagnostics or []),
-                    {"output_adapter": output_adapter, "series_target": series_target},
+                    {
+                        "output_adapter": output_adapter,
+                        "series_target": series_target,
+                        "condition_tree": condition_tree,
+                    },
                     {"promotion_lineage": source_metadata},
                 ],
             )
@@ -6688,6 +6705,7 @@ async def promote_python_breadth_run_to_scan(
         conditions={
             "type": "python_condition",
             "code_version_id": promoted_code_version_id,
+            **({"condition_tree": condition_tree} if isinstance(condition_tree, dict) else {}),
             "provenance": source_metadata,
         },
         schedule=body.schedule,
