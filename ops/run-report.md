@@ -17,6 +17,19 @@
   durable aggregate progress/cancellation presentation, large-list virtualization, and exact V25
   maintenance/progress visual parity.
 
+## 2026-08-19 — Market Map consumes durable history progress and cancellation
+
+- Added typed clients for owner-scoped durable history-refresh run status and cancellation.
+- Market Map now reports run ID/status and completed-versus-selected progress after an explicit
+  source refresh and exposes Cancel refresh while the run is queued/running. Cancellation retains
+  cached bars and never edits locked membership; queue-unavailable, failed, already-queued, and
+  canceled outcomes remain explicit.
+- Validation: Market Map component `25/25`; full frontend Vitest `890/890`; type-check/build;
+  `git diff --check`. No acceptance flexibility, provider substitution, or interactive provider
+  fan-out was introduced.
+- Remaining: provider-backed family completeness, canonical bars and historical reconciliation,
+  large-list virtualization, and exact V25 maintenance/progress geometry.
+
 ## 2026-08-19 — Family holdings hand off exact snapshots to canonical member history
 
 - Added `queue_snapshot_member_history` for successful benchmark-family holdings snapshots. It

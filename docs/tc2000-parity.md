@@ -17,6 +17,20 @@ pass. This is a functional readiness gate, not exact-build V25 visual approval: 
 needs approved maintenance/progress geometry, and provider-backed population, canonical bars,
 historical composition continuity, and large-list rendering remain open.
 
+## 2026-08-19 — Market Map shows durable refresh progress and cancellation
+
+After an explicit source refresh, Market Map consumes the existing owner-scoped durable run
+contract and shows the run ID, status, completed-versus-selected progress, and a Cancel refresh
+action while work is queued/running. Cancellation is source-scoped and bounded: it signals the
+existing worker run, retains cached bars, and cannot edit locked membership. Queue-unavailable,
+already-queued, failed, and canceled outcomes stay explicit; local coverage status remains the
+data-readiness authority.
+
+The component regression covers run status, progress, and the exact cancel request. Focused Market
+Map remains `25/25`; full frontend Vitest is `890/890`; type-check/build and diff checks pass. This
+is still functional maintenance parity, not exact V25 visual approval, and provider completeness,
+historical reconciliation, large-list rendering, and exact maintenance geometry remain open.
+
 ## 2026-08-19 — Refreshed family snapshots hand off to shared member-history jobs
 
 Successful benchmark-family holdings units now queue canonical constituent history from the exact

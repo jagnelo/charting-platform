@@ -104,6 +104,19 @@ required. This gate does not relax the visual board or data-quality criteria: ex
 geometry, provider-backed population, canonical history continuity, and large-list performance
 remain open and must be tracked explicitly.
 
+### Durable refresh progress gate
+
+When Refresh history returns a durable run ID, Market Map must expose that run's owner-scoped
+status and bounded completed-versus-selected progress and must offer Cancel refresh while the run
+is queued or running. The cancel action may signal worker cancellation, but must retain cached bars
+and must never mutate a locked source's membership. Queue-unavailable, already-queued, failed, and
+canceled outcomes are explicit. Polling stops on cancellation, terminal run state, source change,
+or tool teardown. This status supplements (and never replaces) source-level local coverage.
+
+The regression must prove the run-status lookup and exact cancel payload. Frontend Vitest `890/890`,
+type-check/build, and diff checks are required. This gate does not relax provider completeness,
+point-in-time reconciliation, large-list performance, or visual-board acceptance.
+
 The universal locked-watchlist gate now includes source-level history readiness. For every
 canonical source ID, `GET /api/v1/watchlists/sources/history-status/{source_id}` must use the
 same point-in-time membership resolver as Market Map, breadth, and explicit history refresh, and

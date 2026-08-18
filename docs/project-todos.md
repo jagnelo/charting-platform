@@ -20,6 +20,23 @@
       or exact Version 25 maintenance/progress geometry. No acceptance flexibility, provider
       substitution, or interactive provider fan-out was introduced.
 
+### 2026-08-19 — Market Map exposes durable history progress and cancellation
+
+- [x] Consume the existing owner-scoped history-refresh run status and cancellation contracts
+      after a source refresh. Market Map now shows run ID/status and completed-versus-selected
+      progress, polls while the run is active, and offers Cancel refresh without deleting or
+      rewriting cached bars or locked membership.
+- [x] Preserve queue-unavailable, failed, canceled, and already-queued outcomes as explicit
+      feedback. The source-level status remains the coverage authority; durable run state is
+      supplementary operational progress and never triggers provider calls from the browser.
+- [x] Extend the Market Map component regression to prove run progress and cancel payloads.
+      Focused Market Map remains `25/25`; full frontend Vitest passes `890/890`; type-check/build
+      and diff checks pass.
+- [ ] This closes the workstation progress/cancel presentation, not provider-backed family
+      completeness, canonical history continuity, large-list virtualization, or exact V25
+      maintenance/progress geometry. No acceptance flexibility, provider substitution, or
+      interactive provider fan-out was introduced.
+
 ### 2026-08-19 — Holdings refresh now hands exact snapshots into canonical member history
 
 - [x] After each successful provider-backed benchmark-family holdings unit, collect the exact
