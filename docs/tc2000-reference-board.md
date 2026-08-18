@@ -1,5 +1,14 @@
 # TC2000 Version 25 composite reference board
 
+## 2026-08-19 numeric profile-area state gap narrowed
+
+The board has no authoritative Version 25 treatment for choosing a numeric tile-area field from
+multiple provider profile snapshots, especially when one provider lacks that field. The backend
+now uses one source-neutral alias/precedence contract for market cap, volume, 52-week range, P/E,
+beta, and dividend yield, selecting a covered point-in-time snapshot and explicitly warning on
+stats fallback. Exact V25 field selector, tooltip, conflict badge, and mixed-coverage geometry are
+still unrepresented; provenance and integration assertions are the interim oracle.
+
 ## 2026-08-19 historical entitlement-revision area gap narrowed
 
 The board has no authoritative Version 25 state for a historical Market Map whose profile source

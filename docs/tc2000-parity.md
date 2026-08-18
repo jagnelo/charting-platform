@@ -1,5 +1,21 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-19 — Numeric Market Map areas use the point-in-time profile contract
+
+The provider-neutral profile-area contract now applies to the complete allow-listed numeric area
+field set, not only market cap. Canonical aliases map provider-native profile payloads to
+`avg_volume_30d`, 52-week high/low, P/E, beta, and dividend yield. Provider precedence is applied
+only among snapshots that contain the requested field, so a higher-ranked incomplete profile cannot
+hide a lower-ranked covered value.
+
+Tile provenance retains the canonical field, snapshot/provider identity, observation/fetch times,
+entitlement revision evidence, precedence rank, and point-in-time state. Missing profile fields
+fall back to `InstrumentStats` only with `current_area_field_fallback` or the existing explicit
+unproven/missing warning. Focused field/predecessor and complete watchlist integration pass.
+
+Provider-field conflict reconciliation beyond profile snapshot selection, full family/provider
+population, and exact Version 25 numeric-area geometry/tooltips remain open.
+
 ## 2026-08-19 — Market Map reconstructs historical entitlement state
 
 Market-cap area selection now evaluates the latest immutable `ProviderEntitlementRevision` known

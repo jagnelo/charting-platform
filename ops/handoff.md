@@ -1,5 +1,19 @@
 # Active Handoff
 
+## 2026-08-19 — Point-in-time provider-backed numeric area fields
+
+- Market Map `area_metric=field` now participates in the same profile-snapshot provider
+  precedence and historical entitlement-revision contract as market cap. Native aliases cover
+  average volume, 52-week high/low, P/E, beta, and dividend yield.
+- Provider ordering is evaluated only across snapshots containing the requested field; a covered
+  lower-ranked snapshot beats an incomplete higher-ranked one. Stats fallback is explicit through
+  `current_area_field_fallback` or missing/unproven warnings.
+- Focused field/precedence `2/2`, complete watchlist integration `38/38`, Ruff, compileall, and
+  diff-check pass. No acceptance flexibility used. Implementation, docs/ops, and state-closure
+  commits must be kept separate and pushed before the next context.
+- Remaining gaps: provider-field conflict reconciliation beyond profile snapshots, complete family
+  and provider population, and exact/unrepresented Version 25 numeric-area visuals.
+
 ## 2026-08-19 — Historical entitlement revision reconstruction
 
 - Market Map market-cap provider eligibility now uses the latest immutable metadata entitlement

@@ -1,4 +1,30 @@
 tasks:
+  - id: tc2000-market-map-profile-numeric-fields-20260819
+    title: Apply historical provider precedence to Market Map numeric area fields
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Extend the point-in-time profile snapshot and entitlement contract from market-cap areas to
+      all allow-listed numeric area fields, normalizing provider-native aliases and avoiding an
+      incomplete high-ranked snapshot when another eligible source contains the field.
+    definition_of_done:
+      - Canonical aliases cover average volume, 52-week high/low, P/E, beta, and dividend yield
+      - Field-area candidates are selected by field coverage, provider precedence, entitlement revision, and observed time
+      - Tile provenance and cache identity retain field/snapshot/provider/revision/timestamp lineage
+      - Stats fallback remains explicit with current-area or missing/unproven warnings
+      - Focused field/precedence, complete watchlist integration, Ruff, compileall, and diff checks pass
+      - Broader provider-field conflicts, complete family population, and exact V25 numeric-area visuals remain tracked gaps
+    validation:
+      - backend-market-map-field-precedence-2-of-2
+      - backend-watchlists-integration-38-of-38
+      - backend-ruff-compileall
+      - git-diff-check
+    notes:
+      - >-
+        No acceptance flexibility used. This closes profile-snapshot field selection only; it does
+        not claim a complete historical field-conflict ledger for every canonical metadata source.
+
   - id: tc2000-market-map-historical-entitlement-revisions-20260819
     title: Reconstruct historical metadata entitlement revisions for Market Map
     status: completed

@@ -1,5 +1,17 @@
 # Run Report
 
+## 2026-08-19 — Point-in-time provider-backed numeric area fields
+
+- Extended Market Map profile selection to all allow-listed numeric area fields using canonical
+  aliases for provider-native payloads. The requested field is part of candidate eligibility, so
+  incomplete snapshots cannot mask covered values from another entitled provider.
+- Provenance retains field, snapshot/provider, precedence, entitlement revision, timestamps, and
+  point-in-time state; stats fallback is labelled and response warnings are emitted.
+- Focused field/precedence regressions `2/2`, complete watchlist integration `38/38`, Ruff,
+  compileall, and `git diff --check` pass. No acceptance flexibility or visual threshold changed.
+- Provider-field conflicts outside profile snapshots, full family/provider population, and exact
+  V25 numeric-area visual evidence remain open.
+
 ## 2026-08-19 — Historical entitlement revision reconstruction
 
 - Historical Market Map market-cap selection now evaluates the latest immutable

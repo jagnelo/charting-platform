@@ -1,5 +1,21 @@
 # Project TODO Memory
 
+### 2026-08-19 — Point-in-time provider-backed Market Map numeric fields
+
+- [x] Extend profile-snapshot selection beyond market cap to all allow-listed numeric area fields:
+      `avg_volume_30d`, `week52_high`, `week52_low`, `pe_ratio`, `beta`, and `dividend_yield`.
+- [x] Normalize provider-native payload aliases (`average_volume`, `fifty_two_week_high`,
+      `trailing_pe`, etc.) through one backend adapter; never add provider-specific field parsing
+      to the workstation.
+- [x] Preserve the same provider precedence, entitlement revision, snapshot identity, timestamp,
+      point-in-time, and cache-lineage contract for field areas. Prefer a lower-ranked source that
+      actually contains the requested field over a higher-ranked snapshot missing it.
+- [x] Keep `InstrumentStats` as an explicit current-stats fallback with cell/response warnings;
+      add integration coverage for a historical profile field and retain the existing unproven
+      field behavior for members without a proven value.
+- [ ] Keep provider-field conflict reconciliation outside the profile snapshot area path,
+      complete family/provider population, and exact V25 numeric-area visuals open.
+
 ### 2026-08-19 — Historical entitlement revisions for Market Map profile areas
 
 - [x] Reconstruct metadata-provider eligibility at the requested Market Map end/as-of from the
