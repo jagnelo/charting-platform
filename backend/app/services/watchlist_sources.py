@@ -93,6 +93,36 @@ def _watchlist_membership_version(watchlist: Watchlist | None) -> str:
     return f"watchlist:{watchlist.id}:{_membership_digest(watchlist.items)}"
 
 
+def _watchlist_item_active_at(item: object, as_of: datetime | None) -> bool:
+    """Apply the item's known and active interval to a point-in-time lookup."""
+
+    if as_of is None:
+        return True
+    added_at = getattr(item, "added_at", None)
+    left_at = getattr(item, "left_screener_at", None)
+    return bool(
+        added_at is not None
+        and added_at <= as_of
+        and (left_at is None or left_at > as_of)
+    )
+
+
+def _watchlist_item_as_of_exclusion(item: object, as_of: datetime | None) -> dict | None:
+    if as_of is None or _watchlist_item_active_at(item, as_of):
+        return None
+    added_at = getattr(item, "added_at", None)
+    if added_at is not None and added_at > as_of:
+        return {"instrument_id": getattr(item, "instrument_id", None), "reason": "membership_not_known_at_as_of"}
+    left_at = getattr(item, "left_screener_at", None)
+    if left_at is not None and left_at <= as_of:
+        return {
+            "instrument_id": getattr(item, "instrument_id", None),
+            "reason": "membership_not_active_at_as_of",
+            "left_screener_at": left_at.isoformat(),
+        }
+    return {"instrument_id": getattr(item, "instrument_id", None), "reason": "membership_not_known_at_as_of"}
+
+
 def _watchlist_descriptor(watchlist: Watchlist) -> WatchlistSourceRead:
     locked = bool(watchlist.is_locked or watchlist.is_managed)
     return WatchlistSourceRead(
@@ -445,12 +475,12 @@ async def resolve_watchlist_source(
                     known_at=item.added_at,
                 )
                 for item in watchlist.items
-                if as_of is None or item.added_at <= as_of
+                if _watchlist_item_active_at(item, as_of)
             ),
             exclusions=tuple(
-                {"instrument_id": item.instrument_id, "reason": "membership_not_known_at_as_of"}
+                exclusion
                 for item in watchlist.items
-                if as_of is not None and item.added_at > as_of
+                if (exclusion := _watchlist_item_as_of_exclusion(item, as_of)) is not None
             ),
         )
 

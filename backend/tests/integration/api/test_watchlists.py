@@ -781,6 +781,51 @@ class TestWatchlistsCrud:
         assert historical.json()["members"] == []
         assert historical.json()["exclusions"][0]["reason"] == "membership_not_known_at_as_of"
 
+    def test_managed_watchlist_source_respects_departure_at_as_of(
+        self, client, auth_headers, db, user, instrument
+    ):
+        from app.models.watchlist import WatchlistItem
+
+        added_at = datetime(2024, 1, 1, tzinfo=UTC)
+        left_at = datetime(2024, 1, 5, tzinfo=UTC)
+        managed = Watchlist(
+            user_id=user.id,
+            name="Managed historical source",
+            is_managed=True,
+            is_locked=True,
+        )
+        db.add(managed)
+        db.flush()
+        db.add(
+            WatchlistItem(
+                watchlist_id=managed.id,
+                instrument_id=instrument.id,
+                position=0,
+                added_at=added_at,
+                left_screener_at=left_at,
+            )
+        )
+        db.flush()
+
+        before_departure = client.get(
+            f"/api/v1/watchlists/sources/watchlist:{managed.id}",
+            headers=auth_headers,
+            params={"as_of": "2024-01-04T00:00:00Z"},
+        )
+        assert before_departure.status_code == 200, before_departure.text
+        assert [member["instrument_id"] for member in before_departure.json()["members"]] == [instrument.id]
+        assert before_departure.json()["exclusions"] == []
+
+        after_departure = client.get(
+            f"/api/v1/watchlists/sources/watchlist:{managed.id}",
+            headers=auth_headers,
+            params={"as_of": "2024-01-05T00:00:00Z"},
+        )
+        assert after_departure.status_code == 200, after_departure.text
+        assert after_departure.json()["members"] == []
+        assert after_departure.json()["exclusions"][0]["reason"] == "membership_not_active_at_as_of"
+        assert after_departure.json()["exclusions"][0]["left_screener_at"].startswith("2024-01-05")
+
     def test_etf_holdings_source_is_locked_watchlist_for_the_same_market_map_contract(
         self, client, auth_headers, db, instrument, instrument_b
     ):
