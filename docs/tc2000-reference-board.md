@@ -1,5 +1,19 @@
 # TC2000 Version 25 composite reference board
 
+## 2026-08-19 — Bulk family refresh has no authoritative visual reference
+
+The board contains no sufficiently authoritative Version 25 capture for an administrator running
+an all-family or historical holdings backfill, nor for the per-family/per-leg success, unavailable,
+route-not-ready, failure, snapshot, and composition-date report. The backend now supplies this
+operational contract through one canonical locked-watchlist population path; it is intentionally
+not exposed as a workstation menu or represented as a user-facing V25 visual claim.
+
+Gap status: `captured_unmeasured`/`required_missing` for the admin refresh/report surface. Interim
+oracle: deterministic API schemas, savepoint failure isolation, the `61/61` ETF integration file,
+and the `90/90` affected Market Map/workstation suites. Evidence needed to close the gap: an
+authoritative V25 administrator/backfill capture or an explicit product decision that this
+maintenance surface is out of visual-parity scope.
+
 ## 2026-08-19 — Evaluation-time weight state is a backend acceptance gap
 
 The board does not contain an authoritative exact-build capture for a historical map switching

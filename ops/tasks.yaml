@@ -1,4 +1,34 @@
 tasks:
+  - id: tc2000-all-family-holdings-refresh-20260819
+    title: Orchestrate provider-backed population of every locked benchmark-family watchlist
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Add bounded admin-only one-date and historical-range refresh contracts across the eight
+      configured S&P/Russell/Nasdaq benchmark roots, preserving independent role and family
+      outcomes for the universal locked WatchlistSource population path.
+    definition_of_done:
+      - One-date and range routes target all roots by default or a validated subset
+      - Family and role scope is normalized deterministically and dates are deduplicated/ordered
+      - Per-family/per-leg refreshed, unavailable, route-not-ready, failed, snapshot, composition,
+        and error evidence is returned without silent substitution
+      - Family failures are isolated with the repository async/sync-compatible savepoint helper
+      - Interactive Market Map/watchlist reads remain local and provider-fanout-free
+      - Existing per-family refresh contracts remain unchanged
+      - Provider population, historical continuity, canonical bars, and exact V25 visuals remain
+        explicit open gaps
+    validation:
+      - backend-etf-holdings-integration-61-of-61
+      - backend-market-map-workstation-integration-90-of-90
+      - backend-ruff-format-compileall
+      - git-diff-check
+    notes:
+      - >-
+        Implementation commit 11a00299 and validation follow-up 6e9fd2c9 are pushed and
+        synchronized. No acceptance flexibility was used; this closes orchestration only, not
+        free-source data completeness or visual parity.
+
   - id: tc2000-market-map-evaluation-time-weights-20260819
     title: Anchor managed Market Map weights to the evaluation timestamp
     status: completed

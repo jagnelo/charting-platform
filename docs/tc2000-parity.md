@@ -1,5 +1,30 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-19 — All benchmark families can be populated through one locked-watchlist backfill contract
+
+The operational holdings layer now exposes admin-only bulk refresh routes for the universal locked
+benchmark-family watchlists:
+
+- `POST /etf-holdings/benchmark-families/refresh-date` attempts every configured S&P/Russell/Nasdaq
+  root for one requested date, or a validated subset of roots and roles.
+- `POST /etf-holdings/benchmark-families/refresh-range` performs the same operation over at most
+  64 de-duplicated chronological dates.
+
+Both routes use the canonical family registry rather than a second symbol list, preserve the
+cap/equal/value/growth role contract, and return per-family/per-leg `refreshed`, `unavailable`,
+`route_not_ready`, and `failed` outcomes with snapshot/composition dates or an explicit error.
+Family attempts are isolated with the existing async/sync-compatible savepoint helper; one broken
+issuer route does not cancel independent roots or permit a silent SPY/QQQ substitution. The routes
+are administrative population tools only: interactive Market Map/watchlist requests still use the
+local canonical database and never fan out to providers.
+
+The implementation commits `11a00299` and validation follow-up `6e9fd2c9` are pushed. The complete
+ETF holdings integration file passes `61/61`; the affected Market Map/workstation
+integration suites pass `90/90`; Ruff, formatting, compileall, and diff checks pass. No acceptance
+flexibility was used. This closes orchestration, not data truth: free-provider entitlement and
+quality coverage, historical holdings continuity/rebalance evidence, canonical bars, and exact V25
+refresh/source-picker, unavailable, and revision visuals remain open in the gap ledger.
+
 ## 2026-08-19 — Market Map weights honor the evaluation timestamp
 
 When a Market Map request supplies a historical `end` without a separate `as_of`, system-managed

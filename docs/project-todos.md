@@ -1,5 +1,26 @@
 # Project TODO Memory
 
+### 2026-08-19 — All-family locked-watchlist holdings refresh orchestration
+
+- [x] Add admin-only one-date and bounded historical-range endpoints that can target all eight
+      benchmark roots or an explicitly selected subset, with deterministic registry ordering and
+      deduplicated family/role scope.
+- [x] Delegate each family to the existing role-isolated holdings refresh, preserving refreshed,
+      unavailable, and failed outcomes per family and per cap/equal/value/growth leg. Failed
+      families run inside the repository's async/sync-compatible savepoint helper so one provider
+      or adapter failure cannot discard already completed families or stop independent work.
+- [x] Enforce bounded request inputs (eight configured family keys and at most 64 historical
+      dates), retain chronological date order, and return snapshot/composition evidence or an
+      explicit error without silently substituting another family, proxy, or provider.
+- [x] Add API regressions for all-root traversal, family-failure isolation, scope normalization,
+      date deduplication/order, Ruff, formatting, compileall, and `git diff --check`; the complete
+      ETF holdings integration file passes `61/61` and the affected Market Map/workstation suites
+      pass `90/90`.
+- [ ] This is an administrative population/backfill contract, not proof that free providers have
+      complete live or historical holdings for every role. Provider entitlement/quality coverage,
+      historical composition continuity, canonical bars, and exact Version 25 refresh/source-picker
+      visuals remain explicit gaps.
+
 ### 2026-08-19 — Market Map evaluation-time membership boundary
 
 - [x] Resolve system-managed benchmark-family, ETF-holdings, and market-group sources at the

@@ -1,5 +1,27 @@
 # Active Handoff
 
+## 2026-08-19 — All-family locked-watchlist holdings refresh orchestration
+
+- Added admin-only `POST /etf-holdings/benchmark-families/refresh-date` and `refresh-range` routes
+  for all eight configured S&P/Russell/Nasdaq roots or a validated subset. Range requests accept
+  at most 64 de-duplicated chronological dates; role and family order follows the canonical
+  registry and duplicate roles/keys are removed.
+- The bulk service delegates to the existing cap/equal/value/growth role-isolated refresh. Each
+  family runs inside the existing async/sync-compatible savepoint helper, so a mocked or real
+  family failure is returned with an explicit error while independent families continue.
+- Added typed schemas and regressions for all-root traversal/failure isolation and range scope/date
+  normalization. The full ETF holdings integration file passed `61/61`; affected
+  watchlists/workspaces Market Map suites passed `90/90`; Ruff, formatting, compileall, and
+  `git diff --check` passed. A first direct `begin_nested()` attempt exposed a real context-manager
+  mismatch and was repaired with the repository helper before the unchanged focused rerun passed.
+- Implementation commit `11a00299a8b26c830895a9c9e84a9b1d760e35fe` and validation follow-up
+  `6e9fd2c943a36cbdfa253209ab168ca2b702f017` are pushed and synchronized.
+- No acceptance flexibility was used. This is operational population/backfill only; provider
+  entitlement/quality, historical composition continuity, canonical bars, and exact V25 refresh,
+  source-picker, unavailable, and revision visuals remain explicit gaps.
+- Next context: continue provider-backed family population/quality reconciliation and then broaden
+  universal Market Map/watchlist acceptance; do not add provider fan-out to interactive reads.
+
 ## 2026-08-19 — Market Map evaluation-time membership repair
 
 - Repaired Market Map source resolution so system-managed `benchmark-family:`, `etf-holdings:`,

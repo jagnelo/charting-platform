@@ -1,5 +1,22 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-08-19 — Bulk population sub-gate for universal locked family watchlists
+
+The provider-population acceptance must be able to invoke the admin-only bulk refresh contract for
+all eight benchmark roots and for a bounded historical date range. It must verify deterministic
+family/role ordering, duplicate removal, the eight-family/64-date bounds, snapshot/composition
+lineage, and independent `refreshed`, `unavailable`, `route_not_ready`, and `failed` outcomes.
+Injecting one family/issuer failure must leave the other family attempts and their committed
+results intact; no route may substitute another family, ticker, or provider. This endpoint is an
+administrative/backfill path only: ordinary Market Map/watchlist reads must remain local and must
+not perform one provider request per tile/member.
+
+The interim oracle is the complete ETF holdings integration file (`61/61`) plus the affected
+Market Map/workstation integration suites (`90/90`), Ruff, formatting, compileall, and diff checks.
+No acceptance flexibility was used. This sub-gate does not claim that the free-source database is
+fully populated, that historical membership is complete, or that the exact V25 refresh/source
+picker/unavailable/revision visuals are represented; those remain explicit data/reference gaps.
+
 ## 2026-08-19 — Market Map composition must match the requested evaluation time
 
 For a Market Map with `area_metric=weight`, acceptance must verify that a system-managed

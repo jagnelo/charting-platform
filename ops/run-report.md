@@ -1,5 +1,23 @@
 # Run Report
 
+## 2026-08-19 — All-family locked-watchlist holdings refresh orchestration
+
+- Added typed admin-only bulk routes for one-date and bounded historical-range refreshes across the
+  eight canonical benchmark-family roots. Empty family scope means all roots; explicit subsets and
+  roles are normalized in registry order, and duplicate dates are processed once chronologically.
+- Each root delegates to the existing role-isolated holdings adapter path. Family attempts use the
+  repository's async/sync-compatible savepoint helper and return independent refreshed,
+  unavailable, route-not-ready, failed, snapshot/composition, and error evidence.
+- Validation: focused bulk/date regressions `4/4`, complete ETF holdings integration `61/61`,
+  affected Market Map/workstation integration `90/90`, Ruff, formatting, compileall, and
+  `git diff --check` pass. The initial savepoint context mismatch was a code defect; it was fixed
+  and the unchanged focused and complete ETF runs were rerun. No acceptance flexibility or visual
+  threshold/mask change was used.
+- Implementation `11a00299a8b26c830895a9c9e84a9b1d760e35fe` and validation follow-up
+  `6e9fd2c943a36cbdfa253209ab168ca2b702f017` are pushed. Remaining gaps are provider data
+  completeness/quality, historical rebalance continuity, canonical bars, and exact V25
+  maintenance/source-picker/unavailable/revision visual evidence.
+
 ## 2026-08-19 — Market Map evaluation-time membership repair
 
 - System-managed benchmark-family, ETF-holdings, and market-group Map sources now resolve
