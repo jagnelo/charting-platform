@@ -176,9 +176,11 @@ class TestWatchlistsCrud:
     def test_market_map_uses_locked_market_group_source_through_same_contract(
         self, client, auth_headers, db, instrument, instrument_b
     ):
+        from app.models.data_source import DataSource
         from app.models.instrument import EquityDetail
         from app.models.instrument_stats import InstrumentStats
         from app.models.ohlcv import OHLCVBar, Timeframe
+        from app.models.provider_observation import InstrumentProfileSnapshot
 
         now = datetime(2024, 1, 1, tzinfo=UTC)
         group = MarketGroup(
@@ -221,6 +223,35 @@ class TestWatchlistsCrud:
                 InstrumentStats(instrument_id=instrument_b.id, market_cap=75),
             ]
         )
+        profile_source = DataSource(
+            name="controlled-market-cap-map",
+            base_url="controlled://market-cap-map",
+            description="Point-in-time market-cap fixture",
+        )
+        db.add(profile_source)
+        db.flush()
+        db.add_all(
+            [
+                InstrumentProfileSnapshot(
+                    instrument_id=instrument.id,
+                    data_source_id=profile_source.id,
+                    provider_symbol=instrument.symbol,
+                    observed_at=now + timedelta(days=5),
+                    fetched_at=now + timedelta(days=6),
+                    profile_hash="market-cap-map-a",
+                    payload={"market_cap": 900},
+                ),
+                InstrumentProfileSnapshot(
+                    instrument_id=instrument_b.id,
+                    data_source_id=profile_source.id,
+                    provider_symbol=instrument_b.symbol,
+                    observed_at=now + timedelta(days=5),
+                    fetched_at=now + timedelta(days=6),
+                    profile_hash="market-cap-map-b",
+                    payload={"extra": {"market_cap": 600}},
+                ),
+            ]
+        )
         for offset, price in enumerate((100, 101, 102, 103, 104, 105, 106)):
             for member, multiplier in ((instrument, 1), (instrument_b, 2)):
                 db.add(
@@ -259,6 +290,11 @@ class TestWatchlistsCrud:
         assert body["requested_count"] == 2
         assert body["evaluated_count"] == 2
         assert {cell["symbol"] for cell in body["cells"]} == {"AAPL", "MSFT"}
+        cells = {cell["symbol"]: cell for cell in body["cells"]}
+        assert cells["AAPL"]["area_value"] == 900
+        assert cells["AAPL"]["area_provenance"]["kind"] == "point_in_time_profile_snapshot"
+        assert cells["MSFT"]["area_value"] == 600
+        assert not any(item["code"] == "current_area_not_point_in_time" for item in body["warnings"])
         assert {node["label"] for node in body["nodes"]} >= {"Technology", "Hardware", "Industrials", "Machinery"}
 
         weighted = client.post(

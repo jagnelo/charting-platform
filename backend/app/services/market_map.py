@@ -17,6 +17,7 @@ from app.models.instrument import Instrument
 from app.models.instrument_event import InstrumentEvent, InstrumentEventFetchState
 from app.models.market_map import MarketMapCache
 from app.models.ohlcv import OHLCVBar, Timeframe
+from app.models.provider_observation import InstrumentProfileSnapshot
 from app.models.research import ResearchRun
 from app.schemas.market_map import (
     MarketMapCell,
@@ -328,6 +329,25 @@ def _numeric_area_field(
     return numeric, provenance_value, None
 
 
+def _snapshot_numeric_value(
+    snapshot: InstrumentProfileSnapshot | None, field: str
+) -> float | None:
+    """Read a positive numeric field from a canonical profile snapshot."""
+
+    if snapshot is None:
+        return None
+    payload = snapshot.payload if isinstance(snapshot.payload, dict) else {}
+    value = payload.get(field)
+    if value is None:
+        extra = payload.get("extra")
+        value = extra.get(field) if isinstance(extra, dict) else None
+    try:
+        numeric = float(value)
+    except (TypeError, ValueError):
+        return None
+    return numeric if math.isfinite(numeric) and numeric > 0 else None
+
+
 def _cache_key(
     request: MarketMapRequest,
     membership_version: str | None,
@@ -337,6 +357,8 @@ def _cache_key(
     event_watermark: datetime | None = None,
     reference_membership_version: str | None = None,
     reference_member_ids: list[int] | None = None,
+    profile_snapshot_watermark: datetime | None = None,
+    profile_snapshot_ids: list[int] | None = None,
 ) -> str:
     """Build a deterministic identity for one source/data snapshot.
 
@@ -356,6 +378,10 @@ def _cache_key(
         "event_watermark": event_watermark.isoformat() if event_watermark else None,
         "reference_membership_version": reference_membership_version,
         "reference_member_ids": sorted(reference_member_ids or []),
+        "profile_snapshot_watermark": (
+            profile_snapshot_watermark.isoformat() if profile_snapshot_watermark else None
+        ),
+        "profile_snapshot_ids": sorted(profile_snapshot_ids or []),
     }
     return hashlib.sha256(json.dumps(payload, sort_keys=True, default=str).encode()).hexdigest()
 
@@ -439,6 +465,31 @@ async def build_market_map(db: AsyncSession, user_id: int, request: MarketMapReq
     if latest is None:
         latest = end_hint
     period_start, period_end = _period_bounds(request, latest)
+    profile_snapshots_by_id: dict[int, InstrumentProfileSnapshot] = {}
+    profile_snapshot_watermark: datetime | None = None
+    profile_snapshot_ids: list[int] = []
+    if request.area_metric == "market_cap" and member_ids:
+        profile_snapshot_rows = (
+            await db.execute(
+                select(InstrumentProfileSnapshot)
+                .where(
+                    InstrumentProfileSnapshot.instrument_id.in_(member_ids),
+                    InstrumentProfileSnapshot.observed_at <= end_hint,
+                )
+                .order_by(
+                    InstrumentProfileSnapshot.instrument_id,
+                    InstrumentProfileSnapshot.observed_at.desc(),
+                    InstrumentProfileSnapshot.id.desc(),
+                )
+            )
+        ).scalars().all()
+        for snapshot in profile_snapshot_rows:
+            profile_snapshots_by_id.setdefault(snapshot.instrument_id, snapshot)
+        profile_snapshot_watermark = max(
+            (snapshot.observed_at for snapshot in profile_snapshots_by_id.values()),
+            default=None,
+        )
+        profile_snapshot_ids = sorted(snapshot.id for snapshot in profile_snapshots_by_id.values())
     reference_bars: list[object] = []
     reference = None
     reference_source = None
@@ -565,6 +616,8 @@ async def build_market_map(db: AsyncSession, user_id: int, request: MarketMapReq
         event_watermark,
         reference_source_membership_version,
         reference_source_member_ids,
+        profile_snapshot_watermark,
+        profile_snapshot_ids,
     )
     python_values, python_output_contract = ({}, "")
     if (
@@ -706,19 +759,33 @@ async def build_market_map(db: AsyncSession, user_id: int, request: MarketMapReq
                     )
                 )
         else:
-            area = float(instrument.stats.market_cap) if instrument.stats and instrument.stats.market_cap is not None else None
-            if area is not None:
-                market_cap_provenance = (instrument.stats.field_provenance or {}).get("market_cap") if instrument.stats else None
-                area_provenance = market_cap_provenance if isinstance(market_cap_provenance, dict) else {
-                    "kind": "current_metadata",
+            snapshot = profile_snapshots_by_id.get(instrument_id)
+            snapshot_area = _snapshot_numeric_value(snapshot, "market_cap")
+            if snapshot_area is not None and snapshot is not None:
+                area = snapshot_area
+                area_provenance = {
+                    "kind": "point_in_time_profile_snapshot",
                     "field": "market_cap",
-                    "source": "local_instrument_stats",
-                    "point_in_time": False,
+                    "snapshot_id": snapshot.id,
+                    "data_source_id": snapshot.data_source_id,
+                    "observed_at": snapshot.observed_at.isoformat(),
+                    "fetched_at": snapshot.fetched_at.isoformat(),
+                    "point_in_time": True,
                 }
-            if area is None:
-                warnings.append(_warning("missing_market_cap", "No market-cap value is available.", instrument_id=instrument_id))
             else:
-                warnings.append(_warning("current_market_cap", "Market-cap area uses the latest stored value and is not point-in-time.", instrument_id=instrument_id))
+                area = float(instrument.stats.market_cap) if instrument.stats and instrument.stats.market_cap is not None else None
+                if area is not None:
+                    market_cap_provenance = (instrument.stats.field_provenance or {}).get("market_cap") if instrument.stats else None
+                    area_provenance = market_cap_provenance if isinstance(market_cap_provenance, dict) else {
+                        "kind": "current_metadata",
+                        "field": "market_cap",
+                        "source": "local_instrument_stats",
+                        "point_in_time": False,
+                    }
+                if area is None:
+                    warnings.append(_warning("missing_market_cap", "No market-cap value is available.", instrument_id=instrument_id))
+                else:
+                    warnings.append(_warning("current_market_cap", "Market-cap area uses the latest stored value and is not point-in-time.", instrument_id=instrument_id))
         path = _group_path(request, instrument)
         if path and "Unclassified" in path:
             warnings.append(_warning("missing_classification", "Sector or industry classification is unavailable; grouped under Unclassified.", instrument_id=instrument_id))
@@ -833,7 +900,20 @@ async def build_market_map(db: AsyncSession, user_id: int, request: MarketMapReq
         nodes=nodes,
         cells=cells,
         exclusions=exclusions,
-        warnings=[_warning("current_area_not_point_in_time", "Market-cap area values are current stored metadata.")] if request.area_metric == "market_cap" else [],
+        warnings=(
+            [
+                _warning(
+                    "current_area_not_point_in_time",
+                    "Some market-cap area values use current stored metadata.",
+                )
+            ]
+            if request.area_metric == "market_cap"
+            and any(
+                any(item.code == "current_market_cap" for item in cell.warnings)
+                for cell in cells
+            )
+            else []
+        ),
     )
     cache_row = MarketMapCache(
         user_id=user_id,
