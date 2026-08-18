@@ -77,6 +77,7 @@ async def task_refresh_benchmark_family_holdings_run(ctx: dict, run_id: int):
 
     from app.database import AsyncSessionLocal
     from app.models.benchmark_family_history import BenchmarkFamilyHoldingsRefreshRun
+    from app.services.benchmark_family_history import queue_snapshot_member_history
     from app.services.etf_holdings_refresh import refresh_benchmark_family_holdings_for_date
 
     async with AsyncSessionLocal() as db:
@@ -132,6 +133,36 @@ async def task_refresh_benchmark_family_holdings_run(ctx: dict, run_id: int):
                         "error": str(exc) or "Benchmark family holdings refresh failed.",
                     }
 
+                refreshed_snapshot_ids = [
+                    int(leg["snapshot_id"])
+                    for leg in summary.get("legs", [])
+                    if isinstance(leg, dict)
+                    and leg.get("status") == "refreshed"
+                    and leg.get("snapshot_id") is not None
+                ]
+                if refreshed_snapshot_ids:
+                    try:
+                        history_queue = await queue_snapshot_member_history(
+                            db,
+                            ctx.get("redis"),
+                            refreshed_snapshot_ids,
+                        )
+                    except Exception as exc:  # noqa: BLE001 - retain bounded queue evidence.
+                        history_queue = {
+                            "status": "queue_error",
+                            "snapshot_ids": refreshed_snapshot_ids,
+                            "queued": 0,
+                            "already_queued": 0,
+                            "error": str(exc)[:500],
+                        }
+                else:
+                    history_queue = {
+                        "status": "no_snapshots",
+                        "snapshot_ids": [],
+                        "queued": 0,
+                        "already_queued": 0,
+                    }
+
                 run = await db.get(BenchmarkFamilyHoldingsRefreshRun, run_id)
                 if run is None:
                     return {"status": "missing", "run_id": run_id}
@@ -148,6 +179,7 @@ async def task_refresh_benchmark_family_holdings_run(ctx: dict, run_id: int):
                         "unavailable": int(summary.get("unavailable", 0)),
                         "failed": int(summary.get("failed", 0)),
                         "legs": summary.get("legs") or [],
+                        "history_queue": history_queue,
                         "error": summary.get("error"),
                     }
                 )

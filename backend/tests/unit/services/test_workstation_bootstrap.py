@@ -188,4 +188,4 @@ def test_core_bootstrap_queues_deduplicated_family_member_history(monkeypatch):
     assert result["already_queued"] == 0
     assert len(redis.calls) == 2
     assert redis.calls[0][0] == ("task_bulk_fetch_instrument", 10, ["MN", "W1", "D1"])
-    assert redis.calls[0][1]["_job_id"] == "benchmark-family-bootstrap-history:10:MN,W1,D1"
+    assert redis.calls[0][1]["_job_id"] == "watchlist-source-history:10:MN,W1,D1"

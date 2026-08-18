@@ -213,7 +213,10 @@ async def queue_core_family_member_history(db: AsyncSession, redis) -> dict:
     if redis is None:
         return {"status": "not_queued", "reason": "Redis worker queue unavailable"}
 
-    from app.services.benchmark_family_history import plan_benchmark_family_history_refresh
+    from app.services.benchmark_family_history import (
+        canonical_history_job_id,
+        plan_benchmark_family_history_refresh,
+    )
 
     plan = await plan_benchmark_family_history_refresh(db)
     queued = already_queued = 0
@@ -222,10 +225,7 @@ async def queue_core_family_member_history(db: AsyncSession, redis) -> dict:
             "task_bulk_fetch_instrument",
             instrument_id,
             plan["timeframes"],
-            _job_id=(
-                f"benchmark-family-bootstrap-history:{instrument_id}:"
-                f"{','.join(plan['timeframes'])}"
-            ),
+            _job_id=canonical_history_job_id(instrument_id, plan["timeframes"]),
         )
         if job is None:
             already_queued += 1

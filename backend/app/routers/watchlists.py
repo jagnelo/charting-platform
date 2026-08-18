@@ -27,6 +27,7 @@ from app.schemas.watchlist import (
     WatchlistSourceRead,
     WatchlistSourceResolvedRead,
 )
+from app.services.benchmark_family_history import canonical_history_job_id
 from app.services.watchlist_history import (
     build_watchlist_source_history_status,
     plan_watchlist_source_history_refresh,
@@ -246,9 +247,7 @@ async def queue_watchlist_source_history_refresh(
                     instrument_id,
                     plan["timeframes"],
                     run.id,
-                    _job_id=(
-                        f"watchlist-source-history:{instrument_id}:{','.join(plan['timeframes'])}"
-                    ),
+                    _job_id=canonical_history_job_id(instrument_id, plan["timeframes"]),
                 )
                 if job is None:
                     already_queued += 1

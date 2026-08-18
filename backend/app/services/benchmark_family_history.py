@@ -12,8 +12,10 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.etf_holdings import ETFHolding
 from app.models.ohlcv import Timeframe
 from app.services.top_down_taxonomy import BENCHMARK_FAMILY_REGISTRY
 from app.services.watchlist_sources import resolve_watchlist_source
@@ -21,6 +23,12 @@ from app.services.watchlist_sources import resolve_watchlist_source
 DEFAULT_HISTORY_TIMEFRAMES = (Timeframe.MN.value, Timeframe.W1.value, Timeframe.D1.value)
 MAX_HISTORY_INSTRUMENTS = 5000
 BENCHMARK_FAMILY_ROLES = ("cap_weight", "equal_weight", "value", "growth")
+
+
+def canonical_history_job_id(instrument_id: int, timeframes: list[str]) -> str:
+    """Return the shared idempotence key for every canonical history request."""
+
+    return f"watchlist-source-history:{int(instrument_id)}:{','.join(timeframes)}"
 
 
 def normalize_family_keys(family_keys: list[str] | None) -> list[str]:
@@ -166,3 +174,105 @@ async def plan_benchmark_family_history_refresh(
         "legs": legs,
     }
 
+
+async def queue_snapshot_member_history(
+    db: AsyncSession,
+    redis,
+    snapshot_ids: list[int],
+    *,
+    timeframes: list[str] | None = None,
+    max_instruments: int = MAX_HISTORY_INSTRUMENTS,
+) -> dict[str, Any]:
+    """Queue canonical history for the exact holdings snapshots just ingested.
+
+    A holdings refresh may target a historical composition date whose ``known_at``
+    is now. Resolving the public source with that date as an ``as_of`` value would
+    correctly exclude the newly ingested snapshot, so this maintenance handoff
+    works from explicit snapshot IDs instead. It never calls a provider and keeps
+    the source's point-in-time membership boundary intact.
+    """
+
+    normalized_timeframes = normalize_history_timeframes(timeframes)
+    if max_instruments < 1 or max_instruments > MAX_HISTORY_INSTRUMENTS:
+        raise ValueError(f"max_instruments must be between 1 and {MAX_HISTORY_INSTRUMENTS}.")
+    normalized_snapshots = list(dict.fromkeys(int(value) for value in snapshot_ids if int(value) > 0))
+    if not normalized_snapshots:
+        return {
+            "status": "no_snapshots",
+            "snapshot_ids": [],
+            "available_instrument_count": 0,
+            "selected_instrument_count": 0,
+            "limited": False,
+            "queued": 0,
+            "already_queued": 0,
+            "unresolved_count": 0,
+            "timeframes": normalized_timeframes,
+        }
+
+    rows = (
+        await db.execute(
+            select(
+                ETFHolding.snapshot_id,
+                ETFHolding.constituent_instrument_id,
+                ETFHolding.row_type,
+                ETFHolding.holding_type,
+                ETFHolding.is_resolved,
+            )
+            .where(ETFHolding.snapshot_id.in_(normalized_snapshots))
+            .order_by(ETFHolding.snapshot_id, ETFHolding.position)
+        )
+    ).all()
+    instrument_ids: list[int] = []
+    seen: set[int] = set()
+    unresolved_count = 0
+    for _snapshot_id, instrument_id, row_type, holding_type, is_resolved in rows:
+        if (
+            row_type != "security"
+            or holding_type not in {"equity", "stock", "common_stock"}
+            or not is_resolved
+            or instrument_id is None
+        ):
+            unresolved_count += 1
+            continue
+        canonical_id = int(instrument_id)
+        if canonical_id not in seen:
+            seen.add(canonical_id)
+            instrument_ids.append(canonical_id)
+    selected_ids = instrument_ids[:max_instruments]
+    if redis is None:
+        return {
+            "status": "not_queued",
+            "reason": "Redis worker queue unavailable",
+            "snapshot_ids": normalized_snapshots,
+            "available_instrument_count": len(instrument_ids),
+            "selected_instrument_count": len(selected_ids),
+            "limited": len(instrument_ids) > max_instruments,
+            "queued": 0,
+            "already_queued": 0,
+            "unresolved_count": unresolved_count,
+            "timeframes": normalized_timeframes,
+        }
+
+    queued = already_queued = 0
+    for instrument_id in selected_ids:
+        job = await redis.enqueue_job(
+            "task_bulk_fetch_instrument",
+            instrument_id,
+            normalized_timeframes,
+            _job_id=canonical_history_job_id(instrument_id, normalized_timeframes),
+        )
+        if job is None:
+            already_queued += 1
+        else:
+            queued += 1
+    return {
+        "status": "queued",
+        "snapshot_ids": normalized_snapshots,
+        "available_instrument_count": len(instrument_ids),
+        "selected_instrument_count": len(selected_ids),
+        "limited": len(instrument_ids) > max_instruments,
+        "queued": queued,
+        "already_queued": already_queued,
+        "unresolved_count": unresolved_count,
+        "timeframes": normalized_timeframes,
+    }
