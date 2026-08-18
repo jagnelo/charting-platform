@@ -14,8 +14,9 @@
 - Validation: component `25/25`; full frontend Vitest `890/890`; type-check/build; diff check.
   Existing backend focused/full gates remain green from the preceding synchronized checkpoint.
   No acceptance flexibility, provider substitution, or interactive provider fan-out was used.
-- Implementation commit is pending this context's separate implementation/docs/state closure.
-  Remaining substantive gaps are provider-backed family completeness, canonical bars and
+- Implementation commit `b5183a479ced90a0a7394eb50088187315cbf3f3` and documentation/ops checkpoint
+  `f45588bbcbd4e30fb12339cf4859eb34161bccc4` are pushed. The final state-closure commit records
+  this handoff; verify its enclosing SHA externally. Remaining substantive gaps are provider-backed family completeness, canonical bars and
   historical reconciliation, durable aggregate progress/cancellation presentation, large-list
   rendering, and exact V25 maintenance/progress geometry.
 
