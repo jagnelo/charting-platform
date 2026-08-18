@@ -1,5 +1,17 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-19 — QQQE has live SEC historical-route evidence
+
+QQQE now carries its SEC Direxion Shares ETF Trust identity (`CIK 0001424958`, series
+`S000033634`, class `C000103352`) in canonical route metadata. Dated requests use the latest SEC
+filing known at or before the cutoff and return `source_access=sec_filing`, `source_provider=sec`,
+the requested date, and the reconstruction policy; they do not reuse the current Direxion CSV.
+
+The opt-in elevated live probe passes `1/1` with 80+ parseable rows and a composition date no later
+than the cutoff. This is periodic filing evidence, not daily or exact rebalance history, and does
+not establish official Nasdaq-100 membership. Complete family/provider population, canonical bars,
+and exact Version 25 source-disclosure visuals remain open.
+
 ## 2026-08-19 — QQQ SEC historical route has live free-source evidence
 
 The opt-in live acceptance now exercises QQQ dated holdings through SEC EDGAR with a historical

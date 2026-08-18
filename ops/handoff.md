@@ -1,5 +1,19 @@
 # Active Handoff
 
+## 2026-08-19 — QQQE SEC historical evidence
+
+- Added canonical QQQE Direxion Shares ETF Trust identity metadata: CIK `0001424958`, series
+  `S000033634`, class `C000103352`, alongside its explicit Direxion adapter.
+- Added `DirexionHoldingsAdapter.fetch_for_date`; dated QQQE requests now use the latest SEC
+  filing known at or before the cutoff and retain SEC/provider/requested-date/policy provenance.
+  They cannot silently use the current daily Direxion CSV.
+- Validation: adapter/taxonomy units `505/505`, elevated opt-in live QQQE SEC probe `1/1`, Ruff,
+  compileall, and diff-check. The first DNS failure was an environment boundary and the unchanged
+  elevated rerun passed; no acceptance flexibility was used.
+- Implementation commit `d2b2bb85a30af2e551deb22c532aebde9452412c` is pushed. Separate docs/ops
+  checkpoint remains before the next implementation context. Daily/exact-rebalance truth, official
+  membership, family population, canonical bars, and exact V25 historical-source visuals remain open.
+
 ## 2026-08-19 — Live QQQ SEC historical evidence
 
 - Added an opt-in live regression for `InvescoHoldingsAdapter.fetch_for_date(symbol="QQQ")` with

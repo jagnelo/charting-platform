@@ -1,5 +1,18 @@
 # Project TODO Memory
 
+### 2026-08-19 — QQQE dated holdings use the Direxion SEC reconstruction route
+
+- [x] Add canonical SEC CIK/series/class metadata for QQQE (`0001424958`, `S000033634`,
+      `C000103352`) beside the explicit Direxion adapter route.
+- [x] Override the Direxion dated fetch so it selects the latest SEC filing known at or before
+      the requested date, fails explicitly when no filing exists, and labels the result as a
+      periodic reconstruction instead of fetching the current symbol CSV.
+- [x] Add unit, taxonomy, and opt-in live regressions. Adapter/taxonomy units pass `505/505`, the
+      elevated live QQQE SEC probe passes `1/1`, and Ruff, compileall, and diff checks pass.
+- [ ] Keep the limitation visible: SEC cadence does not establish daily QQQE weights, exact
+      rebalance-day composition, official Nasdaq-100 membership, complete family population,
+      canonical bars, or exact Version 25 historical-source visuals.
+
 ### 2026-08-19 — Live evidence for QQQ SEC historical reconstruction
 
 - [x] Add an opt-in live regression for QQQ dated holdings that exercises SEC EDGAR with a

@@ -1,5 +1,14 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-08-19 — QQQE historical-route sub-gate
+
+The QQQE equal-weight leg must resolve its Direxion trust/series/class identity explicitly and
+must use SEC EDGAR for dated requests. The live sub-gate requires a substantial parseable filing,
+SEC source/provider provenance, a requested cutoff, the latest-filing-at-or-before policy, and a
+composition date no later than the cutoff. The current daily Direxion CSV remains a separate
+current-data route. Passing this sub-gate does not relax daily membership, exact rebalance, index
+truth, provider-population, or Version 25 visual requirements.
+
 ## 2026-08-19 — Live SEC route evidence sub-gate
 
 The QQQ historical fallback has a separate opt-in live sub-gate. The unchanged elevated probe must

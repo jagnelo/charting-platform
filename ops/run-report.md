@@ -1,5 +1,19 @@
 # Run Report
 
+## 2026-08-19 — QQQE SEC historical evidence
+
+- QQQE now has explicit Direxion trust/series/class identity and a dated SEC fallback that cannot
+  silently reuse the current CSV. Provenance records SEC source/provider, requested cutoff, and
+  latest-filing-at-or-before policy.
+- Adapter/taxonomy units pass `505/505`; elevated opt-in live QQQE SEC coverage passes `1/1` with
+  80+ parseable rows and a composition date no later than the cutoff. Ruff, compileall, and
+  `git diff --check` pass. The initial DNS failure was retried unchanged with network access.
+- No acceptance flexibility or visual/source rule was changed. SEC periodic evidence does not
+  establish daily weights, exact rebalance timing, official membership, complete family population,
+  canonical bars, or exact V25 historical-source visuals.
+- Implementation `d2b2bb85a30af2e551deb22c532aebde9452412c` is pushed; separate docs/ops closure is
+  required before the next context.
+
 ## 2026-08-19 — Live QQQ SEC historical evidence
 
 - The opt-in live regression exercises QQQ dated holdings through SEC EDGAR at a 2025-12-31

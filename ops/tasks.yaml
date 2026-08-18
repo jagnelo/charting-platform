@@ -1,4 +1,29 @@
 tasks:
+  - id: tc2000-direxion-qqqe-sec-historical-fallback-20260819
+    title: Add QQQE dated SEC reconstruction beside the current Direxion CSV
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Make QQQE's Direxion trust identity explicit and ensure dated holdings requests use the
+      latest SEC filing known at or before the cutoff rather than silently retrieving current rows.
+    definition_of_done:
+      - QQQE carries canonical SEC CIK, series, class, and ticker identity metadata
+      - Direxion dated fetch preserves SEC provenance, requested date, and reconstruction policy
+      - Missing SEC filings fail explicitly and cannot fall back to current CSV data
+      - Unit/taxonomy and opt-in elevated live QQQE coverage pass
+      - Periodic SEC evidence remains distinct from daily weights, exact rebalance, official membership, and exact V25 visuals
+    validation:
+      - backend-adapter-taxonomy-units-505-of-505
+      - backend-live-qqqe-sec-historical-1-of-1
+      - backend-ruff-compileall
+      - git-diff-check
+    notes:
+      - >-
+        No acceptance flexibility was used. The first live DNS failure was retried unchanged with
+        approved network access and passed. Implementation commit d2b2bb85 is pushed; docs/ops
+        checkpoint follows.
+
   - id: tc2000-invesco-sec-historical-live-evidence-20260819
     title: Prove the QQQ SEC dated route against the live free source
     status: completed
