@@ -1581,6 +1581,8 @@ class TestWatchlistsCrud:
     def test_etf_holdings_source_is_locked_watchlist_for_the_same_market_map_contract(
         self, client, auth_headers, db, instrument, instrument_b
     ):
+        from decimal import Decimal
+
         from app.models.etf_holdings import ETFHolding, ETFHoldingsSnapshot, ETFProfile
         from app.models.instrument import EquityDetail
         from app.models.instrument_stats import InstrumentStats
@@ -1591,7 +1593,8 @@ class TestWatchlistsCrud:
             instrument_id=instrument.id,
             issuer="Controlled issuer",
             adapter_key="controlled_fixture",
-            adapter_status="resolved",
+            adapter_status="failure",
+            adapter_confidence=Decimal("0.9200"),
         )
         db.add(profile)
         db.add(
@@ -1665,6 +1668,14 @@ class TestWatchlistsCrud:
         assert source["can_edit_membership"] is False
         assert source["member_count"] == 1
         assert source["provenance"]["availability"] == "available"
+        assert source["provenance"]["adapter_key"] == "controlled_fixture"
+        assert source["provenance"]["adapter_status"] == "failure"
+        assert Decimal(str(source["provenance"]["adapter_confidence"])) == Decimal("0.92")
+        assert source["provenance"]["snapshot_source_quality"] == "issuer_disclosed"
+        assert source["provenance"]["snapshot_completeness_status"] == "complete"
+        assert source["provenance"]["snapshot_row_count"] == 1
+        assert source["provenance"]["snapshot_resolved_count"] == 1
+        assert source["provenance"]["snapshot_unresolved_count"] == 0
         empty_source = next(
             item for item in descriptor.json() if item["source_id"] == f"etf-holdings:{instrument_b.symbol}"
         )

@@ -491,6 +491,7 @@ class TestWorkspaces:
         self, client, auth_headers, db, instrument_type
     ):
         from datetime import UTC, datetime
+        from decimal import Decimal
 
         from app.models.etf_holdings import ETFHoldingsSnapshot, ETFProfile
         from app.models.instrument import Instrument
@@ -506,7 +507,12 @@ class TestWorkspaces:
         )
         db.add(spy)
         db.flush()
-        profile = ETFProfile(instrument_id=spy.id, adapter_status="resolved")
+        profile = ETFProfile(
+            instrument_id=spy.id,
+            adapter_key="spdr",
+            adapter_status="failure",
+            adapter_confidence=Decimal("0.9900"),
+        )
         db.add(profile)
         db.flush()
         first = ETFHoldingsSnapshot(
@@ -548,6 +554,9 @@ class TestWorkspaces:
         payload = response.json()
         roles = {role["role"]: role for role in payload["roles"]}
         assert roles["cap_weight"]["status"] == "available"
+        assert roles["cap_weight"]["adapter_key"] == "spdr"
+        assert roles["cap_weight"]["adapter_status"] == "failure"
+        assert Decimal(roles["cap_weight"]["adapter_confidence"]) == Decimal("0.9900")
         assert [row["composition_date"] for row in roles["cap_weight"]["snapshots"]] == [
             "2027-06-30",
             "2026-06-30",

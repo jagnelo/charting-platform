@@ -3306,6 +3306,17 @@ async def benchmark_family_coverage(
         ).scalars()
     }
 
+    profiles = {
+        profile.instrument_id: profile
+        for profile in (
+            await db.execute(
+                select(ETFProfile).where(
+                    ETFProfile.instrument_id.in_([instrument.id for instrument in instruments.values()])
+                )
+            )
+        ).scalars()
+    }
+
     roles: list[BenchmarkFamilyCoverageRoleOut] = []
     exclusions: list[AnalysisWarning] = []
     role_count = 4
@@ -3315,6 +3326,7 @@ async def benchmark_family_coverage(
         mapping = mapping if isinstance(mapping, Mapping) else {}
         symbol = str(mapping.get("symbol")).upper() if mapping.get("symbol") else None
         instrument = instruments.get(symbol) if symbol else None
+        profile = profiles.get(instrument.id) if instrument is not None else None
         snapshots: list[BenchmarkFamilyCoverageSnapshotOut] = []
         if instrument is None:
             status = "mapping_unavailable"
@@ -3378,6 +3390,9 @@ async def benchmark_family_coverage(
                 label=str(mapping.get("label") or "No verified mapped proxy"),
                 verification_state=str(mapping.get("verification_state") or "not_verified"),
                 instrument_id=instrument.id if instrument else None,
+                adapter_key=profile.adapter_key if profile else None,
+                adapter_status=profile.adapter_status if profile else None,
+                adapter_confidence=profile.adapter_confidence if profile else None,
                 available=instrument is not None,
                 status=status,
                 snapshots=snapshots,

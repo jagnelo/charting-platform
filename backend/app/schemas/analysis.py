@@ -312,6 +312,9 @@ class BenchmarkFamilyCoverageRoleOut(BaseModel):
     label: str
     verification_state: str
     instrument_id: int | None = None
+    adapter_key: str | None = None
+    adapter_status: str | None = None
+    adapter_confidence: Decimal | None = None
     available: bool = False
     status: str
     snapshots: list[BenchmarkFamilyCoverageSnapshotOut] = Field(default_factory=list)

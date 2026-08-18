@@ -166,6 +166,40 @@ def _market_group_descriptor(group: MarketGroup) -> WatchlistSourceRead:
     )
 
 
+def _holdings_route_provenance(
+    profile: ETFProfile | None,
+    snapshot: ETFHoldingsSnapshot | None,
+) -> dict[str, object | None]:
+    """Expose cached holdings route and quality evidence without probing providers."""
+
+    return {
+        "adapter_key": profile.adapter_key if profile is not None else None,
+        "adapter_status": profile.adapter_status if profile is not None else None,
+        "adapter_confidence": (
+            float(profile.adapter_confidence)
+            if profile is not None and profile.adapter_confidence is not None
+            else None
+        ),
+        "snapshot_source_quality": snapshot.source_quality if snapshot is not None else None,
+        "snapshot_completeness_status": (
+            snapshot.completeness_status if snapshot is not None else None
+        ),
+        "snapshot_row_count": snapshot.row_count if snapshot is not None else None,
+        "snapshot_resolved_count": snapshot.resolved_count if snapshot is not None else None,
+        "snapshot_unresolved_count": snapshot.unresolved_count if snapshot is not None else None,
+        "snapshot_total_weight": (
+            float(snapshot.total_weight)
+            if snapshot is not None and snapshot.total_weight is not None
+            else None
+        ),
+        "snapshot_published_at": (
+            snapshot.published_at.isoformat()
+            if snapshot is not None and snapshot.published_at is not None
+            else None
+        ),
+    }
+
+
 _BENCHMARK_FAMILY_ROLES = ("cap_weight", "equal_weight", "value", "growth")
 
 
@@ -284,6 +318,7 @@ def _benchmark_family_role_descriptor(
             "snapshot_id": snapshot.id if snapshot is not None else None,
             "snapshot_hash": snapshot.snapshot_hash if snapshot is not None else None,
             "completeness_status": snapshot.completeness_status if snapshot is not None else "not_loaded",
+            **_holdings_route_provenance(profile, snapshot),
         },
         effective_at=(
             datetime.combine(composition, datetime.min.time()) if composition else group.effective_at
@@ -317,6 +352,7 @@ def _etf_descriptor(
             "snapshot_id": snapshot.id if snapshot else None,
             "snapshot_hash": snapshot.snapshot_hash if snapshot else None,
             "completeness_status": snapshot.completeness_status if snapshot else "not_loaded",
+            **_holdings_route_provenance(profile, snapshot),
         },
         effective_at=datetime.combine(composition, datetime.min.time()) if composition else None,
         known_at=snapshot.known_at if snapshot else None,
