@@ -14,6 +14,15 @@ from app.models.instrument import EquityDetail, Instrument
 from app.models.listing import InstrumentListing
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.provider_observation import DatasetStatus, InstrumentDatasetState
+from app.services.top_down_taxonomy import benchmark_family_proxy_symbols
+
+# The browser fixture intentionally mirrors the complete configured benchmark
+# family proxy registry. These are controlled identities and holdings, not a
+# claim about the live composition of any index or ETF.
+_E2E_BENCHMARK_PROXY_NAMES = {
+    symbol: f"Controlled {symbol} benchmark-family proxy"
+    for symbol in benchmark_family_proxy_symbols()
+}
 
 
 async def seed_e2e_instruments(db: AsyncSession) -> None:
@@ -44,6 +53,7 @@ async def seed_e2e_instruments(db: AsyncSession) -> None:
         "XLU": "Utilities Select Sector SPDR",
         "XLRE": "Real Estate Select Sector SPDR",
         "XLB": "Materials Select Sector SPDR",
+        **_E2E_BENCHMARK_PROXY_NAMES,
     }
     symbols = tuple(names)
     existing = {
@@ -180,6 +190,11 @@ _E2E_INDUSTRIES = {
 }
 
 _E2E_HOLDINGS = {
+    "SPY": ("NVDA", "MSFT", "AMD", "AVGO", "CRM", "ORCL"),
+    "RSP": ("NVDA", "MSFT", "AMD", "AVGO", "CRM", "ORCL"),
+    "QQQ": ("NVDA", "MSFT", "AMD", "AVGO", "CRM", "ORCL"),
+    "DIA": ("NVDA", "MSFT", "CAT", "GE", "JPM", "PG"),
+    "IWM": ("AMD", "CRM", "CAT", "GE", "BAC", "COST"),
     "XLK": ("NVDA", "MSFT", "AMD", "AVGO", "CRM", "ORCL"),
     "XLY": ("AMZN", "TSLA"),
     "XLC": ("META", "GOOGL"),
@@ -194,6 +209,15 @@ _E2E_HOLDINGS = {
     "SMH": ("NVDA", "AMD", "AVGO"),
     "SOXX": ("NVDA", "AMD", "AVGO"),
 }
+
+# Every configured family leg receives a deterministic, labelled constituent
+# snapshot in the opt-in browser environment. The varied real-world sizes of
+# the S&P/Russell/Nasdaq families are deliberately not fabricated here; the
+# acceptance contract needs coverage for every source role, while production
+# membership still comes only from entitled/provider-evidenced snapshots.
+_E2E_FAMILY_CONSTITUENTS = ("NVDA", "MSFT", "AMD", "AVGO", "CRM", "ORCL")
+for _proxy_symbol in benchmark_family_proxy_symbols():
+    _E2E_HOLDINGS.setdefault(_proxy_symbol, _E2E_FAMILY_CONSTITUENTS)
 
 
 async def seed_e2e_market_data(db: AsyncSession) -> None:
@@ -301,6 +325,7 @@ async def seed_e2e_market_data(db: AsyncSession) -> None:
         "XLU",
         "XLRE",
         "XLB",
+        *benchmark_family_proxy_symbols(),
         *tuple(_E2E_MARKET_NAMES),
     ]
     instruments = {
@@ -346,6 +371,10 @@ async def seed_e2e_market_data(db: AsyncSession) -> None:
         "SMH": 180.0,
         "SOXX": 210.0,
     }
+    # Give every taxonomy proxy a stable but distinct baseline so ratio and
+    # relative-return views remain useful in the controlled workstation.
+    for position, symbol in enumerate(benchmark_family_proxy_symbols(), start=1):
+        base_prices.setdefault(symbol, 100.0 + position * 7.5)
     # E2E market mode is an explicit controlled-fixture environment.  The
     # database may be a reused developer volume containing canonical/provider
     # bars at the same unique timestamps; remove only the adjusted daily bars
@@ -451,6 +480,7 @@ async def seed_e2e_market_data(db: AsyncSession) -> None:
         "XLB",
         "SMH",
         "SOXX",
+        *benchmark_family_proxy_symbols(),
     }
     profiles: dict[str, ETFProfile] = {}
     for symbol in etf_symbols:

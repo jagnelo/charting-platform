@@ -1183,6 +1183,150 @@ class TestWatchlistsCrud:
             "locked_source_members"
         )
 
+    def test_every_available_benchmark_family_role_is_a_map_and_breadth_source(
+        self, client, auth_headers, db, instrument, instrument_type, ohlcv_bars
+    ):
+        """The seeded source catalog must exercise every configured family leg, not only SPY."""
+
+        from app.models.etf_holdings import ETFHolding, ETFHoldingsSnapshot, ETFProfile
+        from app.models.instrument import Instrument
+        from app.services.top_down_taxonomy import (
+            BENCHMARK_FAMILY_REGISTRY,
+            benchmark_family_proxy_symbols,
+        )
+
+        seeded = client.get("/api/v1/market-groups", headers=auth_headers)
+        assert seeded.status_code == 200, seeded.text
+        proxy_symbols = benchmark_family_proxy_symbols()
+        instruments = {
+            symbol: db.query(Instrument).filter_by(symbol=symbol).one_or_none()
+            for symbol in proxy_symbols
+        }
+        for symbol in proxy_symbols:
+            if instruments[symbol] is None:
+                instruments[symbol] = Instrument(
+                    symbol=symbol,
+                    name=f"{symbol} controlled benchmark proxy",
+                    currency="USD",
+                    instrument_type_id=instrument_type.id,
+                    is_active=True,
+                )
+                db.add(instruments[symbol])
+        db.flush()
+
+        composition_date = datetime(2024, 1, 1, tzinfo=UTC).date()
+        known_at = datetime(2024, 1, 2, tzinfo=UTC)
+        for symbol in proxy_symbols:
+            profile = db.query(ETFProfile).filter_by(instrument_id=instruments[symbol].id).one_or_none()
+            if profile is None:
+                profile = ETFProfile(
+                    instrument_id=instruments[symbol].id,
+                    adapter_status="resolved",
+                )
+                db.add(profile)
+                db.flush()
+            snapshot = ETFHoldingsSnapshot(
+                etf_profile_id=profile.id,
+                composition_date=composition_date,
+                known_at=known_at,
+                provenance="controlled_fixture",
+                source_provider="controlled_fixture",
+                source_quality="issuer_disclosed",
+                completeness_status="complete",
+                row_count=1,
+                resolved_count=1,
+                unresolved_count=0,
+                total_weight=1.0,
+                snapshot_hash=f"family-matrix-{symbol}",
+            )
+            db.add(snapshot)
+            db.flush()
+            db.add(
+                ETFHolding(
+                    snapshot_id=snapshot.id,
+                    constituent_instrument_id=instrument.id,
+                    position=0,
+                    reported_symbol=instrument.symbol,
+                    reported_name=instrument.name,
+                    weight=1.0,
+                    holding_type="equity",
+                    row_type="security",
+                    source_row_hash=f"family-matrix-{symbol}-row",
+                    is_resolved=True,
+                )
+            )
+        db.flush()
+
+        expected_sources: list[str] = []
+        for family in BENCHMARK_FAMILY_REGISTRY:
+            for role in ("cap_weight", "equal_weight", "value", "growth"):
+                mapping = family.get(role) or {}
+                if mapping.get("symbol") or (
+                    role == "equal_weight"
+                    and (family.get("derived_equal_weight") or {}).get("allowed")
+                ):
+                    expected_sources.append(
+                        f"benchmark-family:{family['logical_key']}:{role}"
+                    )
+
+        listed = client.get("/api/v1/watchlists/sources", headers=auth_headers)
+        assert listed.status_code == 200, listed.text
+        listed_by_id = {item["source_id"]: item for item in listed.json()}
+        assert set(expected_sources) <= set(listed_by_id)
+        assert all(listed_by_id[source_id]["locked"] for source_id in expected_sources)
+        assert all(
+            listed_by_id[source_id]["provenance"]["availability"] == "available"
+            for source_id in expected_sources
+        )
+
+        end = ohlcv_bars[-1].ts.isoformat()
+        for source_id in expected_sources:
+            resolved = client.get(
+                f"/api/v1/watchlists/sources/{source_id}",
+                headers=auth_headers,
+                params={"as_of": end},
+            )
+            assert resolved.status_code == 200, (source_id, resolved.text)
+            assert resolved.json()["members"][0]["instrument_id"] == instrument.id
+
+            market_map = client.post(
+                "/api/v1/analysis/market-map",
+                headers=auth_headers,
+                json={
+                    "source_id": source_id,
+                    "group_by": "none",
+                    "period": "1D",
+                    "area_metric": "equal",
+                    "color_metric": "return",
+                    "end": end,
+                },
+            )
+            assert market_map.status_code == 200, (source_id, market_map.text)
+            assert market_map.json()["source"]["source_id"] == source_id
+            assert market_map.json()["cells"][0]["instrument_id"] == instrument.id
+
+            breadth = client.post(
+                "/api/v1/analysis/breadth",
+                headers=auth_headers,
+                json={
+                    "version": 1,
+                    "universe": {
+                        "kind": "watchlist",
+                        "key": source_id,
+                        "point_in_time": True,
+                    },
+                    "condition": {
+                        "kind": "above_moving_average",
+                        "params": {"period": 2, "average": "sma", "comparator": "above"},
+                    },
+                    "timeframe": "D1",
+                    "adjusted": True,
+                    "as_of": end,
+                },
+            )
+            assert breadth.status_code == 200, (source_id, breadth.text)
+            assert breadth.json()["universe"]["source_id"] == source_id
+
     def test_managed_watchlist_source_respects_departure_at_as_of(
         self, client, auth_headers, db, user, instrument
     ):
