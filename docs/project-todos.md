@@ -1,5 +1,25 @@
 # Project TODO Memory
 
+### 2026-08-19 — Source-level heatmap history readiness and progress
+
+- [x] Add authenticated `GET /api/v1/watchlists/sources/history-status/{source_id}` for every
+      canonical source kind. It reuses the same point-in-time resolver as Market Map, breadth,
+      and explicit history refresh, so a locked index/ETF/sector/industry source and an editable
+      personal/combo/explicit source expose one readiness contract.
+- [x] Report source membership version, available/selected counts, exclusions, truncation, local
+      adjusted-OHLCV coverage, per-timeframe covered members/bar counts/oldest/newest timestamps,
+      and source-level `pending`, `partial`, `fetching`, `failed`, `ready`, or `unavailable`
+      state. Existing Redis worker progress is read opportunistically; Redis failure never turns
+      a local coverage read into provider fan-out or a hard API failure.
+- [x] Add focused planner/status unit coverage and Docker-backed endpoint coverage. Focused
+      status units pass `4/4`; the new status regression passes `1/1`; complete watchlist
+      integration passes `44/44`; full backend units pass `1221/1221`; Ruff, formatting,
+      compileall, and diff checks pass. No acceptance flexibility was used.
+- [ ] This closes source-level readiness visibility only. Durable refresh runs, aggregate job
+      cancellation, provider-backed family membership/bar population, historical composition
+      continuity, entitlement reconciliation, all-root acceptance, and exact Version 25
+      maintenance/progress visuals remain explicit open gaps.
+
 ### 2026-08-19 — Explicit history hydration for every canonical watchlist source
 
 - [x] Add authenticated `POST /api/v1/watchlists/sources/history-refresh` for an explicit,

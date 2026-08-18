@@ -1,4 +1,36 @@
 tasks:
+  - id: tc2000-source-history-status-20260819
+    title: Expose source-level heatmap history readiness and worker progress
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Give every canonical Market Map universe one local readiness contract after an explicit
+      history refresh: locked index/ETF/sector/industry sources and editable personal/combo/
+      explicit sources must expose identical coverage/progress semantics without provider fan-out.
+    definition_of_done:
+      - Authenticated history-status endpoint accepts any canonical source ID, as-of, timeframe, and bound
+      - The endpoint reuses the same point-in-time resolver and preserves source kind, locked state, version, exclusions, and truncation
+      - Per-timeframe adjusted-bar coverage includes member counts, bar counts, oldest/newest timestamps, and percentage
+      - Existing Redis worker progress is surfaced opportunistically and Redis outage still returns local coverage
+      - Overall source state is explicit pending, partial, fetching, failed, ready, or unavailable
+      - Focused status units 4/4, new Docker-backed endpoint regression 1/1, watchlist integration 44/44, and backend units 1221/1221 pass
+      - Durable refresh-run identity/cancellation, provider-backed family population/continuity, entitlement reconciliation, all-root acceptance, and exact V25 maintenance visuals remain open
+    validation:
+      - backend-watchlist-history-status-unit-4-of-4
+      - backend-watchlist-source-history-status-integration-1-of-1
+      - backend-watchlists-integration-44-of-44
+      - backend-unit-suite-1221-of-1221
+      - backend-ruff
+      - backend-format
+      - backend-compileall
+      - git-diff-check
+    notes:
+      - >-
+        No acceptance flexibility was used. This is source-level readiness visibility, not proof
+        that provider-backed membership, canonical bars, historical composition, or exact Version
+        25 maintenance/progress visuals are complete.
+
   - id: tc2000-universal-source-history-20260819
     title: Add explicit history hydration for every canonical watchlist source
     status: completed

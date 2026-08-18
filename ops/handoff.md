@@ -1,5 +1,33 @@
 # Active Handoff
 
+## 2026-08-19 — Source-level heatmap history readiness and progress
+
+- Added `GET /api/v1/watchlists/sources/history-status/{source_id}`. It accepts every canonical
+  source kind already consumed by Market Map and breadth: personal, managed, market-group,
+  ETF-holdings, benchmark-family, combo, and explicit canonical selections.
+- The endpoint reuses the same point-in-time source planner/resolver, preserves locked state,
+  membership version, exclusions, available/selected counts, and truncation, then reports local
+  adjusted-OHLCV coverage per timeframe with covered-member counts, percentages, bar counts,
+  oldest/newest timestamps, and `pending`/`partial`/`fetching`/`failed`/`ready`/`unavailable`
+  source state. Existing Redis per-instrument worker progress is read opportunistically; Redis
+  failure returns local coverage and never triggers provider access.
+- Owned implementation paths: `backend/app/services/watchlist_history.py`,
+  `backend/app/routers/watchlists.py`, `backend/app/schemas/watchlist.py`, and the focused unit
+  plus watchlist integration regressions.
+- Validation: focused status units `4/4`; Docker-backed endpoint regression `1/1`; complete
+  watchlist integration `44/44`; full backend units `1221/1221`; Ruff, formatting, compileall,
+  and diff checks pass. An initial unprivileged Docker attempt failed at the sandbox socket
+  boundary; the unchanged elevated run passed. No acceptance flexibility, visual threshold/mask,
+  provider substitution, or interactive fan-out was introduced.
+- Implementation commit `18abb4fbfa6a705c3541fdedd2628dd6530385ce` is pushed and synchronized.
+  The worktree is clean and `HEAD` equals `origin/feat/tc2000-frontend-rework`.
+- Remaining: durable refresh-run identity/cancellation, provider-backed membership and canonical
+  bars for all eight roots/roles, historical composition/rebalance continuity, entitlement and
+  provider-quality closure, all-root acceptance, and exact Version 25 maintenance/progress
+  visuals. The status contract makes these visible; it does not waive them.
+- Next context: update parity/acceptance/ops records, commit and push the separate operational
+  checkpoint, then continue provider-backed family population/continuity.
+
 ## 2026-08-19 — Source-polymorphic canonical history hydration
 
 - Added `POST /api/v1/watchlists/sources/history-refresh` and the bounded

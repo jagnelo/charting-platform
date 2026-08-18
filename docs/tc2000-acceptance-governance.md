@@ -1,5 +1,25 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-08-19 — Source-level heatmap readiness and progress is explicit
+
+The universal locked-watchlist gate now includes source-level history readiness. For every
+canonical source ID, `GET /api/v1/watchlists/sources/history-status/{source_id}` must use the
+same point-in-time membership resolver as Market Map, breadth, and explicit history refresh, and
+must expose the source's membership version/locked state, exclusions, truncation, adjusted-OHLCV
+coverage, and per-timeframe worker progress. The response must classify the source as `pending`,
+`partial`, `fetching`, `failed`, `ready`, or `unavailable` without provider calls. A locked
+index/ETF/sector/industry source is therefore a non-editable membership watchlist, not a separate
+heatmap implementation; the same contract applies to personal, managed, combo, and explicit
+canonical lists.
+
+The focused status unit suite passes `4/4`, the Docker-backed endpoint regression passes `1/1`,
+complete watchlist integration passes `44/44`, and full backend units pass `1221/1221`, with Ruff,
+formatting, compileall, and diff checks passing. This closes readiness visibility only. Durable
+refresh-run identity/cancellation, provider-backed membership and bar population for all eight
+families/roles, historical composition continuity, entitlement reconciliation, all-root
+acceptance, and exact Version 25 maintenance/progress visuals remain open and must not be hidden
+behind the relaxed status contract.
+
 ## 2026-08-19 — Source-polymorphic history maintenance is explicit
 
 Every canonical watchlist source used by the workstation may be hydrated only through an explicit

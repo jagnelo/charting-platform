@@ -1,5 +1,22 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-19 — Canonical source heatmap readiness is source-polymorphic
+
+`GET /api/v1/watchlists/sources/history-status/{source_id}` now gives every Market Map universe
+the same local readiness contract: personal, managed, market-group, ETF-holdings,
+benchmark-family, combo, and explicit canonical sources expose membership version, locked state,
+point-in-time exclusions, truncation, per-timeframe adjusted-bar coverage, and opportunistic
+worker progress. The source-level state is explicit (`pending`, `partial`, `fetching`, `failed`,
+`ready`, or `unavailable`) and never triggers a provider request. This means a TC2000-style
+heatmap can treat an index/ETF constituent set as a locked watchlist while retaining the exact
+same renderer and status behavior for any user-selected watchlist.
+
+Focused status units pass `4/4`; the Docker-backed endpoint regression passes `1/1`; complete
+watchlist integration passes `44/44`; full backend units pass `1221/1221`; Ruff, formatting,
+compileall, and diff checks pass. No acceptance flexibility was used. Durable refresh-run identity,
+aggregate cancellation, provider-backed family population/continuity, and exact Version 25
+maintenance/progress visuals remain open.
+
 ## 2026-08-19 — Any canonical watchlist source can request explicit history hydration
 
 The source abstraction now covers the maintenance boundary as well as interactive analysis.

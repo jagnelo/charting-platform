@@ -1,5 +1,25 @@
 # Run Report
 
+## 2026-08-19 — Source-level heatmap history readiness and progress
+
+- Added `GET /api/v1/watchlists/sources/history-status/{source_id}` for every canonical source
+  kind. It shares the Market Map/breadth source resolver, preserves point-in-time membership,
+  locked state, membership version, exclusions, and truncation, and never calls a provider.
+- It reports per-timeframe local adjusted-bar coverage (members, percentage, bar count, oldest and
+  newest timestamps) plus opportunistic existing Redis worker progress and an explicit source
+  state: pending, partial, fetching, failed, ready, or unavailable. The endpoint remains useful
+  when Redis is unavailable because local coverage is authoritative for the read.
+- Validation passed: focused status units `4/4`; Docker-backed endpoint regression `1/1`; complete
+  watchlist integration `44/44`; full backend units `1221/1221`; Ruff, formatting, compileall,
+  and diff-check. The first Docker attempt was the expected unprivileged socket denial; the
+  unchanged elevated rerun passed. No acceptance flexibility or visual threshold/mask change.
+- Implementation `18abb4fbfa6a705c3541fdedd2628dd6530385ce` is pushed and synchronized. The
+  separate docs/ops checkpoint is the current context's remaining closure action.
+- Open gaps: durable refresh-run identity/cancellation, provider-backed family membership and
+  canonical bar population, historical composition continuity/reconciliation, entitlement and
+  provider-quality closure, all-root acceptance, and exact V25 maintenance/progress visuals.
+  Source readiness visibility does not imply any of those are closed.
+
 ## 2026-08-19 — Source-polymorphic canonical history hydration
 
 - Added the explicit authenticated `POST /api/v1/watchlists/sources/history-refresh` maintenance
