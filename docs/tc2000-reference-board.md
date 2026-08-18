@@ -1,5 +1,15 @@
 # TC2000 Version 25 composite reference board
 
+## 2026-08-19 historical entitlement-revision area gap narrowed
+
+The board has no authoritative Version 25 state for a historical Market Map whose profile source
+changed free/paid or review status between two as-of dates. The implementation now reconstructs
+the latest immutable entitlement revision known at the map evaluation timestamp, prevents future
+revisions from leaking backward, and exposes revision/effective-time evidence in tile provenance.
+The current-row fallback for sources with no revision is visibly warned and remains a tracked
+compatibility gap. Exact V25 badge, tooltip, warning-copy, and revision-history geometry remain
+unrepresented; deterministic API provenance and historical regression tests are the interim oracle.
+
 ## 2026-08-19 provider-precedence area state gap narrowed
 
 The board does not show how Version 25 labels a market-cap tile when multiple providers have

@@ -1,5 +1,20 @@
 # Active Handoff
 
+## 2026-08-19 — Historical entitlement revision reconstruction
+
+- Market Map market-cap provider eligibility now uses the latest immutable metadata entitlement
+  revision known at the requested end/as-of. Future revisions cannot affect earlier maps; current
+  policy precedence still orders eligible sources deterministically.
+- Tile provenance includes entitlement revision ID/version, effective/review dates, evaluation
+  timestamp, and historical reconstruction state. A source with no revision may remain rankable
+  only as a warned current-row compatibility fallback; no silent historical claim is made.
+- Focused historical-precedence regression `1/1`, complete `test_watchlists.py` `38/38`, Ruff,
+  compileall, and diff-check pass. The ordinary uv command hit the known cache permission boundary;
+  the exact elevated rerun passed. No acceptance flexibility used.
+- Implementation, docs/ops checkpoint, and state-closure commits must be pushed before the next
+  context. Remaining gaps: historical provider-policy revisions, wider field conflict resolution,
+  complete family/provider population, and exact/unrepresented V25 entitlement-area visuals.
+
 ## 2026-08-19 — Market Map profile-provider precedence
 
 - Market-cap areas now select snapshots from the current free, enabled, adapter-capable metadata

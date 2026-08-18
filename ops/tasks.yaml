@@ -1,4 +1,29 @@
 tasks:
+  - id: tc2000-market-map-historical-entitlement-revisions-20260819
+    title: Reconstruct historical metadata entitlement revisions for Market Map
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Evaluate Market Map market-cap profile-provider eligibility at the requested end/as-of using
+      the latest immutable ProviderEntitlementRevision known at that timestamp, while retaining
+      deterministic free-provider precedence and an explicitly warned no-revision fallback.
+    definition_of_done:
+      - A future entitlement revision cannot affect an earlier map; current mutable entitlement rows do not leak backward
+      - Historical revision ID/version, effective/review dates, evaluation time, and reconstruction state are retained in tile provenance
+      - No-revision sources remain only an explicit current-entitlement compatibility fallback with cell and response warnings
+      - Historical precedence, post-effective provider removal, policy-cache invalidation, complete watchlist integration, Ruff, compileall, and diff checks pass
+      - Historical provider-policy revisions, wider field conflicts, complete family population, and exact V25 entitlement-area visuals remain tracked gaps
+    validation:
+      - backend-market-map-historical-entitlement-revision-1-of-1
+      - backend-watchlists-integration-38-of-38
+      - backend-ruff-compileall
+      - git-diff-check
+    notes:
+      - >-
+        No acceptance flexibility used. The no-revision path is intentionally visible as a
+        compatibility fallback and is not presented as reconstructed historical truth.
+
   - id: tc2000-market-map-profile-provider-precedence-20260819
     title: Apply free provider precedence to Market Map profile snapshots
     status: completed

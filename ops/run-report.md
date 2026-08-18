@@ -1,5 +1,20 @@
 # Run Report
 
+## 2026-08-19 — Historical entitlement revision reconstruction
+
+- Historical Market Map market-cap selection now evaluates the latest immutable
+  `ProviderEntitlementRevision` known at the map end/as-of. Current entitlement mutations cannot
+  leak backward, and a future paid/review-expired revision removes its provider only after its
+  effective timestamp.
+- Tile provenance and cache identity retain revision ID/version, effective/review dates,
+  evaluation time, and historical-versus-current evidence. No-revision sources use only an
+  explicitly warned current-row compatibility fallback.
+- Focused regression `1/1` and full watchlist integration `38/38` pass; Ruff, compileall, and
+  `git diff --check` pass. The unprivileged uv cache boundary required the approved unchanged
+  elevated rerun. No acceptance flexibility or visual threshold changed.
+- Historical provider-policy revisions, broader field conflicts, family/provider population, and
+  exact V25 entitlement-conflict/area visuals remain open.
+
 ## 2026-08-19 — Market Map profile-provider precedence
 
 - Market-cap tile selection now uses the current free, enabled, adapter-capable metadata provider

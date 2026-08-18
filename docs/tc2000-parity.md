@@ -1,5 +1,22 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-19 — Market Map reconstructs historical entitlement state
+
+Market-cap area selection now evaluates the latest immutable `ProviderEntitlementRevision` known
+at the requested map end/as-of before applying the existing free, enabled, adapter-capable provider
+precedence. A later revision cannot change an earlier historical map. Tile provenance records the
+selected revision ID/version, effective/review dates, evaluation timestamp, and whether entitlement
+truth was reconstructed historically.
+
+Sources with no recorded revision retain a current-row compatibility fallback only with explicit
+`profile_snapshot_entitlement_revision_missing` cell/response warnings. A future revision is not
+eligible before its effective timestamp. The regression proves current-row mutation does not leak
+backward, a post-effective paid revision removes that provider, the lower-priority source is then
+selected, and cache identity changes. Focused precedence and complete watchlist integration pass.
+
+Historical provider-policy revision history, broader field-level conflicts, complete family/provider
+population, and exact Version 25 entitlement-conflict/area visuals remain open.
+
 ## 2026-08-19 — Market-cap profile snapshots respect free provider precedence
 
 Market Map market-cap areas now select the best currently eligible metadata snapshot without any

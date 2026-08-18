@@ -1,5 +1,22 @@
 # Project TODO Memory
 
+### 2026-08-19 — Historical entitlement revisions for Market Map profile areas
+
+- [x] Reconstruct metadata-provider eligibility at the requested Market Map end/as-of from the
+      latest immutable `ProviderEntitlementRevision` known at that timestamp; never let a future
+      free/paid or review state leak into a historical map.
+- [x] Keep deterministic provider precedence and cache identity tied to the selected historical
+      revision, and expose revision ID/version, effective/review dates, evaluation time, and
+      historical-versus-current evidence in each market-cap tile's provenance.
+- [x] Retain a narrowly labelled current-entitlement fallback only for sources with no recorded
+      revision; emit cell and response warnings so this compatibility path cannot be mistaken for
+      reconstructed historical entitlement truth.
+- [x] Add a regression covering current-row mutation, a future entitlement revision, historical
+      selection before that revision, post-effective selection after it, policy-cache invalidation,
+      the complete watchlists suite, Ruff, compileall, and diff checks.
+- [ ] Keep historical provider-policy revisions, field-level conflicts beyond market-cap,
+      complete family/provider population, and exact V25 area/provenance visuals open.
+
 ### 2026-08-19 — Market Map profile-provider precedence and entitlement cache identity
 
 - [x] Select market-cap profile snapshots from the currently enabled, free, adapter-capable
