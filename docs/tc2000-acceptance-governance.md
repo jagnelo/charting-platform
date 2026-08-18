@@ -1,5 +1,18 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-08-19 — Locked Market Map availability is source-polymorphic
+
+The locked-watchlist contract applies the same availability semantics to ordinary market-group
+and ETF-holdings sources as to benchmark-family legs. A populated source reports `available`;
+an empty group reports `membership_not_loaded`; and an ETF profile without a holdings snapshot
+reports `holdings_snapshot_not_loaded`. The shared picker keeps each source visible for audit,
+labels it `Unavailable`, disables it, and never substitutes another universe.
+
+The Docker-backed descriptor/API pair passes `2/2`; focused Market Map `24/24`, full frontend
+Vitest `888/888`, type-check, production build, Ruff, compileall, and diff checks pass. No
+acceptance flexibility was used. Provider entitlement/quality reconciliation, historical
+snapshot continuity, and exact V25 availability badges/copy/geometry remain tracked gaps.
+
 ## 2026-08-19 — Unavailable family-source picker state
 
 The universal locked-watchlist acceptance must keep missing benchmark-family roles visible and

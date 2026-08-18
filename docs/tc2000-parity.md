@@ -1,5 +1,18 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-19 — Locked Market Map availability is source-polymorphic
+
+Availability provenance now applies consistently to ordinary locked market groups and
+ETF-holdings sources as well as benchmark-family legs. Populated sources report `available`;
+empty group membership reports `membership_not_loaded`; an ETF profile without a holdings
+snapshot reports `holdings_snapshot_not_loaded`. The shared picker keeps all of them visible for
+audit, disables unavailable options, and never substitutes another universe.
+
+The Docker-backed descriptor/Market Map integration pair passes `2/2`; Ruff, compileall, full
+frontend Vitest `888/888`, type-check, production build, and diff checks pass. No acceptance
+flexibility was used. Provider entitlement/quality reconciliation, historical continuity, and
+exact V25 availability badges/copy/geometry remain open.
+
 ## 2026-08-19 — Unavailable family legs remain visible without becoming selectable
 
 The Market Map source picker now consumes the existing canonical family availability provenance.

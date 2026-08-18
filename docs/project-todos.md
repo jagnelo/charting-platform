@@ -1,5 +1,18 @@
 # Project TODO Memory
 
+### 2026-08-19 — Source-polymorphic availability for locked Market Map universes
+
+- [x] Add explicit availability provenance to locked market-group and ETF-holdings descriptors:
+      populated sources report `available`, empty groups report `membership_not_loaded`, and
+      profiles without a holdings snapshot report `holdings_snapshot_not_loaded`.
+- [x] Reuse the existing Market Map picker guard across these source kinds, keeping unavailable
+      sources visible and auditable while preventing accidental selection or substitution.
+- [x] Validate populated and empty source descriptors through the Docker-backed integration pair
+      `2/2`, Ruff, compileall, frontend Market Map `24/24`, full Vitest `888/888`, type-check,
+      production build, and diff checks.
+- [ ] Keep provider entitlement/quality, historical snapshot continuity, and exact V25 source
+      availability visuals tracked; no acceptance flexibility was used.
+
 ### 2026-08-19 — Keep unavailable family sources visible but non-selectable
 
 - [x] Use the canonical source provenance states `unavailable`, `profile_not_loaded`, and

@@ -1,5 +1,20 @@
 # Run Report
 
+## 2026-08-19 — Source-polymorphic locked Market Map availability
+
+- Locked market-group and ETF-holdings sources now expose explicit availability provenance beside
+  benchmark-family legs: `available`, `membership_not_loaded`, or
+  `holdings_snapshot_not_loaded`.
+- The shared Market Map picker keeps unavailable sources visible for audit, labels them
+  `Unavailable`, disables them, and never substitutes another universe. Backend descriptor/API
+  integration passes `2/2`; focused Market Map `24/24`; full frontend Vitest `888/888`; type-check,
+  production build, Ruff, compileall, and diff checks pass.
+- No acceptance flexibility or visual threshold/mask change was used. Exact V25 availability
+  badges/copy/geometry, provider quality, and historical continuity remain open gaps.
+- The initial unprivileged Docker-socket setup failure was retried unchanged with approved elevated
+  execution and passed. Implementation/docs/ops commits must be pushed and synchronized before the
+  next context.
+
 ## 2026-08-19 — Unavailable family-source picker state
 
 - Market Map now keeps benchmark-family roles with canonical availability states

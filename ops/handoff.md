@@ -1,5 +1,20 @@
 # Active Handoff
 
+## 2026-08-19 — Source-polymorphic locked Market Map availability
+
+- Extended canonical availability provenance to ordinary locked market-group and ETF-holdings
+  sources. Populated sources report `available`; empty groups report `membership_not_loaded`; an
+  ETF profile without a holdings snapshot reports `holdings_snapshot_not_loaded`.
+- Reused the shared picker guard so every unavailable state stays visible and labelled `Unavailable`
+  but disabled; no source or ticker is substituted. Added integration assertions for populated and
+  unavailable descriptors.
+- Validation: Docker-backed watchlist integration `2/2`, Ruff, compileall, focused Market Map
+  `24/24`, full frontend Vitest `888/888`, `vue-tsc`, production build, and diff checks. No
+  acceptance flexibility was used. Exact V25 availability visuals, provider quality, and
+  historical continuity remain tracked gaps.
+- Commit implementation and docs/ops closure, push, verify clean synchronization, then continue
+  provider-backed family population/quality reconciliation and universal Market Map acceptance.
+
 ## 2026-08-19 — Unavailable family-source picker state
 
 - Hardened the Market Map source picker to keep canonical benchmark-family roles marked

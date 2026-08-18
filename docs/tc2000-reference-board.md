@@ -1,5 +1,21 @@
 # TC2000 Version 25 composite reference board
 
+## 2026-08-19 — Availability badges for arbitrary locked universes remain a visual gap
+
+The product vision now treats every index/index-ETF constituent set as a locked watchlist that
+can feed the same Market Map as a personal or arbitrary list. The implementation distinguishes
+populated sources (`available`) from an empty membership load (`membership_not_loaded`) and an
+ETF profile with no holdings snapshot (`holdings_snapshot_not_loaded`); all remain visible for
+audit, are labelled `Unavailable`, and are disabled rather than silently replaced.
+
+The board has no authoritative exact-build V25 capture for these ordinary locked-source states.
+Gap status: `required_missing` for the exact unavailable label, provenance badge, disabled-option
+styling, and picker geometry across market groups and ETF holdings. Interim oracle: Docker-backed
+descriptor/API `2/2`, focused Market Map `24/24`, full frontend `888/888`, type/build, Ruff,
+compileall, and diff checks. No acceptance flexibility was used. Evidence needed: an authoritative
+V25 capture or an explicit product decision that this state is outside visual parity; provider
+quality and historical continuity remain separate gaps.
+
 ## 2026-08-19 — Unavailable family-source picker state remains unrepresented
 
 The board contains no authoritative exact-build capture for a benchmark-family source picker that

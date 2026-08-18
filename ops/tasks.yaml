@@ -1,4 +1,36 @@
 tasks:
+  - id: tc2000-market-map-source-availability-20260819
+    title: Make locked Market Map source availability consistent across source kinds
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Treat index/index-ETF constituent universes as first-class locked watchlists and expose
+      explicit availability provenance for market groups and ETF holdings alongside benchmark
+      family legs, while keeping unusable sources visible but non-selectable.
+    definition_of_done:
+      - populated market-group and ETF-holdings descriptors report availability available
+      - empty market groups report membership_not_loaded
+      - ETF profiles without a holdings snapshot report holdings_snapshot_not_loaded
+      - the shared Market Map picker disables these states without hiding or substituting sources
+      - backend integration and frontend regression coverage pass with current full-suite checks
+      - exact V25 availability visuals, provider quality, and historical continuity remain tracked
+    validation:
+      - backend-watchlist-source-availability-integration-2-of-2
+      - backend-ruff
+      - backend-compileall
+      - frontend-market-map-component-24-of-24
+      - frontend-vitest-888-of-888
+      - frontend-vue-tsc
+      - frontend-production-build
+      - git-diff-check
+    notes:
+      - >-
+        This was a concrete source-contract inconsistency under repository control and was fixed
+        immediately. No acceptance flexibility, visual threshold, provider rule, or source
+        substitution was used. The initial unprivileged Docker-socket setup failure was retried
+        unchanged with approved elevated execution and passed.
+
   - id: tc2000-market-map-unavailable-family-picker-20260819
     title: Keep unavailable benchmark-family Market Map sources visible and non-selectable
     status: completed
