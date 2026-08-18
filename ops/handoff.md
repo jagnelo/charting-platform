@@ -1,5 +1,21 @@
 # Active Handoff
 
+## 2026-08-19 — Explicit-source durability action
+
+- Added a direct `Save as watchlist` control whenever Market Map is in explicit-symbol mode. It
+  creates a user-owned personal list and writes every canonical member from the source descriptor's
+  `provenance.instrument_ids`, not only currently covered cells or visible tile geometry. This keeps
+  members with missing bars/area values from being lost.
+- Success count and failure feedback are rendered in the explicit-source controls. The locked
+  ephemeral source remains unchanged; durability is an explicit user action.
+- Validation passed: focused Market Map component `21/21`; full frontend Vitest `882/882`; type-check;
+  production build; and `git diff --check`. No acceptance flexibility or visual/provider/scope
+  relaxation. Exact V25 save-action wording/placement remains a reference-board gap.
+- Implementation/docs commit `8636c40e1204c55ed92407ea68df2f70393c6b1b` is pushed. This context
+  remains open only for the separate operational checkpoint and final state closure.
+- Next implementation context remains unified-Python promotion fan-out / derived-series work after
+  this operational boundary is closed.
+
 ## 2026-08-19 — Batch canonical security-master resolution
 
 - Replaced explicit Market Map's per-symbol canonical GET fan-out with one bounded

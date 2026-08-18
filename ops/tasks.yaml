@@ -11763,3 +11763,29 @@ tasks:
         it does not fall back to any provider. Existing dependency deprecation warnings are the
         only broader-suite warnings. Implementation/docs commit and separate operational checkpoint
         are pending; no next implementation context begins until both are pushed.
+  - id: tc2000-explicit-source-durability-20260819
+    title: Save complete explicit Market Map selections as personal watchlists
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Close the explicit-source durability gap by exposing a direct workstation action that writes
+      every canonical member in the locked ephemeral source descriptor to a user-owned personal
+      watchlist, including members with missing current bars or excluded map geometry.
+    definition_of_done:
+      - Explicit-source controls expose a named Save as watchlist action
+      - The action uses descriptor canonical member IDs rather than visible/covered map cells
+      - Personal watchlist creation and item writes remain user-isolated and do not mutate the locked source
+      - Success count and failures are visible, and focused/full frontend gates pass
+      - The board gap for exact V25 durability-control geometry remains recorded
+    validation:
+      - market-map-component-21-of-21
+      - frontend-vitest-882-of-882
+      - frontend-typecheck-build
+      - diff-check
+    notes:
+      - >-
+        No acceptance flexibility was used. The action closes the documented save-path gap while
+        preserving the ephemeral source until the user explicitly saves it. Members without current
+        bars are included from source provenance. Implementation/docs commit and separate
+        operational checkpoint are pending; no next context begins until both are pushed.

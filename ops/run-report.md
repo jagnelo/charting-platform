@@ -28682,3 +28682,13 @@ and strict visual gaps remain explicitly tracked.
   for progress/partial batch resolution/500-member rejection remain tracked board gaps.
 - Implementation/docs commit `307faa80cd19d97fe0a12092bdf445c0fc60aa5a` is pushed. Operational
   checkpoint and state closure are pending before the next context.
+# 2026-08-19 — Explicit-source durability action
+
+- Added a direct explicit-mode `Save as watchlist` action. It creates a user-owned personal list
+  and writes the complete canonical source descriptor member set, including members with no current
+  bars or valid area geometry; it never mutates the locked ephemeral source.
+- Evidence: focused Market Map component `21/21`; full frontend Vitest `882/882`; type-check;
+  production build; and diff-check. No acceptance flexibility. Exact V25 control geometry remains a
+  named reference-board gap.
+- Implementation/docs commit `8636c40e1204c55ed92407ea68df2f70393c6b1b` is pushed. Operational
+  checkpoint and state closure are pending before the next context.
