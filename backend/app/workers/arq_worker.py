@@ -108,7 +108,7 @@ async def task_bootstrap_core_workstation(ctx: dict):
     from app.services.workstation_bootstrap import bootstrap_core_workstation_data
 
     async with AsyncSessionLocal() as db:
-        result = await bootstrap_core_workstation_data(db)
+        result = await bootstrap_core_workstation_data(db, redis=ctx.get("redis"))
         logger.info(
             "Core workstation bootstrap complete: history=%d holdings=%d skipped=%s",
             sum(

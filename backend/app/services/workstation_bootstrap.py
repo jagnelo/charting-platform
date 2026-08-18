@@ -207,7 +207,43 @@ async def ensure_core_workstation_identities(db: AsyncSession) -> dict:
     }
 
 
-async def bootstrap_core_workstation_data(db: AsyncSession) -> dict:
+async def queue_core_family_member_history(db: AsyncSession, redis) -> dict:
+    """Queue member history after provider-backed core ETF snapshots are committed."""
+
+    if redis is None:
+        return {"status": "not_queued", "reason": "Redis worker queue unavailable"}
+
+    from app.services.benchmark_family_history import plan_benchmark_family_history_refresh
+
+    plan = await plan_benchmark_family_history_refresh(db)
+    queued = already_queued = 0
+    for instrument_id in plan["instrument_ids"]:
+        job = await redis.enqueue_job(
+            "task_bulk_fetch_instrument",
+            instrument_id,
+            plan["timeframes"],
+            _job_id=(
+                f"benchmark-family-bootstrap-history:{instrument_id}:"
+                f"{','.join(plan['timeframes'])}"
+            ),
+        )
+        if job is None:
+            already_queued += 1
+        else:
+            queued += 1
+    return {
+        "status": "queued",
+        "queued": queued,
+        "already_queued": already_queued,
+        "available_instrument_count": plan["available_instrument_count"],
+        "selected_instrument_count": plan["selected_instrument_count"],
+        "limited": plan["limited"],
+        "timeframes": plan["timeframes"],
+        "legs": plan["legs"],
+    }
+
+
+async def bootstrap_core_workstation_data(db: AsyncSession, redis=None) -> dict:
     """Hydrate missing core bars and holdings without inventing data.
 
     This is intentionally a worker task rather than API-startup work.  Each
@@ -325,10 +361,22 @@ async def bootstrap_core_workstation_data(db: AsyncSession) -> dict:
                 "message": str(exc)[:300],
             }
 
+    # Once the provider-backed ETF snapshots above are committed, queue the same
+    # canonical constituent history jobs used by the explicit maintenance routes.
+    # This keeps member bars out of interactive reads while making the opt-in core
+    # bootstrap actually useful for the locked top-down universes.
     await db.commit()
+    try:
+        family_history = await queue_core_family_member_history(db, redis)
+    except Exception as exc:  # noqa: BLE001 - retain bounded bootstrap outcome
+        family_history = {
+            "status": "queue_error",
+            "message": str(exc)[:300],
+        }
     return {
         "skipped": False,
         "identities": identities,
         "history": history,
         "holdings": holdings,
+        "family_history": family_history,
     }

@@ -16,6 +16,7 @@ from app.services.workstation_bootstrap import (
     CORE_WORKSTATION_INSTRUMENTS,
     CORE_WORKSTATION_REGISTRY,
     ensure_core_workstation_identities,
+    queue_core_family_member_history,
 )
 
 
@@ -151,3 +152,40 @@ def test_core_workstation_data_reloads_instrument_after_provider_rollback(db, mo
         "error",
     }
     assert result["history"][calls[0]]["status"] == "error"
+
+
+def test_core_bootstrap_queues_deduplicated_family_member_history(monkeypatch):
+    plan = {
+        "instrument_ids": [10, 20],
+        "timeframes": ["MN", "W1", "D1"],
+        "available_instrument_count": 2,
+        "selected_instrument_count": 2,
+        "limited": False,
+        "legs": [{"source_id": "benchmark-family:sp500:cap_weight", "status": "ready"}],
+    }
+
+    async def fake_plan(*_args, **_kwargs):
+        return plan
+
+    monkeypatch.setattr(
+        "app.services.benchmark_family_history.plan_benchmark_family_history_refresh",
+        fake_plan,
+    )
+
+    class FakeRedis:
+        def __init__(self):
+            self.calls = []
+
+        async def enqueue_job(self, *args, **kwargs):
+            self.calls.append((args, kwargs))
+            return object()
+
+    redis = FakeRedis()
+    result = asyncio.run(queue_core_family_member_history(object(), redis))
+
+    assert result["status"] == "queued"
+    assert result["queued"] == 2
+    assert result["already_queued"] == 0
+    assert len(redis.calls) == 2
+    assert redis.calls[0][0] == ("task_bulk_fetch_instrument", 10, ["MN", "W1", "D1"])
+    assert redis.calls[0][1]["_job_id"] == "benchmark-family-bootstrap-history:10:MN,W1,D1"
