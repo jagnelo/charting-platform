@@ -2142,6 +2142,34 @@ async def test_live_ishares_explicit_historical_as_of_snapshot():
 
 @pytest.mark.asyncio
 @pytest.mark.slow
+@_covers_live_provider("invesco")
+async def test_live_invesco_qqq_historical_fallback_is_sec_labelled():
+    """Prove dated QQQ uses periodic SEC evidence rather than current holdings."""
+
+    adapter = get_holdings_adapter("invesco")
+    assert adapter is not None
+
+    requested_date = date(2025, 12, 31)
+    result = await adapter.fetch_for_date(
+        symbol="QQQ",
+        requested_date=requested_date,
+        identifiers={"sec_cik": "0001067839"},
+    )
+
+    _assert_live_holdings_result(result, adapter_key="invesco", min_rows=100)
+    metadata = result.legal_metadata or {}
+    assert metadata["source_access"] == "sec_filing"
+    assert metadata["source_provider"] == "sec"
+    assert metadata["requested_holdings_date"] == requested_date.isoformat()
+    assert metadata["historical_as_of_policy"] == (
+        "latest_sec_filing_report_on_or_before_requested_date"
+    )
+    assert metadata["issuer_route"] == "invesco_current_monthly_only"
+    assert date.fromisoformat(str(metadata["composition_date"])) <= requested_date
+
+
+@pytest.mark.asyncio
+@pytest.mark.slow
 @_covers_live_provider("ishares")
 @pytest.mark.parametrize("symbol", ["IJR", "IWB", "IWD", "IWF", "IWN", "IWO", "IWV"])
 async def test_live_ishares_family_legs_support_historical_as_of_snapshots(symbol):
