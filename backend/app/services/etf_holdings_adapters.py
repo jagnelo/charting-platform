@@ -2897,6 +2897,7 @@ class IssuerCsvHoldingsAdapter(PublicCsvHoldingsAdapter):
         symbol: str,
         issuer_product_id: str | None,
         identifiers: dict[str, str],
+        end_date: date | None = None,
     ) -> HoldingsFetchResult | None:
         sec_cik = _identifier(identifiers, "sec_cik")
         if not sec_cik:
@@ -2928,6 +2929,7 @@ class IssuerCsvHoldingsAdapter(PublicCsvHoldingsAdapter):
                 filings = await discover_holdings_filings(
                     cik=sec_cik,
                     forms=forms,
+                    end_date=end_date,
                     max_filings=5,
                 )
             except Exception as exc:  # noqa: BLE001 - collect all fallback attempts.
@@ -4617,6 +4619,47 @@ class InvescoHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "terms_note": self.config.terms_note,
             },
         )
+
+    async def fetch_for_date(
+        self,
+        *,
+        symbol: str,
+        requested_date: date,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        """Reconstruct a dated snapshot from the latest SEC filing then known.
+
+        Invesco's public holdings endpoint is current/monthly and does not
+        expose a dated URL contract. SEC EDGAR is the independent free
+        historical route, so dated QQQ snapshots must be labelled as filing
+        reconstructions rather than presented as daily issuer history.
+        """
+
+        del source_url
+        result = await self._fetch_latest_sec_filing_holdings(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            identifiers=identifiers or {},
+            end_date=requested_date,
+        )
+        if result is None:
+            raise ValueError(
+                f"Invesco has no SEC holdings filing at or before {requested_date.isoformat()} "
+                f"for {symbol}."
+            )
+        result.legal_metadata = {
+            **(result.legal_metadata or {}),
+            "source_access": "sec_filing",
+            "source_provider": "sec",
+            "adapter_key": self.adapter_key,
+            "requested_holdings_date": requested_date.isoformat(),
+            "historical_as_of_policy": "latest_sec_filing_report_on_or_before_requested_date",
+            "issuer_route": "invesco_current_monthly_only",
+            "terms_note": self.config.terms_note,
+        }
+        return result
 
 
 class SchwabHoldingsAdapter(IssuerCsvHoldingsAdapter):

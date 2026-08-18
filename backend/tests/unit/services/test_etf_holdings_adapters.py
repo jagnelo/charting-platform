@@ -6792,6 +6792,51 @@ def test_invesco_adapter_resolves_default_live_route_from_symbol():
 
 
 @pytest.mark.asyncio
+async def test_invesco_dated_fetch_uses_sec_filing_at_or_before_requested_date(monkeypatch):
+    adapter = get_holdings_adapter("invesco")
+    assert adapter is not None
+    observed: dict[str, object] = {}
+
+    async def fake_sec_fallback(*, symbol, issuer_product_id, identifiers, end_date):
+        observed.update(
+            {
+                "symbol": symbol,
+                "issuer_product_id": issuer_product_id,
+                "identifiers": identifiers,
+                "end_date": end_date,
+            }
+        )
+        return HoldingsFetchResult(
+            rows=[CanonicalHoldingRow(symbol="NVDA", name="NVIDIA Corporation")],
+            source_url="https://www.sec.gov/Archives/edgar/data/1067839/fixture.xml",
+            source_identifier="0001067839-26-000001",
+            legal_metadata={
+                "route_resolution": "sec_edgar_filing_fallback",
+                "composition_date": "2026-06-30",
+            },
+        )
+
+    monkeypatch.setattr(adapter, "_fetch_latest_sec_filing_holdings", fake_sec_fallback)
+    result = await adapter.fetch_for_date(
+        symbol="QQQ",
+        requested_date=date(2026, 7, 15),
+        identifiers={"sec_cik": "0001067839"},
+    )
+
+    assert observed == {
+        "symbol": "QQQ",
+        "issuer_product_id": None,
+        "identifiers": {"sec_cik": "0001067839"},
+        "end_date": date(2026, 7, 15),
+    }
+    assert result.legal_metadata["requested_holdings_date"] == "2026-07-15"
+    assert result.legal_metadata["historical_as_of_policy"] == (
+        "latest_sec_filing_report_on_or_before_requested_date"
+    )
+    assert result.legal_metadata["issuer_route"] == "invesco_current_monthly_only"
+
+
+@pytest.mark.asyncio
 async def test_vanguard_adapter_fetches_public_json_api(monkeypatch):
     adapter = get_holdings_adapter("vanguard")
     assert adapter is not None
