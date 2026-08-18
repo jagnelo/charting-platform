@@ -1,5 +1,24 @@
 # Active Handoff
 
+## 2026-08-19 — Batch canonical security-master resolution
+
+- Replaced explicit Market Map's per-symbol canonical GET fan-out with one bounded
+  `POST /instruments/resolve-canonical` route. It accepts up to 500 symbols, normalizes and
+  deduplicates them, preserves requested order, returns `{resolved, missing}`, and performs only
+  local `Instrument` lookup. Authentication remains required, but there is no provider fallback.
+- Added `resolveCanonicalSymbols` frontend helper and changed Market Map explicit entry to use it.
+  Missing symbols produce an explicit error; the existing `explicit:<canonical-id,...>` locked,
+  ephemeral, non-point-in-time source semantics remain unchanged.
+- Validation passed: canonical boundary integration `4/4`; full backend `1552 passed, 402 skipped`
+  with only existing Nautilus/pandas deprecation warnings; frontend focused `26/26`; full Vitest
+  `881/881`; `vue-tsc`; production build; Ruff; compileall; YAML/JSON; and `git diff --check`.
+- No acceptance flexibility or visual/provider/scope relaxation. The board still lacks authoritative
+  progress, partial-missing, and 500-member-limit visuals; those remain named gaps.
+- Implementation/docs commit `307faa80cd19d97fe0a12092bdf445c0fc60aa5a` is pushed. This context
+  remains open only for the separate operational checkpoint and final state-closure commits.
+- Next implementation context remains the active unified-Python promotion fan-out / derived-series
+  work, after this operational boundary is closed.
+
 ## 2026-08-19 — Explicit canonical-instrument Market Map sources
 
 - Added an ephemeral `explicit:<canonical-id,...>` WatchlistSource. The backend accepts canonical

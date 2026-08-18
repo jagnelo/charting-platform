@@ -28668,3 +28668,17 @@ and strict visual gaps remain explicitly tracked.
 - Remaining open goal work: explicit durability/history/cross-window state, historical point-in-time
   weights, complete family/provider population, exact/unrepresented V25 visual coverage, universal
   Python promotion fan-out, and final acceptance/security/performance audit.
+# 2026-08-19 — Batch canonical security-master resolution
+
+- Added `POST /instruments/resolve-canonical` for bounded canonical-only symbol batches. It
+  normalizes, deduplicates, preserves order, returns canonical IDs and missing symbols, enforces
+  the 500-symbol limit, and cannot discover providers.
+- Market Map explicit symbol entry now performs one batch resolution request before building the
+  same locked ephemeral `explicit:<canonical-id,...>` source. No map/cache/snapshot/publication
+  semantics changed.
+- Evidence: canonical boundary `4/4`; backend full `1552 passed, 402 skipped`; frontend focused
+  `26/26`; full Vitest `881/881`; type-check/build; Ruff; compileall; YAML/JSON; and diff-check.
+- No acceptance flexibility. Existing third-party deprecation warnings only. Missing visual states
+  for progress/partial batch resolution/500-member rejection remain tracked board gaps.
+- Implementation/docs commit `307faa80cd19d97fe0a12092bdf445c0fc60aa5a` is pushed. Operational
+  checkpoint and state closure are pending before the next context.

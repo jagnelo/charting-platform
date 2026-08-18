@@ -11734,3 +11734,32 @@ tasks:
       - >-
         Implementation/docs commit and separate operational checkpoint are pending; no next
         implementation context begins until both are pushed and the tree is clean.
+  - id: tc2000-canonical-symbol-batch-resolution-20260819
+    title: Batch canonical security-master resolution for arbitrary Market Map selections
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Replace one-request-per-symbol explicit Market Map resolution with one bounded local
+      security-master batch request. Preserve deduplication, input order, missing-symbol reporting,
+      the 500-symbol bound, and strict no-provider-fan-out semantics.
+    definition_of_done:
+      - POST /instruments/resolve-canonical resolves a bounded local symbol set and returns canonical IDs plus missing symbols
+      - Frontend explicit Market Map entry uses one batch request and preserves the same ephemeral locked-source contract
+      - Provider discovery is impossible on the batch path and missing symbols are never silently omitted
+      - Boundary, helper, Market Map, full backend, frontend, type/build, lint, and diff gates pass
+      - The visual board's absent progress/partial/limit states remain documented as gaps
+    validation:
+      - canonical-boundary-integration-4-of-4
+      - backend-full-1552-passed-402-skipped
+      - frontend-focused-26-of-26
+      - frontend-vitest-881-of-881
+      - frontend-typecheck-build
+      - ruff-compileall-diff-check
+      - yaml-json-diff-check
+    notes:
+      - >-
+        No acceptance flexibility was used. The batch endpoint is intentionally canonical-only;
+        it does not fall back to any provider. Existing dependency deprecation warnings are the
+        only broader-suite warnings. Implementation/docs commit and separate operational checkpoint
+        are pending; no next implementation context begins until both are pushed.
