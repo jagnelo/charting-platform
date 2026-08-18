@@ -14,9 +14,10 @@
 - The initial browser run was setup-only because no stack was running. `make test-stack-up`
   rebuilt the branch-scoped services with `--build --force-recreate --wait`; the unchanged
   browser test then passed. Exact V25 history/tail geometry remains a reference-board gap.
-- Implementation commit and separate docs/ops checkpoint must be pushed and synchronized before
-  the next context. Next action: continue provider-backed family population/continuity and the
-  remaining universal WatchlistSource Market Map acceptance gaps.
+- Implementation `c371fa51939cd16202e297022a60a57e4a7770cc` and docs/ops checkpoint
+  `16bec96854f1f4602abac895e9f4356644603acf` are pushed and synchronized. Next action: continue
+  provider-backed family population/continuity and the remaining universal WatchlistSource Market
+  Map acceptance gaps.
 
 ## 2026-08-18 — Market Map provider-field conflicts are explicit
 

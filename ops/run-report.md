@@ -12,8 +12,9 @@
   `make test-stack-up` and the unchanged `F8s-rotation-family` oracle passed. Ruff, compileall,
   and diff-check pass. No acceptance flexibility or visual threshold/mask change.
 - Exact V25 history-control measurements and long-curve visual treatment remain an explicit board
-  gap. Close the implementation/docs/ops checkpoint before continuing provider-backed family
-  population/continuity.
+  gap. Implementation `c371fa51939cd16202e297022a60a57e4a7770cc` and docs/ops checkpoint
+  `16bec96854f1f4602abac895e9f4356644603acf` are pushed and synchronized before continuing
+  provider-backed family population/continuity.
 
 ## 2026-08-18 — Market Map provider-field conflict disclosure
 
