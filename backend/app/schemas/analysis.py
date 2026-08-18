@@ -714,7 +714,10 @@ class BreadthUniverseRequest(BaseModel):
     """A provider-neutral universe selector for reusable breadth studies."""
 
     kind: Literal["group", "benchmark_family", "etf_holdings", "watchlist", "symbols"]
-    key: str | None = Field(default=None, min_length=1, max_length=160)
+    # Source descriptors share the bounded canonical WatchlistSource identifier
+    # contract. Explicit selections can contain hundreds of canonical IDs and
+    # must remain usable by Python-backed map colours and breadth studies.
+    key: str | None = Field(default=None, min_length=1, max_length=4096)
     role: Literal["cap_weight", "equal_weight", "value", "growth"] = "cap_weight"
     symbols: list[str] = Field(default_factory=list, max_length=25_000)
     point_in_time: bool = True

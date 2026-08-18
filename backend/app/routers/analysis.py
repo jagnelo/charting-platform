@@ -5520,7 +5520,9 @@ async def _resolve_user_watchlist_breadth_universe(
     if not key:
         raise HTTPException(422, detail={"code": "watchlist_source_required"})
     source_id = f"watchlist:{key}" if key.isdigit() else key
-    if not source_id.startswith(("watchlist:", "market-group:", "etf-holdings:")):
+    if not source_id.startswith(
+        ("watchlist:", "market-group:", "etf-holdings:", "combo:", "explicit:")
+    ):
         raise HTTPException(422, detail={"code": "unsupported_watchlist_source", "source_id": key})
     try:
         resolved = await resolve_watchlist_source(

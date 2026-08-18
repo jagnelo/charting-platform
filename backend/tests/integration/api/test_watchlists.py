@@ -1033,6 +1033,23 @@ class TestWatchlistsCrud:
             instrument_b.id,
         ]
 
+        breadth = client.post(
+            "/api/v1/analysis/breadth",
+            headers=auth_headers,
+            json={
+                "universe": {"kind": "watchlist", "key": combo_id, "point_in_time": True},
+                "condition": {
+                    "kind": "above_moving_average",
+                    "params": {"period": 2, "average": "sma", "comparator": "above"},
+                },
+                "timeframe": "D1",
+                "adjusted": True,
+            },
+        )
+        assert breadth.status_code == 200, breadth.text
+        assert breadth.json()["universe"]["source_id"] == combo_id
+        assert breadth.json()["requested_count"] == 2
+
         updated_map = client.post(
             "/api/v1/analysis/market-map",
             headers=auth_headers,

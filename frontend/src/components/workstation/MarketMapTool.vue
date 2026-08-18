@@ -364,11 +364,23 @@ const colorLabel = computed(() => colorMetric.value.replace(/_/g, ' '))
 const canvasStyle = computed(() => ({ transform: `translate(${panX.value}%, ${panY.value}%) scale(${viewportZoom.value})` }))
 
 function pythonUniverse() {
-  const [kind, key] = sourceId.value.split(':', 2)
-  if (kind === 'watchlist' && key) return { kind: 'watchlist', key, point_in_time: true }
-  if (kind === 'market-group' && key) return { kind: 'group', key, point_in_time: true }
-  if (kind === 'etf-holdings' && key) return { kind: 'etf_holdings', key, point_in_time: true }
-  throw new Error('Python Market Map colours require a canonical watchlist, market group, or ETF holdings source.')
+  const source = sourceId.value
+  if (source.startsWith('watchlist:') && source.length > 'watchlist:'.length) {
+    return { kind: 'watchlist', key: source, point_in_time: true }
+  }
+  if (source.startsWith('market-group:') && source.length > 'market-group:'.length) {
+    return { kind: 'watchlist', key: source, point_in_time: true }
+  }
+  if (source.startsWith('etf-holdings:') && source.length > 'etf-holdings:'.length) {
+    return { kind: 'watchlist', key: source, point_in_time: true }
+  }
+  if (source.startsWith('combo:') && source.length > 'combo:'.length) {
+    return { kind: 'watchlist', key: source, point_in_time: true }
+  }
+  if (source.startsWith('explicit:') && source.length > 'explicit:'.length) {
+    return { kind: 'watchlist', key: source, point_in_time: false }
+  }
+  throw new Error('Python Market Map colours require a canonical watchlist source.')
 }
 
 async function loadPythonAssets() {
