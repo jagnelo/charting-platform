@@ -10,9 +10,11 @@
 - Validation: adapter/taxonomy units `505/505`, elevated opt-in live QQQE SEC probe `1/1`, Ruff,
   compileall, and diff-check. The first DNS failure was an environment boundary and the unchanged
   elevated rerun passed; no acceptance flexibility was used.
-- Implementation commit `d2b2bb85a30af2e551deb22c532aebde9452412c` is pushed. Separate docs/ops
-  checkpoint remains before the next implementation context. Daily/exact-rebalance truth, official
-  membership, family population, canonical bars, and exact V25 historical-source visuals remain open.
+- Implementation commit `d2b2bb85a30af2e551deb22c532aebde9452412c` and docs/ops checkpoint
+  `186fe282d8f9dc7776a9d94e2a08775e55099a6e` are pushed and synchronized. The next implementation
+  context is provider-backed family population/quality reconciliation. Daily/exact-rebalance truth,
+  official membership, family population, canonical bars, and exact V25 historical-source visuals
+  remain open.
 
 ## 2026-08-19 — Live QQQ SEC historical evidence
 

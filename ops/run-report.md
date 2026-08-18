@@ -11,8 +11,8 @@
 - No acceptance flexibility or visual/source rule was changed. SEC periodic evidence does not
   establish daily weights, exact rebalance timing, official membership, complete family population,
   canonical bars, or exact V25 historical-source visuals.
-- Implementation `d2b2bb85a30af2e551deb22c532aebde9452412c` is pushed; separate docs/ops closure is
-  required before the next context.
+- Implementation `d2b2bb85a30af2e551deb22c532aebde9452412c` and docs/ops checkpoint
+  `186fe282d8f9dc7776a9d94e2a08775e55099a6e` are pushed and synchronized before the next context.
 
 ## 2026-08-19 — Live QQQ SEC historical evidence
 
