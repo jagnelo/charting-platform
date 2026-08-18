@@ -1,5 +1,20 @@
 # Active Handoff
 
+## 2026-08-18 — Provider-quality provenance on universal locked sources
+
+- Extended benchmark-family coverage roles with adapter key/status/confidence and extended every
+  ETF-holdings and benchmark-family WatchlistSource provenance payload with adapter and snapshot
+  quality evidence: source quality, completeness, row/resolution counts, total weight, and
+  published-at timestamp.
+- Cached holdings remain available when the latest adapter status is failure; downstream consumers
+  receive the failure state instead of mistaking cached data for a fresh provider result. No
+  interactive provider calls were introduced.
+- Focused source/coverage tests pass 2/2; complete watchlist/workspace analysis passes 91/91;
+  Ruff, compileall, and diff checks pass. No acceptance flexibility was used. Exact V25 status,
+  stale/error, and quality visual treatment remains a reference-board gap.
+- Commit implementation and docs/ops closure, push, verify clean synchronization, then continue
+  provider-backed family population/quality reconciliation and universal Market Map acceptance.
+
 ## 2026-08-18 — Known-at tie-break for locked holdings sources
 
 - Fixed the shared ETF-holdings and benchmark-family WatchlistSource resolver so eligible snapshots

@@ -1,5 +1,18 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-08-18 — Cached holdings must retain provider-quality state
+
+Every locked ETF/index-proxy source must expose both its local holdings usability and its adapter
+route state. The descriptor and family coverage response must retain adapter key, status,
+confidence, snapshot source quality, completeness, row/resolution counts, total weight, and
+published-at evidence. A cached snapshot remains selectable when a later provider attempt fails,
+but the failure status must remain visible to downstream freshness/error presentation; no read may
+probe a provider or silently replace the source.
+
+The focused source/coverage tests pass 2/2, and the complete watchlist/workspace analysis suites
+pass 91/91. This is a repository-controlled contract completion with no acceptance flexibility;
+provider entitlement policy, historical reconciliation, and exact V25 status visuals remain gaps.
+
 ## 2026-08-18 — Known-at tie-break is mandatory for same-date holdings revisions
 
 For every locked ETF/index-proxy source, historical resolution must select the latest snapshot

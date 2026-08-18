@@ -1,5 +1,17 @@
 # TC2000 Version 25 composite reference board
 
+## 2026-08-18 — Provider-quality fields have no exact V25 visual authority
+
+Locked source descriptors now retain adapter status/confidence and snapshot quality/provenance,
+including the case where cached holdings remain usable after a provider failure. The board has no
+authoritative V25 capture for this route-status/freshness treatment in a source picker, coverage
+panel, or Market Map header.
+
+Gap status: required_missing for exact status badge, stale/error copy, confidence/quality detail,
+and geometry. Interim oracle: focused source/coverage 2/2 and full watchlist/workspace analysis
+91/91. No acceptance flexibility was used. Evidence needed: an authoritative V25 capture or an
+explicit decision that this diagnostic state is outside visual parity.
+
 ## 2026-08-18 — Same-date holdings revision state remains visually unrepresented
 
 The implementation now preserves point-in-time truth when two ETF/index-proxy holdings snapshots

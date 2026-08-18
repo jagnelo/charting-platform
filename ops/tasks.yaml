@@ -1,4 +1,32 @@
 tasks:
+  - id: tc2000-locked-source-provider-quality-provenance-20260818
+    title: Preserve adapter and holdings quality state on universal locked sources
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Expose canonical provider route identity and cached snapshot quality on ETF-holdings and
+      benchmark-family WatchlistSource descriptors and family coverage responses without provider
+      calls in interactive reads.
+    definition_of_done:
+      - family coverage roles expose adapter key, status, and confidence
+      - locked source provenance exposes adapter and snapshot quality evidence
+      - cached holdings remain available after adapter failure while failure status is retained
+      - focused source/coverage and complete watchlist/workspace analysis suites pass
+      - exact V25 status visuals and provider entitlement/reconciliation remain tracked
+    validation:
+      - backend-locked-source-quality-focused-2-of-2
+      - backend-watchlists-workspaces-analysis-91-of-91
+      - backend-ruff
+      - backend-compileall
+      - git-diff-check
+    notes:
+      - >-
+        This was a repository-controlled contract completion. No acceptance flexibility, visual
+        threshold, provider substitution, or interactive provider fan-out was used. The initial
+        Docker-socket setup failure was retried unchanged with approved elevated execution and
+        passed.
+
   - id: tc2000-watchlist-known-at-tie-break-20260818
     title: Prevent later-known same-date holdings revisions from leaking into Market Map history
     status: completed

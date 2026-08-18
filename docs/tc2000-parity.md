@@ -1,5 +1,19 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-18 — Locked source descriptors expose provider and snapshot quality
+
+The universal ETF-holdings and benchmark-family WatchlistSource contract now carries canonical
+adapter key, adapter status, adapter confidence, snapshot source quality, completeness, row and
+resolution counts, total weight, and published-at evidence. The family coverage endpoint exposes
+the adapter fields alongside its dated snapshot list. A cached holdings source therefore remains
+usable after a provider/adapter failure while preserving that failure state for freshness and
+error presentation; no interactive path probes or fans out to providers.
+
+Focused source/coverage validation passes 2/2; the complete watchlist and workspace analysis
+suites pass 91/91; Ruff, compileall, and diff checks pass. No acceptance flexibility was used.
+Provider entitlement/reconciliation, historical continuity, and exact V25 route-status/freshness
+visuals remain open.
+
 ## 2026-08-18 — Locked holdings resolution now breaks composition-date ties by known-at
 
 ETF-holdings and benchmark-family WatchlistSource resolution now orders eligible snapshots by

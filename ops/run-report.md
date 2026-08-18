@@ -1,5 +1,16 @@
 # Run Report
 
+## 2026-08-18 — Provider-quality provenance on universal locked sources
+
+- Added adapter identity/status/confidence to benchmark-family coverage and adapter/snapshot quality
+  evidence to all ETF-holdings and benchmark-family WatchlistSource descriptors.
+- Cached holdings remain usable after an adapter failure, with the failure retained for downstream
+  freshness/error treatment; interactive reads remain local and provider-neutral.
+- Focused source/coverage validation passes 2/2; full watchlist/workspace analysis passes 91/91;
+  Ruff, compileall, and diff checks pass. No acceptance flexibility or visual threshold change.
+- Exact V25 provider-status/freshness visuals, provider entitlement/reconciliation, and historical
+  continuity remain open. Implementation/docs/ops commits must be synchronized before next context.
+
 ## 2026-08-18 — Known-at tie-break for locked holdings sources
 
 - Corrected ETF-holdings and benchmark-family historical source resolution to use composition date,

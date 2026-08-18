@@ -1,5 +1,18 @@
 # Project TODO Memory
 
+### 2026-08-18 — Provider-quality provenance on universal locked sources
+
+- [x] Extend benchmark-family coverage roles with adapter key, adapter status, and adapter
+      confidence so route readiness is distinguishable from dated holdings coverage.
+- [x] Carry the same adapter and snapshot quality fields through every ETF-holdings and
+      benchmark-family WatchlistSource descriptor used by Market Map, breadth, scans, gauges,
+      and linked tools. Cached holdings remain available when a later adapter failure is present,
+      with the failure status retained for freshness/error presentation.
+- [x] Validate the focused source/coverage pair 2/2, complete watchlist/workspace analysis
+      suites 91/91, Ruff, compileall, and diff checks.
+- [ ] Keep entitlement policy, historical continuity, provider reconciliation, and exact V25
+      route-status/freshness visuals tracked; no acceptance flexibility was used.
+
 ### 2026-08-18 — Point-in-time known-at tie-breaking for locked holdings sources
 
 - [x] Make ETF-holdings and benchmark-family source resolution order snapshots by composition
