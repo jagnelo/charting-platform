@@ -101,26 +101,14 @@ def _return(bars: list[OHLCVBar], period: str, start: datetime | None, end: date
     if period.upper() == "CUSTOM":
         base = next((bar for bar in reversed(eligible) if start is not None and bar.ts < start), None)
     elif period.upper() in {"YTD", "MTD"}:
-        base_date = (
-            (latest.ts.year, latest.ts.month)
-            if period.upper() == "MTD"
-            else (latest.ts.year, 1)
-        )
-        base = next(
-            (
-                bar
-                for bar in eligible
-                if (
-                    (bar.ts.year, bar.ts.month)
-                    if period.upper() == "MTD"
-                    else (bar.ts.year, 1)
-                )
-                == base_date
-            ),
-            None,
-        )
-        if base is not None and base.ts == latest.ts:
-            base = eligible[-2] if len(eligible) > 1 else None
+        # MTD/YTD performance is measured from the last completed session before
+        # the calendar window, not from the first bar inside that window. Using
+        # the first in-window bar understates the move whenever the previous
+        # month/year closed at a different level and is not compatible with the
+        # standard market-map convention. If that baseline is unavailable, keep
+        # the result explicitly uncovered instead of silently changing the
+        # calculation to an in-window return.
+        base = next((bar for bar in reversed(eligible) if start is not None and bar.ts < start), None)
     else:
         offset = _OFFSETS.get(period.upper(), 1)
         base = eligible[-offset - 1] if len(eligible) > offset else None
