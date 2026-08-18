@@ -1,5 +1,21 @@
 # Active Handoff
 
+## 2026-08-19 — Market Map timeframe selection is propagated across source workflows
+
+- Replaced the workstation's hard-coded D1 map resolution with persisted Daily/Weekly/Monthly
+  selection. The selected timeframe now governs the local batch map, history status/refresh,
+  durable progress context, isolated Python colour runs, reusable breadth definitions, and named
+  snapshot restoration for all locked and editable source kinds.
+- Changing timeframe clears stale history-run state and re-reads local readiness without changing
+  membership. Validation: Market Map component `25/25`; backend Market Map unit `5/5`; full
+  frontend Vitest `890/890`; type-check/build; diff check. Acceptance flexibility used: **None**.
+- Implementation `f4acb1574c44ac6f4021fda55d8de12dcd3ba05a` and docs/visual-gap/ops checkpoint
+  `441953d8e69260fc622e747929efedd98a7b4788` are pushed. Final state closure will record this
+  handoff; verify its enclosing SHA externally.
+- The board's exact V25 timeframe-control geometry/copy/loading state is a `required_missing`
+  visual gap. Provider-backed family completeness, historical reconciliation, large-list
+  rendering, and exact V25 maintenance/progress geometry remain open.
+
 ## 2026-08-19 — Market Map durable refresh progress is visible and cancellable
 
 - Added durable-run clients and controls in `frontend/src/lib/workstation/marketMap.ts` and
