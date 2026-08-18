@@ -5413,7 +5413,12 @@ async def _resolve_benchmark_family_breadth_universe(
             # Reuse the same locked source resolver as Market Map/watchlists so
             # derived equal-weight membership has one point-in-time lineage.
             source_id = f"benchmark-family:{family_key}:equal_weight"
-            resolved = await resolve_watchlist_source(db, 0, source_id, as_of=definition.as_of)
+            resolved = await resolve_watchlist_source(
+                db,
+                0,
+                source_id,
+                as_of=definition.as_of if definition.universe.point_in_time else None,
+            )
             if not resolved.members:
                 if any(
                     str(item.get("reason", "")).startswith("holdings_snapshot")
