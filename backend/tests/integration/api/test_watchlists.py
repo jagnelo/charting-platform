@@ -1078,6 +1078,88 @@ class TestWatchlistsCrud:
         assert historical.json()["members"] == []
         assert historical.json()["exclusions"][0]["reason"] == "membership_not_known_at_as_of"
 
+    def test_explicit_source_history_refresh_uses_the_same_source_contract(
+        self, client, auth_headers, db, watchlist, instrument, monkeypatch
+    ):
+        from app.models.watchlist import WatchlistItem
+
+        db.add(
+            WatchlistItem(
+                watchlist_id=watchlist.id,
+                instrument_id=instrument.id,
+                position=0,
+            )
+        )
+        group = MarketGroup(
+            stable_key="history-refresh-index",
+            group_type="market_group",
+            name="History refresh index",
+            source="controlled_fixture",
+            effective_at=datetime(2024, 1, 1, tzinfo=UTC),
+            known_at=datetime(2024, 1, 1, tzinfo=UTC),
+        )
+        db.add(group)
+        db.flush()
+        db.add(
+            MarketGroupMember(
+                market_group_id=group.id,
+                instrument_id=instrument.id,
+                position=0,
+                relationship_type="constituent",
+                source="controlled_fixture",
+                verification_state="verified",
+                effective_at=group.effective_at,
+                known_at=group.known_at,
+            )
+        )
+        db.flush()
+
+        class FakeRedis:
+            def __init__(self):
+                self.calls = []
+
+            async def enqueue_job(self, *args, **kwargs):
+                self.calls.append((args, kwargs))
+                return object()
+
+            async def aclose(self):
+                return None
+
+        redis = FakeRedis()
+
+        async def fake_create_pool(*_args, **_kwargs):
+            return redis
+
+        monkeypatch.setattr("arq.connections.create_pool", fake_create_pool)
+        response = client.post(
+            "/api/v1/watchlists/sources/history-refresh",
+            headers=auth_headers,
+            json={
+                "source_ids": [
+                    f"watchlist:{watchlist.id}",
+                    "market-group:history-refresh-index",
+                ],
+                "timeframes": ["D1"],
+            },
+        )
+
+        assert response.status_code == 200, response.text
+        body = response.json()
+        assert body["available_instrument_count"] == 1
+        assert body["selected_instrument_count"] == 1
+        assert body["queued"] == 1
+        assert body["queue_unavailable"] is False
+        assert [source["source_id"] for source in body["sources"]] == [
+            f"watchlist:{watchlist.id}",
+            "market-group:history-refresh-index",
+        ]
+        assert body["sources"][1]["locked"] is True
+        assert redis.calls[0][0] == (
+            "task_bulk_fetch_instrument",
+            instrument.id,
+            ["D1"],
+        )
+
     def test_benchmark_family_leg_sources_feed_the_same_map_and_breadth_contract(
         self, client, auth_headers, db, instrument, instrument_type, ohlcv_bars
     ):

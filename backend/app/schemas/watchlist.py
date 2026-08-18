@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class WatchlistCreate(BaseModel):
@@ -90,3 +90,43 @@ class WatchlistSourceResolvedRead(BaseModel):
     source: WatchlistSourceRead
     members: list[WatchlistSourceMemberRead] = []
     exclusions: list[dict] = []
+
+
+class WatchlistSourceHistoryRefreshRequest(BaseModel):
+    """Explicit, bounded request to hydrate canonical history for source members."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    source_ids: list[str] = Field(min_length=1, max_length=256)
+    timeframes: list[str] = Field(default_factory=list, max_length=12)
+    as_of: datetime | None = None
+    max_instruments: int = Field(default=5000, ge=1, le=5000)
+
+
+class WatchlistSourceHistoryRefreshSourceOut(BaseModel):
+    source_id: str
+    source_kind: str | None = None
+    name: str
+    locked: bool = False
+    status: str
+    member_count: int = 0
+    selected_count: int = 0
+    deduplicated_count: int = 0
+    excluded_count: int = 0
+    membership_version: str | None = None
+    message: str | None = None
+
+
+class WatchlistSourceHistoryRefreshSummary(BaseModel):
+    source_ids: list[str]
+    timeframes: list[str]
+    as_of: datetime | None = None
+    max_instruments: int
+    available_instrument_count: int
+    selected_instrument_count: int
+    limited: bool
+    queued: int
+    already_queued: int = 0
+    queue_unavailable: bool = False
+    sources: list[WatchlistSourceHistoryRefreshSourceOut] = Field(default_factory=list)
+    message: str | None = None

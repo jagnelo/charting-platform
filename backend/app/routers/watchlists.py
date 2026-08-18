@@ -18,10 +18,13 @@ from app.schemas.watchlist import (
     WatchlistItemRead,
     WatchlistItemUpdate,
     WatchlistRead,
+    WatchlistSourceHistoryRefreshRequest,
+    WatchlistSourceHistoryRefreshSummary,
     WatchlistSourceMemberRead,
     WatchlistSourceRead,
     WatchlistSourceResolvedRead,
 )
+from app.services.watchlist_history import plan_watchlist_source_history_refresh
 from app.services.watchlist_sources import list_watchlist_sources, resolve_watchlist_source
 
 router = APIRouter(prefix="/watchlists", tags=["watchlists"])
@@ -67,6 +70,101 @@ async def get_watchlist_source_members(
             for member in resolved.members
         ],
         exclusions=list(resolved.exclusions),
+    )
+
+
+@router.post(
+    "/sources/history-refresh",
+    response_model=WatchlistSourceHistoryRefreshSummary,
+)
+async def queue_watchlist_source_history_refresh(
+    body: WatchlistSourceHistoryRefreshRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Queue explicit, bounded history hydration for any resolved source.
+
+    This is a maintenance action, not an interactive data fallback.  It uses
+    the same canonical source resolver as Market Map and breadth, then queues
+    the existing provider-neutral per-instrument worker.  Personal sources are
+    resolved in the current user's scope; system-managed sources remain locked
+    and retain their own membership provenance.
+    """
+
+    from arq.connections import RedisSettings, create_pool
+
+    from app.config import settings
+
+    try:
+        plan = await plan_watchlist_source_history_refresh(
+            db,
+            current_user.id,
+            source_ids=body.source_ids,
+            as_of=body.as_of,
+            max_instruments=body.max_instruments,
+            timeframes=body.timeframes,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    queued = 0
+    already_queued = 0
+    try:
+        redis = await create_pool(RedisSettings.from_dsn(settings.REDIS_URL))
+        try:
+            for instrument_id in plan["instrument_ids"]:
+                job = await redis.enqueue_job(
+                    "task_bulk_fetch_instrument",
+                    instrument_id,
+                    plan["timeframes"],
+                    _job_id=(
+                        f"watchlist-source-history:{instrument_id}:{','.join(plan['timeframes'])}"
+                    ),
+                )
+                if job is None:
+                    already_queued += 1
+                else:
+                    queued += 1
+        finally:
+            await redis.aclose()
+    except Exception as exc:  # noqa: BLE001 - queue outage is explicit to the caller.
+        return WatchlistSourceHistoryRefreshSummary(
+            **{
+                key: plan[key]
+                for key in (
+                    "source_ids",
+                    "timeframes",
+                    "as_of",
+                    "max_instruments",
+                    "available_instrument_count",
+                    "selected_instrument_count",
+                    "limited",
+                    "sources",
+                )
+            },
+            queued=queued,
+            already_queued=already_queued,
+            queue_unavailable=True,
+            message=f"History queue unavailable after {queued + already_queued} jobs: {exc}",
+        )
+
+    return WatchlistSourceHistoryRefreshSummary(
+        **{
+            key: plan[key]
+            for key in (
+                "source_ids",
+                "timeframes",
+                "as_of",
+                "max_instruments",
+                "available_instrument_count",
+                "selected_instrument_count",
+                "limited",
+                "sources",
+            )
+        },
+        queued=queued,
+        already_queued=already_queued,
+        message=("Selection was bounded by max_instruments." if plan["limited"] else None),
     )
 
 
