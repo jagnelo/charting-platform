@@ -1,5 +1,30 @@
 # Project TODO Memory
 
+### 2026-08-19 — Durable history-refresh runs for arbitrary heatmap watchlists
+
+- [x] Persist each authenticated `POST /api/v1/watchlists/sources/history-refresh` request as a
+      user-owned `WatchlistHistoryRefreshRun`, retaining canonical source IDs, membership
+      versions, point-in-time cutoff, bounded instrument IDs, timeframes, queue counts, and
+      structured progress/error state. This is the same source-polymorphic maintenance boundary
+      used by Market Map, breadth, scans, and linked charts; locked index/ETF/sector/industry
+      universes remain immutable watchlists while personal/combo/explicit lists retain their own
+      membership rules.
+- [x] Return the durable `run_id`, expose ownership-safe run status, aggregate existing Redis
+      per-instrument progress without provider fan-out, and add cancellation that persists even
+      when Redis is unavailable. Worker jobs accept an optional run ID and check a run-scoped
+      cancellation marker before and between timeframe fetches; existing deterministic job IDs
+      and shared-job idempotence are preserved.
+- [x] Add migration/model/schema/router/worker regressions. Focused durable-run and worker tests
+      pass; the complete watchlist integration passes `44/44`; full backend units pass
+      `1223/1223`; Ruff, compileall, and diff checks pass. No acceptance flexibility, visual
+      threshold/mask, provider substitution, or interactive provider fan-out was introduced.
+- [ ] This closes durable maintenance identity and cancellation, not provider-backed population,
+      canonical bar continuity, historical membership reconciliation, provider entitlements,
+      all-family acceptance, or exact Version 25 maintenance/progress visuals. Shared existing
+      per-instrument job/progress keys mean an already-running job deduplicated into a later run
+      cannot be canceled by that later run; the status response retains `already_queued` evidence
+      and this limitation remains a tracked gap rather than being hidden.
+
 ### 2026-08-19 — Core bootstrap queues provider-backed family member history
 
 - [x] Extend the opt-in worker `task_bootstrap_core_workstation` so the existing provider-backed

@@ -1,4 +1,33 @@
 tasks:
+  - id: tc2000-durable-source-history-runs-20260819
+    title: Persist and cancel arbitrary canonical watchlist history refresh runs
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Make the universal TC2000-style heatmap/watchlist source maintenance boundary durable for
+      personal, managed, index, ETF-holdings, benchmark-family, combo, and explicit sources without
+      adding provider work to interactive reads.
+    definition_of_done:
+      - Persist user-owned source IDs, membership versions, bounded canonical IDs, as_of, timeframes, queue counts, and progress in a new migration-backed run model
+      - Return run_id from the generic source history-refresh endpoint and provide owner-only status and cancellation routes
+      - Aggregate existing Redis per-instrument progress without provider fan-out and preserve local persisted state when Redis is unavailable
+      - Worker accepts optional run IDs and checks run cancellation before and between timeframe fetches
+      - Preserve deterministic shared job IDs and explicitly report already-queued cancellation limitation
+      - Durable-run/worker tests, watchlist integration 44/44, backend units 1223/1223, Ruff, compileall, and diff checks pass
+      - Provider-backed family population, historical continuity, entitlements, all-root acceptance, and exact V25 maintenance visuals remain open
+    validation:
+      - backend-durable-run-worker-focused-16-of-16
+      - backend-watchlists-integration-44-of-44
+      - backend-unit-suite-1223-of-1223
+      - backend-ruff
+      - backend-compileall
+      - git-diff-check
+    notes:
+      - >-
+        No acceptance flexibility was used. A later run that deduplicates onto an already queued
+        shared instrument job cannot cancel that earlier job; the API retains already_queued evidence.
+
   - id: tc2000-bootstrap-family-member-history-20260819
     title: Hand provider-backed core bootstrap into family member-history hydration
     status: completed

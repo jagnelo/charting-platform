@@ -1,5 +1,31 @@
 # Active Handoff
 
+## 2026-08-19 — Durable arbitrary-source history refresh runs
+
+- Added `WatchlistHistoryRefreshRun` plus migration `fb1c2d3e4f5a`. The generic source history
+  refresh now persists the user-owned source IDs, membership versions, point-in-time cutoff,
+  bounded canonical member IDs, timeframes, queue counts, and progress/error state before queueing
+  the existing provider-neutral bulk-history jobs.
+- Added owner-safe `GET /api/v1/watchlists/history-refresh-runs/{run_id}` and cancellation
+  `POST .../{run_id}/cancel`. Status aggregates existing Redis per-instrument progress only;
+  cancellation remains durable when Redis is unavailable and signals a run-scoped marker when it
+  is available. Worker jobs check cancellation before and between timeframe calls.
+- Deterministic shared job IDs remain unchanged for idempotence. If a later run attaches to a job
+  already queued by an earlier run, `already_queued` is retained and the later run cannot cancel
+  that shared earlier job; this is a documented limitation, not a hidden claim of cancellation.
+- Owned implementation paths: `backend/app/models/watchlist_history.py`, migration
+  `fb1c2d3e4f5a`, `backend/app/schemas/watchlist.py`, `backend/app/routers/watchlists.py`,
+  `backend/app/services/bulk_fetch.py`, `backend/app/workers/arq_worker.py`, and the history
+  refresh integration/unit regressions.
+- Validation: focused durable-run/worker tests `16/16`; complete watchlist integration `44/44`;
+  full backend unit suite `1223/1223`; Ruff, compileall, and diff checks pass. Alembic heads now
+  at `fb1c2d3e4f5a`; the branch-local database is one revision behind, so `alembic check` reports
+  the expected target-not-up-to-date state rather than being misrepresented as a green round-trip.
+- No acceptance flexibility, visual threshold/mask, provider substitution, or interactive
+  provider fan-out was introduced. Remaining: provider-backed family population and historical
+  continuity, entitlements/reconciliation, all-root acceptance, and exact V25 maintenance/progress
+  visuals. Next context: continue provider-backed family population/continuity.
+
 ## 2026-08-19 — Core bootstrap queues provider-backed family member history
 
 - Extended `bootstrap_core_workstation_data(db, redis=...)` and

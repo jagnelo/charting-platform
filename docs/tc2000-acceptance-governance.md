@@ -1,5 +1,24 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-08-19 — Durable refresh-run and arbitrary-watchlist heatmap gate
+
+The heatmap acceptance oracle remains source-polymorphic: an index/index-ETF constituent set is a
+locked system-managed watchlist, not a separate visualization. It must use the same source ID,
+membership-version, point-in-time, coverage, provenance, freshness, map, breadth, and linked-chart
+contracts as a personal or combo watchlist; only membership editing differs. Any explicit history
+hydration request must create a user-owned durable run containing the resolved source IDs, versions,
+selected canonical IDs, timeframes, cutoff, bound, queue counts, and errors. Status is readable only
+by the owner, aggregates existing local worker progress, and never starts a provider request.
+
+Cancellation must persist even during Redis outage and must signal active worker jobs before and
+between timeframe calls. Shared deterministic per-instrument jobs remain idempotent; an
+`already_queued` job owned by an earlier run is not silently claimed as cancelable by a later run.
+The response and acceptance evidence must retain that limitation. Focused durable-run/worker tests,
+full watchlist integration `44/44`, backend unit suite `1223/1223`, Ruff, compileall, and diff checks
+are required for this gate. No visual threshold, mask, provider entitlement, or exact-build V25
+criterion is relaxed; exact V25 maintenance/progress visuals and provider-backed historical
+continuity remain open.
+
 ## 2026-08-19 — Core bootstrap hands holdings into canonical member-history hydration
 
 When the opt-in core workstation bootstrap is enabled, acceptance must verify that it commits the

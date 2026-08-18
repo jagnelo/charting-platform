@@ -1,5 +1,25 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-19 — Arbitrary heatmap watchlists have durable hydration runs
+
+The universal heatmap contract treats an index or index-ETF constituent universe as a locked
+watchlist: it can be followed, pinned, selected, drilled, compared, filtered, scanned, used for
+breadth, or published to linked charts, while its canonical membership cannot be edited. Personal,
+managed, sector, industry, combo, ETF-holdings, benchmark-family, and explicit sources use the same
+map/readiness contract. Explicit history hydration now creates a durable, user-isolated run that
+records the exact source IDs, membership versions, `as_of`, bounded canonical member selection,
+timeframes, queue outcome, and current coverage/progress. `GET /watchlists/history-refresh-runs/{id}`
+aggregates existing worker progress without contacting providers; `POST .../{id}/cancel` persists
+cancellation and signals running jobs. This makes large arbitrary heatmap watchlists resumable and
+auditable instead of only returning a one-shot queue count.
+
+The worker checks cancellation before and between timeframe requests. Deterministic instrument job
+IDs remain shared for idempotence; when a later run attaches to an already queued shared job, its
+`already_queued` count and the shared-job cancellation limitation remain explicit. This is an
+implementation/contract gate, not exact-build V25 visual approval. Provider-backed family
+population, historical composition continuity, entitlement reconciliation, and exact V25
+maintenance/progress geometry remain open.
+
 ## 2026-08-19 — Bootstrap now hands off provider-backed family member history
 
 The opt-in core workstation worker now commits provider-backed ETF-holdings snapshots before it

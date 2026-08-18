@@ -1,5 +1,22 @@
 # Run Report
 
+## 2026-08-19 — Durable arbitrary-source history refresh runs
+
+- The universal TC2000-style heatmap source contract now has durable maintenance identity. Every
+  explicit source history refresh persists exact user scope, source IDs, membership versions,
+  `as_of`, selected canonical IDs, timeframes, bound, queue counts, and progress/error state.
+- Owner-only status and cancellation routes aggregate existing Redis worker progress without
+  provider fan-out. Cancellation persists through queue outages and workers check the marker before
+  and between timeframe fetches. Existing deterministic shared job IDs remain idempotent; an
+  already-queued job attached to a later run is explicitly not cancelable by that later run.
+- Validation passed: focused durable-run/worker tests `16/16`; complete watchlist integration
+  `44/44`; full backend units `1223/1223`; Ruff, compileall, and diff-check. `alembic heads`
+  reports `fb1c2d3e4f5a`; the local branch DB remains at `fa0b1c2d3e4f`, so `alembic check` is
+  recorded as a target-not-up-to-date environment result rather than a false pass.
+- No acceptance flexibility or visual threshold/mask change. Open gaps remain provider-backed
+  family membership/bar continuity, historical reconciliation, entitlements/provider quality,
+  all-root acceptance, and exact V25 maintenance/progress visuals.
+
 ## 2026-08-19 — Core bootstrap queues provider-backed family member history
 
 - The opt-in core workstation worker now commits provider-backed ETF holdings before resolving
