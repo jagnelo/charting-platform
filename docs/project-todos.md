@@ -1,5 +1,15 @@
 # Project TODO Memory
 
+### 2026-08-19 — Historical combo active-window semantics
+
+- [x] Evaluate union/intersection/exclusion combo membership using the same per-item
+      `added_at`/`left_screener_at` active-window predicate as direct watchlist sources.
+- [x] Preserve deterministic ordering while excluding departed dependencies at or before `as_of`.
+- [x] Return explicit departure/unknown membership exclusions and add a Docker-backed historical
+      combo regression; the complete watchlists integration suite passes.
+- [ ] Keep append-only re-entry reconstruction, historical combo-definition versions, complete
+      provider population, and exact V25 departure/revision visuals open.
+
 ### 2026-08-19 — Historical managed-watchlist departure semantics
 
 - [x] Apply the canonical WatchlistSource active interval (`added_at <= as_of` and

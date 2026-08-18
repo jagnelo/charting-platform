@@ -1,5 +1,13 @@
 # TC2000 Version 25 composite reference board
 
+## 2026-08-19 combo historical departure gap narrowed
+
+No authoritative board state shows how Version 25 presents a combo whose union/intersection or
+exclusion dependency changes across time. The implementation now applies dependency active
+intervals at `as_of`, preserves deterministic active ordering, and reports departed members as
+structured exclusions. Complete watchlists integration coverage is the interim oracle. Exact
+combo revision badges/history controls and multi-episode re-entry visuals remain unrepresented.
+
 ## 2026-08-19 managed departure as-of gap narrowed
 
 The board has no authoritative capture of how Version 25 displays a managed constituent during its

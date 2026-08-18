@@ -1,5 +1,17 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-19 — Derived combo universes honor historical departures
+
+Union/intersection/exclusion `combo:*` sources now apply each dependency item's active interval
+at the requested `as_of`. A member that is present before `left_screener_at` but departed on or
+before the requested timestamp is excluded with an explicit reason; union ordering and active
+duplicates remain deterministic. This keeps combo heatmaps, breadth, scans, and linked analysis
+consistent with direct managed-watchlist history.
+
+The complete watchlists integration suite passes `37/37`. Re-entry across multiple membership
+episodes still needs an append-only ledger, and exact Version 25 departure/revision visuals remain
+reference-board gaps.
+
 ## 2026-08-19 — Managed departures are excluded at historical as-of
 
 Historical personal/managed WatchlistSource resolution now applies each membership's active

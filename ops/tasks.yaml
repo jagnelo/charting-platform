@@ -1,4 +1,27 @@
 tasks:
+  - id: tc2000-combo-departure-asof-20260819
+    title: Apply historical active windows to derived combo sources
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Make union/intersection/exclusion combo WatchlistSources use the same canonical dependency
+      active-window semantics as direct managed lists when a historical as_of is requested.
+    definition_of_done:
+      - Combo membership evaluates added_at and left_screener_at per dependency at as_of
+      - Departed members are excluded with structured reasons while active duplicate union members remain
+      - Ordering, current grace-period behavior, and user isolation remain unchanged
+      - Complete watchlists integration, Ruff, compileall, and diff checks pass
+      - Append-only re-entry and exact V25 combo revision visuals remain tracked gaps
+    validation:
+      - backend-watchlists-integration-37-of-37
+      - backend-ruff-compileall
+      - git-diff-check
+    notes:
+      - >-
+        No acceptance flexibility used. This closes historical departure semantics for current
+        combo dependencies; it does not invent multi-episode history.
+
   - id: tc2000-watchlist-departure-asof-20260819
     title: Exclude departed managed members from historical universes
     status: completed

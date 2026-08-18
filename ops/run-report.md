@@ -1,5 +1,16 @@
 # Run Report
 
+## 2026-08-19 — Historical combo active-window repair
+
+- Derived combo sources now apply dependency active windows at `as_of`, preventing departed
+  members from being resurrected in historical heatmaps/breadth while preserving active union,
+  intersection, exclusion, and ordering semantics.
+- Complete `backend/tests/integration/api/test_watchlists.py` passes `37/37`; Ruff, compileall,
+  and `git diff --check` pass. No acceptance flexibility or visual threshold changed.
+- Implementation commit `2713c9ec708f7d7ace309a518fa8f73f768511da` is pushed. Append-only
+  re-entry, combo-definition history, provider/family population, and exact V25 visuals remain
+  explicit gaps.
+
 ## 2026-08-19 — Historical managed-watchlist departure repair
 
 - Historical personal/managed WatchlistSource resolution now excludes members with

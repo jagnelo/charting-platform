@@ -1,5 +1,17 @@
 # Active Handoff
 
+## 2026-08-19 — Historical combo active-window repair
+
+- Derived `combo:*` sources now evaluate union/intersection/exclusion dependencies with the same
+  `added_at`/`left_screener_at` active-window predicate as direct WatchlistSources. Departed
+  members are excluded at or after `as_of`, while active duplicates retain deterministic order.
+- Added a historical combo regression and ran the complete watchlists integration suite: `37/37`.
+  Ruff, compileall, and `git diff --check` also pass. No acceptance flexibility used.
+- Implementation commit `2713c9ec708f7d7ace309a518fa8f73f768511da` is pushed. Documentation and
+  operational checkpoint are next, followed by the separate state closure.
+- Append-only multi-episode re-entry, combo definition history, provider population, and exact
+  V25 combo revision visuals remain open.
+
 ## 2026-08-19 — Historical managed-watchlist departure repair
 
 - Historical WatchlistSource resolution now applies the member active interval: an item is known
