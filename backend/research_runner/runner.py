@@ -2296,6 +2296,177 @@ class _Research:
             "sample_size": len(points),
         }
 
+    def breadth_python(
+        self,
+        dataset: dict,
+        source: str,
+        output_contract: str = "series",
+        parameters: dict | None = None,
+        series_target: dict | None = None,
+        condition_tree: dict | None = None,
+        history: bool = False,
+        output_name: str | None = None,
+    ) -> dict:
+        """Evaluate one isolated Python member predicate as a reusable breadth study.
+
+        The normal breadth worker evaluates a user condition once per member and can
+        optionally apply a cross-sectional statistic.  Study Lab runs, however, receive
+        one prepared universe in a single isolated invocation.  This helper keeps the
+        same member/timestamp alignment and exclusion semantics while allowing a promoted
+        breadth definition to be rerun as a structured study.  ``source`` is executed by
+        the same locked runner with the same read-only member dataset; it never gains
+        provider, filesystem, network, or host access.
+        """
+        if not isinstance(source, str) or not source.strip():
+            raise ValueError("breadth Python source must be a non-empty string")
+        if output_contract not in {"boolean", "series"}:
+            raise ValueError("breadth Python output contract must be boolean or series")
+        datasets = dataset.get("datasets")
+        if not isinstance(datasets, list):
+            raise ValueError("Declared prepared universe is unavailable")
+        parameters = parameters if isinstance(parameters, dict) else {}
+        if series_target is not None and not isinstance(series_target, dict):
+            raise ValueError("breadth Python series target must be an object")
+        if condition_tree is not None and not isinstance(condition_tree, dict):
+            raise ValueError("breadth Python condition tree must be an object")
+
+        first_timestamps = next(
+            (
+                item.get("timestamps")
+                for item in datasets
+                if isinstance(item, dict) and isinstance(item.get("timestamps"), list)
+            ),
+            [],
+        )
+        timestamps = [
+            value for value in first_timestamps if isinstance(value, str) and value
+        ]
+        if not timestamps:
+            raise ValueError("Declared prepared universe and timestamps are unavailable")
+
+        def evaluate_at(timestamp: str | None) -> dict:
+            aligned: list[dict] = []
+            cells: list[dict] = []
+            for item in datasets:
+                if not isinstance(item, dict):
+                    cells.append({"status": "excluded", "error": "invalid_dataset_row"})
+                    continue
+                candidate = (
+                    _truncate_dataset_at_timestamp(item, timestamp)
+                    if timestamp is not None
+                    else item
+                )
+                if candidate is None:
+                    cells.append(
+                        {
+                            "instrument_id": item.get("instrument_id"),
+                            "symbol": str(item.get("symbol") or "").upper(),
+                            "status": "excluded",
+                            "error": "missing_bar_at_timestamp",
+                            "timestamp": timestamp,
+                        }
+                    )
+                    continue
+                aligned.append(candidate)
+
+            context = _prepare_condition_tree_context(aligned, condition_tree)
+            aligned_by_id = {
+                item.get("instrument_id"): item
+                for item in aligned
+                if isinstance(item.get("instrument_id"), int)
+            }
+            for original in datasets:
+                if not isinstance(original, dict):
+                    continue
+                instrument_id = original.get("instrument_id")
+                if instrument_id not in aligned_by_id:
+                    continue
+                candidate = aligned_by_id[instrument_id]
+                symbol = str(candidate.get("symbol") or "").upper()
+                metric: float | None = None
+                error: str | None = None
+                value: bool | None = None
+                if condition_tree is not None:
+                    value, metric, error = _execute_condition_tree(
+                        candidate,
+                        condition_tree,
+                        timestamp=timestamp,
+                        context=context,
+                    )
+                else:
+                    result = _execute_single(
+                        source,
+                        candidate,
+                        {
+                            "source": source,
+                            "dataset": candidate,
+                            "output_contract": output_contract,
+                            "parameters": parameters,
+                            "timestamp": timestamp,
+                        },
+                        manage_timeout=False,
+                    )
+                    if output_contract == "boolean":
+                        value, error, metric = _boolean_artifact(result, output_name)
+                    else:
+                        metric, error = _series_artifact(result, output_name)
+                        if _is_cross_sectional_series_target(series_target):
+                            value = None
+                        else:
+                            value, target_error = _series_target_value(metric, series_target)
+                            error = error or target_error
+                cell = {
+                    "instrument_id": instrument_id,
+                    "symbol": symbol,
+                    "name": str((candidate.get("metadata") or {}).get("name") or symbol),
+                    "status": "completed" if error is None else "excluded",
+                    "value": value,
+                    "metric": metric,
+                    "timestamp": timestamp,
+                }
+                if error:
+                    cell["error"] = error
+                cells.append(cell)
+
+            group_value = _apply_cross_sectional_series_target(cells, series_target)
+            eligible = sum(cell.get("value") is not None for cell in cells)
+            passed = sum(cell.get("value") is True for cell in cells)
+            requested = len(cells)
+            exclusions = [
+                {
+                    "symbol": cell.get("symbol"),
+                    "instrument_id": cell.get("instrument_id"),
+                    "timestamp": timestamp,
+                    "code": cell.get("error"),
+                }
+                for cell in cells
+                if cell.get("error")
+            ]
+            return {
+                "timestamp": timestamp,
+                "requested_count": requested,
+                "eligible_count": eligible,
+                "pass_count": passed,
+                "excluded_count": requested - eligible,
+                "percentage": passed / eligible if eligible else None,
+                "coverage": eligible / requested if requested else 0,
+                "group_value": group_value,
+                "rows": cells,
+                "exclusions": exclusions,
+            }
+
+        point_timestamps = timestamps if history else [timestamps[-1]]
+        points = [evaluate_at(timestamp) for timestamp in point_timestamps]
+        return {
+            "output_contract": output_contract,
+            "series_target": series_target,
+            "condition_tree": condition_tree,
+            "timestamps": point_timestamps,
+            "points": points,
+            "current": points[-1] if points else None,
+            "sample_size": len(points),
+        }
+
     def _evaluate_cross_sectional_tree_at(
         self,
         dataset: dict,

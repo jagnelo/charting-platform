@@ -281,6 +281,51 @@ def test_runner_computes_cross_sectional_statistic_breadth_for_snapshot_and_hist
     assert result["artifacts"]["history_percentage"]["value"]["values"] == [2 / 3, 2 / 3]
 
 
+def test_runner_promoted_python_breadth_helper_preserves_cross_sectional_series_semantics():
+    timestamps = ["2026-01-01", "2026-01-02", "2026-01-03"]
+    source = (
+        "output.series('score', [dataset['closes'][-1] - dataset['closes'][0]])"
+    )
+    result = execute_job(
+        {
+            "source": (
+                "study = research.breadth_python("
+                "dataset, parameters['source'], 'series', {}, "
+                "parameters['series_target'], None, True, 'score')\n"
+                "points = study['points']\n"
+                "output.series('percentage', {'timestamps': study['timestamps'], 'values': [point['percentage'] for point in points]})\n"
+                "output.series('group_value', {'timestamps': study['timestamps'], 'values': [point['group_value'] for point in points]})\n"
+                "output.table('current_rows', study['current']['rows'])"
+            ),
+            "output_contract": "study",
+            "parameters": {
+                "source": source,
+                "series_target": {
+                    "scope": "cross_sectional",
+                    "statistic": "mean",
+                    "operator": "gte",
+                    "threshold": 0,
+                },
+            },
+            "dataset": {
+                "timestamps": timestamps,
+                "datasets": [
+                    {"instrument_id": 1, "symbol": "A", "timestamps": timestamps, "closes": [1, 2, 4]},
+                    {"instrument_id": 2, "symbol": "B", "timestamps": timestamps, "closes": [3, 3, 3]},
+                ],
+            },
+        }
+    )
+
+    assert result["status"] == "completed"
+    assert result["artifacts"]["percentage"]["value"]["values"] == [1.0, 0.5, 0.5]
+    assert result["artifacts"]["group_value"]["value"]["values"] == [0.0, 0.5, 1.5]
+    rows = {row["symbol"]: row for row in result["artifacts"]["current_rows"]["value"]}
+    assert rows["A"]["metric"] == 1.5
+    assert rows["A"]["value"] is True
+    assert rows["B"]["value"] is False
+
+
 def test_runner_composes_nested_cross_sectional_and_member_breadth_conditions():
     timestamps = ["2026-01-01", "2026-01-02", "2026-01-03"]
     result = execute_job(

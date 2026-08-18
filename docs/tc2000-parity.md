@@ -10,6 +10,20 @@ market-cap metadata. Current market-cap sizing remains visibly non-point-in-time
 as historical truth; the remaining historical market-cap/weight reconstruction requirement stays
 open.
 
+## 2026-08-19 — Cross-sectional breadth promotion to Study Lab
+
+Completed historical Python breadth runs can now be saved as immutable Study Lab assets through
+`POST /analysis/breadth/python/runs/{run_id}/promote-study`. The generated study re-evaluates the
+original isolated member predicate through `research.breadth_python`, preserving exact source
+version, parameters, condition tree, series target, universe/membership, dataset manifest, and
+reproducibility lineage. Its structured outputs include aggregate percentage and group-value
+series, current member rows, exclusions, and historical points. Cross-sectional statistics remain
+aggregate study semantics; they are never silently converted to per-symbol plots or columns.
+Research Results exposes the action and duplicate/error states, and the isolated runner,
+integration, and component regressions cover promotion plus a rerun of the generated study.
+Promotion to the remaining compatible filter/gauge/alert/plot/column/Strategy-Lab surfaces remains
+an explicit open fan-out gate.
+
 ## 2026-08-19 — Arbitrary Market Map period control
 
 Market Map exposes the supported preset periods plus a `CUSTOM` period with explicit start and

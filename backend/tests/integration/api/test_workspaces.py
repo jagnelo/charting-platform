@@ -3254,6 +3254,87 @@ class TestWorkspaces:
         assert cross_column.status_code == 422
         assert cross_column.json()["detail"]["code"] == "breadth_column_promotion_requires_member_scope"
 
+        cross_history_queued = client.post(
+            "/api/v1/analysis/breadth/python",
+            headers=auth_headers,
+            json={
+                "code_version_id": version_id,
+                "universe": {"kind": "symbols", "symbols": [instrument.symbol]},
+                "output_contract": "series",
+                "series_target": {
+                    "scope": "cross_sectional",
+                    "statistic": "mean",
+                    "operator": "gte",
+                    "threshold": 0,
+                },
+                "session": "all",
+                "history": True,
+                "history_limit": 20,
+            },
+        )
+        assert cross_history_queued.status_code == 202, cross_history_queued.text
+        cross_history_run_id = cross_history_queued.json()["run_id"]
+        cross_history_job = json.loads(
+            (tmp_path / "jobs" / f"{cross_history_run_id}.json").read_text()
+        )
+        cross_history_result = execute_job(cross_history_job)
+        assert cross_history_result["status"] == "completed", cross_history_result
+        (tmp_path / "results" / f"{cross_history_run_id}.json").write_text(
+            json.dumps(cross_history_result)
+        )
+        cross_history_collected = client.get(
+            f"/api/v1/analysis/breadth/python/runs/{cross_history_run_id}",
+            headers=auth_headers,
+        )
+        assert cross_history_collected.status_code == 200, cross_history_collected.text
+        promoted_study = client.post(
+            f"/api/v1/analysis/breadth/python/runs/{cross_history_run_id}/promote-study",
+            headers=auth_headers,
+            json={"name": "Cross-sectional breadth Study Lab study"},
+        )
+        assert promoted_study.status_code == 201, promoted_study.text
+        promoted_study_payload = promoted_study.json()
+        assert promoted_study_payload["kind"] == "study"
+        assert promoted_study_payload["versions"][0]["output_contract"] == "study"
+        assert "research.breadth_python" in promoted_study_payload["versions"][0]["source"]
+        study_lineage = next(
+            item["promotion_lineage"]
+            for item in promoted_study_payload["versions"][0]["diagnostics"]
+            if isinstance(item, dict) and "promotion_lineage" in item
+        )
+        assert study_lineage["source_run_id"] == cross_history_run_id
+        assert study_lineage["source_series_target"]["scope"] == "cross_sectional"
+        assert study_lineage["semantics"] == "re_evaluate_isolated_member_predicate_as_aggregate_study"
+        promoted_study_run = client.post(
+            "/api/v1/research/runs",
+            headers=auth_headers,
+            json={
+                "code_version_id": promoted_study_payload["versions"][0]["id"],
+                "run_config": {
+                    "symbols": [instrument.symbol],
+                    "timeframe": "D1",
+                    "adjustment": "split_adjusted",
+                    "session": "all",
+                },
+                "dataset_manifest": {"source": "canonical_database"},
+            },
+        )
+        assert promoted_study_run.status_code == 202, promoted_study_run.text
+        promoted_study_run_id = promoted_study_run.json()["id"]
+        promoted_study_job = json.loads(
+            (tmp_path / "jobs" / f"{promoted_study_run_id}.json").read_text()
+        )
+        promoted_study_result = execute_job(promoted_study_job)
+        assert promoted_study_result["status"] == "completed", promoted_study_result
+        assert promoted_study_result["artifacts"]["percentage_history"]["value"]["values"]
+        assert promoted_study_result["artifacts"]["current_percentage"]["value"] == 1.0
+        duplicate_study = client.post(
+            f"/api/v1/analysis/breadth/python/runs/{cross_history_run_id}/promote-study",
+            headers=auth_headers,
+            json={"name": "Duplicate cross-sectional Study Lab study"},
+        )
+        assert duplicate_study.status_code == 409
+
     def test_etf_constituent_snapshot_is_point_in_time_and_source_labelled(
         self, client, auth_headers, db, instrument, instrument_type, ohlcv_bars
     ):

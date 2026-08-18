@@ -40,6 +40,19 @@ aggregates and recursive Boolean trees must return structured capability errors 
 This gate does not claim filters, gauges, alerts, Study Lab, Strategy Lab, or richer multi-output
 fan-out complete.
 
+## 2026-08-19 — Cross-sectional breadth Study Lab promotion sub-gate
+
+For a completed historical Python breadth run, acceptance must verify that the Research Results
+action can create one immutable `study` asset through the isolated `research.breadth_python`
+adapter. The generated version must preserve source code/version, parameters, condition tree,
+series target scope/statistic/operator, universe and membership version, dataset-manifest hash,
+definition/reproducibility lineage, and explicit aggregate-study semantics. A rerun of that
+version must return aligned percentage/group-value series, current member rows, exclusions, and
+historical points without executing Python in FastAPI or flattening a cross-sectional result into
+a per-member plot/column. Duplicate promotion must return a structured conflict. This sub-gate
+closes only the aggregate Study Lab target; remaining promotion fan-out is still evaluated
+independently per target contract.
+
 ## 2026-08-19 — Recursive/cross-sectional Boolean promotion sub-gate
 
 For a completed historical breadth run whose Boolean result is represented by a recursive or

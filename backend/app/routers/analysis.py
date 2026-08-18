@@ -83,6 +83,7 @@ from app.schemas.analysis import (
     BreadthPythonResultPointOut,
     BreadthPythonRunOut,
     BreadthPythonRunRequest,
+    BreadthPythonStudyPromotionRequest,
     BreadthUniverseRequest,
     CrossFamilyRankingHistoryOut,
     CrossFamilyRankingHistoryPoint,
@@ -6905,6 +6906,161 @@ async def promote_python_breadth_run_to_column(
             output_name=version.output_name,
             parameter_schema=dict(version.parameter_schema or {}),
             default_parameters=dict(version.default_parameters or {}),
+            sdk_version=version.sdk_version,
+            runtime_version=version.runtime_version,
+            dependencies=list(version.dependencies or []),
+            lookback=version.lookback,
+            diagnostics=[*(version.diagnostics or []), lineage],
+        )
+    )
+    db.add(asset)
+    await db.flush()
+    await db.refresh(asset)
+    return asset
+
+
+@router.post(
+    "/breadth/python/runs/{run_id}/promote-study",
+    response_model=CodeAssetOut,
+    status_code=201,
+)
+async def promote_python_breadth_run_to_study(
+    run_id: int,
+    body: BreadthPythonStudyPromotionRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Promote an isolated breadth run into a reusable structured Study Lab asset.
+
+    Cross-sectional numeric targets are deliberately kept as aggregate studies.  They must
+    not be flattened into a per-symbol plot or column, because that would erase the selected
+    group statistic, denominator, and timestamp alignment.  The generated wrapper carries
+    the exact source, parameters, tree, target, and source-version lineage into the isolated
+    runner's ``research.breadth_python`` helper.
+    """
+    run = await _load_python_breadth_run(db, run_id, current_user)
+    config = run.run_config if isinstance(run.run_config, dict) else {}
+    if run.status != "completed":
+        raise HTTPException(
+            status_code=409,
+            detail={"code": "breadth_promotion_requires_completed_run", "status": run.status},
+        )
+    if config.get("execution_mode") != "breadth_history":
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "breadth_study_promotion_requires_history",
+                "message": "Only completed historical breadth runs can become reusable studies.",
+            },
+        )
+    artifact = next(
+        (item for item in run.artifacts if item.artifact_type == "breadth_history"),
+        None,
+    )
+    if artifact is None:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "breadth_study_promotion_artifact_unavailable",
+                "message": "The completed run has no persisted breadth history artifact.",
+            },
+        )
+    version = run.code_version
+    if (
+        version is None
+        or version.asset is None
+        or version.asset.user_id != current_user.id
+        or version.asset.kind != "condition"
+        or version.output_contract not in {"boolean", "series"}
+    ):
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "breadth_study_promotion_source_unavailable",
+                "message": "The source run does not reference an owned Boolean or numeric-series condition.",
+            },
+        )
+    source_contract = str(version.output_contract)
+    series_target = config.get("series_target")
+    if series_target is not None and not isinstance(series_target, dict):
+        raise HTTPException(status_code=422, detail={"code": "invalid_python_series_target"})
+    condition_tree = config.get("condition_tree")
+    if condition_tree is not None and not isinstance(condition_tree, dict):
+        raise HTTPException(status_code=422, detail={"code": "invalid_python_condition_tree"})
+    parameters = config.get("parameters") if isinstance(config.get("parameters"), dict) else {}
+    # These values came from JSON/Pydantic inputs and are represented as literals in the
+    # generated source.  ``repr`` keeps the wrapper data-only and prevents interpolation as
+    # executable code; the original predicate is still validated again inside the runner.
+    source = "\n".join(
+        [
+            "study = research.breadth_python(",
+            f"    dataset, {version.source!r}, {source_contract!r}, {parameters!r},",
+            f"    {series_target!r}, {condition_tree!r}, True, {version.output_name!r}",
+            ")",
+            "points = study['points']",
+            "current = study.get('current') or {}",
+            "timestamps = study.get('timestamps') or []",
+            "output.scalar('sample_size', study.get('sample_size', 0))",
+            "output.scalar('current_percentage', current.get('percentage'))",
+            "output.scalar('current_pass_count', current.get('pass_count'))",
+            "output.scalar('current_eligible_count', current.get('eligible_count'))",
+            "output.scalar('current_group_value', current.get('group_value'))",
+            "output.series('percentage_history', {'timestamps': timestamps, 'values': [point.get('percentage') for point in points]})",
+            "output.series('group_value_history', {'timestamps': timestamps, 'values': [point.get('group_value') for point in points]})",
+            "output.table('breadth_members', current.get('rows', []))",
+            "output.table('breadth_exclusions', current.get('exclusions', []))",
+            "output.table('historical_breadth', points)",
+        ]
+    )
+    if len(source) > 500_000:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "breadth_study_promotion_source_too_large",
+                "message": "The generated Study Lab wrapper exceeds the source-size limit.",
+            },
+        )
+    stable_key = f"breadth-run-{run.id}-study"
+    existing = (
+        await db.execute(
+            select(CodeAsset).where(
+                CodeAsset.user_id == current_user.id,
+                CodeAsset.stable_key == stable_key,
+            )
+        )
+    ).scalar_one_or_none()
+    if existing is not None:
+        raise HTTPException(
+            status_code=409,
+            detail={"code": "breadth_study_promotion_already_exists"},
+        )
+    manifest = run.dataset_manifest if isinstance(run.dataset_manifest, dict) else {}
+    lineage = {
+        "promotion_lineage": {
+            "source_run_id": run.id,
+            "source_code_version_id": run.code_version_id,
+            "source_definition_hash": str(config.get("definition_hash") or ""),
+            "source_reproducibility_hash": run.reproducibility_hash,
+            "source_dataset_manifest_sha256": _python_breadth_manifest_fingerprint(manifest),
+            "source_universe": config.get("universe", {}),
+            "source_condition_tree": condition_tree,
+            "source_series_target": series_target,
+            "semantics": "re_evaluate_isolated_member_predicate_as_aggregate_study",
+        }
+    }
+    asset = CodeAsset(
+        user_id=current_user.id,
+        stable_key=stable_key,
+        name=body.name or f"Breadth study run {run.id}",
+        kind="study",
+    )
+    asset.versions.append(
+        CodeVersion(
+            version_number=1,
+            source=source,
+            output_contract="study",
+            parameter_schema={},
+            default_parameters={},
             sdk_version=version.sdk_version,
             runtime_version=version.runtime_version,
             dependencies=list(version.dependencies or []),

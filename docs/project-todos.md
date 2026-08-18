@@ -1,5 +1,24 @@
 # Project TODO Memory
 
+### 2026-08-19 — Cross-sectional Python breadth to reusable Study Lab study
+
+- [x] Add a lineage-preserving `promote-study` adapter for completed historical Python breadth
+      runs. The generated immutable `study` asset retains the source code version, parameters,
+      condition tree, series target, universe, definition/reproducibility hashes, and dataset
+      manifest fingerprint rather than flattening an aggregate result into a per-symbol plot or
+      column.
+- [x] Add the isolated-runner `research.breadth_python` helper used by promoted studies. It
+      re-evaluates the original member predicate at exact aligned timestamps, applies the declared
+      cross-sectional statistic and operator, returns aggregate percentage/group-value series,
+      member rows, exclusions, and historical points, and never opens a provider or host-data
+      path.
+- [x] Add Research Results action and backend/integration/unit coverage for promotion, duplicate
+      handling, and rerunning the generated Study Lab source. Cross-sectional semantics are
+      explicitly retained as an aggregate study; no member-only fallback is used.
+- [ ] Continue promotion fan-out to filters, gauges, alerts, plots, columns, and Strategy Lab
+      signals where each output contract is genuinely compatible; this study adapter closes only
+      the aggregate Study Lab target.
+
 ### 2026-08-18 — Recursive Python member condition trees and universal heatmap sources
 
 - [x] Promote a completed member-level numeric breadth series into a reusable watchlist

@@ -944,6 +944,13 @@ class BreadthPythonColumnPromotionRequest(BaseModel):
     description: str | None = Field(default=None, max_length=2_000)
 
 
+class BreadthPythonStudyPromotionRequest(BaseModel):
+    """Create a reusable Study Lab asset from a completed breadth run."""
+
+    name: str | None = Field(default=None, min_length=1, max_length=160)
+    description: str | None = Field(default=None, max_length=2_000)
+
+
 class IndicatorBatchRequest(BaseModel):
     symbols: list[str] = Field(min_length=1, max_length=10_000)
     indicator: str = Field(min_length=1, max_length=64)
