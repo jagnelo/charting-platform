@@ -1,5 +1,22 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-08-19 — Core bootstrap hands holdings into canonical member-history hydration
+
+When the opt-in core workstation bootstrap is enabled, acceptance must verify that it commits the
+provider-backed ETF-holdings snapshots before resolving the locked
+`benchmark-family:<family>:<role>` sources and queueing canonical MN/W1/D1 member-history jobs.
+The bootstrap result must preserve queued/already-queued counts, truncation, selected/available
+counts, and per-leg availability. No interactive Market Map, breadth, chart, or watchlist read may
+invoke this provider path. The source-level history-status endpoint remains the observation surface
+for local coverage and worker progress.
+
+The workstation-bootstrap/worker suite passes `15/15`, full backend units pass `1222/1222`, and
+Ruff, compileall, and diff checks pass. No acceptance flexibility was used. This gate proves only
+the committed handoff and queue lineage; provider route completeness, all eight family/role
+membership and bar population, historical rebalance continuity, durable cancellation, entitlement
+reconciliation, all-root acceptance, and exact Version 25 maintenance/progress visuals remain
+substantive open gaps.
+
 ## 2026-08-19 — Source-level heatmap readiness and progress is explicit
 
 The universal locked-watchlist gate now includes source-level history readiness. For every

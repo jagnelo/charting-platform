@@ -1,5 +1,32 @@
 # Active Handoff
 
+## 2026-08-19 — Core bootstrap queues provider-backed family member history
+
+- Extended `bootstrap_core_workstation_data(db, redis=...)` and
+  `task_bootstrap_core_workstation` so the opt-in provider-backed core sweep commits its ETF
+  holdings snapshots before calling `queue_core_family_member_history`.
+- The queue helper resolves every configured `benchmark-family:<family>:<role>` source through the
+  same point-in-time planner used by Market Map/breadth and queues existing
+  `task_bulk_fetch_instrument` jobs for MN/W1/D1 with deterministic IDs. Bootstrap results retain
+  queued/already-queued counts, selected/available counts, truncation, timeframes, and per-leg
+  availability; queue failures are bounded and returned as `queue_error`. Interactive reads remain
+  provider-fan-out-free.
+- Owned implementation paths: `backend/app/services/workstation_bootstrap.py`,
+  `backend/app/workers/arq_worker.py`, and `backend/tests/unit/services/test_workstation_bootstrap.py`.
+- Validation: workstation-bootstrap/worker tests `15/15`; full backend units `1222/1222`; Ruff,
+  compileall, and diff checks pass. Ruff format check passes for the changed service; unrelated
+  pre-existing formatter rewrites in `arq_worker.py` and the existing bootstrap test were not
+  absorbed. No acceptance flexibility, visual threshold/mask, provider substitution, or
+  interactive fan-out was introduced.
+- Implementation commit `61fca29cff486dd8e2ecd3251e44084aed831ac8` is pushed and synchronized.
+  The worktree is clean and `HEAD` equals `origin/feat/tc2000-frontend-rework`.
+- Remaining: prove actual provider route success across all eight roots/roles, canonical member
+  bars, historical composition/rebalance continuity, durable run identity/cancellation,
+  entitlement/provider-quality closure, all-root acceptance, and exact Version 25
+  maintenance/progress visuals.
+- Next context: update parity/acceptance/ops records, commit and push the separate operational
+  checkpoint, then continue provider-backed family population/continuity.
+
 ## 2026-08-19 — Source-level heatmap history readiness and progress
 
 - Added `GET /api/v1/watchlists/sources/history-status/{source_id}`. It accepts every canonical

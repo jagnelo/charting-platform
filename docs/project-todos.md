@@ -1,5 +1,24 @@
 # Project TODO Memory
 
+### 2026-08-19 — Core bootstrap queues provider-backed family member history
+
+- [x] Extend the opt-in worker `task_bootstrap_core_workstation` so the existing provider-backed
+      core identity/recent-bar/ETF-holdings sweep commits its holdings snapshots before resolving
+      every configured benchmark-family role and queuing canonical constituent history jobs.
+- [x] Reuse the locked `benchmark-family:<family>:<role>` resolver and existing provider-neutral
+      `task_bulk_fetch_instrument` worker, with deterministic job IDs, MN/W1/D1 coverage targets,
+      per-run queue counts, and per-leg availability in the bootstrap result. No interactive
+      Market Map, breadth, chart, or watchlist read starts provider work.
+- [x] Add worker/bootstrap regression coverage. Workstation-bootstrap and worker tests pass
+      `15/15`; the full backend unit suite passes `1222/1222`; Ruff, compileall, and diff checks
+      pass. No acceptance flexibility was used. The formatter's unrelated baseline rewrites in
+      `arq_worker.py` and the existing bootstrap test were deliberately not applied.
+- [ ] This closes the automatic queue handoff only. It does not prove that every provider route
+      returns usable holdings, that all eight roots/roles have canonical members and bars, that
+      historical composition/rebalance continuity is complete, or that durable run cancellation,
+      entitlements, all-root acceptance, and exact Version 25 maintenance/progress visuals are
+      complete.
+
 ### 2026-08-19 — Source-level heatmap history readiness and progress
 
 - [x] Add authenticated `GET /api/v1/watchlists/sources/history-status/{source_id}` for every

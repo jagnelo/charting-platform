@@ -1,5 +1,20 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-19 — Bootstrap now hands off provider-backed family member history
+
+The opt-in core workstation worker now commits provider-backed ETF-holdings snapshots before it
+resolves all configured locked benchmark-family role sources and queues deduplicated MN/W1/D1
+canonical member-history jobs. The result exposes queued/already-queued counts, selected/available
+counts, truncation, timeframes, and per-leg availability. The existing source-level history-status
+endpoint can then expose local coverage and worker progress to the universal heatmap contract.
+
+Workstation-bootstrap and worker tests pass `15/15`; full backend units pass `1222/1222`; Ruff,
+compileall, and diff checks pass. No acceptance flexibility was used. This is a provider-backed
+queue handoff, not evidence that provider routes succeeded for every family/role or that all
+canonical constituent bars and historical compositions are populated. Durable run cancellation,
+provider entitlement/reconciliation, all-root acceptance, and exact Version 25 maintenance/progress
+visuals remain open.
+
 ## 2026-08-19 — Canonical source heatmap readiness is source-polymorphic
 
 `GET /api/v1/watchlists/sources/history-status/{source_id}` now gives every Market Map universe

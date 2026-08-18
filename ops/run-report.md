@@ -1,5 +1,25 @@
 # Run Report
 
+## 2026-08-19 — Core bootstrap queues provider-backed family member history
+
+- The opt-in core workstation worker now commits provider-backed ETF holdings before resolving
+  all configured locked benchmark-family role sources and queueing canonical MN/W1/D1 member
+  history. It uses existing provider-neutral bulk jobs and deterministic IDs; interactive reads
+  remain local and provider-fan-out-free.
+- Bootstrap output records queue state, available/selected counts, truncation, timeframes, and
+  each family-leg availability. Queue failures are bounded in the result rather than aborting the
+  whole core sweep. The source-level history-status endpoint from the preceding context remains
+  the observation surface for local coverage/progress.
+- Validation: workstation-bootstrap/worker `15/15`; full backend units `1222/1222`; Ruff,
+  compileall, and diff-check pass. Ruff's changed-service format check passes; baseline-only
+  rewrites in the worker/test were not applied. No acceptance flexibility or visual threshold/mask
+  change.
+- Implementation `61fca29cff486dd8e2ecd3251e44084aed831ac8` is pushed and synchronized. The
+  separate docs/ops checkpoint is the current context's remaining closure action.
+- Open gaps: provider route completeness, canonical bars, historical family composition/rebalance
+  continuity, durable refresh-run identity/cancellation, entitlement/provider quality, all-root
+  acceptance, and exact V25 maintenance/progress visuals.
+
 ## 2026-08-19 — Source-level heatmap history readiness and progress
 
 - Added `GET /api/v1/watchlists/sources/history-status/{source_id}` for every canonical source

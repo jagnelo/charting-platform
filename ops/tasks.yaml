@@ -1,4 +1,32 @@
 tasks:
+  - id: tc2000-bootstrap-family-member-history-20260819
+    title: Hand provider-backed core bootstrap into family member-history hydration
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      After the opt-in core workstation bootstrap commits ETF holdings snapshots, resolve all
+      configured locked benchmark-family role sources and queue canonical member history without
+      adding provider work to interactive Market Map or breadth reads.
+    definition_of_done:
+      - Core bootstrap accepts the worker Redis pool and commits holdings before family resolution
+      - Every configured family/role uses the canonical benchmark-family source planner
+      - Existing provider-neutral task_bulk_fetch_instrument jobs receive deterministic MN/W1/D1 IDs
+      - Bootstrap returns queued/already-queued counts, selected/available counts, truncation, timeframes, and per-leg availability
+      - Queue errors remain bounded and visible in the bootstrap result
+      - Workstation-bootstrap and worker tests 15/15, full backend units 1222/1222, Ruff, compileall, and diff checks pass
+      - Provider route completeness, canonical family bars, historical continuity, durable cancellation, entitlements, all-root acceptance, and exact V25 maintenance visuals remain open
+    validation:
+      - backend-workstation-bootstrap-worker-15-of-15
+      - backend-unit-suite-1222-of-1222
+      - backend-ruff
+      - backend-compileall
+      - git-diff-check
+    notes:
+      - >-
+        No acceptance flexibility was used. Existing baseline-only formatter changes in the worker
+        and bootstrap test were not absorbed into this context.
+
   - id: tc2000-source-history-status-20260819
     title: Expose source-level heatmap history readiness and worker progress
     status: completed
