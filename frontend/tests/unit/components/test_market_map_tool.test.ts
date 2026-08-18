@@ -139,6 +139,13 @@ describe('MarketMapTool', () => {
     await flushPromises()
     expect(wrapper.emitted('configuration')?.at(-1)?.[0]).toEqual(expect.objectContaining({ group_by: 'sector' }))
 
+    await wrapper.get('select[aria-label="Market Map timeframe"]').setValue('W1')
+    await flushPromises()
+    expect(wrapper.emitted('configuration')?.at(-1)?.[0]).toEqual(expect.objectContaining({ timeframe: 'W1' }))
+    await wrapper.get('.market-map-tool__run').trigger('click')
+    await flushPromises()
+    expect(apiPost).toHaveBeenLastCalledWith('/analysis/market-map', expect.objectContaining({ timeframe: 'W1' }))
+
     await wrapper.get('.market-map-tool__tile').trigger('click')
     expect(wrapper.emitted('select')).toEqual([['NVDA', 1]])
     await wrapper.get('.market-map-tool__tile').trigger('mouseenter')
