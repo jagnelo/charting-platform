@@ -157,7 +157,10 @@ def _market_group_descriptor(group: MarketGroup) -> WatchlistSourceRead:
         ),
         member_count=len(group.members),
         source=group.source,
-        provenance=dict(group.provenance or {}),
+        provenance={
+            **dict(group.provenance or {}),
+            "availability": "available" if group.members else "membership_not_loaded",
+        },
         effective_at=group.effective_at,
         known_at=group.known_at,
     )
@@ -309,6 +312,7 @@ def _etf_descriptor(
         source=snapshot.source_provider if snapshot else profile.adapter_key,
         provenance={
             "membership_semantics": "etf_proxy_holdings",
+            "availability": "available" if snapshot is not None and snapshot.row_count > 0 else "holdings_snapshot_not_loaded",
             "profile_id": profile.id,
             "snapshot_id": snapshot.id if snapshot else None,
             "snapshot_hash": snapshot.snapshot_hash if snapshot else None,

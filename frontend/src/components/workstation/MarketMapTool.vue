@@ -286,6 +286,7 @@ function isSourceSelectable(source: WatchlistSource): boolean {
   return availability !== 'unavailable'
     && availability !== 'profile_not_loaded'
     && availability !== 'holdings_snapshot_not_loaded'
+    && availability !== 'membership_not_loaded'
 }
 
 function toggleSourceFollow() {

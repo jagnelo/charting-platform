@@ -1026,6 +1026,15 @@ class TestWatchlistsCrud:
                 known_at=now,
             )
         )
+        empty_group = MarketGroup(
+            stable_key="empty-index",
+            group_type="market_group",
+            name="Empty Index",
+            source="controlled_fixture",
+            effective_at=now,
+            known_at=now,
+        )
+        db.add(empty_group)
         db.flush()
 
         response = client.get("/api/v1/watchlists/sources", headers=auth_headers)
@@ -1038,6 +1047,8 @@ class TestWatchlistsCrud:
         assert sources["market-group:test-index"]["locked"] is True
         assert sources["market-group:test-index"]["can_edit_membership"] is False
         assert sources["market-group:test-index"]["member_count"] == 1
+        assert sources["market-group:test-index"]["provenance"]["availability"] == "available"
+        assert sources["market-group:empty-index"]["provenance"]["availability"] == "membership_not_loaded"
 
         current = client.get(
             "/api/v1/watchlists/sources/market-group:test-index",
@@ -1491,6 +1502,14 @@ class TestWatchlistsCrud:
             adapter_status="resolved",
         )
         db.add(profile)
+        db.add(
+            ETFProfile(
+                instrument_id=instrument_b.id,
+                issuer="Controlled issuer without snapshot",
+                adapter_key="controlled_fixture",
+                adapter_status="resolved",
+            )
+        )
         db.flush()
         snapshot = ETFHoldingsSnapshot(
             etf_profile_id=profile.id,
@@ -1553,6 +1572,11 @@ class TestWatchlistsCrud:
         assert source["locked"] is True
         assert source["can_edit_membership"] is False
         assert source["member_count"] == 1
+        assert source["provenance"]["availability"] == "available"
+        empty_source = next(
+            item for item in descriptor.json() if item["source_id"] == f"etf-holdings:{instrument_b.symbol}"
+        )
+        assert empty_source["provenance"]["availability"] == "holdings_snapshot_not_loaded"
 
         resolved = client.get(
             f"/api/v1/watchlists/sources/{source_id}",
