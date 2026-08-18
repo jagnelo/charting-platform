@@ -1,4 +1,30 @@
 tasks:
+  - id: tc2000-invesco-sec-historical-live-evidence-20260819
+    title: Prove the QQQ SEC dated route against the live free source
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Add an opt-in live regression for the QQQ dated holdings fallback. Verify a substantial
+      parseable SEC portfolio and the requested-cutoff/provenance contract without presenting
+      periodic filing evidence as daily or official index history.
+    definition_of_done:
+      - The live test exercises QQQ through SEC with a historical cutoff
+      - The result contains at least 100 parseable rows and SEC source/provider metadata
+      - Composition date is no later than the requested cutoff and the reconstruction policy is explicit
+      - Unprivileged network failure is retried unchanged with the approved elevated boundary
+      - Daily holdings, exact rebalance, official membership, and exact V25 source visuals remain tracked gaps
+    validation:
+      - backend-live-qqq-sec-historical-1-of-1
+      - backend-adapter-taxonomy-units-504-of-504
+      - backend-ruff-compileall
+      - git-diff-check
+    notes:
+      - >-
+        No acceptance flexibility was used. The first DNS failure was an execution boundary; the
+        unchanged elevated rerun passed. Implementation commit 2ce987a1 is pushed; docs/ops
+        checkpoint follows.
+
   - id: tc2000-invesco-sec-historical-fallback-20260819
     title: Label QQQ dated holdings as SEC filing reconstructions
     status: completed

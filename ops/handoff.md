@@ -1,5 +1,19 @@
 # Active Handoff
 
+## 2026-08-19 — Live QQQ SEC historical evidence
+
+- Added an opt-in live regression for `InvescoHoldingsAdapter.fetch_for_date(symbol="QQQ")` with
+  a 2025-12-31 cutoff. It requires 100+ parseable holdings rows, SEC source/provider metadata,
+  the requested-date reconstruction policy, and a composition date no later than the cutoff.
+- The unprivileged run failed only at DNS resolution. The unchanged elevated command passed `1/1`;
+  this is a network execution boundary, not acceptance flexibility or a product skip.
+- Unit/taxonomy suites remain `504/504`; Ruff, compileall, and diff-check pass. Implementation
+  commit `2ce987a14d93e1599496dd964ac246bdf80c0c9d` is pushed. The separate docs/ops checkpoint
+  remains before the next implementation context.
+- Remaining gaps are unchanged: periodic SEC cadence versus daily/exact-rebalance truth, official
+  Nasdaq-100 membership, QQQE history, complete family/provider population, canonical bars, and
+  exact Version 25 historical-source disclosure visuals.
+
 ## 2026-08-19 — QQQ dated holdings SEC reconstruction
 
 - Added `InvescoHoldingsAdapter.fetch_for_date`, because Invesco's public QQQ route is

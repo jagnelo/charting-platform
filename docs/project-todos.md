@@ -1,5 +1,18 @@
 # Project TODO Memory
 
+### 2026-08-19 — Live evidence for QQQ SEC historical reconstruction
+
+- [x] Add an opt-in live regression for QQQ dated holdings that exercises SEC EDGAR with a
+      historical cutoff and requires at least 100 parseable rows, SEC source/provider metadata,
+      the requested-date policy, and a composition date no later than the cutoff.
+- [x] The unprivileged run was blocked only by DNS/network sandboxing; the unchanged elevated
+      command passed `1/1`. Unit/taxonomy coverage remains `504/504`, and Ruff, compileall, and
+      `git diff --check` pass.
+- [ ] Keep the acceptance boundary explicit: this proves a free SEC route is reachable and
+      correctly labelled, not daily QQQ holdings, exact rebalance-day weights, official Nasdaq-100
+      membership, QQQE history, complete family population, canonical bars, or exact Version 25
+      historical-source visuals.
+
 ### 2026-08-19 — QQQ dated holdings use an explicitly labelled SEC reconstruction
 
 - [x] Add a dated `InvescoHoldingsAdapter.fetch_for_date` path that selects the latest SEC

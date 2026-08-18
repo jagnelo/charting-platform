@@ -1,5 +1,18 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-19 — QQQ SEC historical route has live free-source evidence
+
+The opt-in live acceptance now exercises QQQ dated holdings through SEC EDGAR with a historical
+cutoff. It requires a parseable portfolio, at least 100 rows, `source_access=sec_filing`,
+`source_provider=sec`, the requested cutoff and reconstruction policy, and a composition date no
+later than that cutoff. The unchanged elevated run passes `1/1`; the initial unprivileged failure
+was only the environment's DNS boundary.
+
+This is route and provenance evidence, not a claim of exact daily membership. SEC filings remain
+periodic and may lag a requested session; rebalance-day weights, official Nasdaq-100 membership,
+QQQE historical continuity, broader family population, canonical bars, and exact Version 25
+historical-source disclosure visuals remain open.
+
 ## 2026-08-19 — QQQ historical source is a filing reconstruction, not issuer history
 
 The dated holdings contract now has a dedicated Invesco path. Because Invesco's public QQQ

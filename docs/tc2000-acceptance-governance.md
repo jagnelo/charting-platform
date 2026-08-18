@@ -1,5 +1,15 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-08-19 — Live SEC route evidence sub-gate
+
+The QQQ historical fallback has a separate opt-in live sub-gate. The unchanged elevated probe must
+return a substantial parseable portfolio and prove SEC source/provider, requested cutoff,
+latest-filing-at-or-before policy, and a composition date not later than the cutoff. DNS or
+network sandbox failures are execution-environment evidence and require an unchanged elevated
+rerun; they must not be converted into a skipped product assertion. Passing this gate still does
+not waive daily holdings, exact rebalance, official-membership, or Version 25 source-disclosure
+requirements.
+
 ## 2026-08-19 — Historical holdings route sub-gate
 
 The QQQ dated-holdings path is accepted only as a labelled SEC filing reconstruction. The

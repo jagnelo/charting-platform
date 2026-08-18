@@ -1,5 +1,18 @@
 # Run Report
 
+## 2026-08-19 — Live QQQ SEC historical evidence
+
+- The opt-in live regression exercises QQQ dated holdings through SEC EDGAR at a 2025-12-31
+  cutoff. It requires 100+ parseable rows, SEC source/provider metadata, the requested-date
+  reconstruction policy, and a composition date no later than the cutoff.
+- The first run failed only on sandbox DNS resolution. The unchanged elevated rerun passed `1/1`.
+  Unit/taxonomy coverage is `504/504`; Ruff, compileall, and `git diff --check` pass.
+- No acceptance flexibility or visual/provider rule was changed. This proves route reachability and
+  provenance only; daily holdings, exact rebalance weights, official Nasdaq-100 membership, QQQE,
+  broader family population, canonical bars, and exact V25 historical-source visuals remain open.
+- Implementation `2ce987a14d93e1599496dd964ac246bdf80c0c9d` is pushed; the separate docs/ops
+  checkpoint is required before the next implementation context.
+
 ## 2026-08-19 — QQQ dated holdings SEC reconstruction
 
 - Routed dated Invesco holdings requests through the latest SEC filing known at or before the
