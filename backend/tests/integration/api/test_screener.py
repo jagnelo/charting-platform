@@ -245,6 +245,65 @@ class TestScreenerCRUD:
             "code_version_id": version_id,
         }
 
+    def test_python_condition_promotion_retains_study_run_provenance(
+        self, client, auth_headers, instrument
+    ):
+        """A Study Lab promotion must not lose its declared universe lineage."""
+        asset = client.post(
+            "/api/v1/code/assets",
+            headers=auth_headers,
+            json={
+                "stable_key": "study-provenance-boolean",
+                "name": "Study provenance boolean",
+                "kind": "study",
+                "initial_version": {
+                    "source": "output.boolean('qualifies', True)",
+                    "output_contract": "boolean",
+                },
+            },
+        )
+        assert asset.status_code == 201
+        version_id = asset.json()["versions"][0]["id"]
+        provenance = {
+            "type": "study_run_promotion",
+            "source_run_id": 912,
+            "source_code_version_id": version_id,
+            "source_reproducibility_hash": "run-hash",
+            "source_universe_source_id": "market-group:sp500",
+            "source_membership_version": "market-group:sp500:v1",
+            "source_instrument_ids": [instrument.id],
+            "semantics": "current_data_re_evaluation_over_declared_study_members",
+            "point_in_time_source_preserved": False,
+        }
+        created = client.post(
+            f"/api/v1/screeners/from-python-condition/{version_id}",
+            headers=auth_headers,
+            json={
+                "name": "Study provenance scan",
+                "universe_type": "custom",
+                "universe_instrument_ids": [instrument.id],
+                "timeframe": "D1",
+                "provenance": provenance,
+            },
+        )
+        assert created.status_code == 201
+        payload = created.json()
+        assert payload["universe_type"] == "custom"
+        assert payload["universe_instrument_ids"] == [instrument.id]
+        assert payload["conditions"]["provenance"] == provenance
+
+        rejected = client.post(
+            f"/api/v1/screeners/from-python-condition/{version_id}",
+            headers=auth_headers,
+            json={
+                "name": "Study provenance scan without universe",
+                "universe_type": "all",
+                "provenance": {"type": "study_run_promotion"},
+            },
+        )
+        assert rejected.status_code == 422
+        assert rejected.json()["detail"]["code"] == "study_promotion_universe_required"
+
     def test_create_screener(self, client, auth_headers):
         res = client.post(
             "/api/v1/screeners",

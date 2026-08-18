@@ -266,7 +266,7 @@ describe('StudyLabTool', () => {
     apiPost.mockImplementation((path: string) => {
       if (path === '/code/validate') return Promise.resolve({ valid: true, diagnostics: [], dependencies: ['stats', 'output'], lookback_hint: 1, output_contracts: ['bar', 'histogram', 'range', 'scatter', 'scalar', 'table'] })
       if (path === '/code/assets') return Promise.resolve({ versions: [{ id: 42 }] })
-      if (path === '/research/runs') return Promise.resolve({ id: 9, status: 'completed', reproducibility_hash: 'sha256:test', artifacts: [
+      if (path === '/research/runs') return Promise.resolve({ id: 9, code_version_id: 42, status: 'completed', reproducibility_hash: 'sha256:test', run_config: { universe_source_id: 'market-group:sp500' }, dataset_manifest: { universe_source_id: 'market-group:sp500', universe_membership_version: 'market-group:sp500:v1', datasets: [{ instrument_id: 7, symbol: 'SPY' }] }, artifacts: [
         { id: 3, name: 'current_streak', artifact_type: 'scalar', payload: { value: 4 } },
         { id: 9, name: 'shortest_streak', artifact_type: 'scalar', payload: { value: 1 } },
         { id: 7, name: 'qualifies', artifact_type: 'boolean', payload: { value: true } },
@@ -497,7 +497,7 @@ describe('StudyLabTool', () => {
     apiPost.mockImplementation((path: string) => {
       if (path === '/code/validate') return Promise.resolve({ valid: true, diagnostics: [], dependencies: ['output'], lookback_hint: null, output_contracts: ['boolean'] })
       if (path === '/code/assets') return Promise.resolve({ versions: [{ id: 42 }] })
-      if (path === '/research/runs') return Promise.resolve({ id: 90, code_version_id: 42, status: 'completed', artifacts: [{ id: 1, name: 'qualifies', artifact_type: 'boolean', payload: { value: true } }] })
+      if (path === '/research/runs') return Promise.resolve({ id: 90, code_version_id: 42, status: 'completed', run_config: { universe_source_id: 'market-group:sp500' }, dataset_manifest: { universe_source_id: 'market-group:sp500', universe_membership_version: 'market-group:sp500:v1', datasets: [{ instrument_id: 7, symbol: 'SPY' }] }, artifacts: [{ id: 1, name: 'qualifies', artifact_type: 'boolean', payload: { value: true } }] })
       if (path === '/screeners/from-python-condition/42') return Promise.resolve({ id: 77 })
       if (path === '/alerts/screener') return Promise.resolve({ id: 88 })
       if (path.startsWith('/strategy-lab/signals/from-code/')) return Promise.resolve({ id: 91 })
@@ -514,12 +514,12 @@ describe('StudyLabTool', () => {
     expect(wrapper.find('[aria-label="Promote study result"]').text()).toContain('Use as Market Gauge')
     await wrapper.findAll('[aria-label="Promote study result"] button').find(button => button.text() === 'Save as watchlist filter')!.trigger('click')
     await vi.waitFor(() => expect(wrapper.text()).toContain('Saved as a reusable watchlist filter through EasyScan.'))
-    expect(apiPost).toHaveBeenCalledWith('/screeners/from-python-condition/42', expect.objectContaining({ name: 'Consecutive Positive Closes Scan', universe_type: 'all', timeframe: 'D1' }))
+    expect(apiPost).toHaveBeenCalledWith('/screeners/from-python-condition/42', expect.objectContaining({ name: 'Consecutive Positive Closes Scan', universe_type: 'custom', universe_instrument_ids: [7], timeframe: 'D1', provenance: expect.objectContaining({ source_run_id: 90, source_universe_source_id: 'market-group:sp500', source_membership_version: 'market-group:sp500:v1', point_in_time_source_preserved: false }) }))
 
     await wrapper.findAll('[aria-label="Promote study result"] button').find(button => button.text() === 'Promote to scan')!.trigger('click')
     await vi.waitFor(() => expect(wrapper.text()).toContain('Promoted to a reusable scan.'))
     expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({ kind: 'study', initial_version: expect.objectContaining({ source: "output.boolean('qualifies', True)", output_contract: 'boolean' }) }))
-    expect(apiPost).toHaveBeenCalledWith('/screeners/from-python-condition/42', expect.objectContaining({ name: 'Consecutive Positive Closes Scan', universe_type: 'all', timeframe: 'D1' }))
+    expect(apiPost).toHaveBeenCalledWith('/screeners/from-python-condition/42', expect.objectContaining({ name: 'Consecutive Positive Closes Scan', universe_type: 'custom', universe_instrument_ids: [7], timeframe: 'D1' }))
 
     await wrapper.findAll('[aria-label="Promote study result"] button').find(button => button.text() === 'Promote to alert')!.trigger('click')
     await vi.waitFor(() => expect(wrapper.text()).toContain('Promoted to an active scan alert.'))
@@ -534,6 +534,24 @@ describe('StudyLabTool', () => {
     await vi.waitFor(() => expect(wrapper.text()).toContain('Saved as a reusable Strategy Lab signal.'))
     expect(wrapper.findAll('[aria-label="Promote study result"] button').find(button => button.text() === 'Save as Strategy signal')!.attributes('disabled')).toBeUndefined()
     expect(apiPost).toHaveBeenCalledWith('/strategy-lab/signals/from-code/42', {})
+  })
+
+  it('refuses to promote a study when no canonical dataset members are declared', async () => {
+    apiPost.mockImplementation((path: string) => {
+      if (path === '/code/validate') return Promise.resolve({ valid: true, diagnostics: [], dependencies: ['output'], lookback_hint: null, output_contracts: ['boolean'] })
+      if (path === '/code/assets') return Promise.resolve({ versions: [{ id: 42 }] })
+      if (path === '/research/runs') return Promise.resolve({ id: 94, code_version_id: 42, status: 'completed', artifacts: [{ id: 1, name: 'qualifies', artifact_type: 'boolean', payload: { value: true } }] })
+      return Promise.resolve({})
+    })
+    const wrapper = mountTool({ activeSymbol: 'SPY' })
+    await wrapper.find('[aria-label="Study Python source"]').setValue("output.boolean('qualifies', True)")
+    await wrapper.find('button').trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Validated for isolated execution'))
+    await wrapper.findAll('button')[1].trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Run #94'))
+    await wrapper.findAll('[aria-label="Promote study result"] button').find(button => button.text() === 'Promote to scan')!.trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('refusing to widen the promoted scan universe'))
+    expect(apiPost.mock.calls.filter(call => String(call[0]).startsWith('/screeners/from-python-condition/'))).toHaveLength(0)
   })
 
   it('promotes a completed event study without coercing its event contract', async () => {

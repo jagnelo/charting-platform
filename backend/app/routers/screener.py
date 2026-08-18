@@ -97,6 +97,11 @@ class ScreenerFromCondition(BaseModel):
     timeframe: Timeframe = Timeframe.D1
     schedule: str | None = None
     is_active: bool = True
+    # Optional lineage is retained on the executable condition rather than
+    # being reduced to a name-only scan.  Research/Study Lab promotions use
+    # this to disclose the source run, dataset, and explicit current-data
+    # re-evaluation semantics without changing legacy callers.
+    provenance: dict | None = None
 
 
 class ScreenerFromPythonCondition(ScreenerFromCondition):
@@ -231,7 +236,7 @@ async def create_screener_from_condition(
         # produced by a new visual save.
         conditions = condition_tree
     screener = ScreenerDefinition(
-        **body.model_dump(exclude={"description"}),
+        **body.model_dump(exclude={"description", "provenance"}),
         conditions=conditions,
         user_id=current_user.id,
         description=body.description or condition.payload.get("description"),
@@ -277,9 +282,24 @@ async def create_screener_from_python_condition(
     ).scalar_one()
     if existing > 0:
         raise HTTPException(409, f"A screener named '{body.name}' already exists")
+    if body.provenance and body.provenance.get("type") == "study_run_promotion":
+        if body.universe_type != "custom" or not body.universe_instrument_ids:
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "code": "study_promotion_universe_required",
+                    "message": "Study promotions must retain their declared canonical members",
+                },
+            )
+    conditions = {
+        "type": "python_condition",
+        "code_version_id": version.id,
+    }
+    if body.provenance:
+        conditions["provenance"] = body.provenance
     screener = ScreenerDefinition(
-        **body.model_dump(exclude={"description"}),
-        conditions={"type": "python_condition", "code_version_id": version.id},
+        **body.model_dump(exclude={"description", "provenance"}),
+        conditions=conditions,
         user_id=current_user.id,
         description=body.description,
     )

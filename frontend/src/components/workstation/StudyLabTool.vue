@@ -112,7 +112,20 @@ import PythonSourceEditor from './PythonSourceEditor.vue'
 
 interface Validation { valid: boolean; diagnostics: unknown[]; dependencies: string[]; lookback_hint: number | null; output_contracts: string[] }
 interface ParameterDefinition { name: string; type: string; default?: unknown; enum?: unknown[]; minimum?: number; maximum?: number }
-interface Run { id: number; code_version_id?: number; status: string; progress?: { status?: string; completed_cells?: number; total_cells?: number }; diagnostics?: unknown[]; warnings?: unknown[]; logs?: string; resource_usage?: Record<string, unknown>; reproducibility_hash?: string | null; dataset_manifest?: { benchmark_coverage?: { status?: string; reason?: string } }; artifacts?: Array<{ id: number; name: string; artifact_type: string; payload: Record<string, unknown> }> }
+interface Run {
+  id: number
+  code_version_id?: number
+  status: string
+  run_config?: Record<string, unknown>
+  progress?: { status?: string; completed_cells?: number; total_cells?: number }
+  diagnostics?: unknown[]
+  warnings?: unknown[]
+  logs?: string
+  resource_usage?: Record<string, unknown>
+  reproducibility_hash?: string | null
+  dataset_manifest?: Record<string, unknown> & { benchmark_coverage?: { status?: string; reason?: string } }
+  artifacts?: Array<{ id: number; name: string; artifact_type: string; payload: Record<string, unknown> }>
+}
 type Artifact = NonNullable<Run['artifacts']>[number]
 const studyRunCache = new Map<string, { run: Run; source: string; contract: string | null }>()
 
@@ -661,8 +674,46 @@ async function promote(target: PromotionTarget, selectedOutputName?: string) {
     else {
       let scanId = promotedScanId.value
       if (scanId == null) {
+        const manifest = run.value?.dataset_manifest ?? {}
+        const datasets = Array.isArray(manifest.datasets) ? manifest.datasets : []
+        const declaredInstrumentIds = [...new Set([
+          ...(typeof manifest.instrument_id === 'number' ? [manifest.instrument_id] : []),
+          ...datasets
+            .filter(item => item && typeof item === 'object')
+            .map(item => (item as Record<string, unknown>).instrument_id)
+            .filter((item): item is number => typeof item === 'number' && Number.isInteger(item) && item > 0),
+        ])]
+        if (!declaredInstrumentIds.length) {
+          throw new Error('The study dataset has no declared canonical members; refusing to widen the promoted scan universe.')
+        }
+        const sourceRunConfig = run.value?.run_config ?? {}
+        const sourceManifest = run.value?.dataset_manifest ?? {}
+        const sourceId = typeof sourceRunConfig.universe_source_id === 'string'
+          ? sourceRunConfig.universe_source_id
+          : typeof sourceManifest.universe_source_id === 'string'
+            ? sourceManifest.universe_source_id
+            : null
+        const sourceMembershipVersion = typeof sourceManifest.universe_membership_version === 'string'
+          ? sourceManifest.universe_membership_version
+          : null
+        const promotionProvenance = {
+          type: 'study_run_promotion',
+          source_run_id: run.value?.id,
+          source_code_version_id: run.value?.code_version_id ?? versionId,
+          source_reproducibility_hash: run.value?.reproducibility_hash ?? null,
+          source_universe_source_id: sourceId,
+          source_membership_version: sourceMembershipVersion,
+          source_instrument_ids: declaredInstrumentIds,
+          semantics: 'current_data_re_evaluation_over_declared_study_members',
+          point_in_time_source_preserved: false,
+        }
         const scan = await api.post<{ id: number }>(`/screeners/from-python-condition/${versionId}`, {
-          name: `${name.value} Scan`, universe_type: 'all', timeframe: timeframe.value,
+          name: `${name.value} Scan`,
+          description: `Current-data EasyScan promoted from Study Lab run #${run.value?.id}; source membership and snapshot lineage are retained in the condition provenance.`,
+          universe_type: 'custom',
+          universe_instrument_ids: declaredInstrumentIds,
+          timeframe: timeframe.value,
+          provenance: promotionProvenance,
         })
         scanId = scan.id
         promotedScanId.value = scanId
