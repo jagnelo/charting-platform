@@ -941,6 +941,114 @@ class TestWatchlistsCrud:
         assert market_map.json()["requested_count"] == 1
         assert [cell["symbol"] for cell in market_map.json()["cells"]] == [instrument.symbol]
 
+    def test_watchlist_and_combo_membership_versions_follow_membership_changes(
+        self, client, auth_headers, db, instrument, instrument_b
+    ):
+        from app.models.ohlcv import OHLCVBar, Timeframe
+
+        created = client.post(
+            "/api/v1/watchlists", headers=auth_headers, json={"name": "Mutable map source"}
+        )
+        assert created.status_code == 200, created.text
+        watchlist_id = created.json()["id"]
+        assert client.post(
+            f"/api/v1/watchlists/{watchlist_id}/items",
+            headers=auth_headers,
+            json={"instrument_id": instrument.id, "position": 0},
+        ).status_code == 200
+        combo = client.put(
+            "/api/v1/workspaces/library/items/combo_list/mutable-map-combo",
+            headers=auth_headers,
+            json={
+                "kind": "combo_list",
+                "stable_key": "mutable-map-combo",
+                "name": "Mutable map combo",
+                "payload": {"union_watchlist_ids": [watchlist_id]},
+                "dependency_metadata": {},
+            },
+        )
+        assert combo.status_code == 200, combo.text
+
+        base = datetime(2024, 1, 1, tzinfo=UTC)
+        for member in (instrument, instrument_b):
+            for day, close in enumerate((100, 101, 102)):
+                db.add(
+                    OHLCVBar(
+                        instrument_id=member.id,
+                        timeframe=Timeframe.D1,
+                        ts=base + timedelta(days=day),
+                        open=close,
+                        high=close + 1,
+                        low=close - 1,
+                        close=close,
+                        volume=1000,
+                        is_adjusted=True,
+                    )
+                )
+        db.flush()
+
+        before = client.get("/api/v1/watchlists/sources", headers=auth_headers)
+        assert before.status_code == 200, before.text
+        before_sources = {item["source_id"]: item for item in before.json()}
+        personal_id = f"watchlist:{watchlist_id}"
+        combo_id = "combo:mutable-map-combo"
+        personal_version = before_sources[personal_id]["membership_version"]
+        combo_version = before_sources[combo_id]["membership_version"]
+        assert before_sources[personal_id]["member_count"] == 1
+        assert before_sources[combo_id]["member_count"] == 1
+
+        initial_map = client.post(
+            "/api/v1/analysis/market-map",
+            headers=auth_headers,
+            json={
+                "source_id": combo_id,
+                "period": "1D",
+                "area_metric": "equal",
+                "color_metric": "return",
+                "end": "2024-01-03T00:00:00Z",
+            },
+        )
+        assert initial_map.status_code == 200, initial_map.text
+        initial_body = initial_map.json()
+        assert initial_body["requested_count"] == 1
+
+        added = client.post(
+            f"/api/v1/watchlists/{watchlist_id}/items",
+            headers=auth_headers,
+            json={"instrument_id": instrument_b.id, "position": 1},
+        )
+        assert added.status_code == 200, added.text
+
+        after = client.get("/api/v1/watchlists/sources", headers=auth_headers)
+        assert after.status_code == 200, after.text
+        after_sources = {item["source_id"]: item for item in after.json()}
+        assert after_sources[personal_id]["membership_version"] != personal_version
+        assert after_sources[combo_id]["membership_version"] != combo_version
+        assert after_sources[combo_id]["member_count"] == 2
+
+        resolved = client.get(f"/api/v1/watchlists/sources/{combo_id}", headers=auth_headers)
+        assert resolved.status_code == 200, resolved.text
+        assert [member["instrument_id"] for member in resolved.json()["members"]] == [
+            instrument.id,
+            instrument_b.id,
+        ]
+
+        updated_map = client.post(
+            "/api/v1/analysis/market-map",
+            headers=auth_headers,
+            json={
+                "source_id": combo_id,
+                "period": "1D",
+                "area_metric": "equal",
+                "color_metric": "return",
+                "end": "2024-01-03T00:00:00Z",
+            },
+        )
+        assert updated_map.status_code == 200, updated_map.text
+        updated_body = updated_map.json()
+        assert updated_body["requested_count"] == 2
+        assert updated_body["cache_key"] != initial_body["cache_key"]
+
     def test_explicit_canonical_selection_is_a_locked_ephemeral_market_map_source(
         self, client, auth_headers, db, instrument, instrument_b
     ):

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
 from dataclasses import dataclass
 from datetime import datetime
 
@@ -40,6 +42,43 @@ def _version(prefix: str, identifier: object, effective_at: datetime | None = No
     return f"{prefix}:{identifier}:{effective_at.isoformat() if effective_at else 'current'}"
 
 
+def _membership_digest(items: list[object] | tuple[object, ...]) -> str:
+    """Return a stable digest for the membership state, independent of ORM order."""
+
+    payload = [
+        {
+            "instrument_id": getattr(item, "instrument_id", None),
+            "position": getattr(item, "position", None),
+            "added_at": (
+                getattr(item, "added_at", None).isoformat()
+                if getattr(item, "added_at", None) is not None
+                else None
+            ),
+            "left_screener_at": (
+                getattr(item, "left_screener_at", None).isoformat()
+                if getattr(item, "left_screener_at", None) is not None
+                else None
+            ),
+        }
+        for item in sorted(
+            items,
+            key=lambda value: (
+                getattr(value, "position", 0),
+                getattr(value, "instrument_id", 0),
+                getattr(value, "id", 0),
+            ),
+        )
+    ]
+    encoded = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()
+    return hashlib.sha256(encoded).hexdigest()[:16]
+
+
+def _watchlist_membership_version(watchlist: Watchlist | None) -> str:
+    if watchlist is None:
+        return "missing"
+    return f"watchlist:{watchlist.id}:{_membership_digest(watchlist.items)}"
+
+
 def _watchlist_descriptor(watchlist: Watchlist) -> WatchlistSourceRead:
     locked = bool(watchlist.is_locked or watchlist.is_managed)
     return WatchlistSourceRead(
@@ -50,7 +89,7 @@ def _watchlist_descriptor(watchlist: Watchlist) -> WatchlistSourceRead:
         locked=locked,
         can_edit_membership=not locked,
         watchlist_id=watchlist.id,
-        membership_version=_version("watchlist", watchlist.id, watchlist.updated_at),
+        membership_version=_watchlist_membership_version(watchlist),
         member_count=len(watchlist.items),
         source="user_watchlist",
         provenance={"watchlist_id": watchlist.id, "screener_id": watchlist.screener_id},
@@ -105,7 +144,25 @@ def _etf_descriptor(
     )
 
 
-def _combo_descriptor(item: WorkspaceLibraryItem, member_count: int) -> WatchlistSourceRead:
+def _combo_dependency_versions(
+    watchlists: dict[int, Watchlist], payload: dict,
+) -> dict[str, str]:
+    referenced_ids = {
+        *_combo_ids(payload, "union_watchlist_ids"),
+        *_combo_ids(payload, "intersection_watchlist_ids"),
+        *_combo_ids(payload, "exclude_watchlist_ids"),
+    }
+    return {
+        str(watchlist_id): _watchlist_membership_version(watchlists.get(watchlist_id))
+        for watchlist_id in sorted(referenced_ids)
+    }
+
+
+def _combo_descriptor(
+    item: WorkspaceLibraryItem,
+    member_count: int,
+    dependency_versions: dict[str, str] | None = None,
+) -> WatchlistSourceRead:
     """Describe a user-owned derived combo as a read-only membership source.
 
     The combo definition remains editable through the library editor, but the
@@ -114,6 +171,14 @@ def _combo_descriptor(item: WorkspaceLibraryItem, member_count: int) -> Watchlis
     contract while preventing accidental per-member edits.
     """
 
+    definition = {
+        "stable_key": item.stable_key,
+        "version": item.version,
+        "payload": item.payload or {},
+        "dependencies": dependency_versions or {},
+    }
+    encoded = json.dumps(definition, sort_keys=True, separators=(",", ":")).encode()
+    membership_version = f"combo:{item.stable_key}:{hashlib.sha256(encoded).hexdigest()[:16]}"
     return WatchlistSourceRead(
         source_id=f"combo:{item.stable_key}",
         source_kind="combo",
@@ -121,7 +186,7 @@ def _combo_descriptor(item: WorkspaceLibraryItem, member_count: int) -> Watchlis
         description="User-owned derived watchlist (union/intersection/exclusion)",
         locked=True,
         can_edit_membership=False,
-        membership_version=_version("combo", item.stable_key, item.updated_at),
+        membership_version=membership_version,
         member_count=member_count,
         source="user_combo_definition",
         provenance={
@@ -316,7 +381,11 @@ async def list_watchlist_sources(db: AsyncSession, user: User) -> list[Watchlist
         *(_market_group_descriptor(item) for item in groups),
         *(_etf_descriptor(profile, instrument, latest.get(profile.id)) for profile, instrument in profiles),
         *(
-            _combo_descriptor(item, len(_combo_member_ids(user_watchlists, item.payload or {})))
+            _combo_descriptor(
+                item,
+                len(_combo_member_ids(user_watchlists, item.payload or {})),
+                _combo_dependency_versions(user_watchlists, item.payload or {}),
+            )
             for item in combo_items
         ),
     ]
@@ -411,10 +480,11 @@ async def resolve_watchlist_source(
         if combo is None:
             raise LookupError("combo_source_not_found")
 
+        payload = combo.payload or {}
         referenced_ids = {
-            *_combo_ids(combo.payload or {}, "union_watchlist_ids"),
-            *_combo_ids(combo.payload or {}, "intersection_watchlist_ids"),
-            *_combo_ids(combo.payload or {}, "exclude_watchlist_ids"),
+            *_combo_ids(payload, "union_watchlist_ids"),
+            *_combo_ids(payload, "intersection_watchlist_ids"),
+            *_combo_ids(payload, "exclude_watchlist_ids"),
         }
         referenced = (
             (
@@ -430,11 +500,12 @@ async def resolve_watchlist_source(
             else []
         )
         watchlists = {watchlist.id: watchlist for watchlist in referenced}
-        selected_ids = _combo_member_ids(watchlists, combo.payload or {})
+        dependency_versions = _combo_dependency_versions(watchlists, payload)
+        selected_ids = _combo_member_ids(watchlists, payload)
         as_of_exclusions: list[dict] = []
         if as_of is not None and combo.updated_at > as_of:
             return ResolvedWatchlistSource(
-                descriptor=_combo_descriptor(combo, 0),
+                descriptor=_combo_descriptor(combo, 0, dependency_versions),
                 members=(),
                 exclusions=(
                     {
@@ -471,7 +542,7 @@ async def resolve_watchlist_source(
                 )
             )
         return ResolvedWatchlistSource(
-            descriptor=_combo_descriptor(combo, len(members)),
+            descriptor=_combo_descriptor(combo, len(members), dependency_versions),
             members=tuple(members),
             exclusions=tuple(as_of_exclusions),
         )
