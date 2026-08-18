@@ -1,5 +1,21 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-08-18 — Historical Relative Rotation semantics
+
+`history_length` is an optional bounded request/configuration field from `0` through `1000`.
+`0` keeps the existing lightweight tail-only behavior; a positive value returns the latest
+available rotation coordinates after exact timestamp alignment and the requested `as_of` cutoff.
+The service does not forward-fill a missing ratio leg, and it returns the existing coverage and
+warning lineage when points are unavailable. `history_length` is part of the request/cache and
+workspace configuration lineage, and the UI must not silently truncate a user value beyond the
+declared bound.
+
+The interim functional oracle is backend integration `2/2`, complete watchlist/workspace analysis
+`91/91`, frontend component `8/8`, full Vitest `889/889`, type/build, and rebuilt-stack browser
+`F8s-rotation-family 1/1`. No acceptance flexibility was used. Exact Version 25 history/tail
+control measurements and long-curve visual baselines remain tracked until the reference board
+contains an authoritative state.
+
 ## 2026-08-18 — Provider disagreements must be visible, not silently resolved
 
 For Market Map numeric area fields, each provider's latest field-bearing persisted snapshot at the

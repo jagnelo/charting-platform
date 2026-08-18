@@ -1,5 +1,19 @@
 # Project TODO Memory
 
+### 2026-08-18 — Historical relative-rotation curves are bounded and reproducible
+
+- [x] Add an optional `history_length` (0–1000) to family and generic group relative-rotation
+      contracts, preserving the existing shorter interactive tail and current-state metrics.
+- [x] Derive history only from exact timestamp-aligned, as-of-truncated local ratio observations;
+      never forward-fill a missing peer and never allow a later observation into an earlier run.
+- [x] Add a workstation History control, persist it with the tool configuration, and draw the
+      selected history through the existing uPlot instance without recreating the chart.
+- [x] Validate backend relative-rotation integration `2/2`, complete watchlist/workspace analysis
+      `91/91`, focused frontend `8/8`, full frontend `889/889`, type-check, production build,
+      rebuilt-stack Playwright `F8s-rotation-family 1/1`, Ruff, compileall, and diff checks.
+- [ ] Exact Version 25 history/tail control geometry and long-curve visual treatment remain a
+      reference-board gap; no acceptance flexibility or visual threshold change was used.
+
 ### 2026-08-18 — Disclose provider-field conflicts in universal Market Maps
 
 - [x] Compare the latest field-bearing profile snapshot from each provider at the map evaluation

@@ -1,5 +1,19 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-18 — Relative Rotation exposes bounded historical curves
+
+Family and generic group Relative Rotation responses now expose an optional bounded
+`history_length` (0–1000) alongside the existing interactive `tail_length`. History is built from
+the same exact timestamp-aligned local ratio series as the current state, obeys `as_of`, and does
+not forward-fill missing benchmark/member bars. The workstation persists the control and renders
+the selected curve through the reusable uPlot host without replacing the chart instance.
+
+Backend relative-rotation integration passes `2/2`; the complete watchlist/workspace analysis
+suite passes `91/91`; focused frontend coverage passes `8/8`; the full frontend suite passes
+`889/889`; type-check, production build, and rebuilt-stack `F8s-rotation-family` Playwright pass
+`1/1`. No acceptance flexibility was used. Exact V25 history-control geometry and long-curve
+visual treatment remain an explicit board gap.
+
 ## 2026-08-18 — Market Map discloses provider-field conflicts
 
 Market Map numeric area fields now compare the latest field-bearing persisted profile observation

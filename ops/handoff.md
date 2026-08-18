@@ -1,5 +1,23 @@
 # Active Handoff
 
+## 2026-08-18 — Bounded historical Relative Rotation curves
+
+- Added optional bounded `history_length` (`0..1000`) to family and generic group Relative
+  Rotation APIs. History uses exact timestamp-aligned local ratio observations, honours `as_of`,
+  and never forward-fills missing legs; existing current metrics and short tail remain intact.
+- Added the workstation History control, serialized configuration, request parameter, response
+  normalization, and uPlot curve selection without chart recreation. Added backend, component,
+  and rebuilt-stack browser regressions.
+- Validation: backend relative-rotation `2/2`; complete watchlist/workspace analysis `91/91`;
+  focused frontend `8/8`; full Vitest `889/889`; type-check/build; rebuilt-stack Playwright
+  `F8s-rotation-family 1/1`; Ruff, compileall, and diff-check. No acceptance flexibility.
+- The initial browser run was setup-only because no stack was running. `make test-stack-up`
+  rebuilt the branch-scoped services with `--build --force-recreate --wait`; the unchanged
+  browser test then passed. Exact V25 history/tail geometry remains a reference-board gap.
+- Implementation commit and separate docs/ops checkpoint must be pushed and synchronized before
+  the next context. Next action: continue provider-backed family population/continuity and the
+  remaining universal WatchlistSource Market Map acceptance gaps.
+
 ## 2026-08-18 — Market Map provider-field conflicts are explicit
 
 - Market Map now compares each provider's latest field-bearing persisted profile snapshot at the

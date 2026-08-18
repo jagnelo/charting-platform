@@ -1,5 +1,15 @@
 # TC2000 Version 25 composite reference board
 
+## 2026-08-18 — Relative Rotation history control gap
+
+The board currently has no sufficiently authoritative Version 25 capture for the full Relative
+Rotation history/tail control, its maximum-history affordance, or the long-curve rendering state.
+The implementation therefore uses deterministic contract and interaction tests as the interim
+oracle: bounded `history_length`, exact aligned/no-forward-fill/as-of semantics, persisted control,
+and uPlot redraw without chart recreation. This is a required visual gap, not a pass and not an
+acceptance relaxation. Close it with a reviewed V25 capture and measured control/curve geometry;
+until then, do not broaden screenshot masks or claim pixel parity for this state.
+
 ## 2026-08-18 — Provider-field conflict state remains visually unrepresented
 
 Market Map now exposes a deterministic provider-precedence value plus explicit conflict provenance

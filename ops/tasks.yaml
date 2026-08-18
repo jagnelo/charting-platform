@@ -1,4 +1,37 @@
 tasks:
+  - id: tc2000-relative-rotation-history-20260818
+    title: Add bounded historical curves to family and generic Relative Rotation
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Expose an optional bounded history_length for family and generic group Relative Rotation,
+      preserve exact local alignment/as_of/no-forward-fill semantics, and render the selected
+      history in the workstation through the existing uPlot chart instance.
+    definition_of_done:
+      - family and generic responses return history_length and bounded historical coordinates
+      - current tail and current-state metrics remain backward compatible
+      - missing or misaligned ratio bars are not forward-filled into history
+      - workstation configuration persists the History control and uses the selected curve
+      - focused backend/frontend, complete backend/frontend, type/build, and browser checks pass
+      - exact V25 history-control visuals remain explicitly tracked if not represented by the board
+    validation:
+      - backend-relative-rotation-history-2-of-2
+      - backend-watchlists-workspaces-91-of-91
+      - frontend-relative-rotation-history-8-of-8
+      - frontend-vitest-889-of-889
+      - frontend-type-check-and-build
+      - playwright-f8s-rotation-family-1-of-1
+      - backend-ruff
+      - backend-compileall
+      - git-diff-check
+    notes:
+      - >-
+        No acceptance flexibility, screenshot threshold, mask, provider substitution, or
+        no-forward-fill rule changed. The first browser attempt had no running stack; the
+        branch-scoped stack was rebuilt with force-recreate and the unchanged browser oracle passed.
+        Exact V25 history/tail visual evidence remains a board gap.
+
   - id: tc2000-market-map-provider-field-conflict-20260818
     title: Disclose provider-field conflicts in universal Market Maps
     status: completed

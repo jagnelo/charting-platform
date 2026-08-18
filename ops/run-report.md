@@ -1,5 +1,20 @@
 # Run Report
 
+## 2026-08-18 — Bounded historical Relative Rotation curves
+
+- Family and generic group Relative Rotation now accept `history_length` from `0` to `1000` and
+  return bounded historical coordinates alongside the existing tail/current-state payload.
+  Calculations remain local, exact timestamp-aligned, as-of bounded, and no-forward-fill.
+- The workstation persists the History control and draws the selected curve through the existing
+  uPlot instance. Focused backend `2/2`, complete watchlist/workspace `91/91`, focused frontend
+  `8/8`, full Vitest `889/889`, type-check/build, and rebuilt-stack Playwright `1/1` passed.
+- Initial browser setup with no stack was discarded. The branch-scoped stack was rebuilt with
+  `make test-stack-up` and the unchanged `F8s-rotation-family` oracle passed. Ruff, compileall,
+  and diff-check pass. No acceptance flexibility or visual threshold/mask change.
+- Exact V25 history-control measurements and long-curve visual treatment remain an explicit board
+  gap. Close the implementation/docs/ops checkpoint before continuing provider-backed family
+  population/continuity.
+
 ## 2026-08-18 — Market Map provider-field conflict disclosure
 
 - Added latest-per-provider conflict detection for numeric profile area fields with a declared
