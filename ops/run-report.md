@@ -1,5 +1,21 @@
 # Run Report
 
+## 2026-08-18 — Explicit family-role provider routes
+
+- Canonical family-role route metadata is now explicit for QQQ/Invesco and the iShares family
+  legs, eliminating the remaining issuer/name-inference dependency for mapped S&P/Russell/Nasdaq
+  roles. The matrix regression covers all 32 cells (`20` mapped, `12` explicitly unavailable).
+- QQQ was added to the opt-in issuer-native live matrix; the bounded selection passed `3/3`.
+  This proves current route access and parsing only, and the report retains the historical
+  weighting/rebalance/official-membership limitation.
+- Validation passed: taxonomy/provider-route units `17/17`, ETF holdings integration `61/61`,
+  live selection `3/3`, Ruff, compileall, and `git diff --check`. An unprivileged Docker socket
+  attempt failed during test setup; the unchanged elevated test passed, with no acceptance rule,
+  visual threshold, or mask changed.
+- Implementation `6b1200cf495471873da07f3c198f444686f6e597` is pushed. Provider-backed family
+  population, historical continuity, canonical bars, and exact V25 route-status/source-picker
+  visuals remain open.
+
 ## 2026-08-19 — All-family locked-watchlist holdings refresh orchestration
 
 - Added typed admin-only bulk routes for one-date and bounded historical-range refreshes across the

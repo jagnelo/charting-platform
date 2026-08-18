@@ -1,5 +1,20 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-08-19 — Identity-first family-route sub-gate
+
+Before a configured benchmark-family role is considered refreshable, acceptance must resolve its
+canonical symbol metadata to a registered holdings adapter explicitly. The matrix test must
+iterate all four roles for all eight roots: a mapped role requires an issuer, explicit adapter,
+and registered adapter class; a missing role requires `verification_state=not_verified` and must
+remain unavailable. This prevents a working-looking route from depending on weak issuer/name
+inference or silently borrowing another family.
+
+The current oracle passes `20` mapped and `12` unavailable cells, the complete ETF holdings
+integration file passes `61/61`, and the opt-in QQQ live route selection passes `3/3`. The live
+result is deliberately bounded to current route reachability/parseability; it does not close
+historical QQQ/QQQE weighting, rebalance, official-index membership, or exact Version 25 route
+status visuals. No acceptance flexibility was used.
+
 ## 2026-08-19 — Bulk population sub-gate for universal locked family watchlists
 
 The provider-population acceptance must be able to invoke the admin-only bulk refresh contract for

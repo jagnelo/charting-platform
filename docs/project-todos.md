@@ -1,5 +1,23 @@
 # Project TODO Memory
 
+### 2026-08-19 — Explicit family-role provider routes
+
+- [x] Make canonical route metadata identity-first for every currently mapped family leg. QQQ now
+      declares the Invesco adapter directly; the iShares family legs (IJR, IWB, IWD, IWF, IWN,
+      IWO, IWV, and IWM) declare the iShares adapter alongside their product IDs rather than
+      depending on issuer/name inference.
+- [x] Add a taxonomy regression that iterates all 32 family/role cells and requires every mapped
+      role to have a registered explicit holdings adapter while every absent role remains
+      `not_verified`; the matrix currently contains `20` mapped and `12` explicitly unavailable
+      cells.
+- [x] Add QQQ to the opt-in issuer-native live route matrix. The bounded live selection covering
+      QQQ completes successfully; this proves current route reachability and parseability only,
+      not historical weighting, rebalance, or official-index membership truth.
+- [x] Validate taxonomy/provider-route units `17/17`, the complete ETF holdings integration file
+      `61/61`, the bounded QQQ live selection `3/3`, Ruff, compileall, and `git diff --check`.
+- [ ] Keep historical QQQ/QQQE weighting and rebalance evidence, complete provider-backed family
+      population, canonical bars, and exact Version 25 family-picker/route-status visuals open.
+
 ### 2026-08-19 — All-family locked-watchlist holdings refresh orchestration
 
 - [x] Add admin-only one-date and bounded historical-range endpoints that can target all eight

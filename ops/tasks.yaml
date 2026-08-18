@@ -1,4 +1,30 @@
 tasks:
+  - id: tc2000-family-explicit-route-matrix-20260819
+    title: Require explicit holdings routes for every mapped benchmark-family role
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Remove the remaining identity-first gap in the configured S&P/Russell/Nasdaq family matrix
+      by declaring canonical QQQ/Invesco and iShares family-leg adapter routes and proving every
+      mapped role has a registered adapter while absent roles remain explicitly unavailable.
+    definition_of_done:
+      - QQQ declares the Invesco holdings adapter in canonical route metadata
+      - IJR/IWB/IWD/IWF/IWN/IWO/IWV/IWM declare iShares routes with their product identifiers
+      - The route matrix iterates all 32 family/role cells without silent substitution
+      - The opt-in live matrix includes QQQ and retains current-only evidence boundaries
+      - Historical weighting/rebalance, complete population, canonical bars, and exact V25 visuals remain tracked gaps
+    validation:
+      - backend-top-down-taxonomy-and-route-units-17-of-17
+      - backend-etf-holdings-integration-61-of-61
+      - backend-live-qqq-selected-3-of-3
+      - backend-ruff-compileall
+      - git-diff-check
+    notes:
+      - >-
+        No acceptance flexibility was used. Current QQQ route reachability is not official-index,
+        historical weighting, rebalance, or membership evidence; those remain open.
+
   - id: tc2000-all-family-holdings-refresh-20260819
     title: Orchestrate provider-backed population of every locked benchmark-family watchlist
     status: completed

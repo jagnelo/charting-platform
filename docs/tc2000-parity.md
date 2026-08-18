@@ -1,5 +1,20 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-19 — Family roles use explicit canonical holdings routes
+
+Every currently mapped benchmark-family role now has explicit provider route metadata before a
+refresh or bootstrap can rely on it. QQQ declares the Invesco adapter directly, while the iShares
+family legs declare `ishares` alongside their product IDs; route readiness no longer depends on
+issuer/name inference for the configured S&P/Russell/Nasdaq role matrix. The absent role cells
+remain `not_verified` and are not substituted.
+
+The taxonomy/provider-route regression covers all 32 family/role cells (`20` mapped, `12`
+explicitly unavailable), the complete ETF holdings integration file passes `61/61`, and the
+bounded opt-in live matrix includes a parseable QQQ issuer route (`3/3` selected QQQ-substring
+cases). This is route-readiness evidence only: current QQQ holdings do not establish historical
+weighting, rebalance, or official Nasdaq-100 membership truth. Those data gaps and the exact V25
+route-status/source-picker visuals remain open.
+
 ## 2026-08-19 — All benchmark families can be populated through one locked-watchlist backfill contract
 
 The operational holdings layer now exposes admin-only bulk refresh routes for the universal locked

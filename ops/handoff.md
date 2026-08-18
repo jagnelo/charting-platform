@@ -1,5 +1,25 @@
 # Active Handoff
 
+## 2026-08-18 — Explicit family-role provider routes
+
+- Closed a concrete identity-first gap in the configured family matrix. QQQ now declares the
+  Invesco holdings adapter directly; IJR/IWB/IWD/IWF/IWN/IWO/IWV and IWM declare the iShares
+  adapter alongside their product identifiers. Bootstrap/refresh no longer needs issuer/name
+  inference for these mapped roles.
+- Added a taxonomy regression over all 32 family/role cells: `20` mapped cells require a
+  registered explicit adapter and `12` absent cells remain `not_verified` and unavailable.
+- Added QQQ to the opt-in issuer-native live matrix. The bounded QQQ-substring selection passed
+  `3/3`; this is current route reachability/parseability evidence only, not historical weighting,
+  rebalance, or official Nasdaq-100 membership evidence.
+- Validation: taxonomy/provider-route units `17/17`, complete ETF holdings integration `61/61`,
+  live selection `3/3`, Ruff, compileall, and `git diff --check`. The first unprivileged
+  integration attempt hit Docker-socket `PermissionError`; the identical elevated run passed.
+- Implementation commit `6b1200cf495471873da07f3c198f444686f6e597` is pushed. No acceptance
+  flexibility was used; the Docker permission was an execution-environment boundary only.
+- Remaining gaps: historical QQQ/QQQE weighting/rebalance and membership evidence, complete
+  provider-backed family population and canonical bars, and exact Version 25 route-status and
+  family-picker visuals. Next context continues provider population/quality reconciliation.
+
 ## 2026-08-19 — All-family locked-watchlist holdings refresh orchestration
 
 - Added admin-only `POST /etf-holdings/benchmark-families/refresh-date` and `refresh-range` routes
