@@ -823,6 +823,7 @@ async def resolve_watchlist_source(
             await db.execute(
                 statement.order_by(
                     ETFHoldingsSnapshot.composition_date.desc(),
+                    ETFHoldingsSnapshot.known_at.desc().nullslast(),
                     ETFHoldingsSnapshot.id.desc(),
                 ).limit(1)
             )
@@ -958,7 +959,9 @@ async def resolve_watchlist_source(
         snapshot = (
             await db.execute(
                 statement.order_by(
-                    ETFHoldingsSnapshot.composition_date.desc(), ETFHoldingsSnapshot.id.desc()
+                    ETFHoldingsSnapshot.composition_date.desc(),
+                    ETFHoldingsSnapshot.known_at.desc().nullslast(),
+                    ETFHoldingsSnapshot.id.desc(),
                 ).limit(1)
             )
         ).scalar_one_or_none()
