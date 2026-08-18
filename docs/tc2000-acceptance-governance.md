@@ -100,6 +100,20 @@ and `condition_tree_to_boolean` adapter metadata. Running that screener must pla
 the isolated job payload and produce the expected Boolean member result. Direct promotion into
 non-Boolean targets remains a separate open gate.
 
+## 2026-08-19 — Boolean breadth target fan-out sub-gate
+
+For a completed member-scoped Boolean breadth-history result, acceptance must verify that Research
+Results offers alert, Market Gauge, and Strategy signal targets in addition to EasyScan. The first
+three actions must reuse one generated immutable Boolean EasyScan and preserve the source run,
+condition version, universe, dataset, and reproducibility lineage. The alert payload must target
+that scan; the Strategy signal must reference the scan's immutable Boolean code version; and a
+repeat click or a different target must not create duplicate scans.
+
+Cross-sectional aggregates and non-Boolean series remain outside this sub-gate and must retain
+structured capability gating. A missing exact V25 capture for this successive-promotion state is a
+visual-board gap only; deterministic action/API assertions remain the interim oracle and do not
+relax the functional lineage requirement.
+
 ## 2026-08-18 — Universal source and recursive Python sub-gate
 
 The heatmap/breadth acceptance oracle treats every canonical source as one universe contract.

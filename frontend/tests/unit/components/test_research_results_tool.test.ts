@@ -252,6 +252,32 @@ describe('ResearchResultsTool', () => {
     expect(wrapper.text()).toContain('EasyScan “Recursive breadth tree scan 23” (#43) created')
   })
 
+  it('reuses one Boolean EasyScan when promoting a breadth result to alert, gauge, and Strategy signal', async () => {
+    apiGet.mockResolvedValue([{ id: 25, status: 'completed', code_version_id: 8, run_config: { execution_mode: 'breadth_history', output_contract: 'boolean' }, dataset_manifest: {}, diagnostics: [], artifacts: [
+      { id: 14, name: 'breadth_history', artifact_type: 'breadth_history', payload: { value: { points: [], occurrences: [] } } },
+    ] }])
+    apiPost.mockImplementation((path: string) => {
+      if (path === '/analysis/breadth/python/runs/25/promote-scan') return Promise.resolve({ id: 55, name: 'Boolean breadth scan 25', conditions: { code_version_id: 88 } })
+      if (path === '/alerts/screener') return Promise.resolve({ id: 56 })
+      if (path === '/strategy-lab/signals/from-code/88') return Promise.resolve({ id: 57 })
+      return Promise.resolve({})
+    })
+    const wrapper = mountTool()
+    await flushPromises()
+
+    await wrapper.findAll('button').find(button => button.text() === 'Promote to alert')!.trigger('click')
+    await flushPromises()
+    await wrapper.findAll('button').find(button => button.text() === 'Use as Market Gauge')!.trigger('click')
+    await flushPromises()
+    await wrapper.findAll('button').find(button => button.text() === 'Save as Strategy signal')!.trigger('click')
+    await flushPromises()
+
+    expect(apiPost.mock.calls.filter(call => call[0] === '/analysis/breadth/python/runs/25/promote-scan')).toHaveLength(1)
+    expect(apiPost).toHaveBeenCalledWith('/alerts/screener', { screener_id: 55, trigger_type: 'entered', repeat: true, notes: 'Created from Python breadth run 25' })
+    expect(apiPost).toHaveBeenCalledWith('/strategy-lab/signals/from-code/88', {})
+    expect(wrapper.text()).toContain('Saved as a reusable Strategy Lab signal.')
+  })
+
   it('offers aggregate Study Lab promotion for cross-sectional Python breadth history', async () => {
     apiGet.mockResolvedValue([{ id: 24, status: 'completed', code_version_id: 10, run_config: { execution_mode: 'breadth_history', output_contract: 'series', series_target: { scope: 'cross_sectional', statistic: 'mean', operator: 'gte', threshold: 0 } }, dataset_manifest: {}, diagnostics: [], artifacts: [
       { id: 13, name: 'breadth_history', artifact_type: 'breadth_history', payload: { value: { points: [], occurrences: [] } } },

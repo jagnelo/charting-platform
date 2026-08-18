@@ -65,6 +65,23 @@
       signals where each output contract is genuinely compatible; this study adapter closes only
       the aggregate Study Lab target.
 
+### 2026-08-19 — Research Results Boolean breadth promotion fan-out
+
+- [x] Reuse one lineage-preserving EasyScan promotion for completed member-scoped Boolean breadth
+      history runs, then expose direct `Promote to alert`, `Use as Market Gauge`, and `Save as
+      Strategy signal` actions from Research Results. The generated scan remains the single source
+      of truth for the alert and gauge, while the immutable Boolean code-version ID is passed to
+      Strategy Lab; repeated actions for one run never create duplicate scans.
+- [x] Gate those actions to completed breadth-history artifacts with Boolean-compatible member
+      semantics. Cross-sectional aggregate and other incompatible outputs remain visible through
+      their supported study/plot/column contracts without being flattened into per-symbol alerts.
+- [x] Add component coverage for one-run scan reuse, exact alert payload, and Strategy signal
+      lineage. The existing EasyScan, alert, Market Gauge, and Strategy Lab APIs remain the
+      canonical implementation paths.
+- [ ] Continue direct promotion for cross-sectional aggregates, event/derived-series outputs, and
+      map-created definitions where the target contract is compatible; retain structured
+      capability errors for incompatible targets.
+
 ### 2026-08-18 — Recursive Python member condition trees and universal heatmap sources
 
 - [x] Promote a completed member-level numeric breadth series into a reusable watchlist

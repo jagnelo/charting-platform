@@ -34,7 +34,7 @@
       <div><span>Reproducibility</span><b :class="comparisonClass('reproducibility_hash')">{{ comparisonRuns[0].reproducibility_hash ?? '—' }} / {{ comparisonRuns[1].reproducibility_hash ?? '—' }}</b></div>
     </section>
     <article v-if="selectedRun" class="research-results-tool__detail" :aria-label="`Research run ${selectedRun.id} details`">
-      <div class="research-results-tool__detail-header"><strong>Run #{{ selectedRun.id }}</strong><button v-if="canCancel(selectedRun)" type="button" :disabled="canceling" @click="cancel(selectedRun)">Cancel</button><button v-if="canPromoteBreadth(selectedRun)" type="button" :disabled="rerunning || canceling || promoting" @click="promoteScan(selectedRun)">{{ promoting ? 'Promoting…' : 'Promote to EasyScan' }}</button><button v-if="canPromoteBreadthStudy(selectedRun)" type="button" :disabled="rerunning || canceling || promoting" @click="promoteStudy(selectedRun)">{{ promoting ? 'Promoting…' : 'Save as Study Lab study' }}</button><button v-if="canPromoteBreadthPlot(selectedRun)" type="button" :disabled="rerunning || canceling || promoting" @click="promotePlot(selectedRun)">{{ promoting ? 'Promoting…' : 'Save as chart plot' }}</button><button v-if="canPromoteBreadthColumn(selectedRun)" type="button" :disabled="rerunning || canceling || promoting" @click="promoteColumn(selectedRun)">{{ promoting ? 'Promoting…' : 'Save as watchlist column' }}</button><button type="button" :disabled="rerunning || canceling || promoting" @click="rerun(selectedRun, true)">Rerun snapshot</button><button type="button" :disabled="rerunning || canceling || promoting" @click="rerun(selectedRun, false)">Rerun latest</button></div>
+      <div class="research-results-tool__detail-header"><strong>Run #{{ selectedRun.id }}</strong><button v-if="canCancel(selectedRun)" type="button" :disabled="canceling" @click="cancel(selectedRun)">Cancel</button><button v-if="canPromoteBreadth(selectedRun)" type="button" :disabled="rerunning || canceling || promoting" @click="promoteScan(selectedRun)">{{ promoting ? 'Promoting…' : 'Promote to EasyScan' }}</button><button v-if="canPromoteBreadthBoolean(selectedRun)" type="button" :disabled="rerunning || canceling || promoting" @click="promoteAlert(selectedRun)">{{ promoting ? 'Promoting…' : 'Promote to alert' }}</button><button v-if="canPromoteBreadthBoolean(selectedRun)" type="button" :disabled="rerunning || canceling || promoting" @click="promoteGauge(selectedRun)">{{ promoting ? 'Promoting…' : 'Use as Market Gauge' }}</button><button v-if="canPromoteBreadthBoolean(selectedRun)" type="button" :disabled="rerunning || canceling || promoting" @click="promoteSignal(selectedRun)">{{ promoting ? 'Promoting…' : 'Save as Strategy signal' }}</button><button v-if="canPromoteBreadthStudy(selectedRun)" type="button" :disabled="rerunning || canceling || promoting" @click="promoteStudy(selectedRun)">{{ promoting ? 'Promoting…' : 'Save as Study Lab study' }}</button><button v-if="canPromoteBreadthPlot(selectedRun)" type="button" :disabled="rerunning || canceling || promoting" @click="promotePlot(selectedRun)">{{ promoting ? 'Promoting…' : 'Save as chart plot' }}</button><button v-if="canPromoteBreadthColumn(selectedRun)" type="button" :disabled="rerunning || canceling || promoting" @click="promoteColumn(selectedRun)">{{ promoting ? 'Promoting…' : 'Save as watchlist column' }}</button><button type="button" :disabled="rerunning || canceling || promoting" @click="rerun(selectedRun, true)">Rerun snapshot</button><button type="button" :disabled="rerunning || canceling || promoting" @click="rerun(selectedRun, false)">Rerun latest</button></div>
       <p class="research-results-tool__run-guidance" role="status" aria-live="polite" aria-atomic="true">{{ statusGuidance(selectedRun.status) }}</p>
       <p v-if="promotionMessage" class="research-results-tool__run-guidance" role="status" aria-live="polite" aria-atomic="true">{{ promotionMessage }}</p>
       <small v-if="selectedRun.reproducibility_hash">{{ selectedRun.reproducibility_hash }}</small>
@@ -120,6 +120,7 @@ const rerunning = ref(false)
 const canceling = ref(false)
 const promoting = ref(false)
 const promotionMessage = ref('')
+const promotedScans = ref<Record<number, { id: number; name: string; codeVersionId: number | null }>>({})
 const occurrenceSymbolFilter = ref('')
 const occurrenceKindFilter = ref<'all' | 'member_entered' | 'member_exited'>('all')
 const emit = defineEmits<{ occurrence: [event: { symbol: string; timestamp: string; kind?: string; instrument_id?: number }] }>()
@@ -341,6 +342,12 @@ function canPromoteBreadth(run: ResearchRunSummary) {
     && run.run_config?.execution_mode === 'breadth_history'
     && run.artifacts.some(artifact => artifact.artifact_type === 'breadth_history')
 }
+function canPromoteBreadthBoolean(run: ResearchRunSummary) {
+  const target = run.run_config?.series_target
+  return canPromoteBreadth(run)
+    && (run.run_config?.output_contract === 'boolean'
+      || (run.run_config?.output_contract === 'series' && (!target || typeof target !== 'object' || String((target as Record<string, unknown>).scope ?? 'member') === 'member')))
+}
 function canPromoteBreadthStudy(run: ResearchRunSummary) {
   return run.status === 'completed'
     && run.run_config?.execution_mode === 'breadth_history'
@@ -406,10 +413,65 @@ async function promoteScan(run: ResearchRunSummary) {
   promoting.value = true
   promotionMessage.value = ''
   try {
-    const promoted = await api.post<{ id: number; name: string }>(`/analysis/breadth/python/runs/${run.id}/promote-scan`, {})
+    const promoted = await ensurePromotedScan(run)
     promotionMessage.value = `EasyScan “${promoted.name}” (#${promoted.id}) created. It re-evaluates current data over the source member IDs; the historical run lineage remains attached.`
   } catch (cause: any) {
     promotionMessage.value = cause?.message ?? 'Unable to promote the breadth run to EasyScan'
+  } finally {
+    promoting.value = false
+  }
+}
+
+async function ensurePromotedScan(run: ResearchRunSummary) {
+  const existing = promotedScans.value[run.id]
+  if (existing) return existing
+  const promoted = await api.post<{ id: number; name: string; conditions?: { code_version_id?: number } }>(`/analysis/breadth/python/runs/${run.id}/promote-scan`, {})
+  const result = {
+    id: promoted.id,
+    name: promoted.name,
+    codeVersionId: typeof promoted.conditions?.code_version_id === 'number' ? promoted.conditions.code_version_id : null,
+  }
+  promotedScans.value = { ...promotedScans.value, [run.id]: result }
+  return result
+}
+
+async function promoteAlert(run: ResearchRunSummary) {
+  promoting.value = true
+  promotionMessage.value = ''
+  try {
+    const scan = await ensurePromotedScan(run)
+    await api.post('/alerts/screener', { screener_id: scan.id, trigger_type: 'entered', repeat: true, notes: `Created from Python breadth run ${run.id}` })
+    promotionMessage.value = `Alert created from EasyScan “${scan.name}”.`
+  } catch (cause: any) {
+    promotionMessage.value = cause?.message ?? 'Unable to promote the breadth run to an alert'
+  } finally {
+    promoting.value = false
+  }
+}
+
+async function promoteGauge(run: ResearchRunSummary) {
+  promoting.value = true
+  promotionMessage.value = ''
+  try {
+    const scan = await ensurePromotedScan(run)
+    promotionMessage.value = `Available as a Market Gauge from EasyScan “${scan.name}”.`
+  } catch (cause: any) {
+    promotionMessage.value = cause?.message ?? 'Unable to promote the breadth run to a Market Gauge'
+  } finally {
+    promoting.value = false
+  }
+}
+
+async function promoteSignal(run: ResearchRunSummary) {
+  promoting.value = true
+  promotionMessage.value = ''
+  try {
+    const scan = await ensurePromotedScan(run)
+    if (scan.codeVersionId == null) throw new Error('The promoted EasyScan did not return its immutable Boolean code version.')
+    await api.post(`/strategy-lab/signals/from-code/${scan.codeVersionId}`, {})
+    promotionMessage.value = 'Saved as a reusable Strategy Lab signal.'
+  } catch (cause: any) {
+    promotionMessage.value = cause?.message ?? 'Unable to promote the breadth run to a Strategy signal'
   } finally {
     promoting.value = false
   }

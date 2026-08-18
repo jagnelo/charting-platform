@@ -27,6 +27,15 @@ Map interaction contract. No authoritative V25 capture shows the exact combo-def
 locked-derived badge, so those details remain a tracked visual gap; deterministic source identity,
 membership, and interaction tests are the interim acceptance oracle.
 
+## 2026-08-19 Boolean breadth promotion reference gap
+
+The board contains the dense Research Results/action language but no authoritative capture of the
+exact Version 25 state after a Boolean breadth run is promoted successively to an alert, Market
+Gauge, and Strategy signal. The implementation reuses one saved EasyScan and immutable code
+version, and deterministic component/API assertions are the interim oracle. Button placement,
+confirmation copy, and any target-specific V25 affordance remain a named visual gap until a
+complementary reference is reviewed; this does not block the represented Research Results surface.
+
 ## 2026-08-18 universal-source and recursive-Python visual gap
 
 The composed board supports the product decision that a locked index/ETF constituent list should

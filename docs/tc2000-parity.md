@@ -61,6 +61,20 @@ integration, and component regressions cover promotion plus a rerun of the gener
 Promotion to the remaining compatible filter/gauge/alert/plot/column/Strategy-Lab surfaces remains
 an explicit open fan-out gate.
 
+## 2026-08-19 — Boolean breadth promotion to alert, gauge, and Strategy signal
+
+Research Results now exposes the compatible target set for a completed member-scoped Boolean
+breadth-history run. `Promote to alert` and `Use as Market Gauge` first create or reuse exactly one
+lineage-preserving EasyScan from the immutable breadth condition, then target that scan through the
+existing alert and Market Gauge contracts. `Save as Strategy signal` reuses the immutable Boolean
+code-version ID returned by that same scan promotion. The UI caches the scan per run, so selecting
+three targets cannot create three independent condition versions or three scans.
+
+Cross-sectional aggregate, event, and arbitrary derived-series outputs remain gated by their
+declared output contracts; they are not coerced into per-symbol Boolean alerts. Direct promotion
+from map-created definitions and complete fan-out for every compatible artifact remain tracked
+gaps.
+
 ## 2026-08-19 — Arbitrary Market Map period control
 
 Market Map exposes the supported preset periods plus a `CUSTOM` period with explicit start and
