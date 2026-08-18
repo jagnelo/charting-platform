@@ -1,5 +1,21 @@
 # Active Handoff
 
+## 2026-08-19 — Market Map durable refresh progress is visible and cancellable
+
+- Added durable-run clients and controls in `frontend/src/lib/workstation/marketMap.ts` and
+  `frontend/src/components/workstation/MarketMapTool.vue`. After explicit refresh, the tool shows
+  run ID/status and completed-versus-selected progress, polls active runs, and offers Cancel
+  refresh. Cancellation retains cached bars and cannot edit locked membership.
+- Queue-unavailable, already-queued, failed, and canceled outcomes remain explicit. Source-level
+  local coverage remains the authority; browser status/cancel calls do not fan out to providers.
+- Validation: Market Map component `25/25`; full frontend Vitest `890/890`; type-check/build;
+  diff check. No acceptance flexibility, provider substitution, or interactive provider fan-out.
+- Implementation `851fe3c9515dd508fa0325570b3d23c7268678f8` and docs/ops checkpoint
+  `9f90bd64c07ed84cc550ed392d4719d235ad83f9` are pushed. Final state closure will record this
+  handoff; verify its enclosing SHA externally. Remaining gaps are provider-backed family
+  completeness, canonical bars/history reconciliation, large-list rendering, and exact V25
+  maintenance/progress geometry.
+
 ## 2026-08-19 — Market Map source history readiness is visible and actionable
 
 - Added typed clients in `frontend/src/lib/workstation/marketMap.ts` for source-level history
