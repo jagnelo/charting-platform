@@ -1,5 +1,34 @@
 # Active Handoff
 
+## 2026-08-19 — Cross-sectional breadth aggregate chart plot
+
+- Completed historical Python breadth results with a cross-sectional target or recursive tree can
+  now be promoted to a reusable `plot` CodeAsset whose sole output is aligned
+  `percentage_history`; member-scoped promotion remains unchanged.
+- The generated asset preserves source run/code/definition/reproducibility/manifest/universe and
+  target/tree lineage and declares the explicit `breadth_aggregate_percentage` adapter. The
+  isolated runner executes the complete prepared `datasets` wrapper once, avoiding accidental
+  per-member series batching.
+- ChartPlotLibrary receives diagnostics from `/code/assets` and persists the locked
+  `universe_source_id` or explicit source symbols into serializable Python plot configuration.
+  WorkstationToolContent uses those fields when rerunning, so changing the active symbol cannot
+  collapse the aggregate to one member.
+- Fix-first evidence: the first Docker-backed focused rerun failed with
+  `KeyError: percentage_history` because the series asset was dispatched through ordinary batch
+  execution and each member saw no `datasets` wrapper. The dispatch adapter was repaired at the
+  runner boundary; unchanged focused rerun passed.
+- Validation: focused backend integration `1/1`; backend unit `1205/1205`; focused frontend
+  ChartPlotLibrary/ResearchResults `40/40`; full frontend Vitest `885/885`; `vue-tsc`; production
+  build; Ruff; compileall; YAML/JSON parsing; and `git diff --check` pass. Expected mocked
+  503/conflict logs and Vite chunk-size warning remain unchanged.
+- No acceptance flexibility used. Exact V25 aggregate-promotion and plot-library target-mode
+  visuals are explicitly tracked in the reference board; aggregate/member contracts and full
+  universe rerun requirements remain strict.
+- Implementation/docs commit `c524d511a2ace88e35c9f138205e65fe6a02074a` is pushed. This
+  operational record is the separate checkpoint; state closure follows it.
+- Next context remains unified-Python derived-series/promotion fan-out and the open eight-root
+  provider/history population, not a redefinition of this goal.
+
 ## 2026-08-19 — Research Results Boolean breadth promotion fan-out
 
 - Research Results now exposes `Promote to alert`, `Use as Market Gauge`, and `Save as Strategy

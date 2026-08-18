@@ -1,5 +1,21 @@
 # Run Report
 
+## 2026-08-19 — Cross-sectional breadth aggregate chart plot
+
+- Added explicit Research Results aggregate-chart promotion for cross-sectional or recursive
+  historical Python breadth. The result is a reusable `plot` CodeAsset with `percentage_history`,
+  complete lineage, and no member flattening.
+- Added isolated runner dispatch for `breadth_aggregate_percentage` and chart-library propagation
+  of locked source IDs or explicit source symbols on rerun.
+- Initial focused Docker rerun found the real per-member dispatch defect; the owning runner
+  boundary was fixed and the unchanged rerun passed. No acceptance flexibility used.
+- Validation passed: backend integration `1/1`, backend unit `1205/1205`, frontend focused `40/40`,
+  full Vitest `885/885`, `vue-tsc`, production build, Ruff, compileall, YAML/JSON, and diff-check.
+- Exact V25 promotion/plot-library visuals remain a named reference-board gap only; functional
+  lineage, full-universe materialization, and sandbox requirements remain mandatory.
+- Implementation/docs commit `c524d511a2ace88e35c9f138205e65fe6a02074a` is pushed. Operational
+  checkpoint and state closure are the remaining bookkeeping steps.
+
 ## 2026-08-19 — Research Results Boolean breadth promotion fan-out
 
 - Completed member-scoped Boolean breadth-history results now offer alert, Market Gauge, and

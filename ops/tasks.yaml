@@ -1,4 +1,40 @@
 tasks:
+  - id: tc2000-cross-sectional-aggregate-plot-20260819
+    title: Promote cross-sectional breadth results to reusable aggregate chart plots
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Preserve cross-sectional and recursive breadth semantics when Research Results promotes a
+      completed historical run into a reusable uPlot series. Materialize the complete declared
+      universe, retain locked-source/explicit-symbol lineage in chart configuration, and keep
+      the aggregate percentage distinct from member-level scalar plot/column promotion.
+    definition_of_done:
+      - Aggregate promotion creates a user-owned plot CodeAsset with percentage_history output
+      - Isolated execution uses the explicit breadth_aggregate_percentage adapter once per prepared universe
+      - Reruns retain source-universe lineage instead of falling back to the active chart symbol
+      - Duplicate promotion, API rerun, frontend lineage, and compatibility tests pass
+      - Acceptance/parity/reference-board docs record the implementation and remaining V25 visual gap
+    validation:
+      - backend-python-breadth-integration-1-of-1
+      - backend-unit-1205-of-1205
+      - frontend-chart-and-research-focused-40-of-40
+      - frontend-vitest-885-of-885
+      - frontend-vue-tsc-build
+      - backend-ruff-compileall
+      - ruby-yaml-json-parse
+      - git-diff-check
+    notes:
+      - >-
+        Initial Docker-backed rerun exposed a real runner dispatch defect: a series plot was sent
+        through per-member batch execution and lost the prepared-universe wrapper. The owning
+        execution boundary now dispatches the explicit adapter to one isolated invocation; the
+        unchanged focused integration rerun passed. No acceptance flexibility used.
+      - >-
+        Exact V25 aggregate-promotion wording, placement, badges, and target-mode visuals remain
+        tracked in docs/tc2000-reference-board.md; functional lineage/full-universe gates remain strict.
+      - Implementation/docs commit c524d511a2ace88e35c9f138205e65fe6a02074a is pushed and synchronized.
+
   - id: tc2000-universe-performance-map-20260817
     title: Add universe-scoped Finviz-style performance-map contract and workstation surface
     status: in_progress
