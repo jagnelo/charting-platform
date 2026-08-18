@@ -1,5 +1,28 @@
 # Run Report
 
+## 2026-08-19 — Source-polymorphic canonical history hydration
+
+- Added the explicit authenticated `POST /api/v1/watchlists/sources/history-refresh` maintenance
+  contract for every canonical source kind: personal, screener-managed, market-group,
+  ETF-holdings, benchmark-family, combo, and explicit symbols.
+- The planner uses the same user-scoped point-in-time `WatchlistSource` resolver as Market Map and
+  breadth, deduplicates canonical IDs across overlapping sources, applies the 5,000-instrument
+  bound, and preserves source kind, locked state, membership versions, exclusions, unavailable
+  messages, `as_of`, truncation, and queue outcomes. Existing provider-neutral bulk-history jobs
+  remain the only execution path; interactive reads never fan out to providers.
+- Validation: planner units `5/5`; focused Docker-backed queue integration `1/1`; complete
+  watchlist integration `43/43`; ETF holdings integration `62/62`; full backend units `1220/1220`;
+  Ruff, compileall, and diff checks. The initial focused pytest invocation exited only because
+  the isolated subset cannot satisfy the repository-wide coverage threshold despite all tests
+  passing; the no-cov rerun passed. No acceptance flexibility or visual threshold/mask change.
+- The formatter initially rewrote unrelated lines in the large integration file; that mechanical
+  noise was removed before staging, leaving only the new regression. Implementation commit
+  `aec7288b2073692b1f9c9a5ad111a485c4f8dff7` is pushed and synchronized.
+- Open gaps remain provider-backed family membership/bar population, historical continuity and
+  reconciliation, durable progress/cancellation, entitlements/provider quality, all-root
+  acceptance, and exact V25 maintenance/progress visuals. Next context: continue provider-backed
+  family population/continuity and universal Market Map gates.
+
 ## 2026-08-19 — Bounded canonical history hydration for locked family watchlists
 
 - Added the admin-only family history refresh endpoint and planner. It uses canonical local locked

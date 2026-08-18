@@ -1,5 +1,25 @@
 # Project TODO Memory
 
+### 2026-08-19 — Explicit history hydration for every canonical watchlist source
+
+- [x] Add authenticated `POST /api/v1/watchlists/sources/history-refresh` for an explicit,
+      bounded set of canonical source IDs. Personal, screener-managed, market-group, ETF-
+      holdings, benchmark-family, combo, and explicit sources all resolve through the same
+      user-scoped `resolve_watchlist_source` contract used by Market Map and breadth.
+- [x] Deduplicate canonical instrument IDs across overlapping sources, preserve source kind,
+      locked state, membership version, exclusions, unavailable states, `as_of`, and a hard
+      5,000-instrument bound, then queue the existing provider-neutral bulk-history worker with
+      deterministic timeframes and idempotent job IDs. Interactive workstation reads remain
+      provider-fan-out-free.
+- [x] Add planner unit coverage and Docker-backed source integration coverage. Focused units
+      pass `5/5`; the focused queue integration passes `1/1`; the complete watchlist integration
+      passes `43/43`; ETF holdings integration passes `62/62`; full backend units pass `1220/1220`;
+      Ruff, compileall, and diff checks pass. No acceptance flexibility was used.
+- [ ] This closes the universal maintenance contract only. It does not prove provider-backed
+      membership, canonical bars, historical composition continuity, entitlement reconciliation,
+      durable batch progress/cancellation, or exact Version 25 maintenance visuals; those remain
+      explicit open goal gaps.
+
 ### 2026-08-19 — Bounded canonical history hydration for locked family watchlists
 
 - [x] Add an admin-only `POST /api/v1/etf-holdings/benchmark-families/history-refresh` contract

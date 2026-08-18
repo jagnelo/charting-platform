@@ -1,4 +1,38 @@
 tasks:
+  - id: tc2000-universal-source-history-20260819
+    title: Add explicit history hydration for every canonical watchlist source
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Extend the maintenance boundary from benchmark families to any user-resolvable canonical
+      WatchlistSource while preserving the same point-in-time, locked-membership, provenance, and
+      no-provider-fanout semantics consumed by Market Map and breadth.
+    definition_of_done:
+      - Authenticated endpoint accepts explicit source IDs, as-of, timeframes, and instrument bounds
+      - Personal, managed, market-group, ETF-holdings, benchmark-family, combo, and explicit sources use the shared resolver
+      - Overlapping source members deduplicate by canonical instrument ID and preserve per-source counts
+      - Unknown/unavailable sources remain visible with source-scoped status and message
+      - A hard 5,000-instrument bound reports truncation rather than widening the queue
+      - Existing provider-neutral bulk-history jobs receive deterministic, idempotent job IDs
+      - Focused planner units 5/5, queue integration 1/1, watchlist integration 43/43, ETF holdings integration 62/62, and backend units 1220/1220 pass
+      - Provider-backed population, canonical bars, historical continuity, durable progress/cancellation, and exact V25 maintenance visuals remain open
+    validation:
+      - backend-watchlist-history-planner-unit-5-of-5
+      - backend-watchlist-source-history-integration-1-of-1
+      - backend-watchlists-integration-43-of-43
+      - backend-etf-holdings-integration-62-of-62
+      - backend-unit-suite-1220-of-1220
+      - backend-ruff
+      - backend-compileall
+      - git-diff-check
+    notes:
+      - >-
+        No acceptance flexibility was used. The isolated focused unit command initially returned
+        the expected repository-wide coverage-threshold exit despite all tests passing; the
+        no-cov rerun passed. Formatter-only rewrites of the large integration file were removed
+        before commit, leaving only the new regression.
+
   - id: tc2000-family-member-history-queue-20260819
     title: Add bounded canonical history hydration for locked family watchlists
     status: completed

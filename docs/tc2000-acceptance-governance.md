@@ -1,5 +1,21 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-08-19 — Source-polymorphic history maintenance is explicit
+
+Every canonical watchlist source used by the workstation may be hydrated only through an explicit
+bounded maintenance request. `POST /api/v1/watchlists/sources/history-refresh` resolves personal,
+managed, index, ETF-holdings, benchmark-family, combo, and explicit sources using the same
+user-scoped point-in-time resolver as Market Map and breadth. The response preserves membership
+versions, locked state, exclusions, unavailable sources, deduplicated counts, `as_of`, queue
+failures, duplicate jobs, and truncation. The API queues the existing provider-neutral worker;
+it never makes a provider call during an interactive map, breadth, grid, or chart read.
+
+The source planner/unit and Docker-backed queue regression pass, as do the complete watchlist and
+ETF holdings integration files, full backend units, Ruff, compileall, and diff checks. No
+acceptance flexibility was used. Provider-backed membership/bar continuity, historical
+reconciliation, durable progress/cancellation, entitlements, and exact V25 maintenance visuals
+remain open and must not be inferred from a successful queue response.
+
 ## 2026-08-19 — Family constituent history hydration is explicit and bounded
 
 Locked index/index-ETF constituent watchlists are system-managed sources, not editable personal

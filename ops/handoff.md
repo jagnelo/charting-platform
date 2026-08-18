@@ -1,5 +1,34 @@
 # Active Handoff
 
+## 2026-08-19 — Source-polymorphic canonical history hydration
+
+- Added `POST /api/v1/watchlists/sources/history-refresh` and the bounded
+  `plan_watchlist_source_history_refresh` service. It accepts explicit canonical source IDs for
+  personal, screener-managed, market-group, ETF-holdings, benchmark-family, combo, and explicit
+  sources, resolving each through the same user-scoped, point-in-time `WatchlistSource` contract
+  used by Market Map and breadth.
+- Canonical instrument IDs are deduplicated across sources; source kind, locked state, membership
+  version, exclusions, unavailable messages, `as_of`, queue state, and the hard 5,000-member bound
+  remain visible. Existing provider-neutral `task_bulk_fetch_instrument` jobs are queued with
+  deterministic idempotent IDs. Interactive reads remain provider-fan-out-free.
+- Owned implementation paths: `backend/app/services/watchlist_history.py`,
+  `backend/app/routers/watchlists.py`, `backend/app/schemas/watchlist.py`, plus the focused unit
+  and watchlist integration regressions.
+- Validation: focused planner units `5/5`; focused Docker-backed queue regression `1/1`; complete
+  watchlist integration `43/43`; ETF holdings integration `62/62`; full backend units `1220/1220`;
+  Ruff, compileall, and diff checks pass. The initial focused run's non-zero result was only the
+  repository-wide coverage threshold on an isolated subset; the unchanged no-cov rerun passed.
+  No acceptance flexibility, visual threshold/mask, provider substitution, or interactive fan-out
+  was introduced.
+- Implementation commit `aec7288b2073692b1f9c9a5ad111a485c4f8dff7` is pushed and synchronized.
+  The worktree is clean and `HEAD` equals `origin/feat/tc2000-frontend-rework`.
+- Remaining: provider-backed membership and canonical-bar population for all eight roots/roles,
+  historical composition/rebalance reconciliation, durable batch progress/cancellation,
+  entitlement/provider-quality closure, all-root view acceptance, and exact Version 25
+  maintenance/progress visuals. These are substantive open gaps, not acceptance flexibility.
+- Next context: update operational/parity records for this implementation, close the record commit,
+  then continue provider-backed family population/continuity and universal Market Map gates.
+
 ## 2026-08-19 — Bounded canonical history hydration for locked family sources
 
 - Added `POST /api/v1/etf-holdings/benchmark-families/history-refresh`, an admin-only maintenance

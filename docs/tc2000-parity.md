@@ -1,5 +1,24 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-19 — Any canonical watchlist source can request explicit history hydration
+
+The source abstraction now covers the maintenance boundary as well as interactive analysis.
+Authenticated `POST /api/v1/watchlists/sources/history-refresh` accepts any user-resolvable
+canonical source ID: personal, screener-managed, market-group, ETF-holdings, benchmark-family,
+combo, or explicit symbols. It resolves the same membership, user-isolation, locked-source, and
+point-in-time contract consumed by Market Map and breadth, deduplicates overlapping canonical
+instrument IDs, applies a hard 5,000-instrument bound, and queues the existing provider-neutral
+bulk-history task. Source kind, locked state, membership version, exclusions, unavailable states,
+`as_of`, queue outcome, and truncation remain explicit; no interactive endpoint fans out to a
+provider.
+
+Focused planner units pass `5/5`; the Docker-backed source queue regression passes `1/1`; the
+complete watchlist integration passes `43/43`; ETF holdings integration passes `62/62`; full
+backend units pass `1220/1220`; Ruff, compileall, and diff checks pass. No acceptance flexibility
+was used. This is an enabling maintenance contract, not proof of provider-backed membership,
+complete canonical bars, historical continuity/reconciliation, durable progress/cancellation, or
+exact Version 25 maintenance/progress visuals.
+
 ## 2026-08-19 — Locked family constituents can be hydrated through a bounded maintenance path
 
 The system-managed index/index-ETF constituent watchlists now have an explicit administrative
