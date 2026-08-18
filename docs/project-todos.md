@@ -1,5 +1,18 @@
 # Project TODO Memory
 
+### 2026-08-18 — Disclose provider-field conflicts in universal Market Maps
+
+- [x] Compare the latest field-bearing profile snapshot from each provider at the map evaluation
+      timestamp, while keeping provider precedence as the deterministic displayed-value resolver.
+- [x] Attach conflict evidence (field, resolution policy, tolerance/spread, candidate provider and
+      snapshot IDs, timestamps, and values) to cell provenance and emit cell/response warnings.
+- [x] Include competing candidate snapshot IDs in cache identity so newly ingested disagreement
+      cannot reuse a result whose quality state was computed before the conflict existed.
+- [x] Validate the provider-precedence conflict fixture, pure helper cases `2/2`, complete
+      watchlist/workspace integration `91/91`, Ruff, compileall, and diff checks.
+- [ ] Continue broader provider-field reconciliation, family population/continuity, and exact V25
+      conflict/freshness visual treatment; no acceptance flexibility was used.
+
 ### 2026-08-18 — Provider-quality provenance on universal locked sources
 
 - [x] Extend benchmark-family coverage roles with adapter key, adapter status, and adapter

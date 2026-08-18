@@ -1,5 +1,19 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-08-18 — Provider disagreements must be visible, not silently resolved
+
+For Market Map numeric area fields, each provider's latest field-bearing persisted snapshot at the
+evaluation timestamp is a candidate. Provider entitlement/precedence still determines the displayed
+value, but a material disagreement (more than the declared one-percent relative tolerance) must be
+retained in cell provenance with candidate IDs, providers, values, observation times, spread, and
+resolution policy, and must produce a cell and response warning. A new candidate must alter cache
+identity. No provider call, averaging, silent fallback, or hidden conflict is acceptable.
+
+The provider-precedence integration regression, helper tests `2/2`, and complete watchlist/workspace
+suite `91/91` pass, with Ruff, compileall, and diff checks. This is a repository-controlled
+completion with no acceptance flexibility. Broader provider reconciliation and exact V25 conflict
+visual treatment remain explicit gaps.
+
 ## 2026-08-18 — Cached holdings must retain provider-quality state
 
 Every locked ETF/index-proxy source must expose both its local holdings usability and its adapter

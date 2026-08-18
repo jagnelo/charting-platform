@@ -1,4 +1,33 @@
 tasks:
+  - id: tc2000-market-map-provider-field-conflict-20260818
+    title: Disclose provider-field conflicts in universal Market Maps
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Compare latest field-bearing persisted profile snapshots per provider at the requested
+      evaluation timestamp, retain provider precedence for displayed values, and disclose material
+      disagreements in cell/response provenance without provider fan-out.
+    definition_of_done:
+      - latest candidate per provider is compared at the same evaluation boundary
+      - material disagreements retain provider/snapshot/value/timestamp candidates
+      - provider precedence remains the displayed-value resolution policy
+      - cell and response warnings expose profile_field_conflict
+      - competing candidate IDs participate in cache identity
+      - focused, helper, complete integration, lint, compile, and diff checks pass
+    validation:
+      - backend-market-map-provider-conflict-focused-1-of-1
+      - backend-market-map-provider-conflict-helper-2-of-2
+      - backend-watchlists-workspaces-91-of-91
+      - backend-ruff
+      - backend-compileall
+      - git-diff-check
+    notes:
+      - >-
+        No acceptance flexibility, visual threshold, provider substitution, averaging, or
+        interactive provider fan-out was used. The first Docker-backed invocation hit the known
+        unprivileged socket boundary and the unchanged elevated command passed.
+
   - id: tc2000-locked-source-provider-quality-provenance-20260818
     title: Preserve adapter and holdings quality state on universal locked sources
     status: completed

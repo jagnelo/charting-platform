@@ -1,5 +1,19 @@
 # Active Handoff
 
+## 2026-08-18 — Market Map provider-field conflicts are explicit
+
+- Market Map now compares each provider's latest field-bearing persisted profile snapshot at the
+  requested evaluation boundary. Existing free/entitled provider precedence still selects the
+  displayed value; no averaging, substitution, or interactive provider request was introduced.
+- Material disagreements beyond the one-percent relative tolerance are retained in cell provenance
+  with candidate provider/snapshot/value/timestamp evidence and emit `profile_field_conflict` at
+  cell and response level. Competing snapshot IDs enter cache identity.
+- Focused integration `1/1`, pure helper `2/2`, complete watchlist/workspace `91/91`, Ruff,
+  compileall, and diff checks pass. No acceptance flexibility was used. Exact V25 conflict/freshness
+  visual treatment and broader provider reconciliation remain open.
+- Implementation `dc5d64390d4c2945a2b64033af27ee25963666f1` is pushed. Commit docs/ops checkpoint,
+  push, close state, and continue provider-backed family population/continuity.
+
 ## 2026-08-18 — Provider-quality provenance on universal locked sources
 
 - Extended benchmark-family coverage roles with adapter key/status/confidence and extended every

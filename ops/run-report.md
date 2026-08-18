@@ -1,5 +1,17 @@
 # Run Report
 
+## 2026-08-18 — Market Map provider-field conflict disclosure
+
+- Added latest-per-provider conflict detection for numeric profile area fields with a declared
+  one-percent relative tolerance. Provider precedence remains the displayed-value resolver.
+- Cell provenance retains candidate providers, snapshot IDs, values, timestamps, spread, and policy;
+  cell/response `profile_field_conflict` warnings make disagreement visible and candidate IDs alter
+  cache identity.
+- Focused integration `1/1`, helper `2/2`, complete watchlist/workspace `91/91`, Ruff, compileall,
+  and diff checks passed. No acceptance flexibility, threshold, mask, or provider rule changed.
+- Exact V25 conflict/freshness visuals, broader provider reconciliation, and family continuity remain
+  open. Implementation/docs/state commits must be synchronized before the next context.
+
 ## 2026-08-18 — Provider-quality provenance on universal locked sources
 
 - Added adapter identity/status/confidence to benchmark-family coverage and adapter/snapshot quality

@@ -1,5 +1,20 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-18 — Market Map discloses provider-field conflicts
+
+Market Map numeric area fields now compare the latest field-bearing persisted profile observation
+from each provider at the requested evaluation time. The existing free/entitled provider
+precedence remains authoritative for the displayed value; the system never averages, substitutes,
+or queries providers interactively. When values exceed the declared one-percent relative spread
+tolerance, cell provenance retains every candidate provider/snapshot/value/timestamp and the cell
+and response expose `profile_field_conflict` warnings.
+
+Competing snapshot IDs participate in cache identity, so a newly ingested disagreement cannot
+silently reuse a prior quality state. The provider-precedence integration fixture, pure helper
+tests `2/2`, complete watchlist/workspace integration `91/91`, Ruff, compileall, and diff checks
+pass. No acceptance flexibility was used. Broader provider-field reconciliation, family
+population/continuity, and exact V25 conflict/freshness visuals remain open.
+
 ## 2026-08-18 — Locked source descriptors expose provider and snapshot quality
 
 The universal ETF-holdings and benchmark-family WatchlistSource contract now carries canonical

@@ -1,5 +1,18 @@
 # TC2000 Version 25 composite reference board
 
+## 2026-08-18 — Provider-field conflict state remains visually unrepresented
+
+Market Map now exposes a deterministic provider-precedence value plus explicit conflict provenance
+and `profile_field_conflict` warnings when eligible persisted profile snapshots materially disagree.
+The board has no authoritative Version 25 capture for this diagnostic treatment: warning copy,
+candidate-detail affordance, tooltip geometry, or stale/conflict badge state.
+
+Gap status: `required_missing` for exact conflict badge/detail geometry and interaction treatment.
+Interim oracle: provider-precedence integration, helper tests `2/2`, complete watchlist/workspace
+integration `91/91`, Ruff, compileall, and diff checks. No acceptance flexibility was used.
+Evidence needed: an authoritative V25 state reference or a documented decision that this diagnostic
+state is outside visual parity; until then it remains a tracked visual gap.
+
 ## 2026-08-18 — Provider-quality fields have no exact V25 visual authority
 
 Locked source descriptors now retain adapter status/confidence and snapshot quality/provenance,
