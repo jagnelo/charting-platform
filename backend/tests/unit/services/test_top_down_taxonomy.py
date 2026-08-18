@@ -131,6 +131,9 @@ def test_benchmark_family_style_proxies_have_explicit_free_source_routes():
     qqqe_metadata = known_etf_route_metadata("QQQE")
     assert qqqe_metadata["issuer"] == "Direxion"
     assert qqqe_metadata["provider_aliases"]["holdings_adapter"] == "direxion"
+    assert qqqe_metadata["provider_aliases"]["sec_cik"] == "0001424958"
+    assert qqqe_metadata["provider_aliases"]["sec_series_id"] == "S000033634"
+    assert qqqe_metadata["provider_aliases"]["sec_class_id"] == "C000103352"
     assert qqqe_metadata["provider_aliases"]["issuer_product_url"].endswith(
         "/nasdaq-100-equal-weighted-index-etf"
     )

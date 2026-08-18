@@ -2369,6 +2369,34 @@ async def test_live_direxion_qqqe_equal_weight_holdings_export():
 
 @pytest.mark.asyncio
 @pytest.mark.slow
+@_covers_live_provider("direxion")
+async def test_live_direxion_qqqe_historical_fallback_is_sec_labelled():
+    """Prove dated QQQE uses periodic SEC evidence rather than current CSV rows."""
+
+    adapter = get_holdings_adapter("direxion")
+    assert adapter is not None
+
+    requested_date = date(2025, 12, 31)
+    result = await adapter.fetch_for_date(
+        symbol="QQQE",
+        requested_date=requested_date,
+        identifiers={"sec_cik": "0001424958"},
+    )
+
+    _assert_live_holdings_result(result, adapter_key="direxion", min_rows=80)
+    metadata = result.legal_metadata or {}
+    assert metadata["source_access"] == "sec_filing"
+    assert metadata["source_provider"] == "sec"
+    assert metadata["requested_holdings_date"] == requested_date.isoformat()
+    assert metadata["historical_as_of_policy"] == (
+        "latest_sec_filing_report_on_or_before_requested_date"
+    )
+    assert metadata["issuer_route"] == "direxion_current_daily_csv"
+    assert date.fromisoformat(str(metadata["composition_date"])) <= requested_date
+
+
+@pytest.mark.asyncio
+@pytest.mark.slow
 @_covers_live_provider("hypatia")
 async def test_live_hypatia_public_fund_scoped_holdings_api():
     adapter = get_holdings_adapter("hypatia")

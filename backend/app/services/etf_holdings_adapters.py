@@ -3138,6 +3138,10 @@ KNOWN_ETF_PROVIDER_METADATA_BY_SYMBOL: dict[str, dict[str, Any]] = {
         "issuer": "Direxion",
         "provider_aliases": {
             "holdings_adapter": "direxion",
+            "sec_cik": "0001424958",
+            "sec_series_id": "S000033634",
+            "sec_class_id": "C000103352",
+            "sec_fund_tickers_symbol": "QQQE",
             "issuer_product_url": (
                 "https://www.direxion.com/product/"
                 "nasdaq-100-equal-weighted-index-etf"
@@ -32968,6 +32972,47 @@ class DirexionHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 if composition_date is not None
                 else {}
             ),
+        }
+        return result
+
+    async def fetch_for_date(
+        self,
+        *,
+        symbol: str,
+        requested_date: date,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        """Reconstruct a dated snapshot from the latest SEC filing then known.
+
+        Direxion's public symbol-scoped CSV is current/daily and has no dated
+        URL contract. SEC EDGAR is the free historical route; label the
+        resulting periodic filing snapshot instead of presenting it as daily
+        issuer history.
+        """
+
+        del source_url
+        result = await self._fetch_latest_sec_filing_holdings(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            identifiers=identifiers or {},
+            end_date=requested_date,
+        )
+        if result is None:
+            raise ValueError(
+                f"Direxion has no SEC holdings filing at or before {requested_date.isoformat()} "
+                f"for {symbol}."
+            )
+        result.legal_metadata = {
+            **(result.legal_metadata or {}),
+            "source_access": "sec_filing",
+            "source_provider": "sec",
+            "adapter_key": self.adapter_key,
+            "requested_holdings_date": requested_date.isoformat(),
+            "historical_as_of_policy": "latest_sec_filing_report_on_or_before_requested_date",
+            "issuer_route": "direxion_current_daily_csv",
+            "terms_note": self.config.terms_note,
         }
         return result
 
