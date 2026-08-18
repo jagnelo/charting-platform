@@ -20,7 +20,12 @@ from app.models.instrument_event import InstrumentEvent, InstrumentEventFetchSta
 from app.models.market_map import MarketMapCache
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.provider_observation import InstrumentProfileSnapshot
-from app.models.provider_runtime import ProviderCapability, ProviderEntitlement, ProviderPolicy
+from app.models.provider_runtime import (
+    ProviderCapability,
+    ProviderEntitlement,
+    ProviderEntitlementRevision,
+    ProviderPolicy,
+)
 from app.models.research import ResearchRun
 from app.providers import list_provider_capabilities
 from app.schemas.market_map import (
@@ -352,15 +357,47 @@ def _snapshot_numeric_value(
     return numeric if math.isfinite(numeric) and numeric > 0 else None
 
 
+def _as_utc(value: datetime) -> datetime:
+    """Normalize SQLite's naive timestamps before historical comparisons."""
+
+    return value if value.tzinfo is not None else value.replace(tzinfo=UTC)
+
+
+def _entitlement_revision_for(
+    revisions: list[ProviderEntitlementRevision], evaluation_at: datetime
+) -> ProviderEntitlementRevision | None:
+    """Return the latest entitlement revision known at ``evaluation_at``.
+
+    Explicit ``effective_at`` is authoritative. Older revisions created by the
+    runtime before effective dates were populated use their immutable creation
+    timestamp as the publication boundary. A future revision must never leak
+    into an as-of map.
+    """
+
+    evaluation_at = _as_utc(evaluation_at)
+    known: list[tuple[datetime, int, ProviderEntitlementRevision]] = []
+    for revision in revisions:
+        boundary = revision.effective_at or revision.created_at
+        if boundary is None or _as_utc(boundary) > evaluation_at:
+            continue
+        known.append((_as_utc(boundary), int(revision.revision or 0), revision))
+    if not known:
+        return None
+    return max(known, key=lambda item: (item[0], item[1], item[2].id))[2]
+
+
 async def _profile_snapshot_provider_policy(
     db: AsyncSession,
-) -> tuple[dict[int, int], str]:
+    *,
+    evaluation_at: datetime,
+) -> tuple[dict[int, int], str, dict[int, dict[str, object]]]:
     """Return the free, adapter-capable metadata provider order and its cache fingerprint.
 
     Profile snapshots are persisted observations, so selecting one must not call a provider.
     The policy rows are still the authority for whether a source is currently usable.  Unknown
     or unentitled historical snapshots remain available as an explicitly labelled fallback, but
-    they must never silently outrank an entitled source.
+    they must never silently outrank an entitled source. When an entitlement revision exists,
+    selection is reconstructed at ``evaluation_at`` rather than using the mutable current row.
     """
 
     rows = (
@@ -375,17 +412,35 @@ async def _profile_snapshot_provider_policy(
             .where(ProviderPolicy.capability == ProviderCapability.INSTRUMENT_METADATA)
         )
     ).all()
-    now = datetime.now(UTC)
+    revision_rows = (
+        await db.execute(
+            select(ProviderEntitlementRevision).where(
+                ProviderEntitlementRevision.capability == ProviderCapability.INSTRUMENT_METADATA,
+            )
+        )
+    ).scalars().all()
+    revisions_by_source: dict[int, list[ProviderEntitlementRevision]] = defaultdict(list)
+    for revision in revision_rows:
+        revisions_by_source[revision.data_source_id].append(revision)
+
+    evaluation_at = _as_utc(evaluation_at)
     environment = settings.APP_ENV.strip().lower()
-    eligible: list[tuple[ProviderPolicy, ProviderEntitlement, DataSource]] = []
+    eligible: list[tuple[ProviderPolicy, ProviderEntitlement, DataSource, dict[str, object]]] = []
+    provider_metadata: dict[int, dict[str, object]] = {}
     fingerprint_rows: list[dict[str, object]] = []
     for policy, entitlement, data_source in rows:
         try:
             adapter_capable = "instrument_metadata" in list_provider_capabilities(data_source.name)
         except KeyError:
             adapter_capable = False
+        revision = _entitlement_revision_for(
+            revisions_by_source.get(data_source.id, []), evaluation_at
+        )
+        historical_revision_missing = not revisions_by_source.get(data_source.id)
+        entitlement_view = revision or entitlement
         enabled_environments = {
-            str(value).strip().lower() for value in (entitlement.enabled_environments or [])
+            str(value).strip().lower()
+            for value in (entitlement_view.enabled_environments or [])
         }
         yfinance_disabled = (
             data_source.name == "yfinance" and not settings.ENABLE_LEGACY_YFINANCE_FALLBACK
@@ -393,13 +448,62 @@ async def _profile_snapshot_provider_policy(
         eligible_now = bool(
             data_source.is_active
             and policy.is_enabled
-            and entitlement.is_free
+            and entitlement_view.is_free
             and adapter_capable
             and not yfinance_disabled
             and (not enabled_environments or environment in enabled_environments)
-            and (entitlement.effective_at is None or entitlement.effective_at <= now)
-            and (entitlement.review_due_at is None or entitlement.review_due_at > now)
+            and revision is not None
+            and (entitlement_view.effective_at is None or _as_utc(entitlement_view.effective_at) <= evaluation_at)
+            and (entitlement_view.review_due_at is None or _as_utc(entitlement_view.review_due_at) > evaluation_at)
         )
+        # A source with no recorded revision retains the current row as a
+        # compatibility fallback. It is rankable, but its provenance remains
+        # explicit so historical acceptance cannot mistake it for reconstructed
+        # entitlement truth.
+        if not revisions_by_source.get(data_source.id):
+            eligible_now = bool(
+                data_source.is_active
+                and policy.is_enabled
+                and entitlement_view.is_free
+                and adapter_capable
+                and not yfinance_disabled
+                and (not enabled_environments or environment in enabled_environments)
+                and (
+                    entitlement_view.effective_at is None
+                    or _as_utc(entitlement_view.effective_at) <= evaluation_at
+                )
+                and (
+                    entitlement_view.review_due_at is None
+                    or _as_utc(entitlement_view.review_due_at) > evaluation_at
+                )
+            )
+        metadata: dict[str, object] = {
+            "provider_name": data_source.name,
+            "data_source_id": data_source.id,
+            "entitlement_id": entitlement.id,
+            "entitlement_revision_id": revision.id if revision is not None else None,
+            "entitlement_revision": (
+                revision.revision if revision is not None else entitlement.revision
+            ),
+            "entitlement_effective_at": (
+                entitlement_view.effective_at.isoformat()
+                if entitlement_view.effective_at is not None
+                else None
+            ),
+            "entitlement_review_due_at": (
+                entitlement_view.review_due_at.isoformat()
+                if entitlement_view.review_due_at is not None
+                else None
+            ),
+            "entitlement_known_at": (
+                revision.created_at.isoformat() if revision is not None else None
+            ),
+            "entitlement_historical": revision is not None,
+            "entitlement_revision_missing": historical_revision_missing,
+            "policy_evaluation_at": evaluation_at.isoformat(),
+            "eligible": eligible_now,
+        }
+        provider_metadata[data_source.id] = metadata
         fingerprint_rows.append(
             {
                 "data_source_id": data_source.id,
@@ -410,15 +514,19 @@ async def _profile_snapshot_provider_policy(
                 "base_priority": policy.base_priority,
                 "effective_score": str(policy.effective_score),
                 "entitlement_id": entitlement.id,
-                "entitlement_revision": entitlement.revision,
-                "free": entitlement.is_free,
+                "entitlement_revision": entitlement_view.revision,
+                "entitlement_revision_id": revision.id if revision is not None else None,
+                "entitlement_historical": revision is not None,
+                "entitlement_revision_missing": historical_revision_missing,
+                "free": entitlement_view.is_free,
                 "adapter_capable": adapter_capable,
                 "eligible": eligible_now,
                 "environment": environment,
+                "evaluation_at": evaluation_at.isoformat(),
             }
         )
         if eligible_now:
-            eligible.append((policy, entitlement, data_source))
+            eligible.append((policy, entitlement, data_source, metadata))
     eligible.sort(
         key=lambda item: (
             0 if item[0].is_pinned else 1,
@@ -428,12 +536,14 @@ async def _profile_snapshot_provider_policy(
         )
     )
     provider_rank = {
-        data_source.id: rank for rank, (_, _, data_source) in enumerate(eligible)
+        data_source.id: rank for rank, (_, _, data_source, _) in enumerate(eligible)
     }
+    for rank, (_, _, data_source, metadata) in enumerate(eligible):
+        provider_metadata[data_source.id] = {**metadata, "provider_precedence_rank": rank}
     fingerprint = hashlib.sha256(
         json.dumps(fingerprint_rows, sort_keys=True, separators=(",", ":"), default=str).encode()
     ).hexdigest()[:24]
-    return provider_rank, fingerprint
+    return provider_rank, fingerprint, provider_metadata
 
 
 def _cache_key(
@@ -559,11 +669,18 @@ async def build_market_map(db: AsyncSession, user_id: int, request: MarketMapReq
     profile_snapshot_watermark: datetime | None = None
     profile_snapshot_ids: list[int] = []
     profile_snapshot_provider_rank: dict[int, int] = {}
+    profile_snapshot_provider_metadata: dict[int, dict[str, object]] = {}
     profile_snapshot_policy_fingerprint: str | None = None
     profile_snapshot_unranked_ids: set[int] = set()
+    profile_snapshot_revision_missing_ids: set[int] = set()
     if request.area_metric == "market_cap" and member_ids:
-        profile_snapshot_provider_rank, profile_snapshot_policy_fingerprint = (
-            await _profile_snapshot_provider_policy(db)
+        (
+            profile_snapshot_provider_rank,
+            profile_snapshot_policy_fingerprint,
+            profile_snapshot_provider_metadata,
+        ) = await _profile_snapshot_provider_policy(
+            db,
+            evaluation_at=end_hint,
         )
         profile_snapshot_rows = (
             await db.execute(
@@ -600,6 +717,10 @@ async def build_market_map(db: AsyncSession, user_id: int, request: MarketMapReq
             profile_snapshots_by_id[instrument_id] = selected
             if selected.data_source_id not in profile_snapshot_provider_rank:
                 profile_snapshot_unranked_ids.add(instrument_id)
+            elif profile_snapshot_provider_metadata.get(selected.data_source_id, {}).get(
+                "entitlement_revision_missing"
+            ):
+                profile_snapshot_revision_missing_ids.add(instrument_id)
         profile_snapshot_watermark = max(
             (snapshot.observed_at for snapshot in profile_snapshots_by_id.values()),
             default=None,
@@ -893,6 +1014,26 @@ async def build_market_map(db: AsyncSession, user_id: int, request: MarketMapReq
                     "provider_name": provider_name,
                     "provider_precedence_rank": provider_rank,
                     "entitlement_verified": provider_rank is not None,
+                    "entitlement_revision_id": (
+                        profile_snapshot_provider_metadata.get(snapshot.data_source_id, {}).get(
+                            "entitlement_revision_id"
+                        )
+                    ),
+                    "entitlement_revision": (
+                        profile_snapshot_provider_metadata.get(snapshot.data_source_id, {}).get(
+                            "entitlement_revision"
+                        )
+                    ),
+                    "entitlement_historical": bool(
+                        profile_snapshot_provider_metadata.get(snapshot.data_source_id, {}).get(
+                            "entitlement_historical"
+                        )
+                    ),
+                    "policy_evaluation_at": (
+                        profile_snapshot_provider_metadata.get(snapshot.data_source_id, {}).get(
+                            "policy_evaluation_at"
+                        )
+                    ),
                     "selection": (
                         "entitled_provider_precedence"
                         if provider_rank is not None
@@ -907,6 +1048,14 @@ async def build_market_map(db: AsyncSession, user_id: int, request: MarketMapReq
                         _warning(
                             "profile_snapshot_unranked_source",
                             "The point-in-time profile snapshot source is not currently covered by an enabled free metadata entitlement; it is retained as an explicitly unranked fallback.",
+                            instrument_id=instrument_id,
+                        )
+                    )
+                elif instrument_id in profile_snapshot_revision_missing_ids:
+                    warnings.append(
+                        _warning(
+                            "profile_snapshot_entitlement_revision_missing",
+                            "The provider is currently entitled, but no immutable entitlement revision was recorded for this as-of evaluation; current entitlement terms are used as a compatibility fallback.",
                             instrument_id=instrument_id,
                         )
                     )
@@ -1064,6 +1213,23 @@ async def build_market_map(db: AsyncSession, user_id: int, request: MarketMapReq
                     if request.area_metric == "market_cap"
                     and any(
                         any(item.code == "profile_snapshot_unranked_source" for item in cell.warnings)
+                        for cell in cells
+                    )
+                    else []
+                ),
+                *(
+                    [
+                        _warning(
+                            "profile_snapshot_entitlement_revision_missing",
+                            "Some point-in-time market-cap values use a currently entitled provider without a recorded historical entitlement revision; current terms are retained as an explicit compatibility fallback.",
+                        )
+                    ]
+                    if request.area_metric == "market_cap"
+                    and any(
+                        any(
+                            item.code == "profile_snapshot_entitlement_revision_missing"
+                            for item in cell.warnings
+                        )
                         for cell in cells
                     )
                     else []

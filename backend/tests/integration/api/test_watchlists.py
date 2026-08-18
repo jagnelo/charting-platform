@@ -363,6 +363,7 @@ class TestWatchlistsCrud:
         from app.models.provider_runtime import (
             ProviderCapability,
             ProviderEntitlement,
+            ProviderEntitlementRevision,
             ProviderPolicy,
         )
 
@@ -445,6 +446,33 @@ class TestWatchlistsCrud:
             ]
         )
         db.flush()
+        db.add_all(
+            [
+                ProviderEntitlementRevision(
+                    data_source_id=high_source.id,
+                    capability=ProviderCapability.INSTRUMENT_METADATA,
+                    revision=1,
+                    configured_plan="fixture-high-v1",
+                    is_free=True,
+                    authentication_required=False,
+                    redistribution_allowed=False,
+                    effective_at=now - timedelta(days=10),
+                    live_probe_status="passed",
+                ),
+                ProviderEntitlementRevision(
+                    data_source_id=low_source.id,
+                    capability=ProviderCapability.INSTRUMENT_METADATA,
+                    revision=1,
+                    configured_plan="fixture-low-v1",
+                    is_free=True,
+                    authentication_required=False,
+                    redistribution_allowed=False,
+                    effective_at=now - timedelta(days=10),
+                    live_probe_status="passed",
+                ),
+            ]
+        )
+        db.flush()
         for offset, price in enumerate((100, 101, 102, 103, 104, 105, 106)):
             for member, multiplier in ((instrument, 1), (instrument_b, 2)):
                 db.add(
@@ -518,11 +546,29 @@ class TestWatchlistsCrud:
         assert first_cells["AAPL"]["area_provenance"]["provider_name"] == "fixture-high"
         assert first_cells["AAPL"]["area_provenance"]["selection"] == "entitled_provider_precedence"
         assert first_cells["AAPL"]["area_provenance"]["provider_precedence_rank"] == 0
+        assert first_cells["AAPL"]["area_provenance"]["entitlement_historical"] is True
+        assert first_cells["AAPL"]["area_provenance"]["entitlement_revision"] == 1
         assert first_body["cache_hit"] is False
 
         high_policy = db.query(ProviderPolicy).filter_by(data_source_id=high_source.id).one()
         high_policy.is_pinned = False
         high_policy.effective_score = 1
+        high_entitlement = db.query(ProviderEntitlement).filter_by(data_source_id=high_source.id).one()
+        high_entitlement.is_free = False
+        high_entitlement.revision = 2
+        db.add(
+            ProviderEntitlementRevision(
+                data_source_id=high_source.id,
+                capability=ProviderCapability.INSTRUMENT_METADATA,
+                revision=2,
+                configured_plan="fixture-high-v2",
+                is_free=False,
+                authentication_required=False,
+                redistribution_allowed=False,
+                effective_at=now + timedelta(days=8),
+                live_probe_status="passed",
+            )
+        )
         db.flush()
         second = client.post("/api/v1/analysis/market-map", headers=auth_headers, json=request)
         assert second.status_code == 200, second.text
@@ -533,6 +579,15 @@ class TestWatchlistsCrud:
         assert second_cells["AAPL"]["area_provenance"]["selection"] == "entitled_provider_precedence"
         assert second_body["cache_key"] != first_body["cache_key"]
         assert second_body["cache_hit"] is False
+
+        future_request = {**request, "end": "2024-01-10T00:00:00Z"}
+        future = client.post(
+            "/api/v1/analysis/market-map", headers=auth_headers, json=future_request
+        )
+        assert future.status_code == 200, future.text
+        future_cells = {cell["symbol"]: cell for cell in future.json()["cells"]}
+        assert future_cells["AAPL"]["area_value"] == 900
+        assert future_cells["AAPL"]["area_provenance"]["provider_name"] == "fixture-low"
 
     def test_market_map_reports_missing_local_data_without_provider_fanout(
         self, client, auth_headers, watchlist, instrument
