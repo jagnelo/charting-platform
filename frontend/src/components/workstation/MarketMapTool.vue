@@ -136,6 +136,19 @@
     <div v-if="map" class="market-map-tool__summary">
       <span>{{ map.source.name }}</span><span>{{ map.evaluated_count }}/{{ map.requested_count }} combined covered</span><span>Colour {{ coveragePercent(map.color_coverage, map.coverage) }}%</span><span>Area {{ coveragePercent(map.area_coverage, map.coverage) }}%</span><span>{{ formatFreshness(map.freshness) }}</span><span v-if="activeSnapshotName">Snapshot · {{ activeSnapshotName }}</span><span v-else-if="map.cache_hit">Cached result · {{ map.cached_at ? new Date(map.cached_at).toLocaleTimeString() : 'saved' }}</span><span v-if="map.source.locked">Locked source · {{ map.source.membership_version }}</span>
     </div>
+    <div v-if="sourceId || historyLoading || historyError" class="market-map-tool__history-status" aria-label="Market Map history readiness">
+      <strong>History</strong>
+      <span v-if="historyLoading">Checking local bars…</span>
+      <span v-else-if="historyError" class="market-map-tool__status--error" role="alert">{{ historyError }}</span>
+      <template v-else-if="historyStatus">
+        <span :class="`market-map-tool__history-status--${historyStatus.overall_status}`">{{ historyStatus.overall_status }}</span>
+        <span v-if="historyStatus.timeframes.length">{{ historyStatus.timeframes[0].covered_member_count }}/{{ historyStatus.timeframes[0].member_count }} {{ historyStatus.timeframes[0].timeframe }} members covered</span>
+        <span v-if="historyStatus.limited">Bounded to {{ historyStatus.selected_instrument_count }} of {{ historyStatus.available_instrument_count }}</span>
+        <span v-if="historyRefreshMessage" role="status">{{ historyRefreshMessage }}</span>
+      </template>
+      <button v-if="sourceId" type="button" aria-label="Refresh Market Map history" :disabled="historyRefreshing || historyLoading" @click="refreshHistory">{{ historyRefreshing ? 'Queueing…' : 'Refresh history' }}</button>
+      <span v-if="historyRefreshError" class="market-map-tool__status--error" role="alert">{{ historyRefreshError }}</span>
+    </div>
     <div v-if="map" class="market-map-tool__source-analysis-actions" aria-label="Market Map source analysis actions">
       <span v-if="selectedIds.length">{{ selectedIds.length }} selected members will be included as context</span>
       <button type="button" aria-label="Open full source in Market Breadth" @click="publishAnalysis('breadth')">Open full source in Breadth</button>
@@ -194,7 +207,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useQueryClient } from '@tanstack/vue-query'
 import { api } from '@/lib/api'
 import { useWatchlistStore } from '@/stores/watchlist'
@@ -202,7 +215,7 @@ import { useUserSettingsStore } from '@/stores/userSettings'
 import { invalidateCodeAssets } from '@/lib/workstation/libraryQueries'
 import { resolveCanonicalSymbols } from '@/lib/instruments'
 import BreadthConditionTreeEditor, { type BreadthConditionNode } from './BreadthConditionTreeEditor.vue'
-import { deleteMarketMapSnapshot, fetchMarketMap, fetchMarketMapSnapshot, fetchMarketMapSnapshots, layoutMarketMapCells, saveMarketMapSnapshot, type MarketMapLayoutCell } from '@/lib/workstation/marketMap'
+import { deleteMarketMapSnapshot, fetchMarketMap, fetchMarketMapSnapshot, fetchMarketMapSnapshots, fetchWatchlistSourceHistoryStatus, layoutMarketMapCells, refreshWatchlistSourceHistory, saveMarketMapSnapshot, type MarketMapLayoutCell, type WatchlistSourceHistoryStatus } from '@/lib/workstation/marketMap'
 import type { MarketMap, MarketMapAreaMetric, MarketMapCell, MarketMapColorMetric, MarketMapGroupBy, MarketMapNumericAreaField, MarketMapSnapshotSummary, WatchlistSource } from '@/types'
 
 type MarketMapSort = 'area_desc' | 'color_desc' | 'symbol_asc'
@@ -269,6 +282,13 @@ const snapshotName = ref('')
 const activeSnapshotName = ref('')
 const snapshotLoading = ref(false)
 const snapshotError = ref('')
+const historyStatus = ref<WatchlistSourceHistoryStatus | null>(null)
+const historyLoading = ref(false)
+const historyError = ref('')
+const historyRefreshing = ref(false)
+const historyRefreshMessage = ref('')
+const historyRefreshError = ref('')
+let historyPollTimer: ReturnType<typeof setTimeout> | null = null
 const definitionName = ref(String(props.configuration.definition_name ?? ''))
 const definitionSaving = ref(false)
 const definitionMessage = ref('')
@@ -295,6 +315,56 @@ function toggleSourceFollow() {
 
 function toggleSourcePin() {
   if (activeSource.value?.can_clone) userSettingsStore.togglePinnedSource(activeSource.value.source_id)
+}
+
+function clearHistoryPoll() {
+  if (historyPollTimer) clearTimeout(historyPollTimer)
+  historyPollTimer = null
+}
+
+function scheduleHistoryPoll() {
+  clearHistoryPoll()
+  if (!historyStatus.value || !['pending', 'fetching'].includes(historyStatus.value.overall_status)) return
+  historyPollTimer = setTimeout(() => { void loadHistoryStatus(true) }, 1500)
+}
+
+async function loadHistoryStatus(schedulePoll = false) {
+  if (!sourceId.value) {
+    clearHistoryPoll()
+    historyStatus.value = null
+    return
+  }
+  historyLoading.value = true
+  historyError.value = ''
+  try {
+    const result = await fetchWatchlistSourceHistoryStatus(sourceId.value, ['D1'])
+    historyStatus.value = result && !Array.isArray(result) ? result : null
+    if (schedulePoll) scheduleHistoryPoll()
+  } catch (cause) {
+    historyStatus.value = null
+    historyError.value = cause instanceof Error ? cause.message : 'Unable to read local history readiness'
+  } finally {
+    historyLoading.value = false
+  }
+}
+
+async function refreshHistory() {
+  if (!sourceId.value || historyRefreshing.value) return
+  historyRefreshing.value = true
+  historyRefreshMessage.value = ''
+  historyRefreshError.value = ''
+  try {
+    const result = await refreshWatchlistSourceHistory(sourceId.value, ['D1'])
+    const jobs = result.queued + result.already_queued
+    historyRefreshMessage.value = result.queue_unavailable
+      ? 'History queue unavailable; cached bars were not changed.'
+      : `${jobs} history job${jobs === 1 ? '' : 's'} queued`
+    await loadHistoryStatus(true)
+  } catch (cause) {
+    historyRefreshError.value = cause instanceof Error ? cause.message : 'Unable to queue history refresh'
+  } finally {
+    historyRefreshing.value = false
+  }
 }
 
 function formatFreshness(value: string) { return value.replace(/_/g, ' ') }
@@ -760,11 +830,19 @@ function persist() {
 }
 watch([sourceId, explicitSymbols, groupBy, sortBy, period, startDate, endDate, areaMetric, areaField, colorMetric, referenceSymbol, referenceSourceId, pythonCodeVersionId, pythonRunId, breadthConditionKind, breadthConditionPeriod, breadthConditionThreshold, breadthEventType, breadthEventLookback, advancedBreadthEditor, breadthConditionTree, definitionName], persist, { deep: true })
 watch(sourceId, () => {
+  clearHistoryPoll()
+  historyStatus.value = null
+  historyRefreshMessage.value = ''
+  historyError.value = ''
   if (skipNextSourceRun.value) {
     skipNextSourceRun.value = false
+    if (sourceId.value) void loadHistoryStatus()
     return
   }
-  if (sourceId.value) void run()
+  if (sourceId.value) {
+    void run()
+    void loadHistoryStatus()
+  }
 })
 watch(snapshotSelectionId, () => { void loadSnapshot() })
 onMounted(async () => {
@@ -783,7 +861,9 @@ onMounted(async () => {
     if (preferred) sourceId.value = preferred.source_id
   }
   if (sourceId.value || explicitSymbols.value.trim()) await run()
+  if (sourceId.value) await loadHistoryStatus()
 })
+onUnmounted(clearHistoryPoll)
 </script>
 
 <style scoped>
@@ -800,6 +880,11 @@ onMounted(async () => {
 .market-map-tool__status { margin: 0; padding: 6px 9px; color: #aeb8c7; }
 .market-map-tool__status--error { color: #ff9898; }
 .market-map-tool__summary, .market-map-tool__nodes, .market-map-tool__breadcrumbs, .market-map-tool__viewport-controls, .market-map-tool__source-analysis-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding: 0 8px; color: #9eabbb; }
+.market-map-tool__history-status { display: flex; gap: 7px; align-items: center; flex-wrap: wrap; padding: 3px 8px; color: #9eabbb; border-top: 1px solid #303a48; border-bottom: 1px solid #303a48; background: #151c25; }
+.market-map-tool__history-status strong { color: #dce5ee; }
+.market-map-tool__history-status button { cursor: pointer; }
+.market-map-tool__history-status button:disabled { cursor: default; opacity: .55; }
+.market-map-tool__history-status--ready { color: #82e2ac; }.market-map-tool__history-status--partial,.market-map-tool__history-status--pending { color: #f7d87b; }.market-map-tool__history-status--fetching { color: #70b4ff; }.market-map-tool__history-status--failed,.market-map-tool__history-status--unavailable { color: #ff9a9a; }
 .market-map-tool__source-analysis-actions { padding-top: 2px; padding-bottom: 2px; }
 .market-map-tool__source-analysis-actions button, .market-map-tool__definition-actions button { cursor: pointer; }
 .market-map-tool__definition-actions { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; padding: 2px 8px; }

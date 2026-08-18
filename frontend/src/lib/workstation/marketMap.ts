@@ -1,8 +1,79 @@
 import { api } from '@/lib/api'
 import type { MarketMap, MarketMapCell, MarketMapRequest, MarketMapSnapshot, MarketMapSnapshotSummary } from '@/types'
 
+export type WatchlistHistoryStatusKind = 'pending' | 'partial' | 'fetching' | 'failed' | 'ready' | 'unavailable'
+
+export interface WatchlistHistoryTimeframeStatus {
+  timeframe: string
+  member_count: number
+  covered_member_count: number
+  coverage_percent: number
+  bar_count: number
+  oldest?: string | null
+  newest?: string | null
+  in_progress_count: number
+  complete_count: number
+  failed_count: number
+  pending_count: number
+}
+
+export interface WatchlistSourceHistoryStatus {
+  source_id: string
+  source_kind?: string | null
+  name: string
+  locked: boolean
+  membership_version?: string | null
+  as_of?: string | null
+  max_instruments: number
+  available_instrument_count: number
+  selected_instrument_count: number
+  limited: boolean
+  excluded_count: number
+  overall_status: WatchlistHistoryStatusKind
+  timeframes: WatchlistHistoryTimeframeStatus[]
+  message?: string | null
+}
+
+export interface WatchlistSourceHistoryRefreshResult {
+  run_id?: number | null
+  source_ids: string[]
+  timeframes: string[]
+  as_of?: string | null
+  max_instruments: number
+  available_instrument_count: number
+  selected_instrument_count: number
+  limited: boolean
+  queued: number
+  already_queued: number
+  queue_unavailable: boolean
+  message?: string | null
+}
+
 export function fetchMarketMap(request: MarketMapRequest): Promise<MarketMap> {
   return api.post<MarketMap>('/analysis/market-map', request)
+}
+
+export function fetchWatchlistSourceHistoryStatus(
+  sourceId: string,
+  timeframes: string[] = ['D1'],
+  maxInstruments = 5000,
+): Promise<WatchlistSourceHistoryStatus> {
+  return api.get<WatchlistSourceHistoryStatus>(
+    `/watchlists/sources/history-status/${encodeURIComponent(sourceId)}`,
+    { timeframes, max_instruments: maxInstruments },
+  )
+}
+
+export function refreshWatchlistSourceHistory(
+  sourceId: string,
+  timeframes: string[] = ['D1'],
+  maxInstruments = 5000,
+): Promise<WatchlistSourceHistoryRefreshResult> {
+  return api.post<WatchlistSourceHistoryRefreshResult>('/watchlists/sources/history-refresh', {
+    source_ids: [sourceId],
+    timeframes,
+    max_instruments: maxInstruments,
+  })
 }
 
 export function fetchMarketMapCache(cacheKey: string): Promise<MarketMap> {

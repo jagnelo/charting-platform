@@ -53,6 +53,43 @@ describe('MarketMapTool', () => {
     expect(wrapper.find('[aria-label="Market Map universe"]').element.value).toBe('market-group:sp500')
   })
 
+  it('shows source history readiness and queues an explicit refresh without changing membership', async () => {
+    const historyStatus = {
+      source_id: 'market-group:sp500',
+      source_kind: 'index_membership',
+      name: 'S&P 500',
+      locked: true,
+      membership_version: 'v1',
+      max_instruments: 5000,
+      available_instrument_count: 2,
+      selected_instrument_count: 2,
+      limited: false,
+      excluded_count: 0,
+      overall_status: 'partial',
+      timeframes: [{ timeframe: 'D1', member_count: 2, covered_member_count: 1, coverage_percent: 50, bar_count: 3, in_progress_count: 0, complete_count: 1, failed_count: 0, pending_count: 1 }],
+    }
+    apiGet.mockImplementation((path: string) => path.includes('/history-status/') ? Promise.resolve(historyStatus) : Promise.resolve([]))
+    apiPost.mockImplementation((path: string) => path === '/analysis/market-map'
+      ? Promise.resolve(response)
+      : Promise.resolve({ source_ids: ['market-group:sp500'], timeframes: ['D1'], max_instruments: 5000, available_instrument_count: 2, selected_instrument_count: 2, limited: false, queued: 1, already_queued: 1, queue_unavailable: false }))
+
+    const wrapper = mount(MarketMapTool)
+    await flushPromises()
+
+    expect(wrapper.find('[aria-label="Market Map history readiness"]').text()).toContain('partial')
+    expect(wrapper.find('[aria-label="Market Map history readiness"]').text()).toContain('1/2 D1 members covered')
+    await wrapper.get('[aria-label="Refresh Market Map history"]').trigger('click')
+    await flushPromises()
+
+    expect(apiPost).toHaveBeenCalledWith('/watchlists/sources/history-refresh', {
+      source_ids: ['market-group:sp500'],
+      timeframes: ['D1'],
+      max_instruments: 5000,
+    })
+    expect(wrapper.find('[aria-label="Market Map history readiness"]').text()).toContain('2 history jobs queued')
+    expect(wrapper.text()).toContain('Locked source')
+  })
+
   it('keeps unavailable family legs visible but prevents accidental selection', async () => {
     const previousSources = sourceState.sources
     sourceState.sources = [
