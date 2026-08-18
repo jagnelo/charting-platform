@@ -1057,6 +1057,132 @@ class TestWatchlistsCrud:
         assert historical.json()["members"] == []
         assert historical.json()["exclusions"][0]["reason"] == "membership_not_known_at_as_of"
 
+    def test_benchmark_family_leg_sources_feed_the_same_map_and_breadth_contract(
+        self, client, auth_headers, db, instrument, instrument_type, ohlcv_bars
+    ):
+        from app.models.etf_holdings import ETFHolding, ETFHoldingsSnapshot, ETFProfile
+        from app.models.instrument import Instrument
+        from app.models.ohlcv import Timeframe
+
+        seeded = client.get("/api/v1/market-groups", headers=auth_headers)
+        assert seeded.status_code == 200, seeded.text
+        mdy = Instrument(
+            symbol="MDY",
+            name="SPDR S&P MidCap 400 ETF Trust",
+            currency="USD",
+            instrument_type_id=instrument_type.id,
+            is_active=True,
+        )
+        db.add(mdy)
+        db.flush()
+        profile = ETFProfile(instrument_id=mdy.id, adapter_status="resolved")
+        db.add(profile)
+        db.flush()
+        snapshot = ETFHoldingsSnapshot(
+            etf_profile_id=profile.id,
+            composition_date=datetime(2024, 1, 1, tzinfo=UTC).date(),
+            known_at=datetime(2024, 1, 2, tzinfo=UTC),
+            provenance="issuer_native",
+            source_provider="controlled_fixture",
+            source_quality="issuer_disclosed",
+            completeness_status="complete",
+            row_count=1,
+            resolved_count=1,
+            unresolved_count=0,
+            total_weight=1.0,
+            snapshot_hash="family-derived-equal-source",
+        )
+        db.add(snapshot)
+        db.flush()
+        db.add(
+            ETFHolding(
+                snapshot_id=snapshot.id,
+                constituent_instrument_id=instrument.id,
+                position=0,
+                reported_symbol=instrument.symbol,
+                reported_name=instrument.name,
+                weight=1.0,
+                holding_type="equity",
+                row_type="security",
+                source_row_hash="family-derived-equal-row",
+                is_resolved=True,
+            )
+        )
+        db.flush()
+
+        sources = client.get("/api/v1/watchlists/sources", headers=auth_headers)
+        assert sources.status_code == 200, sources.text
+        source = next(
+            item
+            for item in sources.json()
+            if item["source_id"] == "benchmark-family:sp400:equal_weight"
+        )
+        assert source["locked"] is True
+        assert source["symbol"] == "MDY"
+        assert source["provenance"]["derived"] is True
+        assert source["provenance"]["availability"] == "available"
+        assert source["provenance"]["membership_semantics"] == (
+            "derived_equal_weight_point_in_time_membership"
+        )
+
+        resolved = client.get(
+            "/api/v1/watchlists/sources/benchmark-family:sp400:equal_weight",
+            headers=auth_headers,
+            params={"as_of": "2024-01-03T00:00:00Z"},
+        )
+        assert resolved.status_code == 200, resolved.text
+        resolved_payload = resolved.json()
+        assert resolved_payload["source"]["provenance"]["derived"] is True
+        assert resolved_payload["members"][0]["instrument_id"] == instrument.id
+        assert resolved_payload["members"][0]["weight"] == 1.0
+        assert resolved_payload["members"][0]["relationship_type"] == (
+            "derived_equal_weight_constituent"
+        )
+
+        market_map = client.post(
+            "/api/v1/analysis/market-map",
+            headers=auth_headers,
+            json={
+                "source_id": "benchmark-family:sp400:equal_weight",
+                "period": "1D",
+                "area_metric": "weight",
+                "color_metric": "return",
+                "end": ohlcv_bars[-1].ts.isoformat(),
+            },
+        )
+        assert market_map.status_code == 200, market_map.text
+        assert market_map.json()["source"]["source_id"] == (
+            "benchmark-family:sp400:equal_weight"
+        )
+        assert market_map.json()["cells"][0]["area_value"] == 1.0
+
+        breadth = client.post(
+            "/api/v1/analysis/breadth",
+            headers=auth_headers,
+            json={
+                "version": 1,
+                "universe": {
+                    "kind": "watchlist",
+                    "key": "benchmark-family:sp400:equal_weight",
+                    "point_in_time": True,
+                },
+                "condition": {
+                    "kind": "above_moving_average",
+                    "params": {"period": 2, "average": "sma", "comparator": "above"},
+                },
+                "timeframe": Timeframe.D1.value,
+                "adjusted": True,
+                "as_of": ohlcv_bars[-1].ts.isoformat(),
+            },
+        )
+        assert breadth.status_code == 200, breadth.text
+        assert breadth.json()["universe"]["source_id"] == (
+            "benchmark-family:sp400:equal_weight"
+        )
+        assert breadth.json()["universe"]["membership_semantics"] == (
+            "locked_source_members"
+        )
+
     def test_managed_watchlist_source_respects_departure_at_as_of(
         self, client, auth_headers, db, user, instrument
     ):

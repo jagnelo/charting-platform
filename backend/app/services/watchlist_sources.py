@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime
 
@@ -159,6 +160,133 @@ def _market_group_descriptor(group: MarketGroup) -> WatchlistSourceRead:
         provenance=dict(group.provenance or {}),
         effective_at=group.effective_at,
         known_at=group.known_at,
+    )
+
+
+_BENCHMARK_FAMILY_ROLES = ("cap_weight", "equal_weight", "value", "growth")
+
+
+def _benchmark_family_role_selection(
+    group: MarketGroup, role: str
+) -> tuple[dict[str, object] | None, str | None, bool]:
+    """Return the evidenced proxy leg for a family-role source.
+
+    A family leg is a locked watchlist source in its own right.  A missing
+    equal-weight ETF may use the explicitly declared point-in-time derived
+    equal-weight policy, but no other missing role is inferred from names.
+    """
+
+    provenance = group.provenance or {}
+    mappings = provenance.get("proxy_mappings")
+    if not isinstance(mappings, Mapping):
+        return None, None, False
+    declared = mappings.get(role)
+    if isinstance(declared, Mapping) and declared.get("symbol"):
+        return dict(declared), str(declared["symbol"]).upper(), False
+    if role != "equal_weight":
+        return None, None, False
+    derived = provenance.get("derived_equal_weight")
+    cap = mappings.get("cap_weight")
+    if (
+        isinstance(derived, Mapping)
+        and bool(derived.get("allowed"))
+        and isinstance(cap, Mapping)
+        and cap.get("symbol")
+    ):
+        return dict(cap), str(cap["symbol"]).upper(), True
+    return None, None, False
+
+
+def _benchmark_family_role_descriptor(
+    group: MarketGroup,
+    role: str,
+    *,
+    profile: ETFProfile | None = None,
+    instrument: Instrument | None = None,
+    snapshot: ETFHoldingsSnapshot | None = None,
+) -> WatchlistSourceRead:
+    declared_mappings = (group.provenance or {}).get("proxy_mappings")
+    declared = (
+        declared_mappings.get(role)
+        if isinstance(declared_mappings, Mapping)
+        else None
+    )
+    declared = dict(declared) if isinstance(declared, Mapping) else {}
+    selected, proxy_symbol, derived = _benchmark_family_role_selection(group, role)
+    derived_policy = (group.provenance or {}).get("derived_equal_weight") or {}
+    role_label = {
+        "cap_weight": "Cap weight",
+        "equal_weight": "Equal weight",
+        "value": "Value",
+        "growth": "Growth",
+    }.get(role, role.replace("_", " ").title())
+    if selected is None:
+        availability = "unavailable"
+    elif profile is None:
+        availability = "profile_not_loaded"
+    elif snapshot is None:
+        availability = "holdings_snapshot_not_loaded"
+    else:
+        availability = "available"
+    if derived:
+        membership_semantics = "derived_equal_weight_point_in_time_membership"
+        source = snapshot.source_provider if snapshot is not None else "derived_equal_weight_policy"
+        mapping_state = "derived_policy"
+    else:
+        membership_semantics = "etf_proxy_holdings"
+        source = snapshot.source_provider if snapshot is not None else group.source
+        mapping_state = declared.get("verification_state")
+    mapping_label = declared.get("label") or (selected.get("label") if selected else None)
+    snapshot_key = (
+        snapshot.snapshot_hash
+        or str(snapshot.id)
+        if snapshot is not None
+        else "unavailable"
+    )
+    membership_version = _version(
+        "benchmark-family",
+        f"{group.stable_key}:{role}:{snapshot_key}",
+        snapshot.known_at if snapshot is not None else group.known_at,
+    )
+    composition = snapshot.composition_date if snapshot is not None else None
+    return WatchlistSourceRead(
+        source_id=f"benchmark-family:{group.stable_key}:{role}",
+        source_kind="index_membership",
+        name=f"{group.name} — {role_label}",
+        description=(
+            "Derived equal-weight constituent universe"
+            if derived
+            else "System-managed benchmark-family constituent universe"
+        ),
+        locked=True,
+        can_edit_membership=False,
+        stable_key=group.stable_key,
+        instrument_id=instrument.id if instrument is not None else None,
+        symbol=proxy_symbol,
+        membership_version=membership_version,
+        member_count=snapshot.row_count if snapshot is not None else 0,
+        source=source,
+        provenance={
+            "family_key": group.stable_key,
+            "role": role,
+            "availability": availability,
+            "mapping_label": mapping_label,
+            "mapping_verification_state": mapping_state,
+            "mapping_source_url": declared.get("source_url"),
+            "proxy_symbol": proxy_symbol,
+            "membership_semantics": membership_semantics,
+            "point_in_time": True,
+            "derived": derived,
+            "derived_method": derived_policy.get("method") if derived else None,
+            "snapshot_id": snapshot.id if snapshot is not None else None,
+            "snapshot_hash": snapshot.snapshot_hash if snapshot is not None else None,
+            "completeness_status": snapshot.completeness_status if snapshot is not None else "not_loaded",
+        },
+        effective_at=(
+            datetime.combine(composition, datetime.min.time()) if composition else group.effective_at
+        ),
+        known_at=snapshot.known_at if snapshot is not None else group.known_at,
+        composition_date=composition.isoformat() if composition else None,
     )
 
 
@@ -429,8 +557,8 @@ async def list_watchlist_sources(db: AsyncSession, user: User) -> list[Watchlist
         watchlist.id: watchlist
         for watchlist in watchlists
     }
-
-    return [
+    profiles_by_symbol = {instrument.symbol.upper(): (profile, instrument) for profile, instrument in profiles}
+    sources = [
         *(_watchlist_descriptor(item) for item in watchlists),
         *(_market_group_descriptor(item) for item in groups),
         *(_etf_descriptor(profile, instrument, latest.get(profile.id)) for profile, instrument in profiles),
@@ -443,6 +571,28 @@ async def list_watchlist_sources(db: AsyncSession, user: User) -> list[Watchlist
             for item in combo_items
         ),
     ]
+    # A family root remains visible as a locked group, but each evidenced leg
+    # is also a first-class source.  This is what lets the generic Market Map,
+    # breadth, scan, and gauge surfaces consume ``SPY constituents`` or a
+    # derived equal-weight family universe without a feature-specific route.
+    for group in groups:
+        if group.group_type != "benchmark_family":
+            continue
+        if not isinstance((group.provenance or {}).get("proxy_mappings"), Mapping):
+            continue
+        for role in _BENCHMARK_FAMILY_ROLES:
+            _selected, proxy_symbol, _derived = _benchmark_family_role_selection(group, role)
+            selected_profile, selected_instrument = profiles_by_symbol.get(proxy_symbol, (None, None)) if proxy_symbol else (None, None)
+            sources.append(
+                _benchmark_family_role_descriptor(
+                    group,
+                    role,
+                    profile=selected_profile,
+                    instrument=selected_instrument,
+                    snapshot=latest.get(selected_profile.id) if selected_profile is not None else None,
+                )
+            )
+    return sources
 
 
 async def resolve_watchlist_source(
@@ -615,6 +765,130 @@ async def resolve_watchlist_source(
             descriptor=_combo_descriptor(combo, len(members), dependency_versions),
             members=tuple(members),
             exclusions=tuple(as_of_exclusions),
+        )
+
+    if source_id.startswith("benchmark-family:"):
+        raw = source_id.split(":", 1)[1]
+        try:
+            family_key, role = raw.split(":", 1)
+        except ValueError as exc:
+            raise ValueError("invalid_benchmark_family_source_id") from exc
+        if role not in _BENCHMARK_FAMILY_ROLES or not family_key:
+            raise ValueError("invalid_benchmark_family_source_id")
+        group = (
+            await db.execute(
+                select(MarketGroup).where(
+                    MarketGroup.stable_key == family_key,
+                    MarketGroup.group_type == "benchmark_family",
+                )
+            )
+        ).scalar_one_or_none()
+        if group is None:
+            raise LookupError("benchmark_family_source_not_found")
+        _selected, proxy_symbol, derived = _benchmark_family_role_selection(group, role)
+        if proxy_symbol is None:
+            return ResolvedWatchlistSource(
+                descriptor=_benchmark_family_role_descriptor(group, role),
+                members=(),
+                exclusions=({"reason": "benchmark_family_role_unavailable", "role": role},),
+            )
+        row = (
+            await db.execute(
+                select(ETFProfile, Instrument)
+                .join(Instrument, Instrument.id == ETFProfile.instrument_id)
+                .where(Instrument.symbol == proxy_symbol)
+            )
+        ).first()
+        if row is None:
+            return ResolvedWatchlistSource(
+                descriptor=_benchmark_family_role_descriptor(group, role),
+                members=(),
+                exclusions=({"reason": "etf_profile_not_found", "symbol": proxy_symbol},),
+            )
+        profile, instrument = row
+        statement = select(ETFHoldingsSnapshot).where(
+            ETFHoldingsSnapshot.etf_profile_id == profile.id
+        )
+        if as_of is not None:
+            statement = statement.where(
+                ETFHoldingsSnapshot.composition_date <= as_of.date(),
+                ETFHoldingsSnapshot.known_at.is_not(None),
+                ETFHoldingsSnapshot.known_at <= as_of,
+            )
+        snapshot = (
+            await db.execute(
+                statement.order_by(
+                    ETFHoldingsSnapshot.composition_date.desc(),
+                    ETFHoldingsSnapshot.id.desc(),
+                ).limit(1)
+            )
+        ).scalar_one_or_none()
+        descriptor = _benchmark_family_role_descriptor(
+            group, role, profile=profile, instrument=instrument, snapshot=snapshot
+        )
+        if snapshot is None:
+            return ResolvedWatchlistSource(
+                descriptor=descriptor,
+                members=(),
+                exclusions=(
+                    {
+                        "reason": (
+                            "holdings_snapshot_not_available_at_as_of"
+                            if as_of is not None
+                            else "holdings_snapshot_not_loaded"
+                        ),
+                        "symbol": proxy_symbol,
+                    },
+                ),
+            )
+        rows = (
+            await db.execute(
+                select(ETFHolding)
+                .where(ETFHolding.snapshot_id == snapshot.id)
+                .order_by(ETFHolding.position)
+            )
+        ).scalars().all()
+        valid_rows = [
+            holding
+            for holding in rows
+            if holding.row_type == "security"
+            and holding.holding_type in {"equity", "stock", "common_stock"}
+            and holding.is_resolved
+            and holding.constituent_instrument_id is not None
+        ]
+        equal_weight = 1.0 / len(valid_rows) if derived and valid_rows else None
+        members: list[ResolvedWatchlistMember] = []
+        exclusions: list[dict] = []
+        for holding in rows:
+            holding_type = str(holding.holding_type or "").casefold()
+            row_type = str(holding.row_type or "").casefold()
+            if row_type == "cash" or holding_type in {"cash", "currency", "collateral"}:
+                exclusions.append({"holding_id": holding.id, "reason": "cash_holding"})
+                continue
+            if holding_type in {"derivative", "derivatives", "option", "future", "swap"}:
+                exclusions.append({"holding_id": holding.id, "reason": "derivative_holding"})
+                continue
+            if row_type != "security" or holding_type not in {"equity", "stock", "common_stock"}:
+                exclusions.append({"holding_id": holding.id, "reason": "non_equity_holding"})
+                continue
+            if not holding.is_resolved or holding.constituent_instrument_id is None:
+                exclusions.append({"holding_id": holding.id, "reason": "unresolved_holding"})
+                continue
+            members.append(
+                ResolvedWatchlistMember(
+                    instrument_id=holding.constituent_instrument_id,
+                    position=holding.position,
+                    weight=equal_weight if derived else (float(holding.weight) if holding.weight is not None else None),
+                    relationship_type="derived_equal_weight_constituent" if derived else "etf_proxy_constituent",
+                    source=snapshot.source_provider,
+                    effective_at=datetime.combine(snapshot.composition_date, datetime.min.time()),
+                    known_at=snapshot.known_at,
+                )
+            )
+        return ResolvedWatchlistSource(
+            descriptor=descriptor,
+            members=tuple(members),
+            exclusions=tuple(exclusions),
         )
 
     if source_id.startswith("market-group:"):

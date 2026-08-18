@@ -5404,6 +5404,81 @@ async def _resolve_benchmark_family_breadth_universe(
     mappings = provenance.get("proxy_mappings")
     mapping = mappings.get(definition.universe.role) if isinstance(mappings, Mapping) else None
     if not isinstance(mapping, Mapping) or not mapping.get("symbol"):
+        derived_policy = provenance.get("derived_equal_weight")
+        if (
+            definition.universe.role == "equal_weight"
+            and isinstance(derived_policy, Mapping)
+            and bool(derived_policy.get("allowed"))
+        ):
+            # Reuse the same locked source resolver as Market Map/watchlists so
+            # derived equal-weight membership has one point-in-time lineage.
+            source_id = f"benchmark-family:{family_key}:equal_weight"
+            resolved = await resolve_watchlist_source(db, 0, source_id, as_of=definition.as_of)
+            if not resolved.members:
+                if any(
+                    str(item.get("reason", "")).startswith("holdings_snapshot")
+                    for item in resolved.exclusions
+                    if isinstance(item, Mapping)
+                ):
+                    raise HTTPException(
+                        404,
+                        detail={
+                            "code": "holdings_snapshot_not_found",
+                            "family_key": family_key,
+                            "role": definition.universe.role,
+                            "symbol": resolved.descriptor.symbol,
+                        },
+                    )
+                raise HTTPException(
+                    404,
+                    detail={
+                        "code": "benchmark_mapping_unavailable",
+                        "family_key": family_key,
+                        "role": definition.universe.role,
+                    },
+                )
+            instrument_rows = (
+                await db.execute(
+                    select(Instrument).where(
+                        Instrument.id.in_([member.instrument_id for member in resolved.members])
+                    )
+                )
+            ).scalars().all()
+            by_id = {instrument.id: instrument for instrument in instrument_rows}
+            members = [
+                BreadthMember(instrument.id, instrument.symbol, instrument.name)
+                for member in resolved.members
+                if (instrument := by_id.get(member.instrument_id)) is not None
+            ]
+            member_ids = [member.instrument_id for member in resolved.members if member.instrument_id in by_id]
+            warnings = [
+                _generic_breadth_warning(str(item.get("reason", "membership_excluded")))
+                for item in resolved.exclusions
+                if isinstance(item, Mapping)
+            ]
+            descriptor = resolved.descriptor.model_dump(mode="json")
+            membership_payload = {
+                "source_id": source_id,
+                "membership_version": resolved.descriptor.membership_version,
+                "item_ids": sorted(member_ids),
+                "excluded": list(resolved.exclusions),
+            }
+            return (
+                members,
+                member_ids,
+                warnings,
+                {
+                    "kind": "benchmark_family",
+                    "family_key": family_key,
+                    "family_name": family.name,
+                    "role": definition.universe.role,
+                    "proxy_symbol": resolved.descriptor.symbol,
+                    "membership_semantics": "derived_equal_weight_point_in_time_membership",
+                    "derived_method": derived_policy.get("method"),
+                    "descriptor": descriptor,
+                },
+                membership_payload,
+            )
         raise HTTPException(
             404,
             detail={
@@ -5521,7 +5596,14 @@ async def _resolve_user_watchlist_breadth_universe(
         raise HTTPException(422, detail={"code": "watchlist_source_required"})
     source_id = f"watchlist:{key}" if key.isdigit() else key
     if not source_id.startswith(
-        ("watchlist:", "market-group:", "etf-holdings:", "combo:", "explicit:")
+        (
+            "watchlist:",
+            "market-group:",
+            "benchmark-family:",
+            "etf-holdings:",
+            "combo:",
+            "explicit:",
+        )
     ):
         raise HTTPException(422, detail={"code": "unsupported_watchlist_source", "source_id": key})
     try:

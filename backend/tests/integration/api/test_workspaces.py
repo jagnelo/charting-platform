@@ -2738,6 +2738,26 @@ class TestWorkspaces:
         assert payload["universe"]["membership_semantics"] == "etf_proxy_membership"
         assert payload["members"][0]["symbol"] == instrument.symbol
 
+        sources = client.get("/api/v1/watchlists/sources", headers=auth_headers)
+        assert sources.status_code == 200, sources.text
+        family_source = next(
+            item
+            for item in sources.json()
+            if item["source_id"] == "benchmark-family:sp500:cap_weight"
+        )
+        assert family_source["locked"] is True
+        assert family_source["can_edit_membership"] is False
+        assert family_source["member_count"] == 1
+        assert family_source["provenance"]["membership_semantics"] == "etf_proxy_holdings"
+        resolved = client.get(
+            "/api/v1/watchlists/sources/benchmark-family:sp500:cap_weight",
+            headers=auth_headers,
+            params={"as_of": "2024-06-01T00:00:00Z"},
+        )
+        assert resolved.status_code == 200, resolved.text
+        assert resolved.json()["source"]["locked"] is True
+        assert [member["instrument_id"] for member in resolved.json()["members"]] == [instrument.id]
+
         history = client.post(
             "/api/v1/analysis/breadth/history",
             headers=auth_headers,
