@@ -548,6 +548,16 @@ class TestWatchlistsCrud:
         assert first_cells["AAPL"]["area_provenance"]["provider_precedence_rank"] == 0
         assert first_cells["AAPL"]["area_provenance"]["entitlement_historical"] is True
         assert first_cells["AAPL"]["area_provenance"]["entitlement_revision"] == 1
+        conflict = first_cells["AAPL"]["area_provenance"]["provider_field_conflict"]
+        assert conflict["field"] == "market_cap"
+        assert conflict["resolution"] == "provider_precedence"
+        assert conflict["candidate_count"] == 2
+        assert {item["provider_name"] for item in conflict["candidates"]} == {
+            "fixture-high",
+            "fixture-low",
+        }
+        assert any(item["code"] == "profile_field_conflict" for item in first_cells["AAPL"]["warnings"])
+        assert any(item["code"] == "profile_field_conflict" for item in first_body["warnings"])
         assert first_body["cache_hit"] is False
 
         high_policy = db.query(ProviderPolicy).filter_by(data_source_id=high_source.id).one()

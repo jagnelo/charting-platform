@@ -44,6 +44,7 @@ from app.services.breadth import (
 from app.services.watchlist_sources import resolve_watchlist_source
 
 _OFFSETS = {"1D": 1, "1W": 5, "1M": 21, "3M": 63, "6M": 126, "1Y": 252}
+_PROFILE_FIELD_CONFLICT_RELATIVE_TOLERANCE = 0.01
 
 
 def _warning(code: str, message: str, instrument_id: int | None = None, node_id: str | None = None):
@@ -434,11 +435,12 @@ def _profile_area_provenance(
     field: str,
     provider_rank: int | None,
     provider_metadata: dict[int, dict[str, object]],
+    conflict: dict[str, object] | None = None,
 ) -> dict[str, object]:
     """Build the shared provenance shape for point-in-time profile area fields."""
 
     metadata = provider_metadata.get(snapshot.data_source_id, {})
-    return {
+    provenance = {
         "kind": "point_in_time_profile_snapshot",
         "field": field,
         "snapshot_id": snapshot.id,
@@ -458,6 +460,59 @@ def _profile_area_provenance(
         "observed_at": snapshot.observed_at.isoformat(),
         "fetched_at": snapshot.fetched_at.isoformat(),
         "point_in_time": True,
+    }
+    if conflict is not None:
+        provenance["provider_field_conflict"] = conflict
+    return provenance
+
+
+def _profile_field_conflict(
+    snapshots: list[InstrumentProfileSnapshot], field: str
+) -> dict[str, object] | None:
+    """Describe a material disagreement between each provider's latest field value.
+
+    Selection still follows the existing provider entitlement/precedence policy. This helper
+    only makes competing persisted observations visible; it never averages or substitutes a
+    value and never treats a provider's older snapshot as a second current observation.
+    """
+
+    latest_by_source: dict[int, tuple[InstrumentProfileSnapshot, float]] = {}
+    for snapshot in sorted(
+        snapshots,
+        key=lambda item: (_as_utc(item.observed_at), item.id),
+        reverse=True,
+    ):
+        if snapshot.data_source_id in latest_by_source:
+            continue
+        value = _snapshot_numeric_value(snapshot, field)
+        if value is not None:
+            latest_by_source[snapshot.data_source_id] = (snapshot, value)
+    candidates = list(latest_by_source.values())
+    if len(candidates) < 2:
+        return None
+    values = [value for _, value in candidates]
+    minimum = min(values)
+    maximum = max(values)
+    scale = max(abs(minimum), abs(maximum), 1e-12)
+    relative_spread = (maximum - minimum) / scale
+    if relative_spread <= _PROFILE_FIELD_CONFLICT_RELATIVE_TOLERANCE:
+        return None
+    return {
+        "field": field,
+        "resolution": "provider_precedence",
+        "relative_tolerance": _PROFILE_FIELD_CONFLICT_RELATIVE_TOLERANCE,
+        "relative_spread": relative_spread,
+        "candidate_count": len(candidates),
+        "candidates": [
+            {
+                "snapshot_id": snapshot.id,
+                "data_source_id": snapshot.data_source_id,
+                "provider_name": snapshot.data_source.name if snapshot.data_source else None,
+                "observed_at": snapshot.observed_at.isoformat(),
+                "value": value,
+            }
+            for snapshot, value in sorted(candidates, key=lambda item: item[0].id)
+        ],
     }
 
 
@@ -754,6 +809,8 @@ async def build_market_map(db: AsyncSession, user_id: int, request: MarketMapReq
     profile_snapshot_policy_fingerprint: str | None = None
     profile_snapshot_unranked_ids: set[int] = set()
     profile_snapshot_revision_missing_ids: set[int] = set()
+    profile_snapshot_conflicts_by_id: dict[int, dict[str, object]] = {}
+    profile_snapshot_candidate_ids: set[int] = set()
     profile_snapshot_area = request.area_metric in {"market_cap", "field"}
     profile_snapshot_field = request.area_field if request.area_metric == "field" else "market_cap"
     if profile_snapshot_area and member_ids:
@@ -783,6 +840,8 @@ async def build_market_map(db: AsyncSession, user_id: int, request: MarketMapReq
         for snapshot in profile_snapshot_rows:
             snapshots_by_instrument[snapshot.instrument_id].append(snapshot)
         for instrument_id, candidates in snapshots_by_instrument.items():
+            profile_snapshot_candidate_ids.update(snapshot.id for snapshot in candidates)
+            conflict = _profile_field_conflict(candidates, profile_snapshot_field)
             value_candidates = [
                 snapshot
                 for snapshot in candidates
@@ -803,6 +862,8 @@ async def build_market_map(db: AsyncSession, user_id: int, request: MarketMapReq
                 ),
             )
             profile_snapshots_by_id[instrument_id] = selected
+            if conflict is not None:
+                profile_snapshot_conflicts_by_id[instrument_id] = conflict
             if selected.data_source_id not in profile_snapshot_provider_rank:
                 profile_snapshot_unranked_ids.add(instrument_id)
             elif profile_snapshot_provider_metadata.get(selected.data_source_id, {}).get(
@@ -813,7 +874,9 @@ async def build_market_map(db: AsyncSession, user_id: int, request: MarketMapReq
             (snapshot.observed_at for snapshot in profile_snapshots_by_id.values()),
             default=None,
         )
-        profile_snapshot_ids = sorted(snapshot.id for snapshot in profile_snapshots_by_id.values())
+        # Include competing candidates, not only the selected row, so a newly ingested
+        # disagreement cannot reuse a cache entry whose provenance was computed before it.
+        profile_snapshot_ids = sorted(profile_snapshot_candidate_ids)
     reference_bars: list[object] = []
     reference = None
     reference_source = None
@@ -1089,7 +1152,16 @@ async def build_market_map(db: AsyncSession, user_id: int, request: MarketMapReq
                     request.area_field or "unknown",
                     provider_rank,
                     profile_snapshot_provider_metadata,
+                    profile_snapshot_conflicts_by_id.get(instrument_id),
                 )
+                if instrument_id in profile_snapshot_conflicts_by_id:
+                    warnings.append(
+                        _warning(
+                            "profile_field_conflict",
+                            "Eligible provider profile snapshots disagree materially; the displayed value follows provider precedence.",
+                            instrument_id=instrument_id,
+                        )
+                    )
                 if instrument_id in profile_snapshot_unranked_ids:
                     warnings.append(
                         _warning(
@@ -1144,7 +1216,16 @@ async def build_market_map(db: AsyncSession, user_id: int, request: MarketMapReq
                     "market_cap",
                     provider_rank,
                     profile_snapshot_provider_metadata,
+                    profile_snapshot_conflicts_by_id.get(instrument_id),
                 )
+                if instrument_id in profile_snapshot_conflicts_by_id:
+                    warnings.append(
+                        _warning(
+                            "profile_field_conflict",
+                            "Eligible provider profile snapshots disagree materially; the displayed value follows provider precedence.",
+                            instrument_id=instrument_id,
+                        )
+                    )
                 if instrument_id in profile_snapshot_unranked_ids:
                     warnings.append(
                         _warning(
@@ -1332,6 +1413,20 @@ async def build_market_map(db: AsyncSession, user_id: int, request: MarketMapReq
                             item.code == "profile_snapshot_entitlement_revision_missing"
                             for item in cell.warnings
                         )
+                        for cell in cells
+                    )
+                    else []
+                ),
+                *(
+                    [
+                        _warning(
+                            "profile_field_conflict",
+                            "Some provider profile snapshots disagree materially; displayed values follow provider precedence and retain the competing observations in cell provenance.",
+                        )
+                    ]
+                    if request.area_metric in {"market_cap", "field"}
+                    and any(
+                        any(item.code == "profile_field_conflict" for item in cell.warnings)
                         for cell in cells
                     )
                     else []
