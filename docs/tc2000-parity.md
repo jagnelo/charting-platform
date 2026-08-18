@@ -1,5 +1,17 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-19 — Python map evaluation uses every canonical watchlist source
+
+Market Map's isolated Python colour and numeric-area paths now use the same source-polymorphic
+contract as ordinary breadth: personal/managed watchlists, locked market groups, ETF holdings,
+derived combo lists, and bounded explicit canonical selections all resolve through
+`{kind: watchlist, key: source_id}`. The breadth key bound is 4096 characters, matching the
+canonical source/cache contract, and no provider symbol or provider fan-out is introduced.
+Component coverage proves a combo source reaches the Python breadth request unchanged; the
+backend universal-source integration proves the derived source resolves through generic breadth.
+Provider-backed dataset population, historical deletion/re-entry truth, and exact V25 Python-map
+controls remain open gates.
+
 ## 2026-08-19 — Arbitrary watchlist membership invalidation
 
 Personal and managed watchlist sources now derive `membership_version` from their canonical

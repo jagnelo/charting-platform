@@ -1,4 +1,29 @@
 tasks:
+  - id: tc2000-python-map-universal-source-20260819
+    title: Allow isolated Python Market Map evaluation for every WatchlistSource
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Remove the narrower Python-map universe allow-list. Derived combo and bounded explicit
+      canonical selections must use the same local, isolated breadth contract as personal,
+      market-group, and ETF-holdings sources.
+    definition_of_done:
+      - Breadth source keys accept the canonical 4096-character WatchlistSource bound
+      - Backend watchlist breadth resolution accepts combo and explicit source IDs with isolation
+      - Market Map sends all canonical source IDs through the same Python universe builder
+      - Focused component and Docker-backed combo breadth integration tests pass
+      - Provider population and exact V25 Python-map visuals remain tracked gaps
+    validation:
+      - frontend-market-map-python-source-22-of-22
+      - backend-combo-watchlist-breadth-integration-1-of-1
+      - backend-ruff-compileall
+      - git-diff-check
+    notes:
+      - >-
+        No acceptance flexibility used. This is source-contract compatibility; it does not claim
+        provider-backed data completeness or exact V25 control geometry.
+
   - id: tc2000-watchlist-membership-lineage-20260819
     title: Invalidate arbitrary-watchlist and combo heatmaps on membership changes
     status: completed

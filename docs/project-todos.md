@@ -1,5 +1,18 @@
 # Project TODO Memory
 
+### 2026-08-19 — Python Market Map colours for every WatchlistSource
+
+- [x] Extend the breadth universe key bound to the canonical 4096-character source contract so
+      bounded explicit canonical selections are not rejected by Python-backed map colours.
+- [x] Allow the Python breadth resolver to consume `combo:` and `explicit:` sources in addition
+      to personal, market-group, and ETF-holdings descriptors, preserving user isolation and
+      locked/ephemeral semantics through the existing resolver.
+- [x] Make Market Map send every canonical source through `{kind: watchlist, key: source_id}`
+      for isolated Python colour/area evaluation, rather than maintaining a narrower frontend
+      allow-list; add component and combo-backed breadth integration coverage.
+- [ ] Keep provider-backed Python dataset population, historical deletion/re-entry ledgers, and
+      exact V25 controls/visuals open; this closes source compatibility, not those gates.
+
 ### 2026-08-19 — Mutable and derived watchlist membership lineage
 
 - [x] Make personal and managed `WatchlistSource` membership versions content-derived from

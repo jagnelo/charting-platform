@@ -1,5 +1,16 @@
 # Run Report
 
+## 2026-08-19 — Universal Python Market Map source compatibility
+
+- Isolated Python map colours/area now accept canonical personal/managed, market-group,
+  ETF-holdings, combo, and explicit source IDs through one `{kind: watchlist, key: source_id}`
+  builder. The backend source key bound matches the 4096-character canonical contract.
+- A combo-backed generic breadth request resolves the derived members and returns its exact source
+  lineage; the Market Map component regression verifies the combo key is sent unchanged to the
+  Python queue. Component `22/22`, integration `1/1`, Ruff, compileall, and diff-check pass.
+- No acceptance flexibility or visual threshold changed. Provider-backed population and exact V25
+  Python-map source affordances remain explicit gaps.
+
 ## 2026-08-19 — Arbitrary-watchlist membership lineage repair
 
 - Replaced row-timestamp-only membership versions with deterministic canonical membership

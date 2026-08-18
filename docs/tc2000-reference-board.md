@@ -1,5 +1,13 @@
 # TC2000 Version 25 composite reference board
 
+## 2026-08-19 Python map source-polymorphism reference gap
+
+The board does not show whether Version 25 exposes a derived combo or ephemeral multi-symbol
+selection as a Python-backed map universe. The implementation follows the established dense map
+language and uses the canonical source ID for every locked, derived, personal, ETF, and explicit
+universe; component/API source-preservation checks are the interim oracle. Exact V25 affordance
+copy and badges for this state remain unrepresented.
+
 ## 2026-08-19 arbitrary-watchlist lineage reference gap
 
 The composed board supports one heatmap language for locked index/ETF constituent universes,

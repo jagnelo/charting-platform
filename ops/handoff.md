@@ -1,5 +1,16 @@
 # Active Handoff
 
+## 2026-08-19 — Universal Python Market Map source compatibility
+
+- Widened `BreadthUniverseRequest.key` to 4096 characters and allowed the shared watchlist
+  resolver to consume `combo:` and `explicit:` descriptors alongside personal, market-group, and
+  ETF-holdings sources.
+- Market Map now sends every canonical source through the same isolated Python breadth request;
+  derived and ephemeral universes are no longer rejected by a frontend-only allow-list.
+- Validation passed: Market Map component `22/22`, combo-backed generic breadth integration `1/1`,
+  Ruff, compileall, and `git diff --check`. No acceptance flexibility used.
+- Provider-backed dataset population and exact V25 Python-map source visuals remain open.
+
 ## 2026-08-19 — Arbitrary-watchlist membership lineage repair
 
 - Personal and managed `WatchlistSource` descriptors now fingerprint canonical member IDs,
