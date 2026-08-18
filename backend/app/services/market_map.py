@@ -13,12 +13,16 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.config import settings
+from app.models.data_source import DataSource
 from app.models.instrument import Instrument
 from app.models.instrument_event import InstrumentEvent, InstrumentEventFetchState
 from app.models.market_map import MarketMapCache
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.provider_observation import InstrumentProfileSnapshot
+from app.models.provider_runtime import ProviderCapability, ProviderEntitlement, ProviderPolicy
 from app.models.research import ResearchRun
+from app.providers import list_provider_capabilities
 from app.schemas.market_map import (
     MarketMapCell,
     MarketMapNode,
@@ -348,6 +352,90 @@ def _snapshot_numeric_value(
     return numeric if math.isfinite(numeric) and numeric > 0 else None
 
 
+async def _profile_snapshot_provider_policy(
+    db: AsyncSession,
+) -> tuple[dict[int, int], str]:
+    """Return the free, adapter-capable metadata provider order and its cache fingerprint.
+
+    Profile snapshots are persisted observations, so selecting one must not call a provider.
+    The policy rows are still the authority for whether a source is currently usable.  Unknown
+    or unentitled historical snapshots remain available as an explicitly labelled fallback, but
+    they must never silently outrank an entitled source.
+    """
+
+    rows = (
+        await db.execute(
+            select(ProviderPolicy, ProviderEntitlement, DataSource)
+            .join(
+                ProviderEntitlement,
+                (ProviderEntitlement.data_source_id == ProviderPolicy.data_source_id)
+                & (ProviderEntitlement.capability == ProviderCapability.INSTRUMENT_METADATA),
+            )
+            .join(DataSource, DataSource.id == ProviderPolicy.data_source_id)
+            .where(ProviderPolicy.capability == ProviderCapability.INSTRUMENT_METADATA)
+        )
+    ).all()
+    now = datetime.now(UTC)
+    environment = settings.APP_ENV.strip().lower()
+    eligible: list[tuple[ProviderPolicy, ProviderEntitlement, DataSource]] = []
+    fingerprint_rows: list[dict[str, object]] = []
+    for policy, entitlement, data_source in rows:
+        try:
+            adapter_capable = "instrument_metadata" in list_provider_capabilities(data_source.name)
+        except KeyError:
+            adapter_capable = False
+        enabled_environments = {
+            str(value).strip().lower() for value in (entitlement.enabled_environments or [])
+        }
+        yfinance_disabled = (
+            data_source.name == "yfinance" and not settings.ENABLE_LEGACY_YFINANCE_FALLBACK
+        )
+        eligible_now = bool(
+            data_source.is_active
+            and policy.is_enabled
+            and entitlement.is_free
+            and adapter_capable
+            and not yfinance_disabled
+            and (not enabled_environments or environment in enabled_environments)
+            and (entitlement.effective_at is None or entitlement.effective_at <= now)
+            and (entitlement.review_due_at is None or entitlement.review_due_at > now)
+        )
+        fingerprint_rows.append(
+            {
+                "data_source_id": data_source.id,
+                "name": data_source.name,
+                "policy_id": policy.id,
+                "enabled": policy.is_enabled,
+                "pinned": policy.is_pinned,
+                "base_priority": policy.base_priority,
+                "effective_score": str(policy.effective_score),
+                "entitlement_id": entitlement.id,
+                "entitlement_revision": entitlement.revision,
+                "free": entitlement.is_free,
+                "adapter_capable": adapter_capable,
+                "eligible": eligible_now,
+                "environment": environment,
+            }
+        )
+        if eligible_now:
+            eligible.append((policy, entitlement, data_source))
+    eligible.sort(
+        key=lambda item: (
+            0 if item[0].is_pinned else 1,
+            -float(item[0].effective_score or 0),
+            item[0].base_priority,
+            item[2].name,
+        )
+    )
+    provider_rank = {
+        data_source.id: rank for rank, (_, _, data_source) in enumerate(eligible)
+    }
+    fingerprint = hashlib.sha256(
+        json.dumps(fingerprint_rows, sort_keys=True, separators=(",", ":"), default=str).encode()
+    ).hexdigest()[:24]
+    return provider_rank, fingerprint
+
+
 def _cache_key(
     request: MarketMapRequest,
     membership_version: str | None,
@@ -359,6 +447,7 @@ def _cache_key(
     reference_member_ids: list[int] | None = None,
     profile_snapshot_watermark: datetime | None = None,
     profile_snapshot_ids: list[int] | None = None,
+    profile_snapshot_policy_fingerprint: str | None = None,
 ) -> str:
     """Build a deterministic identity for one source/data snapshot.
 
@@ -382,6 +471,7 @@ def _cache_key(
             profile_snapshot_watermark.isoformat() if profile_snapshot_watermark else None
         ),
         "profile_snapshot_ids": sorted(profile_snapshot_ids or []),
+        "profile_snapshot_policy_fingerprint": profile_snapshot_policy_fingerprint,
     }
     return hashlib.sha256(json.dumps(payload, sort_keys=True, default=str).encode()).hexdigest()
 
@@ -468,23 +558,48 @@ async def build_market_map(db: AsyncSession, user_id: int, request: MarketMapReq
     profile_snapshots_by_id: dict[int, InstrumentProfileSnapshot] = {}
     profile_snapshot_watermark: datetime | None = None
     profile_snapshot_ids: list[int] = []
+    profile_snapshot_provider_rank: dict[int, int] = {}
+    profile_snapshot_policy_fingerprint: str | None = None
+    profile_snapshot_unranked_ids: set[int] = set()
     if request.area_metric == "market_cap" and member_ids:
+        profile_snapshot_provider_rank, profile_snapshot_policy_fingerprint = (
+            await _profile_snapshot_provider_policy(db)
+        )
         profile_snapshot_rows = (
             await db.execute(
                 select(InstrumentProfileSnapshot)
+                .options(selectinload(InstrumentProfileSnapshot.data_source))
                 .where(
                     InstrumentProfileSnapshot.instrument_id.in_(member_ids),
                     InstrumentProfileSnapshot.observed_at <= end_hint,
                 )
                 .order_by(
                     InstrumentProfileSnapshot.instrument_id,
-                    InstrumentProfileSnapshot.observed_at.desc(),
                     InstrumentProfileSnapshot.id.desc(),
                 )
             )
         ).scalars().all()
+        snapshots_by_instrument: dict[int, list[InstrumentProfileSnapshot]] = defaultdict(list)
         for snapshot in profile_snapshot_rows:
-            profile_snapshots_by_id.setdefault(snapshot.instrument_id, snapshot)
+            snapshots_by_instrument[snapshot.instrument_id].append(snapshot)
+        for instrument_id, candidates in snapshots_by_instrument.items():
+            ranked = [
+                snapshot
+                for snapshot in candidates
+                if snapshot.data_source_id in profile_snapshot_provider_rank
+            ]
+            selected_pool = ranked or candidates
+            selected = min(
+                selected_pool,
+                key=lambda snapshot: (
+                    profile_snapshot_provider_rank.get(snapshot.data_source_id, 10**9),
+                    -snapshot.observed_at.timestamp(),
+                    -snapshot.id,
+                ),
+            )
+            profile_snapshots_by_id[instrument_id] = selected
+            if selected.data_source_id not in profile_snapshot_provider_rank:
+                profile_snapshot_unranked_ids.add(instrument_id)
         profile_snapshot_watermark = max(
             (snapshot.observed_at for snapshot in profile_snapshots_by_id.values()),
             default=None,
@@ -618,6 +733,7 @@ async def build_market_map(db: AsyncSession, user_id: int, request: MarketMapReq
         reference_source_member_ids,
         profile_snapshot_watermark,
         profile_snapshot_ids,
+        profile_snapshot_policy_fingerprint,
     )
     python_values, python_output_contract = ({}, "")
     if (
@@ -763,15 +879,37 @@ async def build_market_map(db: AsyncSession, user_id: int, request: MarketMapReq
             snapshot_area = _snapshot_numeric_value(snapshot, "market_cap")
             if snapshot_area is not None and snapshot is not None:
                 area = snapshot_area
+                provider_rank = profile_snapshot_provider_rank.get(snapshot.data_source_id)
+                provider_name = (
+                    snapshot.data_source.name
+                    if snapshot.data_source is not None
+                    else None
+                )
                 area_provenance = {
                     "kind": "point_in_time_profile_snapshot",
                     "field": "market_cap",
                     "snapshot_id": snapshot.id,
                     "data_source_id": snapshot.data_source_id,
+                    "provider_name": provider_name,
+                    "provider_precedence_rank": provider_rank,
+                    "entitlement_verified": provider_rank is not None,
+                    "selection": (
+                        "entitled_provider_precedence"
+                        if provider_rank is not None
+                        else "unranked_snapshot_fallback"
+                    ),
                     "observed_at": snapshot.observed_at.isoformat(),
                     "fetched_at": snapshot.fetched_at.isoformat(),
                     "point_in_time": True,
                 }
+                if instrument_id in profile_snapshot_unranked_ids:
+                    warnings.append(
+                        _warning(
+                            "profile_snapshot_unranked_source",
+                            "The point-in-time profile snapshot source is not currently covered by an enabled free metadata entitlement; it is retained as an explicitly unranked fallback.",
+                            instrument_id=instrument_id,
+                        )
+                    )
             else:
                 area = float(instrument.stats.market_cap) if instrument.stats and instrument.stats.market_cap is not None else None
                 if area is not None:
@@ -902,17 +1040,35 @@ async def build_market_map(db: AsyncSession, user_id: int, request: MarketMapReq
         exclusions=exclusions,
         warnings=(
             [
-                _warning(
-                    "current_area_not_point_in_time",
-                    "Some market-cap area values use current stored metadata.",
-                )
+                *(
+                    [
+                        _warning(
+                            "current_area_not_point_in_time",
+                            "Some market-cap area values use current stored metadata.",
+                        )
+                    ]
+                    if request.area_metric == "market_cap"
+                    and any(
+                        any(item.code == "current_market_cap" for item in cell.warnings)
+                        for cell in cells
+                    )
+                    else []
+                ),
+                *(
+                    [
+                        _warning(
+                            "profile_snapshot_unranked_source",
+                            "Some point-in-time market-cap values use persisted snapshots whose provider is not currently covered by an enabled free metadata entitlement.",
+                        )
+                    ]
+                    if request.area_metric == "market_cap"
+                    and any(
+                        any(item.code == "profile_snapshot_unranked_source" for item in cell.warnings)
+                        for cell in cells
+                    )
+                    else []
+                ),
             ]
-            if request.area_metric == "market_cap"
-            and any(
-                any(item.code == "current_market_cap" for item in cell.warnings)
-                for cell in cells
-            )
-            else []
         ),
     )
     cache_row = MarketMapCache(

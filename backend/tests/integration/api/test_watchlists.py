@@ -293,8 +293,11 @@ class TestWatchlistsCrud:
         cells = {cell["symbol"]: cell for cell in body["cells"]}
         assert cells["AAPL"]["area_value"] == 900
         assert cells["AAPL"]["area_provenance"]["kind"] == "point_in_time_profile_snapshot"
+        assert cells["AAPL"]["area_provenance"]["entitlement_verified"] is False
+        assert cells["AAPL"]["area_provenance"]["selection"] == "unranked_snapshot_fallback"
         assert cells["MSFT"]["area_value"] == 600
         assert not any(item["code"] == "current_area_not_point_in_time" for item in body["warnings"])
+        assert any(item["code"] == "profile_snapshot_unranked_source" for item in body["warnings"])
         assert {node["label"] for node in body["nodes"]} >= {"Technology", "Hardware", "Industrials", "Machinery"}
 
         weighted = client.post(
@@ -348,6 +351,188 @@ class TestWatchlistsCrud:
         assert refreshed_body["membership_version"] != before_version
         assert refreshed_body["cache_key"] != before_cache_key
         assert {cell["symbol"]: cell["area_value"] for cell in refreshed_body["cells"]}["AAPL"] == 0.7
+
+    def test_market_map_prefers_entitled_profile_provider_precedence_and_invalidates_policy_cache(
+        self, client, auth_headers, db, instrument, instrument_b, monkeypatch
+    ):
+        from app.models.data_source import DataSource
+        from app.models.instrument import EquityDetail
+        from app.models.instrument_stats import InstrumentStats
+        from app.models.ohlcv import OHLCVBar, Timeframe
+        from app.models.provider_observation import InstrumentProfileSnapshot
+        from app.models.provider_runtime import (
+            ProviderCapability,
+            ProviderEntitlement,
+            ProviderPolicy,
+        )
+
+        monkeypatch.setattr(
+            "app.services.market_map.list_provider_capabilities",
+            lambda name: ["instrument_metadata"] if name in {"fixture-high", "fixture-low"} else [],
+        )
+        now = datetime(2024, 1, 1, tzinfo=UTC)
+        group = MarketGroup(
+            stable_key="locked-provider-precedence",
+            group_type="benchmark_family",
+            name="Locked provider precedence fixture",
+            source="controlled_fixture",
+            effective_at=now,
+            known_at=now,
+        )
+        db.add(group)
+        db.flush()
+        db.add_all(
+            [
+                MarketGroupMember(
+                    market_group_id=group.id,
+                    instrument_id=instrument.id,
+                    position=0,
+                    relationship_type="constituent",
+                    source="controlled_fixture",
+                    verification_state="verified",
+                    weight=0.6,
+                    effective_at=now,
+                    known_at=now,
+                ),
+                MarketGroupMember(
+                    market_group_id=group.id,
+                    instrument_id=instrument_b.id,
+                    position=1,
+                    relationship_type="constituent",
+                    source="controlled_fixture",
+                    verification_state="verified",
+                    weight=0.4,
+                    effective_at=now,
+                    known_at=now,
+                ),
+                EquityDetail(instrument_id=instrument.id, sector="Technology", industry="Hardware"),
+                EquityDetail(instrument_id=instrument_b.id, sector="Industrials", industry="Machinery"),
+                InstrumentStats(instrument_id=instrument.id, market_cap=100),
+                InstrumentStats(instrument_id=instrument_b.id, market_cap=50),
+            ]
+        )
+        high_source = DataSource(name="fixture-high", base_url="controlled://high", description="High precedence fixture")
+        low_source = DataSource(name="fixture-low", base_url="controlled://low", description="Low precedence fixture")
+        db.add_all([high_source, low_source])
+        db.flush()
+        db.add_all(
+            [
+                ProviderPolicy(
+                    data_source_id=high_source.id,
+                    capability=ProviderCapability.INSTRUMENT_METADATA,
+                    is_pinned=True,
+                    effective_score=1,
+                    base_priority=50,
+                ),
+                ProviderPolicy(
+                    data_source_id=low_source.id,
+                    capability=ProviderCapability.INSTRUMENT_METADATA,
+                    effective_score=90,
+                    base_priority=1,
+                ),
+                ProviderEntitlement(
+                    data_source_id=high_source.id,
+                    capability=ProviderCapability.INSTRUMENT_METADATA,
+                    is_free=True,
+                    enabled_environments=[],
+                ),
+                ProviderEntitlement(
+                    data_source_id=low_source.id,
+                    capability=ProviderCapability.INSTRUMENT_METADATA,
+                    is_free=True,
+                    enabled_environments=[],
+                ),
+            ]
+        )
+        db.flush()
+        for offset, price in enumerate((100, 101, 102, 103, 104, 105, 106)):
+            for member, multiplier in ((instrument, 1), (instrument_b, 2)):
+                db.add(
+                    OHLCVBar(
+                        instrument_id=member.id,
+                        timeframe=Timeframe.D1,
+                        ts=now + timedelta(days=offset),
+                        open=price * multiplier,
+                        high=price * multiplier + 1,
+                        low=price * multiplier - 1,
+                        close=price * multiplier,
+                        volume=1_000_000,
+                        is_adjusted=True,
+                    )
+                )
+        db.add_all(
+            [
+                InstrumentProfileSnapshot(
+                    instrument_id=instrument.id,
+                    data_source_id=high_source.id,
+                    provider_symbol=instrument.symbol,
+                    observed_at=now + timedelta(days=2),
+                    fetched_at=now + timedelta(days=2),
+                    profile_hash="precedence-high-a",
+                    payload={"market_cap": 700},
+                ),
+                InstrumentProfileSnapshot(
+                    instrument_id=instrument.id,
+                    data_source_id=low_source.id,
+                    provider_symbol=instrument.symbol,
+                    observed_at=now + timedelta(days=6),
+                    fetched_at=now + timedelta(days=6),
+                    profile_hash="precedence-low-a",
+                    payload={"market_cap": 900},
+                ),
+                InstrumentProfileSnapshot(
+                    instrument_id=instrument_b.id,
+                    data_source_id=high_source.id,
+                    provider_symbol=instrument_b.symbol,
+                    observed_at=now + timedelta(days=2),
+                    fetched_at=now + timedelta(days=2),
+                    profile_hash="precedence-high-b",
+                    payload={"market_cap": 300},
+                ),
+                InstrumentProfileSnapshot(
+                    instrument_id=instrument_b.id,
+                    data_source_id=low_source.id,
+                    provider_symbol=instrument_b.symbol,
+                    observed_at=now + timedelta(days=6),
+                    fetched_at=now + timedelta(days=6),
+                    profile_hash="precedence-low-b",
+                    payload={"market_cap": 500},
+                ),
+            ]
+        )
+        db.flush()
+
+        request = {
+            "source_id": "market-group:locked-provider-precedence",
+            "group_by": "sector_industry",
+            "period": "1W",
+            "area_metric": "market_cap",
+            "color_metric": "return",
+            "end": "2024-01-07T00:00:00Z",
+        }
+        first = client.post("/api/v1/analysis/market-map", headers=auth_headers, json=request)
+        assert first.status_code == 200, first.text
+        first_body = first.json()
+        first_cells = {cell["symbol"]: cell for cell in first_body["cells"]}
+        assert first_cells["AAPL"]["area_value"] == 700
+        assert first_cells["AAPL"]["area_provenance"]["provider_name"] == "fixture-high"
+        assert first_cells["AAPL"]["area_provenance"]["selection"] == "entitled_provider_precedence"
+        assert first_cells["AAPL"]["area_provenance"]["provider_precedence_rank"] == 0
+        assert first_body["cache_hit"] is False
+
+        high_policy = db.query(ProviderPolicy).filter_by(data_source_id=high_source.id).one()
+        high_policy.is_pinned = False
+        high_policy.effective_score = 1
+        db.flush()
+        second = client.post("/api/v1/analysis/market-map", headers=auth_headers, json=request)
+        assert second.status_code == 200, second.text
+        second_body = second.json()
+        second_cells = {cell["symbol"]: cell for cell in second_body["cells"]}
+        assert second_cells["AAPL"]["area_value"] == 900
+        assert second_cells["AAPL"]["area_provenance"]["provider_name"] == "fixture-low"
+        assert second_cells["AAPL"]["area_provenance"]["selection"] == "entitled_provider_precedence"
+        assert second_body["cache_key"] != first_body["cache_key"]
+        assert second_body["cache_hit"] is False
 
     def test_market_map_reports_missing_local_data_without_provider_fanout(
         self, client, auth_headers, watchlist, instrument
