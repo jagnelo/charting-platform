@@ -1,5 +1,19 @@
 # Active Handoff
 
+## 2026-08-19 — Market Map source kinds are explicit without splitting the heatmap
+
+- Market Map now groups the canonical source catalog into index/managed universes, ETF holdings,
+  market groups, personal watchlists, managed scans, combos, and explicit selections. Benchmark
+  family constituent roles and arbitrary ETF holdings therefore appear as locked watchlist sources,
+  but still use the same map request and renderer as editable lists.
+- The active source kind and member count are shown beside Follow/Pin. Locked membership remains
+  immutable; preference changes do not clone, filter, or mutate the source.
+- Validation: focused Market Map `27/27`; full frontend Vitest `895/895`; type-check; production
+  build; diff check. Implementation commit `ec954f5430283cd09467c21e8984da063ba58385` is pushed.
+- Acceptance flexibility: **None**. Exact V25 source-picker grouping, source-kind labels, and
+  locked-membership affordance remain `required_missing` visual-board gaps. Continue provider-backed
+  family population/history, broader V25 represented-state work, and final parity acceptance.
+
 ## 2026-08-19 — Study Lab promotion preserves canonical universe lineage
 
 - Generic Study Lab Boolean promotion no longer creates an `all`-universe EasyScan. It extracts

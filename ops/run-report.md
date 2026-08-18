@@ -1,5 +1,18 @@
 # Run Report
 
+## 2026-08-19 — Market Map makes source kinds explicit while keeping one heatmap
+
+- Grouped the universal Market Map selector into index/managed, ETF-holdings, market-group,
+  personal, managed-scan, combo, and explicit source kinds. The active source kind and member count
+  are visible beside Follow/Pin; locked index/ETF membership remains immutable and preference-only.
+- Added a regression covering a benchmark-family constituent source, SPY holdings, and an editable
+  personal list. All three retain their canonical source IDs and use the same Market Map request.
+- Validation: focused Market Map `27/27`; full frontend Vitest `895/895`; type-check; production
+  build; `git diff --check`. Implementation `ec954f5430283cd09467c21e8984da063ba58385` is pushed.
+- Acceptance flexibility: **None**. Exact V25 source-picker grouping and lock/follow affordance
+  visuals remain `required_missing`; provider-backed family completeness, historical continuity,
+  and final V25 parity remain open.
+
 ## 2026-08-19 — Study Lab promotion retains declared universe and provenance
 
 - Repaired the generic Study Lab Boolean promotion path. It now extracts only canonical member

@@ -1,5 +1,21 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-19 — Market Map uses one source-polymorphic heatmap with explicit source kinds
+
+The Market Map universe selector now groups every canonical source by kind: index/managed
+universes (including benchmark-family constituent roles), ETF holdings, market groups, personal
+watchlists, managed scans, combos, and explicit selections. The active source kind and member
+count are visible beside the Follow/Pin controls. This does not clone or rewrite membership:
+locked index/ETF sources remain immutable, while following or pinning is only a user preference.
+All groups still submit the exact canonical source ID to the same batch Market Map path, so an
+arbitrary watchlist is technically the same heatmap class as an index constituent watchlist.
+
+The focused Market Map component regression is `27/27`; full frontend Vitest is `895/895`;
+type-check, production build, and diff checks pass. This closes a functional source-discoverability
+gap only. The composite board lacks authoritative exact V25 source-picker grouping, source-kind
+copy, and locked-membership affordance captures, so those remain `required_missing`; no visual
+threshold, mask, provider substitution, or membership rule was relaxed.
+
 ## 2026-08-19 — Study Lab Boolean promotion retains source lineage
 
 The generic Study Lab promotion path now derives a fixed custom universe only from canonical

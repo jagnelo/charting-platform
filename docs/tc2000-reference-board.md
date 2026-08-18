@@ -1,5 +1,19 @@
 # TC2000 Version 25 composite reference board
 
+## 2026-08-19 — Source-kind grouping and locked constituent semantics remain visually unrepresented
+
+The universal Market Map now groups source choices into index/managed universes, ETF holdings,
+market groups, personal watchlists, managed scans, combos, and explicit selections. The active
+source kind and member count are shown next to Follow/Pin; locked index/ETF constituent sources
+remain immutable while the preference is user-controlled. The same map path accepts any arbitrary
+watchlist source.
+
+Gap status: `required_missing` for exact-build V25 source-picker grouping, source-kind labels,
+locked-membership disclosure, and Follow/Pin treatment. Interim oracle: Market Map `27/27`, full
+frontend Vitest `895/895`, type-check, production build, and diff checks. No visual threshold or
+mask was relaxed. Close with a reviewed V25 capture of the source picker and active-source action
+row, then measure the labels, grouping, disabled/unavailable states, and lock treatment.
+
 ## 2026-08-19 — Study Lab promotion/source-lineage state is visually unrepresented
 
 Generic Study Lab Boolean results now promote only to a fixed canonical custom universe and retain

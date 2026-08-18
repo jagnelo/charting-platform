@@ -1,4 +1,30 @@
 tasks:
+  - id: tc2000-market-map-source-kind-grouping-20260819
+    title: Make universal Market Map source kinds explicit
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Keep one canonical heatmap for index/index-ETF constituent universes and arbitrary editable
+      watchlists while making their source kinds discoverable in the selector. Locked membership
+      remains immutable; Follow/Pin remains a user preference only.
+    definition_of_done:
+      - Group index/managed, ETF-holdings, market-group, personal, managed-scan, combo, and explicit sources
+      - Surface active source kind and member count without changing canonical source IDs
+      - Prove benchmark-family, ETF-holdings, and personal sources use the same Market Map request path
+      - Record exact V25 source-picker/locked-affordance imagery as a tracked visual gap
+    validation:
+      - frontend-market-map-component-27-of-27
+      - frontend-vitest-895-of-895
+      - frontend-type-check
+      - frontend-build
+      - git-diff-check
+    notes:
+      - >-
+        Acceptance flexibility used: None. This is functional source discoverability, not an exact
+        V25 visual approval; provider-backed family population, historical continuity, and the
+        missing exact V25 source-picker reference remain open.
+
   - id: tc2000-study-promotion-universe-lineage-20260819
     title: Preserve Study Lab declared universe during Boolean promotion
     status: completed

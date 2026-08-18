@@ -1,5 +1,23 @@
 # Project TODO Memory
 
+### 2026-08-19 — Market Map makes source-kind parity explicit
+
+- [x] Keep one universal heatmap for every canonical universe. The Market Map selector now groups
+      index/managed universes, ETF holdings, market groups, personal watchlists, managed scans,
+      combos, and explicit selections without changing their source IDs or calculation path.
+- [x] Surface the active source kind and member count beside Follow/Pin. A locked index or ETF
+      constituent universe remains present and immutable; following or pinning changes only the
+      user's preference, never membership. The same source contract remains usable for arbitrary
+      watchlists and selected constituents.
+- [x] Add a regression covering a benchmark-family constituent source, SPY holdings, and an
+      editable personal list, proving grouped options and identical canonical Market Map requests.
+      Focused Market Map coverage is `27/27`; full frontend Vitest is `895/895`; type-check,
+      production build, and diff checks pass.
+- [ ] Exact V25 source-picker grouping, source-kind copy, and locked-membership affordance remain
+      `required_missing` visual-board gaps. This is a functional clarity improvement, not a visual
+      parity waiver; provider-backed family population, historical continuity, and exact V25
+      approval remain open.
+
 ### 2026-08-19 — Study Lab promotion preserves the declared study universe
 
 - [x] Keep generic Study Lab Boolean promotions source-bounded. The frontend now extracts only
