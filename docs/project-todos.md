@@ -1,5 +1,17 @@
 # Project TODO Memory
 
+### 2026-08-19 — Point-in-time Market Map market-cap area
+
+- [x] Read the latest canonical `InstrumentProfileSnapshot` observed at or before the requested
+      map end/as-of for `area_metric=market_cap`, including top-level and `extra.market_cap`
+      payload forms.
+- [x] Preserve snapshot ID, data source, observed/fetched times, and point-in-time provenance
+      per tile; retain explicit current-metadata warnings only for uncovered members.
+- [x] Include the selected snapshot watermark and IDs in Market Map cache identity and add locked
+      source integration coverage for snapshot-backed area values.
+- [ ] Keep historical profile-source precedence/entitlement reconciliation, missing-snapshot
+      fallback coverage, complete family population, and exact V25 area/provenance visuals open.
+
 ### 2026-08-19 — Historical combo active-window semantics
 
 - [x] Evaluate union/intersection/exclusion combo membership using the same per-item

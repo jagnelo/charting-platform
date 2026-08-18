@@ -1,5 +1,14 @@
 # TC2000 Version 25 composite reference board
 
+## 2026-08-19 point-in-time area provenance gap narrowed
+
+The board has no authoritative capture of Version 25’s tile treatment when market-cap area is
+point-in-time, mixed-coverage, or falling back to current metadata. The implementation now uses
+canonical profile snapshots where available, labels each tile with snapshot provenance in the
+data contract, and surfaces a response warning for current-metadata fallbacks. Deterministic
+integration and component assertions are the interim oracle. Exact tooltip/badge wording and
+mixed-coverage geometry remain unrepresented.
+
 ## 2026-08-19 combo historical departure gap narrowed
 
 No authoritative board state shows how Version 25 presents a combo whose union/intersection or

@@ -1,5 +1,18 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-19 — Market-cap tiles use point-in-time profile snapshots
+
+For any WatchlistSource, Market Map market-cap area now prefers the newest canonical
+`InstrumentProfileSnapshot` observed no later than the requested map end/as-of. Tile provenance
+records snapshot/data-source IDs and observed/fetched timestamps. Members without an eligible
+snapshot retain the current `InstrumentStats` fallback with cell and response warnings, so a
+mixed-coverage map never presents current metadata as historical truth. Snapshot IDs and the
+observation watermark participate in cache identity.
+
+The locked-source integration covers both top-level and `extra` payload fields; the 13-case Market
+Map subset and component suite pass. Provider precedence/entitlement reconciliation and exact V25
+area/provenance treatment remain open gaps.
+
 ## 2026-08-19 — Derived combo universes honor historical departures
 
 Union/intersection/exclusion `combo:*` sources now apply each dependency item's active interval

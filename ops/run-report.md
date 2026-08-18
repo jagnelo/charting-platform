@@ -1,5 +1,17 @@
 # Run Report
 
+## 2026-08-19 — Point-in-time Market Map market-cap area
+
+- Market-cap tile area now reads the latest eligible canonical profile snapshot at the requested
+  end/as-of and retains point-in-time provenance. Current stats remain an explicit fallback for
+  uncovered members, with cell and response warnings.
+- Snapshot IDs and observed watermark are part of cache identity, preventing replacement snapshots
+  at the same observation time from reusing an older map.
+- Locked-source Market Map plus the 13-case integration subset and component `22/22` pass, along
+  with Ruff, compileall, and diff-check. No acceptance flexibility or visual threshold changed.
+- Implementation commit `76a0ad138922996bfb2919d6b7ede1e268a2f8b3` is pushed; provider/entitlement
+  precedence, family population, and exact V25 visual gaps remain explicit.
+
 ## 2026-08-19 — Historical combo active-window repair
 
 - Derived combo sources now apply dependency active windows at `as_of`, preventing departed

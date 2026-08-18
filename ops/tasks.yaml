@@ -1,4 +1,28 @@
 tasks:
+  - id: tc2000-market-map-point-in-time-area-20260819
+    title: Prefer point-in-time profile snapshots for market-cap tiles
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Make universal Market Map market-cap area sizing use canonical local profile snapshots at
+      the requested end/as-of and expose honest fallback warnings for members without coverage.
+    definition_of_done:
+      - Latest eligible InstrumentProfileSnapshot is selected per canonical member without provider fan-out
+      - Top-level and extra market_cap payloads are supported with per-cell snapshot provenance
+      - Snapshot watermark and IDs participate in cache identity
+      - Locked-source integration, Market Map subset, component, Ruff, compileall, and diff checks pass
+      - Provider precedence/entitlement history and exact V25 area visuals remain tracked gaps
+    validation:
+      - backend-market-map-integration-subset-13-of-13
+      - frontend-market-map-component-22-of-22
+      - backend-ruff-compileall
+      - git-diff-check
+    notes:
+      - >-
+        No acceptance flexibility used. Current metadata remains visibly labelled when no eligible
+        profile snapshot covers a member.
+
   - id: tc2000-combo-departure-asof-20260819
     title: Apply historical active windows to derived combo sources
     status: completed

@@ -1,5 +1,20 @@
 # Active Handoff
 
+## 2026-08-19 — Point-in-time Market Map market-cap area
+
+- Universal Market Map `area_metric=market_cap` now prefers the newest canonical profile snapshot
+  observed at or before the requested end/as-of. Both top-level and `extra.market_cap` payloads
+  are accepted; tile provenance includes snapshot/data-source IDs and observed/fetched timestamps.
+- Members without eligible snapshots retain current `InstrumentStats` values but receive explicit
+  `current_market_cap` and response-level `current_area_not_point_in_time` warnings. Snapshot
+  watermark and selected IDs are in cache identity.
+- Validation passed: locked-source integration and the Market Map subset `13/13`, component
+  `22/22`, Ruff, compileall, and `git diff --check`. No acceptance flexibility used.
+- Implementation commit `76a0ad138922996bfb2919d6b7ede1e268a2f8b3` is pushed. Docs/ops and state
+  closure are next.
+- Provider precedence/entitlement reconciliation, complete family population, missing-snapshot
+  policy, and exact V25 area/provenance visuals remain open.
+
 ## 2026-08-19 — Historical combo active-window repair
 
 - Derived `combo:*` sources now evaluate union/intersection/exclusion dependencies with the same
