@@ -1,5 +1,18 @@
 # TC2000 Version 25 composite reference board
 
+## 2026-08-18 — Same-date holdings revision state remains visually unrepresented
+
+The implementation now preserves point-in-time truth when two ETF/index-proxy holdings snapshots
+share a composition date but become known at different times: Market Map selects the latest
+known-at revision eligible at the requested evaluation timestamp. The board has no authoritative
+V25 capture for the resulting revision/freshness disclosure, warning, or tile-area transition.
+
+Gap status: required_missing for exact revision badges, copy, stale/partial state, and geometry.
+Interim oracle: the Docker-backed same-date revision Market Map regression and full 42/42
+watchlist integration file. No acceptance flexibility was used. Evidence needed: an authoritative
+V25 revision-state reference or an explicit decision that this data-integrity disclosure is outside
+visual parity; provider population and historical continuity remain separate gaps.
+
 ## 2026-08-19 — Availability badges for arbitrary locked universes remain a visual gap
 
 The product vision now treats every index/index-ETF constituent set as a locked watchlist that

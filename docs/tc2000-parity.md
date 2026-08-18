@@ -1,5 +1,18 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-18 — Locked holdings resolution now breaks composition-date ties by known-at
+
+ETF-holdings and benchmark-family WatchlistSource resolution now orders eligible snapshots by
+composition date, then the newest known-at timestamp, then stable ID. This prevents a corrected
+or later-published revision with the same composition date from appearing in a Market Map whose
+evaluation timestamp predates that revision. The regression exercises the shared Market Map path
+with same-date snapshots at two evaluation timestamps.
+
+The complete Docker-backed watchlist/Market Map integration file passes 42/42; Ruff, compileall,
+and diff checks pass. No acceptance flexibility was used. Broader provider-backed population,
+historical holdings continuity, adapter quality, and exact V25 revision disclosure visuals remain
+open.
+
 ## 2026-08-19 — Locked Market Map availability is source-polymorphic
 
 Availability provenance now applies consistently to ordinary locked market groups and

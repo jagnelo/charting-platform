@@ -1,4 +1,32 @@
 tasks:
+  - id: tc2000-watchlist-known-at-tie-break-20260818
+    title: Prevent later-known same-date holdings revisions from leaking into Market Map history
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Apply composition-date, known-at, and stable-ID ordering consistently when resolving ETF
+      holdings and benchmark-family locked watchlist snapshots for historical Market Map reads.
+    definition_of_done:
+      - ETF-holdings and benchmark-family source resolution use known-at as the same-date tie-break
+      - earlier evaluation timestamps select only the earlier-known eligible revision
+      - later evaluation timestamps select the later-known revision when it becomes eligible
+      - the shared Market Map path has a same-date revision regression
+      - complete watchlist integration, Ruff, compileall, and diff checks pass
+      - provider population, continuity, and exact V25 revision visuals remain tracked
+    validation:
+      - backend-market-map-known-at-tie-break-focused-2-of-2
+      - backend-watchlists-integration-42-of-42
+      - backend-ruff
+      - backend-compileall
+      - git-diff-check
+    notes:
+      - >-
+        This was a localized data-integrity defect under repository control and was repaired
+        immediately. No acceptance flexibility or source substitution was used. The unprivileged
+        Docker setup failed at the socket boundary; the unchanged elevated focused and full runs
+        passed.
+
   - id: tc2000-market-map-source-availability-20260819
     title: Make locked Market Map source availability consistent across source kinds
     status: completed

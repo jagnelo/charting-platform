@@ -1,5 +1,20 @@
 # Active Handoff
 
+## 2026-08-18 — Known-at tie-break for locked holdings sources
+
+- Fixed the shared ETF-holdings and benchmark-family WatchlistSource resolver so eligible snapshots
+  sort by composition date, then known-at timestamp, then stable snapshot ID. A later-known
+  same-date correction can no longer leak into an earlier Market Map evaluation.
+- Added a shared Market Map regression with same-date snapshots: the 2024-01-05 evaluation selects
+  the 0.25 revision known on 2024-01-03, while the 2024-01-10 evaluation selects 0.75 known on
+  2024-01-08. Focused Docker-backed coverage passes 2/2; the full watchlist integration file
+  passes 42/42; Ruff, compileall, and diff checks pass.
+- No acceptance flexibility was used. The unprivileged Docker-socket setup failure was retried
+  unchanged with approved elevated execution and passed. Exact V25 revision disclosure visuals,
+  provider quality, and complete historical population remain open gaps.
+- Implementation commit and docs/ops closure are required before moving to provider-backed family
+  population/quality reconciliation.
+
 ## 2026-08-19 — Source-polymorphic locked Market Map availability
 
 - Extended canonical availability provenance to ordinary locked market-group and ETF-holdings

@@ -1,5 +1,17 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-08-18 — Known-at tie-break is mandatory for same-date holdings revisions
+
+For every locked ETF/index-proxy source, historical resolution must select the latest snapshot
+whose composition date and known-at timestamp are both eligible for the evaluation time. When
+multiple eligible snapshots share a composition date, known-at is the authoritative tie-break;
+database insertion order is only the final deterministic fallback. The Market Map regression
+proves an earlier evaluation receives the 0.25 early-known revision and a later evaluation
+receives the 0.75 late-known revision. The complete watchlist integration file passes 42/42.
+
+This is a repository-controlled data-integrity repair, not acceptance flexibility. Provider route
+quality, complete historical population, and exact V25 revision visuals remain separate gaps.
+
 ## 2026-08-19 — Locked Market Map availability is source-polymorphic
 
 The locked-watchlist contract applies the same availability semantics to ordinary market-group

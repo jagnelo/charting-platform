@@ -1,5 +1,17 @@
 # Project TODO Memory
 
+### 2026-08-18 — Point-in-time known-at tie-breaking for locked holdings sources
+
+- [x] Make ETF-holdings and benchmark-family source resolution order snapshots by composition
+      date, then latest known-at timestamp, then stable snapshot ID. A later-known revision with
+      the same composition date can no longer leak into an earlier Market Map evaluation.
+- [x] Add a Docker-backed Market Map regression with two same-composition-date revisions; the
+      earlier evaluation selects the earlier-known 0.25 weight and a later evaluation selects the
+      0.75 revision. The complete watchlist integration file passes 42/42; Ruff, compileall, and
+      diff checks pass.
+- [ ] Keep the broader provider-backed family population, historical continuity, adapter quality,
+      and exact V25 revision/availability visuals tracked; no acceptance flexibility was used.
+
 ### 2026-08-19 — Source-polymorphic availability for locked Market Map universes
 
 - [x] Add explicit availability provenance to locked market-group and ETF-holdings descriptors:

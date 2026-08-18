@@ -1,5 +1,17 @@
 # Run Report
 
+## 2026-08-18 — Known-at tie-break for locked holdings sources
+
+- Corrected ETF-holdings and benchmark-family historical source resolution to use composition date,
+  known-at, then stable ID ordering. This closes a point-in-time leak when same-date revisions
+  exist.
+- Focused Docker-backed Market Map regression passes 2/2; complete watchlist/Market Map integration
+  passes 42/42. Ruff, compileall, and diff checks pass.
+- The initial unprivileged run failed only at the Docker socket boundary and the unchanged elevated
+  run passed. No acceptance flexibility or visual threshold/mask change was used.
+- Provider-backed family population, historical continuity, adapter quality, and exact V25 revision
+  visuals remain tracked. Implementation/docs/ops commits must be pushed before the next context.
+
 ## 2026-08-19 — Source-polymorphic locked Market Map availability
 
 - Locked market-group and ETF-holdings sources now expose explicit availability provenance beside
