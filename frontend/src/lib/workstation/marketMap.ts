@@ -49,6 +49,27 @@ export interface WatchlistSourceHistoryRefreshResult {
   message?: string | null
 }
 
+export interface WatchlistHistoryRefreshRun {
+  id: number
+  source_ids: string[]
+  timeframes: string[]
+  membership_versions?: Record<string, string | null>
+  as_of?: string | null
+  max_instruments: number
+  available_instrument_count: number
+  selected_instrument_count: number
+  queued_count: number
+  already_queued_count: number
+  status: string
+  cancel_requested: boolean
+  progress: Record<string, number | string | boolean>
+  error?: string | null
+  started_at?: string | null
+  finished_at?: string | null
+  created_at: string
+  updated_at: string
+}
+
 export function fetchMarketMap(request: MarketMapRequest): Promise<MarketMap> {
   return api.post<MarketMap>('/analysis/market-map', request)
 }
@@ -74,6 +95,14 @@ export function refreshWatchlistSourceHistory(
     timeframes,
     max_instruments: maxInstruments,
   })
+}
+
+export function fetchWatchlistHistoryRefreshRun(runId: number): Promise<WatchlistHistoryRefreshRun> {
+  return api.get<WatchlistHistoryRefreshRun>(`/watchlists/history-refresh-runs/${runId}`)
+}
+
+export function cancelWatchlistHistoryRefreshRun(runId: number): Promise<WatchlistHistoryRefreshRun> {
+  return api.post<WatchlistHistoryRefreshRun>(`/watchlists/history-refresh-runs/${runId}/cancel`, {})
 }
 
 export function fetchMarketMapCache(cacheKey: string): Promise<MarketMap> {

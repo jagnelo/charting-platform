@@ -68,10 +68,13 @@ describe('MarketMapTool', () => {
       overall_status: 'partial',
       timeframes: [{ timeframe: 'D1', member_count: 2, covered_member_count: 1, coverage_percent: 50, bar_count: 3, in_progress_count: 0, complete_count: 1, failed_count: 0, pending_count: 1 }],
     }
-    apiGet.mockImplementation((path: string) => path.includes('/history-status/') ? Promise.resolve(historyStatus) : Promise.resolve([]))
-    apiPost.mockImplementation((path: string) => path === '/analysis/market-map'
-      ? Promise.resolve(response)
-      : Promise.resolve({ source_ids: ['market-group:sp500'], timeframes: ['D1'], max_instruments: 5000, available_instrument_count: 2, selected_instrument_count: 2, limited: false, queued: 1, already_queued: 1, queue_unavailable: false }))
+    const historyRun = { id: 42, source_ids: ['market-group:sp500'], timeframes: ['D1'], max_instruments: 5000, available_instrument_count: 2, selected_instrument_count: 2, queued_count: 1, already_queued_count: 1, status: 'running', cancel_requested: false, progress: { complete: 1, in_progress: 1 }, created_at: '2026-08-19T00:00:00Z', updated_at: '2026-08-19T00:00:00Z' }
+    apiGet.mockImplementation((path: string) => path.includes('/history-status/') ? Promise.resolve(historyStatus) : path.includes('/history-refresh-runs/') ? Promise.resolve(historyRun) : Promise.resolve([]))
+    apiPost.mockImplementation((path: string) => {
+      if (path === '/analysis/market-map') return Promise.resolve(response)
+      if (path === '/watchlists/sources/history-refresh') return Promise.resolve({ run_id: 42, source_ids: ['market-group:sp500'], timeframes: ['D1'], max_instruments: 5000, available_instrument_count: 2, selected_instrument_count: 2, limited: false, queued: 1, already_queued: 1, queue_unavailable: false })
+      return Promise.resolve({ ...historyRun, status: 'canceled', cancel_requested: true, progress: { ...historyRun.progress, status: 'canceled' } })
+    })
 
     const wrapper = mount(MarketMapTool)
     await flushPromises()
@@ -87,6 +90,11 @@ describe('MarketMapTool', () => {
       max_instruments: 5000,
     })
     expect(wrapper.find('[aria-label="Market Map history readiness"]').text()).toContain('2 history jobs queued')
+    expect(wrapper.find('[aria-label="Market Map history readiness"]').text()).toContain('Run 42 · running · 1/2')
+    await wrapper.get('[aria-label="Cancel Market Map history refresh"]').trigger('click')
+    await flushPromises()
+    expect(apiPost).toHaveBeenCalledWith('/watchlists/history-refresh-runs/42/cancel', {})
+    expect(wrapper.find('[aria-label="Market Map history readiness"]').text()).toContain('History refresh canceled')
     expect(wrapper.text()).toContain('Locked source')
   })
 

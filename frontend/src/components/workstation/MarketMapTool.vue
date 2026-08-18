@@ -146,7 +146,9 @@
         <span v-if="historyStatus.limited">Bounded to {{ historyStatus.selected_instrument_count }} of {{ historyStatus.available_instrument_count }}</span>
         <span v-if="historyRefreshMessage" role="status">{{ historyRefreshMessage }}</span>
       </template>
+      <span v-if="historyRun" class="market-map-tool__history-run" role="status">Run {{ historyRun.id }} · {{ historyRun.status }}<template v-if="historyRun.progress"> · {{ historyRunProgress }}</template></span>
       <button v-if="sourceId" type="button" aria-label="Refresh Market Map history" :disabled="historyRefreshing || historyLoading" @click="refreshHistory">{{ historyRefreshing ? 'Queueing…' : 'Refresh history' }}</button>
+      <button v-if="historyRun && isHistoryRunActive" type="button" aria-label="Cancel Market Map history refresh" :disabled="historyRunLoading" @click="cancelHistoryRefresh">{{ historyRunLoading ? 'Canceling…' : 'Cancel refresh' }}</button>
       <span v-if="historyRefreshError" class="market-map-tool__status--error" role="alert">{{ historyRefreshError }}</span>
     </div>
     <div v-if="map" class="market-map-tool__source-analysis-actions" aria-label="Market Map source analysis actions">
@@ -215,7 +217,7 @@ import { useUserSettingsStore } from '@/stores/userSettings'
 import { invalidateCodeAssets } from '@/lib/workstation/libraryQueries'
 import { resolveCanonicalSymbols } from '@/lib/instruments'
 import BreadthConditionTreeEditor, { type BreadthConditionNode } from './BreadthConditionTreeEditor.vue'
-import { deleteMarketMapSnapshot, fetchMarketMap, fetchMarketMapSnapshot, fetchMarketMapSnapshots, fetchWatchlistSourceHistoryStatus, layoutMarketMapCells, refreshWatchlistSourceHistory, saveMarketMapSnapshot, type MarketMapLayoutCell, type WatchlistSourceHistoryStatus } from '@/lib/workstation/marketMap'
+import { cancelWatchlistHistoryRefreshRun, deleteMarketMapSnapshot, fetchMarketMap, fetchMarketMapSnapshot, fetchMarketMapSnapshots, fetchWatchlistHistoryRefreshRun, fetchWatchlistSourceHistoryStatus, layoutMarketMapCells, refreshWatchlistSourceHistory, saveMarketMapSnapshot, type MarketMapLayoutCell, type WatchlistHistoryRefreshRun, type WatchlistSourceHistoryStatus } from '@/lib/workstation/marketMap'
 import type { MarketMap, MarketMapAreaMetric, MarketMapCell, MarketMapColorMetric, MarketMapGroupBy, MarketMapNumericAreaField, MarketMapSnapshotSummary, WatchlistSource } from '@/types'
 
 type MarketMapSort = 'area_desc' | 'color_desc' | 'symbol_asc'
@@ -288,6 +290,8 @@ const historyError = ref('')
 const historyRefreshing = ref(false)
 const historyRefreshMessage = ref('')
 const historyRefreshError = ref('')
+const historyRun = ref<WatchlistHistoryRefreshRun | null>(null)
+const historyRunLoading = ref(false)
 let historyPollTimer: ReturnType<typeof setTimeout> | null = null
 const definitionName = ref(String(props.configuration.definition_name ?? ''))
 const definitionSaving = ref(false)
@@ -324,8 +328,29 @@ function clearHistoryPoll() {
 
 function scheduleHistoryPoll() {
   clearHistoryPoll()
-  if (!historyStatus.value || !['pending', 'fetching'].includes(historyStatus.value.overall_status)) return
+  const sourcePending = historyStatus.value && ['pending', 'fetching'].includes(historyStatus.value.overall_status)
+  if (!sourcePending && !isHistoryRunActive.value) return
   historyPollTimer = setTimeout(() => { void loadHistoryStatus(true) }, 1500)
+}
+
+const isHistoryRunActive = computed(() => Boolean(historyRun.value && ['queued', 'running'].includes(historyRun.value.status)))
+const historyRunProgress = computed(() => {
+  if (!historyRun.value) return ''
+  const progress = historyRun.value.progress || {}
+  const done = Number(progress.complete ?? 0) + Number(progress.canceled ?? 0)
+  const total = historyRun.value.selected_instrument_count
+  if (Number.isFinite(total) && total > 0 && Number.isFinite(done)) return `${done}/${total}`
+  return `${historyRun.value.queued_count + historyRun.value.already_queued_count} queued`
+})
+
+async function loadHistoryRun(schedulePoll = false) {
+  if (!historyRun.value) return
+  try {
+    historyRun.value = await fetchWatchlistHistoryRefreshRun(historyRun.value.id)
+    if (schedulePoll) scheduleHistoryPoll()
+  } catch (cause) {
+    historyRefreshError.value = cause instanceof Error ? cause.message : 'Unable to read history refresh progress'
+  }
 }
 
 async function loadHistoryStatus(schedulePoll = false) {
@@ -339,6 +364,7 @@ async function loadHistoryStatus(schedulePoll = false) {
   try {
     const result = await fetchWatchlistSourceHistoryStatus(sourceId.value, ['D1'])
     historyStatus.value = result && !Array.isArray(result) ? result : null
+    await loadHistoryRun()
     if (schedulePoll) scheduleHistoryPoll()
   } catch (cause) {
     historyStatus.value = null
@@ -355,6 +381,7 @@ async function refreshHistory() {
   historyRefreshError.value = ''
   try {
     const result = await refreshWatchlistSourceHistory(sourceId.value, ['D1'])
+    historyRun.value = result.run_id ? await fetchWatchlistHistoryRefreshRun(result.run_id) : null
     const jobs = result.queued + result.already_queued
     historyRefreshMessage.value = result.queue_unavailable
       ? 'History queue unavailable; cached bars were not changed.'
@@ -364,6 +391,22 @@ async function refreshHistory() {
     historyRefreshError.value = cause instanceof Error ? cause.message : 'Unable to queue history refresh'
   } finally {
     historyRefreshing.value = false
+  }
+}
+
+async function cancelHistoryRefresh() {
+  if (!historyRun.value || !isHistoryRunActive.value || historyRunLoading.value) return
+  historyRunLoading.value = true
+  historyRefreshError.value = ''
+  try {
+    historyRun.value = await cancelWatchlistHistoryRefreshRun(historyRun.value.id)
+    historyRefreshMessage.value = 'History refresh canceled; cached bars were retained.'
+    clearHistoryPoll()
+    await loadHistoryStatus()
+  } catch (cause) {
+    historyRefreshError.value = cause instanceof Error ? cause.message : 'Unable to cancel history refresh'
+  } finally {
+    historyRunLoading.value = false
   }
 }
 
@@ -832,6 +875,7 @@ watch([sourceId, explicitSymbols, groupBy, sortBy, period, startDate, endDate, a
 watch(sourceId, () => {
   clearHistoryPoll()
   historyStatus.value = null
+  historyRun.value = null
   historyRefreshMessage.value = ''
   historyError.value = ''
   if (skipNextSourceRun.value) {
