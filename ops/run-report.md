@@ -1,5 +1,22 @@
 # Run Report
 
+## 2026-08-19 — Study Lab promotion retains declared universe and provenance
+
+- Repaired the generic Study Lab Boolean promotion path. It now extracts only canonical member
+  IDs from the completed run's materialized dataset, rejects missing declarations, and creates a
+  `custom` EasyScan instead of silently widening to `all`.
+- Persisted provenance covers source run/code version, reproducibility hash, source universe,
+  membership version, source member IDs, timeframe, and the explicit current-data re-evaluation
+  semantics. The backend independently rejects malformed `study_run_promotion` requests.
+- Validation: Study Lab `23/23`; screener integration `26/26` with Docker-backed elevated rerun;
+  frontend Vitest `894/894`; type-check; production build; Ruff; compileall; `git diff --check`.
+  The initial unprivileged integration attempt failed only at the Docker socket boundary. No
+  acceptance flexibility, provider substitution, or visual threshold/mask change.
+- Implementation `914eab9bc3326e85c84f16c7db7c582a5641b714` is pushed. Exact V25 promotion,
+  provenance, and missing-dataset recovery visuals remain `required_missing`; historical snapshot-
+  preserving promotion, wider output fan-out, provider-backed family completeness, and final V25
+  parity remain open.
+
 ## 2026-08-19 — Large arbitrary Market Maps avoid proportional tile DOM
 
 - Kept the same canonical source-polymorphic heatmap for locked index/ETF/sector/industry

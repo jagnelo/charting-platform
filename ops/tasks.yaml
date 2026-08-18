@@ -1,4 +1,35 @@
 tasks:
+  - id: tc2000-study-promotion-universe-lineage-20260819
+    title: Preserve Study Lab declared universe during Boolean promotion
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Prevent generic Study Lab Boolean results from widening into an all-instrument EasyScan.
+      Derive only canonical IDs from the materialized run dataset, preserve source run/membership
+      provenance, and enforce the boundary at the API as well as the workstation.
+    definition_of_done:
+      - Study Lab promotion uses a deduplicated custom canonical-ID universe
+      - Missing canonical dataset members produce an explicit refusal and no screener request
+      - Persist source run, code version, reproducibility, source universe, membership version, and re-evaluation semantics
+      - Reject study_run_promotion API requests that omit a non-empty custom universe
+      - Record the exact V25 promotion/source-lineage visual as a required_missing board gap
+    validation:
+      - frontend-study-lab-23-of-23
+      - backend-screener-integration-26-of-26
+      - frontend-vitest-894-of-894
+      - frontend-type-check
+      - frontend-build
+      - backend-ruff
+      - backend-compileall
+      - git-diff-check
+    notes:
+      - >-
+        Acceptance flexibility used: None. The promoted scan explicitly re-evaluates current
+        canonical data over fixed declared members; it does not preserve a historical snapshot.
+        Exact V25 promotion/source-lineage visuals, historical snapshot-preserving promotion,
+        broader output fan-out, and provider completeness remain open.
+
   - id: tc2000-large-market-map-canvas-20260819
     title: Keep arbitrary large watchlists usable in Market Map
     status: completed

@@ -1,5 +1,22 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-19 — Study Lab Boolean promotion retains source lineage
+
+The generic Study Lab promotion path now derives a fixed custom universe only from canonical
+members present in the completed run's materialized dataset. It records the source run, code
+version, reproducibility hash, source universe, membership version, source IDs, timeframe, and an
+explicit `current_data_re_evaluation_over_declared_study_members` semantic in the persisted
+EasyScan condition. Missing member IDs are a hard refusal rather than a silent `all`-universe
+fallback; the API enforces the same rule for `study_run_promotion` callers. Existing specialized
+breadth promotion lineage remains intact.
+
+Focused Study Lab coverage is `23/23`; screener integration is `26/26`; frontend Vitest is
+`894/894`; type-check/build, Ruff, compileall, and diff checks pass. This is a functional and
+historical-integrity mapping, not exact visual approval: the composite board has no authoritative
+V25 capture for the promotion/source-lineage affordance or its recovery/error state, so that gap
+remains `required_missing`. Historical snapshot-preserving promotion, broader promotion targets,
+provider-backed population, and final V25 parity remain open. No acceptance flexibility was used.
+
 ## 2026-08-19 — Large arbitrary watchlists render through the shared Market Map canvas path
 
 Market Map remains one source-polymorphic heatmap for every canonical index/ETF, sector/industry,

@@ -1,5 +1,20 @@
 # TC2000 Version 25 composite reference board
 
+## 2026-08-19 — Study Lab promotion/source-lineage state is visually unrepresented
+
+Generic Study Lab Boolean results now promote only to a fixed canonical custom universe and retain
+run, dataset, membership, and reproducibility lineage. Missing canonical members produce an
+explicit refusal instead of an `all`-universe fallback. The composite board has no authoritative
+V25 capture showing the promotion action row, source/membership disclosure, current-data
+re-evaluation warning, or the missing-dataset recovery state.
+
+Gap status: `required_missing` for those exact promotion/source-lineage visuals. Interim oracle:
+Study Lab `23/23`, screener integration `26/26`, full frontend Vitest `894/894`, type-check,
+production build, Ruff, compileall, and diff checks. No screenshot threshold, mask, acceptance
+flexibility, provider substitution, or historical-integrity rule was relaxed. Close this gap with
+a reviewed V25 Study Lab promotion capture and measured interaction/error states; until then it is
+tracked rather than silently treated as visual parity.
+
 ## 2026-08-19 — Large-universe Market Map treatment is visually unrepresented
 
 The shared Market Map now switches arbitrary watchlists with more than 1,500 valid members to a

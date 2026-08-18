@@ -1,5 +1,26 @@
 # Active Handoff
 
+## 2026-08-19 — Study Lab promotion preserves canonical universe lineage
+
+- Generic Study Lab Boolean promotion no longer creates an `all`-universe EasyScan. It extracts
+  deduplicated canonical `instrument_id` values from the completed run's materialized dataset,
+  refuses promotion when none are declared, and sends a `custom` universe with the exact IDs and
+  selected timeframe.
+- The persisted condition now retains source run/code version, reproducibility hash, source
+  universe ID, membership version, source IDs, and explicit
+  `current_data_re_evaluation_over_declared_study_members` semantics. The backend rejects external
+  `study_run_promotion` requests without a non-empty custom universe.
+- Implementation commit `914eab9bc3326e85c84f16c7db7c582a5641b714` is pushed and synchronized.
+  Focused Study Lab coverage is `23/23`; screener integration is `26/26`; full frontend Vitest is
+  `894/894`; type-check/build, Ruff, compileall, and diff checks pass. The unprivileged backend
+  attempt hit only the Docker socket boundary; the unchanged elevated run passed. No acceptance
+  flexibility was used.
+- Board gap: exact V25 promotion/source-lineage action, disclosure, and missing-dataset recovery
+  visuals remain `required_missing` in `docs/tc2000-reference-board.md`. The promoted scan is
+  deliberately current-data re-evaluation over fixed members, not historical snapshot preservation.
+  Continue with broader promotion fan-out, provider-backed family population/history, and exact V25
+  represented-state work.
+
 ## 2026-08-19 — Large arbitrary Market Map rendering is bounded and keyboard-usable
 
 - Market Map remains the single source-polymorphic heatmap for any canonical locked or editable

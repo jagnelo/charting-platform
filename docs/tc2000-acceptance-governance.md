@@ -1,5 +1,25 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-08-19 — Study Lab promotion cannot widen its declared universe
+
+Generic Study Lab Boolean promotion is accepted only when the completed run contains canonical
+member IDs in its materialized dataset. The workstation must create a `custom` EasyScan over the
+deduplicated declared IDs, preserve the source run/code version, reproducibility hash, source
+universe ID, membership version, source IDs, and explicit current-data re-evaluation semantics in
+condition provenance, and retain the selected timeframe. If no canonical IDs are present, the
+workstation must refuse promotion and show a structured recovery message; it must never silently
+use `all` or reconstruct membership from ticker text. The backend applies the same guard to
+external `study_run_promotion` requests.
+
+This is a lineage/safety gate, not a claim that promotion preserves a historical point-in-time
+snapshot: the promoted EasyScan evaluates current canonical data over the fixed declared members,
+and `point_in_time_source_preserved` is explicitly false. Focused Study Lab coverage is `23/23`
+and the screener integration suite is `26/26`; frontend full Vitest is `894/894`; type-check,
+production build, Ruff, compileall, and diff checks pass. No acceptance flexibility was used.
+The board still lacks an authoritative exact V25 promotion/source-lineage capture, and broader
+historical snapshot promotion, output-target fan-out, provider completeness, and exact V25 parity
+remain open.
+
 ## 2026-08-19 — Large-universe Market Map rendering gate
 
 The universal heatmap must not create row-count-proportional Vue tile DOM for large arbitrary

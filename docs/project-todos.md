@@ -1,5 +1,26 @@
 # Project TODO Memory
 
+### 2026-08-19 — Study Lab promotion preserves the declared study universe
+
+- [x] Keep generic Study Lab Boolean promotions source-bounded. The frontend now extracts only
+      canonical `instrument_id` values from the completed run's materialized dataset and refuses
+      to create a scan when the run does not declare any canonical member; it never falls back to
+      `universe_type: all`.
+- [x] Promote with `universe_type: custom`, the exact deduplicated canonical member IDs, the
+      selected timeframe, and explicit provenance containing source run/code version,
+      reproducibility hash, source universe ID, membership version, and source member IDs.
+      Provenance states the honest semantics: the EasyScan re-evaluates current canonical data over
+      the declared study members; it does not preserve the historical point-in-time snapshot.
+- [x] Make the backend enforce the same boundary for external callers: a
+      `study_run_promotion` provenance payload without a custom non-empty universe is rejected with
+      `study_promotion_universe_required`, while legacy non-study screener callers remain
+      compatible. Add focused frontend guard/lineage tests and screener integration coverage.
+- [ ] This closes only the generic Study Lab → EasyScan universe-lineage defect. It does not make
+      current-data promotions historical, add arbitrary output-target fan-out, prove provider-backed
+      family population, or close the exact V25 promotion/source-lineage visual reference gap. The
+      board and parity matrix must continue to show those states as open; no acceptance flexibility,
+      visual threshold, mask, provider substitution, or yfinance dependency was introduced.
+
 ### 2026-08-19 — Large arbitrary Market Maps use bounded canvas rendering
 
 - [x] Keep the universal source-polymorphic Market Map usable for large locked index/ETF
