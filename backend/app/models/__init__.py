@@ -91,6 +91,7 @@ from app.models.strategy import (
 from app.models.synthetic_constituent import SyntheticConstituent
 from app.models.user import User
 from app.models.watchlist import Watchlist, WatchlistItem
+from app.models.watchlist_history import WatchlistHistoryRefreshRun
 from app.models.workstation import (
     InstrumentNote,
     MarketGroup,
@@ -162,6 +163,7 @@ __all__ = [
     "TIMEFRAME_SECONDS",
     "Watchlist",
     "WatchlistItem",
+    "WatchlistHistoryRefreshRun",
     "Workspace",
     "WorkspaceTab",
     "WorkspaceWindow",

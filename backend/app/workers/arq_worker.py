@@ -22,7 +22,10 @@ logger = logging.getLogger(__name__)
 
 
 async def task_bulk_fetch_instrument(
-    ctx: dict, instrument_id: int, timeframes: list[str] | None = None
+    ctx: dict,
+    instrument_id: int,
+    timeframes: list[str] | None = None,
+    run_id: int | None = None,
 ):
     """
     ARQ task: pull maximum available history for one instrument.
@@ -31,7 +34,7 @@ async def task_bulk_fetch_instrument(
     from app.database import AsyncSessionLocal
     from app.models.instrument import Instrument
     from app.models.ohlcv import Timeframe
-    from app.services.bulk_fetch import bulk_fetch_instrument
+    from app.services.bulk_fetch import bulk_fetch_instrument, refresh_cancel_key
 
     async with AsyncSessionLocal() as db:
         instrument = await db.get(Instrument, instrument_id)
@@ -40,7 +43,13 @@ async def task_bulk_fetch_instrument(
             return
 
         tf_list = [Timeframe(tf) for tf in timeframes] if timeframes else None
-        summary = await bulk_fetch_instrument(db, instrument, tf_list, redis=ctx.get("redis"))
+        summary = await bulk_fetch_instrument(
+            db,
+            instrument,
+            tf_list,
+            redis=ctx.get("redis"),
+            cancel_key=refresh_cancel_key(run_id) if run_id is not None else None,
+        )
         logger.info(f"bulk_fetch complete for {instrument.symbol}: {summary}")
         return summary
 

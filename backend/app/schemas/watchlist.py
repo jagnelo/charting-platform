@@ -118,6 +118,7 @@ class WatchlistSourceHistoryRefreshSourceOut(BaseModel):
 
 
 class WatchlistSourceHistoryRefreshSummary(BaseModel):
+    run_id: int | None = None
     source_ids: list[str]
     timeframes: list[str]
     as_of: datetime | None = None
@@ -130,6 +131,31 @@ class WatchlistSourceHistoryRefreshSummary(BaseModel):
     queue_unavailable: bool = False
     sources: list[WatchlistSourceHistoryRefreshSourceOut] = Field(default_factory=list)
     message: str | None = None
+
+
+class WatchlistHistoryRefreshRunOut(BaseModel):
+    """Durable status for a bounded canonical-source history refresh."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    source_ids: list[str]
+    timeframes: list[str]
+    membership_versions: dict = Field(default_factory=dict)
+    as_of: datetime | None = None
+    max_instruments: int
+    available_instrument_count: int = 0
+    selected_instrument_count: int = 0
+    queued_count: int = 0
+    already_queued_count: int = 0
+    status: str
+    cancel_requested: bool = False
+    progress: dict = Field(default_factory=dict)
+    error: str | None = None
+    started_at: datetime | None = None
+    finished_at: datetime | None = None
+    created_at: datetime
+    updated_at: datetime
 
 
 class WatchlistSourceHistoryTimeframeStatus(BaseModel):

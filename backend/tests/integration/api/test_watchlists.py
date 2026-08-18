@@ -1080,7 +1080,7 @@ class TestWatchlistsCrud:
         assert historical.json()["exclusions"][0]["reason"] == "membership_not_known_at_as_of"
 
     def test_explicit_source_history_refresh_uses_the_same_source_contract(
-        self, client, auth_headers, db, watchlist, instrument, monkeypatch
+        self, client, auth_headers, admin_headers, db, watchlist, instrument, monkeypatch
     ):
         from app.models.watchlist import WatchlistItem
 
@@ -1118,10 +1118,17 @@ class TestWatchlistsCrud:
         class FakeRedis:
             def __init__(self):
                 self.calls = []
+                self.cancel_keys = []
 
             async def enqueue_job(self, *args, **kwargs):
                 self.calls.append((args, kwargs))
                 return object()
+
+            async def get(self, _key):
+                return None
+
+            async def set(self, key, _value, **_kwargs):
+                self.cancel_keys.append(key)
 
             async def aclose(self):
                 return None
@@ -1149,6 +1156,7 @@ class TestWatchlistsCrud:
         assert body["available_instrument_count"] == 1
         assert body["selected_instrument_count"] == 1
         assert body["queued"] == 1
+        assert body["run_id"] > 0
         assert body["queue_unavailable"] is False
         assert [source["source_id"] for source in body["sources"]] == [
             f"watchlist:{watchlist.id}",
@@ -1159,7 +1167,31 @@ class TestWatchlistsCrud:
             "task_bulk_fetch_instrument",
             instrument.id,
             ["D1"],
+            body["run_id"],
         )
+
+        status = client.get(
+            f"/api/v1/watchlists/history-refresh-runs/{body['run_id']}",
+            headers=auth_headers,
+        )
+        assert status.status_code == 200, status.text
+        assert status.json()["source_ids"] == body["source_ids"]
+        assert status.json()["status"] == "queued"
+
+        foreign = client.get(
+            f"/api/v1/watchlists/history-refresh-runs/{body['run_id']}",
+            headers=admin_headers,
+        )
+        assert foreign.status_code == 404
+
+        canceled = client.post(
+            f"/api/v1/watchlists/history-refresh-runs/{body['run_id']}/cancel",
+            headers=auth_headers,
+        )
+        assert canceled.status_code == 200, canceled.text
+        assert canceled.json()["status"] == "canceled"
+        assert canceled.json()["cancel_requested"] is True
+        assert redis.cancel_keys
 
     def test_source_history_status_reports_coverage_and_worker_progress(
         self, client, auth_headers, db, watchlist, instrument, instrument_b, ohlcv_bars, monkeypatch

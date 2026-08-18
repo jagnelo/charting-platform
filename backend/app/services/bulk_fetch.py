@@ -61,6 +61,7 @@ INTER_TF_DELAY_SECONDS: float = 1.5
 
 # Redis keys / TTL
 _REDIS_PROGRESS_KEY = "bulk_fetch:progress:{instrument_id}"
+_REDIS_CANCEL_KEY = "watchlist-history:cancel:{run_id}"
 _REDIS_TTL_SECONDS = 86_400  # 24 h
 
 
@@ -73,6 +74,7 @@ async def bulk_fetch_instrument(
     timeframes: list[Timeframe] | None = None,
     adjusted: bool = True,
     redis=None,  # optional arq Redis pool for progress reporting
+    cancel_key: str | None = None,
 ) -> dict[str, Any]:
     """
     Fetch the maximum available history for *instrument* across all timeframes.
@@ -88,6 +90,10 @@ async def bulk_fetch_instrument(
     ticker_sym = instrument.symbol
     summary: dict[str, Any] = {}
 
+    if await _is_cancel_requested(redis, cancel_key):
+        await _publish_progress(redis, instrument.id, "canceled", timeframes, summary)
+        return summary
+
     await _publish_progress(redis, instrument.id, "in_progress", timeframes, summary)
 
     # Track whether any coarser daily+ TF returned data.  If none did, there is
@@ -95,6 +101,10 @@ async def bulk_fetch_instrument(
     any_daily_or_coarser_returned_data = False
 
     for tf in timeframes:
+        if await _is_cancel_requested(redis, cancel_key):
+            await _publish_progress(redis, instrument.id, "canceled", timeframes, summary)
+            logger.info("Bulk fetch canceled for %s", ticker_sym)
+            return summary
         is_intraday = _is_intraday(tf)
 
         # If all daily/weekly/monthly TFs returned nothing, skip intraday ones.
@@ -126,6 +136,11 @@ async def bulk_fetch_instrument(
         await _publish_progress(redis, instrument.id, "in_progress", timeframes, summary)
         await asyncio.sleep(INTER_TF_DELAY_SECONDS)
 
+    if await _is_cancel_requested(redis, cancel_key):
+        await _publish_progress(redis, instrument.id, "canceled", timeframes, summary)
+        logger.info("Bulk fetch canceled for %s", ticker_sym)
+        return summary
+
     await _publish_progress(redis, instrument.id, "complete", timeframes, summary)
     logger.info(f"Bulk fetch complete for {ticker_sym}: {summary}")
     return summary
@@ -145,6 +160,23 @@ async def get_fetch_progress(instrument_id: int, redis) -> dict | None:
     except Exception as e:
         logger.warning(f"Could not read fetch progress from Redis: {e}")
         return None
+
+
+def refresh_cancel_key(run_id: int) -> str:
+    """Return the Redis cancellation marker for a durable refresh run."""
+
+    return _REDIS_CANCEL_KEY.format(run_id=run_id)
+
+
+async def _is_cancel_requested(redis, cancel_key: str | None) -> bool:
+    if redis is None or cancel_key is None:
+        return False
+    try:
+        value = await redis.get(cancel_key)
+        return value not in (None, b"", "", b"0", "0", False)
+    except Exception as exc:  # noqa: BLE001 - cancellation must not break fetches.
+        logger.warning("Could not read history refresh cancellation marker: %s", exc)
+        return False
 
 
 # ── Internal helpers ──────────────────────────────────────────────────────────

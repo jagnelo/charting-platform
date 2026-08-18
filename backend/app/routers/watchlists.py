@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, ConfigDict
@@ -12,8 +12,10 @@ from app.models.instrument import Instrument
 from app.models.screener import ScreenerDefinition
 from app.models.user import User
 from app.models.watchlist import Watchlist, WatchlistItem
+from app.models.watchlist_history import WatchlistHistoryRefreshRun
 from app.schemas.watchlist import (
     WatchlistCreate,
+    WatchlistHistoryRefreshRunOut,
     WatchlistItemCreate,
     WatchlistItemRead,
     WatchlistItemUpdate,
@@ -32,6 +34,46 @@ from app.services.watchlist_history import (
 from app.services.watchlist_sources import list_watchlist_sources, resolve_watchlist_source
 
 router = APIRouter(prefix="/watchlists", tags=["watchlists"])
+
+
+def _refresh_run_output(run: WatchlistHistoryRefreshRun) -> WatchlistHistoryRefreshRunOut:
+    return WatchlistHistoryRefreshRunOut.model_validate(run)
+
+
+async def _refresh_run_progress(run: WatchlistHistoryRefreshRun, redis) -> dict:
+    """Aggregate existing per-instrument Redis progress without provider calls."""
+
+    from app.services.bulk_fetch import get_fetch_progress
+
+    counts = {"pending": 0, "in_progress": 0, "complete": 0, "failed": 0, "canceled": 0}
+    by_instrument: dict[str, dict] = {}
+    for instrument_id in run.instrument_ids or []:
+        progress = await get_fetch_progress(instrument_id, redis)
+        if progress is None:
+            counts["pending"] += 1
+            continue
+        status = str(progress.get("status") or "pending")
+        results = progress.get("results") or {}
+        if status == "canceled":
+            counts["canceled"] += 1
+        elif status == "in_progress":
+            counts["in_progress"] += 1
+        elif status == "complete":
+            if any(isinstance(value, str) and value.startswith("error:") for value in results.values()):
+                counts["failed"] += 1
+            else:
+                counts["complete"] += 1
+        else:
+            counts["pending"] += 1
+        by_instrument[str(instrument_id)] = progress
+
+    progress = {
+        "instrument_count": len(run.instrument_ids or []),
+        **counts,
+        "instruments": by_instrument,
+        "updated_at": datetime.now(UTC).isoformat(),
+    }
+    return progress
 
 
 @router.get("/sources", response_model=list[WatchlistSourceRead])
@@ -175,6 +217,24 @@ async def queue_watchlist_source_history_refresh(
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
+    run = WatchlistHistoryRefreshRun(
+        user_id=current_user.id,
+        source_ids=plan["source_ids"],
+        timeframes=plan["timeframes"],
+        membership_versions={
+            source["source_id"]: source.get("membership_version")
+            for source in plan["sources"]
+        },
+        instrument_ids=plan["instrument_ids"],
+        as_of=plan["as_of"],
+        max_instruments=plan["max_instruments"],
+        available_instrument_count=plan["available_instrument_count"],
+        selected_instrument_count=plan["selected_instrument_count"],
+        progress={"instrument_count": len(plan["instrument_ids"]), "pending": len(plan["instrument_ids"])},
+    )
+    db.add(run)
+    await db.flush()
+
     queued = 0
     already_queued = 0
     try:
@@ -185,6 +245,7 @@ async def queue_watchlist_source_history_refresh(
                     "task_bulk_fetch_instrument",
                     instrument_id,
                     plan["timeframes"],
+                    run.id,
                     _job_id=(
                         f"watchlist-source-history:{instrument_id}:{','.join(plan['timeframes'])}"
                     ),
@@ -193,9 +254,29 @@ async def queue_watchlist_source_history_refresh(
                     already_queued += 1
                 else:
                     queued += 1
+            run.queued_count = queued
+            run.already_queued_count = already_queued
+            run.status = "completed" if not plan["instrument_ids"] else "queued"
+            run.progress = {
+                "instrument_count": len(plan["instrument_ids"]),
+                "pending": len(plan["instrument_ids"]),
+                "queued": queued,
+                "already_queued": already_queued,
+            }
         finally:
             await redis.aclose()
     except Exception as exc:  # noqa: BLE001 - queue outage is explicit to the caller.
+        run.status = "failed"
+        run.error = str(exc)
+        run.queued_count = queued
+        run.already_queued_count = already_queued
+        run.finished_at = datetime.now(UTC)
+        run.progress = {
+            "instrument_count": len(plan["instrument_ids"]),
+            "queued": queued,
+            "already_queued": already_queued,
+        }
+        await db.commit()
         return WatchlistSourceHistoryRefreshSummary(
             **{
                 key: plan[key]
@@ -213,8 +294,11 @@ async def queue_watchlist_source_history_refresh(
             queued=queued,
             already_queued=already_queued,
             queue_unavailable=True,
+            run_id=run.id,
             message=f"History queue unavailable after {queued + already_queued} jobs: {exc}",
         )
+
+    await db.commit()
 
     return WatchlistSourceHistoryRefreshSummary(
         **{
@@ -232,8 +316,107 @@ async def queue_watchlist_source_history_refresh(
         },
         queued=queued,
         already_queued=already_queued,
+        run_id=run.id,
         message=("Selection was bounded by max_instruments." if plan["limited"] else None),
     )
+
+
+async def _get_own_history_refresh_run(
+    db: AsyncSession, user_id: int, run_id: int
+) -> WatchlistHistoryRefreshRun:
+    run = (
+        await db.execute(
+            select(WatchlistHistoryRefreshRun).where(
+                WatchlistHistoryRefreshRun.id == run_id,
+                WatchlistHistoryRefreshRun.user_id == user_id,
+            )
+        )
+    ).scalar_one_or_none()
+    if run is None:
+        raise HTTPException(status_code=404, detail="History refresh run not found")
+    return run
+
+
+@router.get(
+    "/history-refresh-runs/{run_id}",
+    response_model=WatchlistHistoryRefreshRunOut,
+)
+async def get_watchlist_history_refresh_run(
+    run_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Return durable scope plus opportunistic worker progress for a refresh run."""
+
+    run = await _get_own_history_refresh_run(db, current_user.id, run_id)
+    if run.status not in {"completed", "canceled", "failed"}:
+        from arq.connections import RedisSettings, create_pool
+
+        from app.config import settings
+
+        try:
+            redis = await create_pool(RedisSettings.from_dsn(settings.REDIS_URL))
+            try:
+                run.progress = await _refresh_run_progress(run, redis)
+            finally:
+                await redis.aclose()
+        except Exception:
+            # The persisted run remains useful when Redis is unavailable.
+            pass
+
+        progress = run.progress or {}
+        if progress.get("in_progress", 0):
+            run.status = "running"
+            run.started_at = run.started_at or datetime.now(UTC)
+        elif progress.get("failed", 0):
+            run.status = "failed"
+        elif progress.get("complete", 0) + progress.get("canceled", 0) >= len(
+            run.instrument_ids or []
+        ):
+            run.status = "completed"
+            run.finished_at = run.finished_at or datetime.now(UTC)
+        await db.commit()
+
+    return _refresh_run_output(run)
+
+
+@router.post(
+    "/history-refresh-runs/{run_id}/cancel",
+    response_model=WatchlistHistoryRefreshRunOut,
+)
+async def cancel_watchlist_history_refresh_run(
+    run_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Cancel a durable run and signal currently running worker jobs."""
+
+    run = await _get_own_history_refresh_run(db, current_user.id, run_id)
+    if run.status in {"completed", "canceled", "failed"}:
+        raise HTTPException(status_code=409, detail=f"History refresh run is already {run.status}")
+
+    run.cancel_requested = True
+    run.status = "canceled"
+    run.finished_at = datetime.now(UTC)
+    run.progress = {**(run.progress or {}), "status": "canceled", "cancel_requested": True}
+
+    try:
+        from arq.connections import RedisSettings, create_pool
+
+        from app.config import settings
+        from app.services.bulk_fetch import refresh_cancel_key
+
+        redis = await create_pool(RedisSettings.from_dsn(settings.REDIS_URL))
+        try:
+            await redis.set(refresh_cancel_key(run.id), "1", ex=86_400)
+        finally:
+            await redis.aclose()
+    except Exception:
+        # Persisted cancellation is authoritative even if the worker queue is down.
+        pass
+
+    await db.commit()
+    return _refresh_run_output(run)
 
 
 def _item_to_read(item: WatchlistItem, instr: Instrument | None) -> WatchlistItemRead:
