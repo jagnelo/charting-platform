@@ -313,15 +313,18 @@ def _aggregate_series_cells(
             for period in _PERIODS
         }
     latest_timestamp, latest_value = values[-1]
-    current_year = [item for item in values if item[0].year == latest_timestamp.year]
+    prior_year_end = next(
+        (item for item in reversed(values) if item[0].year < latest_timestamp.year),
+        None,
+    )
     cells: dict[str, AnalysisCell] = {}
     for period, offset in _PERIODS.items():
         base: float | None
         if period == "YTD":
-            base = current_year[0][1] if len(current_year) >= 2 else None
+            base = prior_year_end[1] if prior_year_end is not None else None
             code = "insufficient_ytd_history"
             message = (
-                "YTD requires at least two aligned constituent observations in the current year."
+                "YTD requires an aligned observation before the current calendar year."
             )
         else:
             base = values[-offset - 1][1] if offset is not None and len(values) > offset else None
@@ -346,14 +349,20 @@ def _historical_return_series(
     """Calculate non-forward-filled return cells at every observed bar timestamp."""
 
     series: dict[datetime, dict[str, float | None]] = {}
-    first_by_year: dict[int, int] = {}
     for index, bar in enumerate(bars):
-        first_by_year.setdefault(bar.ts.year, index)
         cells: dict[str, float | None] = {}
         for period, offset in _PERIODS.items():
-            base_index = (
-                first_by_year[bar.ts.year] if period == "YTD" else index - (offset + 1)  # type: ignore[operator]
-            )
+            if period == "YTD":
+                base_index = next(
+                    (
+                        candidate
+                        for candidate in range(index - 1, -1, -1)
+                        if bars[candidate].ts.year < bar.ts.year
+                    ),
+                    -1,
+                )
+            else:
+                base_index = index - (offset + 1)  # type: ignore[operator]
             if base_index < 0 or base_index == index:
                 cells[period] = None
                 continue
@@ -1052,22 +1061,22 @@ def _performance_cells(bars: list[OHLCVBar], instrument_id: int) -> dict[str, An
         )
         return {period: _cell(None, None, warning) for period in _PERIODS}
     latest = bars[-1]
-    current_year_bars = [bar for bar in bars if bar.ts.year == latest.ts.year]
+    prior_year_end = next((bar for bar in reversed(bars) if bar.ts.year < latest.ts.year), None)
     cells: dict[str, AnalysisCell] = {}
     for period, offset in _PERIODS.items():
         if period == "YTD":
-            if len(current_year_bars) < 2 or current_year_bars[0].close == 0:
+            if prior_year_end is None or prior_year_end.close == 0:
                 cells[period] = _cell(
                     None,
                     latest,
                     AnalysisWarning(
                         code="insufficient_ytd_history",
-                        message="YTD requires at least two non-zero bars in the current calendar year.",
+                        message="YTD requires an aligned observation before the current calendar year.",
                         instrument_id=instrument_id,
                     ),
                 )
             else:
-                cells[period] = _cell(float(latest.close / current_year_bars[0].close - 1), latest)
+                cells[period] = _cell(float(latest.close / prior_year_end.close - 1), latest)
             continue
         assert offset is not None
         if len(bars) <= offset:

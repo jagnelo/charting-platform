@@ -15,6 +15,7 @@ from app.routers.analysis import (
     _group_members_at,
     _group_membership_version,
     _group_provenance,
+    _historical_return_series,
     _is_known_at,
     _mean,
     _performance_cells,
@@ -107,7 +108,7 @@ def test_calendar_year_cells_are_non_forward_filled_and_observed_at_year_end():
     assert cells["2026"].value == 0.1
 
 
-def test_ytd_uses_current_calendar_year_start_not_252_bar_offset():
+def test_ytd_uses_prior_year_end_not_first_current_year_bar():
     bars = [
         _bar(7, 2025, 12, "100"),
         _bar(7, 2026, 1, "200"),
@@ -116,7 +117,7 @@ def test_ytd_uses_current_calendar_year_start_not_252_bar_offset():
 
     cells = _performance_cells(bars, instrument_id=7)
 
-    assert cells["YTD"].value == 0.1
+    assert cells["YTD"].value == pytest.approx(1.2)
     assert cells["YTD"].observation_time == datetime(2026, 2, 2, tzinfo=UTC)
 
 
@@ -288,13 +289,27 @@ def test_industry_aggregate_helpers_return_complete_periods_and_transparent_tech
     performance = _aggregate_series_cells(values, instrument_id=None)
     assert set(performance) == {"1D", "1W", "1M", "3M", "6M", "YTD", "1Y"}
     assert performance["1D"].value == pytest.approx(102 / 101 - 1)
-    assert performance["YTD"].value == pytest.approx(102 / 101 - 1)
+    assert performance["YTD"].value == pytest.approx(0.02)
     assert performance["1W"].warning is not None
     assert performance["1W"].warning.instrument_id is None
 
     technical = _technical_cells_for_series(values, instrument_id=None)
     assert technical["rsi14"].warning is not None
     assert technical["rsi14"].warning.instrument_id is None
+
+
+def test_historical_ytd_uses_prior_year_end_at_each_observed_timestamp():
+    bars = [
+        _bar(7, 2025, 12, "100"),
+        _bar(7, 2026, 1, "110"),
+        _bar(7, 2026, 2, "120"),
+    ]
+
+    history = _historical_return_series(bars)
+
+    assert history[bars[0].ts]["YTD"] is None
+    assert history[bars[1].ts]["YTD"] == pytest.approx(0.1)
+    assert history[bars[2].ts]["YTD"] == pytest.approx(0.2)
 
 
 def test_market_gauge_normalizes_python_manifest_exclusion_lists():
