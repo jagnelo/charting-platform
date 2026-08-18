@@ -24,8 +24,9 @@
   bars, historical composition/rebalance continuity, durable run identity/cancellation,
   entitlement/provider-quality closure, all-root acceptance, and exact Version 25
   maintenance/progress visuals.
-- Next context: update parity/acceptance/ops records, commit and push the separate operational
-  checkpoint, then continue provider-backed family population/continuity.
+- Documentation/acceptance/ops checkpoint `9adbba766f7f5c886f60ea377d71f340db18593f` is pushed
+  and synchronized. Context closure is complete; next context is provider-backed family
+  population/continuity.
 
 ## 2026-08-19 — Source-level heatmap history readiness and progress
 
