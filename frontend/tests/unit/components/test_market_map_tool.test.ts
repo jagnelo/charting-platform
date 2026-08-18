@@ -53,6 +53,51 @@ describe('MarketMapTool', () => {
     expect(wrapper.find('[aria-label="Market Map universe"]').element.value).toBe('market-group:sp500')
   })
 
+  it('groups index, ETF, and editable sources while using one locked-source map contract', async () => {
+    const previousSources = sourceState.sources
+    sourceState.sources = [
+      ...previousSources,
+      {
+        ...previousSources[0],
+        source_id: 'benchmark-family:sp500:cap_weight',
+        source_kind: 'index_membership',
+        name: 'S&P 500 — Cap weight constituents',
+        member_count: 500,
+        provenance: { availability: 'available', membership_semantics: 'etf_proxy_holdings' },
+      },
+      {
+        ...previousSources[0],
+        source_id: 'etf-holdings:SPY',
+        source_kind: 'etf_holdings',
+        name: 'SPY holdings',
+        member_count: 500,
+        provenance: { availability: 'available', membership_semantics: 'etf_proxy_holdings' },
+      },
+      {
+        ...previousSources[0],
+        source_id: 'watchlist:7',
+        source_kind: 'personal',
+        name: 'My candidates',
+        locked: false,
+        member_count: 12,
+        provenance: { availability: 'available' },
+      },
+    ]
+    const wrapper = mount(MarketMapTool, { props: { configuration: { source_id: 'benchmark-family:sp500:cap_weight' } } })
+    await flushPromises()
+
+    const universe = wrapper.get('[aria-label="Market Map universe"]')
+    expect(universe.find('optgroup[label="Index and managed universes"] option[value="benchmark-family:sp500:cap_weight"]').exists()).toBe(true)
+    expect(universe.find('optgroup[label="ETF holdings"] option[value="etf-holdings:SPY"]').exists()).toBe(true)
+    expect(universe.find('optgroup[label="Personal watchlists"] option[value="watchlist:7"]').exists()).toBe(true)
+    expect(wrapper.find('.market-map-tool__source-kind').text()).toContain('Index and managed universes · 500 members')
+    expect(apiPost).toHaveBeenCalledWith('/analysis/market-map', expect.objectContaining({ source_id: 'benchmark-family:sp500:cap_weight' }))
+    expect(wrapper.text()).toContain('Locked source')
+
+    wrapper.unmount()
+    sourceState.sources = previousSources
+  })
+
   it('shows source history readiness and queues an explicit refresh without changing membership', async () => {
     const historyStatus = {
       source_id: 'market-group:sp500',

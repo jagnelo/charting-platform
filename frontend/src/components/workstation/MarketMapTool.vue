@@ -5,9 +5,11 @@
         <select v-model="sourceId" aria-label="Market Map universe" :disabled="loadingSources" @change="explicitSymbols = ''">
           <option value="">Select a universe</option>
           <option v-if="sourceId.startsWith('explicit:')" :value="sourceId">Explicit symbols · Locked</option>
-          <option v-for="source in sources" :key="source.source_id" :value="source.source_id" :disabled="!isSourceSelectable(source)">
-            {{ source.pinned ? '★ ' : '' }}{{ source.name }}{{ source.locked ? ' · Locked' : '' }}{{ isSourceSelectable(source) ? '' : ' · Unavailable' }}
-          </option>
+          <optgroup v-for="group in sourceGroups" :key="group.key" :label="group.label">
+            <option v-for="source in group.sources" :key="source.source_id" :value="source.source_id" :disabled="!isSourceSelectable(source)">
+              {{ source.pinned ? '★ ' : '' }}{{ source.name }}{{ source.locked ? ' · Locked' : '' }}{{ isSourceSelectable(source) ? '' : ' · Unavailable' }}
+            </option>
+          </optgroup>
         </select>
       </label>
       <label>Explicit symbols
@@ -21,6 +23,7 @@
         <span v-if="publicationError" class="market-map-tool__status--error" role="alert">{{ publicationError }}</span>
       </template>
       <div v-if="activeSource" class="market-map-tool__source-actions" aria-label="Market Map source preferences">
+        <span class="market-map-tool__source-kind">{{ sourceKindLabel(activeSource.source_kind) }} · {{ activeSource.member_count ?? '—' }} members</span>
         <button v-if="activeSource.can_follow" type="button" :aria-pressed="sourceFollowed" :aria-label="sourceFollowed ? `Unfollow ${activeSource.name}` : `Follow ${activeSource.name}`" @click="toggleSourceFollow">{{ sourceFollowed ? 'Following' : 'Follow' }}</button>
         <button v-if="activeSource.can_clone" type="button" :aria-pressed="sourcePinned" :aria-label="sourcePinned ? `Unpin ${activeSource.name}` : `Pin ${activeSource.name}`" @click="toggleSourcePin">{{ sourcePinned ? 'Pinned' : 'Pin' }}</button>
       </div>
@@ -242,9 +245,10 @@ import { invalidateCodeAssets } from '@/lib/workstation/libraryQueries'
 import { resolveCanonicalSymbols } from '@/lib/instruments'
 import BreadthConditionTreeEditor, { type BreadthConditionNode } from './BreadthConditionTreeEditor.vue'
 import { cancelWatchlistHistoryRefreshRun, deleteMarketMapSnapshot, fetchMarketMap, fetchMarketMapSnapshot, fetchMarketMapSnapshots, fetchWatchlistHistoryRefreshRun, fetchWatchlistSourceHistoryStatus, layoutMarketMapCells, refreshWatchlistSourceHistory, saveMarketMapSnapshot, type MarketMapLayoutCell, type WatchlistHistoryRefreshRun, type WatchlistSourceHistoryStatus } from '@/lib/workstation/marketMap'
-import type { MarketMap, MarketMapAreaMetric, MarketMapCell, MarketMapColorMetric, MarketMapGroupBy, MarketMapNumericAreaField, MarketMapSnapshotSummary, Timeframe, WatchlistSource } from '@/types'
+import type { MarketMap, MarketMapAreaMetric, MarketMapCell, MarketMapColorMetric, MarketMapGroupBy, MarketMapNumericAreaField, MarketMapSnapshotSummary, Timeframe, WatchlistSource, WatchlistSourceKind } from '@/types'
 
 type MarketMapSort = 'area_desc' | 'color_desc' | 'symbol_asc'
+type MarketMapSource = WatchlistSource & { pinned: boolean }
 
 const props = withDefaults(defineProps<{ configuration?: Record<string, unknown> }>(), { configuration: () => ({}) })
 const emit = defineEmits<{
@@ -258,6 +262,18 @@ const queryClient = useQueryClient()
 const sources = computed(() => [...watchlistStore.watchlistSources]
   .map(source => ({ ...source, pinned: userSettingsStore.pinnedSourceIds.includes(source.source_id) }))
   .sort((left, right) => Number(right.pinned) - Number(left.pinned) || left.name.localeCompare(right.name)))
+const sourceGroupOrder: WatchlistSourceKind[] = ['index_membership', 'etf_holdings', 'market_group', 'personal', 'screener_managed', 'combo', 'explicit']
+const sourceGroups = computed(() => {
+  const grouped = new Map<WatchlistSourceKind, MarketMapSource[]>()
+  for (const source of sources.value) {
+    const bucket = grouped.get(source.source_kind) ?? []
+    bucket.push(source)
+    grouped.set(source.source_kind, bucket)
+  }
+  return sourceGroupOrder
+    .filter(key => grouped.has(key))
+    .map(key => ({ key, label: sourceKindLabel(key), sources: grouped.get(key) ?? [] }))
+})
 const sourceId = ref(String(props.configuration.source_id ?? ''))
 const explicitSymbols = ref(String(props.configuration.explicit_symbols ?? ''))
 const groupBy = ref<MarketMapGroupBy>((props.configuration.group_by as MarketMapGroupBy) ?? 'sector_industry')
@@ -341,6 +357,18 @@ function isSourceSelectable(source: WatchlistSource): boolean {
     && availability !== 'profile_not_loaded'
     && availability !== 'holdings_snapshot_not_loaded'
     && availability !== 'membership_not_loaded'
+}
+
+function sourceKindLabel(kind: WatchlistSourceKind): string {
+  return ({
+    index_membership: 'Index and managed universes',
+    etf_holdings: 'ETF holdings',
+    market_group: 'Market groups',
+    personal: 'Personal watchlists',
+    screener_managed: 'Managed scans',
+    combo: 'Combo watchlists',
+    explicit: 'Explicit selections',
+  } satisfies Record<WatchlistSourceKind, string>)[kind]
 }
 
 function toggleSourceFollow() {
@@ -1055,6 +1083,7 @@ onUnmounted(() => {
 .market-map-tool__explicit-hint { align-self: end; max-width: 260px; padding-bottom: 6px; color: #f7d87b; font-size: 10px; }
 .market-map-tool select, .market-map-tool input, .market-map-tool button { border: 1px solid #3c4858; background: #151c25; color: #d4d9e2; border-radius: 2px; padding: 5px 7px; font: inherit; }
 .market-map-tool__source-actions { display: flex; gap: 4px; align-items: end; padding-bottom: 0; }
+.market-map-tool__source-kind { margin-right: auto; color: #80909d; font-size: 10px; }
 .market-map-tool__source-actions button { cursor: pointer; min-width: 58px; }
 .market-map-tool__source-actions button[aria-pressed="true"] { border-color: #f7d87b; color: #f7d87b; }
 .market-map-tool__run { background: #2d8cff !important; border-color: #2d8cff !important; color: white !important; cursor: pointer; }
