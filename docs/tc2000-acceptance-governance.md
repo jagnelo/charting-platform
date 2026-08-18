@@ -1,5 +1,22 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-08-19 — Continuity cannot be inferred from snapshot availability
+
+The family-history acceptance gate now requires separate evidence for snapshot availability and
+observed disclosure continuity. The coverage endpoint must collapse same-date revisions, honour
+the requested `as_of`, report exact intervals wider than the declared 45-day diagnostic policy,
+and identify a response window that reached its snapshot limit. `gapped` means only that returned
+composition dates are widely spaced; it is not a claim that an issuer owes a disclosure on every
+missing date. `coverage` remains the fraction of mapped roles with at least one snapshot and must
+not be reinterpreted as a continuity score.
+
+The workstation must show these states and preserve the warning/provenance lineage. Older clients
+may omit the optional fields, but new clients must not hide them. Focused logic is `6/6`, the
+Docker-backed endpoint regression is `1/1`, backend units are `1229/1229`, frontend Vitest is
+`889/889`, and type/build, Ruff, compileall, and diff checks pass. No acceptance flexibility was
+used. This closes a visibility gap only; provider-backed family population, historical
+reconciliation, all-root acceptance, and exact V25 maintenance/progress visuals remain open.
+
 ## 2026-08-19 — Durable refresh-run and arbitrary-watchlist heatmap gate
 
 The heatmap acceptance oracle remains source-polymorphic: an index/index-ETF constituent set is a

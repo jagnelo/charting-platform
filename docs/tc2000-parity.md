@@ -1,5 +1,22 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-19 — Family coverage distinguishes observed continuity from mere availability
+
+The benchmark-family coverage surface now reports continuity independently from role coverage.
+Same-composition-date revisions are collapsed, point-in-time filtering remains in force, and each
+role reports `no_snapshot`, `single_snapshot`, `observed_continuity`, or `gapped`. Gaps contain the
+exact observed composition-date endpoints and interval length; a capped response window is also
+explicit. The workstation family strip shows the state without making a missing disclosure look
+like a complete historical series.
+
+The response provenance declares `observed_snapshot_intervals_gt_45_days` and
+`diagnostic_of_returned_snapshot_dates_only`. This is intentionally a diagnostic threshold rather
+than an asserted issuer rebalance cadence, so the gate does not claim official historical
+completeness. Pure continuity tests pass `6/6`, the Docker-backed point-in-time coverage regression
+passes `1/1`, full backend units pass `1229/1229`, frontend Vitest passes `889/889`, and
+type-check/build, Ruff, compileall, and diff checks pass. Provider-backed population, complete
+reconciliation, all-root history, and exact Version 25 maintenance/progress geometry remain open.
+
 ## 2026-08-19 — Arbitrary heatmap watchlists have durable hydration runs
 
 The universal heatmap contract treats an index or index-ETF constituent universe as a locked

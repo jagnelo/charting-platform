@@ -1,5 +1,29 @@
 # Project TODO Memory
 
+### 2026-08-19 — Observed continuity diagnostics for benchmark-family holdings
+
+- [x] Add a provider-neutral continuity assessment to
+      `GET /api/v1/analysis/benchmark-families/{family_key}/coverage`. It collapses same-date
+      revisions, evaluates only composition dates returned under the requested point-in-time and
+      snapshot limit, and reports `no_snapshot`, `single_snapshot`, `observed_continuity`, or
+      `gapped` without inferring an official rebalance schedule.
+- [x] Return exact over-threshold intervals, maximum interval, gap count, and whether the returned
+      snapshot window reached its limit. Add response provenance naming the 45-day observed
+      interval policy and a role/response exclusion warning for gaps; no provider is queried and
+      coverage percentages remain snapshot-availability percentages, not continuity scores.
+- [x] Surface the continuity state in the workstation family coverage strip and preserve backward
+      compatibility for older responses that do not yet carry the optional fields.
+- [x] Add pure diagnostic, authenticated point-in-time integration, and frontend store coverage.
+      Focused backend logic passes `6/6`; the Docker-backed endpoint regression passes `1/1`; full
+      backend units pass `1229/1229`; frontend Vitest passes `889/889`; type-check/build, Ruff,
+      compileall, and diff checks pass. Implementation commit `85200a5f` is pushed and
+      synchronized. No acceptance flexibility, visual threshold/mask, provider substitution, or
+      interactive fan-out was introduced.
+- [ ] This is an honesty/diagnostic gate, not proof of complete provider-backed family history.
+      The observed 45-day policy is deliberately not an issuer cadence; snapshot-window truncation,
+      missing disclosures, incomplete rebalance reconciliation, provider entitlements, all-root
+      population, and exact Version 25 maintenance/progress visuals remain open.
+
 ### 2026-08-19 — Durable history-refresh runs for arbitrary heatmap watchlists
 
 - [x] Persist each authenticated `POST /api/v1/watchlists/sources/history-refresh` request as a

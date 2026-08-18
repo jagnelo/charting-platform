@@ -1,5 +1,31 @@
 # Active Handoff
 
+## 2026-08-19 — Observed benchmark-family continuity diagnostics
+
+- Added the pure `benchmark_family_coverage` diagnostic service and extended
+  `GET /api/v1/analysis/benchmark-families/{family_key}/coverage` with per-role continuity state,
+  exact over-threshold intervals, gap counts/max interval, and snapshot-window-limit evidence.
+  Same-date holdings revisions are collapsed; the existing `as_of` filter remains authoritative.
+- The API provenance declares `observed_snapshot_intervals_gt_45_days` and
+  `diagnostic_of_returned_snapshot_dates_only`; a gapped result is explicitly not official
+  rebalance-completeness proof. The workstation family coverage strip shows the state and falls
+  back safely for older responses.
+- Owned implementation paths: `backend/app/services/benchmark_family_coverage.py`, analysis
+  schema/router, integration/unit coverage, `frontend/src/stores/workspace.ts`, and the family
+  coverage section of `WorkstationToolContent.vue`.
+- Validation: pure logic `6/6`; Docker-backed coverage point-in-time regression `1/1`; full
+  backend units `1229/1229`; frontend Vitest `889/889`; frontend type-check/build; Ruff,
+  compileall, and diff checks. The first unprivileged integration attempt hit the expected Docker
+  socket boundary; the unchanged elevated run passed. No acceptance flexibility, visual
+  threshold/mask, provider substitution, or interactive fan-out was introduced.
+- Implementation commit `85200a5fafaeca0f7a874433cbefee67fc195d1d` is pushed and synchronized;
+  worktree is clean and `HEAD` equals `origin/feat/tc2000-frontend-rework`.
+- Remaining: provider-backed family population, canonical member bars, historical composition and
+  rebalance reconciliation, entitlement/provider-quality closure, all-root acceptance, and exact
+  Version 25 maintenance/progress visuals. The 45-day policy is intentionally only an observed
+  diagnostic and is tracked as such. Next context: continue provider-backed family population and
+  continuity/reconciliation rather than adding another selector or map abstraction.
+
 ## 2026-08-19 — Durable arbitrary-source history refresh runs
 
 - Added `WatchlistHistoryRefreshRun` plus migration `fb1c2d3e4f5a`. The generic source history

@@ -1,5 +1,26 @@
 # Run Report
 
+## 2026-08-19 — Benchmark-family observed continuity diagnostics
+
+- Implemented role-level continuity diagnostics for the existing benchmark-family coverage API.
+  Distinct composition dates are assessed after same-date revision collapse and current
+  point-in-time filtering; no provider call or interactive fan-out was added.
+- Added `no_snapshot`, `single_snapshot`, `observed_continuity`, and `gapped` states, exact
+  over-45-day intervals, maximum interval/gap count, capped-window evidence, and explicit response
+  provenance. The workstation now displays the diagnostic state while keeping snapshot
+  availability separate from continuity.
+- Evidence: backend pure diagnostic `6/6`; Docker-backed authenticated coverage `1/1`; backend
+  units `1229/1229`; frontend Vitest `889/889`; type-check/build; Ruff, compileall, YAML/JSON
+  parsing, and `git diff --check` pass. The initial integration socket denial was retried unchanged
+  through the approved elevated boundary and passed.
+- Fix-first note: the initial continuity implementation used strict zip for adjacent date slices;
+  it was corrected before commit because the slices intentionally differ by one element. The final
+  tests prove same-date collapse, gapped intervals, missing/single states, and invalid policy
+  rejection. No acceptance flexibility was used.
+- Implementation commit `85200a5fafaeca0f7a874433cbefee67fc195d1d` is pushed and synchronized.
+  Provider-backed population, official historical completeness/reconciliation, entitlements,
+  all-root acceptance, and exact V25 maintenance/progress visuals remain open.
+
 ## 2026-08-19 — Durable arbitrary-source history refresh runs
 
 - The universal TC2000-style heatmap source contract now has durable maintenance identity. Every

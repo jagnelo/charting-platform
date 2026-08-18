@@ -1,4 +1,36 @@
 tasks:
+  - id: tc2000-family-continuity-diagnostics-20260819
+    title: Distinguish observed family-history continuity from snapshot availability
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Make benchmark-family holdings coverage honest about historical spacing without adding
+      provider fan-out or implying that a local snapshot list is an official rebalance record.
+    definition_of_done:
+      - Collapse same-composition-date revisions before calculating observed intervals
+      - Honour as_of and the bounded response limit, and expose when the returned window is capped
+      - Return no_snapshot, single_snapshot, observed_continuity, or gapped per mapped role
+      - Return exact over-threshold intervals, gap counts, maximum interval, and provenance naming the policy
+      - Surface the role state in the workstation family coverage strip with legacy-response fallback
+      - Add pure, authenticated point-in-time, and frontend contract regressions
+      - Focused logic 6/6, Docker-backed coverage 1/1, backend units 1229/1229, frontend Vitest 889/889, type/build, Ruff, compileall, and diff checks pass
+      - Keep provider-backed population, official cadence/completeness, entitlements, all-root acceptance, and exact V25 maintenance visuals open
+    validation:
+      - backend-benchmark-family-continuity-6-of-6
+      - backend-family-coverage-integration-1-of-1
+      - backend-unit-suite-1229-of-1229
+      - frontend-vitest-889-of-889
+      - frontend-type-check-build
+      - backend-ruff
+      - backend-compileall
+      - git-diff-check
+    notes:
+      - >-
+        No acceptance flexibility was used. The 45-day threshold is an observed diagnostic policy,
+        not a claimed issuer rebalance cadence; gapped output cannot be read as proof of missing
+        official files, and snapshot availability coverage remains a separate metric.
+
   - id: tc2000-durable-source-history-runs-20260819
     title: Persist and cancel arbitrary canonical watchlist history refresh runs
     status: completed
