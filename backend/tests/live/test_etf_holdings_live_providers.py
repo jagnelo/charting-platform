@@ -1347,6 +1347,13 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
             100,
         ),
         (
+            "invesco",
+            "QQQ",
+            None,
+            {},
+            100,
+        ),
+        (
             "janus_henderson",
             "JAAA",
             None,

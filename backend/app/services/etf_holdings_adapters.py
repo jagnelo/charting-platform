@@ -3122,6 +3122,7 @@ KNOWN_ETF_PROVIDER_METADATA_BY_SYMBOL: dict[str, dict[str, Any]] = {
     "QQQ": {
         "issuer": "Invesco",
         "provider_aliases": {
+            "holdings_adapter": "invesco",
             "sec_cik": "0001067839",
             "sec_series_id": "S000101292",
             "sec_class_id": "C000271435",
@@ -3156,6 +3157,7 @@ KNOWN_ETF_PROVIDER_METADATA_BY_SYMBOL: dict[str, dict[str, Any]] = {
     "EEM": {
         "issuer": "iShares",
         "provider_aliases": {
+            "holdings_adapter": "ishares",
             "issuer_product_id": "239637",
             "sec_cik": "0000930667",
             "sec_series_id": "S000004266",
@@ -3166,6 +3168,7 @@ KNOWN_ETF_PROVIDER_METADATA_BY_SYMBOL: dict[str, dict[str, Any]] = {
     "IVV": {
         "issuer": "iShares",
         "provider_aliases": {
+            "holdings_adapter": "ishares",
             "issuer_product_id": "239726",
             "sec_cik": "0001100663",
             "sec_series_id": "S000004310",
@@ -3176,6 +3179,7 @@ KNOWN_ETF_PROVIDER_METADATA_BY_SYMBOL: dict[str, dict[str, Any]] = {
     "IWM": {
         "issuer": "iShares",
         "provider_aliases": {
+            "holdings_adapter": "ishares",
             "issuer_product_id": "239710",
             "sec_cik": "0001100663",
             "sec_series_id": "S000004344",
@@ -3288,6 +3292,7 @@ def known_etf_route_metadata(symbol: str) -> dict[str, Any]:
         return {
             "issuer": "iShares",
             "provider_aliases": {
+                "holdings_adapter": "ishares",
                 "issuer_product_id": ishares_product_id,
             },
         }

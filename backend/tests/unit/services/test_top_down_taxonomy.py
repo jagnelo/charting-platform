@@ -140,6 +140,32 @@ def test_benchmark_family_style_proxies_have_explicit_free_source_routes():
     )
 
 
+def test_every_configured_family_role_has_explicit_route_or_is_unavailable():
+    """Keep the family matrix identity-first instead of relying on issuer inference."""
+
+    mapped_roles = 0
+    unavailable_roles = 0
+    for family in benchmark_family_registry():
+        for role in ("cap_weight", "equal_weight", "value", "growth"):
+            mapping = family[role]
+            symbol = mapping.get("symbol")
+            if not symbol:
+                unavailable_roles += 1
+                assert mapping["verification_state"] == "not_verified"
+                continue
+
+            mapped_roles += 1
+            metadata = known_etf_route_metadata(symbol)
+            aliases = metadata["provider_aliases"]
+            adapter_key = aliases.get("holdings_adapter")
+            assert metadata["issuer"]
+            assert adapter_key, (family["logical_key"], role, symbol, metadata)
+            assert get_holdings_adapter(adapter_key) is not None
+
+    assert mapped_roles == 20
+    assert unavailable_roles == 12
+
+
 def test_canonical_industry_label_accepts_only_reviewed_provider_aliases():
     assert canonical_industry_label("Semiconductors") == "Semiconductors"
     assert canonical_industry_label("Semiconductors & Related Devices") == "Semiconductors"
