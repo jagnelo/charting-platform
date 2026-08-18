@@ -14,7 +14,7 @@ from app.models.etf_holdings import ETFHolding, ETFHoldingsSnapshot, ETFProfile
 from app.models.instrument import Instrument
 from app.models.user import User
 from app.models.watchlist import Watchlist
-from app.models.workstation import MarketGroup
+from app.models.workstation import MarketGroup, WorkspaceLibraryItem
 from app.schemas.watchlist import WatchlistSourceRead
 
 
@@ -105,6 +105,93 @@ def _etf_descriptor(
     )
 
 
+def _combo_descriptor(item: WorkspaceLibraryItem, member_count: int) -> WatchlistSourceRead:
+    """Describe a user-owned derived combo as a read-only membership source.
+
+    The combo definition remains editable through the library editor, but the
+    resolved membership is not a mutable watchlist itself.  Treating it as a
+    locked derived source keeps maps, breadth, scans, and linked charts on one
+    contract while preventing accidental per-member edits.
+    """
+
+    return WatchlistSourceRead(
+        source_id=f"combo:{item.stable_key}",
+        source_kind="combo",
+        name=item.name,
+        description="User-owned derived watchlist (union/intersection/exclusion)",
+        locked=True,
+        can_edit_membership=False,
+        membership_version=_version("combo", item.stable_key, item.updated_at),
+        member_count=member_count,
+        source="user_combo_definition",
+        provenance={
+            "library_item_id": item.id,
+            "library_item_version": item.version,
+            "membership_semantics": "derived_combo_watchlists",
+        },
+        known_at=item.updated_at,
+    )
+
+
+def _combo_ids(payload: dict, key: str) -> list[int]:
+    values = payload.get(key, []) if isinstance(payload, dict) else []
+    return list(dict.fromkeys(value for value in values if isinstance(value, int) and value > 0))
+
+
+def _combo_member_ids(watchlists: dict[int, Watchlist], payload: dict) -> list[int]:
+    """Apply the same union/intersection/exclusion semantics as the UI combo list."""
+
+    union_ids = _combo_ids(payload, "union_watchlist_ids")
+    intersection_ids = _combo_ids(payload, "intersection_watchlist_ids")
+    exclude_ids = _combo_ids(payload, "exclude_watchlist_ids")
+
+    union: set[int]
+    if union_ids:
+        union = {
+            item.instrument_id
+            for watchlist_id in union_ids
+            for item in (watchlists.get(watchlist_id).items if watchlists.get(watchlist_id) else [])
+        }
+    elif intersection_ids:
+        first = watchlists.get(intersection_ids[0])
+        union = {item.instrument_id for item in first.items} if first else set()
+    else:
+        union = set()
+
+    intersection: set[int] | None = None
+    for watchlist_id in intersection_ids:
+        current = {
+            item.instrument_id
+            for item in (watchlists.get(watchlist_id).items if watchlists.get(watchlist_id) else [])
+        }
+        intersection = current if intersection is None else intersection & current
+
+    excluded = {
+        item.instrument_id
+        for watchlist_id in exclude_ids
+        for item in (watchlists.get(watchlist_id).items if watchlists.get(watchlist_id) else [])
+    }
+    selected = union - excluded
+    if intersection is not None:
+        selected &= intersection
+
+    # Preserve the first contributing watchlist's position; instrument IDs are
+    # the deterministic tie-break for members appearing at the same position.
+    ordered: list[tuple[int, int, int]] = []
+    for instrument_id in selected:
+        candidates = [
+            (watchlist.position, item.position, watchlist_id)
+            for watchlist_id in [*union_ids, *intersection_ids]
+            if (watchlist := watchlists.get(watchlist_id)) is not None
+            for item in watchlist.items
+            if item.instrument_id == instrument_id
+        ]
+        position, item_position, _ = min(candidates) if candidates else (0, 0, 0)
+        ordered.append((position, item_position, instrument_id))
+    ordered.sort()
+    return [instrument_id for _, _, instrument_id in ordered]
+
+
 async def list_watchlist_sources(db: AsyncSession, user: User) -> list[WatchlistSourceRead]:
     """List source descriptors without provider calls or member-level fan-out."""
 
@@ -170,10 +257,31 @@ async def list_watchlist_sources(db: AsyncSession, user: User) -> list[Watchlist
     )
     latest = {snapshot.etf_profile_id: snapshot for snapshot in snapshots}
 
+    combo_items = (
+        (
+            await db.execute(
+                select(WorkspaceLibraryItem).where(
+                    WorkspaceLibraryItem.user_id == user.id,
+                    WorkspaceLibraryItem.kind == "combo_list",
+                )
+            )
+        )
+        .scalars()
+        .all()
+    )
+    user_watchlists = {
+        watchlist.id: watchlist
+        for watchlist in watchlists
+    }
+
     return [
         *(_watchlist_descriptor(item) for item in watchlists),
         *(_market_group_descriptor(item) for item in groups),
         *(_etf_descriptor(profile, instrument, latest.get(profile.id)) for profile, instrument in profiles),
+        *(
+            _combo_descriptor(item, len(_combo_member_ids(user_watchlists, item.payload or {})))
+            for item in combo_items
+        ),
     ]
 
 
@@ -220,6 +328,85 @@ async def resolve_watchlist_source(
                 for item in watchlist.items
                 if as_of is not None and item.added_at > as_of
             ),
+        )
+
+    if source_id.startswith("combo:"):
+        stable_key = source_id.split(":", 1)[1]
+        combo = (
+            await db.execute(
+                select(WorkspaceLibraryItem).where(
+                    WorkspaceLibraryItem.user_id == user_id,
+                    WorkspaceLibraryItem.kind == "combo_list",
+                    WorkspaceLibraryItem.stable_key == stable_key,
+                )
+            )
+        ).scalar_one_or_none()
+        if combo is None:
+            raise LookupError("combo_source_not_found")
+
+        referenced_ids = {
+            *_combo_ids(combo.payload or {}, "union_watchlist_ids"),
+            *_combo_ids(combo.payload or {}, "intersection_watchlist_ids"),
+            *_combo_ids(combo.payload or {}, "exclude_watchlist_ids"),
+        }
+        referenced = (
+            (
+                await db.execute(
+                    select(Watchlist)
+                    .where(Watchlist.user_id == user_id, Watchlist.id.in_(referenced_ids))
+                    .options(selectinload(Watchlist.items))
+                )
+            )
+            .scalars()
+            .all()
+            if referenced_ids
+            else []
+        )
+        watchlists = {watchlist.id: watchlist for watchlist in referenced}
+        selected_ids = _combo_member_ids(watchlists, combo.payload or {})
+        as_of_exclusions: list[dict] = []
+        if as_of is not None and combo.updated_at > as_of:
+            return ResolvedWatchlistSource(
+                descriptor=_combo_descriptor(combo, 0),
+                members=(),
+                exclusions=(
+                    {
+                        "reason": "combo_definition_not_known_at_as_of",
+                        "known_at": combo.updated_at.isoformat(),
+                    },
+                ),
+            )
+        items_by_instrument = {
+            item.instrument_id: item
+            for watchlist in referenced
+            for item in watchlist.items
+            if item.instrument_id in selected_ids
+        }
+        members: list[ResolvedWatchlistMember] = []
+        for position, instrument_id in enumerate(selected_ids):
+            item = items_by_instrument.get(instrument_id)
+            if item is None:
+                continue
+            if as_of is not None and item.added_at > as_of:
+                as_of_exclusions.append(
+                    {"instrument_id": instrument_id, "reason": "membership_not_known_at_as_of"}
+                )
+                continue
+            members.append(
+                ResolvedWatchlistMember(
+                    instrument_id=instrument_id,
+                    position=position,
+                    weight=None,
+                    relationship_type="combo_watchlist_member",
+                    source="user_combo_definition",
+                    effective_at=item.added_at,
+                    known_at=item.added_at,
+                )
+            )
+        return ResolvedWatchlistSource(
+            descriptor=_combo_descriptor(combo, len(members)),
+            members=tuple(members),
+            exclusions=tuple(as_of_exclusions),
         )
 
     if source_id.startswith("market-group:"):

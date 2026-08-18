@@ -9,6 +9,19 @@ volume must identify its local observation bar, and current market-cap metadata 
 state that it is not point-in-time. This provenance gate does not waive the separate requirement
 for historical market-cap/weight reconstruction.
 
+## 2026-08-19 — Universal combo-source sub-gate
+
+Acceptance must treat a user-owned combo list as the same Market Map universe contract as an index,
+ETF, managed scan, or personal watchlist. The combo descriptor must be user-isolated, explicitly
+`source_kind=combo`, locked for direct membership edits, and traceable to its library
+definition/version. Union, intersection, exclusion, duplicate, deterministic-order, and
+`as_of`-exclusion behavior must be asserted through `/watchlists/sources/{source_id}` and then
+through `POST /analysis/market-map`. The map must preserve source identity and expose the same
+grouping, metrics, coverage, cache, snapshot, selection, and publication actions. A combo may be
+edited only by changing its definition; that creates a new membership version. Full historical
+definition/version reconstruction, explicit-symbol descriptors, and final V25 visual approval
+remain separate open gates.
+
 ## 2026-08-19 — Arbitrary Market Map period sub-gate
 
 For every canonical WatchlistSource, acceptance must verify the Market Map preset periods and a

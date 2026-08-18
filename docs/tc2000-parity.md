@@ -4,6 +4,18 @@ The current Market Map also exports its loaded canonical cells to CSV, including
 hierarchy, area/colour values, coverage, observation time, and warning codes. Export is source
 neutral for locked system-managed and editable watchlists and does not change route or selection.
 
+## 2026-08-19 — Combo watchlists use the universal Market Map source contract
+
+User-owned combo lists are now exposed as `combo:<stable_key>` `WatchlistSource` descriptors. The
+combo definition remains editable through its union/intersection/exclusion editor, but the
+resolved membership source is locked and derived, so the map cannot silently mutate it as if it
+were a personal list. The resolver applies user isolation, deterministic ordering, duplicate
+elimination, exclusions, and explicit historical `as_of` exclusions. Market Map consumes the
+same source-neutral batch endpoint and therefore provides identical grouping, tile metrics,
+coverage/provenance, caching, snapshots, selection, linked-chart, breadth, scan, alert, and Study
+Lab publication actions for combo, personal, managed, index, and ETF-proxy sources. Explicit
+symbol descriptors and complete historical combo membership versions remain open gates.
+
 Map area values now expose per-cell provenance: equal-derived sizing, isolated Python output,
 point-in-time membership weights, local OHLCV volume, provider numeric fields, or current stored
 market-cap metadata. Current market-cap sizing remains visibly non-point-in-time and is not treated

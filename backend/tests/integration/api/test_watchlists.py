@@ -747,6 +747,94 @@ class TestWatchlistsCrud:
         assert historical.json()["members"] == []
         assert historical.json()["exclusions"][0]["reason"] == "membership_not_known_at_as_of"
 
+    def test_combo_source_is_locked_derived_universe_for_the_same_market_map_contract(
+        self, client, auth_headers, db, instrument, instrument_b
+    ):
+        from app.models.ohlcv import OHLCVBar, Timeframe
+
+        first = client.post(
+            "/api/v1/watchlists", headers=auth_headers, json={"name": "Combo source A"}
+        )
+        second = client.post(
+            "/api/v1/watchlists", headers=auth_headers, json={"name": "Combo source B"}
+        )
+        assert first.status_code == 200 and second.status_code == 200
+        first_id = first.json()["id"]
+        second_id = second.json()["id"]
+        assert client.post(
+            f"/api/v1/watchlists/{first_id}/items",
+            headers=auth_headers,
+            json={"instrument_id": instrument.id},
+        ).status_code == 200
+        assert client.post(
+            f"/api/v1/watchlists/{second_id}/items",
+            headers=auth_headers,
+            json={"instrument_id": instrument_b.id},
+        ).status_code == 200
+
+        combo = client.put(
+            "/api/v1/workspaces/library/items/combo_list/analysis-combo",
+            headers=auth_headers,
+            json={
+                "kind": "combo_list",
+                "stable_key": "analysis-combo",
+                "name": "Analysis combo",
+                "payload": {
+                    "union_watchlist_ids": [first_id, second_id],
+                    "exclude_watchlist_ids": [second_id],
+                },
+                "dependency_metadata": {},
+            },
+        )
+        assert combo.status_code == 200, combo.text
+
+        sources = client.get("/api/v1/watchlists/sources", headers=auth_headers)
+        assert sources.status_code == 200
+        descriptor = next(item for item in sources.json() if item["source_id"] == "combo:analysis-combo")
+        assert descriptor["source_kind"] == "combo"
+        assert descriptor["locked"] is True
+        assert descriptor["can_edit_membership"] is False
+        assert descriptor["member_count"] == 1
+
+        resolved = client.get(
+            "/api/v1/watchlists/sources/combo:analysis-combo", headers=auth_headers
+        )
+        assert resolved.status_code == 200, resolved.text
+        assert [member["instrument_id"] for member in resolved.json()["members"]] == [instrument.id]
+
+        base = datetime(2024, 1, 1, tzinfo=UTC)
+        for offset, member in enumerate((instrument, instrument_b)):
+            for day, close in enumerate((100 + offset, 101 + offset)):
+                db.add(
+                    OHLCVBar(
+                        instrument_id=member.id,
+                        timeframe=Timeframe.D1,
+                        ts=base + timedelta(days=day),
+                        open=close,
+                        high=close + 1,
+                        low=close - 1,
+                        close=close,
+                        volume=1000,
+                        is_adjusted=True,
+                    )
+                )
+        db.flush()
+        market_map = client.post(
+            "/api/v1/analysis/market-map",
+            headers=auth_headers,
+            json={
+                "source_id": "combo:analysis-combo",
+                "period": "1D",
+                "area_metric": "equal",
+                "color_metric": "return",
+                "end": "2024-01-03T00:00:00Z",
+            },
+        )
+        assert market_map.status_code == 200, market_map.text
+        assert market_map.json()["source"]["source_id"] == "combo:analysis-combo"
+        assert market_map.json()["requested_count"] == 1
+        assert [cell["symbol"] for cell in market_map.json()["cells"]] == [instrument.symbol]
+
     def test_list_returns_existing_watchlists(self, client, auth_headers, watchlist):
         res = client.get("/api/v1/watchlists", headers=auth_headers)
         assert res.status_code == 200

@@ -1,5 +1,14 @@
 # TC2000 Version 25 composite reference board
 
+## 2026-08-19 universal derived-watchlist reference gap
+
+The board supports the product decision that a combo watchlist should render in the same dense
+heatmap language as an index/ETF constituent list or personal watchlist. The implementation now
+exposes combo definitions as locked, derived `WatchlistSource` inputs and reuses the same Market
+Map interaction contract. No authoritative V25 capture shows the exact combo-definition lineage or
+locked-derived badge, so those details remain a tracked visual gap; deterministic source identity,
+membership, and interaction tests are the interim acceptance oracle.
+
 ## 2026-08-18 universal-source and recursive-Python visual gap
 
 The composed board supports the product decision that a locked index/ETF constituent list should

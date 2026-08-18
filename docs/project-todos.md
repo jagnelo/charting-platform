@@ -1,5 +1,24 @@
 # Project TODO Memory
 
+### 2026-08-19 — Combo watchlists as universal Market Map sources
+
+- [x] Expose user-owned `combo_list` library definitions through the canonical
+      `WatchlistSource` descriptor and resolver. A combo is a derived, locked membership source:
+      its union/intersection/exclusion definition remains editable in the combo editor, while
+      direct per-member edits are unavailable and cannot be mistaken for a personal list.
+- [x] Resolve combo members locally with user isolation, deterministic ordering, duplicate
+      elimination, exclusion semantics, and explicit `as_of` exclusions. Missing historical
+      definition/member knowledge is reported rather than reconstructed from a future snapshot.
+- [x] Reuse the existing `POST /analysis/market-map` batch contract for combo sources, including
+      the same grouping, area/colour metrics, cache, coverage, warnings, snapshots, selection,
+      linked-chart, breadth, scan, alert, and Study Lab publication behavior as index/ETF and
+      personal sources.
+- [x] Add integration coverage proving descriptor locking, union/exclusion resolution, source
+      isolation, and a combo-backed Market Map response with no provider fan-out.
+- [ ] Continue the remaining universal-source gates: complete combo historical membership
+      versioning beyond underlying watchlist `added_at` evidence, explicit-symbol source
+      descriptors, point-in-time market-cap/weight reconstruction, and final V25 visual approval.
+
 ### 2026-08-19 — Cross-sectional Python breadth to reusable Study Lab study
 
 - [x] Add a lineage-preserving `promote-study` adapter for completed historical Python breadth
