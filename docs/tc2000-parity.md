@@ -1,5 +1,20 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-19 — Provider-backed family holdings maintenance is durable
+
+Benchmark-family holdings backfill now has a migration-backed admin run boundary. A normalized
+date × family request is persisted before provider work, queued to the worker, and exposed through
+owner-scoped status and cancellation routes. The worker processes one family/date unit at a time,
+commits progress after each unit, and preserves per-role refreshed, unavailable, failed, snapshot,
+composition-date, and error evidence. Interactive workstation reads remain provider-fan-out-free.
+
+Focused planner/worker coverage passes `16/16` (worker file `13/13`); the Docker-backed durable
+route flow passes `1/1`; ETF holdings integration passes `63/63`; backend units pass `1234/1234`;
+Ruff, compileall, and diff checks pass. Disposable integration databases apply Alembic head
+`fc2d3e4f5a6b`. This is a maintenance/orchestration gate, not proof of live route completeness,
+official membership, historical rebalance continuity, or exact V25 maintenance/progress geometry;
+those remain open and explicitly labelled.
+
 ## 2026-08-19 — Family coverage distinguishes observed continuity from mere availability
 
 The benchmark-family coverage surface now reports continuity independently from role coverage.

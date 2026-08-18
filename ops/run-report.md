@@ -1,5 +1,24 @@
 # Run Report
 
+## 2026-08-19 — Durable provider-backed family holdings refresh runs
+
+- Added a migration-backed `BenchmarkFamilyHoldingsRefreshRun` for bounded historical holdings
+  maintenance. The create route normalizes and persists date × family × role scope before queuing
+  `task_refresh_benchmark_family_holdings_run`; status/cancel are durable and provider-free.
+- The worker commits after each date/family unit, retains per-role refreshed/unavailable/failed
+  evidence and composition/snapshot/error details, isolates provider failures, and stops on durable
+  cancellation between units. Existing synchronous admin routes remain available.
+- Validation passed: planner/worker `16/16`; worker `13/13`; Docker-backed durable route `1/1`;
+  ETF holdings integration `63/63`; backend units `1234/1234`; Ruff, compileall, and diff-check.
+  Disposable integration databases applied Alembic `fc2d3e4f5a6b` successfully.
+- Environment note: direct `alembic current` against the configured localhost database failed with
+  the existing sandbox/connection boundary, so no direct migration round-trip claim is made. No
+  acceptance flexibility was used. The first worker regression was strengthened to prove a failed
+  Nasdaq unit is retained while later units still execute; final worker coverage remained green.
+- Implementation commit `31fc7adcba5256d6d3a1d32d11ad9db8307507cd` is pushed. Provider route
+  completeness, all-root population, historical reconciliation, entitlements, and exact V25
+  maintenance/progress visuals remain open.
+
 ## 2026-08-19 — Benchmark-family observed continuity diagnostics
 
 - Implemented role-level continuity diagnostics for the existing benchmark-family coverage API.

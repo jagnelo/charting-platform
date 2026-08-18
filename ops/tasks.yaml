@@ -1,4 +1,36 @@
 tasks:
+  - id: tc2000-durable-family-holdings-runs-20260819
+    title: Persist and cancel provider-backed benchmark-family holdings refresh runs
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Turn synchronous benchmark-family holdings backfill into a durable, bounded admin worker
+      run so historical composition maintenance can make real progress without blocking API reads.
+    definition_of_done:
+      - Persist normalized date x family x role scope before provider work
+      - Queue one deterministic worker job and expose owner-scoped status and cancellation routes
+      - Process one date/family unit at a time with committed progress and per-role evidence
+      - Preserve refreshed, unavailable, failed, composition-date, snapshot, and error outcomes
+      - Keep interactive workstation reads provider-fan-out-free and retain existing compatibility routes
+      - Add migration/model/schema/planner/worker/router/integration/unit coverage
+      - Planner/worker tests 16/16, worker file 13/13, durable route 1/1, ETF integration 63/63, backend units 1234/1234, Ruff, compileall, and diff checks pass
+      - Keep live route completeness, official historical membership/rebalance proof, entitlements, all-root acceptance, and exact V25 maintenance visuals open
+    validation:
+      - backend-family-holdings-planner-worker-16-of-16
+      - backend-arq-worker-13-of-13
+      - backend-etf-holdings-durable-run-integration-1-of-1
+      - backend-etf-holdings-integration-63-of-63
+      - backend-unit-suite-1234-of-1234
+      - backend-ruff
+      - backend-compileall
+      - git-diff-check
+    notes:
+      - >-
+        No acceptance flexibility or provider substitution was used. Disposable integration
+        databases applied migration fc2d3e4f5a6b; the configured branch database was unreachable
+        for direct Alembic current/round-trip evidence and remains an environment gap.
+
   - id: tc2000-family-continuity-diagnostics-20260819
     title: Distinguish observed family-history continuity from snapshot availability
     status: completed

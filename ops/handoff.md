@@ -1,5 +1,32 @@
 # Active Handoff
 
+## 2026-08-19 — Durable provider-backed benchmark-family holdings refresh runs
+
+- Added `BenchmarkFamilyHoldingsRefreshRun` plus migration `fc2d3e4f5a6b`. The new admin
+  `POST /etf-holdings/benchmark-families/refresh-runs` persists normalized date × family × role
+  scope before provider work, queues one deterministic worker job, and returns durable run state.
+  Owner-scoped status and cancellation routes do not call providers.
+- `task_refresh_benchmark_family_holdings_run` executes one date/family unit at a time, isolates
+  role/provider failures through the existing refresh operation, commits progress and per-unit
+  result evidence after every unit, and observes cancellation between units. Existing synchronous
+  refresh-date/range routes remain unchanged compatibility/admin paths.
+- Owned implementation paths: `backend/app/models/benchmark_family_history.py`, migration
+  `fc2d3e4f5a6b`, holdings history schemas/planner, ETF holdings router, ARQ worker, and planner/
+  worker/integration regressions.
+- Validation: planner/worker `16/16`; worker file `13/13`; Docker-backed durable route `1/1`;
+  complete ETF holdings integration `63/63`; full backend units `1234/1234`; Ruff, compileall,
+  and diff checks pass. Disposable integration databases applied the new migration. The configured
+  branch database was unreachable for direct `alembic current`, so live migration round-trip is
+  recorded as an environment gap rather than claimed green.
+- Implementation commit `31fc7adcba5256d6d3a1d32d11ad9db8307507cd` is pushed and synchronized;
+  worktree was clean at implementation closure. No acceptance flexibility, provider substitution,
+  visual threshold/mask, or interactive provider fan-out was introduced.
+- Remaining: actual live provider population across all eight roots/roles, canonical member bars,
+  historical composition/rebalance reconciliation, entitlements/provider-quality closure, all-root
+  acceptance, exact Version 25 maintenance/progress visuals, and direct migration round-trip once
+  the configured DB is reachable. Next context: continue live/provider-backed family population
+  and historical reconciliation.
+
 ## 2026-08-19 — Observed benchmark-family continuity diagnostics
 
 - Added the pure `benchmark_family_coverage` diagnostic service and extended

@@ -1,5 +1,22 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-08-19 — Family holdings maintenance must be durable and cancellable
+
+The provider-backed holdings maintenance gate now requires a persisted admin run before any
+provider call. The run must retain normalized family/role/date scope, total and completed units,
+per-unit results, refreshed/unavailable/failed counts, cancellation, and terminal state. Worker
+execution is one date/family unit at a time, commits progress after each unit, isolates failures,
+and observes cancellation between units. Status and cancellation must not fan out to providers;
+interactive workstation reads must remain provider-neutral.
+
+The focused planner/worker suite is `16/16`, worker regressions are `13/13`, the Docker-backed
+create/status/cancel regression is `1/1`, ETF holdings integration is `63/63`, backend units are
+`1234/1234`, and Ruff/compileall/diff checks pass. No acceptance flexibility was used. The local
+configured database was unreachable for direct Alembic current/round-trip evidence; disposable
+integration migrations passed, so live migration round-trip remains an environment gap rather than
+a product claim. Durable orchestration does not close provider route completeness, official
+membership/rebalance evidence, all-root population, or exact V25 maintenance visuals.
+
 ## 2026-08-19 — Continuity cannot be inferred from snapshot availability
 
 The family-history acceptance gate now requires separate evidence for snapshot availability and

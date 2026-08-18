@@ -1,5 +1,28 @@
 # Project TODO Memory
 
+### 2026-08-19 — Durable provider-backed benchmark-family holdings refresh runs
+
+- [x] Add a migration-backed, admin-owned refresh-run model for bounded date × family holdings
+      hydration. The run stores normalized family/role scope, deduplicated dates, unit counts,
+      progress, per-unit summaries, cancellation, failure, and completion state before any
+      provider-backed worker call starts.
+- [x] Add queued create/status/cancel routes. Creation never calls a provider; the worker executes
+      one date/family unit at a time, commits progress after every unit, preserves per-role
+      unavailable/failed evidence, and checks durable cancellation between units. Existing
+      synchronous date/range routes remain available as compatibility/admin operations.
+- [x] Add planner, worker, route, migration, model, and integration regressions. Focused planner/
+      worker tests pass `16/16` (worker regression `13/13`); the Docker-backed create/status/cancel
+      flow passes `1/1`; complete ETF holdings integration passes `63/63`; full backend units pass
+      `1234/1234`; Ruff, compileall, and diff checks pass. Alembic script head is
+      `fc2d3e4f5a6b`; disposable integration databases applied it successfully.
+- [ ] This makes historical holdings maintenance durable; it does not prove that every live
+      issuer route returns complete data, that all eight roots have canonical snapshots/bars, or
+      that observed disclosures reconstruct official rebalance history. The configured branch
+      database was unreachable for `alembic current`, so live upgrade/downgrade evidence remains
+      an environment validation gap. Provider entitlements, all-root population, and exact V25
+      maintenance/progress visuals remain open. No acceptance flexibility or provider substitution
+      was used.
+
 ### 2026-08-19 — Observed continuity diagnostics for benchmark-family holdings
 
 - [x] Add a provider-neutral continuity assessment to
