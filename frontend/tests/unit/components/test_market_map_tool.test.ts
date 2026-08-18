@@ -158,13 +158,13 @@ describe('MarketMapTool', () => {
     expect(wrapper.emitted('configuration')?.at(-1)?.[0]).toEqual(expect.objectContaining({ sort_by: 'symbol_asc' }))
   })
 
-  it('switches large arbitrary universes to one canvas without proportional tile DOM', async () => {
+  it('switches a 10,000-member arbitrary universe to one canvas without proportional tile DOM', async () => {
     const largeResponse = {
       ...response,
-      requested_count: 1501,
-      evaluated_count: 1501,
-      freshness_detail: { requested: 1501, current: 1501, stale: 0, other: 0 },
-      cells: Array.from({ length: 1501 }, (_, index) => ({
+      requested_count: 10000,
+      evaluated_count: 10000,
+      freshness_detail: { requested: 10000, current: 10000, stale: 0, other: 0 },
+      cells: Array.from({ length: 10000 }, (_, index) => ({
         ...response.cells[0],
         instrument_id: index + 1,
         symbol: `SYM${index + 1}`,
@@ -201,7 +201,7 @@ describe('MarketMapTool', () => {
     for (const callback of animationFrames.splice(0)) callback(0)
 
     expect(wrapper.find('canvas.market-map-tool__canvas-map').exists()).toBe(true)
-    expect(wrapper.find('canvas.market-map-tool__canvas-map').attributes('aria-label')).toBe('1501 Market Map members')
+    expect(wrapper.find('canvas.market-map-tool__canvas-map').attributes('aria-label')).toBe('10000 Market Map members')
     expect(wrapper.findAll('.market-map-tool__tile')).toHaveLength(0)
     expect(wrapper.find('.market-map-tool__canvas-hint').text()).toContain('canvas rendering')
     expect(context.fillRect).toHaveBeenCalled()
