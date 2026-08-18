@@ -1497,7 +1497,7 @@ class TestWorkspaces:
         response = client.get(
             "/api/v1/analysis/benchmark-families/sp500/relative-rotation",
             headers=auth_headers,
-            params={"lookback": 5, "tail_length": 3},
+            params={"lookback": 5, "tail_length": 3, "history_length": 7},
         )
         assert response.status_code == 200, response.text
         payload = response.json()
@@ -1507,6 +1507,8 @@ class TestWorkspaces:
         assert roles["cap_weight"]["tail"][-1]["trend"] == 0
         assert roles["equal_weight"]["available"] is True
         assert len(roles["equal_weight"]["tail"]) == 3
+        assert payload["history_length"] == 7
+        assert len(roles["equal_weight"]["history"]) == 7
         assert roles["equal_weight"]["trend"] > 0
         assert roles["equal_weight"]["state"] in {"leading", "weakening"}
         assert roles["value"]["available"] is False
@@ -2064,6 +2066,7 @@ class TestWorkspaces:
                 "sampling": 2,
                 "lookback": 20,
                 "tail_length": 3,
+                "history_length": 8,
             },
         )
         assert rotation.status_code == 200
@@ -2074,6 +2077,8 @@ class TestWorkspaces:
         assert row["time_in_state"] >= 1
         assert row["state"] == "leading"
         assert len(row["tail"]) == 3
+        assert rotation.json()["history_length"] == 8
+        assert len(row["history"]) == 8
         assert row["coverage"] == 1
 
     def test_relative_rotation_respects_point_in_time_membership_and_bars(

@@ -3854,13 +3854,15 @@ test.describe('TC2000 workstation', () => {
   })
 
   test('F8s-rotation-family — Relative Rotation exposes family cap/equal/style legs', async ({ page, browserDiagnostics }) => {
+    let historyRequested = false
     await page.route('**/api/v1/analysis/benchmark-families/sp400/relative-rotation*', async route => {
+      historyRequested = new URL(route.request().url()).searchParams.get('history_length') === '60'
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({
-          family_key: 'sp400', benchmark: 'MDY', official_index_symbol: 'MID', timeframe: 'D1', adjustment: 'split_adjusted', sampling: 1, lookback: 20, tail_length: 10, membership_version: 1, roles: [
-            { role: 'cap_weight', instrument_id: 1, symbol: 'MDY', label: 'MDY', verification_state: 'verified', available: true, trend: 0, momentum: 0, state: 'leading', distance: 0, coverage: 1, tail: [], warnings: [] },
+          family_key: 'sp400', benchmark: 'MDY', official_index_symbol: 'MID', timeframe: 'D1', adjustment: 'split_adjusted', sampling: 1, lookback: 20, tail_length: 10, history_length: 60, membership_version: 1, roles: [
+            { role: 'cap_weight', instrument_id: 1, symbol: 'MDY', label: 'MDY', verification_state: 'verified', available: true, trend: 0, momentum: 0, state: 'leading', distance: 0, coverage: 1, tail: [], history: [{ timestamp: '2026-01-01T00:00:00Z', trend: 0, momentum: 0 }], warnings: [] },
             { role: 'equal_weight', instrument_id: null, symbol: null, label: 'No verified mapped proxy', verification_state: 'not_verified', available: false, trend: null, momentum: null, state: null, distance: null, coverage: 0, tail: [], warnings: [{ code: 'role_mapping_unavailable', message: 'No equal proxy' }] },
           ], exclusions: [], freshness: 'coverage_limited', freshness_detail: {},
         }),
@@ -3877,6 +3879,9 @@ test.describe('TC2000 workstation', () => {
     await expect(region).toBeVisible({ timeout: 15_000 })
     await expect(region).toContainText('MDY', { timeout: 15_000 })
     await expect(region).toContainText('No verified mapped proxy', { timeout: 15_000 })
+    await rotation.getByLabel('Rotation history length').fill('60')
+    await expect.poll(() => historyRequested, { timeout: 15_000 }).toBe(true)
+    await expect(rotation).toContainText('60 history points')
     await browserDiagnostics.expectNoCriticalIssues()
   })
 

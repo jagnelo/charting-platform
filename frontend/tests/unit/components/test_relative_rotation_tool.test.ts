@@ -55,9 +55,17 @@ describe('RelativeRotationTool', () => {
     vi.mocked(api.get).mockResolvedValue({ freshness: 'stale', rows: [] })
     const wrapper = mountTool({ props: { configuration: { group_key: 'us-benchmarks', benchmark: 'QQQ', timeframe: 'W1', sampling: 3, lookback: 12, tail_length: 4, as_of: '2024-04-30', adjusted: false } } })
     await vi.waitFor(() => expect(api.get).toHaveBeenCalled())
-    expect(api.get).toHaveBeenLastCalledWith('/analysis/groups/us-benchmarks/relative-rotation', { benchmark: 'QQQ', timeframe: 'W1', adjusted: false, sampling: 3, lookback: 12, tail_length: 4, as_of: '2024-04-30T23:59:59Z' })
+    expect(api.get).toHaveBeenLastCalledWith('/analysis/groups/us-benchmarks/relative-rotation', { benchmark: 'QQQ', timeframe: 'W1', adjusted: false, sampling: 3, lookback: 12, tail_length: 4, history_length: 0, as_of: '2024-04-30T23:59:59Z' })
     await wrapper.get('input[aria-label="Rotation benchmark"]').setValue('IWM')
     await vi.waitFor(() => expect(wrapper.emitted('configuration')?.at(-1)?.[0]).toEqual(expect.objectContaining({ group_key: 'us-benchmarks', benchmark: 'IWM', timeframe: 'W1', sampling: 3, lookback: 12, tail_length: 4, as_of: '2024-04-30', adjusted: false })))
+  })
+
+  it('requests and persists bounded historical rotation curves', async () => {
+    vi.mocked(api.get).mockResolvedValue({ freshness: 'current', rows: [{ instrument_id: 1, symbol: 'XLK', state: 'leading', trend: 0.1, momentum: 0.2, coverage: 1, tail: [], history: [{ timestamp: '2026-01-01', trend: 0.1, momentum: 0.2 }] }] })
+    const wrapper = mountTool({ props: { configuration: { history_length: 120 } } })
+    await vi.waitFor(() => expect(api.get).toHaveBeenCalledWith('/analysis/groups/sp500-sectors/relative-rotation', expect.objectContaining({ history_length: 120 })))
+    expect(wrapper.find('input[aria-label="Rotation history length"]').element).toHaveProperty('value', '120')
+    expect(wrapper.text()).toContain('120 history points')
   })
 
   it('uses the benchmark-family role rotation contract without borrowing SPY', async () => {

@@ -735,8 +735,17 @@ def _rotation_state(trend: float, momentum: float) -> str:
 
 
 def _rotation_metrics(
-    aligned: list[tuple[datetime, float]], sampling: int, lookback: int, tail_length: int
-) -> tuple[dict[str, object] | None, list[RelativeRotationTailPoint], list[AnalysisWarning]]:
+    aligned: list[tuple[datetime, float]],
+    sampling: int,
+    lookback: int,
+    tail_length: int,
+    history_length: int = 0,
+) -> tuple[
+    dict[str, object] | None,
+    list[RelativeRotationTailPoint],
+    list[RelativeRotationTailPoint],
+    list[AnalysisWarning],
+]:
     """Calculate transparent relative-rotation metrics from an aligned ratio series."""
 
     sampled = _sample_aligned_points(aligned, sampling)
@@ -756,7 +765,7 @@ def _rotation_metrics(
             )
         )
     if not coordinates:
-        return None, [], warnings
+        return None, [], [], warnings
     latest = coordinates[-1]
     state = _rotation_state(latest.trend, latest.momentum)
     coordinate_states = [_rotation_state(point.trend, point.momentum) for point in coordinates]
@@ -772,6 +781,7 @@ def _rotation_metrics(
         if previous is not None
         else None
     )
+    history = coordinates[-history_length:] if history_length else []
     return (
         {
             "trend": latest.trend,
@@ -786,6 +796,7 @@ def _rotation_metrics(
             "time_in_state": time_in_state,
         },
         coordinates[-tail_length:],
+        history,
         warnings,
     )
 
@@ -1315,6 +1326,7 @@ async def benchmark_family_relative_rotation(
     sampling: int = Query(default=1, ge=1, le=30),
     lookback: int = Query(default=20, ge=2, le=252),
     tail_length: int = Query(default=10, ge=1, le=100),
+    history_length: int = Query(default=0, ge=0, le=1000),
     _: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -1432,7 +1444,9 @@ async def benchmark_family_relative_rotation(
                     instrument_id=instrument.id,
                 )
             )
-        metrics, tail, metric_warnings = _rotation_metrics(aligned, sampling, lookback, tail_length)
+        metrics, tail, history, metric_warnings = _rotation_metrics(
+            aligned, sampling, lookback, tail_length, history_length
+        )
         if metrics is None:
             warnings.append(
                 AnalysisWarning(
@@ -1451,6 +1465,7 @@ async def benchmark_family_relative_rotation(
                     available=False,
                     coverage=len(aligned) / maximum,
                     tail=tail,
+                    history=history,
                     warnings=[*warnings, *metric_warnings],
                 )
             )
@@ -1465,6 +1480,7 @@ async def benchmark_family_relative_rotation(
                 available=True,
                 coverage=len(aligned) / maximum,
                 tail=tail,
+                history=history,
                 warnings=[*warnings, *metric_warnings],
                 **metrics,
             )
@@ -1483,6 +1499,7 @@ async def benchmark_family_relative_rotation(
         sampling=sampling,
         lookback=lookback,
         tail_length=tail_length,
+        history_length=history_length,
         membership_version=_group_membership_version(group, members),
         universe_provenance=_group_provenance(group, as_of),
         roles=roles,
@@ -1502,6 +1519,7 @@ async def group_relative_rotation(
     sampling: int = Query(default=1, ge=1, le=30),
     lookback: int = Query(default=20, ge=2, le=252),
     tail_length: int = Query(default=10, ge=1, le=100),
+    history_length: int = Query(default=0, ge=0, le=1000),
     _: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -1562,22 +1580,10 @@ async def group_relative_rotation(
                     instrument_id=instrument.id,
                 )
             )
-        sampled = _sample_aligned_points(aligned, sampling)
-        coordinates: list[RelativeRotationTailPoint] = []
-        for index in range(lookback * 2, len(sampled)):
-            ratio = sampled[index][1]
-            prior_ratio = sampled[index - lookback][1]
-            prior_prior_ratio = sampled[index - lookback * 2][1]
-            if prior_ratio == 0 or prior_prior_ratio == 0:
-                continue
-            trend = ratio / prior_ratio - 1
-            previous_trend = prior_ratio / prior_prior_ratio - 1
-            coordinates.append(
-                RelativeRotationTailPoint(
-                    timestamp=sampled[index][0], trend=trend, momentum=trend - previous_trend
-                )
-            )
-        if not coordinates:
+        metrics, tail, history, metric_warnings = _rotation_metrics(
+            aligned, sampling, lookback, tail_length, history_length
+        )
+        if metrics is None:
             warnings.append(
                 AnalysisWarning(
                     code="insufficient_history",
@@ -1591,43 +1597,22 @@ async def group_relative_rotation(
                     symbol=instrument.symbol,
                     name=instrument.name,
                     coverage=len(aligned) / maximum,
-                    warnings=warnings,
+                    tail=tail,
+                    history=history,
+                    warnings=[*warnings, *metric_warnings],
                 )
             )
             continue
-        latest = coordinates[-1]
-        state = _rotation_state(latest.trend, latest.momentum)
-        coordinate_states = [_rotation_state(point.trend, point.momentum) for point in coordinates]
-        previous_state = coordinate_states[-2] if len(coordinate_states) > 1 else None
-        time_in_state = 0
-        for coordinate_state in reversed(coordinate_states):
-            if coordinate_state != state:
-                break
-            time_in_state += 1
-        previous = coordinates[-2] if len(coordinates) > 1 else None
-        velocity = (
-            math.hypot(latest.trend - previous.trend, latest.momentum - previous.momentum)
-            if previous is not None
-            else None
-        )
         rows.append(
             RelativeRotationRow(
                 instrument_id=instrument.id,
                 symbol=instrument.symbol,
                 name=instrument.name,
-                trend=latest.trend,
-                momentum=latest.momentum,
-                state=state,
-                heading=math.degrees(math.atan2(latest.momentum, latest.trend)),
-                distance=math.hypot(latest.trend, latest.momentum),
-                velocity=velocity,
-                transition=f"{previous_state}->{state}"
-                if previous_state and previous_state != state
-                else None,
-                time_in_state=time_in_state,
                 coverage=len(aligned) / maximum,
-                tail=coordinates[-tail_length:],
-                warnings=warnings,
+                tail=tail,
+                history=history,
+                warnings=[*warnings, *metric_warnings],
+                **metrics,
             )
         )
     freshness, freshness_detail = await _batch_freshness(
@@ -1640,6 +1625,7 @@ async def group_relative_rotation(
         adjustment="split_adjusted" if adjusted else "raw",
         lookback=lookback,
         tail_length=tail_length,
+        history_length=history_length,
         sampling=sampling,
         membership_version=_group_membership_version(group, members),
         universe_provenance=_group_provenance(group, as_of),

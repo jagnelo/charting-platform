@@ -1,6 +1,6 @@
 <template>
   <section class="rotation-tool" role="region" :aria-label="`Relative rotation vs ${rotationBenchmark}`" :aria-busy="loading">
-    <header><strong>Relative Rotation · {{ rotationBenchmark }}</strong><div class="rotation-tool__controls"><label>Universe <select v-model="groupKey" aria-label="Rotation universe"><option value="sp500-sectors">S&amp;P 500 sectors</option><option value="us-benchmarks">US benchmarks</option><option v-for="family in familyKeys" :key="family.key" :value="family.key">{{ family.label }}</option></select></label><label>Benchmark <input v-model.trim="benchmark" aria-label="Rotation benchmark" :disabled="isFamily" /></label><label>Timeframe <select v-model="timeframe" aria-label="Rotation timeframe"><option value="D1">Daily</option><option value="W1">Weekly</option><option value="MN">Monthly</option></select></label><label>Sampling <input v-model.number="sampling" aria-label="Rotation sampling" type="number" min="1" max="30" /></label><label>Lookback <input v-model.number="lookback" aria-label="Rotation lookback" type="number" min="2" max="252" /></label><label>Tail <input v-model.number="tailLength" aria-label="Rotation tail length" type="number" min="1" max="100" /></label><label>As of <input v-model="asOf" aria-label="Rotation as of" type="date" /></label><label class="rotation-tool__adjusted"><input v-model="adjusted" aria-label="Rotation split adjusted" type="checkbox" /> Adjusted</label></div><small>Trend: ratio return over {{ lookback }} sampled observations · Momentum: change in that trend{{ asOf ? ` · As of ${asOf}` : '' }}{{ freshness ? ` · ${formatWorkstationFreshness(freshness)}` : '' }}</small></header>
+    <header><strong>Relative Rotation · {{ rotationBenchmark }}</strong><div class="rotation-tool__controls"><label>Universe <select v-model="groupKey" aria-label="Rotation universe"><option value="sp500-sectors">S&amp;P 500 sectors</option><option value="us-benchmarks">US benchmarks</option><option v-for="family in familyKeys" :key="family.key" :value="family.key">{{ family.label }}</option></select></label><label>Benchmark <input v-model.trim="benchmark" aria-label="Rotation benchmark" :disabled="isFamily" /></label><label>Timeframe <select v-model="timeframe" aria-label="Rotation timeframe"><option value="D1">Daily</option><option value="W1">Weekly</option><option value="MN">Monthly</option></select></label><label>Sampling <input v-model.number="sampling" aria-label="Rotation sampling" type="number" min="1" max="30" /></label><label>Lookback <input v-model.number="lookback" aria-label="Rotation lookback" type="number" min="2" max="252" /></label><label>Tail <input v-model.number="tailLength" aria-label="Rotation tail length" type="number" min="1" max="100" /></label><label>History <input v-model.number="historyLength" aria-label="Rotation history length" type="number" min="0" max="1000" /></label><label>As of <input v-model="asOf" aria-label="Rotation as of" type="date" /></label><label class="rotation-tool__adjusted"><input v-model="adjusted" aria-label="Rotation split adjusted" type="checkbox" /> Adjusted</label></div><small>Trend: ratio return over {{ lookback }} sampled observations · Momentum: change in that trend{{ historyLength ? ` · ${historyLength} history points` : '' }}{{ asOf ? ` · As of ${asOf}` : '' }}{{ freshness ? ` · ${formatWorkstationFreshness(freshness)}` : '' }}</small></header>
     <p v-if="loading" class="rotation-tool__state" role="status" aria-live="polite" aria-atomic="true">Calculating aligned local ratios…</p>
     <p v-else-if="error" class="rotation-tool__state rotation-tool__state--error" role="alert" aria-live="assertive" aria-atomic="true">{{ error }}</p>
     <p v-else-if="!rows.length" class="rotation-tool__state" role="status" aria-live="polite" aria-atomic="true">No {{ isFamily ? 'family-leg' : 'sector' }} rotation rows are available.</p>
@@ -33,7 +33,7 @@ import { formatWorkstationFreshness } from '@/lib/workstation/freshness'
 import WorkstationGlyph from './WorkstationGlyph.vue'
 
 interface Tail { timestamp: string; trend: number; momentum: number }
-interface Row { role?: string; label?: string; instrument_id?: number | null; symbol: string; state: string | null; trend: number | null; momentum: number | null; heading?: number | null; distance?: number | null; velocity?: number | null; transition?: string | null; time_in_state?: number | null; coverage: number; tail: Tail[]; warnings?: Array<{ code: string; message: string }> }
+interface Row { role?: string; label?: string; instrument_id?: number | null; symbol: string; state: string | null; trend: number | null; momentum: number | null; heading?: number | null; distance?: number | null; velocity?: number | null; transition?: string | null; time_in_state?: number | null; coverage: number; tail: Tail[]; history: Tail[]; warnings?: Array<{ code: string; message: string }> }
 interface PlotPoint extends Tail { symbol: string; color: string; last: boolean }
 type SortKey = 'symbol' | 'state' | 'trend' | 'momentum' | 'heading' | 'distance' | 'velocity' | 'transition' | 'time_in_state' | 'coverage' | 'tail'
 const props = defineProps<{ configuration?: Record<string, unknown> }>()
@@ -54,6 +54,7 @@ const isFamily = computed(() => familyKeys.some(family => family.key === groupKe
 const timeframe = ref(['D1', 'W1', 'MN'].includes(configString('timeframe', 'D1')) ? configString('timeframe', 'D1') : 'D1')
 const lookback = ref(Math.min(252, Math.max(2, Number(props.configuration?.lookback ?? 20) || 20)))
 const tailLength = ref(Math.min(100, Math.max(1, Number(props.configuration?.tail_length ?? 10) || 10)))
+const historyLength = ref(Math.min(1000, Math.max(0, Number(props.configuration?.history_length ?? 0) || 0)))
 const sampling = ref(Math.min(30, Math.max(1, Number(props.configuration?.sampling ?? 1) || 1)))
 const asOf = ref(configString('as_of', ''))
 const adjusted = ref(props.configuration?.adjusted !== false)
@@ -123,7 +124,10 @@ const colors: Record<string, string> = { leading: '#61c58c', weakening: '#e7bc68
 function drawPlot() {
   syncPlotObserver()
   if (!plotHost.value) return
-  points = rows.value.flatMap(row => row.tail.map((tail, index) => ({ ...tail, symbol: row.symbol, color: colors[row.state ?? ''] ?? '#8796a1', last: index === row.tail.length - 1 })))
+  points = rows.value.flatMap(row => {
+    const curve = row.history.length ? row.history : row.tail
+    return curve.map((tail, index) => ({ ...tail, symbol: row.symbol, color: colors[row.state ?? ''] ?? '#8796a1', last: index === curve.length - 1 }))
+  })
   hovered.value = null
   const width = Math.max(200, plotHost.value.clientWidth), height = Math.max(130, plotHost.value.clientHeight)
   const data: uPlot.AlignedData = [points.map(point => point.trend), points.map(point => point.momentum)]
@@ -155,13 +159,14 @@ function drawPlot() {
     }
     ctx.restore()
     for (const row of rows.value) {
-      if (row.tail.length < 2) continue
+      const curve = row.history.length ? row.history : row.tail
+      if (curve.length < 2) continue
       ctx.save()
       ctx.strokeStyle = colors[row.state ?? ''] ?? '#8796a1'
       ctx.globalAlpha = 0.72
       ctx.lineWidth = 1
       ctx.beginPath()
-      row.tail.forEach((tail, index) => {
+      curve.forEach((tail, index) => {
         const x = chart.valToPos(tail.trend, 'x')
         const y = chart.valToPos(tail.momentum, 'y')
         if (!Number.isFinite(x) || !Number.isFinite(y)) return
@@ -183,7 +188,7 @@ function drawPlot() {
   ], series: [{}, { show: false }], plugins: [markerPlugin] }, data, plotHost.value)
 }
 function publishConfiguration() {
-  emit('configuration', { ...(props.configuration ?? {}), group_key: groupKey.value, benchmark: benchmark.value.toUpperCase(), timeframe: timeframe.value, sampling: sampling.value, lookback: lookback.value, tail_length: tailLength.value, as_of: asOf.value || null, adjusted: adjusted.value })
+  emit('configuration', { ...(props.configuration ?? {}), group_key: groupKey.value, benchmark: benchmark.value.toUpperCase(), timeframe: timeframe.value, sampling: sampling.value, lookback: lookback.value, tail_length: tailLength.value, history_length: historyLength.value, as_of: asOf.value || null, adjusted: adjusted.value })
 }
 function asOfTimestamp() { return asOf.value ? `${asOf.value}T23:59:59Z` : undefined }
 async function load() {
@@ -191,7 +196,7 @@ async function load() {
   loading.value = true
   error.value = ''
   try {
-    const params = { ...(isFamily.value ? {} : { benchmark: benchmark.value.toUpperCase() }), timeframe: timeframe.value, adjusted: adjusted.value, sampling: sampling.value, lookback: lookback.value, tail_length: tailLength.value, as_of: asOfTimestamp() }
+    const params = { ...(isFamily.value ? {} : { benchmark: benchmark.value.toUpperCase() }), timeframe: timeframe.value, adjusted: adjusted.value, sampling: sampling.value, lookback: lookback.value, tail_length: tailLength.value, history_length: historyLength.value, as_of: asOfTimestamp() }
     const path = isFamily.value
       ? `/analysis/benchmark-families/${encodeURIComponent(groupKey.value)}/relative-rotation`
       : `/analysis/groups/${encodeURIComponent(groupKey.value)}/relative-rotation`
@@ -201,7 +206,7 @@ async function load() {
       staleTime: 30_000,
     })
     if (generation !== loadGeneration) return
-    rows.value = (payload.roles ?? payload.rows ?? []).map(row => ({ ...row, symbol: row.symbol ?? row.label ?? row.role ?? 'Unavailable' }))
+    rows.value = (payload.roles ?? payload.rows ?? []).map(row => ({ ...row, tail: row.tail ?? [], history: row.history ?? [], symbol: row.symbol ?? row.label ?? row.role ?? 'Unavailable' }))
     rotationBenchmark.value = payload.benchmark ?? benchmark.value.toUpperCase()
     freshness.value = payload.freshness ?? ''; await nextTick(); drawPlot()
   } catch (cause: any) {
@@ -213,7 +218,7 @@ onMounted(async () => {
   syncPlotObserver()
   await load()
 })
-watch([groupKey, benchmark, timeframe, sampling, lookback, tailLength, asOf, adjusted], () => { publishConfiguration(); if (sampling.value >= 1 && lookback.value >= 2 && tailLength.value >= 1) void load() })
+watch([groupKey, benchmark, timeframe, sampling, lookback, tailLength, historyLength, asOf, adjusted], () => { publishConfiguration(); if (sampling.value >= 1 && lookback.value >= 2 && tailLength.value >= 1 && historyLength.value >= 0) void load() })
 watch(plotHost, syncPlotObserver, { flush: 'post' })
 watch(() => props.configuration, configuration => {
   if (typeof configuration?.group_key === 'string') groupKey.value = configuration.group_key
@@ -221,6 +226,7 @@ watch(() => props.configuration, configuration => {
   if (typeof configuration?.timeframe === 'string' && ['D1', 'W1', 'MN'].includes(configuration.timeframe)) timeframe.value = configuration.timeframe
   if (Number.isFinite(Number(configuration?.lookback))) lookback.value = Math.min(252, Math.max(2, Number(configuration?.lookback)))
   if (Number.isFinite(Number(configuration?.tail_length))) tailLength.value = Math.min(100, Math.max(1, Number(configuration?.tail_length)))
+  if (Number.isFinite(Number(configuration?.history_length))) historyLength.value = Math.min(1000, Math.max(0, Number(configuration?.history_length)))
   if (Number.isFinite(Number(configuration?.sampling))) sampling.value = Math.min(30, Math.max(1, Number(configuration?.sampling)))
   if (typeof configuration?.as_of === 'string') asOf.value = configuration.as_of
   if (configuration?.as_of === null) asOf.value = ''

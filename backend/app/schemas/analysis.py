@@ -61,6 +61,7 @@ class RelativeRotationRow(BaseModel):
     time_in_state: int | None = None
     coverage: float = Field(ge=0, le=1)
     tail: list[RelativeRotationTailPoint] = Field(default_factory=list)
+    history: list[RelativeRotationTailPoint] = Field(default_factory=list)
     warnings: list[AnalysisWarning] = Field(default_factory=list)
 
 
@@ -73,6 +74,7 @@ class RelativeRotationOut(AnalysisResponseMetadata):
     sampling: int = Field(default=1, ge=1, le=30)
     lookback: int
     tail_length: int
+    history_length: int = Field(default=0, ge=0, le=1000)
     membership_version: int
     universe_provenance: dict[str, object] = Field(default_factory=dict)
     rows: list[RelativeRotationRow]
@@ -97,6 +99,7 @@ class BenchmarkFamilyRotationRoleOut(BaseModel):
     time_in_state: int | None = None
     coverage: float = Field(ge=0, le=1)
     tail: list[RelativeRotationTailPoint] = Field(default_factory=list)
+    history: list[RelativeRotationTailPoint] = Field(default_factory=list)
     warnings: list[AnalysisWarning] = Field(default_factory=list)
 
 
@@ -112,6 +115,7 @@ class BenchmarkFamilyRotationOut(AnalysisResponseMetadata):
     sampling: int = Field(default=1, ge=1, le=30)
     lookback: int
     tail_length: int
+    history_length: int = Field(default=0, ge=0, le=1000)
     membership_version: int
     universe_provenance: dict[str, object] = Field(default_factory=dict)
     roles: list[BenchmarkFamilyRotationRoleOut] = Field(default_factory=list)
