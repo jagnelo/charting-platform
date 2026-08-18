@@ -12,7 +12,7 @@ tasks:
       - A large canonical index/ETF, personal/combo, or explicit watchlist renders with one canvas
       - A drag-to-pan cannot accidentally select a member
       - Canvas maps expose member-count and keyboard selection semantics without an unbounded option list
-      - Add a regression proving 1,501 cells produce zero per-member tile DOM and paint successfully
+      - Add a regression proving 10,000 cells produce zero per-member tile DOM and paint successfully
       - Record missing exact V25 large-universe density/canvas/search visuals as a required_missing gap
     validation:
       - frontend-market-map-component-26-of-26
