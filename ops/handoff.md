@@ -1,5 +1,22 @@
 # Active Handoff
 
+## 2026-08-19 — QQQ dated holdings SEC reconstruction
+
+- Added `InvescoHoldingsAdapter.fetch_for_date`, because Invesco's public QQQ route is
+  current/monthly and has no dated URL contract. It now asks the shared SEC EDGAR fallback for
+  the latest filing known at or before the requested date and fails explicitly when none exists;
+  it cannot silently use current holdings for a historical request.
+- Preserved `source_access=sec_filing`, `source_provider=sec`, adapter identity, requested date,
+  `latest_sec_filing_report_on_or_before_requested_date`, and the current-monthly issuer-route
+  limitation in provenance. The generic public-CSV dated path remains unchanged.
+- Validation: adapter/taxonomy unit suite `504/504`, Ruff, compileall, and `git diff --check`.
+  No acceptance flexibility was used. SEC filing cadence still leaves daily holdings, exact
+  rebalance-day weights, official Nasdaq-100 membership, QQQE, provider population, canonical
+  bars, and exact V25 historical-source visuals open.
+- Implementation commit `e127387b07f336c10020676c91d4dd2ff998fc64` is pushed. The separate
+  docs/ops checkpoint is the remaining commit for this context; do not begin a new implementation
+  context until it is pushed and local/origin are synchronized.
+
 ## 2026-08-18 — Explicit family-role provider routes
 
 - Closed a concrete identity-first gap in the configured family matrix. QQQ now declares the

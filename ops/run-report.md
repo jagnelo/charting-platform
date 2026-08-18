@@ -1,5 +1,20 @@
 # Run Report
 
+## 2026-08-19 — QQQ dated holdings SEC reconstruction
+
+- Routed dated Invesco holdings requests through the latest SEC filing known at or before the
+  requested cutoff. The adapter records the filing-reconstruction policy and raises an explicit
+  no-filing error rather than falling back to current QQQ holdings.
+- Validation passed: `tests/unit/services/test_etf_holdings_adapters.py` plus
+  `tests/unit/services/test_top_down_taxonomy.py` `504/504`, Ruff, compileall, and
+  `git diff --check`. A bounded adapter test specifically asserts the requested SEC cutoff and
+  provenance metadata.
+- No acceptance flexibility, visual threshold, mask, provider entitlement, or source substitution
+  was used. This is periodic SEC evidence only; it does not prove daily composition, rebalance-day
+  weights, or official Nasdaq-100 membership. QQQE and the broader provider/visual gaps remain open.
+- Implementation commit `e127387b07f336c10020676c91d4dd2ff998fc64` is pushed; the separate
+  docs/ops checkpoint remains before the next implementation context.
+
 ## 2026-08-18 — Explicit family-role provider routes
 
 - Canonical family-role route metadata is now explicit for QQQ/Invesco and the iShares family

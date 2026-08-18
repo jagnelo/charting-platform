@@ -1,5 +1,20 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-19 — QQQ historical source is a filing reconstruction, not issuer history
+
+The dated holdings contract now has a dedicated Invesco path. Because Invesco's public QQQ
+endpoint is current/monthly and does not expose a dated URL, a historical request uses the latest
+SEC filing known at or before the requested date. The response labels the source as `sec_filing`,
+records the requested date and adapter, and declares the policy
+`latest_sec_filing_report_on_or_before_requested_date`; no current QQQ snapshot is silently
+substituted when no filing exists.
+
+This closes a concrete as-of routing defect, not the entire historical truth requirement. SEC
+filings are periodic, so the result may be older than the requested session and cannot establish
+daily weights, exact rebalance timing, or official Nasdaq-100 membership. QQQE, complete
+provider-backed family population, canonical bars, and exact Version 25 historical-source and
+unavailable-state visuals remain gap-ledger items.
+
 ## 2026-08-19 — Family roles use explicit canonical holdings routes
 
 Every currently mapped benchmark-family role now has explicit provider route metadata before a

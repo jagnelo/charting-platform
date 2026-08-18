@@ -1,5 +1,14 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-08-19 — Historical holdings route sub-gate
+
+The QQQ dated-holdings path is accepted only as a labelled SEC filing reconstruction. The
+adapter must pass the requested cutoff into SEC filing discovery, preserve source and policy
+metadata, and fail explicitly when no filing is known at or before that cutoff. This sub-gate does
+not relax the broader acceptance requirement for daily composition continuity, exact rebalance
+weights, or official index-membership truth; those remain tracked gaps and must not be represented
+as if this fallback closed them.
+
 ## 2026-08-19 — Identity-first family-route sub-gate
 
 Before a configured benchmark-family role is considered refreshable, acceptance must resolve its

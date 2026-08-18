@@ -1,4 +1,29 @@
 tasks:
+  - id: tc2000-invesco-sec-historical-fallback-20260819
+    title: Label QQQ dated holdings as SEC filing reconstructions
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Close the concrete QQQ as-of routing defect without pretending Invesco's current/monthly
+      endpoint is a historical archive: route dated requests through the latest SEC filing known
+      at or before the requested date and preserve the limitation in provenance.
+    definition_of_done:
+      - Invesco dated fetch passes its cutoff into shared SEC filing discovery
+      - Missing filings return an explicit error instead of silently using current holdings
+      - Results retain SEC source, adapter, requested-date, and historical-as-of policy metadata
+      - Unit adapter/taxonomy coverage, Ruff, compileall, and diff checks pass
+      - Periodic SEC reconstruction remains explicitly distinct from daily holdings, rebalance-day weights, and official index membership
+    validation:
+      - backend-adapter-taxonomy-units-504-of-504
+      - backend-ruff-compileall
+      - git-diff-check
+    notes:
+      - >-
+        No acceptance flexibility was used. QQQE historical routing, provider-backed family
+        population, canonical bars, and exact Version 25 historical-source disclosure visuals
+        remain open gaps.
+
   - id: tc2000-family-explicit-route-matrix-20260819
     title: Require explicit holdings routes for every mapped benchmark-family role
     status: completed

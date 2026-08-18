@@ -1,5 +1,22 @@
 # Project TODO Memory
 
+### 2026-08-19 — QQQ dated holdings use an explicitly labelled SEC reconstruction
+
+- [x] Add a dated `InvescoHoldingsAdapter.fetch_for_date` path that selects the latest SEC
+      holdings filing known at or before the requested date instead of sending a historical
+      request to Invesco's current/monthly endpoint, which has no dated URL contract.
+- [x] Thread an optional `end_date` through the shared issuer SEC-filing fallback and preserve
+      the requested date, SEC source, adapter identity, and historical-as-of policy in result
+      provenance. A missing filing returns an explicit error rather than silently using current
+      QQQ holdings.
+- [x] Add a regression proving the requested date reaches the SEC fallback and that the result
+      retains the filing-reconstruction metadata; adapter/taxonomy units pass `504/504`, Ruff,
+      compileall, and `git diff --check` pass.
+- [ ] Treat this as periodic filing reconstruction only: it does not provide daily holdings,
+      exact rebalance-day weights, or official Nasdaq-100 membership. QQQE historical route,
+      provider-backed family population, canonical bars, and exact Version 25 historical-source
+      disclosure visuals remain open.
+
 ### 2026-08-19 — Explicit family-role provider routes
 
 - [x] Make canonical route metadata identity-first for every currently mapped family leg. QQQ now
