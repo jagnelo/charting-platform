@@ -1,5 +1,15 @@
 # Project TODO Memory
 
+### 2026-08-19 — Boolean-tree aggregate plot promotion repair
+
+- [x] Allow completed historical recursive Boolean breadth trees to promote to aggregate uPlot
+      plot assets. The shared source guard now accepts both Boolean and numeric-series condition
+      versions; member-level plot promotion remains limited to numeric member series.
+- [x] Add an end-to-end regression covering queue, isolated execution, aggregate promotion,
+      condition-tree lineage, rerun, and `percentage_history` artifact output.
+- [ ] Keep exact V25 aggregate target-mode visuals, cross-sectional/event/derived-series fan-out
+      beyond compatible targets, and final visual approval explicitly open.
+
 ### 2026-08-19 — ETF holdings as locked Market Map watchlist regression
 
 - [x] Add an end-to-end integration guard for an issuer-native ETF holdings snapshot entering

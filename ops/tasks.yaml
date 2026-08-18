@@ -1,4 +1,29 @@
 tasks:
+  - id: tc2000-boolean-tree-aggregate-plot-20260819
+    title: Repair aggregate plot promotion for recursive Boolean breadth trees
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Keep recursive Boolean breadth semantics intact when a completed historical run is promoted
+      to an aggregate uPlot plot, while preserving the separate member-numeric plot contract.
+    definition_of_done:
+      - Aggregate plot source validation accepts owned Boolean and numeric-series versions
+      - Recursive Boolean history promotes to percentage_history with condition-tree lineage
+      - The generated asset reruns through the isolated aggregate adapter successfully
+      - Focused Docker-backed integration, Ruff, compileall, and diff checks pass
+      - Exact V25 target-mode visuals and remaining fan-out gaps stay documented
+    validation:
+      - backend-boolean-tree-aggregate-promotion-integration-1-of-1
+      - backend-ruff-compileall
+      - git-diff-check
+    notes:
+      - >-
+        This repaired a real owning-boundary defect: aggregate promotion was incorrectly limited
+        to numeric-series source versions even though recursive Boolean trees produce valid
+        aggregate history. No acceptance flexibility used; implementation commit is recorded
+        with this context.
+
   - id: tc2000-etf-holdings-market-map-regression-20260819
     title: Verify ETF holdings enter the universal locked Market Map source path
     status: completed

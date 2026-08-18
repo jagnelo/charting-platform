@@ -3136,6 +3136,46 @@ class TestWorkspaces:
         )
         assert tree_collected.status_code == 200, tree_collected.text
         assert tree_collected.json()["status"] == "completed"
+        promoted_tree_aggregate_plot = client.post(
+            f"/api/v1/analysis/breadth/python/runs/{tree_queued.json()['run_id']}/promote-plot",
+            headers=auth_headers,
+            json={"name": "Historical Python tree aggregate plot", "aggregate": True},
+        )
+        assert promoted_tree_aggregate_plot.status_code == 201, promoted_tree_aggregate_plot.text
+        promoted_tree_aggregate_payload = promoted_tree_aggregate_plot.json()
+        assert promoted_tree_aggregate_payload["kind"] == "plot"
+        assert promoted_tree_aggregate_payload["versions"][0]["output_contract"] == "series"
+        assert promoted_tree_aggregate_payload["versions"][0]["output_name"] == "percentage_history"
+        tree_aggregate_lineage = next(
+            item["promotion_lineage"]
+            for item in promoted_tree_aggregate_payload["versions"][0]["diagnostics"]
+            if isinstance(item, dict) and "promotion_lineage" in item
+        )
+        assert tree_aggregate_lineage["source_run_id"] == tree_queued.json()["run_id"]
+        assert tree_aggregate_lineage["source_condition_tree"]["kind"] == "all"
+        assert tree_aggregate_lineage["semantics"] == "re_evaluate_breadth_as_aggregate_percentage_plot"
+        tree_aggregate_plot_run = client.post(
+            "/api/v1/research/runs",
+            headers=auth_headers,
+            json={
+                "code_version_id": promoted_tree_aggregate_payload["versions"][0]["id"],
+                "run_config": {
+                    "symbols": [instrument.symbol],
+                    "timeframe": "D1",
+                    "adjustment": "split_adjusted",
+                    "session": "all",
+                },
+                "dataset_manifest": {"source": "canonical_database"},
+            },
+        )
+        assert tree_aggregate_plot_run.status_code == 202, tree_aggregate_plot_run.text
+        tree_aggregate_plot_run_id = tree_aggregate_plot_run.json()["id"]
+        tree_aggregate_plot_job = json.loads(
+            (tmp_path / "jobs" / f"{tree_aggregate_plot_run_id}.json").read_text()
+        )
+        tree_aggregate_plot_result = execute_job(tree_aggregate_plot_job)
+        assert tree_aggregate_plot_result["status"] == "completed", tree_aggregate_plot_result
+        assert tree_aggregate_plot_result["artifacts"]["percentage_history"]["value"]["values"]
         promoted_tree_scan = client.post(
             f"/api/v1/analysis/breadth/python/runs/{tree_queued.json()['run_id']}/promote-scan",
             headers=auth_headers,

@@ -1,5 +1,17 @@
 # Run Report
 
+## 2026-08-19 — Boolean-tree aggregate plot promotion repair
+
+- Aggregate Python breadth plot promotion now accepts completed recursive Boolean condition trees;
+  the prior source guard incorrectly admitted only numeric-series code versions.
+- The generated plot keeps the exact tree and source-run lineage, reruns through the isolated
+  `breadth_aggregate_percentage` adapter, and emits `percentage_history` for uPlot.
+- Focused Docker-backed integration `1/1`, Ruff, compileall, and diff-check pass. The first
+  unprivileged attempt hit the known Docker-socket setup boundary; the unchanged elevated rerun
+  passed. No acceptance flexibility or visual threshold changed.
+- Exact V25 aggregate target-mode geometry, wider promotion fan-out, family/provider population,
+  and final audit remain open.
+
 ## 2026-08-19 — ETF holdings locked-source regression
 
 - Added integration coverage for the actual ETF holdings source path: a dated issuer-native

@@ -6824,7 +6824,7 @@ async def promote_python_breadth_run_to_plot(
         or version.asset is None
         or version.asset.user_id != current_user.id
         or version.asset.kind != "condition"
-        or version.output_contract != "series"
+        or version.output_contract not in {"boolean", "series"}
     ):
         raise HTTPException(
             status_code=422,

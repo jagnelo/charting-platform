@@ -11,6 +11,12 @@ locked `universe_source_id` or explicit canonical symbols into each rerun, and t
 the prepared `datasets` wrapper once so the percentage history cannot silently change when the
 active chart symbol changes.
 
+Aggregate promotion accepts completed recursive Boolean breadth trees as well as numeric-series
+cross-sectional runs. The generated uPlot asset retains the exact tree and source-run lineage and
+reruns through the isolated aggregate adapter to emit `percentage_history`; member-level plots
+remain separately gated by their numeric member-series contract. Exact V25 target-mode geometry
+remains a named reference-board gap.
+
 The current Market Map also exports its loaded canonical cells to CSV, including identity,
 hierarchy, area/colour values, coverage, observation time, and warning codes. Export is source
 neutral for locked system-managed and editable watchlists and does not change route or selection.

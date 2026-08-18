@@ -1,5 +1,19 @@
 # Active Handoff
 
+## 2026-08-19 — Boolean-tree aggregate plot promotion repair
+
+- Fixed the aggregate breadth-to-uPlot promotion guard in `analysis.py`: completed recursive
+  Boolean trees are now valid aggregate sources alongside numeric-series conditions. Member-level
+  plot promotion still requires a member-scoped numeric series.
+- The regression queues and executes a Boolean tree, promotes it to a `percentage_history` plot,
+  verifies condition-tree/source-run lineage, reruns the generated asset through the isolated
+  aggregate adapter, and asserts numeric history output.
+- Validation passed: focused Docker-backed integration `1/1`, Ruff, compileall, and
+  `git diff --check`. The initial unprivileged run was blocked only by the Docker socket; the
+  unchanged elevated rerun passed. No acceptance flexibility used.
+- Implementation/docs/state commits are the next bookkeeping step; exact V25 target-mode visuals,
+  broader compatible fan-out, provider/family population, and final audit remain open.
+
 ## 2026-08-19 — ETF holdings locked-source regression
 
 - Added a Docker-backed integration guard proving that a dated issuer-labelled ETF holdings
