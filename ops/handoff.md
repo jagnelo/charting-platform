@@ -25,8 +25,9 @@
   bars for all eight roots/roles, historical composition/rebalance continuity, entitlement and
   provider-quality closure, all-root acceptance, and exact Version 25 maintenance/progress
   visuals. The status contract makes these visible; it does not waive them.
-- Next context: update parity/acceptance/ops records, commit and push the separate operational
-  checkpoint, then continue provider-backed family population/continuity.
+- Documentation/acceptance/ops checkpoint `7ec32be26f9309a50ae6d7f812e994aadccabf65` is pushed
+  and synchronized. Context closure is complete; next context is provider-backed family
+  population/continuity.
 
 ## 2026-08-19 — Source-polymorphic canonical history hydration
 
