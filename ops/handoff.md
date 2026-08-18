@@ -1,5 +1,20 @@
 # Active Handoff
 
+## 2026-08-19 — Universal-source reference bound repair
+
+- Fixed a real source-polymorphism defect: `MarketMapRequest.reference_source_id` was capped at
+  240 characters while primary sources, cache rows, and snapshots accept 4096. This rejected
+  valid bounded explicit canonical-ID selections when used as comparison universes.
+- The request now uses the 4096-character canonical-source bound. A Docker-backed integration
+  regression proves a >240-character explicit reference resolves, computes relative-return
+  colouring, and preserves exact reference source lineage.
+- Validation passed: focused integration `1/1`, Ruff, compileall, and `git diff --check`. The first
+  unprivileged run was blocked only at the Docker socket setup boundary; the unchanged elevated
+  rerun passed. No acceptance flexibility used.
+- Code commit `7d8104fb` is pushed. Documentation and the operational checkpoint are the next
+  bookkeeping commit; remaining family/provider population, point-in-time weights, richer metrics,
+  exact/unrepresented V25 visuals, and final audit remain open.
+
 ## 2026-08-19 — Cross-sectional breadth aggregate chart plot
 
 - Completed historical Python breadth results with a cross-sectional target or recursive tree can

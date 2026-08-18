@@ -1,5 +1,18 @@
 # Run Report
 
+## 2026-08-19 — Universal-source reference bound repair
+
+- Aligned `MarketMapRequest.reference_source_id` with the existing 4096-character canonical
+  `WatchlistSource` contract. This preserves source-polymorphic comparison for long explicit
+  canonical-ID universes after resolver deduplication.
+- Added a regression using a >240-character explicit reference source; the response resolves it,
+  computes relative-return colouring, and returns the exact locked reference lineage.
+- Validation passed: focused Docker-backed integration `1/1`, Ruff, compileall, and diff-check. The
+  initial unprivileged run hit the known Docker-socket permission boundary; the unchanged elevated
+  rerun passed. No acceptance flexibility or visual threshold was changed.
+- Implementation commit `7d8104fb` is pushed. Remaining family/provider, point-in-time area,
+  richer metric, exact V25 reference, and final-audit gaps remain explicitly open.
+
 ## 2026-08-19 — Cross-sectional breadth aggregate chart plot
 
 - Added explicit Research Results aggregate-chart promotion for cross-sectional or recursive

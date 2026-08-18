@@ -7770,6 +7770,12 @@ The workstation now carries that distinction into the visible tool chrome: summa
 tile hover expose colour, area, and combined coverage independently. Older cached responses remain
 readable through a combined-coverage fallback, while new responses always provide the three values.
 
+Reference universes use the same source bound as primary map universes. This matters for the
+ephemeral explicit canonical-ID form: a bounded selection may be longer than a ticker-like ID even
+after duplicate IDs are removed. The request, cache, and snapshot contracts therefore all accept
+the 4096-character source bound, and a long explicit source can be used as a relative-return or
+benchmark-dependent comparison universe without changing its locked, non-provider identity.
+
 The renderer applies the same contract: only finite positive area values receive treemap geometry.
 Members with unavailable sizing remain in the response and hover/warning context but are not given
 invented unit tiles; the map reports their omission explicitly.

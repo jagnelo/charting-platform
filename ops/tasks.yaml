@@ -1,4 +1,29 @@
 tasks:
+  - id: tc2000-market-map-reference-source-bound-20260819
+    title: Keep long canonical watchlists valid as Market Map reference universes
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Ensure the reference side of source-to-source Market Map comparisons uses the same
+      canonical WatchlistSource bound as the primary side, including bounded explicit canonical
+      selections that are longer than a ticker-like identifier.
+    definition_of_done:
+      - MarketMapRequest accepts the full 4096-character canonical source bound for references
+      - A long explicit reference source resolves through the local canonical resolver
+      - Relative-return map output preserves exact reference source lineage
+      - Focused integration, Ruff, compileall, and diff checks pass
+      - Remaining family/provider, point-in-time, and visual gaps stay documented
+    validation:
+      - backend-explicit-reference-market-map-integration-1-of-1
+      - backend-ruff-compileall
+      - git-diff-check
+    notes:
+      - >-
+        The prior 240-character request-only limit was a contract defect, not an intentional
+        product restriction. No acceptance flexibility used; the fix is committed and pushed as
+        7d8104fb.
+
   - id: tc2000-cross-sectional-aggregate-plot-20260819
     title: Promote cross-sectional breadth results to reusable aggregate chart plots
     status: completed

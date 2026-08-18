@@ -1,5 +1,19 @@
 # Project TODO Memory
 
+### 2026-08-19 — Universal Market Map reference-source bound
+
+- [x] Align `MarketMapRequest.reference_source_id` with the primary canonical
+      `WatchlistSource` bound of 4096 characters. A long bounded explicit
+      canonical-ID selection is a valid locked source after resolver
+      deduplication and must remain usable as a comparison universe, not only
+      as the primary map universe.
+- [x] Add Docker-backed integration coverage proving a >240-character explicit
+      reference source resolves, computes relative-return colouring, and keeps
+      its exact source lineage in the response.
+- [ ] Keep the remaining universal-source gaps explicit: complete provider and
+      point-in-time population for every requested family, richer map metrics,
+      and final board-guided visual approval.
+
 ### 2026-08-19 — Cross-sectional breadth aggregate chart plots
 
 - [x] Add an explicit aggregate promotion target for completed historical Python breadth runs
