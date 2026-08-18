@@ -10,6 +10,10 @@ from app.models.etf_holdings import ETFHoldingsAdapterState
 from app.models.user import User
 from app.schemas.basket import BasketOut
 from app.schemas.etf_holdings import (
+    BenchmarkFamiliesHoldingsDatedRefreshRequest,
+    BenchmarkFamiliesHoldingsDatedRefreshSummary,
+    BenchmarkFamiliesHoldingsRangeRefreshRequest,
+    BenchmarkFamiliesHoldingsRangeRefreshSummary,
     BenchmarkFamilyHoldingsDatedRefreshRequest,
     BenchmarkFamilyHoldingsDatedRefreshSummary,
     BenchmarkFamilyHoldingsRangeRefreshRequest,
@@ -89,6 +93,8 @@ from app.services.etf_holdings_refresh import (
     discover_etf_profiles_from_issuer_feed,
     discover_etf_profiles_from_sec_fund_tickers,
     probe_etf_holdings_adapter_route,
+    refresh_all_benchmark_family_holdings_for_date,
+    refresh_all_benchmark_family_holdings_for_dates,
     refresh_all_known_etf_holdings,
     refresh_benchmark_family_holdings_for_date,
     refresh_benchmark_family_holdings_for_dates,
@@ -138,6 +144,52 @@ async def refresh_benchmark_family_for_dates(
             db,
             family_key=family_key,
             requested_dates=body.requested_dates,
+            roles=body.roles,
+        )
+    except ValueError as exc:
+        await db.rollback()
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    await db.commit()
+    return summary
+
+
+@router.post(
+    "/benchmark-families/refresh-date",
+    response_model=BenchmarkFamiliesHoldingsDatedRefreshSummary,
+)
+async def refresh_all_benchmark_families_for_date(
+    body: BenchmarkFamiliesHoldingsDatedRefreshRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    try:
+        summary = await refresh_all_benchmark_family_holdings_for_date(
+            db,
+            requested_date=body.requested_date,
+            family_keys=body.family_keys,
+            roles=body.roles,
+        )
+    except ValueError as exc:
+        await db.rollback()
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    await db.commit()
+    return summary
+
+
+@router.post(
+    "/benchmark-families/refresh-range",
+    response_model=BenchmarkFamiliesHoldingsRangeRefreshSummary,
+)
+async def refresh_all_benchmark_families_for_dates(
+    body: BenchmarkFamiliesHoldingsRangeRefreshRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    try:
+        summary = await refresh_all_benchmark_family_holdings_for_dates(
+            db,
+            requested_dates=body.requested_dates,
+            family_keys=body.family_keys,
             roles=body.roles,
         )
     except ValueError as exc:

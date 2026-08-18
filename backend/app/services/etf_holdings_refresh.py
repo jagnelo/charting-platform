@@ -60,6 +60,8 @@ class ETFHoldingsBootstrapResult:
 
 SEC_FUND_TICKERS_URL = "https://www.sec.gov/files/company_tickers_mf.json"
 
+_BENCHMARK_FAMILY_ROLES = ("cap_weight", "equal_weight", "value", "growth")
+
 
 @asynccontextmanager
 async def _bootstrap_savepoint(db: AsyncSession):
@@ -1008,24 +1010,17 @@ async def refresh_benchmark_family_holdings_for_date(
     if family is None:
         raise ValueError(f"Unknown benchmark family: {family_key}.")
 
-    supported_roles = ("cap_weight", "equal_weight", "value", "growth")
-    requested_roles = roles or list(supported_roles)
-    normalized_roles: list[str] = []
-    for role in requested_roles:
-        normalized_role = str(role).strip().lower()
-        if normalized_role not in supported_roles:
-            raise ValueError(
-                f"Unsupported benchmark family role {role!r}; expected one of "
-                f"{', '.join(supported_roles)}."
-            )
-        if normalized_role not in normalized_roles:
-            normalized_roles.append(normalized_role)
+    requested_roles = _normalize_benchmark_family_roles(roles)
 
     legs: list[dict[str, Any]] = []
     refreshed = unavailable = failed = 0
-    for role in normalized_roles:
+    for role in requested_roles:
         mapping = family.get(role) if isinstance(family.get(role), dict) else None
-        symbol = str(mapping.get("symbol")).strip().upper() if mapping and mapping.get("symbol") else None
+        symbol = (
+            str(mapping.get("symbol")).strip().upper()
+            if mapping and mapping.get("symbol")
+            else None
+        )
         if not symbol:
             unavailable += 1
             legs.append(
@@ -1099,11 +1094,102 @@ async def refresh_benchmark_family_holdings_for_date(
     return {
         "family_key": normalized_family_key,
         "requested_date": requested_date,
-        "roles": normalized_roles,
+        "roles": requested_roles,
         "refreshed": refreshed,
         "unavailable": unavailable,
         "failed": failed,
         "legs": legs,
+    }
+
+
+def _normalize_benchmark_family_roles(roles: list[str] | None) -> list[str]:
+    requested_roles = roles or list(_BENCHMARK_FAMILY_ROLES)
+    normalized_roles: list[str] = []
+    for role in requested_roles:
+        normalized_role = str(role).strip().lower()
+        if normalized_role not in _BENCHMARK_FAMILY_ROLES:
+            raise ValueError(
+                f"Unsupported benchmark family role {role!r}; expected one of "
+                f"{', '.join(_BENCHMARK_FAMILY_ROLES)}."
+            )
+        if normalized_role not in normalized_roles:
+            normalized_roles.append(normalized_role)
+    return normalized_roles
+
+
+def _normalize_benchmark_family_keys(family_keys: list[str] | None) -> list[str]:
+    available = {
+        str(item.get("logical_key", "")).strip().lower()
+        for item in BENCHMARK_FAMILY_REGISTRY
+        if item.get("logical_key")
+    }
+    requested = {str(value).strip().lower() for value in (family_keys or []) if str(value).strip()}
+    unknown = sorted(requested - available)
+    if unknown:
+        raise ValueError(f"Unknown benchmark family key(s): {', '.join(unknown)}.")
+    if not requested:
+        return [str(item["logical_key"]).strip().lower() for item in BENCHMARK_FAMILY_REGISTRY]
+    return [
+        str(item["logical_key"]).strip().lower()
+        for item in BENCHMARK_FAMILY_REGISTRY
+        if str(item["logical_key"]).strip().lower() in requested
+    ]
+
+
+async def refresh_all_benchmark_family_holdings_for_date(
+    db: AsyncSession,
+    *,
+    requested_date: date,
+    family_keys: list[str] | None = None,
+    roles: list[str] | None = None,
+) -> dict[str, Any]:
+    """Refresh every selected benchmark family for one date.
+
+    This is an administrative orchestration contract for populating the locked watchlist
+    universes. Family order is deterministic and each family delegates to the existing role-
+    isolated operation, so unavailable or failed legs remain explicit instead of being replaced.
+    """
+
+    normalized_family_keys = _normalize_benchmark_family_keys(family_keys)
+    normalized_roles = _normalize_benchmark_family_roles(roles)
+    families: list[dict[str, Any]] = []
+    refreshed = unavailable = failed = 0
+    for family_key in normalized_family_keys:
+        try:
+            async with _bootstrap_savepoint(db):
+                summary = await refresh_benchmark_family_holdings_for_date(
+                    db,
+                    family_key=family_key,
+                    requested_date=requested_date,
+                    roles=normalized_roles,
+                )
+        except Exception as exc:  # noqa: BLE001 - retain one-family failure and continue.
+            failed += 1
+            summary = {
+                "family_key": family_key,
+                "requested_date": requested_date,
+                "roles": normalized_roles,
+                "refreshed": 0,
+                "unavailable": 0,
+                "failed": 1,
+                "legs": [],
+                "error": str(exc) or "Benchmark family holdings refresh failed.",
+            }
+        else:
+            refreshed += int(summary.get("refreshed", 0))
+            unavailable += int(summary.get("unavailable", 0))
+            failed += int(summary.get("failed", 0))
+        families.append(summary)
+
+    await db.flush()
+    return {
+        "requested_date": requested_date,
+        "family_keys": normalized_family_keys,
+        "roles": normalized_roles,
+        "refreshed": refreshed,
+        "unavailable": unavailable,
+        "failed": failed,
+        "families": families,
     }
 
 
@@ -1143,6 +1229,44 @@ async def refresh_benchmark_family_holdings_for_dates(
         "family_key": str(family_key).strip().lower(),
         "requested_dates": normalized_dates,
         "roles": normalized_roles or [],
+        "refreshed": refreshed,
+        "unavailable": unavailable,
+        "failed": failed,
+        "runs": runs,
+    }
+
+
+async def refresh_all_benchmark_family_holdings_for_dates(
+    db: AsyncSession,
+    *,
+    requested_dates: list[date],
+    family_keys: list[str] | None = None,
+    roles: list[str] | None = None,
+) -> dict[str, Any]:
+    """Backfill every selected family over bounded dates with independent run summaries."""
+
+    normalized_dates = sorted({value for value in requested_dates})
+    if not normalized_dates:
+        raise ValueError("At least one requested benchmark family holdings date is required.")
+    normalized_family_keys = _normalize_benchmark_family_keys(family_keys)
+    normalized_roles = _normalize_benchmark_family_roles(roles)
+    runs: list[dict[str, Any]] = []
+    refreshed = unavailable = failed = 0
+    for requested_date in normalized_dates:
+        summary = await refresh_all_benchmark_family_holdings_for_date(
+            db,
+            requested_date=requested_date,
+            family_keys=normalized_family_keys,
+            roles=normalized_roles,
+        )
+        refreshed += int(summary["refreshed"])
+        unavailable += int(summary["unavailable"])
+        failed += int(summary["failed"])
+        runs.append(summary)
+    return {
+        "requested_dates": normalized_dates,
+        "family_keys": normalized_family_keys,
+        "roles": normalized_roles,
         "refreshed": refreshed,
         "unavailable": unavailable,
         "failed": failed,

@@ -518,6 +518,7 @@ class BenchmarkFamilyHoldingsDatedRefreshSummary(BaseModel):
     unavailable: int
     failed: int
     legs: list[BenchmarkFamilyHoldingsDatedRefreshLegOut] = Field(default_factory=list)
+    error: str | None = None
 
 
 class BenchmarkFamilyHoldingsRangeRefreshRequest(BaseModel):
@@ -535,6 +536,42 @@ class BenchmarkFamilyHoldingsRangeRefreshSummary(BaseModel):
     unavailable: int
     failed: int
     runs: list[BenchmarkFamilyHoldingsDatedRefreshSummary] = Field(default_factory=list)
+
+
+class BenchmarkFamiliesHoldingsDatedRefreshRequest(BaseModel):
+    """Bounded all-family refresh request for locked benchmark universes."""
+
+    requested_date: date
+    family_keys: list[str] = Field(default_factory=list, max_length=8)
+    roles: list[str] = Field(default_factory=list)
+
+
+class BenchmarkFamiliesHoldingsDatedRefreshSummary(BaseModel):
+    requested_date: date
+    family_keys: list[str]
+    roles: list[str]
+    refreshed: int
+    unavailable: int
+    failed: int
+    families: list[BenchmarkFamilyHoldingsDatedRefreshSummary] = Field(default_factory=list)
+
+
+class BenchmarkFamiliesHoldingsRangeRefreshRequest(BaseModel):
+    """Bounded historical all-family refresh request."""
+
+    requested_dates: list[date] = Field(min_length=1, max_length=64)
+    family_keys: list[str] = Field(default_factory=list, max_length=8)
+    roles: list[str] = Field(default_factory=list)
+
+
+class BenchmarkFamiliesHoldingsRangeRefreshSummary(BaseModel):
+    requested_dates: list[date]
+    family_keys: list[str]
+    roles: list[str]
+    refreshed: int
+    unavailable: int
+    failed: int
+    runs: list[BenchmarkFamiliesHoldingsDatedRefreshSummary] = Field(default_factory=list)
 
 
 class ETFHoldingsDiscoveryRequest(BaseModel):

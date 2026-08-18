@@ -2247,6 +2247,117 @@ def test_admin_family_refresh_range_deduplicates_dates_and_preserves_each_run(
     assert body["runs"][1]["legs"][0]["symbol"] == "IWV"
 
 
+def test_admin_all_family_refresh_attempts_every_root_and_isolates_family_failure(
+    client, admin_headers, monkeypatch
+):
+    expected_families = [
+        "sp500",
+        "sp400",
+        "sp600",
+        "sp1500",
+        "russell1000",
+        "russell2000",
+        "russell3000",
+        "nasdaq100",
+    ]
+    calls = []
+
+    async def fake_refresh_date(db, *, family_key, requested_date, roles):
+        calls.append((family_key, requested_date, roles))
+        if family_key == "sp400":
+            raise RuntimeError("provider route unavailable")
+        return {
+            "family_key": family_key,
+            "requested_date": requested_date,
+            "roles": roles,
+            "refreshed": 1,
+            "unavailable": 0,
+            "failed": 0,
+            "legs": [
+                {
+                    "role": "cap_weight",
+                    "symbol": "SPY",
+                    "status": "refreshed",
+                    "snapshot_id": 1,
+                    "composition_date": requested_date,
+                    "message": None,
+                }
+            ],
+        }
+
+    monkeypatch.setattr(
+        "app.services.etf_holdings_refresh.refresh_benchmark_family_holdings_for_date",
+        fake_refresh_date,
+    )
+    refresh = client.post(
+        "/api/v1/etf-holdings/benchmark-families/refresh-date",
+        json={"requested_date": "2026-06-30", "roles": ["CAP_WEIGHT", "cap_weight"]},
+        headers=admin_headers,
+    )
+    assert refresh.status_code == 200
+    body = refresh.json()
+    assert body["family_keys"] == expected_families
+    assert body["roles"] == ["cap_weight"]
+    assert body["refreshed"] == 7
+    assert body["unavailable"] == 0
+    assert body["failed"] == 1
+    assert [family["family_key"] for family in body["families"]] == expected_families
+    assert body["families"][1]["error"] == "provider route unavailable"
+    assert [family for family, _date, _roles in calls] == expected_families
+
+
+def test_admin_all_family_refresh_range_normalizes_scope_and_date_order(
+    client, admin_headers, monkeypatch
+):
+    calls = []
+
+    async def fake_refresh_date(db, *, family_key, requested_date, roles):
+        calls.append((family_key, requested_date, roles))
+        return {
+            "family_key": family_key,
+            "requested_date": requested_date,
+            "roles": roles,
+            "refreshed": 1,
+            "unavailable": 0,
+            "failed": 0,
+            "legs": [],
+        }
+
+    monkeypatch.setattr(
+        "app.services.etf_holdings_refresh.refresh_benchmark_family_holdings_for_date",
+        fake_refresh_date,
+    )
+    refresh = client.post(
+        "/api/v1/etf-holdings/benchmark-families/refresh-range",
+        json={
+            "requested_dates": ["2026-06-30", "2026-03-31", "2026-06-30"],
+            "family_keys": ["nasdaq100", "sp500", "sp500"],
+            "roles": ["value"],
+        },
+        headers=admin_headers,
+    )
+    assert refresh.status_code == 200
+    body = refresh.json()
+    assert body["requested_dates"] == ["2026-03-31", "2026-06-30"]
+    assert body["family_keys"] == ["sp500", "nasdaq100"]
+    assert body["roles"] == ["value"]
+    assert [run["requested_date"] for run in body["runs"]] == [
+        "2026-03-31",
+        "2026-06-30",
+    ]
+    assert all(
+        [family["family_key"] for family in run["families"]] == ["sp500", "nasdaq100"]
+        for run in body["runs"]
+    )
+    assert body["refreshed"] == 4
+    assert calls == [
+        ("sp500", date(2026, 3, 31), ["value"]),
+        ("nasdaq100", date(2026, 3, 31), ["value"]),
+        ("sp500", date(2026, 6, 30), ["value"]),
+        ("nasdaq100", date(2026, 6, 30), ["value"]),
+    ]
+
+
 def test_issuer_adapter_can_discover_holdings_file_from_product_page(
     client, admin_headers, auth_headers, monkeypatch
 ):
