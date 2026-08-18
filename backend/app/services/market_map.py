@@ -341,15 +341,34 @@ def _numeric_area_field(
 def _snapshot_numeric_value(
     snapshot: InstrumentProfileSnapshot | None, field: str
 ) -> float | None:
-    """Read a positive numeric field from a canonical profile snapshot."""
+    """Read an allow-listed positive numeric field from a profile snapshot.
+
+    Provider profile payloads retain their native field names in ``extra``. The
+    canonical Market Map field names deliberately differ in a few places, so
+    the alias map is part of the deterministic adapter contract rather than a
+    provider-specific lookup in the frontend.
+    """
 
     if snapshot is None:
         return None
+    aliases = {
+        "market_cap": ("market_cap",),
+        "week52_high": ("week52_high", "fifty_two_week_high"),
+        "week52_low": ("week52_low", "fifty_two_week_low"),
+        "avg_volume_30d": ("avg_volume_30d", "average_volume"),
+        "pe_ratio": ("pe_ratio", "trailing_pe", "forward_pe"),
+        "beta": ("beta",),
+        "dividend_yield": ("dividend_yield",),
+    }
+    candidate_fields = aliases.get(field, (field,))
     payload = snapshot.payload if isinstance(snapshot.payload, dict) else {}
-    value = payload.get(field)
-    if value is None:
-        extra = payload.get("extra")
-        value = extra.get(field) if isinstance(extra, dict) else None
+    extra = payload.get("extra")
+    for candidate in candidate_fields:
+        value = payload.get(candidate)
+        if value is None and isinstance(extra, dict):
+            value = extra.get(candidate)
+        if value is not None:
+            break
     try:
         numeric = float(value)
     except (TypeError, ValueError):
@@ -384,6 +403,38 @@ def _entitlement_revision_for(
     if not known:
         return None
     return max(known, key=lambda item: (item[0], item[1], item[2].id))[2]
+
+
+def _profile_area_provenance(
+    snapshot: InstrumentProfileSnapshot,
+    field: str,
+    provider_rank: int | None,
+    provider_metadata: dict[int, dict[str, object]],
+) -> dict[str, object]:
+    """Build the shared provenance shape for point-in-time profile area fields."""
+
+    metadata = provider_metadata.get(snapshot.data_source_id, {})
+    return {
+        "kind": "point_in_time_profile_snapshot",
+        "field": field,
+        "snapshot_id": snapshot.id,
+        "data_source_id": snapshot.data_source_id,
+        "provider_name": snapshot.data_source.name if snapshot.data_source is not None else None,
+        "provider_precedence_rank": provider_rank,
+        "entitlement_verified": provider_rank is not None,
+        "entitlement_revision_id": metadata.get("entitlement_revision_id"),
+        "entitlement_revision": metadata.get("entitlement_revision"),
+        "entitlement_historical": bool(metadata.get("entitlement_historical")),
+        "policy_evaluation_at": metadata.get("policy_evaluation_at"),
+        "selection": (
+            "entitled_provider_precedence"
+            if provider_rank is not None
+            else "unranked_snapshot_fallback"
+        ),
+        "observed_at": snapshot.observed_at.isoformat(),
+        "fetched_at": snapshot.fetched_at.isoformat(),
+        "point_in_time": True,
+    }
 
 
 async def _profile_snapshot_provider_policy(
@@ -673,7 +724,9 @@ async def build_market_map(db: AsyncSession, user_id: int, request: MarketMapReq
     profile_snapshot_policy_fingerprint: str | None = None
     profile_snapshot_unranked_ids: set[int] = set()
     profile_snapshot_revision_missing_ids: set[int] = set()
-    if request.area_metric == "market_cap" and member_ids:
+    profile_snapshot_area = request.area_metric in {"market_cap", "field"}
+    profile_snapshot_field = request.area_field if request.area_metric == "field" else "market_cap"
+    if profile_snapshot_area and member_ids:
         (
             profile_snapshot_provider_rank,
             profile_snapshot_policy_fingerprint,
@@ -700,12 +753,17 @@ async def build_market_map(db: AsyncSession, user_id: int, request: MarketMapReq
         for snapshot in profile_snapshot_rows:
             snapshots_by_instrument[snapshot.instrument_id].append(snapshot)
         for instrument_id, candidates in snapshots_by_instrument.items():
-            ranked = [
+            value_candidates = [
                 snapshot
                 for snapshot in candidates
+                if _snapshot_numeric_value(snapshot, profile_snapshot_field) is not None
+            ]
+            ranked = [
+                snapshot
+                for snapshot in value_candidates
                 if snapshot.data_source_id in profile_snapshot_provider_rank
             ]
-            selected_pool = ranked or candidates
+            selected_pool = ranked or value_candidates or candidates
             selected = min(
                 selected_pool,
                 key=lambda snapshot: (
@@ -986,63 +1044,72 @@ async def build_market_map(db: AsyncSession, user_id: int, request: MarketMapReq
             if area is None:
                 warnings.append(_warning("missing_volume", "No local volume is available for area sizing.", instrument_id=instrument_id))
         elif request.area_metric == "field":
-            area, area_provenance, area_code = _numeric_area_field(instrument, request.area_field)
-            if area_code:
-                warnings.append(
-                    _warning(
-                        area_code,
-                        f"The provider numeric field {request.area_field or 'unknown'} is unavailable or unproven.",
-                        instrument_id=instrument_id,
-                    )
+            snapshot = profile_snapshots_by_id.get(instrument_id)
+            snapshot_area = _snapshot_numeric_value(snapshot, request.area_field or "")
+            if snapshot_area is not None and snapshot is not None:
+                area = snapshot_area
+                provider_rank = profile_snapshot_provider_rank.get(snapshot.data_source_id)
+                area_provenance = _profile_area_provenance(
+                    snapshot,
+                    request.area_field or "unknown",
+                    provider_rank,
+                    profile_snapshot_provider_metadata,
                 )
+                if instrument_id in profile_snapshot_unranked_ids:
+                    warnings.append(
+                        _warning(
+                            "profile_snapshot_unranked_source",
+                            "The point-in-time profile snapshot source is not currently covered by an enabled free metadata entitlement; it is retained as an explicitly unranked fallback.",
+                            instrument_id=instrument_id,
+                        )
+                    )
+                elif instrument_id in profile_snapshot_revision_missing_ids:
+                    warnings.append(
+                        _warning(
+                            "profile_snapshot_entitlement_revision_missing",
+                            "The provider is currently entitled, but no immutable entitlement revision was recorded for this as-of evaluation; current entitlement terms are used as a compatibility fallback.",
+                            instrument_id=instrument_id,
+                        )
+                    )
+            else:
+                area, area_provenance, area_code = _numeric_area_field(instrument, request.area_field)
+                if area is not None and isinstance(area_provenance, dict):
+                    area_provenance = {
+                        **area_provenance,
+                        "point_in_time": bool(area_provenance.get("point_in_time", False)),
+                        "selection": "current_stats_fallback",
+                    }
+                if area_code:
+                    warnings.append(
+                        _warning(
+                            area_code,
+                            f"The provider numeric field {request.area_field or 'unknown'} is unavailable or unproven.",
+                            instrument_id=instrument_id,
+                        )
+                    )
+                elif area is not None and not (
+                    isinstance(area_provenance, dict)
+                    and area_provenance.get("point_in_time") is True
+                ):
+                    warnings.append(
+                        _warning(
+                            "current_area_field_fallback",
+                            "The numeric area field uses the latest stored stats value because no point-in-time profile snapshot contains it.",
+                            instrument_id=instrument_id,
+                        )
+                    )
         else:
             snapshot = profile_snapshots_by_id.get(instrument_id)
             snapshot_area = _snapshot_numeric_value(snapshot, "market_cap")
             if snapshot_area is not None and snapshot is not None:
                 area = snapshot_area
                 provider_rank = profile_snapshot_provider_rank.get(snapshot.data_source_id)
-                provider_name = (
-                    snapshot.data_source.name
-                    if snapshot.data_source is not None
-                    else None
+                area_provenance = _profile_area_provenance(
+                    snapshot,
+                    "market_cap",
+                    provider_rank,
+                    profile_snapshot_provider_metadata,
                 )
-                area_provenance = {
-                    "kind": "point_in_time_profile_snapshot",
-                    "field": "market_cap",
-                    "snapshot_id": snapshot.id,
-                    "data_source_id": snapshot.data_source_id,
-                    "provider_name": provider_name,
-                    "provider_precedence_rank": provider_rank,
-                    "entitlement_verified": provider_rank is not None,
-                    "entitlement_revision_id": (
-                        profile_snapshot_provider_metadata.get(snapshot.data_source_id, {}).get(
-                            "entitlement_revision_id"
-                        )
-                    ),
-                    "entitlement_revision": (
-                        profile_snapshot_provider_metadata.get(snapshot.data_source_id, {}).get(
-                            "entitlement_revision"
-                        )
-                    ),
-                    "entitlement_historical": bool(
-                        profile_snapshot_provider_metadata.get(snapshot.data_source_id, {}).get(
-                            "entitlement_historical"
-                        )
-                    ),
-                    "policy_evaluation_at": (
-                        profile_snapshot_provider_metadata.get(snapshot.data_source_id, {}).get(
-                            "policy_evaluation_at"
-                        )
-                    ),
-                    "selection": (
-                        "entitled_provider_precedence"
-                        if provider_rank is not None
-                        else "unranked_snapshot_fallback"
-                    ),
-                    "observed_at": snapshot.observed_at.isoformat(),
-                    "fetched_at": snapshot.fetched_at.isoformat(),
-                    "point_in_time": True,
-                }
                 if instrument_id in profile_snapshot_unranked_ids:
                     warnings.append(
                         _warning(
@@ -1207,10 +1274,10 @@ async def build_market_map(db: AsyncSession, user_id: int, request: MarketMapReq
                     [
                         _warning(
                             "profile_snapshot_unranked_source",
-                            "Some point-in-time market-cap values use persisted snapshots whose provider is not currently covered by an enabled free metadata entitlement.",
+                            "Some point-in-time profile area values use persisted snapshots whose provider is not currently covered by an enabled free metadata entitlement.",
                         )
                     ]
-                    if request.area_metric == "market_cap"
+                    if request.area_metric in {"market_cap", "field"}
                     and any(
                         any(item.code == "profile_snapshot_unranked_source" for item in cell.warnings)
                         for cell in cells
@@ -1221,15 +1288,29 @@ async def build_market_map(db: AsyncSession, user_id: int, request: MarketMapReq
                     [
                         _warning(
                             "profile_snapshot_entitlement_revision_missing",
-                            "Some point-in-time market-cap values use a currently entitled provider without a recorded historical entitlement revision; current terms are retained as an explicit compatibility fallback.",
+                            "Some point-in-time profile area values use a currently entitled provider without a recorded historical entitlement revision; current terms are retained as an explicit compatibility fallback.",
                         )
                     ]
-                    if request.area_metric == "market_cap"
+                    if request.area_metric in {"market_cap", "field"}
                     and any(
                         any(
                             item.code == "profile_snapshot_entitlement_revision_missing"
                             for item in cell.warnings
                         )
+                        for cell in cells
+                    )
+                    else []
+                ),
+                *(
+                    [
+                        _warning(
+                            "current_area_field_fallback",
+                            "Some numeric area fields use latest stored stats values because no point-in-time profile snapshot contains them.",
+                        )
+                    ]
+                    if request.area_metric == "field"
+                    and any(
+                        any(item.code == "current_area_field_fallback" for item in cell.warnings)
                         for cell in cells
                     )
                     else []

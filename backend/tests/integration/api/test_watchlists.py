@@ -2074,11 +2074,26 @@ class TestWatchlistsCrud:
         assert invalid.status_code == 404
 
     def test_market_map_uses_provenance_aware_numeric_area_fields(
-        self, client, auth_headers, db, user, watchlist, instrument, instrument_b
+        self, client, auth_headers, db, user, watchlist, instrument, instrument_b, monkeypatch
     ):
+        from datetime import datetime
+
+        from app.models.data_source import DataSource
         from app.models.instrument_stats import InstrumentStats
+        from app.models.provider_observation import InstrumentProfileSnapshot
+        from app.models.provider_runtime import (
+            ProviderCapability,
+            ProviderEntitlement,
+            ProviderEntitlementRevision,
+            ProviderPolicy,
+        )
         from app.models.research import CodeAsset, CodeVersion, ResearchArtifact, ResearchRun
         from app.models.watchlist import WatchlistItem
+
+        monkeypatch.setattr(
+            "app.services.market_map.list_provider_capabilities",
+            lambda name: ["instrument_metadata"] if name == "fixture-field" else [],
+        )
 
         db.add_all(
             [
@@ -2090,6 +2105,47 @@ class TestWatchlistsCrud:
                     field_provenance={"avg_volume_30d": {"source": "fixture", "observed_at": "2024-01-05T00:00:00Z"}},
                 ),
                 InstrumentStats(instrument_id=instrument_b.id, avg_volume_30d=1500, field_provenance={}),
+            ]
+        )
+        field_source = DataSource(
+            name="fixture-field", base_url="controlled://field", description="Field fixture"
+        )
+        db.add(field_source)
+        db.flush()
+        db.add_all(
+            [
+                ProviderPolicy(
+                    data_source_id=field_source.id,
+                    capability=ProviderCapability.INSTRUMENT_METADATA,
+                    is_pinned=True,
+                    effective_score=10,
+                ),
+                ProviderEntitlement(
+                    data_source_id=field_source.id,
+                    capability=ProviderCapability.INSTRUMENT_METADATA,
+                    is_free=True,
+                    enabled_environments=[],
+                ),
+                ProviderEntitlementRevision(
+                    data_source_id=field_source.id,
+                    capability=ProviderCapability.INSTRUMENT_METADATA,
+                    revision=1,
+                    configured_plan="fixture-field-v1",
+                    is_free=True,
+                    authentication_required=False,
+                    redistribution_allowed=False,
+                    effective_at=datetime(2023, 12, 1, tzinfo=UTC),
+                    live_probe_status="passed",
+                ),
+                InstrumentProfileSnapshot(
+                    instrument_id=instrument.id,
+                    data_source_id=field_source.id,
+                    provider_symbol=instrument.symbol,
+                    observed_at=datetime(2024, 1, 5, tzinfo=UTC),
+                    fetched_at=datetime(2024, 1, 5, tzinfo=UTC),
+                    profile_hash="field-profile-a",
+                    payload={"extra": {"average_volume": 4500}},
+                ),
             ]
         )
         asset = CodeAsset(user_id=user.id, stable_key="map-field-colour", name="Map field", kind="condition")
@@ -2140,8 +2196,10 @@ class TestWatchlistsCrud:
         assert body["area_metric"] == "field"
         assert body["area_field"] == "avg_volume_30d"
         cells = {cell["symbol"]: cell for cell in body["cells"]}
-        assert cells["AAPL"]["area_value"] == 2500
-        assert cells["AAPL"]["area_provenance"]["source"] == "fixture"
+        assert cells["AAPL"]["area_value"] == 4500
+        assert cells["AAPL"]["area_provenance"]["kind"] == "point_in_time_profile_snapshot"
+        assert cells["AAPL"]["area_provenance"]["field"] == "avg_volume_30d"
+        assert cells["AAPL"]["area_provenance"]["entitlement_historical"] is True
         assert cells["MSFT"]["area_value"] is None
         assert cells["AAPL"]["color_coverage"] == 1
         assert cells["AAPL"]["area_coverage"] == 1
