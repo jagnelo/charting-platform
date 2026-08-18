@@ -45,7 +45,13 @@ class MarketMapRequest(BaseModel):
     condition: dict[str, object] | None = None
     python_run_id: int | None = Field(default=None, ge=1)
     reference_symbol: str | None = Field(default=None, max_length=80)
-    reference_source_id: str | None = Field(default=None, max_length=240)
+    # Keep reference sources on the same bounded canonical-source contract as
+    # the primary source.  In particular, an ephemeral explicit source can
+    # contain up to 500 canonical IDs and is therefore legitimately longer
+    # than a ticker-like identifier.  The cache/snapshot models already use
+    # the same 4096-character bound; a shorter request-only bound would make
+    # otherwise valid source-polymorphic maps impossible to compare.
+    reference_source_id: str | None = Field(default=None, max_length=4096)
     as_of: datetime | None = None
     limit: int = Field(default=10_000, ge=1, le=50_000)
 

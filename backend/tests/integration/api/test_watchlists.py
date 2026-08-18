@@ -886,6 +886,29 @@ class TestWatchlistsCrud:
         assert market_map.json()["source"]["source_kind"] == "explicit"
         assert market_map.json()["requested_count"] == 2
 
+        # Reference universes use the same canonical WatchlistSource contract
+        # as the primary map source.  A bounded explicit selection can exceed
+        # the length of a ticker-like ID while remaining valid after resolver
+        # deduplication; it must not be rejected by a narrower request field.
+        long_reference_source_id = "explicit:" + ",".join(
+            [str(instrument.id)] * 125
+        )
+        relative_map = client.post(
+            "/api/v1/analysis/market-map",
+            headers=auth_headers,
+            json={
+                "source_id": source_id,
+                "period": "1D",
+                "area_metric": "equal",
+                "color_metric": "relative_return",
+                "reference_source_id": long_reference_source_id,
+                "end": "2024-01-03T00:00:00Z",
+            },
+        )
+        assert relative_map.status_code == 200, relative_map.text
+        assert relative_map.json()["reference_source_id"] == long_reference_source_id
+        assert relative_map.json()["reference_source"]["source_kind"] == "explicit"
+
         malformed = client.get(
             "/api/v1/watchlists/sources/explicit:NVDA", headers=auth_headers
         )
