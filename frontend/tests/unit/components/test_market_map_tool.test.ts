@@ -383,9 +383,14 @@ describe('MarketMapTool', () => {
 
   it('resolves explicit symbols to canonical IDs before building an ephemeral map source', async () => {
     apiGet.mockImplementation((path: string) => {
-      if (path === '/instruments/NVDA') return Promise.resolve({ id: 1, symbol: 'NVDA', name: 'NVIDIA' })
-      if (path === '/instruments/MSFT') return Promise.resolve({ id: 2, symbol: 'MSFT', name: 'Microsoft' })
       return Promise.resolve([])
+    })
+    apiPost.mockImplementation((path: string, body?: Record<string, unknown>) => {
+      if (path === '/instruments/resolve-canonical') {
+        expect(body).toEqual({ symbols: ['NVDA', 'MSFT'] })
+        return Promise.resolve({ resolved: [{ symbol: 'NVDA', instrument_id: 1 }, { symbol: 'MSFT', instrument_id: 2 }], missing: [] })
+      }
+      return Promise.resolve(response)
     })
     const wrapper = mount(MarketMapTool, { props: { configuration: { explicit_symbols: 'NVDA, MSFT' } } })
     await flushPromises()

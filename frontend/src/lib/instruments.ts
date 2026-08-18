@@ -17,6 +17,11 @@ export interface ResolvedInstrument {
   id: number | null
 }
 
+export interface CanonicalSymbolBatchResolution {
+  resolved: Array<{ symbol: string; instrument_id: number }>
+  missing: string[]
+}
+
 function parseApiStatus(message: string): number | null {
   const match = message.match(/→\s*(\d{3})\s*:/)
   return match ? Number(match[1]) : null
@@ -112,6 +117,28 @@ export async function resolveKnownInstrument(
     return { symbol: instrument.symbol, id: typeof instrument.id === 'number' ? instrument.id : null }
   } catch (error) {
     throw buildLookupError(raw, error, feature)
+  }
+}
+
+/** Resolve a bounded symbol set in one canonical-only request. */
+export async function resolveCanonicalSymbols(
+  rawSymbols: string[],
+  feature = 'Instrument',
+): Promise<ResolvedInstrument[]> {
+  const symbols = [...new Set(rawSymbols.map(value => value.trim().toUpperCase()).filter(Boolean))]
+  if (!symbols.length) return []
+  if (symbols.length > 500) throw new Error('A maximum of 500 canonical symbols can be selected at once.')
+  if (symbols.some(value => classifyInstrumentInput(value).kind !== 'symbol')) {
+    throw new Error(`${feature} selections must be plain ticker symbols.`)
+  }
+  try {
+    const result = await api.post<CanonicalSymbolBatchResolution>('/instruments/resolve-canonical', { symbols })
+    if (result.missing.length) throw new Error(`Could not resolve ${result.missing.join(', ')}`)
+    const bySymbol = new Map(result.resolved.map(item => [item.symbol.toUpperCase(), item.instrument_id]))
+    return symbols.map(symbol => ({ symbol, id: bySymbol.get(symbol) ?? null }))
+  } catch (error) {
+    if (error instanceof Error && error.message.startsWith('Could not resolve ')) throw error
+    throw buildLookupError(symbols.join(', '), error, feature)
   }
 }
 

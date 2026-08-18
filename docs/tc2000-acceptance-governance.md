@@ -22,6 +22,13 @@ versioning and exact V25 explicit-source visual geometry remain separate open ga
 The migration gate must also exercise upgrade/downgrade of `fa0b1c2d3e4f` and verify that a
 near-limit explicit source ID survives cache and snapshot persistence without truncation.
 
+The explicit-entry performance gate must verify one `POST /instruments/resolve-canonical` request
+for a multi-symbol selection, canonical ID order after duplicate removal, explicit missing-symbol
+reporting, and zero provider-discovery calls. A selection of 501 symbols must be rejected before
+database/provider work. The configured local PostgreSQL service was unavailable during the first
+implementation checkpoint, so live migration upgrade/downgrade evidence remains a final audit gap;
+the missing service must not be presented as a passing migration test.
+
 ## 2026-08-19 — Universal combo-source sub-gate
 
 Acceptance must treat a user-owned combo list as the same Market Map universe contract as an index,

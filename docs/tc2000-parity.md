@@ -19,6 +19,11 @@ The explicit source identifier storage was widened in migration `fa0b1c2d3e4f`; 
 backend retain the same 500-member bound so cache and snapshot persistence cannot truncate the
 canonical selection.
 
+Explicit entry now resolves through one bounded `POST /instruments/resolve-canonical` request rather
+than one GET per symbol. The response preserves input order after deduplication, returns canonical
+IDs and missing symbols separately, and is explicitly local/canonical-only; a missing symbol cannot
+trigger provider discovery or be silently omitted from the rendered universe.
+
 ## 2026-08-19 — Combo watchlists use the universal Market Map source contract
 
 User-owned combo lists are now exposed as `combo:<stable_key>` `WatchlistSource` descriptors. The

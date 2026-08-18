@@ -12,6 +12,7 @@ import {
   classifyInstrumentInput,
   ensureKnownInstrumentSymbol,
   formatInstrumentLookupError,
+  resolveCanonicalSymbols,
   resolveKnownInstrument,
 } from '@/lib/instruments'
 
@@ -45,5 +46,23 @@ describe('instrument helpers', () => {
     await expect(resolveKnownInstrument('nvda', 'Workstation symbol', { canonicalOnly: true }))
       .resolves.toEqual({ symbol: 'NVDA', id: 42 })
     expect(api.get).toHaveBeenCalledWith('/instruments/NVDA', { canonical_only: true })
+  })
+
+  it('resolves a bounded symbol batch through one canonical-only request', async () => {
+    vi.mocked(api.post).mockResolvedValue({
+      resolved: [{ symbol: 'NVDA', instrument_id: 42 }, { symbol: 'MSFT', instrument_id: 43 }],
+      missing: [],
+    })
+    await expect(resolveCanonicalSymbols(['nvda', 'MSFT', 'NVDA'], 'Explicit symbol'))
+      .resolves.toEqual([{ symbol: 'NVDA', id: 42 }, { symbol: 'MSFT', id: 43 }])
+    expect(api.post).toHaveBeenCalledWith('/instruments/resolve-canonical', { symbols: ['NVDA', 'MSFT'] })
+    expect(api.get).not.toHaveBeenCalled()
+  })
+
+  it('reports missing members without silently falling back to providers', async () => {
+    vi.mocked(api.post).mockResolvedValue({ resolved: [{ symbol: 'NVDA', instrument_id: 42 }], missing: ['MISSING'] })
+    await expect(resolveCanonicalSymbols(['NVDA', 'MISSING'], 'Explicit symbol'))
+      .rejects.toThrow('Could not resolve MISSING')
+    expect(api.get).not.toHaveBeenCalled()
   })
 })

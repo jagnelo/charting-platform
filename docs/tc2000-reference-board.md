@@ -9,6 +9,11 @@ saved lists and index/ETF sources. Functional resolution, deduplication, missing
 orchestration tests are the interim oracle; historical explicit membership and exact visual
 geometry remain tracked gaps.
 
+The current implementation resolves a multi-symbol entry through a single canonical batch request;
+the board has no authoritative visual reference for request progress, partial missing-symbol
+feedback, or the 500-member validation state. Those states remain functional/performance gaps for
+visual comparison, not reasons to invent a V25 appearance or silently accept provider fallback.
+
 ## 2026-08-19 universal derived-watchlist reference gap
 
 The board supports the product decision that a combo watchlist should render in the same dense

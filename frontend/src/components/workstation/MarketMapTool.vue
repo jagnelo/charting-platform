@@ -194,7 +194,7 @@ import { api } from '@/lib/api'
 import { useWatchlistStore } from '@/stores/watchlist'
 import { useUserSettingsStore } from '@/stores/userSettings'
 import { invalidateCodeAssets } from '@/lib/workstation/libraryQueries'
-import { resolveKnownInstrument } from '@/lib/instruments'
+import { resolveCanonicalSymbols } from '@/lib/instruments'
 import BreadthConditionTreeEditor, { type BreadthConditionNode } from './BreadthConditionTreeEditor.vue'
 import { deleteMarketMapSnapshot, fetchMarketMap, fetchMarketMapSnapshot, fetchMarketMapSnapshots, layoutMarketMapCells, saveMarketMapSnapshot, type MarketMapLayoutCell } from '@/lib/workstation/marketMap'
 import type { MarketMap, MarketMapAreaMetric, MarketMapCell, MarketMapColorMetric, MarketMapGroupBy, MarketMapNumericAreaField, MarketMapSnapshotSummary, WatchlistSource } from '@/types'
@@ -672,7 +672,7 @@ async function run() {
     if (explicitSymbols.value.trim()) {
       const symbols = [...new Set(explicitSymbols.value.split(/[\s,]+/).map(item => item.trim().toUpperCase()).filter(Boolean))]
       if (symbols.length > 500) throw new Error('Explicit Market Map selections are limited to 500 symbols; save a larger universe as a watchlist.')
-      const resolved = await Promise.all(symbols.map(symbol => resolveKnownInstrument(symbol, 'Explicit symbol', { canonicalOnly: true })))
+      const resolved = await resolveCanonicalSymbols(symbols, 'Explicit symbol')
       const ids = resolved.map(item => item.id)
       if (ids.some(id => id == null)) throw new Error('Every explicit symbol must resolve to a canonical instrument.')
       requestSourceId = `explicit:${ids.join(',')}`

@@ -11,8 +11,13 @@
       canonical security master before submitting IDs to the backend. Persist the input and make
       the ephemeral/non-point-in-time nature explicit; users can save the selection as a durable
       personal watchlist.
+- [x] Replace per-symbol resolution fan-out with one bounded `POST /instruments/resolve-canonical`
+      request. The endpoint deduplicates/order-preserves up to 500 local symbols, returns resolved
+      canonical IDs plus explicit missing symbols, and never discovers providers on a workstation
+      request.
 - [x] Add backend integration and Market Map component coverage for canonical resolution,
-      deduplication, locked provenance, and rendering.
+      deduplication, locked provenance, rendering, batch ordering, missing members, and the 500-ID
+      bound.
 - [x] Widen Market Map request/cache/snapshot source identifiers to retain the bounded 500-ID
       explicit selection without truncation (`fa0b1c2d3e4f`).
 - [ ] Continue explicit-selection durability/history beyond the personal-watchlist save path,

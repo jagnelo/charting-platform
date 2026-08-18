@@ -405,6 +405,62 @@ class ResolveExpressionOut(BaseModel):
     symbol: str
 
 
+class CanonicalSymbolResolutionBody(BaseModel):
+    """Bounded symbol batch used by provider-neutral workstation surfaces."""
+
+    symbols: list[str] = Field(min_length=1, max_length=500)
+
+
+class CanonicalSymbolResolution(BaseModel):
+    symbol: str
+    instrument_id: int
+
+
+class CanonicalSymbolResolutionOut(BaseModel):
+    resolved: list[CanonicalSymbolResolution]
+    missing: list[str]
+
+
+@router.post("/resolve-canonical", response_model=CanonicalSymbolResolutionOut)
+async def resolve_canonical_symbols(
+    body: CanonicalSymbolResolutionBody,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Resolve a bounded symbol set against the local security master only.
+
+    This endpoint deliberately has no provider fallback.  It is used when a user
+    turns an arbitrary symbol selection into a locked, ephemeral WatchlistSource;
+    callers can save that source as a personal watchlist when durable membership
+    is required.
+    """
+
+    del current_user  # authentication is still required; no user-specific lookup is needed
+    symbols: list[str] = []
+    for raw in body.symbols:
+        symbol = raw.strip().upper()
+        if symbol and symbol not in symbols:
+            symbols.append(symbol)
+    if not symbols:
+        raise HTTPException(status_code=422, detail={"code": "empty_symbol_batch"})
+
+    result = await db.execute(
+        select(Instrument.id, Instrument.symbol).where(
+            Instrument.symbol.in_(symbols),
+            Instrument.is_synthetic.is_(False),
+        )
+    )
+    by_symbol = {str(symbol).upper(): int(instrument_id) for instrument_id, symbol in result.all()}
+    return CanonicalSymbolResolutionOut(
+        resolved=[
+            CanonicalSymbolResolution(symbol=symbol, instrument_id=by_symbol[symbol])
+            for symbol in symbols
+            if symbol in by_symbol
+        ],
+        missing=[symbol for symbol in symbols if symbol not in by_symbol],
+    )
+
+
 @router.post("/resolve-expression", response_model=ResolveExpressionOut)
 async def resolve_expression(
     body: ResolveExpressionBody,
