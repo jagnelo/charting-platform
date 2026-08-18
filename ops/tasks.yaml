@@ -11695,3 +11695,42 @@ tasks:
       - >-
         Implementation/docs commit 26773105c69371be5edfb0afb07ac664266bba0b was pushed
         successfully. The separate operational checkpoint remains to be committed and pushed.
+  - id: tc2000-explicit-canonical-market-map-20260819
+    title: Treat explicit canonical-instrument selections as universal locked Market Map sources
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Let users enter a bounded set of symbols, resolve them through the canonical security master,
+      and render the resulting ephemeral locked universe through the same Market Map contract used
+      by index/ETF, group, combo, managed, and personal WatchlistSources. Keep the selection honest
+      as non-point-in-time and ephemeral until saved as a durable personal watchlist.
+    definition_of_done:
+      - Backend parses canonical explicit source IDs only, deduplicates them, preserves order, and rejects malformed or oversized input
+      - Missing canonical instruments are returned as explicit exclusions without provider fan-out
+      - Frontend resolves entered symbols canonically, persists the input, and submits the existing batch map request
+      - Explicit sources are visibly locked and explain the save-as-watchlist durability path
+      - Cache/snapshot source identifiers are wide enough for the 500-member bound with an upgrade/downgrade migration
+      - Focused, full frontend, type/build, backend lint/compile, and diff gates pass
+      - Remaining durability/history/cross-window and final V25 gaps remain documented
+    validation:
+      - watchlists-integration-33-of-33
+      - explicit-source-integration-1-of-1
+      - market-map-component-20-of-20
+      - frontend-vitest-879-of-879
+      - frontend-typecheck-build
+      - ruff-compileall-diff-check
+      - alembic-head-fa0b1c2d3e4f
+      - alembic-live-upgrade-unavailable-postgresql-not-running
+    notes:
+      - >-
+        No acceptance flexibility was used. A localized defect where an explicit-symbol-only
+        configuration did not auto-run was fixed at the owning lifecycle boundary, covered by the
+        focused component regression, and revalidated with the full frontend suite and production
+        build. The migration's live upgrade could not run because the configured local PostgreSQL
+        service refused the connection; offline SQL is also blocked by an existing earlier
+        migration's runtime inspection. This is an environment/migration-chain gap, not a hidden
+        product pass, and remains tracked for the final migration gate.
+      - >-
+        Implementation/docs commit and separate operational checkpoint are pending; no next
+        implementation context begins until both are pushed and the tree is clean.

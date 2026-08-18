@@ -1,5 +1,35 @@
 # Active Handoff
 
+## 2026-08-19 — Explicit canonical-instrument Market Map sources
+
+- Added an ephemeral `explicit:<canonical-id,...>` WatchlistSource. The backend accepts canonical
+  integer IDs only, deduplicates while preserving requested order, caps selections at 500, and
+  reports missing instruments as `canonical_instrument_not_found` exclusions. It performs no
+  provider lookup or per-member fan-out.
+- The authenticated Market Map accepts comma/space-separated symbols, resolves each through the
+  canonical security master with `canonicalOnly`, persists the entered symbols, and sends the
+  same existing batch/cache/snapshot/render/publication request used by every other source kind.
+  The picker labels the source `Locked`; the UI explains that saving a personal watchlist makes
+  the ephemeral selection durable.
+- Widened Market Map cache/snapshot `source_id` columns and request validation from 240 to 4096
+  characters and added migration `fa0b1c2d3e4f` with a reversible downgrade.
+- Validation passed: complete watchlists integration `33/33`; explicit-source integration `1/1`;
+  focused Market Map component `20/20`; full frontend Vitest `879/879`; `vue-tsc`; production
+  build; Ruff; compileall; YAML/JSON parsing; and `git diff --check`. Alembic reports head
+  `fa0b1c2d3e4f`.
+- Fix-first note: explicit-only persisted configuration originally failed to auto-run because the
+  lifecycle guard checked only a saved source ID. The guard now checks either source or explicit
+  input; the unchanged focused regression and full suite pass. No acceptance flexibility was used.
+- Environment gap: live `alembic upgrade head` was attempted with approved access but the configured
+  local PostgreSQL connection was refused. `alembic upgrade head --sql` is blocked by an existing
+  earlier migration calling runtime inspection in offline mode. This remains a migration/runtime
+  validation gap, not a product blocker or a claim of migration success.
+- Remaining gaps: durable explicit-source history and cross-window restoration, historical
+  point-in-time market-cap/weights, complete family/provider population, exact/unrepresented V25
+  visual states, and the final functional/security/performance/migration/end-to-end audit.
+- Current context is still open until the implementation commit and separate operational checkpoint
+  are committed, pushed, hash-verified, and the worktree is clean.
+
 ## 2026-08-17 — Universe-scoped performance-map requirement
 
 The active goal now includes a first-class workstation Market Map for the supplied Finviz-style

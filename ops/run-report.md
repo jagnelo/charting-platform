@@ -28648,3 +28648,23 @@ and strict visual gaps remain explicitly tracked.
   final acceptance remain open.
 - Implementation/docs commit `26773105c69371be5edfb0afb07ac664266bba0b` is committed and pushed;
   the separate operational checkpoint is required before the next implementation context.
+# 2026-08-19 — Explicit canonical-instrument Market Map sources
+
+- Implemented an ephemeral canonical-ID WatchlistSource for arbitrary user-selected symbol sets.
+  The backend uses `explicit:<ids>`, rejects malformed/non-positive/over-500 IDs, deduplicates and
+  preserves order, and exposes missing canonical instruments as exclusions. It reuses the existing
+  local Market Map batch path for grouping, metrics, coverage, cache, snapshots, and publication.
+- The frontend resolves typed symbols with canonical-only security-master calls, persists the input,
+  labels the source locked, and explains the durable save-as-watchlist path. Cache/snapshot source
+  columns and request validation now support the bounded 500-ID source; migration is reversible.
+- Evidence: watchlists integration `33/33`; explicit integration `1/1`; Market Map component `20/20`;
+  full Vitest `879/879`; `vue-tsc`; production build; Ruff; compileall; YAML/JSON; and diff-check.
+  Alembic head is `fa0b1c2d3e4f`.
+- Fix-first: repaired explicit-only auto-run lifecycle handling and reran focused/full frontend gates.
+  No acceptance flexibility or visual/provider/scope relaxation.
+- Live migration evidence is unavailable because the configured local PostgreSQL service refused the
+  connection. Offline SQL is blocked by an existing earlier migration's runtime inspection. Record
+  this as a final migration validation gap; do not present it as a successful upgrade.
+- Remaining open goal work: explicit durability/history/cross-window state, historical point-in-time
+  weights, complete family/provider population, exact/unrepresented V25 visual coverage, universal
+  Python promotion fan-out, and final acceptance/security/performance audit.
