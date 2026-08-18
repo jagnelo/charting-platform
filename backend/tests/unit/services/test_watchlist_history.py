@@ -1,3 +1,4 @@
+from datetime import UTC, datetime
 from types import SimpleNamespace
 
 import pytest
@@ -95,5 +96,82 @@ async def test_watchlist_history_plan_retains_unavailable_source(monkeypatch):
             "excluded_count": 0,
             "membership_version": None,
             "message": "watchlist:missing is not visible",
+        }
+    ]
+
+
+@pytest.mark.asyncio
+async def test_watchlist_history_status_uses_local_coverage_and_worker_progress(monkeypatch):
+    async def fake_plan(*_args, **_kwargs):
+        return {
+            "source_ids": ["benchmark-family:sp500:cap_weight"],
+            "timeframes": ["D1"],
+            "as_of": None,
+            "max_instruments": 5000,
+            "instrument_ids": [10, 20],
+            "available_instrument_count": 2,
+            "selected_instrument_count": 2,
+            "limited": False,
+            "sources": [
+                {
+                    "source_id": "benchmark-family:sp500:cap_weight",
+                    "source_kind": "index_membership",
+                    "name": "S&P 500 — Cap weight",
+                    "locked": True,
+                    "excluded_count": 1,
+                    "membership_version": "sp500-v1",
+                    "message": None,
+                }
+            ],
+        }
+
+    class FakeDB:
+        def __init__(self):
+            self.calls = 0
+
+        async def execute(self, _statement):
+            self.calls += 1
+
+            class FakeResult:
+                def all(self_inner):
+                    if self.calls == 1:
+                        return [
+                            SimpleNamespace(
+                                timeframe=SimpleNamespace(value="D1"),
+                                covered_count=1,
+                                bar_count=250,
+                                oldest=datetime(2024, 1, 2, tzinfo=UTC),
+                                newest=datetime(2025, 1, 2, tzinfo=UTC),
+                            )
+                        ]
+                    return [(10, SimpleNamespace(value="D1"))]
+
+            return FakeResult()
+
+    monkeypatch.setattr(history, "plan_watchlist_source_history_refresh", fake_plan)
+    status = await history.build_watchlist_source_history_status(
+        FakeDB(),
+        42,
+        source_id="benchmark-family:sp500:cap_weight",
+        progress_by_instrument={20: {"status": "in_progress", "results": {}}},
+    )
+
+    assert status["locked"] is True
+    assert status["overall_status"] == "fetching"
+    assert status["selected_instrument_count"] == 2
+    assert status["excluded_count"] == 1
+    assert status["timeframes"] == [
+        {
+            "timeframe": "D1",
+            "member_count": 2,
+            "covered_member_count": 1,
+            "coverage_percent": 50.0,
+            "bar_count": 250,
+            "oldest": datetime(2024, 1, 2, tzinfo=UTC),
+            "newest": datetime(2025, 1, 2, tzinfo=UTC),
+            "in_progress_count": 1,
+            "complete_count": 0,
+            "failed_count": 0,
+            "pending_count": 0,
         }
     ]

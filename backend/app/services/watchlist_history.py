@@ -12,9 +12,10 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.ohlcv import Timeframe
+from app.models.ohlcv import OHLCVBar, Timeframe
 from app.services.watchlist_sources import resolve_watchlist_source
 
 DEFAULT_HISTORY_TIMEFRAMES = (Timeframe.MN.value, Timeframe.W1.value, Timeframe.D1.value)
@@ -153,4 +154,135 @@ async def plan_watchlist_source_history_refresh(
         "selected_instrument_count": len(selected_ids),
         "limited": limited,
         "sources": sources,
+    }
+
+
+async def build_watchlist_source_history_status(
+    db: AsyncSession,
+    user_id: int,
+    *,
+    source_id: str,
+    as_of: datetime | None = None,
+    max_instruments: int = MAX_HISTORY_INSTRUMENTS,
+    timeframes: list[str] | None = None,
+    progress_by_instrument: dict[int, dict] | None = None,
+) -> dict[str, Any]:
+    """Summarize local bar coverage and worker progress for one canonical source.
+
+    This is deliberately a read-only local status calculation.  It reuses the same
+    resolver/planner as the history-refresh endpoint, so an arbitrary personal list,
+    locked index/ETF source, combo, or explicit selection has identical membership and
+    point-in-time semantics.  ``progress_by_instrument`` is supplied by the router from
+    the existing Redis progress records; the service itself never contacts a provider.
+    """
+
+    plan = await plan_watchlist_source_history_refresh(
+        db,
+        user_id,
+        source_ids=[source_id],
+        as_of=as_of,
+        max_instruments=max_instruments,
+        timeframes=timeframes,
+    )
+    normalized_timeframes = [Timeframe(value) for value in plan["timeframes"]]
+    instrument_ids = list(plan["instrument_ids"])
+    bar_query = select(
+        OHLCVBar.timeframe,
+        func.count(func.distinct(OHLCVBar.instrument_id)).label("covered_count"),
+        func.count(OHLCVBar.id).label("bar_count"),
+        func.min(OHLCVBar.ts).label("oldest"),
+        func.max(OHLCVBar.ts).label("newest"),
+    ).where(
+        OHLCVBar.instrument_id.in_(instrument_ids),
+        OHLCVBar.timeframe.in_(normalized_timeframes),
+        OHLCVBar.is_adjusted.is_(True),
+    )
+    if as_of is not None:
+        bar_query = bar_query.where(OHLCVBar.ts <= as_of)
+    bar_rows = (
+        (await db.execute(bar_query.group_by(OHLCVBar.timeframe))).all() if instrument_ids else []
+    )
+    bars_by_timeframe = {row.timeframe.value: row for row in bar_rows}
+    covered_rows = (
+        (
+            await db.execute(
+                select(OHLCVBar.instrument_id, OHLCVBar.timeframe)
+                .where(
+                    OHLCVBar.instrument_id.in_(instrument_ids),
+                    OHLCVBar.timeframe.in_(normalized_timeframes),
+                    OHLCVBar.is_adjusted.is_(True),
+                    *([OHLCVBar.ts <= as_of] if as_of is not None else []),
+                )
+                .distinct()
+            )
+        ).all()
+        if instrument_ids
+        else []
+    )
+    covered_instruments_by_timeframe: dict[str, set[int]] = {}
+    for instrument_id, timeframe in covered_rows:
+        covered_instruments_by_timeframe.setdefault(timeframe.value, set()).add(instrument_id)
+    progress_by_instrument = progress_by_instrument or {}
+    timeframe_statuses: list[dict[str, Any]] = []
+    for timeframe in normalized_timeframes:
+        row = bars_by_timeframe.get(timeframe.value)
+        covered_count = int(row.covered_count) if row is not None else 0
+        covered_instruments = covered_instruments_by_timeframe.get(timeframe.value, set())
+        progress_counts = {"in_progress": 0, "complete": 0, "failed": 0, "pending": 0}
+        for instrument_id in instrument_ids:
+            progress = progress_by_instrument.get(instrument_id)
+            result = (progress or {}).get("results", {}).get(timeframe.value)
+            if (progress or {}).get("status") == "in_progress" and result is None:
+                progress_counts["in_progress"] += 1
+            elif isinstance(result, str) and result.startswith("error:"):
+                progress_counts["failed"] += 1
+            elif result is not None or (progress or {}).get("status") == "complete":
+                progress_counts["complete"] += 1
+            elif instrument_id not in covered_instruments:
+                progress_counts["pending"] += 1
+        coverage_percent = (
+            round((covered_count / len(instrument_ids)) * 100, 2) if instrument_ids else 0.0
+        )
+        timeframe_statuses.append(
+            {
+                "timeframe": timeframe.value,
+                "member_count": len(instrument_ids),
+                "covered_member_count": covered_count,
+                "coverage_percent": coverage_percent,
+                "bar_count": int(row.bar_count) if row is not None else 0,
+                "oldest": row.oldest if row is not None else None,
+                "newest": row.newest if row is not None else None,
+                **{f"{key}_count": value for key, value in progress_counts.items()},
+            }
+        )
+
+    if not instrument_ids:
+        overall_status = "unavailable"
+    elif all(item["covered_member_count"] == len(instrument_ids) for item in timeframe_statuses):
+        overall_status = "ready"
+    elif any(item["in_progress_count"] for item in timeframe_statuses):
+        overall_status = "fetching"
+    elif any(item["failed_count"] for item in timeframe_statuses):
+        overall_status = "failed"
+    elif any(item["covered_member_count"] for item in timeframe_statuses):
+        overall_status = "partial"
+    else:
+        overall_status = "pending"
+
+    source = plan["sources"][0]
+    return {
+        "source_id": source_id,
+        "source_kind": source.get("source_kind"),
+        "name": source.get("name") or source_id,
+        "locked": bool(source.get("locked")),
+        "membership_version": source.get("membership_version"),
+        "as_of": as_of,
+        "max_instruments": max_instruments,
+        "available_instrument_count": plan["available_instrument_count"],
+        "selected_instrument_count": plan["selected_instrument_count"],
+        "limited": plan["limited"],
+        "excluded_count": source.get("excluded_count", 0),
+        "overall_status": overall_status,
+        "timeframes": timeframe_statuses,
+        "message": source.get("message"),
     }

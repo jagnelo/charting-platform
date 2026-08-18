@@ -20,11 +20,15 @@ from app.schemas.watchlist import (
     WatchlistRead,
     WatchlistSourceHistoryRefreshRequest,
     WatchlistSourceHistoryRefreshSummary,
+    WatchlistSourceHistoryStatus,
     WatchlistSourceMemberRead,
     WatchlistSourceRead,
     WatchlistSourceResolvedRead,
 )
-from app.services.watchlist_history import plan_watchlist_source_history_refresh
+from app.services.watchlist_history import (
+    build_watchlist_source_history_status,
+    plan_watchlist_source_history_refresh,
+)
 from app.services.watchlist_sources import list_watchlist_sources, resolve_watchlist_source
 
 router = APIRouter(prefix="/watchlists", tags=["watchlists"])
@@ -38,6 +42,70 @@ async def get_watchlist_sources(
     """List every selectable universe through one watchlist-source contract."""
 
     return await list_watchlist_sources(db, current_user)
+
+
+@router.get(
+    "/sources/history-status/{source_id:path}",
+    response_model=WatchlistSourceHistoryStatus,
+)
+async def get_watchlist_source_history_status(
+    source_id: str,
+    timeframes: list[str] | None = Query(default=None),
+    as_of: datetime | None = Query(default=None),
+    max_instruments: int = Query(default=5000, ge=1, le=5000),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Return local coverage and existing worker progress for one source.
+
+    This endpoint is intentionally a status read.  It never starts a provider request;
+    callers use ``POST /sources/history-refresh`` when they explicitly want hydration.
+    The path is source-polymorphic so locked index/ETF/sector/industry sources and
+    editable personal/combo/explicit sources expose the same readiness contract.
+    """
+
+    from arq.connections import RedisSettings, create_pool
+
+    from app.config import settings
+    from app.services.bulk_fetch import get_fetch_progress
+
+    try:
+        plan = await plan_watchlist_source_history_refresh(
+            db,
+            current_user.id,
+            source_ids=[source_id],
+            as_of=as_of,
+            max_instruments=max_instruments,
+            timeframes=timeframes,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    progress_by_instrument: dict[int, dict] = {}
+    if plan["instrument_ids"]:
+        try:
+            redis = await create_pool(RedisSettings.from_dsn(settings.REDIS_URL))
+            try:
+                for instrument_id in plan["instrument_ids"]:
+                    progress = await get_fetch_progress(instrument_id, redis)
+                    if progress is not None:
+                        progress_by_instrument[instrument_id] = progress
+            finally:
+                await redis.aclose()
+        except Exception:
+            # Coverage remains useful when Redis is unavailable; the response simply
+            # omits live worker progress rather than turning a local read into an error.
+            progress_by_instrument = {}
+
+    return await build_watchlist_source_history_status(
+        db,
+        current_user.id,
+        source_id=source_id,
+        as_of=as_of,
+        max_instruments=max_instruments,
+        timeframes=timeframes,
+        progress_by_instrument=progress_by_instrument,
+    )
 
 
 @router.get("/sources/{source_id:path}", response_model=WatchlistSourceResolvedRead)

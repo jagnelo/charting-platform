@@ -1,3 +1,4 @@
+import json
 from datetime import UTC, datetime, timedelta
 
 import pytest
@@ -1159,6 +1160,60 @@ class TestWatchlistsCrud:
             instrument.id,
             ["D1"],
         )
+
+    def test_source_history_status_reports_coverage_and_worker_progress(
+        self, client, auth_headers, db, watchlist, instrument, instrument_b, ohlcv_bars, monkeypatch
+    ):
+        from app.models.watchlist import WatchlistItem
+
+        db.add(
+            WatchlistItem(watchlist_id=watchlist.id, instrument_id=instrument.id, position=0)
+        )
+        db.add(
+            WatchlistItem(watchlist_id=watchlist.id, instrument_id=instrument_b.id, position=1)
+        )
+        db.flush()
+
+        class FakeRedis:
+            async def get(self, key):
+                if str(instrument_b.id) in str(key):
+                    return json.dumps({"status": "in_progress", "results": {}})
+                return None
+
+            async def aclose(self):
+                return None
+
+        async def fake_create_pool(*_args, **_kwargs):
+            return FakeRedis()
+
+        monkeypatch.setattr("arq.connections.create_pool", fake_create_pool)
+        response = client.get(
+            f"/api/v1/watchlists/sources/history-status/watchlist:{watchlist.id}",
+            headers=auth_headers,
+            params={"timeframes": "D1"},
+        )
+
+        assert response.status_code == 200, response.text
+        body = response.json()
+        assert body["source_id"] == f"watchlist:{watchlist.id}"
+        assert body["locked"] is False
+        assert body["overall_status"] == "fetching"
+        assert body["selected_instrument_count"] == 2
+        assert body["timeframes"] == [
+            {
+                "timeframe": "D1",
+                "member_count": 2,
+                "covered_member_count": 1,
+                "coverage_percent": 50.0,
+                "bar_count": len(ohlcv_bars),
+                "oldest": ohlcv_bars[0].ts.isoformat().replace("+00:00", "Z"),
+                "newest": ohlcv_bars[-1].ts.isoformat().replace("+00:00", "Z"),
+                "in_progress_count": 1,
+                "complete_count": 0,
+                "failed_count": 0,
+                "pending_count": 0,
+            }
+        ]
 
     def test_benchmark_family_leg_sources_feed_the_same_map_and_breadth_contract(
         self, client, auth_headers, db, instrument, instrument_type, ohlcv_bars

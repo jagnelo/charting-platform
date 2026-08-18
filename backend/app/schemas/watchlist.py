@@ -130,3 +130,34 @@ class WatchlistSourceHistoryRefreshSummary(BaseModel):
     queue_unavailable: bool = False
     sources: list[WatchlistSourceHistoryRefreshSourceOut] = Field(default_factory=list)
     message: str | None = None
+
+
+class WatchlistSourceHistoryTimeframeStatus(BaseModel):
+    timeframe: str
+    member_count: int = 0
+    covered_member_count: int = 0
+    coverage_percent: float = 0.0
+    bar_count: int = 0
+    oldest: datetime | None = None
+    newest: datetime | None = None
+    in_progress_count: int = 0
+    complete_count: int = 0
+    failed_count: int = 0
+    pending_count: int = 0
+
+
+class WatchlistSourceHistoryStatus(BaseModel):
+    source_id: str
+    source_kind: str | None = None
+    name: str
+    locked: bool = False
+    membership_version: str | None = None
+    as_of: datetime | None = None
+    max_instruments: int
+    available_instrument_count: int = 0
+    selected_instrument_count: int = 0
+    limited: bool = False
+    excluded_count: int = 0
+    overall_status: str
+    timeframes: list[WatchlistSourceHistoryTimeframeStatus] = Field(default_factory=list)
+    message: str | None = None
