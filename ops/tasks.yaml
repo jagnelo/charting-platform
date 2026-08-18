@@ -1,4 +1,29 @@
 tasks:
+  - id: tc2000-family-role-fixture-acceptance-20260819
+    title: Exercise every benchmark-family leg through universal watchlists
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Extend the opt-in browser fixture from the original SPY/sector subset to every configured
+      available S&P/Russell/Nasdaq cap/equal/value/growth role, then verify each role through the
+      shared locked WatchlistSource, Market Map, and breadth contracts.
+    definition_of_done:
+      - Controlled fixture proxy identities are derived from the canonical taxonomy
+      - Every configured direct or permitted derived-equal role has labelled bars/profile/holdings coverage
+      - Endpoint acceptance iterates all available roles through listing, as-of resolution, Market Map, and breadth
+      - Provider-backed population, historical continuity, and exact V25 family-leg visual states remain tracked
+    validation:
+      - backend-family-role-matrix-integration-1-of-1
+      - backend-watchlists-workspaces-taxonomy-suite-103-of-103
+      - backend-ruff-compileall
+      - git-diff-check
+    notes:
+      - >-
+        Controlled fixture data is explicitly not live membership. No acceptance flexibility was
+        used; exact source-picker, unavailable-role, derived-weight, and revision visuals remain
+        reference-board gaps.
+
   - id: tc2000-benchmark-family-locked-sources-20260819
     title: Expose benchmark-family legs as universal locked watchlist sources
     status: completed

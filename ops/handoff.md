@@ -1,5 +1,20 @@
 # Active Handoff
 
+## 2026-08-19 — Full benchmark-family fixture acceptance
+
+- Extended the opt-in controlled browser fixture from the original SPY/sector subset to every
+  configured available S&P 500/400/600/1500, Russell 1000/2000/3000, and Nasdaq 100 cap/equal/
+  value/growth proxy leg. Identities are derived from `benchmark_family_proxy_symbols()`;
+  deterministic bars, profiles, and dated holdings remain explicitly `controlled_fixture` data.
+- Added endpoint-level acceptance that lists, resolves historically, maps, and breadth-evaluates
+  every available `benchmark-family:<family>:<role>` source. The focused matrix passed `1/1`; the
+  affected watchlists/workspaces/taxonomy suite passed `103/103`, with Ruff, compileall, and
+  `git diff --check` passing.
+- Implementation commit `afddaa73` is pushed. Docs/ops checkpoint and state closure are next.
+- No acceptance flexibility was used. This closes controlled-fixture coverage only; real
+  provider-backed population, historical continuity, quality reconciliation, and exact V25
+  source-picker/locked-list/unavailable/derived-weight/revision visuals remain explicit gaps.
+
 ## 2026-08-19 — Point-in-time flag repair after source context closure
 
 - Repaired the direct benchmark-family derived-equal breadth branch so it passes `as_of` to the

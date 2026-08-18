@@ -1,5 +1,14 @@
 # TC2000 Version 25 composite reference board
 
+## 2026-08-19 — Universal family-role acceptance coverage
+
+The controlled reference environment now represents every configured, available benchmark-family
+leg as a locked WatchlistSource so the Market Map and breadth acceptance path can be exercised
+across all S&P/Russell/Nasdaq roots and roles. This improves the browsable product vision's
+functional coverage without inventing a visual claim: the family source-picker, unavailable-role,
+derived-weight, and membership-revision states still have no exact-build V25 capture and remain
+tracked as board gaps.
+
 ## 2026-08-19 family-leg source composition gap narrowed
 
 The board supports a single dense heatmap language for arbitrary lists, but it does not show the

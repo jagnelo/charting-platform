@@ -1,5 +1,18 @@
 # Run Report
 
+## 2026-08-19 — Full benchmark-family fixture acceptance
+
+- The controlled browser fixture now derives every configured benchmark-family proxy identity and
+  supplies deterministic bars, ETF profiles, and point-in-time holdings for each available direct
+  or permitted derived-equal role across the S&P, Russell, and Nasdaq families.
+- A new endpoint acceptance iterates every available role through locked source listing, historical
+  resolution, Market Map, and generic breadth. The focused matrix passed `1/1`; the complete
+  affected watchlists/workspaces/taxonomy suite passed `103/103`.
+- Ruff, compileall, and `git diff --check` passed. Implementation `afddaa73` is pushed. No
+  acceptance flexibility or visual threshold/mask change was used.
+- This remains controlled-fixture coverage, not live membership evidence. Provider population,
+  historical continuity/reconciliation, and exact V25 family-leg visual states remain open.
+
 ## 2026-08-19 — Closed family breadth point-in-time mismatch
 
 - Corrected direct derived-equal benchmark-family breadth to honor the universe's

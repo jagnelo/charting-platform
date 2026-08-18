@@ -18,8 +18,10 @@ the user while follow/clone and linked publication remain available. A permitted
 leg must use the declared point-in-time constituent set, equal weights, explicit methodology, and
 the same source/cache lineage; an absent role must remain visibly unavailable with no substitution.
 
-The current interim oracle is the locked-family source regression plus the complete affected
-watchlists/workspaces integration suites (`88/88`). Exact Version 25 source-picker geometry,
+The current interim oracle is the all-role family matrix regression plus the complete affected
+watchlists/workspaces/taxonomy suite (`103/103`). Its opt-in browser data is explicitly labelled
+controlled fixture data and proves source-contract coverage, not live membership truth. Exact
+Version 25 source-picker geometry,
 labels, badges, follow/clone placement, derived-weight disclosure, and unavailable-role visuals
 remain reference-board gaps and must stay in the gap ledger until represented by reviewed evidence.
 

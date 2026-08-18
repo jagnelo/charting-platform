@@ -1,5 +1,20 @@
 # Project TODO Memory
 
+### 2026-08-19 — Full benchmark-family fixture acceptance through universal watchlists
+
+- [x] Derive the opt-in browser fixture's benchmark proxy identities from the canonical taxonomy,
+      covering every configured S&P 500/400/600/1500, Russell 1000/2000/3000, and Nasdaq 100
+      cap/equal/value/growth leg that has a declared proxy or permitted derived-equal method.
+- [x] Seed controlled, provenance-labelled daily bars, ETF profiles, and point-in-time holdings
+      for those family legs so the authenticated workstation can exercise the same locked source
+      catalog rather than silently falling back to the original SPY/sector subset.
+- [x] Add endpoint-level acceptance that iterates every available family role through source
+      listing, historical resolution, Market Map, and generic breadth; the complete affected
+      watchlists/workspaces/taxonomy suite passes `103/103`, plus Ruff, compileall, and diff check.
+- [ ] This closes controlled-fixture coverage only. Real provider-backed population, historical
+      composition continuity, source-quality reconciliation, and exact Version 25 source-picker,
+      unavailable-role, derived-weight, and revision visuals remain explicit gaps.
+
 ### 2026-08-19 — Family breadth honors source point-in-time policy
 
 - [x] Align the direct `benchmark_family` derived-equal breadth path with every other universe:

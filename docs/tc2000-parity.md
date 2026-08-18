@@ -1,5 +1,18 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-19 — Family-role source matrix is represented in controlled acceptance
+
+The opt-in browser fixture now derives its benchmark proxy identities from the canonical family
+registry and supplies labelled bars, profiles, and dated holdings for every configured available
+cap/equal/value/growth role across the S&P, Russell, and Nasdaq families. An endpoint-level test
+iterates the complete available source matrix through locked source listing, historical resolution,
+Market Map, and generic breadth; the affected backend suite passes `103/103`.
+
+This is controlled-fixture coverage, not a claim that the free-source production database is fully
+populated or that the fixture holdings represent live index membership. Provider-backed population,
+historical continuity, quality reconciliation, and exact Version 25 family-picker/locked-list,
+unavailable-role, derived-weight, and revision visuals remain open and are not hidden by this test.
+
 ## 2026-08-19 — Family breadth respects current versus point-in-time mode
 
 The direct benchmark-family derived-equal breadth path now applies the requested `as_of` only
