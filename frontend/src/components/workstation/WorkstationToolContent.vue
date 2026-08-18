@@ -725,7 +725,7 @@
           <label>As of <select :value="familyAsOf" aria-label="Family analysis as of" @change="setBreadthConfiguration({ as_of: (($event.target as HTMLSelectElement).value || null) })"><option value="">Latest</option><option v-for="date in familyCoverageDates" :key="date" :value="familyAsOfValue(date)">{{ date }}</option></select></label>
           <div class="breadth-tool__family-coverage-roles">
             <span v-for="role in familyCoverage.roles" :key="role.role">
-              <b>{{ familyRoleLabel(role.role) }}</b> {{ role.symbol ?? role.label }} · {{ role.status }} · {{ role.snapshots.length }} date{{ role.snapshots.length === 1 ? '' : 's' }}
+              <b>{{ familyRoleLabel(role.role) }}</b> {{ role.symbol ?? role.label }} · {{ role.status }} · {{ role.snapshots.length }} date{{ role.snapshots.length === 1 ? '' : 's' }} · {{ familyContinuityLabel(role) }}
             </span>
           </div>
         </div>
@@ -2165,6 +2165,18 @@ function familyMappingState(mapping: { symbol: string | null; label: string; ver
   if (!mapping.symbol) return 'No verified mapped proxy'
   if (!mapping.holdings_available) return `${mapping.verification_state} · holdings unavailable`
   return `${mapping.holdings_completeness_status ?? 'holdings available'} · ${mapping.verification_state}`
+}
+function familyContinuityLabel(role: { continuity_status?: string; continuity_gap_count?: number; continuity_max_interval_days?: number | null; continuity_snapshot_limit_reached?: boolean; snapshots: unknown[] }) {
+  const status = role.continuity_status ?? (role.snapshots.length > 1 ? 'observed_continuity' : role.snapshots.length === 1 ? 'single_snapshot' : 'no_snapshot')
+  const labels: Record<string, string> = {
+    not_applicable: 'continuity n/a',
+    no_snapshot: 'no continuity evidence',
+    single_snapshot: 'single disclosure',
+    observed_continuity: 'observed continuity',
+    gapped: `gapped${role.continuity_gap_count ? ` · ${role.continuity_gap_count} gap${role.continuity_gap_count === 1 ? '' : 's'}` : ''}${role.continuity_max_interval_days ? ` · max ${role.continuity_max_interval_days}d` : ''}`,
+  }
+  const label = labels[status] ?? status
+  return role.continuity_snapshot_limit_reached ? `${label} · window capped` : label
 }
 function latestFamilyRatio(ratio: { points: Array<{ value: number }> }) {
   const value = ratio.points.length ? ratio.points[ratio.points.length - 1]?.value : undefined

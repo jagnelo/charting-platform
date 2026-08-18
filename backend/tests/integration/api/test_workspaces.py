@@ -561,6 +561,13 @@ class TestWorkspaces:
             "2027-06-30",
             "2026-06-30",
         ]
+        assert roles["cap_weight"]["continuity_status"] == "gapped"
+        assert roles["cap_weight"]["continuity_gap_count"] == 1
+        assert roles["cap_weight"]["continuity_max_interval_days"] == 365
+        assert roles["cap_weight"]["continuity_gaps"] == [
+            {"from_date": "2026-06-30", "to_date": "2027-06-30", "interval_days": 365}
+        ]
+        assert roles["cap_weight"]["continuity_snapshot_limit_reached"] is False
         assert roles["equal_weight"]["status"] == "mapping_unavailable"
         assert roles["value"]["status"] == "mapping_unavailable"
         assert roles["growth"]["status"] == "mapping_unavailable"
@@ -576,7 +583,10 @@ class TestWorkspaces:
             role for role in historical.json()["roles"] if role["role"] == "cap_weight"
         )
         assert [row["composition_date"] for row in historical_cap["snapshots"]] == ["2026-06-30"]
+        assert historical_cap["continuity_status"] == "single_snapshot"
+        assert historical_cap["continuity_gap_count"] == 0
         assert historical.json()["universe_provenance"]["point_in_time"] is True
+        assert historical.json()["universe_provenance"]["continuity_policy"] == "observed_snapshot_intervals_gt_45_days"
 
     def test_benchmark_family_constituent_route_preserves_leg_and_proxy_errors(
         self, client, auth_headers, db, instrument, instrument_type, ohlcv_bars

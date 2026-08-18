@@ -308,6 +308,14 @@ class BenchmarkFamilyCoverageSnapshotOut(BaseModel):
     unresolved_count: int
 
 
+class BenchmarkFamilyCoverageGapOut(BaseModel):
+    """An observed composition-date interval wider than the continuity policy."""
+
+    from_date: date
+    to_date: date
+    interval_days: int = Field(ge=1)
+
+
 class BenchmarkFamilyCoverageRoleOut(BaseModel):
     """Historical holdings coverage for one independently mapped family role."""
 
@@ -322,6 +330,11 @@ class BenchmarkFamilyCoverageRoleOut(BaseModel):
     available: bool = False
     status: str
     snapshots: list[BenchmarkFamilyCoverageSnapshotOut] = Field(default_factory=list)
+    continuity_status: str = "no_snapshot"
+    continuity_gap_count: int = Field(default=0, ge=0)
+    continuity_max_interval_days: int | None = Field(default=None, ge=1)
+    continuity_gaps: list[BenchmarkFamilyCoverageGapOut] = Field(default_factory=list)
+    continuity_snapshot_limit_reached: bool = False
 
 
 class BenchmarkFamilyCoverageOut(AnalysisResponseMetadata):

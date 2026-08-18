@@ -517,6 +517,12 @@ export interface BenchmarkFamilyCoverageSnapshotState {
   unresolved_count: number
 }
 
+export interface BenchmarkFamilyCoverageGapState {
+  from_date: string
+  to_date: string
+  interval_days: number
+}
+
 export interface BenchmarkFamilyCoverageRoleState {
   role: BenchmarkFamilyMappingState['role']
   symbol?: string | null
@@ -526,6 +532,11 @@ export interface BenchmarkFamilyCoverageRoleState {
   available: boolean
   status: string
   snapshots: BenchmarkFamilyCoverageSnapshotState[]
+  continuity_status?: 'not_applicable' | 'no_snapshot' | 'single_snapshot' | 'observed_continuity' | 'gapped' | string
+  continuity_gap_count?: number
+  continuity_max_interval_days?: number | null
+  continuity_gaps?: BenchmarkFamilyCoverageGapState[]
+  continuity_snapshot_limit_reached?: boolean
 }
 
 export interface BenchmarkFamilyCoverageState {

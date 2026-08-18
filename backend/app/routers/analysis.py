@@ -50,6 +50,7 @@ from app.schemas.analysis import (
     BenchmarkFamilyConcentrationMemberOut,
     BenchmarkFamilyConcentrationOut,
     BenchmarkFamilyConcentrationRoleOut,
+    BenchmarkFamilyCoverageGapOut,
     BenchmarkFamilyCoverageOut,
     BenchmarkFamilyCoverageRoleOut,
     BenchmarkFamilyCoverageSnapshotOut,
@@ -114,6 +115,10 @@ from app.schemas.market_map import (
     MarketMapSnapshotCreate,
     MarketMapSnapshotOut,
     MarketMapSnapshotSummary,
+)
+from app.services.benchmark_family_coverage import (
+    OBSERVED_CONTINUITY_MAX_INTERVAL_DAYS,
+    assess_observed_holdings_continuity,
 )
 from app.services.breadth import (
     BreadthMember,
@@ -3323,6 +3328,9 @@ async def benchmark_family_coverage(
         instrument = instruments.get(symbol) if symbol else None
         profile = profiles.get(instrument.id) if instrument is not None else None
         snapshots: list[BenchmarkFamilyCoverageSnapshotOut] = []
+        continuity_status = "not_applicable"
+        continuity_gaps: list[BenchmarkFamilyCoverageGapOut] = []
+        continuity_snapshot_limit_reached = False
         if instrument is None:
             status = "mapping_unavailable"
             exclusions.append(
@@ -3351,6 +3359,7 @@ async def benchmark_family_coverage(
                 .scalars()
                 .all()
             )
+            continuity_snapshot_limit_reached = len(rows) >= limit
             snapshots = [
                 BenchmarkFamilyCoverageSnapshotOut(
                     snapshot_id=row.id,
@@ -3367,6 +3376,18 @@ async def benchmark_family_coverage(
                 )
                 for row in rows
             ]
+            continuity = assess_observed_holdings_continuity(
+                [snapshot.composition_date for snapshot in snapshots],
+            )
+            continuity_status = continuity.status
+            continuity_gaps = [
+                BenchmarkFamilyCoverageGapOut(
+                    from_date=gap.from_date,
+                    to_date=gap.to_date,
+                    interval_days=gap.interval_days,
+                )
+                for gap in continuity.gaps
+            ]
             status = "available" if snapshots else "no_snapshot"
             if snapshots:
                 covered_roles += 1
@@ -3375,6 +3396,19 @@ async def benchmark_family_coverage(
                     AnalysisWarning(
                         code="family_role_holdings_unavailable",
                         message=f"No dated holdings snapshot is available for {family_key} {role}.",
+                        instrument_id=instrument.id,
+                    )
+                )
+            if continuity_gaps:
+                exclusions.append(
+                    AnalysisWarning(
+                        code="family_role_holdings_continuity_gap",
+                        message=(
+                            f"Observed {family_key} {role} holdings disclosures contain "
+                            f"{len(continuity_gaps)} interval(s) wider than "
+                            f"{OBSERVED_CONTINUITY_MAX_INTERVAL_DAYS} days; this is not "
+                            "proof of complete rebalance history."
+                        ),
                         instrument_id=instrument.id,
                     )
                 )
@@ -3391,6 +3425,13 @@ async def benchmark_family_coverage(
                 available=instrument is not None,
                 status=status,
                 snapshots=snapshots,
+                continuity_status=continuity_status,
+                continuity_gap_count=len(continuity_gaps),
+                continuity_max_interval_days=(
+                    max((gap.interval_days for gap in continuity_gaps), default=None)
+                ),
+                continuity_gaps=continuity_gaps,
+                continuity_snapshot_limit_reached=continuity_snapshot_limit_reached,
             )
         )
 
@@ -3406,6 +3447,8 @@ async def benchmark_family_coverage(
             **_group_provenance(group, as_of),
             "family_key": family_key,
             "coverage_semantics": "role_independent_dated_holdings_snapshots",
+            "continuity_policy": "observed_snapshot_intervals_gt_45_days",
+            "continuity_semantics": "diagnostic_of_returned_snapshot_dates_only",
             "point_in_time": as_of is not None,
             "snapshot_limit": limit,
         },

@@ -377,7 +377,7 @@ describe('workspace store layout tabs', () => {
       official_index_symbol: 'SPX',
       coverage: 0.25,
       roles: [
-        { role: 'cap_weight', symbol: 'SPY', status: 'available', snapshots: [{ snapshot_id: 1, composition_date: '2026-06-30' }] },
+        { role: 'cap_weight', symbol: 'SPY', status: 'available', snapshots: [{ snapshot_id: 1, composition_date: '2026-06-30' }], continuity_status: 'single_snapshot' },
         { role: 'equal_weight', symbol: null, status: 'mapping_unavailable', snapshots: [] },
       ],
       exclusions: [],
@@ -388,6 +388,7 @@ describe('workspace store layout tabs', () => {
 
     expect(apiGet).toHaveBeenCalledWith('/analysis/benchmark-families/sp500/coverage', {})
     expect(result?.roles[0]?.snapshots[0]?.composition_date).toBe('2026-06-30')
+    expect(result?.roles[0]?.continuity_status).toBe('single_snapshot')
     expect(store.benchmarkFamilyCoverages['sp500:latest:256']?.coverage).toBe(0.25)
     expect(store.benchmarkFamilyCoverageErrors['sp500:latest:256']).toBeNull()
   })
