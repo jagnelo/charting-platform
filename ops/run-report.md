@@ -10,8 +10,9 @@
 - No acceptance flexibility or visual/provider rule was changed. This proves route reachability and
   provenance only; daily holdings, exact rebalance weights, official Nasdaq-100 membership, QQQE,
   broader family population, canonical bars, and exact V25 historical-source visuals remain open.
-- Implementation `2ce987a14d93e1599496dd964ac246bdf80c0c9d` is pushed; the separate docs/ops
-  checkpoint is required before the next implementation context.
+- Implementation `2ce987a14d93e1599496dd964ac246bdf80c0c9d` and docs/ops checkpoint
+  `af80f60d3aafd3e242d45f5a275f8906c0c02edf` are pushed and synchronized before the next
+  implementation context.
 
 ## 2026-08-19 — QQQ dated holdings SEC reconstruction
 

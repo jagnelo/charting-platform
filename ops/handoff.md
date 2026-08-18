@@ -8,8 +8,10 @@
 - The unprivileged run failed only at DNS resolution. The unchanged elevated command passed `1/1`;
   this is a network execution boundary, not acceptance flexibility or a product skip.
 - Unit/taxonomy suites remain `504/504`; Ruff, compileall, and diff-check pass. Implementation
-  commit `2ce987a14d93e1599496dd964ac246bdf80c0c9d` is pushed. The separate docs/ops checkpoint
-  remains before the next implementation context.
+  commit `2ce987a14d93e1599496dd964ac246bdf80c0c9d` and docs/ops checkpoint
+  `af80f60d3aafd3e242d45f5a275f8906c0c02edf` are pushed. Local/origin synchronization is the
+  verified boundary for this context; the next implementation context is provider-backed family
+  population/quality reconciliation.
 - Remaining gaps are unchanged: periodic SEC cadence versus daily/exact-rebalance truth, official
   Nasdaq-100 membership, QQQE history, complete family/provider population, canonical bars, and
   exact Version 25 historical-source disclosure visuals.
