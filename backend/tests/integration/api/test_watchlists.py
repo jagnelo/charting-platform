@@ -1327,6 +1327,109 @@ class TestWatchlistsCrud:
             assert breadth.status_code == 200, (source_id, breadth.text)
             assert breadth.json()["universe"]["source_id"] == source_id
 
+    def test_market_map_end_selects_historical_membership_weights_without_as_of(
+        self, client, auth_headers, db, instrument, instrument_type, ohlcv_bars
+    ):
+        """A historical map end must not use a newer ETF holdings snapshot."""
+
+        from app.models.etf_holdings import ETFHolding, ETFHoldingsSnapshot, ETFProfile
+        from app.models.instrument import Instrument
+
+        etf = Instrument(
+            symbol="SPY",
+            name="Controlled SPY proxy",
+            currency="USD",
+            instrument_type_id=instrument_type.id,
+            is_active=True,
+        )
+        db.add(etf)
+        db.flush()
+        profile = ETFProfile(instrument_id=etf.id, adapter_status="resolved")
+        db.add(profile)
+        db.flush()
+
+        def add_snapshot(composition_date, known_at, weight, suffix):
+            snapshot = ETFHoldingsSnapshot(
+                etf_profile_id=profile.id,
+                composition_date=composition_date,
+                known_at=known_at,
+                provenance="controlled_fixture",
+                source_provider="controlled_fixture",
+                source_quality="issuer_disclosed",
+                completeness_status="complete",
+                row_count=1,
+                resolved_count=1,
+                unresolved_count=0,
+                total_weight=1.0,
+                snapshot_hash=f"historical-weight-{suffix}",
+            )
+            db.add(snapshot)
+            db.flush()
+            db.add(
+                ETFHolding(
+                    snapshot_id=snapshot.id,
+                    constituent_instrument_id=instrument.id,
+                    position=0,
+                    reported_symbol=instrument.symbol,
+                    reported_name=instrument.name,
+                    weight=weight,
+                    holding_type="equity",
+                    row_type="security",
+                    source_row_hash=f"historical-weight-row-{suffix}",
+                    is_resolved=True,
+                )
+            )
+
+        add_snapshot(
+            datetime(2024, 1, 2, tzinfo=UTC).date(),
+            datetime(2024, 1, 3, tzinfo=UTC),
+            0.25,
+            "old",
+        )
+        add_snapshot(
+            datetime(2024, 2, 2, tzinfo=UTC).date(),
+            datetime(2024, 2, 3, tzinfo=UTC),
+            0.75,
+            "new",
+        )
+        db.flush()
+
+        historical = client.post(
+            "/api/v1/analysis/market-map",
+            headers=auth_headers,
+            json={
+                "source_id": "etf-holdings:SPY",
+                "group_by": "none",
+                "period": "1D",
+                "area_metric": "weight",
+                "color_metric": "return",
+                "end": "2024-01-10T00:00:00Z",
+            },
+        )
+        assert historical.status_code == 200, historical.text
+        historical_body = historical.json()
+        assert historical_body["source"]["composition_date"] == "2024-01-02"
+        assert historical_body["cells"][0]["area_value"] == 0.25
+        assert historical_body["cells"][0]["area_provenance"]["known_at"].startswith(
+            "2024-01-03"
+        )
+
+        current = client.post(
+            "/api/v1/analysis/market-map",
+            headers=auth_headers,
+            json={
+                "source_id": "etf-holdings:SPY",
+                "group_by": "none",
+                "period": "1D",
+                "area_metric": "weight",
+                "color_metric": "return",
+                "end": "2024-03-01T00:00:00Z",
+            },
+        )
+        assert current.status_code == 200, current.text
+        assert current.json()["source"]["composition_date"] == "2024-02-02"
+        assert current.json()["cells"][0]["area_value"] == 0.75
+
     def test_managed_watchlist_source_respects_departure_at_as_of(
         self, client, auth_headers, db, user, instrument
     ):

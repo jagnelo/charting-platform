@@ -50,6 +50,30 @@ def _warning(code: str, message: str, instrument_id: int | None = None, node_id:
     return MarketMapWarning(code=code, message=message, instrument_id=instrument_id, node_id=node_id)
 
 
+def _membership_evaluation_timestamp(
+    request: MarketMapRequest,
+    *,
+    source_id: str | None = None,
+) -> datetime | None:
+    """Select historical membership only where the source has disclosed composition truth.
+
+    ``end`` is sufficient to choose a dated ETF/index composition, but it is
+    not a historical membership request for an ordinary user watchlist: those
+    lists represent the user's current selection unless they explicitly pass
+    ``as_of``. This keeps chart-period selection from erasing current personal
+    or combo members while still making historical source weights reproducible.
+    """
+
+    if request.as_of is not None:
+        return request.as_of
+    source = source_id or request.source_id
+    if request.end is not None and source.startswith(
+        ("benchmark-family:", "etf-holdings:", "market-group:")
+    ):
+        return request.end
+    return None
+
+
 def _period_bounds(request: MarketMapRequest, latest: datetime) -> tuple[datetime | None, datetime]:
     period = request.period.upper()
     end = min(item for item in (request.end, request.as_of, latest) if item is not None)
@@ -665,8 +689,14 @@ async def build_market_map(db: AsyncSession, user_id: int, request: MarketMapReq
     # identical across batch analysis surfaces.
     from app.routers.analysis import _batch_freshness
 
+    # A map's explicit ``end`` is also the evaluation timestamp for system-
+    # managed sources with disclosed composition history. Personal/managed and
+    # combo lists retain their current membership unless ``as_of`` is explicit.
+    membership_as_of = _membership_evaluation_timestamp(request)
     try:
-        resolved = await resolve_watchlist_source(db, user_id, request.source_id, as_of=request.as_of)
+        resolved = await resolve_watchlist_source(
+            db, user_id, request.source_id, as_of=membership_as_of
+        )
     except LookupError as exc:
         raise ValueError(str(exc)) from exc
     except ValueError as exc:
@@ -815,7 +845,12 @@ async def build_market_map(db: AsyncSession, user_id: int, request: MarketMapReq
     elif request.reference_source_id:
         try:
             reference_resolved = await resolve_watchlist_source(
-                db, user_id, request.reference_source_id, as_of=request.as_of
+                db,
+                user_id,
+                request.reference_source_id,
+                as_of=_membership_evaluation_timestamp(
+                    request, source_id=request.reference_source_id
+                ),
             )
         except LookupError as exc:
             raise ValueError(str(exc)) from exc
