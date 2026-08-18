@@ -1,5 +1,18 @@
 # Active Handoff
 
+## 2026-08-19 — Unavailable family-source picker state
+
+- Hardened the Market Map source picker to keep canonical benchmark-family roles marked
+  `unavailable`, `profile_not_loaded`, or `holdings_snapshot_not_loaded` visible with an explicit
+  `Unavailable` label while disabling accidental selection. Startup now prefers an available
+  canonical source and never substitutes another family or ticker.
+- Added a component regression. Focused Market Map coverage is `24/24`; full frontend Vitest is
+  `888/888`; `vue-tsc --noEmit`, production build, and diff checks pass. No acceptance flexibility
+  was used.
+- Added the missing exact V25 unavailable-role state to the reference-board gap ledger. Commit and
+  docs/ops/state closure are pending; then continue provider-backed family quality reconciliation
+  and universal Market Map acceptance.
+
 ## 2026-08-19 — Benchmark-family Python Market Map source parity
 
 - Repaired the shared Market Map Python universe adapter so

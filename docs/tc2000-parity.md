@@ -1,5 +1,19 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-19 — Unavailable family legs remain visible without becoming selectable
+
+The Market Map source picker now consumes the existing canonical family availability provenance.
+Roles marked `unavailable`, `profile_not_loaded`, or `holdings_snapshot_not_loaded` remain in the
+picker with an explicit `Unavailable` label, but their option is disabled. The picker prefers an
+available canonical source on initial load and never substitutes another family or ticker. This
+keeps missing role evidence auditable while preventing an empty unavailable map from looking like
+a valid analysis result.
+
+The focused component suite passes `24/24`, full frontend Vitest passes `888/888`, and
+`vue-tsc --noEmit`, the production build, and diff checks pass. No acceptance flexibility was
+used. Exact V25 unavailable-role styling, badges, copy, and picker geometry remain a board gap;
+provider-backed family population and historical continuity remain open.
+
 ## 2026-08-19 — Family-leg Python Market Map uses the universal source contract
 
 The Market Map Python-output path now recognizes `benchmark-family:<family>:<role>` sources in

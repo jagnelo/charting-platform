@@ -1,5 +1,18 @@
 # TC2000 Version 25 composite reference board
 
+## 2026-08-19 — Unavailable family-source picker state remains unrepresented
+
+The board contains no authoritative exact-build capture for a benchmark-family source picker that
+shows a mapped-but-unavailable value/growth/equal role. The workstation now keeps that canonical
+locked source visible, labels it `Unavailable`, disables accidental selection, and prefers an
+available source at startup; it never hides or substitutes the role. The focused `24/24` Market
+Map component suite and full frontend `888/888` suite are the interim interaction oracle.
+
+Gap status: `required_missing` for exact V25 unavailable-role label, badge, disabled-option styling,
+and picker geometry. Evidence needed: a reviewed V25 capture of this state or an explicit accepted
+product decision that the state is outside visual parity. Provider-backed family population and
+historical continuity remain separate data gaps.
+
 ## 2026-08-19 — Bulk family refresh has no authoritative visual reference
 
 The board contains no sufficiently authoritative Version 25 capture for an administrator running

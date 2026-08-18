@@ -1,4 +1,29 @@
 tasks:
+  - id: tc2000-market-map-unavailable-family-picker-20260819
+    title: Keep unavailable benchmark-family Market Map sources visible and non-selectable
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Use canonical family availability provenance in the Market Map picker so missing roles are
+      visible and auditable without being treated as usable data or silently substituted.
+    definition_of_done:
+      - unavailable, profile_not_loaded, and holdings_snapshot_not_loaded roles are labelled unavailable
+      - unavailable options are disabled while remaining visible in the source catalog
+      - initial selection prefers an available canonical source
+      - focused and full frontend/type/build/diff validation passes
+      - exact V25 unavailable-role visuals and provider/history coverage remain tracked
+    validation:
+      - frontend-market-map-component-24-of-24
+      - frontend-vitest-888-of-888
+      - frontend-vue-tsc
+      - frontend-production-build
+      - git-diff-check
+    notes:
+      - >-
+        This was a localized UI defect under repository control and was fixed/tested immediately.
+        No acceptance flexibility, threshold/mask, provider rule, or source substitution was used.
+
   - id: tc2000-market-map-family-python-source-20260819
     title: Keep benchmark-family Market Map Python output on the universal watchlist contract
     status: completed

@@ -1,5 +1,18 @@
 # Project TODO Memory
 
+### 2026-08-19 — Keep unavailable family sources visible but non-selectable
+
+- [x] Use the canonical source provenance states `unavailable`, `profile_not_loaded`, and
+      `holdings_snapshot_not_loaded` to mark unavailable benchmark-family legs in the Market Map
+      picker without hiding or substituting them.
+- [x] Keep those locked sources auditable and followable while disabling accidental selection;
+      choose an available canonical source as the default when one exists.
+- [x] Add a component regression for an unavailable S&P 500 value leg. Market Map tests pass
+      `24/24`, full frontend Vitest `888/888`, `vue-tsc --noEmit`, production build, and diff
+      checks pass.
+- [ ] Exact Version 25 unavailable-role labels, badges, disabled treatment, and source-picker
+      geometry remain a board gap; provider population and historical continuity remain open.
+
 ### 2026-08-19 — Benchmark-family Python Market Map source parity
 
 - [x] Extend the Market Map Python-output source adapter to recognize canonical

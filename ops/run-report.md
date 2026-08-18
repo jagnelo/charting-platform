@@ -1,5 +1,18 @@
 # Run Report
 
+## 2026-08-19 — Unavailable family-source picker state
+
+- Market Map now keeps benchmark-family roles with canonical availability states
+  `unavailable`, `profile_not_loaded`, or `holdings_snapshot_not_loaded` visible and labelled
+  `Unavailable`, but disables their options and prefers an available source at startup. No family
+  or ticker substitution is possible through this path.
+- The focused component suite passes `24/24`; full frontend Vitest passes `888/888`; `vue-tsc`,
+  production build, and `git diff --check` pass.
+- No acceptance flexibility or visual threshold/mask change was used. Exact V25 unavailable-role
+  visuals are now explicitly recorded as a board gap; provider-backed population and historical
+  continuity remain open.
+- Implementation/docs/ops commits must be pushed and synchronized before the next context.
+
 ## 2026-08-19 — Benchmark-family Python Market Map source parity
 
 - Fixed the Market Map Python-output source dispatch omission for locked

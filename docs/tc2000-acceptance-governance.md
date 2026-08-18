@@ -1,5 +1,19 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-08-19 — Unavailable family-source picker state
+
+The universal locked-watchlist acceptance must keep missing benchmark-family roles visible and
+auditable, while preventing accidental use as if they had data. Market Map options with canonical
+availability `unavailable`, `profile_not_loaded`, or `holdings_snapshot_not_loaded` are labelled
+`Unavailable` and disabled; the source is not removed and no substitute is selected. An available
+source is preferred on initial load. This is a fix-first implementation of a local UI defect, not
+a relaxation of the missing-data contract.
+
+Focused Market Map `24/24`, full frontend Vitest `888/888`, type-check, production build, and diff
+checks are the interim functional oracle. No acceptance flexibility was used. Exact Version 25
+unavailable-role copy, badges, disabled geometry, and provider-backed population remain tracked
+gaps.
+
 ## 2026-08-19 — Family-leg Python Market Map source handoff
 
 The universal locked-watchlist acceptance includes Python-backed Market Map colour/area outputs,
