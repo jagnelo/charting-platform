@@ -1,5 +1,16 @@
 # Project TODO Memory
 
+### 2026-08-19 — ETF holdings as locked Market Map watchlist regression
+
+- [x] Add an end-to-end integration guard for an issuer-native ETF holdings snapshot entering
+      the universal `WatchlistSource` catalog as `etf_holdings`, locked and non-editable.
+- [x] Prove the resolved ETF constituent stream retains point-in-time holding weights and feeds
+      the same Market Map request, including weight-based tile area and provenance, as personal
+      and index-group sources.
+- [ ] Keep actual provider-backed breadth, historical composition continuity, complete family
+      population, and exact V25 visual approval open; this closes verification of the shared
+      contract, not those data/visual gates.
+
 ### 2026-08-19 — Universal Market Map reference-source bound
 
 - [x] Align `MarketMapRequest.reference_source_id` with the primary canonical

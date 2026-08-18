@@ -1,5 +1,18 @@
 # Run Report
 
+## 2026-08-19 — ETF holdings locked-source regression
+
+- Added integration coverage for the actual ETF holdings source path: a dated issuer-native
+  snapshot is catalogued as locked/non-editable, resolves its canonical constituent at `as_of`,
+  and renders through the universal Market Map API.
+- Weight-based area retains `point_in_time_membership` provenance on the tile, matching the
+  contract already used for locked index groups.
+- Focused integration `1/1`, Ruff, compileall, and diff-check pass. The first unprivileged attempt
+  was blocked before test setup by Docker-socket permissions; the unchanged elevated run passed.
+  No acceptance flexibility or visual threshold changed.
+- Regression commit `8480ca03` is pushed. Complete provider-backed ETF/family population,
+  historical continuity, richer map metrics, exact V25 visual evidence, and final audit remain open.
+
 ## 2026-08-19 — Universal-source reference bound repair
 
 - Aligned `MarketMapRequest.reference_source_id` with the existing 4096-character canonical

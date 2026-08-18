@@ -7776,6 +7776,12 @@ after duplicate IDs are removed. The request, cache, and snapshot contracts ther
 the 4096-character source bound, and a long explicit source can be used as a relative-return or
 benchmark-dependent comparison universe without changing its locked, non-provider identity.
 
+The ETF-specific regression now proves the same contract against a dated, issuer-labelled holdings
+snapshot: the ETF appears as a locked `etf_holdings` source, its resolved constituents retain
+point-in-time weights, and `area_metric=weight` carries that membership provenance into the same
+Market Map tiles. This is contract evidence only; provider-backed population and continuity for
+the full requested ETF/index families remain open.
+
 The renderer applies the same contract: only finite positive area values receive treemap geometry.
 Members with unavailable sizing remain in the response and hover/warning context but are not given
 invented unit tiles; the map reports their omission explicitly.

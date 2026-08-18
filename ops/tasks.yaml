@@ -1,4 +1,29 @@
 tasks:
+  - id: tc2000-etf-holdings-market-map-regression-20260819
+    title: Verify ETF holdings enter the universal locked Market Map source path
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Prove an issuer-labelled, dated ETF holdings snapshot is exposed as a locked
+      `WatchlistSource`, resolves point-in-time members and weights, and uses the same Market Map
+      request and provenance contract as personal and index-group lists.
+    definition_of_done:
+      - ETF holdings source is listed as locked and non-editable
+      - Dated resolution returns the constituent and its weight
+      - Weight-based map area retains point-in-time membership provenance
+      - Focused Docker-backed integration, Ruff, compileall, and diff checks pass
+      - Provider population and visual gaps remain explicitly documented
+    validation:
+      - backend-etf-market-map-integration-1-of-1
+      - backend-ruff-compileall
+      - git-diff-check
+    notes:
+      - >-
+        This is a regression guard over existing production behavior, not a claim that every
+        requested ETF has complete provider-backed history. No acceptance flexibility used;
+        regression commit 8480ca03 is pushed.
+
   - id: tc2000-market-map-reference-source-bound-20260819
     title: Keep long canonical watchlists valid as Market Map reference universes
     status: completed

@@ -1,5 +1,19 @@
 # Active Handoff
 
+## 2026-08-19 — ETF holdings locked-source regression
+
+- Added a Docker-backed integration guard proving that a dated issuer-labelled ETF holdings
+  snapshot appears in `/watchlists/sources` as locked `etf_holdings`, resolves a constituent at
+  `as_of`, and feeds the same Market Map batch contract as personal/index-group sources.
+- The map test uses `area_metric=weight` and verifies point-in-time membership provenance reaches
+  the tile, so ETF proxy membership is not silently treated as an editable personal list.
+- Focused integration `1/1`, Ruff, compileall, and `git diff --check` pass. The unprivileged run
+  hit only the known Docker-socket setup boundary; the unchanged elevated rerun passed. No
+  acceptance flexibility used.
+- Regression commit `8480ca03` is pushed. The next separate operational checkpoint records this
+  evidence; provider-backed family population, continuity, richer metrics, and exact V25 visual
+  gaps remain open.
+
 ## 2026-08-19 — Universal-source reference bound repair
 
 - Fixed a real source-polymorphism defect: `MarketMapRequest.reference_source_id` was capped at
