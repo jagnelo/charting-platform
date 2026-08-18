@@ -1,5 +1,20 @@
 # TC2000 Version 25 composite reference board
 
+## 2026-08-19 — Watchlist-level Market Map launch is visually unrepresented
+
+The shared virtualized watchlist now offers a `Map` action for any view backed by a canonical
+universe. It can launch personal/combo/flagged lists, locked benchmark/sector/ETF sources, and
+filtered constituent/proxy subsets into the same Market Map surface. The board does not contain
+an authoritative V25 capture showing the exact placement, icon/text treatment, source handoff
+copy, locked explicit-subset disclosure, or the transition into the already-configured map.
+
+Gap status: `required_missing` for the list-level action and handoff visuals. Interim oracle:
+virtual watchlist `66/66`, workspace-store `67/67`, full frontend Vitest `892/892`, type-check,
+build, and diff checks. The implementation retains canonical source lineage and no acceptance
+threshold or mask was relaxed. Evidence needed to close the gap is a sufficiently authoritative
+V25 list/watchlist capture showing the equivalent action and transition; until then, this board
+gap is tracked rather than silently treated as visual parity.
+
 ## 2026-08-19 — Market Map timeframe selector remains visually unrepresented
 
 Market Map now lets the user select Daily, Weekly, or Monthly resolution for the same arbitrary

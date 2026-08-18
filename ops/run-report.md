@@ -1,5 +1,21 @@
 # Run Report
 
+## 2026-08-19 — Virtual watchlists launch their canonical universe in Market Map
+
+- Added the source-aware `Map` action to the shared virtualized watchlist. Durable personal,
+  combo, ETF-holdings, benchmark-family, and market-group sources retain their canonical IDs and
+  locked/editable semantics; filtered constituent/proxy/flagged subsets use locked explicit
+  canonical-ID sources.
+- Added serializable Market Map source overrides to the workstation tool-opening path, so the map
+  is mounted directly on the list's universe and remains available for history, breadth, Python,
+  export, and linked analysis.
+- Validation: virtual-watchlist `66/66`; workspace-store `67/67`; full frontend Vitest `892/892`;
+  type-check/build; `git diff --check`. Acceptance flexibility used: **None**.
+- Visual gap recorded: no authoritative V25 reference for the exact list-level Map affordance,
+  source handoff copy, or locked explicit-subset treatment (`required_missing`). Provider-backed
+  family completeness, historical reconciliation, large-list map rendering, and exact V25 parity
+  remain open.
+
 ## 2026-08-19 — Market Map timeframe selection is fully propagated
 
 - Added Daily/Weekly/Monthly Market Map resolution selection and persisted it in the tool state.

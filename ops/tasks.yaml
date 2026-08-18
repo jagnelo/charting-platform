@@ -1,4 +1,32 @@
 tasks:
+  - id: tc2000-virtual-watchlist-market-map-launch-20260819
+    title: Launch canonical virtual watchlist sources into Market Map
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Expose one source-aware Map action on the shared virtualized watchlist. Preserve durable
+      personal/combo/ETF/benchmark/market-group source IDs and locked semantics; use locked
+      explicit canonical-ID sources for filtered constituent/proxy/flagged subsets; mount the
+      Market Map with the source override already applied.
+    definition_of_done:
+      - The same Market Map is reachable from arbitrary editable and locked watchlist universes
+      - No ticker-only reconstruction or membership mutation occurs during the launch
+      - Source override is serializable and survives Golden Layout tool creation
+      - Add focused source-launch and store-override regressions
+      - Record the missing exact V25 affordance/handoff visual as a required_missing board gap
+    validation:
+      - frontend-virtual-watchlist-66-of-66
+      - frontend-workspace-store-67-of-67
+      - frontend-vitest-892-of-892
+      - frontend-type-check
+      - frontend-build
+      - git-diff-check
+    notes:
+      - >-
+        Acceptance flexibility used: None. The board lacks exact V25 list-level Map affordance,
+        handoff, and explicit-subset locked-state visuals; the gap is tracked rather than waived.
+
   - id: tc2000-market-map-timeframe-propagation-20260819
     title: Propagate Market Map timeframe through all source workflows
     status: completed

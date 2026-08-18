@@ -1,5 +1,23 @@
 # Project TODO Memory
 
+### 2026-08-19 — Any virtual watchlist can open its canonical universe in Market Map
+
+- [x] Add a source-aware `Map` action to the shared virtualized watchlist surface. Personal,
+      combo, flagged, benchmark, sector, ETF-holdings, proxy, constituent, and explicit filtered
+      lists all use the same Market Map entry point rather than a feature-specific heatmap.
+- [x] Preserve the canonical source ID when launching: durable `watchlist:*`, `combo:*`,
+      `etf-holdings:*`, and `market-group:*` sources remain source-polymorphic and locked where
+      their descriptor is locked; filtered constituent/proxy/flagged subsets become labelled
+      locked `explicit:<canonical instrument IDs>` sources instead of ticker-only guesses.
+- [x] Add serializable source overrides to tool opening and regressions for the locked-source
+      launch contract. Virtual watchlist focused coverage is `66/66`, workspace-store coverage
+      is `67/67`, full frontend Vitest is `892/892`, and type-check/build/diff checks pass.
+- [ ] The reference board has no authoritative V25 capture for this exact list-level Map
+      affordance, source-label handoff, or locked explicit-subset treatment; record that as a
+      `required_missing` visual gap. No acceptance flexibility, provider substitution, or
+      interactive provider fan-out was used. Provider-backed family population, historical
+      reconciliation, large-list map rendering, and exact V25 parity remain open.
+
 ### 2026-08-19 — Market Map timeframe selection is source-polymorphic
 
 - [x] Add a Daily/Weekly/Monthly selector to Market Map and persist it with the serializable tool

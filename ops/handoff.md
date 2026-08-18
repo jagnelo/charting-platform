@@ -1,5 +1,20 @@
 # Active Handoff
 
+## 2026-08-19 — Any canonical virtual watchlist can open Market Map
+
+- The shared virtualized watchlist now emits a source-aware `Map` action. Benchmark, sector,
+  personal, combo, flagged, ETF-holdings, verified proxy, constituent, and explicit filtered
+  lists all reuse the existing universal Market Map rather than a second heatmap implementation.
+- Durable source IDs are passed unchanged (`watchlist:*`, `combo:*`, `etf-holdings:*`,
+  `market-group:*`); filtered subsets use `explicit:<canonical IDs>` and remain locked. The
+  workstation store accepts a serializable source override before Golden Layout mounts the tool.
+- Validation: focused virtual-watchlist `66/66`, workspace-store `67/67`, full frontend `892/892`,
+  type-check/build, diff check. Acceptance flexibility: **None**.
+- Board gap: exact V25 Map affordance/handoff/locked-subset visuals are `required_missing` and
+  tracked in `docs/tc2000-reference-board.md`; no threshold or mask was relaxed. Continue with
+  provider-backed family population, historical reconciliation, large-list map rendering, and
+  exact V25 represented-state work.
+
 ## 2026-08-19 — Market Map timeframe selection is propagated across source workflows
 
 - Replaced the workstation's hard-coded D1 map resolution with persisted Daily/Weekly/Monthly

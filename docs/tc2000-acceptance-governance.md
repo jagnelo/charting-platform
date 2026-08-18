@@ -1,5 +1,24 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-08-19 — Universal watchlist-to-heatmap launch gate
+
+The heatmap is accepted as a universal watchlist surface, not an index-only feature. A virtual
+watchlist may expose `Map` only with a canonical source contract. Durable personal, combo,
+ETF-holdings, benchmark-family, and market-group sources must be passed unchanged; their resolved
+descriptor remains the authority for locked membership, provenance, membership version, coverage,
+freshness, and point-in-time behavior. A filtered constituent, proxy, or flagged view may use a
+locked explicit canonical-ID source, but it must never rebuild the universe from ticker text or
+silently claim the parent ETF/index membership. Opening the tool must persist the source override
+before rendering and must leave the source available for the same history, breadth, Python, export,
+and linked-analysis contracts as a manually selected source.
+
+The focused virtual-watchlist and workspace-store regressions are `66/66` and `67/67`; full
+frontend Vitest is `892/892`; type-check/build/diff checks pass. No acceptance flexibility,
+provider substitution, or interactive provider fan-out was used. The board lacks an authoritative
+V25 capture for the exact list-level action geometry, handoff copy, and explicit-subset locked
+state; those remain a `required_missing` visual gap. This gate does not close provider-backed
+family population, historical reconciliation, or large-list map rendering.
+
 ## 2026-08-19 — Family snapshot hydration must use the exact snapshot boundary
 
 When a provider-backed holdings run succeeds, acceptance requires the worker to queue canonical

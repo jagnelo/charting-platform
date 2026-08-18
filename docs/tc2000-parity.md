@@ -1,5 +1,24 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-19 — Virtual watchlists launch the universal Market Map
+
+Every virtualized watchlist now exposes the same source-aware `Map` action when its rows have a
+canonical universe. Personal, combo, flagged, benchmark, sector, ETF-holdings, verified-proxy,
+constituent, and explicit filtered views all open the existing Market Map tool. Durable sources
+retain their exact `watchlist:*`, `combo:*`, `etf-holdings:*`, or `market-group:*` identity and
+therefore retain their locked/editable membership semantics. Filtered constituent/proxy/flagged
+views use a locked `explicit:<canonical instrument IDs>` source, never a ticker-only reconstruction.
+The workstation adds the source override before the tool is mounted, so the opened map is already
+on the selected universe and remains usable for breadth, history, Python colour, CSV, ratios, and
+linked analysis.
+
+Focused virtual-watchlist coverage is `66/66`, workspace-store coverage is `67/67`, full frontend
+Vitest is `892/892`, and type-check/build/diff checks pass. This closes the functional source-
+polymorphic launch path only. The board has no authoritative exact-build V25 reference for this
+list-level affordance, handoff copy, or explicit-subset locked treatment; that remains a
+`required_missing` visual gap. Provider-backed family completeness, historical reconciliation,
+large-list map rendering, and exact V25 parity remain open.
+
 ## 2026-08-19 — Market Map timeframe is carried through every source contract
 
 Market Map now exposes Daily, Weekly, and Monthly resolution for every canonical source, including
