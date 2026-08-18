@@ -1,4 +1,28 @@
 tasks:
+  - id: tc2000-market-map-profile-provider-precedence-20260819
+    title: Apply free provider precedence to Market Map profile snapshots
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Make market-cap tile sizing respect the current enabled/free/adapter-capable metadata
+      provider policy while retaining explicit provenance and a bounded unranked snapshot fallback.
+    definition_of_done:
+      - Eligible metadata providers are ordered deterministically and newest observations are selected within the chosen source
+      - Unknown/unentitled snapshots remain only as entitlement-unverified unranked fallbacks with cell and response warnings
+      - Provider-policy and entitlement state participate in Market Map cache identity
+      - Precedence, fallback, policy-change invalidation, complete watchlist integration, Ruff, compileall, and diff checks pass
+      - Historical entitlement revisions, broader field conflicts, complete family population, and exact V25 area visuals remain tracked gaps
+    validation:
+      - backend-market-map-provider-precedence-1-of-1
+      - backend-watchlists-integration-38-of-38
+      - backend-ruff-compileall
+      - git-diff-check
+    notes:
+      - >-
+        No acceptance flexibility used. Persisted unranked observations are deliberately retained
+        only with explicit warning/provenance rather than silently discarded or presented as entitled.
+
   - id: tc2000-market-map-point-in-time-area-20260819
     title: Prefer point-in-time profile snapshots for market-cap tiles
     status: completed

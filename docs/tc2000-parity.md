@@ -1,5 +1,26 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-19 — Market-cap profile snapshots respect free provider precedence
+
+Market Map market-cap areas now select the best currently eligible metadata snapshot without any
+provider request. Eligibility requires an active source, enabled metadata policy, free entitlement,
+adapter support, environment eligibility, and an in-force entitlement review; yfinance remains
+excluded from new metadata paths unless its explicit legacy fallback flag is enabled. Eligible
+providers are ordered by pin, effective score, base priority, and name, and the newest observation
+is selected within that source. A newer lower-priority snapshot therefore cannot silently displace
+the configured higher-priority source.
+
+Persisted snapshots from unknown, disabled, unentitled, or adapter-incompatible sources remain a
+bounded fallback so historical data is not discarded, but each tile is labelled
+`unranked_snapshot_fallback` with `entitlement_verified=false`, provider identity, and a response
+warning. The provider-policy/entitlement fingerprint is part of cache identity, so a policy or
+terms change invalidates the prior result. The complete watchlist/Market Map integration suite
+passes `38/38`, including precedence, fallback, and policy-cache regression coverage.
+
+Historical entitlement-revision reconstruction, field-level provider conflict resolution beyond
+market-cap selection, complete family population, and exact Version 25 area/provenance visuals
+remain explicit gaps.
+
 ## 2026-08-19 — Market-cap tiles use point-in-time profile snapshots
 
 For any WatchlistSource, Market Map market-cap area now prefers the newest canonical

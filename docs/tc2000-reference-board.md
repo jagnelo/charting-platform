@@ -1,5 +1,15 @@
 # TC2000 Version 25 composite reference board
 
+## 2026-08-19 provider-precedence area state gap narrowed
+
+The board does not show how Version 25 labels a market-cap tile when multiple providers have
+different profile observations, or when a persisted snapshot comes from a source that is no
+longer entitled. The implementation now selects the enabled free adapter-capable provider chain,
+records provider rank and entitlement verification in tile provenance, and keeps an unranked
+snapshot only with explicit cell/response warning state. The provider-policy integration and
+complete watchlist suite are the interim correctness oracle. Exact V25 tooltip/badge wording,
+provider-conflict affordances, and historical entitlement-revision controls remain unrepresented.
+
 ## 2026-08-19 point-in-time area provenance gap narrowed
 
 The board has no authoritative capture of Version 25’s tile treatment when market-cap area is

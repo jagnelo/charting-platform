@@ -1,5 +1,22 @@
 # Run Report
 
+## 2026-08-19 — Market Map profile-provider precedence
+
+- Market-cap tile selection now uses the current free, enabled, adapter-capable metadata provider
+  order and then the newest eligible observation at or before the map end/as-of. Provider name,
+  rank, entitlement verification, selection mode, snapshot timestamps, and IDs are retained in
+  tile provenance.
+- Unknown or currently unentitled persisted snapshots remain available only as explicit
+  `unranked_snapshot_fallback` values with cell and response warnings. Provider-policy and
+  entitlement state are fingerprinted into cache identity.
+- Validation passed: focused precedence regression `1/1`, complete watchlist/Market Map
+  integration `38/38`, Ruff, compileall, and `git diff --check`. No acceptance flexibility or
+  visual threshold changed. The unprivileged uv cache boundary was bypassed only through the
+  approved unchanged elevated rerun.
+- Implementation commit `42a48dd5fb4542d4a99d5868abab9ac152cf910c` is pushed. Historical
+  entitlement revisions, complete family/provider population, and exact V25 area visuals remain
+  open.
+
 ## 2026-08-19 — Point-in-time Market Map market-cap area
 
 - Market-cap tile area now reads the latest eligible canonical profile snapshot at the requested

@@ -1,5 +1,23 @@
 # Project TODO Memory
 
+### 2026-08-19 — Market Map profile-provider precedence and entitlement cache identity
+
+- [x] Select market-cap profile snapshots from the currently enabled, free, adapter-capable
+      metadata provider chain before considering unranked persisted observations; within a
+      provider, prefer the newest eligible observation at or before the map end/as-of.
+- [x] Preserve provider name, precedence rank, entitlement verification, selection mode, snapshot
+      identity, and observed/fetched timestamps in tile provenance. Keep unknown or unentitled
+      snapshots usable only as explicit `unranked_snapshot_fallback` values with cell and response
+      warnings, rather than silently presenting them as entitled data.
+- [x] Include the provider-policy/entitlement fingerprint in Market Map cache identity so a
+      policy, review, free/paid state, adapter capability, or priority change cannot reuse a map
+      calculated under a different source-selection contract.
+- [x] Add a Docker-backed regression proving pinned/free provider precedence beats a newer lower
+      priority snapshot and that changing policy invalidates the cache and changes the selected
+      source; the complete watchlist integration suite passes.
+- [ ] Keep historical entitlement-revision reconstruction, provider-field conflict resolution,
+      complete family population, and exact V25 area/provenance visuals open.
+
 ### 2026-08-19 — Point-in-time Market Map market-cap area
 
 - [x] Read the latest canonical `InstrumentProfileSnapshot` observed at or before the requested

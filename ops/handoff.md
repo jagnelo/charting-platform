@@ -1,5 +1,21 @@
 # Active Handoff
 
+## 2026-08-19 — Market Map profile-provider precedence
+
+- Market-cap areas now select snapshots from the current free, enabled, adapter-capable metadata
+  provider order; the newest eligible observation wins within that source. Pinned/effective-score/
+  base-priority/name ordering is deterministic and no provider is called during map calculation.
+- Unknown, disabled, unentitled, or adapter-incompatible persisted snapshots remain only as an
+  explicit `unranked_snapshot_fallback`, with provider identity, `entitlement_verified=false`,
+  cell/response warnings, and full snapshot timestamps. The policy/entitlement fingerprint is in
+  the cache key, so source-policy changes cannot reuse an old selection.
+- Focused precedence integration `1/1`, complete `test_watchlists.py` `38/38`, Ruff, compileall,
+  and diff-check pass. No acceptance flexibility used. Implementation commit
+  `42a48dd5fb4542d4a99d5868abab9ac152cf910c` is pushed.
+- Continue with historical entitlement-revision/field-conflict truth, complete family/provider
+  population, remaining promotion fan-out, and exact/unrepresented V25 visual states. Close this
+  context with the separate docs/ops checkpoint and state-closure commits before the next slice.
+
 ## 2026-08-19 — Point-in-time Market Map market-cap area
 
 - Universal Market Map `area_metric=market_cap` now prefers the newest canonical profile snapshot
