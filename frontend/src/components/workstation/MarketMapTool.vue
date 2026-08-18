@@ -5,8 +5,8 @@
         <select v-model="sourceId" aria-label="Market Map universe" :disabled="loadingSources" @change="explicitSymbols = ''">
           <option value="">Select a universe</option>
           <option v-if="sourceId.startsWith('explicit:')" :value="sourceId">Explicit symbols · Locked</option>
-          <option v-for="source in sources" :key="source.source_id" :value="source.source_id">
-            {{ source.pinned ? '★ ' : '' }}{{ source.name }}{{ source.locked ? ' · Locked' : '' }}
+          <option v-for="source in sources" :key="source.source_id" :value="source.source_id" :disabled="!isSourceSelectable(source)">
+            {{ source.pinned ? '★ ' : '' }}{{ source.name }}{{ source.locked ? ' · Locked' : '' }}{{ isSourceSelectable(source) ? '' : ' · Unavailable' }}
           </option>
         </select>
       </label>
@@ -280,6 +280,13 @@ const publicationTargets = computed(() => watchlistStore.watchlists.filter(watch
 const activeSource = computed(() => sources.value.find(source => source.source_id === sourceId.value) ?? null)
 const sourceFollowed = computed(() => Boolean(activeSource.value && userSettingsStore.followedSourceIds.includes(activeSource.value.source_id)))
 const sourcePinned = computed(() => Boolean(activeSource.value && userSettingsStore.pinnedSourceIds.includes(activeSource.value.source_id)))
+
+function isSourceSelectable(source: WatchlistSource): boolean {
+  const availability = source.provenance?.availability
+  return availability !== 'unavailable'
+    && availability !== 'profile_not_loaded'
+    && availability !== 'holdings_snapshot_not_loaded'
+}
 
 function toggleSourceFollow() {
   if (activeSource.value?.can_follow) userSettingsStore.toggleFollowedSource(activeSource.value.source_id)
@@ -770,7 +777,8 @@ onMounted(async () => {
     snapshotError.value = cause instanceof Error ? cause.message : 'Unable to load Market Map snapshots'
   }
   if (!sourceId.value && !explicitSymbols.value.trim()) {
-    const preferred = sources.value.find((item: WatchlistSource) => item.source_kind === 'index_membership' || item.source_kind === 'etf_holdings') ?? sources.value[0]
+    const preferred = sources.value.find((item: WatchlistSource) => isSourceSelectable(item) && (item.source_kind === 'index_membership' || item.source_kind === 'etf_holdings'))
+      ?? sources.value.find((item: WatchlistSource) => isSourceSelectable(item))
     if (preferred) sourceId.value = preferred.source_id
   }
   if (sourceId.value || explicitSymbols.value.trim()) await run()

@@ -53,6 +53,29 @@ describe('MarketMapTool', () => {
     expect(wrapper.find('[aria-label="Market Map universe"]').element.value).toBe('market-group:sp500')
   })
 
+  it('keeps unavailable family legs visible but prevents accidental selection', async () => {
+    const previousSources = sourceState.sources
+    sourceState.sources = [
+      ...previousSources,
+      {
+        ...previousSources[0],
+        source_id: 'benchmark-family:sp500:value',
+        source_kind: 'index_membership',
+        name: 'S&P 500 — Value',
+        provenance: { availability: 'holdings_snapshot_not_loaded' },
+      },
+    ]
+    const wrapper = mount(MarketMapTool)
+    await flushPromises()
+
+    const option = wrapper.find('option[value="benchmark-family:sp500:value"]')
+    expect(option.attributes('disabled')).toBeDefined()
+    expect(option.text()).toContain('Unavailable')
+
+    wrapper.unmount()
+    sourceState.sources = previousSources
+  })
+
   it('loads a locked source, renders tiles, persists controls, and publishes a selected symbol', async () => {
     const wrapper = mount(MarketMapTool)
     await flushPromises()
