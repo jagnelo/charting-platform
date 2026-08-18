@@ -1,5 +1,21 @@
 # Active Handoff
 
+## 2026-08-19 — Locked market-group membership lineage repair
+
+- Locked `market-group:*` descriptors now fingerprint the member rows that define the universe,
+  including canonical ID/order, weights, relationship/source and verification metadata, and
+  effective/known timestamps. Parent-row timestamps are no longer the only cache signal.
+- Focused integration mutates a locked member weight and verifies the source membership version,
+  Market Map cache key, and weight-sized tile all change. The related universal WatchlistSource
+  regression set passes `4/4`.
+- Validation passed: Docker-backed integration `4/4`, Ruff, Python compileall, and
+  `git diff --check`. The first direct uv invocation hit the known sandbox uv-cache permission
+  boundary; the unchanged exact elevated rerun passed. No acceptance flexibility used.
+- Historical deletion/re-entry reconstruction and exact V25 revision/badge visuals remain open;
+  docs/project-todos.md, docs/tc2000-parity.md, and docs/tc2000-reference-board.md record them.
+- Implementation commit and separate operational/state closure commits are the next required
+  bookkeeping step before starting another context.
+
 ## 2026-08-19 — Universal Python Market Map source compatibility
 
 - Widened `BreadthUniverseRequest.key` to 4096 characters and allowed the shared watchlist

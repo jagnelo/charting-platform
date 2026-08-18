@@ -1,4 +1,29 @@
 tasks:
+  - id: tc2000-market-group-membership-lineage-20260819
+    title: Invalidate locked index and group heatmaps on member-row revisions
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Extend the universal WatchlistSource lineage contract to system-managed market groups so
+      index, sector, industry, and proxy universes cannot reuse a stale map after ingestion changes
+      a member row without touching the parent group timestamp.
+    definition_of_done:
+      - Market-group descriptors fingerprint canonical member identity, order, weight, relationship/source, verification, and lifecycle metadata
+      - A locked member-weight change changes the source membership version and Market Map cache key
+      - The changed weight remains visible through the same point-in-time map area contract
+      - Focused Docker-backed integration, Ruff, compileall, and diff checks pass
+      - Historical deletion/re-entry reconstruction and exact V25 revision visuals remain tracked gaps
+    validation:
+      - backend-locked-market-group-lineage-integration-1-of-1
+      - backend-watchlist-source-regressions-4-of-4
+      - backend-ruff-compileall
+      - git-diff-check
+    notes:
+      - >-
+        No acceptance flexibility used. This repairs current membership/cache lineage; it does not
+        claim a historical append-only ledger or exact Version 25 revision badges.
+
   - id: tc2000-python-map-universal-source-20260819
     title: Allow isolated Python Market Map evaluation for every WatchlistSource
     status: completed

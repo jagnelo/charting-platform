@@ -1,5 +1,19 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-19 — Locked market-group revisions invalidate maps
+
+Locked `market-group:*` sources now fingerprint the member rows that actually define an index,
+sector, industry, or other managed universe. The fingerprint includes canonical IDs, order,
+weights, relationship/source and verification metadata, and effective/known timestamps. A
+refresh that changes a member row therefore changes the shared WatchlistSource version and the
+Market Map cache key even when the parent group timestamp is unchanged. This is the same source
+contract used by personal, combo, ETF-holdings, and explicit universes.
+
+The focused integration mutates a locked member weight and verifies version, cache, and tile area
+changes. Historical deletion/re-entry reconstruction and the exact Version 25 visual treatment
+for membership revision badges remain explicit board gaps; the deterministic source/cache
+contract is the interim oracle.
+
 ## 2026-08-19 — Python map evaluation uses every canonical watchlist source
 
 Market Map's isolated Python colour and numeric-area paths now use the same source-polymorphic

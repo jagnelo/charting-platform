@@ -1,5 +1,15 @@
 # TC2000 Version 25 composite reference board
 
+## 2026-08-19 locked market-group revision gap narrowed
+
+The board still has no authoritative capture of how Version 25 presents a refreshed locked index,
+sector, or industry membership/weight revision. The implementation now has deterministic
+membership lineage for those sources: member-row changes alter the source version and map cache
+identity, and the rendered map reports the new weight. Focused integration assertions are the
+interim acceptance oracle for correctness. Exact V25 revision badges, refresh copy, timestamps,
+and any user-facing history affordance remain unrepresented and must stay tracked until a
+complementary reference closes them.
+
 ## 2026-08-19 Python map source-polymorphism reference gap
 
 The board does not show whether Version 25 exposes a derived combo or ephemeral multi-symbol

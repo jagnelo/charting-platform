@@ -1,5 +1,19 @@
 # Run Report
 
+## 2026-08-19 — Locked market-group membership lineage repair
+
+- Extended the universal WatchlistSource membership fingerprint to locked market groups. It now
+  includes canonical member IDs, ordering, weights, relationship/source and verification fields,
+  and effective/known timestamps.
+- Added an integration regression that changes a locked group member's weight and proves the
+  source descriptor version, Market Map cache key, and tile area change without modifying the
+  parent group row.
+- Validation: focused Docker-backed universal-source set `4/4`, Ruff, compileall, and
+  `git diff --check` pass. The unprivileged uv attempt hit only the known cache permission
+  boundary; exact elevated reruns passed. No acceptance flexibility or visual threshold changed.
+- Historical membership ledger, complete provider/family population, and exact V25 revision
+  visuals remain explicit gaps.
+
 ## 2026-08-19 — Universal Python Market Map source compatibility
 
 - Isolated Python map colours/area now accept canonical personal/managed, market-group,

@@ -1,5 +1,18 @@
 # Project TODO Memory
 
+### 2026-08-19 — Canonical market-group membership lineage
+
+- [x] Extend the shared membership fingerprint to include market-group member identity,
+      ordering, weight, relationship/source metadata, verification state, and effective/known
+      timestamps, not only personal-watchlist timestamps.
+- [x] Include that fingerprint in locked `market-group:*` descriptors so an index, sector,
+      industry, or other system-managed universe invalidates Market Map caches when ingestion
+      refreshes its membership or weights without touching the parent group row.
+- [x] Add a Docker-backed integration regression that mutates a locked group member weight and
+      proves the source membership version, map cache key, and weight-sized tile change together.
+- [ ] Keep append-only historical deletion/re-entry reconstruction, complete provider population,
+      and exact V25 revision/badge visuals open; this closes current lineage invalidation only.
+
 ### 2026-08-19 — Python Market Map colours for every WatchlistSource
 
 - [x] Extend the breadth universe key bound to the canonical 4096-character source contract so
