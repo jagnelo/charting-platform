@@ -1,5 +1,19 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-19 — Market Map timeframe is carried through every source contract
+
+Market Map now exposes Daily, Weekly, and Monthly resolution for every canonical source, including
+locked index/ETF/sector/industry constituent watchlists and editable personal/combo/explicit lists.
+The selected timeframe is serialized, sent to the local batch map request, used by history status
+and hydration, passed to isolated Python colour runs and reusable definitions, and restored from a
+named snapshot. The backend Market Map unit suite remains `5/5`; the frontend component is `25/25`,
+full Vitest `890/890`, and type-check/build/diff checks pass.
+
+This closes a functional source-polymorphism gap only. The reference board has no authoritative V25
+timeframe-control geometry, copy, linked-timeframe behavior, or loading treatment; that remains a
+`required_missing` visual gap. Provider-backed family completeness, historical reconciliation,
+large-list rendering, and exact V25 maintenance/progress geometry remain open.
+
 ## 2026-08-19 — Market Map makes source history readiness actionable
 
 The universal heatmap now exposes the same local-history contract for every selected source,

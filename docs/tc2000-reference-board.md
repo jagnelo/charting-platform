@@ -1,5 +1,19 @@
 # TC2000 Version 25 composite reference board
 
+## 2026-08-19 — Market Map timeframe selector remains visually unrepresented
+
+Market Map now lets the user select Daily, Weekly, or Monthly resolution for the same arbitrary
+locked/personal watchlist universe. The chosen timeframe is carried through local history
+readiness, explicit hydration, Python colour evaluation, map calculation, persistence, and named
+snapshot restoration. The board does not contain an authoritative V25 capture showing this
+selector's exact placement, labels, linked-timeframe behavior, or loading/partial-state treatment.
+
+Gap status: `required_missing` for exact timeframe-control geometry/copy and represented loading or
+coverage states. Interim oracle: Market Map component `25/25`, backend Market Map unit `5/5`, full
+frontend Vitest `890/890`, type-check/build, and diff checks. No visual threshold or mask changed;
+provider-backed family population, historical continuity, and exact V25 maintenance visuals remain
+separate gaps.
+
 ## 2026-08-19 — YTD baseline disclosure remains visually unrepresented
 
 The shared top-down analytics now use a prior-year-end session for YTD across Market Map, family

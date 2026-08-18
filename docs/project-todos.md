@@ -1,5 +1,19 @@
 # Project TODO Memory
 
+### 2026-08-19 — Market Map timeframe selection is source-polymorphic
+
+- [x] Add a Daily/Weekly/Monthly selector to Market Map and persist it with the serializable tool
+      configuration. The selected timeframe is passed to the canonical batch map request rather
+      than being silently fixed to D1.
+- [x] Carry the same timeframe into source history readiness, explicit hydration, durable refresh
+      progress, isolated Python colour runs, reusable breadth definitions, and named snapshot
+      restoration. Locked index/ETF sources and editable watchlists retain identical behavior.
+- [x] Add a component regression for W1 request/persistence, backend Market Map unit coverage
+      remains `5/5`, full frontend Vitest passes `890/890`, type-check/build, and diff checks pass.
+- [ ] The reference board has no authoritative V25 timeframe-control geometry/copy or loading
+      treatment; this is recorded as `required_missing` in the board. No acceptance flexibility,
+      provider substitution, or interactive provider fan-out was used.
+
 ### 2026-08-19 — Market Map exposes locked-source history readiness and refresh
 
 - [x] Add typed frontend clients for `GET /api/v1/watchlists/sources/history-status/{source_id}`

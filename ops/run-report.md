@@ -1,5 +1,16 @@
 # Run Report
 
+## 2026-08-19 — Market Map timeframe selection is fully propagated
+
+- Added Daily/Weekly/Monthly Market Map resolution selection and persisted it in the tool state.
+- Propagated the selected timeframe through batch map requests, source history status/refresh,
+  durable progress, isolated Python colour runs, reusable breadth definitions, and snapshot load.
+- Validation: Market Map component `25/25`; backend Market Map unit `5/5`; full frontend Vitest
+  `890/890`; type-check/build; `git diff --check`. Acceptance flexibility used: **None**.
+- Visual gap recorded: the board lacks authoritative V25 timeframe-control geometry/copy and
+  loading treatment (`required_missing`). Provider-backed family completeness, historical
+  reconciliation, large-list rendering, and exact V25 parity remain open.
+
 ## 2026-08-19 — Market Map source history readiness is visible and actionable
 
 - Added typed frontend clients for source history status and explicit bounded refresh, using the

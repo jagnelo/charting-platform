@@ -87,6 +87,19 @@ substantive open gaps.
 
 ## 2026-08-19 — Source-level heatmap readiness and progress is explicit
 
+### Market Map timeframe gate
+
+The Market Map timeframe selector must accept Daily (`D1`), Weekly (`W1`), and Monthly (`MN`) for
+any canonical source. The chosen value must be present in the serializable tool configuration,
+batch-map request, history-status/refresh request, isolated Python run, reusable definition, and
+snapshot restoration. Changing it must clear stale history-run state and re-read local readiness;
+it must not mutate membership or invoke a provider from the browser. The focused component,
+backend Market Map unit, full frontend, type/build, and diff gates are required.
+
+The board has no authoritative V25 capture for this selector's geometry/copy or loading treatment,
+so those states remain an explicit `required_missing` visual gap. This is not acceptance flexibility
+and does not relax provider, point-in-time, large-list, or exact visual requirements.
+
 ### Market Map actionability gate
 
 The source-level readiness contract must be visible in the workstation, not only available through

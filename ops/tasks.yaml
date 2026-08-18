@@ -1,4 +1,31 @@
 tasks:
+  - id: tc2000-market-map-timeframe-propagation-20260819
+    title: Propagate Market Map timeframe through all source workflows
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Replace the workstation's hard-coded D1 Market Map resolution with a persisted D1/W1/MN
+      selector that governs map metrics, local history readiness/refresh, Python colour runs,
+      reusable definitions, and snapshot restoration for every watchlist source kind.
+    definition_of_done:
+      - Expose and persist Daily, Weekly, and Monthly timeframe controls
+      - Pass the selected timeframe to map, history status/refresh, Python, definitions, and snapshots
+      - Clear stale history-run state when the timeframe changes without changing membership
+      - Add component regression and retain backend Market Map, full frontend, type/build, and diff gates
+      - Record the missing exact V25 timeframe visual evidence as a board gap, not a silent pass
+    validation:
+      - frontend-market-map-component-25-of-25
+      - backend-market-map-unit-5-of-5
+      - frontend-vitest-890-of-890
+      - frontend-type-check
+      - frontend-build
+      - git-diff-check
+    notes:
+      - >-
+        Acceptance flexibility used: None. The selector's exact V25 visual treatment is a
+        required_missing board gap; functional source-polymorphic behavior is verified.
+
   - id: tc2000-market-map-refresh-progress-20260819
     title: Show durable Market Map history progress and cancellation
     status: completed
