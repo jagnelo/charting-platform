@@ -1,6 +1,6 @@
 import json
 import zipfile
-from datetime import date
+from datetime import date, timedelta
 from decimal import Decimal
 from io import BytesIO
 from xml.sax.saxutils import escape
@@ -30,7 +30,7 @@ def _xlsx_workbook(rows: list[list[str]]) -> bytes:
     worksheet = (
         '<?xml version="1.0" encoding="UTF-8"?>'
         '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
-        f'<sheetData>{"".join(sheet_rows)}</sheetData>'
+        f"<sheetData>{''.join(sheet_rows)}</sheetData>"
         "</worksheet>"
     )
     output = BytesIO()
@@ -2356,6 +2356,29 @@ def test_admin_all_family_refresh_range_normalizes_scope_and_date_order(
         ("sp500", date(2026, 6, 30), ["value"]),
         ("nasdaq100", date(2026, 6, 30), ["value"]),
     ]
+
+
+def test_admin_all_family_refresh_rejects_unknown_scope_and_oversized_range(client, admin_headers):
+    oversized_range = client.post(
+        "/api/v1/etf-holdings/benchmark-families/refresh-range",
+        json={
+            "requested_dates": [
+                (date(2026, 1, 1) + timedelta(days=offset)).isoformat() for offset in range(65)
+            ]
+        },
+        headers=admin_headers,
+    )
+    assert oversized_range.status_code == 422
+
+    # Keep the ValueError path last: the router deliberately rolls back the
+    # request transaction, which also removes the fixture-only admin row.
+    unknown_family = client.post(
+        "/api/v1/etf-holdings/benchmark-families/refresh-date",
+        json={"requested_date": "2026-06-30", "family_keys": ["not-a-family"]},
+        headers=admin_headers,
+    )
+    assert unknown_family.status_code == 400
+    assert "Unknown benchmark family key" in unknown_family.json()["detail"]
 
 
 def test_issuer_adapter_can_discover_holdings_file_from_product_page(
