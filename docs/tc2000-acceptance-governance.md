@@ -1,5 +1,25 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-08-19 — Large-universe Market Map rendering gate
+
+The universal heatmap must not create row-count-proportional Vue tile DOM for large arbitrary
+watchlists. For more than 1,500 valid cells, acceptance requires one canvas-backed map using the
+same canonical source ID, membership version, deterministic layout, colour/area coverage,
+freshness, provenance, and warning contract as the normal DOM-backed view. The canvas must paint
+all valid geometry, preserve hover/detail and selected-member publication, keep zoom/pan usable,
+and suppress selection after a drag. A compact symbol/name search must provide keyboard selection;
+the canvas member-count label and hover card are the summary/detail accessibility oracle rather
+than an unbounded hidden options list.
+
+The focused regression proves a 1,501-member response creates zero `.market-map-tool__tile`
+elements, invokes canvas painting, retains the accessible member count, rejects a drag-click, and
+selects a member through the keyboard search. Market Map is `26/26`; full frontend Vitest is
+`893/893`; type-check/build/diff checks pass. The board has no authoritative V25 large-universe
+capture, canvas/text-density treatment, or keyboard-search reference; those remain
+`required_missing` visual gaps. This gate does not relax visual thresholds and does not prove
+10,000-member stress, provider-backed family completeness, historical reconciliation, or exact
+V25 parity.
+
 ## 2026-08-19 — Universal watchlist-to-heatmap launch gate
 
 The heatmap is accepted as a universal watchlist surface, not an index-only feature. A virtual

@@ -1,5 +1,23 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-19 — Large arbitrary watchlists render through the shared Market Map canvas path
+
+Market Map remains one source-polymorphic heatmap for every canonical index/ETF, sector/industry,
+personal, combo, and explicit watchlist. When a selected group contains more than 1,500 valid
+members, the existing deterministic treemap geometry is painted into one canvas rather than
+creating one Vue tile/button per constituent. Canvas colours, selection outlines, hover details,
+zoom/pan, and linked selection use the same response and source lineage as the smaller DOM-backed
+map. A drag is not treated as a click, and a compact symbol/name search provides keyboard member
+selection without a 10,000-option DOM list.
+
+The focused Market Map regression is `26/26`; full frontend Vitest is `893/893`; type-check,
+production build, and diff checks pass. This closes the large-list DOM/performance safeguard and
+interaction regression only. The composite board contains no authoritative V25 capture of a
+large-universe heatmap, its density/text policy, canvas treatment, or keyboard search, so those
+states remain a `required_missing` visual gap. Ten-thousand-member stress, provider-backed family
+completeness, historical reconciliation, and exact V25 parity remain open. No acceptance
+flexibility, provider substitution, or interactive provider fan-out was used.
+
 ## 2026-08-19 — Virtual watchlists launch the universal Market Map
 
 Every virtualized watchlist now exposes the same source-aware `Map` action when its rows have a

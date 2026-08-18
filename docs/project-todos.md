@@ -1,5 +1,28 @@
 # Project TODO Memory
 
+### 2026-08-19 — Large arbitrary Market Maps use bounded canvas rendering
+
+- [x] Keep the universal source-polymorphic Market Map usable for large locked index/ETF
+      constituent sets, personal/combo watchlists, and explicit symbol sets. Above 1,500 valid
+      cells the map now paints one deterministic canvas instead of creating one Vue button per
+      member; geometry, colour, selection outline, hover details, zoom, and pan remain driven by
+      the same canonical batch response and layout model.
+- [x] Prevent a drag-to-pan gesture from becoming an accidental member selection. Add a bounded
+      keyboard-accessible symbol/name search for canvas maps so large universes remain selectable
+      without an options-list or row-count-proportional DOM. The canvas exposes its member count,
+      the hover card remains the detail authority, and selected members continue to publish to
+      linked analysis and watchlists.
+- [x] Add a 1,501-member regression proving zero per-member tile DOM, canvas paint, the accessible
+      member-count label, drag-selection suppression, and keyboard member selection. Focused
+      Market Map is `26/26`; the complete frontend gate is `893/893`; type-check, production
+      build, and diff checks pass.
+- [ ] The reference board has no authoritative V25 large-universe treemap capture, canvas/text
+      density treatment, or keyboard-accessible member-search treatment. This remains a
+      `required_missing` visual gap with a functional/performance interim oracle; no acceptance
+      flexibility, provider substitution, or interactive per-cell provider fan-out was used.
+      Provider-backed family population, historical reconciliation, 10,000-row stress evidence,
+      and exact V25 parity remain open.
+
 ### 2026-08-19 — Any virtual watchlist can open its canonical universe in Market Map
 
 - [x] Add a source-aware `Map` action to the shared virtualized watchlist surface. Personal,

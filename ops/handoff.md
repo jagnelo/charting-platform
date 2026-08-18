@@ -1,5 +1,21 @@
 # Active Handoff
 
+## 2026-08-19 — Large arbitrary Market Map rendering is bounded and keyboard-usable
+
+- Market Map remains the single source-polymorphic heatmap for any canonical locked or editable
+  watchlist. Above 1,500 valid cells, `MarketMapTool.vue` paints deterministic geometry into one
+  canvas instead of creating one Vue tile per member; selection, hover detail, zoom/pan, and linked
+  analysis use the same canonical response.
+- A drag gesture cannot become a selection. Large maps expose a compact symbol/name search for
+  keyboard selection, a member-count canvas label, and the existing hover card; no unbounded hidden
+  option list is introduced.
+- Validation: Market Map `26/26`; full frontend Vitest `893/893`; type-check/build; diff check.
+  Acceptance flexibility: **None**.
+- Board gap: V25 dense-map/canvas/text-density and keyboard member-search visuals are
+  `required_missing` in `docs/tc2000-reference-board.md`. Continue provider-backed family
+  population, historical reconciliation, 10,000-member stress evidence, and exact V25 represented
+  state work.
+
 ## 2026-08-19 — Any canonical virtual watchlist can open Market Map
 
 - The shared virtualized watchlist now emits a source-aware `Map` action. Benchmark, sector,

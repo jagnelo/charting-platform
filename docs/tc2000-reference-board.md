@@ -1,5 +1,21 @@
 # TC2000 Version 25 composite reference board
 
+## 2026-08-19 — Large-universe Market Map treatment is visually unrepresented
+
+The shared Market Map now switches arbitrary watchlists with more than 1,500 valid members to a
+single canvas. It preserves deterministic treemap geometry, colour/selection paint, hover detail,
+zoom/pan, drag suppression, and a keyboard symbol/name search so a 10,000-member universe does not
+become a proportional tile DOM. The composite board has no sufficiently authoritative V25 capture
+showing the corresponding large-universe density threshold, canvas/text policy, hover/selection
+state, or keyboard-search affordance.
+
+Gap status: `required_missing` for those visual states. Interim oracle: Market Map `26/26`, full
+frontend Vitest `893/893`, type-check, production build, diff checks, and the 1,501-member
+zero-tile-DOM regression. No screenshot threshold, mask, provider substitution, or acceptance
+flexibility was used. Evidence needed to close the gap is a reviewed V25 large-watchlist/heatmap
+capture (including dense and keyboard/member-selection states), followed by measured geometry and
+token review. Until then this is tracked rather than silently treated as visual parity.
+
 ## 2026-08-19 — Watchlist-level Market Map launch is visually unrepresented
 
 The shared virtualized watchlist now offers a `Map` action for any view backed by a canonical

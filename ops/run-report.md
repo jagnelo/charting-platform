@@ -1,5 +1,21 @@
 # Run Report
 
+## 2026-08-19 — Large arbitrary Market Maps avoid proportional tile DOM
+
+- Kept the same canonical source-polymorphic heatmap for locked index/ETF/sector/industry
+  constituent sets, personal/combo watchlists, and explicit symbols. Above 1,500 valid cells the
+  deterministic layout is painted by one canvas; colours, selection outlines, hover detail,
+  zoom/pan, source lineage, and linked publication remain unchanged.
+- Added drag-selection suppression and a compact symbol/name keyboard search so large maps do not
+  require an unbounded hidden options list. The canvas exposes its member count and the existing
+  hover card remains the detail authority.
+- Validation: Market Map `26/26`; full frontend Vitest `893/893`; type-check; production build;
+  `git diff --check`. No acceptance flexibility, provider substitution, or interactive per-cell
+  provider fan-out was introduced.
+- Visual gap recorded: the board has no authoritative V25 large-universe density/canvas/text or
+  keyboard-search reference (`required_missing`). Ten-thousand-member stress, provider-backed
+  family completeness, historical reconciliation, and exact V25 parity remain open.
+
 ## 2026-08-19 — Virtual watchlists launch their canonical universe in Market Map
 
 - Added the source-aware `Map` action to the shared virtualized watchlist. Durable personal,
