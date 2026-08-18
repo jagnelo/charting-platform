@@ -2,6 +2,7 @@ from app.models.alert_firing_event import AlertFiringEvent
 from app.models.asset_class import AssetClass, InstrumentType
 from app.models.base import TimestampMixin
 from app.models.basket import Basket, BasketMember, BasketSnapshot, BasketSnapshotMember
+from app.models.benchmark_family_history import BenchmarkFamilyHoldingsRefreshRun
 from app.models.chart_drawing import ChartDrawing
 from app.models.dashboard import Dashboard, DashboardTab, DashboardWidget
 from app.models.data_source import DataSource
@@ -113,6 +114,7 @@ __all__ = [
     "BasketMember",
     "BasketSnapshot",
     "BasketSnapshotMember",
+    "BenchmarkFamilyHoldingsRefreshRun",
     "Instrument",
     "InstrumentIdentifier",
     "InstrumentIdentifierType",

@@ -170,6 +170,64 @@ def test_admin_family_history_refresh_queues_deduplicated_local_members(
     assert all(call[0][2] == ["MN", "W1", "D1"] for call in redis.calls)
 
 
+def test_admin_family_holdings_refresh_run_persists_scope_and_cancellation(
+    client, admin_headers, monkeypatch
+):
+    class FakeRedis:
+        def __init__(self):
+            self.calls = []
+
+        async def enqueue_job(self, *args, **kwargs):
+            self.calls.append((args, kwargs))
+            return object()
+
+        async def aclose(self):
+            return None
+
+    redis = FakeRedis()
+
+    async def fake_create_pool(*_args, **_kwargs):
+        return redis
+
+    monkeypatch.setattr("arq.connections.create_pool", fake_create_pool)
+    response = client.post(
+        "/api/v1/etf-holdings/benchmark-families/refresh-runs",
+        headers=admin_headers,
+        json={
+            "requested_dates": ["2026-06-30", "2026-03-31", "2026-06-30"],
+            "family_keys": ["nasdaq100", "sp500", "sp500"],
+            "roles": ["VALUE", "value"],
+        },
+    )
+
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["id"] > 0
+    assert body["requested_dates"] == ["2026-03-31", "2026-06-30"]
+    assert body["family_keys"] == ["sp500", "nasdaq100"]
+    assert body["roles"] == ["value"]
+    assert body["total_units"] == 4
+    assert body["status"] == "queued"
+    assert redis.calls[0][0] == ("task_refresh_benchmark_family_holdings_run", body["id"])
+    assert redis.calls[0][1]["_job_id"] == f"benchmark-family-holdings-refresh:{body['id']}"
+
+    status = client.get(
+        f"/api/v1/etf-holdings/benchmark-families/refresh-runs/{body['id']}",
+        headers=admin_headers,
+    )
+    assert status.status_code == 200, status.text
+    assert status.json()["status"] == "queued"
+    assert status.json()["total_units"] == 4
+
+    canceled = client.post(
+        f"/api/v1/etf-holdings/benchmark-families/refresh-runs/{body['id']}/cancel",
+        headers=admin_headers,
+    )
+    assert canceled.status_code == 200, canceled.text
+    assert canceled.json()["status"] == "canceled"
+    assert canceled.json()["cancel_requested"] is True
+
+
 def test_bootstrap_endpoint_can_materialize_and_fetch_first_snapshot(
     client, auth_headers, monkeypatch
 ):

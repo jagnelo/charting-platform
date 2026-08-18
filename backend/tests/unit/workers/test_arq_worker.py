@@ -5,6 +5,35 @@ from app.tasks import data_tasks
 from app.workers import arq_worker
 
 
+class _AsyncNested:
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *_args):
+        return False
+
+
+class _RefreshRunSession:
+    def __init__(self, run):
+        self.run = run
+        self.commits = 0
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *_args):
+        return None
+
+    async def get(self, _model, _run_id):
+        return self.run
+
+    def begin_nested(self):
+        return _AsyncNested()
+
+    async def commit(self):
+        self.commits += 1
+
+
 @pytest.mark.asyncio
 async def test_daily_history_refresh_is_explicitly_disabled_by_default(monkeypatch):
     monkeypatch.setattr(settings, "MARKET_DATA_REFRESH_SCHEDULE_ENABLED", False)
@@ -33,6 +62,108 @@ async def test_daily_history_refresh_delegates_to_canonical_batch_task(monkeypat
 
 def test_worker_registers_history_refresh_function():
     assert arq_worker.scheduled_daily_history_refresh in arq_worker.WorkerSettings.functions
+
+
+@pytest.mark.asyncio
+async def test_family_holdings_refresh_worker_persists_each_unit_and_aggregates_results(monkeypatch):
+    from types import SimpleNamespace
+
+    run = SimpleNamespace(
+        id=7,
+        family_keys=["sp500", "nasdaq100"],
+        roles=["cap_weight"],
+        requested_dates=["2026-03-31", "2026-06-30"],
+        total_units=4,
+        completed_units=0,
+        refreshed_count=0,
+        unavailable_count=0,
+        failed_count=0,
+        status="queued",
+        cancel_requested=False,
+        progress={"units": []},
+        started_at=None,
+        finished_at=None,
+    )
+    session = _RefreshRunSession(run)
+    calls = []
+
+    async def fake_refresh(_db, *, family_key, requested_date, roles):
+        calls.append((family_key, requested_date.isoformat(), roles))
+        if family_key == "nasdaq100" and requested_date.isoformat() == "2026-03-31":
+            return {"refreshed": 0, "unavailable": 0, "failed": 1, "legs": [], "error": "route unavailable"}
+        return {"refreshed": 1, "unavailable": 0, "failed": 0, "legs": []}
+
+    class SessionFactory:
+        def __call__(self):
+            return session
+
+    monkeypatch.setattr("app.database.AsyncSessionLocal", SessionFactory())
+    monkeypatch.setattr(
+        "app.services.etf_holdings_refresh.refresh_benchmark_family_holdings_for_date",
+        fake_refresh,
+    )
+
+    result = await arq_worker.task_refresh_benchmark_family_holdings_run({}, run.id)
+
+    assert result == {
+        "status": "completed",
+        "run_id": 7,
+        "completed_units": 4,
+        "refreshed": 3,
+        "unavailable": 0,
+        "failed": 1,
+    }
+    assert run.status == "completed"
+    assert run.completed_units == 4
+    assert run.refreshed_count == 3
+    assert run.failed_count == 1
+    assert run.progress["status"] == "completed"
+    assert len(run.progress["units"]) == 4
+    assert calls == [
+        ("sp500", "2026-03-31", ["cap_weight"]),
+        ("nasdaq100", "2026-03-31", ["cap_weight"]),
+        ("sp500", "2026-06-30", ["cap_weight"]),
+        ("nasdaq100", "2026-06-30", ["cap_weight"]),
+    ]
+    assert session.commits == 6
+
+
+@pytest.mark.asyncio
+async def test_family_holdings_refresh_worker_honours_durable_cancellation(monkeypatch):
+    from types import SimpleNamespace
+
+    run = SimpleNamespace(
+        id=8,
+        family_keys=["sp500"],
+        roles=["cap_weight"],
+        requested_dates=["2026-06-30"],
+        total_units=1,
+        completed_units=0,
+        refreshed_count=0,
+        unavailable_count=0,
+        failed_count=0,
+        status="queued",
+        cancel_requested=True,
+        progress={"units": []},
+        started_at=None,
+        finished_at=None,
+    )
+    session = _RefreshRunSession(run)
+    monkeypatch.setattr("app.database.AsyncSessionLocal", lambda: session)
+
+    async def fail_if_called(*_args, **_kwargs):
+        raise AssertionError("canceled runs must not call the provider-backed refresh")
+
+    monkeypatch.setattr(
+        "app.services.etf_holdings_refresh.refresh_benchmark_family_holdings_for_date",
+        fail_if_called,
+    )
+
+    result = await arq_worker.task_refresh_benchmark_family_holdings_run({}, run.id)
+
+    assert result == {"status": "canceled", "run_id": 8}
+    assert run.status == "canceled"
+    assert run.progress["cancel_requested"] is True
 
 
 @pytest.mark.asyncio

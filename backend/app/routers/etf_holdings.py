@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import UTC, date, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select
@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user, require_admin
 from app.database import get_db
+from app.models.benchmark_family_history import BenchmarkFamilyHoldingsRefreshRun
 from app.models.etf_holdings import ETFHoldingsAdapterState
 from app.models.user import User
 from app.schemas.basket import BasketOut
@@ -55,9 +56,12 @@ from app.schemas.etf_holdings import (
 from app.schemas.etf_holdings_history import (
     BenchmarkFamilyHistoryRefreshRequest,
     BenchmarkFamilyHistoryRefreshSummary,
+    BenchmarkFamilyHoldingsRefreshRunOut,
+    BenchmarkFamilyHoldingsRefreshRunRequest,
 )
 from app.services.baskets import basket_to_out, materialize_etf_holdings_basket
 from app.services.benchmark_family_history import plan_benchmark_family_history_refresh
+from app.services.benchmark_family_holdings_runs import plan_benchmark_family_holdings_refresh
 from app.services.etf_holdings import (
     coverage_summary,
     ensure_etf_profile,
@@ -108,6 +112,137 @@ from app.services.etf_holdings_refresh import (
 from app.services.etf_holdings_sec import parse_sec_legacy_holdings_xml, parse_sec_nport_xml
 
 router = APIRouter(prefix="/etf-holdings", tags=["etf-holdings"])
+
+
+def _benchmark_family_holdings_run_output(
+    run: BenchmarkFamilyHoldingsRefreshRun,
+) -> BenchmarkFamilyHoldingsRefreshRunOut:
+    return BenchmarkFamilyHoldingsRefreshRunOut.model_validate(run)
+
+
+async def _get_own_benchmark_family_holdings_run(
+    db: AsyncSession, user_id: int, run_id: int
+) -> BenchmarkFamilyHoldingsRefreshRun:
+    run = (
+        await db.execute(
+            select(BenchmarkFamilyHoldingsRefreshRun).where(
+                BenchmarkFamilyHoldingsRefreshRun.id == run_id,
+                BenchmarkFamilyHoldingsRefreshRun.user_id == user_id,
+            )
+        )
+    ).scalar_one_or_none()
+    if run is None:
+        raise HTTPException(status_code=404, detail="Benchmark family holdings refresh run not found")
+    return run
+
+
+@router.post(
+    "/benchmark-families/refresh-runs",
+    response_model=BenchmarkFamilyHoldingsRefreshRunOut,
+)
+async def create_benchmark_family_holdings_refresh_run(
+    body: BenchmarkFamilyHoldingsRefreshRunRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    """Persist and queue a bounded provider-backed family holdings refresh."""
+
+    try:
+        plan = plan_benchmark_family_holdings_refresh(
+            requested_dates=body.requested_dates,
+            family_keys=body.family_keys,
+            roles=body.roles,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    run = BenchmarkFamilyHoldingsRefreshRun(
+        user_id=current_user.id,
+        family_keys=plan["family_keys"],
+        roles=plan["roles"],
+        requested_dates=[value.isoformat() for value in plan["requested_dates"]],
+        total_units=plan["total_units"],
+        progress={
+            "status": "queued",
+            "total_units": plan["total_units"],
+            "completed_units": 0,
+            "units": [],
+        },
+    )
+    db.add(run)
+    await db.flush()
+
+    try:
+        from arq.connections import RedisSettings, create_pool
+
+        from app.config import settings
+
+        redis = await create_pool(RedisSettings.from_dsn(settings.REDIS_URL))
+        try:
+            await redis.enqueue_job(
+                "task_refresh_benchmark_family_holdings_run",
+                run.id,
+                _job_id=f"benchmark-family-holdings-refresh:{run.id}",
+                _expires=86_400,
+            )
+        finally:
+            await redis.aclose()
+    except Exception as exc:  # noqa: BLE001 - queue failure is durable run state.
+        run.status = "failed"
+        run.error = str(exc)[:500]
+        run.finished_at = datetime.now(UTC)
+        run.progress = {
+            **(run.progress or {}),
+            "status": "failed",
+            "queue_unavailable": True,
+        }
+
+    await db.commit()
+    return _benchmark_family_holdings_run_output(run)
+
+
+@router.get(
+    "/benchmark-families/refresh-runs/{run_id}",
+    response_model=BenchmarkFamilyHoldingsRefreshRunOut,
+)
+async def get_benchmark_family_holdings_refresh_run(
+    run_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    """Read durable scope/progress without contacting any provider."""
+
+    run = await _get_own_benchmark_family_holdings_run(db, current_user.id, run_id)
+    return _benchmark_family_holdings_run_output(run)
+
+
+@router.post(
+    "/benchmark-families/refresh-runs/{run_id}/cancel",
+    response_model=BenchmarkFamilyHoldingsRefreshRunOut,
+)
+async def cancel_benchmark_family_holdings_refresh_run(
+    run_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    """Persist cancellation; the worker observes it between date/family units."""
+
+    run = await _get_own_benchmark_family_holdings_run(db, current_user.id, run_id)
+    if run.status in {"completed", "canceled", "failed"}:
+        raise HTTPException(
+            status_code=409,
+            detail=f"Benchmark family holdings refresh run is already {run.status}",
+        )
+    run.cancel_requested = True
+    run.status = "canceled"
+    run.finished_at = datetime.now(UTC)
+    run.progress = {
+        **(run.progress or {}),
+        "status": "canceled",
+        "cancel_requested": True,
+    }
+    await db.commit()
+    return _benchmark_family_holdings_run_output(run)
 
 
 @router.post(

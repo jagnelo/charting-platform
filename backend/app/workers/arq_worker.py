@@ -70,6 +70,123 @@ async def task_refresh_benchmark_family_history(ctx: dict, instrument_ids: list[
     return {"instrument_count": len(instrument_ids), "results": results}
 
 
+async def task_refresh_benchmark_family_holdings_run(ctx: dict, run_id: int):
+    """Execute one durable provider-backed family holdings refresh unit at a time."""
+
+    from datetime import date, datetime
+
+    from app.database import AsyncSessionLocal
+    from app.models.benchmark_family_history import BenchmarkFamilyHoldingsRefreshRun
+    from app.services.etf_holdings_refresh import refresh_benchmark_family_holdings_for_date
+
+    async with AsyncSessionLocal() as db:
+        run = await db.get(BenchmarkFamilyHoldingsRefreshRun, run_id)
+        if run is None:
+            logger.warning("benchmark-family-holdings-refresh: run %s not found", run_id)
+            return {"status": "missing", "run_id": run_id}
+        if run.status in {"completed", "canceled", "failed"}:
+            return {"status": run.status, "run_id": run_id}
+
+        run.status = "running"
+        run.started_at = run.started_at or datetime.now(UTC)
+        run.progress = {
+            **(run.progress or {}),
+            "status": "running",
+            "total_units": run.total_units,
+        }
+        await db.commit()
+
+        for requested_date_text in run.requested_dates or []:
+            requested_date = date.fromisoformat(str(requested_date_text))
+            for family_key in run.family_keys or []:
+                run = await db.get(BenchmarkFamilyHoldingsRefreshRun, run_id)
+                if run is None:
+                    return {"status": "missing", "run_id": run_id}
+                if run.cancel_requested or run.status == "canceled":
+                    run.status = "canceled"
+                    run.finished_at = datetime.now(UTC)
+                    run.progress = {
+                        **(run.progress or {}),
+                        "status": "canceled",
+                        "cancel_requested": True,
+                    }
+                    await db.commit()
+                    return {"status": "canceled", "run_id": run_id}
+
+                try:
+                    async with db.begin_nested():
+                        summary = await refresh_benchmark_family_holdings_for_date(
+                            db,
+                            family_key=str(family_key),
+                            requested_date=requested_date,
+                            roles=list(run.roles or []),
+                        )
+                except Exception as exc:  # noqa: BLE001 - retain per-unit failure evidence.
+                    summary = {
+                        "family_key": str(family_key),
+                        "requested_date": requested_date,
+                        "refreshed": 0,
+                        "unavailable": 0,
+                        "failed": 1,
+                        "legs": [],
+                        "error": str(exc) or "Benchmark family holdings refresh failed.",
+                    }
+
+                run = await db.get(BenchmarkFamilyHoldingsRefreshRun, run_id)
+                if run is None:
+                    return {"status": "missing", "run_id": run_id}
+                run.completed_units += 1
+                run.refreshed_count += int(summary.get("refreshed", 0))
+                run.unavailable_count += int(summary.get("unavailable", 0))
+                run.failed_count += int(summary.get("failed", 0))
+                prior_units = list((run.progress or {}).get("units") or [])
+                prior_units.append(
+                    {
+                        "family_key": str(family_key),
+                        "requested_date": requested_date.isoformat(),
+                        "refreshed": int(summary.get("refreshed", 0)),
+                        "unavailable": int(summary.get("unavailable", 0)),
+                        "failed": int(summary.get("failed", 0)),
+                        "legs": summary.get("legs") or [],
+                        "error": summary.get("error"),
+                    }
+                )
+                run.progress = {
+                    "status": "running",
+                    "total_units": run.total_units,
+                    "completed_units": run.completed_units,
+                    "last_unit": {
+                        "family_key": str(family_key),
+                        "requested_date": requested_date.isoformat(),
+                    },
+                    "units": prior_units,
+                }
+                await db.commit()
+
+        run = await db.get(BenchmarkFamilyHoldingsRefreshRun, run_id)
+        if run is None:
+            return {"status": "missing", "run_id": run_id}
+        if run.cancel_requested:
+            run.status = "canceled"
+        else:
+            run.status = "completed"
+        run.finished_at = datetime.now(UTC)
+        run.progress = {
+            **(run.progress or {}),
+            "status": run.status,
+            "completed_units": run.completed_units,
+        }
+        await db.commit()
+        return {
+            "status": run.status,
+            "run_id": run_id,
+            "completed_units": run.completed_units,
+            "refreshed": run.refreshed_count,
+            "unavailable": run.unavailable_count,
+            "failed": run.failed_count,
+        }
+
+
 async def task_run_screener(ctx: dict, screener_id: int):
     """ARQ task: run a screener by ID and persist results."""
     from app.database import AsyncSessionLocal
@@ -241,6 +358,7 @@ class WorkerSettings:
     functions = [
         task_bulk_fetch_instrument,
         task_refresh_benchmark_family_history,
+        task_refresh_benchmark_family_holdings_run,
         task_run_screener,
         task_refresh_instrument_data,
         task_bootstrap_core_workstation,

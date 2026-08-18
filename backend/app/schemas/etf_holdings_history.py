@@ -1,6 +1,6 @@
-from datetime import datetime
+from datetime import date, datetime
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class BenchmarkFamilyHistoryRefreshRequest(BaseModel):
@@ -41,3 +41,36 @@ class BenchmarkFamilyHistoryRefreshSummary(BaseModel):
     legs: list[BenchmarkFamilyHistoryRefreshLegOut] = Field(default_factory=list)
     message: str | None = None
 
+
+class BenchmarkFamilyHoldingsRefreshRunRequest(BaseModel):
+    """Bounded provider-backed holdings refresh submitted to the worker queue."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    requested_dates: list[date] = Field(min_length=1, max_length=64)
+    family_keys: list[str] = Field(default_factory=list, max_length=8)
+    roles: list[str] = Field(default_factory=list)
+
+
+class BenchmarkFamilyHoldingsRefreshRunOut(BaseModel):
+    """Durable progress and scope for one family holdings refresh run."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    family_keys: list[str]
+    roles: list[str]
+    requested_dates: list[date]
+    total_units: int = 0
+    completed_units: int = 0
+    refreshed_count: int = 0
+    unavailable_count: int = 0
+    failed_count: int = 0
+    status: str
+    cancel_requested: bool = False
+    progress: dict = Field(default_factory=dict)
+    error: str | None = None
+    started_at: datetime | None = None
+    finished_at: datetime | None = None
+    created_at: datetime
+    updated_at: datetime
