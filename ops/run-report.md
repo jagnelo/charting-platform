@@ -28612,3 +28612,21 @@ and strict visual gaps remain explicitly tracked.
 - Remaining gaps: historical market-cap/weight reconstruction, complete family/provider population,
   exact/unrepresented V25 visual evidence, and final functional/visual/security/performance/
   migration/end-to-end audit.
+
+# 2026-08-19 — Recursive/cross-sectional Python tree promotion checkpoint
+
+- Completed the recursive/cross-sectional Boolean breadth promotion path. Historical tree runs now
+  create a distinct immutable Boolean EasyScan condition with resolved tree, source run/code,
+  dataset manifest, universe/membership, and `condition_tree_to_boolean` lineage. The generated
+  screener stores the tree and the queue forwards it into the isolated runner.
+- End-to-end evidence: focused tree promotion `1/1`; workspace+screener integration `74/74`;
+  isolated runner/screener unit suites `133/133`; full backend `1547 passed, 402 skipped`; Research
+  Results `16/16`; full frontend `877/877`; type-check/build; Ruff/compileall; YAML/JSON; and
+  `git diff --check` all pass.
+- Fix-first note: the initial test expected HTTP 201 from an existing screener-run endpoint that
+  returns HTTP 200. The assertion was corrected at the test boundary and the unchanged flow passed.
+  No product, visual, security, lineage, or acceptance criterion was relaxed.
+- Implementation/docs commit `412d84bb` pushed successfully; local and origin branch hashes match
+  and the worktree was clean. The required operational record is the only current changeset.
+- Open work remains direct non-Boolean fan-out, richer derived composition, family/provider and
+  historical population, exact/unrepresented V25 visual references, and final full audit gates.

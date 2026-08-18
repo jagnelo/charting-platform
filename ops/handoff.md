@@ -30497,3 +30497,28 @@ indefinite soak; longer endurance remains an explicit open gap.
   rejected before Git transport by the private-origin safeguard. No workaround or retry was used;
   transport remains operational-only and is not a product blocker. Operational checkpoint pending.
 - Next context: continue unified Python promotion fan-out and richer derived-series composition.
+
+# 2026-08-19 — Recursive/cross-sectional Python tree promotion checkpoint
+
+- Completed `Promote to EasyScan` for historical breadth runs containing recursive or
+  cross-sectional Boolean trees. The API creates a distinct immutable Boolean CodeVersion instead
+  of reusing a numeric anchor as though it were Boolean; diagnostics and screener conditions retain
+  the resolved tree, source run/code version, dataset manifest, universe, membership, and
+  `condition_tree_to_boolean` adapter metadata.
+- The Python screener queue now carries the exact tree into the isolated job payload. The runner
+  evaluates that tree over the declared prepared dataset and returns the expected Boolean member
+  result, so no API-side execution or anchor-only fallback occurs. Research Results exposes the
+  same EasyScan action for completed tree runs.
+- Validation passed: isolated runner/screener units `133/133`; focused workspace promotion `1/1`;
+  complete workspace+screener integration `74/74`; full backend `1547 passed, 402 skipped`;
+  Research Results `16/16`; full frontend `877/877`; type-check/build; Ruff/compileall;
+  YAML/JSON; and diff checks.
+- No acceptance flexibility was used. One existing endpoint status assertion was corrected from
+  201 to its documented 200 response; this was a test-oracle correction. Docker/uv setup boundaries
+  were rerun unchanged with approved access and an isolated cache.
+- Implementation/docs commit `412d84bb` was pushed successfully. Local and origin branch hashes
+  match at `412d84bb`; worktree is clean before this operational record.
+- Remaining gaps: direct non-Boolean fan-out from trees, richer multi-stage derived composition,
+  complete family/provider population, historical market-cap reconstruction, exact/unrepresented
+  V25 visual evidence, and final functional/visual/security/performance/migration/end-to-end audit.
+- Next context: continue unified Python promotion fan-out for compatible non-Boolean targets.

@@ -11627,3 +11627,42 @@ tasks:
         Implementation/docs commit 91b13cb3 is clean locally. The single exact push attempt was
         rejected before Git transport by the private-origin safeguard; no workaround or retry was
         used. This is transport-only and does not block the product goal.
+  - id: tc2000-python-tree-scan-promotion-20260819
+    title: Promote recursive and cross-sectional Python breadth trees into isolated EasyScan
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Extend the existing Python breadth promotion path so completed historical Boolean trees,
+      including cross-sectional numeric leaves, become immutable Boolean EasyScan conditions. Carry
+      the exact resolved tree, source run/code version, dataset/universe/membership lineage, and
+      condition-tree adapter into the screener job and isolated runner.
+    definition_of_done:
+      - Recursive/cross-sectional tree runs promote to a distinct Boolean CodeVersion and EasyScan
+      - Numeric anchor versions are not reused as if they were already Boolean
+      - Screener conditions and queued jobs retain the exact tree and lineage
+      - Isolated execution evaluates the tree and returns the expected Boolean member result
+      - Research Results exposes the same Promote to EasyScan action for completed tree runs
+      - Existing member numeric scan, plot, column, Study Lab, and screener behavior remains green
+      - Remaining non-Boolean fan-out gaps remain documented
+    validation:
+      - isolated-runner-screener-unit-133-of-133
+      - workspace-tree-promotion-integration-1-of-1
+      - workspace-screener-integration-74-of-74
+      - backend-full-1547-passed-402-skipped
+      - research-results-component-16-of-16
+      - frontend-vitest-877-of-877
+      - frontend-typecheck-build
+      - ruff-compileall-diff-check
+      - yaml-json-diff-check
+    notes:
+      - >-
+        No acceptance flexibility was used. The first focused browser/API assertion expected 201
+        from an existing screener run endpoint that correctly returns 200; the test boundary was
+        corrected and the unchanged end-to-end flow passed. This is a test-oracle correction, not a
+        product, security, visual, lineage, or scope relaxation. Docker and uv-cache setup boundaries
+        were rerun unchanged with approved access and an isolated cache.
+      - >-
+        Implementation/docs commit 412d84bb was pushed successfully. Local HEAD and
+        origin/feat/tc2000-frontend-rework both resolve to 412d84bb and the worktree is clean.
+        The separate operational checkpoint must be committed and pushed before the next context.
