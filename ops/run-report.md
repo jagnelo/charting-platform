@@ -1,5 +1,18 @@
 # Run Report
 
+## 2026-08-19 — Benchmark-family Python Market Map source parity
+
+- Fixed the Market Map Python-output source dispatch omission for locked
+  `benchmark-family:<family>:<role>` universes. Family legs now use the same isolated
+  `kind=watchlist` handoff and canonical source key as every other watchlist source.
+- Added a focused S&P 500 cap-weight regression. Market Map component tests pass `23/23`, full
+  frontend Vitest passes `887/887`, and `vue-tsc --noEmit`, production build, and
+  `git diff --check` pass.
+- No acceptance flexibility, visual threshold/mask, provider entitlement, or source substitution
+  was used. Provider-backed population, historical continuity, Python promotion fan-out, and exact
+  V25 family-source visuals remain open.
+- Implementation/docs/ops commits must be pushed and synchronized before the next context.
+
 ## 2026-08-19 — QQQE SEC historical evidence
 
 - QQQE now has explicit Direxion trust/series/class identity and a dated SEC fallback that cannot

@@ -1,5 +1,19 @@
 # Active Handoff
 
+## 2026-08-19 — Benchmark-family Python Market Map source parity
+
+- Repaired the shared Market Map Python universe adapter so
+  `benchmark-family:<family>:<role>` locked sources reach the isolated runner as canonical
+  `kind=watchlist` universes with point-in-time semantics. This closes a concrete family-leg
+  source-dispatch defect; no family-specific route or ticker fallback was introduced.
+- Added a component regression for `benchmark-family:sp500:cap_weight`. Focused Market Map
+  coverage passes `23/23`; full frontend Vitest passes `887/887`; `vue-tsc --noEmit`, production
+  build, and diff checks pass. No acceptance flexibility was used.
+- Implementation commit and docs/ops closure are still required before this context is closed.
+  Continue next with provider-backed family population/quality reconciliation and universal Market
+  Map acceptance. Remaining gaps include historical composition/bars, complete Python promotion,
+  and exact Version 25 family-source visuals.
+
 ## 2026-08-19 — QQQE SEC historical evidence
 
 - Added canonical QQQE Direxion Shares ETF Trust identity metadata: CIK `0001424958`, series

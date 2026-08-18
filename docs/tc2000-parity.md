@@ -1,5 +1,19 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-19 — Family-leg Python Market Map uses the universal source contract
+
+The Market Map Python-output path now recognizes `benchmark-family:<family>:<role>` sources in
+the same way as personal, managed, market-group, ETF-holdings, combo, and explicit sources. A
+locked family leg therefore uses the same isolated `kind=watchlist` universe handoff and
+point-in-time policy as every other canonical source; it does not require a family-specific map
+route or silently fall back to a ticker. The regression covers an S&P 500 cap-weight leg and
+asserts the canonical source key and source semantics.
+
+Focused Market Map component coverage passes `23/23`, full frontend Vitest passes `887/887`, and
+`vue-tsc --noEmit`, the production build, and `git diff --check` pass. No acceptance flexibility
+was used. Provider-backed family population, historical continuity, complete Python promotion
+fan-out, and exact Version 25 family-source visuals remain open.
+
 ## 2026-08-19 — QQQE has live SEC historical-route evidence
 
 QQQE now carries its SEC Direxion Shares ETF Trust identity (`CIK 0001424958`, series

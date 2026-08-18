@@ -1,4 +1,29 @@
 tasks:
+  - id: tc2000-market-map-family-python-source-20260819
+    title: Keep benchmark-family Market Map Python output on the universal watchlist contract
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Ensure locked benchmark-family legs can use isolated Python colour/area outputs through the
+      same canonical watchlist universe handoff as every other Market Map source.
+    definition_of_done:
+      - benchmark-family:<family>:<role> source IDs are recognized by the Market Map Python adapter
+      - The submitted universe preserves the canonical source key and point-in-time policy
+      - A focused regression covers a locked S&P 500 cap-weight family leg
+      - Full frontend tests, type-check, production build, and diff checks pass
+      - Provider population, historical continuity, promotion fan-out, and exact V25 visuals remain open
+    validation:
+      - frontend-market-map-component-23-of-23
+      - frontend-vitest-887-of-887
+      - frontend-vue-tsc
+      - frontend-production-build
+      - git-diff-check
+    notes:
+      - >-
+        A local source-dispatch omission was repaired immediately and regression-tested. No
+        acceptance flexibility, visual threshold, provider rule, or source substitution was used.
+
   - id: tc2000-direxion-qqqe-sec-historical-fallback-20260819
     title: Add QQQE dated SEC reconstruction beside the current Direxion CSV
     status: completed

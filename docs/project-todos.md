@@ -1,5 +1,19 @@
 # Project TODO Memory
 
+### 2026-08-19 — Benchmark-family Python Market Map source parity
+
+- [x] Extend the Market Map Python-output source adapter to recognize canonical
+      `benchmark-family:<family>:<role>` sources alongside personal, market-group, ETF-holdings,
+      combo, and explicit sources. Family-leg maps now submit the same watchlist universe
+      contract to the isolated breadth/Python runner instead of failing before evaluation.
+- [x] Add a component regression covering a locked S&P 500 cap-weight family source and assert
+      the submitted `kind=watchlist`, canonical source key, and point-in-time policy.
+- [x] Validate the focused Market Map component suite `23/23`, full frontend Vitest `887/887`,
+      `vue-tsc --noEmit`, production build, and diff checks.
+- [ ] Keep the broader gaps visible: provider-backed family population, historical composition and
+      bars, complete Python promotion fan-out, and exact Version 25 family-source visuals remain
+      open; no acceptance flexibility was used for this fix.
+
 ### 2026-08-19 — QQQE dated holdings use the Direxion SEC reconstruction route
 
 - [x] Add canonical SEC CIK/series/class metadata for QQQE (`0001424958`, `S000033634`,

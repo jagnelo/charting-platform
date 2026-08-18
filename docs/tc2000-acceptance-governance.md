@@ -1,5 +1,18 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-08-19 — Family-leg Python Market Map source handoff
+
+The universal locked-watchlist acceptance includes Python-backed Market Map colour/area outputs,
+not only built-in metrics. A `benchmark-family:<family>:<role>` source must reach the isolated
+runner as `kind=watchlist` with its canonical source ID and point-in-time policy, exactly like the
+other source kinds. The focused component regression and full frontend suite are the interim
+oracle for this handoff. The local omission that rejected family-leg Python maps was repaired;
+it was a code defect under repository control, not a semantic ambiguity or acceptance waiver.
+
+No acceptance flexibility was used. Provider-backed family population, historical continuity,
+promotion fan-out, and exact Version 25 source-picker/derived-weight/unavailable visuals remain
+tracked gaps.
+
 ## 2026-08-19 — QQQE historical-route sub-gate
 
 The QQQE equal-weight leg must resolve its Direxion trust/series/class identity explicitly and
