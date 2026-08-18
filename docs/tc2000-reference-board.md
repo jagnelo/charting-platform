@@ -10,7 +10,7 @@ showing the corresponding large-universe density threshold, canvas/text policy, 
 state, or keyboard-search affordance.
 
 Gap status: `required_missing` for those visual states. Interim oracle: Market Map `26/26`, full
-frontend Vitest `893/893`, type-check, production build, diff checks, and the 1,501-member
+frontend Vitest `893/893`, type-check, production build, diff checks, and the 10,000-member
 zero-tile-DOM regression. No screenshot threshold, mask, provider substitution, or acceptance
 flexibility was used. Evidence needed to close the gap is a reviewed V25 large-watchlist/heatmap
 capture (including dense and keyboard/member-selection states), followed by measured geometry and

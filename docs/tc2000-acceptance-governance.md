@@ -11,14 +11,14 @@ and suppress selection after a drag. A compact symbol/name search must provide k
 the canvas member-count label and hover card are the summary/detail accessibility oracle rather
 than an unbounded hidden options list.
 
-The focused regression proves a 1,501-member response creates zero `.market-map-tool__tile`
+The focused regression proves a 10,000-member response creates zero `.market-map-tool__tile`
 elements, invokes canvas painting, retains the accessible member count, rejects a drag-click, and
 selects a member through the keyboard search. Market Map is `26/26`; full frontend Vitest is
 `893/893`; type-check/build/diff checks pass. The board has no authoritative V25 large-universe
 capture, canvas/text-density treatment, or keyboard-search reference; those remain
 `required_missing` visual gaps. This gate does not relax visual thresholds and does not prove
-10,000-member stress, provider-backed family completeness, historical reconciliation, or exact
-V25 parity.
+interactive/soak stress beyond the bounded 10,000-member regression, provider-backed family
+completeness, historical reconciliation, or exact V25 parity.
 
 ## 2026-08-19 — Universal watchlist-to-heatmap launch gate
 

@@ -9,12 +9,13 @@
 - A drag gesture cannot become a selection. Large maps expose a compact symbol/name search for
   keyboard selection, a member-count canvas label, and the existing hover card; no unbounded hidden
   option list is introduced.
-- Validation: Market Map `26/26`; full frontend Vitest `893/893`; type-check/build; diff check.
+- Validation: Market Map `26/26` including a 10,000-member response; full frontend Vitest `893/893`;
+  type-check/build; diff check.
   Acceptance flexibility: **None**.
 - Board gap: V25 dense-map/canvas/text-density and keyboard member-search visuals are
   `required_missing` in `docs/tc2000-reference-board.md`. Continue provider-backed family
-  population, historical reconciliation, 10,000-member stress evidence, and exact V25 represented
-  state work.
+  population, historical reconciliation, interactive/soak stress beyond the bounded 10,000-member
+  regression, and exact V25 represented state work.
 
 ## 2026-08-19 — Any canonical virtual watchlist can open Market Map
 

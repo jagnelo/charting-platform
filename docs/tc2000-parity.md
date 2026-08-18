@@ -10,7 +10,7 @@ zoom/pan, and linked selection use the same response and source lineage as the s
 map. A drag is not treated as a click, and a compact symbol/name search provides keyboard member
 selection without a 10,000-option DOM list.
 
-The focused Market Map regression is `26/26`; full frontend Vitest is `893/893`; type-check,
+The focused Market Map regression exercises 10,000 members and is `26/26`; full frontend Vitest is `893/893`; type-check,
 production build, and diff checks pass. This closes the large-list DOM/performance safeguard and
 interaction regression only. The composite board contains no authoritative V25 capture of a
 large-universe heatmap, its density/text policy, canvas treatment, or keyboard search, so those
