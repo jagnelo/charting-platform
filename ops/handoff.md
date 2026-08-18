@@ -24,8 +24,9 @@
 - No acceptance flexibility used. Exact V25 aggregate-promotion and plot-library target-mode
   visuals are explicitly tracked in the reference board; aggregate/member contracts and full
   universe rerun requirements remain strict.
-- Implementation/docs commit `c524d511a2ace88e35c9f138205e65fe6a02074a` is pushed. This
-  operational record is the separate checkpoint; state closure follows it.
+- Implementation/docs commit `c524d511a2ace88e35c9f138205e65fe6a02074a` is pushed. The
+  operational checkpoint `1c2529fbcd370f677a4fd10b34494c3ea401cf54` and state-closure commit
+  `fd2bedc75b2f769176cd8d107fd71847825bb52a` are also pushed and synchronized.
 - Next context remains unified-Python derived-series/promotion fan-out and the open eight-root
   provider/history population, not a redefinition of this goal.
 

@@ -13,8 +13,9 @@
   full Vitest `885/885`, `vue-tsc`, production build, Ruff, compileall, YAML/JSON, and diff-check.
 - Exact V25 promotion/plot-library visuals remain a named reference-board gap only; functional
   lineage, full-universe materialization, and sandbox requirements remain mandatory.
-- Implementation/docs commit `c524d511a2ace88e35c9f138205e65fe6a02074a` is pushed. Operational
-  checkpoint and state closure are the remaining bookkeeping steps.
+- Implementation/docs commit `c524d511a2ace88e35c9f138205e65fe6a02074a`, operational checkpoint
+  `1c2529fbcd370f677a4fd10b34494c3ea401cf54`, and state-closure commit
+  `fd2bedc75b2f769176cd8d107fd71847825bb52a` are pushed and synchronized.
 
 ## 2026-08-19 — Research Results Boolean breadth promotion fan-out
 
