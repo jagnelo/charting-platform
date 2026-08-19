@@ -1,5 +1,25 @@
 # Active Handoff
 
+## 2026-08-19 — Durable explicit sources cross Breadth and isolated Python
+
+- Closed two concrete owning-boundary gaps in the universal locked-watchlist model. Generic
+  `/analysis/breadth` now accepts `explicit-list:<stable-key>` sources, and the Market Map Python
+  declaration now emits the same provider-neutral watchlist universe contract for durable explicit
+  selections as for other canonical sources. Durable and ephemeral explicit sources retain locked
+  semantics and use the local canonical resolver; no provider fan-out or ticker reconstruction was
+  added.
+- Validation: saved-source → Breadth Docker-backed integration `1/1`; Market Map publication
+  helper/component `35/35`; full frontend Vitest `909/909`; frontend type-check and production
+  build; backend compileall/Ruff; `git diff --check`. Implementation commit
+  `2afcecfb34e311860aaa47ef0b4adedf63f5c60b` is pushed and origin is synchronized.
+- Acceptance flexibility: **None**. The implementation defect was fixed and tested. Remaining gaps
+  are exact V25 source-library and Python-universe visuals, historical saved-source materialization,
+  provider-backed bars/history, point-in-time membership snapshots, all-eight family/provider
+  continuity, and the broader visual/reference-board requirements. These remain tracked; they are
+  not silently accepted as complete.
+- Next context: provider-backed saved-source coverage and family-role population/continuity, then
+  the next parity gap, from a clean synchronized branch.
+
 ## 2026-08-19 — Durable explicit Market Map sources
 
 - Completed the next changeset context: arbitrary canonical members selected from any Market Map

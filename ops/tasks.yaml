@@ -1,4 +1,35 @@
 tasks:
+  - id: tc2000-explicit-source-programmable-reuse-20260819
+    title: Reuse durable explicit sources across Breadth and isolated Python
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Close the owning-boundary gaps discovered after durable explicit Market Map selections were
+      introduced: a saved `explicit-list:<stable-key>` must be accepted by generic Breadth and by
+      the isolated Python Market Map colour/area declaration without a second provider or symbol
+      resolution path.
+    definition_of_done:
+      - Generic Breadth accepts durable explicit-list source IDs and preserves the source descriptor
+      - Python Market Map emits the provider-neutral watchlist declaration for durable explicit-list sources
+      - Both paths retain locked membership semantics and resolve through the canonical local source contract
+      - Focused frontend helper/component and Docker-backed saved-source-to-Breadth regressions pass
+      - Product parity, TODO, and reference-board records name the remaining historical/provider/visual gaps
+    validation:
+      - backend-saved-explicit-source-to-breadth-1-of-1
+      - market-map-publication-helper-and-component-35-of-35
+      - frontend-vitest-909-of-909
+      - frontend-type-check
+      - frontend-build
+      - backend-compileall-and-ruff
+      - git-diff-check
+    notes:
+      - >-
+        Acceptance flexibility used: None. This closes a localized contract defect rather than
+        waiving a goal criterion. Historical saved-source materialization, provider-backed bars and
+        history, point-in-time membership snapshots, exact V25 source-library geometry, and the
+        broader family/provider/visual gaps remain open and are carried into the next context.
+
   - id: tc2000-durable-explicit-watchlist-sources-20260819
     title: Persist arbitrary Market Map selections as locked reusable sources
     status: completed

@@ -1,5 +1,21 @@
 # Run Report
 
+## 2026-08-19 — Durable explicit sources are reusable in Breadth and isolated Python
+
+- Fixed the two follow-through gaps in the source-polymorphic Market Map design. Generic Breadth
+  now resolves durable `explicit-list:<stable-key>` sources, and the isolated Python Market Map
+  colour/area path emits a canonical watchlist declaration for those sources instead of rejecting
+  them or inventing a second resolution mechanism. Both retain locked membership semantics.
+- Added a shared frontend universe helper and regression coverage for durable/ephemeral explicit,
+  benchmark-family, and non-canonical rejection cases. Added a Docker-backed API assertion proving
+  a saved explicit source can be evaluated by Breadth with the same source ID.
+- Evidence: backend integration `1/1`; helper/component `35/35`; frontend Vitest `909/909`; type-
+  check; production build; backend compileall/Ruff; `git diff --check`. Implementation/docs commit
+  `2afcecfb34e311860aaa47ef0b4adedf63f5c60b` pushed successfully.
+- Acceptance flexibility: **None**. Open gaps remain explicit: exact V25 source-library/Python
+  universe visuals, historical materialization, provider-backed bars/history, point-in-time saved
+  membership, all-eight family/provider continuity, and broader visual-board coverage.
+
 ## 2026-08-19 — Durable explicit selections become reusable locked sources
 
 - Implemented a user-isolated durable source catalog for arbitrary canonical Market Map selections.
