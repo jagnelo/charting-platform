@@ -26,6 +26,9 @@
         <span class="market-map-tool__source-kind">{{ sourceKindLabel(activeSource.source_kind) }} · {{ activeSource.member_count ?? '—' }} members</span>
         <button v-if="activeSource.can_follow" type="button" :aria-pressed="sourceFollowed" :aria-label="sourceFollowed ? `Unfollow ${activeSource.name}` : `Follow ${activeSource.name}`" @click="toggleSourceFollow">{{ sourceFollowed ? 'Following' : 'Follow' }}</button>
         <button v-if="activeSource.can_clone" type="button" :aria-pressed="sourcePinned" :aria-label="sourcePinned ? `Unpin ${activeSource.name}` : `Pin ${activeSource.name}`" @click="toggleSourcePin">{{ sourcePinned ? 'Pinned' : 'Pin' }}</button>
+        <button v-if="map && activeSource.can_clone" type="button" :disabled="sourceCloneBusy" :aria-label="`Clone ${activeSource.name} snapshot`" @click="cloneActiveSource">{{ sourceCloneBusy ? 'Cloning…' : 'Clone snapshot' }}</button>
+        <span v-if="sourceCloneMessage" role="status">{{ sourceCloneMessage }}</span>
+        <span v-if="sourceCloneError" class="market-map-tool__status--error" role="alert">{{ sourceCloneError }}</span>
       </div>
       <label>Group
         <select v-model="groupBy" aria-label="Market Map grouping">
@@ -321,6 +324,9 @@ const newPublicationName = ref('')
 const publishing = ref(false)
 const publicationMessage = ref('')
 const publicationError = ref('')
+const sourceCloneBusy = ref(false)
+const sourceCloneMessage = ref('')
+const sourceCloneError = ref('')
 const explicitWatchlistName = ref('')
 const explicitSaving = ref(false)
 const snapshots = ref<MarketMapSnapshotSummary[]>([])
@@ -377,6 +383,48 @@ function toggleSourceFollow() {
 
 function toggleSourcePin() {
   if (activeSource.value?.can_clone) userSettingsStore.togglePinnedSource(activeSource.value.source_id)
+}
+
+function sourceSnapshotName(source: WatchlistSource): string {
+  const versionParts = source.membership_version?.split(':') ?? []
+  const date = source.composition_date ?? versionParts[versionParts.length - 1] ?? 'current'
+  return `${source.name} snapshot ${date}`.slice(0, 80)
+}
+
+function sourceSnapshotDescription(source: WatchlistSource): string {
+  const provenanceSource = source.source ?? source.provenance?.source_provider ?? 'canonical local source'
+  return [
+    `Cloned from ${source.source_id}`,
+    `membership_version=${source.membership_version ?? 'unknown'}`,
+    `effective_at=${source.effective_at ?? 'unknown'}`,
+    `known_at=${source.known_at ?? 'unknown'}`,
+    `composition_date=${source.composition_date ?? 'unknown'}`,
+    `source=${provenanceSource}`,
+  ].join('; ')
+}
+
+async function cloneActiveSource() {
+  const source = activeSource.value
+  if (!source || !map.value || sourceCloneBusy.value) return
+  sourceCloneBusy.value = true
+  sourceCloneMessage.value = ''
+  sourceCloneError.value = ''
+  try {
+    const asOf = source.composition_date ? `${source.composition_date}T23:59:59Z` : null
+    const resolved = await watchlistStore.resolveWatchlistSource(source.source_id, asOf)
+    const memberIds = [...new Set((resolved?.members ?? []).map(member => member.instrument_id).filter(id => Number.isInteger(id) && id > 0))]
+    if (!memberIds.length) throw new Error('The selected source has no canonical members available to clone.')
+    const descriptor = resolved?.source ?? source
+    const created = await watchlistStore.createWatchlist(sourceSnapshotName(descriptor), sourceSnapshotDescription(descriptor))
+    if (!created) throw new Error('Unable to create the cloned watchlist.')
+    const results = await Promise.all(memberIds.map(instrumentId => watchlistStore.addItem(created.id, instrumentId)))
+    const added = results.filter(Boolean).length
+    sourceCloneMessage.value = `${added}/${memberIds.length} members cloned as ${created.name} · ${descriptor.membership_version ?? 'current snapshot'}`
+  } catch (cause) {
+    sourceCloneError.value = cause instanceof Error ? cause.message : 'Unable to clone the selected source'
+  } finally {
+    sourceCloneBusy.value = false
+  }
 }
 
 function clearHistoryPoll() {

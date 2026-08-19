@@ -1,7 +1,7 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { apiGet, apiPost, loadWatchlistSources, loadWatchlists, createWatchlist, addItem, loadUserSettings, toggleFollowedSource, togglePinnedSource, invalidateQueries } = vi.hoisted(() => ({ apiGet: vi.fn(), apiPost: vi.fn(), loadWatchlistSources: vi.fn(), loadWatchlists: vi.fn(), createWatchlist: vi.fn(), addItem: vi.fn(), loadUserSettings: vi.fn(), toggleFollowedSource: vi.fn(), togglePinnedSource: vi.fn(), invalidateQueries: vi.fn() }))
+const { apiGet, apiPost, loadWatchlistSources, loadWatchlists, resolveWatchlistSource, createWatchlist, addItem, loadUserSettings, toggleFollowedSource, togglePinnedSource, invalidateQueries } = vi.hoisted(() => ({ apiGet: vi.fn(), apiPost: vi.fn(), loadWatchlistSources: vi.fn(), loadWatchlists: vi.fn(), resolveWatchlistSource: vi.fn(), createWatchlist: vi.fn(), addItem: vi.fn(), loadUserSettings: vi.fn(), toggleFollowedSource: vi.fn(), togglePinnedSource: vi.fn(), invalidateQueries: vi.fn() }))
 const sourceState = vi.hoisted(() => ({
   sources: [{ source_id: 'market-group:sp500', source_kind: 'index_membership', name: 'S&P 500', locked: true, can_follow: true, can_clone: true, can_edit_membership: false, member_count: 2, provenance: {} }],
   watchlists: [],
@@ -11,7 +11,7 @@ const sourceState = vi.hoisted(() => ({
 
 vi.mock('@/lib/api', () => ({ api: { get: apiGet, post: apiPost, delete: vi.fn() } }))
 vi.mock('@tanstack/vue-query', () => ({ useQueryClient: () => ({ invalidateQueries }) }))
-vi.mock('@/stores/watchlist', () => ({ useWatchlistStore: () => ({ watchlistSources: sourceState.sources, watchlistSourcesLoading: sourceState.loading, watchlistSourcesError: sourceState.error, watchlists: sourceState.watchlists, loadWatchlistSources, loadWatchlists, createWatchlist, addItem }) }))
+vi.mock('@/stores/watchlist', () => ({ useWatchlistStore: () => ({ watchlistSources: sourceState.sources, watchlistSourcesLoading: sourceState.loading, watchlistSourcesError: sourceState.error, watchlists: sourceState.watchlists, loadWatchlistSources, loadWatchlists, resolveWatchlistSource, createWatchlist, addItem }) }))
 vi.mock('@/stores/userSettings', () => ({ useUserSettingsStore: () => ({ followedSourceIds: [], pinnedSourceIds: [], loadSettings: loadUserSettings, toggleFollowedSource, togglePinnedSource }) }))
 
 import MarketMapTool from '@/components/workstation/MarketMapTool.vue'
@@ -28,6 +28,7 @@ describe('MarketMapTool', () => {
     apiGet.mockReset()
     loadWatchlistSources.mockReset()
     loadWatchlists.mockReset()
+    resolveWatchlistSource.mockReset()
     createWatchlist.mockReset()
     addItem.mockReset()
     loadUserSettings.mockReset()
@@ -51,6 +52,33 @@ describe('MarketMapTool', () => {
     expect(togglePinnedSource).toHaveBeenCalledWith('market-group:sp500')
     expect(wrapper.text()).toContain('Locked source')
     expect(wrapper.find('[aria-label="Market Map universe"]').element.value).toBe('market-group:sp500')
+  })
+
+  it('clones the complete canonical locked source with membership provenance', async () => {
+    resolveWatchlistSource.mockResolvedValue({
+      source: { ...sourceState.sources[0], composition_date: '2026-08-07', membership_version: 'sp500:2026-08-07' },
+      members: [
+        { instrument_id: 1, position: 0, relationship_type: 'constituent', effective_at: '2026-08-07T00:00:00Z', known_at: '2026-08-07T00:00:00Z' },
+        { instrument_id: 2, position: 1, relationship_type: 'constituent', effective_at: '2026-08-07T00:00:00Z', known_at: '2026-08-07T00:00:00Z' },
+      ],
+      exclusions: [],
+    })
+    createWatchlist.mockResolvedValue({ id: 11, name: 'S&P 500 snapshot 2026-08-07', is_managed: false, is_locked: false, items: [] })
+    addItem.mockResolvedValue({ id: 110, instrument_id: 1 })
+    const wrapper = mount(MarketMapTool)
+    await flushPromises()
+
+    await wrapper.get('[aria-label="Clone S&P 500 snapshot"]').trigger('click')
+    await flushPromises()
+
+    expect(resolveWatchlistSource).toHaveBeenCalledWith('market-group:sp500', null)
+    expect(createWatchlist).toHaveBeenCalledWith(
+      'S&P 500 snapshot 2026-08-07',
+      expect.stringContaining('membership_version=sp500:2026-08-07'),
+    )
+    expect(addItem).toHaveBeenCalledWith(11, 1)
+    expect(addItem).toHaveBeenCalledWith(11, 2)
+    expect(wrapper.get('[aria-label="Market Map source preferences"] [role="status"]').text()).toContain('2/2 members cloned')
   })
 
   it('groups index, ETF, and editable sources while using one locked-source map contract', async () => {

@@ -3305,11 +3305,30 @@ test.describe('TC2000 workstation', () => {
     }
     await page.route('**/api/v1/watchlists/sources**', async route => {
       const pathname = new URL(route.request().url()).pathname
+      if (decodeURIComponent(pathname).endsWith('/sources/market-group:us-benchmarks')) {
+        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+          source: { ...sources[0], composition_date: '2026-08-08', effective_at: '2026-08-08T00:00:00Z', known_at: '2026-08-08T01:00:00Z' },
+          members: [
+            { instrument_id: 1, position: 0, relationship_type: 'constituent', effective_at: '2026-08-08T00:00:00Z', known_at: '2026-08-08T01:00:00Z' },
+            { instrument_id: 2, position: 1, relationship_type: 'constituent', effective_at: '2026-08-08T00:00:00Z', known_at: '2026-08-08T01:00:00Z' },
+          ],
+          exclusions: [],
+        }) })
+        return
+      }
       if (pathname.endsWith('/history-status/market-group:us-benchmarks') || pathname.endsWith('/history-status/watchlist:7')) {
         await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ source_id: pathname.endsWith('watchlist:7') ? 'watchlist:7' : 'market-group:us-benchmarks', source_kind: 'personal', name: 'Map source', locked: false, membership_version: 'v1', max_instruments: 5000, available_instrument_count: 2, selected_instrument_count: 2, limited: false, excluded_count: 0, overall_status: 'ready', timeframes: [{ timeframe: 'D1', member_count: 2, covered_member_count: 2, coverage_percent: 100, bar_count: 4, in_progress_count: 0, complete_count: 2, failed_count: 0, pending_count: 0 }] }) })
         return
       }
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(sources) })
+    })
+    await page.route('**/api/v1/watchlists', async route => {
+      if (route.request().method() !== 'POST') return route.continue()
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ id: 99, name: 'US benchmark constituents snapshot 2026-08-08', description: 'Cloned source', is_managed: false, is_locked: false, items: [] }) })
+    })
+    await page.route('**/api/v1/watchlists/99/items', async route => {
+      const body = route.request().postDataJSON() as { instrument_id?: number }
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ id: Number(body.instrument_id ?? 0) + 900, instrument_id: body.instrument_id, position: 0 }) })
     })
     await page.route('**/api/v1/analysis/market-map', async route => {
       const body = route.request().postDataJSON() as { source_id?: string }
@@ -3328,6 +3347,8 @@ test.describe('TC2000 workstation', () => {
     const universe = mapWindow.getByRole('combobox', { name: 'Market Map universe' })
     await expect(universe).toHaveValue('market-group:us-benchmarks')
     await expect(mapWindow).toContainText('Locked source')
+    await mapWindow.getByRole('button', { name: 'Clone US benchmark constituents snapshot' }).click()
+    await expect(mapWindow.locator('[aria-label="Market Map source preferences"] [role="status"]')).toContainText('2/2 members cloned', { timeout: 15_000 })
     await universe.selectOption('watchlist:7')
     await mapWindow.getByRole('button', { name: 'Refresh', exact: true }).click()
     await expect.poll(() => requestedSources.at(-1), { timeout: 15_000 }).toBe('watchlist:7')
