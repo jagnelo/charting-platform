@@ -85,7 +85,11 @@ def test_core_workstation_identity_bootstrap_is_idempotent_and_not_fixture_data(
         *(family["logical_key"] for family in BENCHMARK_FAMILY_REGISTRY),
     }
     expected_proxy_members = sum(
-        sum(1 for role in ("cap_weight", "equal_weight", "value", "growth") if family[role]["symbol"])
+        sum(
+            1
+            for role in ("cap_weight", "equal_weight", "value", "growth")
+            if family[role]["symbol"]
+        )
         for family in BENCHMARK_FAMILY_REGISTRY
     )
     assert len(members) == 5 + 11 + expected_proxy_members
@@ -162,7 +166,9 @@ def test_core_workstation_data_reloads_instrument_after_provider_rollback(db, mo
     assert result["history"][calls[0]]["status"] == "error"
 
 
-def test_core_bootstrap_retries_when_history_exists_but_is_below_technical_readiness(db, monkeypatch):
+def test_core_bootstrap_retries_when_history_exists_but_is_below_technical_readiness(
+    db, monkeypatch
+):
     """A partial local history must not suppress the provider backfill retry."""
 
     facade = _AsyncSessionFacade(db)
@@ -213,9 +219,7 @@ def test_core_bootstrap_retries_partial_holdings_snapshot(db, monkeypatch):
     monkeypatch.setattr(settings, "CORE_WORKSTATION_BOOTSTRAP_TIMEOUT_SECONDS", 1)
 
     spy = db.execute(select(Instrument).where(Instrument.symbol == "SPY")).scalar_one()
-    profile = db.execute(
-        select(ETFProfile).where(ETFProfile.instrument_id == spy.id)
-    ).scalar_one()
+    profile = db.execute(select(ETFProfile).where(ETFProfile.instrument_id == spy.id)).scalar_one()
     db.add(
         ETFHoldingsSnapshot(
             etf_profile_id=profile.id,

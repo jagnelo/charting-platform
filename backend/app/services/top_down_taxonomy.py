@@ -97,7 +97,12 @@ BENCHMARK_FAMILY_REGISTRY: tuple[dict[str, Any], ...] = (
             "verification_state": "proxy_identity_registered",
             "source_url": "https://www.ssga.com/us/en/individual/etfs/spdr-sp-midcap-400-etf-trust-mdy",
         },
-        "equal_weight": {"symbol": None, "label": "No verified mapped proxy", "verification_state": "not_verified", "source_url": None},
+        "equal_weight": {
+            "symbol": None,
+            "label": "No verified mapped proxy",
+            "verification_state": "not_verified",
+            "source_url": None,
+        },
         "value": {
             "symbol": "MDYV",
             "label": "S&P MidCap 400 value ETF proxy",
@@ -126,7 +131,12 @@ BENCHMARK_FAMILY_REGISTRY: tuple[dict[str, Any], ...] = (
             "verification_state": "proxy_identity_registered",
             "source_url": "https://www.ishares.com/us/products/239774/ishares-core-sp-smallcap-etf",
         },
-        "equal_weight": {"symbol": None, "label": "No verified mapped proxy", "verification_state": "not_verified", "source_url": None},
+        "equal_weight": {
+            "symbol": None,
+            "label": "No verified mapped proxy",
+            "verification_state": "not_verified",
+            "source_url": None,
+        },
         "value": {
             "symbol": "SLYV",
             "label": "S&P SmallCap 600 value ETF proxy",
@@ -155,9 +165,24 @@ BENCHMARK_FAMILY_REGISTRY: tuple[dict[str, Any], ...] = (
             "verification_state": "proxy_identity_registered",
             "source_url": "https://www.ssga.com/us/en/individual/etfs/state-street-spdr-portfolio-sp-1500-composite-stock-market-etf-sptm",
         },
-        "equal_weight": {"symbol": None, "label": "No verified mapped proxy", "verification_state": "not_verified", "source_url": None},
-        "value": {"symbol": None, "label": "No verified mapped proxy", "verification_state": "not_verified", "source_url": None},
-        "growth": {"symbol": None, "label": "No verified mapped proxy", "verification_state": "not_verified", "source_url": None},
+        "equal_weight": {
+            "symbol": None,
+            "label": "No verified mapped proxy",
+            "verification_state": "not_verified",
+            "source_url": None,
+        },
+        "value": {
+            "symbol": None,
+            "label": "No verified mapped proxy",
+            "verification_state": "not_verified",
+            "source_url": None,
+        },
+        "growth": {
+            "symbol": None,
+            "label": "No verified mapped proxy",
+            "verification_state": "not_verified",
+            "source_url": None,
+        },
         "derived_equal_weight": {
             "allowed": True,
             "method": "equal_start_weight_point_in_time_membership_rebalanced_on_declared_schedule",
@@ -174,7 +199,12 @@ BENCHMARK_FAMILY_REGISTRY: tuple[dict[str, Any], ...] = (
             "verification_state": "proxy_identity_registered",
             "source_url": "https://www.ishares.com/us/products/239707/ishares-russell-1000-etf",
         },
-        "equal_weight": {"symbol": None, "label": "No verified mapped proxy", "verification_state": "not_verified", "source_url": None},
+        "equal_weight": {
+            "symbol": None,
+            "label": "No verified mapped proxy",
+            "verification_state": "not_verified",
+            "source_url": None,
+        },
         "value": {
             "symbol": "IWD",
             "label": "Russell 1000 value ETF proxy",
@@ -203,7 +233,12 @@ BENCHMARK_FAMILY_REGISTRY: tuple[dict[str, Any], ...] = (
             "verification_state": "proxy_identity_registered",
             "source_url": "https://www.ishares.com/us/products/239710/ishares-russell-2000-etf",
         },
-        "equal_weight": {"symbol": None, "label": "No verified mapped proxy", "verification_state": "not_verified", "source_url": None},
+        "equal_weight": {
+            "symbol": None,
+            "label": "No verified mapped proxy",
+            "verification_state": "not_verified",
+            "source_url": None,
+        },
         "value": {
             "symbol": "IWN",
             "label": "Russell 2000 value ETF proxy",
@@ -232,9 +267,24 @@ BENCHMARK_FAMILY_REGISTRY: tuple[dict[str, Any], ...] = (
             "verification_state": "proxy_identity_registered",
             "source_url": "https://www.ishares.com/us/products/239714/ishares-russell-3000-etf",
         },
-        "equal_weight": {"symbol": None, "label": "No verified mapped proxy", "verification_state": "not_verified", "source_url": None},
-        "value": {"symbol": None, "label": "No verified mapped proxy", "verification_state": "not_verified", "source_url": None},
-        "growth": {"symbol": None, "label": "No verified mapped proxy", "verification_state": "not_verified", "source_url": None},
+        "equal_weight": {
+            "symbol": None,
+            "label": "No verified mapped proxy",
+            "verification_state": "not_verified",
+            "source_url": None,
+        },
+        "value": {
+            "symbol": None,
+            "label": "No verified mapped proxy",
+            "verification_state": "not_verified",
+            "source_url": None,
+        },
+        "growth": {
+            "symbol": None,
+            "label": "No verified mapped proxy",
+            "verification_state": "not_verified",
+            "source_url": None,
+        },
         "derived_equal_weight": {
             "allowed": True,
             "method": "equal_start_weight_point_in_time_membership_rebalanced_on_declared_schedule",
@@ -257,8 +307,18 @@ BENCHMARK_FAMILY_REGISTRY: tuple[dict[str, Any], ...] = (
             "verification_state": "proxy_identity_registered",
             "source_url": "https://www.direxion.com/product/nasdaq-100-equal-weighted-index-etf",
         },
-        "value": {"symbol": None, "label": "No verified mapped proxy", "verification_state": "not_verified", "source_url": None},
-        "growth": {"symbol": None, "label": "No verified mapped proxy", "verification_state": "not_verified", "source_url": None},
+        "value": {
+            "symbol": None,
+            "label": "No verified mapped proxy",
+            "verification_state": "not_verified",
+            "source_url": None,
+        },
+        "growth": {
+            "symbol": None,
+            "label": "No verified mapped proxy",
+            "verification_state": "not_verified",
+            "source_url": None,
+        },
         "derived_equal_weight": {"allowed": False, "method": None},
     },
 )
@@ -272,7 +332,13 @@ def benchmark_family_registry() -> list[dict[str, Any]]:
             **family,
             **{
                 role: dict(mapping)
-                for role in ("cap_weight", "equal_weight", "value", "growth", "derived_equal_weight")
+                for role in (
+                    "cap_weight",
+                    "equal_weight",
+                    "value",
+                    "growth",
+                    "derived_equal_weight",
+                )
                 if isinstance((mapping := family.get(role)), dict)
             },
         }
@@ -291,6 +357,7 @@ def benchmark_family_proxy_symbols() -> tuple[str, ...]:
             if (mapping := family.get(role)) and mapping.get("symbol")
         )
     )
+
 
 # A versioned candidate registry, not a name-based inference rule. Candidates become
 # visible only when their own disclosed holdings independently contain classified
@@ -495,11 +562,13 @@ async def seed_top_down_taxonomy(db: AsyncSession) -> None:
     for market_group_id, instrument_id in member_rows:
         member_ids_by_group.setdefault(market_group_id, set()).add(instrument_id)
 
-    symbols = list(dict.fromkeys(
-        [item[0] for item in _BENCHMARKS]
-        + [item[0] for item in _SECTORS]
-        + list(benchmark_family_proxy_symbols())
-    ))
+    symbols = list(
+        dict.fromkeys(
+            [item[0] for item in _BENCHMARKS]
+            + [item[0] for item in _SECTORS]
+            + list(benchmark_family_proxy_symbols())
+        )
+    )
     instruments = {
         instrument.symbol.upper(): instrument
         for instrument in (

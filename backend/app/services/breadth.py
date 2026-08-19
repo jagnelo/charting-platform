@@ -84,9 +84,7 @@ def build_equal_reference_series(
             if previous_value <= 0 or current_value <= 0:
                 continue
             timestamp = getattr(current, "ts")
-            by_timestamp.setdefault(timestamp, []).append(
-                (current_value / previous_value) - 1
-            )
+            by_timestamp.setdefault(timestamp, []).append((current_value / previous_value) - 1)
 
     index_value = 100.0
     points: list[Any] = []
@@ -311,9 +309,7 @@ def _series_comparison_metric(
     target_field = params.get("target_field", field)
     if not isinstance(field, str) or not isinstance(target_field, str):
         return None, "invalid_condition_params"
-    member_metric, member_warning = _comparison_metric(
-        bars, field, params, benchmark_bars=None
-    )
+    member_metric, member_warning = _comparison_metric(bars, field, params, benchmark_bars=None)
     if member_warning or member_metric is None:
         return None, member_warning or "invalid_condition_params"
     target_metric, target_warning = _comparison_metric(
@@ -494,8 +490,7 @@ def _condition_requires_benchmark(condition: Mapping[str, Any]) -> bool:
         return True
     children = params.get("conditions")
     return isinstance(children, list) and any(
-        isinstance(child, Mapping) and _condition_requires_benchmark(child)
-        for child in children
+        isinstance(child, Mapping) and _condition_requires_benchmark(child) for child in children
     )
 
 
@@ -569,9 +564,7 @@ def evaluate_cross_sectional_percentile(
         if invalid_code:
             exclusions[member.instrument_id] = invalid_code
             continue
-        metric, warning = _comparison_metric(
-            bars, field, params, benchmark_bars=benchmark_bars
-        )
+        metric, warning = _comparison_metric(bars, field, params, benchmark_bars=benchmark_bars)
         if warning or metric is None:
             exclusions[member.instrument_id] = warning or "invalid_condition_params"
         else:
@@ -659,7 +652,10 @@ def evaluate_cross_sectional_statistic(
     """
 
     params = condition.get("params", condition)
-    if not isinstance(params, Mapping) or str(condition.get("kind", "")).lower() != "cross_sectional_statistic":
+    if (
+        not isinstance(params, Mapping)
+        or str(condition.get("kind", "")).lower() != "cross_sectional_statistic"
+    ):
         return [
             _excluded_member_result(member, condition, "cross_sectional_unsupported_condition")
             for member in members
@@ -673,18 +669,20 @@ def evaluate_cross_sectional_statistic(
         }
     field = params.get("field")
     statistic = str(params.get("statistic", "mean")).lower()
-    if not isinstance(field, str) or not field.strip() or statistic not in {
-        "mean",
-        "median",
-        "min",
-        "max",
-        "std",
-    }:
+    if (
+        not isinstance(field, str)
+        or not field.strip()
+        or statistic
+        not in {
+            "mean",
+            "median",
+            "min",
+            "max",
+            "std",
+        }
+    ):
         code = "invalid_condition_params"
-        return [
-            _excluded_member_result(member, condition, code)
-            for member in members
-        ], {
+        return [_excluded_member_result(member, condition, code) for member in members], {
             "requested_count": len(members),
             "eligible_count": 0,
             "pass_count": 0,
@@ -698,10 +696,7 @@ def evaluate_cross_sectional_statistic(
         threshold = math.nan
     if not _finite(threshold):
         code = "invalid_condition_params"
-        return [
-            _excluded_member_result(member, condition, code)
-            for member in members
-        ], {
+        return [_excluded_member_result(member, condition, code) for member in members], {
             "requested_count": len(members),
             "eligible_count": 0,
             "pass_count": 0,
@@ -733,7 +728,9 @@ def evaluate_cross_sectional_statistic(
     elif statistic == "median":
         ordered = sorted(values)
         middle = len(ordered) // 2
-        group_value = ordered[middle] if len(ordered) % 2 else (ordered[middle - 1] + ordered[middle]) / 2
+        group_value = (
+            ordered[middle] if len(ordered) % 2 else (ordered[middle - 1] + ordered[middle]) / 2
+        )
     elif statistic == "min":
         group_value = min(values)
     elif statistic == "max":
@@ -884,9 +881,7 @@ def _evaluate_cross_sectional_tree(
                 benchmark_bars=benchmark_bars,
                 forced_exclusions=forced_exclusions,
             )
-            scoped_results[path] = {
-                result.instrument_id: result for result in leaf_results
-            }
+            scoped_results[path] = {result.instrument_id: result for result in leaf_results}
             scoped_aggregates[path] = aggregate
         params = node.get("params", {})
         if not isinstance(params, Mapping):
@@ -906,16 +901,24 @@ def _evaluate_cross_sectional_tree(
     ) -> tuple[bool | None, float | None, str | None, tuple[BreadthConditionDiagnostic, ...]]:
         if forced_exclusions and member.instrument_id in forced_exclusions:
             code = forced_exclusions[member.instrument_id]
-            return None, None, code, _prefix_diagnostics(
-                _excluded_member_result(member, node, code).diagnostics, path
+            return (
+                None,
+                None,
+                code,
+                _prefix_diagnostics(_excluded_member_result(member, node, code).diagnostics, path),
             )
 
         if _is_cross_sectional(node):
             result = scoped_results.get(path, {}).get(member.instrument_id)
             if result is None:
                 code = "cross_sectional_member_missing"
-                return None, None, code, _prefix_diagnostics(
-                    _excluded_member_result(member, node, code).diagnostics, path
+                return (
+                    None,
+                    None,
+                    code,
+                    _prefix_diagnostics(
+                        _excluded_member_result(member, node, code).diagnostics, path
+                    ),
                 )
             return (
                 result.value,
@@ -927,8 +930,10 @@ def _evaluate_cross_sectional_tree(
         kind = str(node.get("kind", "")).lower()
         params = node.get("params", {})
         children = _nested_conditions(params) if isinstance(params, Mapping) else None
-        if kind in {"all", "any", "not"} and children and any(
-            _contains_cross_sectional(child) for child in children
+        if (
+            kind in {"all", "any", "not"}
+            and children
+            and any(_contains_cross_sectional(child) for child in children)
         ):
             evaluated = [
                 visit(member, bars, child, f"{path}.conditions[{index}]")
@@ -938,9 +943,7 @@ def _evaluate_cross_sectional_tree(
             metrics = [item[1] for item in evaluated if item[1] is not None]
             exclusion: str | None = None
             if kind == "all":
-                missing = next(
-                    (index for index, value in enumerate(values) if value is None), None
-                )
+                missing = next((index for index, value in enumerate(values) if value is None), None)
                 value = None if missing is not None else all(item is True for item in values)
                 if missing is not None:
                     exclusion = (
@@ -951,9 +954,13 @@ def _evaluate_cross_sectional_tree(
             elif kind == "any":
                 if any(item is True for item in values):
                     value = True
-                    metric = max(
-                        item[1] for item in evaluated if item[0] is True and item[1] is not None
-                    ) if any(item[0] is True and item[1] is not None for item in evaluated) else None
+                    metric = (
+                        max(
+                            item[1] for item in evaluated if item[0] is True and item[1] is not None
+                        )
+                        if any(item[0] is True and item[1] is not None for item in evaluated)
+                        else None
+                    )
                 elif all(item is False for item in values):
                     value = False
                     metric = max(metrics) if metrics else None
@@ -970,15 +977,11 @@ def _evaluate_cross_sectional_tree(
                     return None, None, "invalid_condition_params", ()
                 value, metric, child_exclusion = evaluated[0][:3]
                 exclusion = (
-                    f"condition_clause_excluded:0:{child_exclusion}"
-                    if child_exclusion
-                    else None
+                    f"condition_clause_excluded:0:{child_exclusion}" if child_exclusion else None
                 )
                 value = (not value) if value is not None and not exclusion else None
             diagnostics: list[BreadthConditionDiagnostic] = [
-                item
-                for evaluated_item in evaluated
-                for item in evaluated_item[3]
+                item for evaluated_item in evaluated for item in evaluated_item[3]
             ]
             diagnostics.insert(
                 0,
@@ -986,11 +989,7 @@ def _evaluate_cross_sectional_tree(
                     path=path,
                     kind=kind,
                     status=(
-                        "excluded"
-                        if exclusion or value is None
-                        else "pass"
-                        if value
-                        else "fail"
+                        "excluded" if exclusion or value is None else "pass" if value else "fail"
                     ),
                     value=value,
                     metric=metric,
@@ -1077,9 +1076,7 @@ def evaluate_condition(
         if children is None:
             return None, None, "invalid_condition_params"
         evaluated = [
-            evaluate_condition(
-                bars, child, benchmark_bars=benchmark_bars, events=events
-            )
+            evaluate_condition(bars, child, benchmark_bars=benchmark_bars, events=events)
             for child in children
         ]
         if kind == "all":
@@ -1087,9 +1084,15 @@ def evaluate_condition(
                 if value is None:
                     return None, None, f"condition_clause_excluded:{index}:{warning or 'unknown'}"
             metrics = [metric for _, metric, _ in evaluated if metric is not None]
-            return all(value is True for value, _, _ in evaluated), min(metrics) if metrics else None, None
+            return (
+                all(value is True for value, _, _ in evaluated),
+                min(metrics) if metrics else None,
+                None,
+            )
         if any(value is True for value, _, _ in evaluated):
-            metrics = [metric for value, metric, _ in evaluated if value is True and metric is not None]
+            metrics = [
+                metric for value, metric, _ in evaluated if value is True and metric is not None
+            ]
             return True, max(metrics) if metrics else None, None
         if all(value is False for value, _, _ in evaluated):
             metrics = [metric for _, metric, _ in evaluated if metric is not None]
@@ -1113,9 +1116,7 @@ def evaluate_condition(
         field = params.get("field")
         if not isinstance(field, str) or not field.strip():
             return None, None, "invalid_condition_params"
-        metric, warning = _comparison_metric(
-            bars, field, params, benchmark_bars=benchmark_bars
-        )
+        metric, warning = _comparison_metric(bars, field, params, benchmark_bars=benchmark_bars)
         if warning or metric is None:
             return None, metric, warning or "invalid_condition_params"
         return _comparison(metric, params), metric, None
@@ -1137,9 +1138,7 @@ def evaluate_condition(
         field = params.get("field")
         if not isinstance(field, str) or not field.strip():
             return None, None, "invalid_condition_params"
-        metric, warning = _comparison_metric(
-            bars, field, params, benchmark_bars=benchmark_bars
-        )
+        metric, warning = _comparison_metric(bars, field, params, benchmark_bars=benchmark_bars)
         if warning or metric is None:
             return None, metric, warning or "invalid_condition_params"
         try:
@@ -1161,9 +1160,7 @@ def evaluate_condition(
         percentile = float(params.get("percentile", 0.8))
         if period < 2 or period > 5_000 or not 0 <= percentile <= 1:
             return None, None, "invalid_condition_params"
-        series, warning = _field_series(
-            bars, field, params, benchmark_bars=benchmark_bars
-        )
+        series, warning = _field_series(bars, field, params, benchmark_bars=benchmark_bars)
         if warning or series is None:
             return None, None, warning or "invalid_condition_params"
         if len(series) < period:
@@ -1502,7 +1499,8 @@ def evaluate_breadth_history(
                 exclusion = "benchmark_missing_at_timestamp"
                 diagnostics = tuple(
                     replace(item, code="benchmark_missing_at_timestamp")
-                    if item.code in {
+                    if item.code
+                    in {
                         "benchmark_required",
                         "insufficient_history",
                         "no_bars",
@@ -1591,9 +1589,7 @@ def detect_breadth_occurrences(points: list[Mapping[str, Any]]) -> list[dict[str
             if prior is not None and current is not None and prior is not current:
                 kind = "member_entered" if current else "member_exited"
                 occurrence_timestamp = (
-                    timestamp.isoformat()
-                    if hasattr(timestamp, "isoformat")
-                    else str(timestamp)
+                    timestamp.isoformat() if hasattr(timestamp, "isoformat") else str(timestamp)
                 )
                 occurrences.append(
                     {

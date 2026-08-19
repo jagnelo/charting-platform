@@ -153,10 +153,10 @@ async def plan_benchmark_family_history_refresh(
             # A mapped system source with no local snapshot is still a real
             # locked watchlist. Preserve its pending state for bootstrap and
             # admin progress instead of presenting it as a missing role.
-            leg_status = "ready" if available else (
-                "pending"
-                if availability in PENDING_SOURCE_AVAILABILITIES
-                else "unavailable"
+            leg_status = (
+                "ready"
+                if available
+                else ("pending" if availability in PENDING_SOURCE_AVAILABILITIES else "unavailable")
             )
             legs.append(
                 {
@@ -221,7 +221,9 @@ async def queue_snapshot_member_history(
     normalized_timeframes = normalize_history_timeframes(timeframes)
     if max_instruments < 1 or max_instruments > MAX_HISTORY_INSTRUMENTS:
         raise ValueError(f"max_instruments must be between 1 and {MAX_HISTORY_INSTRUMENTS}.")
-    normalized_snapshots = list(dict.fromkeys(int(value) for value in snapshot_ids if int(value) > 0))
+    normalized_snapshots = list(
+        dict.fromkeys(int(value) for value in snapshot_ids if int(value) > 0)
+    )
     if not normalized_snapshots:
         return {
             "status": "no_snapshots",

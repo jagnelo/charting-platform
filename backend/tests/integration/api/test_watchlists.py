@@ -158,7 +158,9 @@ class TestWatchlistsCrud:
                 WatchlistItem(watchlist_id=watchlist.id, instrument_id=instrument.id, position=0),
                 WatchlistItem(watchlist_id=watchlist.id, instrument_id=instrument_b.id, position=1),
                 EquityDetail(instrument_id=instrument.id, sector="Technology", industry="Hardware"),
-                EquityDetail(instrument_id=instrument_b.id, sector="Technology", industry="Software"),
+                EquityDetail(
+                    instrument_id=instrument_b.id, sector="Technology", industry="Software"
+                ),
                 InstrumentStats(instrument_id=instrument.id, market_cap=100),
                 InstrumentStats(instrument_id=instrument_b.id, market_cap=50),
             ]
@@ -224,7 +226,10 @@ class TestWatchlistsCrud:
         custom_body = custom_response.json()
         assert custom_body["period_start"].startswith("2024-01-03")
         assert custom_body["period_end"].startswith("2024-01-07")
-        assert all(cell["area_provenance"]["method"] == "equal_member_area" for cell in custom_body["cells"])
+        assert all(
+            cell["area_provenance"]["method"] == "equal_member_area"
+            for cell in custom_body["cells"]
+        )
 
         cached_response = client.post(
             "/api/v1/analysis/market-map",
@@ -272,9 +277,7 @@ class TestWatchlistsCrud:
         assert snapshot_body["map"]["source"]["source_id"] == f"watchlist:{watchlist.id}"
         assert snapshot_body["map"]["cache_hit"] is False
 
-        listed_snapshots = client.get(
-            "/api/v1/analysis/market-map/snapshots", headers=auth_headers
-        )
+        listed_snapshots = client.get("/api/v1/analysis/market-map/snapshots", headers=auth_headers)
         assert listed_snapshots.status_code == 200
         assert [item["name"] for item in listed_snapshots.json()] == ["S&P leaders"]
 
@@ -290,19 +293,25 @@ class TestWatchlistsCrud:
         )
         assert restored_snapshot.status_code == 200
         assert restored_snapshot.json()["snapshot_hash"] == snapshot_body["snapshot_hash"]
-        assert client.get(
-            f"/api/v1/analysis/market-map/snapshots/{snapshot_body['id']}",
-            headers=admin_headers,
-        ).status_code == 404
+        assert (
+            client.get(
+                f"/api/v1/analysis/market-map/snapshots/{snapshot_body['id']}",
+                headers=admin_headers,
+            ).status_code
+            == 404
+        )
         deleted = client.delete(
             f"/api/v1/analysis/market-map/snapshots/{snapshot_body['id']}",
             headers=auth_headers,
         )
         assert deleted.status_code == 204
-        assert client.get(
-            f"/api/v1/analysis/market-map/snapshots/{snapshot_body['id']}",
-            headers=auth_headers,
-        ).status_code == 404
+        assert (
+            client.get(
+                f"/api/v1/analysis/market-map/snapshots/{snapshot_body['id']}",
+                headers=auth_headers,
+            ).status_code
+            == 404
+        )
 
     def test_market_map_uses_locked_market_group_source_through_same_contract(
         self, client, auth_headers, db, instrument, instrument_b
@@ -349,7 +358,9 @@ class TestWatchlistsCrud:
                     known_at=now,
                 ),
                 EquityDetail(instrument_id=instrument.id, sector="Technology", industry="Hardware"),
-                EquityDetail(instrument_id=instrument_b.id, sector="Industrials", industry="Machinery"),
+                EquityDetail(
+                    instrument_id=instrument_b.id, sector="Industrials", industry="Machinery"
+                ),
                 InstrumentStats(instrument_id=instrument.id, market_cap=125),
                 InstrumentStats(instrument_id=instrument_b.id, market_cap=75),
             ]
@@ -454,11 +465,20 @@ class TestWatchlistsCrud:
         assert cells["AAPL"]["area_provenance"]["entitlement_verified"] is False
         assert cells["AAPL"]["area_provenance"]["selection"] == "unranked_snapshot_fallback"
         assert cells["MSFT"]["area_value"] == 600
-        assert not any(item["code"] == "current_area_not_point_in_time" for item in body["warnings"])
+        assert not any(
+            item["code"] == "current_area_not_point_in_time" for item in body["warnings"]
+        )
         assert any(item["code"] == "profile_snapshot_unranked_source" for item in body["warnings"])
-        assert {node["label"] for node in body["nodes"]} >= {"Technology", "Hardware", "Industrials", "Machinery"}
+        assert {node["label"] for node in body["nodes"]} >= {
+            "Technology",
+            "Hardware",
+            "Industrials",
+            "Machinery",
+        }
         cells = {cell["symbol"]: cell for cell in body["cells"]}
-        assert cells["AAPL"]["classification_provenance"]["kind"] == "point_in_time_profile_snapshot"
+        assert (
+            cells["AAPL"]["classification_provenance"]["kind"] == "point_in_time_profile_snapshot"
+        )
         assert cells["AAPL"]["classification_provenance"]["snapshot_id"] > 0
         assert cells["AAPL"]["sector"] == "Technology"
         assert cells["MSFT"]["industry"] == "Machinery"
@@ -483,7 +503,9 @@ class TestWatchlistsCrud:
             node["label"] for node in before_body["nodes"]
         )
         assert all(
-            any(item["code"] == "historical_classification_unavailable" for item in cell["warnings"])
+            any(
+                item["code"] == "historical_classification_unavailable" for item in cell["warnings"]
+            )
             for cell in before_body["cells"]
         )
 
@@ -537,7 +559,9 @@ class TestWatchlistsCrud:
         refreshed_body = refreshed.json()
         assert refreshed_body["membership_version"] != before_version
         assert refreshed_body["cache_key"] != before_cache_key
-        assert {cell["symbol"]: cell["area_value"] for cell in refreshed_body["cells"]}["AAPL"] == 0.7
+        assert {cell["symbol"]: cell["area_value"] for cell in refreshed_body["cells"]}[
+            "AAPL"
+        ] == 0.7
 
     def test_market_map_prefers_entitled_profile_provider_precedence_and_invalidates_policy_cache(
         self, client, auth_headers, db, instrument, instrument_b, monkeypatch
@@ -594,13 +618,19 @@ class TestWatchlistsCrud:
                     known_at=now,
                 ),
                 EquityDetail(instrument_id=instrument.id, sector="Technology", industry="Hardware"),
-                EquityDetail(instrument_id=instrument_b.id, sector="Industrials", industry="Machinery"),
+                EquityDetail(
+                    instrument_id=instrument_b.id, sector="Industrials", industry="Machinery"
+                ),
                 InstrumentStats(instrument_id=instrument.id, market_cap=100),
                 InstrumentStats(instrument_id=instrument_b.id, market_cap=50),
             ]
         )
-        high_source = DataSource(name="fixture-high", base_url="controlled://high", description="High precedence fixture")
-        low_source = DataSource(name="fixture-low", base_url="controlled://low", description="Low precedence fixture")
+        high_source = DataSource(
+            name="fixture-high", base_url="controlled://high", description="High precedence fixture"
+        )
+        low_source = DataSource(
+            name="fixture-low", base_url="controlled://low", description="Low precedence fixture"
+        )
         db.add_all([high_source, low_source])
         db.flush()
         db.add_all(
@@ -743,14 +773,18 @@ class TestWatchlistsCrud:
             "fixture-high",
             "fixture-low",
         }
-        assert any(item["code"] == "profile_field_conflict" for item in first_cells["AAPL"]["warnings"])
+        assert any(
+            item["code"] == "profile_field_conflict" for item in first_cells["AAPL"]["warnings"]
+        )
         assert any(item["code"] == "profile_field_conflict" for item in first_body["warnings"])
         assert first_body["cache_hit"] is False
 
         high_policy = db.query(ProviderPolicy).filter_by(data_source_id=high_source.id).one()
         high_policy.is_pinned = False
         high_policy.effective_score = 1
-        high_entitlement = db.query(ProviderEntitlement).filter_by(data_source_id=high_source.id).one()
+        high_entitlement = (
+            db.query(ProviderEntitlement).filter_by(data_source_id=high_source.id).one()
+        )
         high_entitlement.is_free = False
         high_entitlement.revision = 2
         db.add(
@@ -773,7 +807,9 @@ class TestWatchlistsCrud:
         second_cells = {cell["symbol"]: cell for cell in second_body["cells"]}
         assert second_cells["AAPL"]["area_value"] == 900
         assert second_cells["AAPL"]["area_provenance"]["provider_name"] == "fixture-low"
-        assert second_cells["AAPL"]["area_provenance"]["selection"] == "entitled_provider_precedence"
+        assert (
+            second_cells["AAPL"]["area_provenance"]["selection"] == "entitled_provider_precedence"
+        )
         assert second_body["cache_key"] != first_body["cache_key"]
         assert second_body["cache_hit"] is False
 
@@ -1037,9 +1073,7 @@ class TestWatchlistsCrud:
         )
 
         assert mixed_response.status_code == 200, mixed_response.text
-        mixed_cells = {
-            cell["instrument_id"]: cell for cell in mixed_response.json()["cells"]
-        }
+        mixed_cells = {cell["instrument_id"]: cell for cell in mixed_response.json()["cells"]}
         assert mixed_cells[instrument.id]["condition_value"] is True
         assert mixed_cells[instrument_b.id]["condition_value"] is False
         assert mixed_cells[instrument.id]["condition_metric"] is not None
@@ -1245,7 +1279,10 @@ class TestWatchlistsCrud:
         assert sources["market-group:test-index"]["can_edit_membership"] is False
         assert sources["market-group:test-index"]["member_count"] == 1
         assert sources["market-group:test-index"]["provenance"]["availability"] == "available"
-        assert sources["market-group:empty-index"]["provenance"]["availability"] == "membership_not_loaded"
+        assert (
+            sources["market-group:empty-index"]["provenance"]["availability"]
+            == "membership_not_loaded"
+        )
 
         current = client.get(
             "/api/v1/watchlists/sources/market-group:test-index",
@@ -1405,12 +1442,8 @@ class TestWatchlistsCrud:
     ):
         from app.models.watchlist import WatchlistItem
 
-        db.add(
-            WatchlistItem(watchlist_id=watchlist.id, instrument_id=instrument.id, position=0)
-        )
-        db.add(
-            WatchlistItem(watchlist_id=watchlist.id, instrument_id=instrument_b.id, position=1)
-        )
+        db.add(WatchlistItem(watchlist_id=watchlist.id, instrument_id=instrument.id, position=0))
+        db.add(WatchlistItem(watchlist_id=watchlist.id, instrument_id=instrument_b.id, position=1))
         db.flush()
 
         class FakeRedis:
@@ -1548,9 +1581,7 @@ class TestWatchlistsCrud:
             },
         )
         assert market_map.status_code == 200, market_map.text
-        assert market_map.json()["source"]["source_id"] == (
-            "benchmark-family:sp400:equal_weight"
-        )
+        assert market_map.json()["source"]["source_id"] == ("benchmark-family:sp400:equal_weight")
         assert market_map.json()["cells"][0]["area_value"] == 1.0
 
         breadth = client.post(
@@ -1573,12 +1604,8 @@ class TestWatchlistsCrud:
             },
         )
         assert breadth.status_code == 200, breadth.text
-        assert breadth.json()["universe"]["source_id"] == (
-            "benchmark-family:sp400:equal_weight"
-        )
-        assert breadth.json()["universe"]["membership_semantics"] == (
-            "locked_source_members"
-        )
+        assert breadth.json()["universe"]["source_id"] == ("benchmark-family:sp400:equal_weight")
+        assert breadth.json()["universe"]["membership_semantics"] == ("locked_source_members")
 
     def test_every_available_benchmark_family_role_is_a_map_and_breadth_source(
         self, client, auth_headers, db, instrument, instrument_type, ohlcv_bars
@@ -1614,7 +1641,9 @@ class TestWatchlistsCrud:
         composition_date = datetime(2024, 1, 1, tzinfo=UTC).date()
         known_at = datetime(2024, 1, 2, tzinfo=UTC)
         for symbol in proxy_symbols:
-            profile = db.query(ETFProfile).filter_by(instrument_id=instruments[symbol].id).one_or_none()
+            profile = (
+                db.query(ETFProfile).filter_by(instrument_id=instruments[symbol].id).one_or_none()
+            )
             if profile is None:
                 profile = ETFProfile(
                     instrument_id=instruments[symbol].id,
@@ -1662,9 +1691,7 @@ class TestWatchlistsCrud:
                     role == "equal_weight"
                     and (family.get("derived_equal_weight") or {}).get("allowed")
                 ):
-                    expected_sources.append(
-                        f"benchmark-family:{family['logical_key']}:{role}"
-                    )
+                    expected_sources.append(f"benchmark-family:{family['logical_key']}:{role}")
 
         listed = client.get("/api/v1/watchlists/sources", headers=auth_headers)
         assert listed.status_code == 200, listed.text
@@ -1807,9 +1834,7 @@ class TestWatchlistsCrud:
         historical_body = historical.json()
         assert historical_body["source"]["composition_date"] == "2024-01-02"
         assert historical_body["cells"][0]["area_value"] == 0.25
-        assert historical_body["cells"][0]["area_provenance"]["known_at"].startswith(
-            "2024-01-03"
-        )
+        assert historical_body["cells"][0]["area_provenance"]["known_at"].startswith("2024-01-03")
 
         current = client.post(
             "/api/v1/analysis/market-map",
@@ -1951,7 +1976,9 @@ class TestWatchlistsCrud:
             params={"as_of": "2024-01-04T00:00:00Z"},
         )
         assert before_departure.status_code == 200, before_departure.text
-        assert [member["instrument_id"] for member in before_departure.json()["members"]] == [instrument.id]
+        assert [member["instrument_id"] for member in before_departure.json()["members"]] == [
+            instrument.id
+        ]
         assert before_departure.json()["exclusions"] == []
 
         after_departure = client.get(
@@ -2024,7 +2051,9 @@ class TestWatchlistsCrud:
         )
         db.add_all(
             [
-                EquityDetail(instrument_id=instrument_b.id, sector="Technology", industry="Software"),
+                EquityDetail(
+                    instrument_id=instrument_b.id, sector="Technology", industry="Software"
+                ),
                 InstrumentStats(instrument_id=instrument_b.id, market_cap=100),
             ]
         )
@@ -2063,7 +2092,9 @@ class TestWatchlistsCrud:
         assert source["provenance"]["snapshot_resolved_count"] == 1
         assert source["provenance"]["snapshot_unresolved_count"] == 0
         empty_source = next(
-            item for item in descriptor.json() if item["source_id"] == f"etf-holdings:{instrument_b.symbol}"
+            item
+            for item in descriptor.json()
+            if item["source_id"] == f"etf-holdings:{instrument_b.symbol}"
         )
         assert empty_source["provenance"]["availability"] == "holdings_snapshot_not_loaded"
 
@@ -2073,7 +2104,9 @@ class TestWatchlistsCrud:
             params={"as_of": "2024-01-02T00:00:00Z"},
         )
         assert resolved.status_code == 200, resolved.text
-        assert [member["instrument_id"] for member in resolved.json()["members"]] == [instrument_b.id]
+        assert [member["instrument_id"] for member in resolved.json()["members"]] == [
+            instrument_b.id
+        ]
         assert resolved.json()["members"][0]["weight"] == 1.0
 
         market_map = client.post(
@@ -2108,16 +2141,22 @@ class TestWatchlistsCrud:
         assert first.status_code == 200 and second.status_code == 200
         first_id = first.json()["id"]
         second_id = second.json()["id"]
-        assert client.post(
-            f"/api/v1/watchlists/{first_id}/items",
-            headers=auth_headers,
-            json={"instrument_id": instrument.id},
-        ).status_code == 200
-        assert client.post(
-            f"/api/v1/watchlists/{second_id}/items",
-            headers=auth_headers,
-            json={"instrument_id": instrument_b.id},
-        ).status_code == 200
+        assert (
+            client.post(
+                f"/api/v1/watchlists/{first_id}/items",
+                headers=auth_headers,
+                json={"instrument_id": instrument.id},
+            ).status_code
+            == 200
+        )
+        assert (
+            client.post(
+                f"/api/v1/watchlists/{second_id}/items",
+                headers=auth_headers,
+                json={"instrument_id": instrument_b.id},
+            ).status_code
+            == 200
+        )
 
         combo = client.put(
             "/api/v1/workspaces/library/items/combo_list/analysis-combo",
@@ -2137,7 +2176,9 @@ class TestWatchlistsCrud:
 
         sources = client.get("/api/v1/watchlists/sources", headers=auth_headers)
         assert sources.status_code == 200
-        descriptor = next(item for item in sources.json() if item["source_id"] == "combo:analysis-combo")
+        descriptor = next(
+            item for item in sources.json() if item["source_id"] == "combo:analysis-combo"
+        )
         assert descriptor["source_kind"] == "combo"
         assert descriptor["locked"] is True
         assert descriptor["can_edit_membership"] is False
@@ -2192,11 +2233,14 @@ class TestWatchlistsCrud:
         )
         assert created.status_code == 200, created.text
         watchlist_id = created.json()["id"]
-        assert client.post(
-            f"/api/v1/watchlists/{watchlist_id}/items",
-            headers=auth_headers,
-            json={"instrument_id": instrument.id, "position": 0},
-        ).status_code == 200
+        assert (
+            client.post(
+                f"/api/v1/watchlists/{watchlist_id}/items",
+                headers=auth_headers,
+                json={"instrument_id": instrument.id, "position": 0},
+            ).status_code
+            == 200
+        )
         combo = client.put(
             "/api/v1/workspaces/library/items/combo_list/mutable-map-combo",
             headers=auth_headers,
@@ -2364,7 +2408,9 @@ class TestWatchlistsCrud:
             params={"as_of": "2024-01-04T00:00:00Z"},
         )
         assert before_departure.status_code == 200, before_departure.text
-        assert [member["instrument_id"] for member in before_departure.json()["members"]] == [instrument.id]
+        assert [member["instrument_id"] for member in before_departure.json()["members"]] == [
+            instrument.id
+        ]
         assert before_departure.json()["exclusions"] == []
 
         after_departure = client.get(
@@ -2399,9 +2445,7 @@ class TestWatchlistsCrud:
                 )
         db.flush()
         source_id = f"explicit:{instrument.id},{instrument_b.id},{instrument.id}"
-        resolved = client.get(
-            f"/api/v1/watchlists/sources/{source_id}", headers=auth_headers
-        )
+        resolved = client.get(f"/api/v1/watchlists/sources/{source_id}", headers=auth_headers)
         assert resolved.status_code == 200, resolved.text
         payload = resolved.json()
         assert payload["source"]["source_kind"] == "explicit"
@@ -2431,9 +2475,7 @@ class TestWatchlistsCrud:
         # as the primary map source.  A bounded explicit selection can exceed
         # the length of a ticker-like ID while remaining valid after resolver
         # deduplication; it must not be rejected by a narrower request field.
-        long_reference_source_id = "explicit:" + ",".join(
-            [str(instrument.id)] * 125
-        )
+        long_reference_source_id = "explicit:" + ",".join([str(instrument.id)] * 125)
         relative_map = client.post(
             "/api/v1/analysis/market-map",
             headers=auth_headers,
@@ -2450,12 +2492,11 @@ class TestWatchlistsCrud:
         assert relative_map.json()["reference_source_id"] == long_reference_source_id
         assert relative_map.json()["reference_source"]["source_kind"] == "explicit"
 
-        malformed = client.get(
-            "/api/v1/watchlists/sources/explicit:NVDA", headers=auth_headers
-        )
+        malformed = client.get("/api/v1/watchlists/sources/explicit:NVDA", headers=auth_headers)
         assert malformed.status_code == 400
         oversized = client.get(
-            "/api/v1/watchlists/sources/explicit:" + ",".join(str(index) for index in range(1, 502)),
+            "/api/v1/watchlists/sources/explicit:"
+            + ",".join(str(index) for index in range(1, 502)),
             headers=auth_headers,
         )
         assert oversized.status_code == 400
@@ -2488,7 +2529,9 @@ class TestWatchlistsCrud:
 
         listed = client.get("/api/v1/watchlists/sources", headers=auth_headers)
         assert listed.status_code == 200, listed.text
-        listed_source = next(item for item in listed.json() if item["source_id"] == descriptor["source_id"])
+        listed_source = next(
+            item for item in listed.json() if item["source_id"] == descriptor["source_id"]
+        )
         assert listed_source["name"] == "Technology leaders"
 
         resolved = client.get(
@@ -2500,7 +2543,10 @@ class TestWatchlistsCrud:
             instrument.id,
             instrument_b.id,
         ]
-        assert resolved.json()["source"]["provenance"]["parent_membership_version"] == "sp500:cap:2026-08-19"
+        assert (
+            resolved.json()["source"]["provenance"]["parent_membership_version"]
+            == "sp500:cap:2026-08-19"
+        )
 
         before_saved = client.get(
             f"/api/v1/watchlists/sources/{descriptor['source_id']}?as_of=2000-01-01T00:00:00Z",
@@ -2943,7 +2989,9 @@ class TestWatchlistsCrud:
                 WatchlistItem(watchlist_id=watchlist.id, instrument_id=instrument_b.id, position=1),
             ]
         )
-        asset = CodeAsset(user_id=user.id, stable_key="map-colour", name="Map colour", kind="condition")
+        asset = CodeAsset(
+            user_id=user.id, stable_key="map-colour", name="Map colour", kind="condition"
+        )
         db.add(asset)
         db.flush()
         version = CodeVersion(
@@ -2971,7 +3019,11 @@ class TestWatchlistsCrud:
                     "value": {
                         "cells": [
                             {"instrument_id": instrument.id, "status": "completed", "value": 2.5},
-                            {"instrument_id": instrument_b.id, "status": "completed", "value": -0.5},
+                            {
+                                "instrument_id": instrument_b.id,
+                                "status": "completed",
+                                "value": -0.5,
+                            },
                         ]
                     }
                 },
@@ -3015,7 +3067,9 @@ class TestWatchlistsCrud:
         area_cells = {cell["symbol"]: cell for cell in area_response.json()["cells"]}
         assert area_cells["AAPL"]["area_value"] == 2.5
         assert area_cells["MSFT"]["area_value"] is None
-        assert any(item["code"] == "python_area_non_positive" for item in area_cells["MSFT"]["warnings"])
+        assert any(
+            item["code"] == "python_area_non_positive" for item in area_cells["MSFT"]["warnings"]
+        )
 
         boolean_run = ResearchRun(
             user_id=user.id,
@@ -3032,7 +3086,11 @@ class TestWatchlistsCrud:
                     "value": {
                         "cells": [
                             {"instrument_id": instrument.id, "status": "completed", "value": True},
-                            {"instrument_id": instrument_b.id, "status": "completed", "value": False},
+                            {
+                                "instrument_id": instrument_b.id,
+                                "status": "completed",
+                                "value": False,
+                            },
                         ]
                     }
                 },
@@ -3111,9 +3169,16 @@ class TestWatchlistsCrud:
                 InstrumentStats(
                     instrument_id=instrument.id,
                     avg_volume_30d=2500,
-                    field_provenance={"avg_volume_30d": {"source": "fixture", "observed_at": "2024-01-05T00:00:00Z"}},
+                    field_provenance={
+                        "avg_volume_30d": {
+                            "source": "fixture",
+                            "observed_at": "2024-01-05T00:00:00Z",
+                        }
+                    },
                 ),
-                InstrumentStats(instrument_id=instrument_b.id, avg_volume_30d=1500, field_provenance={}),
+                InstrumentStats(
+                    instrument_id=instrument_b.id, avg_volume_30d=1500, field_provenance={}
+                ),
             ]
         )
         field_source = DataSource(
@@ -3157,7 +3222,9 @@ class TestWatchlistsCrud:
                 ),
             ]
         )
-        asset = CodeAsset(user_id=user.id, stable_key="map-field-colour", name="Map field", kind="condition")
+        asset = CodeAsset(
+            user_id=user.id, stable_key="map-field-colour", name="Map field", kind="condition"
+        )
         db.add(asset)
         db.flush()
         version = CodeVersion(
@@ -3181,7 +3248,14 @@ class TestWatchlistsCrud:
             ResearchArtifact(
                 artifact_type="batch",
                 name="batch_cells",
-                payload={"value": {"cells": [{"instrument_id": instrument.id, "status": "completed", "value": 1.0}, {"instrument_id": instrument_b.id, "status": "completed", "value": 1.0}]}},
+                payload={
+                    "value": {
+                        "cells": [
+                            {"instrument_id": instrument.id, "status": "completed", "value": 1.0},
+                            {"instrument_id": instrument_b.id, "status": "completed", "value": 1.0},
+                        ]
+                    }
+                },
             )
         )
         db.add(run)

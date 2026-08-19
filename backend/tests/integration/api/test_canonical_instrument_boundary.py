@@ -58,9 +58,7 @@ class TestCanonicalInstrumentBoundary:
             "missing": ["MISSING"],
         }
 
-    def test_canonical_batch_resolution_rejects_more_than_500_symbols(
-        self, client, auth_headers
-    ):
+    def test_canonical_batch_resolution_rejects_more_than_500_symbols(self, client, auth_headers):
         response = client.post(
             "/api/v1/instruments/resolve-canonical",
             json={"symbols": [f"SYM{index}" for index in range(501)]},

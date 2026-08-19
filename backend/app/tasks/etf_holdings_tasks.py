@@ -106,9 +106,7 @@ async def refresh_benchmark_family_holdings_task(ctx: dict) -> dict:
                 family_key,
                 requested_date.isoformat(),
                 roles,
-                _job_id=(
-                    f"benchmark-family-scheduled:{family_key}:{requested_date.isoformat()}"
-                ),
+                _job_id=(f"benchmark-family-scheduled:{family_key}:{requested_date.isoformat()}"),
                 _expires=86_400,
             )
             if job is None:

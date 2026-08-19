@@ -24,6 +24,8 @@ from app.services.watchlist_sources import (
 DEFAULT_HISTORY_TIMEFRAMES = (Timeframe.MN.value, Timeframe.W1.value, Timeframe.D1.value)
 MAX_HISTORY_INSTRUMENTS = 5000
 MAX_HISTORY_SOURCES = 256
+
+
 def normalize_source_ids(source_ids: list[str] | None) -> list[str]:
     """Deduplicate explicit source IDs while preserving the caller's order."""
 
@@ -118,8 +120,10 @@ async def plan_watchlist_source_history_refresh(
 
         provenance = getattr(resolved.descriptor, "provenance", None) or {}
         availability = str(provenance.get("availability") or "")
-        source_status = "ready" if members else (
-            "pending" if availability in PENDING_SOURCE_AVAILABILITIES else "unavailable"
+        source_status = (
+            "ready"
+            if members
+            else ("pending" if availability in PENDING_SOURCE_AVAILABILITIES else "unavailable")
         )
         sources.append(
             {

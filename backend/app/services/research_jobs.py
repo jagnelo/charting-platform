@@ -35,9 +35,7 @@ def enqueue_research_run(run: ResearchRun) -> None:
     output_adapter = run.run_config.get("output_adapter")
     if not isinstance(output_adapter, str):
         diagnostics = (
-            getattr(run.code_version, "diagnostics", [])
-            if run.code_version is not None
-            else []
+            getattr(run.code_version, "diagnostics", []) if run.code_version is not None else []
         )
         if isinstance(diagnostics, list):
             output_adapter = next(
@@ -53,9 +51,7 @@ def enqueue_research_run(run: ResearchRun) -> None:
         "source": run.code_version.source,
         "dataset": run.dataset_manifest,
         "parameters": run.run_config.get("parameters", {}),
-        "output_contract": run.run_config.get(
-            "output_contract", run.code_version.output_contract
-        ),
+        "output_contract": run.run_config.get("output_contract", run.code_version.output_contract),
         "output_name": run.run_config.get("output_name", run.code_version.output_name),
         "execution_mode": run.run_config.get("execution_mode"),
         "history_limit": run.run_config.get("history_limit"),
@@ -81,17 +77,16 @@ def _breadth_history_occurrences(points: list[object]) -> list[dict]:
             members = point.get("cells", [])
         members = members if isinstance(members, list) else []
         eligible = sum(
-            isinstance(member, dict) and isinstance(member.get("value"), bool)
-            for member in members
+            isinstance(member, dict) and isinstance(member.get("value"), bool) for member in members
         )
-        passed = sum(
-            isinstance(member, dict) and member.get("value") is True for member in members
-        )
+        passed = sum(isinstance(member, dict) and member.get("value") is True for member in members)
         timestamp = point.get("timestamp")
         parsed_timestamp = timestamp
         if isinstance(timestamp, str):
             try:
-                parsed_timestamp = datetime.fromisoformat(timestamp.replace("Z", "+00:00")).astimezone(UTC)
+                parsed_timestamp = datetime.fromisoformat(
+                    timestamp.replace("Z", "+00:00")
+                ).astimezone(UTC)
             except ValueError:
                 parsed_timestamp = timestamp
         normalized.append(

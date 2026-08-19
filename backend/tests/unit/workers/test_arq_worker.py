@@ -74,9 +74,7 @@ async def test_benchmark_family_dated_refresh_delegates_to_bounded_task(monkeypa
         calls.append(ctx)
         return {"refreshed": 8}
 
-    monkeypatch.setattr(
-        etf_holdings_tasks, "refresh_benchmark_family_holdings_task", fake_refresh
-    )
+    monkeypatch.setattr(etf_holdings_tasks, "refresh_benchmark_family_holdings_task", fake_refresh)
 
     result = await arq_worker.scheduled_benchmark_family_holdings_refresh({"redis": "r"})
 
@@ -154,7 +152,9 @@ def test_worker_registers_scheduled_family_unit_function():
 
 
 @pytest.mark.asyncio
-async def test_family_holdings_refresh_worker_persists_each_unit_and_aggregates_results(monkeypatch):
+async def test_family_holdings_refresh_worker_persists_each_unit_and_aggregates_results(
+    monkeypatch,
+):
     from types import SimpleNamespace
 
     run = SimpleNamespace(
@@ -179,7 +179,13 @@ async def test_family_holdings_refresh_worker_persists_each_unit_and_aggregates_
     async def fake_refresh(_db, *, family_key, requested_date, roles):
         calls.append((family_key, requested_date.isoformat(), roles))
         if family_key == "nasdaq100" and requested_date.isoformat() == "2026-03-31":
-            return {"refreshed": 0, "unavailable": 0, "failed": 1, "legs": [], "error": "route unavailable"}
+            return {
+                "refreshed": 0,
+                "unavailable": 0,
+                "failed": 1,
+                "legs": [],
+                "error": "route unavailable",
+            }
         return {"refreshed": 1, "unavailable": 0, "failed": 0, "legs": []}
 
     class SessionFactory:
@@ -308,9 +314,7 @@ async def test_family_holdings_refresh_worker_handoffs_refreshed_snapshots_to_me
     )
 
     redis = object()
-    result = await arq_worker.task_refresh_benchmark_family_holdings_run(
-        {"redis": redis}, run.id
-    )
+    result = await arq_worker.task_refresh_benchmark_family_holdings_run({"redis": redis}, run.id)
 
     assert result["status"] == "completed"
     assert queue_calls == [(redis, [101])]

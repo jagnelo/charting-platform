@@ -216,19 +216,25 @@ async def _family_member_bar_history(
         bars_query = bars_query.where(OHLCVBar.ts <= as_of)
     bar_rows = (await db.execute(bars_query)).all()
 
-    by_timeframe: dict[Timeframe, list[tuple[int, int, datetime | None, datetime | None]]] = defaultdict(list)
+    by_timeframe: dict[Timeframe, list[tuple[int, int, datetime | None, datetime | None]]] = (
+        defaultdict(list)
+    )
     for timeframe, instrument_id, bar_count, oldest, newest in bar_rows:
-        by_timeframe[timeframe].append(
-            (int(instrument_id), int(bar_count), oldest, newest)
-        )
+        by_timeframe[timeframe].append((int(instrument_id), int(bar_count), oldest, newest))
 
     timeframes: list[BenchmarkFamilyMemberBarHistoryTimeframeOut] = []
     for timeframe, required_bar_count in _FAMILY_MEMBER_BAR_REQUIREMENTS.items():
         rows = by_timeframe.get(timeframe, [])
         covered_count = len(rows)
-        ready_count = sum(1 for _instrument_id, count, _oldest, _newest in rows if count >= required_bar_count)
-        oldest_values = [oldest for _instrument_id, _count, oldest, _newest in rows if oldest is not None]
-        newest_values = [newest for _instrument_id, _count, _oldest, newest in rows if newest is not None]
+        ready_count = sum(
+            1 for _instrument_id, count, _oldest, _newest in rows if count >= required_bar_count
+        )
+        oldest_values = [
+            oldest for _instrument_id, _count, oldest, _newest in rows if oldest is not None
+        ]
+        newest_values = [
+            newest for _instrument_id, _count, _oldest, newest in rows if newest is not None
+        ]
         timeframes.append(
             BenchmarkFamilyMemberBarHistoryTimeframeOut(
                 timeframe=timeframe.value,
@@ -435,9 +441,7 @@ def _aggregate_series_cells(
         if period == "YTD":
             base = prior_year_end[1] if prior_year_end is not None else None
             code = "insufficient_ytd_history"
-            message = (
-                "YTD requires an aligned observation before the current calendar year."
-            )
+            message = "YTD requires an aligned observation before the current calendar year."
         else:
             base = values[-offset - 1][1] if offset is not None and len(values) > offset else None
             code = "insufficient_history"
@@ -3418,7 +3422,9 @@ async def benchmark_family_coverage(
         for profile in (
             await db.execute(
                 select(ETFProfile).where(
-                    ETFProfile.instrument_id.in_([instrument.id for instrument in instruments.values()])
+                    ETFProfile.instrument_id.in_(
+                        [instrument.id for instrument in instruments.values()]
+                    )
                 )
             )
         ).scalars()
@@ -5645,19 +5651,25 @@ async def _resolve_benchmark_family_breadth_universe(
                     },
                 )
             instrument_rows = (
-                await db.execute(
-                    select(Instrument).where(
-                        Instrument.id.in_([member.instrument_id for member in resolved.members])
+                (
+                    await db.execute(
+                        select(Instrument).where(
+                            Instrument.id.in_([member.instrument_id for member in resolved.members])
+                        )
                     )
                 )
-            ).scalars().all()
+                .scalars()
+                .all()
+            )
             by_id = {instrument.id: instrument for instrument in instrument_rows}
             members = [
                 BreadthMember(instrument.id, instrument.symbol, instrument.name)
                 for member in resolved.members
                 if (instrument := by_id.get(member.instrument_id)) is not None
             ]
-            member_ids = [member.instrument_id for member in resolved.members if member.instrument_id in by_id]
+            member_ids = [
+                member.instrument_id for member in resolved.members if member.instrument_id in by_id
+            ]
             warnings = [
                 _generic_breadth_warning(str(item.get("reason", "membership_excluded")))
                 for item in resolved.exclusions
@@ -6192,7 +6204,10 @@ def _python_condition_tree_requires_benchmark(node: object) -> bool:
         return False
     kind = str(node.get("kind") or "").lower()
     params = node.get("params") if isinstance(node.get("params"), Mapping) else {}
-    if kind == "python_series_comparison" and str(params.get("right_scope", "member")).lower() == "benchmark":
+    if (
+        kind == "python_series_comparison"
+        and str(params.get("right_scope", "member")).lower() == "benchmark"
+    ):
         return True
     children = params.get("conditions")
     return isinstance(children, list) and any(
@@ -6342,7 +6357,9 @@ async def _resolve_python_condition_tree(
             if scope not in {"member", "cross_sectional"}:
                 raise HTTPException(422, detail={"code": "invalid_python_series_comparison_scope"})
             if right_scope not in {"member", "benchmark"}:
-                raise HTTPException(422, detail={"code": "invalid_python_series_comparison_right_scope"})
+                raise HTTPException(
+                    422, detail={"code": "invalid_python_series_comparison_right_scope"}
+                )
             if scope == "cross_sectional" and statistic not in {
                 "mean",
                 "median",
@@ -6654,7 +6671,10 @@ async def queue_python_breadth(
         resolved_condition_tree, _ = await _resolve_python_condition_tree(
             body.condition_tree, db, current_user.id
         )
-        if _python_condition_tree_requires_benchmark(resolved_condition_tree) and not body.benchmark:
+        if (
+            _python_condition_tree_requires_benchmark(resolved_condition_tree)
+            and not body.benchmark
+        ):
             raise HTTPException(
                 422,
                 detail={

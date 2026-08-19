@@ -586,7 +586,10 @@ class TestWorkspaces:
         assert historical_cap["continuity_status"] == "single_snapshot"
         assert historical_cap["continuity_gap_count"] == 0
         assert historical.json()["universe_provenance"]["point_in_time"] is True
-        assert historical.json()["universe_provenance"]["continuity_policy"] == "observed_snapshot_intervals_gt_45_days"
+        assert (
+            historical.json()["universe_provenance"]["continuity_policy"]
+            == "observed_snapshot_intervals_gt_45_days"
+        )
 
     def test_benchmark_family_coverage_reports_member_bar_and_technical_readiness(
         self, client, auth_headers, db, instrument_type, instrument, instrument_b
@@ -3406,7 +3409,10 @@ class TestWorkspaces:
         )
         assert tree_aggregate_lineage["source_run_id"] == tree_queued.json()["run_id"]
         assert tree_aggregate_lineage["source_condition_tree"]["kind"] == "all"
-        assert tree_aggregate_lineage["semantics"] == "re_evaluate_breadth_as_aggregate_percentage_plot"
+        assert (
+            tree_aggregate_lineage["semantics"]
+            == "re_evaluate_breadth_as_aggregate_percentage_plot"
+        )
         tree_aggregate_plot_run = client.post(
             "/api/v1/research/runs",
             headers=auth_headers,

@@ -6898,10 +6898,7 @@ async def test_invesco_current_route_failure_uses_curated_sec_identity(monkeypat
     FakeAsyncClient.requested = []
     FakeAsyncClient.queue = [
         FakeResponse(
-            text=(
-                '{"response":{"docs":[{"ticker":"QQQ",'
-                '"cusip":"46090E103"}]}}'
-            ),
+            text=('{"response":{"docs":[{"ticker":"QQQ",' '"cusip":"46090E103"}]}}'),
             content_type="application/json",
         ),
         httpx.Response(
@@ -12196,9 +12193,7 @@ async def test_donoghue_forlines_route_failure_uses_curated_sec_identity(monkeyp
     FakeAsyncClient.queue = [
         httpx.Response(
             status_code=503,
-            request=httpx.Request(
-                "GET", "https://etfs.donoghueforlines.com/etfs/tactical-30-etf/"
-            ),
+            request=httpx.Request("GET", "https://etfs.donoghueforlines.com/etfs/tactical-30-etf/"),
         )
     ]
     monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
@@ -23992,7 +23987,7 @@ async def test_ishares_adapter_fetches_explicit_historical_as_of_snapshot(monkey
                 '"unitsHeld":{"value":[10]},'
                 '"marketValue":{"value":[1000]},'
                 '"assetClass":{"value":["Equity"]}'
-                '}}}}}}'
+                "}}}}}}"
             ),
             content_type="application/json",
         )

@@ -322,7 +322,9 @@ async def _materialize_declared_dataset(
     source_id_value = run_config.get("universe_source_id")
     if source_id_value not in (None, ""):
         if user_id is None:
-            raise HTTPException(status_code=422, detail={"code": "universe_source_user_context_required"})
+            raise HTTPException(
+                status_code=422, detail={"code": "universe_source_user_context_required"}
+            )
         source_id = str(source_id_value).strip()
         if source_id.isdigit():
             source_id = f"watchlist:{source_id}"
@@ -334,17 +336,33 @@ async def _materialize_declared_dataset(
                 as_of=options["as_of"],
             )
         except LookupError as exc:
-            raise HTTPException(status_code=404, detail={"code": str(exc), "source_id": source_id}) from exc
+            raise HTTPException(
+                status_code=404, detail={"code": str(exc), "source_id": source_id}
+            ) from exc
         except ValueError as exc:
-            raise HTTPException(status_code=422, detail={"code": str(exc), "source_id": source_id}) from exc
-        source_member_ids = list(dict.fromkeys(member.instrument_id for member in resolved_source.members))
+            raise HTTPException(
+                status_code=422, detail={"code": str(exc), "source_id": source_id}
+            ) from exc
+        source_member_ids = list(
+            dict.fromkeys(member.instrument_id for member in resolved_source.members)
+        )
         source_instruments = (
-            (await db.execute(
-                select(Instrument)
-                .options(selectinload(Instrument.equity_detail), selectinload(Instrument.stats))
-                .where(Instrument.id.in_(source_member_ids))
-            )).scalars().all()
-        ) if source_member_ids else []
+            (
+                (
+                    await db.execute(
+                        select(Instrument)
+                        .options(
+                            selectinload(Instrument.equity_detail), selectinload(Instrument.stats)
+                        )
+                        .where(Instrument.id.in_(source_member_ids))
+                    )
+                )
+                .scalars()
+                .all()
+            )
+            if source_member_ids
+            else []
+        )
         source_by_id = {instrument.id: instrument for instrument in source_instruments}
         source_symbols = [
             source_by_id[member.instrument_id].symbol
