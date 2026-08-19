@@ -10,9 +10,10 @@
 - Validation: focused layout/frame and Market Map component `35/35`; full frontend Vitest `912/912`;
   type-check; production build; and `git diff --check`. Acceptance flexibility: **None**.
 - Exact V25 canvas typography, gutter, density, and hover treatment remain reference-board gaps.
-- Implementation/docs commit `d9e4abbb5d7fb49b90fd34e05a214d68c93a22bf` is pushed and synchronized;
-  this follow-up is now ready for its operational checkpoint. Next context remains provider-backed
-  family/source population and the remaining V25 visual/reference gaps.
+- Implementation commit `d9e4abbb5d7fb49b90fd34e05a214d68c93a22bf` and operational checkpoint
+  `ff6a442d38f002b7f0d9ab0edc8ecbbd21caed54` are pushed and synchronized. This follow-up context is
+  closed; next context remains provider-backed family/source population and the remaining V25
+  visual/reference gaps.
 
 ## 2026-08-19 — Arbitrary Market Maps now expose visible group frames
 
