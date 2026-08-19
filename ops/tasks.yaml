@@ -1,4 +1,29 @@
 tasks:
+  - id: tc2000-historical-provider-future-bar-guard-20260819
+    title: Reject future provider bars during historical hydration
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Enforce the historical no-future-bar invariant at the canonical bulk-history persistence
+      boundary after provider responses, so a provider returning rows beyond the requested
+      evaluation end cannot contaminate Market Map, breadth, ratios, charts, or Study Lab.
+    definition_of_done:
+      - Provider rows after the normalized historical end are discarded before persistence
+      - Empty post-filter responses update coverage honestly without inserting future bars
+      - A direct regression proves future rows are rejected
+      - The complete backend unit suite, lint/compile, and diff checks pass
+    validation:
+      - backend-unit-1239-of-1239
+      - focused-bulk-history-7-of-7
+      - backend-ruff-and-compileall
+      - git-diff-check
+    notes:
+      - >-
+        Acceptance flexibility used: None. This closes future-bar leakage only; provider depth,
+        stale/partial data, corporate-action correctness, rebalance continuity, family population,
+        and exact V25 history-maintenance visuals remain open.
+
   - id: tc2000-historical-watchlist-hydration-end-20260819
     title: Carry historical evaluation ends through watchlist history hydration
     status: completed

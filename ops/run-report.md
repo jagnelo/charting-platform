@@ -1,5 +1,17 @@
 # Run Report
 
+## 2026-08-19 — Future provider bars are excluded from historical hydration
+
+- Added a defensive post-response timestamp filter to the canonical bulk-history worker. Rows after
+  the requested evaluation end are excluded before persistence, preventing provider range errors
+  from leaking future observations into historical heatmaps, charts, ratios, breadth, or studies.
+- Evidence: focused history tests `7/7`; backend unit suite `1239/1239`; Ruff; compileall; and
+  `git diff --check`. Implementation/docs commit `2140c2cc17d8301e4844c9447b55e4b98faecd0b`
+  pushed successfully.
+- Acceptance flexibility: **None**. Provider coverage/depth, response freshness, corporate
+  actions, family rebalance continuity, population, and exact V25 maintenance visuals remain
+  explicit open work.
+
 ## 2026-08-19 — Historical watchlist hydration carries evaluation ends
 
 - Source history refreshes now preserve `as_of` from the canonical source request through queue

@@ -1,5 +1,22 @@
 # Active Handoff
 
+## 2026-08-19 — Historical hydration rejects future provider rows
+
+- Closed the remaining future-bar leakage path in the historical watchlist contract. After a
+  provider response is received, the canonical bulk worker now filters rows after the normalized
+  evaluation end before recording observations, dataset state, or OHLCV bars. This protects
+  historical Market Map, Breadth, ratios, charts, and Study Lab inputs even when a free provider
+  ignores the requested range.
+- Validation: focused bulk-history/history tests `7/7`; complete backend unit suite `1239/1239`;
+  Ruff/compileall; `git diff --check`. Implementation/docs commit
+  `2140c2cc17d8301e4844c9447b55e4b98faecd0b` is pushed and origin is synchronized.
+- Acceptance flexibility: **None**. Remaining gaps are provider depth and stale/partial response
+  quality, corporate-action correctness, rebalance continuity, all-eight family/provider
+  population, exact V25 history-maintenance visuals, and broader visual-board coverage. This
+  internal guard is not being counted as any of those deliverables.
+- Next context: provider-backed saved-source coverage and family-role population/continuity, then
+  the next parity gap, from a clean synchronized branch.
+
 ## 2026-08-19 — Historical watchlist hydration honors evaluation ends
 
 - Closed the provider-boundary defect left after point-in-time source resolution. An authenticated
