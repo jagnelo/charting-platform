@@ -5,7 +5,7 @@ from datetime import UTC, date, datetime, time
 from typing import Any
 
 import httpx
-from sqlalchemy import select
+from sqlalchemy import case, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -629,23 +629,46 @@ async def backfill_all_sec_nport_holdings(
     db: AsyncSession,
     *,
     symbols: list[str] | None = None,
+    priority_symbols: list[str] | None = None,
     start_date: date | None = None,
     end_date: date | None = None,
     max_profiles: int = 50,
     max_filings_per_etf: int = 20,
     requested_by_user_id: int | None = None,
 ) -> dict[str, Any]:
+    """Backfill SEC holdings, prioritising required platform universes when bounded.
+
+    The scheduled SEC pass is deliberately bounded.  Without an explicit priority order, an
+    alphabetically sorted ETF catalog can consume the profile budget before the benchmark-family
+    legs needed by the workstation are reached.  Priority changes ordering only; it does not
+    fabricate identities, bypass the caller's explicit symbol filter, or alter filing semantics.
+    """
+
     symbol_filters = [symbol.strip().upper() for symbol in symbols or [] if symbol.strip()]
+    normalized_priority = list(
+        dict.fromkeys(symbol.strip().upper() for symbol in priority_symbols or [] if symbol.strip())
+    )
     stmt = (
         select(ETFProfile)
         .join(Instrument, Instrument.id == ETFProfile.instrument_id)
         .options(selectinload(ETFProfile.instrument))
         .where(ETFProfile.sec_cik.is_not(None))
-        .order_by(Instrument.symbol.asc())
-        .limit(max_profiles)
     )
     if symbol_filters:
         stmt = stmt.where(Instrument.symbol.in_(symbol_filters))
+        stmt = stmt.order_by(Instrument.symbol.asc())
+    elif normalized_priority:
+        priority_order = case(
+            *(
+                (Instrument.symbol == symbol, index)
+                for index, symbol in enumerate(normalized_priority)
+            ),
+            else_=len(normalized_priority),
+        )
+        stmt = stmt.order_by(priority_order, Instrument.symbol.asc())
+    else:
+        stmt = stmt.order_by(Instrument.symbol.asc())
+    stmt = stmt.limit(max_profiles)
 
     profiles = list((await db.execute(stmt)).scalars().all())
     summaries: list[dict[str, Any]] = []

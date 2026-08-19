@@ -34,10 +34,12 @@ async def backfill_sec_nport_holdings_task(ctx: dict) -> dict:
 
     from app.database import AsyncSessionLocal
     from app.services.etf_holdings_edgar import backfill_all_sec_nport_holdings
+    from app.services.top_down_taxonomy import benchmark_family_proxy_symbols
 
     async with AsyncSessionLocal() as db:
         summary = await backfill_all_sec_nport_holdings(
             db,
+            priority_symbols=list(benchmark_family_proxy_symbols()),
             max_profiles=settings.ETF_HOLDINGS_SEC_BACKFILL_MAX_PROFILES,
             max_filings_per_etf=settings.ETF_HOLDINGS_SEC_BACKFILL_MAX_FILINGS_PER_ETF,
         )
