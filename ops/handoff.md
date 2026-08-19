@@ -16,11 +16,10 @@
   --check` pass. Acceptance flexibility: **None**. The initial focused run exposed the missing-
   snapshot current-classification fallback and was fixed, then rerun unchanged to green; this was
   a product defect repair, not a relaxed criterion.
-- Implementation/docs commit `678802f94b7529da84c45fcaafa6b311f5ff38b7` is pushed and matches
-  `origin/feat/tc2000-frontend-rework`. The separate operational files in this handoff/state/task
-  context are now the only dirty files and must be committed/pushed before the next context.
-- Next action: stage only the operational record, commit and push it, then verify clean synchronized
-  hashes. Continue the active full goal afterward; provider-backed family population,
+- Implementation/docs commit `678802f94b7529da84c45fcaafa6b311f5ff38b7` and operational checkpoint
+  `e0b98775c9185c4074b99a953c845419967f46ef` are pushed and match
+  `origin/feat/tc2000-frontend-rework`; the worktree is clean and synchronized.
+- This context is closed. Continue the active full goal with provider-backed family population,
   point-in-time weights, canonical member bars, combo version reconstruction, and exact V25 visual
   states remain open.
 
