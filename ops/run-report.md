@@ -12,7 +12,8 @@
 - No acceptance flexibility, visual threshold, mask, provider substitution, or interactive fan-out
   was introduced. Exact V25 maintenance/fallback visuals, broader provider coverage, all-family
   population, canonical bars, and historical continuity remain open.
-- Implementation/docs commit `0e70b339` is pushed; operational state checkpoint follows.
+- Implementation/docs commit `0e70b339` and operational checkpoint `d44b14e9` are pushed and
+  synchronized; this context is closed before the next provider repair begins.
 
 ## 2026-08-19 — Explicit arbitrary-ETF bootstrap enters the universal Market Map
 

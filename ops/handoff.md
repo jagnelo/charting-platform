@@ -11,10 +11,10 @@
   fallback without adding ordinary-request provider fan-out.
 - Validation: Invesco adapter `494/494`, opt-in live QQQ probe `1/1`, Ruff, compileall, and
   `git diff --check` pass. Acceptance flexibility: **None**.
-- Implementation/docs commit `0e70b339` is pushed and synchronized. Operational checkpoint is
-  pending. Remaining gaps: other provider routes, all-eight family population, canonical member
-  bars, historical rebalance continuity, entitlement/terms review, and exact V25 maintenance/
-  fallback-state visuals.
+- Implementation/docs commit `0e70b339` and operational checkpoint `d44b14e9` are pushed and
+  synchronized. This context is closed. Remaining gaps: other provider routes, all-eight family
+  population, canonical member bars, historical rebalance continuity, entitlement/terms review,
+  and exact V25 maintenance/fallback-state visuals.
 - Next context: continue provider-family population and repair remaining adapter failures; do not
   treat this single route repair as goal completion.
 
