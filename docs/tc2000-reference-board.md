@@ -1,5 +1,20 @@
 # TC2000 Version 25 composite reference board
 
+## 2026-08-19 — Universal arbitrary-watchlist heatmap is a documented reference gap
+
+The implementation now composes one heatmap surface for any source that can be represented as a
+watchlist: canonical index/ETF constituents are locked system lists, while personal and saved
+selections are editable or user-owned locked copies. The same surface supports grouping, area and
+colour metrics, periods, member selection, breadth/Study Lab handoffs, and relative comparison.
+Mapped sources remain visible while membership is pending, and the history strip reports `pending`
+instead of incorrectly calling an existing locked source unavailable.
+
+Gap status: `required_missing` for exact V25 captures of arbitrary-watchlist selection, locked versus
+editable affordances, pending-to-ready transitions, heatmap density/labels, and the source-to-map
+handoff. Interim oracle: arbitrary canonical ETF Market Map/history integration `2/2` and Ruff.
+Evidence needed: a reviewed V25 capture showing a user-defined or managed watchlist opened in the
+same map as an index/ETF universe. No visual threshold or mask was relaxed.
+
 ## 2026-08-19 — Family coverage pending-profile state remains a visual gap
 
 The family coverage/maintenance contract now distinguishes three lifecycle states: missing

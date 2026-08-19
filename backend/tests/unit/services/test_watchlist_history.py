@@ -101,6 +101,47 @@ async def test_watchlist_history_plan_retains_unavailable_source(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_watchlist_history_plan_and_status_preserve_pending_locked_source(monkeypatch):
+    async def fake_resolve(_db, _user_id, source_id, *, as_of):
+        return SimpleNamespace(
+            descriptor=SimpleNamespace(
+                source_id=source_id,
+                source_kind="etf_holdings",
+                name="Unhydrated ETF holdings",
+                locked=True,
+                membership_version="etf-v1",
+                provenance={"availability": "profile_not_loaded"},
+            ),
+            members=(),
+            exclusions=({"reason": "etf_profile_not_loaded"},),
+        )
+
+    monkeypatch.setattr(history, "resolve_watchlist_source", fake_resolve)
+    plan = await history.plan_watchlist_source_history_refresh(
+        object(),
+        7,
+        source_ids=["etf-holdings:UNHYDRATED"],
+        timeframes=["D1"],
+    )
+
+    assert plan["sources"][0]["status"] == "pending"
+    assert plan["sources"][0]["message"] == "etf_profile_not_loaded"
+
+    class FakeDB:
+        async def execute(self, _statement):
+            raise AssertionError("pending source with no members must not query bars")
+
+    status = await history.build_watchlist_source_history_status(
+        FakeDB(),
+        7,
+        source_id="etf-holdings:UNHYDRATED",
+        timeframes=["D1"],
+    )
+    assert status["overall_status"] == "pending"
+    assert status["selected_instrument_count"] == 0
+
+
+@pytest.mark.asyncio
 async def test_watchlist_history_status_uses_local_coverage_and_worker_progress(monkeypatch):
     async def fake_plan(*_args, **_kwargs):
         return {

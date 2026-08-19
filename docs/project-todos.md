@@ -1,5 +1,22 @@
 # Project TODO Memory
 
+### 2026-08-19 — Any locked universe is the same heatmap watchlist contract
+
+- [x] Treat the constituents of any canonical index, index ETF, sector ETF, industry/proxy ETF,
+      managed universe, combo, saved selection, or personal watchlist as a selectable universe for
+      one shared TC2000-style Market Map. System/index/ETF sources are immutable in membership;
+      personal copies remain editable, but both use the same grouping, sizing, colour, filtering,
+      selection, breadth, relative-performance, and downstream chart/Study Lab handoffs.
+- [x] Keep mapped-but-unhydrated locked sources visible and followable. The source catalog, Market
+      Map, family maintenance, and generic history-status endpoint now all report `pending` for
+      profile/holdings/membership hydration, while genuinely empty personal lists or unverified
+      mappings remain `unavailable`; no interactive provider fan-out or guessed constituents occur.
+- [x] Validate the shared lifecycle through the arbitrary-ETF Market Map and history-status
+      integration (`2/2` focused tests) plus Ruff. Acceptance flexibility used: **None**.
+- [ ] Provider-backed membership and bar population, exact V25 heatmap/source-picker visuals, and
+      broader all-family continuity remain open; this closes the source-polymorphism/state boundary,
+      not the provider or visual gaps.
+
 ### 2026-08-19 — Family coverage preserves pending canonical roles without profiles
 
 - [x] Align `/analysis/benchmark-families/{family_key}/coverage` with the universal locked-source

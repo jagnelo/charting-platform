@@ -21,6 +21,13 @@ from app.services.watchlist_sources import resolve_watchlist_source
 DEFAULT_HISTORY_TIMEFRAMES = (Timeframe.MN.value, Timeframe.W1.value, Timeframe.D1.value)
 MAX_HISTORY_INSTRUMENTS = 5000
 MAX_HISTORY_SOURCES = 256
+PENDING_SOURCE_AVAILABILITIES = frozenset(
+    {
+        "profile_not_loaded",
+        "holdings_snapshot_not_loaded",
+        "membership_not_loaded",
+    }
+)
 
 
 def normalize_source_ids(source_ids: list[str] | None) -> list[str]:
@@ -115,13 +122,18 @@ async def plan_watchlist_source_history_refresh(
             instrument_ids.append(member.instrument_id)
             selected_count += 1
 
+        provenance = getattr(resolved.descriptor, "provenance", None) or {}
+        availability = str(provenance.get("availability") or "")
+        source_status = "ready" if members else (
+            "pending" if availability in PENDING_SOURCE_AVAILABILITIES else "unavailable"
+        )
         sources.append(
             {
                 "source_id": resolved.descriptor.source_id,
                 "source_kind": resolved.descriptor.source_kind,
                 "name": resolved.descriptor.name,
                 "locked": resolved.descriptor.locked,
-                "status": "ready" if members else "unavailable",
+                "status": source_status,
                 "member_count": len(members),
                 "selected_count": selected_count,
                 "deduplicated_count": len(members) - selected_count,
@@ -256,8 +268,13 @@ async def build_watchlist_source_history_status(
             }
         )
 
+    source = plan["sources"][0]
     if not instrument_ids:
-        overall_status = "unavailable"
+        # A canonical index/ETF/group identity can be known before its local
+        # membership snapshot is hydrated. Preserve that pending state rather
+        # than presenting the same selectable source as unavailable. Empty
+        # personal lists and genuinely unverified sources remain unavailable.
+        overall_status = "pending" if source.get("status") == "pending" else "unavailable"
     elif all(item["covered_member_count"] == len(instrument_ids) for item in timeframe_statuses):
         overall_status = "ready"
     elif any(item["in_progress_count"] for item in timeframe_statuses):
@@ -269,7 +286,6 @@ async def build_watchlist_source_history_status(
     else:
         overall_status = "pending"
 
-    source = plan["sources"][0]
     return {
         "source_id": source_id,
         "source_kind": source.get("source_kind"),

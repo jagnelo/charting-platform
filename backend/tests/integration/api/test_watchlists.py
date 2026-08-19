@@ -63,6 +63,21 @@ class TestWatchlistsCrud:
         assert body["requested_count"] == 0
         assert body["cells"] == []
 
+        history = client.get(
+            "/api/v1/watchlists/sources/history-status/etf-holdings:UNHYDRATED",
+            headers=auth_headers,
+            params={"timeframes": "D1"},
+        )
+        assert history.status_code == 200, history.text
+        history_body = history.json()
+        assert history_body["source_id"] == "etf-holdings:UNHYDRATED"
+        assert history_body["locked"] is True
+        assert history_body["available_instrument_count"] == 0
+        assert history_body["selected_instrument_count"] == 0
+        assert history_body["overall_status"] == "pending"
+        assert history_body["message"] == "etf_profile_not_loaded"
+        assert history_body["timeframes"][0]["member_count"] == 0
+
     def test_market_map_accepts_personal_source_and_rolls_up_constituents(
         self, client, auth_headers, admin_headers, db, watchlist, instrument, instrument_b
     ):

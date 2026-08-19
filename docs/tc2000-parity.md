@@ -1,5 +1,23 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-19 — Every index, ETF, and arbitrary watchlist uses one heatmap language
+
+The workstation now treats a canonical index or ETF constituent set as a hard, system-managed
+watchlist: users may follow, pin, clone, filter, compare, and drill into it, but cannot edit its
+membership. Personal, managed, combo, explicit-selection, sector, industry, index-family, and ETF
+sources use the same Market Map request and rendering contract, so a heatmap can be opened for any
+arbitrary watchlist rather than only a predefined index universe. The same source identity also
+feeds Breadth, relative performance, Study Lab, scans, gauges, and linked chart handoffs.
+
+Pending profile/holdings/membership hydration is now preserved as `pending` by the source catalog,
+Market Map, family maintenance, and generic history-status endpoint. Truly empty personal lists and
+unverified mappings remain `unavailable`. Focused arbitrary-ETF Market Map/history integration is
+`2/2`; Ruff passes. No provider calls or membership substitution occur in the interactive path.
+
+This closes the source-polymorphic behavior boundary only. Provider-backed membership/bar
+population, historical continuity, exact V25 heatmap/source-picker visuals, and final acceptance
+remain open. Acceptance flexibility used: **None**.
+
 ## 2026-08-19 — Family coverage uses the same pending state as locked source selection
 
 The benchmark-family coverage endpoint now preserves the source lifecycle for mapped roles. A
