@@ -492,6 +492,8 @@ Python universe helper. The interim historical oracle now also requires a pre-`k
 show zero members with an explicit membership-not-known exclusion and a post-`known_at` request to
 restore the exact saved IDs; exact V25 button wording/placement and source-library affordance remain
 a tracked visual gap.
+The same pre-`known_at` exclusion is required when a Market Map's historical `end` drives source
+membership evaluation.
 
 ## 2026-08-19 universal derived-watchlist reference gap
 

@@ -21,6 +21,9 @@ canonical IDs. Ephemeral `explicit:<ids>` remains non-point-in-time. Historical 
 retention, provider-backed bars, and exact V25 historical-source controls remain open; no acceptance
 flexibility was used.
 
+Market Map applies the same rule when `end` is the evaluation timestamp: a durable source is not
+silently treated as current membership for an earlier map period.
+
 ## 2026-08-19 — Saved arbitrary selections are first-class locked heatmap sources
 
 The universal Market Map now supports durable explicit selections in addition to ephemeral

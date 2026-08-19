@@ -40,6 +40,8 @@
       exact canonical IDs without provider fan-out.
 - [x] Mark durable explicit Python declarations as point-in-time capable while retaining ephemeral
       `explicit:<ids>` as a non-point-in-time transport selection.
+- [x] Apply the same saved-source known-at policy to Market Map `end` evaluation, so a historical
+      map cannot resolve a durable selection before its saved version existed.
 - [ ] Historical version retention across a renamed/replaced library item, provider-backed bars,
       and exact V25 historical-source controls remain open; this checkpoint closes only the
       known-at boundary for each immutable saved version.

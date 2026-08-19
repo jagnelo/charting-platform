@@ -2315,6 +2315,24 @@ class TestWatchlistsCrud:
             instrument_b.id,
         ]
 
+        historical_map = client.post(
+            "/api/v1/analysis/market-map",
+            headers=auth_headers,
+            json={
+                "source_id": descriptor["source_id"],
+                "period": "1D",
+                "area_metric": "equal",
+                "color_metric": "return",
+                "end": "2000-01-02T00:00:00Z",
+            },
+        )
+        assert historical_map.status_code == 200, historical_map.text
+        assert historical_map.json()["requested_count"] == 0
+        assert any(
+            warning["code"] == "membership_not_known_at_as_of"
+            for warning in historical_map.json()["exclusions"]
+        )
+
         breadth = client.post(
             "/api/v1/analysis/breadth",
             headers=auth_headers,

@@ -69,7 +69,7 @@ def _membership_evaluation_timestamp(
         return request.as_of
     source = source_id or request.source_id
     if request.end is not None and source.startswith(
-        ("benchmark-family:", "etf-holdings:", "market-group:")
+        ("benchmark-family:", "etf-holdings:", "market-group:", "explicit-list:")
     ):
         return request.end
     return None
