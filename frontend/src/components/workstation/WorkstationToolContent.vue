@@ -8,6 +8,11 @@
             <option v-for="family in benchmarkFamilyOptions" :key="family.logicalKey" :value="family.logicalKey">{{ family.name }}</option>
           </select>
         </label>
+        <label v-if="benchmarkFamilyKey">Map role
+          <select :value="activeBenchmarkMapRole" aria-label="Benchmark family Map role" @change="setBenchmarkFamilyMapRole(($event.target as HTMLSelectElement).value)">
+            <option v-for="role in benchmarkFamilyMapRoleOptions" :key="role.role" :value="role.role" :disabled="!role.available">{{ familyRoleLabel(role.role) }}{{ role.available ? '' : ' · unavailable' }}</option>
+          </select>
+        </label>
         <span v-if="benchmarkFamilyKey" class="benchmark-surface__family-state">{{ activeBenchmarkLabel }} · locked family legs</span>
         <span v-if="benchmarkFamilyLoading" role="status">Loading family legs…</span>
         <span v-else-if="benchmarkFamilyError" class="benchmark-surface__family-error" role="alert">{{ benchmarkFamilyError }}</span>
@@ -1862,6 +1867,16 @@ const benchmarkFamilyKey = ref(typeof props.tool.configuration.benchmark_family_
 watch(() => props.tool.configuration.benchmark_family_key, value => {
   benchmarkFamilyKey.value = typeof value === 'string' ? value.trim() : ''
 })
+type BenchmarkFamilyMapRole = 'cap_weight' | 'equal_weight' | 'value' | 'growth'
+const benchmarkFamilyMapRoles: BenchmarkFamilyMapRole[] = ['cap_weight', 'equal_weight', 'value', 'growth']
+const benchmarkFamilyMapRole = ref<BenchmarkFamilyMapRole>(
+  benchmarkFamilyMapRoles.includes(props.tool.configuration.benchmark_family_map_role as BenchmarkFamilyMapRole)
+    ? props.tool.configuration.benchmark_family_map_role as BenchmarkFamilyMapRole
+    : 'cap_weight',
+)
+watch(() => props.tool.configuration.benchmark_family_map_role, value => {
+  benchmarkFamilyMapRole.value = benchmarkFamilyMapRoles.includes(value as BenchmarkFamilyMapRole) ? value as BenchmarkFamilyMapRole : 'cap_weight'
+})
 const activeBenchmarkFamily = computed(() => benchmarkFamilyOptions.value.find(family => family.logicalKey === benchmarkFamilyKey.value) ?? null)
 const benchmarkFamilyRecord = computed<Record<string, unknown> | null>(() => {
   if (!benchmarkFamilyKey.value) return null
@@ -1880,6 +1895,17 @@ const benchmarkFamilySnapshot = computed(() => benchmarkFamilyKey.value ? worksp
 const benchmarkFamilyOverviewKey = computed(() => `${benchmarkFamilyKey.value}:${activeTimeframe.value}:adj:latest`)
 const benchmarkFamilyOverview = computed(() => benchmarkFamilyKey.value ? workspaceStore.benchmarkFamilyOverviews[benchmarkFamilyOverviewKey.value] : null)
 const benchmarkFamilyOverviewError = computed(() => benchmarkFamilyKey.value ? workspaceStore.benchmarkFamilyOverviewErrors[benchmarkFamilyOverviewKey.value] ?? '' : '')
+const benchmarkFamilyMapRoleOptions = computed(() => benchmarkFamilyMapRoles.map(role => {
+  const mapping = benchmarkFamilyOverview.value?.mappings.find(item => item.role === role)
+  return {
+    role,
+    available: Boolean(mapping?.symbol && mapping.holdings_available && mapping.available !== false),
+  }
+}))
+const activeBenchmarkMapRole = computed<BenchmarkFamilyMapRole>(() => {
+  const selected = benchmarkFamilyMapRoleOptions.value.find(item => item.role === benchmarkFamilyMapRole.value && item.available)
+  return selected?.role ?? 'cap_weight'
+})
 const benchmarkFamilyLoading = ref(false)
 const benchmarkFamilyError = computed(() => {
   if (!benchmarkFamilyKey.value) return ''
@@ -1899,7 +1925,7 @@ const activeBenchmarkIdentity = computed(() => {
 })
 const activeBenchmarkListLabel = computed(() => benchmarkFamilyKey.value ? `${activeBenchmarkLabel.value} legs` : 'Major US benchmarks')
 const activeBenchmarkMarketMapSourceId = computed(() => benchmarkFamilyKey.value
-  ? benchmarkFamilyConstituentSourceId(benchmarkFamilyKey.value, 'cap_weight')
+  ? benchmarkFamilyConstituentSourceId(benchmarkFamilyKey.value, activeBenchmarkMapRole.value)
   : 'market-group:us-benchmarks')
 const isBenchmarkFamily = computed(() => benchmarkFamilyOptions.value.some(family => family.logicalKey === breadthGroupKey.value))
 const benchmarkIdentity = computed(() => {
@@ -3163,10 +3189,19 @@ function setBreadthGroup(groupKey: string) {
 function setBenchmarkFamily(familyKey: string) {
   const normalized = benchmarkFamilyOptions.value.some(family => family.logicalKey === familyKey) ? familyKey : ''
   benchmarkFamilyKey.value = normalized
+  benchmarkFamilyMapRole.value = 'cap_weight'
   emit('configuration', props.tool.instance_key, {
     ...props.tool.configuration,
     benchmark_family_key: normalized || null,
+    benchmark_family_map_role: normalized ? 'cap_weight' : null,
   })
+}
+function setBenchmarkFamilyMapRole(role: string) {
+  const normalized = benchmarkFamilyMapRoles.includes(role as BenchmarkFamilyMapRole) ? role as BenchmarkFamilyMapRole : 'cap_weight'
+  const available = benchmarkFamilyMapRoleOptions.value.find(item => item.role === normalized)?.available ?? false
+  if (!available) return
+  benchmarkFamilyMapRole.value = normalized
+  emit('configuration', props.tool.instance_key, { ...props.tool.configuration, benchmark_family_map_role: normalized })
 }
 function setBreadthConfiguration(configuration: Record<string, unknown>) {
   breadthDraftConfiguration.value = { ...breadthDraftConfiguration.value, ...configuration }

@@ -3351,7 +3351,7 @@ test.describe('TC2000 workstation', () => {
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ group_key: 'sp500', rows: [{ instrument_id: 1, symbol: 'SPY', name: 'SPDR S&P 500 ETF Trust', performance: {}, technical: {}, warnings: [] }], exclusions: [] }) })
     })
     await page.route('**/api/v1/analysis/benchmark-families/sp500/overview*', async route => {
-      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ family_key: 'sp500', name: 'S&P 500', official_index_symbol: 'SPX', mappings: [{ role: 'cap_weight', symbol: 'SPY', label: 'SPY', verification_state: 'verified', available: true, holdings_available: true, holdings_completeness_status: 'complete' }], rows: [], exclusions: [] }) })
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ family_key: 'sp500', name: 'S&P 500', official_index_symbol: 'SPX', mappings: [{ role: 'cap_weight', symbol: 'SPY', label: 'SPY', verification_state: 'verified', available: true, holdings_available: true, holdings_completeness_status: 'complete' }, { role: 'equal_weight', symbol: 'RSP', label: 'RSP', verification_state: 'verified', available: true, holdings_available: true, holdings_completeness_status: 'complete' }], rows: [], exclusions: [] }) })
     })
     await page.route('**/api/v1/watchlists/sources**', async route => {
       const pathname = new URL(route.request().url()).pathname
@@ -3359,7 +3359,7 @@ test.describe('TC2000 workstation', () => {
         await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ overall_status: 'ready', available_instrument_count: 1, selected_instrument_count: 1, timeframes: [{ timeframe: 'D1', member_count: 1, covered_member_count: 1, coverage_percent: 100 }] }) })
         return
       }
-      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([{ source_id: 'benchmark-family:sp500:cap_weight', source_kind: 'index_membership', name: 'S&P 500 constituents', locked: true, can_follow: true, can_clone: true, can_edit_membership: false, member_count: 1, membership_version: 'sp500:v1', provenance: { availability: 'available', membership_semantics: 'etf_proxy_holdings' } }]) })
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([{ source_id: 'benchmark-family:sp500:cap_weight', source_kind: 'index_membership', name: 'S&P 500 constituents', locked: true, can_follow: true, can_clone: true, can_edit_membership: false, member_count: 1, membership_version: 'sp500:cap:v1', provenance: { availability: 'available', membership_semantics: 'etf_proxy_holdings' } }, { source_id: 'benchmark-family:sp500:equal_weight', source_kind: 'index_membership', name: 'S&P 500 equal-weight constituents', locked: true, can_follow: true, can_clone: true, can_edit_membership: false, member_count: 1, membership_version: 'sp500:equal:v1', provenance: { availability: 'available', membership_semantics: 'etf_proxy_holdings' } }]) })
     })
     await page.route('**/api/v1/analysis/market-map', async route => {
       const body = route.request().postDataJSON() as { source_id?: string }
@@ -3371,11 +3371,15 @@ test.describe('TC2000 workstation', () => {
     await expect(benchmarkSurface).toBeVisible({ timeout: 15_000 })
     await benchmarkSurface.getByRole('combobox', { name: 'Benchmark family' }).selectOption('sp500')
     await expect(benchmarkSurface).toContainText('S&P 500 legs')
+    const mapRole = benchmarkSurface.getByRole('combobox', { name: 'Benchmark family Map role' })
+    await expect(mapRole).toHaveValue('cap_weight')
+    await mapRole.selectOption('equal_weight')
+    await expect(mapRole).toHaveValue('equal_weight')
     await benchmarkSurface.getByRole('button', { name: 'Open Market Map' }).click()
     const mapWindow = page.locator('.tool-window:visible').filter({ has: page.locator('.market-map-tool') }).last()
     await expect(mapWindow).toBeVisible({ timeout: 15_000 })
-    await expect(mapWindow.getByRole('combobox', { name: 'Market Map universe' })).toHaveValue('benchmark-family:sp500:cap_weight')
-    await expect.poll(() => requestedSources.at(-1), { timeout: 15_000 }).toBe('benchmark-family:sp500:cap_weight')
+    await expect(mapWindow.getByRole('combobox', { name: 'Market Map universe' })).toHaveValue('benchmark-family:sp500:equal_weight')
+    await expect.poll(() => requestedSources.at(-1), { timeout: 15_000 }).toBe('benchmark-family:sp500:equal_weight')
     await expect(mapWindow).toContainText('Locked source')
     await expect(mapWindow.locator('.market-map-tool__tile')).toHaveCount(1)
     await browserDiagnostics.expectNoCriticalIssues()
