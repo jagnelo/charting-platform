@@ -11,8 +11,9 @@
   criterion was relaxed.
 - Acceptance flexibility: **None**. Provider population/history, complete eight-family role views,
   rebalance continuity, and exact V25 maintenance visuals remain tracked gaps.
-- Implementation/docs commit `799c27a3423349bb7ffc187e8f517ed27d0d6579` is pushed; the operational
-  checkpoint follows as a separate commit.
+- Implementation/docs commits `799c27a3423349bb7ffc187e8f517ed27d0d6579` and
+  `feee850159a469370ba569de25699a2fbb6750a8` are pushed; the latter adds the admin API regression,
+  and the operational checkpoint follows as a separate commit.
 
 ## 2026-08-19 — Mapped locked sources remain followable while membership hydrates
 

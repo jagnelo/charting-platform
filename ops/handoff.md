@@ -13,8 +13,10 @@
 - Acceptance flexibility: **None**. Provider-backed snapshot population, canonical member bars,
   historical rebalance continuity, complete family views, and exact V25 maintenance/progress
   visuals remain open.
-- Implementation/docs commit `799c27a3423349bb7ffc187e8f517ed27d0d6579` is pushed. The operational
-  checkpoint for this context is being recorded now.
+- Implementation/docs commits `799c27a3423349bb7ffc187e8f517ed27d0d6579` and
+  `feee850159a469370ba569de25699a2fbb6750a8` are pushed. The latter adds the admin API regression
+  proving the pending leg state survives the route boundary; the operational checkpoint is being
+  recorded now.
 
 ## 2026-08-19 — Mapped locked sources remain followable while membership hydrates
 

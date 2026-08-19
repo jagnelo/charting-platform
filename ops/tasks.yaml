@@ -15,6 +15,7 @@ tasks:
       - Focused family/bootstrap/holdings tests, full backend unit, lint, compile, docs, and diff checks pass
     validation:
       - family-bootstrap-holdings-unit-25-of-25
+      - family-history-api-1-of-1
       - backend-unit-1248-of-1248
       - backend-ruff-and-compileall
       - yaml-json-and-git-diff-check
@@ -23,6 +24,10 @@ tasks:
         Acceptance flexibility used: None. This closes status propagation only; provider-backed
         snapshot population, canonical member bars, rebalance continuity, complete family views,
         and exact V25 maintenance/progress visuals remain explicit gaps.
+      - >-
+        Implementation/docs commits `799c27a3423349bb7ffc187e8f517ed27d0d6579` and
+        `feee850159a469370ba569de25699a2fbb6750a8` are pushed; the latter adds the admin API
+        regression proving pending leg state survives the route boundary.
 
   - id: tc2000-pending-locked-source-followability-20260819
     title: Keep mapped locked sources followable before membership hydration
