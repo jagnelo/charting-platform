@@ -1,5 +1,18 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-08-19 — Family role drill-down must preserve role-specific source identity
+
+When a selected benchmark-family role row has a verified, holdings-backed mapping, its desktop
+context menu must publish `benchmark-family:<family>:<role>` to Market Map. The action must preserve
+the locked source's membership/version/provenance semantics and must not reconstruct a universe
+from the row ticker. If the mapping is unverified, unavailable, or has no holdings evidence, the
+action is absent and the role's explicit unavailable state remains visible; no other role is used.
+
+Focused row/source validation is `70/70`; full frontend Vitest is `900/900`; type-check,
+production build, and diff checks pass. Acceptance flexibility used: **None**. Exact V25 context
+menu visuals, browser role drill-down, provider-backed holdings/history, and visual references
+remain open.
+
 ## 2026-08-19 — Benchmark-family Map handoff must preserve constituent semantics
 
 When the authenticated benchmark-list is switched to a family root, its Map action must open a

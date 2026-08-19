@@ -1,5 +1,18 @@
 # Project TODO Memory
 
+### 2026-08-19 — Family role rows expose locked constituent drill-down
+
+- [x] Add a row-specific desktop context-menu action to benchmark-family role rows: when the
+      canonical mapping is available, `Open constituents in Market Map` emits its exact
+      `benchmark-family:<family>:<role>` source (cap/equal/value/growth) rather than rebuilding a
+      ticker-based universe.
+- [x] Hide the action when the role has no verified symbol, is unavailable, or has no holdings
+      evidence; the role strip remains the explicit explanation and no fallback is used.
+- [x] Validate the row action plus source/list/map contracts (`70/70` focused, `900/900` full
+      frontend), type-check, production build, and diff checks.
+- [ ] Exact V25 context-menu placement/copy, browser family-role drill-down, provider-backed role
+      holdings, historical continuity, and role-specific map visual references remain open.
+
 ### 2026-08-19 — Family benchmark Map opens the constituent watchlist, not the role-leg group
 
 - [x] Correct the selected-family benchmark-list Map handoff to use the canonical locked

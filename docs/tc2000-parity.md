@@ -1,5 +1,18 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-19 — Family role rows can open their own locked constituent source
+
+Benchmark-family role rows now expose a desktop context-menu action, `Open constituents in Market
+Map`, when the canonical role mapping has holdings evidence. The action emits the exact
+`benchmark-family:<family>:<role>` source for cap, equal, value, or growth and uses the same
+source-polymorphic map/breadth/history contracts. Unverified or unavailable roles do not expose a
+misleading action; their role-strip state remains the authority.
+
+Functional evidence: focused row/source slices `70/70`; full frontend Vitest `900/900`;
+type-check; production build; and diff checks. Acceptance flexibility used: **None**. Exact V25
+context-menu geometry/copy, browser family-role drill-down, provider-backed holdings/history, and
+role-specific visual references remain open.
+
 ## 2026-08-19 — Selected family benchmark Map now targets locked constituents
 
 The selected-family benchmark list no longer hands its `Map` action the family proxy-leg group.

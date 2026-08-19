@@ -1,5 +1,16 @@
 # Active Handoff
 
+## 2026-08-19 — Family role rows now drill into role-specific locked constituents
+
+- Added `Open constituents in Market Map` to the desktop context menu for available
+  benchmark-family role rows. It emits the exact `benchmark-family:<family>:<role>` source for
+  cap/equal/value/growth; unavailable or unverified mappings do not expose a misleading action.
+- Validation: focused row/source `70/70`; full frontend Vitest `900/900`; type-check; production
+  build; `git diff --check`. Acceptance flexibility: **None**.
+- Exact V25 context-menu/focus treatment, browser role drill-down, provider-backed holdings/history,
+  and visual references remain open.
+
+
 ## 2026-08-19 — Family benchmark Map now opens locked constituents
 
 - Fixed the selected-family benchmark-list Map handoff. It now emits

@@ -1,5 +1,15 @@
 # Run Report
 
+## 2026-08-19 — Family roles expose canonical constituent drill-down
+
+- Added a row-specific desktop context-menu action for available family roles. Cap/equal/value/
+  growth rows now publish their exact locked `benchmark-family:<family>:<role>` source to Market
+  Map; missing or holdings-unavailable roles do not offer a false action.
+- Validation: focused row/source `70/70`; full frontend Vitest `900/900`; type-check; production
+  build; diff checks. Acceptance flexibility used: **None**.
+- Remaining: exact V25 context-menu visuals, browser family-role drill-down, provider-backed
+  holdings/history, and role-specific reference states.
+
 ## 2026-08-19 — Selected family Map handoff preserves constituent semantics
 
 - Corrected the selected-family benchmark-list Map source from the family proxy-leg group to the

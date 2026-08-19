@@ -1,5 +1,19 @@
 # TC2000 Version 25 composite reference board
 
+## 2026-08-19 — Role-specific constituent context action is visually unrepresented
+
+Available benchmark-family role rows now offer `Open constituents in Market Map` from the desktop
+context menu. The action preserves the exact family/role source identity and is absent when the
+role has no verified holdings evidence, avoiding a ticker-only or cross-role fallback. The board
+has no authoritative exact-build V25 capture for this role-specific context-menu item, its
+disabled/absent unavailable state, or the transition into the locked constituent map.
+
+Gap status: `required_missing` for context-menu placement, ordering, copy, keyboard focus recovery,
+and unavailable-role treatment. Interim oracle: focused row/source `70/70`, full frontend Vitest
+`900/900`, type-check, production build, and diff checks. No threshold, mask, provider
+substitution, or acceptance flexibility was used. Close with reviewed V25 role-row captures and
+browser evidence for an available and unavailable role.
+
 ## 2026-08-19 — Family benchmark Map handoff has no exact V25 reference
 
 The selected family benchmark list now opens the locked cap-weight constituent source

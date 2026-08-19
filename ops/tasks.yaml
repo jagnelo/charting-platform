@@ -1,4 +1,28 @@
 tasks:
+  - id: tc2000-family-role-constituent-drilldown-20260819
+    title: Add role-specific locked constituent drill-down from family rows
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Add a desktop context-menu action on available benchmark-family role rows that emits the
+      exact family/role locked constituent source for Market Map.
+    definition_of_done:
+      - Emit benchmark-family:<family>:<role> for available cap/equal/value/growth mappings
+      - Hide the action for missing, unverified, or holdings-unavailable roles
+      - Preserve canonical source identity and avoid ticker-based reconstruction
+      - Record exact V25 context-menu and unavailable-role imagery as tracked visual gaps
+    validation:
+      - frontend-virtual-watchlist-family-role-slice-70-of-70
+      - frontend-vitest-900-of-900
+      - frontend-type-check
+      - frontend-build
+      - git-diff-check
+    notes:
+      - >-
+        Acceptance flexibility used: None. Exact V25 context-menu visuals, browser drill-down,
+        provider-backed holdings/history, and role-specific reference imagery remain open.
+
   - id: tc2000-family-map-constituent-handoff-20260819
     title: Route selected family benchmark maps to locked constituent sources
     status: completed
