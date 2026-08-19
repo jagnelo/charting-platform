@@ -1,5 +1,26 @@
 # Active Handoff
 
+## 2026-08-19 — Historical watchlist hydration honors evaluation ends
+
+- Closed the provider-boundary defect left after point-in-time source resolution. An authenticated
+  source history refresh now carries its requested `as_of` through the ARQ task and the existing
+  provider-neutral bulk worker into `fetch_ohlcv`'s end bound. Durable explicit saved selections,
+  locked index/ETF/sector/industry sources, and benchmark-family snapshot members all use the same
+  contract; current refreshes retain their old open-ended task arguments and job IDs.
+- Historical ends are normalized to UTC and included in the canonical idempotence key, so a current
+  refresh cannot collapse a distinct historical request. Snapshot-member hydration accepts the same
+  optional end for provider-backed family maintenance.
+- Validation: backend unit `1238/1238`; impacted worker/history `14/14`; complete watchlists
+  integration `45/45`; full frontend Vitest `909/909`; frontend type-check and production build;
+  Ruff/compileall; YAML/JSON and `git diff --check`. Implementation commit
+  `9d5425a43a671fbcffc86d96897df3993e5f8206` is pushed and origin is synchronized.
+- Acceptance flexibility: **None**. Remaining gaps are provider availability/depth, incomplete
+  free-source responses, historical rebalance continuity, all-eight family population, exact V25
+  history-maintenance visuals, and broader visual-board coverage. These remain tracked and are not
+  silently treated as complete.
+- Next context: provider-backed saved-source coverage and family-role population/continuity, then
+  the next parity gap, from a clean synchronized branch.
+
 ## 2026-08-19 — Saved-source known-at boundary reaches historical Market Map
 
 - Closed the next owning-boundary defect in the universal locked-watchlist model. Historical

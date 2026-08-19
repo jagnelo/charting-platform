@@ -1,4 +1,35 @@
 tasks:
+  - id: tc2000-historical-watchlist-hydration-end-20260819
+    title: Carry historical evaluation ends through watchlist history hydration
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Preserve the source request's point-in-time evaluation end from the canonical watchlist
+      refresh route through the ARQ task and provider-neutral bulk-history worker, so arbitrary
+      saved/index/ETF/sector/industry and benchmark-family watchlists do not hydrate a historical
+      map with bars fetched through the current session.
+    definition_of_done:
+      - Historical source refreshes pass a normalized end through queue arguments and provider fetches
+      - Historical and unbounded requests have distinct deterministic job identities
+      - Existing current refresh callers retain their legacy task arguments and job identity
+      - Snapshot-member family hydration supports the same optional historical end
+      - Unit, worker, queue-boundary, integration, frontend, type/build, lint/compile, and diff checks pass
+    validation:
+      - backend-unit-1238-of-1238
+      - backend-worker-history-14-of-14
+      - backend-watchlists-integration-45-of-45
+      - frontend-vitest-909-of-909
+      - frontend-type-check
+      - frontend-build
+      - backend-ruff-and-compileall
+      - yaml-json-and-git-diff-check
+    notes:
+      - >-
+        Acceptance flexibility used: None. This closes historical-end transport and idempotence;
+        provider depth/completeness, rebalance continuity, all-eight family population, and exact
+        V25 maintenance/coverage visuals remain open.
+
   - id: tc2000-market-map-saved-source-end-boundary-20260819
     title: Apply saved-source known-at semantics to historical Market Map evaluation
     status: completed

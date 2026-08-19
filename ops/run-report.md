@@ -1,5 +1,19 @@
 # Run Report
 
+## 2026-08-19 — Historical watchlist hydration carries evaluation ends
+
+- Source history refreshes now preserve `as_of` from the canonical source request through queue
+  arguments, ARQ parsing, bulk-fetch normalization, and provider `fetch_ohlcv` end bounds. The
+  normalized end is part of the shared job ID; unbounded current jobs remain backward-compatible.
+- Snapshot-member benchmark-family hydration accepts the same optional end, keeping family
+  maintenance aligned with arbitrary watchlist refreshes.
+- Evidence: backend unit `1238/1238`; worker/history `14/14`; complete watchlists integration
+  `45/45`; frontend Vitest `909/909`; type-check; production build; Ruff; compileall; YAML/JSON;
+  `git diff --check`. Implementation commit `9d5425a43a671fbcffc86d96897df3993e5f8206` pushed.
+- Acceptance flexibility: **None**. Provider depth/completeness, rebalance continuity, all-eight
+  family population, exact V25 history-maintenance visuals, and remaining visual-board gaps are
+  explicit open work.
+
 ## 2026-08-19 — Historical Market Map honors saved-source known-at boundaries
 
 - Durable `explicit-list:<stable-key>` sources now participate in Market Map's evaluation-time
