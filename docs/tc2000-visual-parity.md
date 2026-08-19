@@ -1,5 +1,19 @@
 # TC2000 Version 25 Visual-Parity Specification
 
+## 2026-08-19 — Hierarchical geometry is now the source-polymorphic interim oracle
+
+The Market Map functional oracle now partitions any grouped source by its canonical top-level
+`group_path` before laying out member tiles. This applies equally to locked index/ETF/sector/
+industry universes and classified personal, managed, combo, or saved watchlists; explicit or
+unclassified selections retain flat deterministic geometry. The indexed layout keeps the existing
+10,000-member canvas path bounded and avoids proportional tile DOM.
+
+This closes a functional geometry defect in the arbitrary-universe map, not the visual reference
+gap. Exact V25 group-label placement, borders/gutters, density, text scaling, hover treatment, and
+root-versus-drill-down composition remain `required_missing` in the reference board. Focused
+layout/Market Map coverage is `33/33`, full frontend Vitest is `910/910`, and type-check/build pass;
+no threshold, mask, or acceptance criterion was relaxed.
+
 ## 2026-08-17 — Mixed-scope breadth condition state
 
 The interim Market Map/breadth oracle now covers a nested tree that combines member-level and

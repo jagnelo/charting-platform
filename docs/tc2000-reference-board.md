@@ -1,5 +1,19 @@
 # TC2000 Version 25 composite reference board
 
+## 2026-08-19 — Hierarchical arbitrary-watchlist map geometry is represented functionally
+
+The implementation now partitions grouped Market Map sources by their top-level `group_path` before
+laying out member tiles. This functional oracle covers the shared behavior for index/ETF, sector,
+industry, managed, combo, and classified personal watchlists; explicit/unclassified lists remain
+flat. The 10,000-member canvas path remains indexed and bounded.
+
+Gap status: `required_missing` for exact V25 group-title placement, borders/gutters, tile density,
+text scaling, hover treatment, and root-versus-drill-down composition for arbitrary watchlists.
+Interim oracle: grouped layout regression plus focused component coverage `33/33`, full frontend
+Vitest `910/910`, type-check, and production build. Evidence needed: reviewed V25 captures showing
+an arbitrary user/managed list rendered with sector/industry group boundaries. No visual threshold
+or mask was relaxed.
+
 ## 2026-08-19 — Unresolved holdings state remains a required visual gap
 
 The backend now distinguishes an existing locked ETF/index universe whose disclosed rows cannot yet

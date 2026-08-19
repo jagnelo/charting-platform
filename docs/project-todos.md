@@ -1,5 +1,19 @@
 # Project TODO Memory
 
+### 2026-08-19 — Arbitrary watchlists now receive hierarchical map geometry
+
+- [x] Make the shared Market Map renderer use the source's top-level group paths when laying out
+      cells. Grouped index/ETF/sector/industry and classified personal watchlists now partition
+      group rectangles first, then member rectangles inside each group; explicit/ungrouped sources
+      retain deterministic single-level slice-and-dice geometry.
+- [x] Keep the geometry provider-free and stable by indexing canonical cells rather than performing
+      per-member linear lookups. The existing 10,000-member canvas path remains bounded and no
+      proportional tile DOM is introduced.
+- [x] Add grouped-layout regression coverage and run the focused layout/Market Map component suite
+      `33/33`, full frontend Vitest `910/910`, type-check, production build, and diff checks.
+- [ ] Exact V25 group labels, tile borders, density, hover treatment, and arbitrary-watchlist map
+      captures remain visual-board gaps; provider-backed membership/bar completeness remains open.
+
 ### 2026-08-19 — Unresolved holdings never masquerade as a ready locked watchlist
 
 - [x] Centralize pending source availability semantics across ETF descriptors, benchmark-family

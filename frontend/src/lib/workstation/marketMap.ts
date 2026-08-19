@@ -132,31 +132,112 @@ export interface MarketMapLayoutCell extends MarketMapCell {
   height: number
 }
 
-/** Deterministic slice-and-dice geometry with no DOM/provider-dependent inputs. */
+interface LayoutItem {
+  key: string
+  area: number
+}
+
+interface LayoutRect extends LayoutItem {
+  x: number
+  y: number
+  width: number
+  height: number
+}
+
+/** Deterministic slice-and-dice rectangles with no DOM/provider-dependent inputs. */
+function layoutRectangles(items: LayoutItem[], x: number, y: number, width: number, height: number): LayoutRect[] {
+  const ordered = [...items].sort((left, right) => right.area - left.area || left.key.localeCompare(right.key))
+  const total = ordered.reduce((sum, item) => sum + item.area, 0) || 1
+  let cursorX = x
+  let cursorY = y
+  let remainingWidth = width
+  let remainingHeight = height
+  let remainingArea = total
+  return ordered.map((item, index) => {
+    const fraction = item.area / Math.max(remainingArea, 0.0001)
+    const horizontal = remainingWidth >= remainingHeight
+    const tileWidth = horizontal ? remainingWidth * fraction : remainingWidth
+    const tileHeight = horizontal ? remainingHeight : remainingHeight * fraction
+    const result: LayoutRect = { ...item, x: cursorX, y: cursorY, width: tileWidth, height: tileHeight }
+    if (horizontal) {
+      cursorX += tileWidth
+      remainingWidth -= tileWidth
+    } else {
+      cursorY += tileHeight
+      remainingHeight -= tileHeight
+    }
+    remainingArea -= item.area
+    if (index === ordered.length - 1) {
+      result.width = Math.max(result.width, width - result.x)
+      result.height = Math.max(result.height, height - result.y)
+    }
+    return result
+  })
+}
+
+/**
+ * Deterministic hierarchical map geometry.
+ *
+ * Grouped universes (index/ETF constituents, sectors, industries, and ordinary
+ * watchlists with classifications) are first partitioned by their top-level
+ * group, then each group is partitioned into its members. Explicit/ungrouped
+ * selections retain the original single-level slice-and-dice behavior.
+ */
 export function layoutMarketMapCells(cells: MarketMapCell[], width = 100, height = 100): MarketMapLayoutCell[] {
   // A cell without a finite positive area has no drawable treemap geometry. Keep it
   // in the source response for warning/coverage detail, but do not invent a unit tile.
   const weighted = cells
     .filter(cell => cell.area_value != null && Number.isFinite(cell.area_value) && cell.area_value > 0)
     .map(cell => ({ cell, area: cell.area_value as number }))
-  const total = weighted.reduce((sum, item) => sum + item.area, 0) || 1
-  let x = 0
-  let y = 0
-  let remainingWidth = width
-  let remainingHeight = height
-  let remainingArea = total
-  return weighted.map(({ cell, area }, index) => {
-    const fraction = area / Math.max(remainingArea, 0.0001)
-    const horizontal = remainingWidth >= remainingHeight
-    const tileWidth = horizontal ? remainingWidth * fraction : remainingWidth
-    const tileHeight = horizontal ? remainingHeight : remainingHeight * fraction
-    const result: MarketMapLayoutCell = { ...cell, x, y, width: tileWidth, height: tileHeight }
-    if (horizontal) { x += tileWidth; remainingWidth -= tileWidth } else { y += tileHeight; remainingHeight -= tileHeight }
-    remainingArea -= area
-    if (index === weighted.length - 1) {
-      result.width = Math.max(result.width, width - result.x)
-      result.height = Math.max(result.height, height - result.y)
+  if (!weighted.length) return []
+  const cellsById = new Map(weighted.map(({ cell }) => [String(cell.instrument_id), cell]))
+
+  const hasGroups = weighted.some(({ cell }) => cell.group_path.length > 0)
+  if (!hasGroups) {
+    return layoutRectangles(
+      weighted.map(({ cell, area }) => ({ key: String(cell.instrument_id), area })),
+      0,
+      0,
+      width,
+      height,
+    ).map((rect) => {
+      const cell = cellsById.get(rect.key)
+      if (!cell) return null
+      return { ...cell, x: rect.x, y: rect.y, width: rect.width, height: rect.height }
+    }).filter((cell): cell is MarketMapLayoutCell => Boolean(cell))
+  }
+
+  const groups = new Map<string, typeof weighted>()
+  for (const item of weighted) {
+    const key = item.cell.group_path[0] || 'All members'
+    groups.set(key, [...(groups.get(key) ?? []), item])
+  }
+  const groupRects = layoutRectangles(
+    [...groups.entries()].map(([key, members]) => ({
+      key,
+      area: members.reduce((sum, member) => sum + member.area, 0),
+    })),
+    0,
+    0,
+    width,
+    height,
+  )
+  const byGroup = new Map(groupRects.map(rect => [rect.key, rect]))
+  const result: MarketMapLayoutCell[] = []
+  for (const [groupKey, members] of groups) {
+    const groupRect = byGroup.get(groupKey)
+    if (!groupRect) continue
+    const memberRects = layoutRectangles(
+      members.map(({ cell, area }) => ({ key: String(cell.instrument_id), area })),
+      groupRect.x,
+      groupRect.y,
+      groupRect.width,
+      groupRect.height,
+    )
+    for (const rect of memberRects) {
+      const cell = cellsById.get(rect.key)
+      if (cell) result.push({ ...cell, x: rect.x, y: rect.y, width: rect.width, height: rect.height })
     }
-    return result
-  })
+  }
+  return result
 }

@@ -25,4 +25,23 @@ describe('market map layout', () => {
     expect(result.map(cell => cell.symbol)).toEqual(['A'])
     expect(result[0].x + result[0].width).toBeCloseTo(100)
   })
+
+  it('partitions grouped universes before laying out their members', () => {
+    const cells = [
+      { instrument_id: 1, symbol: 'A', name: 'A', group_path: ['Technology', 'Software'], area_value: 3, color_value: 0.1, coverage: 1, warnings: [] },
+      { instrument_id: 2, symbol: 'B', name: 'B', group_path: ['Technology', 'Hardware'], area_value: 1, color_value: -0.1, coverage: 1, warnings: [] },
+      { instrument_id: 3, symbol: 'C', name: 'C', group_path: ['Health Care', 'Devices'], area_value: 2, color_value: 0.2, coverage: 1, warnings: [] },
+    ]
+    const result = layoutMarketMapCells(cells)
+    const technology = result.filter(cell => cell.group_path[0] === 'Technology')
+    const healthCare = result.filter(cell => cell.group_path[0] === 'Health Care')
+    expect(technology).toHaveLength(2)
+    expect(healthCare).toHaveLength(1)
+    expect(technology.every(cell => cell.x >= 0 && cell.x + cell.width <= 100 && cell.y >= 0 && cell.y + cell.height <= 100)).toBe(true)
+    const technologyArea = technology.reduce((sum, cell) => sum + cell.width * cell.height, 0)
+    expect(healthCare[0].width * healthCare[0].height).toBeLessThan(technologyArea)
+    const sameColumn = Math.abs(technology[0].x - technology[1].x) < 0.001
+    const sameRow = Math.abs(technology[0].y - technology[1].y) < 0.001
+    expect(sameColumn || sameRow).toBe(true)
+  })
 })
