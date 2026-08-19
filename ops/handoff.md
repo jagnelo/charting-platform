@@ -12,8 +12,9 @@
 - Acceptance flexibility: **None**. Provider route availability, all-eight family population,
   historical rebalance continuity, canonical member-bar coverage, and exact V25 maintenance/
   progress visuals remain open.
-- Implementation/docs commit `7374f4ab70abc07068ada30f0867a3e825c79bee` is pushed and synchronized.
-  Only the separate operational checkpoint remains before context closure.
+- Implementation/docs commit `7374f4ab70abc07068ada30f0867a3e825c79bee` and operational checkpoint
+  `679f51f6bd937ec346452243bda22c1f242cb840` are pushed; local HEAD and origin are synchronized
+  and the worktree is clean. This context is closed.
 - Next context after closure: provider-backed saved-source/family population and continuity, then
   the next parity gap, from a clean synchronized branch.
 
