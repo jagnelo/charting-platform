@@ -4506,6 +4506,36 @@ class InvescoHoldingsAdapter(IssuerCsvHoldingsAdapter):
             f"{normalized_symbol}/holdings/fund?idType=ticker&interval=monthly&productType=ETF"
         )
 
+    @staticmethod
+    def _sec_fallback_identifiers(
+        *, symbol: str, identifiers: dict[str, str]
+    ) -> dict[str, str]:
+        """Complete SEC fallback identity from verified canonical route metadata.
+
+        Invesco's current holdings endpoint can fail independently of SEC EDGAR.
+        The canonical QQQ route already records the fund's SEC identifiers, but
+        older profiles and direct adapter calls may arrive without them.  Copy
+        only explicitly curated SEC aliases; never infer a CIK from ticker text.
+        """
+
+        fallback_identifiers = dict(identifiers)
+        if _identifier(fallback_identifiers, "sec_cik"):
+            return fallback_identifiers
+        route_metadata = known_etf_route_metadata(symbol)
+        provider_aliases = route_metadata.get("provider_aliases")
+        if not isinstance(provider_aliases, dict):
+            return fallback_identifiers
+        for key in (
+            "sec_cik",
+            "sec_series_id",
+            "sec_class_id",
+            "sec_fund_tickers_symbol",
+        ):
+            value = _identifier(provider_aliases, key)
+            if value and not _identifier(fallback_identifiers, key):
+                fallback_identifiers[key] = value
+        return fallback_identifiers
+
     async def fetch_latest(
         self,
         *,
@@ -4563,7 +4593,10 @@ class InvescoHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 sec_result = await self._fetch_latest_sec_filing_holdings(
                     symbol=symbol,
                     issuer_product_id=issuer_product_id,
-                    identifiers=identifiers,
+                    identifiers=self._sec_fallback_identifiers(
+                        symbol=symbol,
+                        identifiers=identifiers,
+                    ),
                 )
                 if sec_result is not None:
                     sec_result.legal_metadata = {

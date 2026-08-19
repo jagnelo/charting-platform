@@ -1,5 +1,18 @@
 # TC2000 Version 25 composite reference board
 
+## 2026-08-19 — Provider fallback behavior is functional but has no exact V25 visual oracle
+
+The live QQQ provider route demonstrated a concrete recovery state: the Invesco current holdings
+endpoint returned HTTP 500, while SEC EDGAR succeeded after the canonical route supplied its curated
+identity. The workstation now preserves issuer-route failure/fallback provenance and can keep the
+locked source usable through that free fallback.
+
+Gap status: `required_missing` for exact V25 maintenance-panel and source-picker visuals covering
+issuer failure, fallback progress, stale/partial badges, retry controls, and recovery completion.
+Interim oracle: Invesco adapter unit `494/494` and opt-in live QQQ probe `1/1`. This evidence does
+not relax visual acceptance; it only records the behavior available for implementation against the
+reference board once an authoritative capture exists.
+
 ## 2026-08-19 — Explicit arbitrary-ETF add-source state remains a visual gap
 
 The universal Market Map now lets the user enter a canonical ETF symbol and explicitly bootstrap

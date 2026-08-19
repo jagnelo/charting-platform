@@ -1,5 +1,19 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-19 — Invesco fallback keeps a canonical ETF source usable after issuer failure
+
+The provider-neutral holdings path now supplies Invesco's SEC EDGAR fallback with curated SEC
+identifiers from the canonical route catalog when a legacy profile or direct caller omitted them.
+This was exercised against the observed live QQQ failure mode: Invesco's current CUSIP endpoint
+returned HTTP 500, after which the fallback received CIK `0001067839` and the opt-in live QQQ route
+returned parseable holdings. Caller identifiers remain authoritative and unknown symbols receive no
+guessed identity. Invesco adapter unit coverage is `494/494`; the live QQQ probe is `1/1`.
+
+This is a bounded provider-reliability repair, not a claim of complete family coverage. Remaining
+gaps are the other provider routes, all-eight benchmark-family population, canonical member-bar
+history, historical rebalance continuity, entitlement/terms evidence, and exact V25 maintenance or
+fallback-state visuals.
+
 ## 2026-08-19 — Arbitrary ETF universes can be added from the universal Market Map
 
 The workstation now provides an explicit `ETF universe` / `Load ETF` action beside the universal

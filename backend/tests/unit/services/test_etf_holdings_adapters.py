@@ -6776,6 +6776,66 @@ async def test_invesco_adapter_fetches_public_json_api(monkeypatch):
     assert "HeadlessChrome" in request_headers["User-Agent"]
 
 
+@pytest.mark.asyncio
+async def test_invesco_current_route_failure_uses_curated_sec_identity(monkeypatch):
+    adapter = get_holdings_adapter("invesco")
+    assert adapter is not None
+    adapter._cusip_cache.clear()
+    observed: dict[str, object] = {}
+
+    async def fake_sec_fallback(*, symbol, issuer_product_id, identifiers):
+        observed.update(
+            {
+                "symbol": symbol,
+                "issuer_product_id": issuer_product_id,
+                "identifiers": identifiers,
+            }
+        )
+        return HoldingsFetchResult(
+            rows=[CanonicalHoldingRow(symbol="NVDA", name="NVIDIA Corporation")],
+            source_url="https://www.sec.gov/Archives/edgar/data/1067839/fixture.xml",
+            source_identifier="0001067839-26-000001",
+            legal_metadata={"route_resolution": "sec_edgar_filing_fallback"},
+        )
+
+    monkeypatch.setattr(adapter, "_fetch_latest_sec_filing_holdings", fake_sec_fallback)
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=(
+                '{"response":{"docs":[{"ticker":"QQQ",'
+                '"cusip":"46090E103"}]}}'
+            ),
+            content_type="application/json",
+        ),
+        httpx.Response(
+            status_code=500,
+            request=httpx.Request(
+                "GET",
+                "https://dng-api.invesco.com/cache/v1/accounts/en_US/shareclasses/"
+                "46090E103/holdings/fund?idType=cusip&interval=monthly&productType=ETF",
+            ),
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="QQQ", identifiers={})
+
+    assert len(result.rows) == 1
+    assert observed == {
+        "symbol": "QQQ",
+        "issuer_product_id": None,
+        "identifiers": {
+            "sec_cik": "0001067839",
+            "sec_series_id": "S000101292",
+            "sec_class_id": "C000271435",
+            "sec_fund_tickers_symbol": "QQQ",
+        },
+    }
+    assert result.legal_metadata["issuer_route_fallback"] == "sec_edgar_filing"
+    assert "500" in result.legal_metadata["issuer_route_failure"]
+
+
 def test_invesco_adapter_resolves_default_live_route_from_symbol():
     adapter = get_holdings_adapter("invesco")
     assert adapter is not None

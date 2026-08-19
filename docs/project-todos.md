@@ -1,5 +1,18 @@
 # Project TODO Memory
 
+### 2026-08-19 — Invesco current-route failures now use curated SEC fallback identity
+
+- [x] When Invesco's current catalog/CUSIP holdings route fails, complete the SEC EDGAR fallback
+      request from verified canonical route metadata (currently QQQ's curated CIK/series/class
+      identifiers) rather than requiring every caller or legacy profile to persist those fields.
+- [x] Preserve caller-supplied identifiers, copy only explicit SEC aliases, retain issuer failure
+      and fallback provenance, and never derive a CIK from ticker or name text.
+- [x] Add a regression for a real HTTP 500 after catalog resolution and verify the fallback receives
+      `0001067839`; Invesco adapter unit `494/494` and the opt-in live QQQ probe `1/1` pass.
+- [ ] Continue the same evidence-driven repair across the remaining provider-family routes; this
+      closes one observed QQQ route failure, not all-eight family population, historical rebalance
+      continuity, provider terms/entitlement review, or exact V25 maintenance/source visuals.
+
 ### 2026-08-19 — Market Map can explicitly add any canonical ETF source
 
 - [x] Add an explicit `ETF universe` / `Load ETF` action to the shared Market Map. The action
