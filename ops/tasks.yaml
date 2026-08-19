@@ -1,4 +1,32 @@
 tasks:
+  - id: tc2000-hard-watchlist-heatmap-audit-20260819
+    title: Confirm locked constituent universes use the universal watchlist heatmap
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Audit the product interpretation that every index or index-ETF constituent set is a
+      system-managed locked WatchlistSource, while the same TC2000-style Market Map remains
+      applicable to personal, combo, sector, industry, ETF-holdings, and explicit watchlists.
+    definition_of_done:
+      - Locked membership is immutable but the source remains selectable whether or not followed
+      - Follow and pin are user-isolated preferences and never remove or mutate canonical members
+      - Full source and selected-member analysis use the same Market Map/breadth/Study Lab contracts
+      - Existing implementation and acceptance evidence are recorded without duplicating a map type
+    validation:
+      - market-map-unit-follow-pin-1-of-1
+      - backend-market-map-arbitrary-watchlist-integration-4-of-4
+      - authenticated-chromium-F8s-market-map-watchlist-1-of-1
+      - frontend-vitest-906-of-906
+      - frontend-type-check
+      - frontend-build
+      - git-diff-check
+    notes:
+      - >-
+        No implementation change was required: the universal WatchlistSource/Market Map contract
+        already satisfies this interpretation. Exact V25 source-picker/lock/follow visual parity,
+        provider-backed all-family history, and final visual acceptance remain tracked gaps.
+
   - id: tc2000-study-lab-selected-source-lineage-20260819
     title: Disclose selected Market Map source lineage in Study Lab
     status: completed

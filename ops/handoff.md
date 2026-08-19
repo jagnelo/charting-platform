@@ -1,5 +1,21 @@
 # Active Handoff
 
+## 2026-08-19 — Hard constituent-watchlist heatmap audit
+
+- Confirmed the requested product model is already the implemented architecture: an index or
+  index-ETF constituent universe is a system-managed locked `WatchlistSource`, not a separate map
+  type. The same source-polymorphic Market Map applies to personal, combo, sector/industry,
+  ETF-holdings, benchmark-family, and explicit sources.
+- Locked means canonical membership cannot be edited. The user can still select, follow, unfollow,
+  pin, unpin, compare, clone a dated snapshot, publish selected members, and reuse the source in
+  Breadth/Study Lab/linked charts. Follow/pin are user-isolated preferences; unfollowing never
+  removes the source from the catalog.
+- Evidence already present: Market Map follow/pin unit `1/1`, backend arbitrary-source integration
+  `4/4`, authenticated Chromium `F8s-market-map-watchlist` `1/1`, frontend Vitest `906/906`,
+  type-check, production build, and diff-check. No application change was needed for this audit.
+- Remaining gaps are unchanged and explicit: exact V25 source-picker/lock/follow visuals,
+  provider-backed all-family member bars/history and rebalance continuity, and final visual parity.
+
 ## 2026-08-19 — Study Lab selected-source lineage checkpoint
 
 - Study Lab now discloses selected Market Map lineage as `Selected members · N · Locked explicit

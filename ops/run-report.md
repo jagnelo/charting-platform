@@ -1,5 +1,19 @@
 # Run Report
 
+## 2026-08-19 — Locked constituent sources confirmed as universal heatmap watchlists
+
+- Audited the requested TC2000-style interpretation. Index/index-ETF constituents already enter
+  the shared `WatchlistSource` catalog as immutable system-managed watchlists; Market Map does not
+  branch into a separate index-only visualization.
+- Follow/unfollow and pin/unpin persist user-isolated preferences without changing canonical
+  membership. The source remains selectable when unfollowed. Full-source and selected-member
+  actions preserve canonical source identity and lineage into the same Breadth/Study Lab contracts.
+- Existing evidence: follow/pin unit `1/1`, arbitrary-source backend integration `4/4`,
+  authenticated `F8s-market-map-watchlist` `1/1`, full frontend Vitest `906/906`, type-check,
+  production build, and diff-check. No code change or acceptance flexibility was required.
+- Open gaps remain tracked rather than silently waived: exact V25 source-picker/lock/follow
+  visuals, complete provider-backed family data/history, and final visual acceptance.
+
 ## 2026-08-19 — Study Lab selected-source lineage validation
 
 - Added the downstream lineage status for Market Map selections: selected count, locked explicit
