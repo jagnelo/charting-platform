@@ -1,7 +1,7 @@
 tasks:
   - id: tc2000-market-map-selection-handoffs-20260819
     title: Complete Market Map selection handoffs to charts and relative-strength tools
-    status: in_progress
+    status: completed
     priority: high
     branch: feat/tc2000-frontend-rework
     scope: >-
@@ -15,9 +15,16 @@ tasks:
       - Single-symbol chart and two-symbol ratio workflows are explicit and reject invalid input
       - Focused component/workstation regressions, frontend suite, type/build, and diff checks pass
       - Exact V25 handoff geometry remains a documented visual gap if the board does not represent it
-    validation: []
+    validation:
+      - market-map-component-32-of-32
+      - workstation-popout-bindings-23-of-23
+      - frontend-vitest-914-of-914
+      - frontend-typecheck-build-and-diff-check
     notes:
-      - Acceptance flexibility used: None planned; any missing visual oracle remains tracked rather than waived.
+      - >-
+        Acceptance flexibility used: None. The exact V25 selection-action geometry remains a
+        required_missing visual gap because the board does not represent it; functional behavior
+        was validated through component, shell-binding, and full frontend gates.
 
   - id: tc2000-lazard-jpy-route-repair-20260819
     title: Repair or classify Lazard JPY holdings route

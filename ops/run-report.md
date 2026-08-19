@@ -1,12 +1,15 @@
 # Run Report
 
-## 2026-08-19 — Context transition to Market Map selection handoffs
+## 2026-08-19 — Market Map selection handoffs completed
 
 - Lazard JPY route repair is closed at implementation/docs `546228e7`, ops checkpoint `b68d91d8`,
   and final close `0fb99c29`; branch is clean and synchronized.
-- Next context: add direct chart and relative-strength actions for Market Map full-source and
-  selected-member handoffs while retaining canonical source lineage and the existing watchlist,
-  Breadth, and Study-Lab paths.
+- Added direct Chart, comparison, and Relative Strength actions for selected Market Map members.
+  The existing watchlist, Breadth, and Study-Lab paths remain unchanged and source-polymorphic.
+- Evidence: Market Map component `32/32`, workstation pop-out bindings `23/23`, full frontend
+  Vitest `914/914`, type-check/build, and `git diff --check`. Acceptance flexibility: **None**.
+- Implementation/docs commit `242c9c35` is pushed and synchronized; provider-backed family population, historical
+  reconciliation, and exact V25 selection-action visuals remain open.
 
 ## 2026-08-19 — Lazard JPY route repaired with identity-safe SEC fallback
 

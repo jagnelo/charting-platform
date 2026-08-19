@@ -1,13 +1,17 @@
 # Active Handoff
 
-## 2026-08-19 — Next context: Market Map selection handoffs
+## 2026-08-19 — Market Map selection handoffs completed
 
 - Lazard JPY implementation/docs `546228e7`, checkpoint `b68d91d8`, and final close `0fb99c29`
   are pushed and synchronized; the branch is clean.
-- The next bounded implementation closes a remaining workstation contract gap: Market Map
-  selections already publish to watchlists, Breadth, and Study Lab, but do not expose direct
-  chart/relative-strength destinations. Preserve the canonical source/selection lineage and
-  reject invalid one/two-symbol inputs without provider fan-out.
+- Market Map selected-member actions now expose Chart, comparison, and Relative Strength
+  destinations. Canonical cell identity is retained; one-member ratios use the active symbol as
+  denominator, two-member ratios use the selected pair, and invalid or missing-tool cases remain
+  explicit recovery messages.
+- Validation: Market Map component `32/32`, workstation pop-out bindings `23/23`, full frontend
+  Vitest `914/914`, type-check/build, and diff checks pass. Acceptance flexibility: **None**.
+- Implementation/docs commit `242c9c35` is pushed and synchronized. The remaining ops checkpoint
+  and final close are deliberately separate commits before starting the next gap.
 - The universal locked-watchlist/Market Map model remains unchanged; this is a downstream handoff
   completion, not a provider-specific map.
 
