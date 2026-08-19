@@ -1,5 +1,22 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-08-19 — Scheduled family snapshots preserve the universal heatmap contract
+
+Benchmark-family constituent sets remain locked, system-owned watchlists consumed by the same
+Market Map as personal, combo, managed, sector, industry, ETF, and explicit lists. To make those
+locked sources usable in a deployment rather than only in fixtures, an opt-in worker refreshes a
+bounded set of completed month-end request dates for every configured family role and queues the
+canonical member-bar history jobs for refreshed snapshots. These dates are maintenance boundaries,
+not claims about an issuer's official rebalance calendar; adapters must preserve the latest evidenced
+composition on or before the request and expose unavailable/failed roles explicitly.
+
+The scheduled path never runs from an interactive map/source read and does not add provider-specific
+heatmap behavior. Its settings are `BENCHMARK_FAMILY_HOLDINGS_REFRESH_ENABLED` and bounded
+`BENCHMARK_FAMILY_HOLDINGS_REFRESH_LOOKBACK_DATES`, both disabled/limited by default. Focused tests
+cover date selection, disabled/enabled task behavior, member-history queueing, and worker
+registration. Deployment population, complete point-in-time continuity, and exact V25 maintenance
+visuals remain open acceptance gaps; no flexibility was used.
+
 ## 2026-08-19 — Bounded SEC maintenance must not starve family roles
 
 The scheduled, unfiltered SEC holdings backfill must prioritize the canonical proxy symbols for all

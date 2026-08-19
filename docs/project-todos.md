@@ -1,5 +1,18 @@
 # Project TODO Memory
 
+### 2026-08-19 — Scheduled dated family snapshot maintenance
+
+- [x] Keep index/ETF constituent populations as locked `WatchlistSource` values; Market Map,
+      breadth, charts, ratios, scans, gauges, and Study Lab use the same source-polymorphic
+      contract as personal, combo, managed, sector, industry, ETF, and explicit lists.
+- [x] Add an opt-in bounded worker that requests completed month-end candidates for every configured
+      family role, records refreshed/unavailable/failed legs, and queues canonical member history for
+      refreshed snapshots. The task never fans out providers from interactive UI reads.
+- [x] Treat month-end candidates as maintenance boundaries rather than invented official rebalance
+      dates; preserve adapter evidence and known-at/effective-at semantics.
+- [ ] Close deployment population, complete point-in-time continuity, provider coverage, member-bar
+      completeness, and exact V25 maintenance visual gaps separately. Acceptance flexibility: **None**.
+
 ### 2026-08-19 — Scheduled SEC backfill prioritizes benchmark-family universes
 
 - [x] Preserve explicit admin symbol filters and existing alphabetical behavior when a caller asks

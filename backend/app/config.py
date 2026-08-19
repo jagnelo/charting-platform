@@ -51,6 +51,11 @@ class Settings(BaseSettings):
     ETF_HOLDINGS_CLASSIFICATION_MAX_PROFILES: int = 50
     ETF_HOLDINGS_CLASSIFICATION_MAX_ENRICHMENTS_PER_PROFILE: int = 32
     ETF_HOLDINGS_SEC_BACKFILL_ENABLED: bool = False
+    # Bounded dated family maintenance is opt-in. It refreshes completed
+    # month-end candidates through the existing provider adapters and queues
+    # canonical member history; interactive source reads never fan out.
+    BENCHMARK_FAMILY_HOLDINGS_REFRESH_ENABLED: bool = False
+    BENCHMARK_FAMILY_HOLDINGS_REFRESH_LOOKBACK_DATES: int = 1
     # A fresh deployment should hydrate the small immutable workstation
     # universe through the normal canonical provider services.  The worker
     # performs this asynchronously; API startup remains non-blocking.

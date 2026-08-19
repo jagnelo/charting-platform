@@ -4,8 +4,20 @@ import pytest
 
 from app.services.benchmark_family_holdings_runs import (
     MAX_HOLDINGS_REFRESH_DATES,
+    completed_month_end_dates,
     plan_benchmark_family_holdings_refresh,
 )
+
+
+def test_completed_month_end_dates_are_strictly_before_current_month_and_bounded():
+    assert completed_month_end_dates(as_of=date(2026, 8, 19), count=3) == [
+        date(2026, 7, 31),
+        date(2026, 6, 30),
+        date(2026, 5, 31),
+    ]
+
+    with pytest.raises(ValueError, match="At most"):
+        completed_month_end_dates(count=MAX_HOLDINGS_REFRESH_DATES + 1)
 
 
 def test_plan_normalizes_dates_families_and_roles_without_provider_calls():

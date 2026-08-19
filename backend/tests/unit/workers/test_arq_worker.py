@@ -65,6 +65,33 @@ def test_worker_registers_history_refresh_function():
 
 
 @pytest.mark.asyncio
+async def test_benchmark_family_dated_refresh_delegates_to_bounded_task(monkeypatch):
+    from app.tasks import etf_holdings_tasks
+
+    calls = []
+
+    async def fake_refresh(ctx):
+        calls.append(ctx)
+        return {"refreshed": 8}
+
+    monkeypatch.setattr(
+        etf_holdings_tasks, "refresh_benchmark_family_holdings_task", fake_refresh
+    )
+
+    result = await arq_worker.scheduled_benchmark_family_holdings_refresh({"redis": "r"})
+
+    assert result == {"refreshed": 8}
+    assert calls == [{"redis": "r"}]
+
+
+def test_worker_registers_benchmark_family_dated_refresh_function():
+    assert (
+        arq_worker.scheduled_benchmark_family_holdings_refresh
+        in arq_worker.WorkerSettings.functions
+    )
+
+
+@pytest.mark.asyncio
 async def test_family_holdings_refresh_worker_persists_each_unit_and_aggregates_results(monkeypatch):
     from types import SimpleNamespace
 

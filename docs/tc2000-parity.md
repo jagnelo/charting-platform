@@ -1,5 +1,14 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-19 — Scheduled family-source population
+
+The heatmap/watchlist parity surface is source-polymorphic: a benchmark/index/ETF constituent
+universe is a locked watchlist, not a separate renderer. An opt-in bounded worker now refreshes
+completed month-end family snapshots and queues member history through the same canonical source
+contracts. It does not claim issuer rebalance cadence, does not run on interactive reads, and
+reports unavailable or failed roles without substitution. Exact Version 25 maintenance-state
+visuals and complete provider-backed historical continuity remain tracked as open states.
+
 ## 2026-08-19 — Bounded SEC maintenance protects family-source population
 
 The canonical family proxy identities are now passed as a priority order to the scheduled SEC

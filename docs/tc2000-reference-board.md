@@ -1,5 +1,13 @@
 # TC2000 Version 25 composite reference board
 
+## 2026-08-19 — Source-polymorphic heatmap reference note
+
+The working board treats the heatmap as one TC2000-style surface over arbitrary watchlists. Locked
+index/ETF constituent lists differ in membership governance and provenance, not in tile rendering
+or downstream actions. The bounded dated family maintenance worker supports population of those
+locked sources but does not create a distinct visual mode. Missing exact V25 maintenance, loading,
+unavailable, and provenance captures remain `required_missing` rather than being inferred silently.
+
 ## 2026-08-19 — Scheduled family-population ordering has no new visual claim
 
 The scheduled SEC maintenance path now prioritizes configured benchmark-family proxy identities

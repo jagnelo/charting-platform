@@ -351,6 +351,12 @@ async def scheduled_etf_holdings_classification_refresh(ctx: dict):
     return await reconcile_etf_holdings_classifications_task(ctx)
 
 
+async def scheduled_benchmark_family_holdings_refresh(ctx: dict):
+    from app.tasks.etf_holdings_tasks import refresh_benchmark_family_holdings_task
+
+    return await refresh_benchmark_family_holdings_task(ctx)
+
+
 async def scheduled_core_workstation_bootstrap(ctx: dict):
     if not settings.CORE_WORKSTATION_BOOTSTRAP_ENABLED:
         logger.info("Core workstation bootstrap disabled; skipping")
@@ -403,6 +409,7 @@ class WorkerSettings:
         scheduled_etf_holdings_refresh,
         scheduled_etf_holdings_sec_backfill,
         scheduled_etf_holdings_classification_refresh,
+        scheduled_benchmark_family_holdings_refresh,
     ]
     cron_jobs = (
         [
@@ -413,6 +420,7 @@ class WorkerSettings:
             cron(scheduled_etf_holdings_refresh, weekday=6, hour=5, minute=0),
             cron(scheduled_etf_holdings_sec_backfill, weekday=6, hour=6, minute=0),
             cron(scheduled_etf_holdings_classification_refresh, weekday=6, hour=7, minute=0),
+            cron(scheduled_benchmark_family_holdings_refresh, weekday=6, hour=8, minute=0),
             cron(scheduled_core_workstation_bootstrap, hour=1, minute=0),
         ]
         if (
@@ -421,6 +429,7 @@ class WorkerSettings:
             or settings.ETF_HOLDINGS_REFRESH_ENABLED
             or settings.ETF_HOLDINGS_SEC_BACKFILL_ENABLED
             or settings.ETF_HOLDINGS_CLASSIFICATION_REFRESH_ENABLED
+            or settings.BENCHMARK_FAMILY_HOLDINGS_REFRESH_ENABLED
             or settings.CORE_WORKSTATION_BOOTSTRAP_ENABLED
         )
         else []
