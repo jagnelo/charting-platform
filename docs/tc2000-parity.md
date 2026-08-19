@@ -1,5 +1,20 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-19 — SoFi SFY source repair restores the primary route and honest fallback state
+
+The SoFi SFY adapter had a concrete route defect: its configured CloudFront hostname was stale, so
+the issuer artifact could not resolve. The official SFY page currently links the `aqfv4` host; the
+adapter now uses that host and the opt-in live route returns at least 300 holdings rows. The adapter
+also records canonical SEC identity (`0001742912`, class `C000210797`) and falls back to SEC EDGAR
+when the issuer route is genuinely unavailable.
+
+The fallback is deliberately not treated as complete by row count: if SEC reconstruction returns
+fewer than the verified SFY route's 300-row floor, the result is marked `partial` with a coverage
+warning while retaining issuer-failure and fallback provenance. Adapter/taxonomy units pass `507/507`,
+Ruff/compileall/diff checks pass, and the live SFY probe passes `1/1`. No acceptance flexibility was
+used. Remaining gaps are other provider routes, all-eight family population, member-bar history,
+historical rebalance continuity, entitlement/terms review, and exact V25 fallback-state visuals.
+
 ## 2026-08-19 — Invesco fallback keeps a canonical ETF source usable after issuer failure
 
 The provider-neutral holdings path now supplies Invesco's SEC EDGAR fallback with curated SEC

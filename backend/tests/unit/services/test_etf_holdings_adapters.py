@@ -282,6 +282,7 @@ def test_sofi_probe_is_symbol_scoped_and_uses_verified_archive_route():
 
     assert ready.status == "ready"
     assert ready.source_url == adapter.HOLDINGS_URL
+    assert "d32ijn7u0aqfv4.cloudfront.net" in ready.source_url
     assert unsupported.status == "needs_issuer_route"
 
 
@@ -316,6 +317,55 @@ async def test_sofi_fetch_preserves_periodic_archive_provenance(monkeypatch):
     assert result.rows == [row]
     assert result.legal_metadata["composition_date"] == "2025-11-30"
     assert result.legal_metadata["freshness_semantics"] == "periodic_archive_not_current_daily_feed"
+
+
+@pytest.mark.asyncio
+async def test_sofi_archive_failure_uses_curated_sec_identity(monkeypatch):
+    adapter = get_holdings_adapter("sofi")
+    assert adapter is not None
+    observed: dict[str, object] = {}
+
+    async def fake_sec_fallback(*, symbol, issuer_product_id, identifiers):
+        observed.update(
+            {
+                "symbol": symbol,
+                "issuer_product_id": issuer_product_id,
+                "identifiers": identifiers,
+            }
+        )
+        return HoldingsFetchResult(
+            rows=[CanonicalHoldingRow(symbol="NVDA", name="NVIDIA Corporation")],
+            source_url="https://www.sec.gov/Archives/edgar/data/1742912/fixture.xml",
+            source_identifier="0001742912-26-000001",
+            legal_metadata={"route_resolution": "sec_edgar_filing_fallback"},
+        )
+
+    monkeypatch.setattr(adapter, "_fetch_latest_sec_filing_holdings", fake_sec_fallback)
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        httpx.Response(
+            status_code=503,
+            request=httpx.Request("GET", adapter.HOLDINGS_URL),
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="SFY", identifiers={})
+
+    assert len(result.rows) == 1
+    assert observed == {
+        "symbol": "SFY",
+        "issuer_product_id": None,
+        "identifiers": {
+            "sec_cik": "0001742912",
+            "sec_class_id": "C000210797",
+            "sec_fund_tickers_symbol": "SFY",
+        },
+    }
+    assert result.legal_metadata["issuer_route_fallback"] == "sec_edgar_filing"
+    assert "503" in result.legal_metadata["issuer_route_failure"]
+    assert result.legal_metadata["completeness_status"] == "partial"
+    assert "normally discloses at least 300" in result.legal_metadata["coverage_warning"]
 
 
 def test_thrivent_route_is_symbol_scoped_and_not_fallback_only():

@@ -1,5 +1,20 @@
 # Project TODO Memory
 
+### 2026-08-19 — Repair SoFi SFY holdings route and label SEC fallback coverage
+
+- [x] Correct the verified SoFi SFY quarterly holdings artifact hostname from the stale
+      `...aqfv7...` CloudFront route to the currently linked `...aqfv4...` route. The opt-in live
+      SFY probe now returns at least 300 parseable rows again.
+- [x] Add SEC EDGAR fallback identity for SFY from canonical metadata (`CIK 0001742912`, class
+      `C000210797`) for genuine issuer/WAF failures, preserving route-failure/fallback provenance.
+- [x] If the SEC fallback returns fewer than the verified SFY route's 300-row floor, mark the result
+      `partial` with a coverage warning instead of allowing a reconstructed partial universe to look
+      complete. Adapter/taxonomy units `507/507`, Ruff/compileall/diff checks, and live SFY `1/1`
+      pass.
+- [ ] Continue repairing the remaining failing provider routes and complete family-wide historical
+      continuity, entitlement review, and exact V25 maintenance/fallback visuals; this closes SFY's
+      observed route defect, not provider completeness.
+
 ### 2026-08-19 — Invesco current-route failures now use curated SEC fallback identity
 
 - [x] When Invesco's current catalog/CUSIP holdings route fails, complete the SEC EDGAR fallback

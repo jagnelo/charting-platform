@@ -1,5 +1,18 @@
 # TC2000 Version 25 composite reference board
 
+## 2026-08-19 — SFY primary/fallback state is functional but lacks exact V25 visuals
+
+The SFY route now uses the currently linked SoFi holdings artifact and recovers through SEC EDGAR
+when the issuer/WAF path fails. SEC reconstruction is explicitly marked `partial` when it returns
+fewer than the verified primary route's 300 rows, so a degraded universe cannot masquerade as a
+complete locked watchlist.
+
+Gap status: `required_missing` for exact V25 provider-maintenance visuals covering stale route,
+issuer failure, fallback progress, partial coverage warning, retry, and recovery-complete states.
+Interim oracle: adapter/taxonomy units `507/507`, Ruff/compileall/diff checks, and opt-in live SFY
+probe `1/1`. The implementation does not relax visual acceptance; it records the behavior to match
+once an authoritative V25 capture exists.
+
 ## 2026-08-19 — Provider fallback behavior is functional but has no exact V25 visual oracle
 
 The live QQQ provider route demonstrated a concrete recovery state: the Invesco current holdings

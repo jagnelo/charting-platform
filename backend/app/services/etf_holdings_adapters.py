@@ -3131,6 +3131,16 @@ KNOWN_ETF_PROVIDER_METADATA_BY_SYMBOL: dict[str, dict[str, Any]] = {
             "sec_fund_tickers_symbol": "QQQ",
         },
     },
+    "SFY": {
+        "issuer": "SoFi",
+        "provider_aliases": {
+            "holdings_adapter": "sofi",
+            "sec_cik": "0001742912",
+            "sec_class_id": "C000210797",
+            "sec_fund_tickers_symbol": "SFY",
+            "minimum_expected_rows": 300,
+        },
+    },
     # Direxion publishes QQQE's daily holdings as a public symbol-scoped CSV.
     # Keep the official product page beside the adapter identity so canonical
     # refresh can select the native route without issuer/name inference.
@@ -63212,7 +63222,7 @@ class SofiHoldingsAdapter(IssuerCsvHoldingsAdapter):
 
     PRODUCT_PAGE_URLS = {"SFY": "https://www.sofi.com/invest/etfs/sfy/"}
     HOLDINGS_URL = (
-        "https://d32ijn7u0aqfv7.cloudfront.net/wp/wp-content/uploads/raw/"
+        "https://d32ijn7u0aqfv4.cloudfront.net/wp/wp-content/uploads/raw/"
         "Fiscal-Q3-Quarterly-Holdings-1.pdf"
     )
     _ROW_RE = re.compile(
@@ -63249,7 +63259,7 @@ class SofiHoldingsAdapter(IssuerCsvHoldingsAdapter):
         source_url: str | None = None,
         identifiers: dict[str, str] | None = None,
     ) -> HoldingsFetchResult:
-        del issuer_product_id, identifiers
+        identifiers = identifiers or {}
         normalized_symbol = symbol.strip().upper()
         if normalized_symbol not in self.PRODUCT_PAGE_URLS:
             raise ValueError(
@@ -63258,16 +63268,64 @@ class SofiHoldingsAdapter(IssuerCsvHoldingsAdapter):
         report_url = source_url or self.HOLDINGS_URL
         if "cloudfront.net/" not in report_url:
             raise ValueError("SoFi holdings source_url must be the verified public CDN PDF route.")
-        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
-            report = await client.get(
-                report_url,
-                headers=_holdings_request_headers(accept="application/pdf,*/*"),
-                follow_redirects=True,
-            )
-            report.raise_for_status()
-        rows, composition_date, text = self._parse_holdings_pdf(report.content)
-        if not rows:
-            raise ValueError("SoFi quarterly holdings PDF contained no parseable positions.")
+        try:
+            async with httpx.AsyncClient(
+                timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS
+            ) as client:
+                report = await client.get(
+                    report_url,
+                    headers=_holdings_request_headers(accept="application/pdf,*/*"),
+                    follow_redirects=True,
+                )
+                report.raise_for_status()
+            rows, composition_date, text = self._parse_holdings_pdf(report.content)
+            if not rows:
+                raise ValueError("SoFi quarterly holdings PDF contained no parseable positions.")
+        except (httpx.HTTPError, requests.RequestException, ValueError) as route_error:
+            if self.config.supports_sec_filing_fallback:
+                fallback_identifiers = dict(identifiers)
+                route_metadata = known_etf_route_metadata(normalized_symbol)
+                provider_aliases = route_metadata.get("provider_aliases")
+                if not _identifier(fallback_identifiers, "sec_cik"):
+                    if isinstance(provider_aliases, dict):
+                        for key in (
+                            "sec_cik",
+                            "sec_series_id",
+                            "sec_class_id",
+                            "sec_fund_tickers_symbol",
+                        ):
+                            value = _identifier(provider_aliases, key)
+                            if value and not _identifier(fallback_identifiers, key):
+                                fallback_identifiers[key] = value
+                sec_result = await self._fetch_latest_sec_filing_holdings(
+                    symbol=normalized_symbol,
+                    issuer_product_id=issuer_product_id,
+                    identifiers=fallback_identifiers,
+                )
+                if sec_result is not None:
+                    expected_rows = (
+                        provider_aliases.get("minimum_expected_rows")
+                        if isinstance(provider_aliases, dict)
+                        else None
+                    )
+                    fallback_metadata = {
+                        **(sec_result.legal_metadata or {}),
+                        "issuer_route_failure": str(route_error),
+                        "issuer_route_fallback": "sec_edgar_filing",
+                    }
+                    if isinstance(expected_rows, int) and len(sec_result.rows) < expected_rows:
+                        fallback_metadata.update(
+                            {
+                                "completeness_status": "partial",
+                                "coverage_warning": (
+                                    f"SEC fallback returned {len(sec_result.rows)} rows; "
+                                    f"the verified SFY route normally discloses at least {expected_rows}."
+                                ),
+                            }
+                        )
+                    sec_result.legal_metadata = fallback_metadata
+                    return sec_result
+            raise
         return HoldingsFetchResult(
             rows=rows,
             raw_text=text,
