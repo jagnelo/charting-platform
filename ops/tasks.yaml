@@ -1,4 +1,29 @@
 tasks:
+  - id: tc2000-universal-market-map-watchlists-20260819
+    title: Verify one Market Map contract for arbitrary and locked watchlists
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Treat index/ETF constituent sets as immutable WatchlistSource instances while using the same
+      TC2000-style Market Map for personal, managed, combo, and explicit sources.
+    definition_of_done:
+      - Resolve personal, locked market-group, ETF-holdings, and combo sources through one map path
+      - Preserve locked membership and make follow/pin preference-only
+      - Retain source kind, membership version, provenance, freshness, coverage, and exclusions
+      - Track exact V25 source-picker and browser transition visuals as remaining gaps
+    validation:
+      - backend-market-map-arbitrary-watchlist-integration-4-of-4
+      - frontend-vitest-900-of-900
+      - frontend-type-check
+      - frontend-build
+      - git-diff-check
+    notes:
+      - >-
+        Acceptance flexibility used: None. The first unprivileged Docker attempt hit the known
+        sandbox socket boundary; the unchanged elevated run passed. This is environment evidence,
+        not a product relaxation.
+
   - id: tc2000-family-role-constituent-drilldown-20260819
     title: Add role-specific locked constituent drill-down from family rows
     status: completed

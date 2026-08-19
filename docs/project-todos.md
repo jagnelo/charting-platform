@@ -1,5 +1,18 @@
 # Project TODO Memory
 
+### 2026-08-19 — Universal Market Map treats every source as a TC2000-style watchlist
+
+- [x] Verify that personal watchlists, locked index/ETF constituent sources, derived combos, and
+      explicit canonical selections all use the same Market Map request/resolution path; only
+      membership governance differs (editable personal lists versus immutable system/derived lists).
+- [x] Verify source follow/pin preferences do not mutate locked membership and that source kind,
+      membership version, provenance, freshness, coverage, and exclusions remain visible.
+- [x] Validate the shared backend contract across personal, locked market-group, ETF-holdings, and
+      combo sources (`4/4` focused Docker-backed integration); the frontend source-group and Map
+      controls remain covered by the current full suite (`900/900`).
+- [ ] Browser acceptance with a real authenticated arbitrary-watchlist selection, exact V25 source
+      picker geometry, and provider-backed all-root membership/history remain open.
+
 ### 2026-08-19 — Family role rows expose locked constituent drill-down
 
 - [x] Add a row-specific desktop context-menu action to benchmark-family role rows: when the

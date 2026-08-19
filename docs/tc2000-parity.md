@@ -1,5 +1,20 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-19 — Arbitrary watchlists and index/ETF constituents share one Map surface
+
+The universal Market Map is now explicitly validated as the TC2000-style heatmap for any canonical
+watchlist source. Personal lists, locked index/ETF constituent snapshots, derived combo lists, and
+ephemeral explicit canonical selections all resolve through one source-aware batch path. A locked
+source is a watchlist whose membership is immutable, not a separate visual product: users can select,
+follow, pin, compare, scan, and publish it into Breadth/Study Lab, while only editable personal lists
+permit membership mutation. The map keeps source kind, membership version, point-in-time lineage,
+provenance, freshness, coverage, and exclusions visible for every kind.
+
+Focused Docker-backed backend integration across personal, locked market-group, ETF-holdings, and
+combo sources passes `4/4`; the current frontend suite is `900/900`, with type-check/build/diff
+checks passing. Acceptance flexibility used: **none**. Real authenticated browser selection,
+exact V25 source-picker geometry, and provider-backed all-root membership/history remain open.
+
 ## 2026-08-19 — Family role rows can open their own locked constituent source
 
 Benchmark-family role rows now expose a desktop context-menu action, `Open constituents in Market

@@ -1,5 +1,14 @@
 # Run Report
 
+## 2026-08-19 — Universal Market Map source contract
+
+- Validated the same Market Map contract for personal, locked market-group, ETF-holdings, and combo
+  watchlists (`4/4` focused Docker-backed integration). Locked sources remain immutable but usable;
+  follow/pin are preferences only.
+- Frontend remains `900/900`, with type-check/build/diff checks passing. Acceptance flexibility: none.
+- Exact V25 source-picker visuals, authenticated browser path, and provider-backed all-root history
+  remain open.
+
 ## 2026-08-19 — Family roles expose canonical constituent drill-down
 
 - Added a row-specific desktop context-menu action for available family roles. Cap/equal/value/

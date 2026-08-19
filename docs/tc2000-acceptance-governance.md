@@ -1,5 +1,18 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-08-19 — One heatmap oracle for arbitrary and locked watchlists
+
+The acceptance contract does not permit an index or ETF constituent heatmap to become a special-case
+renderer. The same Market Map behavior must work for any canonical source; `locked` controls
+membership mutation only. Follow/pin are user preferences and must never create, delete, or rewrite
+the locked constituent source. Backend source identity, membership version, point-in-time policy,
+provenance, freshness, exclusions, and coverage must survive the handoff.
+
+The current functional oracle is backend integration `4/4` across personal, locked market-group,
+ETF-holdings, and combo sources plus frontend `900/900`. Acceptance flexibility used: **None**.
+Exact V25 source-picker visuals and authenticated browser proof remain tracked gaps rather than being
+silently inferred from unit coverage.
+
 ## 2026-08-19 — Family role drill-down must preserve role-specific source identity
 
 When a selected benchmark-family role row has a verified, holdings-backed mapping, its desktop

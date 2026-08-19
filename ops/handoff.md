@@ -1,5 +1,14 @@
 # Active Handoff
 
+## 2026-08-19 — Universal Market Map source contract verified
+
+- Confirmed that personal, locked index/market-group, ETF-holdings, combo, and explicit sources use
+  the same heatmap path; locked state changes mutation rights only.
+- Focused Docker-backed backend integration passes `4/4`; current frontend suite remains `900/900`;
+  type-check/build/diff checks pass. Acceptance flexibility: **None**.
+- Remaining: authenticated browser source selection, exact V25 picker/lock visuals, and complete
+  provider-backed all-root membership/history.
+
 ## 2026-08-19 — Family role rows now drill into role-specific locked constituents
 
 - Added `Open constituents in Market Map` to the desktop context menu for available

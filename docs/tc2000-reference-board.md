@@ -1,5 +1,16 @@
 # TC2000 Version 25 composite reference board
 
+## 2026-08-19 — Arbitrary-watchlist heatmap remains a reference gap
+
+The implementation now treats index/ETF constituents as locked watchlists and routes them through the
+same Market Map as personal, combo, managed, and explicit sources. The board still lacks an exact
+Version 25 capture showing the source picker mixing these kinds, the lock/follow/pin affordances, and
+the transition from an arbitrary watchlist into the heatmap.
+
+Gap status: `required_missing` for those exact source-picker and transition states. Functional
+interim oracle: backend source-contract integration `4/4` and frontend suite `900/900`; no mask,
+threshold, provider substitution, or acceptance flexibility was used.
+
 ## 2026-08-19 — Role-specific constituent context action is visually unrepresented
 
 Available benchmark-family role rows now offer `Open constituents in Market Map` from the desktop
