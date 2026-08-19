@@ -22,6 +22,12 @@ def git(*args: str, cwd: Path | None = None, check: bool = True) -> str:
     return result.stdout.strip()
 
 
+def git_succeeds(*args: str, cwd: Path | None = None) -> bool:
+    """Return Git's exit status without confusing it with command output."""
+    result = subprocess.run(["git", *args], cwd=cwd, text=True, capture_output=True)
+    return result.returncode == 0
+
+
 def repo_root() -> Path:
     return Path(git("rev-parse", "--show-toplevel")).resolve()
 
@@ -169,7 +175,7 @@ def close(branch: str) -> None:
         raise SystemExit(
             "worktree is dirty; commit or account for changes before closing"
         )
-    if git("merge-base", "--is-ancestor", branch, "master", cwd=path, check=False):
+    if not git_succeeds("merge-base", "--is-ancestor", branch, "master", cwd=path):
         raise SystemExit("worktree is not merged into master")
     slug = branch_slug(branch)
     projects = running_projects(f"charting-dev-{slug}") + running_projects(

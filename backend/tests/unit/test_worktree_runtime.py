@@ -31,3 +31,29 @@ def test_runtime_environment_is_path_scoped_and_explicit():
     assert env["DATABASE_URL"].endswith("@127.0.0.1:15432/chartingdb")
     assert env["VITE_API_PROXY_TARGET"] == "http://127.0.0.1:18000"
     assert "18080" in env["STACK_URL"]
+
+
+def test_stale_runtime_allocation_requires_git_and_docker_proof(monkeypatch):
+    runtime = _load_runtime()
+    monkeypatch.setattr(runtime, "active_worktree_paths", lambda: {Path("/active")})
+    monkeypatch.setattr(runtime, "running_managed_projects", lambda projects: False)
+    data = {
+        "version": 1,
+        "allocations": {
+            "stale": {
+                "worktree": "/stale",
+                "projects": {"dev": "charting-dev-stale", "stack": "charting-stack-stale"},
+            },
+            "active": {
+                "worktree": "/active",
+                "projects": {"dev": "charting-dev-active", "stack": "charting-stack-active"},
+            },
+        },
+    }
+    runtime.reclaim_stale_allocations(data, "current")
+    assert set(data["allocations"]) == {"active"}
+
+    monkeypatch.setattr(runtime, "running_managed_projects", lambda projects: None)
+    data["allocations"]["stale"] = {"worktree": "/stale", "projects": {}}
+    runtime.reclaim_stale_allocations(data, "current")
+    assert "stale" in data["allocations"]

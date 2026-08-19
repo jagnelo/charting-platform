@@ -1,0 +1,2 @@
+{"command":"uv run pytest backend/tests/unit/test_worktree_runtime.py -q --no-cov","result":"pass","evidence":"2 focused runtime allocation tests"}
+{"command":"uv run ruff check scripts backend/tests/unit/test_worktree_runtime.py && uv run ruff format --check scripts backend/tests/unit/test_worktree_runtime.py && git diff --check","result":"pass","evidence":"workflow scripts and focused test style checks"}

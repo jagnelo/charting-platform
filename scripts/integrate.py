@@ -8,6 +8,7 @@ import contextlib
 import fcntl
 import hashlib
 import json
+import os
 import subprocess
 import sys
 from datetime import datetime, timezone
@@ -15,9 +16,9 @@ from pathlib import Path
 
 
 def run(
-    args: list[str], cwd: Path, check: bool = True
+    args: list[str], cwd: Path, check: bool = True, env: dict[str, str] | None = None
 ) -> subprocess.CompletedProcess[str]:
-    result = subprocess.run(args, cwd=cwd, text=True, capture_output=True)
+    result = subprocess.run(args, cwd=cwd, text=True, capture_output=True, env=env)
     if check and result.returncode:
         print(result.stdout, end="")
         print(result.stderr, end="", file=sys.stderr)
@@ -79,14 +80,18 @@ def assert_clean_synchronized(repo: Path, branch: str) -> Path:
     return source
 
 
-def make_candidate(repo: Path, branch: str, source_sha: str) -> tuple[Path, str]:
+def candidate_path(repo: Path, branch: str, source_sha: str) -> Path:
     token = hashlib.sha256(f"{branch}:{source_sha}".encode()).hexdigest()[:12]
-    candidate = (
+    return (
         common_root(repo)
         / ".ai"
         / "integration"
         / f"{branch.replace('/', '-')}-{token}"
     )
+
+
+def make_candidate(repo: Path, branch: str, source_sha: str) -> tuple[Path, str]:
+    candidate = candidate_path(repo, branch, source_sha)
     if candidate.exists():
         raise SystemExit(
             f"candidate path already exists; inspect or remove it explicitly: {candidate}"
@@ -124,15 +129,47 @@ def make_candidate(repo: Path, branch: str, source_sha: str) -> tuple[Path, str]
     return candidate, out(["git", "rev-parse", "HEAD"], candidate)
 
 
+def continue_candidate(repo: Path, branch: str, source_sha: str) -> tuple[Path, str]:
+    """Resume a conflict candidate after semantic edits were made in place."""
+    candidate = candidate_path(repo, branch, source_sha)
+    if not candidate.exists():
+        raise SystemExit(f"no paused candidate exists at {candidate}")
+    conflicts = out(["git", "diff", "--name-only", "--diff-filter=U"], candidate)
+    if conflicts:
+        raise SystemExit(
+            "candidate still has unresolved paths; resolve and stage every conflict:\n"
+            + conflicts
+        )
+    merge_head = Path(out(["git", "rev-parse", "--git-path", "MERGE_HEAD"], candidate))
+    if not merge_head.is_absolute():
+        merge_head = candidate / merge_head
+    report = candidate / "ops" / "integration-conflicts.md"
+    if merge_head.exists():
+        # The report is part of the durable conflict record. Only that known
+        # generated path is staged automatically; semantic source changes must
+        # have been reviewed and staged by the resolving agent.
+        if report.exists():
+            run(["git", "add", str(report)], candidate)
+        env = {**os.environ, "GIT_EDITOR": ":"}
+        run(["git", "merge", "--continue"], candidate, env=env)
+    if (
+        subprocess.run(
+            ["git", "merge-base", "--is-ancestor", source_sha, "HEAD"],
+            cwd=candidate,
+            capture_output=True,
+        ).returncode
+        != 0
+    ):
+        raise SystemExit("paused candidate does not contain the captured source SHA")
+    return candidate, out(["git", "rev-parse", "HEAD"], candidate)
+
+
 def validate(repo: Path, candidate: Path, branch: str, source_sha: str) -> None:
     if out(["git", "rev-parse", "HEAD"], repo) != out(
         ["git", "rev-parse", "origin/master"], repo
     ):
         raise SystemExit("master advanced while the candidate was being validated")
-    if (
-        out(["git", "rev-parse", "HEAD"], branch_worktree(repo, branch))
-        != source_sha
-    ):
+    if out(["git", "rev-parse", "HEAD"], branch_worktree(repo, branch)) != source_sha:
         raise SystemExit(
             "source branch no longer resolves to the captured candidate SHA"
         )
@@ -183,7 +220,10 @@ def main() -> int:
     with integration_lock(repo):
         source = assert_clean_synchronized(repo, args.branch)
         source_sha = out(["git", "rev-parse", "HEAD"], source)
-        candidate, candidate_sha = make_candidate(repo, args.branch, source_sha)
+        if args.continue_candidate:
+            candidate, candidate_sha = continue_candidate(repo, args.branch, source_sha)
+        else:
+            candidate, candidate_sha = make_candidate(repo, args.branch, source_sha)
         validate(repo, candidate, args.branch, source_sha)
         print(
             json.dumps(

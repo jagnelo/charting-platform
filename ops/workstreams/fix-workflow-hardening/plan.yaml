@@ -1,0 +1,28 @@
+schema: 1
+branch: fix/workflow-hardening
+base_sha: aecea059fa39ee43fdae36ad935c401a6b5a607e
+goal: "Harden worktree allocation and conflict-candidate continuation safety."
+scope:
+  - "Observe Git and exact Compose ownership before reclaiming stale runtime records."
+  - "Make worktree closure inspect merge-base exit status correctly."
+  - "Implement the documented integration --continue flow for semantic conflict resolution."
+owned_paths:
+  - scripts/worktree.py
+  - scripts/worktree-runtime.py
+  - scripts/integrate.py
+  - docs/development.md
+dependencies: []
+acceptance_criteria:
+  - "Dirty, unmerged, or running worktrees remain non-removable."
+  - "Stale allocation records are reclaimed only with Git and Docker proof."
+  - "A paused conflict candidate can resume only after all conflicts are resolved and the captured source SHA remains present."
+branch_tests:
+  - "backend/.venv/bin/python -m pytest backend/tests/unit/test_worktree_runtime.py -q --no-cov"
+  - "uv run ruff check scripts backend/tests/unit/test_worktree_runtime.py"
+  - "uv run ruff format --check scripts backend/tests/unit/test_worktree_runtime.py"
+live_test_impact: none
+migration_impact: none
+deployment_impact: none
+status: in_progress
+remaining_gaps:
+  - "Conflict continuation still requires an agent to perform semantic edits and stage source files."
