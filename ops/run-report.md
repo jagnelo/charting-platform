@@ -1,5 +1,21 @@
 # Run Report
 
+## 2026-08-19 — Unresolved holdings cannot masquerade as a ready heatmap
+
+- A provider holdings snapshot with raw rows but zero resolved canonical members now exposes
+  `holdings_snapshot_unresolved`, reports zero usable members, remains a locked/followable source,
+  and preserves raw/resolved/unresolved counts for provenance and retry maintenance.
+- Generic history status, benchmark-family maintenance, family coverage, and Market Map all use the
+  same pending lifecycle; unresolved roles do not inflate family coverage and emit an explicit
+  warning.
+- Evidence: history/family units `10/10`; watchlists integration `47/47`; family coverage `2/2`;
+  backend unit `1249/1249`; Market Map `30/30`; frontend Vitest `909/909`; type-check; production
+  build; Ruff; compileall; YAML/JSON parsing; and `git diff --check`. No acceptance flexibility,
+  visual threshold, or mask relaxation.
+- Implementation/docs commit `75e7eb83df5b068df473752b27b5c14ef87f5b6c` is pushed and synchronized.
+  Provider-backed re-resolution, complete family membership/bar history, historical continuity, and
+  exact V25 unresolved/partial-state visuals remain explicit gaps.
+
 ## 2026-08-19 — Universal arbitrary-watchlist heatmap readiness is source-polymorphic
 
 - The shared history planner/status endpoint now derives source readiness from canonical descriptor

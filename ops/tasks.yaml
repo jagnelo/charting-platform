@@ -1,4 +1,39 @@
 tasks:
+  - id: tc2000-unresolved-holdings-pending-20260819
+    title: Keep unresolved locked universes pending across heatmap and family coverage
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Align ETF and benchmark-family source descriptors, generic history readiness, family
+      coverage, and Market Map state when a dated provider snapshot contains raw rows but zero
+      canonical members can be resolved. The source remains locked/followable for later repair,
+      but advertises zero usable members and never masquerades as a ready heatmap universe.
+    definition_of_done:
+      - Zero-resolved holdings snapshots expose holdings_snapshot_unresolved provenance and pending history
+      - Source member counts use resolved canonical members while raw/unresolved counts remain provenance
+      - Benchmark-family coverage excludes unresolved roles and emits an explicit warning
+      - Market Map maps the new lifecycle state to pending without disabling followability
+      - Focused regressions, backend/frontend gates, lint, compile, build, docs, and diff checks pass
+      - Documentation records the remaining provider, continuity, and exact V25 visual gaps
+    validation:
+      - history-and-family-unit-10-of-10
+      - watchlists-integration-47-of-47
+      - family-coverage-integration-2-of-2
+      - backend-unit-1249-of-1249
+      - frontend-market-map-30-of-30
+      - frontend-vitest-909-of-909
+      - frontend-type-check-and-production-build
+      - ruff-compileall-yaml-json-and-git-diff-check
+    notes:
+      - >-
+        Acceptance flexibility used: None. Provider-backed re-resolution, complete family
+        membership/bar coverage, historical continuity, and exact V25 unresolved/partial source
+        visuals remain explicit open gaps.
+      - >-
+        Implementation/docs commit 75e7eb83df5b068df473752b27b5c14ef87f5b6c is pushed and
+        synchronized; the separate operational checkpoint follows before the next context.
+
   - id: tc2000-universal-watchlist-history-pending-20260819
     title: Keep pending arbitrary watchlists in the shared heatmap readiness contract
     status: completed

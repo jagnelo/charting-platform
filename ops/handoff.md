@@ -1,5 +1,22 @@
 # Active Handoff
 
+## 2026-08-19 — Unresolved holdings remain pending, not ready
+
+- Closed the next source-lifecycle integrity gap for the universal TC2000-style heatmap model.
+  ETF and benchmark-family descriptors now distinguish a snapshot with provider rows but zero
+  resolved canonical members as `holdings_snapshot_unresolved`; it stays locked/followable for
+  maintenance, advertises zero usable members, and retains raw/resolved/unresolved provenance.
+- Generic source history, benchmark-family maintenance, family coverage, and the Market Map picker
+  consume the shared pending state. Family coverage does not count an unresolved role and emits
+  `family_role_holdings_unresolved`.
+- Validation: history/family units `10/10`; watchlists integration `47/47`; family coverage `2/2`;
+  backend unit `1249/1249`; Market Map `30/30`; full frontend Vitest `909/909`; type-check;
+  production build; Ruff; compileall; YAML/JSON parsing; and `git diff --check` all pass.
+- Acceptance flexibility: **None**. Provider-backed re-resolution, complete family membership and
+  bar coverage, historical continuity, and exact V25 unresolved/partial-state visuals remain open.
+- Implementation/docs commit `75e7eb83df5b068df473752b27b5c14ef87f5b6c` is pushed and synchronized.
+  Next context: provider-backed family/source population and remaining V25 visual/reference gaps.
+
 ## 2026-08-19 — Universal watchlist heatmap preserves pending history state
 
 - Closed the remaining owning-boundary mismatch for the universal heatmap/watchlist model. A
