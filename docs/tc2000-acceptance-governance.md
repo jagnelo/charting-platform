@@ -1,5 +1,17 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-08-19 — Seeded 1080p baseline refresh is explicitly interim evidence
+
+The 1080p seeded visual project was stale after canonical fixture hydration changed the visible
+constituent/industry and gap-state content. Twenty-two snapshots were refreshed, targeted reruns
+passed `22/22`, and the unchanged full project passed `26/26`. This gate records a deterministic
+product-state correction only: no screenshot masks, pixel thresholds, or exact-reference rules
+were weakened.
+
+Acceptance flexibility: **seeded fixture evidence for board-covered current states**. It does not
+approve exact TC2000 V25 visuals, provider-backed universe/history completeness, or the unrun
+125%/1440p projects; those remain tracked open gates.
+
 ## 2026-08-19 — Recursive Market Map and cross-tab handoff gate
 
 The Market Map acceptance oracle now covers two repository-controlled correctness conditions:

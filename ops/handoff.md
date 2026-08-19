@@ -1,5 +1,23 @@
 # Active Handoff
 
+## 2026-08-19 — Seeded 1080p board-baseline refresh context
+
+- Refreshed 22 deterministic `visual-1080p-100` PNG baselines after the current seeded fixture
+  correctly hydrated constituent/industry panes and explicit freshness/error states. No source
+  code, visual threshold, or mask policy changed.
+- Validation: frontend Vitest `916/916`; opt-in ETF provider probes `7/7` and broader family
+  selection `10/10`; targeted visual reruns `9/9` plus `13/13`; complete 1080p board suite
+  `26/26`; `git diff --check` pending final docs staging. The seeded stack was rebuilt and
+  migrated for the browser run and should be stopped after any remaining visual projects.
+- Acceptance flexibility: **seeded fixture product-state evidence only**. These PNGs are not
+  TC2000 V25 captures and do not close exact V25 geometry/typography, provider-backed family
+  population, point-in-time history, or 125%/1440p visual gaps.
+- Modified implementation artifacts are the 22 files under
+  `frontend/tests/e2e/tc2000_visual.spec.ts-snapshots/*visual-1080p-100-darwin.png`; docs and
+  operational records must be committed and pushed before the next context.
+- Next context: run the remaining visual projects, then continue canonical provider/history and
+  broader Python promotion gaps while preserving the arbitrary locked-watchlist Market Map model.
+
 ## 2026-08-19 — Recursive Market Map and cross-tab handoff context
 
 - Replaced first-level-only Market Map geometry with recursive full-path partitioning. Sector

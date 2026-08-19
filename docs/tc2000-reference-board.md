@@ -1,5 +1,17 @@
 # TC2000 Version 25 composite reference board
 
+## 2026-08-19 — Current hydrated workstation states have deterministic 1080p evidence
+
+Twenty-two local `visual-1080p-100` baselines were refreshed after the workstation began correctly
+hydrating constituent and industry panes and explicit freshness/error states. The unchanged
+targeted tests pass `22/22` and the complete 1080p board suite passes `26/26`. This evidence is
+kept separate from the retrieved TC2000 media board: it is a reproducible product-state oracle,
+not a TC2000 screenshot and not permission-cleared external reference material.
+
+The board policy remains flexible only for represented states (`approved_or_board_covered`). Exact
+V25 nested-map geometry, typography, gutters, density, action rows, and all unrepresented states
+remain `required_missing`; no visual mask or threshold was relaxed.
+
 ## 2026-08-19 — Recursive map geometry and handoff evidence
 
 The source-polymorphic Market Map now lays out the full sector → industry hierarchy recursively,

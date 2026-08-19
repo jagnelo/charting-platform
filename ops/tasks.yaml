@@ -1,4 +1,34 @@
 tasks:
+  - id: tc2000-board-seeded-1080p-baseline-refresh-20260819
+    title: Refresh stale seeded 1080p TC2000 board baselines after canonical-pane hydration
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Replace only stale deterministic local screenshot expectations whose prior images encoded
+      the pre-hydration workstation, then prove the unchanged 1080p board project still passes.
+      Keep these product-state baselines separate from external TC2000 V25 reference media.
+    definition_of_done:
+      - Twenty-two 1080p seeded PNG baselines are regenerated from the current workstation
+      - Targeted visual reruns pass 9/9 and 13/13
+      - Complete visual-1080p-100 project passes 26/26
+      - Existing 0.5% screenshot threshold and mask policy remain unchanged
+      - Docs record seeded evidence as interim flexibility and preserve exact-V25 open gaps
+      - Snapshot and operational changes are committed and pushed before the next context
+    validation:
+      - frontend-Vitest-916-of-916
+      - opt-in-ETF-provider-probes-7-of-7
+      - broader-family-provider-selection-10-of-10
+      - targeted-visual-reruns-22-of-22
+      - complete-visual-1080p-100-26-of-26
+      - git-diff-check
+    acceptance_flexibility: >-
+      Seeded fixture product-state evidence only; this does not approve exact TC2000 V25 captures,
+      provider-backed family population, point-in-time history, or the unrun 125%/1440p projects.
+    implementation_commit: pending
+    remaining_gaps: >-
+      Exact V25 visual reference coverage, canonical provider population/history, broader Python
+      promotion fan-out, and the remaining visual projects remain open.
   - id: tc2000-market-map-recursive-handoff-20260819
     title: Repair recursive Market Map hierarchy and cross-tab analysis publication
     status: completed

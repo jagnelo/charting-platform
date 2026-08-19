@@ -1,5 +1,20 @@
 # Project TODO Memory
 
+### 2026-08-19 — Board-guided 1080p seeded baselines refreshed after canonical-pane hydration
+
+- [x] Refresh the 22 stale `visual-1080p-100` snapshots whose prior expected images still showed
+      empty constituent/industry panes or pre-hydration gap states. The refreshed images represent
+      the current deterministic seeded workstation and preserve the existing 0.5% per-image
+      threshold; no masks or thresholds were broadened.
+- [x] Rerun the unchanged targeted groups (`9/9` and `13/13`) and the complete 1080p board suite
+      (`26/26`). Frontend Vitest remains `916/916`; the opt-in free-source provider probes passed
+      `7/7` and the broader family selection passed `10/10`.
+- [x] Record this as interim board-guided acceptance evidence for the current product states. The
+      seeded fixture is explicitly not a TC2000 V25 capture and cannot approve exact typography,
+      gutters, density, provider-backed population, or historical-data behavior.
+- [ ] Run the remaining 125%/1440p visual projects and continue the open canonical provider,
+      point-in-time history, promotion fan-out, and exact V25 reference gaps.
+
 ### 2026-08-19 — Hierarchical Market Map geometry and cross-tab analysis handoff repaired
 
 - [x] Replace first-level-only Market Map partitioning with recursive group geometry. Sector →

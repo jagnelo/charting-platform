@@ -1,5 +1,17 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-19 — Seeded 1080p baseline maintenance after workstation hydration
+
+The deterministic seeded workstation now has refreshed local baselines for 22 states whose old
+images encoded the pre-hydration layout (notably blank constituent and industry panes). The
+unchanged targeted tests pass `9/9` and `13/13`; the complete `visual-1080p-100` project passes
+`26/26`. This is a baseline maintenance correction, not a product geometry change: the existing
+per-image 0.5% threshold and mask policy remain unchanged.
+
+Acceptance flexibility used: **board-guided seeded fixture evidence only**. These images are not
+authoritative TC2000 V25 captures and do not close exact typography/gutter/density/action-row
+gaps, provider-backed population, point-in-time history, or the remaining 125%/1440p matrix.
+
 ## 2026-08-19 — Recursive treemap partitioning and cross-tab publication
 
 Market Map geometry now recursively partitions the complete `group_path`: sector rectangles are

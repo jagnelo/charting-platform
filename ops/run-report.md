@@ -1,5 +1,19 @@
 # Run Report
 
+## 2026-08-19 — Seeded 1080p visual baseline maintenance
+
+- Refreshed 22 stale local board snapshots after seeded Market Map/workstation hydration changed
+  constituent, industry, freshness, error, pop-out, and Study Lab states. This is a deterministic
+  baseline maintenance change; no application source, mask, or pixel threshold was changed.
+- Unchanged targeted visual tests passed `9/9` and `13/13`; the complete `visual-1080p-100`
+  project passed `26/26`. Frontend Vitest passed `916/916`; opt-in provider probes passed `7/7`
+  and the broader family selection `10/10`.
+- Flexibility used and documented: seeded fixture evidence is accepted for represented current
+  states only. It is not exact V25 visual approval. Exact reference gaps, canonical provider
+  population/history, and the remaining three visual projects remain open.
+- Next: commit/push the snapshots and records, stop the seeded stack, then run 125%/1440p projects
+  and continue the open backend/data and promotion gates.
+
 ## 2026-08-19 — Recursive Market Map and cross-tab publication repair
 
 - Corrected the Market Map renderer's hierarchy. It now builds a deterministic group tree and
