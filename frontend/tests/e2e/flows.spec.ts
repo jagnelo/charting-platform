@@ -3381,6 +3381,79 @@ test.describe('TC2000 workstation', () => {
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
+  test('F8s-family-matrix — all eight US benchmark roots retain independent entry and constituent source identity', async ({ page, browserDiagnostics }) => {
+    const families = [
+      { key: 'sp500', name: 'S&P 500', official: 'SPX', proxy: 'SPY' },
+      { key: 'sp400', name: 'S&P MidCap 400', official: 'MID', proxy: 'MDY' },
+      { key: 'sp600', name: 'S&P SmallCap 600', official: 'SML', proxy: 'IJR' },
+      { key: 'sp1500', name: 'S&P Composite 1500', official: 'SPSUPX', proxy: 'SPTM' },
+      { key: 'russell1000', name: 'Russell 1000', official: 'RUI', proxy: 'IWB' },
+      { key: 'russell2000', name: 'Russell 2000', official: 'RTY', proxy: 'IWM' },
+      { key: 'russell3000', name: 'Russell 3000', official: 'RUA', proxy: 'IWV' },
+      { key: 'nasdaq100', name: 'Nasdaq 100', official: 'NDX', proxy: 'QQQ' },
+    ]
+    const familyByKey = new Map(families.map(family => [family.key, family]))
+    const selectedSources: string[] = []
+    await page.route('**/api/v1/market-groups/us-benchmarks*', async route => {
+      const response = await route.fetch()
+      const payload = await response.json() as Record<string, unknown>
+      const provenance = payload.provenance && typeof payload.provenance === 'object' ? payload.provenance as Record<string, unknown> : {}
+      await route.fulfill({ response, body: JSON.stringify({ ...payload, provenance: { ...provenance, benchmark_families: families.map(family => ({ logical_key: family.key, name: family.name, official_index_symbol: family.official, cap_weight: { symbol: family.proxy } })) } }) })
+    })
+    await page.route('**/api/v1/market-groups/*', async route => {
+      const pathname = new URL(route.request().url()).pathname
+      const familyKey = pathname.match(/\/market-groups\/([^/]+)$/)?.[1]
+      const family = familyKey ? familyByKey.get(decodeURIComponent(familyKey)) : undefined
+      if (!family) return route.continue()
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ stable_key: family.key, name: family.name, group_type: 'benchmark_family', members: [{ instrument: { id: 1, symbol: family.proxy, name: `${family.name} proxy` } }], provenance: { benchmark_family: family.key } }) })
+    })
+    await page.route('**/api/v1/analysis/groups/*/snapshot*', async route => {
+      const pathname = new URL(route.request().url()).pathname
+      const familyKey = pathname.match(/\/analysis\/groups\/([^/]+)\/snapshot/)?.[1]
+      const family = familyKey ? familyByKey.get(decodeURIComponent(familyKey)) : undefined
+      if (!family) return route.continue()
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ group_key: family.key, rows: [{ instrument_id: 1, symbol: family.proxy, name: `${family.name} proxy`, performance: {}, technical: {}, warnings: [] }], exclusions: [] }) })
+    })
+    await page.route('**/api/v1/analysis/benchmark-families/*/overview*', async route => {
+      const pathname = new URL(route.request().url()).pathname
+      const familyKey = pathname.match(/\/benchmark-families\/([^/]+)\/overview/)?.[1]
+      const family = familyKey ? familyByKey.get(decodeURIComponent(familyKey)) : undefined
+      if (!family) return route.continue()
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ family_key: family.key, name: family.name, official_index_symbol: family.official, mappings: [{ role: 'cap_weight', symbol: family.proxy, label: family.proxy, verification_state: 'verified', available: true, holdings_available: true, holdings_completeness_status: 'complete' }], rows: [], exclusions: [] }) })
+    })
+    await page.route('**/api/v1/watchlists/sources**', async route => {
+      const pathname = new URL(route.request().url()).pathname
+      if (pathname.includes('/history-status/')) {
+        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ overall_status: 'ready', available_instrument_count: 1, selected_instrument_count: 1, timeframes: [{ timeframe: 'D1', member_count: 1, covered_member_count: 1, coverage_percent: 100 }] }) })
+        return
+      }
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(families.map(family => ({ source_id: `benchmark-family:${family.key}:cap_weight`, source_kind: 'index_membership', name: `${family.name} constituents`, locked: true, can_follow: true, can_clone: true, can_edit_membership: false, member_count: 1, membership_version: `${family.key}:v1`, provenance: { availability: 'available', membership_semantics: 'etf_proxy_holdings' } }))) })
+    })
+    await page.route('**/api/v1/analysis/market-map', async route => {
+      const body = route.request().postDataJSON() as { source_id?: string }
+      selectedSources.push(String(body.source_id ?? ''))
+      const familyKey = String(body.source_id ?? '').split(':')[1] ?? 'sp500'
+      const family = familyByKey.get(familyKey) ?? families[0]
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ source: { source_id: body.source_id, source_kind: 'index_membership', name: `${family.name} constituents`, locked: true, member_count: 1, membership_version: `${family.key}:v1` }, group_by: 'sector_industry', period: '1D', timeframe: 'D1', adjustment: 'split_adjusted', area_metric: 'equal', color_metric: 'return', membership_version: `${family.key}:v1`, freshness: 'current', requested_count: 1, evaluated_count: 1, coverage: 1, color_coverage: 1, area_coverage: 1, warnings: [], exclusions: [], nodes: [{ node_id: 'root', level: 'root', label: 'All members', group_path: [], member_count: 1, covered_count: 1, area_total: 1, color_value: 0.01, coverage: 1, color_coverage: 1, area_coverage: 1, aggregation_method: 'equal_member_mean', warnings: [] }], cells: [{ instrument_id: 1, symbol: family.proxy, name: family.name, sector: 'Index', industry: 'ETF', group_path: ['Index', 'ETF'], area_value: 1, color_value: 0.01, return_value: 0.01, coverage: 1, color_coverage: 1, area_coverage: 1, warnings: [] }] }) })
+    })
+    await page.goto('/chart/SPY')
+    const benchmarkSurface = page.locator('.benchmark-surface').first()
+    await expect(benchmarkSurface).toBeVisible({ timeout: 15_000 })
+    const familySelect = benchmarkSurface.getByRole('combobox', { name: 'Benchmark family' })
+    for (const family of families) {
+      await familySelect.selectOption(family.key)
+      await expect(benchmarkSurface).toContainText(`${family.name} legs`)
+      await expect(benchmarkSurface).toContainText(`Official series: ${family.official}`)
+      await expect(benchmarkSurface).toContainText(`Using tradable proxy: ${family.proxy}`)
+    }
+    await benchmarkSurface.getByRole('button', { name: 'Open Market Map' }).click()
+    const mapWindow = page.locator('.tool-window:visible').filter({ has: page.locator('.market-map-tool') }).last()
+    await expect(mapWindow).toBeVisible({ timeout: 15_000 })
+    await expect(mapWindow.getByRole('combobox', { name: 'Market Map universe' })).toHaveValue('benchmark-family:nasdaq100:cap_weight')
+    await expect.poll(() => selectedSources.at(-1), { timeout: 15_000 }).toBe('benchmark-family:nasdaq100:cap_weight')
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
   test('F8s-breadth — Market Breadth exposes universe-scoped loading and failure semantics', async ({ page, browserDiagnostics }) => {
     await page.goto('/chart/SPY')
     await expect(page.locator('.workspace-layout-host')).toBeVisible({ timeout: 10_000 })
