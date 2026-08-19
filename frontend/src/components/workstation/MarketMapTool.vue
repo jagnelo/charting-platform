@@ -376,7 +376,7 @@ function isSourceSelectable(source: WatchlistSource): boolean {
 function sourceAvailability(source: WatchlistSource): 'available' | 'pending' | 'unavailable' {
   const availability = source.provenance?.availability
   if (availability === 'unavailable') return 'unavailable'
-  if (availability === 'profile_not_loaded' || availability === 'holdings_snapshot_not_loaded' || availability === 'membership_not_loaded') return 'pending'
+  if (availability === 'profile_not_loaded' || availability === 'holdings_snapshot_not_loaded' || availability === 'holdings_snapshot_unresolved' || availability === 'membership_not_loaded') return 'pending'
   return 'available'
 }
 

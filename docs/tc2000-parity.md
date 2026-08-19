@@ -1,5 +1,20 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-19 — Unresolved provider holdings remain pending in every source surface
+
+The universal source lifecycle no longer treats a provider snapshot with raw rows but zero
+resolved canonical members as an available watchlist. ETF and benchmark-family descriptors expose
+`holdings_snapshot_unresolved`, report zero usable members while retaining raw-row/resolution
+provenance, and remain followable for later maintenance. Generic history status, family maintenance,
+and benchmark-family coverage use the same pending state; family coverage does not count the role as
+covered until at least one canonical member is resolved.
+
+This prevents the Market Map, Breadth, and family coverage panels from presenting unresolved free
+provider evidence as a ready constituent universe. Focused history/family units pass `10/10`, full
+watchlists integration `47/47`, family coverage `2/2`, Market Map component `30/30`, and backend
+unit `1249/1249`; Ruff/compile/diff checks pass. No acceptance flexibility was used. Provider
+re-resolution, complete membership/bar coverage, and exact V25 partial-state visuals remain open.
+
 ## 2026-08-19 — Every index, ETF, and arbitrary watchlist uses one heatmap language
 
 The workstation now treats a canonical index or ETF constituent set as a hard, system-managed

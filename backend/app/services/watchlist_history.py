@@ -16,20 +16,14 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.ohlcv import OHLCVBar, Timeframe
-from app.services.watchlist_sources import resolve_watchlist_source
+from app.services.watchlist_sources import (
+    PENDING_SOURCE_AVAILABILITIES,
+    resolve_watchlist_source,
+)
 
 DEFAULT_HISTORY_TIMEFRAMES = (Timeframe.MN.value, Timeframe.W1.value, Timeframe.D1.value)
 MAX_HISTORY_INSTRUMENTS = 5000
 MAX_HISTORY_SOURCES = 256
-PENDING_SOURCE_AVAILABILITIES = frozenset(
-    {
-        "profile_not_loaded",
-        "holdings_snapshot_not_loaded",
-        "membership_not_loaded",
-    }
-)
-
-
 def normalize_source_ids(source_ids: list[str] | None) -> list[str]:
     """Deduplicate explicit source IDs while preserving the caller's order."""
 

@@ -18,7 +18,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.etf_holdings import ETFHolding
 from app.models.ohlcv import Timeframe
 from app.services.top_down_taxonomy import BENCHMARK_FAMILY_REGISTRY
-from app.services.watchlist_sources import resolve_watchlist_source
+from app.services.watchlist_sources import (
+    PENDING_SOURCE_AVAILABILITIES,
+    resolve_watchlist_source,
+)
 
 DEFAULT_HISTORY_TIMEFRAMES = (Timeframe.MN.value, Timeframe.W1.value, Timeframe.D1.value)
 MAX_HISTORY_INSTRUMENTS = 5000
@@ -152,11 +155,7 @@ async def plan_benchmark_family_history_refresh(
             # admin progress instead of presenting it as a missing role.
             leg_status = "ready" if available else (
                 "pending"
-                if availability in {
-                    "profile_not_loaded",
-                    "holdings_snapshot_not_loaded",
-                    "membership_not_loaded",
-                }
+                if availability in PENDING_SOURCE_AVAILABILITIES
                 else "unavailable"
             )
             legs.append(

@@ -21,6 +21,30 @@ from app.models.watchlist import Watchlist
 from app.models.workstation import MarketGroup, WorkspaceLibraryItem
 from app.schemas.watchlist import WatchlistSourceRead
 
+PENDING_SOURCE_AVAILABILITIES = frozenset(
+    {
+        "profile_not_loaded",
+        "holdings_snapshot_not_loaded",
+        "holdings_snapshot_unresolved",
+        "membership_not_loaded",
+    }
+)
+
+
+def _holdings_snapshot_availability(
+    profile: ETFProfile | None,
+    snapshot: ETFHoldingsSnapshot | None,
+) -> str:
+    """Return a source lifecycle state without treating unresolved rows as ready."""
+
+    if profile is None:
+        return "profile_not_loaded"
+    if snapshot is None:
+        return "holdings_snapshot_not_loaded"
+    if int(getattr(snapshot, "resolved_count", 0) or 0) <= 0:
+        return "holdings_snapshot_unresolved"
+    return "available"
+
 
 @dataclass(frozen=True)
 class ResolvedWatchlistMember:
@@ -260,14 +284,11 @@ def _benchmark_family_role_descriptor(
         "value": "Value",
         "growth": "Growth",
     }.get(role, role.replace("_", " ").title())
-    if selected is None:
-        availability = "unavailable"
-    elif profile is None:
-        availability = "profile_not_loaded"
-    elif snapshot is None:
-        availability = "holdings_snapshot_not_loaded"
-    else:
-        availability = "available"
+    availability = (
+        "unavailable"
+        if selected is None
+        else _holdings_snapshot_availability(profile, snapshot)
+    )
     if derived:
         membership_semantics = "derived_equal_weight_point_in_time_membership"
         source = snapshot.source_provider if snapshot is not None else "derived_equal_weight_policy"
@@ -304,7 +325,9 @@ def _benchmark_family_role_descriptor(
         instrument_id=instrument.id if instrument is not None else None,
         symbol=proxy_symbol,
         membership_version=membership_version,
-        member_count=snapshot.row_count if snapshot is not None else 0,
+        # The source catalog advertises resolvable canonical members, not raw
+        # provider rows. Raw and unresolved counts remain in provenance.
+        member_count=(snapshot.resolved_count if snapshot is not None else 0),
         source=source,
         provenance={
             "family_key": group.stable_key,
@@ -350,15 +373,13 @@ def _etf_descriptor(
             profile.id if profile is not None else f"instrument:{instrument.id}",
             snapshot.known_at if snapshot else None,
         ),
-        member_count=snapshot.row_count if snapshot else 0,
+        # Keep the picker count aligned with the members that the resolver can
+        # actually publish; raw provider rows remain provenance evidence.
+        member_count=(snapshot.resolved_count if snapshot else 0),
         source=snapshot.source_provider if snapshot else (profile.adapter_key if profile else "canonical_etf_pending"),
         provenance={
             "membership_semantics": "etf_proxy_holdings",
-            "availability": (
-                "available"
-                if snapshot is not None and snapshot.row_count > 0
-                else ("holdings_snapshot_not_loaded" if profile is not None else "profile_not_loaded")
-            ),
+            "availability": _holdings_snapshot_availability(profile, snapshot),
             "profile_id": profile.id if profile is not None else None,
             "snapshot_id": snapshot.id if snapshot else None,
             "snapshot_hash": snapshot.snapshot_hash if snapshot else None,

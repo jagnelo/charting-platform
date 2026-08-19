@@ -1,5 +1,21 @@
 # Project TODO Memory
 
+### 2026-08-19 — Unresolved holdings never masquerade as a ready locked watchlist
+
+- [x] Centralize pending source availability semantics across ETF descriptors, benchmark-family
+      descriptors, generic history planning, family maintenance, and the Market Map picker. A
+      snapshot with zero resolved canonical members is now `holdings_snapshot_unresolved`, remains
+      locked/followable, advertises zero usable members, and preserves raw-row/resolution counts in
+      provenance; profile/empty-snapshot/unmapped states remain distinct.
+- [x] Align benchmark-family coverage with the same lifecycle: a dated snapshot with no resolved
+      members is `holdings_snapshot_unresolved`, contributes no covered role, and emits an explicit
+      warning rather than inflating family coverage. Add backend/API and Market Map regressions.
+- [x] Validate focused history/family units `10/10`, Docker-backed watchlists `47/47`, family
+      coverage `2/2`, Market Map component `30/30`, backend unit `1249/1249`, Ruff, compileall,
+      and diff checks. Acceptance flexibility used: **None**.
+- [ ] Provider-backed re-resolution, complete family membership/bar coverage, and exact V25
+      pending/partial source visuals remain open; this closes state honesty, not data completeness.
+
 ### 2026-08-19 — Any locked universe is the same heatmap watchlist contract
 
 - [x] Treat the constituents of any canonical index, index ETF, sector ETF, industry/proxy ETF,

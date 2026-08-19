@@ -3401,9 +3401,27 @@ async def benchmark_family_coverage(
                 )
                 for gap in continuity.gaps
             ]
-            status = "available" if snapshots else "no_snapshot"
-            if snapshots:
+            resolved_snapshots = [snapshot for snapshot in snapshots if snapshot.resolved_count > 0]
+            status = (
+                "available"
+                if resolved_snapshots
+                else "holdings_snapshot_unresolved"
+                if snapshots
+                else "no_snapshot"
+            )
+            if resolved_snapshots:
                 covered_roles += 1
+            elif snapshots:
+                exclusions.append(
+                    AnalysisWarning(
+                        code="family_role_holdings_unresolved",
+                        message=(
+                            f"Dated holdings for {family_key} {role} contain no resolved "
+                            "canonical members; the locked source remains pending."
+                        ),
+                        instrument_id=instrument.id,
+                    )
+                )
             else:
                 exclusions.append(
                     AnalysisWarning(

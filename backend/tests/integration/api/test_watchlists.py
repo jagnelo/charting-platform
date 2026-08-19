@@ -78,6 +78,73 @@ class TestWatchlistsCrud:
         assert history_body["message"] == "etf_profile_not_loaded"
         assert history_body["timeframes"][0]["member_count"] == 0
 
+    def test_unresolved_etf_snapshot_is_pending_not_available(
+        self, client, auth_headers, db, asset_class
+    ):
+        from app.models.asset_class import InstrumentType
+        from app.models.etf_holdings import ETFHoldingsSnapshot, ETFProfile
+        from app.models.instrument import Instrument
+
+        etf_type = InstrumentType(name="ETF", asset_class_id=asset_class.id)
+        db.add(etf_type)
+        db.flush()
+        etf = Instrument(
+            symbol="UNRESOLVED",
+            name="Unresolved ETF",
+            currency="USD",
+            instrument_type_id=etf_type.id,
+            is_active=True,
+            is_synthetic=False,
+        )
+        db.add(etf)
+        db.flush()
+        profile = ETFProfile(instrument_id=etf.id, adapter_status="failure")
+        db.add(profile)
+        db.flush()
+        db.add(
+            ETFHoldingsSnapshot(
+                etf_profile_id=profile.id,
+                composition_date=datetime(2024, 1, 1, tzinfo=UTC).date(),
+                known_at=datetime(2024, 1, 2, tzinfo=UTC),
+                provenance="issuer_native",
+                source_provider="controlled_fixture",
+                source_quality="issuer_disclosed",
+                completeness_status="partial",
+                row_count=3,
+                resolved_count=0,
+                unresolved_count=3,
+                snapshot_hash="unresolved-etf-snapshot",
+            )
+        )
+        db.flush()
+
+        listed = client.get("/api/v1/watchlists/sources", headers=auth_headers)
+        assert listed.status_code == 200, listed.text
+        source = next(
+            item for item in listed.json() if item["source_id"] == "etf-holdings:UNRESOLVED"
+        )
+        assert source["locked"] is True
+        assert source["member_count"] == 0
+        assert source["provenance"]["availability"] == "holdings_snapshot_unresolved"
+        assert source["provenance"]["snapshot_row_count"] == 3
+        assert source["provenance"]["snapshot_resolved_count"] == 0
+
+        resolved = client.get(
+            "/api/v1/watchlists/sources/etf-holdings:UNRESOLVED",
+            headers=auth_headers,
+        )
+        assert resolved.status_code == 200, resolved.text
+        assert resolved.json()["members"] == []
+        assert resolved.json()["exclusions"] == []
+
+        history = client.get(
+            "/api/v1/watchlists/sources/history-status/etf-holdings:UNRESOLVED",
+            headers=auth_headers,
+            params={"timeframes": "D1"},
+        )
+        assert history.status_code == 200, history.text
+        assert history.json()["overall_status"] == "pending"
+
     def test_market_map_accepts_personal_source_and_rolls_up_constituents(
         self, client, auth_headers, admin_headers, db, watchlist, instrument, instrument_b
     ):

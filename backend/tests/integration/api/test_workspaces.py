@@ -622,6 +622,61 @@ class TestWorkspaces:
             for warning in response.json()["exclusions"]
         )
 
+    def test_benchmark_family_coverage_marks_unresolved_snapshot_as_pending(
+        self, client, auth_headers, db, instrument_type
+    ):
+        from datetime import UTC, datetime
+
+        from app.models.etf_holdings import ETFHoldingsSnapshot, ETFProfile
+        from app.models.instrument import Instrument
+
+        seeded = client.get("/api/v1/market-groups", headers=auth_headers)
+        assert seeded.status_code == 200, seeded.text
+        value_proxy = Instrument(
+            symbol="SPYV",
+            name="S&P 500 value proxy with unresolved holdings",
+            currency="USD",
+            instrument_type_id=instrument_type.id,
+            is_active=True,
+            is_synthetic=False,
+        )
+        db.add(value_proxy)
+        db.flush()
+        profile = ETFProfile(instrument_id=value_proxy.id, adapter_status="failure")
+        db.add(profile)
+        db.flush()
+        db.add(
+            ETFHoldingsSnapshot(
+                etf_profile_id=profile.id,
+                composition_date=datetime(2024, 1, 1, tzinfo=UTC).date(),
+                known_at=datetime(2024, 1, 2, tzinfo=UTC),
+                provenance="issuer_native",
+                source_provider="controlled_fixture",
+                source_quality="issuer_disclosed",
+                completeness_status="partial",
+                row_count=3,
+                resolved_count=0,
+                unresolved_count=3,
+                snapshot_hash="family-unresolved-value-snapshot",
+            )
+        )
+        db.flush()
+
+        response = client.get(
+            "/api/v1/analysis/benchmark-families/sp500/coverage",
+            headers=auth_headers,
+        )
+        assert response.status_code == 200, response.text
+        value_role = next(role for role in response.json()["roles"] if role["role"] == "value")
+        assert value_role["available"] is True
+        assert value_role["status"] == "holdings_snapshot_unresolved"
+        assert value_role["snapshots"][0]["resolved_count"] == 0
+        assert response.json()["coverage"] == 0
+        assert any(
+            warning["code"] == "family_role_holdings_unresolved"
+            for warning in response.json()["exclusions"]
+        )
+
     def test_benchmark_family_constituent_route_preserves_leg_and_proxy_errors(
         self, client, auth_headers, db, instrument, instrument_type, ohlcv_bars
     ):

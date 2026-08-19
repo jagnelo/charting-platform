@@ -1,5 +1,20 @@
 # TC2000 Version 25 composite reference board
 
+## 2026-08-19 — Unresolved holdings state remains a required visual gap
+
+The backend now distinguishes an existing locked ETF/index universe whose disclosed rows cannot yet
+be resolved to canonical members. It remains selectable/followable, shows zero usable members, and
+retains raw-row, resolved-count, unresolved-count, completeness, and retry provenance; it is not
+silently presented as a ready heatmap. Family coverage likewise reports the role as pending and does
+not count it toward covered families.
+
+Gap status: `required_missing` for exact V25 wording, badges, disabled/enabled controls, partial tile
+behavior, retry affordances, and transition from unresolved to ready. Interim oracle: focused
+history/family tests `10/10`, watchlists integration `47/47`, family coverage `2/2`, Market Map
+component `30/30`, backend unit `1249/1249`. Evidence needed: reviewed V25 captures of partial or
+unresolved holdings, source-picker status, retry progress, and recovery. No visual threshold or mask
+was relaxed.
+
 ## 2026-08-19 — Universal arbitrary-watchlist heatmap is a documented reference gap
 
 The implementation now composes one heatmap surface for any source that can be represented as a
