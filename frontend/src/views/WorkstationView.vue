@@ -1315,11 +1315,20 @@ async function publishMapAnalysis(publication: MapAnalysisPublication) {
     publication_origin: 'market_map',
   }
   if (publication.target === 'breadth') {
-    const existing = workspaceStore.activeTab?.windows.find(window => window.tool_type === 'breadth')
+    // The factory breadth surface predates the generic tool registry and is keyed as
+    // `breadth-summary` while its rendered component still uses the breadth contract.
+    // Treat both identities as the same destination so Market Map publication cannot
+    // silently update a hidden generic instance while the visible factory surface stays
+    // on its previous group universe.
+    const breadthCandidates = (workspaceStore.workspace?.tabs ?? []).flatMap(tab => tab.windows
+      .filter(window => window.tool_type === 'breadth' || window.instance_key === 'breadth-summary' || window.instance_key.startsWith('breadth-'))
+      .map(window => ({ tab, window })))
+    const existing = breadthCandidates.find(candidate => candidate.tab.stable_key === workspaceStore.activeTabKey) ?? breadthCandidates[0]
     if (existing) {
-      workspaceStore.setActiveWindow(existing.instance_key)
-      updateToolConfiguration(existing.instance_key, {
-        ...existing.configuration,
+      if (workspaceStore.activeTabKey !== existing.tab.stable_key) selectWorkspaceTab(existing.tab.stable_key)
+      workspaceStore.setActiveWindow(existing.window.instance_key)
+      updateToolConfiguration(existing.window.instance_key, {
+        ...existing.window.configuration,
         custom_universe_kind: 'watchlist',
         custom_universe_watchlist_id: analysisSourceId,
         ...selectedConfiguration,
@@ -1328,22 +1337,25 @@ async function publishMapAnalysis(publication: MapAnalysisPublication) {
     }
     const definition = OPENABLE_WORKSTATION_TOOLS.find(tool => tool.tool_type === 'breadth')
     if (!definition) return
-    const opened = await openTool(definition)
-    if (!opened) return
-    updateToolConfiguration(opened.instance_key, {
-      ...opened.configuration,
+    const opened = await openTool(definition, {
       custom_universe_kind: 'watchlist',
       custom_universe_watchlist_id: analysisSourceId,
       ...selectedConfiguration,
     })
+    if (!opened) return
     return
   }
 
-  const existing = workspaceStore.activeTab?.windows.find(window => window.tool_type === 'study_lab')
+  const studyCandidates = (workspaceStore.workspace?.tabs ?? []).flatMap(tab => tab.windows
+    .filter(window => window.tool_type === 'study_lab')
+    .map(window => ({ tab, window })))
+  const existing = studyCandidates.find(candidate => candidate.tab.stable_key === workspaceStore.activeTabKey) ?? studyCandidates[0]
   if (existing) {
-    workspaceStore.setActiveWindow(existing.instance_key)
-    updateToolConfiguration(existing.instance_key, {
-      ...existing.configuration,
+    if (workspaceStore.activeTabKey !== existing.tab.stable_key) selectWorkspaceTab(existing.tab.stable_key)
+    workspaceStore.setActiveWindow(existing.window.instance_key)
+    updateToolConfiguration(existing.window.instance_key, {
+      ...existing.window.configuration,
+      source_id: publication.sourceId,
       universe_source_id: analysisSourceId,
       selected_member_ids: [...publication.selectedIds],
       selected_member_symbols: [...publication.selectedSymbols],
@@ -1355,10 +1367,8 @@ async function publishMapAnalysis(publication: MapAnalysisPublication) {
   }
   const definition = OPENABLE_WORKSTATION_TOOLS.find(tool => tool.tool_type === 'study_lab')
   if (!definition) return
-  const opened = await openTool(definition)
-  if (!opened) return
-  updateToolConfiguration(opened.instance_key, {
-    ...opened.configuration,
+  const opened = await openTool(definition, {
+    source_id: publication.sourceId,
     universe_source_id: analysisSourceId,
     selected_member_ids: [...publication.selectedIds],
     selected_member_symbols: [...publication.selectedSymbols],
@@ -1366,6 +1376,7 @@ async function publishMapAnalysis(publication: MapAnalysisPublication) {
     analysis_scope: analysisSource.scope,
     publication_origin: 'market_map',
   })
+  if (!opened) return
 }
 
 function updateLinkGroup(windowKey: string, group: LinkGroup, displayedSymbol?: string) {

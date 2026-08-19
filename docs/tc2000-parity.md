@@ -1,5 +1,27 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-19 — Universal watchlist heatmap and research handoff contract
+
+Market Map is source-polymorphic: an index or ETF constituent set is a locked,
+system-managed `WatchlistSource`, while personal, managed, combo, sector, industry, and explicit
+lists are other source kinds consumed by the same map. Locking prevents membership edits; it does
+not remove follow/pin, breadth, scan, gauge, chart, ratio, or Study Lab actions. A tile selection
+is represented as `explicit:<canonical instrument IDs>` and retains its parent source lineage.
+
+The factory breadth destination (`breadth-summary`) is now resolved alongside generic Breadth
+windows, and complete configuration is supplied during new-tool creation. Study Lab receives the
+parent `source_id` as well as the explicit selection, so restored or newly opened tools show the
+source lineage rather than an unexplained selection. The resolver searches the active layout first
+and restored layouts second to tolerate Golden Layout restoration ordering without creating a
+provider-specific path.
+
+Acceptance evidence: Market Map and Study Lab component tests `56/56`, full frontend Vitest
+`914/914`, rebuilt authenticated Chromium `F8s-market-map-watchlist` `1/1`, `vue-tsc`, production
+build, and `git diff --check` pass. No acceptance flexibility was used. The exact V25 selection
+action-row geometry/copy remains `required_missing` where the board lacks an authoritative capture;
+provider-backed family population, point-in-time membership/weights, canonical member-bar history,
+and final visual acceptance remain open rather than silently downgraded.
+
 ## 2026-08-19 — DFTT keeps the universal locked-watchlist route identity-safe
 
 Donoghue Forlines DFTT now carries curated SEC identity (`CIK 0001314414`, series

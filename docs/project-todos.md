@@ -1,5 +1,34 @@
 # Project TODO Memory
 
+### 2026-08-19 — Arbitrary watchlists now share the locked-constituent Market Map and Study handoff
+
+- [x] Treat every index/index-ETF constituent set as a system-managed, membership-locked
+      `WatchlistSource`; personal, managed, combo, sector, industry, ETF, index, and explicit
+      sources all enter the same TC2000-style Market Map rather than using separate heatmap code.
+- [x] Preserve the distinction that `locked` governs membership mutation only. Follow, pin, map,
+      breadth, scan, gauge, chart, ratio, and Study Lab actions remain available regardless of
+      whether the source is editable, and selected members use an ephemeral canonical
+      `explicit:<instrument_ids>` source without mutating the parent list.
+- [x] Repair Market Map publication into the factory `breadth-summary` identity and pass the
+      complete configuration at tool creation. Preserve parent-source lineage when a selected
+      arbitrary-list subset is opened in Study Lab, including after Golden Layout restores a
+      visible tool while the active-tab pointer is transiently elsewhere.
+- [x] Add authenticated browser acceptance proving a personal source and locked source share one
+      heatmap, locked clone/follow semantics, Breadth selection handoff, and Study Lab selection
+      handoff with `Parent source watchlist:7` lineage. Focused component tests pass `56/56`, full
+      frontend Vitest passes `914/914`, the rebuilt stack passes the focused browser test `1/1`,
+      `vue-tsc`, production build, and `git diff --check` pass. Acceptance flexibility used:
+      **None**.
+- [ ] Keep exact V25 action-row geometry/copy as `required_missing` where the visual board has no
+      authoritative capture. Continue tracking provider-backed family population, point-in-time
+      holdings/weights, canonical member-bar history, and final visual acceptance separately; none
+      is waived by this functional closure.
+
+The governing rule is now explicit: an index or ETF constituent list is simply a locked watchlist
+whose membership is controlled by the platform. Any arbitrary watchlist can therefore use the same
+heatmap/map, breadth, chart, ratio, scan, gauge, and Study Lab mechanics; only membership editing
+permissions differ.
+
 ### 2026-08-19 — DFTT route now supplies an identity-safe locked watchlist fallback
 
 - [x] Add curated SEC CIK/series/class/ticker identity for Donoghue Forlines DFTT and merge it

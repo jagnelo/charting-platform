@@ -3403,6 +3403,23 @@ test.describe('TC2000 workstation', () => {
     await expect(breadthTool.getByRole('combobox', { name: 'Custom breadth universe' })).toHaveValue('watchlist')
     await expect(breadthTool.getByRole('combobox', { name: 'Custom breadth watchlist source' })).toHaveValue(/^explicit:\d+$/)
     await expect(breadthTool.getByRole('combobox', { name: 'Custom breadth watchlist source' }).locator('option:checked')).toContainText('Selected members · 1')
+
+    // The same arbitrary personal source can be reopened through the workstation tool
+    // library and published into Study Lab without converting the source into a ticker-only
+    // universe. This is the complementary structured-research handoff for the shared map.
+    await page.getByRole('button', { name: 'Add tool' }).click()
+    await page.getByRole('menuitem', { name: 'Market Map' }).click()
+    const studyMapWindow = page.locator('.tool-window:visible').filter({ has: page.locator('.market-map-tool') }).last()
+    await expect(studyMapWindow).toBeVisible({ timeout: 15_000 })
+    await studyMapWindow.getByRole('combobox', { name: 'Market Map universe' }).selectOption('watchlist:7')
+    await studyMapWindow.getByRole('button', { name: 'Refresh', exact: true }).click()
+    await expect(studyMapWindow.locator('.market-map-tool__tile')).toHaveCount(2)
+    await studyMapWindow.locator('.market-map-tool__tile').first().click()
+    await studyMapWindow.getByRole('button', { name: 'Open selected members in Study Lab' }).click()
+    const studyLab = page.locator('.study-lab-tool:visible').last()
+    await expect(studyLab).toBeVisible({ timeout: 15_000 })
+    await expect(studyLab.getByRole('textbox', { name: 'Study universe source' })).toHaveValue(/^explicit:\d+$/)
+    await expect(studyLab.getByRole('status', { name: 'Study source lineage' })).toContainText('Parent source watchlist:7')
     await browserDiagnostics.expectNoCriticalIssues()
   })
 

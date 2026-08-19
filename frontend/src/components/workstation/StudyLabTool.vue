@@ -427,7 +427,7 @@ watch(() => props.configuration, configuration => {
   else if (typeof configuration?.symbols === 'string') universeSymbols.value = configuration.symbols
   if (configuration && !('parameter_schema' in configuration)) parameterSchemaText.value = ''
   else if (typeof configuration?.parameter_schema === 'string') parameterSchemaText.value = configuration.parameter_schema
-}, { deep: true })
+}, { deep: true, flush: 'sync' })
 watch([timeframe, benchmark, universeSourceId, universeSymbols, adjustment, session, startDate, endDate, asOf], () => {
   const configuration: Record<string, unknown> = { ...(props.configuration ?? {}), timeframe: timeframe.value, adjustment: adjustment.value, session: session.value }
   if (benchmark.value) configuration.benchmark = benchmark.value.toUpperCase()
