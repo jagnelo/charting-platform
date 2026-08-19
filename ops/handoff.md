@@ -12,8 +12,9 @@
   production build; and `git diff --check`. Acceptance flexibility: **None**.
 - Exact V25 nested group labels, gutters, density, hover treatment, and root/drill-down composition
   remain reference-board gaps. Provider-backed family/source population remains open.
-- Implementation/docs commit and operational checkpoint are the next required writes. Next context
-  remains provider-backed family/source population and remaining V25 visual/reference gaps.
+- Implementation/docs commit `fe5ae36ee6c240785b6eae45c7e8294be9f77b49` and operational checkpoint
+  `37a211486dab2ee72f2efb760d84b944f9ac7446` are pushed and synchronized. This context is closed;
+  next context remains provider-backed family/source population and remaining V25 visual/reference gaps.
 
 ## 2026-08-19 — Canvas paint-order regression is now asserted directly
 
