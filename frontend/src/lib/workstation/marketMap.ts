@@ -132,6 +132,16 @@ export interface MarketMapLayoutCell extends MarketMapCell {
   height: number
 }
 
+export interface MarketMapLayoutGroup {
+  key: string
+  label: string
+  x: number
+  y: number
+  width: number
+  height: number
+  member_count: number
+}
+
 interface LayoutItem {
   key: string
   area: number
@@ -207,10 +217,12 @@ export function layoutMarketMapCells(cells: MarketMapCell[], width = 100, height
     }).filter((cell): cell is MarketMapLayoutCell => Boolean(cell))
   }
 
-  const groups = new Map<string, typeof weighted>()
+  const groups = new Map<string, typeof weighted[number][]>()
   for (const item of weighted) {
     const key = item.cell.group_path[0] || 'All members'
-    groups.set(key, [...(groups.get(key) ?? []), item])
+    const members = groups.get(key)
+    if (members) members.push(item)
+    else groups.set(key, [item])
   }
   const groupRects = layoutRectangles(
     [...groups.entries()].map(([key, members]) => ({
@@ -240,4 +252,40 @@ export function layoutMarketMapCells(cells: MarketMapCell[], width = 100, height
     }
   }
   return result
+}
+
+/**
+ * Returns the top-level rectangles used to frame grouped map members. This is
+ * deliberately separate from member geometry so the large-universe canvas can
+ * draw group boundaries without creating one DOM node per tile.
+ */
+export function layoutMarketMapGroups(cells: MarketMapCell[], width = 100, height = 100): MarketMapLayoutGroup[] {
+  const groups = new Map<string, { area: number; member_count: number }>()
+  for (const cell of cells) {
+    if (cell.area_value == null || !Number.isFinite(cell.area_value) || cell.area_value <= 0) continue
+    const key = cell.group_path[0] || 'All members'
+    const group = groups.get(key)
+    if (group) {
+      group.area += cell.area_value
+      group.member_count += 1
+    } else {
+      groups.set(key, { area: cell.area_value, member_count: 1 })
+    }
+  }
+  if (!groups.size || (groups.size === 1 && groups.has('All members'))) return []
+  return layoutRectangles(
+    [...groups.entries()].map(([key, value]) => ({ key, area: value.area })),
+    0,
+    0,
+    width,
+    height,
+  ).map(rect => ({
+    key: rect.key,
+    label: rect.key,
+    x: rect.x,
+    y: rect.y,
+    width: rect.width,
+    height: rect.height,
+    member_count: groups.get(rect.key)?.member_count ?? 0,
+  }))
 }

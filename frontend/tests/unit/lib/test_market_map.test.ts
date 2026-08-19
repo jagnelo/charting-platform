@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { layoutMarketMapCells } from '@/lib/workstation/marketMap'
+import { layoutMarketMapCells, layoutMarketMapGroups } from '@/lib/workstation/marketMap'
 
 describe('market map layout', () => {
   it('fills a deterministic rectangle and preserves area ordering', () => {
@@ -43,5 +43,25 @@ describe('market map layout', () => {
     const sameColumn = Math.abs(technology[0].x - technology[1].x) < 0.001
     const sameRow = Math.abs(technology[0].y - technology[1].y) < 0.001
     expect(sameColumn || sameRow).toBe(true)
+  })
+
+  it('exposes deterministic top-level group frames for grouped universes', () => {
+    const cells = [
+      { instrument_id: 1, symbol: 'A', name: 'A', group_path: ['Technology', 'Software'], area_value: 3, color_value: 0.1, coverage: 1, warnings: [] },
+      { instrument_id: 2, symbol: 'B', name: 'B', group_path: ['Technology', 'Hardware'], area_value: 1, color_value: -0.1, coverage: 1, warnings: [] },
+      { instrument_id: 3, symbol: 'C', name: 'C', group_path: ['Health Care', 'Devices'], area_value: 2, color_value: 0.2, coverage: 1, warnings: [] },
+      { instrument_id: 4, symbol: 'D', name: 'D', group_path: [], area_value: 1, color_value: 0, coverage: 1, warnings: [] },
+    ]
+    const groups = layoutMarketMapGroups(cells)
+    expect(groups.map(group => group.label)).toEqual(['Technology', 'Health Care', 'All members'])
+    expect(groups.map(group => group.member_count)).toEqual([2, 1, 1])
+    expect(groups.every(group => group.x >= 0 && group.y >= 0 && group.width > 0 && group.height > 0 && group.x + group.width <= 100.001 && group.y + group.height <= 100.001)).toBe(true)
+    expect(groups[0].width * groups[0].height).toBeGreaterThan(groups[1].width * groups[1].height)
+  })
+
+  it('does not expose a frame for a single ungrouped source', () => {
+    expect(layoutMarketMapGroups([
+      { instrument_id: 1, symbol: 'A', name: 'A', group_path: [], area_value: 1, color_value: 0, coverage: 1, warnings: [] },
+    ])).toEqual([])
   })
 })
