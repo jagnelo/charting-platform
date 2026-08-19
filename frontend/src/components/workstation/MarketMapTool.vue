@@ -7,7 +7,7 @@
           <option v-if="sourceId.startsWith('explicit:')" :value="sourceId">Explicit symbols · Locked</option>
           <optgroup v-for="group in sourceGroups" :key="group.key" :label="group.label">
             <option v-for="source in group.sources" :key="source.source_id" :value="source.source_id" :disabled="!isSourceSelectable(source)">
-              {{ source.pinned ? '★ ' : '' }}{{ source.name }}{{ source.locked ? ' · Locked' : '' }}{{ isSourceSelectable(source) ? '' : ' · Unavailable' }}
+              {{ source.pinned ? '★ ' : '' }}{{ source.name }}{{ source.locked ? ' · Locked' : '' }}{{ sourceAvailabilitySuffix(source) }}
             </option>
           </optgroup>
         </select>
@@ -25,6 +25,7 @@
       </template>
       <div v-if="activeSource" class="market-map-tool__source-actions" aria-label="Market Map source preferences">
         <span class="market-map-tool__source-kind">{{ sourceKindLabel(activeSource.source_kind) }} · {{ activeSource.member_count ?? '—' }} members</span>
+        <span v-if="sourceAvailability(activeSource) === 'pending'" class="market-map-tool__source-state" role="status">Membership pending; this locked source remains followable</span>
         <button v-if="activeSource.can_follow" type="button" :aria-pressed="sourceFollowed" :aria-label="sourceFollowed ? `Unfollow ${activeSource.name}` : `Follow ${activeSource.name}`" @click="toggleSourceFollow">{{ sourceFollowed ? 'Following' : 'Follow' }}</button>
         <button v-if="activeSource.can_clone" type="button" :aria-pressed="sourcePinned" :aria-label="sourcePinned ? `Unpin ${activeSource.name}` : `Pin ${activeSource.name}`" @click="toggleSourcePin">{{ sourcePinned ? 'Pinned' : 'Pin' }}</button>
         <button v-if="map && activeSource.can_clone" type="button" :disabled="sourceCloneBusy" :aria-label="`Clone ${activeSource.name} snapshot`" @click="cloneActiveSource">{{ sourceCloneBusy ? 'Cloning…' : 'Clone snapshot' }}</button>
@@ -369,11 +370,21 @@ const sourcePinned = computed(() => Boolean(activeSource.value && userSettingsSt
 const LARGE_MAP_CANVAS_THRESHOLD = 1500
 
 function isSourceSelectable(source: WatchlistSource): boolean {
+  return sourceAvailability(source) !== 'unavailable'
+}
+
+function sourceAvailability(source: WatchlistSource): 'available' | 'pending' | 'unavailable' {
   const availability = source.provenance?.availability
-  return availability !== 'unavailable'
-    && availability !== 'profile_not_loaded'
-    && availability !== 'holdings_snapshot_not_loaded'
-    && availability !== 'membership_not_loaded'
+  if (availability === 'unavailable') return 'unavailable'
+  if (availability === 'profile_not_loaded' || availability === 'holdings_snapshot_not_loaded' || availability === 'membership_not_loaded') return 'pending'
+  return 'available'
+}
+
+function sourceAvailabilitySuffix(source: WatchlistSource): string {
+  const availability = sourceAvailability(source)
+  if (availability === 'unavailable') return ' · Unavailable'
+  if (availability === 'pending') return ' · Pending membership'
+  return ''
 }
 
 function sourceKindLabel(kind: WatchlistSourceKind): string {

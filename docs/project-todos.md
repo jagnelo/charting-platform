@@ -1,5 +1,20 @@
 # Project TODO Memory
 
+### 2026-08-19 — Mapped locked sources remain followable while membership hydrates
+
+- [x] Keep a canonical index/ETF/benchmark-family source selectable and followable when its
+      mapping is verified but its profile, holdings snapshot, or member universe is still pending.
+      The Market Map now distinguishes `pending membership` from a genuinely `unavailable` role;
+      pending sources resolve through the same empty/coverage-aware map contract without triggering
+      provider fan-out or inventing members.
+- [x] Preserve locked membership semantics: users can follow, pin, and inspect the pending source,
+      while manual membership editing remains disabled. A source with no verified mapping remains
+      disabled and explicitly labelled `Unavailable`.
+- [x] Validate the pending/unavailable distinction with the Market Map component regression,
+      frontend Vitest `909/909`, and TypeScript type-check. Acceptance flexibility used: **None**.
+- [ ] Provider-backed holdings/history hydration, complete family population, and exact V25 pending
+      membership/status geometry remain open and must not be inferred from this interaction change.
+
 ### 2026-08-19 — Holdings bootstrap retries incomplete latest snapshots
 
 - [x] Make `bootstrap_etf_holdings_profile` use the same readiness rule as the core workstation

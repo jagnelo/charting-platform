@@ -229,20 +229,47 @@ describe('MarketMapTool', () => {
     expect(wrapper.text()).toContain('Locked source')
   })
 
-  it('keeps unavailable family legs visible but prevents accidental selection', async () => {
+  it('keeps unmapped family legs unavailable but lets mapped pending sources remain followable', async () => {
     const previousSources = sourceState.sources
+    const pendingSource = {
+      ...previousSources[0],
+      source_id: 'benchmark-family:sp500:value-pending',
+      source_kind: 'index_membership' as const,
+      name: 'S&P 500 — Value pending',
+      member_count: 0,
+      provenance: { availability: 'holdings_snapshot_not_loaded' },
+    }
     sourceState.sources = [
       ...previousSources,
+      pendingSource,
       {
         ...previousSources[0],
         source_id: 'benchmark-family:sp500:value',
         source_kind: 'index_membership',
         name: 'S&P 500 — Value',
-        provenance: { availability: 'holdings_snapshot_not_loaded' },
+        provenance: { availability: 'unavailable' },
       },
     ]
-    const wrapper = mount(MarketMapTool)
+    apiPost.mockResolvedValue({
+      ...response,
+      source: pendingSource,
+      requested_count: 0,
+      evaluated_count: 0,
+      coverage: 0,
+      color_coverage: 0,
+      area_coverage: 0,
+      nodes: [],
+      cells: [],
+    })
+    const wrapper = mount(MarketMapTool, { props: { configuration: { source_id: pendingSource.source_id } } })
     await flushPromises()
+
+    const pendingOption = wrapper.find(`option[value="${pendingSource.source_id}"]`)
+    expect(pendingOption.attributes('disabled')).toBeUndefined()
+    expect(pendingOption.text()).toContain('Pending membership')
+    expect(wrapper.find('[aria-label="Market Map source preferences"] [role="status"]').text()).toContain('remains followable')
+    await wrapper.get(`[aria-label="Follow ${pendingSource.name}"]`).trigger('click')
+    expect(toggleFollowedSource).toHaveBeenCalledWith(pendingSource.source_id)
 
     const option = wrapper.find('option[value="benchmark-family:sp500:value"]')
     expect(option.attributes('disabled')).toBeDefined()

@@ -1,5 +1,19 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-19 — Locked sources exist before their membership snapshot is hydrated
+
+Mapped index/ETF and benchmark-family legs now remain selectable and followable while their local
+profile or holdings snapshot is pending. Market Map labels this state `Pending membership` and
+continues through the source-polymorphic empty/coverage-aware response; it does not call providers
+from the interactive selector or fabricate constituent rows. A role with no verified mapping stays
+disabled and is labelled `Unavailable`, preserving the distinction between an existing system
+watchlist and a product that does not exist.
+
+The focused Market Map component suite passes `30/30`, full frontend Vitest passes `909/909`, and
+TypeScript type-check passes. This closes the source-existence/followability interaction boundary,
+not provider-backed holdings/history, complete family population, or exact V25 pending-status
+geometry. No acceptance flexibility was used.
+
 ## 2026-08-19 — Holdings bootstrap no longer short-circuits partial snapshots
 
 The holdings bootstrap now shares the core readiness rule instead of returning success merely

@@ -1,5 +1,20 @@
 # TC2000 Version 25 composite reference board
 
+## 2026-08-19 — Pending locked-source followability is a visual-reference gap
+
+The implementation now treats a mapped index/ETF constituent universe as a system watchlist even
+before its local membership snapshot has hydrated. The selector keeps it enabled and labels it
+`Pending membership`; the source can be followed or pinned, while a truly unmapped role remains
+`Unavailable`. This is the correct source-polymorphic behavior for the universal Market Map, but
+the composed web reference board has no authoritative V25 capture for the exact pending-source
+label, follow/pin affordance, empty-map state, or transition after hydration.
+
+Gap status: `required_missing` for exact V25 geometry, wording, and transition visuals. Interim
+oracle: component regression `30/30`, full frontend Vitest `909/909`, and TypeScript type-check.
+Evidence needed: a reviewed V25 capture showing an existing managed/system watchlist before its
+constituent data is ready, including the selector, status, follow/pin controls, and recovered map.
+No visual threshold or mask was relaxed.
+
 ## 2026-08-19 — Incomplete holdings evidence must trigger a real retry
 
 The backend contract now distinguishes a visible partial/unknown holdings state from a ready
