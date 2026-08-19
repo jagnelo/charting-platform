@@ -1,4 +1,24 @@
 tasks:
+  - id: tc2000-family-map-close-reopen-20260819
+    title: Make repeated family Market Map close/reopen Golden Layout safe
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Preserve the universal source-polymorphic Market Map while traversing all eight benchmark
+      roots. Closing a tool must remove it from the serializable tree, keep surviving stack active
+      indices valid, and reinstall the workstation without stale Golden Layout resize callbacks.
+    definition_of_done:
+      - Host-level regression covers filtered-tree close and reinstall
+      - Rebuilt Chromium family drilldown and matrix paths pass for all eight roots
+      - Full frontend, type/build, and diff validation pass
+      - Remaining exact-V25/provider gaps are documented rather than waived
+    validation:
+      - frontend/tests/unit/components/test_workspace_layout_host.test.ts: 8/8
+      - frontend/tests/e2e/flows.spec.ts F8s-family: 2/2 rebuilt Chromium
+      - frontend Vitest: 107 files, 915 tests
+      - vue-tsc, production build, git diff --check: passed
+    acceptance_flexibility: none
   - id: tc2000-combo-watchlist-map-oracle-20260819
     title: Prove derived combo watchlists share the universal Market Map
     status: completed

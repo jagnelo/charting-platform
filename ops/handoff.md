@@ -1,5 +1,20 @@
 # Active Handoff
 
+## 2026-08-19 — Family Market Map close/reopen lifecycle repaired
+
+- Repeatedly opening and closing the source-polymorphic Market Map while traversing all eight US
+  benchmark roots no longer mutates a live Golden Layout stack. The host filters the serializable
+  tree, clamps surviving stack active indices, disconnects the old instance, and reinstalls the
+  filtered tree immediately; the parent snapshot then persists the same layout.
+- Validation: rebuilt Chromium `F8s-family` `2/2`, host component `8/8`, full frontend Vitest
+  `915/915`, `vue-tsc`, production build, and diff checks pass. The earlier browser failures were
+  real Golden Layout exceptions (`tabs-container` stale element and out-of-range active index)
+  and are fixed. Acceptance flexibility: **None**.
+- The ETF snapshot response in these browser tests is deterministic fixture data. Provider-backed
+  family population, canonical member bars, point-in-time weights, exact V25 close/source-picker
+  visuals, combo version reconstruction, and final visual acceptance remain open. Implementation/docs
+  commit `5fd3b4ab` is pushed; a separate operational closure commit remains pending.
+
 ## 2026-08-19 — Derived combo watchlist Market Map oracle completed
 
 - Extended the universal authenticated Market Map flow to a user-owned `combo:analysis-combo`

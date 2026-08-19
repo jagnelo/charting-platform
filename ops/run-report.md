@@ -1,5 +1,19 @@
 # Run Report
 
+## 2026-08-19 — Family Market Map close/reopen lifecycle repaired
+
+- Reproduced and fixed two real Golden Layout failures exposed by the eight-root family oracle:
+  stale resize callbacks during live `removeChild`, followed by out-of-range `activeItemIndex`
+  after filtering a serialized stack. Close now rebuilds the JSON tree, clamps active indices,
+  tears down, and reinstalls before the parent snapshot round-trip.
+- Evidence: rebuilt Chromium `F8s-family` `2/2`; host component `8/8`; full frontend Vitest
+  `107/107` files and `915/915` tests; `vue-tsc`, production build, and `git diff --check` pass.
+  Acceptance flexibility: **None**. The ETF snapshot payload is a deterministic browser fixture,
+  not a provider-completeness assertion.
+- Remaining gaps: exact V25 close/source-picker visuals, provider-backed family population,
+  point-in-time holdings/weights, canonical member-bar history, combo version reconstruction,
+  and final visual-board acceptance.
+
 ## 2026-08-19 — Derived combo watchlist Market Map oracle completed
 
 - Added authenticated coverage for `combo:analysis-combo` alongside personal and locked
