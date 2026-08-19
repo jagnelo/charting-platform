@@ -1,5 +1,24 @@
 # Run Report
 
+## 2026-08-19 — Historical Market Map knowledge boundary repaired
+
+- The universal heatmap/watchlist abstraction remains source-polymorphic: a platform-controlled
+  index or ETF constituent population is a locked watchlist, while personal, combo, explicit,
+  sector, industry, managed, and ETF sources use the same Market Map and downstream analysis
+  actions. `locked` changes membership mutation permissions only.
+- Historical profile selection now applies both `observed_at <= end/as_of` and
+  `fetched_at <= end/as_of`. A provider snapshot that reports an old observation but was only
+  fetched after the requested evaluation cannot leak future knowledge into historical market-cap
+  area or sector/industry grouping.
+- Added a Docker-backed regression with a pre-observed, future-fetched snapshot; the earlier
+  known area, sector, and industry remain selected. Validation: Market Map unit `5/5`, Docker-
+  backed watchlists integration `47/47`, full backend unit suite `1258/1258`, Ruff, compileall,
+  and `git diff --check` pass. Acceptance flexibility: **None**.
+- Implementation/docs commit `dbbde0ed` is pushed; the operational ledger changes remain pending
+  their separate commit/push. Remaining goal gaps are provider-backed all-family population,
+  canonical member-bar history, complete point-in-time holdings/weights, exact/unrepresented V25
+  visual states, and final acceptance.
+
 ## 2026-08-19 — Family Market Map close/reopen lifecycle repaired
 
 - Reproduced and fixed two real Golden Layout failures exposed by the eight-root family oracle:

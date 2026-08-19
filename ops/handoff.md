@@ -1,5 +1,23 @@
 # Active Handoff
 
+## 2026-08-19 — Historical Market Map known-at boundary enforced
+
+- The universal source-polymorphic contract remains unchanged: an index/index-ETF constituent
+  population is a locked watchlist, and personal, combo, explicit, sector, industry, managed, and
+  ETF sources use the same heatmap/breadth/chart/ratio/scan/gauge/Study-Lab actions.
+- Historical profile selection now requires both `observed_at <= end/as_of` and
+  `fetched_at <= end/as_of`. A snapshot that describes an earlier date but was only learned after
+  the evaluation time is future knowledge and is excluded from market-cap area and historical
+  sector/industry grouping.
+- Regression evidence: Docker-backed watchlists `47/47` includes a future-fetched snapshot and
+  proves the earlier known area/sector/industry remains selected; Market Map unit `5/5`; full
+  backend unit suite `1258/1258`; Ruff, compileall, and diff checks pass. Acceptance flexibility:
+  **None**.
+- Implementation/docs commit `dbbde0ed` is pushed. The operational ledger changes in this context
+  are still pending their separate commit/push. Remaining goal gaps are provider-backed all-family
+  population, canonical member-bar history, point-in-time holdings completeness, and
+  exact/unrepresented V25 visual states.
+
 ## 2026-08-19 — Universal Market Map historical classification gate completed
 
 - The product contract remains one source-polymorphic TC2000-style heatmap: an index/index-ETF

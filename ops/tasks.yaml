@@ -1,4 +1,25 @@
 tasks:
+  - id: tc2000-market-map-known-at-boundary-20260819
+    title: Prevent future-fetched profile snapshots from leaking into historical Market Maps
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Keep the universal locked-index/ETF and arbitrary-watchlist Market Map contract historical-
+      truth safe by requiring both provider observation time and local fetched/known-at time to be
+      no later than the requested map end/as-of.
+    definition_of_done:
+      - Historical profile area and classification queries apply the fetched_at knowledge cutoff
+      - A pre-observed but future-fetched snapshot cannot replace a snapshot known at evaluation time
+      - Regression coverage proves area, sector, and industry remain on the earlier known snapshot
+      - Focused, full backend, lint, compile, and diff validation pass
+      - Exact V25 warning/hover geometry and provider/family completeness remain explicit gaps
+    validation:
+      - market-map-unit-5-of-5
+      - Docker-backed-watchlists-integration-47-of-47
+      - backend-unit-suite-1258-of-1258
+      - Ruff-compileall-and-git-diff-check
+    acceptance_flexibility: none
   - id: tc2000-market-map-historical-classification-20260819
     title: Keep arbitrary-watchlist Market Map grouping point-in-time safe
     status: completed
