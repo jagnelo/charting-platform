@@ -887,6 +887,7 @@ import { buildComboWatchlistRows, type ComboListDefinition } from '@/lib/worksta
 import { autoRatioBenchmarks, autoRatioExpression } from '@/lib/workstation/ratioExpression'
 import { indicatorColumnFromPlot, pythonColumnFromPlot, type ChartAnalysisDragPayload, type ChartPlotDragPayload, type TechnicalConditionDragPayload } from '@/lib/workstation/plotDrag'
 import { formatWorkstationFreshness } from '@/lib/workstation/freshness'
+import { benchmarkFamilyConstituentSourceId } from '@/lib/workstation/benchmarkFamilySources'
 import { CHART_BAR_TYPES, type ChartBarType, type ChartComparisonSeries, type ChartPythonSeries, type IndicatorConfig, type OHLCVBar, type Timeframe } from '@/types'
 
 // Golden Layout can temporarily retain multiple virtual roots for one tool.
@@ -1896,7 +1897,9 @@ const activeBenchmarkIdentity = computed(() => {
   }
 })
 const activeBenchmarkListLabel = computed(() => benchmarkFamilyKey.value ? `${activeBenchmarkLabel.value} legs` : 'Major US benchmarks')
-const activeBenchmarkMarketMapSourceId = computed(() => benchmarkFamilyKey.value ? `market-group:${benchmarkFamilyKey.value}` : 'market-group:us-benchmarks')
+const activeBenchmarkMarketMapSourceId = computed(() => benchmarkFamilyKey.value
+  ? benchmarkFamilyConstituentSourceId(benchmarkFamilyKey.value, 'cap_weight')
+  : 'market-group:us-benchmarks')
 const isBenchmarkFamily = computed(() => benchmarkFamilyOptions.value.some(family => family.logicalKey === breadthGroupKey.value))
 const benchmarkIdentity = computed(() => {
   const identity = workspaceStore.marketGroups['us-benchmarks']?.provenance?.benchmark_identities
