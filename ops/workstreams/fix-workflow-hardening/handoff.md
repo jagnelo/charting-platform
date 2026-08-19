@@ -13,5 +13,8 @@ require explicit agent review and staging before continuation.
 
 The backend GitHub job now strips uv's path-dependent generated header before
 comparing the compatibility export, and invokes pytest through `uv run` after the
-frozen environment is installed. This addresses the repeated pre-test CI failure;
-the branch replay and full candidate gate must still be rerun.
+frozen environment is installed. The first replay then exposed a second workflow
+defect: the integration-only job applied the repository-wide coverage threshold
+and failed after 369 passing tests at 47.78%. It now explicitly uses
+`--cov-fail-under=0`, matching the Makefile; the branch replay and full candidate
+gate must still be rerun.

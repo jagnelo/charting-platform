@@ -59,6 +59,7 @@ jobs:
           cd backend
           ENV_FILE=.env.dev uv run pytest tests/integration \
             --cov=app --cov-report=xml:coverage-integration.xml \
+            --cov-fail-under=0 \
             --no-header -q
 
       - name: Upload coverage to Codecov

@@ -21,7 +21,7 @@ acceptance_criteria:
   - "Stale allocation records are reclaimed only with Git and Docker proof."
   - "A paused conflict candidate can resume only after all conflicts are resolved and the captured source SHA remains present."
   - "Ratio row actions remount the dock after snapshot replacement so persisted and visible configurations remain aligned."
-  - "The GitHub backend job accepts the tracked compatibility export when only uv's generated output path differs and invokes the repository environment for pytest."
+  - "The GitHub backend job accepts the tracked compatibility export when only uv's generated output path differs, invokes the repository environment for pytest, and does not apply the combined coverage threshold to the integration-only slice."
 branch_tests:
   - "backend/.venv/bin/python -m pytest backend/tests/unit/test_worktree_runtime.py -q --no-cov"
   - "uv run ruff check scripts backend/tests/unit/test_worktree_runtime.py"
@@ -33,4 +33,4 @@ deployment_impact: none
 status: in_progress
 remaining_gaps:
   - "Conflict continuation still requires an agent to perform semantic edits and stage source files."
-  - "The full GitHub replay and exact integration gate remain to be rerun after the CI workflow correction."
+  - "The full GitHub replay and exact integration gate must be rerun after the integration coverage correction."
