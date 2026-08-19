@@ -1,5 +1,18 @@
 # TC2000 Version 25 composite reference board
 
+## 2026-08-19 — Top-down interaction evidence and data-mode gap
+
+The board-guided workstation flow is now exercised end to end in the deterministic fixture:
+benchmark → sector → ratio → indicator/drawing → industry → constituent → restored chart state and
+keyboard traversal. The eight-family map/breadth/rotation entry matrix also passes. These are
+interaction oracles, not new visual approval: exact V25 trader-flow geometry remains governed by
+the represented board states and named gaps.
+
+The default stack intentionally has identity-only data. Canonical membership/sector drill-down
+visual and data acceptance therefore remains a tracked gap until `E2E_CANONICAL_MARKET_DATA=true`
+is run against a hydrated, network-enabled database. This distinction is explicit and does not
+permit silently treating unavailable provider data as a visual or functional pass.
+
 ## 2026-08-19 — Python breadth benchmark-target control is newly represented
 
 Recursive Breadth now lets a Python series comparison evaluate its right-hand series against the

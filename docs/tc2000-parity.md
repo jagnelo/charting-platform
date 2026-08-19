@@ -1,5 +1,22 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-19 — Top-down trader workflow and family matrix browser gates
+
+The authenticated browser acceptance now proves the real seeded workflow rather than only isolated
+controls: benchmark trend, sector selection, sector/SPY ratio, RSI plot authoring, horizontal
+drawing, industry and constituent drill-down, return to the annotated sector, persisted chart state,
+and Space traversal. `F8e.swing-analysis`, `F8e.1`, and `F8e.1a` pass `3/3` in the deterministic
+market-data fixture. The independent family matrix also passes `F8s-family-map-drilldown`,
+`F8s-family-matrix`, `F8s-breadth-family-ratio`, and `F8s-rotation-family` (`4/4`), covering all
+eight root identities and role-aware family views.
+
+The E2E harness now distinguishes evidence modes explicitly: fixture-dependent flows require
+`E2E_SEED_MARKET_DATA=true`, while canonical provider membership flows require the explicit
+`E2E_CANONICAL_MARKET_DATA=true` opt-in. The default identity-only stack no longer turns absent
+provider hydration into a false product failure. The live membership/sector drill-down oracle
+remains `required_missing` until a network-enabled run has hydrated and verified the canonical
+free-source holdings database; no provider substitution or acceptance relaxation was used.
+
 ## 2026-08-19 — Single-output Boolean column browser acceptance added
 
 The authenticated browser matrix now includes `F8g-boolean-column`: it authors a single-output

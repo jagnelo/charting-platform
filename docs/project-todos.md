@@ -1,5 +1,25 @@
 # Project TODO Memory
 
+### 2026-08-19 — Top-down trader workflow browser acceptance is mode-explicit
+
+- [x] Rebuilt the branch stack with `E2E_SEED_MARKET_DATA=true` and exercised the real user flow:
+      benchmark trend → sector selection → sector/SPY relative strength → RSI plot → horizontal
+      drawing → industry → constituent → return to the sector → persisted indicator/drawing state
+      → keyboard traversal. The authenticated `F8e.swing-analysis` oracle passes `1/1`.
+- [x] Exercised the seeded industry/proxy/constituent drill-down and all-sector horizontal-scroll
+      contracts (`F8e.1`, `F8e.1a`) plus the independent eight-family map, breadth, and rotation
+      matrix (`F8s-family-map-drilldown`, `F8s-family-matrix`, `F8s-breadth-family-ratio`,
+      `F8s-rotation-family`): `7/7` passed with no critical browser diagnostics.
+- [x] Made acceptance prerequisites explicit. Fixture-dependent drill-down/trader flows now skip
+      unless `E2E_SEED_MARKET_DATA=true`; canonical provider membership flows skip unless the
+      operator explicitly sets `E2E_CANONICAL_MARKET_DATA=true`. The default identity-only stack
+      therefore reports an honest unavailable-data mode instead of producing false product failures.
+- [ ] The canonical live-source oracle remains an external-data gap: the default free-source stack
+      has no hydrated SPY/sector holdings snapshots, so `F8e.live-membership` and
+      `F8e.live-sector-drilldown` still require an explicitly network-enabled, hydrated database.
+      This is not acceptance flexibility or a fixture substitution; it remains a tracked provider/
+      population/continuity requirement.
+
 ### 2026-08-19 — Python breadth comparisons can target the prepared benchmark series
 
 - [x] Extend recursive `python_series_comparison` leaves with an explicit `right_scope` of

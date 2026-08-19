@@ -2015,7 +2015,10 @@ test.describe('TC2000 workstation', () => {
   })
 
   test('F8e.live-membership — top-down benchmark and sector holdings are canonical, not fixtures', async ({ page, loggedIn, browserDiagnostics }) => {
-    test.skip(process.env.E2E_SEED_MARKET_DATA === 'true', 'Requires the authorised free-source canonical database')
+    test.skip(
+      process.env.E2E_SEED_MARKET_DATA === 'true' || process.env.E2E_CANONICAL_MARKET_DATA !== 'true',
+      'Requires the explicitly enabled authorised free-source canonical database; the default stack is identity-only',
+    )
     await page.goto('/chart')
     const token = await page.evaluate(() => localStorage.getItem('access_token'))
     expect(token).toBeTruthy()
@@ -2040,7 +2043,10 @@ test.describe('TC2000 workstation', () => {
   })
 
   test('F8e.live-sector-drilldown — every live sector exposes an industry surface', async ({ page, browserDiagnostics }) => {
-    test.skip(process.env.E2E_SEED_MARKET_DATA === 'true', 'Requires the authorised free-source canonical database')
+    test.skip(
+      process.env.E2E_SEED_MARKET_DATA === 'true' || process.env.E2E_CANONICAL_MARKET_DATA !== 'true',
+      'Requires the explicitly enabled authorised free-source canonical database; the default stack is identity-only',
+    )
     await page.goto('/chart')
     const sectorList = page.getByRole('region', { name: 'Relative to SPY' })
     await expect(sectorList).toBeVisible({ timeout: 15_000 })
@@ -2121,6 +2127,7 @@ test.describe('TC2000 workstation', () => {
   })
 
   test('F8e.1 — deep top-down drilldown reaches industry proxies and constituents', async ({ page, browserDiagnostics }) => {
+    test.skip(process.env.E2E_SEED_MARKET_DATA !== 'true', 'Requires the deterministic market-data fixture; canonical live coverage is a separate opt-in oracle')
     await page.goto('/chart')
     await expect(page.getByRole('region', { name: 'Major US benchmarks' })).toBeVisible({ timeout: 10_000 })
     const sectorList = page.getByRole('region', { name: 'Relative to SPY' })
@@ -2257,6 +2264,7 @@ test.describe('TC2000 workstation', () => {
   })
 
   test('F8e.1a — every S&P 500 sector has an industry drilldown surface and stable horizontal scroll', async ({ page, browserDiagnostics }) => {
+    test.skip(process.env.E2E_SEED_MARKET_DATA !== 'true', 'Requires the deterministic market-data fixture; canonical live coverage is a separate opt-in oracle')
     await page.goto('/chart')
     const sectorList = page.getByRole('region', { name: 'Relative to SPY' })
     await expect(sectorList.locator('.watchlist__row').first()).toBeVisible({ timeout: 20_000 })
@@ -2282,6 +2290,7 @@ test.describe('TC2000 workstation', () => {
   })
 
   test('F8e.swing-analysis — trader can complete the top-down trend, ratio, drawing, and traversal flow', async ({ page, browserDiagnostics }) => {
+    test.skip(process.env.E2E_SEED_MARKET_DATA !== 'true', 'Requires the deterministic market-data fixture; canonical live coverage is a separate opt-in oracle')
     test.setTimeout(120_000)
     await page.goto('/chart')
     const benchmark = page.getByRole('region', { name: 'Major US benchmarks' })

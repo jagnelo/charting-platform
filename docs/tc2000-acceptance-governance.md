@@ -1,5 +1,14 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-08-19 — Top-down browser evidence uses explicit data modes
+
+The seeded acceptance path now covers the trader's full top-down interaction sequence and the
+eight-family map/breadth/rotation matrix. Fixture-dependent tests declare `E2E_SEED_MARKET_DATA=true`;
+canonical provider tests require the separate `E2E_CANONICAL_MARKET_DATA=true` opt-in. This is a
+test-oracle boundary, not a product shortcut: the default stack is identity-only and must expose
+unavailable/stale coverage honestly. The canonical live-source gate remains open until a hydrated,
+network-enabled free-source run passes. No acceptance flexibility was used.
+
 ## 2026-08-19 — Python comparison targets may use the prepared benchmark dataset
 
 The recursive Python breadth condition editor now exposes an explicit right-side dataset choice:
