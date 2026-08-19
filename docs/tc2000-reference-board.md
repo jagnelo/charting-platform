@@ -1,5 +1,18 @@
 # TC2000 Version 25 composite reference board
 
+## 2026-08-19 — Family maintenance pending/unavailable state remains a visual gap
+
+The family history planner now carries the same distinction as the universal Market Map: a mapped
+locked role with missing local profile/holdings data is `pending`, while an unverified role is
+`unavailable`. This prevents bootstrap/admin progress from making a real system watchlist appear
+nonexistent, without inventing membership or contacting providers interactively.
+
+Gap status: `required_missing` for exact V25 maintenance/progress wording, badges, and transition
+geometry. Interim oracle: family/bootstrap/holdings tests `25/25`, backend unit `1248/1248`, Ruff,
+compileall, and repository checks. Evidence needed: a reviewed V25 capture of a mapped family leg
+before and after holdings hydration, including pending, unavailable, retrying, and ready states.
+No visual threshold or mask was relaxed.
+
 ## 2026-08-19 — Pending locked-source followability is a visual-reference gap
 
 The implementation now treats a mapped index/ETF constituent universe as a system watchlist even

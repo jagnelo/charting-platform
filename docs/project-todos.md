@@ -1,5 +1,17 @@
 # Project TODO Memory
 
+### 2026-08-19 — Family history maintenance preserves pending mapped roles
+
+- [x] Preserve the source descriptor's availability state in the benchmark-family history planner.
+      A mapped cap/equal/value/growth role with no local profile or holdings snapshot is reported as
+      `pending`, while a role with no verified mapping remains `unavailable`; neither state invents
+      members or calls providers during planning.
+- [x] Add unit coverage for pending and genuinely unavailable roles, retain deterministic member
+      deduplication, and validate family/bootstrap/holdings tests `25/25` plus the full backend unit
+      suite `1248/1248`, Ruff, compileall, and repository checks. Acceptance flexibility: **None**.
+- [ ] Provider-backed snapshot population, member-bar coverage, historical rebalance continuity,
+      and exact V25 maintenance/progress visuals remain open; this closes status propagation only.
+
 ### 2026-08-19 — Mapped locked sources remain followable while membership hydrates
 
 - [x] Keep a canonical index/ETF/benchmark-family source selectable and followable when its

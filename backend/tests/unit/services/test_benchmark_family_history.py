@@ -28,13 +28,16 @@ def test_family_history_normalizers_reject_unknown_values_and_dedupe_timeframes(
 
 
 @pytest.mark.asyncio
-async def test_family_history_plan_deduplicates_members_and_reports_unavailable_legs(monkeypatch):
+async def test_family_history_plan_deduplicates_members_and_preserves_pending_legs(monkeypatch):
     async def fake_resolve(_db, _user_id, source_id, *, as_of):
         assert _user_id == 0
         assert as_of is None
         if source_id.endswith(":cap_weight"):
             return SimpleNamespace(
-                descriptor=SimpleNamespace(membership_version="cap-v1"),
+                descriptor=SimpleNamespace(
+                    membership_version="cap-v1",
+                    provenance={"availability": "available"},
+                ),
                 members=(
                     SimpleNamespace(instrument_id=10),
                     SimpleNamespace(instrument_id=20),
@@ -42,7 +45,10 @@ async def test_family_history_plan_deduplicates_members_and_reports_unavailable_
                 exclusions=({"reason": "unresolved_holding"},),
             )
         return SimpleNamespace(
-            descriptor=SimpleNamespace(membership_version="empty-v1"),
+            descriptor=SimpleNamespace(
+                membership_version="empty-v1",
+                provenance={"availability": "holdings_snapshot_not_loaded"},
+            ),
             members=(),
             exclusions=({"reason": "holdings_snapshot_not_loaded"},),
         )
@@ -62,8 +68,33 @@ async def test_family_history_plan_deduplicates_members_and_reports_unavailable_
     assert plan["limited"] is True
     assert plan["timeframes"] == ["D1"]
     assert plan["legs"][0]["selected_count"] == 2
-    assert plan["legs"][1]["status"] == "unavailable"
+    assert plan["legs"][1]["status"] == "pending"
     assert plan["legs"][1]["message"] == "holdings_snapshot_not_loaded"
+
+
+@pytest.mark.asyncio
+async def test_family_history_plan_keeps_unmapped_roles_unavailable(monkeypatch):
+    async def fake_resolve(_db, _user_id, _source_id, *, as_of):
+        assert _user_id == 0
+        assert as_of is None
+        return SimpleNamespace(
+            descriptor=SimpleNamespace(
+                membership_version="missing-v1",
+                provenance={"availability": "unavailable"},
+            ),
+            members=(),
+            exclusions=({"reason": "benchmark_family_role_unavailable"},),
+        )
+
+    monkeypatch.setattr(history, "resolve_watchlist_source", fake_resolve)
+    plan = await history.plan_benchmark_family_history_refresh(
+        object(),
+        family_keys=[history.normalize_family_keys(None)[0]],
+        roles=["value"],
+    )
+
+    assert plan["legs"][0]["status"] == "unavailable"
+    assert plan["legs"][0]["message"] == "benchmark_family_role_unavailable"
 
 
 @pytest.mark.asyncio

@@ -141,12 +141,30 @@ async def plan_benchmark_family_history_refresh(
                 selected_count += 1
 
             available = bool(members)
+            descriptor_provenance = getattr(resolved.descriptor, "provenance", {}) or {}
+            availability = (
+                descriptor_provenance.get("availability")
+                if isinstance(descriptor_provenance, dict)
+                else None
+            )
+            # A mapped system source with no local snapshot is still a real
+            # locked watchlist. Preserve its pending state for bootstrap and
+            # admin progress instead of presenting it as a missing role.
+            leg_status = "ready" if available else (
+                "pending"
+                if availability in {
+                    "profile_not_loaded",
+                    "holdings_snapshot_not_loaded",
+                    "membership_not_loaded",
+                }
+                else "unavailable"
+            )
             legs.append(
                 {
                     "source_id": source_id,
                     "family_key": family_key,
                     "role": role,
-                    "status": "ready" if available else "unavailable",
+                    "status": leg_status,
                     "member_count": len(members),
                     "selected_count": selected_count,
                     "deduplicated_count": len(members) - selected_count,
