@@ -18,6 +18,7 @@ and provider-backed membership/bar completeness remain open visual/data gaps.
 The canvas draw-order follow-up now paints group boundaries and labels after member fills/text, so the
 large-universe hierarchy is visible in the same way as the HTML overlay path. The fix passed the same
 focused `35/35`, full `912/912`, type-check, and build gates; no visual threshold or mask was relaxed.
+The large-universe regression now asserts the final group stroke order directly.
 
 ## 2026-08-19 — Unresolved provider holdings remain pending in every source surface
 

@@ -1,5 +1,13 @@
 # Run Report
 
+## 2026-08-19 — Large-universe canvas ordering is regression-tested
+
+- The 10,000-member grouped fixture now asserts that the final group boundary stroke is invoked
+  after member fills, directly guarding the visibility fix.
+- Focused layout/frame and Market Map `35/35`; full frontend Vitest `912/912`; type-check/build;
+  and `git diff --check` pass. No acceptance flexibility, visual threshold, or mask relaxation.
+- Exact V25 canvas visuals remain explicit gaps. Regression commit `39f8f624dbec0da9d2e7b593ee8813fe10f947b3` is pushed.
+
 ## 2026-08-19 — Corrected large-universe Market Map group-label paint order
 
 - The canvas now paints member fills/text before group boundaries and labels, preventing the

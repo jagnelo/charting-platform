@@ -1,5 +1,16 @@
 # Active Handoff
 
+## 2026-08-19 — Canvas paint-order regression is now asserted directly
+
+- Strengthened the existing 10,000-member grouped canvas test with a grouped fixture and an
+  invocation-order assertion proving the final group stroke occurs after member fills.
+- Focused layout/frame and Market Map coverage remains `35/35`; full frontend Vitest remains
+  `912/912`; type-check, production build, and `git diff --check` pass. Acceptance flexibility:
+  **None**.
+- Exact V25 canvas styling remains `required_missing`; this test protects the functional interim
+  oracle only. Regression commit `39f8f624dbec0da9d2e7b593ee8813fe10f947b3` is pushed and synchronized; the operational checkpoint
+  is the next required write.
+
 ## 2026-08-19 — Canvas group labels remain visible after member paint
 
 - Fixed the large-universe Market Map paint order: member fills/text are rendered first, then group

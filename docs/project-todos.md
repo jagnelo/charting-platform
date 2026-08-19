@@ -13,6 +13,8 @@
       and labels in the large-universe canvas path without intercepting member selection.
 - [x] Paint canvas group boundaries and labels after member fills/text so the large-universe hierarchy
       remains visible instead of being overwritten by tile paint.
+- [x] Make the 10,000-member regression assert the ordering invariant directly, rather than only
+      checking that canvas painting occurred.
 - [x] Add grouped-layout/frame regression coverage and run the focused layout/Market Map component
       suite `35/35`, full frontend Vitest `912/912`, type-check, production build, and diff checks.
 - [ ] Exact V25 group labels, borders/gutters, density, hover treatment, and arbitrary-watchlist map

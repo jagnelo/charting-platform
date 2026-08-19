@@ -18,6 +18,7 @@ or mask was relaxed.
 
 Canvas parity correction: group boundaries and labels are painted after member fills/text so the
 interim hierarchy is not hidden in the large-universe path. Exact V25 styling remains `required_missing`.
+The 10,000-member test now verifies that ordering rather than merely checking canvas existence.
 
 ## 2026-08-19 — Unresolved holdings state remains a required visual gap
 
