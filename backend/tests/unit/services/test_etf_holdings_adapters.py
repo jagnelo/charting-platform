@@ -385,6 +385,50 @@ def test_thrivent_route_is_symbol_scoped_and_not_fallback_only():
 
 
 @pytest.mark.asyncio
+async def test_thrivent_route_failure_uses_curated_sec_identity(monkeypatch):
+    adapter = get_holdings_adapter("thrivent")
+    assert adapter is not None
+    observed: dict[str, object] = {}
+
+    async def failing_parent(*args, **kwargs):
+        del args, kwargs
+        raise requests.HTTPError("403 Client Error: Forbidden")
+
+    async def fake_sec_fallback(*, symbol, issuer_product_id, identifiers):
+        observed.update(
+            {
+                "symbol": symbol,
+                "issuer_product_id": issuer_product_id,
+                "identifiers": identifiers,
+            }
+        )
+        return HoldingsFetchResult(
+            rows=[CanonicalHoldingRow(symbol="ABC", name="Example Corp")],
+            source_url="https://www.sec.gov/Archives/edgar/data/1896670/fixture.xml",
+            source_identifier="0001896670-26-000001",
+            legal_metadata={"route_resolution": "sec_edgar_filing_fallback"},
+        )
+
+    monkeypatch.setattr(IssuerCsvHoldingsAdapter, "fetch_latest", failing_parent)
+    monkeypatch.setattr(adapter, "_fetch_latest_sec_filing_holdings", fake_sec_fallback)
+
+    result = await adapter.fetch_latest(symbol="TSCV", identifiers={})
+
+    assert observed == {
+        "symbol": "TSCV",
+        "issuer_product_id": None,
+        "identifiers": {
+            "sec_cik": "0001896670",
+            "sec_class_id": "C000263596",
+            "sec_fund_tickers_symbol": "TSCV",
+        },
+    }
+    assert result.legal_metadata["route_resolution"] == "sec_edgar_filing_fallback"
+    assert result.legal_metadata["issuer_route_fallback"] == "sec_edgar_filing"
+    assert "403" in result.legal_metadata["issuer_route_failure"]
+
+
+@pytest.mark.asyncio
 async def test_thrivent_csv_route_preserves_issuer_source_metadata(monkeypatch):
     adapter = get_holdings_adapter("thrivent")
     assert adapter is not None

@@ -1,5 +1,16 @@
 # TC2000 Version 25 composite reference board
 
+## 2026-08-19 — Thrivent issuer-blocked fallback has no exact V25 visual oracle
+
+The TSCV issuer CSV can return 403 to backend clients even though the official product page exposes
+the download. The workstation now recovers with SEC EDGAR through curated fund identity and clearly
+labels the result as a filing fallback, retaining the original issuer failure.
+
+Gap status: `required_missing` for exact V25 maintenance/source-picker visuals covering issuer 403,
+fallback progress, stale/partial coverage badges, retry, and recovery-complete states. Interim
+oracle: adapter/taxonomy units `508/508`, focused provider regressions `11/11`, live TSCV `1/1`,
+Ruff/compileall/diff checks. No visual threshold or mask was relaxed.
+
 ## 2026-08-19 — SFY primary/fallback state is functional but lacks exact V25 visuals
 
 The SFY route now uses the currently linked SoFi holdings artifact and recovers through SEC EDGAR

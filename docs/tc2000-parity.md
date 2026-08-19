@@ -1,5 +1,17 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-19 — Thrivent TSCV issuer 403 now recovers through SEC EDGAR
+
+The Thrivent TSCV CSV endpoint remains the primary issuer route, but the live endpoint returned
+403 to the backend. The adapter now falls back to SEC EDGAR using the curated Thrivent ETF Trust
+identity (`CIK 0001896670`, class `C000263596`, ticker `TSCV`) and retains the issuer failure,
+fallback route, and product-page provenance. The fallback is never relabelled as a daily issuer CSV.
+
+Adapter/taxonomy units pass `508/508`, focused provider regressions pass `11/11`, and the opt-in live
+TSCV route passes `1/1` through SEC recovery. No acceptance flexibility was used. Remaining gaps
+are other provider routes, all-eight family population, canonical member-bar history, historical
+continuity, entitlement/terms evidence, and exact V25 maintenance/fallback visuals.
+
 ## 2026-08-19 — SoFi SFY source repair restores the primary route and honest fallback state
 
 The SoFi SFY adapter had a concrete route defect: its configured CloudFront hostname was stale, so

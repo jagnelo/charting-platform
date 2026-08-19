@@ -3141,6 +3141,15 @@ KNOWN_ETF_PROVIDER_METADATA_BY_SYMBOL: dict[str, dict[str, Any]] = {
             "minimum_expected_rows": 300,
         },
     },
+    "TSCV": {
+        "issuer": "Thrivent",
+        "provider_aliases": {
+            "holdings_adapter": "thrivent",
+            "sec_cik": "0001896670",
+            "sec_class_id": "C000263596",
+            "sec_fund_tickers_symbol": "TSCV",
+        },
+    },
     # Direxion publishes QQQE's daily holdings as a public symbol-scoped CSV.
     # Keep the official product page beside the adapter identity so canonical
     # refresh can select the native route without issuer/name inference.
@@ -63477,18 +63486,48 @@ class ThriventHoldingsAdapter(IssuerCsvHoldingsAdapter):
             raise ValueError(
                 f"No verified Thrivent daily holdings route is configured for {normalized_symbol}."
             )
-        result = await super().fetch_latest(
-            symbol=normalized_symbol,
-            issuer_product_id=issuer_product_id,
-            source_url=source_url,
-            identifiers=identifiers,
-        )
+        identifiers = identifiers or {}
+        route_resolution = "thrivent_public_symbol_scoped_daily_holdings_csv"
+        try:
+            result = await super().fetch_latest(
+                symbol=normalized_symbol,
+                issuer_product_id=issuer_product_id,
+                source_url=source_url,
+                identifiers=identifiers,
+            )
+        except (httpx.HTTPError, requests.RequestException, ValueError) as route_error:
+            fallback_identifiers = dict(identifiers)
+            route_metadata = known_etf_route_metadata(normalized_symbol)
+            provider_aliases = route_metadata.get("provider_aliases")
+            if not _identifier(fallback_identifiers, "sec_cik") and isinstance(
+                provider_aliases, dict
+            ):
+                for key in ("sec_cik", "sec_series_id", "sec_class_id", "sec_fund_tickers_symbol"):
+                    value = _identifier(provider_aliases, key)
+                    if value and not _identifier(fallback_identifiers, key):
+                        fallback_identifiers[key] = value
+            sec_result = await self._fetch_latest_sec_filing_holdings(
+                symbol=normalized_symbol,
+                issuer_product_id=issuer_product_id,
+                identifiers=fallback_identifiers,
+            )
+            if sec_result is None:
+                raise route_error
+            sec_result.legal_metadata = {
+                **(sec_result.legal_metadata or {}),
+                "issuer_route_failure": str(route_error),
+                "issuer_route_fallback": "sec_edgar_filing",
+                "product_page_url": self.PRODUCT_PAGE_URLS[normalized_symbol],
+                "terms_note": self.config.terms_note,
+            }
+            result = sec_result
+            route_resolution = "sec_edgar_filing_fallback"
         result.legal_metadata = {
             **(result.legal_metadata or {}),
             "source_access": self.config.source_access,
             "source_provider": self.source_provider,
             "adapter_key": self.adapter_key,
-            "route_resolution": "thrivent_public_symbol_scoped_daily_holdings_csv",
+            "route_resolution": route_resolution,
             "product_page_url": self.PRODUCT_PAGE_URLS[normalized_symbol],
             "refresh_frequency": "daily_issuer_export",
             "freshness_semantics": "issuer_disclosed_holdings_date",

@@ -1,5 +1,18 @@
 # Project TODO Memory
 
+### 2026-08-19 — Repair Thrivent TSCV WAF route with SEC fallback provenance
+
+- [x] Preserve the official symbol-scoped Thrivent CSV route as the primary path, but catch its
+      observed backend 403 and retry through canonical SEC EDGAR identity (`CIK 0001896670`, class
+      `C000263596`, `TSCV`) rather than failing the locked source outright.
+- [x] Keep fallback output labelled `sec_edgar_filing_fallback` with issuer-route failure and
+      product-page provenance; caller identifiers remain authoritative and no ticker/name identity
+      inference is added.
+- [x] Add a unit regression for the 403/fallback path and verify adapter/taxonomy units `508/508`,
+      focused provider regressions `11/11`, live TSCV `1/1`, Ruff, compileall, and diff checks.
+- [ ] Continue remaining provider repairs, family-wide membership/bar history, historical
+      continuity, entitlement review, and exact V25 maintenance/fallback visuals.
+
 ### 2026-08-19 — Repair SoFi SFY holdings route and label SEC fallback coverage
 
 - [x] Correct the verified SoFi SFY quarterly holdings artifact hostname from the stale
