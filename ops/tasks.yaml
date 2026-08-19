@@ -1,4 +1,29 @@
 tasks:
+  - id: tc2000-family-history-shared-queue-bound-20260819
+    title: Align benchmark-family history refresh with the shared historical queue
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Make administrative benchmark-family constituent history hydration use the same canonical
+      ARQ task arguments, historical end propagation, and deterministic idempotence identity as
+      arbitrary watchlist source refreshes.
+    definition_of_done:
+      - Unbounded family refreshes preserve the existing task argument shape and shared job identity
+      - Historical family refreshes pass as_of through worker arguments and include it in job identity
+      - Route-specific benchmark-family history job names are removed
+      - Complete ETF holdings integration, lint, compile, and diff checks pass
+    validation:
+      - etf-holdings-integration-63-of-63
+      - targeted-family-history-route-regression-1-of-1
+      - backend-ruff-and-compileall
+      - git-diff-check
+    notes:
+      - >-
+        Acceptance flexibility used: None. This closes queue consistency only; provider-backed
+        holdings depth, complete eight-family population, rebalance continuity, and exact V25
+        maintenance visuals remain open.
+
   - id: tc2000-historical-provider-future-bar-guard-20260819
     title: Reject future provider bars during historical hydration
     status: completed

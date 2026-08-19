@@ -1,5 +1,17 @@
 # Run Report
 
+## 2026-08-19 — Benchmark-family history refreshes preserve historical bounds
+
+- Replaced the administrative route's route-specific job namespace with the shared canonical history
+  identity. Historical family refreshes now pass `as_of` through queue arguments and provider end
+  bounds; unbounded calls remain backward-compatible.
+- Evidence: targeted route regression `1/1`; complete ETF holdings integration `63/63`; Ruff;
+  compileall; `git diff --check`. Implementation/docs commit `dfb096e3154a792e6c131cdcad7fa99ac3baa3d3`
+  pushed successfully.
+- Acceptance flexibility: **None**. Provider depth/coverage, all-eight family population,
+  rebalance continuity, canonical bars, exact V25 maintenance visuals, and remaining board gaps are
+  explicit open work.
+
 ## 2026-08-19 — Future provider bars are excluded from historical hydration
 
 - Added a defensive post-response timestamp filter to the canonical bulk-history worker. Rows after

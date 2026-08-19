@@ -1,5 +1,23 @@
 # Active Handoff
 
+## 2026-08-19 — Benchmark-family history uses the shared historical queue
+
+- Closed a route-specific family hydration divergence. The administrative
+  `POST /etf-holdings/benchmark-families/history-refresh` path now uses the same canonical
+  `task_bulk_fetch_instrument` arguments and `watchlist-source-history:{instrument}:{timeframes}`
+  identity as arbitrary watchlist refreshes. With `as_of`, it passes the normalized historical end
+  to the worker and separates the job identity; without it, legacy arguments and identity remain
+  unchanged.
+- Validation: targeted family-history route regression `1/1`; complete ETF holdings integration
+  `63/63`; Ruff/compileall; `git diff --check`. Implementation/docs commit
+  `dfb096e3154a792e6c131cdcad7fa99ac3baa3d3` is pushed and origin is synchronized.
+- Acceptance flexibility: **None**. Remaining gaps are provider holdings availability/depth,
+  complete all-eight family population, rebalance continuity, canonical member bars, exact V25
+  history-maintenance visuals, and broader visual-board coverage. Queue consistency is not counted
+  as any of those deliverables.
+- Next context: provider-backed saved-source coverage and family-role population/continuity, then
+  the next parity gap, from a clean synchronized branch.
+
 ## 2026-08-19 — Historical hydration rejects future provider rows
 
 - Closed the remaining future-bar leakage path in the historical watchlist contract. After a
