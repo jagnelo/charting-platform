@@ -9,8 +9,8 @@
   Ruff, compileall, and `git diff --check`. Acceptance flexibility: **None**.
 - Remaining work is Lazard JPY and other provider routes, family-wide membership/bar history,
   historical continuity, entitlement/terms review, and exact V25 maintenance/fallback visuals.
-  Implementation/docs commit `4cbd5b7406ae35eefb96ff354bee68e7d4a16680` is pushed and synchronized;
-  this operational record is the separate checkpoint.
+  Implementation/docs commit `4cbd5b7406ae35eefb96ff354bee68e7d4a16680` and ops checkpoint
+  `6274c28f655cab23752bd1e8773dcfce69685225` are pushed and synchronized; this context is closed.
 
 ## 2026-08-19 — Context transition to GraniteShares NVD repair
 

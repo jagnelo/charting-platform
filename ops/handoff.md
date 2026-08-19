@@ -10,8 +10,9 @@
   composition/as-of date, complete disclosed exposure, and a coverage warning describing the swap.
 - Validation: GraniteShares-focused `3/3`, SEC/parser/adapter units `506/506`, live NVD `1/1`,
   Ruff, compileall, and `git diff --check` pass. Acceptance flexibility: **None**.
-- Implementation/docs commit `4cbd5b7406ae35eefb96ff354bee68e7d4a16680` is pushed and synchronized;
-  the separate ops checkpoint is now being committed. Next provider context remains Lazard JPY;
+- Implementation/docs commit `4cbd5b7406ae35eefb96ff354bee68e7d4a16680` and ops checkpoint
+  `6274c28f655cab23752bd1e8773dcfce69685225` are pushed and synchronized; this context is closed.
+  Next provider context remains Lazard JPY;
   family-wide membership/bar history, historical continuity, entitlement review, and exact V25
   maintenance/fallback visuals remain open.
 
