@@ -13,6 +13,9 @@
       cover nested conditions, the `within 1% of 52-week high` example, source lineage, and study
       contract with focused tests. Full frontend Vitest passes `918/918`; `vue-tsc` and the Vite
       production build pass.
+- [x] Prove the same contract in the authenticated workstation browser flow: evaluate the
+      role-aware family predicate, save it from Breadth, and assert the Study asset retains its
+      immutable study contract, source lineage, timeframe, adjustment, and serialized AST (`1/1`).
 - [ ] Continue target-specific promotion adapters for columns, filters, scans, gauges, alerts,
       plots, and Strategy Lab signals where the breadth output contract permits. This slice does
       not claim complete promotion fan-out or exact Version 25 promotion-row visuals.

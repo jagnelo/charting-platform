@@ -8,9 +8,10 @@ the universe to ticker text. The persisted asset must retain the exact predicate
 source ID (including locked index/ETF sources), timeframe, adjustment, and as-of semantics. The
 Python source is only a sandboxed SDK wrapper; it is never executed in the browser or FastAPI.
 
-Focused payload tests pass `2/2`, full frontend Vitest passes `918/918`, and type/build checks pass.
-This is an incremental reuse gate, not a waiver of the remaining target-specific promotion fan-out
-or Version 25 promotion-visual gaps. No acceptance flexibility was used.
+Focused payload tests pass `2/2`; the authenticated family Breadth → Study Lab browser assertion
+passes `1/1`; full frontend Vitest passes `918/918`, and type/build checks pass. This is an
+incremental reuse gate, not a waiver of the remaining target-specific promotion fan-out or
+Version 25 promotion-visual gaps. No acceptance flexibility was used.
 
 ## 2026-08-19 — Full four-environment seeded visual matrix synchronized
 

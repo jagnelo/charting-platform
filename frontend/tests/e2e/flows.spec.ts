@@ -3673,6 +3673,12 @@ test.describe('TC2000 workstation', () => {
   test('F8s-breadth-family-ratio — family breadth exposes role-aware cap and market relative strength', async ({ page, browserDiagnostics }) => {
     const customBreadthRequests: Array<Record<string, unknown>> = []
     const familyAsOfRequests: string[] = []
+    const savedBreadthDefinitions: Array<Record<string, unknown>> = []
+    await page.route('**/api/v1/code/assets', async route => {
+      if (route.request().method() !== 'POST') return route.continue()
+      savedBreadthDefinitions.push(JSON.parse(route.request().postData() ?? '{}') as Record<string, unknown>)
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ id: 99, stable_key: 'breadth-sp500', name: 'SPY breadth', versions: [{ id: 99, version_number: 1, output_contract: 'study' }] }) })
+    })
     await page.route('**/api/v1/analysis/breadth', async route => {
       if (route.request().method() === 'POST') customBreadthRequests.push(JSON.parse(route.request().postData() ?? '{}') as Record<string, unknown>)
       await route.fulfill({
@@ -3968,6 +3974,20 @@ test.describe('TC2000 workstation', () => {
     await customUniverse.selectOption('benchmark_family')
     const initialRequest = await evaluateCustomBreadth()
     expect(initialRequest?.universe).toMatchObject({ kind: 'benchmark_family', key: 'sp500', role: 'equal_weight' })
+    await breadth.getByLabel('Breadth reusable definition name').fill('SPY breadth participation')
+    await breadth.getByRole('button', { name: 'Save as Study Lab definition' }).click()
+    await expect(breadth).toContainText('Saved immutable Study Lab definition.', { timeout: 10_000 })
+    expect(savedBreadthDefinitions).toHaveLength(1)
+    expect(savedBreadthDefinitions[0]).toMatchObject({ kind: 'study', name: 'SPY breadth participation' })
+    expect(savedBreadthDefinitions[0].initial_version).toMatchObject({
+      output_contract: 'study',
+      default_parameters: {
+        universe_source_id: 'sp500',
+        timeframe: 'D1',
+        adjustment: 'split_adjusted',
+      },
+    })
+    expect(JSON.stringify(savedBreadthDefinitions[0].initial_version)).toContain('benchmark_family')
     await expect(breadth.locator('[aria-label="Generic breadth clause diagnostics"]')).toContainText('$.conditions[0] comparison pass')
     const occurrencePanel = breadth.locator('[aria-label="Generic breadth historical occurrences"]')
     await expect(occurrencePanel).toBeVisible({ timeout: 15_000 })

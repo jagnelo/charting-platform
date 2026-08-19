@@ -9,9 +9,10 @@ as-of policy in default parameters. This applies equally to personal, combo, ind
 ETF-holdings, sector, industry, managed, and explicit sources; a locked source remains immutable
 only for membership edits, not for downstream research reuse.
 
-Focused serializer/payload coverage passes `2/2`; full frontend Vitest passes `918/918`; type-check
-and production build pass. Remaining parity gaps are target-specific promotion fan-out and exact
-Version 25 promotion-row visuals.
+Focused serializer/payload coverage passes `2/2`; the authenticated family Breadth browser flow
+passes `1/1`; full frontend Vitest passes `918/918`; type-check and production build pass.
+Remaining parity gaps are target-specific promotion fan-out and exact Version 25 promotion-row
+visuals.
 
 ## 2026-08-19 — Four-environment seeded baseline matrix is synchronized
 
