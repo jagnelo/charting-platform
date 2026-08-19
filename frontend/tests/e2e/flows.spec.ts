@@ -2097,15 +2097,10 @@ test.describe('TC2000 workstation', () => {
   test('F8e.2a — a sector row can launch its ratio against the active benchmark', async ({ page, browserDiagnostics }) => {
     test.setTimeout(90_000)
     await page.goto('/chart')
-    // This flow mutates the shared ratio window. Restore the immutable factory
-    // first so an earlier comparison/template test cannot leave a persisted
-    // custom ratio that masks the row-action contract.
-    const reset = page.getByTitle('Reset factory workspace').first()
-    if (await reset.count()) {
-      page.once('dialog', dialog => dialog.accept())
-      await reset.click()
-      await expect(page.getByRole('region', { name: 'Relative to SPY' })).toBeVisible({ timeout: 15_000 })
-    }
+    // The authenticated fixture creates a unique user and resets its factory
+    // workspace before mounting this page. Do not reset again here: a second
+    // Golden Layout replacement can leave the row-action handler attached to
+    // a detached tool root while the visible workspace has already hydrated.
     const sectorList = page.locator('.watchlist[aria-label="Relative to SPY"]:visible').filter({ has: page.locator('.watchlist__row') }).last()
     const xlk = sectorList.getByRole('option', { name: /XLK/ }).first()
     await expect(xlk).toBeVisible({ timeout: 20_000 })
