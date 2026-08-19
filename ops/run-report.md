@@ -13,9 +13,8 @@
 - Acceptance flexibility: **None**. Provider availability/depth, complete all-eight family
   population, historical rebalance continuity, canonical member bars, and exact V25 maintenance
   visuals remain explicit gaps.
-- Implementation/docs commit `722c1546528e71f7545e6c87c5c5ef27d34cf46b` is pushed and synchronized.
-  The separate operational checkpoint is pending; no next context begins until it is pushed and
-  the worktree is clean.
+- Implementation/docs commit `722c1546528e71f7545e6c87c5c5ef27d34cf46b` and operational checkpoint
+  `fcc4c6306724df60a2914b61097cd6a59a838ccf` are pushed and synchronized; the worktree is clean.
 
 ## 2026-08-19 — Benchmark-family history refreshes preserve historical bounds
 
