@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from sqlalchemy.sql import func
 
+from app.models.asset_class import InstrumentType
 from app.models.etf_holdings import ETFHolding, ETFHoldingsSnapshot, ETFProfile
 from app.models.instrument import Instrument
 from app.models.user import User
@@ -331,7 +332,7 @@ def _benchmark_family_role_descriptor(
 
 
 def _etf_descriptor(
-    profile: ETFProfile,
+    profile: ETFProfile | None,
     instrument: Instrument,
     snapshot: ETFHoldingsSnapshot | None,
 ) -> WatchlistSourceRead:
@@ -344,13 +345,21 @@ def _etf_descriptor(
         locked=True,
         instrument_id=instrument.id,
         symbol=instrument.symbol,
-        membership_version=_version("etf-holdings", profile.id, snapshot.known_at if snapshot else None),
+        membership_version=_version(
+            "etf-holdings",
+            profile.id if profile is not None else f"instrument:{instrument.id}",
+            snapshot.known_at if snapshot else None,
+        ),
         member_count=snapshot.row_count if snapshot else 0,
-        source=snapshot.source_provider if snapshot else profile.adapter_key,
+        source=snapshot.source_provider if snapshot else (profile.adapter_key if profile else "canonical_etf_pending"),
         provenance={
             "membership_semantics": "etf_proxy_holdings",
-            "availability": "available" if snapshot is not None and snapshot.row_count > 0 else "holdings_snapshot_not_loaded",
-            "profile_id": profile.id,
+            "availability": (
+                "available"
+                if snapshot is not None and snapshot.row_count > 0
+                else ("holdings_snapshot_not_loaded" if profile is not None else "profile_not_loaded")
+            ),
+            "profile_id": profile.id if profile is not None else None,
             "snapshot_id": snapshot.id if snapshot else None,
             "snapshot_hash": snapshot.snapshot_hash if snapshot else None,
             "completeness_status": snapshot.completeness_status if snapshot else "not_loaded",
@@ -696,6 +705,26 @@ async def list_watchlist_sources(db: AsyncSession, user: User) -> list[Watchlist
         )
         .all()
     )
+    # Every canonical ETF is a potential locked constituent universe.  Do not
+    # hide it merely because its ETFProfile/holdings route has not hydrated yet;
+    # the selector must expose the source as pending and let the normal refresh
+    # contract populate it later.
+    etf_instruments = (
+        (
+            await db.execute(
+                select(Instrument)
+                .join(InstrumentType, InstrumentType.id == Instrument.instrument_type_id)
+                .where(
+                    InstrumentType.name.ilike("etf"),
+                    Instrument.is_active.is_(True),
+                    Instrument.is_synthetic.is_(False),
+                )
+                .order_by(Instrument.symbol)
+            )
+        )
+        .scalars()
+        .all()
+    )
     ranked_snapshots = (
         select(
             ETFHoldingsSnapshot.id.label("snapshot_id"),
@@ -754,6 +783,16 @@ async def list_watchlist_sources(db: AsyncSession, user: User) -> list[Watchlist
         for watchlist in watchlists
     }
     profiles_by_symbol = {instrument.symbol.upper(): (profile, instrument) for profile, instrument in profiles}
+    etf_sources = [
+        _etf_descriptor(profile, instrument, latest.get(profile.id))
+        for profile, instrument in profiles
+    ]
+    profiled_symbols = {instrument.symbol.upper() for _profile, instrument in profiles}
+    etf_sources.extend(
+        _etf_descriptor(None, instrument, None)
+        for instrument in etf_instruments
+        if instrument.symbol.upper() not in profiled_symbols
+    )
     explicit_sources: list[WatchlistSourceRead] = []
     for item in explicit_items:
         try:
@@ -766,7 +805,7 @@ async def list_watchlist_sources(db: AsyncSession, user: User) -> list[Watchlist
     sources = [
         *(_watchlist_descriptor(item) for item in watchlists),
         *(_market_group_descriptor(item) for item in groups),
-        *(_etf_descriptor(profile, instrument, latest.get(profile.id)) for profile, instrument in profiles),
+        *etf_sources,
         *(
             _combo_descriptor(
                 item,
@@ -1198,7 +1237,25 @@ async def resolve_watchlist_source(
             )
         ).first()
         if row is None:
-            raise LookupError("etf_holdings_source_not_found")
+            instrument = (
+                await db.execute(
+                    select(Instrument)
+                    .join(InstrumentType, InstrumentType.id == Instrument.instrument_type_id)
+                    .where(
+                        Instrument.symbol == symbol,
+                        InstrumentType.name.ilike("etf"),
+                        Instrument.is_active.is_(True),
+                        Instrument.is_synthetic.is_(False),
+                    )
+                )
+            ).scalar_one_or_none()
+            if instrument is None:
+                raise LookupError("etf_holdings_source_not_found")
+            return ResolvedWatchlistSource(
+                descriptor=_etf_descriptor(None, instrument, None),
+                members=(),
+                exclusions=({"reason": "etf_profile_not_loaded", "symbol": symbol},),
+            )
         profile, instrument = row
         statement = select(ETFHoldingsSnapshot).where(
             ETFHoldingsSnapshot.etf_profile_id == profile.id

@@ -15,6 +15,54 @@ class TestWatchlistsAuth:
 
 
 class TestWatchlistsCrud:
+    def test_canonical_etf_without_profile_is_a_pending_locked_market_map_source(
+        self, client, auth_headers, db, asset_class
+    ):
+        from app.models.asset_class import InstrumentType
+        from app.models.instrument import Instrument
+
+        etf_type = InstrumentType(name="ETF", asset_class_id=asset_class.id)
+        db.add(etf_type)
+        db.flush()
+        etf = Instrument(
+            symbol="UNHYDRATED",
+            name="Unhydrated ETF",
+            currency="USD",
+            instrument_type_id=etf_type.id,
+            is_active=True,
+            is_synthetic=False,
+        )
+        db.add(etf)
+        db.flush()
+
+        sources = client.get("/api/v1/watchlists/sources", headers=auth_headers)
+        assert sources.status_code == 200, sources.text
+        source = next(
+            item for item in sources.json() if item["source_id"] == "etf-holdings:UNHYDRATED"
+        )
+        assert source["locked"] is True
+        assert source["can_edit_membership"] is False
+        assert source["member_count"] == 0
+        assert source["provenance"]["availability"] == "profile_not_loaded"
+
+        market_map = client.post(
+            "/api/v1/analysis/market-map",
+            headers=auth_headers,
+            json={
+                "source_id": "etf-holdings:UNHYDRATED",
+                "group_by": "none",
+                "period": "1D",
+                "area_metric": "equal",
+                "color_metric": "return",
+            },
+        )
+        assert market_map.status_code == 200, market_map.text
+        body = market_map.json()
+        assert body["source"]["source_id"] == "etf-holdings:UNHYDRATED"
+        assert body["source"]["provenance"]["availability"] == "profile_not_loaded"
+        assert body["requested_count"] == 0
+        assert body["cells"] == []
+
     def test_market_map_accepts_personal_source_and_rolls_up_constituents(
         self, client, auth_headers, admin_headers, db, watchlist, instrument, instrument_b
     ):

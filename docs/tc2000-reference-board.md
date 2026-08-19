@@ -1,5 +1,20 @@
 # TC2000 Version 25 composite reference board
 
+## 2026-08-19 — Arbitrary canonical ETF pending source remains a visual gap
+
+Canonical active ETFs without a hydrated ETF profile now appear in the same universal Market Map
+source picker as locked index/sector/industry and ETF constituent universes. They are labelled
+pending, remain followable/pinnable, and render an explicit empty coverage-aware map until the
+normal holdings route hydrates them. This is the required source-polymorphic behavior for treating
+every index/ETF constituent population as a hard watchlist while retaining user control over
+following, cloning, and downstream analysis.
+
+Gap status: `required_missing` for exact V25 source-picker grouping, pending wording, disabled versus
+enabled affordances, empty-map geometry, and post-hydration transition for an arbitrary ETF with no
+profile yet. Interim oracle: Docker-backed catalog → Market Map integration `1/1` and Ruff. Evidence
+needed: a reviewed V25 capture showing an unhydrated managed ETF/source, its pending state, and the
+same source transitioning to populated holdings. No visual threshold or mask was relaxed.
+
 ## 2026-08-19 — Family maintenance pending/unavailable state remains a visual gap
 
 The family history planner now carries the same distinction as the universal Market Map: a mapped

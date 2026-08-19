@@ -1,5 +1,20 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-19 — Arbitrary canonical ETFs share the locked universal heatmap contract
+
+The source catalog now exposes every active canonical ETF as a locked `etf-holdings:<SYMBOL>`
+watchlist source even when its ETF profile or holdings snapshot has not hydrated. Such a source is
+labelled pending through provenance (`profile_not_loaded`), remains selectable/followable/pinnable,
+and resolves to an explicit empty coverage-aware Market Map rather than silently disappearing or
+triggering provider calls. After normal profile/holdings maintenance, the same source ID resolves
+its canonical holdings and uses the identical Market Map/Breadth/Study Lab/scan/gauge/chart-handoff
+contract as index-family, sector, industry, personal, managed, combo, and explicit sources.
+
+The Docker-backed integration regression passes `1/1` after the unchanged elevated rerun; Ruff
+passes. This is a source-catalog boundary correction, not evidence of provider-backed holdings,
+member-bar history, rebalance continuity, complete family population, or exact V25 pending-source
+visuals. Acceptance flexibility used: **None**.
+
 ## 2026-08-19 — Family maintenance distinguishes pending mapped roles from unavailable roles
 
 Benchmark-family history planning now preserves the canonical source descriptor's availability

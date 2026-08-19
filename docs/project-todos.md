@@ -1,5 +1,26 @@
 # Project TODO Memory
 
+### 2026-08-19 — Every canonical ETF is a pending-capable locked heatmap/watchlist source
+
+- [x] Extend the universal `WatchlistSource` catalog beyond hydrated ETF profiles. Any active,
+      canonical, non-synthetic ETF now appears as `etf-holdings:<SYMBOL>` even before its ETF
+      profile or holdings snapshot exists, with `locked=true`, membership editing disabled, and
+      explicit `profile_not_loaded` availability.
+- [x] Resolve the same source through the existing Market Map contract without provider fan-out:
+      it returns an empty, coverage-aware, pending source until the normal profile/holdings refresh
+      hydrates members. Once hydrated, the same source ID resolves ordinary holdings and supports
+      grouping, performance, breadth, relative comparison, follow/pin, clone, and downstream
+      analysis handoffs just like index-family, sector, industry, personal, managed, combo, and
+      explicit sources.
+- [x] Add a Docker-backed integration regression proving catalog exposure, immutable locked
+      semantics, pending provenance, and empty Market Map resolution for an arbitrary ETF without
+      an `ETFProfile`. The unprivileged attempt hit the known Docker-socket boundary; the unchanged
+      elevated test passed `1/1`. Ruff passes.
+- [ ] Provider-backed ETF profile/holdings population, member-bar coverage, historical snapshots,
+      exact V25 source-picker/empty-map visuals, and the remaining all-family matrix remain open;
+      this closes only the arbitrary-canonical-ETF source visibility boundary. Acceptance flexibility
+      used: **None**.
+
 ### 2026-08-19 — Family history maintenance preserves pending mapped roles
 
 - [x] Preserve the source descriptor's availability state in the benchmark-family history planner.
