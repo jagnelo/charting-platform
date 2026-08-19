@@ -1,5 +1,20 @@
 # Active Handoff
 
+## 2026-08-19 — Mapped locked sources remain followable while membership hydrates
+
+- Closed a universal-watchlist interaction gap. A verified index/ETF/benchmark-family source whose
+  local profile or holdings snapshot is pending is now selectable and followable in Market Map and
+  is labelled `Pending membership`; no provider call is made by the selector and no members are
+  fabricated. A role with no verified mapping remains disabled as `Unavailable`.
+- Validation: focused Market Map component `30/30`; full frontend Vitest `909/909`; TypeScript
+  type-check; production build; docs YAML/JSON parsing; and `git diff --check` pass.
+- Acceptance flexibility: **None**. Provider-backed holdings/history, complete all-eight family
+  population, rebalance continuity, canonical member bars, and exact V25 pending-status geometry
+  remain open and are documented in the TODO/parity/reference-board entries.
+- Implementation/docs commit `bc43848676fd5a721b98274475b91ff535bfca91` is pushed. The operational
+  checkpoint for this context is being recorded now; both commits must remain synchronized before
+  the next context begins.
+
 ## 2026-08-19 — Incomplete holdings snapshots trigger a real provider retry
 
 - Closed the inner readiness defect found during the provider-population audit. The core bootstrap

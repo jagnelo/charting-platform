@@ -1,5 +1,19 @@
 # Run Report
 
+## 2026-08-19 — Mapped locked sources remain followable while membership hydrates
+
+- Changed the Market Map source picker so a verified system-managed index/ETF/benchmark-family
+  source remains selectable and exposes Follow/Pin while its local membership is pending. The UI
+  now says `Pending membership`; only an explicitly unavailable/unmapped role remains disabled.
+  Empty pending maps continue through the canonical source resolver and retain coverage semantics.
+- Evidence: focused Market Map component `30/30`; full frontend Vitest `909/909`; TypeScript
+  type-check; production build; docs YAML/JSON parsing; and `git diff --check`.
+- Acceptance flexibility: **None**. The board has no exact V25 pending-source selector/empty-map
+  capture, so that remains `required_missing`; provider holdings/history and family completeness are
+  separate open gaps.
+- Implementation/docs commit `bc43848676fd5a721b98274475b91ff535bfca91` is pushed; the operational
+  checkpoint follows as a separate commit.
+
 ## 2026-08-19 — Holdings bootstrap retries incomplete latest snapshots
 
 - Changed `bootstrap_etf_holdings_profile` so a latest snapshot is a successful reuse only when it

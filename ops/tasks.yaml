@@ -1,4 +1,32 @@
 tasks:
+  - id: tc2000-pending-locked-source-followability-20260819
+    title: Keep mapped locked sources followable before membership hydration
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Preserve the universal WatchlistSource model when a verified index/ETF/benchmark-family
+      mapping exists but the local profile or holdings snapshot is still pending. The source must
+      remain selectable, followable, and pinnable without provider fan-out; only an unverified
+      mapping remains unavailable.
+    definition_of_done:
+      - Pending profile/holdings/membership states are visibly distinct from unavailable mappings
+      - Pending locked sources remain selectable and expose follow/pin controls
+      - Empty/pending maps retain the canonical source descriptor and coverage-aware semantics
+      - Unavailable roles remain disabled and explicitly labelled
+      - Focused Market Map, full frontend Vitest, type-check, production build, docs, and diff checks pass
+    validation:
+      - market-map-component-30-of-30
+      - frontend-vitest-909-of-909
+      - frontend-type-check
+      - frontend-production-build
+      - yaml-json-and-git-diff-check
+    notes:
+      - >-
+        Acceptance flexibility used: None. This closes source existence/followability interaction
+        only; provider-backed holdings/history, complete family population, historical continuity,
+        and exact V25 pending-status geometry remain explicit gaps.
+
   - id: tc2000-holdings-bootstrap-retry-20260819
     title: Retry incomplete latest ETF holdings snapshots
     status: completed
